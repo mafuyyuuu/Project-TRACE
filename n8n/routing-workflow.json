@@ -1,0 +1,143 @@
+{
+  "name": "Project TRACE Routing Engine",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "route-document",
+        "options": {}
+      },
+      "id": "e8a93a46-8178-43d9-ab70-13f5c9429188",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        220,
+        340
+      ],
+      "webhookId": "route-document"
+    },
+    {
+      "parameters": {
+        "dataType": "string",
+        "value1": "={{ $json.body.document_type }}",
+        "rules": {
+          "rules": [
+            {
+              "value2": "Clearance",
+              "output": 0
+            },
+            {
+              "value2": "Transcript of Records",
+              "output": 1
+            }
+          ]
+        },
+        "fallbackOutput": 2
+      },
+      "id": "76d54508-3ab0-4ba3-ab0e-c14d9b4b0a88",
+      "name": "Switch on Document Type",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 1,
+      "position": [
+        460,
+        340
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://localhost:3000/api/documents/assign",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"document_id\": {{ $json.body.document_id }},\n  \"assigned_clerk_employee_id\": \"CLERK001\"\n}",
+        "options": {}
+      },
+      "id": "4568db6b-67e4-4c45-9856-11f81df2f6b8",
+      "name": "Assign to Clerk 1 (Receiving)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [
+        740,
+        180
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://localhost:3000/api/documents/assign",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"document_id\": {{ $json.body.document_id }},\n  \"assigned_clerk_employee_id\": \"CLERK002\"\n}",
+        "options": {}
+      },
+      "id": "1b08f4b1-9b19-4806-a81d-b7c4a046c823",
+      "name": "Assign to Clerk 2 (Records)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [
+        740,
+        340
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://localhost:3000/api/documents/assign",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"document_id\": {{ $json.body.document_id }},\n  \"assigned_clerk_employee_id\": \"ADMIN001\"\n}",
+        "options": {}
+      },
+      "id": "581d6f4c-e806-4fc7-bf9e-f00e93cd1b24",
+      "name": "Assign to Admin (Fallback)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [
+        740,
+        500
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Switch on Document Type",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch on Document Type": {
+      "main": [
+        [
+          {
+            "node": "Assign to Clerk 1 (Receiving)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Assign to Clerk 2 (Records)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Assign to Admin (Fallback)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {}
+}
