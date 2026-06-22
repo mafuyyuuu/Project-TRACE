@@ -5,7 +5,38 @@ This repository contains the complete end-to-end system for tracking, auto-routi
 
 ---
 
-## 🚀 Quick Start Guide
+## 🏃 Daily Startup (How to run the system)
+
+Every time you open your laptop to work on this project, you need to start these four services. Open 4 separate terminal tabs:
+
+**Terminal 1 (Backend):**
+```bash
+cd backend
+npm run dev
+```
+
+**Terminal 2 (Frontend):**
+```bash
+cd frontend
+npm run dev
+```
+
+**Terminal 3 (AI Engine):**
+```bash
+# Make sure you are using your root virtual environment
+source .venv/bin/activate
+cd ai-engine
+python app.py
+```
+
+**Terminal 4 (n8n Router):**
+```bash
+npx n8n
+```
+
+---
+
+## ⚙️ First-Time Installation & Setup
 
 ### Prerequisites
 Make sure you have the following installed on your machine:
