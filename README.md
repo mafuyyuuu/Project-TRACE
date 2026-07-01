@@ -31,7 +31,7 @@ python app.py
 
 **Terminal 4 (n8n Router):**
 ```bash
-npx n8n
+docker start n8n
 ```
 
 ---
@@ -43,6 +43,7 @@ Make sure you have the following installed on your machine:
 - **Node.js** (v18+ recommended)
 - **Python** (v3.9+)
 - **MySQL** (v8+)
+- **Docker** (Required for running n8n reliably)
 
 ### 1. Database Setup
 Ensure your MySQL server is running. Log in to MySQL and initialize the database:
@@ -146,12 +147,33 @@ cd ../frontend
 npm install
 ```
 
-**For the AI Engine:**
+### 3. Start the Orchestrator (n8n)
+We highly recommend running n8n via Docker to avoid Node.js peer-dependency conflicts. Ensure Docker Desktop is running.
+
+**For the first time ONLY, create and start the container:**
 ```bash
-cd ../ai-engine
-python -m venv .venv
-source .venv/bin/activate   # Or .venv\Scripts\activate on Windows
+docker run -d --name n8n -p 5678:5678 -v ~/.n8n:/home/node/.n8n docker.n8n.io/n8nio/n8n
+```
+*(Note: It may take a minute or two to download the image. Because of the `-d` flag, it will run silently in the background.)*
+
+**For everyday use (if you restart your computer):**
+You don't need to run the massive setup command again. Just start or stop your existing container:
+```bash
+docker start n8n
+# docker stop n8n (to turn it off)
+```
+
+Once running, access the workflow canvas at:
+👉 **[http://localhost:5678](http://localhost:5678)**
+
+### 4. Start the AI OCR Engine (Python)
+Open a new terminal window:
+```bash
+cd ai-engine
+python -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
 pip install -r requirements.txt
+python app.py
 ```
 
 Once installed, simply follow the **Daily Startup** guide at the top of this file to turn all four services back on!
