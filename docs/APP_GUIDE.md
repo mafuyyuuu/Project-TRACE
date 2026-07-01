@@ -1,6 +1,6 @@
 # Project TRACE – Application Guide
 
-**Project TRACE (Tracking, Routing, and Analytics Computing Engine)** is an end-to-end digital system designed for the Pamantasan ng Lungsod ng Pasig (PLP) Registrar's Office. It tracks, auto-routes, and analyzes document flows to eliminate manual encoding errors and speed up processing.
+**Project TRACE (Tracking, Routing, and Automated Credential Engine)** is an end-to-end digital system designed for the Pamantasan ng Lungsod ng Pasig (PLP) Registrar's Office. It tracks and auto-routes document flows to eliminate manual encoding errors and speed up processing.
 
 ---
 

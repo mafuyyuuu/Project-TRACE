@@ -20,7 +20,7 @@ This document outlines the coding preferences and conventions for Project TRACE.
 
 - **Framework:** Flask for exposing the EasyOCR functionality via a simple HTTP REST API.
 - **Virtual Environments:** Always run Python inside a virtual environment (`.venv`).
-- **Dependencies:** Keep `requirements.txt` strictly updated with only the necessary ML and web packages.
+- **Dependencies:** Keep `requirements.txt` strictly updated with only the necessary OCR and web packages.
 
 ## 🛣️ Orchestration (n8n)
 

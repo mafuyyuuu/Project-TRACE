@@ -1,10 +1,10 @@
 """
 TRACE OCR Engine
-Extracts student data from uploaded academic forms using Tesseract OCR.
+Extracts student data from uploaded academic forms using EasyOCR.
 
 This module provides functions to:
 - Preprocess document images for optimal OCR accuracy
-- Extract raw text from images using Tesseract
+- Extract raw text from images using EasyOCR
 - Parse structured student data (ID, name, form type) from raw text
 - Orchestrate the full document processing pipeline
 """
@@ -70,7 +70,7 @@ def preprocess_image(filepath):
 
 def extract_text(filepath):
     """
-    Extract text from a document image using Tesseract OCR.
+    Extract text from a document image using EasyOCR.
 
     Runs OCR on both the preprocessed image and the original image,
     then returns whichever result contains more text (heuristic for

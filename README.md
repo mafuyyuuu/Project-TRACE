@@ -1,7 +1,7 @@
 # Project TRACE
-Tracking, Routing, and Analytics Computing Engine for the PLP Registrar.
+Tracking, Routing, and Automated Credential Engine for the PLP Registrar.
 
-This repository contains the complete end-to-end system for tracking, auto-routing, and analyzing document flows, now including an **automated GCash/QRPh payment gateway**.
+This repository contains the complete end-to-end system for tracking and auto-routing document flows, now including an **automated GCash/QRPh payment gateway**.
 
 ---
 
@@ -97,7 +97,7 @@ npx n8n
 
 | Role | Employee / Student ID | Name | Description |
 | :--- | :--- | :--- | :--- |
-| **Admin** | `ADMIN001` | Registrar Admin | Access to all documents and analytics. |
+| **Admin** | `ADMIN001` | Registrar Admin | Access to all documents and verification queues. |
 | **Clerk 1** | `CLERK001` | Receiving Clerk | Receives documents (Window 1). |
 | **Clerk 2** | `CLERK002` | Records Clerk | Receives documents (Secretary). |
 | **Student** | `STU2024001` | Juan Dela Cruz | Sample student account. |

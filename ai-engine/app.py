@@ -3,7 +3,7 @@ TRACE AI Engine — Flask OCR Microservice
 Receives document images from Node.js backend and returns extracted student data.
 
 Endpoints:
-    GET  /health        — Health check with Tesseract availability status
+    GET  /health        — Health check with EasyOCR availability status
     POST /ocr/extract   — Upload a document image and receive extracted data
 
 Port: 5000
