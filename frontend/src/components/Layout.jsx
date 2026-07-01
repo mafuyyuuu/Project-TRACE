@@ -1,128 +1,65 @@
-import { useState, useEffect } from 'react'
-import { Outlet, NavLink, useNavigate } from 'react-router-dom'
-import { getMe } from '../services/api'
+import { Outlet, NavLink } from 'react-router-dom'
+import { useAuth } from '../utils/hooks'
 
 export default function Layout() {
-  const navigate = useNavigate()
-  const [user, setUser] = useState(null)
-  const [sidebarOpen, setSidebarOpen] = useState(false)
-
-  useEffect(() => {
-    // Try to get user from localStorage first, then fetch from API
-    const stored = localStorage.getItem('trace_user')
-    if (stored) {
-      try {
-        setUser(JSON.parse(stored))
-      } catch {
-        // ignore parse errors
-      }
-    }
-
-    // Fetch fresh user data
-    getMe()
-      .then((data) => {
-        const userData = data.user || data
-        setUser(userData)
-        localStorage.setItem('trace_user', JSON.stringify(userData))
-      })
-      .catch(() => {
-        // If the fetch fails but we have stored data, keep it
-      })
-  }, [])
-
-  const handleLogout = () => {
-    localStorage.removeItem('trace_token')
-    localStorage.removeItem('trace_user')
-    navigate('/')
-  }
-
-  const closeSidebar = () => setSidebarOpen(false)
-
-  const getInitials = () => {
-    if (!user?.name) return '?'
-    return user.name
-      .split(' ')
-      .map((w) => w[0])
-      .join('')
-      .toUpperCase()
-      .slice(0, 2)
-  }
+  const { user, logout } = useAuth()
 
   return (
-    <div className="layout">
-      {/* Sidebar Overlay (mobile) */}
-      <div
-        className={`sidebar-overlay ${sidebarOpen ? 'visible' : ''}`}
-        onClick={closeSidebar}
-      />
-
+    <div className="min-h-screen bg-gray-50 flex p-4 md:p-6 gap-6 font-body text-gray-800">
       {/* Sidebar */}
-      <aside className={`sidebar ${sidebarOpen ? 'open' : ''}`}>
-        <div className="sidebar-brand">
-          <div className="brand-row">
-            <div className="brand-logo">📋</div>
-            <div className="brand-text">
-              <h2>TRACE</h2>
-              <p>PLP Registrar</p>
-            </div>
-          </div>
+      <aside className="hidden md:flex w-20 flex-col items-center bg-white rounded-full shadow-sm py-6 gap-8">
+        <div className="w-12 h-12 rounded-full bg-pine-600 text-white flex items-center justify-center font-display font-bold text-sm shadow-md tracking-wider">
+          MK
         </div>
-
-        <nav className="sidebar-nav">
-          <div className="nav-section-label">Navigation</div>
-
-          <NavLink
-            to="/dashboard/upload"
-            className={({ isActive }) =>
-              `nav-link ${isActive ? 'active' : ''}`
-            }
-            onClick={closeSidebar}
-          >
-            <span className="nav-icon">📤</span>
-            <span>Upload</span>
-          </NavLink>
-
-          <NavLink
-            to="/dashboard/queue"
-            className={({ isActive }) =>
-              `nav-link ${isActive ? 'active' : ''}`
-            }
-            onClick={closeSidebar}
-          >
-            <span className="nav-icon">📋</span>
-            <span>Queue</span>
+        <nav className="flex flex-col gap-4">
+          {user?.role !== 'student' && (
+            <NavLink to="/dashboard/queue" className={({isActive}) => `w-12 h-12 rounded-full flex items-center justify-center transition-colors ${isActive ? 'bg-pine-50 text-pine-600 shadow-inner' : 'text-gray-400 hover:bg-gray-50 hover:text-gray-600'}`} title="Queue">
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
+            </NavLink>
+          )}
+          <NavLink to="/dashboard/upload" className={({isActive}) => `w-12 h-12 rounded-full flex items-center justify-center transition-colors ${isActive ? 'bg-pine-50 text-pine-600 shadow-inner' : 'text-gray-400 hover:bg-gray-50 hover:text-gray-600'}`} title="Upload">
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
           </NavLink>
         </nav>
+        <div className="mt-auto flex flex-col gap-4">
+          <button className="w-12 h-12 rounded-full flex items-center justify-center text-gray-400 hover:bg-gray-50 hover:text-gray-600">
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+          </button>
+          <button onClick={logout} className="w-12 h-12 rounded-full flex items-center justify-center text-gray-400 hover:bg-red-50 hover:text-red-500">
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
+          </button>
+        </div>
       </aside>
 
-      {/* Main Content */}
-      <div className="main-content">
-        <header className="topbar">
-          <button
-            className="mobile-menu-btn"
-            onClick={() => setSidebarOpen(!sidebarOpen)}
-            aria-label="Toggle menu"
-          >
-            ☰
-          </button>
-
-          <div className="user-info">
-            <div className="user-details">
-              <span className="user-name">
-                {user?.name ? `Welcome, ${user.name}` : 'Welcome'}
+      {/* Main Content Area */}
+      <div className="flex-1 flex flex-col gap-6 max-w-[1400px] mx-auto w-full">
+        {/* Header */}
+        <header className="bg-white rounded-full shadow-sm px-6 py-3 flex items-center justify-between">
+          <div className="flex items-center gap-4">
+             <span className="font-display font-bold text-pine-600 text-lg tracking-widest uppercase">TRACE</span>
+          </div>
+          
+          <div className="flex-1 max-w-xl mx-8 hidden sm:block">
+            <div className="relative">
+              <span className="absolute inset-y-0 left-0 pl-4 flex items-center text-gray-400">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
               </span>
-              <span className="user-role">
-                {user?.role || 'Staff'}
-              </span>
+              <input type="text" placeholder="Search" className="w-full bg-gray-50 border-none rounded-full py-2.5 pl-11 pr-4 text-sm focus:ring-2 focus:ring-pine-500 outline-none transition-all" />
             </div>
-            <div className="user-avatar">{getInitials()}</div>
-            <button className="logout-btn" onClick={handleLogout}>
-              Logout
+          </div>
+
+          <div className="flex items-center gap-4">
+            <button className="w-10 h-10 rounded-full bg-gray-50 flex items-center justify-center text-gray-500 hover:bg-gray-100 transition-colors">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
             </button>
+            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-pine-500 to-pine-700 text-white flex items-center justify-center font-bold text-sm shadow-md overflow-hidden">
+              {user?.name ? user.name[0].toUpperCase() : 'U'}
+            </div>
           </div>
         </header>
-
-        <main className="main-body">
+        
+        {/* Render Child Pages */}
+        <main className="flex-1">
           <Outlet />
         </main>
       </div>

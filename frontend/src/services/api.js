@@ -47,6 +47,13 @@ export async function login(credentials) {
   return data
 }
 
+export async function register(formData) {
+  const { data } = await api.post('/auth/register', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  })
+  return data
+}
+
 /**
  * Upload a document with associated metadata.
  * @param {FormData} formData - Must contain `file`, `documentType`, `studentId`, `studentName`
@@ -61,10 +68,12 @@ export async function uploadDocument(formData) {
 
 /**
  * Fetch all documents for the current user.
- * @returns {Promise<Array>}
+ * @param {number} page
+ * @param {number} limit
+ * @returns {Promise<object>}
  */
-export async function getDocuments() {
-  const { data } = await api.get('/documents')
+export async function getDocuments(page = 1, limit = 5) {
+  const { data } = await api.get(`/documents?page=${page}&limit=${limit}`)
   return data
 }
 
