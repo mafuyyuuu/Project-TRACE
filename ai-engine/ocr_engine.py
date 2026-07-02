@@ -1,23 +1,25 @@
 """
 TRACE OCR Engine
-Extracts student data from uploaded academic forms using Tesseract OCR.
+Extracts student data from uploaded academic forms using EasyOCR.
 
 This module provides functions to:
 - Preprocess document images for optimal OCR accuracy
-- Extract raw text from images using Tesseract
+- Extract raw text from images using EasyOCR
 - Parse structured student data (ID, name, form type) from raw text
 - Orchestrate the full document processing pipeline
 """
 
 import re
 import logging
-
-import pytesseract
+import easyocr
 import cv2
 import numpy as np
-from PIL import Image
 
 logger = logging.getLogger(__name__)
+
+# Initialize the EasyOCR reader globally so the PyTorch model loads only once
+# gpu=False ensures it works on all hardware, though it can be enabled if available
+reader = easyocr.Reader(['en'], gpu=False)
 
 
 def preprocess_image(filepath):
@@ -68,7 +70,7 @@ def preprocess_image(filepath):
 
 def extract_text(filepath):
     """
-    Extract text from a document image using Tesseract OCR.
+    Extract text from a document image using EasyOCR.
 
     Runs OCR on both the preprocessed image and the original image,
     then returns whichever result contains more text (heuristic for
@@ -84,18 +86,18 @@ def extract_text(filepath):
     try:
         # --- Attempt 1: OCR on preprocessed image ---
         processed_image = preprocess_image(filepath)
-        processed_text = pytesseract.image_to_string(processed_image)
-        processed_text = processed_text.strip()
+        # detail=0 returns just the text strings as a list
+        processed_results = reader.readtext(processed_image, detail=0)
+        processed_text = " ".join(processed_results).strip()
         logger.info(
-            "Preprocessed OCR extracted %d characters", len(processed_text)
+            "Preprocessed EasyOCR extracted %d characters", len(processed_text)
         )
 
         # --- Attempt 2: OCR on original image ---
-        original_image = Image.open(filepath)
-        original_text = pytesseract.image_to_string(original_image)
-        original_text = original_text.strip()
+        original_results = reader.readtext(filepath, detail=0)
+        original_text = " ".join(original_results).strip()
         logger.info(
-            "Original OCR extracted %d characters", len(original_text)
+            "Original EasyOCR extracted %d characters", len(original_text)
         )
 
         # Return whichever result is longer (more text = likely better)
@@ -110,7 +112,7 @@ def extract_text(filepath):
         return result
 
     except Exception as e:
-        logger.error("OCR extraction failed for %s: %s", filepath, str(e))
+        logger.error("EasyOCR extraction failed for %s: %s", filepath, str(e))
         return ""
 
 
@@ -259,3 +261,36 @@ def process_document(filepath):
             'success': False,
             'error': str(e),
         }
+
+def verify_id_document(filepath, expected_student_id):
+    """
+    Verify if an uploaded image is a valid PLP Student ID or Diploma.
+    Looks for the institution name and the student's ID number.
+    """
+    try:
+        raw_text = extract_text(filepath)
+        if not raw_text:
+            return {'verified': False, 'reason': 'No text could be extracted from the image.'}
+        
+        raw_text_lower = raw_text.lower()
+        
+        # Check for school name
+        has_school_name = 'pamantasan ng lungsod ng pasig' in raw_text_lower or 'plp' in raw_text_lower
+        
+        # Check for student ID
+        has_student_id = False
+        if expected_student_id and expected_student_id.lower() in raw_text_lower:
+            has_student_id = True
+            
+        if has_school_name and has_student_id:
+            return {'verified': True, 'reason': 'School name and Student ID matched.'}
+        elif has_school_name:
+            return {'verified': False, 'reason': 'School name found, but Student ID did not match.'}
+        elif has_student_id:
+            return {'verified': False, 'reason': 'Student ID matched, but School name not found.'}
+        else:
+            return {'verified': False, 'reason': 'Neither School name nor Student ID could be verified.'}
+
+    except Exception as e:
+        logger.error("Verification failed for %s: %s", filepath, str(e))
+        return {'verified': False, 'reason': f'Error during verification: {str(e)}'}

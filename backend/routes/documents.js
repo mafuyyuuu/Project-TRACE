@@ -57,8 +57,8 @@ router.post('/upload', authenticate, upload.single('document'), async (req, res)
     // Insert document record
     const [docResult] = await connection.query(
       `INSERT INTO documents (tracking_number, student_id, student_name, document_type,
-        current_status, assigned_clerk_id, file_path, original_filename)
-       VALUES (?, ?, ?, ?, 'submitted', ?, ?, ?)`,
+        current_status, payment_status, assigned_clerk_id, file_path, original_filename, checkout_url)
+       VALUES (?, ?, ?, ?, 'pending_payment', 'UNPAID', ?, ?, ?, ?)`,
       [
         trackingNumber,
         student_id || null,
@@ -67,6 +67,7 @@ router.post('/upload', authenticate, upload.single('document'), async (req, res)
         req.user.id,
         req.file.path,
         req.file.originalname,
+        `https://pm.link/mock/${trackingNumber}`
       ]
     );
 
@@ -75,8 +76,8 @@ router.post('/upload', authenticate, upload.single('document'), async (req, res)
     // Create initial step_log entry
     await connection.query(
       `INSERT INTO step_logs (document_id, clerk_id, action_taken, from_status, to_status, notes)
-       VALUES (?, ?, 'submitted', NULL, 'submitted', ?)`,
-      [documentId, req.user.id, `Document uploaded by ${req.user.full_name}`]
+       VALUES (?, ?, 'submitted', NULL, 'pending_payment', ?)`,
+      [documentId, req.user.id, `Document uploaded by ${req.user.full_name}, waiting for payment.`]
     );
 
     await connection.commit();
@@ -178,8 +179,11 @@ router.post('/upload', authenticate, upload.single('document'), async (req, res)
  */
 router.get('/', authenticate, async (req, res) => {
   try {
-    const { status } = req.query;
+    const { status, page = 1, limit = 5 } = req.query;
+    const offset = (parseInt(page) - 1) * parseInt(limit);
+    
     let query = 'SELECT * FROM documents';
+    let countQuery = 'SELECT COUNT(*) as total FROM documents';
     const params = [];
     const conditions = [];
 
@@ -187,6 +191,8 @@ router.get('/', authenticate, async (req, res) => {
     if (req.user.role === 'clerk') {
       conditions.push('assigned_clerk_id = ?');
       params.push(req.user.id);
+      // Window 1 should not see unpaid documents unless specified
+      conditions.push('payment_status = "PAID"');
     }
     // Admins see all documents — no additional filter
 
@@ -197,14 +203,27 @@ router.get('/', authenticate, async (req, res) => {
     }
 
     if (conditions.length > 0) {
-      query += ' WHERE ' + conditions.join(' AND ');
+      const whereClause = ' WHERE ' + conditions.join(' AND ');
+      query += whereClause;
+      countQuery += whereClause;
     }
 
-    query += ' ORDER BY created_at DESC';
+    query += ' ORDER BY created_at DESC LIMIT ? OFFSET ?';
 
+    const [countRows] = await pool.query(countQuery, params);
+    const total = countRows[0].total;
+
+    // pool.query requires numbers for LIMIT and OFFSET otherwise it quotes them
+    params.push(parseInt(limit), parseInt(offset));
     const [rows] = await pool.query(query, params);
 
-    res.json({ documents: rows, count: rows.length });
+    res.json({
+      documents: rows,
+      total,
+      page: parseInt(page),
+      limit: parseInt(limit),
+      totalPages: Math.ceil(total / parseInt(limit))
+    });
   } catch (err) {
     console.error('List documents error:', err);
     res.status(500).json({ error: 'Failed to retrieve documents.' });

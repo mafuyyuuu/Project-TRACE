@@ -6,6 +6,7 @@ const path = require('path');
 
 const authRoutes = require('./routes/auth');
 const documentRoutes = require('./routes/documents');
+const paymentRoutes = require('./routes/payments');
 const { testConnection } = require('./config/db');
 
 const app = express();
@@ -28,6 +29,7 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 // ---------------------------------------------------------------------------
 app.use('/api/auth', authRoutes);
 app.use('/api/documents', documentRoutes);
+app.use('/api/payments', paymentRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {

@@ -3,7 +3,7 @@ TRACE AI Engine — Flask OCR Microservice
 Receives document images from Node.js backend and returns extracted student data.
 
 Endpoints:
-    GET  /health        — Health check with Tesseract availability status
+    GET  /health        — Health check with EasyOCR availability status
     POST /ocr/extract   — Upload a document image and receive extracted data
 
 Port: 5000
@@ -17,9 +17,8 @@ import tempfile
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 from dotenv import load_dotenv
-import pytesseract
 
-from ocr_engine import process_document
+from ocr_engine import process_document, verify_id_document
 
 # ---------------------------------------------------------------------------
 # Configuration
@@ -74,25 +73,10 @@ def allowed_file(filename):
 def health_check():
     """
     Health-check endpoint.
-
-    Returns the service status and whether Tesseract OCR is available
-    on the system.
     """
-    tesseract_available = False
-    tesseract_version = None
-
-    try:
-        version = pytesseract.get_tesseract_version()
-        tesseract_available = True
-        tesseract_version = str(version)
-        logger.info("Tesseract version: %s", tesseract_version)
-    except Exception as e:
-        logger.warning("Tesseract not available: %s", str(e))
-
     return jsonify({
         'status': 'TRACE AI Engine is running',
-        'tesseract_available': tesseract_available,
-        'tesseract_version': tesseract_version,
+        'engine': 'EasyOCR (PyTorch)',
     })
 
 
@@ -179,6 +163,39 @@ def ocr_extract():
         if temp_path and os.path.exists(temp_path):
             os.remove(temp_path)
             logger.debug("Cleaned up temp file: %s", temp_path)
+
+
+@app.route('/ocr/verify', methods=['POST'])
+def ocr_verify():
+    """
+    ID/Diploma Verification endpoint.
+    Accepts a multipart file upload ('document') and 'student_id'.
+    Returns boolean 'verified' and a 'reason'.
+    """
+    if 'document' not in request.files:
+        return jsonify({'verified': False, 'reason': 'No document provided.'}), 400
+
+    file = request.files['document']
+    student_id = request.form.get('student_id', '')
+
+    if file.filename == '' or not allowed_file(file.filename):
+        return jsonify({'verified': False, 'reason': 'Invalid or no file selected.'}), 400
+
+    temp_path = None
+    try:
+        _, ext = os.path.splitext(file.filename)
+        temp_fd, temp_path = tempfile.mkstemp(suffix=ext)
+        os.close(temp_fd)
+
+        file.save(temp_path)
+        result = verify_id_document(temp_path, student_id)
+        return jsonify(result)
+    except Exception as e:
+        logger.error("Error in /ocr/verify: %s", str(e))
+        return jsonify({'verified': False, 'reason': str(e)}), 500
+    finally:
+        if temp_path and os.path.exists(temp_path):
+            os.remove(temp_path)
 
 
 # ---------------------------------------------------------------------------

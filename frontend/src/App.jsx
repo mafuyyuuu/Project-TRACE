@@ -1,9 +1,9 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import LoginPage from './pages/LoginPage'
+import SignupPage from './pages/SignupPage'
 import UploadPage from './pages/UploadPage'
 import QueuePage from './pages/QueuePage'
 import Layout from './components/Layout'
-import './App.css'
 
 function ProtectedRoute({ children }) {
   const token = localStorage.getItem('trace_token')
@@ -16,6 +16,7 @@ function App() {
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<LoginPage />} />
+        <Route path="/signup" element={<SignupPage />} />
         <Route path="/dashboard" element={<ProtectedRoute><Layout /></ProtectedRoute>}>
           <Route index element={<Navigate to="upload" replace />} />
           <Route path="upload" element={<UploadPage />} />

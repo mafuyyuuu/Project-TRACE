@@ -1,7 +1,7 @@
 # Project TRACE
-Tracking, Routing, and Analytics Computing Engine for the PLP Registrar.
+Tracking, Routing, and Automated Credential Engine for the PLP Registrar.
 
-This repository contains the complete end-to-end system for tracking, auto-routing, and analyzing document flows.
+This repository contains the complete end-to-end system for tracking and auto-routing document flows, now including an **automated GCash/QRPh payment gateway**.
 
 ---
 
@@ -23,15 +23,15 @@ npm run dev
 
 **Terminal 3 (AI Engine):**
 ```bash
-# Make sure you are using your root virtual environment
-source .venv/bin/activate
+# Activate the virtual environment
+source .venv/bin/activate  # On Windows use: .venv\Scripts\activate
 cd ai-engine
 python app.py
 ```
 
 **Terminal 4 (n8n Router):**
 ```bash
-npx n8n
+docker start n8n
 ```
 
 ---
@@ -43,86 +43,137 @@ Make sure you have the following installed on your machine:
 - **Node.js** (v18+ recommended)
 - **Python** (v3.9+)
 - **MySQL** (v8+)
-- **Tesseract OCR** (`brew install tesseract`)
+- **Docker** (Required for running n8n reliably)
 
 ### 1. Database Setup
-First, ensure your MySQL server is running. Then, log in to MySQL and initialize the database using the provided scripts:
-
+Ensure your MySQL server is running. Log in to MySQL and initialize the database:
 ```bash
-# Log into MySQL (you may need to add -p if your root user has a password)
-mysql -u root
-
-# Inside the MySQL shell, run:
+mysql -u root -p
+# Inside the MySQL shell:
 source backend/database/schema.sql;
 source backend/database/seed.sql;
 exit;
 ```
-*Note: The seed script creates an Admin (`ADMIN001`) and two Clerks (`CLERK001`, `CLERK002`). The password for all is `trace2024`.*
 
 ### 2. Backend (Node.js API)
-Open a new terminal window:
 ```bash
 cd backend
 npm install
 npm run dev
 ```
-*The backend will run on `http://localhost:3000`.*
+*(Runs on `http://localhost:3000`)*
 
 ### 3. Frontend (React UI)
-Open a new terminal window:
 ```bash
 cd frontend
 npm install
 npm run dev
 ```
-*The frontend will run on `http://localhost:5173`.*
-
-### 🔐 Test Accounts / Credentials
-If you've run the `seed.sql` script, the following accounts are available to log in to the frontend. 
-**The password for ALL accounts is: `trace2024`**
-
-| Role | Employee / Student ID | Name | Description |
-| :--- | :--- | :--- | :--- |
-| **Admin** | `ADMIN001` | Registrar Admin | Has access to all documents and analytics. |
-| **Clerk 1** | `CLERK001` | Receiving Clerk | Receives documents like Clearances. |
-| **Clerk 2** | `CLERK002` | Records Clerk | Receives documents like TORs. |
-| **Student** | `STU2024001` | Juan Dela Cruz | Sample student account. |
+*(Runs on `http://localhost:5173`)*
 
 ### 4. AI Engine (Python OCR)
-Open a new terminal window:
 ```bash
 cd ai-engine
-# Activate the virtual environment
-source venv/bin/activate
-# Install dependencies (only needed the first time)
+# Create and activate a virtual environment
+python -m venv .venv
+source .venv/bin/activate  # Windows: .venv\Scripts\activate
+# Install dependencies
 pip install -r requirements.txt
 # Run the Flask API
 python app.py
 ```
-*The AI engine will run on `http://localhost:5001`.*
+*(Runs on `http://localhost:5000`)*
 
 ### 5. Routing Engine (n8n)
-Open a new terminal window:
 ```bash
 npx n8n
 ```
-*n8n will open in your browser at `http://localhost:5678`.*
-- Import the `n8n/routing-workflow.json` file.
-- Make sure the workflow toggle is set to **Active**.
+*(Opens in browser at `http://localhost:5678`)*. Import the `n8n/routing-workflow.json` file to activate the routing rules.
 
 ---
 
-## 🗄️ Database Management (Using a Workbench)
+## 🔐 Test Accounts / Credentials
+**The password for ALL accounts is: `trace2024`**
 
-Since you don't have a database UI yet, managing MySQL entirely through the terminal can be difficult. You can download a visual Database Workbench (like **DBeaver**, **MySQL Workbench**, or **TablePlus** — *TablePlus* is highly recommended for Mac users).
+| Role | Employee / Student ID | Name | Description |
+| :--- | :--- | :--- | :--- |
+| **Admin** | `ADMIN001` | Registrar Admin | Access to all documents and verification queues. |
+| **Clerk 1** | `CLERK001` | Receiving Clerk | Receives documents (Window 1). |
+| **Clerk 2** | `CLERK002` | Records Clerk | Receives documents (Secretary). |
+| **Student** | `STU2024001` | Juan Dela Cruz | Sample student account. |
 
-### How to Connect your downloaded Workbench:
-Once you download and open your chosen Workbench, you need to "Create a New Connection". Select **MySQL** as the database type, and enter these exact details:
+---
 
-- **Host / Server:** `localhost` (or `127.0.0.1`)
-- **Port:** `3306`
-- **Username:** `root`
-- **Password:** *(Leave this blank if you haven't set a password for your root user. If you have, enter it here).*
-- **Database:** `trace_db`
+## 🚚 How to Transfer & Run on Another Computer
 
-Click **Test Connection**. If it succeeds, save it. You can now click on `trace_db` to view your `users`, `documents`, and `step_logs` tables in a nice visual spreadsheet view!
+If you need to move Project TRACE to a different computer (like a deployment server or a colleague's laptop), follow these exact steps:
+
+### Step 1: Export the Database (On the Old Computer)
+You need to package your current MySQL database so you don't lose any data. Run this in your terminal:
+```bash
+mysqldump -u root -p trace_db > trace_db_backup.sql
+```
+*Move this `trace_db_backup.sql` file into your `project-trace` folder.*
+
+### Step 2: Zip the Source Code
+Compress the `project-trace` folder into a `.zip` file. 
+**Important:** You do not need to copy the massive hidden folders (`node_modules` or `.venv`). The new computer will rebuild them cleanly.
+
+### Step 3: Transfer
+Send the `.zip` file to the new computer via a flash drive, Google Drive, or GitHub. Extract the folder on the new computer.
+
+### Step 4: Import the Database (On the New Computer)
+Make sure the new computer has MySQL installed. Open the terminal inside the extracted folder:
+```bash
+# Log into MySQL and create a fresh database
+mysql -u root -p -e "CREATE DATABASE trace_db;"
+
+# Import the backup file
+mysql -u root -p trace_db < trace_db_backup.sql
+```
+
+### Step 5: Install Dependencies (On the New Computer)
+The new computer must download all the packages specific to its operating system.
+
+**For the Backend:**
+```bash
+cd backend
+npm install
+```
+
+**For the Frontend:**
+```bash
+cd ../frontend
+npm install
+```
+
+### 3. Start the Orchestrator (n8n)
+We highly recommend running n8n via Docker to avoid Node.js peer-dependency conflicts. Ensure Docker Desktop is running.
+
+**For the first time ONLY, create and start the container:**
+```bash
+docker run -d --name n8n -p 5678:5678 -v ~/.n8n:/home/node/.n8n docker.n8n.io/n8nio/n8n
+```
+*(Note: It may take a minute or two to download the image. Because of the `-d` flag, it will run silently in the background.)*
+
+**For everyday use (if you restart your computer):**
+You don't need to run the massive setup command again. Just start or stop your existing container:
+```bash
+docker start n8n
+# docker stop n8n (to turn it off)
+```
+
+Once running, access the workflow canvas at:
+👉 **[http://localhost:5678](http://localhost:5678)**
+
+### 4. Start the AI OCR Engine (Python)
+Open a new terminal window:
+```bash
+cd ai-engine
+python -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+pip install -r requirements.txt
+python app.py
+```
+
+Once installed, simply follow the **Daily Startup** guide at the top of this file to turn all four services back on!
