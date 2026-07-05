@@ -74,7 +74,7 @@ export function useAuth() {
     }
   };
 
-  return { user, loading, error, login, logout, register };
+  return { user, loading, error, login, logout, register, setUser };
 }
 
 /**

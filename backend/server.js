@@ -7,7 +7,8 @@ const path = require('path');
 const authRoutes = require('./routes/auth');
 const documentRoutes = require('./routes/documents');
 const paymentRoutes = require('./routes/payments');
-const { testConnection } = require('./config/db');
+const settingsRoutes = require('./routes/settings');
+const { testConnection, initSettingsTable } = require('./config/db');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -30,6 +31,7 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 app.use('/api/auth', authRoutes);
 app.use('/api/documents', documentRoutes);
 app.use('/api/payments', paymentRoutes);
+app.use('/api/settings', settingsRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {
@@ -62,6 +64,7 @@ app.use((err, req, res, _next) => {
 async function start() {
   try {
     await testConnection();
+    await initSettingsTable();
   } catch (err) {
     console.warn('⚠️  Could not connect to database. Server will start anyway.');
   }

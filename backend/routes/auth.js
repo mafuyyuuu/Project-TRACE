@@ -185,4 +185,64 @@ router.post('/register', upload.single('id_proof'), async (req, res) => {
   }
 });
 
+/**
+ * PUT /update-profile
+ * Update the authenticated user's profile information.
+ */
+router.put('/update-profile', authenticate, async (req, res) => {
+  try {
+    const { full_name, email, student_id, current_password, new_password } = req.body;
+
+    if (!full_name || !student_id) {
+      return res.status(400).json({ error: 'Full name and Student/Employee ID are required.' });
+    }
+
+    // Get current user data from DB
+    const [rows] = await pool.query('SELECT * FROM users WHERE id = ?', [req.user.id]);
+    if (rows.length === 0) {
+      return res.status(404).json({ error: 'User not found.' });
+    }
+    const currentUser = rows[0];
+
+    // Check if new student_id is already taken by another user
+    if (student_id !== currentUser.student_id) {
+      const [existing] = await pool.query('SELECT id FROM users WHERE student_id = ? AND id != ?', [student_id, req.user.id]);
+      if (existing.length > 0) {
+        return res.status(400).json({ error: 'Student/Employee ID is already registered.' });
+      }
+    }
+
+    let passwordHash = currentUser.password_hash;
+    if (new_password) {
+      if (!current_password) {
+        return res.status(400).json({ error: 'Current password is required to change password.' });
+      }
+      const isMatch = await bcrypt.compare(current_password, currentUser.password_hash);
+      if (!isMatch) {
+        return res.status(401).json({ error: 'Current password is incorrect.' });
+      }
+      passwordHash = await bcrypt.hash(new_password, 10);
+    }
+
+    await pool.query(
+      'UPDATE users SET full_name = ?, email = ?, student_id = ?, password_hash = ? WHERE id = ?',
+      [full_name, email || null, student_id, passwordHash, req.user.id]
+    );
+
+    // Fetch and return the updated user data
+    const [updatedRows] = await pool.query(
+      'SELECT id, student_id, email, full_name, role, desk_assignment, is_active, created_at FROM users WHERE id = ?',
+      [req.user.id]
+    );
+
+    res.json({
+      message: 'Profile updated successfully.',
+      user: updatedRows[0]
+    });
+  } catch (err) {
+    console.error('Update profile error:', err);
+    res.status(500).json({ error: 'Internal server error.' });
+  }
+});
+
 module.exports = router;

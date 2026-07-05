@@ -1,8 +1,342 @@
 @import "tailwindcss";
 @config "../tailwind.config.js";
 
+/* ==========================================
+   Project TRACE - Themeable Design System
+   ========================================== */
+
+/* --- Default Accent Variables (Pine Green) --- */
+:root {
+  --accent-50: #f0fdf4;
+  --accent-500: #16a34a;
+  --accent-600: #15803d;
+  --accent-700: #166534;
+}
+
+/* --- Accent Themes --- */
+.accent-blue {
+  --accent-50: #e8f6fd;
+  --accent-500: #1ca7ec;
+  --accent-600: #178dc8;
+  --accent-700: #126fa0;
+}
+
+.accent-campfire {
+  --accent-50: #fff7e6;
+  --accent-500: #e18f00;
+  --accent-600: #c97c00;
+  --accent-700: #8a5600;
+}
+
+.accent-dusk {
+  --accent-50: #f5f3ff;
+  --accent-500: #8b5cf6;
+  --accent-600: #7c3aed;
+  --accent-700: #6d28d9;
+}
+
+.accent-berry {
+  --accent-50: #fdf2f8;
+  --accent-500: #ec4899;
+  --accent-600: #db2777;
+  --accent-700: #be185d;
+}
+
+/* --- Accent Color Overrides --- */
+.text-pine-600 {
+  color: var(--accent-600) !important;
+}
+.bg-pine-600 {
+  background-color: var(--accent-600) !important;
+}
+.bg-pine-50 {
+  background-color: var(--accent-50) !important;
+}
+.text-pine-50 {
+  color: var(--accent-50) !important;
+}
+.text-pine-700 {
+  color: var(--accent-700) !important;
+}
+.bg-pine-700 {
+  background-color: var(--accent-700) !important;
+}
+.border-pine-600 {
+  border-color: var(--accent-600) !important;
+}
+.hover\:bg-pine-50:hover {
+  background-color: var(--accent-50) !important;
+}
+.hover\:text-pine-600:hover {
+  color: var(--accent-600) !important;
+}
+.from-pine-500 {
+  --tw-gradient-from: var(--accent-500) var(--tw-gradient-from-position, ) !important;
+  --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to, transparent) !important;
+}
+.to-pine-700 {
+  --tw-gradient-to: var(--accent-700) var(--tw-gradient-to-position, ) !important;
+}
+.focus\:ring-pine-500:focus {
+  outline-color: var(--accent-500) !important;
+}
+
+/* --- Font Family Customizations --- */
+.font-inter, .font-inter * {
+  font-family: 'Inter', sans-serif !important;
+}
+.font-poppins, .font-poppins * {
+  font-family: 'Poppins', 'Inter', sans-serif !important;
+}
+.font-jetbrains, .font-jetbrains * {
+  font-family: 'JetBrains Mono', monospace !important;
+}
+
+/* --- Accessibility Font Size Scales --- */
+.size-sm {
+  font-size: 0.875rem !important; /* 14px */
+}
+.size-base {
+  font-size: 1rem !important; /* 16px */
+}
+.size-lg {
+  font-size: 1.125rem !important; /* 18px */
+}
+.size-xl {
+  font-size: 1.25rem !important; /* 20px */
+}
+
+/* Adjust nested headings for custom size scales */
+.size-sm h1 { font-size: 1.5rem !important; }
+.size-lg h1 { font-size: 2.25rem !important; }
+.size-xl h1 { font-size: 2.5rem !important; }
+
+/* --- Accessibility: Reduce Animations --- */
+.reduce-animations,
+.reduce-animations * {
+  animation-delay: 0s !important;
+  animation-duration: 0s !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0s !important;
+  transition-delay: 0s !important;
+  scroll-behavior: auto !important;
+}
+
+/* --- Accessibility: Color-blind Friendly Filters --- */
+.colorblind-mode {
+  filter: contrast(120%) saturate(110%) !important;
+}
+
+/* ==========================================
+   Global Smooth Transitions for Settings Changes
+   ========================================== */
+
+/* Placed in @layer base so Tailwind utility classes (e.g.
+   transition-all duration-300 on the sidebar) can still
+   override these defaults in @layer utilities. */
+@layer base {
+  *,
+  *::before,
+  *::after {
+    transition-property: color, background-color, border-color, box-shadow, filter, opacity, fill, stroke;
+    transition-duration: 0.35s;
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  /* Font-size changes get a smooth transition too */
+  body,
+  body * {
+    transition: font-size 0.3s ease, color 0.35s ease, background-color 0.35s ease, border-color 0.35s ease, box-shadow 0.35s ease, filter 0.35s ease;
+  }
+}
+
 body {
   background-color: #f9fafb; /* bg-gray-50 */
   color: #1f2937; /* text-gray-800 */
   -webkit-font-smoothing: antialiased;
 }
+
+/* --- Dark Theme --- */
+.theme-dark body {
+  background-color: #0f172a !important; /* slate-900 */
+  color: #f1f5f9 !important;
+}
+.theme-dark .bg-white {
+  background-color: #1e293b !important; /* slate-800 */
+  color: #f1f5f9 !important;
+  border-color: transparent !important;
+}
+.theme-dark .bg-gray-50 {
+  background-color: #0f172a !important;
+}
+.theme-dark .bg-gray-100 {
+  background-color: #1e293b !important;
+}
+.theme-dark .bg-gray-200 {
+  background-color: #334155 !important;
+}
+.theme-dark .text-gray-900 {
+  color: #f8fafc !important;
+}
+.theme-dark .text-gray-800 {
+  color: #f1f5f9 !important;
+}
+.theme-dark .text-gray-700 {
+  color: #e2e8f0 !important;
+}
+.theme-dark .text-gray-600 {
+  color: #94a3b8 !important;
+}
+.theme-dark .text-gray-500 {
+  color: #cbd5e1 !important;
+}
+.theme-dark .text-gray-400 {
+  color: #64748b !important;
+}
+.theme-dark .text-black {
+  color: #f8fafc !important;
+}
+.theme-dark .border-gray-200,
+.theme-dark .border-gray-300 {
+  border-color: #334155 !important;
+}
+.theme-dark .border-gray-100 {
+  border-color: #1e293b !important;
+}
+.theme-dark .divide-gray-200 > * + * {
+  border-color: #334155 !important;
+}
+.theme-dark .hover\:bg-gray-50:hover {
+  background-color: #334155 !important;
+}
+.theme-dark .hover\:bg-gray-100:hover {
+  background-color: #334155 !important;
+}
+.theme-dark .shadow-sm {
+  box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.3) !important;
+}
+.theme-dark .shadow {
+  box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.4), 0 1px 2px -1px rgb(0 0 0 / 0.4) !important;
+}
+.theme-dark .placeholder-gray-400::placeholder,
+.theme-dark input::placeholder,
+.theme-dark textarea::placeholder {
+  color: #64748b !important;
+}
+.theme-dark input,
+.theme-dark select,
+.theme-dark textarea {
+  background-color: #334155 !important;
+  color: #ffffff !important;
+  border-color: #475569 !important;
+}
+.theme-dark header,
+.theme-dark aside {
+  background-color: #1e293b !important;
+  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.3), 0 2px 4px -2px rgb(0 0 0 / 0.3) !important;
+}
+.theme-dark .text-red-500 { color: #fb7185 !important; }
+.theme-dark .text-red-600 { color: #f87171 !important; }
+.theme-dark .text-green-600 { color: #4ade80 !important; }
+.theme-dark .text-green-500 { color: #34d399 !important; }
+.theme-dark .bg-red-50 { background-color: #3b1826 !important; }
+.theme-dark .bg-green-50 { background-color: #14332a !important; }
+.theme-dark .bg-yellow-50 { background-color: #332b14 !important; }
+.theme-dark .bg-blue-50 { background-color: #172554 !important; }
+.theme-dark .text-red-700 { color: #fca5a5 !important; }
+.theme-dark .text-green-700 { color: #86efac !important; }
+.theme-dark .text-yellow-700 { color: #fde68a !important; }
+.theme-dark .text-blue-700 { color: #93c5fd !important; }
+.theme-dark .ring-1,
+.theme-dark [class*="ring-gray"] {
+  --tw-ring-color: #334155 !important;
+}
+
+
+/* --- Forest Theme --- */
+.theme-forest body {
+  background-color: #121c16 !important;
+  color: #f2efe4 !important;
+}
+.theme-forest .bg-white {
+  background-color: #1b2920 !important;
+  color: #f2efe4 !important;
+  border: 1px solid #2f4538 !important;
+}
+.theme-forest .bg-gray-50 {
+  background-color: #121c16 !important;
+}
+.theme-forest .bg-gray-100 {
+  background-color: #1b2920 !important;
+}
+.theme-forest .bg-gray-200 {
+  background-color: #24352a !important;
+}
+.theme-forest .text-gray-900 {
+  color: #f5f3ea !important;
+}
+.theme-forest .text-gray-800,
+.theme-forest .text-gray-700 {
+  color: #f2efe4 !important;
+}
+.theme-forest .text-gray-600 {
+  color: #b8c5a8 !important;
+}
+.theme-forest .text-gray-500 {
+  color: #d4dcc4 !important;
+}
+.theme-forest .text-gray-400 {
+  color: #7a8c6a !important;
+}
+.theme-forest .text-black {
+  color: #f5f3ea !important;
+}
+.theme-forest .border-gray-200,
+.theme-forest .border-gray-300 {
+  border-color: #2f4538 !important;
+}
+.theme-forest .border-gray-100 {
+  border-color: #1b2920 !important;
+}
+.theme-forest .divide-gray-200 > * + * {
+  border-color: #2f4538 !important;
+}
+.theme-forest .hover\:bg-gray-50:hover,
+.theme-forest .hover\:bg-gray-100:hover {
+  background-color: #24352a !important;
+}
+.theme-forest .shadow-sm {
+  box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.3) !important;
+}
+.theme-forest .shadow {
+  box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.4), 0 1px 2px -1px rgb(0 0 0 / 0.4) !important;
+}
+.theme-forest input::placeholder,
+.theme-forest textarea::placeholder {
+  color: #7a8c6a !important;
+}
+.theme-forest input,
+.theme-forest select,
+.theme-forest textarea {
+  background-color: #24352a !important;
+  color: #f2efe4 !important;
+  border-color: #385141 !important;
+}
+.theme-forest header,
+.theme-forest aside {
+  background-color: #1b2920 !important;
+  border: 1px solid #2f4538 !important;
+}
+.theme-forest .text-red-500 { color: #f0a0a0 !important; }
+.theme-forest .text-red-600 { color: #e88888 !important; }
+.theme-forest .text-green-600 { color: #7ac07a !important; }
+.theme-forest .text-green-500 { color: #6db86d !important; }
+.theme-forest .bg-red-50 { background-color: #2e2018 !important; }
+.theme-forest .bg-green-50 { background-color: #18291c !important; }
+.theme-forest .bg-yellow-50 { background-color: #2e2918 !important; }
+.theme-forest .bg-blue-50 { background-color: #182029 !important; }
+.theme-forest .text-red-700 { color: #f0bcbc !important; }
+.theme-forest .text-green-700 { color: #a0d8a0 !important; }
+.theme-forest .text-yellow-700 { color: #e0d8a0 !important; }
+.theme-forest .text-blue-700 { color: #a0c8e0 !important; }
+

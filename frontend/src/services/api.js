@@ -97,6 +97,16 @@ export async function getMe() {
 }
 
 /**
+ * Update the authenticated user's profile.
+ * @param {object} profileData
+ * @returns {Promise<object>}
+ */
+export async function updateProfile(profileData) {
+  const { data } = await api.put('/auth/update-profile', profileData)
+  return data
+}
+
+/**
  * Process a document (approve or reject).
  * @param {string} id 
  * @param {string} action - 'approve' or 'reject'
@@ -104,6 +114,25 @@ export async function getMe() {
  */
 export async function processDocument(id, action) {
   const { data } = await api.post(`/documents/${id}/action`, { action })
+  return data
+}
+
+/**
+ * Fetch global system settings.
+ * @returns {Promise<object>}
+ */
+export async function getSystemSettings() {
+  const { data } = await api.get('/settings')
+  return data
+}
+
+/**
+ * Update global system settings (Admin only).
+ * @param {object} settingsData
+ * @returns {Promise<object>}
+ */
+export async function updateSystemSettings(settingsData) {
+  const { data } = await api.put('/settings', settingsData)
   return data
 }
 
