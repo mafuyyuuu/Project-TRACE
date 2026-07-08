@@ -187,19 +187,34 @@ router.get('/', authenticate, async (req, res) => {
     const params = [];
     const conditions = [];
 
-    // Role-based filtering
-    if (req.user.role === 'clerk') {
-      conditions.push('assigned_clerk_id = ?');
-      params.push(req.user.id);
-      // Window 1 should not see unpaid documents unless specified
-      conditions.push('payment_status = "PAID"');
-    }
-    // Admins see all documents — no additional filter
-
-    // Status filter
-    if (status) {
-      conditions.push('current_status = ?');
-      params.push(status);
+    // 1. Role-based scoping
+    if (req.user.role === 'student') {
+      const [u] = await pool.query('SELECT student_id FROM users WHERE id = ?', [req.user.id]);
+      if (u.length > 0) {
+        conditions.push('student_id = ?');
+        params.push(u[0].student_id);
+      } else {
+        conditions.push('1 = 0');
+      }
+    } else if (req.user.role === 'clerk') {
+      const desk = req.user.desk_assignment;
+      if (status) {
+        conditions.push('current_status = ?');
+        params.push(status);
+      } else {
+        if (desk === 'Finance') {
+          conditions.push('current_status = "pending_payment_verification"');
+        } else if (desk === 'Secretary') {
+          conditions.push('current_status = "pending_secretary"');
+        } else if (desk === 'Window 1') {
+          conditions.push('current_status IN ("ready_window_1", "completed", "released")');
+        }
+      }
+    } else if (req.user.role === 'admin') {
+      if (status) {
+        conditions.push('current_status = ?');
+        params.push(status);
+      }
     }
 
     if (conditions.length > 0) {
@@ -213,7 +228,6 @@ router.get('/', authenticate, async (req, res) => {
     const [countRows] = await pool.query(countQuery, params);
     const total = countRows[0].total;
 
-    // pool.query requires numbers for LIMIT and OFFSET otherwise it quotes them
     params.push(parseInt(limit), parseInt(offset));
     const [rows] = await pool.query(query, params);
 
@@ -390,6 +404,216 @@ router.post('/:id/action', authenticate, async (req, res) => {
   } catch (err) {
     console.error('Process document error:', err);
     res.status(500).json({ error: 'Failed to process document.' });
+  }
+});
+
+/**
+ * POST /:id/submit-payment
+ * Allows a student to submit their GCash payment reference and upload a receipt.
+ */
+router.post('/:id/submit-payment', authenticate, upload.single('receipt'), async (req, res) => {
+  try {
+    const docId = req.params.id;
+    const { gcash_reference_no } = req.body;
+
+    if (!gcash_reference_no) {
+      return res.status(400).json({ error: 'GCash Reference Number is required.' });
+    }
+    if (!req.file) {
+      return res.status(400).json({ error: 'Receipt image file upload is required.' });
+    }
+
+    const receiptPath = `/uploads/${req.file.filename}`;
+
+    const [result] = await pool.query(
+      `UPDATE documents 
+       SET current_status = "pending_payment_verification", 
+           gcash_reference_no = ?, 
+           receipt_image_path = ? 
+       WHERE id = ?`,
+      [gcash_reference_no, receiptPath, docId]
+    );
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ error: 'Document request not found.' });
+    }
+
+    // Log step log
+    await pool.query(
+      `INSERT INTO step_logs (document_id, clerk_id, action_taken, from_status, to_status, notes)
+       VALUES (?, ?, 'payment_submitted', 'pending_payment', 'pending_payment_verification', ?)` ,
+      [docId, req.user.id, `Payment reference ${gcash_reference_no} submitted by student.`]
+    );
+
+    res.json({ message: 'Payment receipt submitted successfully. Waiting for clerk verification.' });
+  } catch (err) {
+    console.error('Submit payment error:', err);
+    res.status(500).json({ error: 'Failed to submit payment.' });
+  }
+});
+
+/**
+ * POST /:id/verify-payment
+ * Allows the Finance Clerk to verify (approve or reject) a student's GCash receipt.
+ */
+router.post('/:id/verify-payment', authenticate, async (req, res) => {
+  try {
+    if (req.user.role !== 'clerk' || req.user.desk_assignment !== 'Finance') {
+      return res.status(403).json({ error: 'Only Finance Clerks can verify payments.' });
+    }
+
+    const docId = req.params.id;
+    const { action, notes } = req.body; // 'approve' or 'reject'
+
+    if (!['approve', 'reject'].includes(action)) {
+      return res.status(400).json({ error: 'Invalid action. Must be approve or reject.' });
+    }
+
+    const connection = await pool.getConnection();
+    try {
+      await connection.beginTransaction();
+
+      const [docs] = await connection.query('SELECT * FROM documents WHERE id = ? FOR UPDATE', [docId]);
+      if (docs.length === 0) {
+        throw new Error('Document not found.');
+      }
+
+      const doc = docs[0];
+      const newStatus = action === 'approve' ? 'pending_secretary' : 'pending_payment';
+      const paymentStatus = action === 'approve' ? 'PAID' : 'UNPAID';
+
+      await connection.query(
+        `UPDATE documents SET current_status = ?, payment_status = ? WHERE id = ?`,
+        [newStatus, paymentStatus, docId]
+      );
+
+      // Log step
+      await connection.query(
+        `INSERT INTO step_logs (document_id, clerk_id, action_taken, from_status, to_status, notes)
+         VALUES (?, ?, ?, 'pending_payment_verification', ?, ?)`,
+         [docId, req.user.id, action === 'approve' ? 'payment_approved' : 'payment_rejected', newStatus, notes || `Payment ${action}d by Finance Clerk.`]
+      );
+
+      await connection.commit();
+      res.json({ message: `Payment successfully ${action}d.` });
+    } catch (err) {
+      await connection.rollback();
+      throw err;
+    } finally {
+      connection.release();
+    }
+  } catch (err) {
+    console.error('Verify payment error:', err);
+    res.status(500).json({ error: 'Failed to process payment verification.' });
+  }
+});
+
+/**
+ * POST /:id/evaluate
+ * Allows the College Secretary to review OCR data, make adjustments, and route to Window 1.
+ */
+router.post('/:id/evaluate', authenticate, async (req, res) => {
+  try {
+    if (req.user.role !== 'clerk' || req.user.desk_assignment !== 'Secretary') {
+      return res.status(403).json({ error: 'Only College Secretaries can evaluate documents.' });
+    }
+
+    const docId = req.params.id;
+    const { student_id, student_name, document_type, action, notes } = req.body; // 'approve' or 'reject'
+
+    if (!['approve', 'reject'].includes(action)) {
+      return res.status(400).json({ error: 'Invalid action. Must be approve or reject.' });
+    }
+
+    const connection = await pool.getConnection();
+    try {
+      await connection.beginTransaction();
+
+      const [docs] = await connection.query('SELECT * FROM documents WHERE id = ? FOR UPDATE', [docId]);
+      if (docs.length === 0) {
+        throw new Error('Document not found.');
+      }
+
+      const doc = docs[0];
+      const newStatus = action === 'approve' ? 'ready_window_1' : 'rejected';
+
+      await connection.query(
+        `UPDATE documents SET 
+          current_status = ?, 
+          student_id = COALESCE(?, student_id),
+          student_name = COALESCE(?, student_name),
+          document_type = COALESCE(?, document_type)
+         WHERE id = ?`,
+        [newStatus, student_id, student_name, document_type, docId]
+      );
+
+      // Log step
+      await connection.query(
+        `INSERT INTO step_logs (document_id, clerk_id, action_taken, from_status, to_status, notes)
+         VALUES (?, ?, ?, 'pending_secretary', ?, ?)`,
+         [docId, req.user.id, action === 'approve' ? 'secretary_approved' : 'secretary_rejected', newStatus, notes || `Document evaluated and ${action}d by College Secretary.`]
+      );
+
+      await connection.commit();
+      res.json({ message: `Document successfully evaluated and ${action === 'approve' ? 'approved' : 'rejected'}.` });
+    } catch (err) {
+      await connection.rollback();
+      throw err;
+    } finally {
+      connection.release();
+    }
+  } catch (err) {
+    console.error('Evaluate document error:', err);
+    res.status(500).json({ error: 'Failed to evaluate document.' });
+  }
+});
+
+/**
+ * POST /:id/release
+ * Allows the Window 1 Clerk to release the document to the student.
+ */
+router.post('/:id/release', authenticate, async (req, res) => {
+  try {
+    if (req.user.role !== 'clerk' || req.user.desk_assignment !== 'Window 1') {
+      return res.status(403).json({ error: 'Only Window 1 Clerks can release documents.' });
+    }
+
+    const docId = req.params.id;
+
+    const connection = await pool.getConnection();
+    try {
+      await connection.beginTransaction();
+
+      const [docs] = await connection.query('SELECT * FROM documents WHERE id = ? FOR UPDATE', [docId]);
+      if (docs.length === 0) {
+        throw new Error('Document not found.');
+      }
+
+      const doc = docs[0];
+
+      await connection.query(
+        `UPDATE documents SET current_status = "completed" WHERE id = ?`,
+        [docId]
+      );
+
+      // Log step
+      await connection.query(
+        `INSERT INTO step_logs (document_id, clerk_id, action_taken, from_status, to_status, notes)
+         VALUES (?, ?, 'released', 'ready_window_1', 'completed', 'Document released to student.')`,
+         [docId, req.user.id]
+      );
+
+      await connection.commit();
+      res.json({ message: 'Document successfully released to student.' });
+    } catch (err) {
+      await connection.rollback();
+      throw err;
+    } finally {
+      connection.release();
+    }
+  } catch (err) {
+    console.error('Release document error:', err);
+    res.status(500).json({ error: 'Failed to release document.' });
   }
 });
 

@@ -107,4 +107,65 @@ export async function processDocument(id, action) {
   return data
 }
 
+/**
+ * Submit manual GCash payment for a document.
+ * @param {string} id
+ * @param {FormData} formData - Contains `gcash_reference_no` and `receipt` image
+ */
+export async function submitPayment(id, formData) {
+  const { data } = await api.post(`/documents/${id}/submit-payment`, formData, {
+    headers: { 'Content-Type': 'multipart/form-data' }
+  })
+  return data
+}
+
+/**
+ * Verify GCash payment (Finance Clerk).
+ * @param {string} id
+ * @param {string} action - 'approve' or 'reject'
+ * @param {string} notes
+ */
+export async function verifyPayment(id, action, notes) {
+  const { data } = await api.post(`/documents/${id}/verify-payment`, { action, notes })
+  return data
+}
+
+/**
+ * Evaluate and route OCR extraction (Secretary).
+ * @param {string} id
+ * @param {{ student_id: string, student_name: string, document_type: string, action: string, notes: string }} payload
+ */
+export async function evaluateDocument(id, payload) {
+  const { data } = await api.post(`/documents/${id}/evaluate`, payload)
+  return data
+}
+
+/**
+ * Release document (Window 1 Clerk).
+ * @param {string} id
+ */
+export async function releaseDocument(id) {
+  const { data } = await api.post(`/documents/${id}/release`)
+  return data
+}
+
+/**
+ * Get pending student accounts (Admin).
+ */
+export async function getPendingStudents() {
+  const { data } = await api.get('/auth/pending-students')
+  return data
+}
+
+/**
+ * Verify or reject pending student registration (Admin).
+ * @param {string} userId
+ * @param {string} action - 'verify' or 'reject'
+ */
+export async function verifyStudent(userId, action) {
+  const { data } = await api.post(`/auth/verify-student/${userId}`, { action })
+  return data
+}
+
 export default api
+

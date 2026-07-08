@@ -9,22 +9,10 @@
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
 <style>
 :root {
-  --camp-blue-50:  #e8f6fd;
-  --camp-blue-100: #c5e8fa;
-  --camp-blue-300: #7ec7ea;
-  --camp-blue-500: #1ca7ec;
-  --camp-blue-600: #178dc8;
-  --camp-blue-700: #126fa0;
-  --camp-blue-900: #07344d;
-  --campfire-50:   #fff7e6;
-  --campfire-200:  #fde68a;
-  --campfire-500:  #e18f00;
-  --campfire-600:  #c97c00;
-  --campfire-700:  #8a5600;
   --pine-500:      #16a34a;
   --pine-600:      #15803d;
   --pine-700:      #166534;
-  --ember-500:     #ef4444;
+  --dusk-500:      #6366f1;
   --gray-0:   #ffffff;
   --gray-50:  #f9fafb;
   --gray-100: #f3f4f6;
@@ -38,15 +26,16 @@
   --gray-900: #111827;
   --border-subtle: #e5e7eb;
   --shadow-sm: 0 1px 2px rgba(0,0,0,0.04), 0 1px 3px rgba(0,0,0,0.06);
-  --font-body: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-body: "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
   --font-display: "Poppins", "Inter", sans-serif;
 }
 * { box-sizing: border-box; }
 html, body { margin: 0; padding: 0; }
 body { font: 400 16px/1.62 var(--font-body); color: var(--gray-800); background: var(--gray-50); }
 .help-shell { max-width: 920px; margin: 0 auto; padding: 56px 32px 96px; }
+
 .help-masthead { display: flex; align-items: baseline; gap: 14px; margin-bottom: 8px; }
-.help-masthead .brand { font: 700 13px var(--font-display); color: var(--camp-blue-500); letter-spacing: 0.18em; text-transform: uppercase; }
+.help-masthead .brand { font: 700 13px var(--font-display); color: var(--pine-600); letter-spacing: 0.18em; text-transform: uppercase; }
 .help-masthead .version { font: 600 11.5px var(--font-body); color: var(--gray-500); background: var(--gray-100); padding: 2px 10px; border-radius: 999px; letter-spacing: 0.04em; }
 h1 { font: 800 36px/1.15 var(--font-display); color: var(--gray-900); margin: 4px 0 14px; letter-spacing: -0.01em; }
 .lede { font: 400 18px/1.55 var(--font-body); color: var(--gray-600); max-width: 740px; margin: 0 0 36px; }
@@ -58,49 +47,45 @@ p { margin: 0 0 14px; color: var(--gray-700); }
 strong { color: var(--gray-900); font-weight: 600; }
 ul, ol { margin: 0 0 16px; padding-left: 22px; }
 li { margin-bottom: 6px; color: var(--gray-700); }
+
 .toc { background: var(--gray-0); border: 1px solid var(--border-subtle); border-radius: 14px; padding: 20px 24px; margin: 0 0 48px; box-shadow: var(--shadow-sm); }
 .toc h4 { margin: 0 0 10px; color: var(--gray-500); }
 .toc ol { margin: 0; padding-left: 22px; column-count: 2; column-gap: 28px; }
 .toc li { margin-bottom: 4px; break-inside: avoid; }
-.toc a { color: var(--camp-blue-600); text-decoration: none; font-weight: 500; }
+.toc a { color: var(--pine-600); text-decoration: none; font-weight: 500; }
 .toc a:hover { text-decoration: underline; }
-@media (max-width: 640px) { .toc ol { column-count: 1; } }
-.callout { border-radius: 12px; padding: 14px 18px; margin: 18px 0 22px; border: 1px solid; display: flex; align-items: flex-start; gap: 12px; }
-.callout .label { font: 700 10.5px var(--font-body); text-transform: uppercase; letter-spacing: 0.1em; padding: 2px 8px; border-radius: 999px; flex-shrink: 0; margin-top: 2px; }
-.callout p:last-child { margin-bottom: 0; }
-.callout.tip { background: var(--camp-blue-50); border-color: #bfdbfe; }
-.callout.tip .label { background: var(--camp-blue-500); color: white; }
+
 table { width: 100%; border-collapse: collapse; border: 1px solid var(--border-subtle); border-radius: 10px; overflow: hidden; margin: 16px 0 26px; font-size: 14.5px; box-shadow: var(--shadow-sm); }
 th, td { text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--border-subtle); vertical-align: top; }
 thead th { background: var(--gray-50); color: var(--gray-500); font: 700 11.5px var(--font-body); text-transform: uppercase; letter-spacing: 0.07em; }
 tbody tr:last-child td { border-bottom: 0; }
+
 .feature-card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; margin: 20px 0 28px; }
-.feature-card { background: var(--gray-0); border: 1px solid var(--border-subtle); border-radius: 12px; padding: 16px 18px; box-shadow: var(--shadow-sm); }
+.feature-card { background: var(--gray-0); border: 1px solid var(--border-subtle); border-radius: 12px; padding: 16px 18px; box-shadow: var(--shadow-sm); border-top: 4px solid var(--dusk-500); }
 .feature-card h4 { margin: 0 0 6px; color: var(--gray-900); text-transform: none; letter-spacing: 0; font-size: 15px; }
 .feature-card p { font-size: 14px; margin: 0; color: var(--gray-600); }
+
+.faq-list { list-style: none; padding: 0; margin: 0; }
+.faq-list li { background: var(--gray-0); border: 1px solid var(--border-subtle); border-radius: 12px; padding: 20px; margin-bottom: 12px; box-shadow: var(--shadow-sm); }
+.faq-list h4 { color: var(--pine-700); margin-top: 0; margin-bottom: 8px; font-size: 16px; text-transform: none; letter-spacing: normal;}
+.faq-list p { margin-bottom: 0; font-size: 15px; }
+
 .phase-list { counter-reset: phasecount; margin: 18px 0 28px; padding: 0; list-style: none; }
 .phase-list > li { counter-increment: phasecount; background: #0b1220; border: 1px solid #1f2a40; border-radius: 14px; padding: 22px 26px; margin: 0 0 16px; position: relative; }
-.phase-list > li::before { content: "Phase " counter(phasecount); position: absolute; top: -10px; left: 18px; background: var(--camp-blue-500); color: white; font: 700 11px var(--font-body); letter-spacing: 0.1em; text-transform: uppercase; padding: 3px 10px; border-radius: 999px; }
+.phase-list > li::before { content: "Phase " counter(phasecount); position: absolute; top: -10px; left: 18px; background: var(--dusk-500); color: white; font: 700 11px var(--font-body); letter-spacing: 0.1em; text-transform: uppercase; padding: 3px 10px; border-radius: 999px; }
 .phase-list h3 { color: white !important; margin: 6px 0 4px; font-size: 17px; }
 .phase-list .phase-goal { color: #c5e8fa; font-style: italic; margin: 4px 0 12px; font-size: 14px; }
 .phase-list ul { margin: 8px 0 4px; padding-left: 22px; }
-.phase-list li { color: #e5e7eb !important; font-size: 14px; margin-bottom: 4px; }
+
 .dev-section { background: var(--gray-900); color: #e5e7eb; padding: 56px 0 96px; margin: 80px -32px -96px; border-radius: 24px 24px 0 0; }
 .dev-section .help-shell { padding: 0 64px; }
 .dev-section h2 { color: white; border-top-color: #374151; padding-top: 0; margin-top: 0; }
-.dev-section h2 .dev-tag { font: 700 11px var(--font-body); text-transform: uppercase; letter-spacing: 0.12em; color: var(--camp-blue-500); display: block; margin-bottom: 6px; }
-.dev-section p { color: #d1d5db !important; }
-.dev-section h3 { color: #ffffff !important; }
-.dev-section h4 { color: #9ca3af !important; }
-.dev-section strong { color: #ffffff !important; }
-.dev-section .callout.spec { background: #1e1b4b; border-color: #4338ca; }
-.dev-section .callout.spec p { color: #e0e7ff !important; }
+.dev-section h2 .dev-tag { font: 700 11px var(--font-body); text-transform: uppercase; letter-spacing: 0.12em; color: var(--dusk-500); display: block; margin-bottom: 6px; }
+.dev-section p, .dev-section li { color: #d1d5db !important; }
 @media (max-width: 760px) {
   .help-shell { padding: 36px 20px 64px; }
   .dev-section .help-shell { padding: 0 24px; }
   .dev-section { margin: 60px -20px -64px; }
-  h1 { font-size: 28px; }
-  h2 { font-size: 22px; }
 }
 </style>
 </head>
@@ -113,161 +98,133 @@ tbody tr:last-child td { border-bottom: 0; }
   </div>
   <h1>Project TRACE — How it works, end to end</h1>
   <p class="lede">
-    This document serves as the complete operational manual for <strong>Project TRACE</strong>. It explains how the system functions in plain language, mapping the exact digital workflow to the physical realities of the PLP Registrar's Office.
+    This document serves as the complete operational manual for <strong>Project TRACE</strong>. It maps the exact digital workflow to the physical realities of the PLP Registrar and Finance Offices, utilizing our new high-density Command-Center UI.
   </p>
 
   <h4 style="margin-top: 8px; color: var(--gray-500); font: 700 11.5px var(--font-body); text-transform: uppercase; letter-spacing: 0.12em;">Core Operational Principles</h4>
   <div class="feature-card-grid">
     <div class="feature-card">
+      <h4>Maximized Screen Reality</h4>
+      <p>Clerks use full-width, fluid dashboards. Data is dense but legible, ensuring staff can monitor active queues, pending scans, and KPI metrics without endless scrolling.</p>
+    </div>
+    <div class="feature-card">
+      <h4>Secure Finance Handoffs</h4>
+      <p>All online payments require manual cross-referencing by the Finance Clerk using uploaded GCash receipts to ensure perfect accounting accuracy before routing to the Secretary.</p>
+    </div>
+    <div class="feature-card">
       <h4>Automation over Manual Entry</h4>
-      <p>Clerks are decision-makers, not data encoders. The system uses artificial intelligence to read uploaded documents and automatically fill out forms, eliminating typos and speeding up intake.</p>
-    </div>
-    <div class="feature-card">
-      <h4>Seamless Handoffs</h4>
-      <p>Documents travel instantly. When Window 1 uploads a file, it immediately lands on the College Secretary's screen for approval, without anyone leaving their desk.</p>
-    </div>
-    <div class="feature-card">
-      <h4>Student Peace of Mind</h4>
-      <p>Students no longer need to line up at the registrar window just to ask "is my paper ready?" They receive automatic SMS updates and a live tracking page.</p>
-    </div>
-    <div class="feature-card">
-      <h4>Streamlined Workflow</h4>
-      <p>We built exactly what the office needs. No bloated features—just a highly optimized pipeline moving from Window 1 to the Secretary and back.</p>
+      <p>Clerks are decision-makers, not data encoders. The EasyOCR engine extracts text from Window 1 physical papers and presents it in a split-screen verification modal for fast approval.</p>
     </div>
   </div>
 
   <nav class="toc" aria-label="Contents">
     <h4>Contents</h4>
     <ol>
-      <li><a href="#tech">1. What powers TRACE (The Technology)</a></li>
-      <li><a href="#roles">2. User Roles &amp; Responsibilities</a></li>
-      <li><a href="#student-portal">3. Feature 1: The Student Request Portal</a></li>
-      <li><a href="#clerk-dashboard">4. Feature 2: The Clerk Workspace</a></li>
-      <li><a href="#ai-extraction">5. Feature 3: Smart Data Extraction (No Typing)</a></li>
-      <li><a href="#automated-routing">6. Feature 4: Automated Desk Routing</a></li>
-      <li><a href="#implementation">7. Project Rollout &amp; Implementation</a></li>
+      <li><a href="#roles">1. The Interactive Role Gateway</a></li>
+      <li><a href="#student-portal">2. The 3-Column Student Portal</a></li>
+      <li><a href="#finance">3. Finance Office Payment Verification</a></li>
+      <li><a href="#clerk-dashboard">4. Command-Center Clerk Workspaces</a></li>
+      <li><a href="#ai-extraction">5. Split-Screen OCR Evaluation</a></li>
+      <li><a href="#ml">6. Predictive Analytics &amp; Admin Tools</a></li>
+      <li><a href="#faqs">7. Frequently Asked Questions (Staff)</a></li>
+      <li><a href="#implementation">8. Project Rollout</a></li>
     </ol>
   </nav>
 
-  <!-- =====================================================================
-       SECTION 1 — TECH STACK EXPLAINED
-       ===================================================================== -->
-  <h2 id="tech">1. What powers TRACE (The Technology)</h2>
-  <p>To ensure speed, security, and intelligence, TRACE is built using a modern software stack. Here is what runs under the hood:</p>
+  <h2 id="roles">1. The Interactive Role Gateway</h2>
+  <p>TRACE utilizes a dynamic, role-based login screen. Choosing a persona completely alters the available navigation sidebars and workspace layout.</p>
   <ul>
-    <li><strong>The Screens (React &amp; Tailwind):</strong> We use React to build fast, app-like websites. When a clerk clicks "Approve", the screen updates instantly without reloading. Tailwind makes the design look clean and modern.</li>
-    <li><strong>The Engine (Node.js &amp; Express):</strong> This is the server that runs 24/7. It safely receives files uploaded by the clerks and ensures everything is saved securely.</li>
-    <li><strong>The Brain (Python &amp; EasyOCR):</strong> Instead of basic text readers, we use a Deep Learning AI model (built on PyTorch) to read messy, handwritten, or typed documents like a human eye.</li>
-    <li><strong>The Memory (MySQL):</strong> The central database that remembers every student's details, exactly where every document is, and when it was approved.</li>
-    <li><strong>The Traffic Cop (n8n):</strong> An automation engine that looks at a document and instantly moves it to the correct person's computer screen based on the university's rules.</li>
+    <li><strong>Student:</strong> Accesses the unified request form and tracking grid.</li>
+    <li><strong>Finance Clerk:</strong> Accesses the Pending Payments queue to manually verify GCash Reference numbers.</li>
+    <li><strong>Window 1 Clerk:</strong> Accesses the Intake Scanner drop-zone and Release Queue.</li>
+    <li><strong>College Secretary:</strong> Accesses the Evaluation Queue and Split-Screen validation tools.</li>
+    <li><strong>Registrar Admin:</strong> Accesses ML Forecast charts, AI prescriptive insights, and the student registration verification queue.</li>
   </ul>
 
-  <!-- =====================================================================
-       SECTION 2 — ROLES
-       ===================================================================== -->
-  <h2 id="roles">2. User Roles &amp; Responsibilities</h2>
-  <p>TRACE is a collaborative ecosystem. Every user has a specific view tailored to what they need to see.</p>
-  <table>
-    <thead><tr><th>Role</th><th>Who They Are</th><th>What They Do in TRACE</th></tr></thead>
-    <tbody>
-      <tr>
-        <td><strong>The Student</strong></td>
-        <td>Current students or alumni of PLP.</td>
-        <td>Logs into a simple website. They submit requests for credentials, upload requirements, and monitor their document's progress.</td>
-      </tr>
-      <tr>
-        <td><strong>Window 1 (Intake)</strong></td>
-        <td>The front desk clerk.</td>
-        <td>Uploads physical papers handed to them. Releases finished documents to students.</td>
-      </tr>
-      <tr>
-        <td><strong>College Secretary</strong></td>
-        <td>The approver.</td>
-        <td>Reviews the digital files in their dashboard, verifies the information, and clicks "Approve" or "Return."</td>
-      </tr>
-    </tbody>
-  </table>
-
-  <!-- =====================================================================
-       SECTION 3 — STUDENT PORTAL
-       ===================================================================== -->
-  <h2 id="student-portal">3. Feature 1: The Student Request Portal</h2>
-  <p>This is the starting point of the document journey. It is designed to be as simple as ordering an item online.</p>
+  <h2 id="student-portal">2. The 3-Column Student Portal</h2>
+  <p>This is the citizen-facing side of the application. It is designed to be highly aesthetic and informative.</p>
   <ul>
-    <li><strong>Step 0: Account Verification</strong>: Students sign up on the portal and upload a picture of their Student ID or Diploma. The Python AI engine will attempt to <strong>auto-verify</strong> the account instantly. If the ID is too blurry, it is flagged as "pending" for manual admin review.</li>
-    <li><strong>Step 1: Intake & Payment</strong>: A verified student logs into the portal and uploads their document request. They must immediately pay via GCash/QRPh. The system holds the document until payment is verified.</li>
-    <li><strong>Live Tracking:</strong> By clicking the link in the text message, the student sees a timeline. Instead of a vague "Pending" status, it shows exact stages: <em>"Received by Window 1" → "Under Evaluation by Secretary" → "Ready for Pickup."</em></li>
+    <li><strong>Live KPI Row:</strong> Students instantly see cards tracking their "Total Requests", "In Progress", and "Completed" documents.</li>
+    <li><strong>Visual Tracker:</strong> The main table features dynamic percentage progress bars (color-coded based on completion) rather than generic text statuses.</li>
   </ul>
 
-  <!-- =====================================================================
-       SECTION 4 — CLERK DASHBOARD
-       ===================================================================== -->
-  <h2 id="clerk-dashboard">4. Feature 2: The Clerk Workspace</h2>
-  <p>Traditional physical logbooks are replaced by a clean, digital "To-Do List."</p>
+  <h2 id="finance">3. Finance Office Payment Verification</h2>
+  <p>TRACE does not use automated payment gateways to ensure strict compliance with school accounting policies.</p>
   <ul>
-    <li><strong>The Focused Queue:</strong> The College Secretary does not see a massive list of every document in the school. They only see the documents currently awaiting their approval.</li>
-    <li><strong>One-Click Actions:</strong> Once the Secretary verifies the document is correct, they simply click a green <strong>"Approve"</strong> button.</li>
+    <li><strong>Student Action:</strong> Students scan a static official PLP GCash QR code. They must then upload a screenshot of their receipt and type in the Reference Number into TRACE.</li>
+    <li><strong>Clerk Action:</strong> The Finance Clerk opens their dashboard, clicks the pending request, views the screenshot, and checks the official GCash phone to ensure the funds actually arrived. Clicking "Verify & Approve" automatically forwards the request to the Secretary.</li>
   </ul>
 
-  <!-- =====================================================================
-       SECTION 5 — AI EXTRACTION
-       ===================================================================== -->
-  <h2 id="ai-extraction">5. Feature 3: Smart Data Extraction (No Typing)</h2>
-  <p>Data entry is the slowest part of administrative work. TRACE utilizes Artificial Intelligence (Computer Vision) to do the heavy lifting.</p>
+  <h2 id="clerk-dashboard">4. Command-Center Clerk Workspaces</h2>
+  <p>Traditional physical logbooks are replaced by wide, data-rich digital command centers.</p>
   <ul>
-    <li><strong>Reading the Image:</strong> When Window 1 uploads a photo of a student's form, the AI scans the image.</li>
-    <li><strong>Auto-Filling:</strong> It isolates the Student Number and Form Type, and automatically types it into the digital database. When the Secretary opens the file, all the student's details are already filled out. The Secretary only needs to double-check it.</li>
+    <li><strong>Prominent Branding:</strong> All staff dashboards feature a bold TRACE header and user-profile avatar, ensuring institutional consistency.</li>
+    <li><strong>KPI Headers:</strong> Window 1 and the Secretary constantly see live metrics (e.g., "Pending Evaluation") pinned to the top of their workspace to gauge current backlog levels.</li>
   </ul>
 
-  <!-- =====================================================================
-       SECTION 6 — AUTOMATED ROUTING
-       ===================================================================== -->
-  <h2 id="automated-routing">6. Feature 4: Automated Desk Routing</h2>
-  <p>TRACE uses an automation engine (n8n) to handle the hand-offs instantly.</p>
+  <h2 id="ai-extraction">5. Split-Screen OCR Evaluation</h2>
+  <p>Data entry is the slowest part of administrative work. TRACE eliminates it using an evaluation modal.</p>
   <ul>
-    <li><strong>The Core Loop:</strong> When Window 1 uploads the document, n8n instantly sends a digital copy to the Secretary's screen.</li>
-    <li><strong>The Return Trip:</strong> When the Secretary clicks "Approve", n8n instantly pulls it off their screen, places it back on Window 1's screen, and texts the student that the document is ready for pickup.</li>
+    <li><strong>The Process:</strong> When the Secretary clicks a document in their queue, a modal expands. On the left is the physical scan. On the right are the extracted data fields.</li>
+    <li><strong>Approval:</strong> If correct, the Secretary simply clicks "Approve & Route to Window 1", which automatically triggers the backend to update the student's progress.</li>
+  </ul>
+
+  <h2 id="ml">6. Predictive Analytics &amp; Admin Tools</h2>
+  <p>This feature upgrades the system from a simple tracking tool into an intelligent management assistant for the Chief Registrar.</p>
+  <ul>
+    <li><strong>7-Day Volume Forecast:</strong> A visual chart utilizing Prophet ML predicts the exact incoming document volume for the week.</li>
+    <li><strong>AI Insights (Random Forest):</strong> A dark-themed alert panel generates plain-English recommendations based on the forecast, such as advising the admin to reassign staff to Window 1 ahead of a predicted Thursday rush.</li>
+    <li><strong>Student Account Verification Desk:</strong> Displays pending registrations where ID/diploma proof failed automatic EasyOCR checks, allowing the Admin to manually review and approve the student.</li>
+  </ul>
+
+  <h2 id="faqs">7. Frequently Asked Questions (Staff)</h2>
+  <ul class="faq-list">
+    <li>
+      <h4>How do students pay if we don't have a payment gateway?</h4>
+      <p>The system displays the official PLP Finance GCash QR code. The student pays normally through their GCash app, takes a screenshot of the receipt, and uploads that screenshot along with the Reference Number directly into their TRACE request.</p>
+    </li>
+    <li>
+      <h4>What if the student inputs a fake GCash Reference Number?</h4>
+      <p>The request will go to the Finance Clerk's dashboard first. If the clerk checks the official logs and sees the money never arrived, they simply click "Reject" on the dashboard. The student will be notified and the request will be halted.</p>
+    </li>
+    <li>
+      <h4>What if the AI OCR reads a student's name or ID incorrectly?</h4>
+      <p>The AI is highly accurate, but not perfect. This is why the College Secretary uses the Split-Screen Evaluation modal. If the extracted data on the right doesn't match the image on the left, the Secretary can simply click into the text box, type the correct information, and then click "Approve".</p>
+    </li>
   </ul>
 
 </div>
 
-<!-- =====================================================================
-     SECTION 7 — ROLLOUT PHASES
-     ===================================================================== -->
 <div class="dev-section">
   <div class="help-shell">
     <h2 id="implementation"><span class="dev-tag">Operations Guide</span>Project Rollout &amp; Implementation</h2>
-    <p>Deploying Project TRACE requires a structured rollout to ensure operations are never disrupted.</p>
+    <p>Deploying the TRACE Command-Center requires a structured rollout to ensure staff adapt to the new full-width interfaces.</p>
 
     <ol class="phase-list">
       <li>
-        <h3>Phase 1: System Initialization &amp; Silent Pilot</h3>
-        <p class="phase-goal">Configure the system and run a quiet test without involving students.</p>
-        <h4>Operational Steps:</h4>
+        <h3>Phase 1: UI Familiarization & Silent Pilot</h3>
+        <p class="phase-goal">Configure the system and train staff on the split-screen modal and manual payment verification.</p>
         <ul>
-          <li><strong>Database Configuration:</strong> Input the Window 1 Clerk and the College Secretary into the system.</li>
-          <li><strong>The Silent Run:</strong> For one week, whenever Window 1 processes a physical paper, they also upload it into TRACE to ensure the AI and the digital hand-offs to the Secretary work perfectly.</li>
+          <li><strong>Database Configuration:</strong> Input the Window 1 Clerk, the Finance Clerk, and the College Secretary into the system.</li>
+          <li><strong>The Silent Run:</strong> For one week, Window 1 uploads physical papers into the new drop-zone to ensure the AI and the digital hand-offs work perfectly.</li>
         </ul>
       </li>
 
       <li>
         <h3>Phase 2: The Public Student Launch</h3>
-        <p class="phase-goal">Open the digital gates to the student body.</p>
-        <h4>Operational Steps:</h4>
+        <p class="phase-goal">Open the beautiful 3-column portal to the student body.</p>
         <ul>
-          <li><strong>Campus Announcement:</strong> The university officially announces the TRACE Student Portal and the new cashless payment policy (GCash/QRPh).</li>
-          <li><strong>Transitioning Walk-ins:</strong> Guide physical walk-in students to use the portal to submit their requirements and pay digitally, teaching them the new protocol.</li>
-          <li><strong>Monitoring Webhooks &amp; SMS:</strong> Verify that payment confirmation webhooks from the gateway are succeeding, and automated text messages containing tracking links are reaching student phones.</li>
+          <li><strong>Campus Announcement:</strong> The university officially announces the TRACE Student Portal.</li>
+          <li><strong>Transitioning Walk-ins:</strong> Guide physical walk-in students to use the portal to submit their requirements and upload their GCash receipts.</li>
         </ul>
       </li>
 
       <li>
-        <h3>Phase 3: Optimization</h3>
-        <p class="phase-goal">With the system fully running, rely entirely on the AI Intake to streamline efficiency.</p>
-        <h4>Operational Steps:</h4>
+        <h3>Phase 3: Activation of AI &amp; Analytics</h3>
+        <p class="phase-goal">With the system fully running, rely entirely on the AI engines to streamline efficiency.</p>
         <ul>
-          <li>Clerks officially stop manually typing student details into their old Excel sheets, relying completely on the Python EasyOCR engine.</li>
-          <li>The core loop (Window 1 ➔ Secretary ➔ Window 1) becomes the daily standard operating procedure.</li>
+          <li>Clerks officially stop manually typing student details, relying completely on the Split-Screen EasyOCR verification modal.</li>
+          <li>The Chief Registrar begins checking the "Predictive Analytics Dashboard" every Monday morning.</li>
         </ul>
       </li>
     </ol>

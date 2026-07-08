@@ -185,4 +185,63 @@ router.post('/register', upload.single('id_proof'), async (req, res) => {
   }
 });
 
+/**
+ * GET /pending-students
+ * Retrieve a list of all student users that are pending admin verification.
+ * Only accessible to admins.
+ */
+router.get('/pending-students', authenticate, async (req, res) => {
+  try {
+    if (req.user.role !== 'admin') {
+      return res.status(403).json({ error: 'Access denied. Admin role required.' });
+    }
+
+    const [rows] = await pool.query(
+      'SELECT id, student_id, email, full_name, role, user_type, id_proof_path, verification_status, created_at FROM users WHERE role = "student" AND verification_status = "pending"'
+    );
+
+    res.json({ pending_students: rows });
+  } catch (err) {
+    console.error('Fetch pending students error:', err);
+    res.status(500).json({ error: 'Failed to retrieve pending student accounts.' });
+  }
+});
+
+/**
+ * POST /verify-student/:id
+ * Manually verify or reject a pending student user account.
+ * Only accessible to admins.
+ */
+router.post('/verify-student/:id', authenticate, async (req, res) => {
+  try {
+    if (req.user.role !== 'admin') {
+      return res.status(403).json({ error: 'Access denied. Admin role required.' });
+    }
+
+    const userId = req.params.id;
+    const { action } = req.body; // 'verify' or 'reject'
+
+    if (!['verify', 'reject'].includes(action)) {
+      return res.status(400).json({ error: 'Invalid action. Must be verify or reject.' });
+    }
+
+    const newStatus = action === 'verify' ? 'verified' : 'rejected';
+
+    const [result] = await pool.query(
+      'UPDATE users SET verification_status = ? WHERE id = ? AND role = "student"',
+      [newStatus, userId]
+    );
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ error: 'Pending student user not found.' });
+    }
+
+    res.json({ message: `Student account successfully ${newStatus}.` });
+  } catch (err) {
+    console.error('Verify student account error:', err);
+    res.status(500).json({ error: 'Failed to update student account verification.' });
+  }
+});
+
 module.exports = router;
+

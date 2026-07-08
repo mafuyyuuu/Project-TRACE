@@ -27,9 +27,7 @@
   --ember-500:     #ef4444;
   --ember-600:     #dc2626;
   --ember-700:     #b91c1c;
-  --dusk-500:      #7c3aed;
-  --berry-500:     #ec4899;
-  --meadow-500:    #2f5233;
+  --dusk-500:      #6366f1;
   --gray-0:   #ffffff;
   --gray-50:  #f9fafb;
   --gray-100: #f3f4f6;
@@ -42,10 +40,9 @@
   --gray-800: #1f2937;
   --gray-900: #111827;
   --border-subtle: #e5e7eb;
-  --border-default: #d1d5db;
   --shadow-sm: 0 1px 2px rgba(0,0,0,0.04), 0 1px 3px rgba(0,0,0,0.06);
   --shadow-lg: 0 10px 30px rgba(0,0,0,0.10), 0 2px 8px rgba(0,0,0,0.04);
-  --font-body: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-body: "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
   --font-display: "Poppins", "Inter", sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
 }
@@ -53,8 +50,9 @@
 html, body { margin: 0; padding: 0; }
 body { font: 400 16px/1.62 var(--font-body); color: var(--gray-800); background: var(--gray-50); }
 .help-shell { max-width: 920px; margin: 0 auto; padding: 56px 32px 96px; }
+
 .help-masthead { display: flex; align-items: baseline; gap: 14px; margin-bottom: 8px; }
-.help-masthead .brand { font: 700 13px var(--font-display); color: var(--camp-blue-500); letter-spacing: 0.18em; text-transform: uppercase; }
+.help-masthead .brand { font: 700 13px var(--font-display); color: var(--pine-600); letter-spacing: 0.18em; text-transform: uppercase; }
 .help-masthead .version { font: 600 11.5px var(--font-body); color: var(--gray-500); background: var(--gray-100); padding: 2px 10px; border-radius: 999px; letter-spacing: 0.04em; }
 h1 { font: 800 36px/1.15 var(--font-display); color: var(--gray-900); margin: 4px 0 14px; letter-spacing: -0.01em; }
 .lede { font: 400 18px/1.55 var(--font-body); color: var(--gray-600); max-width: 740px; margin: 0 0 36px; }
@@ -64,75 +62,61 @@ h3 { font: 700 18px/1.35 var(--font-display); color: var(--gray-900); margin: 36
 h4 { font: 700 13.5px var(--font-body); color: var(--gray-700); text-transform: uppercase; letter-spacing: 0.08em; margin: 24px 0 8px; }
 p { margin: 0 0 14px; color: var(--gray-700); }
 strong { color: var(--gray-900); font-weight: 600; }
-em { font-style: italic; color: var(--gray-700); }
 ul, ol { margin: 0 0 16px; padding-left: 22px; }
 li { margin-bottom: 6px; color: var(--gray-700); }
 code { font: 500 13.5px var(--font-mono); background: var(--gray-100); color: var(--gray-800); padding: 1px 6px; border-radius: 4px; }
 pre { background: var(--gray-900); color: #e5e7eb; padding: 16px 18px; border-radius: 10px; overflow-x: auto; font: 500 12.5px/1.55 var(--font-mono); margin: 14px 0 20px; }
 pre code { background: transparent; color: inherit; padding: 0; font: inherit; }
-hr { border: 0; border-top: 1px solid var(--border-subtle); margin: 28px 0; }
+
 .toc { background: var(--gray-0); border: 1px solid var(--border-subtle); border-radius: 14px; padding: 20px 24px; margin: 0 0 48px; box-shadow: var(--shadow-sm); }
 .toc h4 { margin: 0 0 10px; color: var(--gray-500); }
 .toc ol { margin: 0; padding-left: 22px; column-count: 2; column-gap: 28px; }
 .toc li { margin-bottom: 4px; break-inside: avoid; }
-.toc a { color: var(--camp-blue-600); text-decoration: none; font-weight: 500; }
+.toc a { color: var(--pine-600); text-decoration: none; font-weight: 500; }
 .toc a:hover { text-decoration: underline; }
 @media (max-width: 640px) { .toc ol { column-count: 1; } }
+
 .callout { border-radius: 12px; padding: 14px 18px; margin: 18px 0 22px; border: 1px solid; display: flex; align-items: flex-start; gap: 12px; }
 .callout .label { font: 700 10.5px var(--font-body); text-transform: uppercase; letter-spacing: 0.1em; padding: 2px 8px; border-radius: 999px; flex-shrink: 0; margin-top: 2px; }
 .callout p:last-child { margin-bottom: 0; }
 .callout.tip { background: var(--camp-blue-50); border-color: #bfdbfe; }
 .callout.tip .label { background: var(--camp-blue-500); color: white; }
-.callout.note { background: var(--campfire-50); border-color: var(--campfire-200); }
-.callout.note .label { background: var(--campfire-500); color: white; }
-.callout.warning { background: #fef2f2; border-color: #fecaca; }
-.callout.warning .label { background: var(--ember-500); color: white; }
 .callout.spec { background: #f5f3ff; border-color: #ddd6fe; }
 .callout.spec .label { background: var(--dusk-500); color: white; }
+
 table { width: 100%; border-collapse: collapse; border: 1px solid var(--border-subtle); border-radius: 10px; overflow: hidden; margin: 16px 0 26px; font-size: 14.5px; box-shadow: var(--shadow-sm); }
 th, td { text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--border-subtle); vertical-align: top; }
 thead th { background: var(--gray-50); color: var(--gray-500); font: 700 11.5px var(--font-body); text-transform: uppercase; letter-spacing: 0.07em; }
-tbody tr:last-child td { border-bottom: 0; }
-td code { background: transparent; padding: 0; font-size: 13px; color: var(--camp-blue-700); }
-.badge { display: inline-block; font: 700 11px var(--font-body); padding: 2px 8px; border-radius: 999px; vertical-align: 1px; }
-.badge-info    { background: var(--camp-blue-50); color: var(--camp-blue-700); }
-.badge-new { background: var(--pine-500); color: white; }
+
 .feature-card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; margin: 20px 0 28px; }
-.feature-card { background: var(--gray-0); border: 1px solid var(--border-subtle); border-radius: 12px; padding: 16px 18px; box-shadow: var(--shadow-sm); }
+.feature-card { background: var(--gray-0); border: 1px solid var(--border-subtle); border-radius: 12px; padding: 16px 18px; box-shadow: var(--shadow-sm); border-top: 4px solid var(--pine-500); }
 .feature-card h4 { margin: 0 0 6px; color: var(--gray-900); text-transform: none; letter-spacing: 0; font-size: 15px; }
 .feature-card p { font-size: 14px; margin: 0; color: var(--gray-600); }
+
+.faq-list { list-style: none; padding: 0; margin: 0; }
+.faq-list li { background: var(--gray-0); border: 1px solid var(--border-subtle); border-radius: 12px; padding: 20px; margin-bottom: 12px; box-shadow: var(--shadow-sm); }
+.faq-list h4 { color: var(--pine-700); margin-top: 0; margin-bottom: 8px; font-size: 16px; text-transform: none; letter-spacing: normal;}
+.faq-list p { margin-bottom: 0; font-size: 15px; }
+.faq-list code { font-size: 12px; }
+
 .phase-list { counter-reset: phasecount; margin: 18px 0 28px; padding: 0; list-style: none; }
 .phase-list > li { counter-increment: phasecount; background: #0b1220; border: 1px solid #1f2a40; border-radius: 14px; padding: 22px 26px; margin: 0 0 16px; position: relative; }
-.phase-list > li::before { content: "Phase " counter(phasecount); position: absolute; top: -10px; left: 18px; background: var(--camp-blue-500); color: white; font: 700 11px var(--font-body); letter-spacing: 0.1em; text-transform: uppercase; padding: 3px 10px; border-radius: 999px; }
+.phase-list > li::before { content: "Phase " counter(phasecount); position: absolute; top: -10px; left: 18px; background: var(--pine-500); color: white; font: 700 11px var(--font-body); letter-spacing: 0.1em; text-transform: uppercase; padding: 3px 10px; border-radius: 999px; }
 .phase-list h3 { color: white !important; margin: 6px 0 4px; font-size: 17px; }
 .phase-list .phase-goal { color: #c5e8fa; font-style: italic; margin: 4px 0 12px; font-size: 14px; }
-.phase-list ul { margin: 8px 0 4px; padding-left: 22px; }
-.phase-list li { color: #d1d5db; font-size: 14px; margin-bottom: 4px; }
+
 .dev-section { background: var(--gray-900); color: #e5e7eb; padding: 56px 0 96px; margin: 80px -32px -96px; border-radius: 24px 24px 0 0; }
 .dev-section .help-shell { padding: 0 64px; }
 .dev-section h2 { color: white; border-top-color: #374151; padding-top: 0; margin-top: 0; }
-.dev-section h2 .dev-tag { font: 700 11px var(--font-body); text-transform: uppercase; letter-spacing: 0.12em; color: var(--camp-blue-500); display: block; margin-bottom: 6px; }
-.dev-section h3 { color: #f3f4f6; }
+.dev-section h2 .dev-tag { font: 700 11px var(--font-body); text-transform: uppercase; letter-spacing: 0.12em; color: var(--pine-500); display: block; margin-bottom: 6px; }
+.dev-section h3, .dev-section strong { color: white; }
 .dev-section h4 { color: #9ca3af; }
-.dev-section p { color: #d1d5db; }
-.dev-section li { color: #d1d5db; }
-.dev-section strong { color: white; }
-.dev-section code { background: #1f2937; color: #c5e8fa; }
-.dev-section table { background: #111827; border-color: #374151; }
-.dev-section th, .dev-section td { border-bottom-color: #374151; color: #d1d5db; }
-.dev-section thead th { background: #1f2937; color: #9ca3af; }
-.dev-section pre { background: #000; border: 1px solid #374151; }
-.dev-section hr { border-top-color: #374151; }
-.dev-section .callout.spec { background: #1e1b4b; border-color: #4338ca; }
-.dev-section .callout.spec p { color: #e0e7ff; }
+.dev-section p, .dev-section li { color: #d1d5db; }
 @media (max-width: 760px) {
   .help-shell { padding: 36px 20px 64px; }
   .dev-section .help-shell { padding: 0 24px; }
   .dev-section { margin: 60px -20px -64px; }
-  h1 { font-size: 28px; }
-  h2 { font-size: 22px; }
 }
-footer.help-footer { margin-top: 64px; padding-top: 24px; border-top: 1px solid var(--border-subtle); font: 400 13px var(--font-body); color: var(--gray-500); }
 </style>
 </head>
 <body>
@@ -144,26 +128,26 @@ footer.help-footer { margin-top: 64px; padding-top: 24px; border-top: 1px solid 
   </div>
   <h1>Project TRACE — How it works, end to end</h1>
   <p class="lede">
-    This document is the canonical reference for <strong>Project TRACE</strong> (Tracking, Routing, and Analytics Computing Engine) for the Pamantasan ng Lungsod ng Pasig (PLP) Registrar's Office. It outlines the core digital workflow (Window 1 ➔ Secretary ➔ Window 1), the AI-powered text extraction (EasyOCR), and the n8n dynamic routing logic. If the product and this document disagree, treat this document as intent and flag the gap.
+    This document is the canonical reference for <strong>Project TRACE</strong> (Tracking, Routing, and Analytics Computing Engine) for the Pamantasan ng Lungsod ng Pasig (PLP) Registrar's Office. It outlines the core digital workflow, the Command-Center UI architecture, manual payment verifications, and Machine Learning forecasting.
   </p>
 
-  <h4 style="margin-top: 8px; color: var(--gray-500); font: 700 11.5px var(--font-body); text-transform: uppercase; letter-spacing: 0.12em;">Design principles</h4>
+  <h4 style="margin-top: 8px; color: var(--gray-500); font: 700 11.5px var(--font-body); text-transform: uppercase; letter-spacing: 0.12em;">Design principles & UI Mandates</h4>
   <div class="feature-card-grid">
     <div class="feature-card">
+      <h4>Fluid "Command-Center" Layouts</h4>
+      <p>Dashboards must maximize screen real estate. We do not use constrained white-space containers. The UI relies on fluid CSS grids spanning the full viewport to present dense, engaging KPIs.</p>
+    </div>
+    <div class="feature-card">
+      <h4>Manual Payment Gate</h4>
+      <p>Payments bypass automated gateways. Students scan a static GCash QR, then upload the receipt and reference number. Finance Clerks manually verify these before routing documents.</p>
+    </div>
+    <div class="feature-card">
       <h4>Automation over data entry</h4>
-      <p>Clerks should not type what a computer can read. Python EasyOCR automatically extracts Student Numbers and Document Types from uploaded forms to eliminate manual encoding errors.</p>
+      <p>Clerks do not type what a computer can read. Python EasyOCR extracts Student Numbers and Document Types from uploaded forms via a split-screen verification modal.</p>
     </div>
     <div class="feature-card">
-      <h4>Dynamic paths, not hardcoded logic</h4>
-      <p>Institutional rules change. n8n workflow webhooks handle all conditional routing, meaning the routing logic can be updated without rebuilding the core app's source code.</p>
-    </div>
-    <div class="feature-card">
-      <h4>Streamlined Workflows</h4>
-      <p>The system maps directly to reality. It focuses strictly on optimizing the core loop: Window 1 (Intake) to the College Secretary (Approval) and back to Window 1 (Release).</p>
-    </div>
-    <div class="feature-card">
-      <h4>Unified Digital Interface</h4>
-      <p>Built as a React web application, providing a clean, unified portal for students tracking documents, and a focused desktop dashboard for clerks processing them.</p>
+      <h4>Predictive Management</h4>
+      <p>The system uses Prophet & Random Forest ML to forecast volume spikes, alerting the Admin via an aesthetically pleasing dashboard with actionable cards.</p>
     </div>
   </div>
 
@@ -171,64 +155,87 @@ footer.help-footer { margin-top: 64px; padding-top: 24px; border-top: 1px solid 
     <h4>Contents</h4>
     <ol>
       <li><a href="#tech-stack">1. The Tech Stack &amp; Justifications</a></li>
-      <li><a href="#roles">2. User Roles &amp; Permissions</a></li>
-      <li><a href="#student-portal">3. Student Portal &amp; Tracking</a></li>
-      <li><a href="#clerk-dashboard">4. Clerk Dashboard (React UI)</a></li>
-      <li><a href="#ocr">5. Intelligent Intake (Deep Learning AI)</a></li>
-      <li><a href="#n8n">6. Dynamic Routing Engine (n8n)</a></li>
-      <li><a href="#dev">7. Developer notes &amp; phased release plan</a></li>
+      <li><a href="#roles">2. User Roles &amp; Gateway</a></li>
+      <li><a href="#student-portal">3. Student Portal &amp; 3-Column Layout</a></li>
+      <li><a href="#clerk-dashboard">4. Command-Center Clerk Dashboards</a></li>
+      <li><a href="#payment-flow">5. The Manual Payment Workflow</a></li>
+      <li><a href="#ocr">6. Split-Screen OCR Evaluation (AI)</a></li>
+      <li><a href="#ml">7. Predictive Analytics Dashboard</a></li>
+      <li><a href="#faqs">8. Frequently Asked Questions (Dev)</a></li>
+      <li><a href="#dev">9. Developer notes &amp; phased release</a></li>
     </ol>
   </nav>
 
   <h2 id="tech-stack">1. The Tech Stack &amp; Justifications</h2>
-  <p>Project TRACE utilizes a decoupled microservice architecture. Here is exactly what each technology does and why it was chosen.</p>
-  
+  <p>Project TRACE utilizes a decoupled microservice architecture tailored for high-density, real-time interfaces.</p>
   <ul>
-    <li><strong>React.js (Vite) + Tailwind CSS (Frontend):</strong> React is used to build the dynamic, single-page UI for both the student portal and the clerk dashboard. It allows for instant screen updates without refreshing the page. Tailwind is used for rapid, modern styling (Glassmorphism).</li>
-    <li><strong>Node.js + Express.js (Backend API):</strong> Acts as the "API Gateway" or middleman. It securely receives HTTP requests from React and talks to the database.</li>
-    <li><strong>Multer (Middleware):</strong> A Node.js middleware exclusively used for handling `multipart/form-data`. It safely catches the image files uploaded by clerks/students and stores them on the server so the AI can read them.</li>
-    <li><strong>Python, Flask, &amp; EasyOCR (AI Microservice):</strong> This is the brain of the operation. Python and Flask create a separate mini-server just for AI. <strong>EasyOCR</strong> (built on PyTorch) is a modern Deep Learning tool that is much more accurate than legacy Tesseract at reading messy, real-world academic documents.</li>
-    <li><strong>MySQL (Database):</strong> The relational database that acts as the single source of truth. It stores student data, tracks which desk currently holds a document, and logs timestamps.</li>
-    <li><strong>n8n (Orchestration Engine):</strong> A node-based automation tool. Instead of writing complex "If/Else" routing rules inside Node.js, we send a webhook to n8n. n8n visually evaluates the document type and automatically routes it to the Secretary's queue.</li>
+    <li><strong>React.js (Vite) + Tailwind CSS:</strong> Drives the responsive, fluid-width command-center dashboards. Uses Lucide icons and soft pine-green branding constraints.</li>
+    <li><strong>Node.js + Express.js (Backend API):</strong> Securely handles uploads, routing, and serves static files (like receipt uploads).</li>
+    <li><strong>Python, Flask, &amp; EasyOCR:</strong> Deep Learning AI microservice. Reads messy, physical academic documents during Window 1 intake.</li>
+    <li><strong>Python, Prophet, &amp; Scikit-Learn:</strong> The analytical brain generating 7-day volume forecasts and prescriptive process recommendations.</li>
+    <li><strong>MySQL (Database):</strong> Source of truth, logging every state change timestamp for ML training.</li>
   </ul>
 
-  <h2 id="roles">2. User Roles &amp; Permissions</h2>
-  <p>TRACE operates as a closed-loop ecosystem with exactly two core personas.</p>
+  <h2 id="roles">2. User Roles &amp; Interactive Gateway</h2>
+  <p>Users access the system via the interactive Role Gateway. The UI completely morphs its layout and sidebar based on the authenticated persona.</p>
   <table>
-    <thead><tr><th>Role</th><th>Workspace</th><th>Capabilities</th></tr></thead>
+    <thead><tr><th>Role</th><th>Workspace UI</th><th>Capabilities</th></tr></thead>
     <tbody>
-      <tr><td><strong>Student</strong></td><td>Public Web View</td><td>Initiates document requests, uploads preliminary attachments, and views real-time status tracking via SMS/URL links.</td></tr>
-      <tr><td><strong>Clerk / Secretary</strong></td><td>Staff Dashboard</td><td>Reviews AI-parsed data, updates document states (Approve/Reject), and triggers automatic hand-offs to the next desk.</td></tr>
+      <tr><td><strong>Student</strong></td><td>3-Column Grid</td><td>Submits requests, views static GCash QR, uploads receipts, and views real-time status.</td></tr>
+      <tr><td><strong>Finance Clerk</strong></td><td>Verification Queue</td><td>Cross-references uploaded GCash receipts/reference IDs with official accounting logs to approve payments.</td></tr>
+      <tr><td><strong>Window 1 Clerk</strong></td><td>Intake Command Center</td><td>Scans physical papers into the EasyOCR dropzone and monitors the "Ready for Release" dispatch table.</td></tr>
+      <tr><td><strong>College Secretary</strong></td><td>Evaluation Queue</td><td>Opens pending documents in the split-screen Modal to verify AI-parsed data and route them.</td></tr>
+      <tr><td><strong>Registrar Admin</strong></td><td>Analytics Dashboard & Verification Desk</td><td>Monitors system throughput, views ML volume forecasts, reviews AI insights for bottleneck prevention, and manually reviews/approves pending student registrations.</td></tr>
     </tbody>
   </table>
 
-  <h2 id="student-portal">3. Student Portal &amp; Tracking</h2>
-  <p>The citizen-facing side of the app. Students do not need to download an app; it operates entirely via a mobile-responsive React web view.</p>
+  <h2 id="student-portal">3. Student Portal &amp; 3-Column Layout</h2>
+  <p>The citizen-facing side is heavily optimized for aesthetics and usability, moving away from boring standard forms.</p>
   <ul>
-    <li><strong>Submission &amp; Payment:</strong> Students authenticate via Student ID, select the credential needed, upload supporting documents, and securely pay the processing fee via automated gateway (QRPh / GCash). The document only enters the processing queue after payment is verified.</li>
-    <li><strong>Tracking Link:</strong> Upon submission and payment confirmation, the system generates a unique hash and sends a tracking URL. The student can view a linear timeline of exactly whose desk their document is on.</li>
+    <li><strong>Unified Layout:</strong> The view uses a responsive 3-column grid. The tracker spans two columns, while the submission form sits comfortably in a sticky side-column.</li>
+    <li><strong>Visual Tracking:</strong> Progress is indicated by visual bars (amber, blue, pine green) and dynamic status badges, giving the student immediate visual feedback.</li>
   </ul>
 
-  <h2 id="clerk-dashboard">4. Clerk Dashboard (React UI)</h2>
-  <p>The primary work surface. A clean UI that eliminates clutter and focuses strictly on the active queue.</p>
+  <h2 id="clerk-dashboard">4. Command-Center Clerk Dashboards</h2>
+  <p>The primary work surfaces for all Clerks utilize the full width of the screen to present dense, actionable data.</p>
   <ul>
-    <li><strong>The Queue:</strong> A real-time data table fetching from the Node.js backend. Displays only the documents currently assigned to that specific clerk (e.g., Window 1 only sees Intake/Release, Secretary only sees Approvals).</li>
-    <li><strong>Split-Screen Verification:</strong> When a clerk opens a file, they see the uploaded image on the left, and the AI-extracted text on the right.</li>
-    <li><strong>Quick Actions:</strong> Green <em>Approve</em> and Red <em>Return</em> buttons trigger API calls that advance the state and instantly remove the item from the local view.</li>
+    <li><strong>Top-Level KPIs:</strong> Dashboards feature prominent metrics at the top (e.g., "Scanned Today", "Pending Verification") to provide instant situational awareness.</li>
+    <li><strong>Interactive Queues:</strong> Clean, borderless tables with hover-states that reveal quick-action buttons (Approve/Reject/Release) without cluttering the screen.</li>
   </ul>
 
-  <h2 id="ocr">5. Intelligent Intake (Deep Learning AI)</h2>
-  <p>To eliminate transcription errors, TRACE uses a Python microservice for automated data entry.</p>
+  <h2 id="payment-flow">5. The Manual Payment Workflow</h2>
+  <p>To comply with university restrictions on third-party payment gateways, TRACE utilizes a secure manual verification pipeline.</p>
   <div class="callout tip">
     <span class="label">Workflow</span>
-    <p>When an image or PDF is uploaded by Window 1, Node.js securely pipes it to the Python Flask API. <strong>EasyOCR</strong> (powered by PyTorch) reads the image utilizing Convolutional Recurrent Neural Networks (CRNN). Regex pattern matching extracts the <strong>Student Number</strong> and <strong>Form Type</strong>. This is returned as a clean JSON payload and injected straight into the MySQL database, bypassing manual typing.</p>
+    <p>When a student initiates a request, the UI presents a static GCash QR code belonging to the PLP Finance office. The student pays via their app, then uploads a screenshot and inputs the Reference Number into TRACE. The Node.js backend flags the document as <code>PENDING_PAYMENT_VERIFICATION</code>. It sits in the <strong>Finance Clerk's</strong> dashboard until they manually confirm the transaction against their records and click "Approve."</p>
   </div>
 
-  <h2 id="n8n">6. Dynamic Routing Engine (n8n)</h2>
-  <p>The "traffic cop" of the system. Hardcoded paths break when the university changes its rules. By using n8n, routing is visual and modular.</p>
+  <h2 id="ocr">6. Split-Screen OCR Evaluation (AI)</h2>
+  <p>When the College Secretary clicks a pending document, it triggers the <strong>Evaluation Modal</strong>.</p>
+  <p>The modal locks the background and presents a split-screen view. The left side displays the original scanned image with simulated AI bounding boxes. The right side displays the extracted data (Student ID, Name, Type) alongside an AI Confidence Score. The Secretary verifies the fields and clicks "Approve & Route".</p>
+
+  <h2 id="ml">7. Predictive Analytics &amp; Admin Tools</h2>
+  <p>The Registrar Admin view is a dedicated analytics and operations command center.</p>
   <ul>
-    <li><strong>Webhooks:</strong> When Window 1 uploads a file, Node.js fires an event to n8n.</li>
-    <li><strong>Conditional Nodes:</strong> n8n evaluates the payload. It then executes a database update, automatically changing the document's queue to the College Secretary. Once the Secretary approves, n8n routes it back to Window 1 for release.</li>
+    <li><strong>Prophet Volume Forecast:</strong> A visual chart predicting incoming document volume over the next 7 days, highlighting peak rush days.</li>
+    <li><strong>AI Insights Panel:</strong> A dark-themed card utilizing Random Forest heuristics to output prescriptive, plain-English advice (e.g., <em>"Expect a 200% surge... Temporarily reassign staff to Window 1."</em>).</li>
+    <li><strong>Student Verification Desk:</strong> A list of pending student account registrations where EasyOCR auto-verification failed. Admins inspect the uploaded ID proofs and manually click "Verify" or "Reject".</li>
+  </ul>
+
+  <h2 id="faqs">8. Frequently Asked Questions (Dev)</h2>
+  <ul class="faq-list">
+    <li>
+      <h4>How do we add a new document type to the system?</h4>
+      <p>You must update the array of accepted document types in the React frontend (e.g., <code>const DOCUMENT_TYPES = [...]</code>). You must also ensure the backend schema validation accepts the new string.</p>
+    </li>
+    <li>
+      <h4>Why aren't we using PayMongo/Xendit?</h4>
+      <p>As this is a capstone/thesis implementation, acquiring live production API keys for payment gateways requires valid business registrations and school bank accounts. The Manual QR Verification flow securely simulates this process while demonstrating complex state management and role-based approvals.</p>
+    </li>
+    <li>
+      <h4>How is the Random Forest ML model retrained?</h4>
+      <p>The model requires fresh historical data to improve its bottleneck predictions. A scheduled cron job should run monthly, triggering the Python analytics service to fetch the latest timestamps from the <code>step_logs</code> MySQL table, retrain the model, and save the updated `.pkl` file.</p>
+    </li>
   </ul>
 
 </div>
@@ -236,87 +243,77 @@ footer.help-footer { margin-top: 64px; padding-top: 24px; border-top: 1px solid 
 <div class="dev-section">
   <div class="help-shell">
     <h2 id="dev"><span class="dev-tag">Developer reference</span>Data Model &amp; Phased Release Plan</h2>
-    <p>This section is the technical build-order companion for the development team. The Phased Release Plan defines the exact sequence to build the core loop.</p>
+    <p>This section is the technical build-order companion for the development team.</p>
 
-    <h3>7.1 Data Model (MySQL)</h3>
-    <p>The core tables TRACE relies on to execute routing.</p>
+    <h3>9.1 Data Model (MySQL)</h3>
     <pre><code>Table: documents
 {
   id: INT (PK, Auto-Increment),
-  tracking_number: VARCHAR (Unique Hash),
-  student_id: VARCHAR,
-  document_type: VARCHAR,
-  current_status: VARCHAR,
-  payment_status: VARCHAR, // e.g., 'UNPAID', 'PAID'
-  assigned_desk: VARCHAR // e.g., 'NONE', 'WINDOW_1', 'SECRETARY'
+  tracking_number: VARCHAR (Unique Hash) NOT NULL,
+  student_id: VARCHAR(50) (Nullable),
+  student_name: VARCHAR(255) (Nullable),
+  document_type: VARCHAR(100) (Nullable),
+  current_status: VARCHAR(50) DEFAULT 'pending_payment', // values: 'pending_payment', 'pending_payment_verification', 'pending_secretary', 'ready_window_1', 'completed', 'rejected'
+  payment_status: ENUM('UNPAID', 'PAID') DEFAULT 'UNPAID',
+  assigned_clerk_id: INT (FK, Nullable),
+  file_path: VARCHAR(500) (Nullable),
+  original_filename: VARCHAR(255) (Nullable),
+  receipt_image_path: VARCHAR(500) (Nullable),
+  payment_reference_id: VARCHAR(255) (Nullable),
+  gcash_reference_no: VARCHAR(255) (Nullable),
+  ocr_raw_text: TEXT (Nullable),
+  ocr_extracted_data: JSON (Nullable)
 }
 
 Table: step_logs
 {
   id: INT (PK, Auto-Increment),
-  document_id: INT (FK),
-  desk_name: VARCHAR,
-  action_taken: VARCHAR, // 'APPROVED', 'REJECTED'
-  timestamp: DATETIME
+  document_id: INT (FK) NOT NULL,
+  clerk_id: INT (FK, Nullable),
+  action_taken: VARCHAR(100) NOT NULL,
+  from_status: VARCHAR(50) (Nullable),
+  to_status: VARCHAR(50) (Nullable),
+  timestamp_started: DATETIME DEFAULT CURRENT_TIMESTAMP,
+  timestamp_completed: DATETIME (Nullable),
+  notes: TEXT (Nullable)
 }</code></pre>
 
-    <h3>7.2 Phased Release Plan</h3>
-    <p>Follow this strict ship order. Do not deploy a later phase before its prerequisites.</p>
-
+    <div class="callout spec">
+      <span class="label">UI Spec Adherence</span>
+      <p>The UI must strictly adhere to the "Command-Center" philosophy. Do not wrap dashboards in max-width containers. Ensure the "TRACE" branding is prominent in the header. Use the exact specified Tailwind color palette (Pine & Dusk).</p>
+    </div>
+    
+    <h3 style="margin-top: 48px;">9.2 Technical Rollout Phases</h3>
     <ol class="phase-list">
       <li>
-        <h3>The Foundation &amp; Tech Stack Handshake (Phase 1)</h3>
-        <p class="phase-goal">Get React, Node, Python, and MySQL talking to each other.</p>
-        <h4>Build</h4>
+        <h3>Phase 1: Foundation &amp; Upload Pipelines</h3>
+        <p class="phase-goal">Establish the core backend routing, database schemas, and file upload systems (Multer/S3) for both Scans and GCash Receipts.</p>
         <ul>
-          <li><strong>Frontend:</strong> Build static React Clerk Login and Document Upload Page.</li>
-          <li><strong>Backend:</strong> Spin up MySQL schemas. Write Node.js Express endpoints with Multer for file uploads (`POST /upload`). Install local n8n.</li>
-          <li><strong>AI:</strong> Set up Python Flask. Write a test EasyOCR script that reads a sample image and returns raw text.</li>
+          <li>Initialize the MySQL <code>documents</code> and <code>step_logs</code> database schemas.</li>
+          <li>Build the Node.js API endpoints for document submission and the manual Finance approval flow.</li>
         </ul>
       </li>
 
       <li>
-        <h3>Automated Payments (Phase 1.5)</h3>
-        <p class="phase-goal">Integrate payment gateway to ensure requests are paid before processing.</p>
-        <h4>Build</h4>
+        <h3>Phase 2: UI &amp; OCR Microservice</h3>
+        <p class="phase-goal">Build the React (Vite) dashboards and connect the Python AI.</p>
         <ul>
-          <li><strong>Phase 1.5: Automated Payments & Account Verification</strong>: Webhooks for GCash/QRPh. Signup verification flows for students/alumni (including ID/Diploma uploads).</li>
-          <li><strong>AI Auto-Verification:</strong> Python EasyOCR scans uploaded IDs during signup to instantly auto-verify students, falling back to manual admin review if unreadable.</li>
-          <li><strong>Users:</strong> <code>id</code>, <code>student_id</code>, <code>user_type (student/alumni)</code>, <code>id_proof_path</code>, <code>role (student/clerk/admin)</code>, <code>verification_status (pending/verified/rejected)</code></li>
-          <li><strong>Backend:</strong> Set up webhook endpoints to listen for payment confirmation. Only route the document to Window 1 when payment is marked as PAID.</li>
+          <li>Deploy the Python Flask microservice hosting the PyTorch EasyOCR model.</li>
+          <li>Develop the interactive Role Gateway and fluid Tailwind grids for all clerk dashboards.</li>
+          <li>Implement the Split-Screen Evaluation Modal, binding the right-side inputs to the OCR API JSON response.</li>
         </ul>
       </li>
 
       <li>
-        <h3>Intelligent Intake &amp; Auto-Routing (Phase 2)</h3>
-        <p class="phase-goal">Turn raw text into intelligent sorting via n8n.</p>
-        <h4>Build</h4>
+        <h3>Phase 3: ML Integration &amp; Load Testing</h3>
+        <p class="phase-goal">Activate predictive analytics and ensure high concurrency handling.</p>
         <ul>
-          <li><strong>Frontend:</strong> Build the Clerk Queue Dashboard table fetching data from Node.</li>
-          <li><strong>Backend:</strong> Build n8n webhook logic (Window 1 ➔ Secretary).</li>
-          <li><strong>AI:</strong> Refine EasyOCR with Regex to isolate Student Number and Document Type. Return as clean JSON.</li>
-        </ul>
-      </li>
-
-      <li>
-        <h3>Dynamic Hand-off &amp; The Core Loop (Phase 3)</h3>
-        <p class="phase-goal">Prove end-to-end pipeline functionality for the core workflow.</p>
-        <h4>Build</h4>
-        <ul>
-          <li><strong>Frontend:</strong> Add Approve/Reject action buttons to the React dashboards.</li>
-          <li><strong>Backend:</strong> Wire React buttons to n8n webhooks to update MySQL database states and transfer files between Window 1 and the Secretary.</li>
-        </ul>
-        <h4>Definition of Done</h4>
-        <ul>
-          <li>Window 1 uploads paper -> AI extracts data -> n8n assigns it to Secretary -> Secretary clicks Approve -> n8n routes back to Window 1.</li>
+          <li>Deploy the Prophet volume forecasting model and Random Forest insight generator for the Admin dashboard.</li>
+          <li>Set up scheduled cron jobs for continuous ML model retraining based on new <code>step_logs</code> timestamp data.</li>
         </ul>
       </li>
     </ol>
 
-    <div class="callout spec">
-      <span class="label">Spec</span>
-      <p>This document is a spec, not just documentation. If the UI ever diverges from the behavior described above, fix the UI — don't quietly update the doc. Stick strictly to the Window 1 -> Secretary -> Window 1 loop.</p>
-    </div>
   </div>
 </div>
 
