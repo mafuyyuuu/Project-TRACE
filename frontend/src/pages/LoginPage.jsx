@@ -12,7 +12,7 @@ export default function LoginPage() {
     e.preventDefault()
     setLocalError('')
     if (!employeeId.trim() || !password.trim()) {
-      setLocalError('Please enter both Employee ID and password.')
+      setLocalError('Please enter both ID and password.')
       return
     }
     await login({ employeeId: employeeId.trim(), password })
@@ -21,47 +21,85 @@ export default function LoginPage() {
   const error = localError || authError
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4 font-body relative overflow-hidden">
-      {/* Subtle Background Elements */}
-      <div className="absolute top-[-10%] right-[-5%] w-[40vw] h-[40vw] rounded-full bg-pine-500/5 blur-[100px] pointer-events-none"></div>
-      <div className="absolute bottom-[-10%] left-[-5%] w-[30vw] h-[30vw] rounded-full bg-blue-500/5 blur-[100px] pointer-events-none"></div>
-
-      <div className="bg-white rounded-[2.5rem] p-10 sm:p-12 shadow-sm border border-gray-100 max-w-md w-full relative z-10">
-        <div className="text-center mb-10">
-          <div className="w-16 h-16 bg-pine-600 text-white rounded-2xl flex items-center justify-center text-3xl mx-auto mb-6 shadow-md shadow-pine-600/20">📋</div>
-          <h1 className="text-2xl font-display font-black text-gray-900 tracking-widest mb-2 uppercase">TRACE</h1>
-          <p className="text-sm font-semibold text-gray-500 mb-1">PLP Registrar's Office</p>
+    <div className="min-h-screen flex flex-col md:flex-row font-body relative overflow-hidden bg-white">
+      {/* Left Column (Light Spec) */}
+      <div className="md:w-1/2 bg-[#f8f9fa] p-12 md:p-24 flex flex-col justify-between shrink-0">
+        <div>
+          <div className="w-16 h-16 rounded-full bg-[#15803d] text-white flex items-center justify-center font-display font-black text-sm shadow-md">
+            MK
+          </div>
         </div>
 
-        <form onSubmit={handleSubmit} className="flex flex-col gap-6">
-          {error && <div className="p-4 bg-red-50 text-red-600 rounded-xl text-sm font-medium text-center">⚠ {error}</div>}
+        <div className="my-auto py-12 md:py-0">
+          <span className="text-sm font-black text-gray-500 uppercase tracking-widest block mb-2">Welcome to</span>
+          <h1 className="text-7xl md:text-8xl font-display font-black text-[#15803d] tracking-tighter leading-none">TRACE</h1>
+        </div>
 
-          <div className="flex flex-col gap-2">
-            <label className="text-sm font-semibold text-gray-800 ml-1">Employee ID</label>
-            <div className="relative">
-              <span className="absolute inset-y-0 left-0 pl-4 flex items-center text-gray-400">👤</span>
-              <input type="text" placeholder="Enter your Employee ID" value={employeeId} onChange={(e) => setEmployeeId(e.target.value)} className="w-full p-3.5 pl-11 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-pine-500 focus:bg-white outline-none transition-all" autoFocus />
+        <div>
+          <p className="text-sm text-gray-600 max-w-sm leading-relaxed font-medium">
+            Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore.
+          </p>
+        </div>
+      </div>
+
+      {/* Right Column (Pine Spec) */}
+      <div className="md:w-1/2 bg-[#15803d] p-12 md:p-24 flex flex-col justify-center text-white relative">
+        <div className="max-w-md w-full mx-auto">
+          <h2 className="text-4xl font-display font-black mb-10 tracking-tight">Login</h2>
+          
+          {error && (
+            <div className="p-4 bg-red-950/30 border border-red-500/20 text-red-200 rounded-xl text-sm font-semibold text-center mb-6">
+              ⚠ {error}
             </div>
-          </div>
+          )}
 
-          <div className="flex flex-col gap-2">
-            <label className="text-sm font-semibold text-gray-800 ml-1">Password</label>
-            <div className="relative">
-              <span className="absolute inset-y-0 left-0 pl-4 flex items-center text-gray-400">🔒</span>
-              <input type="password" placeholder="Enter your password" value={password} onChange={(e) => setPassword(e.target.value)} className="w-full p-3.5 pl-11 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-pine-500 focus:bg-white outline-none transition-all" />
+          <form onSubmit={handleSubmit} className="flex flex-col gap-6">
+            <div className="flex flex-col gap-2">
+              <label className="text-[10px] font-bold uppercase tracking-widest text-white/70">USERNAME</label>
+              <input 
+                type="text" 
+                value={employeeId} 
+                onChange={(e) => setEmployeeId(e.target.value)} 
+                className="w-full p-4 bg-white/10 border border-white/20 rounded-xl text-sm focus:ring-2 focus:ring-white/30 outline-none text-white focus:bg-white/20 transition-all font-semibold" 
+                placeholder="Enter ID" 
+                autoFocus 
+              />
             </div>
+
+            <div className="flex flex-col gap-2">
+              <label className="text-[10px] font-bold uppercase tracking-widest text-white/70">PASSWORD</label>
+              <input 
+                type="password" 
+                value={password} 
+                onChange={(e) => setPassword(e.target.value)} 
+                className="w-full p-4 bg-white/10 border border-white/20 rounded-xl text-sm focus:ring-2 focus:ring-white/30 outline-none text-white focus:bg-white/20 transition-all font-semibold" 
+                placeholder="••••••••" 
+              />
+              <div className="text-right mt-1">
+                <Link to="#" className="text-xs font-semibold text-white/80 hover:text-white underline">Forgot Password?</Link>
+              </div>
+            </div>
+
+            <button 
+              type="submit" 
+              disabled={loading} 
+              className="mt-8 w-full py-4 bg-white text-gray-900 font-bold rounded-xl hover:bg-gray-100 disabled:opacity-70 disabled:cursor-not-allowed transition-all shadow-md uppercase tracking-wider text-sm flex items-center justify-center gap-2"
+            >
+              {loading ? (
+                <>
+                  <span className="w-4 h-4 border-2 border-gray-900/30 border-t-gray-900 rounded-full animate-spin"></span> 
+                  Signing in...
+                </>
+              ) : 'LOGIN'}
+            </button>
+          </form>
+
+          <div className="mt-10 text-center text-sm text-white/80 font-medium">
+            Don't have an account? <Link to="/signup" className="text-white font-black hover:underline">Sign up</Link>
           </div>
-
-          <button type="submit" disabled={loading} className="mt-6 w-full py-4 bg-pine-600 hover:bg-pine-700 disabled:opacity-70 disabled:cursor-not-allowed text-white rounded-full font-bold transition-all shadow-sm flex items-center justify-center gap-2">
-            {loading ? <><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></span> Signing in...</> : 'Sign In'}
-          </button>
-        </form>
-
-        <div className="mt-8 text-center">
-          <p className="text-sm text-gray-600 mb-4">Don't have an account? <Link to="/signup" className="text-pine-600 font-bold hover:underline">Sign up</Link></p>
-          <p className="text-xs text-gray-400">© 2026 Pamantasan ng Lungsod ng Pasig</p>
         </div>
       </div>
     </div>
   )
 }
+

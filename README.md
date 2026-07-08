@@ -1,7 +1,7 @@
 # Project TRACE
 Tracking, Routing, and Automated Credential Engine for the PLP Registrar.
 
-This repository contains the complete end-to-end system for tracking and auto-routing document flows, now including an **automated GCash/QRPh payment gateway**.
+This repository contains the complete end-to-end system for tracking and auto-routing document flows, featuring a **manual GCash receipt payment verification pipeline** to comply with school accounting requirements.
 
 ---
 
@@ -12,6 +12,8 @@ Every time you open your laptop to work on this project, you need to start these
 **Terminal 1 (Backend):**
 ```bash
 cd backend
+# Run database migrations and seeds if not already done:
+# node database/migration.js
 npm run dev
 ```
 
@@ -54,6 +56,7 @@ source backend/database/schema.sql;
 source backend/database/seed.sql;
 exit;
 ```
+*Note: Run `node backend/database/migration.js` to execute the database schema upgrades for GCash payments and clerk accounts.*
 
 ### 2. Backend (Node.js API)
 ```bash
@@ -97,10 +100,11 @@ npx n8n
 
 | Role | Employee / Student ID | Name | Description |
 | :--- | :--- | :--- | :--- |
-| **Admin** | `ADMIN001` | Registrar Admin | Access to all documents and verification queues. |
-| **Clerk 1** | `CLERK001` | Receiving Clerk | Receives documents (Window 1). |
-| **Clerk 2** | `CLERK002` | Records Clerk | Receives documents (Secretary). |
-| **Student** | `STU2024001` | Juan Dela Cruz | Sample student account. |
+| **Registrar Admin** | `ADMIN001` | Chief Registrar | Accesses ML volume forecasts, AI recommendations, and manually approves student registrations. |
+| **Finance Clerk** | `FINANCE001` | Finance Officer | Reviews and manually verifies uploaded GCash screenshots/reference codes. |
+| **Window 1 Clerk** | `WINDOW1001` | Receiving Clerk | Uploads scanned physical forms to OCR dropzone and dispatches ready documents. |
+| **College Secretary** | `SEC001` | Secretary Desk | Performs split-screen OCR validation reviews and routes documents. |
+| **Student** | `STU2024001` | Sample Student | Accesses student portal, requests documents, and uploads GCash receipts. |
 
 ---
 

@@ -47,17 +47,19 @@ An audit trail table recording every movement.
 
 ---
 
-## 💳 Automated Payment Integration (PayMongo)
+## 💳 Manual GCash Payment Verification Flow
 
-To eliminate manual payment verification, the system uses an automated payment gateway (e.g., PayMongo) supporting **GCash** and **QRPh**.
+To comply with PLP Finance policies, Project TRACE implements a manual payment verification pipeline where student GCash receipt screenshots are reviewed by a Finance Clerk.
 
 ### Payment Flow
-1. **Request Creation:** When a student requests a document, a `document` record is created with `payment_status = UNPAID` and `assigned_desk = NONE` (or kept hidden from Window 1).
-2. **Checkout Session:** The Node.js backend calls the payment gateway API to generate a secure checkout URL (supporting GCash/QRPh) and returns it to the React frontend.
-3. **Payment Completion:** The student pays via the URL.
-4. **Webhook Verification:** The payment gateway fires an asynchronous webhook back to a dedicated Node.js endpoint (e.g., `/api/webhooks/payment`).
-5. **Queue Activation:** Upon verifying the webhook signature, the backend updates `payment_status = PAID`. Only then does the document officially enter the **Window 1** queue for processing.
+1. **Request Creation:** The student initiates a document request, creating a document record in the MySQL database with `current_status = 'pending_payment'` and `payment_status = 'UNPAID'`.
+2. **GCash QR Scanning:** The student is shown the official PLP Finance static GCash QR code. They scan the code, pay via their GCash app, and take a screenshot of the receipt.
+3. **Proof Submission:** The student uploads the receipt image and enters the transaction's Reference Number into the portal. The backend updates `gcash_reference_no`, `receipt_image_path`, and changes `current_status = 'pending_payment_verification'`.
+4. **Finance Verification:** The Finance Clerk reviews the receipt and Reference Number on their dashboard.
+   - If approved: updates `payment_status = 'PAID'` and advances status to `'pending_secretary'`.
+   - If rejected: resets status to `'pending_payment'` with comments so the student can re-upload.
 
-### Security Best Practices
-- **Webhook Signatures:** Always verify the cryptographic signature sent by the payment provider to prevent spoofed webhook calls.
-- **Idempotency:** Ensure the webhook handler checks if the document is already marked as `PAID` before processing to avoid duplicate logs.
+### Backend Endpoints
+- `POST /api/documents/:id/submit-payment`: Student uploads GCash receipt image and submits transaction Reference Number.
+- `POST /api/documents/:id/verify-payment`: Finance Clerk approves or rejects the uploaded payment receipt.
+- `GET /api/documents?status=pending_payment_verification`: Lists all document requests waiting for manual payment review.
