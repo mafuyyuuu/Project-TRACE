@@ -1,22 +1,7 @@
-import { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '../utils/hooks';
-import { 
-  getDocuments, 
-  submitPayment, 
-  verifyPayment, 
-  evaluateDocument, 
-  releaseDocument, 
-  getPendingStudents, 
-  verifyStudent,
-  uploadDocument,
-  getDashboardStats,
-  getForecast,
-  getInsights,
-  lookupStudent,
-  cancelDocument
-} from '../services/api';
+import useDashboard from '../hooks/useDashboard';
 
 // Simple helper to format files
 function formatFileSize(bytes) {
@@ -36,440 +21,86 @@ import SecretaryEvaluationModal from '../components/modals/SecretaryEvaluationMo
 import NewRequestModal from '../components/modals/NewRequestModal';
 
 
-
 export default function DashboardPage() {
   const { user } = useAuth();
   const [searchParams] = useSearchParams();
   const currentTab = searchParams.get('tab') || 'dashboard';
-  
-  const [documents, setDocuments] = useState([]);
-  const [selectedDocType, setSelectedDocType] = useState('');
-  const [semesters, setSemesters] = useState(8);
-  const [reqCopies, setReqCopies] = useState(1);
-  const [requestFile, setRequestFile] = useState(null);
-  const [trackerProgress, setTrackerProgress] = useState(0);
-  const [dashStats, setDashStats] = useState({ processed_today: 0, cleared_by_secretary_today: 0, avg_processing_minutes: 0, avg_ocr_confidence: 0, backlog_count: 0, pending_secretary_count: 0, ready_window_1_count: 0 });
-  const [scanProgress, setScanProgress] = useState(0);
-  const [forecastData, setForecastData] = useState([]);
-  const [aiInsights, setAiInsights] = useState([]);
-  const [pendingStudents, setPendingStudents] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [actionLoading, setActionLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
-  
-  // Modals state
-  const [activeModal, setActiveModal] = useState(null); // 'pay', 'verify-pay', 'evaluate', 'verify-student', 'scan-confirm'
-  const [selectedDoc, setSelectedDoc] = useState(null);
-  const [viewImageUrl, setViewImageUrl] = useState(null);
-  
-  // Forms State
-  const [paymentRef, setPaymentRef] = useState('');
-  const [paymentFile, setPaymentFile] = useState(null);
-  const [clerkNotes, setClerkNotes] = useState('');
-  
-  // Secretary Evaluation Fields
-  const [evalStudentId, setEvalStudentId] = useState('');
-  const [evalStudentName, setEvalStudentName] = useState('');
-  const [evalDocType, setEvalDocType] = useState('Transcript of Records');
-  const [scanDocType, setScanDocType] = useState('Transcript of Records');
-  
-  // Window 1 Intake State
-  const [scanFile, setScanFile] = useState(null);
-  const fileInputRef = useRef(null);
 
-  // Load dashboard data based on user role
-  const loadDashboardData = async () => {
-    try {
-      setLoading(true);
-      setError('');
-      
-      if (user.role === 'admin') {
-        // Admins see all documents + pending students
-        const docsData = await getDocuments(1, 100);
-        setDocuments(docsData.documents || []);
-        try { const stats = await getDashboardStats(); setDashStats(stats); } catch { console.warn('Stats unavailable'); }
-        try { const fc = await getForecast(); setForecastData(fc.forecast || []); } catch { console.warn('Forecast unavailable'); }
-        try { const ins = await getInsights(); setAiInsights(ins.insights || []); } catch { console.warn('Insights unavailable'); }
-        
-        const studentsData = await getPendingStudents();
-        setPendingStudents(studentsData.pending_students || []);
-      } else {
-        // Students and Clerks fetch standard scoped documents
-        const docsData = await getDocuments(1, 100);
-        setDocuments(docsData.documents || []);
-        try { const stats = await getDashboardStats(); setDashStats(stats); } catch { console.warn('Stats unavailable'); }
-      }
-    } catch (err) {
-      console.error(err);
-      setError('Failed to fetch dashboard data. Please try again.');
-    } finally {
-      setLoading(false);
-    }
-  };
+  // All fetching logic, action handlers, and helpers are extracted
+  // into the useDashboard hook per CODING_PREFERENCES.md
+  const {
+    // Data
+    documents,
+    dashStats,
+    forecastData,
+    aiInsights,
+    pendingStudents,
 
-  useEffect(() => {
-    if (user) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      loadDashboardData();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user]);
+    // Loading & Feedback
+    loading,
+    actionLoading,
+    error,
+    success,
 
-  useEffect(() => {
-    if (activeModal === 'tracking' && selectedDoc) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setTrackerProgress(0);
-      const timer = setTimeout(() => {
-        const target = selectedDoc.current_status === 'pending_payment' ? 0 :
-                       selectedDoc.current_status === 'pending_payment_verification' ? 25 :
-                       selectedDoc.current_status === 'pending_secretary' ? 50 :
-                       selectedDoc.current_status === 'ready_window_1' ? 75 : 100;
-        setTrackerProgress(target);
-      }, 50);
-      return () => clearTimeout(timer);
-    }
-  }, [activeModal, selectedDoc]);
+    // Form State
+    selectedDocType, setSelectedDocType,
+    semesters, setSemesters,
+    reqCopies, setReqCopies,
+    requestFile, setRequestFile,
+    paymentRef, setPaymentRef,
+    paymentFile, setPaymentFile,
+    clerkNotes, setClerkNotes,
 
-  const triggerNotification = (msg, type = 'success') => {
-    if (type === 'success') {
-      setSuccess(msg);
-      setTimeout(() => setSuccess(''), 4000);
-    } else {
-      setError(msg);
-      setTimeout(() => setError(''), 4000);
-    }
-  };
+    // Secretary Evaluation Fields
+    evalStudentId, setEvalStudentId,
+    evalStudentName, setEvalStudentName,
+    evalDocType, setEvalDocType,
+    scanDocType, setScanDocType,
 
-  // ----------------------------------------------------
-  // STUDENT ACTIONS
-  // ----------------------------------------------------
-  const handleStudentSubmitRequest = async (e) => {
-    e.preventDefault();
-    const docType = selectedDocType;
-    const file = e.target.docFile?.files[0];
-    
-    if (!docType) {
-      triggerNotification('Please select a document type.', 'error');
-      return;
-    }
+    // Modal State
+    activeModal, setActiveModal,
+    selectedDoc, setSelectedDoc,
+    viewImageUrl, setViewImageUrl,
+    trackerProgress,
 
-    const purpose = e.target.purpose?.value || '';
-    const copies = e.target.copies?.value || 1;
-    const yearGraduated = e.target.yearGraduated?.value || '';
-    const requestingSchool = e.target.requestingSchool?.value || '';
-    const reason = e.target.reason?.value || '';
+    // Window 1 State
+    scanFile,
+    scanProgress,
+    fileInputRef,
 
-    // compile a single notes string or extra data
-    const extraDataObj = {};
-    if (yearGraduated) extraDataObj.year_graduated = yearGraduated;
-    if (requestingSchool) extraDataObj.requesting_school = requestingSchool;
-    if (purpose) extraDataObj.purpose = purpose;
-    if (reason) extraDataObj.reason = reason;
-    if (docType === 'Transcript of Records' || docType === 'Transcript of Records (TOR)') {
-      extraDataObj.semesters = semesters;
-    }
-    const extraData = JSON.stringify(extraDataObj);
-    
-    try {
-      setActionLoading(true);
-      const formData = new FormData();
-      if (file) formData.append('document', file);
-      formData.append('document_type', docType);
-      formData.append('student_id', user.student_id || 'STU-' + Date.now().toString().slice(-6));
-      formData.append('student_name', user.full_name);
-      formData.append('purpose', extraData);
-      formData.append('copies', copies);
-      if (docType === 'Transcript of Records' || docType === 'Transcript of Records (TOR)') {
-        formData.append('semesters', semesters);
-      }
+    // Actions
+    loadDashboardData,
+    triggerNotification,
+    handleStudentSubmitRequest,
+    handleStudentSubmitPayment,
+    handleStudentCancelRequest,
+    handleFinanceVerify,
+    handleSecretaryEvaluate,
+    handleWindow1Release,
+    simulateHardwareScan,
+    handleWindow1ScanUpload,
+    handleManualInputSubmit,
+    handleFetchStudent,
+    handleAdminVerifyStudent,
 
-      const result = await uploadDocument(formData);
-      triggerNotification(`Request submitted! Tracking ID: ${result.tracking_number}. Please pay now.`);
-      e.target.reset();
-      setRequestFile(null);
-      setSelectedDocType('');
-      setSelectedDoc(result.document);
-      setActiveModal('pay');
-      loadDashboardData();
-    } catch (err) {
-      triggerNotification(err.response?.data?.error || 'Upload failed.', 'error');
-    } finally {
-      setActionLoading(false);
-    }
-  };
-
-  const handleStudentSubmitPayment = async (e) => {
-    e.preventDefault();
-    if (!paymentRef || !paymentFile || !selectedDoc) {
-      triggerNotification('Reference number and receipt image are required.', 'error');
-      return;
-    }
-
-    try {
-      setActionLoading(true);
-      const formData = new FormData();
-      formData.append('receipt', paymentFile);
-      formData.append('gcash_reference_no', paymentRef);
-
-      await submitPayment(selectedDoc.id, formData);
-      triggerNotification('GCash receipt submitted. Pending Finance verification!');
-      setActiveModal(null);
-      setPaymentRef('');
-      setPaymentFile(null);
-      loadDashboardData();
-    } catch (err) {
-      triggerNotification(err.response?.data?.error || 'Payment submission failed.', 'error');
-    } finally {
-      setActionLoading(false);
-    }
-  };
-
-  const handleStudentCancelRequest = async (id, isBackAction = false) => {
-    if (!isBackAction && !window.confirm('Are you sure you want to cancel this request? This action cannot be undone.')) return;
-    try {
-      setActionLoading(true);
-      await cancelDocument(id);
-      if (!isBackAction) triggerNotification('Request cancelled successfully.');
-      loadDashboardData();
-      if (isBackAction) {
-        setActiveModal('new-request');
-      }
-    } catch (err) {
-      triggerNotification(err.response?.data?.error || 'Failed to cancel request.', 'error');
-    } finally {
-      setActionLoading(false);
-    }
-  };
-
-  // ----------------------------------------------------
-  // FINANCE CLERK ACTIONS
-  // ----------------------------------------------------
-  const handleFinanceVerify = async (action) => {
-    if (!selectedDoc) return;
-    try {
-      setActionLoading(true);
-      await verifyPayment(selectedDoc.id, action, clerkNotes);
-      triggerNotification(`Payment reference successfully ${action === 'approve' ? 'approved' : 'rejected'}.`);
-      setActiveModal(null);
-      setClerkNotes('');
-      loadDashboardData();
-    } catch (err) {
-      triggerNotification(err.response?.data?.error || 'Verification action failed.', 'error');
-    } finally {
-      setActionLoading(false);
-    }
-  };
-
-  // ----------------------------------------------------
-  // COLLEGE SECRETARY ACTIONS
-  // ----------------------------------------------------
-  const handleSecretaryEvaluate = async (action) => {
-    if (!selectedDoc) return;
-    try {
-      setActionLoading(true);
-      const payload = {
-        student_id: evalStudentId,
-        student_name: evalStudentName,
-        document_type: evalDocType,
-        action,
-        notes: clerkNotes
-      };
-      await evaluateDocument(selectedDoc.id, payload);
-      triggerNotification(`Document successfully evaluated and ${action === 'approve' ? 'routed to Window 1' : 'returned'}.`);
-      setActiveModal(null);
-      setClerkNotes('');
-      loadDashboardData();
-    } catch (err) {
-      triggerNotification(err.response?.data?.error || 'Evaluation action failed.', 'error');
-    } finally {
-      setActionLoading(false);
-    }
-  };
-
-  // ----------------------------------------------------
-  // WINDOW 1 CLERK ACTIONS
-  // ----------------------------------------------------
-  const handleWindow1Release = async (id) => {
-    if (!window.confirm("Confirm document release to student?")) return;
-    try {
-      setActionLoading(true);
-      await releaseDocument(id);
-      triggerNotification('Document successfully released.');
-      loadDashboardData();
-    } catch (err) {
-      triggerNotification(err.response?.data?.error || 'Failed to release document.', 'error');
-    } finally {
-      setActionLoading(false);
-    }
-  };
-  const simulateHardwareScan = (file) => {
-    setScanFile(file);
-    setScanDocType('Transcript of Records');
-    setActiveModal('hardware-scanner');
-    setScanProgress(0);
-    
-    // Simulate hardware connection and scanning delay
-    let progress = 0;
-    const interval = setInterval(() => {
-      progress += 5;
-      setScanProgress(progress);
-      if (progress >= 100) {
-        clearInterval(interval);
-        setTimeout(() => {
-          setActiveModal('scan-confirm');
-        }, 500);
-      }
-    }, 100);
-  };
-
-  const handleWindow1ScanUpload = async (docType) => {
-    if (!scanFile) return;
-    try {
-      setActionLoading(true);
-      const formData = new FormData();
-      formData.append('document', scanFile);
-      formData.append('student_id', '');
-      formData.append('student_name', '');
-      formData.append('document_type', docType || '');
-
-      const result = await uploadDocument(formData);
-      triggerNotification(`Intake scan complete! Routed to Secretary queue. Tracking: ${result.tracking_number}`);
-      setScanFile(null);
-      if (fileInputRef.current) fileInputRef.current.value = '';
-      loadDashboardData();
-    } catch (err) {
-      triggerNotification(err.response?.data?.error || 'Scan upload failed.', 'error');
-    } finally {
-      setActionLoading(false);
-    }
-  };
-
-  const handleManualInputSubmit = async (e) => {
-    e.preventDefault();
-    const studentId = e.target.studentId.value;
-    const studentName = e.target.fullName.value;
-    const docType = e.target.docType.value;
-    
-    try {
-      setActionLoading(true);
-      const mockFile = new Blob(['manual legacy record content'], { type: 'text/plain' });
-      const formData = new FormData();
-      formData.append('document', mockFile, `${studentId}_manual_intake.txt`);
-      formData.append('student_id', studentId);
-      formData.append('student_name', studentName);
-      formData.append('document_type', docType);
-
-      const result = await uploadDocument(formData);
-      triggerNotification(`Legacy record digitized! Routed to Secretary queue. Tracking: ${result.tracking_number}`);
-      e.target.reset();
-      loadDashboardData();
-    } catch (err) {
-      triggerNotification(err.response?.data?.error || 'Manual intake failed.', 'error');
-    } finally {
-      setActionLoading(false);
-    }
-  };
-
-  const handleFetchStudent = async (e) => {
-    e.preventDefault();
-    const studentIdInput = document.getElementById('manual-student-id')?.value;
-    if (!studentIdInput) {
-      triggerNotification('Please enter a Student ID first.', 'error');
-      return;
-    }
-    try {
-      const result = await lookupStudent(studentIdInput);
-      const nameInput = document.getElementById('manual-full-name');
-      const courseSelect = document.getElementById('manual-course');
-      if (nameInput) nameInput.value = result.student?.full_name || '';
-      if (courseSelect) courseSelect.value = result.student?.course || '';
-      triggerNotification('Student details fetched successfully.');
-    } catch (err) {
-      triggerNotification(err.response?.data?.error || 'Student not found.', 'error');
-    }
-  };
-
-  // ----------------------------------------------------
-  // ADMIN ACTIONS
-  // ----------------------------------------------------
-  const handleAdminVerifyStudent = async (userId, action) => {
-    try {
-      setActionLoading(true);
-      await verifyStudent(userId, action);
-      triggerNotification(`Student account registration successfully ${action === 'verify' ? 'verified' : 'rejected'}.`);
-      loadDashboardData();
-    } catch (err) {
-      triggerNotification(err.response?.data?.error || 'Verification failed.', 'error');
-    } finally {
-      setActionLoading(false);
-    }
-  };
-
-  // ----------------------------------------------------
-  // HELPERS FOR UI RENDER
-  // ----------------------------------------------------
-  const getProgressVal = (status) => {
-    switch (status) {
-      case 'pending_payment': return 20;
-      case 'pending_payment_verification': return 40;
-      case 'pending_secretary': return 65;
-      case 'ready_window_1': return 90;
-      case 'completed':
-      case 'released': return 100;
-      default: return 10;
-    }
-  };
-
-  const getStatusLabel = (status) => {
-    switch (status) {
-      case 'pending_payment': return 'Awaiting Payment';
-      case 'pending_payment_verification': return 'Verifying Payment';
-      case 'pending_secretary': return 'Secretary Evaluation';
-      case 'ready_window_1': return 'Ready for Release';
-      case 'completed': return 'Completed';
-      case 'released': return 'Completed';
-      default: return status;
-    }
-  };
-
-  const requiresAttachment = (type) => ['Honorable Dismissal', 'Graduation Clearance', 'Certificate of Good Moral'].includes(type);
-  
-  const getAttachmentLabel = (type) => {
-    if (type === 'Honorable Dismissal') return 'Required Attachment (Validated Clearance)';
-    if (type === 'Graduation Clearance') return 'Required Attachment (Signed Routing Form)';
-    if (type === 'Certificate of Good Moral') return 'Required Attachment (Valid Student ID)';
-    return 'Optional Attachment (Clearances, Old ID, etc)';
-  };
-  
-  const getAttachmentHelper = (type) => {
-    if (type === 'Honorable Dismissal') return 'clearance file';
-    if (type === 'Graduation Clearance') return 'signed clearance form';
-    if (type === 'Certificate of Good Moral') return 'student ID photo';
-    return 'optional files';
-  };
+    // UI Helpers
+    getProgressVal,
+    getStatusLabel,
+    requiresAttachment,
+    getAttachmentLabel,
+    getAttachmentHelper,
+    getRelativeTime,
+    getWaitTime,
+  } = useDashboard(user);
 
   const todayFormatted = new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
 
-  const getRelativeTime = (dateStr) => {
-    if (!dateStr) return '—';
-    // eslint-disable-next-line react-hooks/purity
-    const diff = Math.round((Date.now() - new Date(dateStr).getTime()) / 60000);
-    if (diff < 1) return 'Just now';
-    if (diff < 60) return `${diff} min${diff > 1 ? 's' : ''} ago`;
-    if (diff < 1440) return `${Math.floor(diff / 60)} hr${Math.floor(diff / 60) > 1 ? 's' : ''} ago`;
-    return `${Math.floor(diff / 1440)} day${Math.floor(diff / 1440) > 1 ? 's' : ''} ago`;
-  };
-
-  const getWaitTime = (dateStr) => {
-    if (!dateStr) return '—';
-    // eslint-disable-next-line react-hooks/purity
-    const diff = Math.round((Date.now() - new Date(dateStr).getTime()) / 60000);
-    if (diff < 1) return '< 1 min';
-    if (diff < 60) return `${diff} min${diff > 1 ? 's' : ''}`;
-    return `${Math.floor(diff / 60)} hr${Math.floor(diff / 60) > 1 ? 's' : ''}`;
-  };
-
+  // Role checks for cleaner JSX conditionals
+  const isStudent = user?.role === 'student';
+  const isFinance = user?.role === 'clerk' && user?.desk_assignment === 'Finance';
+  const isWindow1 = user?.role === 'clerk' && user?.desk_assignment === 'Window 1';
+  const isSecretary = user?.role === 'clerk' && user?.desk_assignment === 'Secretary';
+  const isAdmin = user?.role === 'admin';
 
   if (loading) {
     return (
@@ -479,14 +110,6 @@ export default function DashboardPage() {
       </div>
     );
   }
-
-  // Determine sub-dashboard based on role & desk_assignment
-  const desk = user.desk_assignment;
-  const isStudent = user.role === 'student';
-  const isFinance = user.role === 'clerk' && desk === 'Finance';
-  const isWindow1 = user.role === 'clerk' && (desk === 'Window 1' || desk === 'Receiving Desk');
-  const isSecretary = user.role === 'clerk' && desk === 'Secretary';
-  const isAdmin = user.role === 'admin';
 
   return (
     <div className="space-y-8 animate-fade-in relative pb-16">
@@ -992,11 +615,11 @@ export default function DashboardPage() {
             <div className="p-6 border-b border-gray-100 bg-gray-50/50 flex justify-between items-center">
               <h3 className="font-bold text-gray-950 text-sm tracking-wider uppercase">ACTIVE QUEUE</h3>
               <span className="text-xs text-gray-500 font-semibold">
-                Pending Request: <strong className="text-gray-900">{documents.filter(d => d.current_status === 'pending_payment_verification').length}</strong>
+                Pending Request: <strong className="text-gray-900">{dashStats.pending_payment_verification_count}</strong>
               </span>
             </div>
             <div className="p-6 overflow-x-auto">
-              {documents.filter(d => d.current_status === 'pending_payment_verification').length === 0 ? (
+              {dashStats.pending_payment_verification_count === 0 ? (
                 <div className="text-center py-12 text-gray-400 font-medium">No pending receipts to verify. Queue is clean!</div>
               ) : (
                 <table className="w-full text-left border-collapse">
@@ -1112,9 +735,9 @@ export default function DashboardPage() {
                 <div className="bg-white rounded-3xl p-6 shadow-sm border border-gray-200 flex flex-col justify-between h-44">
                   <div className="flex justify-between items-start">
                     <div>
-                      <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block">READY TO RELEASE</span>
+                      <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block">COMPLETED TODAY</span>
                       <span className="text-3xl font-display font-black text-gray-900 mt-2 block">
-                        {documents.filter(d => d.current_status === 'ready_window_1').length} <span className="text-sm text-gray-400 font-medium font-sans">Ready</span>
+                        {dashStats.completed_today_count} <span className="text-sm text-gray-400 font-medium font-sans">Completed</span>
                       </span>
                     </div>
                     <svg className="w-20 h-10 text-[#15803d] shrink-0" fill="none" stroke="currentColor" viewBox="0 0 100 40">
@@ -1123,114 +746,81 @@ export default function DashboardPage() {
                   </div>
                   <div className="bg-emerald-50 border border-emerald-100 rounded-full px-3 py-1 text-[10px] font-bold text-[#15803d] w-fit flex items-center gap-1.5 mt-2">
                     <span className="w-1.5 h-1.5 bg-[#15803d] rounded-full"></span>
-                    Documents cleared and ready for student pickup
+                    Documents released to students today
                   </div>
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 xl:grid-cols-2 gap-8 mt-8">
-                {/* Upload Document Dropzone */}
-                <div className="bg-white p-6 md:p-8 rounded-3xl shadow-sm border border-gray-200 flex flex-col justify-between min-h-[350px]">
-                  <div>
-                    <h3 className="text-lg font-bold text-gray-900">UPLOAD DOCUMENT</h3>
-                    <p className="text-xs text-gray-400 mt-1">Upload physical papers to extract data via AI Engine.</p>
-                  </div>
-                  
-                  <div className="flex-1 mt-6 border-2 border-dashed border-[#15803d]/40 rounded-3xl p-8 bg-gray-50/50 flex flex-col items-center justify-center relative">
-                    <span className="text-xs font-bold text-gray-900 mb-6 flex items-center gap-1">
-                      <span className="text-[#15803d]">AI OCR Engine Ready</span>
-                    </span>
-                    
-                    <div className="flex items-center justify-center w-full">
-                      <button 
-                        onClick={() => fileInputRef.current?.click()} 
-                        className="flex flex-col items-center gap-3 group focus:outline-none"
-                      >
-                        <div className="w-20 h-20 bg-[#15803d] text-white rounded-3xl flex items-center justify-center shadow-lg hover:bg-[#166534] transition-all transform group-hover:scale-105 border-4 border-emerald-200">
-                          <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
-                          </svg>
-                        </div>
-                        <div className="text-center">
-                          <span className="text-sm font-black text-gray-900 block">UPLOAD FILE</span>
-                          <span className="text-[10px] text-gray-500 font-bold uppercase tracking-widest">Select image from your computer</span>
-                        </div>
-                      </button>
-                    </div>
-
-                    <span className="text-[10px] text-gray-400 mt-6 absolute bottom-4">System will automatically route uploaded document to AI Engine</span>
-                    <input 
-                      type="file" 
-                      accept="image/*"
-                      capture="environment"
-                      id="mobile-camera-input"
-                      onChange={(e) => {
-                        if (e.target.files?.[0]) {
-                          simulateHardwareScan(e.target.files[0]);
-                        }
-                      }}
-                      className="hidden"
-                    />
-                    <input 
-                      type="file" 
-                      ref={fileInputRef}
-                      onChange={(e) => {
-                        if (e.target.files?.[0]) {
-                          simulateHardwareScan(e.target.files[0]);
-                        }
-                      }}
-                      className="hidden"
-                    />
-                  </div>
-                </div>
-
-                {/* Release Desk Card Summary */}
-                <div className="bg-white rounded-3xl p-6 md:p-8 shadow-sm border border-gray-200 min-h-[350px] flex flex-col justify-between">
-                  <div>
-                    <h3 className="font-bold text-gray-900 text-lg uppercase tracking-wider">RELEASE DESK</h3>
-                    <p className="text-xs text-gray-400 mt-1">Pending document handovers to students.</p>
-                  </div>
-                  <div className="flex-1 flex flex-col items-center justify-center gap-4 border-2 border-dashed border-gray-100 rounded-3xl mt-6 p-6">
-                    <span className="text-4xl font-display font-black text-gray-900">{documents.filter(d => d.current_status === 'ready_window_1').length}</span>
-                    <span className="text-xs font-bold text-gray-500">Documents awaiting student pickup</span>
-                  </div>
-                </div>
-              </div>
-            </>
-          )}
-
-          {/* 3.2. RELEASE QUEUE VIEW */}
-          {currentTab === 'release-queue' && (
-            <>
-              {/* Header */}
-              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+              {/* Upload Document Dropzone */}
+              <div className="bg-white p-6 md:p-8 rounded-3xl shadow-sm border border-gray-200 flex flex-col justify-between mt-8">
                 <div>
-                  <h2 className="text-3xl font-display font-black text-gray-900 tracking-tight">
-                    Release Queue
-                  </h2>
+                  <h3 className="text-lg font-bold text-gray-900">UPLOAD DOCUMENT</h3>
+                  <p className="text-xs text-gray-400 mt-1">Upload physical papers to extract data via AI Engine.</p>
                 </div>
-                <div className="flex items-center gap-3 bg-white border border-gray-200 rounded-2xl px-5 py-2.5 shadow-sm">
-                  <span className="text-xs font-semibold text-gray-500">Today:</span>
-                  <span className="text-xs font-bold text-gray-800">{todayFormatted}</span>
-                  <svg className="w-4 h-4 text-gray-400 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                
+                <div className="flex-1 mt-6 border-2 border-dashed border-[#15803d]/40 rounded-3xl p-8 bg-gray-50/50 flex flex-col items-center justify-center relative min-h-[250px]">
+                  <span className="text-xs font-bold text-gray-900 mb-6 flex items-center gap-1">
+                    <span className="text-[#15803d]">AI OCR Engine Ready</span>
+                  </span>
+                  
+                  <div className="flex items-center justify-center w-full">
+                    <button 
+                      onClick={() => fileInputRef.current?.click()} 
+                      className="flex flex-col items-center gap-3 group focus:outline-none"
+                    >
+                      <div className="w-20 h-20 bg-[#15803d] text-white rounded-3xl flex items-center justify-center shadow-lg hover:bg-[#166534] transition-all transform group-hover:scale-105 border-4 border-emerald-200">
+                        <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
+                        </svg>
+                      </div>
+                      <div className="text-center">
+                        <span className="text-sm font-black text-gray-900 block">UPLOAD FILE</span>
+                        <span className="text-[10px] text-gray-500 font-bold uppercase tracking-widest">Select image from your computer</span>
+                      </div>
+                    </button>
+                  </div>
+
+                  <span className="text-[10px] text-gray-400 mt-6 absolute bottom-4">System will automatically route uploaded document to AI Engine</span>
+                  <input 
+                    type="file" 
+                    accept="image/*"
+                    capture="environment"
+                    id="mobile-camera-input"
+                    onChange={(e) => {
+                      if (e.target.files?.[0]) {
+                        simulateHardwareScan(e.target.files[0]);
+                      }
+                    }}
+                    className="hidden"
+                  />
+                  <input 
+                    type="file" 
+                    ref={fileInputRef}
+                    onChange={(e) => {
+                      if (e.target.files?.[0]) {
+                        simulateHardwareScan(e.target.files[0]);
+                      }
+                    }}
+                    className="hidden"
+                  />
                 </div>
               </div>
 
               {/* Active release queue card */}
-              <div className="bg-white rounded-3xl shadow-sm border border-gray-200 overflow-hidden">
+              <div className="bg-white rounded-3xl shadow-sm border border-gray-200 overflow-hidden mt-8">
                 <div className="p-6 border-b border-gray-100 bg-gray-50/50 flex flex-col sm:flex-row justify-between sm:items-center gap-4">
                   <div>
-                    <h3 className="font-bold text-gray-900 text-lg">Active release queue</h3>
+                    <h3 className="font-bold text-gray-900 text-lg uppercase tracking-wider">RELEASE DESK</h3>
                     <div className="flex items-center gap-4 mt-1 text-xs text-gray-500 font-medium">
-                      <span>Pending Student Pick-up: <strong className="text-gray-900">{documents.filter(d => d.current_status === 'ready_window_1').length}</strong></span>
+                      <span>Pending Student Pick-up: <strong className="text-gray-900">{dashStats.ready_window_1_count}</strong></span>
                       <span>Cleared by Secretary Today: <strong className="text-gray-900">{dashStats.cleared_by_secretary_today}</strong></span>
                     </div>
                   </div>
-
+                  <button onClick={loadDashboardData} className="text-xs text-[#15803d] font-bold hover:underline">🔄 Refresh</button>
                 </div>
 
                 <div className="p-6">
-                  {documents.filter(d => d.current_status === 'ready_window_1').length === 0 ? (
+                  {dashStats.ready_window_1_count === 0 ? (
                     <div className="text-center py-16 text-gray-400 font-medium">No documents waiting for release.</div>
                   ) : (
                     <table className="w-full text-left border-collapse">
@@ -1270,8 +860,62 @@ export default function DashboardPage() {
                   )}
                 </div>
               </div>
+
+              {/* System Documents Progress Queue */}
+              <div className="bg-white rounded-3xl shadow-sm border border-gray-200 overflow-hidden mt-8">
+                <div className="p-6 border-b border-gray-100 bg-gray-50/50 flex justify-between items-center">
+                  <div>
+                    <h3 className="font-bold text-gray-900 text-lg uppercase tracking-wider">SYSTEM DOCUMENTS PROGRESS</h3>
+                    <p className="text-xs text-gray-400 mt-1">Live tracking of all active requested documents in the system.</p>
+                  </div>
+                </div>
+                <div className="p-6">
+                  {documents.length === 0 ? (
+                    <div className="text-center py-12 text-gray-400 font-medium">No active document requests.</div>
+                  ) : (
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-left border-collapse min-w-[700px]">
+                        <thead>
+                          <tr className="text-gray-400 text-[10px] uppercase tracking-widest border-b border-gray-100">
+                            <th className="pb-4 font-bold pl-4">Date Requested</th>
+                            <th className="pb-4 font-bold">Document</th>
+                            <th className="pb-4 font-bold">Progress</th>
+                            <th className="pb-4 font-bold">Status</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-50">
+                          {documents.map(doc => (
+                            <tr key={doc.id} className="hover:bg-gray-50/50 transition-colors">
+                              <td className="py-4 pl-4 text-xs font-semibold text-gray-400">{new Date(doc.created_at).toLocaleDateString()}</td>
+                              <td className="py-4">
+                                <div className="text-sm font-bold text-gray-900">{doc.document_type}</div>
+                                <div className="text-xs font-mono text-gray-400 mt-0.5">#{doc.tracking_number ? doc.tracking_number.slice(0, 10).toUpperCase() : doc.id}</div>
+                              </td>
+                              <td className="py-4 w-1/3">
+                                <div className="flex items-center gap-3">
+                                  <div className="w-full bg-gray-100 rounded-full h-2 overflow-hidden">
+                                    <div className="bg-[#15803d] h-2 rounded-full transition-all duration-500" style={{ width: `${getProgressVal(doc.current_status)}%` }}></div>
+                                  </div>
+                                  <span className="text-[11px] font-bold text-gray-600 font-mono">{getProgressVal(doc.current_status)}%</span>
+                                </div>
+                              </td>
+                              <td className="py-4">
+                                <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${['completed', 'released'].includes(doc.current_status) ? 'bg-emerald-50 text-[#15803d]' : 'bg-amber-50 text-amber-700'}`}>
+                                  {getStatusLabel(doc.current_status)}
+                                </span>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+              </div>
             </>
           )}
+
+
 
           {/* 3.3. MANUAL INPUT VIEW */}
           {currentTab === 'manual-input' && (
@@ -1554,7 +1198,7 @@ export default function DashboardPage() {
                     <div>
                       <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block">PENDING DOCUMENTS</span>
                       <span className="text-3xl font-display font-black text-gray-900 mt-2 block">
-                        {documents.filter(d => d.current_status === 'pending_secretary').length} <span className="text-sm text-gray-400 font-medium font-sans">Documents</span>
+                        {dashStats.pending_secretary_count} <span className="text-sm text-gray-400 font-medium font-sans">Documents</span>
                       </span>
                     </div>
                     <svg className="w-20 h-10 text-[#15803d] shrink-0" fill="none" stroke="currentColor" viewBox="0 0 100 40">
@@ -1571,7 +1215,7 @@ export default function DashboardPage() {
                     <div>
                       <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block">APPROVED & ROUTED</span>
                       <span className="text-3xl font-display font-black text-gray-900 mt-2 block">
-                        {documents.filter(d => ['ready_window_1', 'completed', 'released'].includes(d.current_status)).length} <span className="text-sm text-gray-400 font-medium font-sans">Done</span>
+                        {dashStats.ready_window_1_count + dashStats.completed_today_count} <span className="text-sm text-gray-400 font-medium font-sans">Done</span>
                       </span>
                     </div>
                     <svg className="w-20 h-10 text-[#15803d] shrink-0" fill="none" stroke="currentColor" viewBox="0 0 100 40">
@@ -1591,7 +1235,7 @@ export default function DashboardPage() {
                   <h3 className="font-bold text-gray-950 text-sm tracking-wider uppercase">ACTIVE QUEUE</h3>
                 </div>
                 <div className="p-6 overflow-x-auto">
-                  {documents.filter(d => d.current_status === 'pending_secretary').length === 0 ? (
+                  {dashStats.pending_secretary_count === 0 ? (
                     <div className="text-center py-12 text-gray-400 font-medium">Evaluation queue is empty! Beautiful.</div>
                   ) : (
                     <table className="w-full text-left border-collapse">

@@ -38,7 +38,7 @@ export default function LiveTrackingModal({
             
             {/* Active Progress Bar */}
             <div className="absolute left-[10%] top-1/2 -translate-y-1/2 h-1.5 bg-[#15803d] rounded-full z-0 transition-all duration-1000 ease-out overflow-hidden"
-              style={{ width: `${trackerProgress}%` }}
+              style={{ width: `${trackerProgress * 0.8}%` }}
             >
               <div className="w-full h-full animate-water-flow"></div>
             </div>
@@ -56,8 +56,8 @@ export default function LiveTrackingModal({
                                    selectedDoc.current_status === 'pending_secretary' ? 2 :
                                    selectedDoc.current_status === 'ready_window_1' ? 3 : 4;
               
-              // For 'completed' status, step 5 is active. For 'released', step 5 is completed.
-              const isReleased = selectedDoc.current_status === 'released';
+              // For 'completed' or 'released' status, step 5 is fully completed.
+              const isReleased = selectedDoc.current_status === 'completed' || selectedDoc.current_status === 'released';
               const isCompleted = index < currentIndex || (index === 4 && isReleased);
               const isActive = index === currentIndex && !isReleased;
               

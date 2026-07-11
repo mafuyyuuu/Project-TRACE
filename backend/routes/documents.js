@@ -216,8 +216,10 @@ router.post('/upload', authenticate, upload.single('document'), async (req, res)
  */
 router.get('/', authenticate, async (req, res) => {
   try {
-    const { status, page = 1, limit = 5 } = req.query;
-    const offset = (parseInt(page) - 1) * parseInt(limit);
+    const status = req.query.status;
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 500;
+    const offset = (page - 1) * limit;
     
     let query = 'SELECT * FROM documents';
     let countQuery = 'SELECT COUNT(*) as total FROM documents';
@@ -244,7 +246,7 @@ router.get('/', authenticate, async (req, res) => {
         } else if (desk === 'Secretary') {
           conditions.push('current_status IN ("pending_secretary", "ready_window_1", "completed", "released")');
         } else if (desk === 'Window 1') {
-          conditions.push('current_status IN ("ready_window_1", "completed", "released")');
+          // Window 1 can now see the entire system queue
         }
       }
     } else if (req.user.role === 'admin') {
@@ -265,15 +267,15 @@ router.get('/', authenticate, async (req, res) => {
     const [countRows] = await pool.query(countQuery, params);
     const total = countRows[0].total;
 
-    params.push(parseInt(limit), parseInt(offset));
+    params.push(limit, offset);
     const [rows] = await pool.query(query, params);
 
     res.json({
       documents: rows,
       total,
-      page: parseInt(page),
-      limit: parseInt(limit),
-      totalPages: Math.ceil(total / parseInt(limit))
+      page: page,
+      limit: limit,
+      totalPages: Math.ceil(total / limit)
     });
   } catch (err) {
     console.error('List documents error:', err);
@@ -324,6 +326,12 @@ router.get('/stats', authenticate, async (req, res) => {
     );
 
     // Per-status counts for cross-scope KPI cards
+    const [pendingVerificationCount] = await pool.query(
+      `SELECT COUNT(*) as count FROM documents WHERE current_status = 'pending_payment_verification'`
+    );
+    const [completedTodayCount] = await pool.query(
+      `SELECT COUNT(*) as count FROM documents WHERE current_status IN ('completed', 'released') AND DATE(updated_at) = CURDATE()`
+    );
     const [pendingSecCount] = await pool.query(
       `SELECT COUNT(*) as count FROM documents WHERE current_status = 'pending_secretary'`
     );
@@ -338,7 +346,9 @@ router.get('/stats', authenticate, async (req, res) => {
       avg_ocr_confidence: parseFloat(avgConfidence[0].avg_confidence) || 0,
       backlog_count: backlog[0].count || 0,
       pending_secretary_count: pendingSecCount[0].count || 0,
-      ready_window_1_count: readyW1Count[0].count || 0
+      ready_window_1_count: readyW1Count[0].count || 0,
+      pending_payment_verification_count: pendingVerificationCount[0].count || 0,
+      completed_today_count: completedTodayCount[0].count || 0
     });
   } catch (err) {
     console.error('Stats error:', err);

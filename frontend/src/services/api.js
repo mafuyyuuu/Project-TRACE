@@ -125,8 +125,10 @@ export async function submitPayment(id, formData) {
  * @param {string} action - 'approve' or 'reject'
  * @param {string} notes
  */
-export async function verifyPayment(id, action, notes) {
-  const { data } = await api.post(`/documents/${id}/verify-payment`, { action, notes })
+export async function verifyPayment(id, formData) {
+  const { data } = await api.post(`/documents/${id}/verify-payment`, formData, {
+    headers: { 'Content-Type': 'multipart/form-data' }
+  })
   return data
 }
 
