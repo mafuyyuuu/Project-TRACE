@@ -242,7 +242,7 @@ router.get('/', authenticate, async (req, res) => {
         if (desk === 'Finance') {
           conditions.push('current_status = "pending_payment_verification"');
         } else if (desk === 'Secretary') {
-          conditions.push('current_status = "pending_secretary"');
+          conditions.push('current_status IN ("pending_secretary", "ready_window_1", "completed", "released")');
         } else if (desk === 'Window 1') {
           conditions.push('current_status IN ("ready_window_1", "completed", "released")');
         }
@@ -323,12 +323,22 @@ router.get('/stats', authenticate, async (req, res) => {
       `SELECT COUNT(*) as count FROM documents WHERE current_status IN ('pending_payment', 'pending_payment_verification', 'pending_secretary', 'ready_window_1')`
     );
 
+    // Per-status counts for cross-scope KPI cards
+    const [pendingSecCount] = await pool.query(
+      `SELECT COUNT(*) as count FROM documents WHERE current_status = 'pending_secretary'`
+    );
+    const [readyW1Count] = await pool.query(
+      `SELECT COUNT(*) as count FROM documents WHERE current_status = 'ready_window_1'`
+    );
+
     res.json({
       processed_today: processedToday[0].count || 0,
       cleared_by_secretary_today: clearedBySecToday[0].count || 0,
       avg_processing_minutes: parseFloat(avgTime[0].avg_minutes) || 0,
       avg_ocr_confidence: parseFloat(avgConfidence[0].avg_confidence) || 0,
-      backlog_count: backlog[0].count || 0
+      backlog_count: backlog[0].count || 0,
+      pending_secretary_count: pendingSecCount[0].count || 0,
+      ready_window_1_count: readyW1Count[0].count || 0
     });
   } catch (err) {
     console.error('Stats error:', err);

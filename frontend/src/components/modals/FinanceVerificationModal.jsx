@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { createPortal } from 'react-dom';
 
 const apiBaseUrl = import.meta.env.VITE_API_URL || '';
 
@@ -14,8 +15,8 @@ export default function FinanceVerificationModal({
 
   if (!selectedDoc) return null;
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+  return createPortal(
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-gray-900/60 backdrop-blur-sm" onClick={() => setActiveModal(null)}></div>
       <div className="bg-white rounded-[2rem] shadow-2xl w-full max-w-xl p-6 sm:p-8 z-10 border border-gray-200 relative">
         <button className="absolute top-4 right-4 w-8 h-8 rounded-full flex items-center justify-center text-gray-400 hover:bg-gray-100" onClick={() => setActiveModal(null)}>✕</button>
@@ -89,6 +90,7 @@ export default function FinanceVerificationModal({
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

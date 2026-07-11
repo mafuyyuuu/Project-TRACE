@@ -1,4 +1,4 @@
-
+import { createPortal } from 'react-dom';
 
 const apiBaseUrl = import.meta.env.VITE_API_URL || '';
 
@@ -10,7 +10,6 @@ export default function SecretaryEvaluationModal({
   evalStudentName,
   setEvalStudentName,
   evalDocType,
-  setEvalDocType,
   clerkNotes,
   setClerkNotes,
   handleSecretaryEvaluate,
@@ -18,8 +17,8 @@ export default function SecretaryEvaluationModal({
 }) {
   if (!selectedDoc) return null;
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6">
+  return createPortal(
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6">
       <div className="absolute inset-0 bg-gray-900/60 backdrop-blur-md" onClick={() => setActiveModal(null)}></div>
       <div className={`bg-white rounded-[2rem] shadow-2xl w-full ${selectedDoc.file_path ? 'max-w-7xl h-[85vh]' : 'max-w-4xl h-auto max-h-[85vh]'} flex flex-col relative z-10 overflow-hidden border border-gray-200`}>
         
@@ -91,7 +90,7 @@ export default function SecretaryEvaluationModal({
                           try {
                             const parsed = JSON.parse(selectedDoc.purpose);
                             return Object.entries(parsed)
-                              .filter(([key, value]) => value !== '' && value !== null && value !== undefined)
+                              .filter(([, value]) => value !== '' && value !== null && value !== undefined)
                               .map(([key, value]) => (
                                 <div key={key} className="flex gap-2">
                                   <span className="text-gray-500 capitalize">{key.replace('_', ' ')}:</span>
@@ -130,18 +129,13 @@ export default function SecretaryEvaluationModal({
                     />
                   </div>
                   <div className="flex flex-col gap-1.5">
-                    <label className="text-xs font-bold text-gray-800 uppercase tracking-wide">Document Tye</label>
-                    <select 
-                      value={evalDocType} 
-                      onChange={(e) => setEvalDocType(e.target.value)}
-                      className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl text-xs font-semibold focus:ring-2 focus:ring-[#15803d]/20 outline-none cursor-pointer"
-                    >
-                      <option value="Transcript of Records">Transcript of Records</option>
-                      <option value="Graduation Clearance">Graduation Clearance</option>
-                      <option value="Certificate of Good Moral">Certificate of Good Moral</option>
-                      <option value="Honorable Dismissal">Honorable Dismissal</option>
-                      <option value="Diploma">Diploma</option>
-                    </select>
+                    <label className="text-xs font-bold text-gray-800 uppercase tracking-wide">Document Type</label>
+                    <input 
+                      type="text" 
+                      disabled 
+                      value={evalDocType}
+                      className="w-full p-3 bg-gray-100 border border-gray-200 rounded-xl text-xs font-semibold text-gray-500" 
+                    />
                   </div>
                 </div>
 
@@ -185,6 +179,7 @@ export default function SecretaryEvaluationModal({
           </div>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

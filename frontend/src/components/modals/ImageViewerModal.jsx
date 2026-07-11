@@ -1,11 +1,11 @@
-
+import { createPortal } from 'react-dom';
 
 const apiBaseUrl = import.meta.env.VITE_API_URL || '';
 
 export default function ImageViewerModal({ viewImageUrl, setViewImageUrl }) {
   if (!viewImageUrl) return null;
 
-  return (
+  return createPortal(
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-gray-900/90 backdrop-blur-sm" onClick={() => setViewImageUrl(null)}></div>
       <button 
@@ -21,6 +21,7 @@ export default function ImageViewerModal({ viewImageUrl, setViewImageUrl }) {
           className="max-w-full max-h-[90vh] object-contain rounded-xl shadow-2xl"
         />
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
