@@ -4,6 +4,9 @@ const crypto = require('crypto');
 const path = require('path');
 const { pool } = require('../config/db');
 const { authenticate } = require('../middleware/auth');
+const { UniSmsClient } = require('@taliffsss/unisms');
+
+const unismsClient = new UniSmsClient(process.env.UNISMS_SECRET_KEY || 'sk_zrEZ0VkIj8LqwivWlnxNF8RlUhkmjXIZ_nKRD3siLta4rChZT8maVBip_bcwDohSy7S43g4OdNf4RNBC3nilNA-1573');
 
 const router = express.Router();
 
@@ -245,6 +248,179 @@ router.get('/', authenticate, async (req, res) => {
 });
 
 /**
+ * GET /stats
+ * Dashboard KPI stats for the authenticated user.
+ */
+router.get('/stats', authenticate, async (req, res) => {
+  try {
+    const desk = req.user.desk_assignment;
+    const userId = req.user.id;
+    
+    // Count documents processed today by current user
+    const [processedToday] = await pool.query(
+      `SELECT COUNT(DISTINCT sl.document_id) as count 
+       FROM step_logs sl 
+       WHERE sl.clerk_id = ? AND DATE(sl.timestamp_started) = CURDATE()`,
+      [userId]
+    );
+
+    // Count documents cleared by secretary today (for Window 1 view)
+    const [clearedBySecToday] = await pool.query(
+      `SELECT COUNT(*) as count FROM step_logs 
+       WHERE action_taken = 'secretary_approved' AND DATE(timestamp_started) = CURDATE()`
+    );
+
+    // Average processing time in minutes (from submitted to completed)
+    const [avgTime] = await pool.query(
+      `SELECT AVG(TIMESTAMPDIFF(MINUTE, 
+        (SELECT MIN(sl2.timestamp_started) FROM step_logs sl2 WHERE sl2.document_id = d.id),
+        (SELECT MAX(sl3.timestamp_started) FROM step_logs sl3 WHERE sl3.document_id = d.id)
+       )) as avg_minutes
+       FROM documents d WHERE d.current_status IN ('completed', 'released')`
+    );
+
+    // Average OCR confidence
+    const [avgConfidence] = await pool.query(
+      `SELECT AVG(ocr_confidence_score) as avg_confidence FROM documents WHERE ocr_confidence_score IS NOT NULL`
+    );
+
+    // Backlog count
+    const [backlog] = await pool.query(
+      `SELECT COUNT(*) as count FROM documents WHERE current_status IN ('pending_payment', 'pending_payment_verification', 'pending_secretary', 'ready_window_1')`
+    );
+
+    res.json({
+      processed_today: processedToday[0].count || 0,
+      cleared_by_secretary_today: clearedBySecToday[0].count || 0,
+      avg_processing_minutes: parseFloat(avgTime[0].avg_minutes) || 0,
+      avg_ocr_confidence: parseFloat(avgConfidence[0].avg_confidence) || 0,
+      backlog_count: backlog[0].count || 0
+    });
+  } catch (err) {
+    console.error('Stats error:', err);
+    res.status(500).json({ error: 'Failed to fetch stats.' });
+  }
+});
+
+/**
+ * GET /stats/forecast
+ * Proxy to Flask AI engine for Prophet forecast, with fallback mock data.
+ */
+router.get('/stats/forecast', authenticate, async (req, res) => {
+  try {
+    const aiEngineUrl = process.env.AI_ENGINE_URL || 'http://localhost:5000';
+    const fetchFn = typeof fetch !== 'undefined' ? fetch : require('node-fetch');
+    
+    try {
+      const aiRes = await fetchFn(`${aiEngineUrl}/forecast`, { method: 'GET' });
+      if (aiRes.ok) {
+        const data = await aiRes.json();
+        return res.json(data);
+      }
+    } catch (aiErr) {
+      console.warn('AI forecast unavailable:', aiErr.message);
+    }
+
+    // Fallback: generate forecast from historical step_logs data
+    const [rows] = await pool.query(
+      `SELECT DATE(timestamp_started) as date, COUNT(*) as volume 
+       FROM step_logs 
+       WHERE timestamp_started >= DATE_SUB(CURDATE(), INTERVAL 14 DAY) 
+       GROUP BY DATE(timestamp_started) 
+       ORDER BY date DESC LIMIT 7`
+    );
+
+    const today = new Date();
+    const forecast = [];
+    const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    
+    for (let i = 0; i < 7; i++) {
+      const d = new Date(today);
+      d.setDate(d.getDate() + i);
+      const historicalMatch = rows.find(r => new Date(r.date).getDay() === d.getDay());
+      forecast.push({
+        date: d.toISOString().split('T')[0],
+        day: dayNames[d.getDay()],
+        predicted_volume: historicalMatch ? historicalMatch.volume + Math.floor(Math.random() * 5) : Math.floor(Math.random() * 20) + 10
+      });
+    }
+
+    res.json({ forecast, source: 'fallback' });
+  } catch (err) {
+    console.error('Forecast error:', err);
+    res.status(500).json({ error: 'Failed to fetch forecast.' });
+  }
+});
+
+/**
+ * GET /stats/insights
+ * Proxy to Flask AI engine for Random Forest insights, with fallback.
+ */
+router.get('/stats/insights', authenticate, async (req, res) => {
+  try {
+    const aiEngineUrl = process.env.AI_ENGINE_URL || 'http://localhost:5000';
+    const fetchFn = typeof fetch !== 'undefined' ? fetch : require('node-fetch');
+    
+    try {
+      const aiRes = await fetchFn(`${aiEngineUrl}/ai/recommend`, { method: 'GET' });
+      if (aiRes.ok) {
+        const data = await aiRes.json();
+        return res.json(data);
+      }
+    } catch (aiErr) {
+      console.warn('AI insights unavailable:', aiErr.message);
+    }
+
+    // Fallback: generate insights from current queue data
+    const [pendingSec] = await pool.query(
+      `SELECT COUNT(*) as count FROM documents WHERE current_status = 'pending_secretary'`
+    );
+    const [pendingRelease] = await pool.query(
+      `SELECT COUNT(*) as count FROM documents WHERE current_status = 'ready_window_1'`
+    );
+    const [todayVolume] = await pool.query(
+      `SELECT COUNT(*) as count FROM step_logs WHERE DATE(timestamp_started) = CURDATE()`
+    );
+
+    const insights = [];
+    
+    if (pendingSec[0].count > 5) {
+      insights.push({
+        type: 'warning',
+        title: 'Secretary Queue Alert',
+        message: `There are ${pendingSec[0].count} documents pending secretary evaluation. Consider prioritizing the evaluation queue to prevent bottleneck delays.`
+      });
+    }
+    if (pendingRelease[0].count > 3) {
+      insights.push({
+        type: 'action',
+        title: 'Release Desk Advisory',
+        message: `${pendingRelease[0].count} documents are ready for student pickup at Window 1. Notify students via SMS to reduce queue wait times.`
+      });
+    }
+    if (todayVolume[0].count > 20) {
+      insights.push({
+        type: 'warning',
+        title: 'High Volume Day',
+        message: `${todayVolume[0].count} document actions logged today. This is higher than average. Consider deploying additional clerk resources.`
+      });
+    }
+    
+    if (insights.length === 0) {
+      insights.push(
+        { type: 'info', title: 'System Normal', message: 'All queues are operating within normal parameters. No prescriptive actions needed at this time.' },
+        { type: 'action', title: 'Optimization Tip', message: 'Current throughput is healthy. Run mock_data_gen.py to seed historical data and enable more accurate Prophet forecasting.' }
+      );
+    }
+
+    res.json({ insights, source: 'fallback' });
+  } catch (err) {
+    console.error('Insights error:', err);
+    res.status(500).json({ error: 'Failed to fetch insights.' });
+  }
+});
+
+/**
  * GET /:trackingNumber
  * Public endpoint for tracking a document by its tracking number.
  * Returns the document details and all associated step_logs.
@@ -255,7 +431,7 @@ router.get('/:trackingNumber', async (req, res) => {
 
     // Fetch the document
     const [docRows] = await pool.query(
-      'SELECT id, tracking_number, student_id, student_name, document_type, current_status, original_filename, created_at, updated_at FROM documents WHERE tracking_number = ?',
+      'SELECT * FROM documents WHERE tracking_number = ?',
       [trackingNumber]
     );
 
@@ -495,7 +671,31 @@ router.post('/:id/verify-payment', authenticate, async (req, res) => {
       );
 
       await connection.commit();
-      res.json({ message: `Payment successfully ${action}d.` });
+
+      // --- IN-APP NOTIFICATION ---
+      try {
+        if (doc.student_id) {
+          const [users] = await connection.query('SELECT id FROM users WHERE student_id = ? AND role = "student"', [doc.student_id]);
+          if (users.length > 0) {
+            const title = action === 'approve' ? 'Payment Verified' : 'Payment Rejected';
+            const msg = action === 'approve' 
+              ? `Your payment for ${doc.document_type} has been verified! Your document is now being processed.`
+              : `Your payment for ${doc.document_type} was rejected. Reason: ${notes || 'Invalid receipt or reference number.'}`;
+            const type = action === 'approve' ? 'success' : 'error';
+            
+            // We use pool.query here because connection is already committed and might be released soon, 
+            // but actually we can still use connection since we haven't released it yet.
+            await connection.query(
+              'INSERT INTO notifications (user_id, title, message, type) VALUES (?, ?, ?, ?)',
+              [users[0].id, title, msg, type]
+            );
+          }
+        }
+      } catch (notifErr) {
+        console.error('Failed to create in-app notification:', notifErr);
+      }
+
+      res.json({ message: `Payment successfully ${action === 'approve' ? 'verified' : 'rejected'}.` });
     } catch (err) {
       await connection.rollback();
       throw err;
@@ -555,6 +755,46 @@ router.post('/:id/evaluate', authenticate, async (req, res) => {
       );
 
       await connection.commit();
+
+      // --- SMS NOTIFICATION (UniSMS) ---
+      if (action === 'approve') {
+        try {
+          const senderId = process.env.UNISMS_SENDER_ID || 'TRACE';
+          const msgContent = `Hi ${student_name ? student_name.split(',')[0] : 'Student'}, your ${document_type || 'Document'} is ready for pick-up at Window 1. Reference: ${doc.tracking_number}`;
+          
+          await unismsClient.send({
+            recipient: process.env.TEST_PHONE_NUMBER || '+639123456789', // Usually fetch from user record
+            content: msgContent,
+            senderId: senderId
+          });
+          console.log(`✅ [UniSMS] SMS notification dispatched for ${doc.tracking_number}`);
+        } catch (smsErr) {
+          console.error('❌ [UniSMS] Failed to send SMS:', smsErr.message);
+        }
+      }
+
+      // --- IN-APP NOTIFICATION ---
+      try {
+        const studentIdToNotify = student_id || doc.student_id;
+        if (studentIdToNotify) {
+          const [users] = await connection.query('SELECT id FROM users WHERE student_id = ? AND role = "student"', [studentIdToNotify]);
+          if (users.length > 0) {
+            const title = action === 'approve' ? 'Document Ready' : 'Document Rejected';
+            const msg = action === 'approve' 
+              ? `Your ${document_type || 'document'} is ready for pick-up at Window 1. Reference: ${doc.tracking_number}`
+              : `Your ${document_type || 'document'} has been rejected. Reason: ${notes}`;
+            const type = action === 'approve' ? 'success' : 'error';
+            
+            await connection.query(
+              'INSERT INTO notifications (user_id, title, message, type) VALUES (?, ?, ?, ?)',
+              [users[0].id, title, msg, type]
+            );
+          }
+        }
+      } catch (notifErr) {
+        console.error('Failed to create in-app notification:', notifErr);
+      }
+
       res.json({ message: `Document successfully evaluated and ${action === 'approve' ? 'approved' : 'rejected'}.` });
     } catch (err) {
       await connection.rollback();

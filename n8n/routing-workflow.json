@@ -47,7 +47,7 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "http://localhost:3000/api/documents/assign",
+        "url": "http://host.docker.internal:3000/api/documents/assign",
         "sendBody": true,
         "specifyBody": "json",
         "jsonBody": "={\n  \"document_id\": {{ $json.body.document_id }},\n  \"assigned_clerk_employee_id\": \"CLERK001\"\n}",
@@ -65,7 +65,7 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "http://localhost:3000/api/documents/assign",
+        "url": "http://host.docker.internal:3000/api/documents/assign",
         "sendBody": true,
         "specifyBody": "json",
         "jsonBody": "={\n  \"document_id\": {{ $json.body.document_id }},\n  \"assigned_clerk_employee_id\": \"CLERK002\"\n}",
@@ -83,7 +83,7 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "http://localhost:3000/api/documents/assign",
+        "url": "http://host.docker.internal:3000/api/documents/assign",
         "sendBody": true,
         "specifyBody": "json",
         "jsonBody": "={\n  \"document_id\": {{ $json.body.document_id }},\n  \"assigned_clerk_employee_id\": \"ADMIN001\"\n}",

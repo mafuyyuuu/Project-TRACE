@@ -74,6 +74,7 @@ router.post('/login', async (req, res) => {
       token,
       user: {
         id: user.id,
+        student_id: user.student_id,
         full_name: user.full_name,
         role: user.role,
         desk_assignment: user.desk_assignment,
@@ -93,7 +94,7 @@ router.post('/login', async (req, res) => {
 router.get('/me', authenticate, async (req, res) => {
   try {
     const [rows] = await pool.query(
-      'SELECT id, student_id, email, full_name, role, desk_assignment, is_active, created_at FROM users WHERE id = ?',
+      'SELECT id, student_id, email, full_name, role, desk_assignment, is_active, phone_number, course, created_at FROM users WHERE id = ?',
       [req.user.id]
     );
 
@@ -243,5 +244,98 @@ router.post('/verify-student/:id', authenticate, async (req, res) => {
   }
 });
 
-module.exports = router;
+/**
+ * GET /student/:studentId
+ * Lookup student details.
+ */
+router.get('/student/:studentId', authenticate, async (req, res) => {
+  try {
+    const { studentId } = req.params;
+    const [rows] = await pool.query(
+      'SELECT student_id, full_name, email, course, user_type FROM users WHERE student_id = ? AND role = "student"',
+      [studentId]
+    );
+    if (rows.length === 0) {
+      return res.status(404).json({ error: 'Student not found.' });
+    }
+    res.json({ student: rows[0] });
+  } catch (err) {
+    console.error('Student lookup error:', err);
+    res.status(500).json({ error: 'Failed to look up student.' });
+  }
+});
 
+/**
+ * PUT /profile
+ * Update user profile (phone number, course, password)
+ */
+router.put('/profile', authenticate, async (req, res) => {
+  try {
+    const { phone_number, course, password } = req.body;
+    
+    let queryParams = [];
+    let setClause = [];
+
+    if (phone_number !== undefined) {
+      setClause.push('phone_number = ?');
+      queryParams.push(phone_number);
+    }
+    if (course !== undefined) {
+      setClause.push('course = ?');
+      queryParams.push(course);
+    }
+    if (password) {
+      const password_hash = await bcrypt.hash(password, 10);
+      setClause.push('password_hash = ?');
+      queryParams.push(password_hash);
+    }
+
+    if (setClause.length === 0) {
+      return res.status(400).json({ error: 'No fields to update.' });
+    }
+
+    queryParams.push(req.user.id);
+    await pool.query(`UPDATE users SET ${setClause.join(', ')} WHERE id = ?`, queryParams);
+
+    res.json({ message: 'Profile updated successfully.' });
+  } catch (err) {
+    console.error('Update profile error:', err);
+    res.status(500).json({ error: 'Failed to update profile.' });
+  }
+});
+
+/**
+ * GET /notifications
+ * Fetch user's notifications
+ */
+router.get('/notifications', authenticate, async (req, res) => {
+  try {
+    const [rows] = await pool.query(
+      'SELECT * FROM notifications WHERE user_id = ? ORDER BY created_at DESC LIMIT 50',
+      [req.user.id]
+    );
+    res.json({ notifications: rows });
+  } catch (err) {
+    console.error('Fetch notifications error:', err);
+    res.status(500).json({ error: 'Failed to fetch notifications.' });
+  }
+});
+
+/**
+ * PUT /notifications/read
+ * Mark notifications as read
+ */
+router.put('/notifications/read', authenticate, async (req, res) => {
+  try {
+    await pool.query(
+      'UPDATE notifications SET is_read = TRUE WHERE user_id = ? AND is_read = FALSE',
+      [req.user.id]
+    );
+    res.json({ message: 'Notifications marked as read.' });
+  } catch (err) {
+    console.error('Mark read error:', err);
+    res.status(500).json({ error: 'Failed to mark notifications as read.' });
+  }
+});
+
+module.exports = router;

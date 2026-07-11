@@ -18,7 +18,7 @@ async function migrate() {
         ADD COLUMN receipt_image_path VARCHAR(500) NULL AFTER file_path
       `);
     } catch (err) {
-      if (err.code === 'ER_DUP_COLUMN_NAME') {
+      if (err.code === 'ER_DUP_FIELDNAME') {
         console.log('-> receipt_image_path already exists.');
       } else {
         throw err;
@@ -33,12 +33,61 @@ async function migrate() {
         ADD COLUMN gcash_reference_no VARCHAR(255) NULL AFTER payment_reference_id
       `);
     } catch (err) {
-      if (err.code === 'ER_DUP_COLUMN_NAME') {
+      if (err.code === 'ER_DUP_FIELDNAME') {
         console.log('-> gcash_reference_no already exists.');
       } else {
         throw err;
       }
     }
+
+    // 3a. Add new columns to documents table
+    console.log('Adding additional columns to documents...');
+    try {
+      await pool.query(`
+        ALTER TABLE documents 
+        ADD COLUMN amount DECIMAL(10,2) DEFAULT 150.00,
+        ADD COLUMN copies INT DEFAULT 1,
+        ADD COLUMN ocr_confidence_score DECIMAL(5,2) NULL,
+        ADD COLUMN purpose VARCHAR(255) NULL
+      `);
+    } catch (err) {
+      if (err.code === 'ER_DUP_FIELDNAME') {
+        console.log('-> Additional columns already exist in documents.');
+      } else {
+        throw err;
+      }
+    }
+
+    // 3b. Add course and phone_number columns to users table
+    console.log('Adding additional columns to users...');
+    try {
+      await pool.query(`
+        ALTER TABLE users 
+        ADD COLUMN course VARCHAR(100) NULL,
+        ADD COLUMN phone_number VARCHAR(20) NULL
+      `);
+    } catch (err) {
+      if (err.code === 'ER_DUP_FIELDNAME') {
+        console.log('-> Additional columns already exist in users.');
+      } else {
+        throw err;
+      }
+    }
+
+    // 3c. Create notifications table
+    console.log('Creating notifications table...');
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS notifications (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        user_id INT NOT NULL,
+        title VARCHAR(255) NOT NULL,
+        message TEXT NOT NULL,
+        type VARCHAR(50) DEFAULT 'info',
+        is_read BOOLEAN DEFAULT FALSE,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+      )
+    `);
 
     // 4. Update seed users to match specified desk assignments
     console.log('Seeding desk-specific users...');

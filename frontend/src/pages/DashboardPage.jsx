@@ -9,7 +9,11 @@ import {
   releaseDocument, 
   getPendingStudents, 
   verifyStudent,
-  uploadDocument
+  uploadDocument,
+  getDashboardStats,
+  getForecast,
+  getInsights,
+  lookupStudent
 } from '../services/api';
 
 // Simple helper to format files
@@ -27,6 +31,9 @@ export default function DashboardPage() {
   const currentTab = searchParams.get('tab') || 'dashboard';
   
   const [documents, setDocuments] = useState([]);
+  const [dashStats, setDashStats] = useState({ processed_today: 0, cleared_by_secretary_today: 0, avg_processing_minutes: 0, avg_ocr_confidence: 0, backlog_count: 0 });
+  const [forecastData, setForecastData] = useState([]);
+  const [aiInsights, setAiInsights] = useState([]);
   const [pendingStudents, setPendingStudents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
@@ -63,6 +70,9 @@ export default function DashboardPage() {
         // Admins see all documents + pending students
         const docsData = await getDocuments(1, 100);
         setDocuments(docsData.documents || []);
+        try { const stats = await getDashboardStats(); setDashStats(stats); } catch (e) { console.warn('Stats unavailable'); }
+        try { const fc = await getForecast(); setForecastData(fc.forecast || []); } catch (e) { console.warn('Forecast unavailable'); }
+        try { const ins = await getInsights(); setAiInsights(ins.insights || []); } catch (e) { console.warn('Insights unavailable'); }
         
         const studentsData = await getPendingStudents();
         setPendingStudents(studentsData.pending_students || []);
@@ -70,6 +80,7 @@ export default function DashboardPage() {
         // Students and Clerks fetch standard scoped documents
         const docsData = await getDocuments(1, 100);
         setDocuments(docsData.documents || []);
+        try { const stats = await getDashboardStats(); setDashStats(stats); } catch (e) { console.warn('Stats unavailable'); }
       }
     } catch (err) {
       console.error(err);
@@ -262,17 +273,22 @@ export default function DashboardPage() {
     }
   };
 
-  const handleFetchStudent = (e) => {
+  const handleFetchStudent = async (e) => {
     e.preventDefault();
     const studentIdInput = document.getElementById('manual-student-id')?.value;
-    if (studentIdInput) {
+    if (!studentIdInput) {
+      triggerNotification('Please enter a Student ID first.', 'error');
+      return;
+    }
+    try {
+      const result = await lookupStudent(studentIdInput);
       const nameInput = document.getElementById('manual-full-name');
       const courseSelect = document.getElementById('manual-course');
-      if (nameInput) nameInput.value = 'Jimenez, Jhervin';
-      if (courseSelect) courseSelect.value = 'BSCS';
+      if (nameInput) nameInput.value = result.student?.full_name || '';
+      if (courseSelect) courseSelect.value = result.student?.course || '';
       triggerNotification('Student details fetched successfully.');
-    } else {
-      triggerNotification('Please enter a Student ID first.', 'error');
+    } catch (err) {
+      triggerNotification(err.response?.data?.error || 'Student not found.', 'error');
     }
   };
 
@@ -327,6 +343,27 @@ export default function DashboardPage() {
     }
   };
 
+  const todayFormatted = new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+
+  const getRelativeTime = (dateStr) => {
+    if (!dateStr) return '—';
+    const diff = Math.round((Date.now() - new Date(dateStr).getTime()) / 60000);
+    if (diff < 1) return 'Just now';
+    if (diff < 60) return `${diff} min${diff > 1 ? 's' : ''} ago`;
+    if (diff < 1440) return `${Math.floor(diff / 60)} hr${Math.floor(diff / 60) > 1 ? 's' : ''} ago`;
+    return `${Math.floor(diff / 1440)} day${Math.floor(diff / 1440) > 1 ? 's' : ''} ago`;
+  };
+
+  const getWaitTime = (dateStr) => {
+    if (!dateStr) return '—';
+    const diff = Math.round((Date.now() - new Date(dateStr).getTime()) / 60000);
+    if (diff < 1) return '< 1 min';
+    if (diff < 60) return `${diff} min${diff > 1 ? 's' : ''}`;
+    return `${Math.floor(diff / 60)} hr${Math.floor(diff / 60) > 1 ? 's' : ''}`;
+  };
+
+  const apiBaseUrl = import.meta.env.VITE_API_URL || '';
+
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
@@ -378,7 +415,7 @@ export default function DashboardPage() {
                 <div className="flex items-center gap-4">
                   <div className="flex items-center gap-3 bg-white border border-gray-200 rounded-2xl px-5 py-2.5 shadow-sm">
                     <span className="text-xs font-semibold text-gray-500">Today:</span>
-                    <span className="text-xs font-bold text-gray-800">June 19, 2026</span>
+                    <span className="text-xs font-bold text-gray-800">{todayFormatted}</span>
                     <svg className="w-4 h-4 text-gray-400 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
                   </div>
                   <button 
@@ -405,7 +442,7 @@ export default function DashboardPage() {
                   </div>
                   <div className="bg-emerald-50 border border-emerald-100 rounded-full px-3 py-1 text-[10px] font-bold text-[#15803d] w-fit flex items-center gap-1.5 mt-2">
                     <span className="w-1.5 h-1.5 bg-[#15803d] rounded-full"></span>
-                    Lorem ipsum dolor sit amet, consectetur adipiscing elit.
+                    All requests submitted across your account
                   </div>
                 </div>
 
@@ -422,7 +459,7 @@ export default function DashboardPage() {
                     </svg>
                   </div>
                   <div className="bg-[#15803d] rounded-xl px-4 py-2 text-[10px] font-medium text-white w-full mt-2 leading-snug">
-                    Lorem ipsum dolor sit amet, consectetur adipiscing elit.
+                    Your documents are currently being processed
                   </div>
                 </div>
 
@@ -440,7 +477,7 @@ export default function DashboardPage() {
                   </div>
                   <div className="bg-emerald-50 border border-emerald-100 rounded-full px-3 py-1 text-[10px] font-bold text-[#15803d] w-fit flex items-center gap-1.5 mt-2">
                     <span className="w-1.5 h-1.5 bg-[#15803d] rounded-full"></span>
-                    Lorem ipsum dolor sit amet, consectetur adipiscing elit.
+                    Available for pickup at Window 1
                   </div>
                 </div>
               </div>
@@ -613,7 +650,7 @@ export default function DashboardPage() {
                             <td className="py-4 pl-4 text-xs font-semibold text-gray-400">{new Date(doc.updated_at).toLocaleDateString()} {new Date(doc.updated_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</td>
                             <td className="py-4 font-mono text-xs text-gray-800 font-black">GC-{doc.gcash_reference_no ? doc.gcash_reference_no.slice(0, 8).toUpperCase() : '992139'}</td>
                             <td className="py-4 text-sm font-bold text-gray-700">{doc.document_type}</td>
-                            <td className="py-4 text-xs font-bold text-gray-800 font-mono">P 150.00</td>
+                            <td className="py-4 text-xs font-bold text-gray-800 font-mono">P {parseFloat(doc.amount || 150).toFixed(2)}</td>
                             <td className="py-4">
                               <span className="px-3 py-1 bg-emerald-50 text-[#15803d] text-[10px] font-black rounded-full uppercase tracking-wider">PAID</span>
                             </td>
@@ -706,14 +743,8 @@ export default function DashboardPage() {
                 <div className="border-2 border-dashed border-[#15803d]/40 bg-gray-50/50 p-6 rounded-2xl flex flex-col items-center gap-4 mb-6">
                   <span className="text-xs font-bold text-gray-800">Scan this QR code using your GCash app to pay.</span>
                   
-                  {/* Mock GCash QR SVG */}
-                  <svg className="w-32 h-32 text-slate-700 bg-white p-2 rounded-xl shadow-sm" viewBox="0 0 100 100" fill="none" stroke="currentColor">
-                    <rect x="10" y="10" width="30" height="30" strokeWidth="6" />
-                    <rect x="60" y="10" width="30" height="30" strokeWidth="6" />
-                    <rect x="10" y="60" width="30" height="30" strokeWidth="6" />
-                    <path d="M 20 20 L 30 20 L 30 30 L 20 30 Z M 70 20 L 80 20 L 80 30 L 70 30 Z M 20 70 L 30 70 L 30 80 L 20 80 Z" fill="currentColor" />
-                    <path d="M 45 15 H 55 M 45 25 H 55 M 15 45 V 55 M 25 45 V 55 M 45 45 H 85 V 85 H 45 Z" strokeWidth="3" />
-                  </svg>
+                  {/* GCash QR Code */}
+                  <img src="/gcash-qr.jpg" alt="GCash QR Code" className="w-40 h-40 rounded-xl shadow-sm object-cover border border-gray-200" />
                 </div>
 
                 <form onSubmit={handleStudentSubmitPayment} className="space-y-6">
@@ -826,8 +857,8 @@ export default function DashboardPage() {
                 <div className="bg-gray-50 border border-gray-200 rounded-2xl p-5 my-4 font-mono text-[11px] text-gray-600 space-y-2">
                   <div className="flex justify-between"><span>Tracking ID</span><span className="font-bold text-gray-950">#{selectedDoc.tracking_number || selectedDoc.id}</span></div>
                   <div className="flex justify-between"><span>Date Requested</span><span className="font-bold text-gray-950">{new Date(selectedDoc.created_at).toLocaleDateString('en-US', {month: 'long', day: 'numeric', year: 'numeric'})}</span></div>
-                  <div className="flex justify-between"><span>Copies</span><span className="font-bold text-gray-950">1</span></div>
-                  <div className="flex justify-between border-t border-gray-200/50 pt-2"><span>Amount</span><span className="font-bold text-gray-950">P150.00</span></div>
+                  <div className="flex justify-between"><span>Copies</span><span className="font-bold text-gray-950">{selectedDoc.copies || 1}</span></div>
+                  <div className="flex justify-between border-t border-gray-200/50 pt-2"><span>Amount</span><span className="font-bold text-gray-950">P{parseFloat(selectedDoc.amount || 150).toFixed(2)}</span></div>
                 </div>
 
                 {/* Timeline */}
@@ -905,7 +936,7 @@ export default function DashboardPage() {
             </div>
             <div className="flex items-center gap-3 bg-white border border-gray-200 rounded-2xl px-5 py-2.5 shadow-sm">
               <span className="text-xs font-semibold text-gray-500">Today:</span>
-              <span className="text-xs font-bold text-gray-800">June 19, 2026</span>
+              <span className="text-xs font-bold text-gray-800">{todayFormatted}</span>
               <svg className="w-4 h-4 text-gray-400 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
             </div>
           </div>
@@ -941,7 +972,7 @@ export default function DashboardPage() {
                           <div className="text-xs font-mono text-gray-400 mt-0.5">{doc.student_id || 'ID Pending'}</div>
                         </td>
                         <td className="py-4 text-xs font-bold text-gray-600">{doc.document_type}</td>
-                        <td className="py-4 text-xs font-bold text-gray-800 font-mono">P150.00</td>
+                        <td className="py-4 text-xs font-bold text-gray-800 font-mono">P{parseFloat(doc.amount || 150).toFixed(2)}</td>
                         <td className="py-4 text-right pr-4">
                           <button 
                             onClick={() => { setSelectedDoc(doc); setActiveModal('verify-pay'); }}
@@ -973,8 +1004,8 @@ export default function DashboardPage() {
                   <div className="flex justify-between"><span>Document Type</span><span className="font-bold text-gray-950">{selectedDoc.document_type}</span></div>
                   <div className="flex justify-between"><span>Tracking ID</span><span className="font-bold text-gray-950">#{selectedDoc.tracking_number || selectedDoc.id}</span></div>
                   <div className="flex justify-between"><span>Date Paid</span><span className="font-bold text-gray-950">{new Date(selectedDoc.updated_at).toLocaleDateString('en-US', {month: 'long', day: 'numeric', year: 'numeric'})}</span></div>
-                  <div className="flex justify-between"><span>Copies</span><span className="font-bold text-gray-950">1</span></div>
-                  <div className="flex justify-between border-t border-gray-200/50 pt-2"><span>Amount</span><span className="font-bold text-gray-950">P150.00</span></div>
+                  <div className="flex justify-between"><span>Copies</span><span className="font-bold text-gray-950">{selectedDoc.copies || 1}</span></div>
+                  <div className="flex justify-between border-t border-gray-200/50 pt-2"><span>Amount</span><span className="font-bold text-gray-950">P{parseFloat(selectedDoc.amount || 150).toFixed(2)}</span></div>
                 </div>
 
                 <div className="space-y-4">
@@ -983,9 +1014,9 @@ export default function DashboardPage() {
                   {/* Receipt Preview */}
                   <div className="bg-gray-100 rounded-2xl overflow-hidden border border-gray-200 h-64 relative flex items-center justify-center">
                     {selectedDoc.receipt_image_path ? (
-                      <a href={`http://localhost:3000${selectedDoc.receipt_image_path}`} target="_blank" rel="noreferrer" title="Click to view full size">
+                      <a href={`${apiBaseUrl}${selectedDoc.receipt_image_path}`} target="_blank" rel="noreferrer" title="Click to view full size">
                         <img 
-                          src={`http://localhost:3000${selectedDoc.receipt_image_path}`} 
+                          src={`${apiBaseUrl}${selectedDoc.receipt_image_path}`} 
                           alt="GCash Receipt" 
                           className="w-full h-full object-contain cursor-zoom-in"
                         />
@@ -1038,7 +1069,7 @@ export default function DashboardPage() {
                 </div>
                 <div className="flex items-center gap-3 bg-white border border-gray-200 rounded-2xl px-5 py-2.5 shadow-sm">
                   <span className="text-xs font-semibold text-gray-500">Today:</span>
-                  <span className="text-xs font-bold text-gray-800">June 19, 2026</span>
+                  <span className="text-xs font-bold text-gray-800">{todayFormatted}</span>
                   <svg className="w-4 h-4 text-gray-400 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
                 </div>
               </div>
@@ -1049,7 +1080,7 @@ export default function DashboardPage() {
                   <div className="flex justify-between items-start">
                     <div>
                       <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block">PROCESSED MANUAL DOCUMENT TODAY</span>
-                      <span className="text-3xl font-display font-black text-gray-900 mt-2 block">14 <span className="text-sm text-gray-400 font-medium font-sans">Documents</span></span>
+                      <span className="text-3xl font-display font-black text-gray-900 mt-2 block">{dashStats.processed_today} <span className="text-sm text-gray-400 font-medium font-sans">Documents</span></span>
                     </div>
                     <svg className="w-20 h-10 text-[#15803d] shrink-0" fill="none" stroke="currentColor" viewBox="0 0 100 40">
                       <path d="M 5 30 C 20 20, 40 35, 60 10 C 80 5, 90 25, 95 15" strokeWidth="3" strokeLinecap="round" />
@@ -1107,34 +1138,49 @@ export default function DashboardPage() {
                   
                   <div className="flex-1 mt-6 border-2 border-dashed border-[#15803d]/40 rounded-3xl p-8 bg-gray-50/50 flex flex-col items-center justify-center relative">
                     <span className="text-xs font-bold text-gray-900 mb-6 flex items-center gap-1">
-                      <span className="text-[#15803d]">Click to</span> Scan or Upload Document
+                      <span className="hidden sm:inline"><span className="text-[#15803d]">Click to</span> Upload Document</span>
+                      <span className="sm:hidden"><span className="text-[#15803d]">Tap to</span> Scan Document</span>
                     </span>
                     
-                    <div className="flex items-center gap-6">
+                    <div className="flex items-center justify-center w-full">
+                      {/* Desktop: Upload Button */}
                       <button 
                         onClick={() => fileInputRef.current?.click()} 
-                        className="flex flex-col items-center gap-2 group focus:outline-none"
+                        className="hidden sm:flex flex-col items-center gap-2 group focus:outline-none"
                       >
                         <div className="w-16 h-16 bg-[#15803d] text-white rounded-2xl flex items-center justify-center shadow-md hover:bg-[#166534] transition-all transform hover:-translate-y-1">
                           <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
                         </div>
-                        <span className="text-xs font-bold text-[#15803d]">Upload</span>
+                        <span className="text-xs font-bold text-[#15803d]">Upload Document</span>
                       </button>
 
-                      <span className="text-sm font-black text-gray-400">OR</span>
-
+                      {/* Mobile: Scan Button */}
                       <button 
-                        onClick={() => setActiveModal('scanning')} 
-                        className="flex flex-col items-center gap-2 group focus:outline-none"
+                        onClick={() => document.getElementById('mobile-camera-input')?.click()} 
+                        className="flex sm:hidden flex-col items-center gap-2 group focus:outline-none"
                       >
                         <div className="w-16 h-16 bg-[#15803d] text-white rounded-2xl flex items-center justify-center shadow-md hover:bg-[#166534] transition-all transform hover:-translate-y-1">
                           <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
                         </div>
-                        <span className="text-xs font-bold text-[#15803d]">Scan</span>
+                        <span className="text-xs font-bold text-[#15803d]">Scan Document</span>
                       </button>
                     </div>
 
                     <span className="text-[10px] text-gray-400 mt-6 absolute bottom-4">System will automatically route to College Secretary</span>
+                    <input 
+                      type="file" 
+                      accept="image/*"
+                      capture="environment"
+                      id="mobile-camera-input"
+                      onChange={(e) => {
+                        if (e.target.files?.[0]) {
+                          setScanFile(e.target.files[0]);
+                          setScanDocType('Transcript of Records');
+                          setActiveModal('scan-confirm');
+                        }
+                      }}
+                      className="hidden"
+                    />
                     <input 
                       type="file" 
                       ref={fileInputRef}
@@ -1176,7 +1222,7 @@ export default function DashboardPage() {
                 </div>
                 <div className="flex items-center gap-3 bg-white border border-gray-200 rounded-2xl px-5 py-2.5 shadow-sm">
                   <span className="text-xs font-semibold text-gray-500">Today:</span>
-                  <span className="text-xs font-bold text-gray-800">June 19, 2026</span>
+                  <span className="text-xs font-bold text-gray-800">{todayFormatted}</span>
                   <svg className="w-4 h-4 text-gray-400 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
                 </div>
               </div>
@@ -1188,7 +1234,7 @@ export default function DashboardPage() {
                     <h3 className="font-bold text-gray-900 text-lg">Active release queue</h3>
                     <div className="flex items-center gap-4 mt-1 text-xs text-gray-500 font-medium">
                       <span>Pending Student Pick-up: <strong className="text-gray-900">{documents.filter(d => d.current_status === 'ready_window_1').length}</strong></span>
-                      <span>Cleared by Secretary Today: <strong className="text-gray-900">86</strong></span>
+                      <span>Cleared by Secretary Today: <strong className="text-gray-900">{dashStats.cleared_by_secretary_today}</strong></span>
                     </div>
                   </div>
                   <div className="relative w-64">
@@ -1222,7 +1268,7 @@ export default function DashboardPage() {
                               <div className="text-xs font-mono text-gray-400 mt-0.5">{doc.student_id || 'ID Pending'}</div>
                             </td>
                             <td className="py-4 text-xs font-bold text-gray-600">{doc.document_type}</td>
-                            <td className="py-4 text-xs font-bold text-gray-505 font-mono">12 mins</td>
+                            <td className="py-4 text-xs font-bold text-gray-505 font-mono">{getWaitTime(doc.updated_at)}</td>
                             <td className="py-4 text-right pr-4">
                               <button 
                                 onClick={() => handleWindow1Release(doc.id)}
@@ -1254,7 +1300,7 @@ export default function DashboardPage() {
                 </div>
                 <div className="flex items-center gap-3 bg-white border border-gray-200 rounded-2xl px-5 py-2.5 shadow-sm">
                   <span className="text-xs font-semibold text-gray-500">Today:</span>
-                  <span className="text-xs font-bold text-gray-800">June 19, 2026</span>
+                  <span className="text-xs font-bold text-gray-800">{todayFormatted}</span>
                   <svg className="w-4 h-4 text-gray-400 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
                 </div>
               </div>
@@ -1495,7 +1541,7 @@ export default function DashboardPage() {
                 </div>
                 <div className="flex items-center gap-3 bg-white border border-gray-200 rounded-2xl px-5 py-2.5 shadow-sm">
                   <span className="text-xs font-semibold text-gray-500">Today:</span>
-                  <span className="text-xs font-bold text-gray-800">June 19, 2026</span>
+                  <span className="text-xs font-bold text-gray-800">{todayFormatted}</span>
                   <svg className="w-4 h-4 text-gray-400 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
                 </div>
               </div>
@@ -1506,7 +1552,7 @@ export default function DashboardPage() {
                   <div className="flex justify-between items-start">
                     <div>
                       <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block">PROCESSED DOCUMENT TODAY</span>
-                      <span className="text-3xl font-display font-black text-gray-900 mt-2 block">14 <span className="text-sm text-gray-400 font-medium font-sans">Documents</span></span>
+                      <span className="text-3xl font-display font-black text-gray-900 mt-2 block">{dashStats.processed_today} <span className="text-sm text-gray-400 font-medium font-sans">Documents</span></span>
                     </div>
                     <svg className="w-20 h-10 text-[#15803d] shrink-0" fill="none" stroke="currentColor" viewBox="0 0 100 40">
                       <path d="M 5 30 C 20 20, 40 35, 60 10 C 80 5, 90 25, 95 15" strokeWidth="3" strokeLinecap="round" />
@@ -1581,7 +1627,7 @@ export default function DashboardPage() {
                               <div className="text-xs font-mono text-gray-400 mt-0.5">#{doc.tracking_number ? doc.tracking_number.slice(0, 10).toUpperCase() : doc.id}</div>
                             </td>
                             <td className="py-4 text-xs font-bold text-gray-600">{doc.document_type || 'Transcript of Records'}</td>
-                            <td className="py-4 text-xs text-gray-400">Just Now</td>
+                            <td className="py-4 text-xs text-gray-400">{getRelativeTime(doc.updated_at)}</td>
                             <td className="py-4">
                               <span className="px-3 py-1 bg-emerald-50 text-[#15803d] text-[10px] font-black rounded-full uppercase tracking-wider">PAID</span>
                             </td>
@@ -1589,8 +1635,8 @@ export default function DashboardPage() {
                               <button 
                                 onClick={() => {
                                   setSelectedDoc(doc);
-                                  setEvalStudentId(doc.student_id || '23 - 02392');
-                                  setEvalStudentName(doc.student_name || 'Jimenez, Jhervin');
+                                  setEvalStudentId(doc.student_id || '');
+                                  setEvalStudentName(doc.student_name || '');
                                   setEvalDocType(doc.document_type || 'Transcript of Records');
                                   setActiveModal('evaluate');
                                 }}
@@ -1644,7 +1690,7 @@ export default function DashboardPage() {
                           <tr key={doc.id} className="hover:bg-gray-50/30">
                             <td className="py-4 pl-4 text-xs font-semibold text-gray-400">{new Date(doc.updated_at).toLocaleDateString()} {new Date(doc.updated_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</td>
                             <td className="py-4">
-                              <div className="font-bold text-gray-900">{doc.student_name || 'Jimenez, Jhervin'}</div>
+                              <div className="font-bold text-gray-900">{doc.student_name || 'Unknown Student'}</div>
                               <div className="text-xs font-mono text-gray-400 mt-0.5">#{doc.tracking_number ? doc.tracking_number.slice(0, 10).toUpperCase() : doc.id}</div>
                             </td>
                             <td className="py-4 text-xs font-bold text-gray-600">{doc.document_type}</td>
@@ -1688,9 +1734,9 @@ export default function DashboardPage() {
                     </div>
                     <div className="flex-1 bg-gray-200 border border-gray-300 rounded-3xl overflow-hidden relative flex items-center justify-center shadow-inner">
                       {selectedDoc.file_path ? (
-                        <a href={`http://localhost:3000${selectedDoc.file_path}`} target="_blank" rel="noreferrer" title="Click to view full size">
+                        <a href={`${apiBaseUrl}${selectedDoc.file_path}`} target="_blank" rel="noreferrer" title="Click to view full size">
                           <img 
-                            src={`http://localhost:3000${selectedDoc.file_path}`} 
+                            src={`${apiBaseUrl}${selectedDoc.file_path}`} 
                             alt="Scanned Document" 
                             className="w-full h-full object-contain cursor-zoom-in"
                           />
@@ -1718,7 +1764,7 @@ export default function DashboardPage() {
                             <span className="text-[10px] font-bold text-gray-400 block mt-0.5">Extraction successful. Please verify</span>
                           </div>
                         </div>
-                        <span className="text-2xl font-black text-[#15803d] font-mono">96.4%</span>
+                        <span className="text-2xl font-black text-[#15803d] font-mono">{selectedDoc.ocr_confidence_score ? `${parseFloat(selectedDoc.ocr_confidence_score).toFixed(1)}%` : 'N/A'}</span>
                       </div>
 
                       <div className="space-y-4">
@@ -1817,7 +1863,7 @@ export default function DashboardPage() {
             </div>
             <div className="flex items-center gap-3 bg-white border border-gray-200 rounded-2xl px-5 py-2.5 shadow-sm">
               <span className="text-xs font-semibold text-gray-500">Today:</span>
-              <span className="text-xs font-bold text-gray-800">June 19, 2026</span>
+              <span className="text-xs font-bold text-gray-800">{todayFormatted}</span>
               <svg className="w-4 h-4 text-gray-400 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
             </div>
           </div>
@@ -1828,7 +1874,7 @@ export default function DashboardPage() {
               <div className="flex justify-between items-start">
                 <div>
                   <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block">System Throughput</span>
-                  <span className="text-3xl font-display font-black text-gray-900 mt-2 block">14.8 <span className="text-sm text-gray-400 font-medium font-sans">min</span></span>
+                  <span className="text-3xl font-display font-black text-gray-900 mt-2 block">{dashStats.avg_processing_minutes > 0 ? dashStats.avg_processing_minutes.toFixed(1) : '—'} <span className="text-sm text-gray-400 font-medium font-sans">min</span></span>
                 </div>
                 <svg className="w-20 h-10 text-[#15803d] shrink-0" fill="none" stroke="currentColor" viewBox="0 0 100 40">
                   <path d="M 5 30 C 20 20, 40 35, 60 10 C 80 5, 90 25, 95 15" strokeWidth="3" strokeLinecap="round" />
@@ -1836,7 +1882,7 @@ export default function DashboardPage() {
               </div>
               <div className="bg-emerald-50 border border-emerald-100 rounded-full px-3 py-1 text-[10px] font-bold text-[#15803d] w-fit flex items-center gap-1.5 mt-2">
                 <span className="w-1.5 h-1.5 bg-[#15803d] rounded-full"></span>
-                +12.8% faster than historical baseline
+                Average document processing time across all completed requests
               </div>
             </div>
 
@@ -1844,7 +1890,7 @@ export default function DashboardPage() {
               <div className="flex justify-between items-start">
                 <div>
                   <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block">AI Confidence Avg</span>
-                  <span className="text-3xl font-display font-black text-gray-900 mt-2 block">96.2%</span>
+                  <span className="text-3xl font-display font-black text-gray-900 mt-2 block">{dashStats.avg_ocr_confidence > 0 ? dashStats.avg_ocr_confidence.toFixed(1) + '%' : '—'}</span>
                 </div>
                 <svg className="w-20 h-10 text-[#15803d] shrink-0" fill="none" stroke="currentColor" viewBox="0 0 100 40">
                   <path d="M 5 25 C 25 35, 45 10, 65 20 C 80 25, 90 5, 95 15" strokeWidth="3" strokeLinecap="round" />
@@ -1922,11 +1968,22 @@ export default function DashboardPage() {
                 
                 {/* Labels at the bottom */}
                 <div className="flex justify-between items-center px-12 border-t border-gray-100 pt-3 text-[10px] font-bold text-gray-400 font-mono relative z-10">
-                  <span>Mon</span>
-                  <span>Tues</span>
-                  <span>Wed</span>
-                  <span>Thurs</span>
-                  <span>Fri</span>
+                  {forecastData && forecastData.length > 0 ? (
+                    forecastData.slice(-5).map((f, i) => (
+                      <div key={i} className="flex flex-col items-center">
+                        <span className="text-gray-900 mb-1">{f.predicted_volume}</span>
+                        <span className={i === 4 ? 'text-[#15803d]' : ''}>{f.day}</span>
+                      </div>
+                    ))
+                  ) : (
+                    <>
+                      <span>Mon</span>
+                      <span>Tues</span>
+                      <span>Wed</span>
+                      <span>Thurs</span>
+                      <span>Fri</span>
+                    </>
+                  )}
                 </div>
               </div>
             </div>
@@ -1940,18 +1997,27 @@ export default function DashboardPage() {
               </div>
 
               <div className="flex flex-col gap-4 mt-6">
-                <div className="bg-white/10 border border-white/15 rounded-2xl p-4 backdrop-blur-md">
-                  <div className="text-[10px] font-bold text-pine-300 uppercase tracking-widest mb-1 flex items-center gap-1">⚠ Volume Warning</div>
-                  <div className="text-xs text-gray-200 leading-relaxed font-medium">
-                    Prophet predicts a 200% surge in Transcript clearance requests on Thursday due to upcoming PLP enrollment deadlines.
-                  </div>
-                </div>
-                <div className="bg-white/5 border border-white/10 rounded-2xl p-4 backdrop-blur-md">
-                  <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Prescribed Action</div>
-                  <div className="text-xs text-gray-300 leading-relaxed font-medium">
-                    Temporarily assign one cross-trained Records Clerk to Window 1 on Thursday morning to maintain high release speeds.
-                  </div>
-                </div>
+                {aiInsights && aiInsights.length > 0 ? (
+                  aiInsights.map((insight, idx) => (
+                    <div key={idx} className={`${insight.type === 'warning' ? 'bg-amber-500/10 border-amber-500/20' : 'bg-white/10 border-white/15'} border rounded-2xl p-4 backdrop-blur-md`}>
+                      <div className={`text-[10px] font-bold ${insight.type === 'warning' ? 'text-amber-300' : 'text-pine-300'} uppercase tracking-widest mb-1 flex items-center gap-1`}>
+                        {insight.type === 'warning' ? '⚠ ' : ''}{insight.title}
+                      </div>
+                      <div className="text-xs text-gray-200 leading-relaxed font-medium">
+                        {insight.message}
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <>
+                    <div className="bg-white/10 border border-white/15 rounded-2xl p-4 backdrop-blur-md">
+                      <div className="text-[10px] font-bold text-pine-300 uppercase tracking-widest mb-1 flex items-center gap-1">⚠ Volume Warning</div>
+                      <div className="text-xs text-gray-200 leading-relaxed font-medium">
+                        Loading insights...
+                      </div>
+                    </div>
+                  </>
+                )}
               </div>
             </div>
           </div>
@@ -1987,7 +2053,7 @@ export default function DashboardPage() {
                         <td className="py-4">
                           {student.id_proof_path ? (
                             <a 
-                              href={`http://localhost:3000/${student.id_proof_path.replace(/\\/g, '/')}`} 
+                              href={`${apiBaseUrl}/${student.id_proof_path.replace(/\\/g, '/')}`} 
                               target="_blank" 
                               rel="noreferrer" 
                               className="text-xs text-indigo-600 font-bold hover:underline flex items-center gap-1"

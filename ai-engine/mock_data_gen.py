@@ -98,4 +98,4 @@ def generate_mock_data(num_docs=500):
     print(f"✅ Successfully injected {num_docs} documents and logs into the database.")
 
 if __name__ == '__main__':
-    generate_mock_data()
+    generate_mock_data(10000)

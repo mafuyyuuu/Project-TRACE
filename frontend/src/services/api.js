@@ -167,5 +167,41 @@ export async function verifyStudent(userId, action) {
   return data
 }
 
-export default api
+/**
+ * Get dashboard KPI stats.
+ */
+export async function getDashboardStats() {
+  const { data } = await api.get('/documents/stats')
+  return data
+}
 
+/**
+ * Get 7-day volume forecast (Admin).
+ */
+export async function getForecast() {
+  const { data } = await api.get('/documents/stats/forecast')
+  return data
+}
+
+/**
+ * Get AI insights (Admin).
+ */
+export async function getInsights() {
+  const { data } = await api.get('/documents/stats/insights')
+  return data
+}
+
+export const updateProfile = (data) => api.put('/auth/profile', data);
+export const getNotifications = () => api.get('/auth/notifications');
+export const markNotificationsRead = () => api.put('/auth/notifications/read');
+
+/**
+ * Look up a student by student ID.
+ * @param {string} studentId
+ */
+export async function lookupStudent(studentId) {
+  const { data } = await api.get(`/auth/student/${studentId}`)
+  return data
+}
+
+export default api
