@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import { Outlet, Link, useLocation } from 'react-router-dom'
 import { useAuth } from '../utils/hooks'
 import { getNotifications, markNotificationsRead, updateProfile } from '../services/api'
@@ -17,12 +17,6 @@ export default function Layout() {
   const [profileData, setProfileData] = useState({ phone_number: user?.phone_number || '', password: '' })
   const [savingSettings, setSavingSettings] = useState(false)
 
-  useEffect(() => {
-    if (user) {
-      loadNotifs()
-    }
-  }, [user])
-
   const loadNotifs = async () => {
     try {
       const data = await getNotifications()
@@ -32,6 +26,13 @@ export default function Layout() {
       console.error(err)
     }
   }
+
+  useEffect(() => {
+    if (user) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      loadNotifs()
+    }
+  }, [user])
 
   const handleNotifClick = async () => {
     setShowNotifs(!showNotifs)

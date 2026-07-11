@@ -36,7 +36,9 @@ export default function UploadPage() {
     try {
       await navigator.clipboard.writeText(result.tracking_number)
       setCopied(true); setTimeout(() => setCopied(false), 2000)
-    } catch {}
+    } catch {
+      // Ignore copy errors
+    }
   }
 
   const resetForm = () => {

@@ -19,25 +19,36 @@ Before a student can request documents, they must create an account.
 - Verified students log in and are presented with the **Upload Interface**.
 - They select the document type (e.g., TOR, Diploma) and upload a file.
 - The system automatically generates a unique `tracking_number`.
-- **Payment Gateway:** The student is immediately prompted to pay via GCash or QRPh. The document enters a `pending_payment` state and is hidden from the clerks until paid.
+- **Payment Submission:** The student is immediately prompted to pay via GCash. They must submit the GCash Reference Number and a screenshot of the receipt. The document enters a `pending_payment_verification` state.
 
-### 3. Window 1 Clerk (Intake & Release)
+### 3. Finance Clerk
+The finance dashboard.
+- **Payment Verification:** Reviews manually uploaded GCash payment receipts and reference numbers.
+- **Approval:** Approves valid payments to move documents into the processing pipeline (`pending_secretary`).
+
+### 4. Window 1 Clerk (Intake & Release)
 The front desk dashboard.
-- **Intake:** Uploads physical documents. The system uses AI (EasyOCR) to automatically extract the Student Number and Document Type, avoiding manual data entry.
+- **Intake:** Uploads physical documents. The system uses AI (EasyOCR) to automatically extract the Student Number and Document Type.
 - **Release:** After the workflow is complete, Window 1 handles the final release of the document to the student.
 
-### 3. College Secretary (Approver)
+### 5. College Secretary (Approver)
 The approver dashboard.
 - **Evaluation:** Receives documents dynamically routed to their desk queue.
 - **One-Click Actions:** Verifies the AI-extracted data alongside the uploaded document image and clicks "Approve" or "Reject".
-- **Zero Hand-offs:** Once approved, the document is automatically routed back to Window 1 by the n8n automation engine.
+- **Zero Hand-offs:** Once approved, the document is automatically routed back to Window 1.
+
+### 6. Registrar Admin
+The central monitoring and operations hub.
+- **AI Insights & Forecasting:** Views 7-day predictive volume forecasts and real-time AI alerts for queue bottlenecks.
+- **Account Verification:** Manually verifies student accounts that failed automatic AI verification.
 
 ---
 
 ## 🔄 Core Workflow Overview
 
-1. **Initiation & Payment:** Student requests a document and pays online via GCash/QRPh.
-2. **AI Intake:** Window 1 uploads any physical paperwork. EasyOCR extracts data automatically.
-3. **Automated Routing:** n8n intercepts the submission and dynamically assigns the document to the College Secretary.
-4. **Approval:** The Secretary approves the document via their digital dashboard.
-5. **Return & Release:** n8n routes the document back to Window 1 and sends the student an SMS that their document is ready for pickup.
+1. **Initiation:** Student requests a document.
+2. **Payment & Verification:** Student pays via GCash and uploads the receipt. The Finance Clerk verifies the payment.
+3. **AI Intake:** Window 1 uploads any physical paperwork. EasyOCR extracts data automatically.
+4. **Automated Routing:** n8n intercepts the submission and dynamically assigns the document to the College Secretary.
+5. **Approval:** The Secretary approves the document via their digital split-screen dashboard.
+6. **Return & Release:** n8n routes the document back to Window 1 and sends the student an SMS that their document is ready for pickup.

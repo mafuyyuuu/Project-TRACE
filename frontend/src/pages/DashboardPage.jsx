@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '../utils/hooks';
 import { 
@@ -26,6 +26,16 @@ function formatFileSize(bytes) {
   return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
 }
 
+const apiBaseUrl = import.meta.env.VITE_API_URL || '';
+
+import LiveTrackingModal from '../components/modals/LiveTrackingModal';
+import ImageViewerModal from '../components/modals/ImageViewerModal';
+import FinanceVerificationModal from '../components/modals/FinanceVerificationModal';
+import SecretaryEvaluationModal from '../components/modals/SecretaryEvaluationModal';
+import NewRequestModal from '../components/modals/NewRequestModal';
+
+
+
 export default function DashboardPage() {
   const { user } = useAuth();
   const [searchParams] = useSearchParams();
@@ -50,7 +60,7 @@ export default function DashboardPage() {
   // Modals state
   const [activeModal, setActiveModal] = useState(null); // 'pay', 'verify-pay', 'evaluate', 'verify-student', 'scan-confirm'
   const [selectedDoc, setSelectedDoc] = useState(null);
-  const [selectedStudent, setSelectedStudent] = useState(null);
+  const [viewImageUrl, setViewImageUrl] = useState(null);
   
   // Forms State
   const [paymentRef, setPaymentRef] = useState('');
@@ -77,9 +87,9 @@ export default function DashboardPage() {
         // Admins see all documents + pending students
         const docsData = await getDocuments(1, 100);
         setDocuments(docsData.documents || []);
-        try { const stats = await getDashboardStats(); setDashStats(stats); } catch (e) { console.warn('Stats unavailable'); }
-        try { const fc = await getForecast(); setForecastData(fc.forecast || []); } catch (e) { console.warn('Forecast unavailable'); }
-        try { const ins = await getInsights(); setAiInsights(ins.insights || []); } catch (e) { console.warn('Insights unavailable'); }
+        try { const stats = await getDashboardStats(); setDashStats(stats); } catch { console.warn('Stats unavailable'); }
+        try { const fc = await getForecast(); setForecastData(fc.forecast || []); } catch { console.warn('Forecast unavailable'); }
+        try { const ins = await getInsights(); setAiInsights(ins.insights || []); } catch { console.warn('Insights unavailable'); }
         
         const studentsData = await getPendingStudents();
         setPendingStudents(studentsData.pending_students || []);
@@ -87,7 +97,7 @@ export default function DashboardPage() {
         // Students and Clerks fetch standard scoped documents
         const docsData = await getDocuments(1, 100);
         setDocuments(docsData.documents || []);
-        try { const stats = await getDashboardStats(); setDashStats(stats); } catch (e) { console.warn('Stats unavailable'); }
+        try { const stats = await getDashboardStats(); setDashStats(stats); } catch { console.warn('Stats unavailable'); }
       }
     } catch (err) {
       console.error(err);
@@ -99,12 +109,15 @@ export default function DashboardPage() {
 
   useEffect(() => {
     if (user) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       loadDashboardData();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
   useEffect(() => {
     if (activeModal === 'tracking' && selectedDoc) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setTrackerProgress(0);
       const timer = setTimeout(() => {
         const target = selectedDoc.current_status === 'pending_payment' ? 0 :
@@ -147,7 +160,15 @@ export default function DashboardPage() {
     const reason = e.target.reason?.value || '';
 
     // compile a single notes string or extra data
-    const extraData = JSON.stringify({ purpose, yearGraduated, requestingSchool, reason });
+    const extraDataObj = {};
+    if (yearGraduated) extraDataObj.year_graduated = yearGraduated;
+    if (requestingSchool) extraDataObj.requesting_school = requestingSchool;
+    if (purpose) extraDataObj.purpose = purpose;
+    if (reason) extraDataObj.reason = reason;
+    if (docType === 'Transcript of Records' || docType === 'Transcript of Records (TOR)') {
+      extraDataObj.semesters = semesters;
+    }
+    const extraData = JSON.stringify(extraDataObj);
     
     try {
       setActionLoading(true);
@@ -268,7 +289,19 @@ export default function DashboardPage() {
   // ----------------------------------------------------
   // WINDOW 1 CLERK ACTIONS
   // ----------------------------------------------------
-  
+  const handleWindow1Release = async (id) => {
+    if (!window.confirm("Confirm document release to student?")) return;
+    try {
+      setActionLoading(true);
+      await releaseDocument(id);
+      triggerNotification('Document successfully released.');
+      loadDashboardData();
+    } catch (err) {
+      triggerNotification(err.response?.data?.error || 'Failed to release document.', 'error');
+    } finally {
+      setActionLoading(false);
+    }
+  };
   const simulateHardwareScan = (file) => {
     setScanFile(file);
     setScanDocType('Transcript of Records');
@@ -287,19 +320,6 @@ export default function DashboardPage() {
         }, 500);
       }
     }, 100);
-  };
-
-  const handleWindow1ScanSubmit = async (docId) => {
-    try {
-      setActionLoading(true);
-      await releaseDocument(docId);
-      triggerNotification('Document securely marked as completed and released.');
-      loadDashboardData();
-    } catch (err) {
-      triggerNotification(err.response?.data?.error || 'Release failed.', 'error');
-    } finally {
-      setActionLoading(false);
-    }
   };
 
   const handleWindow1ScanUpload = async (docType) => {
@@ -400,14 +420,6 @@ export default function DashboardPage() {
     }
   };
 
-  const getProgressColor = (status) => {
-    const val = getProgressVal(status);
-    if (status === 'rejected') return 'bg-red-500';
-    if (val < 50) return 'bg-amber-500';
-    if (val < 100) return 'bg-indigo-500';
-    return 'bg-emerald-500';
-  };
-
   const getStatusLabel = (status) => {
     switch (status) {
       case 'pending_payment': return 'Awaiting Payment';
@@ -440,6 +452,7 @@ export default function DashboardPage() {
 
   const getRelativeTime = (dateStr) => {
     if (!dateStr) return '—';
+    // eslint-disable-next-line react-hooks/purity
     const diff = Math.round((Date.now() - new Date(dateStr).getTime()) / 60000);
     if (diff < 1) return 'Just now';
     if (diff < 60) return `${diff} min${diff > 1 ? 's' : ''} ago`;
@@ -449,13 +462,13 @@ export default function DashboardPage() {
 
   const getWaitTime = (dateStr) => {
     if (!dateStr) return '—';
+    // eslint-disable-next-line react-hooks/purity
     const diff = Math.round((Date.now() - new Date(dateStr).getTime()) / 60000);
     if (diff < 1) return '< 1 min';
     if (diff < 60) return `${diff} min${diff > 1 ? 's' : ''}`;
     return `${Math.floor(diff / 60)} hr${Math.floor(diff / 60) > 1 ? 's' : ''}`;
   };
 
-  const apiBaseUrl = import.meta.env.VITE_API_URL || '';
 
   if (loading) {
     return (
@@ -760,7 +773,7 @@ export default function DashboardPage() {
                             </td>
                             <td className="py-4 text-right pr-4">
                               <button 
-                                onClick={() => { setSelectedDoc(doc); setActiveModal('tracking'); }}
+                                onClick={() => setViewImageUrl(doc.receipt_image_path)}
                                 className="p-2 text-[#15803d] hover:bg-emerald-50 rounded-xl transition-colors"
                               >
                                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
@@ -778,138 +791,23 @@ export default function DashboardPage() {
 
           {/* 1.4. NEW REQUEST MODAL */}
           {activeModal === 'new-request' && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-              <div className="absolute inset-0 bg-gray-900/60 backdrop-blur-md" onClick={() => setActiveModal(null)}></div>
-              <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg p-6 sm:p-8 z-10 border border-gray-100 relative">
-                <button className="absolute top-4 right-4 w-8 h-8 rounded-full flex items-center justify-center text-gray-400 hover:bg-gray-100" onClick={() => setActiveModal(null)}>✕</button>
-                
-                <h3 className="text-xl font-black text-gray-900">New Request</h3>
-                <p className="text-xs text-gray-400 mt-1 font-semibold mb-6">Add New Request</p>
-
-                <form onSubmit={handleStudentSubmitRequest} className="space-y-6">
-                  {/* Visually Auto-filled Fields */}
-                  <div className="grid grid-cols-2 gap-4 bg-gray-50/50 p-4 rounded-2xl border border-gray-100">
-                    <div className="flex flex-col gap-1.5">
-                      <label className="text-[9px] font-bold text-gray-500 uppercase tracking-widest">Student Name</label>
-                      <input type="text" value={user?.full_name || ''} disabled className="bg-transparent border-none p-0 text-sm font-bold text-gray-900" />
-                    </div>
-                    <div className="flex flex-col gap-1.5">
-                      <label className="text-[9px] font-bold text-gray-500 uppercase tracking-widest">Student ID</label>
-                      <input type="text" value={user?.student_id || ''} disabled className="bg-transparent border-none p-0 text-sm font-bold text-gray-900" />
-                    </div>
-                  </div>
-
-                  <div className="flex flex-col gap-2">
-                    <label className="text-[10px] font-bold text-gray-800 uppercase tracking-widest">Document Type</label>
-                    <select name="docType" value={selectedDocType} onChange={e => setSelectedDocType(e.target.value)} required className="w-full bg-gray-50 border border-gray-200 rounded-xl p-3.5 text-xs font-semibold focus:ring-2 focus:ring-[#15803d]/20 outline-none cursor-pointer text-gray-800">
-                      <option value="" disabled selected>Select Document Type...</option>
-                      <option value="Transcript of Records">Transcript of Records (TOR)</option>
-                      <option value="Graduation Clearance">Graduation Clearance</option>
-                      <option value="Certificate of Good Moral">Certificate of Good Moral</option>
-                      <option value="Honorable Dismissal">Honorable Dismissal</option>
-                      <option value="Diploma">Diploma</option>
-                    </select>
-                  </div>
-                  
-                  {selectedDocType && (
-                    <div className="bg-gray-50/50 border border-gray-100 rounded-2xl p-4 space-y-4">
-                      {/* Dynamic Form Fields */}
-                      {(selectedDocType === 'Transcript of Records' || selectedDocType === 'Honorable Dismissal') && (
-                        <div className="flex flex-col gap-2">
-                          <label className="text-[10px] font-bold text-gray-800 uppercase tracking-widest">Name of Requesting School/Company</label>
-                          <input type="text" name="requestingSchool" required className="w-full bg-white border border-gray-200 rounded-xl p-3 text-xs focus:ring-2 outline-none" placeholder="e.g. Mapua University" />
-                        </div>
-                      )}
-
-                      {(selectedDocType === 'Transcript of Records' || selectedDocType === 'Transcript of Records (TOR)') && (
-                        <div className="flex flex-col gap-2">
-                          <label className="text-[10px] font-bold text-gray-800 uppercase tracking-widest">How many semesters have you attended?</label>
-                          <input type="number" name="semesters" value={semesters} onChange={e => setSemesters(parseInt(e.target.value) || 0)} min="1" required className="w-full bg-white border border-gray-200 rounded-xl p-3 text-xs focus:ring-2 outline-none" />
-                          <p className="text-[10px] text-gray-400">Note: 4 semesters = 1 page (₱100/page)</p>
-                        </div>
-                      )}
-                      
-                      {(selectedDocType === 'Graduation Clearance' || selectedDocType === 'Diploma') && (
-                        <div className="flex flex-col gap-2">
-                          <label className="text-[10px] font-bold text-gray-800 uppercase tracking-widest">Year Graduated / Last Attended</label>
-                          <input type="text" name="yearGraduated" required className="w-full bg-white border border-gray-200 rounded-xl p-3 text-xs focus:ring-2 outline-none" placeholder="e.g. 2025" />
-                        </div>
-                      )}
-
-                      {(selectedDocType === 'Certificate of Good Moral' || selectedDocType === 'Honorable Dismissal') && (
-                        <div className="flex flex-col gap-2">
-                          <label className="text-[10px] font-bold text-gray-800 uppercase tracking-widest">Reason for Request / Transfer</label>
-                          <input type="text" name="reason" required className="w-full bg-white border border-gray-200 rounded-xl p-3 text-xs focus:ring-2 outline-none" placeholder="e.g. Employment" />
-                        </div>
-                      )}
-
-                      <div className="flex flex-col gap-2">
-                        <label className="text-[10px] font-bold text-gray-800 uppercase tracking-widest">Number of Copies</label>
-                        <input type="number" name="copies" value={reqCopies} onChange={e => setReqCopies(parseInt(e.target.value) || 1)} min="1" required className="w-full bg-white border border-gray-200 rounded-xl p-3 text-xs focus:ring-2 outline-none" />
-                      </div>
-                      
-                      <div className="flex flex-col gap-2 pt-2">
-                        <label className="text-[10px] font-bold text-gray-800 uppercase tracking-widest">
-                          {getAttachmentLabel(selectedDocType)}
-                        </label>
-                        <div className="border-2 border-dashed border-gray-300 rounded-xl p-4 bg-white flex flex-col items-center justify-center gap-2 cursor-pointer hover:bg-gray-50 transition-colors relative">
-                          {requestFile ? (
-                            <span className="text-xs font-bold text-indigo-600 flex items-center gap-2">
-                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                              {requestFile.name}
-                            </span>
-                          ) : (
-                            <span className="text-xs font-bold text-gray-600">
-                              <span className="text-[#15803d]">Click here</span> to upload {getAttachmentHelper(selectedDocType)}
-                            </span>
-                          )}
-                          <input 
-                            type="file" 
-                            name="docFile" 
-                            onChange={(e) => setRequestFile(e.target.files[0])}
-                            required={requiresAttachment(selectedDocType)} 
-                            className="absolute inset-0 opacity-0 cursor-pointer" 
-                          />
-                        </div>
-                      </div>
-                      
-                      <div className="pt-2 border-t border-gray-200 mt-4 flex justify-between items-center">
-                        <span className="text-xs font-bold text-gray-500">Estimated Total:</span>
-                        <span className="text-lg font-black text-[#15803d]">
-                          ₱{((selectedDocType === 'Transcript of Records' || selectedDocType === 'Transcript of Records (TOR)') 
-                            ? (Math.ceil(semesters / 4) * 100)
-                            : selectedDocType === 'Honorable Dismissal' 
-                              ? 100.00 
-                              : 50.00) * reqCopies}.00
-                        </span>
-                      </div>
-                    </div>
-                  )}
-
-                  <div className="bg-emerald-50 border border-emerald-100 p-4 rounded-xl text-xs leading-relaxed text-[#15803d] font-bold flex items-center gap-2">
-                    <span className="w-2 h-2 bg-[#15803d] rounded-full shrink-0"></span>
-                    Fast checkout: Complete your payment instantly to begin processing.
-                  </div>
-
-                  <div className="flex justify-end gap-3 pt-2">
-                    <button 
-                      type="button"
-                      onClick={() => { setActiveModal(null); setSelectedDocType(''); }}
-                      className="px-6 py-3 border border-gray-200 text-gray-700 rounded-xl text-xs font-bold hover:bg-gray-50"
-                    >
-                      Cancel
-                    </button>
-                    <button 
-                      type="submit" 
-                      disabled={actionLoading} 
-                      className="px-8 py-3 bg-[#15803d] hover:bg-[#166534] disabled:opacity-70 text-white rounded-xl text-xs font-bold shadow-md transition-all uppercase tracking-wider"
-                    >
-                      {actionLoading ? 'Uploading...' : 'Next'}
-                    </button>
-                  </div>
-                </form>
-              </div>
-            </div>
+            <NewRequestModal 
+              user={user}
+              setActiveModal={setActiveModal}
+              handleStudentSubmitRequest={handleStudentSubmitRequest}
+              selectedDocType={selectedDocType}
+              setSelectedDocType={setSelectedDocType}
+              semesters={semesters}
+              setSemesters={setSemesters}
+              reqCopies={reqCopies}
+              setReqCopies={setReqCopies}
+              requestFile={requestFile}
+              setRequestFile={setRequestFile}
+              actionLoading={actionLoading}
+              requiresAttachment={requiresAttachment}
+              getAttachmentLabel={getAttachmentLabel}
+              getAttachmentHelper={getAttachmentHelper}
+            />
           )}
 
           {/* 1.5. COMPLETE YOUR GCASH PAYMENT MODAL */}
@@ -1046,110 +944,14 @@ export default function DashboardPage() {
             </div>
           )}
 
-          {/* 1.7. LIVE TRACKING TIMELINE MODAL */}
+          {/* 1.7. LIVE TRACKING MODAL */}
           {activeModal === 'tracking' && selectedDoc && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-              <div className="absolute inset-0 bg-gray-900/60 backdrop-blur-md" onClick={() => setActiveModal(null)}></div>
-              <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg p-6 sm:p-8 z-10 border border-gray-100 relative flex flex-col h-[75vh] justify-between">
-                <button className="absolute top-4 right-4 w-8 h-8 rounded-full flex items-center justify-center text-gray-400 hover:bg-gray-100" onClick={() => setActiveModal(null)}>✕</button>
-
-                <div className="flex justify-between items-center border-b border-gray-100 pb-4">
-                  <h3 className="text-lg font-black text-gray-900 truncate pr-4">{selectedDoc.document_type || 'Transcript of Records (TOR)'}</h3>
-                  <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider shrink-0 ${selectedDoc.current_status === 'completed' || selectedDoc.current_status === 'released' ? 'bg-emerald-50 text-[#15803d]' : 'bg-amber-50 text-amber-700'}`}>
-                    {getStatusLabel(selectedDoc.current_status)}
-                  </span>
-                </div>
-
-                {/* Gray detail panel */}
-                <div className="bg-gray-50 border border-gray-200 rounded-2xl p-5 my-4 font-mono text-[11px] text-gray-600 space-y-2">
-                  <div className="flex justify-between"><span>Tracking ID</span><span className="font-bold text-gray-950">#{selectedDoc.tracking_number || selectedDoc.id}</span></div>
-                  <div className="flex justify-between"><span>Date Requested</span><span className="font-bold text-gray-950">{new Date(selectedDoc.created_at).toLocaleDateString('en-US', {month: 'long', day: 'numeric', year: 'numeric'})}</span></div>
-                  <div className="flex justify-between"><span>Copies</span><span className="font-bold text-gray-950">{selectedDoc.copies || 1}</span></div>
-                  <div className="flex justify-between border-t border-gray-200/50 pt-2"><span>Amount</span><span className="font-bold text-gray-950">P{parseFloat(selectedDoc.amount || 150).toFixed(2)}</span></div>
-                </div>
-
-                {/* Horizontal Map Visualizer */}
-                <div className="flex-1 px-2 py-4 flex flex-col justify-center w-full">
-                  
-                  <div className="relative w-full flex items-center justify-between mb-8">
-                    {/* Background Progress Bar */}
-                    <div className="absolute left-[10%] right-[10%] top-1/2 -translate-y-1/2 h-1.5 bg-gray-100 rounded-full z-0"></div>
-                    
-                    {/* Active Progress Bar */}
-                    <div className="absolute left-[10%] top-1/2 -translate-y-1/2 h-1.5 bg-[#15803d] rounded-full z-0 transition-all duration-1000 ease-out"
-                      style={{ width: `${trackerProgress}%` }}
-                    ></div>
-
-                    {/* Nodes */}
-                    {[
-                      { step: 1, label: 'Submitted', key: 'pending_payment' },
-                      { step: 2, label: 'Verifying', key: 'pending_payment_verification' },
-                      { step: 3, label: 'Secretary', key: 'pending_secretary' },
-                      { step: 4, label: 'Window 1', key: 'ready_window_1' },
-                      { step: 5, label: 'Released', key: 'completed' }
-                    ].map((node, index) => {
-                      const currentIndex = selectedDoc.current_status === 'pending_payment' ? 0 :
-                                           selectedDoc.current_status === 'pending_payment_verification' ? 1 :
-                                           selectedDoc.current_status === 'pending_secretary' ? 2 :
-                                           selectedDoc.current_status === 'ready_window_1' ? 3 : 4;
-                      
-                      // For 'completed' status, step 5 is active. For 'released', step 5 is completed.
-                      const isReleased = selectedDoc.current_status === 'released';
-                      const isCompleted = index < currentIndex || (index === 4 && isReleased);
-                      const isActive = index === currentIndex && !isReleased;
-
-                      return (
-                        <div key={node.step} className="relative z-10 flex flex-col items-center w-1/5">
-                          {/* Pulsing ring for active step */}
-                          {isActive && (
-                            <span className="absolute top-0 w-8 h-8 bg-blue-400/50 rounded-full animate-ping"></span>
-                          )}
-                          
-                          <div className={`relative z-10 w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs border-2 transition-all duration-500
-                            ${isCompleted ? 'bg-[#15803d] border-[#15803d] text-white scale-110 shadow-md' : 
-                              isActive ? 'bg-blue-600 border-blue-600 text-white scale-125 shadow-[0_0_15px_rgba(37,99,235,0.4)]' : 
-                              'bg-white border-gray-200 text-gray-400 shadow-sm'}`}>
-                            {isCompleted ? (
-                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7"/></svg>
-                            ) : isActive ? (
-                              <svg className="w-4 h-4 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
-                            ) : (
-                              node.step
-                            )}
-                          </div>
-                          
-                          <div className={`absolute -bottom-8 text-[9px] font-black uppercase tracking-wider text-center w-24 
-                            ${isCompleted ? 'text-gray-900' : isActive ? 'text-blue-600' : 'text-gray-400'}`}>
-                            {node.label}
-                            {isActive && <div className="text-[7px] animate-pulse mt-0.5 tracking-widest text-blue-400">In Progress</div>}
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-
-                  {/* Context Panel */}
-                  <div className="mt-12 bg-emerald-50/50 border border-emerald-100 rounded-2xl p-5 text-center">
-                    <p className="text-xs font-semibold text-emerald-800 leading-relaxed">
-                      {selectedDoc.current_status === 'pending_payment' && 'Your document request is saved. Please complete your GCash payment to begin processing.'}
-                      {selectedDoc.current_status === 'pending_payment_verification' && 'Your GCash receipt is currently being verified by the Finance Office.'}
-                      {selectedDoc.current_status === 'pending_secretary' && 'Your payment was verified. The College Secretary is now evaluating your documents.'}
-                      {selectedDoc.current_status === 'ready_window_1' && 'Success! Your document is printed and ready for pickup at Window 1.'}
-                      {(selectedDoc.current_status === 'completed' || selectedDoc.current_status === 'released') && 'This request is complete. The document has been released.'}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="pt-4 border-t border-gray-100 flex justify-center">
-                  <button 
-                    onClick={() => setActiveModal(null)}
-                    className="w-full max-w-xs py-3 border border-gray-200 text-gray-800 rounded-xl text-xs font-bold hover:bg-gray-50 transition-all text-center"
-                  >
-                    Back
-                  </button>
-                </div>
-              </div>
-            </div>
+            <LiveTrackingModal 
+              selectedDoc={selectedDoc}
+              setActiveModal={setActiveModal}
+              trackerProgress={trackerProgress}
+              getStatusLabel={getStatusLabel}
+            />
           )}
         </div>
       )}
@@ -1223,64 +1025,17 @@ export default function DashboardPage() {
           </div>
 
           {/* Finance Receipt Verification Modal */}
+          {/* 2.1 FINANCE VERIFICATION MODAL */}
           {activeModal === 'verify-pay' && selectedDoc && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-              <div className="absolute inset-0 bg-gray-900/60 backdrop-blur-sm" onClick={() => setActiveModal(null)}></div>
-              <div className="bg-white rounded-[2rem] shadow-2xl w-full max-w-xl p-6 sm:p-8 z-10 border border-gray-200 relative">
-                <button className="absolute top-4 right-4 w-8 h-8 rounded-full flex items-center justify-center text-gray-400 hover:bg-gray-100" onClick={() => setActiveModal(null)}>✕</button>
-                
-                <h3 className="text-xl font-black text-gray-900 mb-6">Verification Details</h3>
-                
-                {/* Gray detail panel */}
-                <div className="bg-gray-50 border border-gray-200 rounded-2xl p-5 my-4 font-mono text-[11px] text-gray-600 space-y-2">
-                  <div className="flex justify-between"><span>Name</span><span className="font-bold text-gray-950">{selectedDoc.student_name || 'Unknown'}</span></div>
-                  <div className="flex justify-between"><span>Document Type</span><span className="font-bold text-gray-950">{selectedDoc.document_type}</span></div>
-                  <div className="flex justify-between"><span>Tracking ID</span><span className="font-bold text-gray-950">#{selectedDoc.tracking_number || selectedDoc.id}</span></div>
-                  <div className="flex justify-between"><span>Date Paid</span><span className="font-bold text-gray-950">{new Date(selectedDoc.updated_at).toLocaleDateString('en-US', {month: 'long', day: 'numeric', year: 'numeric'})}</span></div>
-                  <div className="flex justify-between"><span>Copies</span><span className="font-bold text-gray-950">{selectedDoc.copies || 1}</span></div>
-                  <div className="flex justify-between border-t border-gray-200/50 pt-2"><span>Amount</span><span className="font-bold text-gray-950">P{parseFloat(selectedDoc.amount || 150).toFixed(2)}</span></div>
-                </div>
-
-                <div className="space-y-4">
-                  <span className="text-xs font-black text-gray-900 block">Gcash Receipt Screenshot</span>
-                  
-                  {/* Receipt Preview */}
-                  <div className="bg-gray-100 rounded-2xl overflow-hidden border border-gray-200 h-64 relative flex items-center justify-center">
-                    {selectedDoc.receipt_image_path ? (
-                      <a href={`${apiBaseUrl}${selectedDoc.receipt_image_path}`} target="_blank" rel="noreferrer" title="Click to view full size">
-                        <img 
-                          src={`${apiBaseUrl}${selectedDoc.receipt_image_path}`} 
-                          alt="GCash Receipt" 
-                          className="w-full h-full object-contain cursor-zoom-in"
-                        />
-                      </a>
-                    ) : (
-                      <span className="text-xs text-gray-400">No Image Uploaded</span>
-                    )}
-                  </div>
-
-                  <div className="text-center font-bold text-xs text-gray-800 py-2 border-b border-gray-100">
-                    GCash Reference Number: <span className="font-mono text-gray-600 font-bold">{selectedDoc.gcash_reference_no || 'None'}</span>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-4 pt-6">
-                  <button 
-                    onClick={() => setActiveModal(null)}
-                    className="w-1/2 py-3 border border-gray-200 text-gray-800 rounded-xl font-bold hover:bg-gray-50 text-xs transition-all text-center"
-                  >
-                    Return
-                  </button>
-                  <button 
-                    onClick={() => handleFinanceVerify('approve')}
-                    disabled={actionLoading}
-                    className="w-1/2 py-3 bg-[#15803d] hover:bg-[#166534] text-white rounded-xl font-bold text-xs shadow-md transition-all text-center"
-                  >
-                    Verify Payment
-                  </button>
-                </div>
-              </div>
-            </div>
+            <FinanceVerificationModal
+              selectedDoc={selectedDoc}
+              setActiveModal={setActiveModal}
+              getStatusLabel={getStatusLabel}
+              handleFinanceVerify={handleFinanceVerify}
+              actionLoading={actionLoading}
+              setViewImageUrl={setViewImageUrl}
+              apiBaseUrl={apiBaseUrl}
+            />
           )}
         </div>
       )}
@@ -1321,7 +1076,7 @@ export default function DashboardPage() {
                   </div>
                   <div className="bg-emerald-50 border border-emerald-100 rounded-full px-3 py-1 text-[10px] font-bold text-[#15803d] w-fit flex items-center gap-1.5 mt-2">
                     <span className="w-1.5 h-1.5 bg-[#15803d] rounded-full"></span>
-                    Lorem ipsum dolor sit amet, consectetur adipiscing elit.
+                    Documents scanned and routed today
                   </div>
                 </div>
 
@@ -1338,7 +1093,7 @@ export default function DashboardPage() {
                     </svg>
                   </div>
                   <div className="bg-[#15803d] rounded-xl px-4 py-2 text-[10px] font-medium text-white w-full mt-2 leading-snug">
-                    Lorem ipsum dolor sit amet, consectetur adipiscing elit.
+                    Awaiting secretary evaluation and approval
                   </div>
                 </div>
 
@@ -1356,7 +1111,7 @@ export default function DashboardPage() {
                   </div>
                   <div className="bg-emerald-50 border border-emerald-100 rounded-full px-3 py-1 text-[10px] font-bold text-[#15803d] w-fit flex items-center gap-1.5 mt-2">
                     <span className="w-1.5 h-1.5 bg-[#15803d] rounded-full"></span>
-                    Lorem ipsum dolor sit amet, consectetur adipiscing elit.
+                    Documents cleared and ready for student pickup
                   </div>
                 </div>
               </div>
@@ -1783,7 +1538,7 @@ export default function DashboardPage() {
                   </div>
                   <div className="bg-emerald-50 border border-emerald-100 rounded-full px-3 py-1 text-[10px] font-bold text-[#15803d] w-fit flex items-center gap-1.5 mt-2">
                     <span className="w-1.5 h-1.5 bg-[#15803d] rounded-full"></span>
-                    Lorem ipsum dolor sit amet, consectetur adipiscing elit.
+                    Documents evaluated and routed today
                   </div>
                 </div>
 
@@ -1800,7 +1555,7 @@ export default function DashboardPage() {
                     </svg>
                   </div>
                   <div className="bg-[#15803d] rounded-xl px-4 py-2 text-[10px] font-medium text-white w-full mt-2 leading-snug">
-                    Lorem ipsum dolor sit amet, consectetur adipiscing elit.
+                    Documents awaiting your verification review
                   </div>
                 </div>
 
@@ -1818,7 +1573,7 @@ export default function DashboardPage() {
                   </div>
                   <div className="bg-emerald-50 border border-emerald-100 rounded-full px-3 py-1 text-[10px] font-bold text-[#15803d] w-fit flex items-center gap-1.5 mt-2">
                     <span className="w-1.5 h-1.5 bg-[#15803d] rounded-full"></span>
-                    Lorem ipsum dolor sit amet, consectetur adipiscing elit.
+                    Approved and routed to Window 1 for release
                   </div>
                 </div>
               </div>
@@ -1933,142 +1688,23 @@ export default function DashboardPage() {
 
           {/* College Secretary Split-Screen Modal */}
           {activeModal === 'evaluate' && selectedDoc && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6">
-              <div className="absolute inset-0 bg-gray-900/60 backdrop-blur-md" onClick={() => setActiveModal(null)}></div>
-              <div className="bg-white rounded-[2rem] shadow-2xl w-full max-w-7xl h-[85vh] flex flex-col relative z-10 overflow-hidden border border-gray-200">
-                
-                {/* Header */}
-                <div className="flex items-center justify-between px-8 py-5 border-b border-gray-100 bg-white">
-                  <div>
-                    <h2 className="text-xl font-black text-gray-900 leading-tight">AI Data Extraction Review</h2>
-                    <p className="text-xs text-gray-500 mt-0.5">Verify EasyOCR extraction against the original document.</p>
-                  </div>
-                  <button onClick={() => setActiveModal(null)} className="w-8 h-8 rounded-full flex items-center justify-center text-gray-400 hover:bg-gray-100">✕</button>
-                </div>
-
-                {/* Body split screen */}
-                <div className="flex flex-col lg:flex-row flex-1 min-h-0 bg-gray-50/50">
-                  {/* Left: Original document scan preview */}
-                  <div className="lg:w-1/2 p-6 flex flex-col border-r border-gray-200 min-h-0">
-                    <div className="flex justify-between items-center mb-3">
-                      <span className="text-xs font-black text-gray-800">Original Scan</span>
-                      <span className="text-xs font-mono text-gray-500 bg-white border border-gray-200 rounded-xl px-3 py-1 font-semibold shadow-sm shrink-0">
-                        {selectedDoc.original_filename || 'scan_00129.jpg'}
-                      </span>
-                    </div>
-                    <div className="flex-1 bg-gray-200 border border-gray-300 rounded-3xl overflow-hidden relative flex items-center justify-center shadow-inner">
-                      {selectedDoc.file_path ? (
-                        <a href={`${apiBaseUrl}${selectedDoc.file_path}`} target="_blank" rel="noreferrer" title="Click to view full size">
-                          <img 
-                            src={`${apiBaseUrl}${selectedDoc.file_path}`} 
-                            alt="Scanned Document" 
-                            className="w-full h-full object-contain cursor-zoom-in"
-                          />
-                        </a>
-                      ) : (
-                        <div className="text-center p-4">
-                          <span className="text-3xl block mb-2">📄</span>
-                          <span className="text-xs text-gray-400">Scan document file missing</span>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Right: Secretary data form editor */}
-                  <div className="lg:w-1/2 bg-white p-6 md:p-8 flex flex-col justify-between overflow-y-auto min-h-0">
-                    <div className="space-y-6">
-                      {/* Confidence Score Panel */}
-                      <div className="bg-emerald-50 border border-emerald-100 p-4 rounded-2xl flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 bg-emerald-100 text-[#15803d] rounded-xl flex items-center justify-center font-bold">
-                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"/></svg>
-                          </div>
-                          <div>
-                            <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest block">CONFIDENCE SCORE</span>
-                            <span className="text-[10px] font-bold text-gray-400 block mt-0.5">Extraction successful. Please verify</span>
-                          </div>
-                        </div>
-                        <span className="text-2xl font-black text-[#15803d] font-mono">{selectedDoc.ocr_confidence_score ? `${parseFloat(selectedDoc.ocr_confidence_score).toFixed(1)}%` : 'N/A'}</span>
-                      </div>
-
-                      <div className="space-y-4">
-                        <div className="flex flex-col gap-1.5">
-                          <label className="text-xs font-bold text-gray-800 uppercase tracking-wide"># Tracking ID</label>
-                          <input 
-                            type="text" 
-                            disabled 
-                            value={selectedDoc.tracking_number || 'TRC-9011'} 
-                            className="w-full p-3 bg-gray-100 border border-gray-200 rounded-xl text-xs font-semibold text-gray-500 font-mono"
-                          />
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-4">
-                          <div className="flex flex-col gap-1.5">
-                            <label className="text-xs font-bold text-gray-800 uppercase tracking-wide">Student ID</label>
-                            <input 
-                              type="text" 
-                              value={evalStudentId} 
-                              onChange={(e) => setEvalStudentId(e.target.value)}
-                              className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl text-xs font-semibold focus:ring-2 focus:ring-[#15803d]/20 outline-none" 
-                            />
-                          </div>
-                          <div className="flex flex-col gap-1.5">
-                            <label className="text-xs font-bold text-gray-800 uppercase tracking-wide">Document Tye</label>
-                            <select 
-                              value={evalDocType} 
-                              onChange={(e) => setEvalDocType(e.target.value)}
-                              className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl text-xs font-semibold focus:ring-2 focus:ring-[#15803d]/20 outline-none cursor-pointer"
-                            >
-                              <option value="Transcript of Records">Transcript of Records</option>
-                              <option value="Graduation Clearance">Graduation Clearance</option>
-                              <option value="Certificate of Good Moral">Certificate of Good Moral</option>
-                              <option value="Honorable Dismissal">Honorable Dismissal</option>
-                              <option value="Diploma">Diploma</option>
-                            </select>
-                          </div>
-                        </div>
-
-                        <div className="flex flex-col gap-1.5">
-                          <label className="text-xs font-bold text-gray-800 uppercase tracking-wide">Student Name</label>
-                          <input 
-                            type="text" 
-                            value={evalStudentName} 
-                            onChange={(e) => setEvalStudentName(e.target.value)}
-                            className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl text-xs font-semibold focus:ring-2 focus:ring-[#15803d]/20 outline-none" 
-                          />
-                        </div>
-
-                        <div className="flex flex-col gap-1.5">
-                          <label className="text-xs font-bold text-gray-800 uppercase tracking-wide">Secretary Notes</label>
-                          <textarea 
-                            value={clerkNotes}
-                            onChange={(e) => setClerkNotes(e.target.value)}
-                            placeholder="Add any remarks...."
-                            className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl text-xs font-semibold focus:ring-2 focus:ring-[#15803d]/20 outline-none h-24 resize-none"
-                          />
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-4 pt-6 mt-6 border-t border-gray-100 shrink-0">
-                      <button 
-                        onClick={() => setActiveModal(null)}
-                        className="w-1/3 py-3 border border-gray-200 text-gray-800 rounded-xl font-bold hover:bg-gray-50 text-xs transition-all text-center"
-                      >
-                        Cancel
-                      </button>
-                      <button 
-                        onClick={() => handleSecretaryEvaluate('approve')}
-                        disabled={actionLoading}
-                        className="w-2/3 py-3 bg-[#15803d] hover:bg-[#166534] text-white rounded-xl font-bold text-xs shadow-md transition-all text-center"
-                      >
-                        Approve and Route to Window 1
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
+            <SecretaryEvaluationModal
+              selectedDoc={selectedDoc}
+              setActiveModal={setActiveModal}
+              getStatusLabel={getStatusLabel}
+              evalStudentId={evalStudentId}
+              setEvalStudentId={setEvalStudentId}
+              evalStudentName={evalStudentName}
+              setEvalStudentName={setEvalStudentName}
+              evalDocType={evalDocType}
+              setEvalDocType={setEvalDocType}
+              clerkNotes={clerkNotes}
+              setClerkNotes={setClerkNotes}
+              actionLoading={actionLoading}
+              handleSecretaryEvaluate={handleSecretaryEvaluate}
+              apiBaseUrl={apiBaseUrl}
+              setViewImageUrl={setViewImageUrl}
+            />
           )}
         </div>
       )}
@@ -2121,7 +1757,7 @@ export default function DashboardPage() {
                 </svg>
               </div>
               <div className="bg-[#15803d] rounded-xl px-4 py-2 text-[10px] font-medium text-white w-full mt-2 leading-snug">
-                Lorem ipsum dolor sit amet, consectetur adipiscing elit.
+                Average extraction accuracy across all scans
               </div>
             </div>
 
@@ -2360,6 +1996,13 @@ export default function DashboardPage() {
               </div>
             </div>
           )}
+      
+      {/* GLOBAL IMAGE VIEWER MODAL */}
+      <ImageViewerModal
+        viewImageUrl={viewImageUrl}
+        setViewImageUrl={setViewImageUrl}
+        apiBaseUrl={apiBaseUrl}
+      />
 
     </div>
   );

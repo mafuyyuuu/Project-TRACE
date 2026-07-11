@@ -25,6 +25,21 @@ async function migrate() {
       }
     }
 
+    // 2a. Add official_receipt_path column if not exists
+    console.log('Adding official_receipt_path column...');
+    try {
+      await pool.query(`
+        ALTER TABLE documents 
+        ADD COLUMN official_receipt_path VARCHAR(500) NULL AFTER receipt_image_path
+      `);
+    } catch (err) {
+      if (err.code === 'ER_DUP_FIELDNAME') {
+        console.log('-> official_receipt_path already exists.');
+      } else {
+        throw err;
+      }
+    }
+
     // 3. Add gcash_reference_no column if not exists
     console.log('Adding gcash_reference_no column...');
     try {

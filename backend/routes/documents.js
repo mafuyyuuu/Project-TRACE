@@ -666,7 +666,7 @@ router.post('/:id/submit-payment', authenticate, upload.single('receipt'), async
  * POST /:id/verify-payment
  * Allows the Finance Clerk to verify (approve or reject) a student's GCash receipt.
  */
-router.post('/:id/verify-payment', authenticate, async (req, res) => {
+router.post('/:id/verify-payment', authenticate, upload.single('officialReceipt'), async (req, res) => {
   try {
     if (req.user.role !== 'clerk' || req.user.desk_assignment !== 'Finance') {
       return res.status(403).json({ error: 'Only Finance Clerks can verify payments.' });
@@ -674,6 +674,7 @@ router.post('/:id/verify-payment', authenticate, async (req, res) => {
 
     const docId = req.params.id;
     const { action, notes } = req.body; // 'approve' or 'reject'
+    const officialReceiptPath = req.file ? `/uploads/${req.file.filename}` : null;
 
     if (!['approve', 'reject'].includes(action)) {
       return res.status(400).json({ error: 'Invalid action. Must be approve or reject.' });
@@ -692,10 +693,17 @@ router.post('/:id/verify-payment', authenticate, async (req, res) => {
       const newStatus = action === 'approve' ? 'pending_secretary' : 'pending_payment';
       const paymentStatus = action === 'approve' ? 'PAID' : 'UNPAID';
 
-      await connection.query(
-        `UPDATE documents SET current_status = ?, payment_status = ? WHERE id = ?`,
-        [newStatus, paymentStatus, docId]
-      );
+      if (officialReceiptPath) {
+        await connection.query(
+          `UPDATE documents SET current_status = ?, payment_status = ?, official_receipt_path = ? WHERE id = ?`,
+          [newStatus, paymentStatus, officialReceiptPath, docId]
+        );
+      } else {
+        await connection.query(
+          `UPDATE documents SET current_status = ?, payment_status = ? WHERE id = ?`,
+          [newStatus, paymentStatus, docId]
+        );
+      }
 
       // Log step
       await connection.query(

@@ -31,6 +31,7 @@ export function useAuth() {
     if (localStorage.getItem('trace_token')) {
       fetchUser();
     } else {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setLoading(false);
     }
   }, []);
@@ -95,7 +96,7 @@ export function useDocuments(initialLimit = 5) {
       setDocuments(data.documents || []);
       setTotalPages(data.totalPages || 1);
       setTotal(data.total || 0);
-    } catch (err) {
+    } catch {
       setError('Failed to load queue. Please try again later.');
     } finally {
       setLoading(false);
@@ -103,6 +104,7 @@ export function useDocuments(initialLimit = 5) {
   }, [page, initialLimit]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchDocuments(page);
   }, [fetchDocuments, page]);
 
