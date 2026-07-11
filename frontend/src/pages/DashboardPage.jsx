@@ -31,6 +31,8 @@ export default function DashboardPage() {
   const currentTab = searchParams.get('tab') || 'dashboard';
   
   const [documents, setDocuments] = useState([]);
+  const [selectedDocType, setSelectedDocType] = useState('');
+  const [semesters, setSemesters] = useState(8);
   const [dashStats, setDashStats] = useState({ processed_today: 0, cleared_by_secretary_today: 0, avg_processing_minutes: 0, avg_ocr_confidence: 0, backlog_count: 0 });
   const [forecastData, setForecastData] = useState([]);
   const [aiInsights, setAiInsights] = useState([]);
@@ -111,25 +113,42 @@ export default function DashboardPage() {
   // ----------------------------------------------------
   const handleStudentSubmitRequest = async (e) => {
     e.preventDefault();
-    const docType = e.target.docType.value;
-    const file = e.target.docFile.files[0];
+    const docType = selectedDocType;
+    const file = e.target.docFile?.files[0];
     
-    if (!file || !docType) {
-      triggerNotification('Please select a document type and upload a file.', 'error');
+    if (!docType) {
+      triggerNotification('Please select a document type.', 'error');
       return;
     }
+
+    const purpose = e.target.purpose?.value || '';
+    const copies = e.target.copies?.value || 1;
+    const yearGraduated = e.target.yearGraduated?.value || '';
+    const requestingSchool = e.target.requestingSchool?.value || '';
+    const reason = e.target.reason?.value || '';
+
+    // compile a single notes string or extra data
+    const extraData = JSON.stringify({ purpose, yearGraduated, requestingSchool, reason });
     
     try {
       setActionLoading(true);
       const formData = new FormData();
-      formData.append('document', file);
+      if (file) formData.append('document', file);
       formData.append('document_type', docType);
       formData.append('student_id', user.student_id || 'STU-' + Date.now().toString().slice(-6));
       formData.append('student_name', user.full_name);
+      formData.append('purpose', extraData);
+      formData.append('copies', copies);
+      if (docType === 'Transcript of Records' || docType === 'Transcript of Records (TOR)') {
+        formData.append('semesters', semesters);
+      }
 
       const result = await uploadDocument(formData);
       triggerNotification(`Request submitted! Tracking ID: ${result.tracking_number}. Please pay now.`);
       e.target.reset();
+      setSelectedDocType('');
+      setSelectedDoc(result.document);
+      setActiveModal('pay');
       loadDashboardData();
     } catch (err) {
       triggerNotification(err.response?.data?.error || 'Upload failed.', 'error');
@@ -683,9 +702,21 @@ export default function DashboardPage() {
                 <p className="text-xs text-gray-400 mt-1 font-semibold mb-6">Add New Request</p>
 
                 <form onSubmit={handleStudentSubmitRequest} className="space-y-6">
+                  {/* Visually Auto-filled Fields */}
+                  <div className="grid grid-cols-2 gap-4 bg-gray-50/50 p-4 rounded-2xl border border-gray-100">
+                    <div className="flex flex-col gap-1.5">
+                      <label className="text-[9px] font-bold text-gray-500 uppercase tracking-widest">Student Name</label>
+                      <input type="text" value={user?.full_name || ''} disabled className="bg-transparent border-none p-0 text-sm font-bold text-gray-900" />
+                    </div>
+                    <div className="flex flex-col gap-1.5">
+                      <label className="text-[9px] font-bold text-gray-500 uppercase tracking-widest">Student ID</label>
+                      <input type="text" value={user?.student_id || ''} disabled className="bg-transparent border-none p-0 text-sm font-bold text-gray-900" />
+                    </div>
+                  </div>
+
                   <div className="flex flex-col gap-2">
                     <label className="text-[10px] font-bold text-gray-800 uppercase tracking-widest">Document Type</label>
-                    <select name="docType" required className="w-full bg-gray-50 border border-gray-200 rounded-xl p-3.5 text-xs font-semibold focus:ring-2 focus:ring-[#15803d]/20 outline-none cursor-pointer text-gray-800">
+                    <select name="docType" value={selectedDocType} onChange={e => setSelectedDocType(e.target.value)} required className="w-full bg-gray-50 border border-gray-200 rounded-xl p-3.5 text-xs font-semibold focus:ring-2 focus:ring-[#15803d]/20 outline-none cursor-pointer text-gray-800">
                       <option value="" disabled selected>Select Document Type...</option>
                       <option value="Transcript of Records">Transcript of Records (TOR)</option>
                       <option value="Graduation Clearance">Graduation Clearance</option>
@@ -695,24 +726,82 @@ export default function DashboardPage() {
                     </select>
                   </div>
                   
-                  <div className="flex flex-col gap-2">
-                    <div className="border-2 border-dashed border-[#15803d]/40 rounded-2xl p-8 bg-gray-50/50 flex flex-col items-center justify-center gap-3 cursor-pointer hover:bg-emerald-50/10 transition-colors relative">
-                      <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/></svg>
-                      <span className="text-sm font-bold text-gray-800"><span className="text-[#15803d]">Click here</span> to upload or drop files here</span>
-                      <span className="text-[10px] text-gray-400">PDF, JPG up to 5MB</span>
-                      <input type="file" name="docFile" required className="absolute inset-0 opacity-0 cursor-pointer" />
+                  {selectedDocType && (
+                    <div className="bg-gray-50/50 border border-gray-100 rounded-2xl p-4 space-y-4">
+                      {/* Dynamic Form Fields */}
+                      {(selectedDocType === 'Transcript of Records' || selectedDocType === 'Honorable Dismissal') && (
+                        <div className="flex flex-col gap-2">
+                          <label className="text-[10px] font-bold text-gray-800 uppercase tracking-widest">Name of Requesting School/Company</label>
+                          <input type="text" name="requestingSchool" required className="w-full bg-white border border-gray-200 rounded-xl p-3 text-xs focus:ring-2 outline-none" placeholder="e.g. Mapua University" />
+                        </div>
+                      )}
+
+                      {(selectedDocType === 'Transcript of Records' || selectedDocType === 'Transcript of Records (TOR)') && (
+                        <div className="flex flex-col gap-2">
+                          <label className="text-[10px] font-bold text-gray-800 uppercase tracking-widest">How many semesters have you attended?</label>
+                          <input type="number" name="semesters" value={semesters} onChange={e => setSemesters(parseInt(e.target.value) || 0)} min="1" required className="w-full bg-white border border-gray-200 rounded-xl p-3 text-xs focus:ring-2 outline-none" />
+                          <p className="text-[10px] text-gray-400">Note: 4 semesters = 1 page (₱100/page)</p>
+                        </div>
+                      )}
+                      
+                      {(selectedDocType === 'Graduation Clearance' || selectedDocType === 'Diploma') && (
+                        <div className="flex flex-col gap-2">
+                          <label className="text-[10px] font-bold text-gray-800 uppercase tracking-widest">Year Graduated / Last Attended</label>
+                          <input type="text" name="yearGraduated" required className="w-full bg-white border border-gray-200 rounded-xl p-3 text-xs focus:ring-2 outline-none" placeholder="e.g. 2025" />
+                        </div>
+                      )}
+
+                      {(selectedDocType === 'Certificate of Good Moral' || selectedDocType === 'Honorable Dismissal') && (
+                        <div className="flex flex-col gap-2">
+                          <label className="text-[10px] font-bold text-gray-800 uppercase tracking-widest">Reason for Request / Transfer</label>
+                          <input type="text" name="reason" required className="w-full bg-white border border-gray-200 rounded-xl p-3 text-xs focus:ring-2 outline-none" placeholder="e.g. Employment" />
+                        </div>
+                      )}
+
+                      <div className="flex flex-col gap-2">
+                        <label className="text-[10px] font-bold text-gray-800 uppercase tracking-widest">Number of Copies</label>
+                        <input type="number" name="copies" defaultValue="1" min="1" required className="w-full bg-white border border-gray-200 rounded-xl p-3 text-xs focus:ring-2 outline-none" />
+                      </div>
+                      
+                      <div className="flex flex-col gap-2 pt-2">
+                        <label className="text-[10px] font-bold text-gray-800 uppercase tracking-widest">
+                          {selectedDocType === 'Honorable Dismissal' ? 'Required Attachment (Validated Clearance)' : 'Optional Attachment (Clearances, Old ID, etc)'}
+                        </label>
+                        <div className="border-2 border-dashed border-gray-300 rounded-xl p-4 bg-white flex flex-col items-center justify-center gap-2 cursor-pointer hover:bg-gray-50 transition-colors relative">
+                          <span className="text-xs font-bold text-gray-600">
+                            <span className="text-[#15803d]">Click here</span> to upload {selectedDocType === 'Honorable Dismissal' ? 'clearance file' : 'optional files'}
+                          </span>
+                          <input 
+                            type="file" 
+                            name="docFile" 
+                            required={selectedDocType === 'Honorable Dismissal'} 
+                            className="absolute inset-0 opacity-0 cursor-pointer" 
+                          />
+                        </div>
+                      </div>
+                      
+                      <div className="pt-2 border-t border-gray-200 mt-4 flex justify-between items-center">
+                        <span className="text-xs font-bold text-gray-500">Estimated Total:</span>
+                        <span className="text-lg font-black text-[#15803d]">
+                          ₱{(selectedDocType === 'Transcript of Records' || selectedDocType === 'Transcript of Records (TOR)') 
+                            ? (Math.ceil(semesters / 4) * 100).toFixed(2)
+                            : selectedDocType === 'Honorable Dismissal' 
+                              ? '100.00' 
+                              : '50.00'} / copy
+                        </span>
+                      </div>
                     </div>
-                  </div>
+                  )}
 
                   <div className="bg-emerald-50 border border-emerald-100 p-4 rounded-xl text-xs leading-relaxed text-[#15803d] font-bold flex items-center gap-2">
                     <span className="w-2 h-2 bg-[#15803d] rounded-full shrink-0"></span>
-                    Requests take 3-5 days. Tracking updates will be reflected instantly in the table.
+                    Fast checkout: Complete your payment instantly to begin processing.
                   </div>
 
                   <div className="flex justify-end gap-3 pt-2">
                     <button 
                       type="button"
-                      onClick={() => setActiveModal(null)}
+                      onClick={() => { setActiveModal(null); setSelectedDocType(''); }}
                       className="px-6 py-3 border border-gray-200 text-gray-700 rounded-xl text-xs font-bold hover:bg-gray-50"
                     >
                       Cancel
@@ -744,7 +833,7 @@ export default function DashboardPage() {
                   <span className="text-xs font-bold text-gray-800">Scan this QR code using your GCash app to pay.</span>
                   
                   {/* GCash QR Code */}
-                  <img src="/gcash-qr.jpg" alt="GCash QR Code" className="w-40 h-40 rounded-xl shadow-sm object-cover border border-gray-200" />
+                  <img src="/gcash-qr.jpg" alt="GCash QR Code" className="w-50 h-60 rounded-xl shadow-sm object-cover border border-gray-200" />
                 </div>
 
                 <form onSubmit={handleStudentSubmitPayment} className="space-y-6">

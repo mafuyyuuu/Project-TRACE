@@ -26,6 +26,7 @@ const upload = multer({
   storage,
   limits: { fileSize: 10 * 1024 * 1024 }, // 10 MB limit
   fileFilter: (req, file, cb) => {
+    if (!file) return cb(null, true);
     const allowedTypes = /jpeg|jpg|png|gif|pdf|doc|docx/;
     const extMatch = allowedTypes.test(path.extname(file.originalname).toLowerCase());
     const mimeMatch = allowedTypes.test(file.mimetype);
@@ -46,31 +47,44 @@ router.post('/upload', authenticate, upload.single('document'), async (req, res)
   const connection = await pool.getConnection();
 
   try {
-    if (!req.file) {
-      return res.status(400).json({ error: 'No document file uploaded.' });
-    }
-
+  try {
     // Generate unique tracking number
     const trackingNumber = 'TRC-' + crypto.randomBytes(4).toString('hex').toUpperCase();
 
-    const { student_id, student_name, document_type } = req.body;
+    const { student_id, student_name, document_type, purpose, copies, semesters } = req.body;
+    const copiesInt = parseInt(copies) || 1;
+    const semestersInt = parseInt(semesters) || 8;
+    
+    let baseAmount = 50.00;
+    if (document_type === 'Transcript of Records' || document_type === 'Transcript of Records (TOR)') {
+      baseAmount = Math.ceil(semestersInt / 4) * 100.00;
+    } else if (document_type === 'Honorable Dismissal') {
+      baseAmount = 100.00;
+    }
+    const finalAmount = baseAmount * copiesInt;
+
+    const filePath = req.file ? req.file.path : null;
+    const originalFilename = req.file ? req.file.originalname : null;
 
     await connection.beginTransaction();
 
-    // Insert document record
+    // Insert document record - INSTANT CHECKOUT (straight to pending_payment)
     const [docResult] = await connection.query(
       `INSERT INTO documents (tracking_number, student_id, student_name, document_type,
-        current_status, payment_status, assigned_clerk_id, file_path, original_filename, checkout_url)
-       VALUES (?, ?, ?, ?, 'pending_payment', 'UNPAID', ?, ?, ?, ?)`,
+        current_status, payment_status, assigned_clerk_id, file_path, original_filename, checkout_url, purpose, copies, amount)
+       VALUES (?, ?, ?, ?, 'pending_payment', 'UNPAID', ?, ?, ?, ?, ?, ?, ?)`,
       [
         trackingNumber,
         student_id || null,
         student_name || null,
         document_type || null,
         req.user.id,
-        req.file.path,
-        req.file.originalname,
-        `https://pm.link/mock/${trackingNumber}`
+        filePath,
+        originalFilename,
+        `https://pm.link/mock/${trackingNumber}`,
+        purpose || null,
+        copiesInt,
+        finalAmount
       ]
     );
 
@@ -80,7 +94,7 @@ router.post('/upload', authenticate, upload.single('document'), async (req, res)
     await connection.query(
       `INSERT INTO step_logs (document_id, clerk_id, action_taken, from_status, to_status, notes)
        VALUES (?, ?, 'submitted', NULL, 'pending_payment', ?)`,
-      [documentId, req.user.id, `Document uploaded by ${req.user.full_name}, waiting for payment.`]
+      [documentId, req.user.id, `Document requested. Awaiting payment of ₱${finalAmount}.`]
     );
 
     await connection.commit();
@@ -91,56 +105,77 @@ router.post('/upload', authenticate, upload.single('document'), async (req, res)
       [documentId]
     );
 
-    // Await Python OCR engine and process results
-    const aiEngineUrl = process.env.AI_ENGINE_URL || 'http://localhost:5000';
-    try {
-      const fs = require('fs');
-      const FormData = require('form-data');
+    // Await Python OCR engine ONLY if file exists
+    if (filePath) {
+      const aiEngineUrl = process.env.AI_ENGINE_URL || 'http://localhost:5000';
+      try {
+        const fs = require('fs');
+        const FormData = require('form-data');
 
-      const form = new FormData();
-      form.append('file', fs.createReadStream(req.file.path), {
-        filename: req.file.originalname,
-        contentType: req.file.mimetype,
-      });
-      form.append('tracking_number', trackingNumber);
+        const form = new FormData();
+        form.append('file', fs.createReadStream(filePath));
+        form.append('tracking_number', trackingNumber);
 
-      const fetchFn = typeof fetch !== 'undefined' ? fetch : require('node-fetch');
+        const fetchFn = typeof fetch !== 'undefined' ? fetch : require('node-fetch');
+        const ocrRes = await fetchFn(`${aiEngineUrl}/ocr/extract`, {
+          method: 'POST',
+          body: form,
+          headers: form.getHeaders ? form.getHeaders() : {},
+        });
 
-      const ocrRes = await fetchFn(`${aiEngineUrl}/ocr/extract`, {
-        method: 'POST',
-        body: form,
-        headers: form.getHeaders ? form.getHeaders() : {},
-      });
+        if (ocrRes.ok) {
+          const ocrData = await ocrRes.json();
+          console.log(`📄 OCR processing complete for ${trackingNumber}`);
+          
+          if (ocrData.success && ocrData.extracted_data) {
+            const rawText = (ocrData.raw_text || '').toLowerCase();
+            let aiVerified = false;
+            let aiNotes = 'AI analyzed the document but could not definitively verify it.';
+            
+            // Basic AI Requirement Verification Logic
+            if (document_type === 'Honorable Dismissal' && rawText.includes('clearance')) {
+              aiVerified = true;
+              aiNotes = 'AI Verified: Valid Clearance document detected for Honorable Dismissal.';
+            } else if (rawText.includes(document_type.toLowerCase())) {
+              aiVerified = true;
+              aiNotes = `AI Verified: Document content matches requested type (${document_type}).`;
+            }
 
-      if (ocrRes.ok) {
-        const ocrData = await ocrRes.json();
-        console.log(`📄 OCR processing complete for ${trackingNumber}`);
-        
-        // Update document with OCR data
-        if (ocrData.success && ocrData.extracted_data) {
-          await pool.query(
-            `UPDATE documents SET 
-              ocr_raw_text = ?, 
-              ocr_extracted_data = ?, 
-              student_id = COALESCE(?, student_id), 
-              document_type = COALESCE(?, document_type) 
-             WHERE id = ?`,
-            [
-              ocrData.raw_text,
-              JSON.stringify(ocrData.extracted_data),
-              ocrData.extracted_data.student_id,
-              ocrData.extracted_data.form_type,
-              documentId
-            ]
-          );
+            // Calculate mock confidence score if not provided
+            const confidence = ocrData.confidence || (aiVerified ? 92.5 : 45.0);
 
-          // Fetch the updated document
-          const [updatedRows] = await pool.query('SELECT * FROM documents WHERE id = ?', [documentId]);
-          docRows[0] = updatedRows[0];
+            await pool.query(
+              `UPDATE documents SET 
+                ocr_raw_text = ?, 
+                ocr_extracted_data = ?, 
+                ocr_confidence_score = ?,
+                student_id = COALESCE(?, student_id), 
+                document_type = COALESCE(?, document_type) 
+               WHERE id = ?`,
+              [
+                ocrData.raw_text,
+                JSON.stringify(ocrData.extracted_data),
+                confidence,
+                ocrData.extracted_data.student_id,
+                ocrData.extracted_data.form_type,
+                documentId
+              ]
+            );
+
+            // Add an AI verification step log
+            await pool.query(
+              `INSERT INTO step_logs (document_id, clerk_id, action_taken, from_status, to_status, notes)
+               VALUES (?, ?, ?, 'pending_payment', 'pending_payment', ?)`,
+              [documentId, req.user.id, aiVerified ? 'ai_verified' : 'ai_flagged', aiNotes]
+            );
+
+            const [updatedRows] = await pool.query('SELECT * FROM documents WHERE id = ?', [documentId]);
+            docRows[0] = updatedRows[0];
+          }
         }
+      } catch (ocrErr) {
+        console.warn(`⚠️ OCR engine unavailable or failed for ${trackingNumber}:`, ocrErr.message);
       }
-    } catch (ocrErr) {
-      console.warn(`⚠️ OCR engine unavailable or failed for ${trackingNumber}:`, ocrErr.message);
     }
 
     // Trigger n8n webhook for routing
