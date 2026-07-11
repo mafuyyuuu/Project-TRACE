@@ -204,4 +204,13 @@ export async function lookupStudent(studentId) {
   return data
 }
 
+/**
+ * Cancel an unpaid document request (Student).
+ * @param {string} id
+ */
+export async function cancelDocument(id) {
+  const { data } = await api.delete(`/documents/${id}`)
+  return data
+}
+
 export default api

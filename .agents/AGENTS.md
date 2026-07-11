@@ -21,24 +21,30 @@ Project TRACE uses a single unified dashboard route (`/dashboard` mapped to [Das
 5. **Registrar Admin:** Predictive charts (7-day volume forecasts), AI Insights alert dashboard, and the Student Account Manual Verification queue table.
 
 ### 3. Database Schema Modifications
-Run [migration.js](file:///Users/jhervin/project-trace/backend/database/migration.js) to configure the MySQL database with the following active columns on the `documents` table:
-* `receipt_image_path` (VARCHAR(500)) for storing uploaded receipt files.
-* `gcash_reference_no` (VARCHAR(255)) for storing manual GCash reference numbers.
-* `amount` (DECIMAL(10,2)) and `copies` (INT) defaulting to 150.00 and 1.
-* `ocr_confidence_score` (DECIMAL(5,2)) for AI extraction accuracy metrics.
-* `purpose` (VARCHAR(255))
-* `payment_status` (ENUM('UNPAID', 'PAID')) defaulting to `'UNPAID'`.
-* `current_status` (VARCHAR(50)) defaulting to `'pending_payment'`.
-
-Additionally, the `users` table now contains a `course` (VARCHAR(100)) column for students.
+Run [migration.js](file:///Users/jhervin/project-trace/backend/database/migration.js) to configure the MySQL database with the following active columns:
+* `documents` table:
+  - `receipt_image_path` (VARCHAR(500)) for storing uploaded receipt files.
+  - `gcash_reference_no` (VARCHAR(255)) for storing manual GCash reference numbers.
+  - `amount` (DECIMAL(10,2)) and `copies` (INT) defaulting to 150.00 and 1.
+  - `ocr_confidence_score` (DECIMAL(5,2)) for AI extraction accuracy metrics.
+  - `purpose` (VARCHAR(255)) storing dynamic form JSON (reason, year graduated).
+  - `payment_status` (ENUM('UNPAID', 'PAID')) defaulting to `'UNPAID'`.
+  - `current_status` (VARCHAR(50)) defaulting to `'pending_payment'`.
+* `users` table: Added `course` (VARCHAR(100)) and `phone_number` (VARCHAR(20)) for UniSMS routing.
+* `notifications` table: New table linking to `user_id` for the in-app Bell icon alerts.
 
 ---
 
-## 🚀 Recent Progress (Phase 2 Completed)
-* Successfully executed full frontend-to-backend data wiring for the `/dashboard`.
-* Replaced all 61+ hardcoded dummy data points across the 5 command centers with dynamic state variables bound to API endpoints.
-* Implemented new backend API routes: `/stats`, `/stats/forecast`, `/stats/insights`, and `/auth/student/:studentId`.
-* Fully integrated dynamic visual elements (KPI cards, wait times, image previews, AI forecast, and insight alerts).
+## 🚀 Recent Progress (Phase 3 Completed)
+* **Frontend-to-Backend Wiring:** Fully wired `/dashboard` replacing 61+ hardcoded dummy data points with dynamic state variables bound to API endpoints.
+* **In-App Notifications & Settings:** Implemented the Bell Icon dropdown (with unread badge) and the Settings Modal to update `phone_number`. Wired endpoints: `PUT /profile`, `GET /notifications`, `PUT /notifications/read`.
+* **SMS Integration:** Fully implemented UniSMS API directly in `documents.js`. Sends real SMS alerts on document evaluation and payment verification statuses.
+* **Instant Checkout & Dynamic Forms (Capstone Feature):** Overhauled the student "New Request" modal. 
+  - Form now auto-fills Name and ID visually.
+  - Dynamically renders fields based on `document_type` (e.g., asks for "Semesters attended" for TOR).
+  - Auto-calculates prices (e.g., `Math.ceil(semesters / 4) * 100`).
+  - Request routes instantly to `pending_payment` (bypassing Secretary evaluation for fast checkout).
+* **AI Requirement Verification:** The Python EasyOCR engine dynamically cross-references uploaded physical files (like a Validated Clearance) against the requested document type and logs an `ai_verified` or `ai_flagged` state into the `step_logs`. The upload dropzone is dynamically `required` only for specific documents (e.g., Honorable Dismissal).
 
 ---
 
@@ -52,10 +58,9 @@ Additionally, the `users` table now contains a `course` (VARCHAR(100)) column fo
 
 ---
 
-## 📍 Integration Next Steps (Phase 3 & 4)
+## 📍 Integration Next Steps (Phase 4)
 If continuing system development:
 1. **Machine Learning Prep**: Run `ai-engine/mock_data_gen.py` to seed historical log timestamps into the database to immediately train the Prophet forecasting models and Random Forest insights engine.
 2. **Finance QR Code**: Replace the Mock GCash QR SVG in `DashboardPage.jsx` with the actual Finance Department's merchant QR code image, or integrate PayMongo/Xendit.
 3. **Window 1 Scanner Bridge**: Implement WebTWAIN (or a similar web-scanning library) to allow the "Scan" button in `DashboardPage.jsx` to trigger physical hardware scanners.
-4. **SMS Notifications**: Hook up Twilio/SMS API key parameters in `backend/routes/documents.js` to dispatch SMS text alerts to students upon status changes.
-5. **Deployment Prep**: Prepare for staging deployment by compiling the Vite frontend (`npm run build`), containerizing the Flask API, and migrating to a managed MySQL instance.
+4. **Deployment Prep**: Prepare for staging deployment by compiling the Vite frontend (`npm run build`), containerizing the Flask API, and migrating to a managed MySQL instance.

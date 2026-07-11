@@ -47,7 +47,6 @@ router.post('/upload', authenticate, upload.single('document'), async (req, res)
   const connection = await pool.getConnection();
 
   try {
-  try {
     // Generate unique tracking number
     const trackingNumber = 'TRC-' + crypto.randomBytes(4).toString('hex').toUpperCase();
 
@@ -889,6 +888,55 @@ router.post('/:id/release', authenticate, async (req, res) => {
   } catch (err) {
     console.error('Release document error:', err);
     res.status(500).json({ error: 'Failed to release document.' });
+  }
+});
+
+/**
+ * DELETE /:id
+ * Allows a student to cancel an unpaid request.
+ */
+router.delete('/:id', authenticate, async (req, res) => {
+  try {
+    if (req.user.role !== 'student') {
+      return res.status(403).json({ error: 'Only students can cancel requests.' });
+    }
+
+    const docId = req.params.id;
+    const connection = await pool.getConnection();
+
+    try {
+      await connection.beginTransaction();
+
+      const [docs] = await connection.query('SELECT * FROM documents WHERE id = ? FOR UPDATE', [docId]);
+      if (docs.length === 0) {
+        throw new Error('Document not found.');
+      }
+
+      const doc = docs[0];
+      
+      const [u] = await connection.query('SELECT student_id FROM users WHERE id = ?', [req.user.id]);
+      if (!u[0] || doc.student_id !== u[0].student_id) {
+        throw new Error('Unauthorized. You can only cancel your own requests.');
+      }
+
+      if (doc.current_status !== 'pending_payment') {
+        throw new Error('Cannot cancel a request that is already being processed.');
+      }
+
+      await connection.query('DELETE FROM step_logs WHERE document_id = ?', [docId]);
+      await connection.query('DELETE FROM documents WHERE id = ?', [docId]);
+
+      await connection.commit();
+      res.json({ message: 'Request successfully cancelled.' });
+    } catch (err) {
+      await connection.rollback();
+      throw err;
+    } finally {
+      connection.release();
+    }
+  } catch (err) {
+    console.error('Cancel document error:', err);
+    res.status(err.message.includes('Cannot cancel') || err.message.includes('Unauthorized') ? 400 : 500).json({ error: err.message || 'Failed to cancel document.' });
   }
 });
 

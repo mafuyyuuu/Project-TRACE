@@ -13,7 +13,8 @@ import {
   getDashboardStats,
   getForecast,
   getInsights,
-  lookupStudent
+  lookupStudent,
+  cancelDocument
 } from '../services/api';
 
 // Simple helper to format files
@@ -33,7 +34,11 @@ export default function DashboardPage() {
   const [documents, setDocuments] = useState([]);
   const [selectedDocType, setSelectedDocType] = useState('');
   const [semesters, setSemesters] = useState(8);
+  const [reqCopies, setReqCopies] = useState(1);
+  const [requestFile, setRequestFile] = useState(null);
+  const [trackerProgress, setTrackerProgress] = useState(0);
   const [dashStats, setDashStats] = useState({ processed_today: 0, cleared_by_secretary_today: 0, avg_processing_minutes: 0, avg_ocr_confidence: 0, backlog_count: 0 });
+  const [scanProgress, setScanProgress] = useState(0);
   const [forecastData, setForecastData] = useState([]);
   const [aiInsights, setAiInsights] = useState([]);
   const [pendingStudents, setPendingStudents] = useState([]);
@@ -98,6 +103,20 @@ export default function DashboardPage() {
     }
   }, [user]);
 
+  useEffect(() => {
+    if (activeModal === 'tracking' && selectedDoc) {
+      setTrackerProgress(0);
+      const timer = setTimeout(() => {
+        const target = selectedDoc.current_status === 'pending_payment' ? 0 :
+                       selectedDoc.current_status === 'pending_payment_verification' ? 25 :
+                       selectedDoc.current_status === 'pending_secretary' ? 50 :
+                       selectedDoc.current_status === 'ready_window_1' ? 75 : 100;
+        setTrackerProgress(target);
+      }, 50);
+      return () => clearTimeout(timer);
+    }
+  }, [activeModal, selectedDoc]);
+
   const triggerNotification = (msg, type = 'success') => {
     if (type === 'success') {
       setSuccess(msg);
@@ -146,6 +165,7 @@ export default function DashboardPage() {
       const result = await uploadDocument(formData);
       triggerNotification(`Request submitted! Tracking ID: ${result.tracking_number}. Please pay now.`);
       e.target.reset();
+      setRequestFile(null);
       setSelectedDocType('');
       setSelectedDoc(result.document);
       setActiveModal('pay');
@@ -178,6 +198,23 @@ export default function DashboardPage() {
       loadDashboardData();
     } catch (err) {
       triggerNotification(err.response?.data?.error || 'Payment submission failed.', 'error');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleStudentCancelRequest = async (id, isBackAction = false) => {
+    if (!isBackAction && !window.confirm('Are you sure you want to cancel this request? This action cannot be undone.')) return;
+    try {
+      setActionLoading(true);
+      await cancelDocument(id);
+      if (!isBackAction) triggerNotification('Request cancelled successfully.');
+      loadDashboardData();
+      if (isBackAction) {
+        setActiveModal('new-request');
+      }
+    } catch (err) {
+      triggerNotification(err.response?.data?.error || 'Failed to cancel request.', 'error');
     } finally {
       setActionLoading(false);
     }
@@ -231,7 +268,28 @@ export default function DashboardPage() {
   // ----------------------------------------------------
   // WINDOW 1 CLERK ACTIONS
   // ----------------------------------------------------
-  const handleWindow1Release = async (docId) => {
+  
+  const simulateHardwareScan = (file) => {
+    setScanFile(file);
+    setScanDocType('Transcript of Records');
+    setActiveModal('hardware-scanner');
+    setScanProgress(0);
+    
+    // Simulate hardware connection and scanning delay
+    let progress = 0;
+    const interval = setInterval(() => {
+      progress += 5;
+      setScanProgress(progress);
+      if (progress >= 100) {
+        clearInterval(interval);
+        setTimeout(() => {
+          setActiveModal('scan-confirm');
+        }, 500);
+      }
+    }, 100);
+  };
+
+  const handleWindow1ScanSubmit = async (docId) => {
     try {
       setActionLoading(true);
       await releaseDocument(docId);
@@ -352,14 +410,30 @@ export default function DashboardPage() {
 
   const getStatusLabel = (status) => {
     switch (status) {
-      case 'pending_payment': return 'Pending Payment';
-      case 'pending_payment_verification': return 'Payment Verifying';
-      case 'pending_secretary': return 'Under Secretary Evaluation';
-      case 'ready_window_1': return 'Ready for Pick-up (Window 1)';
-      case 'completed': return 'Released / Completed';
-      case 'rejected': return 'Rejected';
+      case 'pending_payment': return 'Awaiting Payment';
+      case 'pending_payment_verification': return 'Verifying Payment';
+      case 'pending_secretary': return 'Secretary Evaluation';
+      case 'ready_window_1': return 'Ready for Release';
+      case 'completed': return 'Completed';
+      case 'released': return 'Completed';
       default: return status;
     }
+  };
+
+  const requiresAttachment = (type) => ['Honorable Dismissal', 'Graduation Clearance', 'Certificate of Good Moral'].includes(type);
+  
+  const getAttachmentLabel = (type) => {
+    if (type === 'Honorable Dismissal') return 'Required Attachment (Validated Clearance)';
+    if (type === 'Graduation Clearance') return 'Required Attachment (Signed Routing Form)';
+    if (type === 'Certificate of Good Moral') return 'Required Attachment (Valid Student ID)';
+    return 'Optional Attachment (Clearances, Old ID, etc)';
+  };
+  
+  const getAttachmentHelper = (type) => {
+    if (type === 'Honorable Dismissal') return 'clearance file';
+    if (type === 'Graduation Clearance') return 'signed clearance form';
+    if (type === 'Certificate of Good Moral') return 'student ID photo';
+    return 'optional files';
   };
 
   const todayFormatted = new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
@@ -545,19 +619,30 @@ export default function DashboardPage() {
                             <td className="py-4 text-right pr-4 relative">
                               <div className="flex justify-end gap-2">
                                 {doc.current_status === 'pending_payment' ? (
-                                  <button 
-                                    onClick={() => { setSelectedDoc(doc); setActiveModal('pay'); }}
-                                    className="px-4 py-1.5 bg-[#15803d] text-white rounded-xl text-xs font-bold hover:bg-[#166534] transition-all shadow-sm"
-                                  >
-                                    Pay GCash
-                                  </button>
+                                  <>
+                                    <button 
+                                      onClick={() => { setSelectedDoc(doc); setActiveModal('pay'); }}
+                                      className="px-4 py-1.5 bg-[#15803d] text-white rounded-xl text-xs font-bold hover:bg-[#166534] transition-all shadow-sm flex items-center gap-1.5"
+                                    >
+                                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                      Pay GCash
+                                    </button>
+                                    <button 
+                                      onClick={() => handleStudentCancelRequest(doc.id)}
+                                      className="px-4 py-1.5 bg-red-50 text-red-600 rounded-xl text-xs font-bold hover:bg-red-100 transition-all border border-red-200 flex items-center gap-1.5"
+                                    >
+                                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M6 18L18 6M6 6l12 12"/></svg>
+                                      Cancel
+                                    </button>
+                                  </>
                                 ) : (
                                   <button 
                                     onClick={() => { setSelectedDoc(doc); setActiveModal('tracking'); }}
-                                    className="p-1.5 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100 transition-colors"
-                                    title="Track Details"
+                                    className="px-4 py-1.5 bg-blue-50 text-blue-600 rounded-xl text-xs font-bold hover:bg-blue-100 transition-all border border-blue-200 flex items-center gap-1.5"
+                                    title="Track Document"
                                   >
-                                    ●●●
+                                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"/></svg>
+                                    Live Track
                                   </button>
                                 )}
                               </div>
@@ -760,21 +845,29 @@ export default function DashboardPage() {
 
                       <div className="flex flex-col gap-2">
                         <label className="text-[10px] font-bold text-gray-800 uppercase tracking-widest">Number of Copies</label>
-                        <input type="number" name="copies" defaultValue="1" min="1" required className="w-full bg-white border border-gray-200 rounded-xl p-3 text-xs focus:ring-2 outline-none" />
+                        <input type="number" name="copies" value={reqCopies} onChange={e => setReqCopies(parseInt(e.target.value) || 1)} min="1" required className="w-full bg-white border border-gray-200 rounded-xl p-3 text-xs focus:ring-2 outline-none" />
                       </div>
                       
                       <div className="flex flex-col gap-2 pt-2">
                         <label className="text-[10px] font-bold text-gray-800 uppercase tracking-widest">
-                          {selectedDocType === 'Honorable Dismissal' ? 'Required Attachment (Validated Clearance)' : 'Optional Attachment (Clearances, Old ID, etc)'}
+                          {getAttachmentLabel(selectedDocType)}
                         </label>
                         <div className="border-2 border-dashed border-gray-300 rounded-xl p-4 bg-white flex flex-col items-center justify-center gap-2 cursor-pointer hover:bg-gray-50 transition-colors relative">
-                          <span className="text-xs font-bold text-gray-600">
-                            <span className="text-[#15803d]">Click here</span> to upload {selectedDocType === 'Honorable Dismissal' ? 'clearance file' : 'optional files'}
-                          </span>
+                          {requestFile ? (
+                            <span className="text-xs font-bold text-indigo-600 flex items-center gap-2">
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                              {requestFile.name}
+                            </span>
+                          ) : (
+                            <span className="text-xs font-bold text-gray-600">
+                              <span className="text-[#15803d]">Click here</span> to upload {getAttachmentHelper(selectedDocType)}
+                            </span>
+                          )}
                           <input 
                             type="file" 
                             name="docFile" 
-                            required={selectedDocType === 'Honorable Dismissal'} 
+                            onChange={(e) => setRequestFile(e.target.files[0])}
+                            required={requiresAttachment(selectedDocType)} 
                             className="absolute inset-0 opacity-0 cursor-pointer" 
                           />
                         </div>
@@ -783,11 +876,11 @@ export default function DashboardPage() {
                       <div className="pt-2 border-t border-gray-200 mt-4 flex justify-between items-center">
                         <span className="text-xs font-bold text-gray-500">Estimated Total:</span>
                         <span className="text-lg font-black text-[#15803d]">
-                          ₱{(selectedDocType === 'Transcript of Records' || selectedDocType === 'Transcript of Records (TOR)') 
-                            ? (Math.ceil(semesters / 4) * 100).toFixed(2)
+                          ₱{((selectedDocType === 'Transcript of Records' || selectedDocType === 'Transcript of Records (TOR)') 
+                            ? (Math.ceil(semesters / 4) * 100)
                             : selectedDocType === 'Honorable Dismissal' 
-                              ? '100.00' 
-                              : '50.00'} / copy
+                              ? 100.00 
+                              : 50.00) * reqCopies}.00
                         </span>
                       </div>
                     </div>
@@ -824,10 +917,20 @@ export default function DashboardPage() {
             <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
               <div className="absolute inset-0 bg-gray-900/60 backdrop-blur-md" onClick={() => setActiveModal(null)}></div>
               <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg p-6 sm:p-8 z-10 border border-gray-100 relative">
-                <button className="absolute top-4 right-4 w-8 h-8 rounded-full flex items-center justify-center text-gray-400 hover:bg-gray-100" onClick={() => setActiveModal(null)}>✕</button>
                 
-                <h3 className="text-xl font-black text-gray-900">Complete your Payment</h3>
-                <p className="text-xs text-gray-400 mt-1 font-semibold mb-6">Add Payment</p>
+                <button 
+                  onClick={() => handleStudentCancelRequest(selectedDoc.id, true)}
+                  className="absolute top-4 left-4 px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-xl text-[10px] font-bold transition-all flex items-center gap-1"
+                >
+                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
+                  Back to Form
+                </button>
+                <button className="absolute top-4 right-4 w-8 h-8 rounded-full flex items-center justify-center text-gray-400 hover:bg-gray-100" onClick={() => setActiveModal(null)}>✕</button>
+
+                <div className="mt-8 mb-6 text-center">
+                  <h3 className="text-xl font-black text-gray-900">Complete your Payment</h3>
+                  <p className="text-xs text-gray-400 mt-1 font-semibold">Add Payment</p>
+                </div>
                 
                 <div className="border-2 border-dashed border-[#15803d]/40 bg-gray-50/50 p-6 rounded-2xl flex flex-col items-center gap-4 mb-6">
                   <span className="text-xs font-bold text-gray-800">Scan this QR code using your GCash app to pay.</span>
@@ -855,6 +958,21 @@ export default function DashboardPage() {
                         value={`TRC - ${selectedDoc.tracking_number ? selectedDoc.tracking_number.slice(0, 6).toUpperCase() : selectedDoc.id}`} 
                         className="p-3 bg-gray-100 border border-gray-200 rounded-xl text-xs font-semibold text-gray-500"
                       />
+                    </div>
+                  </div>
+
+                  <div className="bg-emerald-50 border border-emerald-100 rounded-xl p-4 flex flex-col gap-2">
+                    <div className="flex justify-between items-center text-xs text-emerald-800">
+                      <span className="font-medium">Amount per copy</span>
+                      <span className="font-bold">₱{(selectedDoc.amount / selectedDoc.copies).toFixed(2)}</span>
+                    </div>
+                    <div className="flex justify-between items-center text-xs text-emerald-800">
+                      <span className="font-medium">Number of copies</span>
+                      <span className="font-bold">x {selectedDoc.copies}</span>
+                    </div>
+                    <div className="pt-2 border-t border-emerald-200 flex justify-between items-center text-sm text-emerald-900 mt-1">
+                      <span className="font-bold">Total Amount Due</span>
+                      <span className="font-black text-lg">₱{selectedDoc.amount}</span>
                     </div>
                   </div>
 
@@ -950,50 +1068,75 @@ export default function DashboardPage() {
                   <div className="flex justify-between border-t border-gray-200/50 pt-2"><span>Amount</span><span className="font-bold text-gray-950">P{parseFloat(selectedDoc.amount || 150).toFixed(2)}</span></div>
                 </div>
 
-                {/* Timeline */}
-                <div className="flex-1 overflow-y-auto px-6 py-2 flex flex-col justify-center">
-                  <div className="relative border-l-2 border-dashed border-[#15803d]/40 pl-8 space-y-6">
-                    {/* Released */}
-                    {(selectedDoc.current_status === 'completed' || selectedDoc.current_status === 'released') && (
-                      <div className="relative">
-                        <span className="absolute -left-12 top-0.5 w-8 h-8 rounded-full bg-[#15803d] text-white flex items-center justify-center shadow-sm">
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M5 13l4 4L19 7"/></svg>
-                        </span>
-                        <div className="text-xs font-black text-gray-900">Released</div>
-                        <div className="text-[10px] text-gray-400 mt-0.5">{new Date(selectedDoc.updated_at).toLocaleDateString()} • {new Date(selectedDoc.updated_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</div>
-                      </div>
-                    )}
+                {/* Horizontal Map Visualizer */}
+                <div className="flex-1 px-2 py-4 flex flex-col justify-center w-full">
+                  
+                  <div className="relative w-full flex items-center justify-between mb-8">
+                    {/* Background Progress Bar */}
+                    <div className="absolute left-[10%] right-[10%] top-1/2 -translate-y-1/2 h-1.5 bg-gray-100 rounded-full z-0"></div>
+                    
+                    {/* Active Progress Bar */}
+                    <div className="absolute left-[10%] top-1/2 -translate-y-1/2 h-1.5 bg-[#15803d] rounded-full z-0 transition-all duration-1000 ease-out"
+                      style={{ width: `${trackerProgress}%` }}
+                    ></div>
 
-                    {/* Secretary Evaluation */}
-                    {['pending_secretary', 'ready_window_1', 'completed', 'released'].includes(selectedDoc.current_status) && (
-                      <div className="relative">
-                        <span className="absolute -left-12 top-0.5 w-8 h-8 rounded-full bg-[#15803d] text-white flex items-center justify-center shadow-sm">
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 17a2 2 0 11-4 0 2 2 0 014 0zM19 17a2 2 0 11-4 0 2 2 0 014 0z"/><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10M21 16V10a2 2 0 00-2-2h-3V5M16 8h4"/></svg>
-                        </span>
-                        <div className="text-xs font-black text-gray-900">Routed to College Secretary</div>
-                        <div className="text-[10px] text-gray-400 mt-0.5">{new Date(selectedDoc.updated_at).toLocaleDateString()} • {new Date(selectedDoc.updated_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</div>
-                      </div>
-                    )}
+                    {/* Nodes */}
+                    {[
+                      { step: 1, label: 'Submitted', key: 'pending_payment' },
+                      { step: 2, label: 'Verifying', key: 'pending_payment_verification' },
+                      { step: 3, label: 'Secretary', key: 'pending_secretary' },
+                      { step: 4, label: 'Window 1', key: 'ready_window_1' },
+                      { step: 5, label: 'Released', key: 'completed' }
+                    ].map((node, index) => {
+                      const currentIndex = selectedDoc.current_status === 'pending_payment' ? 0 :
+                                           selectedDoc.current_status === 'pending_payment_verification' ? 1 :
+                                           selectedDoc.current_status === 'pending_secretary' ? 2 :
+                                           selectedDoc.current_status === 'ready_window_1' ? 3 : 4;
+                      
+                      // For 'completed' status, step 5 is active. For 'released', step 5 is completed.
+                      const isReleased = selectedDoc.current_status === 'released';
+                      const isCompleted = index < currentIndex || (index === 4 && isReleased);
+                      const isActive = index === currentIndex && !isReleased;
 
-                    {/* Payment Cleared */}
-                    {['pending_payment_verification', 'pending_secretary', 'ready_window_1', 'completed', 'released'].includes(selectedDoc.current_status) && (
-                      <div className="relative">
-                        <span className="absolute -left-12 top-0.5 w-8 h-8 rounded-full bg-[#15803d] text-white flex items-center justify-center shadow-sm">
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M5 13l4 4L19 7"/></svg>
-                        </span>
-                        <div className="text-xs font-black text-gray-900">Payment Cleared - GCash</div>
-                        <div className="text-[10px] text-gray-400 mt-0.5">{new Date(selectedDoc.updated_at).toLocaleDateString()} • {new Date(selectedDoc.updated_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</div>
-                      </div>
-                    )}
+                      return (
+                        <div key={node.step} className="relative z-10 flex flex-col items-center w-1/5">
+                          {/* Pulsing ring for active step */}
+                          {isActive && (
+                            <span className="absolute top-0 w-8 h-8 bg-blue-400/50 rounded-full animate-ping"></span>
+                          )}
+                          
+                          <div className={`relative z-10 w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs border-2 transition-all duration-500
+                            ${isCompleted ? 'bg-[#15803d] border-[#15803d] text-white scale-110 shadow-md' : 
+                              isActive ? 'bg-blue-600 border-blue-600 text-white scale-125 shadow-[0_0_15px_rgba(37,99,235,0.4)]' : 
+                              'bg-white border-gray-200 text-gray-400 shadow-sm'}`}>
+                            {isCompleted ? (
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7"/></svg>
+                            ) : isActive ? (
+                              <svg className="w-4 h-4 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+                            ) : (
+                              node.step
+                            )}
+                          </div>
+                          
+                          <div className={`absolute -bottom-8 text-[9px] font-black uppercase tracking-wider text-center w-24 
+                            ${isCompleted ? 'text-gray-900' : isActive ? 'text-blue-600' : 'text-gray-400'}`}>
+                            {node.label}
+                            {isActive && <div className="text-[7px] animate-pulse mt-0.5 tracking-widest text-blue-400">In Progress</div>}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
 
-                    {/* Request Submitted */}
-                    <div className="relative">
-                      <span className="absolute -left-12 top-0.5 w-8 h-8 rounded-full bg-[#15803d] text-white flex items-center justify-center shadow-sm">
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M5 13l4 4L19 7"/></svg>
-                      </span>
-                      <div className="text-xs font-black text-gray-900">Request Submitted</div>
-                      <div className="text-[10px] text-gray-400 mt-0.5">{new Date(selectedDoc.created_at).toLocaleDateString()} • {new Date(selectedDoc.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</div>
-                    </div>
+                  {/* Context Panel */}
+                  <div className="mt-12 bg-emerald-50/50 border border-emerald-100 rounded-2xl p-5 text-center">
+                    <p className="text-xs font-semibold text-emerald-800 leading-relaxed">
+                      {selectedDoc.current_status === 'pending_payment' && 'Your document request is saved. Please complete your GCash payment to begin processing.'}
+                      {selectedDoc.current_status === 'pending_payment_verification' && 'Your GCash receipt is currently being verified by the Finance Office.'}
+                      {selectedDoc.current_status === 'pending_secretary' && 'Your payment was verified. The College Secretary is now evaluating your documents.'}
+                      {selectedDoc.current_status === 'ready_window_1' && 'Success! Your document is printed and ready for pickup at Window 1.'}
+                      {(selectedDoc.current_status === 'completed' || selectedDoc.current_status === 'released') && 'This request is complete. The document has been released.'}
+                    </p>
                   </div>
                 </div>
 
@@ -1067,7 +1210,8 @@ export default function DashboardPage() {
                             onClick={() => { setSelectedDoc(doc); setActiveModal('verify-pay'); }}
                             className="px-4 py-2 bg-[#15803d] hover:bg-[#166534] text-white rounded-xl text-xs font-bold shadow-sm transition-all flex items-center gap-1.5 ml-auto"
                           >
-                            <span>👁</span> Review
+                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                            Review
                           </button>
                         </td>
                       </tr>
@@ -1227,35 +1371,28 @@ export default function DashboardPage() {
                   
                   <div className="flex-1 mt-6 border-2 border-dashed border-[#15803d]/40 rounded-3xl p-8 bg-gray-50/50 flex flex-col items-center justify-center relative">
                     <span className="text-xs font-bold text-gray-900 mb-6 flex items-center gap-1">
-                      <span className="hidden sm:inline"><span className="text-[#15803d]">Click to</span> Upload Document</span>
-                      <span className="sm:hidden"><span className="text-[#15803d]">Tap to</span> Scan Document</span>
+                      <span className="text-blue-600">Hardware Scanner Ready</span>
                     </span>
                     
                     <div className="flex items-center justify-center w-full">
-                      {/* Desktop: Upload Button */}
+                      {/* Desktop: Scan Button */}
                       <button 
                         onClick={() => fileInputRef.current?.click()} 
-                        className="hidden sm:flex flex-col items-center gap-2 group focus:outline-none"
+                        className="flex flex-col items-center gap-3 group focus:outline-none"
                       >
-                        <div className="w-16 h-16 bg-[#15803d] text-white rounded-2xl flex items-center justify-center shadow-md hover:bg-[#166534] transition-all transform hover:-translate-y-1">
-                          <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+                        <div className="w-20 h-20 bg-blue-600 text-white rounded-3xl flex items-center justify-center shadow-lg hover:bg-blue-700 transition-all transform group-hover:scale-105 border-4 border-blue-200">
+                          <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v1m6 11h2m-6 0h-8v4h8v-4zM6 16H4m16-4V7a2 2 0 00-2-2H6a2 2 0 00-2 2v5h16z"/>
+                          </svg>
                         </div>
-                        <span className="text-xs font-bold text-[#15803d]">Upload Document</span>
-                      </button>
-
-                      {/* Mobile: Scan Button */}
-                      <button 
-                        onClick={() => document.getElementById('mobile-camera-input')?.click()} 
-                        className="flex sm:hidden flex-col items-center gap-2 group focus:outline-none"
-                      >
-                        <div className="w-16 h-16 bg-[#15803d] text-white rounded-2xl flex items-center justify-center shadow-md hover:bg-[#166534] transition-all transform hover:-translate-y-1">
-                          <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                        <div className="text-center">
+                          <span className="text-sm font-black text-gray-900 block">ACTIVATE SCANNER</span>
+                          <span className="text-[10px] text-gray-500 font-bold uppercase tracking-widest">EPSON-L3110 Connected</span>
                         </div>
-                        <span className="text-xs font-bold text-[#15803d]">Scan Document</span>
                       </button>
                     </div>
 
-                    <span className="text-[10px] text-gray-400 mt-6 absolute bottom-4">System will automatically route to College Secretary</span>
+                    <span className="text-[10px] text-gray-400 mt-6 absolute bottom-4">System will automatically route scanned document to AI Engine</span>
                     <input 
                       type="file" 
                       accept="image/*"
@@ -1263,9 +1400,7 @@ export default function DashboardPage() {
                       id="mobile-camera-input"
                       onChange={(e) => {
                         if (e.target.files?.[0]) {
-                          setScanFile(e.target.files[0]);
-                          setScanDocType('Transcript of Records');
-                          setActiveModal('scan-confirm');
+                          simulateHardwareScan(e.target.files[0]);
                         }
                       }}
                       className="hidden"
@@ -1275,9 +1410,7 @@ export default function DashboardPage() {
                       ref={fileInputRef}
                       onChange={(e) => {
                         if (e.target.files?.[0]) {
-                          setScanFile(e.target.files[0]);
-                          setScanDocType('Transcript of Records');
-                          setActiveModal('scan-confirm');
+                          simulateHardwareScan(e.target.files[0]);
                         }
                       }}
                       className="hidden"
@@ -1362,8 +1495,9 @@ export default function DashboardPage() {
                               <button 
                                 onClick={() => handleWindow1Release(doc.id)}
                                 disabled={actionLoading}
-                                className="px-5 py-2.5 bg-[#15803d] hover:bg-[#166534] text-white text-xs font-bold rounded-xl shadow-sm transition-all"
+                                className="px-5 py-2.5 bg-[#15803d] hover:bg-[#166534] text-white text-xs font-bold rounded-xl shadow-sm transition-all flex items-center gap-1.5 ml-auto"
                               >
+                                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M5 13l4 4L19 7"/></svg>
                                 Release Doc
                               </button>
                             </td>
@@ -1731,7 +1865,8 @@ export default function DashboardPage() {
                                 }}
                                 className="px-4 py-2 bg-[#15803d] hover:bg-[#166534] text-white rounded-xl text-xs font-bold shadow-sm transition-all flex items-center gap-1.5 ml-auto"
                               >
-                                <span>👁</span> Review
+                                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                Review
                               </button>
                             </td>
                           </tr>
@@ -2157,15 +2292,17 @@ export default function DashboardPage() {
                           <button 
                             onClick={() => handleAdminVerifyStudent(student.id, 'reject')}
                             disabled={actionLoading}
-                            className="px-3 py-1.5 bg-white border border-red-200 text-red-500 rounded-lg text-xs font-bold hover:bg-red-50"
+                            className="px-3 py-1.5 bg-white border border-red-200 text-red-500 rounded-xl text-xs font-bold hover:bg-red-50 flex items-center gap-1.5"
                           >
+                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M6 18L18 6M6 6l12 12"/></svg>
                             Reject
                           </button>
                           <button 
                             onClick={() => handleAdminVerifyStudent(student.id, 'verify')}
                             disabled={actionLoading}
-                            className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold shadow-sm"
+                            className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-sm flex items-center gap-1.5"
                           >
+                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                             Verify Student
                           </button>
                         </td>
@@ -2178,6 +2315,52 @@ export default function DashboardPage() {
           </div>
         </div>
       )}
+
+      {/* HARDWARE SCANNER SIMULATION MODAL */}
+          {activeModal === 'hardware-scanner' && scanFile && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+              <div className="absolute inset-0 bg-gray-900/90 backdrop-blur-sm"></div>
+              <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg p-8 z-10 border border-gray-100 flex flex-col items-center">
+                <div className="animate-pulse mb-6 flex flex-col items-center">
+                  <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mb-4">
+                    <svg className="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v1m6 11h2m-6 0h-8v4h8v-4zM6 16H4m16-4V7a2 2 0 00-2-2H6a2 2 0 00-2 2v5h16z" />
+                    </svg>
+                  </div>
+                  <h3 className="text-xl font-black text-gray-900 text-center">
+                    {scanProgress < 20 ? 'Initializing Scanner...' : scanProgress < 100 ? 'Scanning Document...' : 'Processing...'}
+                  </h3>
+                  <p className="text-sm text-blue-600 mt-2 font-bold">EPSON-L3110 USB Interface</p>
+                </div>
+
+                <div className="w-full relative h-48 bg-gray-100 rounded-xl overflow-hidden border-2 border-dashed border-blue-300">
+                  {scanFile && <img src={URL.createObjectURL(scanFile)} alt="Preview" className="w-full h-full object-contain opacity-50 grayscale" />}
+                  
+                  {/* Laser effect */}
+                  <div 
+                    className="absolute left-0 w-full h-1 bg-blue-500 shadow-[0_0_20px_10px_rgba(59,130,246,0.6)]" 
+                    style={{ 
+                      top: `${scanProgress}%`, 
+                      transition: 'top 0.1s linear',
+                      display: scanProgress >= 100 ? 'none' : 'block'
+                    }}
+                  ></div>
+                </div>
+
+                <div className="w-full mt-8 bg-gray-100 rounded-full h-3">
+                  <div 
+                    className="bg-blue-600 h-3 rounded-full" 
+                    style={{ width: `${scanProgress}%`, transition: 'width 0.1s linear' }}
+                  ></div>
+                </div>
+                
+                <p className="text-[10px] text-gray-400 mt-4 uppercase tracking-widest font-bold">
+                  Extracting text via EasyOCR PyTorch Engine...
+                </p>
+              </div>
+            </div>
+          )}
+
     </div>
   );
 }
