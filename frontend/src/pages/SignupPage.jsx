@@ -4,7 +4,7 @@ import { useAuth } from '../utils/hooks'
 
 export default function SignupPage() {
   const { register, loading } = useAuth()
-  const [formData, setFormData] = useState({ employeeId: '', fullName: '', email: '', password: '', userType: 'student' })
+  const [formData, setFormData] = useState({ employeeId: '', fullName: '', email: '', phoneNumber: '', password: '', confirmPassword: '', userType: 'student' })
   const [file, setFile] = useState(null)
   const [localError, setLocalError] = useState('')
   const [success, setSuccess] = useState('')
@@ -14,8 +14,12 @@ export default function SignupPage() {
     e.preventDefault()
     setLocalError('')
     setSuccess('')
-    if (!formData.employeeId.trim() || !formData.fullName.trim() || !formData.password.trim()) {
+    if (!formData.employeeId.trim() || !formData.fullName.trim() || !formData.password.trim() || !formData.phoneNumber.trim()) {
       setLocalError('Please fill out all required fields.')
+      return
+    }
+    if (formData.password !== formData.confirmPassword) {
+      setLocalError('Passwords do not match.')
       return
     }
     if (!file) {
@@ -28,6 +32,7 @@ export default function SignupPage() {
       form.append('employee_id', formData.employeeId.trim());
       form.append('full_name', formData.fullName.trim());
       form.append('email', formData.email.trim());
+      form.append('phone_number', formData.phoneNumber.trim());
       form.append('password', formData.password);
       form.append('user_type', formData.userType);
       form.append('id_proof', file);
@@ -85,8 +90,18 @@ export default function SignupPage() {
             </div>
 
             <div className="flex flex-col gap-1.5">
+              <label className="text-sm font-semibold text-gray-800 ml-1">Phone Number *</label>
+              <input type="tel" placeholder="09123456789" value={formData.phoneNumber} onChange={(e) => setFormData({...formData, phoneNumber: e.target.value})} className="w-full p-3.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-pine-500 focus:bg-white outline-none transition-all" />
+            </div>
+
+            <div className="flex flex-col gap-1.5">
               <label className="text-sm font-semibold text-gray-800 ml-1">Password *</label>
               <input type="password" placeholder="Create a password" value={formData.password} onChange={(e) => setFormData({...formData, password: e.target.value})} className="w-full p-3.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-pine-500 focus:bg-white outline-none transition-all" />
+            </div>
+
+            <div className="flex flex-col gap-1.5">
+              <label className="text-sm font-semibold text-gray-800 ml-1">Confirm Password *</label>
+              <input type="password" placeholder="Confirm your password" value={formData.confirmPassword} onChange={(e) => setFormData({...formData, confirmPassword: e.target.value})} className="w-full p-3.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-pine-500 focus:bg-white outline-none transition-all" />
             </div>
 
             <div className="flex flex-col gap-1.5">

@@ -115,9 +115,9 @@ router.get('/me', authenticate, async (req, res) => {
  */
 router.post('/register', upload.single('id_proof'), async (req, res) => {
   try {
-    const { employee_id, full_name, email, password, user_type } = req.body;
-    if (!employee_id || !full_name || !password) {
-      return res.status(400).json({ error: 'Student ID, Name, and Password are required.' });
+    const { employee_id, full_name, email, phone_number, password, user_type } = req.body;
+    if (!employee_id || !full_name || !password || !phone_number) {
+      return res.status(400).json({ error: 'Student ID, Name, Phone Number, and Password are required.' });
     }
 
     if (!req.file) {
@@ -172,9 +172,9 @@ router.post('/register', upload.single('id_proof'), async (req, res) => {
     }
 
     await pool.query(
-      `INSERT INTO users (student_id, full_name, email, password_hash, role, user_type, id_proof_path, verification_status)
-       VALUES (?, ?, ?, ?, 'student', ?, ?, ?)`,
-      [employee_id, full_name, email || null, password_hash, user_type || 'student', id_proof_path, verification_status]
+      `INSERT INTO users (student_id, full_name, email, phone_number, password_hash, role, user_type, id_proof_path, verification_status)
+       VALUES (?, ?, ?, ?, ?, 'student', ?, ?, ?)`,
+      [employee_id, full_name, email || null, phone_number, password_hash, user_type || 'student', id_proof_path, verification_status]
     );
 
     if (verification_status === 'verified') {
@@ -292,7 +292,7 @@ router.get('/student/:studentId', authenticate, async (req, res) => {
  */
 router.put('/profile', authenticate, async (req, res) => {
   try {
-    const { phone_number, course, password } = req.body;
+    const { phone_number, email, course, password } = req.body;
     
     let queryParams = [];
     let setClause = [];
@@ -300,6 +300,10 @@ router.put('/profile', authenticate, async (req, res) => {
     if (phone_number !== undefined) {
       setClause.push('phone_number = ?');
       queryParams.push(phone_number);
+    }
+    if (email !== undefined) {
+      setClause.push('email = ?');
+      queryParams.push(email);
     }
     if (course !== undefined) {
       setClause.push('course = ?');

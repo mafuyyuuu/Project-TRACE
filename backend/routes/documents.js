@@ -5,8 +5,18 @@ const path = require('path');
 const { pool } = require('../config/db');
 const { authenticate } = require('../middleware/auth');
 const { UniSmsClient } = require('@taliffsss/unisms');
+const nodemailer = require('nodemailer');
 
 const unismsClient = new UniSmsClient(process.env.UNISMS_SECRET_KEY || 'sk_zrEZ0VkIj8LqwivWlnxNF8RlUhkmjXIZ_nKRD3siLta4rChZT8maVBip_bcwDohSy7S43g4OdNf4RNBC3nilNA-1573');
+
+const transporter = nodemailer.createTransport({
+  host: process.env.SMTP_HOST || 'smtp.ethereal.email',
+  port: process.env.SMTP_PORT || 587,
+  auth: {
+    user: process.env.SMTP_USER || 'mock_user',
+    pass: process.env.SMTP_PASS || 'mock_pass',
+  },
+});
 
 const router = express.Router();
 
@@ -887,43 +897,63 @@ router.post('/:id/evaluate', authenticate, async (req, res) => {
 
       await connection.commit();
 
-      // --- SMS NOTIFICATION (UniSMS) ---
-      if (action === 'approve') {
-        try {
-          const senderId = process.env.UNISMS_SENDER_ID || 'TRACE';
-          const msgContent = `Hi ${student_name ? student_name.split(',')[0] : 'Student'}, your ${document_type || 'Document'} is ready for pick-up at Window 1. Reference: ${doc.tracking_number}`;
-          
-          await unismsClient.send({
-            recipient: process.env.TEST_PHONE_NUMBER || '+639123456789', // Usually fetch from user record
-            content: msgContent,
-            senderId: senderId
-          });
-          console.log(`✅ [UniSMS] SMS notification dispatched for ${doc.tracking_number}`);
-        } catch (smsErr) {
-          console.error('❌ [UniSMS] Failed to send SMS:', smsErr.message);
-        }
-      }
-
-      // --- IN-APP NOTIFICATION ---
+      // --- NOTIFICATIONS (SMS, Email, & In-App) ---
       try {
         const studentIdToNotify = student_id || doc.student_id;
         if (studentIdToNotify) {
-          const [users] = await connection.query('SELECT id FROM users WHERE student_id = ? AND role = "student"', [studentIdToNotify]);
+          const [users] = await connection.query('SELECT id, phone_number, email FROM users WHERE student_id = ? AND role = "student"', [studentIdToNotify]);
           if (users.length > 0) {
+            const user = users[0];
             const title = action === 'approve' ? 'Document Ready' : 'Document Rejected';
             const msg = action === 'approve' 
               ? `Your ${document_type || 'document'} is ready for pick-up at Window 1. Reference: ${doc.tracking_number}`
               : `Your ${document_type || 'document'} has been rejected. Reason: ${notes}`;
             const type = action === 'approve' ? 'success' : 'error';
             
+            // 1. In-App Notification
             await connection.query(
               'INSERT INTO notifications (user_id, title, message, type) VALUES (?, ?, ?, ?)',
-              [users[0].id, title, msg, type]
+              [user.id, title, msg, type]
             );
+
+            // Send SMS and Email only if approved
+            if (action === 'approve') {
+              const msgContent = `Hi ${student_name ? student_name.split(',')[0] : 'Student'}, ${msg.toLowerCase()}`;
+              
+              // 2. SMS Notification (using registered phone number)
+              try {
+                const targetPhone = user.phone_number || process.env.TEST_PHONE_NUMBER;
+                if (targetPhone) {
+                  await unismsClient.send({
+                    recipient: targetPhone,
+                    content: msgContent,
+                    senderId: process.env.UNISMS_SENDER_ID || 'TRACE'
+                  });
+                  console.log(`✅ [UniSMS] SMS notification dispatched to ${targetPhone}`);
+                }
+              } catch (smsErr) {
+                console.error('❌ [UniSMS] Failed to send SMS:', smsErr.message);
+              }
+
+              // 3. Email Notification (using registered email)
+              try {
+                if (user.email) {
+                  await transporter.sendMail({
+                    from: `"TRACE Registrar" <${process.env.SMTP_USER || 'noreply@trace.plp.edu'}>`,
+                    to: user.email,
+                    subject: 'TRACE: ' + title,
+                    text: msgContent,
+                  });
+                  console.log(`✅ [Email] Email notification dispatched to ${user.email}`);
+                }
+              } catch (emailErr) {
+                console.error('❌ [Email] Failed to send email:', emailErr.message);
+              }
+            }
           }
         }
       } catch (notifErr) {
-        console.error('Failed to create in-app notification:', notifErr);
+        console.error('Failed to process notifications:', notifErr);
       }
 
       // --- IN-APP NOTIFICATION FOR WINDOW 1 CLERKS ---

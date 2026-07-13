@@ -58,9 +58,10 @@ export default function LoginPage() {
 
           <form onSubmit={handleSubmit} className="flex flex-col gap-6">
             <div className="flex flex-col gap-2">
-              <label className="text-xs font-bold text-white uppercase tracking-wider">USERNAME</label>
+              <label className="text-xs font-bold text-white uppercase tracking-wider">STUDENT ID / STAFF ID</label>
               <input 
                 type="text" 
+                placeholder="e.g. 23-00123 or ADMIN001"
                 value={employeeId} 
                 onChange={(e) => setEmployeeId(e.target.value)} 
                 className="w-full p-4 bg-white/10 border border-white/20 rounded-xl text-sm focus:ring-2 focus:ring-white/50 outline-none text-white focus:bg-white/20 transition-all font-semibold placeholder:text-white/40" 

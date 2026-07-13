@@ -14,7 +14,7 @@ export default function Layout() {
   const [notifications, setNotifications] = useState([])
   const [showNotifs, setShowNotifs] = useState(false)
   const [showSettings, setShowSettings] = useState(false)
-  const [profileData, setProfileData] = useState({ phone_number: user?.phone_number || '', password: '' })
+  const [profileData, setProfileData] = useState({ phone_number: user?.phone_number || '', email: user?.email || '', password: '' })
   const [savingSettings, setSavingSettings] = useState(false)
 
   const loadNotifs = async () => {
@@ -218,6 +218,17 @@ export default function Layout() {
                     className="w-full bg-gray-50 border-none rounded-xl py-3 px-4 text-sm font-semibold focus:ring-2 focus:ring-[#15803d]/20 outline-none"
                   />
                   <p className="text-xs text-gray-400 mt-1">Required for UniSMS notifications.</p>
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Email Address</label>
+                  <input
+                    type="email"
+                    value={profileData.email}
+                    onChange={(e) => setProfileData({...profileData, email: e.target.value})}
+                    placeholder="juan@plp.edu.ph"
+                    className="w-full bg-gray-50 border-none rounded-xl py-3 px-4 text-sm font-semibold focus:ring-2 focus:ring-[#15803d]/20 outline-none"
+                  />
+                  <p className="text-xs text-gray-400 mt-1">Required for Email notifications.</p>
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Change Password</label>
