@@ -14,12 +14,20 @@ export default function ImageViewerModal({ viewImageUrl, setViewImageUrl }) {
       >
         ✕
       </button>
-      <div className="relative z-10 max-w-5xl max-h-[90vh] flex items-center justify-center">
-        <img 
-          src={`${apiBaseUrl}${viewImageUrl}`} 
-          alt="Full Screen Viewer" 
-          className="max-w-full max-h-[90vh] object-contain rounded-xl shadow-2xl"
-        />
+      <div className="relative z-10 max-w-5xl w-full flex items-center justify-center">
+        {viewImageUrl.toLowerCase().endsWith('.pdf') ? (
+          <iframe 
+            src={viewImageUrl.startsWith('http') ? viewImageUrl : `${apiBaseUrl}/uploads/${viewImageUrl.split(/[\\/]/).pop()}`} 
+            className="w-full h-[85vh] rounded-xl shadow-2xl bg-white"
+            title="PDF Viewer"
+          />
+        ) : (
+          <img 
+            src={viewImageUrl.startsWith('http') ? viewImageUrl : `${apiBaseUrl}/uploads/${viewImageUrl.split(/[\\/]/).pop()}`} 
+            alt="Full Screen Viewer" 
+            className="max-w-full max-h-[90vh] object-contain rounded-xl shadow-2xl"
+          />
+        )}
       </div>
     </div>,
     document.body

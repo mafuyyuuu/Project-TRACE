@@ -1,3 +1,4 @@
+import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '../utils/hooks';
@@ -25,6 +26,11 @@ export default function DashboardPage() {
   const { user } = useAuth();
   const [searchParams] = useSearchParams();
   const currentTab = searchParams.get('tab') || 'dashboard';
+
+  // Local pagination state for Window 1
+  const [w1ReleasePage, setW1ReleasePage] = useState(1);
+  const [w1ProgressPage, setW1ProgressPage] = useState(1);
+  const itemsPerPage = 10;
 
   // All fetching logic, action handlers, and helpers are extracted
   // into the useDashboard hook per CODING_PREFERENCES.md
@@ -805,7 +811,6 @@ export default function DashboardPage() {
                   />
                 </div>
               </div>
-
               {/* Active release queue card */}
               <div className="bg-white rounded-3xl shadow-sm border border-gray-200 overflow-hidden mt-8">
                 <div className="p-6 border-b border-gray-100 bg-gray-50/50 flex flex-col sm:flex-row justify-between sm:items-center gap-4">
@@ -823,44 +828,88 @@ export default function DashboardPage() {
                   {dashStats.ready_window_1_count === 0 ? (
                     <div className="text-center py-16 text-gray-400 font-medium">No documents waiting for release.</div>
                   ) : (
-                    <table className="w-full text-left border-collapse">
-                      <thead>
-                        <tr className="text-gray-400 text-[10px] uppercase tracking-widest border-b border-gray-100">
-                          <th className="pb-4 font-bold pl-4">Tracking Hash</th>
-                          <th className="pb-4 font-bold">Student</th>
-                          <th className="pb-4 font-bold">Document Type</th>
-                          <th className="pb-4 font-bold">Wait Time</th>
-                          <th className="pb-4 font-bold text-right pr-4">Action</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-gray-50">
-                        {documents.filter(d => d.current_status === 'ready_window_1').map(doc => (
-                          <tr key={doc.id} className="hover:bg-gray-50/50 group">
-                            <td className="py-4 pl-4 font-mono text-xs text-gray-500">#{doc.tracking_number ? doc.tracking_number.slice(0, 10).toUpperCase() : doc.id}</td>
-                            <td className="py-4">
-                              <div className="text-sm font-bold text-gray-900">{doc.student_name || 'Name Unresolved'}</div>
-                              <div className="text-xs font-mono text-gray-400 mt-0.5">{doc.student_id || 'ID Pending'}</div>
-                            </td>
-                            <td className="py-4 text-xs font-bold text-gray-600">{doc.document_type}</td>
-                            <td className="py-4 text-xs font-bold text-gray-505 font-mono">{getWaitTime(doc.updated_at)}</td>
-                            <td className="py-4 text-right pr-4">
-                              <button 
-                                onClick={() => handleWindow1Release(doc.id)}
-                                disabled={actionLoading}
-                                className="px-5 py-2.5 bg-[#15803d] hover:bg-[#166534] text-white text-xs font-bold rounded-xl shadow-sm transition-all flex items-center gap-1.5 ml-auto"
-                              >
-                                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M5 13l4 4L19 7"/></svg>
-                                Release Doc
-                              </button>
-                            </td>
+                    <>
+                      <table className="w-full text-left border-collapse">
+                        <thead>
+                          <tr className="text-gray-400 text-[10px] uppercase tracking-widest border-b border-gray-100">
+                            <th className="pb-4 font-bold pl-4">Tracking Hash</th>
+                            <th className="pb-4 font-bold">Student</th>
+                            <th className="pb-4 font-bold">Document Type</th>
+                            <th className="pb-4 font-bold">Wait Time</th>
+                            <th className="pb-4 font-bold text-right pr-4">Action</th>
                           </tr>
-                        ))}
-                      </tbody>
-                    </table>
+                        </thead>
+                        <tbody className="divide-y divide-gray-50">
+                          {documents.filter(d => d.current_status === 'ready_window_1')
+                            .slice((w1ReleasePage - 1) * itemsPerPage, w1ReleasePage * itemsPerPage)
+                            .map(doc => (
+                            <tr key={doc.id} className="hover:bg-gray-50/50 group">
+                              <td className="py-4 pl-4 font-mono text-xs text-gray-500">#{doc.tracking_number ? doc.tracking_number.slice(0, 10).toUpperCase() : doc.id}</td>
+                              <td className="py-4">
+                                <div className="text-sm font-bold text-gray-900">{doc.student_name || 'Name Unresolved'}</div>
+                                <div className="text-xs font-mono text-gray-400 mt-0.5">{doc.student_id || 'ID Pending'}</div>
+                              </td>
+                              <td className="py-4 text-xs font-bold text-gray-600">{doc.document_type}</td>
+                              <td className="py-4 text-xs font-bold text-gray-505 font-mono">{getWaitTime(doc.updated_at)}</td>
+                              <td className="py-4 text-right pr-4">
+                                <button 
+                                  onClick={() => handleWindow1Release(doc.id)}
+                                  disabled={actionLoading}
+                                  className="px-5 py-2.5 bg-[#15803d] hover:bg-[#166534] text-white text-xs font-bold rounded-xl shadow-sm transition-all flex items-center gap-1.5 ml-auto"
+                                >
+                                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M5 13l4 4L19 7"/></svg>
+                                  Release Doc
+                                </button>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                      
+                      {documents.filter(d => d.current_status === 'ready_window_1').length > itemsPerPage && (
+                        <div className="flex justify-between items-center mt-6 border-t border-gray-100 pt-4">
+                          <button 
+                            disabled={w1ReleasePage === 1} 
+                            onClick={() => setW1ReleasePage(p => p - 1)}
+                            className="px-4 py-2 text-xs font-bold text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-xl disabled:opacity-50 transition-colors"
+                          >
+                            Previous
+                          </button>
+                          <span className="text-xs font-bold text-gray-500">
+                            Page {w1ReleasePage} of {Math.ceil(documents.filter(d => d.current_status === 'ready_window_1').length / itemsPerPage)}
+                          </span>
+                          <button 
+                            disabled={w1ReleasePage >= Math.ceil(documents.filter(d => d.current_status === 'ready_window_1').length / itemsPerPage)} 
+                            onClick={() => setW1ReleasePage(p => p + 1)}
+                            className="px-4 py-2 text-xs font-bold text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-xl disabled:opacity-50 transition-colors"
+                          >
+                            Next
+                          </button>
+                        </div>
+                      )}
+                    </>
                   )}
                 </div>
               </div>
+            </>
+          )}
 
+          {/* 3.2. TRACKING DESK VIEW */}
+          {currentTab === 'tracking-desk' && (
+            <>
+              {/* Header */}
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+                <div>
+                  <h2 className="text-3xl font-display font-black text-gray-900 tracking-tight">
+                    Tracking Desk
+                  </h2>
+                </div>
+                <div className="flex items-center gap-3 bg-white border border-gray-200 rounded-2xl px-5 py-2.5 shadow-sm">
+                  <span className="text-xs font-semibold text-gray-500">Today:</span>
+                  <span className="text-xs font-bold text-gray-800">{todayFormatted}</span>
+                  <svg className="w-4 h-4 text-gray-400 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                </div>
+              </div>
               {/* System Documents Progress Queue */}
               <div className="bg-white rounded-3xl shadow-sm border border-gray-200 overflow-hidden mt-8">
                 <div className="p-6 border-b border-gray-100 bg-gray-50/50 flex justify-between items-center">
@@ -873,42 +922,66 @@ export default function DashboardPage() {
                   {documents.length === 0 ? (
                     <div className="text-center py-12 text-gray-400 font-medium">No active document requests.</div>
                   ) : (
-                    <div className="overflow-x-auto">
-                      <table className="w-full text-left border-collapse min-w-[700px]">
-                        <thead>
-                          <tr className="text-gray-400 text-[10px] uppercase tracking-widest border-b border-gray-100">
-                            <th className="pb-4 font-bold pl-4">Date Requested</th>
-                            <th className="pb-4 font-bold">Document</th>
-                            <th className="pb-4 font-bold">Progress</th>
-                            <th className="pb-4 font-bold">Status</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-gray-50">
-                          {documents.map(doc => (
-                            <tr key={doc.id} className="hover:bg-gray-50/50 transition-colors">
-                              <td className="py-4 pl-4 text-xs font-semibold text-gray-400">{new Date(doc.created_at).toLocaleDateString()}</td>
-                              <td className="py-4">
-                                <div className="text-sm font-bold text-gray-900">{doc.document_type}</div>
-                                <div className="text-xs font-mono text-gray-400 mt-0.5">#{doc.tracking_number ? doc.tracking_number.slice(0, 10).toUpperCase() : doc.id}</div>
-                              </td>
-                              <td className="py-4 w-1/3">
-                                <div className="flex items-center gap-3">
-                                  <div className="w-full bg-gray-100 rounded-full h-2 overflow-hidden">
-                                    <div className="bg-[#15803d] h-2 rounded-full transition-all duration-500" style={{ width: `${getProgressVal(doc.current_status)}%` }}></div>
-                                  </div>
-                                  <span className="text-[11px] font-bold text-gray-600 font-mono">{getProgressVal(doc.current_status)}%</span>
-                                </div>
-                              </td>
-                              <td className="py-4">
-                                <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${['completed', 'released'].includes(doc.current_status) ? 'bg-emerald-50 text-[#15803d]' : 'bg-amber-50 text-amber-700'}`}>
-                                  {getStatusLabel(doc.current_status)}
-                                </span>
-                              </td>
+                    <>
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-left border-collapse min-w-[700px]">
+                          <thead>
+                            <tr className="text-gray-400 text-[10px] uppercase tracking-widest border-b border-gray-100">
+                              <th className="pb-4 font-bold pl-4">Date Requested</th>
+                              <th className="pb-4 font-bold">Document</th>
+                              <th className="pb-4 font-bold">Progress</th>
+                              <th className="pb-4 font-bold">Status</th>
                             </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
+                          </thead>
+                          <tbody className="divide-y divide-gray-50">
+                            {documents.slice((w1ProgressPage - 1) * itemsPerPage, w1ProgressPage * itemsPerPage).map(doc => (
+                              <tr key={doc.id} className="hover:bg-gray-50/50 transition-colors">
+                                <td className="py-4 pl-4 text-xs font-semibold text-gray-400">{new Date(doc.created_at).toLocaleDateString()}</td>
+                                <td className="py-4">
+                                  <div className="text-sm font-bold text-gray-900">{doc.document_type}</div>
+                                  <div className="text-xs font-mono text-gray-400 mt-0.5">#{doc.tracking_number ? doc.tracking_number.slice(0, 10).toUpperCase() : doc.id}</div>
+                                </td>
+                                <td className="py-4 w-1/3">
+                                  <div className="flex items-center gap-3">
+                                    <div className="w-full bg-gray-100 rounded-full h-2 overflow-hidden">
+                                      <div className="bg-[#15803d] h-2 rounded-full transition-all duration-500" style={{ width: `${getProgressVal(doc.current_status)}%` }}></div>
+                                    </div>
+                                    <span className="text-[11px] font-bold text-gray-600 font-mono">{getProgressVal(doc.current_status)}%</span>
+                                  </div>
+                                </td>
+                                <td className="py-4">
+                                  <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${['completed', 'released'].includes(doc.current_status) ? 'bg-emerald-50 text-[#15803d]' : 'bg-amber-50 text-amber-700'}`}>
+                                    {getStatusLabel(doc.current_status)}
+                                  </span>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                      
+                      {documents.length > itemsPerPage && (
+                        <div className="flex justify-between items-center mt-6 border-t border-gray-100 pt-4">
+                          <button 
+                            disabled={w1ProgressPage === 1} 
+                            onClick={() => setW1ProgressPage(p => p - 1)}
+                            className="px-4 py-2 text-xs font-bold text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-xl disabled:opacity-50 transition-colors"
+                          >
+                            Previous
+                          </button>
+                          <span className="text-xs font-bold text-gray-500">
+                            Page {w1ProgressPage} of {Math.ceil(documents.length / itemsPerPage)}
+                          </span>
+                          <button 
+                            disabled={w1ProgressPage >= Math.ceil(documents.length / itemsPerPage)} 
+                            onClick={() => setW1ProgressPage(p => p + 1)}
+                            className="px-4 py-2 text-xs font-bold text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-xl disabled:opacity-50 transition-colors"
+                          >
+                            Next
+                          </button>
+                        </div>
+                      )}
+                    </>
                   )}
                 </div>
               </div>
@@ -1564,7 +1637,7 @@ export default function DashboardPage() {
                         <td className="py-4">
                           {student.id_proof_path ? (
                             <a 
-                              href={`${apiBaseUrl}/${student.id_proof_path.replace(/\\/g, '/')}`} 
+                              href={`${apiBaseUrl}/uploads/${student.id_proof_path.split(/[\\/]/).pop()}`} 
                               target="_blank" 
                               rel="noreferrer" 
                               className="text-xs text-indigo-600 font-bold hover:underline flex items-center gap-1"

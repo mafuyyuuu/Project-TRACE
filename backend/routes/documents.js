@@ -67,16 +67,30 @@ router.post('/upload', authenticate, upload.single('document'), async (req, res)
 
     await connection.beginTransaction();
 
-    // Insert document record - INSTANT CHECKOUT (straight to pending_payment)
+    let initialStatus = 'pending_payment';
+    let initialPaymentStatus = 'UNPAID';
+    let logAction = 'submitted';
+    let logNotes = `Document requested. Awaiting payment of ₱${finalAmount}.`;
+
+    if (req.user && req.user.role === 'clerk' && req.user.desk_assignment === 'Window 1') {
+      initialStatus = 'pending_secretary';
+      initialPaymentStatus = 'PAID';
+      logAction = 'manual_intake';
+      logNotes = `Legacy record manually digitized by Window 1.`;
+    }
+
+    // Insert document record
     const [docResult] = await connection.query(
       `INSERT INTO documents (tracking_number, student_id, student_name, document_type,
         current_status, payment_status, assigned_clerk_id, file_path, original_filename, checkout_url, purpose, copies, amount)
-       VALUES (?, ?, ?, ?, 'pending_payment', 'UNPAID', ?, ?, ?, ?, ?, ?, ?)`,
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         trackingNumber,
         student_id || null,
         student_name || null,
         document_type || null,
+        initialStatus,
+        initialPaymentStatus,
         req.user.id,
         filePath,
         originalFilename,
@@ -92,8 +106,8 @@ router.post('/upload', authenticate, upload.single('document'), async (req, res)
     // Create initial step_log entry
     await connection.query(
       `INSERT INTO step_logs (document_id, clerk_id, action_taken, from_status, to_status, notes)
-       VALUES (?, ?, 'submitted', NULL, 'pending_payment', ?)`,
-      [documentId, req.user.id, `Document requested. Awaiting payment of ₱${finalAmount}.`]
+       VALUES (?, ?, ?, NULL, ?, ?)`,
+      [documentId, req.user.id, logAction, initialStatus, logNotes]
     );
 
     await connection.commit();
@@ -675,6 +689,19 @@ router.post('/:id/submit-payment', authenticate, upload.single('receipt'), async
       [docId, req.user.id, `Payment reference ${gcash_reference_no} submitted by student.`]
     );
 
+    // --- IN-APP NOTIFICATION FOR FINANCE CLERKS ---
+    try {
+      const [financeClerks] = await pool.query('SELECT id FROM users WHERE role = "clerk" AND desk_assignment = "Finance"');
+      for (const clerk of financeClerks) {
+        await pool.query(
+          'INSERT INTO notifications (user_id, title, message, type) VALUES (?, ?, ?, ?)',
+          [clerk.id, 'New Payment Submission', `Student submitted payment (Ref: ${gcash_reference_no}) for verification.`, 'info']
+        );
+      }
+    } catch (notifErr) {
+      console.error('Failed to create in-app notification for Finance:', notifErr);
+    }
+
     res.json({ message: 'Payment receipt submitted successfully. Waiting for clerk verification.' });
   } catch (err) {
     console.error('Submit payment error:', err);
@@ -751,6 +778,21 @@ router.post('/:id/verify-payment', authenticate, upload.single('officialReceipt'
               'INSERT INTO notifications (user_id, title, message, type) VALUES (?, ?, ?, ?)',
               [users[0].id, title, msg, type]
             );
+          }
+        }
+        
+        // --- IN-APP NOTIFICATION FOR SECRETARY ---
+        if (action === 'approve') {
+          try {
+            const [secretaryClerks] = await connection.query('SELECT id FROM users WHERE role = "clerk" AND desk_assignment = "Secretary"');
+            for (const clerk of secretaryClerks) {
+              await connection.query(
+                'INSERT INTO notifications (user_id, title, message, type) VALUES (?, ?, ?, ?)',
+                [clerk.id, 'New Document Evaluation', `Payment verified for ${doc.document_type}. Ready for your evaluation.`, 'info']
+              );
+            }
+          } catch (notifErr) {
+            console.error('Failed to create in-app notification for Secretary:', notifErr);
           }
         }
       } catch (notifErr) {
@@ -855,6 +897,21 @@ router.post('/:id/evaluate', authenticate, async (req, res) => {
         }
       } catch (notifErr) {
         console.error('Failed to create in-app notification:', notifErr);
+      }
+
+      // --- IN-APP NOTIFICATION FOR WINDOW 1 CLERKS ---
+      if (action === 'approve') {
+        try {
+          const [window1Clerks] = await connection.query('SELECT id FROM users WHERE role = "clerk" AND desk_assignment = "Window 1"');
+          for (const clerk of window1Clerks) {
+            await connection.query(
+              'INSERT INTO notifications (user_id, title, message, type) VALUES (?, ?, ?, ?)',
+              [clerk.id, 'New Document Ready', `${document_type || 'Document'} is ready for release to ${student_name}.`, 'info']
+            );
+          }
+        } catch (notifErr) {
+          console.error('Failed to create in-app notification for Window 1:', notifErr);
+        }
       }
 
       res.json({ message: `Document successfully evaluated and ${action === 'approve' ? 'approved' : 'rejected'}.` });

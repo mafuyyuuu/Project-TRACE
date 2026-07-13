@@ -10,10 +10,12 @@ export default function SecretaryEvaluationModal({
   evalStudentName,
   setEvalStudentName,
   evalDocType,
+  setEvalDocType,
   clerkNotes,
   setClerkNotes,
   handleSecretaryEvaluate,
-  actionLoading
+  actionLoading,
+  setViewImageUrl
 }) {
   if (!selectedDoc) return null;
 
@@ -47,13 +49,21 @@ export default function SecretaryEvaluationModal({
                 </span>
               </div>
               <div className="flex-1 bg-gray-200 border border-gray-300 rounded-3xl overflow-hidden relative flex items-center justify-center shadow-inner">
-                <a href={`${apiBaseUrl}${selectedDoc.file_path}`} target="_blank" rel="noreferrer" title="Click to view full size">
-                  <img 
-                    src={`${apiBaseUrl}${selectedDoc.file_path}`} 
-                    alt="Scanned Document" 
-                    className="w-full h-full object-contain cursor-zoom-in"
+                {selectedDoc.file_path.toLowerCase().endsWith('.pdf') ? (
+                  <iframe 
+                    src={`${apiBaseUrl}/uploads/${selectedDoc.file_path.split(/[\\/]/).pop()}`} 
+                    className="w-full h-full"
+                    title="PDF Preview"
                   />
-                </a>
+                ) : (
+                  <div onClick={() => setViewImageUrl(`/uploads/${selectedDoc.file_path.split(/[\\/]/).pop()}`)} className="cursor-zoom-in w-full h-full flex items-center justify-center group relative">
+                    <img 
+                      src={`${apiBaseUrl}/uploads/${selectedDoc.file_path.split(/[\\/]/).pop()}`} 
+                      alt="Scanned Document" 
+                      className="w-full h-full object-contain group-hover:scale-105 transition-transform"
+                    />
+                  </div>
+                )}
               </div>
             </div>
           )}
@@ -130,12 +140,17 @@ export default function SecretaryEvaluationModal({
                   </div>
                   <div className="flex flex-col gap-1.5">
                     <label className="text-xs font-bold text-gray-800 uppercase tracking-wide">Document Type</label>
-                    <input 
-                      type="text" 
-                      disabled 
+                    <select 
                       value={evalDocType}
-                      className="w-full p-3 bg-gray-100 border border-gray-200 rounded-xl text-xs font-semibold text-gray-500" 
-                    />
+                      onChange={(e) => setEvalDocType(e.target.value)}
+                      className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl text-xs font-semibold focus:ring-2 focus:ring-[#15803d]/20 outline-none cursor-pointer" 
+                    >
+                      <option value="Transcript of Records">Transcript of Records (TOR)</option>
+                      <option value="Graduation Clearance">Graduation Clearance</option>
+                      <option value="Certificate of Good Moral">Certificate of Good Moral</option>
+                      <option value="Honorable Dismissal">Honorable Dismissal</option>
+                      <option value="Diploma">Diploma</option>
+                    </select>
                   </div>
                 </div>
 
@@ -161,19 +176,20 @@ export default function SecretaryEvaluationModal({
               </div>
             </div>
 
-            <div className="flex items-center gap-4 pt-6 mt-6 border-t border-gray-100 shrink-0">
+            <div className="flex items-center gap-3 pt-6 mt-6 border-t border-gray-100 shrink-0">
               <button 
-                onClick={() => setActiveModal(null)}
-                className="w-1/3 py-3 border border-gray-200 text-gray-800 rounded-xl font-bold hover:bg-gray-50 text-xs transition-all text-center"
+                onClick={() => handleSecretaryEvaluate('reject')}
+                disabled={actionLoading}
+                className="flex-1 py-3 bg-red-50 hover:bg-red-100 border border-red-200 text-red-600 rounded-xl font-bold text-xs transition-all text-center"
               >
-                Cancel
+                Reject Request
               </button>
               <button 
                 onClick={() => handleSecretaryEvaluate('approve')}
                 disabled={actionLoading}
-                className="w-2/3 py-3 bg-[#15803d] hover:bg-[#166534] text-white rounded-xl font-bold text-xs shadow-md transition-all text-center"
+                className="flex-[2] py-3 bg-[#15803d] hover:bg-[#166534] text-white rounded-xl font-bold text-xs shadow-md transition-all text-center"
               >
-                Approve and Route to Window 1
+                Approve & Route
               </button>
             </div>
           </div>

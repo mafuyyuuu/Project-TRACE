@@ -90,30 +90,32 @@ export default function NewRequestModal({
                 <input type="number" name="copies" value={reqCopies} onChange={e => setReqCopies(parseInt(e.target.value) || 1)} min="1" required className="w-full bg-white border border-gray-200 rounded-xl p-3 text-xs focus:ring-2 outline-none" />
               </div>
               
-              <div className="flex flex-col gap-2 pt-2">
-                <label className="text-[10px] font-bold text-gray-800 uppercase tracking-widest">
-                  {getAttachmentLabel(selectedDocType)}
-                </label>
-                <div className="border-2 border-dashed border-gray-300 rounded-xl p-4 bg-white flex flex-col items-center justify-center gap-2 cursor-pointer hover:bg-gray-50 transition-colors relative">
-                  {requestFile ? (
-                    <span className="text-xs font-bold text-indigo-600 flex items-center gap-2">
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                      {requestFile.name}
-                    </span>
-                  ) : (
-                    <span className="text-xs font-bold text-gray-600">
-                      <span className="text-[#15803d]">Click here</span> to upload {getAttachmentHelper(selectedDocType)}
-                    </span>
-                  )}
-                  <input 
-                    type="file" 
-                    name="docFile" 
-                    onChange={(e) => setRequestFile(e.target.files[0])}
-                    required={requiresAttachment(selectedDocType)} 
-                    className="absolute inset-0 opacity-0 cursor-pointer" 
-                  />
+              {requiresAttachment(selectedDocType) && (
+                <div className="flex flex-col gap-2 pt-2">
+                  <label className="text-[10px] font-bold text-gray-800 uppercase tracking-widest">
+                    {getAttachmentLabel(selectedDocType)}
+                  </label>
+                  <div className="border-2 border-dashed border-gray-300 rounded-xl p-4 bg-white flex flex-col items-center justify-center gap-2 cursor-pointer hover:bg-gray-50 transition-colors relative">
+                    {requestFile ? (
+                      <span className="text-xs font-bold text-indigo-600 flex items-center gap-2">
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                        {requestFile.name}
+                      </span>
+                    ) : (
+                      <span className="text-xs font-bold text-gray-600">
+                        <span className="text-[#15803d]">Click here</span> to upload {getAttachmentHelper(selectedDocType)}
+                      </span>
+                    )}
+                    <input 
+                      type="file" 
+                      name="docFile" 
+                      onChange={(e) => setRequestFile(e.target.files[0])}
+                      required={true} 
+                      className="absolute inset-0 opacity-0 cursor-pointer" 
+                    />
+                  </div>
                 </div>
-              </div>
+              )}
 
               <div className="flex flex-col gap-2 pt-2">
                 <label className="text-[10px] font-bold text-gray-800 uppercase tracking-widest">Delivery Method</label>

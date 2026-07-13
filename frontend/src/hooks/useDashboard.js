@@ -358,9 +358,9 @@ export default function useDashboard(user) {
 
     try {
       setActionLoading(true);
-      const mockFile = new Blob(['manual legacy record content'], { type: 'text/plain' });
+      const mockFile = new Blob(['manual legacy record content'], { type: 'application/pdf' });
       const formData = new FormData();
-      formData.append('document', mockFile, `${studentId}_manual_intake.txt`);
+      formData.append('document', mockFile, `${studentId}_manual_intake.pdf`);
       formData.append('student_id', studentId);
       formData.append('student_name', studentName);
       formData.append('document_type', docType);

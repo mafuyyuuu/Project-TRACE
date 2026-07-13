@@ -39,13 +39,21 @@ export default function FinanceVerificationModal({
           {/* Receipt Preview */}
           <div className="bg-gray-100 rounded-2xl overflow-hidden border border-gray-200 h-64 relative flex items-center justify-center">
             {selectedDoc.receipt_image_path ? (
-              <div onClick={() => setViewImageUrl(selectedDoc.receipt_image_path)} className="cursor-zoom-in w-full h-full flex items-center justify-center">
-                <img 
-                  src={`${apiBaseUrl}${selectedDoc.receipt_image_path}`} 
-                  alt="GCash Receipt" 
-                  className="max-w-full max-h-full object-contain"
+              selectedDoc.receipt_image_path.toLowerCase().endsWith('.pdf') ? (
+                <iframe 
+                  src={`${apiBaseUrl}/uploads/${selectedDoc.receipt_image_path.split(/[\\/]/).pop()}`} 
+                  className="w-full h-full"
+                  title="PDF Receipt"
                 />
-              </div>
+              ) : (
+                <div onClick={() => setViewImageUrl(selectedDoc.receipt_image_path)} className="cursor-zoom-in w-full h-full flex items-center justify-center">
+                  <img 
+                    src={`${apiBaseUrl}/uploads/${selectedDoc.receipt_image_path.split(/[\\/]/).pop()}`} 
+                    alt="Payment Receipt" 
+                    className="w-full h-full object-contain hover:scale-105 transition-transform"
+                  />
+                </div>
+              )
             ) : (
               <span className="text-xs text-gray-400">No Image Uploaded</span>
             )}
