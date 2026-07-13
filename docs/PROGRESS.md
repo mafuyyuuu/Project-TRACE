@@ -2,14 +2,12 @@
 
 This document tracks the current development and implementation progress of the Project TRACE system.
 
-## Overall Status: 🟢 82% Completed (Frontend, Backend, and UI Mockup Alignment fully complete; Phase 5 Integrations Pending)
+## Overall Status: 🟢 100% Core System Completed (AI, ML, Integrations, UI, Linting fully finalized)
 
-### 📍 Next Steps for Production Rollout
-Although core frontend dashboards, backend controllers, and state loops are fully developed and compiled successfully, the following items remain for a live deployment:
-1. **EasyOCR Microservice Connection:** Connect the Express upload controller to the live Python Flask OCR microservice (`ai-engine/app.py`) for actual computer-vision text extraction from uploaded images.
-2. **Prophet & Random Forest ML Training:** Run the historical data generator (`ai-engine/mock_data_gen.py`) to populate the `step_logs` MySQL database, allowing the Python service to train the real Prophet forecasting model and Random Forest heuristic recommender.
-3. **n8n Workflow Execution:** Configure the n8n runner locally or on a cloud instance and load `n8n/routing-workflow.json` to handle asynchronous clerk assignments.
-4. **Real SMS Gateway Integration:** Replace mock text console outputs in `documents.js` with active Twilio/SMS API triggers to notify students upon document status updates (e.g. ready for pickup).
+### 📍 Next Steps for Phase 7 (Production Rollout)
+The system is fully complete locally. All features, AI integrations, ML models, orchestrators, UI bug fixes, and ESLint warnings are finalized. The next immediate step is taking the servers live:
+1. **Cloud Deployment:** Build the Vite frontend for Vercel/Netlify, containerize the Flask AI Engine, and deploy the Node.js API to a cloud host (e.g., Render, Railway, AWS).
+2. **Database Migration:** Migrate the local MySQL database to a managed cloud database (e.g., PlanetScale, AWS RDS).
 
 ---
 
@@ -51,17 +49,31 @@ Although core frontend dashboards, backend controllers, and state loops are full
 - [x] Refactor College Secretary dashboard to include dashboard queues, completed evaluation logs tabs, and data verification split-screen modals
 - [x] Align Admin Registrar dashboard with smooth SVG forecast splines and real-time backlog alert feeds
 
-### Phase 5: Production Integration & Rollout Checklist
-**Status:** Pending (Next Development Cycle)
-- [ ] **AI EasyOCR Microservice Live Connection:** Link the Express backend file-upload endpoint to the active Flask OCR engine to enable real-time transcription from uploads instead of fallback mock data.
-- [ ] **Seeding Historical Data:** Execute `ai-engine/mock_data_gen.py` to seed log records in the MySQL database to populate the Prophet forecasting model.
-- [ ] **n8n Workflow Integration:** Import and execute [routing-workflow.json](file:///Users/jhervin/project-trace/n8n/routing-workflow.json) on the n8n orchestrator to handle automated document routing across clerks and secretaries.
-- [ ] **SMS Gateway Activation:** Replace placeholder console log events in backend controllers with active Twilio API credentials to notify students on status updates.
+### Phase 5: Hardware & AI Automation
+**Status:** Complete
+- [x] **AI EasyOCR Microservice Live Connection:** Linked the Express backend file-upload endpoint to the active Flask OCR engine.
+- [x] **AI Requirement Verification:** Implemented conditional requirement logic to cross-reference extracted OCR text and log `ai_verified`.
+- [x] **Dynamic Checkout Forms:** Bypassed manual Secretary pricing by automatically calculating fees using `Math.ceil(semesters / 4) * 100`.
+- [x] **SMS Gateway Activation:** Activated UniSMS API directly in the backend to notify students via text message upon evaluations.
+- [x] **In-App Notifications:** Built real-time notification drops and settings modal for phone numbers.
+- [x] **Hardware Scanner Bridge:** Implemented Window 1 scanner simulator to dynamically activate PyTorch extraction without an enterprise SDK.
+
+### Phase 6: Machine Learning & Workflow Orchestration
+**Status:** Complete
+- [x] **Seeding Historical Data:** Executed `ai-engine/mock_data_gen.py` to seed thousands of log records in the MySQL database to populate the Prophet forecasting model.
+- [x] **n8n Workflow Integration:** Imported and executed `routing-workflow.json` on the n8n orchestrator to automate document forwarding.
+
+### Phase 7: Production Rollout Checklist
+**Status:** In Progress
+- [ ] **Dockerization:** Create Dockerfiles for Frontend, Backend, and AI Engine.
 - [ ] **Database Connection Pool Load Testing:** Conduct final load checks to ensure pooled connections release cleanly during high-volume spikes.
+- [ ] **Cloud Deployment:** Host Frontend, Backend, and Flask AI microservices.
 
 ---
 
 ## Recent Major Changes
+* **E2E Linting & Bug Fixes:** Eliminated all 30+ ESLint errors (removed unused imports, safely handled state updates).
+* **UI/UX Polishing:** Extracted all large inline modals into standalone components (`LiveTrackingModal`, `SecretaryEvaluationModal`). Fixed dynamic JSON rendering for document evaluation forms.
 * **UI Realignment Completed:** Fully reconciled every dashboard route and user modal with the design mockup specifications from the `UI/` folder.
 * **Manual Payments Integrated:** Replaced references to external payment gateways with a manual GCash receipt validation loop.
 * **Unified Dashboard Page:** Rebuilt `DashboardPage.jsx` and `Layout.jsx` with responsive layouts and multi-tab sidebars corresponding to the active role.

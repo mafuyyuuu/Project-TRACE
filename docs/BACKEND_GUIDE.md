@@ -7,11 +7,13 @@ This document outlines the architecture, database structure, and integration pro
 Project TRACE uses a decoupled architecture for maximum flexibility and performance:
 1. **Node.js + Express (API Gateway):** Securely handles HTTP requests, manages file uploads via Multer, interacts with the database, and integrates with third-party APIs.
 2. **Python Flask + EasyOCR (AI Engine):** A dedicated microservice using PyTorch-based Deep Learning to extract text (Student Numbers, Document Types) from uploaded images.
-   - **Tech Stack:** Python, Flask, OpenCV, EasyOCR (PyTorch).
+   - **Tech Stack:** Python, Flask, OpenCV, EasyOCR (PyTorch), Prophet, Random Forest.
    - **Endpoints:**
      - `POST /ocr/extract`: Used for reading uploaded document requests (e.g., Clearance forms).
      - `POST /ocr/verify`: Used during registration to read the uploaded Student ID/Diploma. Returns `{ verified: boolean, reason: string }` if it finds the school name and matching student ID.
-   - **Data Flow:** The Node.js server sends a multipart request to Flask with the image. Flask processes the image and returns JSON. Node.js then updates the database.
+     - `GET /forecast`: Uses Facebook Prophet ML to return a 7-day volume forecast based on historical logs.
+     - `GET /ai/recommend`: Uses a Random Forest heuristic to generate prescriptive system insights based on current queue metrics.
+   - **Data Flow:** The Node.js server acts as an API gateway, proxying AI requests to Flask and returning combined JSON to the frontend.
 3. **n8n (Routing Engine):** Handles the conditional logic and workflow automation (e.g., routing documents from Window 1 to the Secretary and back) using webhooks.
 4. **MySQL (Database):** The relational, single-source-of-truth database.
 
@@ -63,3 +65,8 @@ To comply with PLP Finance policies, Project TRACE implements a manual payment v
 - `POST /api/documents/:id/submit-payment`: Student uploads GCash receipt image and submits transaction Reference Number.
 - `POST /api/documents/:id/verify-payment`: Finance Clerk approves or rejects the uploaded payment receipt.
 - `GET /api/documents?status=pending_payment_verification`: Lists all document requests waiting for manual payment review.
+
+### Dashboard & Analytics Endpoints (New)
+- `GET /api/documents/stats`: Returns KPI metrics (backlogs, processed today, avg time).
+- `GET /api/documents/stats/forecast`: Proxies to Flask AI engine to retrieve the 7-day volume forecast using Prophet.
+- `GET /api/documents/stats/insights`: Proxies to Flask AI engine to retrieve Random Forest heuristics and alert recommendations.

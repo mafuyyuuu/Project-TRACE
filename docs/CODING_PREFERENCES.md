@@ -29,5 +29,5 @@ This document outlines the coding preferences and conventions for Project TRACE.
 
 ## 💳 Payments
 
-- **Integration:** Prefer established gateways (e.g., PayMongo or Xendit) for handling QRPh and GCash.
-- **Verification:** Never trust client-side success callbacks for payments. Always wait for the server-side webhook to verify payment authenticity before updating the MySQL database.
+- **Integration:** The system uses a manual GCash Verification pipeline. Students upload receipt screenshots and Reference Numbers.
+- **Verification:** All payments must pass through the `Finance Clerk` desk (`pending_payment_verification`) for manual visual cross-referencing. Never process a document to the Secretary without the Finance Clerk changing the `payment_status` to `PAID`.

@@ -24,11 +24,23 @@
         "rules": {
           "rules": [
             {
-              "value2": "Clearance",
+              "value2": "Honorable Dismissal",
+              "output": 0
+            },
+            {
+              "value2": "Graduation Clearance",
+              "output": 0
+            },
+            {
+              "value2": "Certificate of Good Moral",
               "output": 0
             },
             {
               "value2": "Transcript of Records",
+              "output": 1
+            },
+            {
+              "value2": "Diploma",
               "output": 1
             }
           ]
@@ -47,14 +59,14 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "http://localhost:3000/api/documents/assign",
+        "url": "http://host.docker.internal:3000/api/documents/assign",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\n  \"document_id\": {{ $json.body.document_id }},\n  \"assigned_clerk_employee_id\": \"CLERK001\"\n}",
+        "jsonBody": "={\n  \"document_id\": {{ $json.body.document_id }},\n  \"assigned_clerk_employee_id\": \"SEC001\"\n}",
         "options": {}
       },
       "id": "4568db6b-67e4-4c45-9856-11f81df2f6b8",
-      "name": "Assign to Clerk 1 (Receiving)",
+      "name": "Assign to College Secretary",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 3,
       "position": [
@@ -65,14 +77,14 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "http://localhost:3000/api/documents/assign",
+        "url": "http://host.docker.internal:3000/api/documents/assign",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\n  \"document_id\": {{ $json.body.document_id }},\n  \"assigned_clerk_employee_id\": \"CLERK002\"\n}",
+        "jsonBody": "={\n  \"document_id\": {{ $json.body.document_id }},\n  \"assigned_clerk_employee_id\": \"WINDOW1001\"\n}",
         "options": {}
       },
       "id": "1b08f4b1-9b19-4806-a81d-b7c4a046c823",
-      "name": "Assign to Clerk 2 (Records)",
+      "name": "Assign to Window 1",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 3,
       "position": [
@@ -83,7 +95,7 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "http://localhost:3000/api/documents/assign",
+        "url": "http://host.docker.internal:3000/api/documents/assign",
         "sendBody": true,
         "specifyBody": "json",
         "jsonBody": "={\n  \"document_id\": {{ $json.body.document_id }},\n  \"assigned_clerk_employee_id\": \"ADMIN001\"\n}",
@@ -116,14 +128,14 @@
       "main": [
         [
           {
-            "node": "Assign to Clerk 1 (Receiving)",
+            "node": "Assign to College Secretary",
             "type": "main",
             "index": 0
           }
         ],
         [
           {
-            "node": "Assign to Clerk 2 (Records)",
+            "node": "Assign to Window 1",
             "type": "main",
             "index": 0
           }
