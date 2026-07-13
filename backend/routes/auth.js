@@ -125,9 +125,14 @@ router.post('/register', upload.single('id_proof'), async (req, res) => {
     }
 
     // Check if user exists
-    const [existing] = await pool.query('SELECT id FROM users WHERE student_id = ?', [employee_id]);
+    const [existing] = await pool.query('SELECT id, verification_status FROM users WHERE student_id = ?', [employee_id]);
     if (existing.length > 0) {
-      return res.status(400).json({ error: 'Student ID is already registered.' });
+      if (existing[0].verification_status === 'rejected') {
+        // Allow re-registration by deleting the old rejected record
+        await pool.query('DELETE FROM users WHERE id = ?', [existing[0].id]);
+      } else {
+        return res.status(400).json({ error: 'Student ID is already registered.' });
+      }
     }
 
     const password_hash = await bcrypt.hash(password, 10);
@@ -137,22 +142,19 @@ router.post('/register', upload.single('id_proof'), async (req, res) => {
     let verification_status = 'pending';
     let verification_reason = 'Pending manual review.';
     try {
-      const aiEngineUrl = process.env.AI_ENGINE_URL || 'http://localhost:5005';
+      const aiEngineUrl = 'http://127.0.0.1:5005';
       const fs = require('fs');
-      const FormData = require('form-data');
-      const fetchFn = typeof fetch !== 'undefined' ? fetch : require('node-fetch');
-
+      
+      const fileBuffer = fs.readFileSync(id_proof_path);
+      const fileBlob = new Blob([fileBuffer], { type: req.file.mimetype });
+      
       const form = new FormData();
-      form.append('document', fs.createReadStream(id_proof_path), {
-        filename: req.file.originalname,
-        contentType: req.file.mimetype,
-      });
+      form.append('document', fileBlob, req.file.originalname);
       form.append('student_id', employee_id);
 
-      const aiRes = await fetchFn(`${aiEngineUrl}/ocr/verify`, {
+      const aiRes = await fetch(`${aiEngineUrl}/ocr/verify`, {
         method: 'POST',
-        body: form,
-        headers: form.getHeaders ? form.getHeaders() : {},
+        body: form
       });
 
       if (aiRes.ok) {
@@ -241,6 +243,25 @@ router.post('/verify-student/:id', authenticate, async (req, res) => {
   } catch (err) {
     console.error('Verify student account error:', err);
     res.status(500).json({ error: 'Failed to update student account verification.' });
+  }
+});
+
+/**
+ * GET /users
+ * Retrieve all registered users for Admin Registered Users tab.
+ */
+router.get('/users', authenticate, async (req, res) => {
+  try {
+    if (req.user.role !== 'admin') {
+      return res.status(403).json({ error: 'Access denied. Admin role required.' });
+    }
+    const [rows] = await pool.query(
+      'SELECT id, student_id, full_name, email, course, role, verification_status, created_at FROM users ORDER BY created_at DESC'
+    );
+    res.json({ users: rows });
+  } catch (err) {
+    console.error('Fetch all users error:', err);
+    res.status(500).json({ error: 'Failed to fetch users.' });
   }
 });
 

@@ -123,17 +123,17 @@ router.post('/upload', authenticate, upload.single('document'), async (req, res)
       const aiEngineUrl = 'http://127.0.0.1:5005';
       try {
         const fs = require('fs');
-        const FormData = require('form-data');
+        
+        const fileBuffer = fs.readFileSync(filePath);
+        const fileBlob = new Blob([fileBuffer], { type: req.file.mimetype });
 
         const form = new FormData();
-        form.append('file', fs.createReadStream(filePath));
+        form.append('document', fileBlob, req.file.originalname);
         form.append('tracking_number', trackingNumber);
 
-        const fetchFn = typeof fetch !== 'undefined' ? fetch : require('node-fetch');
-        const ocrRes = await fetchFn(`${aiEngineUrl}/ocr/extract`, {
+        const ocrRes = await fetch(`${aiEngineUrl}/ocr/extract`, {
           method: 'POST',
-          body: form,
-          headers: form.getHeaders ? form.getHeaders() : {},
+          body: form
         });
 
         if (ocrRes.ok) {
@@ -487,6 +487,31 @@ router.get('/stats/insights', authenticate, async (req, res) => {
   } catch (err) {
     console.error('Insights error:', err);
     res.status(500).json({ error: 'Failed to fetch insights.' });
+  }
+});
+
+/**
+ * GET /activity-logs
+ * Admin endpoint to view system-wide activity from step_logs.
+ */
+router.get('/activity-logs', authenticate, async (req, res) => {
+  try {
+    if (req.user.role !== 'admin') {
+      return res.status(403).json({ error: 'Access denied. Admin role required.' });
+    }
+    const [rows] = await pool.query(
+      `SELECT sl.id, sl.action_taken as step_name, sl.to_status as status, sl.notes, sl.timestamp_started, sl.timestamp_completed,
+              d.tracking_number, d.document_type, u.full_name as user_name
+       FROM step_logs sl
+       JOIN documents d ON sl.document_id = d.id
+       LEFT JOIN users u ON sl.clerk_id = u.id
+       ORDER BY sl.timestamp_started DESC
+       LIMIT 100`
+    );
+    res.json({ logs: rows });
+  } catch (err) {
+    console.error('Fetch activity logs error:', err);
+    res.status(500).json({ error: 'Failed to fetch activity logs.' });
   }
 });
 
