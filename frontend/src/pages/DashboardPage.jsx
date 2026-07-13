@@ -1442,7 +1442,7 @@ export default function DashboardPage() {
       {/* =========================================================================
                                 5. REGISTRAR ADMIN DASHBOARD
          ========================================================================= */}
-      {isAdmin && (
+      {isAdmin && currentTab === 'dashboard' && (
         <div className="space-y-8 animate-fade-in">
           {/* Welcome Header */}
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
@@ -1674,6 +1674,19 @@ export default function DashboardPage() {
                   </tbody>
                 </table>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {isAdmin && currentTab === 'admin-tracker' && (
+        <div className="space-y-8 animate-fade-in">
+          {/* Header */}
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+            <div>
+              <h2 className="text-3xl font-display font-black text-gray-900 tracking-tight">
+                System-Wide Tracker
+              </h2>
             </div>
           </div>
 

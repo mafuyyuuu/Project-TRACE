@@ -120,7 +120,7 @@ router.post('/upload', authenticate, upload.single('document'), async (req, res)
 
     // Await Python OCR engine ONLY if file exists
     if (filePath) {
-      const aiEngineUrl = process.env.AI_ENGINE_URL || 'http://localhost:5005';
+      const aiEngineUrl = 'http://127.0.0.1:5005';
       try {
         const fs = require('fs');
         const FormData = require('form-data');
@@ -376,7 +376,7 @@ router.get('/stats', authenticate, async (req, res) => {
  */
 router.get('/stats/forecast', authenticate, async (req, res) => {
   try {
-    const aiEngineUrl = process.env.AI_ENGINE_URL || 'http://localhost:5005';
+    const aiEngineUrl = 'http://127.0.0.1:5005';
     const fetchFn = typeof fetch !== 'undefined' ? fetch : require('node-fetch');
     
     try {
@@ -385,8 +385,9 @@ router.get('/stats/forecast', authenticate, async (req, res) => {
         const data = await aiRes.json();
         return res.json(data);
       }
-    } catch (aiErr) {
-      console.warn('AI forecast unavailable:', aiErr.message);
+    } catch (err) {
+      console.error(`AI forecast fetch failed at ${aiEngineUrl}/forecast:`, err.message, err.cause);
+      console.error('AI forecast unavailable:', err.message);
     }
 
     // Fallback: generate forecast from historical step_logs data
@@ -426,7 +427,7 @@ router.get('/stats/forecast', authenticate, async (req, res) => {
  */
 router.get('/stats/insights', authenticate, async (req, res) => {
   try {
-    const aiEngineUrl = process.env.AI_ENGINE_URL || 'http://localhost:5005';
+    const aiEngineUrl = 'http://127.0.0.1:5005';
     const fetchFn = typeof fetch !== 'undefined' ? fetch : require('node-fetch');
     
     try {
@@ -435,8 +436,9 @@ router.get('/stats/insights', authenticate, async (req, res) => {
         const data = await aiRes.json();
         return res.json(data);
       }
-    } catch (aiErr) {
-      console.warn('AI insights unavailable:', aiErr.message);
+    } catch (err) {
+      console.error(`AI insights fetch failed at ${aiEngineUrl}/ai/recommend:`, err.message, err.cause);
+      console.error('AI insights unavailable:', err.message);
     }
 
     // Fallback: generate insights from current queue data
