@@ -31,13 +31,16 @@ export default function LoginPage() {
         </div>
 
         <div className="my-auto py-12 md:py-0">
-          <span className="text-sm font-black text-gray-500 uppercase tracking-widest block mb-2">Welcome to</span>
-          <h1 className="text-7xl md:text-8xl font-display font-black text-[#15803d] tracking-tighter leading-none">TRACE</h1>
+          <span className="text-2xl font-black text-gray-900 block mb-2 tracking-tight">Welcome to</span>
+          <h1 className="text-7xl md:text-[10rem] font-display font-black text-[#15803d] tracking-tighter leading-none mb-4">TRACE</h1>
+          <h2 className="text-2xl md:text-3xl font-display font-black text-[#15803d] leading-tight max-w-md">
+            An AI-Assisted Registrar Document Workflow System
+          </h2>
         </div>
 
         <div>
-          <p className="text-sm text-gray-600 max-w-sm leading-relaxed font-medium">
-            Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore.
+          <p className="text-sm font-bold text-gray-900 max-w-sm leading-relaxed">
+            Empowering the PLP community with transparent document requests and intelligent, data-driven administrative processing.
           </p>
         </div>
       </div>
@@ -55,40 +58,38 @@ export default function LoginPage() {
 
           <form onSubmit={handleSubmit} className="flex flex-col gap-6">
             <div className="flex flex-col gap-2">
-              <label className="text-[10px] font-bold uppercase tracking-widest text-white/70">USERNAME</label>
+              <label className="text-xs font-bold text-white uppercase tracking-wider">USERNAME</label>
               <input 
                 type="text" 
                 value={employeeId} 
                 onChange={(e) => setEmployeeId(e.target.value)} 
-                className="w-full p-4 bg-white/10 border border-white/20 rounded-xl text-sm focus:ring-2 focus:ring-white/30 outline-none text-white focus:bg-white/20 transition-all font-semibold" 
-                placeholder="Enter ID" 
+                className="w-full p-4 bg-white/10 border border-white/20 rounded-xl text-sm focus:ring-2 focus:ring-white/50 outline-none text-white focus:bg-white/20 transition-all font-semibold placeholder:text-white/40" 
                 autoFocus 
               />
             </div>
 
             <div className="flex flex-col gap-2">
-              <label className="text-[10px] font-bold uppercase tracking-widest text-white/70">PASSWORD</label>
+              <label className="text-xs font-bold text-white uppercase tracking-wider">PASSWORD</label>
               <input 
                 type="password" 
                 value={password} 
                 onChange={(e) => setPassword(e.target.value)} 
-                className="w-full p-4 bg-white/10 border border-white/20 rounded-xl text-sm focus:ring-2 focus:ring-white/30 outline-none text-white focus:bg-white/20 transition-all font-semibold" 
-                placeholder="••••••••" 
+                className="w-full p-4 bg-white/10 border border-white/20 rounded-xl text-sm focus:ring-2 focus:ring-white/50 outline-none text-white focus:bg-white/20 transition-all font-semibold placeholder:text-white/40" 
               />
-              <div className="text-right mt-1">
-                <Link to="#" className="text-xs font-semibold text-white/80 hover:text-white underline">Forgot Password?</Link>
+              <div className="text-right mt-2">
+                <Link to="#" className="text-sm font-medium text-white/90 hover:text-white underline underline-offset-4">Forgot Password?</Link>
               </div>
             </div>
 
             <button 
               type="submit" 
               disabled={loading} 
-              className="mt-8 w-full py-4 bg-white text-gray-900 font-bold rounded-xl hover:bg-gray-100 disabled:opacity-70 disabled:cursor-not-allowed transition-all shadow-md uppercase tracking-wider text-sm flex items-center justify-center gap-2"
+              className="mt-6 w-full py-5 bg-[#f8f9fa] text-gray-900 font-black text-2xl rounded-xl hover:bg-white disabled:opacity-70 disabled:cursor-not-allowed transition-all shadow-lg uppercase tracking-wide flex items-center justify-center gap-3"
             >
               {loading ? (
                 <>
-                  <span className="w-4 h-4 border-2 border-gray-900/30 border-t-gray-900 rounded-full animate-spin"></span> 
-                  Signing in...
+                  <span className="w-5 h-5 border-4 border-gray-900/30 border-t-gray-900 rounded-full animate-spin"></span> 
+                  <span className="text-xl">SIGNING IN...</span>
                 </>
               ) : 'LOGIN'}
             </button>

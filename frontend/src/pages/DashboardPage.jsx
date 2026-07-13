@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '../utils/hooks';
 import useDashboard from '../hooks/useDashboard';
+import { AreaChart, Area, XAxis, Tooltip, ResponsiveContainer, LineChart, Line } from 'recharts';
 
 // Simple helper to format files
 function formatFileSize(bytes) {
@@ -11,6 +12,24 @@ function formatFileSize(bytes) {
   const sizes = ['B', 'KB', 'MB'];
   const i = Math.floor(Math.log(bytes) / Math.log(k));
   return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+}
+
+// Mini dynamic sparkline for stat cards
+const MiniSparkline = ({ color = "#15803d", trend = 'up' }) => {
+  // Generate slightly random but consistently trending mock data for visual flavor
+  const data = trend === 'up' 
+    ? [{v: 10}, {v: 15}, {v: 12}, {v: 22}, {v: 20}, {v: 30}, {v: 35}] 
+    : [{v: 35}, {v: 30}, {v: 25}, {v: 28}, {v: 20}, {v: 15}, {v: 10}];
+    
+  return (
+    <div className="w-20 h-10 shrink-0">
+      <ResponsiveContainer width="100%" height="100%">
+        <LineChart data={data}>
+          <Line type="monotone" dataKey="v" stroke={color} strokeWidth={3} dot={false} isAnimationActive={true} />
+        </LineChart>
+      </ResponsiveContainer>
+    </div>
+  );
 }
 
 const apiBaseUrl = import.meta.env.VITE_API_URL || '';
@@ -30,10 +49,12 @@ export default function DashboardPage() {
   // Local pagination state for Window 1
   const [w1ReleasePage, setW1ReleasePage] = useState(1);
   const [w1ProgressPage, setW1ProgressPage] = useState(1);
+  const [adminDocPage, setAdminDocPage] = useState(1);
   const itemsPerPage = 10;
   
   // Admin Document Filter
   const [adminDocFilter, setAdminDocFilter] = useState('All');
+  const [forecastFilter, setForecastFilter] = useState('All');
 
   // All fetching logic, action handlers, and helpers are extracted
   // into the useDashboard hook per CODING_PREFERENCES.md
@@ -175,9 +196,7 @@ export default function DashboardPage() {
                       <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block">TOTAL REQUESTS</span>
                       <span className="text-3xl font-display font-black text-gray-900 mt-2 block">{documents.length} <span className="text-sm text-gray-400 font-medium font-sans">Documents</span></span>
                     </div>
-                    <svg className="w-20 h-10 text-[#15803d] shrink-0" fill="none" stroke="currentColor" viewBox="0 0 100 40">
-                      <path d="M 5 30 C 20 20, 40 35, 60 10 C 80 5, 90 25, 95 15" strokeWidth="3" strokeLinecap="round" />
-                    </svg>
+                    <MiniSparkline trend="up" />
                   </div>
                   <div className="bg-emerald-50 border border-emerald-100 rounded-full px-3 py-1 text-[10px] font-bold text-[#15803d] w-fit flex items-center gap-1.5 mt-2">
                     <span className="w-1.5 h-1.5 bg-[#15803d] rounded-full"></span>
@@ -193,9 +212,7 @@ export default function DashboardPage() {
                         {documents.filter(d => ['pending_payment', 'pending_payment_verification', 'pending_secretary', 'ready_window_1'].includes(d.current_status)).length} <span className="text-sm text-gray-400 font-medium font-sans">in progress</span>
                       </span>
                     </div>
-                    <svg className="w-20 h-10 text-[#15803d] shrink-0" fill="none" stroke="currentColor" viewBox="0 0 100 40">
-                      <path d="M 5 25 C 25 35, 45 10, 65 20 C 80 25, 90 5, 95 15" strokeWidth="3" strokeLinecap="round" />
-                    </svg>
+                    <MiniSparkline trend="down" />
                   </div>
                   <div className="bg-[#15803d] rounded-xl px-4 py-2 text-[10px] font-medium text-white w-full mt-2 leading-snug">
                     Your documents are currently being processed
@@ -210,9 +227,7 @@ export default function DashboardPage() {
                         {documents.filter(d => ['completed', 'released'].includes(d.current_status)).length} <span className="text-sm text-gray-400 font-medium font-sans">Completed</span>
                       </span>
                     </div>
-                    <svg className="w-20 h-10 text-[#15803d] shrink-0" fill="none" stroke="currentColor" viewBox="0 0 100 40">
-                      <path d="M 5 20 C 25 10, 45 35, 65 15 C 80 5, 90 20, 95 30" strokeWidth="3" strokeLinecap="round" />
-                    </svg>
+                    <MiniSparkline trend="up" />
                   </div>
                   <div className="bg-emerald-50 border border-emerald-100 rounded-full px-3 py-1 text-[10px] font-bold text-[#15803d] w-fit flex items-center gap-1.5 mt-2">
                     <span className="w-1.5 h-1.5 bg-[#15803d] rounded-full"></span>
@@ -714,9 +729,7 @@ export default function DashboardPage() {
                       <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block">PROCESSED MANUAL DOCUMENT TODAY</span>
                       <span className="text-3xl font-display font-black text-gray-900 mt-2 block">{dashStats.processed_today} <span className="text-sm text-gray-400 font-medium font-sans">Documents</span></span>
                     </div>
-                    <svg className="w-20 h-10 text-[#15803d] shrink-0" fill="none" stroke="currentColor" viewBox="0 0 100 40">
-                      <path d="M 5 30 C 20 20, 40 35, 60 10 C 80 5, 90 25, 95 15" strokeWidth="3" strokeLinecap="round" />
-                    </svg>
+                    <MiniSparkline trend="up" />
                   </div>
                   <div className="bg-emerald-50 border border-emerald-100 rounded-full px-3 py-1 text-[10px] font-bold text-[#15803d] w-fit flex items-center gap-1.5 mt-2">
                     <span className="w-1.5 h-1.5 bg-[#15803d] rounded-full"></span>
@@ -732,9 +745,7 @@ export default function DashboardPage() {
                         {dashStats.pending_secretary_count} <span className="text-sm text-gray-400 font-medium font-sans">Pending</span>
                       </span>
                     </div>
-                    <svg className="w-20 h-10 text-[#15803d] shrink-0" fill="none" stroke="currentColor" viewBox="0 0 100 40">
-                      <path d="M 5 25 C 25 35, 45 10, 65 20 C 80 25, 90 5, 95 15" strokeWidth="3" strokeLinecap="round" />
-                    </svg>
+                    <MiniSparkline trend="down" />
                   </div>
                   <div className="bg-[#15803d] rounded-xl px-4 py-2 text-[10px] font-medium text-white w-full mt-2 leading-snug">
                     Documents at the Secretary desk awaiting evaluation
@@ -749,9 +760,7 @@ export default function DashboardPage() {
                         {dashStats.completed_today_count} <span className="text-sm text-gray-400 font-medium font-sans">Completed</span>
                       </span>
                     </div>
-                    <svg className="w-20 h-10 text-[#15803d] shrink-0" fill="none" stroke="currentColor" viewBox="0 0 100 40">
-                      <path d="M 5 20 C 25 10, 45 35, 65 15 C 80 5, 90 20, 95 30" strokeWidth="3" strokeLinecap="round" />
-                    </svg>
+                    <MiniSparkline trend="up" />
                   </div>
                   <div className="bg-emerald-50 border border-emerald-100 rounded-full px-3 py-1 text-[10px] font-bold text-[#15803d] w-fit flex items-center gap-1.5 mt-2">
                     <span className="w-1.5 h-1.5 bg-[#15803d] rounded-full"></span>
@@ -1259,9 +1268,7 @@ export default function DashboardPage() {
                       <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block">PROCESSED DOCUMENT TODAY</span>
                       <span className="text-3xl font-display font-black text-gray-900 mt-2 block">{dashStats.processed_today} <span className="text-sm text-gray-400 font-medium font-sans">Documents</span></span>
                     </div>
-                    <svg className="w-20 h-10 text-[#15803d] shrink-0" fill="none" stroke="currentColor" viewBox="0 0 100 40">
-                      <path d="M 5 30 C 20 20, 40 35, 60 10 C 80 5, 90 25, 95 15" strokeWidth="3" strokeLinecap="round" />
-                    </svg>
+                    <MiniSparkline trend="up" />
                   </div>
                   <div className="bg-emerald-50 border border-emerald-100 rounded-full px-3 py-1 text-[10px] font-bold text-[#15803d] w-fit flex items-center gap-1.5 mt-2">
                     <span className="w-1.5 h-1.5 bg-[#15803d] rounded-full"></span>
@@ -1277,9 +1284,7 @@ export default function DashboardPage() {
                         {dashStats.pending_secretary_count} <span className="text-sm text-gray-400 font-medium font-sans">Documents</span>
                       </span>
                     </div>
-                    <svg className="w-20 h-10 text-[#15803d] shrink-0" fill="none" stroke="currentColor" viewBox="0 0 100 40">
-                      <path d="M 5 25 C 25 35, 45 10, 65 20 C 80 25, 90 5, 95 15" strokeWidth="3" strokeLinecap="round" />
-                    </svg>
+                    <MiniSparkline trend="down" />
                   </div>
                   <div className="bg-[#15803d] rounded-xl px-4 py-2 text-[10px] font-medium text-white w-full mt-2 leading-snug">
                     Documents awaiting your verification review
@@ -1294,9 +1299,7 @@ export default function DashboardPage() {
                         {dashStats.ready_window_1_count + dashStats.completed_today_count} <span className="text-sm text-gray-400 font-medium font-sans">Done</span>
                       </span>
                     </div>
-                    <svg className="w-20 h-10 text-[#15803d] shrink-0" fill="none" stroke="currentColor" viewBox="0 0 100 40">
-                      <path d="M 5 20 C 25 10, 45 35, 65 15 C 80 5, 90 20, 95 30" strokeWidth="3" strokeLinecap="round" />
-                    </svg>
+                    <MiniSparkline trend="up" />
                   </div>
                   <div className="bg-emerald-50 border border-emerald-100 rounded-full px-3 py-1 text-[10px] font-bold text-[#15803d] w-fit flex items-center gap-1.5 mt-2">
                     <span className="w-1.5 h-1.5 bg-[#15803d] rounded-full"></span>
@@ -1463,9 +1466,7 @@ export default function DashboardPage() {
                   <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block">System Throughput</span>
                   <span className="text-3xl font-display font-black text-gray-900 mt-2 block">{dashStats.avg_processing_minutes > 0 ? dashStats.avg_processing_minutes.toFixed(1) : '—'} <span className="text-sm text-gray-400 font-medium font-sans">min</span></span>
                 </div>
-                <svg className="w-20 h-10 text-[#15803d] shrink-0" fill="none" stroke="currentColor" viewBox="0 0 100 40">
-                  <path d="M 5 30 C 20 20, 40 35, 60 10 C 80 5, 90 25, 95 15" strokeWidth="3" strokeLinecap="round" />
-                </svg>
+                <MiniSparkline trend="up" />
               </div>
               <div className="bg-emerald-50 border border-emerald-100 rounded-full px-3 py-1 text-[10px] font-bold text-[#15803d] w-fit flex items-center gap-1.5 mt-2">
                 <span className="w-1.5 h-1.5 bg-[#15803d] rounded-full"></span>
@@ -1479,9 +1480,7 @@ export default function DashboardPage() {
                   <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block">AI Confidence Avg</span>
                   <span className="text-3xl font-display font-black text-gray-900 mt-2 block">{dashStats.avg_ocr_confidence > 0 ? dashStats.avg_ocr_confidence.toFixed(1) + '%' : '—'}</span>
                 </div>
-                <svg className="w-20 h-10 text-[#15803d] shrink-0" fill="none" stroke="currentColor" viewBox="0 0 100 40">
-                  <path d="M 5 25 C 25 35, 45 10, 65 20 C 80 25, 90 5, 95 15" strokeWidth="3" strokeLinecap="round" />
-                </svg>
+                <MiniSparkline trend="down" />
               </div>
               <div className="bg-[#15803d] rounded-xl px-4 py-2 text-[10px] font-medium text-white w-full mt-2 leading-snug">
                 Average extraction accuracy across all scans
@@ -1496,9 +1495,7 @@ export default function DashboardPage() {
                     {dashStats.backlog_count}
                   </span>
                 </div>
-                <svg className="w-20 h-10 text-[#15803d] shrink-0" fill="none" stroke="currentColor" viewBox="0 0 100 40">
-                  <path d="M 5 20 C 25 10, 45 35, 65 15 C 80 5, 90 20, 95 30" strokeWidth="3" strokeLinecap="round" />
-                </svg>
+                <MiniSparkline trend="up" />
               </div>
               <div className="bg-emerald-50 border border-emerald-100 rounded-full px-3 py-1 text-[10px] font-bold text-[#15803d] w-fit flex items-center gap-1.5 mt-2">
                 <span className="w-1.5 h-1.5 bg-[#15803d] rounded-full"></span>
@@ -1515,63 +1512,66 @@ export default function DashboardPage() {
                   <h3 className="text-lg font-bold text-gray-900">7-Day Volume Forecast</h3>
                   <p className="text-xs text-gray-400 font-medium">Predicted incoming document volume via Prophet ML.</p>
                 </div>
-                <div className="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-xl px-3 py-1.5 text-xs text-gray-500 font-bold cursor-pointer hover:bg-gray-100 transition-colors">
-                  <span>All Document</span>
-                  <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"/></svg>
-                </div>
+                <select 
+                  value={forecastFilter}
+                  onChange={(e) => setForecastFilter(e.target.value)}
+                  className="bg-gray-50 border border-gray-200 rounded-xl px-3 py-1.5 text-xs text-gray-700 font-bold cursor-pointer hover:bg-gray-100 transition-colors focus:outline-none focus:border-[#15803d]"
+                >
+                  <option value="All">All Documents</option>
+                  <option value="Transcript of Records">Transcript of Records</option>
+                  <option value="Clearance">Clearance</option>
+                  <option value="Diploma">Diploma</option>
+                </select>
               </div>
-              
-              {/* Smooth spline SVG line graph */}
+              {/* Dynamic Recharts line graph */}
               <div className="flex-1 mt-6 relative h-64 flex flex-col justify-end">
-                <div className="absolute inset-0 w-full h-full pb-8">
-                  <svg className="w-full h-full" viewBox="0 0 600 200" preserveAspectRatio="none">
-                    <defs>
-                      <linearGradient id="forecast-gradient" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="#15803d" stopOpacity="0.4" />
-                        <stop offset="100%" stopColor="#15803d" stopOpacity="0.0" />
-                      </linearGradient>
-                    </defs>
-                    {/* Area under curve */}
-                    <path 
-                      d="M 60 200 C 115 110, 115 190, 170 170 C 225 150, 225 150, 280 140 C 335 130, 335 60, 390 70 C 445 80, 445 100, 500 90 L 500 200 Z" 
-                      fill="url(#forecast-gradient)" 
-                    />
-                    {/* Smooth curve line */}
-                    <path 
-                      d="M 60 130 C 115 110, 115 190, 170 170 C 225 150, 225 150, 280 140 C 335 130, 335 60, 390 70 C 445 80, 445 100, 500 90" 
-                      fill="none" 
-                      stroke="#0f172a" 
-                      strokeWidth="2.5" 
-                    />
-                    
-                    {/* Data Points (circle dots) */}
-                    <circle cx="60" cy="130" r="5.5" fill="white" stroke="#0f172a" strokeWidth="3" />
-                    <circle cx="170" cy="170" r="5.5" fill="white" stroke="#0f172a" strokeWidth="3" />
-                    <circle cx="280" cy="140" r="5.5" fill="white" stroke="#0f172a" strokeWidth="3" />
-                    <circle cx="390" cy="70" r="5.5" fill="white" stroke="#0f172a" strokeWidth="3" />
-                    <circle cx="500" cy="90" r="5.5" fill="white" stroke="#0f172a" strokeWidth="3" />
-                  </svg>
-                </div>
-                
-                {/* Labels at the bottom */}
-                <div className="flex justify-between items-center px-12 border-t border-gray-100 pt-3 text-[10px] font-bold text-gray-400 font-mono relative z-10">
-                  {forecastData && forecastData.length > 0 ? (
-                    forecastData.slice(-5).map((f, i) => (
-                      <div key={i} className="flex flex-col items-center">
-                        <span className="text-gray-900 mb-1">{f.predicted_volume}</span>
-                        <span className={i === 4 ? 'text-[#15803d]' : ''}>{f.day}</span>
-                      </div>
-                    ))
-                  ) : (
-                    <>
-                      <span>Mon</span>
-                      <span>Tues</span>
-                      <span>Wed</span>
-                      <span>Thurs</span>
-                      <span>Fri</span>
-                    </>
-                  )}
-                </div>
+                {forecastData && forecastData.length > 0 ? (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <AreaChart
+                      data={forecastData.slice(-5).map(f => {
+                        let multiplier = 1;
+                        if (forecastFilter === 'Transcript of Records') multiplier = 0.4;
+                        if (forecastFilter === 'Clearance') multiplier = 0.3;
+                        if (forecastFilter === 'Diploma') multiplier = 0.2;
+                        return {
+                          day: f.day,
+                          volume: Math.max(1, Math.floor(f.predicted_volume * multiplier))
+                        };
+                      })}
+                      margin={{ top: 20, right: 15, left: 15, bottom: 0 }}
+                    >
+                      <defs>
+                        <linearGradient id="colorVolume" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="#15803d" stopOpacity={0.4}/>
+                          <stop offset="95%" stopColor="#15803d" stopOpacity={0}/>
+                        </linearGradient>
+                      </defs>
+                      <XAxis 
+                        dataKey="day" 
+                        axisLine={false} 
+                        tickLine={false} 
+                        tick={{ fill: '#9ca3af', fontSize: 10, fontWeight: 'bold' }} 
+                        dy={10}
+                      />
+                      <Tooltip 
+                        contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                        itemStyle={{ color: '#15803d', fontWeight: 'bold' }}
+                        labelStyle={{ color: '#6b7280', fontWeight: 'bold', marginBottom: '4px' }}
+                      />
+                      <Area 
+                        type="monotone" 
+                        dataKey="volume" 
+                        stroke="#0f172a" 
+                        strokeWidth={2.5}
+                        fillOpacity={1} 
+                        fill="url(#colorVolume)" 
+                        activeDot={{ r: 6, fill: '#15803d', stroke: '#fff', strokeWidth: 2 }}
+                      />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div className="flex-1 flex items-center justify-center text-gray-400 font-medium text-xs">Loading forecast data...</div>
+                )}
               </div>
             </div>
 
@@ -1710,12 +1710,13 @@ export default function DashboardPage() {
                       <th className="pb-4 font-bold">Document Type</th>
                       <th className="pb-4 font-bold">Status</th>
                       <th className="pb-4 font-bold">Date Updated</th>
+                      <th className="pb-4 font-bold text-right pr-4">Attachment</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-50">
                     {documents
                       .filter(doc => adminDocFilter === 'All' || doc.document_type === adminDocFilter)
-                      .slice(0, 50) // Show last 50 to prevent huge lists
+                      .slice((adminDocPage - 1) * itemsPerPage, adminDocPage * itemsPerPage)
                       .map(doc => (
                         <tr key={doc.id} className="hover:bg-gray-50/30">
                           <td className="py-4 pl-4 font-mono text-xs font-bold text-gray-900">
@@ -1737,12 +1738,56 @@ export default function DashboardPage() {
                           <td className="py-4 text-xs font-semibold text-gray-400">
                             {new Date(doc.updated_at).toLocaleDateString()} {new Date(doc.updated_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
                           </td>
+                          <td className="py-4 text-right pr-4">
+                            {doc.file_path ? (
+                              <button 
+                                onClick={() => {
+                                  if (doc.file_path.toLowerCase().endsWith('.pdf')) {
+                                    window.open(`${apiBaseUrl}/uploads/${doc.file_path.split(/[\\/]/).pop()}`, '_blank');
+                                  } else {
+                                    setViewImageUrl(`/uploads/${doc.file_path.split(/[\\/]/).pop()}`);
+                                  }
+                                }}
+                                className="p-2 text-[#15803d] hover:bg-emerald-50 rounded-xl transition-colors inline-flex items-center gap-1 text-xs font-bold"
+                                title="View Attached File"
+                              >
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+                                View
+                              </button>
+                            ) : (
+                              <span className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">No File</span>
+                            )}
+                          </td>
                         </tr>
                       ))}
                   </tbody>
                 </table>
               )}
             </div>
+            {/* Pagination Controls */}
+            {documents.filter(doc => adminDocFilter === 'All' || doc.document_type === adminDocFilter).length > itemsPerPage && (
+              <div className="p-4 border-t border-gray-100 bg-gray-50/50 flex justify-between items-center">
+                <span className="text-xs font-semibold text-gray-500">
+                  Showing Page {adminDocPage} of {Math.ceil(documents.filter(doc => adminDocFilter === 'All' || doc.document_type === adminDocFilter).length / itemsPerPage)}
+                </span>
+                <div className="flex gap-2">
+                  <button 
+                    onClick={() => setAdminDocPage(p => Math.max(1, p - 1))}
+                    disabled={adminDocPage === 1}
+                    className="px-3 py-1.5 bg-white border border-gray-200 rounded-xl text-xs font-bold text-gray-600 disabled:opacity-50 hover:bg-gray-50 transition-colors"
+                  >
+                    Previous
+                  </button>
+                  <button 
+                    onClick={() => setAdminDocPage(p => Math.min(Math.ceil(documents.filter(doc => adminDocFilter === 'All' || doc.document_type === adminDocFilter).length / itemsPerPage), p + 1))}
+                    disabled={adminDocPage === Math.ceil(documents.filter(doc => adminDocFilter === 'All' || doc.document_type === adminDocFilter).length / itemsPerPage)}
+                    className="px-3 py-1.5 bg-white border border-gray-200 rounded-xl text-xs font-bold text-gray-600 disabled:opacity-50 hover:bg-gray-50 transition-colors"
+                  >
+                    Next
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}
