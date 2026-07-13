@@ -46,7 +46,7 @@ def generate_mock_data(num_docs=500):
     for i in range(num_docs):
         # 1. Create Document
         tracking_number = f"TRC-MOCK-{fake.hexify(text='^^^^^^^^', upper=True)}"
-        student_id = f"{random.randint(2018, 2024)}-{random.randint(10000, 99999)}"
+        student_id = f"{random.randint(18, 24):02d}-{random.randint(10000, 99999)}"
         doc_type = random.choice(doc_types)
         final_status = random.choice(statuses)
         clerk = random.choice(clerks)

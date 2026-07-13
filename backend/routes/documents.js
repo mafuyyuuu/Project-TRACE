@@ -120,7 +120,7 @@ router.post('/upload', authenticate, upload.single('document'), async (req, res)
 
     // Await Python OCR engine ONLY if file exists
     if (filePath) {
-      const aiEngineUrl = process.env.AI_ENGINE_URL || 'http://localhost:5000';
+      const aiEngineUrl = process.env.AI_ENGINE_URL || 'http://localhost:5005';
       try {
         const fs = require('fs');
         const FormData = require('form-data');
@@ -376,7 +376,7 @@ router.get('/stats', authenticate, async (req, res) => {
  */
 router.get('/stats/forecast', authenticate, async (req, res) => {
   try {
-    const aiEngineUrl = process.env.AI_ENGINE_URL || 'http://localhost:5000';
+    const aiEngineUrl = process.env.AI_ENGINE_URL || 'http://localhost:5005';
     const fetchFn = typeof fetch !== 'undefined' ? fetch : require('node-fetch');
     
     try {
@@ -426,7 +426,7 @@ router.get('/stats/forecast', authenticate, async (req, res) => {
  */
 router.get('/stats/insights', authenticate, async (req, res) => {
   try {
-    const aiEngineUrl = process.env.AI_ENGINE_URL || 'http://localhost:5000';
+    const aiEngineUrl = process.env.AI_ENGINE_URL || 'http://localhost:5005';
     const fetchFn = typeof fetch !== 'undefined' ? fetch : require('node-fetch');
     
     try {

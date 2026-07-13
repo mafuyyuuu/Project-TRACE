@@ -140,9 +140,9 @@ def parse_student_data(raw_text):
     form_type = None
 
     # --- Extract Student Number ---
-    # Matches patterns like: "Student No: 2024-00123", "2024-001234", etc.
+    # Matches patterns like: "Student No: 23-00939", "23-00939", etc.
     student_id_pattern = (
-        r'(?:student\s*(?:no|number|id)[.:\s]*)?\b(\d{4}[-\u2010]\d{4,6})\b'
+        r'(?:student\s*(?:no|number|id)[.:\s]*)?\b(\d{2}[-\u2010]\d{4,6})\b'
     )
     student_id_match = re.search(student_id_pattern, raw_text, re.IGNORECASE)
     if student_id_match:
@@ -178,7 +178,7 @@ def parse_student_data(raw_text):
 
     # --- Calculate Confidence ---
     fields_found = sum(1 for field in [student_id, last_name, form_type] if field is not None)
-    confidence = fields_found / 3
+    confidence = (fields_found / 3.0) * 100.0
 
     logger.info(
         "Parse results — ID: %s, Name: %s, Type: %s, Confidence: %.2f",

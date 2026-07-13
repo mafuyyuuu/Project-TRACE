@@ -31,6 +31,9 @@ export default function DashboardPage() {
   const [w1ReleasePage, setW1ReleasePage] = useState(1);
   const [w1ProgressPage, setW1ProgressPage] = useState(1);
   const itemsPerPage = 10;
+  
+  // Admin Document Filter
+  const [adminDocFilter, setAdminDocFilter] = useState('All');
 
   // All fetching logic, action handlers, and helpers are extracted
   // into the useDashboard hook per CODING_PREFERENCES.md
@@ -1668,6 +1671,74 @@ export default function DashboardPage() {
                         </td>
                       </tr>
                     ))}
+                  </tbody>
+                </table>
+              )}
+            </div>
+          </div>
+
+          {/* All Documents Tracker */}
+          <div className="bg-white rounded-3xl shadow-sm border border-gray-200 overflow-hidden">
+            <div className="p-6 border-b border-gray-100 bg-gray-50/50 flex justify-between items-center">
+              <h3 className="font-bold text-gray-900 text-lg">System-Wide Document Tracker</h3>
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-bold text-gray-500 uppercase tracking-widest">Filter:</span>
+                <select 
+                  value={adminDocFilter}
+                  onChange={(e) => setAdminDocFilter(e.target.value)}
+                  className="px-3 py-1.5 bg-white border border-gray-200 rounded-xl text-xs font-bold text-gray-700 focus:outline-none focus:border-[#15803d]"
+                >
+                  <option value="All">All Documents</option>
+                  <option value="Transcript of Records">Transcript of Records</option>
+                  <option value="Honorable Dismissal">Honorable Dismissal</option>
+                  <option value="Clearance">Clearance</option>
+                  <option value="Certificate of Good Moral">Certificate of Good Moral</option>
+                  <option value="Diploma">Diploma</option>
+                  <option value="Certification">Certification</option>
+                </select>
+              </div>
+            </div>
+            <div className="p-6 overflow-x-auto">
+              {documents.filter(doc => adminDocFilter === 'All' || doc.document_type === adminDocFilter).length === 0 ? (
+                <div className="text-center py-12 text-gray-400 font-medium">No documents match the current filter.</div>
+              ) : (
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="text-gray-400 text-[10px] uppercase tracking-widest border-b border-gray-100">
+                      <th className="pb-4 font-bold pl-4">Tracking ID</th>
+                      <th className="pb-4 font-bold">Student</th>
+                      <th className="pb-4 font-bold">Document Type</th>
+                      <th className="pb-4 font-bold">Status</th>
+                      <th className="pb-4 font-bold">Date Updated</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-50">
+                    {documents
+                      .filter(doc => adminDocFilter === 'All' || doc.document_type === adminDocFilter)
+                      .slice(0, 50) // Show last 50 to prevent huge lists
+                      .map(doc => (
+                        <tr key={doc.id} className="hover:bg-gray-50/30">
+                          <td className="py-4 pl-4 font-mono text-xs font-bold text-gray-900">
+                            #{doc.tracking_number ? doc.tracking_number.slice(0, 10).toUpperCase() : doc.id}
+                          </td>
+                          <td className="py-4 text-sm font-bold text-gray-700">{doc.student_name || doc.student_id || 'Unknown'}</td>
+                          <td className="py-4 text-xs font-bold text-gray-600">{doc.document_type}</td>
+                          <td className="py-4">
+                            <span className={`px-3 py-1 text-[10px] font-black rounded-full uppercase tracking-wider ${
+                              doc.current_status === 'completed' || doc.current_status === 'released'
+                                ? 'bg-emerald-50 text-emerald-600'
+                                : doc.current_status === 'rejected'
+                                ? 'bg-red-50 text-red-600'
+                                : 'bg-blue-50 text-blue-600'
+                            }`}>
+                              {doc.current_status.replace('_', ' ')}
+                            </span>
+                          </td>
+                          <td className="py-4 text-xs font-semibold text-gray-400">
+                            {new Date(doc.updated_at).toLocaleDateString()} {new Date(doc.updated_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                          </td>
+                        </tr>
+                      ))}
                   </tbody>
                 </table>
               )}

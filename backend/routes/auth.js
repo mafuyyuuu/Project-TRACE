@@ -137,7 +137,7 @@ router.post('/register', upload.single('id_proof'), async (req, res) => {
     let verification_status = 'pending';
     let verification_reason = 'Pending manual review.';
     try {
-      const aiEngineUrl = process.env.AI_ENGINE_URL || 'http://localhost:5000';
+      const aiEngineUrl = process.env.AI_ENGINE_URL || 'http://localhost:5005';
       const fs = require('fs');
       const FormData = require('form-data');
       const fetchFn = typeof fetch !== 'undefined' ? fetch : require('node-fetch');
