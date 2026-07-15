@@ -20,6 +20,7 @@ Before a student can request documents, they must create an account.
 - They select the document type (e.g., TOR, Diploma) and upload a file.
 - The system automatically generates a unique `tracking_number`.
 - **Payment Submission:** The student is immediately prompted to pay via GCash. They must submit the GCash Reference Number and a screenshot of the receipt. The document enters a `pending_payment_verification` state.
+- **Notifications:** Students receive dual **SMS** (via UniSMS) and **Email** (via Nodemailer) alerts whenever their document progresses or is rejected.
 
 ### 3. Finance Clerk
 The finance dashboard.
@@ -40,7 +41,8 @@ The approver dashboard.
 ### 6. Registrar Admin
 The central monitoring and operations hub.
 - **AI Insights & Forecasting:** Views 7-day predictive volume forecasts and real-time AI alerts for queue bottlenecks.
-- **Account Verification:** Manually verifies student accounts that failed automatic AI verification.
+- **Registered Users:** Manages a global database table of all system accounts. Verifies or rejects student accounts that failed automatic AI verification.
+- **Activity Logs:** Monitors a global audit trail of every single interaction across the system to maintain strict accountability.
 
 ---
 

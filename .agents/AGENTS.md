@@ -30,7 +30,7 @@ Run [migration.js](file:///Users/jhervin/project-trace/backend/database/migratio
   - `purpose` (VARCHAR(255)) storing dynamic form JSON (reason, year graduated).
   - `payment_status` (ENUM('UNPAID', 'PAID')) defaulting to `'UNPAID'`.
   - `current_status` (VARCHAR(50)) defaulting to `'pending_payment'`.
-* `users` table: Added `course` (VARCHAR(100)) and `phone_number` (VARCHAR(20)) for UniSMS routing.
+* `users` table: Added `course` (VARCHAR(100)), `phone_number` (VARCHAR(20)) for UniSMS routing, and `email` for Nodemailer.
 * `notifications` table: New table linking to `user_id` for the in-app Bell icon alerts.
 
 ---
@@ -48,6 +48,13 @@ Run [migration.js](file:///Users/jhervin/project-trace/backend/database/migratio
 
 ---
 
+* **Multi-Channel Notifications (Phase 4):** Fully integrated Nodemailer alongside UniSMS to dispatch concurrent SMS and Email alerts based on real DB student profiles when documents are evaluated.
+* **Admin Global Audit & Users:** Created a massive `Registered Users` table mapping all accounts and an `Activity Logs` table rendering global `step_logs` in the Admin Dashboard.
+* **Re-Registration & Verification Logic:** Rejected students can freely re-register (auto-deleting old rejected records). Staff accounts correctly bypass pending states in the DB.
+* **UI/UX Revisions:** The login page placeholder now explicitly enforces `STUDENT ID / STAFF ID` to prevent user email errors. Settings modal expanded to support Email Address edits. Signup Page expanded to include Phone Number and Confirm Password validation.
+
+---
+
 ## 🔐 Credentials Checklist (Password: `trace2024`)
 
 * **Registrar Admin:** ID `ADMIN001` (Desk: `Admin Office`)
@@ -58,9 +65,10 @@ Run [migration.js](file:///Users/jhervin/project-trace/backend/database/migratio
 
 ---
 
-## 📍 Integration Next Steps (Phase 4)
+## 📍 Integration Next Steps (Phase 5)
 If continuing system development:
 1. **Machine Learning Prep**: Run `ai-engine/mock_data_gen.py` to seed historical log timestamps into the database to immediately train the Prophet forecasting models and Random Forest insights engine.
-2. **Finance QR Code**: Replace the Mock GCash QR SVG in `DashboardPage.jsx` with the actual Finance Department's merchant QR code image, or integrate PayMongo/Xendit.
-3. **Window 1 Scanner Bridge**: Implement WebTWAIN (or a similar web-scanning library) to allow the "Scan" button in `DashboardPage.jsx` to trigger physical hardware scanners.
-4. **Deployment Prep**: Prepare for staging deployment by compiling the Vite frontend (`npm run build`), containerizing the Flask API, and migrating to a managed MySQL instance.
+2. **Forgot Password Flow**: Implement the full JWT reset token email flow in `auth.js` and build the `/reset-password` frontend route.
+3. **Finance QR Code**: Replace the Mock GCash QR SVG in `DashboardPage.jsx` with the actual Finance Department's merchant QR code image, or integrate PayMongo/Xendit.
+4. **Window 1 Scanner Bridge**: Implement WebTWAIN (or a similar web-scanning library) to allow the "Scan" button in `DashboardPage.jsx` to trigger physical hardware scanners.
+5. **Deployment Prep**: Prepare for staging deployment by compiling the Vite frontend (`npm run build`), containerizing the Flask API, and migrating to a managed MySQL instance.
