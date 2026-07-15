@@ -65,9 +65,26 @@ This document serves as the master tracking sheet for Project TRACE. It organize
 
 ---
 
-## 🚀 Phase 5: Production Deployment (Pending)
+---
+
+## ✅ Phase 5: Multi-Channel Communication & Global Auditing (Completed)
+*Expanding system communication to email and implementing global administrator audits.*
+
+* **Email Integration:**
+  * ✅ **Nodemailer:** Deployed `nodemailer` alongside `unisms` to dispatch concurrent Email and SMS notifications during Secretary document evaluation.
+* **Global Administrator Audit:**
+  * ✅ **Activity Logs:** Engineered a global `Activity Logs` dashboard tab for the Admin to view real-time system actions (`step_logs` mapping).
+  * ✅ **Registered Users:** Engineered a `Registered Users` search table for the Admin to govern all verified/pending accounts across the system.
+* **Authentication Hardening:**
+  * ✅ **Re-Registration:** Engineered SQL logic to auto-delete rejected accounts so students can safely re-register using the same email/ID.
+  * ✅ **UI Protections:** Enforced explicit `STUDENT ID / STAFF ID` labeling on the login screen to prevent accidental email submissions. Added `Confirm Password` & `Phone Number` validation to the signup flow. Expanded the `SettingsModal` to dynamically update `email`.
+
+---
+
+## 🚀 Phase 6: Production Deployment (Pending)
 *Taking the system live on external servers.*
 
+* **Forgot Password Flow:** Implement the full JWT reset token email flow in `auth.js` and build the `/reset-password` frontend route.
 * **Frontend:** Build the Vite project (`npm run build`) and serve via Nginx or deploy to Vercel/Netlify.
 * **Backend:** Deploy the Node.js API to a VPS (e.g., DigitalOcean, AWS EC2) or a PaaS (e.g., Render, Railway) using PM2 for process management.
 * **ML/AI Engine:** Deploy the Flask application. *(Note: Because PyTorch/EasyOCR is heavy, this microservice may require a server with adequate RAM or a small GPU for fast inference).*

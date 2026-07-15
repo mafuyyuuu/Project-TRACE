@@ -14,7 +14,7 @@ export default function Layout() {
   const [notifications, setNotifications] = useState([])
   const [showNotifs, setShowNotifs] = useState(false)
   const [showSettings, setShowSettings] = useState(false)
-  const [profileData, setProfileData] = useState({ phone_number: user?.phone_number || '', password: '' })
+  const [profileData, setProfileData] = useState({ phone_number: user?.phone_number || '', email: user?.email || '', password: '' })
   const [savingSettings, setSavingSettings] = useState(false)
 
   const loadNotifs = async () => {
@@ -167,9 +167,17 @@ export default function Layout() {
               </Link>
             )}
             {user?.role === 'admin' && (
-              <Link to="/dashboard?tab=admin-tracker" className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all ${tab === 'admin-tracker' ? 'bg-[#15803d] text-white shadow-md' : 'text-gray-400 hover:bg-gray-50 hover:text-gray-600'}`} title="System-Wide Document Tracker">
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-              </Link>
+              <>
+                <Link to="/dashboard?tab=admin-tracker" className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all ${tab === 'admin-tracker' ? 'bg-[#15803d] text-white shadow-md' : 'text-gray-400 hover:bg-gray-50 hover:text-gray-600'}`} title="System-Wide Document Tracker">
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                </Link>
+                <Link to="/dashboard?tab=admin-users" className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all ${tab === 'admin-users' ? 'bg-[#15803d] text-white shadow-md' : 'text-gray-400 hover:bg-gray-50 hover:text-gray-600'}`} title="Registered Users">
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+                </Link>
+                <Link to="/dashboard?tab=admin-logs" className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all ${tab === 'admin-logs' ? 'bg-[#15803d] text-white shadow-md' : 'text-gray-400 hover:bg-gray-50 hover:text-gray-600'}`} title="Activity Logs">
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
+                </Link>
+              </>
             )}
           </nav>
           <div className="flex flex-col gap-4">
@@ -210,6 +218,17 @@ export default function Layout() {
                     className="w-full bg-gray-50 border-none rounded-xl py-3 px-4 text-sm font-semibold focus:ring-2 focus:ring-[#15803d]/20 outline-none"
                   />
                   <p className="text-xs text-gray-400 mt-1">Required for UniSMS notifications.</p>
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Email Address</label>
+                  <input
+                    type="email"
+                    value={profileData.email}
+                    onChange={(e) => setProfileData({...profileData, email: e.target.value})}
+                    placeholder="juan@plp.edu.ph"
+                    className="w-full bg-gray-50 border-none rounded-xl py-3 px-4 text-sm font-semibold focus:ring-2 focus:ring-[#15803d]/20 outline-none"
+                  />
+                  <p className="text-xs text-gray-400 mt-1">Required for Email notifications.</p>
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Change Password</label>

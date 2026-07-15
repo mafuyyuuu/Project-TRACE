@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '../utils/hooks';
@@ -55,6 +55,25 @@ export default function DashboardPage() {
   // Admin Document Filter
   const [adminDocFilter, setAdminDocFilter] = useState('All');
   const [forecastFilter, setForecastFilter] = useState('All');
+  const [adminUsers, setAdminUsers] = useState([]);
+  const [adminUsersFilter, setAdminUsersFilter] = useState('');
+  const [adminLogs, setAdminLogs] = useState([]);
+
+  useEffect(() => {
+    if (user?.role === 'admin' && currentTab === 'admin-users') {
+      fetch(`${apiBaseUrl}/api/auth/users`, {
+        headers: { Authorization: `Bearer ${localStorage.getItem('trace_token')}` }
+      }).then(res => res.json()).then(data => setAdminUsers(data.users || []));
+    }
+  }, [currentTab, user]);
+
+  useEffect(() => {
+    if (user?.role === 'admin' && currentTab === 'admin-logs') {
+      fetch(`${apiBaseUrl}/api/documents/activity-logs`, {
+        headers: { Authorization: `Bearer ${localStorage.getItem('trace_token')}` }
+      }).then(res => res.json()).then(data => setAdminLogs(data.logs || []));
+    }
+  }, [currentTab, user]);
 
   // All fetching logic, action handlers, and helpers are extracted
   // into the useDashboard hook per CODING_PREFERENCES.md
@@ -1628,7 +1647,7 @@ export default function DashboardPage() {
                       <th className="pb-4 font-bold">Full Name</th>
                       <th className="pb-4 font-bold">Email</th>
                       <th className="pb-4 font-bold">Proof of Registration</th>
-                      <th className="pb-4 font-bold text-right pr-4">Action</th>
+                      <th className="pb-4 font-bold text-center">Action</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-50">
@@ -1639,35 +1658,35 @@ export default function DashboardPage() {
                         <td className="py-4 text-sm text-gray-600">{student.email || '—'}</td>
                         <td className="py-4">
                           {student.id_proof_path ? (
-                            <a 
-                              href={`${apiBaseUrl}/uploads/${student.id_proof_path.split(/[\\/]/).pop()}`} 
-                              target="_blank" 
-                              rel="noreferrer" 
+                            <button 
+                              onClick={() => setViewImageUrl(`${apiBaseUrl}/uploads/${student.id_proof_path.split(/[\\/]/).pop()}`)}
                               className="text-xs text-indigo-600 font-bold hover:underline flex items-center gap-1"
                             >
                               🔎 View ID / Diploma Attachment
-                            </a>
+                            </button>
                           ) : (
                             <span className="text-xs text-gray-400 italic">No proof uploaded</span>
                           )}
                         </td>
-                        <td className="py-4 text-right pr-4 space-x-2">
-                          <button 
-                            onClick={() => handleAdminVerifyStudent(student.id, 'reject')}
-                            disabled={actionLoading}
-                            className="px-3 py-1.5 bg-white border border-red-200 text-red-500 rounded-xl text-xs font-bold hover:bg-red-50 flex items-center gap-1.5"
-                          >
-                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M6 18L18 6M6 6l12 12"/></svg>
-                            Reject
-                          </button>
-                          <button 
-                            onClick={() => handleAdminVerifyStudent(student.id, 'verify')}
-                            disabled={actionLoading}
-                            className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-sm flex items-center gap-1.5"
-                          >
-                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                            Verify Student
-                          </button>
+                        <td className="py-4">
+                          <div className="flex items-center justify-center gap-2">
+                            <button 
+                              onClick={() => handleAdminVerifyStudent(student.id, 'reject')}
+                              disabled={actionLoading}
+                              className="px-3 py-1.5 bg-white border border-red-200 text-red-500 rounded-xl text-xs font-bold hover:bg-red-50 flex items-center gap-1.5"
+                            >
+                              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M6 18L18 6M6 6l12 12"/></svg>
+                              Reject
+                            </button>
+                            <button 
+                              onClick={() => handleAdminVerifyStudent(student.id, 'verify')}
+                              disabled={actionLoading}
+                              className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-sm flex items-center gap-1.5"
+                            >
+                              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                              Verify Student
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     ))}
@@ -1801,6 +1820,99 @@ export default function DashboardPage() {
                 </div>
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {isAdmin && currentTab === 'admin-users' && (
+        <div className="space-y-8 animate-fade-in">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+            <div>
+              <h2 className="text-3xl font-display font-black text-gray-900 tracking-tight">Registered Users</h2>
+            </div>
+          </div>
+          <div className="bg-white rounded-3xl shadow-sm border border-gray-200 overflow-hidden">
+            <div className="p-6 border-b border-gray-100 bg-gray-50/50 flex justify-between items-center">
+              <h3 className="font-bold text-gray-900 text-lg">System Users</h3>
+              <input 
+                type="text" 
+                placeholder="Search name, ID, or email..." 
+                value={adminUsersFilter}
+                onChange={(e) => setAdminUsersFilter(e.target.value)}
+                className="px-4 py-2 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-[#15803d]"
+              />
+            </div>
+            <div className="p-6 overflow-x-auto">
+              <table className="w-full text-left border-collapse whitespace-nowrap">
+                <thead>
+                  <tr className="text-xs uppercase tracking-widest text-gray-400 border-b border-gray-100">
+                    <th className="pb-4 font-bold pl-4">ID</th>
+                    <th className="pb-4 font-bold">Name</th>
+                    <th className="pb-4 font-bold">Email</th>
+                    <th className="pb-4 font-bold">Role</th>
+                    <th className="pb-4 font-bold">Status</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-50">
+                  {adminUsers.filter(u => u?.full_name?.toLowerCase().includes(adminUsersFilter.toLowerCase()) || u?.student_id?.toLowerCase().includes(adminUsersFilter.toLowerCase()) || u?.email?.toLowerCase().includes(adminUsersFilter.toLowerCase())).map(u => (
+                    <tr key={u.id} className="hover:bg-gray-50/30">
+                      <td className="py-4 pl-4 text-sm font-semibold text-gray-800">{u.student_id || '—'}</td>
+                      <td className="py-4 text-sm font-bold text-gray-900">{u.full_name}</td>
+                      <td className="py-4 text-sm text-gray-600">{u.email}</td>
+                      <td className="py-4 text-sm text-gray-600 capitalize">{u.role}</td>
+                      <td className="py-4">
+                        <span className={`px-3 py-1 rounded-full text-xs font-bold ${(!u.verification_status || u.verification_status === 'verified') ? 'bg-emerald-100 text-emerald-700' : u.verification_status === 'rejected' ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-700'}`}>
+                          {u.verification_status || 'verified'}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {isAdmin && currentTab === 'admin-logs' && (
+        <div className="space-y-8 animate-fade-in">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+            <div>
+              <h2 className="text-3xl font-display font-black text-gray-900 tracking-tight">Activity Logs</h2>
+            </div>
+          </div>
+          <div className="bg-white rounded-3xl shadow-sm border border-gray-200 overflow-hidden">
+            <div className="p-6 border-b border-gray-100 bg-gray-50/50 flex justify-between items-center">
+              <h3 className="font-bold text-gray-900 text-lg">System-Wide Audit Log</h3>
+            </div>
+            <div className="p-6 overflow-x-auto">
+              <table className="w-full text-left border-collapse whitespace-nowrap">
+                <thead>
+                  <tr className="text-xs uppercase tracking-widest text-gray-400 border-b border-gray-100">
+                    <th className="pb-4 font-bold pl-4">Timestamp</th>
+                    <th className="pb-4 font-bold">Document</th>
+                    <th className="pb-4 font-bold">Action</th>
+                    <th className="pb-4 font-bold">User</th>
+                    <th className="pb-4 font-bold">Status</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-50">
+                  {adminLogs.map(log => (
+                    <tr key={log.id} className="hover:bg-gray-50/30">
+                      <td className="py-4 pl-4 text-xs font-semibold text-gray-500">{new Date(log.timestamp_started).toLocaleString()}</td>
+                      <td className="py-4 text-sm font-bold text-gray-900">{log.document_type || 'Unknown'} <span className="text-gray-400 font-mono text-xs">#{log.tracking_number || 'N/A'}</span></td>
+                      <td className="py-4 text-sm text-gray-600 capitalize">{log.step_name ? log.step_name.replace(/_/g, ' ') : 'System Action'}</td>
+                      <td className="py-4 text-sm text-gray-600">{log.user_name || 'System'}</td>
+                      <td className="py-4">
+                        <span className={`px-3 py-1 rounded-full text-xs font-bold ${log.status === 'completed' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>
+                          {log.status}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
       )}

@@ -7,43 +7,13 @@ This repository contains the complete end-to-end system for tracking and auto-ro
 
 ---
 
-## 🏃 Daily Startup (How to run the system)
+## 👥 Groupmates / First-Time Installation (Cloning the Repo)
 
-Every time you open your laptop to work on this project, you need to start these four services. Open 4 separate terminal tabs:
+If you just cloned this repo, you need to install dependencies for **three separate parts** of the project: the Backend, the Frontend, and the AI Engine. 
 
-**Terminal 1 (Backend):**
-```bash
-cd backend
-# Run database migrations and seeds if not already done:
-# node database/migration.js
-npm run dev
-```
-
-**Terminal 2 (Frontend):**
-```bash
-cd frontend
-npm run dev
-```
-
-**Terminal 3 (AI Engine):**
-```bash
-# Activate the virtual environment
-source .venv/bin/activate  # On Windows use: .venv\Scripts\activate
-cd ai-engine
-python app.py
-```
-
-**Terminal 4 (n8n Router):**
-```bash
-docker start n8n
-```
-
----
-
-## ⚙️ First-Time Installation & Setup
+*(Note: Node.js packages use `package.json` while Python packages use `requirements.txt`. There is no single file to install everything, but the steps below are all you need).*
 
 ### Prerequisites
-Make sure you have the following installed on your machine:
 - **Node.js** (v18+ recommended)
 - **Python** (v3.9+)
 - **MySQL** (v8+)
@@ -54,46 +24,73 @@ Ensure your MySQL server is running. Log in to MySQL and initialize the database
 ```bash
 mysql -u root -p
 # Inside the MySQL shell:
+CREATE DATABASE trace_db;
+USE trace_db;
 source backend/database/schema.sql;
 source backend/database/seed.sql;
 exit;
 ```
-*Note: Run `node backend/database/migration.js` to execute the database schema upgrades for GCash payments and clerk accounts.*
+*Note: After this, run `node backend/database/migration.js` to execute the database schema upgrades for GCash payments and clerk accounts.*
 
-### 2. Backend (Node.js API)
+### 2. Install Backend Dependencies
 ```bash
 cd backend
 npm install
-npm run dev
 ```
-*(Runs on `http://localhost:3000`)*
 
-### 3. Frontend (React UI)
+### 3. Install Frontend Dependencies
 ```bash
 cd frontend
 npm install
-npm run dev
 ```
-*(Runs on `http://localhost:5173`)*
 
-### 4. AI Engine (Python OCR)
+### 4. Install AI Engine Dependencies
 ```bash
 cd ai-engine
-# Create and activate a virtual environment
+# Create a virtual environment
 python -m venv .venv
-source .venv/bin/activate  # Windows: .venv\Scripts\activate
-# Install dependencies
+# Activate the virtual environment
+source .venv/bin/activate  # On Windows use: .venv\Scripts\activate
+# Install requirements
 pip install -r requirements.txt
-# Run the Flask API
+```
+
+---
+
+## 🏃 Daily Startup Guide (How to run the system)
+
+Every time you open your laptop to work on this project, you need to start these four services. Open 4 separate terminal tabs:
+
+**Terminal 1 (Backend):**
+```bash
+cd backend
+npm run dev
+```
+*(Runs on http://localhost:3000)*
+
+**Terminal 2 (Frontend):**
+```bash
+cd frontend
+npm run dev
+```
+*(Runs on http://localhost:5173)*
+
+**Terminal 3 (AI Engine):**
+```bash
+cd ai-engine
+source .venv/bin/activate  # On Windows use: .venv\Scripts\activate
 python app.py
 ```
-*(Runs on `http://localhost:5000`)*
+*(Runs on http://localhost:5000)*
 
-### 5. Routing Engine (n8n)
+**Terminal 4 (n8n Router):**
+Ensure Docker Desktop is running.
 ```bash
-npx n8n
+docker start n8n
 ```
-*(Opens in browser at `http://localhost:5678`)*. Import the `n8n/routing-workflow.json` file to activate the routing rules.
+*(Opens in browser at http://localhost:5678)*
+*If this is your very first time running n8n, you must create the container instead:*
+`docker run -d --name n8n -p 5678:5678 -v ~/.n8n:/home/node/.n8n docker.n8n.io/n8nio/n8n`
 
 ---
 
@@ -110,76 +107,20 @@ npx n8n
 
 ---
 
-## 🚚 How to Transfer & Run on Another Computer
+## 🚚 How to Transfer Database to Another Computer
 
-If you need to move Project TRACE to a different computer (like a deployment server or a colleague's laptop), follow these exact steps:
+If you need to move Project TRACE to a different computer (like a deployment server or a colleague's laptop), you must export your MySQL database.
 
-### Step 1: Export the Database (On the Old Computer)
-You need to package your current MySQL database so you don't lose any data. Run this in your terminal:
+### Step 1: Export (On Old Computer)
 ```bash
 mysqldump -u root -p trace_db > trace_db_backup.sql
 ```
-*Move this `trace_db_backup.sql` file into your `project-trace` folder.*
+*Move this `trace_db_backup.sql` file into your project folder and transfer the whole project folder.*
 
-### Step 2: Zip the Source Code
-Compress the `project-trace` folder into a `.zip` file. 
-**Important:** You do not need to copy the massive hidden folders (`node_modules` or `.venv`). The new computer will rebuild them cleanly.
-
-### Step 3: Transfer
-Send the `.zip` file to the new computer via a flash drive, Google Drive, or GitHub. Extract the folder on the new computer.
-
-### Step 4: Import the Database (On the New Computer)
-Make sure the new computer has MySQL installed. Open the terminal inside the extracted folder:
+### Step 2: Import (On New Computer)
+Make sure the new computer has MySQL installed. Inside the transferred folder:
 ```bash
-# Log into MySQL and create a fresh database
 mysql -u root -p -e "CREATE DATABASE trace_db;"
-
-# Import the backup file
 mysql -u root -p trace_db < trace_db_backup.sql
 ```
-
-### Step 5: Install Dependencies (On the New Computer)
-The new computer must download all the packages specific to its operating system.
-
-**For the Backend:**
-```bash
-cd backend
-npm install
-```
-
-**For the Frontend:**
-```bash
-cd ../frontend
-npm install
-```
-
-### 3. Start the Orchestrator (n8n)
-We highly recommend running n8n via Docker to avoid Node.js peer-dependency conflicts. Ensure Docker Desktop is running.
-
-**For the first time ONLY, create and start the container:**
-```bash
-docker run -d --name n8n -p 5678:5678 -v ~/.n8n:/home/node/.n8n docker.n8n.io/n8nio/n8n
-```
-*(Note: It may take a minute or two to download the image. Because of the `-d` flag, it will run silently in the background.)*
-
-**For everyday use (if you restart your computer):**
-You don't need to run the massive setup command again. Just start or stop your existing container:
-```bash
-docker start n8n
-# docker stop n8n (to turn it off)
-```
-
-Once running, access the workflow canvas at:
-👉 **[http://localhost:5678](http://localhost:5678)**
-
-### 4. Start the AI OCR Engine (Python)
-Open a new terminal window:
-```bash
-cd ai-engine
-python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
-pip install -r requirements.txt
-python app.py
-```
-
-Once installed, simply follow the **Daily Startup** guide at the top of this file to turn all four services back on!
+*(Then follow the **First-Time Installation** steps to install dependencies on the new computer).*

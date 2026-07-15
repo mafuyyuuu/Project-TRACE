@@ -1,0 +1,36 @@
+# ==============================================================================
+# PROJECT TRACE - DEPENDENCIES GUIDE
+# ==============================================================================
+# This project is a full-stack application that uses both Node.js and Python.
+# Therefore, dependencies are split across different package managers.
+# 
+# Please DO NOT try to run `pip install -r requirements.txt` from this root directory
+# to install the entire project. Instead, follow the instructions below or read README.md.
+
+# ---------------------------------------------------------
+# 1. AI ENGINE (Python Dependencies)
+# ---------------------------------------------------------
+# The AI Engine uses Python. Its actual requirements are in the `ai-engine` folder.
+# To install:
+#   cd ai-engine
+#   python -m venv .venv
+#   source .venv/bin/activate  (or `.venv\Scripts\activate` on Windows)
+#   pip install -r requirements.txt
+
+# ---------------------------------------------------------
+# 2. BACKEND (Node.js / Express Dependencies)
+# ---------------------------------------------------------
+# The backend uses Node.js, so it uses a `package.json` file, not requirements.txt.
+# To install:
+#   cd backend
+#   npm install
+
+# ---------------------------------------------------------
+# 3. FRONTEND (React / Vite Dependencies)
+# ---------------------------------------------------------
+# The frontend also uses Node.js and has its own `package.json`.
+# To install:
+#   cd frontend
+#   npm install
+
+# For detailed database setup and running instructions, please refer to README.md.
