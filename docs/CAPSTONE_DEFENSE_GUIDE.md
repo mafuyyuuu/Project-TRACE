@@ -11,7 +11,268 @@ This guide is designed to help your team prepare for your final Capstone defense
 
 ---
 
-## 🏗️ 2. Our Tech Stack (In-Depth Breakdown)
+## 📊 2. System Diagrams
+
+Use these diagrams during your defense presentation. They visually explain the architecture, data flow, and access control so the panelists immediately grasp how the system works before you dive into code-level details.
+
+### Diagram 1: System Architecture Overview
+This shows how the four main services (Frontend, Backend API, AI Engine, n8n Orchestrator) connect to each other and to external integrations.
+
+```mermaid
+graph TB
+    subgraph "👤 Users (Browser)"
+        STU["🧑‍🎓 Student Portal"]
+        FIN["💰 Finance Clerk"]
+        SEC["📜 College Secretary"]
+        W1["🏢 Window 1 Clerk"]
+        ADM["👑 Registrar Admin"]
+    end
+
+    subgraph "Frontend - React / Vite / Tailwind"
+        UI["Unified /dashboard Route<br/>Renders 5 Role-Based Views"]
+    end
+
+    subgraph "Backend - Node.js / Express"
+        API["REST API Gateway<br/>JWT Auth + Multer Uploads"]
+        AUTH["Auth Middleware<br/>Role-Based Access Control"]
+        ROUTES["Route Handlers<br/>documents.js / auth.js"]
+    end
+
+    subgraph "Database - MySQL v8"
+        DB[("MySQL Database")]
+        USERS["users table"]
+        DOCS["documents table"]
+        LOGS["step_logs table"]
+        NOTIFS["notifications table"]
+    end
+
+    subgraph "AI Engine - Python / Flask"
+        OCR["POST /ocr/extract<br/>EasyOCR (PyTorch)"]
+        VERIFY["POST /ocr/verify<br/>ID Verification"]
+        FORECAST["GET /forecast<br/>Prophet (7-Day)"]
+        INSIGHTS["GET /ai/recommend<br/>Random Forest"]
+    end
+
+    subgraph "Orchestrator - n8n (Docker)"
+        N8N["Routing Workflow<br/>Webhook-Based Triggers"]
+    end
+
+    subgraph "External APIs"
+        SMS["📱 UniSMS<br/>Text Notifications"]
+        EMAIL["📧 Nodemailer<br/>Email Alerts"]
+    end
+
+    STU & FIN & SEC & W1 & ADM --> UI
+    UI -->|"HTTP + JWT Token"| API
+    API --> AUTH --> ROUTES
+    ROUTES -->|"SQL Queries"| DB
+    DB --- USERS & DOCS & LOGS & NOTIFS
+    ROUTES -->|"Proxy AI Requests"| OCR & VERIFY & FORECAST & INSIGHTS
+    ROUTES -->|"Webhook Trigger"| N8N
+    N8N -->|"Status Update Callback"| ROUTES
+    ROUTES -->|"Send SMS"| SMS
+    ROUTES -->|"Send Email"| EMAIL
+
+    style UI fill:#3b82f6,color:#fff
+    style API fill:#22c55e,color:#fff
+    style DB fill:#f59e0b,color:#fff
+    style OCR fill:#8b5cf6,color:#fff
+    style VERIFY fill:#8b5cf6,color:#fff
+    style FORECAST fill:#8b5cf6,color:#fff
+    style INSIGHTS fill:#8b5cf6,color:#fff
+    style N8N fill:#ef4444,color:#fff
+    style SMS fill:#06b6d4,color:#fff
+    style EMAIL fill:#06b6d4,color:#fff
+```
+
+### Diagram 2: Document Lifecycle Pipeline
+This traces every status transition a document goes through, from submission to release. Use this to explain the core workflow during the demo.
+
+```mermaid
+flowchart LR
+    A["🧑‍🎓 Student<br/>Submits Request"] -->|"Auto-calculates fee"| B["pending_payment"]
+    B -->|"Uploads GCash<br/>Receipt + Ref No."| C["pending_payment<br/>_verification"]
+    C -->|"💰 Finance Clerk<br/>Approves Payment"| D["pending_secretary"]
+    C -->|"💰 Finance Clerk<br/>Rejects Payment"| B
+    D -->|"📜 Secretary<br/>Evaluates via<br/>Split-Screen Modal"| E["ready_window_1"]
+    D -->|"📜 Secretary<br/>Rejects Document"| REJ["rejected"]
+    E -->|"🏢 Window 1<br/>Releases Document"| F["completed"]
+
+    B -.->|"📱 SMS + 📧 Email"| A
+    REJ -.->|"📱 SMS + 📧 Email<br/>Rejection Notice"| A
+    E -.->|"📱 SMS + 📧 Email<br/>Ready for Pickup"| A
+
+    style A fill:#3b82f6,color:#fff
+    style B fill:#f59e0b,color:#fff
+    style C fill:#f97316,color:#fff
+    style D fill:#8b5cf6,color:#fff
+    style E fill:#22c55e,color:#fff
+    style F fill:#10b981,color:#fff
+    style REJ fill:#ef4444,color:#fff
+```
+
+### Diagram 3: AI & Machine Learning Data Flow
+This shows exactly how each AI/ML module receives data, processes it, and returns results to the system.
+
+```mermaid
+flowchart TB
+    subgraph "Input Sources"
+        SCAN["📄 Scanned Document<br/>(Image File)"]
+        IDPHOTO["🪪 Student ID Photo<br/>(Registration Upload)"]
+        STEPLOGS["📊 Historical step_logs<br/>(Timestamped Records)"]
+        QUEUES["📋 Current Queue Metrics<br/>(Desk Depths + Timing)"]
+    end
+
+    subgraph "Python Flask AI Engine"
+        subgraph "Module A: EasyOCR (PyTorch)"
+            OCR_EXTRACT["POST /ocr/extract<br/>Text Extraction"]
+            OCR_VERIFY["POST /ocr/verify<br/>Cross-Reference Check"]
+        end
+        subgraph "Module B: Prophet (Meta)"
+            PROPHET["GET /forecast<br/>Time-Series Model"]
+        end
+        subgraph "Module C: Random Forest (Scikit-Learn)"
+            RF["GET /ai/recommend<br/>Classification Model"]
+        end
+    end
+
+    subgraph "Outputs"
+        EXTRACTED["Extracted Text +<br/>confidence_score"]
+        VERIFIED["verified: true/false<br/>+ reason string"]
+        FORECAST_OUT["7-Day Volume<br/>Predictions + Bounds"]
+        ALERTS["Prescriptive Alerts<br/>(e.g. 'Secretary Backlog')"]
+    end
+
+    SCAN --> OCR_EXTRACT --> EXTRACTED
+    IDPHOTO --> OCR_VERIFY --> VERIFIED
+    STEPLOGS --> PROPHET --> FORECAST_OUT
+    QUEUES --> RF --> ALERTS
+
+    EXTRACTED -->|"Saved to documents<br/>ocr_extracted_data"| DB[("MySQL")]
+    VERIFIED -->|"Sets ai_verified<br/>or ai_flagged"| DB
+    FORECAST_OUT -->|"Displayed on<br/>Admin Spline Chart"| ADMIN["👑 Admin Dashboard"]
+    ALERTS -->|"Rendered as<br/>Alert Cards"| ADMIN
+
+    style OCR_EXTRACT fill:#8b5cf6,color:#fff
+    style OCR_VERIFY fill:#8b5cf6,color:#fff
+    style PROPHET fill:#ec4899,color:#fff
+    style RF fill:#f97316,color:#fff
+    style DB fill:#f59e0b,color:#fff
+    style ADMIN fill:#22c55e,color:#fff
+```
+
+### Diagram 4: Role-Based Access Control (RBAC) Map
+This shows exactly what each role can and cannot do in the system. Useful when a panelist asks about security or authorization.
+
+```mermaid
+flowchart LR
+    subgraph "🧑‍🎓 Student"
+        S1["Submit Document Requests"]
+        S2["Upload GCash Receipts"]
+        S3["View Live Tracking Timeline"]
+        S4["Receive SMS + Email Alerts"]
+    end
+
+    subgraph "💰 Finance Clerk"
+        F1["View Payment Verification Queue"]
+        F2["Approve / Reject Payments"]
+        F3["Review Receipt Screenshots"]
+    end
+
+    subgraph "📜 College Secretary"
+        SE1["View Evaluation Queue"]
+        SE2["Split-Screen OCR Review"]
+        SE3["Approve / Reject Documents"]
+    end
+
+    subgraph "🏢 Window 1 Clerk"
+        W1A["AI Intake Scanner Dropzone"]
+        W1B["View Release Queue"]
+        W1C["Release Documents to Students"]
+    end
+
+    subgraph "👑 Registrar Admin"
+        A1["7-Day Volume Forecast Chart"]
+        A2["AI Insights Alert Panel"]
+        A3["Registered Users Management"]
+        A4["Global Activity Logs Audit"]
+        A5["Manual Student Verification"]
+    end
+
+    JWT["🔐 JWT Token<br/>Contains: role +<br/>desk_assignment"] --> S1 & F1 & SE1 & W1A & A1
+
+    style JWT fill:#ef4444,color:#fff
+```
+
+### Diagram 5: Database Entity Relationship
+This shows the relationships between the 4 core tables in MySQL.
+
+```mermaid
+erDiagram
+    users ||--o{ documents : "submits"
+    users ||--o{ notifications : "receives"
+    documents ||--o{ step_logs : "generates"
+    users ||--o{ step_logs : "performs"
+
+    users {
+        INT id PK
+        VARCHAR student_id UK
+        VARCHAR email
+        VARCHAR password_hash
+        VARCHAR full_name
+        ENUM role "student / clerk / admin"
+        ENUM user_type "student / alumni"
+        VARCHAR desk_assignment
+        VARCHAR id_proof_path
+        ENUM verification_status "pending / verified / rejected"
+        VARCHAR course
+        VARCHAR phone_number
+        BOOLEAN is_active
+    }
+
+    documents {
+        INT id PK
+        VARCHAR tracking_number UK
+        VARCHAR student_id FK
+        VARCHAR document_type
+        VARCHAR current_status "pending_payment / pending_secretary / etc"
+        ENUM payment_status "UNPAID / PAID"
+        VARCHAR file_path
+        VARCHAR receipt_image_path
+        VARCHAR gcash_reference_no
+        DECIMAL amount
+        INT copies
+        DECIMAL ocr_confidence_score
+        VARCHAR purpose
+        JSON ocr_extracted_data
+    }
+
+    step_logs {
+        INT id PK
+        INT document_id FK
+        INT clerk_id FK
+        VARCHAR action_taken
+        VARCHAR from_status
+        VARCHAR to_status
+        DATETIME timestamp_started
+        DATETIME timestamp_completed
+        TEXT notes
+    }
+
+    notifications {
+        INT id PK
+        INT user_id FK
+        VARCHAR title
+        TEXT message
+        VARCHAR type
+        BOOLEAN is_read
+        TIMESTAMP created_at
+    }
+```
+
+---
+
+## 🏗️ 3. Our Tech Stack (In-Depth Breakdown)
 
 This section covers **what** each technology is, **how** it is used in our system, and **why** we chose it instead of alternatives. Memorize the "Why not alternatives" part — panelists love asking this.
 
@@ -86,7 +347,7 @@ This section covers **what** each technology is, **how** it is used in our syste
 
 ---
 
-## 🧠 3. Defending the AI & Machine Learning Features
+## 🧠 4. Defending the AI & Machine Learning Features
 
 Your panel will heavily scrutinize the "AI" part of your title. Here is exactly how to defend each module:
 
@@ -106,7 +367,7 @@ Your panel will heavily scrutinize the "AI" part of your title. Here is exactly 
 
 ---
 
-## ✅ 4. DOs and ❌ DON'Ts for the Live Demo
+## ✅ 5. DOs and ❌ DON'Ts for the Live Demo
 
 ### DOs
 *   **DO follow a strict script for the live demo.** Unscripted clicking leads to errors. Practice this exact flow: *Log in as Student → Request a Document → Upload GCash → Log in as Finance → Verify Payment → Log in as Secretary → Show Split-Screen OCR Evaluation → Log in as Window 1 → Release → Show the SMS/Email notification → Log in as Admin → Show Forecast & AI Insights.*
@@ -124,7 +385,7 @@ Your panel will heavily scrutinize the "AI" part of your title. Here is exactly 
 
 ---
 
-## ❓ 5. Mock Panel Questions & Scripted Answers
+## ❓ 6. Mock Panel Questions & Scripted Answers
 
 ### 🏗️ Architecture & Tech Stack Questions
 
@@ -206,7 +467,7 @@ Your panel will heavily scrutinize the "AI" part of your title. Here is exactly 
 
 ---
 
-## 🔥 6. MUST REMEMBER (Cheat Sheet)
+## 🔥 7. MUST REMEMBER (Cheat Sheet)
 
 Do not freeze up during the demo! Keep these on a sticky note next to your laptop:
 
