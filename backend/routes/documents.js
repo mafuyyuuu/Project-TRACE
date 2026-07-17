@@ -269,6 +269,12 @@ router.get('/', authenticate, async (req, res) => {
           conditions.push('current_status = "pending_payment_verification"');
         } else if (desk === 'Secretary') {
           conditions.push('current_status IN ("pending_secretary", "ready_window_1", "completed", "released")');
+          // Filter to only show documents from students in this secretary's college
+          const [secUser] = await pool.query('SELECT course FROM users WHERE id = ?', [req.user.id]);
+          if (secUser.length > 0 && secUser[0].course) {
+            conditions.push('student_id IN (SELECT student_id FROM users WHERE course = ?)');
+            params.push(secUser[0].course);
+          }
         } else if (desk === 'Window 1') {
           // Window 1 can now see the entire system queue
         }
@@ -821,7 +827,16 @@ router.post('/:id/verify-payment', authenticate, upload.single('officialReceipt'
         // --- IN-APP NOTIFICATION FOR SECRETARY ---
         if (action === 'approve') {
           try {
-            const [secretaryClerks] = await connection.query('SELECT id FROM users WHERE role = "clerk" AND desk_assignment = "Secretary"');
+            // Find the student's college to notify the correct secretary
+            const [studentInfo] = await connection.query('SELECT course FROM users WHERE student_id = ?', [doc.student_id]);
+            const studentCollege = studentInfo.length > 0 ? studentInfo[0].course : null;
+            let secretaryQuery = 'SELECT id FROM users WHERE role = "clerk" AND desk_assignment = "Secretary"';
+            const secretaryParams = [];
+            if (studentCollege) {
+              secretaryQuery += ' AND course = ?';
+              secretaryParams.push(studentCollege);
+            }
+            const [secretaryClerks] = await connection.query(secretaryQuery, secretaryParams);
             for (const clerk of secretaryClerks) {
               await connection.query(
                 'INSERT INTO notifications (user_id, title, message, type) VALUES (?, ?, ?, ?)',
@@ -1020,6 +1035,60 @@ router.post('/:id/release', authenticate, async (req, res) => {
       );
 
       await connection.commit();
+
+      // --- NOTIFICATIONS (SMS, Email, & In-App) ---
+      try {
+        const studentIdToNotify = doc.student_id;
+        if (studentIdToNotify) {
+          const [users] = await pool.query('SELECT id, full_name, phone_number, email FROM users WHERE student_id = ? AND role = "student"', [studentIdToNotify]);
+          if (users.length > 0) {
+            const user = users[0];
+            const title = 'Document Released';
+            const msg = `Your ${doc.document_type || 'document'} has been released and is now completed. Tracking: ${doc.tracking_number}. Thank you for using Project TRACE!`;
+
+            // 1. In-App Notification
+            await pool.query(
+              'INSERT INTO notifications (user_id, title, message, type) VALUES (?, ?, ?, ?)',
+              [user.id, title, msg, 'success']
+            );
+
+            const msgContent = `Hi ${user.full_name ? user.full_name.split(',')[0] : 'Student'}, ${msg.toLowerCase()}`;
+
+            // 2. SMS Notification
+            try {
+              const targetPhone = user.phone_number || process.env.TEST_PHONE_NUMBER;
+              if (targetPhone) {
+                await unismsClient.send({
+                  recipient: targetPhone,
+                  content: msgContent,
+                  senderId: process.env.UNISMS_SENDER_ID || 'TRACE'
+                });
+                console.log(`✅ [UniSMS] Release SMS dispatched to ${targetPhone}`);
+              }
+            } catch (smsErr) {
+              console.error('❌ [UniSMS] Failed to send release SMS:', smsErr.message);
+            }
+
+            // 3. Email Notification
+            try {
+              if (user.email) {
+                await transporter.sendMail({
+                  from: `"TRACE Registrar" <${process.env.SMTP_USER || 'noreply@trace.plp.edu'}>`,
+                  to: user.email,
+                  subject: 'TRACE: ' + title,
+                  text: msgContent,
+                });
+                console.log(`✅ [Email] Release email dispatched to ${user.email}`);
+              }
+            } catch (emailErr) {
+              console.error('❌ [Email] Failed to send release email:', emailErr.message);
+            }
+          }
+        }
+      } catch (notifErr) {
+        console.error('Failed to process release notifications:', notifErr);
+      }
+
       res.json({ message: 'Document successfully released to student.' });
     } catch (err) {
       await connection.rollback();

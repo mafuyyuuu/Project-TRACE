@@ -64,6 +64,7 @@ router.post('/login', async (req, res) => {
         role: user.role,
         full_name: user.full_name,
         desk_assignment: user.desk_assignment,
+        course: user.course,
       },
       JWT_SECRET,
       { expiresIn: '24h' }
@@ -78,6 +79,7 @@ router.post('/login', async (req, res) => {
         full_name: user.full_name,
         role: user.role,
         desk_assignment: user.desk_assignment,
+        course: user.course,
       },
     });
   } catch (err) {
@@ -115,7 +117,7 @@ router.get('/me', authenticate, async (req, res) => {
  */
 router.post('/register', upload.single('id_proof'), async (req, res) => {
   try {
-    const { employee_id, full_name, email, phone_number, password, user_type } = req.body;
+    const { employee_id, full_name, email, phone_number, password, user_type, course } = req.body;
     if (!employee_id || !full_name || !password || !phone_number) {
       return res.status(400).json({ error: 'Student ID, Name, Phone Number, and Password are required.' });
     }
@@ -151,6 +153,9 @@ router.post('/register', upload.single('id_proof'), async (req, res) => {
       const form = new FormData();
       form.append('document', fileBlob, req.file.originalname);
       form.append('student_id', employee_id);
+      if (course) {
+        form.append('course', course);
+      }
 
       const aiRes = await fetch(`${aiEngineUrl}/ocr/verify`, {
         method: 'POST',
@@ -172,9 +177,9 @@ router.post('/register', upload.single('id_proof'), async (req, res) => {
     }
 
     await pool.query(
-      `INSERT INTO users (student_id, full_name, email, phone_number, password_hash, role, user_type, id_proof_path, verification_status)
-       VALUES (?, ?, ?, ?, ?, 'student', ?, ?, ?)`,
-      [employee_id, full_name, email || null, phone_number, password_hash, user_type || 'student', id_proof_path, verification_status]
+      `INSERT INTO users (student_id, full_name, email, phone_number, password_hash, role, user_type, course, id_proof_path, verification_status)
+       VALUES (?, ?, ?, ?, ?, 'student', ?, ?, ?, ?)`,
+      [employee_id, full_name, email || null, phone_number, password_hash, user_type || 'student', course || null, id_proof_path, verification_status]
     );
 
     if (verification_status === 'verified') {

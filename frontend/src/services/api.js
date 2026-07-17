@@ -193,9 +193,20 @@ export async function getInsights() {
   return data
 }
 
-export const updateProfile = (data) => api.put('/auth/profile', data);
-export const getNotifications = () => api.get('/auth/notifications');
-export const markNotificationsRead = () => api.put('/auth/notifications/read');
+export const updateProfile = async (data) => {
+  const res = await api.put('/auth/profile', data);
+  return res.data;
+};
+
+export const getNotifications = async () => {
+  const res = await api.get('/auth/notifications');
+  return res.data;
+};
+
+export const markNotificationsRead = async () => {
+  const res = await api.put('/auth/notifications/read');
+  return res.data;
+};
 
 /**
  * Look up a student by student ID.
