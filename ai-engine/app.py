@@ -294,6 +294,7 @@ def ocr_verify():
 
     file = request.files['document']
     student_id = request.form.get('student_id', '')
+    expected_course = request.form.get('course', '')
 
     if file.filename == '' or not allowed_file(file.filename):
         return jsonify({'verified': False, 'reason': 'Invalid or no file selected.'}), 400
@@ -305,7 +306,7 @@ def ocr_verify():
         os.close(temp_fd)
 
         file.save(temp_path)
-        result = verify_id_document(temp_path, student_id)
+        result = verify_id_document(temp_path, student_id, expected_course)
         return jsonify(result)
     except Exception as e:
         logger.error("Error in /ocr/verify: %s", str(e))

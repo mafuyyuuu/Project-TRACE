@@ -119,13 +119,19 @@ docker start n8n
 ## 🔐 Test Accounts / Credentials
 **The password for ALL accounts is: `trace2024`**
 
-| Role | Employee / Student ID | Name | Description |
+| Role | ID | Name | College / Description |
 | :--- | :--- | :--- | :--- |
-| **Registrar Admin** | `ADMIN001` | Chief Registrar | Accesses ML volume forecasts, AI recommendations, and manually approves student registrations. |
+| **Registrar Admin** | `ADMIN001` | Registrar Admin | Accesses ML volume forecasts, AI recommendations, and manually approves student registrations. |
 | **Finance Clerk** | `FINANCE001` | Finance Officer | Reviews and manually verifies uploaded GCash screenshots/reference codes. |
-| **Window 1 Clerk** | `WINDOW1001` | Receiving Clerk | Uploads scanned physical forms to OCR dropzone and dispatches ready documents. |
-| **College Secretary** | `SEC001` | Secretary Desk | Performs split-screen OCR validation reviews and routes documents. |
-| **Student** | `STU2024001` | Sample Student | Accesses student portal, requests documents, and uploads GCash receipts. |
+| **Window 1 Clerk** | `WINDOW1001` | Window 1 Clerk | Uploads scanned physical forms to OCR dropzone and dispatches ready documents. |
+| **Secretary (CCS)** | `SEC-CCS001` | CCS Secretary | College of Computer Studies |
+| **Secretary (CON)** | `SEC-CON001` | CON Secretary | College of Nursing |
+| **Secretary (CIHM)** | `SEC-CIHM001` | CIHM Secretary | College of International Hospitality Management |
+| **Secretary (COE)** | `SEC-COE001` | COE Secretary | College of Engineering |
+| **Secretary (CED)** | `SEC-CED001` | CED Secretary | College of Education |
+| **Secretary (CAS)** | `SEC-CAS001` | CAS Secretary | College of Arts and Sciences |
+| **Secretary (CBA)** | `SEC-CBA001` | CBA Secretary | College of Business and Accountancy |
+| **Student** | `STU2024001` | Ana Reyes | BS Information Technology (Sample student account) |
 
 ---
 

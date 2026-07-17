@@ -713,6 +713,8 @@ export default function DashboardPage() {
               actionLoading={actionLoading}
               setViewImageUrl={setViewImageUrl}
               apiBaseUrl={apiBaseUrl}
+              clerkNotes={clerkNotes}
+              setClerkNotes={setClerkNotes}
             />
           )}
         </div>

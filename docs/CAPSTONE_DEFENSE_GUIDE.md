@@ -473,11 +473,21 @@ Do not freeze up during the demo! Keep these on a sticky note next to your lapto
 
 *   **Global Password:** `trace2024` (For all accounts)
 *   **Test Accounts:**
-    *   `STU2024001` (Student)
-    *   `FINANCE001` (Finance Clerk)
-    *   `SEC001` (College Secretary)
-    *   `WINDOW1001` (Window 1 Clerk)
-    *   `ADMIN001` (Registrar Admin)
-*   **Demo Flow Script:** Student Login → New Request → GCash Upload → Finance Login → Verify → Secretary Login → Evaluate → Window 1 Login → Release → Admin Login → Show Forecast + Insights
+
+| ID | Role | College |
+|:---|:---|:---|
+| `STU2024001` | Student | BS Information Technology |
+| `FINANCE001` | Finance Clerk | — |
+| `WINDOW1001` | Window 1 Clerk | — |
+| `SEC-CCS001` | Secretary | College of Computer Studies |
+| `SEC-CON001` | Secretary | College of Nursing |
+| `SEC-CIHM001` | Secretary | College of International Hospitality Management |
+| `SEC-COE001` | Secretary | College of Engineering |
+| `SEC-CED001` | Secretary | College of Education |
+| `SEC-CAS001` | Secretary | College of Arts and Sciences |
+| `SEC-CBA001` | Secretary | College of Business and Accountancy |
+| `ADMIN001` | Registrar Admin | — |
+
+*   **Demo Flow Script:** Student Login → New Request → GCash Upload → Finance Login → Verify → Secretary Login (use `SEC-CCS001` for demo) → Evaluate → Window 1 Login → Release → Student gets SMS/Email notification → Admin Login → Show Forecast + Insights
 *   **Services to Start:** Backend (port 3000), Frontend (port 5173), AI Engine (port 5000), n8n via Docker (port 5678)
 *   **Panic Phrase:** *"We're experiencing a minor environment inconsistency, but the intended behavior here is..."*

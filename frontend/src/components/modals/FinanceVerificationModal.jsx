@@ -9,7 +9,9 @@ export default function FinanceVerificationModal({
   setViewImageUrl, 
   triggerNotification, 
   handleFinanceVerify, 
-  actionLoading 
+  actionLoading,
+  clerkNotes,
+  setClerkNotes
 }) {
   const [financeReceiptFile, setFinanceReceiptFile] = useState(null);
 
@@ -86,11 +88,29 @@ export default function FinanceVerificationModal({
           </div>
         </div>
 
-        <div className="flex items-center pt-6">
+        <div className="flex flex-col gap-1.5 mt-4">
+          <label className="text-[10px] font-bold text-gray-800 uppercase tracking-widest">Clerk Notes / Remarks</label>
+          <textarea
+            value={clerkNotes}
+            onChange={(e) => setClerkNotes(e.target.value)}
+            placeholder="Add notes (required for rejection)..."
+            rows={2}
+            className="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 text-xs focus:ring-2 focus:ring-pine-500 focus:bg-white outline-none transition-all resize-none"
+          />
+        </div>
+
+        <div className="flex items-center gap-3 pt-6">
+          <button 
+            onClick={() => handleFinanceVerify('reject', null)}
+            disabled={actionLoading}
+            className="w-1/2 py-3 rounded-xl font-bold text-xs shadow-md transition-all text-center uppercase tracking-wider bg-red-600 hover:bg-red-700 text-white disabled:opacity-50"
+          >
+            Reject Payment
+          </button>
           <button 
             onClick={() => handleFinanceVerify('approve', financeReceiptFile)}
             disabled={actionLoading || !financeReceiptFile}
-            className={`w-full py-3 rounded-xl font-bold text-xs shadow-md transition-all text-center uppercase tracking-wider ${
+            className={`w-1/2 py-3 rounded-xl font-bold text-xs shadow-md transition-all text-center uppercase tracking-wider ${
               !financeReceiptFile ? 'bg-gray-300 text-gray-500 cursor-not-allowed' : 'bg-[#15803d] hover:bg-[#166534] text-white'
             }`}
           >
