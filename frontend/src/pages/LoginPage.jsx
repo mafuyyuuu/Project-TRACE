@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../utils/hooks'
+import plpLogo from '../assets/plp_logo.png'
 
 export default function LoginPage() {
   const { login, loading, error: authError } = useAuth()
@@ -25,9 +26,7 @@ export default function LoginPage() {
       {/* Left Column (Light Spec) */}
       <div className="md:w-1/2 bg-[#f8f9fa] p-12 md:p-24 flex flex-col justify-between shrink-0">
         <div>
-          <div className="w-16 h-16 rounded-full bg-[#15803d] text-white flex items-center justify-center font-display font-black text-sm shadow-md">
-            MK
-          </div>
+          <img src={plpLogo} alt="PLP Logo" className="w-16 h-16 rounded-full object-cover shadow-md" />
         </div>
 
         <div className="my-auto py-12 md:py-0">

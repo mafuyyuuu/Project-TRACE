@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { Outlet, Link, useLocation } from 'react-router-dom'
 import { useAuth } from '../utils/hooks'
 import { getNotifications, markNotificationsRead, updateProfile } from '../services/api'
+import plpLogo from '../assets/plp_logo.png'
 
 export default function Layout() {
   const { user, logout } = useAuth()
@@ -67,9 +68,7 @@ export default function Layout() {
       {/* Header */}
       <header className="bg-white rounded-full shadow-sm px-6 py-3 flex items-center justify-between shrink-0 border border-gray-100">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-full bg-[#15803d] text-white flex items-center justify-center font-display font-black text-sm shadow-md">
-            MK
-          </div>
+          <img src={plpLogo} alt="PLP Logo" className="w-10 h-10 rounded-full object-cover shadow-md" />
           <span className="font-display font-black text-[#15803d] text-lg tracking-widest uppercase">TRACE</span>
         </div>
         
