@@ -45,7 +45,7 @@ While the pipeline is universal, different documents have unique AI requirements
   1. Submits dynamic forms (auto-calculates prices).
   2. Uploads GCash receipts.
   3. Uses the **Live Tracker Map** to monitor the document's journey across the university desks.
-  4. Receives SMS/in-app notifications when the document reaches Window 1.
+  4. Receives dual **SMS & Email notifications** when the document reaches Window 1 or if it gets rejected by the Secretary.
 
 ### 💰 Finance Clerk (`FINANCE001`)
 * **Role:** Revenue guardian.
@@ -74,4 +74,5 @@ While the pipeline is universal, different documents have unique AI requirements
   1. Does not handle individual documents.
   2. Monitors the **AI Insights Panel** (Random Forest) for queue bottlenecks (e.g., "Warning: Secretary queue is backing up").
   3. Uses **Predictive Analytics** (Prophet ML) to forecast 7-day document volume, allowing the admin to schedule more clerks on predicted busy days.
-  4. Resolves edge cases by manually overriding student account holds.
+  4. Manages the global **Registered Users** table, manually verifying/rejecting flagged accounts.
+  5. Monitors the global **Activity Logs** (`step_logs` audit trail) to maintain total system accountability across all desks.
