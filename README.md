@@ -55,6 +55,30 @@ source .venv/bin/activate  # On Windows use: .venv\Scripts\activate
 pip install -r requirements.txt
 ```
 
+### 5. Docker & n8n Setup (Orchestrator)
+n8n handles the automated routing between desks. It runs locally via Docker.
+
+**Step 1: Install Docker Desktop**
+1. Download and install Docker Desktop for your OS from [docker.com](https://www.docker.com/products/docker-desktop).
+2. Open Docker Desktop and ensure the engine is running (the icon in your tray should be green).
+
+**Step 2: Create the n8n Container**
+Open a terminal and run the following command to pull the n8n image and create the container:
+```bash
+docker run -d --name n8n -p 5678:5678 -v ~/.n8n:/home/node/.n8n docker.n8n.io/n8nio/n8n
+```
+
+**Step 3: Initial Account Setup**
+1. Open your browser and go to `http://localhost:5678`.
+2. You will be prompted to create an owner account. Enter your email and a password.
+3. Complete the brief onboarding survey (you can skip most of it).
+
+**Step 4: Import the Workflow**
+1. Once inside the n8n dashboard, click **"Add Workflow"** (or "+ New workflow").
+2. In the top right corner, click the **three dots (...)** and select **"Import from File"**.
+3. Navigate to the cloned `project-trace/n8n` directory and select `routing-workflow.json`.
+4. The workflow nodes will appear on the screen. **Make sure to toggle it to "Active" (top right switch).**
+
 ---
 
 ## 🏃 Daily Startup Guide (How to run the system)
@@ -89,8 +113,6 @@ Ensure Docker Desktop is running.
 docker start n8n
 ```
 *(Opens in browser at http://localhost:5678)*
-*If this is your very first time running n8n, you must create the container instead:*
-`docker run -d --name n8n -p 5678:5678 -v ~/.n8n:/home/node/.n8n docker.n8n.io/n8nio/n8n`
 
 ---
 
