@@ -88,4 +88,9 @@ The system is fully complete locally. All features, AI integrations, ML models, 
 * **Global Audit Dashboards:** Equipped the Admin Registrar with real-time `Activity Logs` and `Registered Users` search tools for system-wide user governance.
 * **UI Realignment Completed:** Fully reconciled every dashboard route and user modal with the design mockup specifications from the `UI/` folder.
 * **Manual Payments Integrated:** Replaced references to external payment gateways with a manual GCash receipt validation loop.
+* **College-Based Routing:** Enforced queue segregation allowing College Secretaries to exclusively evaluate documents belonging to students from their respective colleges.
+* **AI 3-Point Registration Verification:** Augmented `ocr_engine.py` to cross-validate School Name, Student ID, and College on uploaded IDs.
+* **Finance Rejection Pipeline:** Integrated 'Reject Payment' action and mandatory Clerk Notes for invalid manual GCash payments.
+* **Notification System Fixed:** Patched Axios wrapper bugs in `api.js` to ensure the real-time bell dropdown accurately populates, and added notification triggers to the Window 1 release endpoint.
+* **Defense Script Generated:** Built a highly detailed, stage-directed Capstone defense transcript for a 3-person team.
 * **Unified Dashboard Page:** Rebuilt `DashboardPage.jsx` and `Layout.jsx` with responsive layouts and multi-tab sidebars corresponding to the active role.
