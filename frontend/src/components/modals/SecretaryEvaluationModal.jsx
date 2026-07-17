@@ -20,9 +20,9 @@ export default function SecretaryEvaluationModal({
   if (!selectedDoc) return null;
 
   return createPortal(
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6">
+    <div className="fixed inset-0 z-[100] flex items-start sm:items-center justify-center p-4 sm:p-6 overflow-y-auto">
       <div className="absolute inset-0 bg-gray-900/60 backdrop-blur-md" onClick={() => setActiveModal(null)}></div>
-      <div className={`bg-white rounded-[2rem] shadow-2xl w-full ${selectedDoc.file_path ? 'max-w-7xl h-[85vh]' : 'max-w-4xl h-auto max-h-[85vh]'} flex flex-col relative z-10 overflow-hidden border border-gray-200`}>
+      <div className={`bg-white rounded-[2rem] shadow-2xl w-full ${selectedDoc.file_path ? 'max-w-7xl h-[85vh]' : 'max-w-4xl h-auto'} max-h-[calc(100dvh-2rem)] flex flex-col relative z-10 overflow-hidden border border-gray-200`}>
         
         {/* Header */}
         <div className="flex items-center justify-between px-8 py-5 border-b border-gray-100 bg-white">

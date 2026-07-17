@@ -51,7 +51,7 @@ export default function UploadPage() {
     return (
       <div className="flex flex-col items-center justify-center min-h-[70vh]">
         <div className="bg-white rounded-3xl p-10 shadow-sm border border-gray-100 max-w-lg w-full text-center">
-          <div className="w-20 h-20 bg-pine-50 text-pine-600 rounded-full flex items-center justify-center text-4xl mx-auto mb-6">✅</div>
+          <div className="w-20 h-20 bg-pine-50 text-pine-600 rounded-full flex items-center justify-center mx-auto mb-6"><svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg></div>
           <h2 className="text-2xl font-display font-bold text-gray-900 mb-2">Upload Successful!</h2>
           <p className="text-gray-500 text-sm mb-4">Your document has been submitted. Please complete your payment to start processing.</p>
           
@@ -61,7 +61,7 @@ export default function UploadPage() {
                <div className="font-mono text-xl font-bold text-pine-600">{result.tracking_number}</div>
              </div>
              <button onClick={handleCopy} className="px-4 py-2 bg-white border border-gray-200 rounded-full text-sm font-bold text-gray-700 hover:bg-gray-50 transition-colors">
-               {copied ? '✅ Copied!' : '📋 Copy'}
+               {copied ? 'Copied!' : 'Copy'}
              </button>
           </div>
           
@@ -89,14 +89,14 @@ export default function UploadPage() {
 
       <div className="bg-white rounded-3xl p-8 shadow-sm border border-gray-100">
         <form onSubmit={handleSubmit} className="flex flex-col gap-6">
-          {error && <div className="p-4 bg-red-50 text-red-600 rounded-xl text-sm font-medium">⚠ {error}</div>}
+          {error && <div className="p-4 bg-red-50 text-red-600 rounded-xl text-sm font-medium flex items-center gap-2"><svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" /></svg>{error}</div>}
 
           {/* Dropzone */}
           <div
             className={`border-2 border-dashed rounded-3xl p-12 text-center cursor-pointer transition-colors ${dragActive ? 'border-pine-500 bg-pine-50' : 'border-gray-200 hover:border-pine-400 bg-gray-50/50'}`}
             onDragEnter={handleDrag} onDragOver={handleDrag} onDragLeave={handleDrag} onDrop={handleDrop} onClick={() => fileInputRef.current?.click()}
           >
-            <div className="text-5xl mb-4 opacity-80">📄</div>
+            <div className="mb-4 opacity-80"><svg className="w-12 h-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" /></svg></div>
             <p className="text-gray-700 font-medium mb-1 text-lg">Drag & drop your document here</p>
             <p className="text-gray-400 text-sm">or <span className="text-pine-600 font-semibold">click to browse</span> your files</p>
             <input ref={fileInputRef} type="file" onChange={handleFileChange} className="hidden" accept=".pdf,.doc,.docx,.png,.jpg,.jpeg" />
@@ -105,7 +105,7 @@ export default function UploadPage() {
           {file && (
             <div className="flex items-center justify-between p-4 bg-pine-50/50 border border-pine-100 rounded-2xl">
               <div className="flex items-center gap-4">
-                <span className="text-2xl opacity-80">📎</span>
+                <svg className="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M18.375 12.739l-7.693 7.693a4.5 4.5 0 01-6.364-6.364l10.94-10.94A3 3 0 1119.5 7.372L8.552 18.32m.009-.01l-.01.01m5.699-9.941l-7.81 7.81a1.5 1.5 0 002.112 2.13" /></svg>
                 <div>
                   <div className="text-sm font-bold text-gray-900">{file.name}</div>
                   <div className="text-xs text-gray-500 mt-0.5">{formatFileSize(file.size)}</div>
@@ -134,7 +134,7 @@ export default function UploadPage() {
           </div>
 
           <button type="submit" disabled={loading} className="mt-6 w-full py-4 bg-pine-600 hover:bg-pine-700 disabled:opacity-70 disabled:cursor-not-allowed text-white rounded-full font-bold transition-all shadow-sm flex items-center justify-center gap-2">
-            {loading ? <><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></span> Uploading...</> : '📤 Upload Document'}
+            {loading ? <><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></span> Uploading...</> : <><svg className="w-4 h-4 inline-block mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" /></svg>Upload Document</>}
           </button>
         </form>
       </div>

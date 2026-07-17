@@ -9,9 +9,9 @@ export default function LiveTrackingModal({
   if (!selectedDoc) return null;
 
   return createPortal(
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-[100] flex items-start sm:items-center justify-center p-4 overflow-y-auto">
       <div className="absolute inset-0 bg-gray-900/60 backdrop-blur-md" onClick={() => setActiveModal(null)}></div>
-      <div className="bg-white rounded-3xl shadow-2xl w-full max-w-2xl p-6 sm:p-8 z-10 border border-gray-100 relative flex flex-col max-h-[90vh] overflow-y-auto">
+      <div className="bg-white rounded-3xl shadow-2xl w-full max-w-2xl p-6 sm:p-8 z-10 border border-gray-100 relative flex flex-col max-h-[calc(100dvh-2rem)] overflow-y-auto">
         <button className="absolute top-4 right-4 w-8 h-8 rounded-full flex items-center justify-center text-gray-400 hover:bg-gray-100" onClick={() => setActiveModal(null)}>✕</button>
 
         <div className="flex justify-between items-center border-b border-gray-100 pb-4">
