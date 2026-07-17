@@ -17,6 +17,8 @@ CREATE TABLE IF NOT EXISTS users (
   desk_assignment VARCHAR(100),
   id_proof_path VARCHAR(500),
   verification_status ENUM('pending', 'verified', 'rejected') DEFAULT 'pending',
+  course VARCHAR(100),
+  phone_number VARCHAR(20),
   is_active BOOLEAN DEFAULT TRUE,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
@@ -29,18 +31,37 @@ CREATE TABLE IF NOT EXISTS documents (
   student_id VARCHAR(50),
   student_name VARCHAR(255),
   document_type VARCHAR(100),
-  current_status ENUM('pending_payment','submitted','processing','approved','rejected','released') DEFAULT 'pending_payment',
+  current_status VARCHAR(50) DEFAULT 'pending_payment',
   payment_status ENUM('UNPAID', 'PAID') DEFAULT 'UNPAID',
   assigned_clerk_id INT,
   file_path VARCHAR(500),
+  receipt_image_path VARCHAR(500),
+  official_receipt_path VARCHAR(500),
   original_filename VARCHAR(255),
   ocr_raw_text TEXT,
   ocr_extracted_data JSON,
   payment_reference_id VARCHAR(255),
+  gcash_reference_no VARCHAR(255),
+  amount DECIMAL(10,2) DEFAULT 150.00,
+  copies INT DEFAULT 1,
+  ocr_confidence_score DECIMAL(5,2),
+  purpose VARCHAR(255),
   checkout_url VARCHAR(500),
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   FOREIGN KEY (assigned_clerk_id) REFERENCES users(id) ON DELETE SET NULL
+);
+
+-- Notifications table: in-app alerts
+CREATE TABLE IF NOT EXISTS notifications (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  user_id INT NOT NULL,
+  title VARCHAR(255) NOT NULL,
+  message TEXT NOT NULL,
+  type VARCHAR(50) DEFAULT 'info',
+  is_read BOOLEAN DEFAULT FALSE,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
 -- Step logs: audit trail for every document action
