@@ -55,12 +55,21 @@ Run [migration.js](file:///Users/jhervin/project-trace/backend/database/migratio
 
 ---
 
+## 🚀 Final Capstone Enhancements (Phase 5 Completed)
+* **College-Based Routing:** The system now stores a student's `course` upon registration. When documents reach the `pending_secretary` state, the queue is dynamically filtered so each College Secretary (e.g., `SEC-CCS001`) only sees requests from their own students. In-app notifications are also accurately routed only to the responsible secretary.
+* **AI 3-Point Registration Verification:** Upgraded the `ai-engine/ocr_engine.py` script. When a student uploads their ID during signup, the AI now verifies three critical data points simultaneously: (1) The institution name "Pamantasan ng Lungsod ng Pasig", (2) the `student_id`, and (3) the `course`/college selected in the dropdown. Mismatches flag the account as pending.
+* **Finance Rejection Pipeline:** Added a full-width "Clerk Notes" text area and a dedicated "Reject Payment" button in the Finance UI. If a receipt is invalid, the finance clerk's notes are embedded directly into the notification sent back to the student.
+* **Notification System Fix & Release Triggers:** Patched an Axios response-unwrapping bug in the frontend `api.js` that caused the bell icon to appear empty. Also upgraded the Window 1 "Release" endpoint to fire off SMS, Email, and in-app notifications (mirroring the secretary evaluation workflow).
+* **Comprehensive Defense Script:** Generated a word-for-word, highly detailed presentation script (`CAPSTONE_DEFENSE_SCRIPT.md`) tailored for a 3-person team, including stage directions for the live demo and technical explanations for the panelists.
+
+---
+
 ## 🔐 Credentials Checklist (Password: `trace2024`)
 
 * **Registrar Admin:** ID `ADMIN001` (Desk: `Admin Office`)
 * **Finance Clerk:** ID `FINANCE001` (Desk: `Finance`)
 * **Window 1 Clerk:** ID `WINDOW1001` (Desk: `Window 1`)
-* **College Secretary:** ID `SEC001` (Desk: `Secretary`)
+* **College Secretaries (7 PLP Colleges):** IDs `SEC-CCS001`, `SEC-CON001`, `SEC-CIHM001`, `SEC-COE001`, `SEC-CED001`, `SEC-CAS001`, `SEC-CBA001` (Desk: `Secretary`)
 * **Student:** ID `STU2024001` (Student)
 
 ---

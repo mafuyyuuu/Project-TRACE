@@ -600,7 +600,7 @@ router.post('/assign', async (req, res) => {
     const assigned_clerk_id = clerkRows[0].id;
 
     const [updateResult] = await pool.query(
-      'UPDATE documents SET assigned_clerk_id = ?, current_status = "processing" WHERE id = ?',
+      'UPDATE documents SET assigned_clerk_id = ? WHERE id = ?',
       [assigned_clerk_id, document_id]
     );
 
@@ -611,7 +611,7 @@ router.post('/assign', async (req, res) => {
     // Log the assignment
     await pool.query(
       `INSERT INTO step_logs (document_id, clerk_id, action_taken, from_status, to_status, notes)
-       VALUES (?, NULL, 'routed', 'submitted', 'processing', ?)`,
+       VALUES (?, NULL, 'routed', 'pending_payment', 'pending_payment', ?)`,
       [document_id, `Auto-routed to Clerk ${assigned_clerk_employee_id} by n8n`]
     );
 
