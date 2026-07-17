@@ -165,13 +165,13 @@ export default function DashboardPage() {
       {/* Dynamic Alerts */}
       {success && (
         <div className="fixed bottom-6 right-6 z-50 bg-gray-900 text-white px-6 py-4 rounded-2xl shadow-xl flex items-center gap-3 border border-gray-700 animate-slide-up">
-          <div className="w-8 h-8 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0">✔</div>
+          <div className="w-8 h-8 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0"><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" /></svg></div>
           <span className="font-semibold text-sm">{success}</span>
         </div>
       )}
       {error && (
         <div className="fixed bottom-6 right-6 z-50 bg-red-900 text-white px-6 py-4 rounded-2xl shadow-xl flex items-center gap-3 border border-red-700 animate-slide-up">
-          <div className="w-8 h-8 rounded-full bg-red-500/20 text-red-400 flex items-center justify-center shrink-0">⚠</div>
+          <div className="w-8 h-8 rounded-full bg-red-500/20 text-red-400 flex items-center justify-center shrink-0"><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" /></svg></div>
           <span className="font-semibold text-sm">{error}</span>
         </div>
       )}
@@ -259,7 +259,7 @@ export default function DashboardPage() {
               <div className="bg-white rounded-3xl shadow-sm border border-gray-200 overflow-hidden mt-8">
                 <div className="p-6 border-b border-gray-100 bg-gray-50/50 flex justify-between items-center">
                   <h3 className="font-bold text-gray-900 text-lg">ACTIVE REQUESTS</h3>
-                  <button onClick={loadDashboardData} className="text-xs text-[#15803d] font-bold hover:underline">🔄 Refresh</button>
+                  <button onClick={loadDashboardData} className="text-xs text-[#15803d] font-bold hover:underline inline-flex items-center gap-1"><svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.992 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182" /></svg> Refresh</button>
                 </div>
                 <div className="p-6">
                   {documents.length === 0 ? (
@@ -488,9 +488,9 @@ export default function DashboardPage() {
 
           {/* 1.5. COMPLETE YOUR GCASH PAYMENT MODAL */}
           {activeModal === 'pay' && selectedDoc && createPortal(
-            <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <div className="fixed inset-0 z-50 flex items-start sm:items-center justify-center p-4 overflow-y-auto">
               <div className="absolute inset-0 bg-gray-900/60 backdrop-blur-md" onClick={() => setActiveModal(null)}></div>
-              <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg p-6 sm:p-8 z-10 border border-gray-100 relative">
+              <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg max-h-[calc(100dvh-2rem)] overflow-y-auto p-6 sm:p-8 z-10 border border-gray-100 relative">
                 
                 <button 
                   onClick={() => handleStudentCancelRequest(selectedDoc.id, true)}
@@ -595,9 +595,9 @@ export default function DashboardPage() {
 
           {/* 1.6. PAYMENT SUCCESS SCREEN MODAL */}
           {activeModal === 'pay-success' && createPortal(
-            <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <div className="fixed inset-0 z-50 flex items-start sm:items-center justify-center p-4 overflow-y-auto">
               <div className="absolute inset-0 bg-gray-900/60 backdrop-blur-md" onClick={() => setActiveModal(null)}></div>
-              <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg p-6 sm:p-8 z-10 border border-gray-100 relative text-center">
+              <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg max-h-[calc(100dvh-2rem)] overflow-y-auto p-6 sm:p-8 z-10 border border-gray-100 relative text-center">
                 <h3 className="text-xl font-black text-gray-900 mb-6">Payment Submitted</h3>
 
                 <div className="border-2 border-dashed border-[#15803d]/40 bg-gray-50/50 p-8 rounded-2xl flex flex-col items-center gap-6 mb-6">
@@ -854,7 +854,7 @@ export default function DashboardPage() {
                       <span>Cleared by Secretary Today: <strong className="text-gray-900">{dashStats.cleared_by_secretary_today}</strong></span>
                     </div>
                   </div>
-                  <button onClick={loadDashboardData} className="text-xs text-[#15803d] font-bold hover:underline">🔄 Refresh</button>
+                  <button onClick={loadDashboardData} className="text-xs text-[#15803d] font-bold hover:underline inline-flex items-center gap-1"><svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.992 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182" /></svg> Refresh</button>
                 </div>
 
                 <div className="p-6">
@@ -1163,9 +1163,9 @@ export default function DashboardPage() {
 
           {/* 3.4. CAMERA SCANNING MODAL */}
           {activeModal === 'scanning' && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <div className="fixed inset-0 z-50 flex items-start sm:items-center justify-center p-4 overflow-y-auto">
               <div className="absolute inset-0 bg-gray-900/60 backdrop-blur-md" onClick={() => setActiveModal(null)}></div>
-              <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg p-6 sm:p-8 z-10 border border-gray-200 relative flex flex-col h-[70vh] justify-between">
+              <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg p-6 sm:p-8 z-10 border border-gray-200 relative flex flex-col h-[70vh] max-h-[calc(100dvh-2rem)] overflow-y-auto justify-between">
                 <button className="absolute top-4 right-4 w-8 h-8 rounded-full flex items-center justify-center text-gray-400 hover:bg-gray-100" onClick={() => setActiveModal(null)}>✕</button>
                 
                 <div>
@@ -1179,7 +1179,7 @@ export default function DashboardPage() {
                   </span>
                   
                   <div className="w-48 h-64 border-2 border-dashed border-[#15803d] rounded-xl flex items-center justify-center bg-white/20 select-none shadow-sm">
-                    <span className="text-4xl">📄</span>
+                    <svg className="w-10 h-10 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" /></svg>
                   </div>
 
                   <span className="absolute bottom-4 text-[10px] font-bold text-gray-400 tracking-wide uppercase">
@@ -1209,9 +1209,9 @@ export default function DashboardPage() {
 
           {/* 3.5. INTAKE SCAN CONFIRMATION MODAL */}
           {activeModal === 'scan-confirm' && scanFile && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <div className="fixed inset-0 z-50 flex items-start sm:items-center justify-center p-4 overflow-y-auto">
               <div className="absolute inset-0 bg-gray-900/60 backdrop-blur-md" onClick={() => setActiveModal(null)}></div>
-              <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg p-6 sm:p-8 z-10 border border-gray-100 relative flex flex-col h-[75vh] justify-between">
+              <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg p-6 sm:p-8 z-10 border border-gray-100 relative flex flex-col h-[75vh] max-h-[calc(100dvh-2rem)] overflow-y-auto justify-between">
                 <button className="absolute top-4 right-4 w-8 h-8 rounded-full flex items-center justify-center text-gray-400 hover:bg-gray-100" onClick={() => setActiveModal(null)}>✕</button>
                 
                 <div>
@@ -1235,7 +1235,7 @@ export default function DashboardPage() {
                 {/* Scanned Image Preview Container */}
                 <div className="flex-1 bg-gray-100 border border-gray-200 rounded-2xl overflow-hidden mb-6 flex items-center justify-center shadow-inner relative">
                   <div className="text-center p-6 bg-white/60 backdrop-blur-sm rounded-2xl shadow-sm border border-gray-200/50">
-                    <span className="text-3xl block mb-2">📷</span>
+                    <svg className="w-8 h-8 text-gray-400 block mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M6.827 6.175A2.31 2.31 0 015.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 00-1.134-.175 2.31 2.31 0 01-1.64-1.055l-.822-1.316a2.192 2.192 0 00-1.736-1.039 48.774 48.774 0 00-5.232 0 2.192 2.192 0 00-1.736 1.039l-.821 1.316z" /><path strokeLinecap="round" strokeLinejoin="round" d="M16.5 12.75a4.5 4.5 0 11-9 0 4.5 4.5 0 019 0z" /></svg>
                     <span className="text-xs font-bold text-gray-800 block truncate max-w-xs">{scanFile.name}</span>
                     <span className="text-[10px] text-gray-400 font-mono mt-0.5 block">{formatFileSize(scanFile.size)}</span>
                   </div>
@@ -1609,7 +1609,7 @@ export default function DashboardPage() {
                   aiInsights.map((insight, idx) => (
                     <div key={idx} className={`${insight.type === 'warning' ? 'bg-amber-500/10 border-amber-500/20' : 'bg-white/10 border-white/15'} border rounded-2xl p-4 backdrop-blur-md`}>
                       <div className={`text-[10px] font-bold ${insight.type === 'warning' ? 'text-amber-300' : 'text-pine-300'} uppercase tracking-widest mb-1 flex items-center gap-1`}>
-                        {insight.type === 'warning' ? '⚠ ' : ''}{insight.title}
+                        {insight.type === 'warning' && <svg className="w-3.5 h-3.5 inline-block mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" /></svg>}{insight.title}
                       </div>
                       <div className="text-xs text-gray-200 leading-relaxed font-medium">
                         {insight.message}
@@ -1619,7 +1619,7 @@ export default function DashboardPage() {
                 ) : (
                   <>
                     <div className="bg-white/10 border border-white/15 rounded-2xl p-4 backdrop-blur-md">
-                      <div className="text-[10px] font-bold text-pine-300 uppercase tracking-widest mb-1 flex items-center gap-1">⚠ Volume Warning</div>
+                      <div className="text-[10px] font-bold text-pine-300 uppercase tracking-widest mb-1 flex items-center gap-1"><svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" /></svg> Volume Warning</div>
                       <div className="text-xs text-gray-200 leading-relaxed font-medium">
                         Loading insights...
                       </div>
@@ -1664,7 +1664,7 @@ export default function DashboardPage() {
                               onClick={() => setViewImageUrl(`${apiBaseUrl}/uploads/${student.id_proof_path.split(/[\\/]/).pop()}`)}
                               className="text-xs text-indigo-600 font-bold hover:underline flex items-center gap-1"
                             >
-                              🔎 View ID / Diploma Attachment
+                              <svg className="w-3.5 h-3.5 inline-block mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" /></svg>View ID / Diploma Attachment
                             </button>
                           ) : (
                             <span className="text-xs text-gray-400 italic">No proof uploaded</span>
@@ -1921,9 +1921,9 @@ export default function DashboardPage() {
 
       {/* HARDWARE SCANNER SIMULATION MODAL */}
           {activeModal === 'hardware-scanner' && scanFile && createPortal(
-            <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <div className="fixed inset-0 z-50 flex items-start sm:items-center justify-center p-4 overflow-y-auto">
               <div className="absolute inset-0 bg-gray-900/90 backdrop-blur-sm"></div>
-              <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg p-8 z-10 border border-gray-100 flex flex-col items-center">
+              <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg max-h-[calc(100dvh-2rem)] overflow-y-auto p-8 z-10 border border-gray-100 flex flex-col items-center">
                 <div className="animate-pulse mb-6 flex flex-col items-center">
                   <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mb-4">
                     <svg className="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">

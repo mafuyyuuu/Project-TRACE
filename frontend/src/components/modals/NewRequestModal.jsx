@@ -22,9 +22,9 @@ export default function NewRequestModal({
 }) {
 
   return createPortal(
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-[100] flex items-start sm:items-center justify-center p-4 overflow-y-auto">
       <div className="absolute inset-0 bg-gray-900/60 backdrop-blur-md" onClick={() => setActiveModal(null)}></div>
-      <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto p-6 sm:p-8 z-10 border border-gray-100 relative">
+      <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg max-h-[calc(100dvh-2rem)] overflow-y-auto p-6 sm:p-8 z-10 border border-gray-100 relative">
         <button className="absolute top-4 right-4 w-8 h-8 rounded-full flex items-center justify-center text-gray-400 hover:bg-gray-100" onClick={() => setActiveModal(null)}>✕</button>
         
         <h3 className="text-xl font-black text-gray-900">New Request</h3>
@@ -124,8 +124,8 @@ export default function NewRequestModal({
                   onChange={(e) => setDeliveryMethod(e.target.value)}
                   className="w-full bg-white border border-gray-200 rounded-xl p-3 text-xs font-bold text-gray-700 focus:ring-2 focus:ring-[#15803d]/20 outline-none cursor-pointer"
                 >
-                  <option value="self-pickup">🏫 Self Pick-up (Window 1)</option>
-                  <option value="courier">🚚 Courier Pick-up (Student books Grab/Lalamove)</option>
+                  <option value="self-pickup">Self Pick-up (Window 1)</option>
+                  <option value="courier">Courier Pick-up (Student books Grab/Lalamove)</option>
                 </select>
               </div>
               
