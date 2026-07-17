@@ -113,7 +113,8 @@ async function migrate() {
         password_hash: '$2b$10$l1XbhJYr7EQzggm7AE89weNjzuIj7kV6GKhnNguYnMzQ1J89TKuIm', // trace2024
         full_name: 'Finance Officer',
         role: 'clerk',
-        desk_assignment: 'Finance'
+        desk_assignment: 'Finance',
+        course: null
       },
       {
         student_id: 'WINDOW1001',
@@ -121,15 +122,72 @@ async function migrate() {
         password_hash: '$2b$10$l1XbhJYr7EQzggm7AE89weNjzuIj7kV6GKhnNguYnMzQ1J89TKuIm', // trace2024
         full_name: 'Window 1 Clerk',
         role: 'clerk',
-        desk_assignment: 'Window 1'
+        desk_assignment: 'Window 1',
+        course: null
+      },
+      // 7 College Secretaries (One per PLP College)
+      {
+        student_id: 'SEC-CCS001',
+        email: 'sec.ccs@trace.edu',
+        password_hash: '$2b$10$l1XbhJYr7EQzggm7AE89weNjzuIj7kV6GKhnNguYnMzQ1J89TKuIm',
+        full_name: 'CCS Secretary',
+        role: 'clerk',
+        desk_assignment: 'Secretary',
+        course: 'College of Computer Studies'
       },
       {
-        student_id: 'SEC001',
-        email: 'secretary@trace.edu',
-        password_hash: '$2b$10$l1XbhJYr7EQzggm7AE89weNjzuIj7kV6GKhnNguYnMzQ1J89TKuIm', // trace2024
-        full_name: 'College Secretary',
+        student_id: 'SEC-CON001',
+        email: 'sec.con@trace.edu',
+        password_hash: '$2b$10$l1XbhJYr7EQzggm7AE89weNjzuIj7kV6GKhnNguYnMzQ1J89TKuIm',
+        full_name: 'CON Secretary',
         role: 'clerk',
-        desk_assignment: 'Secretary'
+        desk_assignment: 'Secretary',
+        course: 'College of Nursing'
+      },
+      {
+        student_id: 'SEC-CIHM001',
+        email: 'sec.cihm@trace.edu',
+        password_hash: '$2b$10$l1XbhJYr7EQzggm7AE89weNjzuIj7kV6GKhnNguYnMzQ1J89TKuIm',
+        full_name: 'CIHM Secretary',
+        role: 'clerk',
+        desk_assignment: 'Secretary',
+        course: 'College of International Hospitality Management'
+      },
+      {
+        student_id: 'SEC-COE001',
+        email: 'sec.coe@trace.edu',
+        password_hash: '$2b$10$l1XbhJYr7EQzggm7AE89weNjzuIj7kV6GKhnNguYnMzQ1J89TKuIm',
+        full_name: 'COE Secretary',
+        role: 'clerk',
+        desk_assignment: 'Secretary',
+        course: 'College of Engineering'
+      },
+      {
+        student_id: 'SEC-CED001',
+        email: 'sec.ced@trace.edu',
+        password_hash: '$2b$10$l1XbhJYr7EQzggm7AE89weNjzuIj7kV6GKhnNguYnMzQ1J89TKuIm',
+        full_name: 'CED Secretary',
+        role: 'clerk',
+        desk_assignment: 'Secretary',
+        course: 'College of Education'
+      },
+      {
+        student_id: 'SEC-CAS001',
+        email: 'sec.cas@trace.edu',
+        password_hash: '$2b$10$l1XbhJYr7EQzggm7AE89weNjzuIj7kV6GKhnNguYnMzQ1J89TKuIm',
+        full_name: 'CAS Secretary',
+        role: 'clerk',
+        desk_assignment: 'Secretary',
+        course: 'College of Arts and Sciences'
+      },
+      {
+        student_id: 'SEC-CBA001',
+        email: 'sec.cba@trace.edu',
+        password_hash: '$2b$10$l1XbhJYr7EQzggm7AE89weNjzuIj7kV6GKhnNguYnMzQ1J89TKuIm',
+        full_name: 'CBA Secretary',
+        role: 'clerk',
+        desk_assignment: 'Secretary',
+        course: 'College of Business and Accountancy'
       }
     ];
 
@@ -137,16 +195,16 @@ async function migrate() {
       const [existing] = await pool.query('SELECT id FROM users WHERE student_id = ?', [u.student_id]);
       if (existing.length === 0) {
         await pool.query(
-          `INSERT INTO users (student_id, email, password_hash, full_name, role, desk_assignment, is_active)
-           VALUES (?, ?, ?, ?, ?, ?, TRUE)`,
-          [u.student_id, u.email, u.password_hash, u.full_name, u.role, u.desk_assignment]
+          `INSERT INTO users (student_id, email, password_hash, full_name, role, desk_assignment, course, verification_status, is_active)
+           VALUES (?, ?, ?, ?, ?, ?, ?, 'verified', TRUE)`,
+          [u.student_id, u.email, u.password_hash, u.full_name, u.role, u.desk_assignment, u.course]
         );
         console.log(`-> Seeded user ${u.full_name} (${u.student_id})`);
       } else {
         // Update user details just in case
         await pool.query(
-          `UPDATE users SET desk_assignment = ?, role = ? WHERE student_id = ?`,
-          [u.desk_assignment, u.role, u.student_id]
+          `UPDATE users SET desk_assignment = ?, role = ?, course = COALESCE(?, course) WHERE student_id = ?`,
+          [u.desk_assignment, u.role, u.course, u.student_id]
         );
         console.log(`-> Updated user ${u.full_name} (${u.student_id})`);
       }
