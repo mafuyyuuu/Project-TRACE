@@ -50,7 +50,7 @@ However, the system acknowledges a few key limitations. Operationally, we strict
 
 I will now return the floor to [Speaker 2 Name] to explain how we built a system within these boundaries."
 
-(Slide 6: System Architecture)
+**(Slide 6: System Architecture)**
 
 **Speaker 2:**
 "TRACE operates on a modern, decoupled framework divided into three layers.
