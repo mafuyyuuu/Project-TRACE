@@ -8,7 +8,7 @@
 
 ---
 
-## 🎬 Part 1: Introduction & Architecture (Speaker 1)
+## 🎬 Part 1: Powerpoint Presentation
 **(Setup: Display the Title Slide on the projector. Stand confidently. Ensure all servers (Frontend, Backend, AI Engine) are running locally.)**
 
 **Speaker 1:** 
@@ -65,7 +65,7 @@ We will now transition to the Live System Demo to show you exactly how these tec
 
 ---
 
-## 💻 Part 2: Live Demo - Student to Secretary Flow (Speaker 2)
+## 💻 Part 2: Live Demo - Student to Secretary Flow
 **(Action: Switch from PowerPoint to the Web Browser. Have the login page open.)**
 
 **Speaker 2:** 
@@ -117,7 +117,7 @@ I will now hand the floor to [Speaker 1 Name] to demonstrate the final release p
 
 ---
 
-## 🧠 Part 3: Live Demo - Release & AI Insights (Speaker 3)
+## 🧠 Part 3: Live Demo - Release & AI Insights
 
 **Speaker 1:**
 "Thank you, [Speaker 3 Name]. Panelists, we are now at the final step of the document's journey."
@@ -148,7 +148,7 @@ If an engineering student accidentally selects the College of Nursing, the AI de
 
 ---
 
-## 🎯 Part 4: Conclusion & Q&A (Speaker 3 & Team)
+## 🎯 Part 4: Conclusion & Q&A
 **(Action: Switch back to PowerPoint - Conclusion Slide)**
 
 **Speaker 1:**
