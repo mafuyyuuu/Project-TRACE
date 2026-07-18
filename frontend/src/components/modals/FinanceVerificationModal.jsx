@@ -19,11 +19,12 @@ export default function FinanceVerificationModal({
 
   return createPortal(
     <div className="fixed inset-0 z-[100] flex items-start sm:items-center justify-center p-4 overflow-y-auto">
-      <div className="absolute inset-0 bg-gray-900/60 backdrop-blur-sm" onClick={() => setActiveModal(null)}></div>
-      <div className="bg-white rounded-[2rem] shadow-2xl w-full max-w-xl max-h-[calc(100dvh-2rem)] overflow-y-auto p-6 sm:p-8 z-10 border border-gray-200 relative">
+      <div className="absolute inset-0 bg-gray-900/60 backdrop-blur-md" onClick={() => setActiveModal(null)}></div>
+      <div className="bg-white rounded-3xl shadow-2xl w-full max-w-xl max-h-[calc(100dvh-2rem)] overflow-y-auto p-6 sm:p-8 z-10 border border-gray-100 relative">
         <button className="absolute top-4 right-4 w-8 h-8 rounded-full flex items-center justify-center text-gray-400 hover:bg-gray-100" onClick={() => setActiveModal(null)}>✕</button>
         
-        <h3 className="text-xl font-black text-gray-900 mb-6">Verification Details</h3>
+        <h3 className="text-xl font-black text-gray-900">Verification Details</h3>
+        <p className="text-xs text-gray-400 mt-1 font-semibold pb-5 mb-6 border-b border-gray-100">Review and verify the student's payment receipt.</p>
         
         {/* Gray detail panel */}
         <div className="bg-gray-50 border border-gray-200 rounded-2xl p-5 my-4 font-mono text-[11px] text-gray-600 space-y-2">
@@ -36,7 +37,7 @@ export default function FinanceVerificationModal({
         </div>
 
         <div className="space-y-4">
-          <span className="text-xs font-black text-gray-900 block">Gcash Receipt Screenshot</span>
+          <span className="text-[10px] font-bold text-gray-800 uppercase tracking-widest block">Gcash Receipt Screenshot</span>
           
           {/* Receipt Preview */}
           <div className="bg-gray-100 rounded-2xl overflow-hidden border border-gray-200 h-64 relative flex items-center justify-center">
@@ -95,11 +96,11 @@ export default function FinanceVerificationModal({
             onChange={(e) => setClerkNotes(e.target.value)}
             placeholder="Add notes (required for rejection)..."
             rows={2}
-            className="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 text-xs focus:ring-2 focus:ring-pine-500 focus:bg-white outline-none transition-all resize-none"
+            className="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 text-xs font-semibold focus:ring-2 focus:ring-[#15803d]/20 focus:bg-white outline-none transition-all resize-none"
           />
         </div>
 
-        <div className="flex items-center gap-3 pt-6">
+        <div className="flex items-center gap-3 pt-4">
           <button 
             onClick={() => handleFinanceVerify('reject', null)}
             disabled={actionLoading}
