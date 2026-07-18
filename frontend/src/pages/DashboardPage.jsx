@@ -488,7 +488,7 @@ export default function DashboardPage() {
 
           {/* 1.5. COMPLETE YOUR GCASH PAYMENT MODAL */}
           {activeModal === 'pay' && selectedDoc && createPortal(
-            <div className="fixed inset-0 z-50 flex items-start sm:items-center justify-center p-4 overflow-y-auto">
+            <div className="fixed inset-0 z-[100] flex items-start sm:items-center justify-center p-4 overflow-y-auto">
               <div className="absolute inset-0 bg-gray-900/60 backdrop-blur-md" onClick={() => setActiveModal(null)}></div>
               <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg max-h-[calc(100dvh-2rem)] overflow-y-auto p-6 sm:p-8 z-10 border border-gray-100 relative">
                 
@@ -501,7 +501,7 @@ export default function DashboardPage() {
                 </button>
                 <button className="absolute top-4 right-4 w-8 h-8 rounded-full flex items-center justify-center text-gray-400 hover:bg-gray-100" onClick={() => setActiveModal(null)}>✕</button>
 
-                <div className="mt-8 mb-6 text-center">
+                <div className="mt-8 pb-5 mb-6 text-center border-b border-gray-100">
                   <h3 className="text-xl font-black text-gray-900">Complete your Payment</h3>
                   <p className="text-xs text-gray-400 mt-1 font-semibold">Add Payment</p>
                 </div>
@@ -595,7 +595,7 @@ export default function DashboardPage() {
 
           {/* 1.6. PAYMENT SUCCESS SCREEN MODAL */}
           {activeModal === 'pay-success' && createPortal(
-            <div className="fixed inset-0 z-50 flex items-start sm:items-center justify-center p-4 overflow-y-auto">
+            <div className="fixed inset-0 z-[100] flex items-start sm:items-center justify-center p-4 overflow-y-auto">
               <div className="absolute inset-0 bg-gray-900/60 backdrop-blur-md" onClick={() => setActiveModal(null)}></div>
               <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg max-h-[calc(100dvh-2rem)] overflow-y-auto p-6 sm:p-8 z-10 border border-gray-100 relative text-center">
                 <h3 className="text-xl font-black text-gray-900 mb-6">Payment Submitted</h3>
@@ -1163,12 +1163,12 @@ export default function DashboardPage() {
 
           {/* 3.4. CAMERA SCANNING MODAL */}
           {activeModal === 'scanning' && (
-            <div className="fixed inset-0 z-50 flex items-start sm:items-center justify-center p-4 overflow-y-auto">
+            <div className="fixed inset-0 z-[100] flex items-start sm:items-center justify-center p-4 overflow-y-auto">
               <div className="absolute inset-0 bg-gray-900/60 backdrop-blur-md" onClick={() => setActiveModal(null)}></div>
-              <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg p-6 sm:p-8 z-10 border border-gray-200 relative flex flex-col h-[70vh] max-h-[calc(100dvh-2rem)] overflow-y-auto justify-between">
+              <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg p-6 sm:p-8 z-10 border border-gray-100 relative flex flex-col h-[70vh] max-h-[calc(100dvh-2rem)] overflow-y-auto justify-between">
                 <button className="absolute top-4 right-4 w-8 h-8 rounded-full flex items-center justify-center text-gray-400 hover:bg-gray-100" onClick={() => setActiveModal(null)}>✕</button>
                 
-                <div>
+                <div className="pb-5 mb-4 border-b border-gray-100">
                   <h3 className="text-xl font-black text-gray-900 tracking-tight">Scan Document</h3>
                 </div>
 
@@ -1209,12 +1209,12 @@ export default function DashboardPage() {
 
           {/* 3.5. INTAKE SCAN CONFIRMATION MODAL */}
           {activeModal === 'scan-confirm' && scanFile && (
-            <div className="fixed inset-0 z-50 flex items-start sm:items-center justify-center p-4 overflow-y-auto">
+            <div className="fixed inset-0 z-[100] flex items-start sm:items-center justify-center p-4 overflow-y-auto">
               <div className="absolute inset-0 bg-gray-900/60 backdrop-blur-md" onClick={() => setActiveModal(null)}></div>
               <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg p-6 sm:p-8 z-10 border border-gray-100 relative flex flex-col h-[75vh] max-h-[calc(100dvh-2rem)] overflow-y-auto justify-between">
                 <button className="absolute top-4 right-4 w-8 h-8 rounded-full flex items-center justify-center text-gray-400 hover:bg-gray-100" onClick={() => setActiveModal(null)}>✕</button>
                 
-                <div>
+                <div className="pb-5 mb-4 border-b border-gray-100">
                   <h3 className="text-xl font-black text-gray-900 tracking-tight">Confirm Information</h3>
                 </div>
 
@@ -1921,9 +1921,9 @@ export default function DashboardPage() {
 
       {/* HARDWARE SCANNER SIMULATION MODAL */}
           {activeModal === 'hardware-scanner' && scanFile && createPortal(
-            <div className="fixed inset-0 z-50 flex items-start sm:items-center justify-center p-4 overflow-y-auto">
-              <div className="absolute inset-0 bg-gray-900/90 backdrop-blur-sm"></div>
-              <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg max-h-[calc(100dvh-2rem)] overflow-y-auto p-8 z-10 border border-gray-100 flex flex-col items-center">
+            <div className="fixed inset-0 z-[100] flex items-start sm:items-center justify-center p-4 overflow-y-auto">
+              <div className="absolute inset-0 bg-gray-900/60 backdrop-blur-md"></div>
+              <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg max-h-[calc(100dvh-2rem)] overflow-y-auto p-6 sm:p-8 z-10 border border-gray-100 flex flex-col items-center">
                 <div className="animate-pulse mb-6 flex flex-col items-center">
                   <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mb-4">
                     <svg className="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">

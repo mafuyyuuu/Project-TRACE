@@ -28,7 +28,7 @@ export default function NewRequestModal({
         <button className="absolute top-4 right-4 w-8 h-8 rounded-full flex items-center justify-center text-gray-400 hover:bg-gray-100" onClick={() => setActiveModal(null)}>✕</button>
         
         <h3 className="text-xl font-black text-gray-900">New Request</h3>
-        <p className="text-xs text-gray-400 mt-1 font-semibold mb-6">Add New Request</p>
+        <p className="text-xs text-gray-400 mt-1 font-semibold pb-5 mb-6 border-b border-gray-100">Add New Request</p>
 
         <form onSubmit={handleStudentSubmitRequest} className="space-y-6">
           {/* Visually Auto-filled Fields */}
