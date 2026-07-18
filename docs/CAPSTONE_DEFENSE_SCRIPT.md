@@ -28,12 +28,16 @@ I will now pass the floor to [Speaker 2 Name] to discuss the specific problems w
 **(Slide 3: Statement of the Problem)**
 
 **Speaker 2:**
-"Thank you, [Speaker 3 Name]. Based on our research, the operational challenges at the Registrar's office can be summarized into three primary problems:
+"Thank you, [Speaker 3 Name]. To understand the need for TRACE, we first examined the current operations of the PLP Registrar’s Office. At present, the office relies on a combination of manual logbooks, digital spreadsheets, and semi-digital workflows for processing document requests.
 
-To understand the value of TRACE, we first need to examine the current operational challenges. Currently, the PLP Registrar’s Office uses a mixed approach of conventional logbooks and semi-digital spreadsheets. Through our research, we identified three primary issues:
-1. **Physical Bottlenecks:** Students spend hours falling in line at multiple windows just to submit a form, and then queue *again* at the cashier to verify their payments.
-2. **Manual Encoding Errors and Work Overload:** The heavy reliance on manual data entry contributes to wrong encoding of information, duplication of entries, and occasionally misplaced documents, which leads to work overload for the staff.
-3. **Lack of Status Visibility:** Once a student submits a request, there is a lack of visibility into its progress. This creates uncertainty for the student and increases the volume of follow-up inquiries that the office has to manage.
+Based on our analysis, we identified several key operational challenges:
+**First**, limited accessibility of registrar services. Students and alumni, particularly those located outside the campus, often need to visit the office personally to submit requests and follow up on their documents.
+**Second**, manual encoding and information extraction. The heavy reliance on manual data entry increases the risk of encoding errors, duplicated information, and additional workload for registrar personnel.
+**Third**, delays in document intake and workflow routing. The processing and movement of requests depend largely on manual procedures, which can slow down operations, especially during peak academic periods.
+**Fourth**, limited visibility into request status. Once a request has been submitted, students and alumni have limited means of monitoring its progress, resulting in frequent follow-up inquiries.
+**Finally**, the office currently has limited capability to analyze historical request data and forecast future workload demands, making it difficult to proactively plan for busy periods.
+
+These challenges served as the basis for the development of TRACE.
 
 I will now hand the floor back to [Speaker 3 Name] to establish our system's boundaries."
 
