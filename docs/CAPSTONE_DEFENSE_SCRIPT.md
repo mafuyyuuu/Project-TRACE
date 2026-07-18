@@ -2,9 +2,9 @@
 
 **Estimated Time:** 15-20 minutes
 **Roles:**
-- **Speaker 1 (The Visionary & Architect):** Handles the formal greeting, problem statement, technical stack overview, and the system architecture.
-- **Speaker 2 (The Operator):** Executes the Live Demo specifically for the Student, Finance, and Secretary workflows. Highlights form dynamism and OCR AI.
-- **Speaker 3 (The Strategist & Data Analyst):** Handles the Window 1 release, the Admin AI Insights (Prophet Forecasting, Random Forest), and the formal conclusion.
+- **Speaker 1:** Formal greeting, Window 1 release demo, Admin AI Insights (Prophet & Random Forest), formal conclusion.
+- **Speaker 2:** Problem statement, system architecture, Live Demo (Student, Finance). Highlights form dynamism and OCR AI.
+- **Speaker 3:** Background of the study, comparison, scope and limitation, Secretary workflows.
 
 ---
 
@@ -12,28 +12,52 @@
 **(Setup: Display the Title Slide on the projector. Stand confidently. Ensure all servers (Frontend, Backend, AI Engine) are running locally.)**
 
 **Speaker 1:** 
-"Good morning, respected panelists, our esteemed thesis adviser, and guests. We are [Group Name/Number]. I am [Speaker 1 Name], and standing with me today are my co-researchers, [Speaker 2 Name] and [Speaker 3 Name]. 
+"Good day, respected panelists, our esteemed thesis adviser, and guests. We are the researchers behind TRACE, which stands for Tracking, Routing, and Automated Credential Engine. I am [Speaker 1 Name], and standing with me today are my co-researchers, [Speaker 2 Name] and [Speaker 3 Name]. 
 
-Today, we are incredibly proud to present the culmination of our research and development: **Project TRACE**. This is an AI-powered, centralized document routing and verification ecosystem, engineered specifically to modernize and optimize the Pamantasan ng Lungsod ng Pasig (PLP) Registrar's Office.
+Today, we present our study: An AI-Assisted Registrar Document Workflow System with Machine Learning and Process Recommendations. This is an AI-powered, centralized document routing and verification ecosystem, engineered specifically to modernize and optimize the Pamantasan ng Lungsod ng Pasig (PLP) Registrar's Office.
 
-**(Slide: The Problem / Pain Points)**
+**(Slide 1 & 2: Background of the Study & Comparison)**
 
 **Speaker 1:**
-"To truly understand the value of TRACE, we first need to examine the current reality. Requesting a simple document, like a Transcript of Records, is a highly manual, disconnected, and frustrating process. We identified three critical pain points:
+"Thank you, [Speaker 1 Name]. Now, for a brief background of the study, the Registrar’s Office of Pamantasan ng Lungsod ng Pasig (PLP) serves as the custodian of student academic records and documents. Currently, the office employs a combination of conventional logbooks and semi-digital spreadsheets for record-keeping and document processing.
+
+When comparing this current setup to our proposed system, the manual approach relies heavily on physical handoffs and physical verification. This often leads to processing delays, data entry errors, and a general lack of visibility into request progress. TRACE aims to modernize this by transitioning from manual logbooks to automated digital routing, and from manual data encoding to Intelligent Document Processing.
+
+I will now pass the floor to [Speaker 2 Name] to discuss the specific problems we aim to solve."
+
+**(Slide 3: Statement of the Problem)**
+
+**Speaker 2:**
+"Thank you, [Speaker 3 Name]. Based on our research, the operational challenges at the Registrar's office can be summarized into three primary problems:
+
+To understand the value of TRACE, we first need to examine the current operational challenges. Currently, the PLP Registrar’s Office uses a mixed approach of conventional logbooks and semi-digital spreadsheets. Through our research, we identified three primary issues:
 1. **Physical Bottlenecks:** Students spend hours falling in line at multiple windows just to submit a form, and then queue *again* at the cashier to verify their payments.
-2. **Manual Processing Fatigue:** The registrar staff is burdened with manually verifying hundreds of physical forms and GCash receipts daily. This inevitably leads to human error, misplaced documents, and a massive backlog.
-3. **Zero Transparency:** Once a student submits a request, it goes into a 'black box'. They have absolutely no idea if their document is with the Secretary, the Dean, or ready for pickup unless they physically travel back to the campus to ask.
+2. **Manual Encoding Errors and Work Overload:** The heavy reliance on manual data entry contributes to wrong encoding of information, duplication of entries, and occasionally misplaced documents, which leads to work overload for the staff.
+3. **Lack of Status Visibility:** Once a student submits a request, there is a lack of visibility into its progress. This creates uncertainty for the student and increases the volume of follow-up inquiries that the office has to manage.
 
-**(Slide: The Solution - Project TRACE Stack)**
+I will now hand the floor back to [Speaker 3 Name] to establish our system's boundaries."
 
-**Speaker 1:**
-"Project TRACE eliminates these bottlenecks by completely digitizing the document lifecycle. To achieve this, we moved away from traditional, monolithic architectures and implemented a modern, decoupled microservice approach. 
+**(Slide 4 & 5: Scope and Limitation)**
 
-Our **Frontend** is built with React and Tailwind CSS, delivering a highly responsive, app-like user experience. 
-Our **Backend API** is powered by Node.js and Express, connected to a robust MySQL database that utilizes connection pooling for high-speed, concurrent access. 
-But what makes our system truly intelligent is our **independent Python AI Engine**. We built a custom Flask microservice running PyTorch and EasyOCR to visually read and validate uploaded documents. Finally, we integrated **n8n** as an orchestration layer for complex background tasks.
+**Speaker 3:**
+"To establish the exact boundaries of our study, our scope is focused on four key functionalities: developing a cross-platform Web App, integrating OCR for data extraction, implementing automated workflow routing, and applying predictive analytics using Random Forest and Prophet.
 
-Instead of just talking about the architecture, we want to prove it to you in action. I will now pass the floor to [Speaker 2 Name] to walk you through a live transaction."
+However, the system acknowledges a few key limitations. Operationally, we strictly handle digital intake and analytics, while the generation and physical issuance of credentials remain exclusively with the registrar staff. Furthermore, the system is strictly for PLP students and alumni, excluding any third-party organizations. During this testing phase, we also utilize a simulated environment, meaning our predictive models use dummy datasets and the payment component relies on a demonstration account. Finally, because our OCR relies on AI, poor document quality or bad handwriting can naturally hinder its performance, in which case manual data entry serves as the necessary fallback.
+
+I will now return the floor to [Speaker 2 Name] to explain how we built a system within these boundaries."
+
+(Slide 6: System Architecture)
+
+**Speaker 2:**
+"TRACE operates on a modern, decoupled framework divided into three layers.
+
+First, the Presentation Layer is our React Web App. It serves as the primary interface for students to submit requests and for registrar personnel to process them.
+
+Second, the Application Layer acts as our core engine. A Node.js backend handles the primary requests, while an independent Python Flask microservice powers our AI. This includes using EasyOCR for data extraction and identity verification, and utilizing n8n for rule-based workflow routing. This layer also drives our analytics, using Prophet for volume forecasting and Random Forest to classify live queue metrics.
+
+Finally, the Data Layer utilizes a MySQL database. It acts as our single source of truth, securely storing request records, payment statuses, and step logs. Together, these layers allow the system to output automated tracking, actionable workload forecasts, and intelligent process recommendations.
+
+We will now transition to the Live System Demo to show you exactly how these technologies interact."
 
 ---
 
@@ -41,41 +65,50 @@ Instead of just talking about the architecture, we want to prove it to you in ac
 **(Action: Switch from PowerPoint to the Web Browser. Have the login page open.)**
 
 **Speaker 2:** 
-"Thank you, [Speaker 1 Name]. Good morning, panelists. Let's step into the shoes of a PLP IT student named Ana. 
+"We will begin the demo at the Student Portal."
 
-*(Action: Type `STU2024001` and password `trace2024`, then click Login.)*
+*(Action: Navigate to Registration Page)*
 
-"Here is the **Student Dashboard**. Ana immediately sees her active requests, her payment history, and a timeline of her past documents. We designed this UI to be highly intuitive. Let's create a new request."
+"Before a student can request anything, they must create an account. During registration, the student is required to upload their PLP Student ID. This is where our OCR AI performs its first critical task. Our Python API visually reads the uploaded ID to perform a strict identity verification—cross-matching the Pamantasan ng Lungsod ng Pasig institution name and the student number. This guarantees that fake accounts cannot enter the system."
 
-*(Action: Click 'New Request' button.)*
+*(Action: Admin quickly verifies the account. Log in as Student)*
 
-"Notice how the form is dynamic. If Ana requests a Certificate of Enrollment, the form is simple. But if she requests a Transcript of Records..."
+"Once the Admin approves the account, the student logs in to request a document. Our forms are dynamic—for example, selecting a Transcript automatically calculates the fee based on attended semesters.
+
 *(Action: Select Transcript of Records from the dropdown)*
-"...the system dynamically adapts, asking for the 'Number of Semesters Attended'. It then automatically calculates the total price based on that logic. I'll input 8 semesters, which totals 200 pesos. Ana pays via GCash, and I'll upload a screenshot of that payment receipt right here."
+
+"...the system dynamically adapts, asking for the 'Number of Semesters Attended'. It then automatically calculates the total price based on that logic. I'll input 8 semesters, which totals 200 pesos. The student pays via GCash, and I'll upload a screenshot of that payment receipt right here."
+
 *(Action: Fill in the form, select a dummy receipt image, and click Submit.)*
 
 "The moment we hit submit, the document enters our tracking pipeline. It is now strictly isolated in the **Pending Payment Verification** state. The student cannot bypass this, ensuring financial security. 
 
 Let's switch perspectives. I'm going to log out and log in as the **Finance Officer**."
+
 *(Action: Log out. Log in as `FINANCE001` with `trace2024`)*
 
-"The Finance Desk has a highly focused workspace—they only see documents awaiting payment verification. Here is Ana's request. When I open it..."
+"The Finance Desk has a highly focused workspace—they only see documents awaiting payment verification. Here is the students' request. When I open it..."
 *(Action: Click on Ana's request to open the modal)*
 "...the system displays the GCash receipt she uploaded. I can easily zoom in to verify the reference number. 
 *Crucially*, if this receipt were fake or blurry, the clerk can use this text area to add 'Clerk Notes' and click the red 'Reject Payment' button. That note is immediately sent back to the student. But this receipt is valid, so I will click the green 'Verify Payment' button."
+
 *(Action: Click Verify Payment.)*
 
-"Now that it's paid, the system intelligently routes the document. Because Ana is an IT student, her document does not go into a massive, chaotic general pool. It is routed strictly to the College of Computer Studies. Let's log in as the **CCS Secretary** to see this intelligent filtering in action."
+"...The clerk simply reviews the GCash receipt and clicks verify, which solves the issue of students visiting the office with insufficient funds.
+
+Once the payment is verified, our n8n orchestration engine intelligently routes the document. Because the requester is an IT student, the system deterministically routes the file strictly to the College of Computer Studies, rather than a general queue.
+
+I will now pass the floor to [Speaker 3 Name], who will log in as the **CCS Secretary** to demonstrate this intelligent filtering in action."
+
 *(Action: Log out. Log in as `SEC-CCS001` with `trace2024`)*
 
-"Here is the Secretary Queue. When the secretary opens Ana's document, they aren't just looking at a basic form. They are presented with our **Split-Screen Evaluation interface**. 
-If this were a physical document scanned into the system, our Python AI Engine would have run OCR (Optical Character Recognition) on it, extracting the text and pre-filling the input fields on the right. The Secretary simply compares the original image on the left with the AI-extracted data on the right, makes any minor human corrections, and clicks 'Approve'."
+"Here is the Secretary Queue. When the secretary opens Ana's document, they aren't just looking at a basic form. They are presented with our **Split-Screen Evaluation interface**. If this were a physical document scanned into the system, our Python AI Engine would have run OCR (Optical Character Recognition) on it, extracting the text and pre-filling the input fields on the right. The Secretary simply compares the original image on the left with the AI-extracted data on the right, makes any minor human corrections, and clicks 'Approve'."
 
 *(Action: Click Approve.)*
 
 "The exact moment I click Approve, two things happen instantly in the background: A customized SMS is dispatched to Ana's mobile phone via the UniSMS API, and an Email is sent via Nodemailer, notifying her that the document evaluation is complete. 
 
-I will now hand the floor to [Speaker 3 Name] to demonstrate the final release process and our powerful Admin AI Insights."
+I will now hand the floor to [Speaker 1 Name] to demonstrate the final release process and our powerful Admin AI Insights."
 
 ---
 
