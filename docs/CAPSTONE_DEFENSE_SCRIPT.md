@@ -19,7 +19,7 @@ Today, we present our study: An AI-Assisted Registrar Document Workflow System w
 
 **(Slide 1 & 2: Background of the Study & Comparison)**
 
-**Speaker 1:**
+**Speaker 3:**
 "Thank you, [Speaker 1 Name]. Now, for a brief background of the study, the Registrar’s Office of Pamantasan ng Lungsod ng Pasig (PLP) serves as the custodian of student academic records and documents. Currently, the office employs a combination of conventional logbooks and semi-digital spreadsheets for record-keeping and document processing.
 
 When comparing this current setup to our proposed system, the manual approach relies heavily on physical handoffs and physical verification. This often leads to processing delays, data entry errors, and a general lack of visibility into request progress. TRACE aims to modernize this by transitioning from manual logbooks to automated digital routing, and from manual data encoding to Intelligent Document Processing.
