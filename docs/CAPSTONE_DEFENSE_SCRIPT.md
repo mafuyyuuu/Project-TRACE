@@ -31,11 +31,11 @@ I will now pass the floor to [Speaker 2 Name] to discuss the specific problems w
 "Thank you, [Speaker 3 Name]. To understand the need for TRACE, we first examined the current operations of the PLP Registrar’s Office. At present, the office relies on a combination of manual logbooks, digital spreadsheets, and semi-digital workflows for processing document requests.
 
 Based on our analysis, we identified several key operational challenges:
-**First**, limited accessibility of registrar services. Students and alumni, particularly those located outside the campus, often need to visit the office personally to submit requests and follow up on their documents.
-**Second**, manual encoding and information extraction. The heavy reliance on manual data entry increases the risk of encoding errors, duplicated information, and additional workload for registrar personnel.
-**Third**, delays in document intake and workflow routing. The processing and movement of requests depend largely on manual procedures, which can slow down operations, especially during peak academic periods.
-**Fourth**, limited visibility into request status. Once a request has been submitted, students and alumni have limited means of monitoring its progress, resulting in frequent follow-up inquiries.
-**Finally**, the office currently has limited capability to analyze historical request data and forecast future workload demands, making it difficult to proactively plan for busy periods.
+1. **Limited Accessibility of Registrar Services** – Students and alumni, particularly those located outside the campus, often need to visit the office personally to submit requests and follow up on their documents.
+2. **Manual Encoding and Information Extraction** – The heavy reliance on manual data entry increases the risk of encoding errors, duplicated information, and additional workload for registrar personnel.
+3. **Delays in Document Intake and Workflow Routing** – The processing and movement of requests depend largely on manual procedures, which can slow down operations, especially during peak academic periods.
+4. **Limited Visibility into Request Status** – Once a request has been submitted, students and alumni have limited means of monitoring its progress, resulting in frequent follow-up inquiries.
+5. **Limited Workload Analysis and Forecasting Capability** – The office currently has limited capability to analyze historical request data and forecast future workload demands, making it difficult to proactively plan for busy periods.
 
 These challenges served as the basis for the development of TRACE.
 
