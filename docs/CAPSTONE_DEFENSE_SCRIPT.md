@@ -1,6 +1,7 @@
 # Project TRACE: Comprehensive Capstone Defense Script (3 Presenters)
 
 **Estimated Time:** 15-20 minutes
+
 **Roles:**
 - **Speaker 1:** Formal greeting, Window 1 release demo, Admin AI Insights (Prophet & Random Forest), formal conclusion.
 - **Speaker 2:** Problem statement, system architecture, Live Demo (Student, Finance). Highlights form dynamism and OCR AI.
