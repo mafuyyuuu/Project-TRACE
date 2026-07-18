@@ -102,6 +102,7 @@ I will now pass the floor to [Speaker 3 Name], who will log in as the **CCS Secr
 
 *(Action: Log out. Log in as `SEC-CCS001` with `trace2024`)*
 
+**Speaker 3:**
 "Here is the Secretary Queue. When the secretary opens Ana's document, they aren't just looking at a basic form. They are presented with our **Split-Screen Evaluation interface**. If this were a physical document scanned into the system, our Python AI Engine would have run OCR (Optical Character Recognition) on it, extracting the text and pre-filling the input fields on the right. The Secretary simply compares the original image on the left with the AI-extracted data on the right, makes any minor human corrections, and clicks 'Approve'."
 
 *(Action: Click Approve.)*
@@ -114,8 +115,8 @@ I will now hand the floor to [Speaker 1 Name] to demonstrate the final release p
 
 ## 🧠 Part 3: Live Demo - Release & AI Insights (Speaker 3)
 
-**Speaker 3:**
-"Thank you, [Speaker 2 Name]. Panelists, we are now at the final step of the document's journey."
+**Speaker 1:**
+"Thank you, [Speaker 3 Name]. Panelists, we are now at the final step of the document's journey."
 
 *(Action: Log out. Log in as `WINDOW1001` with `trace2024`)*
 
@@ -146,7 +147,7 @@ If an engineering student accidentally selects the College of Nursing, the AI de
 ## 🎯 Part 4: Conclusion & Q&A (Speaker 3 & Team)
 **(Action: Switch back to PowerPoint - Conclusion Slide)**
 
-**Speaker 3:**
+**Speaker 1:**
 "To conclude, Project TRACE is not just a digital filing cabinet. By combining React, Node.js, and specialized Python Machine Learning models, we have built an intelligent, self-monitoring ecosystem. 
 
 We successfully eliminated physical queues, drastically reduced the manual verification workload through OCR, and most importantly, we transformed raw university data into actionable, predictive intelligence for the administration. 
