@@ -51,8 +51,8 @@ def generate_mock_data(num_docs=500):
         final_status = random.choice(statuses)
         clerk = random.choice(clerks)
 
-        # Base timestamp from the last 12 months
-        base_date = fake.date_time_between(start_date="-1y", end_date="now")
+        # Base timestamp from January 2020 to July 2026 (fixed range)
+        base_date = fake.date_time_between(start_date=datetime(2020, 1, 1), end_date=datetime(2026, 7, 20))
         
         cursor.execute(
             """INSERT INTO documents (tracking_number, student_id, student_name, document_type, current_status, assigned_clerk_id, created_at, updated_at) 
