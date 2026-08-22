@@ -60,9 +60,9 @@ cd ai-engine && python -m venv .venv && source .venv/bin/activate && pip install
 
 ### Run all services (4 terminals)
 ```bash
-cd backend && npm run dev        # nodemon, http://localhost:3000
-cd frontend && npm run dev       # vite,    http://localhost:5173
-cd ai-engine && source .venv/bin/activate && python app.py   # http://localhost:5000
+cd backend && npm run dev        # nodemon, http://localhost:3300
+cd frontend && npm run dev       # vite,    http://localhost:5273
+cd ai-engine && source .venv/bin/activate && python app.py   # http://localhost:5005
 docker start n8n                 # http://localhost:5678 (must be created once via `docker run`, see README)
 ```
 
@@ -137,7 +137,7 @@ Two endpoints are deliberately unauthenticated: `GET /api/documents/:trackingNum
 
 File uploads go through Multer to disk (`backend/uploads/`, gitignored) via `middlewares/upload.middleware.js` before being forwarded to the Flask OCR service — don't hold upload buffers in memory.
 
-### AI engine (Flask, port 5000)
+### AI engine (Flask, port 5005)
 Single-file endpoints in `app.py`, OCR logic isolated in `ocr_engine.py`:
 - `POST /ocr/extract` — document intake OCR (EasyOCR run twice — preprocessed + original — longer text wins; regex-parses `student_id`/`last_name`/`form_type`; confidence = fields found / 3).
 - `POST /ocr/verify` — registration ID verification (3-point: school name, student ID, course all substring-matched in lowercased OCR text).

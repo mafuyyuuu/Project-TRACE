@@ -42,14 +42,14 @@ export default defineConfig({
     })
   ],
   server: {
-    port: 5173,
+    // 5173 (Vite's default) and 3000 are left free for other projects.
+    port: 5273,
+    strictPort: true,
     proxy: {
+      // Uploaded files are served through /api/files (authenticated), so the
+      // old unauthenticated /uploads mount no longer needs a proxy entry.
       '/api': {
-        target: 'http://localhost:3000',
-        changeOrigin: true,
-      },
-      '/uploads': {
-        target: 'http://localhost:3000',
+        target: 'http://localhost:3300',
         changeOrigin: true,
       }
     }

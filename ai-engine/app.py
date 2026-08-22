@@ -6,7 +6,7 @@ Endpoints:
     GET  /health        — Health check with EasyOCR availability status
     POST /ocr/extract   — Upload a document image and receive extracted data
 
-Port: 5000
+Port: 5005 (5000 is reserved by macOS Control Center / AirPlay)
 """
 
 import os
@@ -36,10 +36,13 @@ app = Flask(__name__)
 # Maximum upload size: 16 MB
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024
 
-# Enable CORS for the React frontend (default: localhost:3000)
+# The Node backend calls this service server-to-server, where CORS does not
+# apply. These origins only matter if a browser ever calls Flask directly.
 CORS(app, origins=[
-    'http://localhost:3000',
-    'http://127.0.0.1:3000',
+    'http://localhost:3300',   # Node API gateway
+    'http://127.0.0.1:3300',
+    'http://localhost:5273',   # Vite dev server
+    'http://127.0.0.1:5273',
 ])
 
 # Allowed file extensions for document uploads

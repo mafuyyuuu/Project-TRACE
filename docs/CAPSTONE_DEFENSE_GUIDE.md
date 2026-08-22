@@ -489,5 +489,5 @@ Do not freeze up during the demo! Keep these on a sticky note next to your lapto
 | `ADMIN001` | Registrar Admin | — |
 
 *   **Demo Flow Script:** Student Login → New Request → GCash Upload → Finance Login → Verify → Secretary Login (use `SEC-CCS001` for demo) → Evaluate → Window 1 Login → Release → Student gets SMS/Email notification → Admin Login → Show Forecast + Insights
-*   **Services to Start:** Backend (port 3000), Frontend (port 5173), AI Engine (port 5000), n8n via Docker (port 5678)
+*   **Services to Start:** Backend (port 3300), Frontend (port 5273), AI Engine (port 5005), n8n via Docker (port 5678)
 *   **Panic Phrase:** *"We're experiencing a minor environment inconsistency, but the intended behavior here is..."*

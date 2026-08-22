@@ -56,7 +56,7 @@ module.exports = {
   DB_USER: process.env.DB_USER || 'root',
   DB_PASSWORD: process.env.DB_PASSWORD || '',
   DB_NAME: process.env.DB_NAME || 'trace_db',
-  PORT: process.env.PORT || 3000,
+  PORT: process.env.PORT || 3300,
   AI_ENGINE_URL: process.env.AI_ENGINE_URL || 'http://127.0.0.1:5005',
   N8N_URL: process.env.N8N_URL || 'http://localhost:5678',
   UNISMS_SECRET_KEY: process.env.UNISMS_SECRET_KEY || '',

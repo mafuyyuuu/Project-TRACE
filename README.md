@@ -105,14 +105,14 @@ Every time you open your laptop to work on this project, you need to start these
 cd backend
 npm run dev
 ```
-*(Runs on http://localhost:3000)*
+*(Runs on http://localhost:3300)*
 
 **Terminal 2 (Frontend):**
 ```bash
 cd frontend
 npm run dev
 ```
-*(Runs on http://localhost:5173)*
+*(Runs on http://localhost:5273)*
 
 **Terminal 3 (AI Engine):**
 ```bash
@@ -120,7 +120,7 @@ cd ai-engine
 source .venv/bin/activate  # On Windows use: .venv\Scripts\activate
 python app.py
 ```
-*(Runs on http://localhost:5000)*
+*(Runs on http://localhost:5005 — **not** 5000, which macOS Control Center/AirPlay already occupies)*
 
 **Terminal 4 (n8n Router):**
 Ensure Docker Desktop is running.
