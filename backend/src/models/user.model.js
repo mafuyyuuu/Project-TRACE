@@ -138,8 +138,16 @@ function findStudentCourseByStudentId(studentId, executor = pool) {
     .then(([rows]) => rows);
 }
 
+/** Find the user whose uploaded ID proof is this file. */
+function findByIdProofFilename(filename, executor = pool) {
+  return executor
+    .query('SELECT id, student_id FROM users WHERE id_proof_path LIKE ? LIMIT 1', [`%${filename}`])
+    .then(([rows]) => rows);
+}
+
 module.exports = {
   findActiveByStudentId,
+  findByIdProofFilename,
   getProfileById,
   findExistingByStudentId,
   deleteById,

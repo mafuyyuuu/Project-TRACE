@@ -217,8 +217,25 @@ function countStepLogsToday(executor = pool) {
     .then(([rows]) => rows[0].count || 0);
 }
 
+/**
+ * Find the document that references an uploaded file, whichever column it
+ * landed in. Used to decide who is allowed to download that file.
+ */
+function findByAttachedFilename(filename, executor = pool) {
+  const like = `%${filename}`;
+  return executor
+    .query(
+      `SELECT id, student_id FROM documents
+       WHERE file_path LIKE ? OR receipt_image_path LIKE ? OR official_receipt_path LIKE ?
+       LIMIT 1`,
+      [like, like, like]
+    )
+    .then(([rows]) => rows);
+}
+
 module.exports = {
   insert,
+  findByAttachedFilename,
   findById,
   findByIdForUpdate,
   findByTrackingNumber,

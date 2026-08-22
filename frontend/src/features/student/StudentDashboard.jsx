@@ -2,6 +2,7 @@ import NewRequestModal from '@/features/student/components/NewRequestModal';
 import LiveTrackingModal from '@/features/student/components/LiveTrackingModal';
 import MiniSparkline from '@/components/MiniSparkline';
 import { createPortal } from 'react-dom';
+import { getAttachmentHelper, getAttachmentLabel, getProgressVal, getStatusLabel, requiresAttachment } from '@/utils/documentStatus';
 
 /**
  * Student portal: request KPIs, history, GCash checkout, and live tracking.
@@ -31,11 +32,6 @@ export default function StudentDashboard({
   handleStudentSubmitRequest,
   handleStudentSubmitPayment,
   handleStudentCancelRequest,
-  getProgressVal,
-  getStatusLabel,
-  requiresAttachment,
-  getAttachmentLabel,
-  getAttachmentHelper,
   user,
   currentTab,
   todayFormatted,

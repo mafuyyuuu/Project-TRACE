@@ -2,6 +2,7 @@ const express = require('express');
 const documentsController = require('../controllers/documents.controller');
 const { authenticate } = require('../middlewares/auth.middleware');
 const { documentUpload } = require('../middlewares/upload.middleware');
+const { verifyWebhookSecret } = require('../middlewares/webhookAuth.middleware');
 
 const router = express.Router();
 
@@ -18,8 +19,9 @@ router.get('/activity-logs', authenticate, documentsController.activityLogs);
 // Public tracking lookup (no auth — students track by tracking number).
 router.get('/:trackingNumber', documentsController.track);
 
-// Internal endpoint called by the n8n router (no user session).
-router.post('/assign', documentsController.assign);
+// Internal endpoint called by the n8n router. No user session, so it is
+// guarded by the shared webhook secret instead of a JWT.
+router.post('/assign', verifyWebhookSecret, documentsController.assign);
 
 // Desk actions
 router.post('/:id/action', authenticate, documentsController.action);

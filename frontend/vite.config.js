@@ -9,6 +9,13 @@ export default defineConfig({
       '@': fileURLToPath(new URL('./src', import.meta.url)),
     },
   },
+  test: {
+    environment: 'jsdom',
+    globals: true,
+    setupFiles: ['./src/test/setup.js'],
+    include: ['src/**/__tests__/**/*.test.{js,jsx}'],
+    restoreMocks: true,
+  },
   plugins: [
     react(),
     VitePWA({

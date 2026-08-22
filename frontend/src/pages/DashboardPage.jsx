@@ -5,7 +5,6 @@ import useDashboard from '@/hooks/useDashboard';
 import { getUsers } from '@/services/authService';
 import { getActivityLogs } from '@/services/documentsService';
 import ImageViewerModal from '@/components/ImageViewerModal';
-import { apiBaseUrl } from '@/utils/env';
 import StudentDashboard from '@/features/student/StudentDashboard';
 import FinanceDashboard from '@/features/finance/FinanceDashboard';
 import Window1Dashboard from '@/features/window1/Window1Dashboard';
@@ -116,7 +115,6 @@ export default function DashboardPage() {
       <ImageViewerModal
         viewImageUrl={viewImageUrl}
         setViewImageUrl={setViewImageUrl}
-        apiBaseUrl={apiBaseUrl}
       />
 
     </div>

@@ -43,7 +43,10 @@ async function handleWebhook(body) {
 async function simulatePayment({ tracking_number }) {
   await fetch(`http://localhost:${env.PORT}/api/payments/webhook`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: {
+      'Content-Type': 'application/json',
+      'x-webhook-secret': env.WEBHOOK_SECRET,
+    },
     body: JSON.stringify({ data: { attributes: { tracking_number, status: 'paid' } } }),
   });
 

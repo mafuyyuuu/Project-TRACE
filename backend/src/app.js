@@ -2,12 +2,13 @@ require('dotenv').config();
 
 const express = require('express');
 const cors = require('cors');
-const path = require('path');
 
 const authRoutes = require('./routes/auth.routes');
 const documentRoutes = require('./routes/documents.routes');
 const paymentRoutes = require('./routes/payments.routes');
+const fileRoutes = require('./routes/files.routes');
 const errorHandler = require('./middlewares/errorHandler.middleware');
+const { apiLimiter } = require('./middlewares/rateLimit.middleware');
 
 const app = express();
 
@@ -17,18 +18,18 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-
-// ---------------------------------------------------------------------------
-// Static file serving for uploaded documents
-// ---------------------------------------------------------------------------
-app.use('/uploads', express.static(path.join(__dirname, '..', 'uploads')));
+app.use('/api', apiLimiter);
 
 // ---------------------------------------------------------------------------
 // Routes
 // ---------------------------------------------------------------------------
+// NOTE: uploaded files are deliberately NOT served by express.static. They
+// contain student ID photos and payment receipts, so they go through
+// /api/files, which authenticates the caller and checks ownership.
 app.use('/api/auth', authRoutes);
 app.use('/api/documents', documentRoutes);
 app.use('/api/payments', paymentRoutes);
+app.use('/api/files', fileRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {

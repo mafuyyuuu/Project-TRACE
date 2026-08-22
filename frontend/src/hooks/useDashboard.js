@@ -414,67 +414,6 @@ export default function useDashboard(user) {
     }
   }, [triggerNotification, loadDashboardData]);
 
-  // ──────────────────────────────────────────────────────
-  // UI HELPER FUNCTIONS
-  // ──────────────────────────────────────────────────────
-
-  const getProgressVal = (status) => {
-    switch (status) {
-      case 'pending_payment': return 20;
-      case 'pending_payment_verification': return 40;
-      case 'pending_secretary': return 65;
-      case 'ready_window_1': return 90;
-      case 'completed':
-      case 'released': return 100;
-      default: return 10;
-    }
-  };
-
-  const getStatusLabel = (status) => {
-    switch (status) {
-      case 'pending_payment': return 'Awaiting Payment';
-      case 'pending_payment_verification': return 'Verifying Payment';
-      case 'pending_secretary': return 'Secretary Evaluation';
-      case 'ready_window_1': return 'Ready for Release';
-      case 'completed': return 'Completed';
-      case 'released': return 'Completed';
-      default: return status;
-    }
-  };
-
-  const requiresAttachment = (type) => ['Honorable Dismissal', 'Graduation Clearance', 'Certificate of Good Moral'].includes(type);
-
-  const getAttachmentLabel = (type) => {
-    if (type === 'Honorable Dismissal') return 'Required Attachment (Validated Clearance)';
-    if (type === 'Graduation Clearance') return 'Required Attachment (Signed Routing Form)';
-    if (type === 'Certificate of Good Moral') return 'Required Attachment (Valid Student ID)';
-    return 'Optional Attachment (Clearances, Old ID, etc)';
-  };
-
-  const getAttachmentHelper = (type) => {
-    if (type === 'Honorable Dismissal') return 'clearance file';
-    if (type === 'Graduation Clearance') return 'signed clearance form';
-    if (type === 'Certificate of Good Moral') return 'student ID photo';
-    return 'optional files';
-  };
-
-  const getRelativeTime = (dateStr) => {
-    if (!dateStr) return '—';
-    const diff = Math.round((Date.now() - new Date(dateStr).getTime()) / 60000);
-    if (diff < 1) return 'Just now';
-    if (diff < 60) return `${diff} min${diff > 1 ? 's' : ''} ago`;
-    if (diff < 1440) return `${Math.floor(diff / 60)} hr${Math.floor(diff / 60) > 1 ? 's' : ''} ago`;
-    return `${Math.floor(diff / 1440)} day${Math.floor(diff / 1440) > 1 ? 's' : ''} ago`;
-  };
-
-  const getWaitTime = (dateStr) => {
-    if (!dateStr) return '—';
-    const diff = Math.round((Date.now() - new Date(dateStr).getTime()) / 60000);
-    if (diff < 1) return '< 1 min';
-    if (diff < 60) return `${diff} min${diff > 1 ? 's' : ''}`;
-    return `${Math.floor(diff / 60)} hr${Math.floor(diff / 60) > 1 ? 's' : ''}`;
-  };
-
   return {
     // Data
     documents,
@@ -529,14 +468,5 @@ export default function useDashboard(user) {
     handleManualInputSubmit,
     handleFetchStudent,
     handleAdminVerifyStudent,
-
-    // UI Helpers
-    getProgressVal,
-    getStatusLabel,
-    requiresAttachment,
-    getAttachmentLabel,
-    getAttachmentHelper,
-    getRelativeTime,
-    getWaitTime,
   };
 }

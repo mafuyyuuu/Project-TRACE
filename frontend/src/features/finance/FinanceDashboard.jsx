@@ -1,5 +1,5 @@
 import FinanceVerificationModal from '@/features/finance/components/FinanceVerificationModal';
-import { apiBaseUrl } from '@/utils/env';
+import { getStatusLabel } from '@/utils/documentStatus';
 
 /**
  * Finance clerk: GCash receipt verification queue and review modal.
@@ -16,7 +16,6 @@ export default function FinanceDashboard({
   setSelectedDoc,
   setViewImageUrl,
   handleFinanceVerify,
-  getStatusLabel,
   todayFormatted,
 }) {
   return (
@@ -95,7 +94,6 @@ export default function FinanceDashboard({
             handleFinanceVerify={handleFinanceVerify}
             actionLoading={actionLoading}
             setViewImageUrl={setViewImageUrl}
-            apiBaseUrl={apiBaseUrl}
             clerkNotes={clerkNotes}
             setClerkNotes={setClerkNotes}
           />

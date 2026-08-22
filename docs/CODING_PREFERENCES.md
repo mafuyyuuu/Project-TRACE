@@ -56,7 +56,8 @@ utils/         # Backend helper functions (AppError)
 - **Database Access:** Use raw SQL in `src/models/*.model.js`. Ensure all inputs are parameterized to prevent SQL Injection. Every model function accepts an optional `executor` argument so callers can enlist the query in a transaction.
 - **Transactions:** Any multi-write desk action (payment verification, evaluation, release, cancellation) must run inside `beginTransaction`/`commit`/`rollback` with a `FOR UPDATE` row lock on the document.
 - **Notifications:** Dispatch through `src/services/notification.service.js`. Every channel fails soft — a failed SMS or email must never roll back the document action that triggered it.
-- **Webhooks:** All webhook endpoints (e.g. from n8n or payment gateways) must handle errors gracefully and respond quickly (200 OK) to avoid timeouts.
+- **Webhooks:** All webhook endpoints (e.g. from n8n or payment gateways) must handle errors gracefully and respond quickly (200 OK) to avoid timeouts, and must be guarded by `verifyWebhookSecret` — they have no user session, so without it they are open to the world.
+- **Authorization, not just authentication:** a valid JWT proves *who* the caller is, never *what they may touch*. Any endpoint taking a resource id must verify ownership or role before acting — students may only affect their own documents and files. `submitPayment` and `cancelDocument` in `documents.service.js` are the reference pattern.
 
 ## 🧠 AI Engine (Python)
 

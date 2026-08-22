@@ -2,12 +2,13 @@ const express = require('express');
 const authController = require('../controllers/auth.controller');
 const { authenticate } = require('../middlewares/auth.middleware');
 const { idProofUpload } = require('../middlewares/upload.middleware');
+const { loginLimiter, registerLimiter } = require('../middlewares/rateLimit.middleware');
 
 const router = express.Router();
 
-router.post('/login', authController.login);
+router.post('/login', loginLimiter, authController.login);
 router.get('/me', authenticate, authController.getMe);
-router.post('/register', idProofUpload.single('id_proof'), authController.register);
+router.post('/register', registerLimiter, idProofUpload.single('id_proof'), authController.register);
 
 // Admin account governance
 router.get('/pending-students', authenticate, authController.getPendingStudents);

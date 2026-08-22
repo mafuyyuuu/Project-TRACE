@@ -1,6 +1,7 @@
 import SecretaryEvaluationModal from '@/features/secretary/components/SecretaryEvaluationModal';
-import { apiBaseUrl } from '@/utils/env';
 import MiniSparkline from '@/components/MiniSparkline';
+import { getStatusLabel } from '@/utils/documentStatus';
+import { getRelativeTime } from '@/utils/formatters';
 
 /**
  * College secretary: evaluation queue and split-screen OCR evaluation modal.
@@ -23,8 +24,6 @@ export default function SecretaryDashboard({
   setSelectedDoc,
   setViewImageUrl,
   handleSecretaryEvaluate,
-  getStatusLabel,
-  getRelativeTime,
   currentTab,
   todayFormatted,
 }) {
@@ -220,7 +219,6 @@ export default function SecretaryDashboard({
             setClerkNotes={setClerkNotes}
             actionLoading={actionLoading}
             handleSecretaryEvaluate={handleSecretaryEvaluate}
-            apiBaseUrl={apiBaseUrl}
             setViewImageUrl={setViewImageUrl}
           />
         )}

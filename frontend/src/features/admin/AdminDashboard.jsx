@@ -1,5 +1,4 @@
 import { AreaChart, Area, XAxis, Tooltip, ResponsiveContainer } from 'recharts';
-import { apiBaseUrl } from '@/utils/env';
 import MiniSparkline from '@/components/MiniSparkline';
 
 /**
@@ -228,7 +227,7 @@ export default function AdminDashboard({
                               <td className="py-4">
                                 {student.id_proof_path ? (
                                   <button 
-                                    onClick={() => setViewImageUrl(`${apiBaseUrl}/uploads/${student.id_proof_path.split(/[\\/]/).pop()}`)}
+                                    onClick={() => setViewImageUrl(student.id_proof_path)}
                                     className="text-xs text-indigo-600 font-bold hover:underline flex items-center gap-1"
                                   >
                                     <svg className="w-3.5 h-3.5 inline-block mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" /></svg>View ID / Diploma Attachment
@@ -341,13 +340,7 @@ export default function AdminDashboard({
                                 <td className="py-4 text-right pr-4">
                                   {doc.file_path ? (
                                     <button 
-                                      onClick={() => {
-                                        if (doc.file_path.toLowerCase().endsWith('.pdf')) {
-                                          window.open(`${apiBaseUrl}/uploads/${doc.file_path.split(/[\\/]/).pop()}`, '_blank');
-                                        } else {
-                                          setViewImageUrl(`/uploads/${doc.file_path.split(/[\\/]/).pop()}`);
-                                        }
-                                      }}
+                                      onClick={() => setViewImageUrl(doc.file_path)}
                                       className="p-2 text-[#15803d] hover:bg-emerald-50 rounded-xl transition-colors inline-flex items-center gap-1 text-xs font-bold"
                                       title="View Attached File"
                                     >

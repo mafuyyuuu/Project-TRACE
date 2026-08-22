@@ -92,6 +92,7 @@ docker run -d --name n8n -p 5678:5678 -v ~/.n8n:/home/node/.n8n docker.n8n.io/n8
 2. In the top right corner, click the **three dots (...)** and select **"Import from File"**.
 3. Navigate to the cloned `project-trace/n8n` directory and select `routing-workflow.json`.
 4. The workflow nodes will appear on the screen. **Make sure to toggle it to "Active" (top right switch).**
+5. **Add the webhook secret.** The node that calls back into `POST /api/documents/assign` must send a header `x-webhook-secret` whose value matches `WEBHOOK_SECRET` in `backend/.env`. Without it the call is rejected with 401 (documents still flow through the desks normally — only the auto-assignment step is skipped).
 
 ---
 

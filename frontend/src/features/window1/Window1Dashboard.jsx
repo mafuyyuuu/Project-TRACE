@@ -1,6 +1,7 @@
 import HardwareScannerModal from '@/features/window1/components/HardwareScannerModal';
-import { formatFileSize } from '@/utils/formatters';
 import MiniSparkline from '@/components/MiniSparkline';
+import { getProgressVal, getStatusLabel } from '@/utils/documentStatus';
+import { formatFileSize, getWaitTime } from '@/utils/formatters';
 
 /**
  * Window 1 clerk: AI intake dropzone, tracking desk, manual input, and release queue.
@@ -23,9 +24,6 @@ export default function Window1Dashboard({
   handleWindow1ScanUpload,
   handleManualInputSubmit,
   handleFetchStudent,
-  getProgressVal,
-  getStatusLabel,
-  getWaitTime,
   currentTab,
   todayFormatted,
   w1ReleasePage,

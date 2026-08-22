@@ -37,7 +37,10 @@ The Express app follows a strict **route → controller → service → model** 
 - **Transactions:** every multi-write desk action (payment verification, evaluation, release, cancellation) runs inside `beginTransaction`/`commit`/`rollback` with a `FOR UPDATE` row lock. Model functions accept an optional `executor` argument so their queries can join the transaction.
 - **Fail-soft integrations:** `notification.service.js`, `aiEngine.service.js`, and `n8n.service.js` log and swallow their errors. A failed SMS, an offline Flask engine, or a stopped n8n container must never roll back a committed document action.
 - **Route ordering:** in `documents.routes.js`, the literal paths `/stats`, `/stats/forecast`, `/stats/insights`, and `/activity-logs` must stay **above** the `/:trackingNumber` wildcard or they'll be swallowed by it.
-- **Unauthenticated by design:** `GET /api/documents/:trackingNumber` (public student tracking) and `POST /api/documents/assign` (called by n8n) intentionally have no `authenticate` middleware.
+- **Machine-to-machine auth:** `POST /api/documents/assign` (n8n) and `/api/payments/*` have no user session, so they require the shared `WEBHOOK_SECRET` in an `x-webhook-secret` header (`middlewares/webhookAuth.middleware.js`, constant-time compared). The n8n HTTP Request node must be configured to send it.
+- **Only truly public endpoint:** `GET /api/documents/:trackingNumber` (student tracking by tracking number).
+- **Uploaded files are not public.** They are served by `GET /api/files/:filename`, which authenticates the caller and checks ownership — staff may read any file, a student only files attached to their own request plus their own ID proof. Filenames are reduced to a basename and the resolved path is confirmed to sit inside `uploads/`, so traversal attempts fail.
+- **Rate limiting:** login is capped at 10 failed attempts per IP per 15 min (successful logins don't count), registration at 20/hour, and the rest of `/api` at 1000/15 min (`middlewares/rateLimit.middleware.js`).
 
 ### Environment Variables
 Copy `backend/.env.example` → `backend/.env` and fill it in. Covers `DB_*`, `PORT`, `JWT_SECRET`, `AI_ENGINE_URL`, `N8N_URL`, `UNISMS_*`, `TEST_PHONE_NUMBER`, and `SMTP_*`. Never hardcode a secret as a `||` fallback default in source.

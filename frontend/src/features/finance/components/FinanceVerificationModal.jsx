@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { createPortal } from 'react-dom';
+import AuthedFilePreview from '@/components/AuthedFilePreview';
 
-const apiBaseUrl = import.meta.env.VITE_API_URL || '';
 
 export default function FinanceVerificationModal({ 
   setActiveModal, 
@@ -42,21 +42,14 @@ export default function FinanceVerificationModal({
           {/* Receipt Preview */}
           <div className="bg-gray-100 rounded-2xl overflow-hidden border border-gray-200 h-64 relative flex items-center justify-center">
             {selectedDoc.receipt_image_path ? (
-              selectedDoc.receipt_image_path.toLowerCase().endsWith('.pdf') ? (
-                <iframe 
-                  src={`${apiBaseUrl}/uploads/${selectedDoc.receipt_image_path.split(/[\\/]/).pop()}`} 
-                  className="w-full h-full"
-                  title="PDF Receipt"
-                />
-              ) : (
-                <div onClick={() => setViewImageUrl(selectedDoc.receipt_image_path)} className="cursor-zoom-in w-full h-full flex items-center justify-center">
-                  <img 
-                    src={`${apiBaseUrl}/uploads/${selectedDoc.receipt_image_path.split(/[\\/]/).pop()}`} 
-                    alt="Payment Receipt" 
-                    className="w-full h-full object-contain hover:scale-105 transition-transform"
-                  />
-                </div>
-              )
+              <AuthedFilePreview
+                path={selectedDoc.receipt_image_path}
+                alt="Payment Receipt"
+                iframeTitle="PDF Receipt"
+                className="w-full h-full object-contain hover:scale-105 transition-transform"
+                onClick={() => setViewImageUrl(selectedDoc.receipt_image_path)}
+                wrapperClassName="cursor-zoom-in w-full h-full flex items-center justify-center"
+              />
             ) : (
               <span className="text-xs text-gray-400">No Image Uploaded</span>
             )}

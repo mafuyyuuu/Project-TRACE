@@ -34,6 +34,11 @@ const COMPROMISED_JWT_SECRET = 'trace-jwt-secret-change-in-production';
 
 const JWT_SECRET = requireSecret('JWT_SECRET');
 
+// Shared secret for machine-to-machine callers (n8n router, payment webhooks).
+// Required for the same reason as JWT_SECRET: a default would mean the
+// endpoints it guards are effectively still open.
+const WEBHOOK_SECRET = requireSecret('WEBHOOK_SECRET');
+
 if (JWT_SECRET === COMPROMISED_JWT_SECRET) {
   console.warn(
     '\n⚠️  SECURITY: JWT_SECRET is still the placeholder value that is public in git history.\n' +
@@ -45,6 +50,7 @@ if (JWT_SECRET === COMPROMISED_JWT_SECRET) {
 
 module.exports = {
   JWT_SECRET,
+  WEBHOOK_SECRET,
   DB_HOST: process.env.DB_HOST || 'localhost',
   DB_PORT: parseInt(process.env.DB_PORT, 10) || 3306,
   DB_USER: process.env.DB_USER || 'root',

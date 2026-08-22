@@ -1,4 +1,3 @@
-const crypto = require('crypto');
 const { pool } = require('../config/db');
 const documentModel = require('../models/document.model');
 const stepLogModel = require('../models/stepLog.model');
@@ -7,6 +6,7 @@ const aiEngine = require('./aiEngine.service');
 const n8n = require('./n8n.service');
 const notifications = require('./notification.service');
 const { badRequest, forbidden, notFound } = require('../utils/AppError');
+const { generateTrackingNumber, calculateAmount } = require('../utils/pricing');
 
 /**
  * Core document pipeline logic.
@@ -15,32 +15,6 @@ const { badRequest, forbidden, notFound } = require('../utils/AppError');
  *   pending_payment → pending_payment_verification → pending_secretary
  *   → ready_window_1 → completed
  */
-
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
-
-function generateTrackingNumber() {
-  return 'TRC-' + crypto.randomBytes(4).toString('hex').toUpperCase();
-}
-
-/**
- * Request pricing. TOR is charged per block of 4 semesters; everything else
- * has a flat base rate. Total is multiplied by the number of copies.
- */
-function calculateAmount(documentType, semesters, copies) {
-  const copiesInt = parseInt(copies) || 1;
-  const semestersInt = parseInt(semesters) || 8;
-
-  let baseAmount = 50.0;
-  if (documentType === 'Transcript of Records' || documentType === 'Transcript of Records (TOR)') {
-    baseAmount = Math.ceil(semestersInt / 4) * 100.0;
-  } else if (documentType === 'Honorable Dismissal') {
-    baseAmount = 100.0;
-  }
-
-  return { amount: baseAmount * copiesInt, copies: copiesInt };
-}
 
 // ---------------------------------------------------------------------------
 // Upload / intake
@@ -448,13 +422,36 @@ async function processAction(user, documentId, action) {
   }
 }
 
-/** Student submits their GCash reference number + receipt screenshot. */
+/**
+ * Student submits their GCash reference number + receipt screenshot.
+ *
+ * The document must belong to the caller. Without that check any logged-in
+ * student could attach a receipt to somebody else's request and push it into
+ * the Finance queue on their behalf.
+ */
 async function submitPayment(user, documentId, { gcash_reference_no }, file) {
   if (!gcash_reference_no) {
     throw badRequest('GCash Reference Number is required.');
   }
   if (!file) {
     throw badRequest('Receipt image file upload is required.');
+  }
+
+  const docs = await documentModel.findById(documentId);
+  if (docs.length === 0) {
+    throw notFound('Document request not found.');
+  }
+  const doc = docs[0];
+
+  const owner = await userModel.findStudentIdById(user.id);
+  if (!owner[0] || doc.student_id !== owner[0].student_id) {
+    throw forbidden('You can only submit payment for your own requests.');
+  }
+
+  // Payment is only meaningful before Finance has cleared it. This also stops
+  // a receipt being re-attached to a document already moving down the pipeline.
+  if (!['pending_payment', 'pending_payment_verification'].includes(doc.current_status)) {
+    throw badRequest('This request is not awaiting payment.');
   }
 
   const receiptPath = `/uploads/${file.filename}`;

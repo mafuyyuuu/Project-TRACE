@@ -1,6 +1,6 @@
 import { createPortal } from 'react-dom';
+import AuthedFilePreview from '@/components/AuthedFilePreview';
 
-const apiBaseUrl = import.meta.env.VITE_API_URL || '';
 
 export default function SecretaryEvaluationModal({
   setActiveModal,
@@ -37,21 +37,14 @@ export default function SecretaryEvaluationModal({
               </span>
             </div>
             <div className="flex-1 bg-gray-200 border border-gray-300 rounded-2xl overflow-hidden relative flex items-center justify-center shadow-inner">
-              {selectedDoc.file_path.toLowerCase().endsWith('.pdf') ? (
-                <iframe 
-                  src={`${apiBaseUrl}/uploads/${selectedDoc.file_path.split(/[\\/]/).pop()}`} 
-                  className="w-full h-full"
-                  title="PDF Preview"
-                />
-              ) : (
-                <div onClick={() => setViewImageUrl(`/uploads/${selectedDoc.file_path.split(/[\\/]/).pop()}`)} className="cursor-zoom-in w-full h-full flex items-center justify-center group relative">
-                  <img 
-                    src={`${apiBaseUrl}/uploads/${selectedDoc.file_path.split(/[\\/]/).pop()}`} 
-                    alt="Scanned Document" 
-                    className="w-full h-full object-contain group-hover:scale-105 transition-transform"
-                  />
-                </div>
-              )}
+              <AuthedFilePreview
+                path={selectedDoc.file_path}
+                alt="Scanned Document"
+                iframeTitle="PDF Preview"
+                className="w-full h-full object-contain group-hover:scale-105 transition-transform"
+                onClick={() => setViewImageUrl(selectedDoc.file_path)}
+                wrapperClassName="cursor-zoom-in w-full h-full flex items-center justify-center group relative"
+              />
             </div>
           </div>
         )}
