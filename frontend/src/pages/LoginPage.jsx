@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import { useAuth } from '../utils/hooks'
-import plpLogo from '../assets/plp_logo.png'
+import useAuth from '@/hooks/useAuth'
+import plpLogo from '@/assets/plp_logo.png'
 
 export default function LoginPage() {
   const { login, loading, error: authError } = useAuth()

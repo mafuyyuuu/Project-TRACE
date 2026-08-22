@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react'
 import { Outlet, Link, useLocation } from 'react-router-dom'
-import { useAuth } from '../utils/hooks'
-import { getNotifications, markNotificationsRead, updateProfile } from '../services/api'
-import plpLogo from '../assets/plp_logo.png'
+import useAuth from '@/hooks/useAuth'
+import { getNotifications, markNotificationsRead, updateProfile } from '@/services/authService'
+import plpLogo from '@/assets/plp_logo.png'
 
 export default function Layout() {
   const { user, logout } = useAuth()

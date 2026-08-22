@@ -2,6 +2,8 @@
 
 This file serves as the workspace-scoped memory and developer rulebook for any AI agents working on Project TRACE. Read this to immediately sync with the current system state, database schema, credentials, and recent architectural changes.
 
+> **Note:** `CLAUDE.md` at the repo root is the primary, up-to-date agent guide (folder schema, architecture, commands). This file is retained as historical phase-by-phase memory. Where they disagree, trust `CLAUDE.md` and `docs/CODING_PREFERENCES.md`.
+
 ---
 
 ## 💾 System State & Feature Memory
@@ -74,7 +76,20 @@ Run [migration.js](file:///Users/jhervin/project-trace/backend/database/migratio
 
 ---
 
-## 📍 Integration Next Steps (Phase 5)
+---
+
+## 🏗️ Architecture Restructure (Phase 8 — Completed 2026-08-22)
+The codebase was migrated into a strict layered folder schema. **File paths referenced earlier in this document are historical.** Current locations:
+
+* **Backend** — `backend/src/` follows route → controller → service → model. Entry point `src/server.js` → `src/app.js`. The old `backend/routes/`, `backend/config/`, `backend/middleware/`, and `backend/server.js` no longer exist. Business logic is in `src/services/` (`auth`, `documents`, `payments`, `notification`, `aiEngine`, `n8n`); all SQL is in `src/models/*.model.js`; env config is centralized in `src/config/env.js`.
+* **Frontend** — `DashboardPage.jsx` is now a thin role dispatcher; each command center lives in `src/features/<role>/` (student, finance, window1, secretary, admin) with its own modals. `useAuth` moved to `src/hooks/useAuth.js` (`utils/hooks.js` is deleted), `Layout.jsx` to `src/layouts/`, and `services/api.js` split into `authService.js` + `documentsService.js`. Imports use the `@/` → `src/` alias.
+* **Rules** — components never call APIs directly; controllers hold no logic; no hardcoded secrets (see `docs/CODING_PREFERENCES.md`).
+
+**Open items:** rotate the UniSMS key (still in git history); seed the seven `SEC-CCS001`…`SEC-CBA001` accounts (only `SEC001` exists).
+
+---
+
+## 📍 Integration Next Steps
 If continuing system development:
 1. **Machine Learning Prep**: Run `ai-engine/mock_data_gen.py` to seed historical log timestamps into the database to immediately train the Prophet forecasting models and Random Forest insights engine.
 2. **Forgot Password Flow**: Implement the full JWT reset token email flow in `auth.js` and build the `/reset-password` frontend route.

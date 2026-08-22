@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { useAuth } from '../utils/hooks'
+import useAuth from '@/hooks/useAuth'
 
 export default function SignupPage() {
   const { register, loading } = useAuth()

@@ -19,6 +19,33 @@ Project TRACE uses a decoupled architecture for maximum flexibility and performa
 
 ---
 
+## 📁 Backend Code Organization (`backend/src/`)
+
+The Express app follows a strict **route → controller → service → model** flow. Entry point is `src/server.js` (starts the listener), wrapping `src/app.js` (builds the app). Full conventions live in `CODING_PREFERENCES.md`.
+
+| Layer | Responsibility | Rule |
+| :--- | :--- | :--- |
+| `routes/*.routes.js` | Maps URLs to controllers, attaches middleware | No logic |
+| `controllers/*.controller.js` | Unpacks `req`, calls a service, maps errors to status codes | No SQL, no business rules |
+| `services/*.service.js` | All business logic and transactions | Never touches `req`/`res` |
+| `models/*.model.js` | Raw parameterized SQL, one function per query | No business rules |
+| `middlewares/` | `auth` (JWT), `upload` (multer), `errorHandler` | — |
+| `config/` | `db.js` (MySQL pool), `env.js` (all env vars + defaults) | Never read `process.env` elsewhere |
+| `utils/AppError.js` | `badRequest` / `unauthorized` / `forbidden` / `notFound` helpers | Lets services signal HTTP status without importing `res` |
+
+**Key conventions:**
+- **Transactions:** every multi-write desk action (payment verification, evaluation, release, cancellation) runs inside `beginTransaction`/`commit`/`rollback` with a `FOR UPDATE` row lock. Model functions accept an optional `executor` argument so their queries can join the transaction.
+- **Fail-soft integrations:** `notification.service.js`, `aiEngine.service.js`, and `n8n.service.js` log and swallow their errors. A failed SMS, an offline Flask engine, or a stopped n8n container must never roll back a committed document action.
+- **Route ordering:** in `documents.routes.js`, the literal paths `/stats`, `/stats/forecast`, `/stats/insights`, and `/activity-logs` must stay **above** the `/:trackingNumber` wildcard or they'll be swallowed by it.
+- **Unauthenticated by design:** `GET /api/documents/:trackingNumber` (public student tracking) and `POST /api/documents/assign` (called by n8n) intentionally have no `authenticate` middleware.
+
+### Environment Variables
+Copy `backend/.env.example` → `backend/.env` and fill it in. Covers `DB_*`, `PORT`, `JWT_SECRET`, `AI_ENGINE_URL`, `N8N_URL`, `UNISMS_*`, `TEST_PHONE_NUMBER`, and `SMTP_*`. Never hardcode a secret as a `||` fallback default in source.
+
+`JWT_SECRET` is **required** — `src/config/env.js` throws on startup if it is unset, and warns loudly if it still equals the old placeholder that is public in git history. Generate a strong one with `node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"`.
+
+---
+
 ## 🗄️ Database Management (MySQL)
 
 ### Core Tables

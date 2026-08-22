@@ -2,6 +2,8 @@
 
 This document serves as the master tracking sheet for Project TRACE. It organizes the system's development into distinct phases across the full technology stack (Frontend, Backend, and Machine Learning) so you can easily track what has been completed and what remains for a true production rollout.
 
+> **On phase numbers:** this roadmap groups work into coarser phases than [`PROGRESS.md`](PROGRESS.md), so the numbers deliberately differ between the two documents. The same production-rollout work is "Phase 7" here and "Phase 9" there. `PROGRESS.md` is the finer-grained checklist; this is the stack-level narrative.
+
 ---
 
 ## ✅ Phase 1: Foundation & Core Logic (Completed)
@@ -81,10 +83,27 @@ This document serves as the master tracking sheet for Project TRACE. It organize
 
 ---
 
-## 🚀 Phase 6: Production Deployment (Pending)
+## ✅ Phase 6: Architecture Restructure & Hardening (Completed)
+*Migrating the organically-grown codebase into a strict layered folder schema. No functional changes — the full desk pipeline was re-verified end to end afterward.*
+
+* **Backend (Node.js/Express):**
+  * ✅ **Layered Decomposition:** Split `routes/auth.js`, `documents.js`, and `payments.js` into `backend/src/` following route → controller → service → model. Controllers handle only `req`/`res`; all SQL now lives in `models/*.model.js`, each function accepting an optional transaction executor.
+  * ✅ **Integration Services:** Extracted `notification.service.js` (UniSMS + Nodemailer + in-app), `aiEngine.service.js`, and `n8n.service.js`. Every channel fails soft, so an offline AI engine or a failed SMS can never roll back a committed document action.
+  * ✅ **Secrets & Config:** Removed the hardcoded UniSMS key that had been serving as a `||` fallback, centralized configuration in `src/config/env.js`, and documented every variable in `backend/.env.example`.
+* **Frontend (React/Vite):**
+  * ✅ **Feature Split:** Broke the ~2,000-line `DashboardPage.jsx` into five per-role components under `src/features/` (student, finance, window1, secretary, admin), each owning its own modals. The page is now a thin role dispatcher.
+  * ✅ **Service Layer:** Split `services/api.js` into a shared axios instance plus `authService.js` and `documentsService.js`, and removed the raw `fetch()` calls that had been embedded in `DashboardPage.jsx`.
+  * ✅ **Structure & Tooling:** Added `layouts/`, `utils/`, and the `@/` → `src/` path alias. Deleted the unreachable `QueuePage.jsx`, `UploadPage.jsx`, and their hooks.
+  * ✅ **Bug Fixed in Passing:** Repaired a latent `setScanFile is not defined` ReferenceError in the Window 1 scanner UI.
+
+---
+
+## 🚀 Phase 7: Production Deployment (Pending)
 *Taking the system live on external servers.*
 
-* **Forgot Password Flow:** Implement the full JWT reset token email flow in `auth.js` and build the `/reset-password` frontend route.
+* **Rotate the leaked secrets:** `JWT_SECRET` (the `.env` value matches the placeholder that has been in git history since the first commit — it signs every auth token, so it is a full authentication bypass) and the UniSMS API key. Both must be rotated before any deployment.
+* **Seed Per-College Secretaries:** `seed.sql` creates only `SEC001` (course `NULL`); the seven documented `SEC-CCS001` … `SEC-CBA001` accounts must be seeded before college-based routing can be demonstrated.
+* **Forgot Password Flow:** Implement the full JWT reset token email flow in `src/services/auth.service.js` and build the `/reset-password` frontend route.
 * **Frontend:** Build the Vite project (`npm run build`) and serve via Nginx or deploy to Vercel/Netlify.
 * **Backend:** Deploy the Node.js API to a VPS (e.g., DigitalOcean, AWS EC2) or a PaaS (e.g., Render, Railway) using PM2 for process management.
 * **ML/AI Engine:** Deploy the Flask application. *(Note: Because PyTorch/EasyOCR is heavy, this microservice may require a server with adequate RAM or a small GPU for fast inference).*

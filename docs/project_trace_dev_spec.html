@@ -112,6 +112,11 @@ thead th { background: var(--gray-50); color: var(--gray-500); font: 700 11.5px 
 .dev-section h3, .dev-section strong { color: white; }
 .dev-section h4 { color: #9ca3af; }
 .dev-section p, .dev-section li { color: #d1d5db; }
+/* Callouts keep their light background inside the dark dev section, so their
+   text must stay dark or it becomes unreadable. */
+.dev-section .callout p, .dev-section .callout li { color: var(--gray-700); }
+.dev-section .callout strong { color: var(--gray-900); }
+.dev-section .callout code { background: rgba(17,24,39,0.08); color: var(--gray-900); }
 @media (max-width: 760px) {
   .help-shell { padding: 36px 20px 64px; }
   .dev-section .help-shell { padding: 0 24px; }
@@ -128,7 +133,7 @@ thead th { background: var(--gray-50); color: var(--gray-500); font: 700 11.5px 
   </div>
   <h1>Project TRACE — How it works, end to end</h1>
   <p class="lede">
-    This document is the canonical reference for <strong>Project TRACE</strong> (Tracking, Routing, and Analytics Computing Engine) for the Pamantasan ng Lungsod ng Pasig (PLP) Registrar's Office. It outlines the core digital workflow, the Command-Center UI architecture, manual payment verifications, and Machine Learning forecasting.
+    This document is the canonical reference for <strong>Project TRACE</strong> (Tracking, Routing, and Automated Credential Engine) for the Pamantasan ng Lungsod ng Pasig (PLP) Registrar's Office. It outlines the core digital workflow, the Command-Center UI architecture, manual payment verifications, and Machine Learning forecasting.
   </p>
 
   <h4 style="margin-top: 8px; color: var(--gray-500); font: 700 11.5px var(--font-body); text-transform: uppercase; letter-spacing: 0.12em;">Design principles & UI Mandates</h4>
@@ -246,10 +251,11 @@ thead th { background: var(--gray-50); color: var(--gray-500); font: 700 11.5px 
     <p>This section is the technical build-order companion for the development team.</p>
 
     <h3>9.1 Data Model (MySQL)</h3>
+    <p>Reflects the live schema after <code>backend/database/migration.js</code> has been applied.</p>
     <pre><code>Table: documents
 {
   id: INT (PK, Auto-Increment),
-  tracking_number: VARCHAR (Unique Hash) NOT NULL,
+  tracking_number: VARCHAR(64) (Unique Hash) NOT NULL,
   student_id: VARCHAR(50) (Nullable),
   student_name: VARCHAR(255) (Nullable),
   document_type: VARCHAR(100) (Nullable),
@@ -258,11 +264,19 @@ thead th { background: var(--gray-50); color: var(--gray-500); font: 700 11.5px 
   assigned_clerk_id: INT (FK, Nullable),
   file_path: VARCHAR(500) (Nullable),
   original_filename: VARCHAR(255) (Nullable),
-  receipt_image_path: VARCHAR(500) (Nullable),
+  receipt_image_path: VARCHAR(500) (Nullable),      // student's uploaded GCash screenshot
+  official_receipt_path: VARCHAR(500) (Nullable),   // Finance Clerk's official receipt
   payment_reference_id: VARCHAR(255) (Nullable),
   gcash_reference_no: VARCHAR(255) (Nullable),
+  checkout_url: VARCHAR(500) (Nullable),
+  amount: DECIMAL(10,2) DEFAULT 150.00,             // schema fallback; real fee computed at submission
+  copies: INT DEFAULT 1,
+  purpose: VARCHAR(255) (Nullable),                 // JSON blob of the dynamic form fields
   ocr_raw_text: TEXT (Nullable),
-  ocr_extracted_data: JSON (Nullable)
+  ocr_extracted_data: JSON (Nullable),
+  ocr_confidence_score: DECIMAL(5,2) (Nullable),    // (fields found / 3) * 100
+  created_at: TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at: TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 }
 
 Table: step_logs
@@ -282,8 +296,44 @@ Table: step_logs
       <span class="label">UI Spec Adherence</span>
       <p>The UI must strictly adhere to the "Command-Center" philosophy. Do not wrap dashboards in max-width containers. Ensure the "TRACE" branding is prominent in the header. Use the exact specified Tailwind color palette (Pine & Dusk).</p>
     </div>
-    
-    <h3 style="margin-top: 48px;">9.2 Technical Rollout Phases</h3>
+
+    <h3 style="margin-top: 48px;">9.2 Codebase Architecture</h3>
+    <p>The codebase follows a strict layered folder schema. The full rules live in <code>docs/CODING_PREFERENCES.md</code> and <code>CLAUDE.md</code>; this is the shape.</p>
+    <pre><code>backend/src/
+  config/        Environment variables (env.js), MySQL pool (db.js)
+  controllers/   HTTP req/res only — no business logic
+  middlewares/   auth (JWT), upload (multer), errorHandler
+  models/        Raw parameterized SQL, one function per query
+  routes/        URL -> controller wiring only
+  services/      Business logic: auth, documents (the pipeline),
+                 notification (SMS/email/in-app), aiEngine, n8n
+  utils/         AppError helpers (badRequest/forbidden/notFound/...)
+
+frontend/src/
+  assets/        Images and static files
+  components/    Reusable UI only — never calls an API
+  features/      One folder per role: student, finance, window1,
+                 secretary, admin (each owns its modals)
+  hooks/         useAuth, useDashboard
+  layouts/       Layout.jsx (header, sidebar, notifications)
+  pages/         Route components: Login, Signup, Dashboard
+  services/      api.js (axios instance), authService, documentsService
+  store/         Intentionally empty — no Zustand/Redux, see below
+  utils/         formatters, documentStatus, env</code></pre>
+
+    <div class="callout spec">
+      <span class="label">Three Non-Negotiable Rules</span>
+      <p><strong>1.</strong> UI components never call APIs directly — all calls live in <code>services/</code>.
+      <strong>2.</strong> Controllers only handle <code>req</code>/<code>res</code>; logic belongs in <code>services/</code>.
+      <strong>3.</strong> Never hardcode secrets, not even as a <code>||</code> fallback — read <code>.env</code> through <code>src/config/env.js</code> and document every variable in <code>backend/.env.example</code>.</p>
+    </div>
+
+    <div class="callout spec">
+      <span class="label">Why <code>store/</code> is empty</span>
+      <p>No Zustand/Redux is installed. State is already centralized in <code>useAuth</code> and <code>useDashboard</code> rather than prop-drilled, so a store would add a dependency without solving an existing problem. Introduce one only when a genuine cross-component state need appears.</p>
+    </div>
+
+    <h3 style="margin-top: 48px;">9.3 Technical Rollout Phases</h3>
     <ol class="phase-list">
       <li>
         <h3>Phase 1: Foundation &amp; Upload Pipelines</h3>
@@ -310,6 +360,28 @@ Table: step_logs
         <ul>
           <li>Deploy the Prophet volume forecasting model and Random Forest insight generator for the Admin dashboard.</li>
           <li>Set up scheduled cron jobs for continuous ML model retraining based on new <code>step_logs</code> timestamp data.</li>
+        </ul>
+      </li>
+
+      <li>
+        <h3>Phase 4: Architecture Restructure &amp; Hardening</h3>
+        <p class="phase-goal">Migrate the organically-grown codebase into the strict layered schema in 9.2.</p>
+        <ul>
+          <li>Decompose <code>backend/routes/*.js</code> into route &rarr; controller &rarr; service &rarr; model layers under <code>backend/src/</code>.</li>
+          <li>Split the ~2,000-line <code>DashboardPage.jsx</code> into five per-role components under <code>frontend/src/features/</code>, leaving the page as a thin role dispatcher.</li>
+          <li>Extract notification, AI-engine, and n8n integrations into dedicated services that fail soft, so an outage in an optional service never rolls back a document action.</li>
+          <li>Remove the hardcoded UniSMS fallback secret; centralize configuration in <code>src/config/env.js</code> and document it in <code>.env.example</code>.</li>
+        </ul>
+      </li>
+
+      <li>
+        <h3>Phase 5: Production Rollout (Pending)</h3>
+        <p class="phase-goal">Take the system live. The remaining work before deployment.</p>
+        <ul>
+          <li><strong>Rotate the UniSMS API key</strong> — it remains exposed in git history even though it is gone from the source.</li>
+          <li>Seed the seven per-college secretary accounts (<code>SEC-CCS001</code> &hellip; <code>SEC-CBA001</code>); <code>seed.sql</code> currently creates only <code>SEC001</code> with a NULL course, so college-based queue filtering cannot be demonstrated.</li>
+          <li>Implement the forgot-password JWT reset flow in <code>src/services/auth.service.js</code> plus the <code>/reset-password</code> route.</li>
+          <li>Containerize all three services and migrate MySQL to a managed cloud instance.</li>
         </ul>
       </li>
     </ol>

@@ -3,7 +3,7 @@ Tracking, Routing, and Automated Credential Engine for the PLP Registrar.
 
 This repository contains the complete end-to-end system for tracking and auto-routing document flows, featuring a **manual GCash receipt payment verification pipeline** to comply with school accounting requirements.
 
-> **Current Phase:** 🟢 100% Core System Completed (Phase 7: Production Rollout Pending). The frontend is fully wired to live AI APIs, machine learning forecasts, and SMS notifications.
+> **Current Phase:** 🟢 Core System Complete + Architecture Restructured (Phase 9: Production Rollout Pending). The frontend is fully wired to live AI APIs, machine learning forecasts, and SMS notifications, and the codebase now follows the layered structure documented in [`docs/CODING_PREFERENCES.md`](docs/CODING_PREFERENCES.md).
 
 ---
 
@@ -37,6 +37,20 @@ exit;
 cd backend
 npm install
 ```
+
+### 2.5. Configure Backend Environment Variables
+The backend will not connect to MySQL without this step. Copy the template and fill in your local values:
+```bash
+cd backend
+cp .env.example .env
+```
+At minimum set `DB_USER`, `DB_PASSWORD`, and `DB_NAME` to match your MySQL install, and generate a `JWT_SECRET` (the server will not start without one):
+```bash
+node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"
+```
+Do **not** reuse the old `trace-jwt-secret-change-in-production` value — it is public in this repo's git history, and anyone who knows it can forge a login for any account. The SMS (`UNISMS_*`) and email (`SMTP_*`) variables can be left blank — those notifications will simply fail soft and log a warning, without breaking any document workflow.
+
+*(`.env` is gitignored and never committed. Ask a teammate for the shared service credentials.)*
 
 ### 3. Install Frontend Dependencies
 ```bash
@@ -132,6 +146,8 @@ docker start n8n
 | **Secretary (CAS)** | `SEC-CAS001` | CAS Secretary | College of Arts and Sciences |
 | **Secretary (CBA)** | `SEC-CBA001` | CBA Secretary | College of Business and Accountancy |
 | **Student** | `STU2024001` | Ana Reyes | BS Information Technology (Sample student account) |
+
+> ⚠️ **Seed drift:** the seven per-college secretary accounts above are **not created by `seed.sql`** — it seeds only a single `SEC001` (College Secretary) with no college assigned. Until those rows are added, log in as `SEC001` to reach the Secretary dashboard, and note that college-based queue filtering cannot be demonstrated. Tracked in `docs/PROGRESS.md` (Phase 9).
 
 ---
 

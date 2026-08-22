@@ -2,13 +2,17 @@
 
 This document tracks the current development and implementation progress of the Project TRACE system.
 
-## Overall Status: 🟢 100% Core System Completed (AI, ML, Integrations, UI, Linting fully finalized)
+## Overall Status: 🟢 Core System Complete + Architecture Restructured (Phase 9: Production Rollout Pending)
 
-### 📍 Next Steps for Phase 8 (Production Rollout)
-The system is fully complete locally. All features, AI integrations, ML models, orchestrators, UI bug fixes, Multi-channel notifications (SMS & Email), and ESLint warnings are finalized. The next immediate step is taking the servers live:
-1. **Forgot Password Flow:** Implement the full JWT reset token email flow in `auth.js` and build the `/reset-password` frontend route.
-2. **Cloud Deployment:** Build the Vite frontend for Vercel/Netlify, containerize the Flask AI Engine, and deploy the Node.js API to a cloud host (e.g., Render, Railway, AWS).
-3. **Database Migration:** Migrate the local MySQL database to a managed cloud database (e.g., PlanetScale, AWS RDS).
+### 📍 Next Steps for Phase 9 (Production Rollout)
+The system is feature-complete locally and the codebase now follows the strict layered architecture (see `CODING_PREFERENCES.md`). The next immediate steps are taking the servers live:
+1. **Rotate the two leaked secrets.** Both were hardcoded as `||` fallback defaults and remain in git history even though they are gone from the source:
+   - **`JWT_SECRET` (critical).** The value currently in `.env` is byte-identical to the placeholder `trace-jwt-secret-change-in-production`, committed since the very first commit. Because it signs every auth token, anyone with repo access can forge a login for any account — including `ADMIN001`. Generate a replacement with `node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"`. Rotating it invalidates existing tokens, so everyone simply logs in again.
+   - **UniSMS API key.** Rotate it in the UniSMS dashboard.
+2. **Fix secretary seed drift.** `seed.sql` only creates a single `SEC001` (with `course = NULL`), while the README documents seven per-college logins (`SEC-CCS001` … `SEC-CBA001`). College-based queue filtering cannot be demonstrated locally until those rows exist.
+3. **Forgot Password Flow:** Implement the full JWT reset token email flow in `src/services/auth.service.js` and build the `/reset-password` frontend route.
+4. **Cloud Deployment:** Build the Vite frontend for Vercel/Netlify, containerize the Flask AI Engine, and deploy the Node.js API to a cloud host (e.g., Render, Railway, AWS).
+5. **Database Migration:** Migrate the local MySQL database to a managed cloud database (e.g., PlanetScale, AWS RDS).
 
 ---
 
@@ -71,8 +75,22 @@ The system is fully complete locally. All features, AI integrations, ML models, 
 - [x] **Re-Registration Logic:** Auto-deletion of rejected student accounts to allow them to retry registration.
 - [x] **UI Validation Polish:** Enforced explicit `STUDENT ID / STAFF ID` on the login page, and added `Confirm Password` & `Phone Number` validation to the signup flow.
 
-### Phase 8: Production Rollout Checklist
+### Phase 8: Architecture Restructure & Hardening
+**Status:** Complete
+*Migrated the organically-grown codebase into the strict layered folder schema documented in `CODING_PREFERENCES.md`. No functional changes — the full pipeline was re-verified end to end afterward.*
+- [x] **Backend Layering:** Decomposed `routes/auth.js`, `documents.js`, and `payments.js` into `backend/src/` following route → controller → service → model. Controllers now only handle `req`/`res`; all SQL lives in `models/*.model.js` with an optional transaction executor.
+- [x] **Integration Services:** Extracted `notification.service.js` (UniSMS + Nodemailer + in-app), `aiEngine.service.js`, and `n8n.service.js`. All fail soft, so an offline AI engine or SMS outage can never roll back a document action.
+- [x] **Frontend Feature Split:** Broke the ~2,000-line `DashboardPage.jsx` into five per-role components under `frontend/src/features/` (student, finance, window1, secretary, admin), each owning its own modals. The page is now a thin role dispatcher.
+- [x] **Service Layer Split:** Divided `services/api.js` into a shared axios instance plus `authService.js` and `documentsService.js`. Removed the raw `fetch()` calls that were living inside `DashboardPage.jsx`.
+- [x] **Secrets Cleanup:** Removed the hardcoded UniSMS key that was serving as a `||` fallback default; centralized all configuration in `src/config/env.js` and documented every variable in `backend/.env.example`.
+- [x] **Tooling:** Added the `@/` → `src/` path alias (`vite.config.js` + `jsconfig.json`).
+- [x] **Dead Code Removal:** Deleted the unreachable `QueuePage.jsx`, `UploadPage.jsx`, and their `useDocuments`/`useDocumentUpload` hooks.
+- [x] **Bug Fixed in Passing:** Repaired a latent `setScanFile is not defined` ReferenceError in the Window 1 scanner UI (it was referenced but never destructured in the old `DashboardPage.jsx`).
+
+### Phase 9: Production Rollout Checklist
 **Status:** In Progress
+- [ ] **Rotate BOTH leaked secrets:** (a) `JWT_SECRET` — the value in `.env` is identical to the placeholder committed in git history since the first commit, so anyone with repo access can forge a token for any account including admins; (b) the UniSMS API key, also previously hardcoded. Generate a new JWT secret with `node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"`. Rotating the JWT secret logs everyone out, which is expected.
+- [ ] **Seed Per-College Secretaries:** `seed.sql` creates only `SEC001` (course `NULL`) while the README documents `SEC-CCS001` … `SEC-CBA001`. College-based queue filtering can't be demonstrated until these exist.
 - [ ] **Forgot Password Recovery:** Complete the email-based token reset flow.
 - [ ] **Dockerization:** Create Dockerfiles for Frontend, Backend, and AI Engine.
 - [ ] **Database Connection Pool Load Testing:** Conduct final load checks to ensure pooled connections release cleanly during high-volume spikes.
@@ -80,7 +98,17 @@ The system is fully complete locally. All features, AI integrations, ML models, 
 
 ---
 
+## Known Issues (Pre-existing, surfaced during the Phase 8 audit)
+These predate the restructure and remain open:
+* **Secretary seed drift:** documented `SEC-CCS001` … `SEC-CBA001` accounts don't exist in `seed.sql`; only `SEC001` with a `NULL` course does.
+* **`useDashboard.js` lint:** 2 `react-hooks/set-state-in-effect` errors remain (verified present before the restructure).
+* **Unpassed modal props:** `NewRequestModal` declares `deliveryMethod`/`setDeliveryMethod` and `FinanceVerificationModal` declares `triggerNotification`, but no parent ever passed them — they are `undefined` at runtime.
+* **Unused legacy payments route:** `src/services/payments.service.js` (PayMongo-style webhook + `simulate-payment`) is not called by the frontend at all; it is superseded by the manual GCash flow.
+
+---
+
 ## Recent Major Changes
+* **Architecture Restructure:** Migrated backend to `src/` route → controller → service → model layering and split the monolithic `DashboardPage.jsx` into five role-scoped feature components. See Phase 8 above.
 * **E2E Linting & Bug Fixes:** Eliminated all 30+ ESLint errors (removed unused imports, safely handled state updates).
 * **UI/UX Polishing:** Extracted all large inline modals into standalone components (`LiveTrackingModal`, `SecretaryEvaluationModal`). Fixed dynamic JSON rendering for document evaluation forms.
 * **Multi-Channel Delivery:** Upgraded standard SMS text alerts into concurrent Email + SMS drop alerts via Nodemailer + UniSMS integrations.

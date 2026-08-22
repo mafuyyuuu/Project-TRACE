@@ -5,15 +5,17 @@ import {
   verifyPayment,
   evaluateDocument,
   releaseDocument,
-  getPendingStudents,
-  verifyStudent,
   uploadDocument,
   getDashboardStats,
   getForecast,
   getInsights,
-  lookupStudent,
   cancelDocument
-} from '../services/api';
+} from '@/services/documentsService';
+import {
+  getPendingStudents,
+  verifyStudent,
+  lookupStudent
+} from '@/services/authService';
 
 /**
  * Hook for managing all Dashboard data fetching and action handlers.

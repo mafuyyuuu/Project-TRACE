@@ -1,0 +1,499 @@
+import NewRequestModal from '@/features/student/components/NewRequestModal';
+import LiveTrackingModal from '@/features/student/components/LiveTrackingModal';
+import MiniSparkline from '@/components/MiniSparkline';
+import { createPortal } from 'react-dom';
+
+/**
+ * Student portal: request KPIs, history, GCash checkout, and live tracking.
+ */
+export default function StudentDashboard({
+  documents,
+  actionLoading,
+  selectedDocType,
+  setSelectedDocType,
+  semesters,
+  setSemesters,
+  reqCopies,
+  setReqCopies,
+  requestFile,
+  setRequestFile,
+  paymentRef,
+  setPaymentRef,
+  paymentFile,
+  setPaymentFile,
+  activeModal,
+  setActiveModal,
+  selectedDoc,
+  setSelectedDoc,
+  setViewImageUrl,
+  trackerProgress,
+  loadDashboardData,
+  handleStudentSubmitRequest,
+  handleStudentSubmitPayment,
+  handleStudentCancelRequest,
+  getProgressVal,
+  getStatusLabel,
+  requiresAttachment,
+  getAttachmentLabel,
+  getAttachmentHelper,
+  user,
+  currentTab,
+  todayFormatted,
+}) {
+  return (
+    <>
+      <div className="space-y-8 animate-fade-in">
+        {/* 1.1. STUDENT PORTAL - WORKSPACE DASHBOARD */}
+        {currentTab === 'dashboard' && (
+          <>
+            {/* Welcome Header */}
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+              <div>
+                <h2 className="text-3xl font-display font-black text-gray-900 tracking-tight">
+                  Welcome back, <span className="text-[#15803d] font-bold">{user.full_name || 'Student'}</span>
+                </h2>
+              </div>
+              <div className="flex items-center gap-4">
+                <div className="flex items-center gap-3 bg-white border border-gray-200 rounded-2xl px-5 py-2.5 shadow-sm">
+                  <span className="text-xs font-semibold text-gray-500">Today:</span>
+                  <span className="text-xs font-bold text-gray-800">{todayFormatted}</span>
+                  <svg className="w-4 h-4 text-gray-400 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                </div>
+                <button 
+                  onClick={() => setActiveModal('new-request')}
+                  className="flex items-center gap-2 px-5 py-2.5 bg-white border border-gray-300 hover:border-gray-400 text-gray-800 text-xs font-bold rounded-full shadow-sm transition-all"
+                >
+                  <span>New Request</span>
+                  <svg className="w-4 h-4 text-gray-800" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.2" d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                </button>
+              </div>
+            </div>
+
+            {/* KPI Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="bg-white rounded-3xl p-6 shadow-sm border border-gray-200 flex flex-col justify-between h-44">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block">TOTAL REQUESTS</span>
+                    <span className="text-3xl font-display font-black text-gray-900 mt-2 block">{documents.length} <span className="text-sm text-gray-400 font-medium font-sans">Documents</span></span>
+                  </div>
+                  <MiniSparkline trend="up" />
+                </div>
+                <div className="bg-emerald-50 border border-emerald-100 rounded-full px-3 py-1 text-[10px] font-bold text-[#15803d] w-fit flex items-center gap-1.5 mt-2">
+                  <span className="w-1.5 h-1.5 bg-[#15803d] rounded-full"></span>
+                  All requests submitted across your account
+                </div>
+              </div>
+
+              <div className="bg-white rounded-3xl p-6 shadow-sm border border-gray-200 flex flex-col justify-between h-44">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block">IN PROGRESS</span>
+                    <span className="text-3xl font-display font-black text-gray-900 mt-2 block">
+                      {documents.filter(d => ['pending_payment', 'pending_payment_verification', 'pending_secretary', 'ready_window_1'].includes(d.current_status)).length} <span className="text-sm text-gray-400 font-medium font-sans">in progress</span>
+                    </span>
+                  </div>
+                  <MiniSparkline trend="down" />
+                </div>
+                <div className="bg-[#15803d] rounded-xl px-4 py-2 text-[10px] font-medium text-white w-full mt-2 leading-snug">
+                  Your documents are currently being processed
+                </div>
+              </div>
+
+              <div className="bg-white rounded-3xl p-6 shadow-sm border border-gray-200 flex flex-col justify-between h-44">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block">READY / COMPLETED</span>
+                    <span className="text-3xl font-display font-black text-gray-900 mt-2 block">
+                      {documents.filter(d => ['completed', 'released'].includes(d.current_status)).length} <span className="text-sm text-gray-400 font-medium font-sans">Completed</span>
+                    </span>
+                  </div>
+                  <MiniSparkline trend="up" />
+                </div>
+                <div className="bg-emerald-50 border border-emerald-100 rounded-full px-3 py-1 text-[10px] font-bold text-[#15803d] w-fit flex items-center gap-1.5 mt-2">
+                  <span className="w-1.5 h-1.5 bg-[#15803d] rounded-full"></span>
+                  Available for pickup at Window 1
+                </div>
+              </div>
+            </div>
+
+            {/* Active Requests Card Table */}
+            <div className="bg-white rounded-3xl shadow-sm border border-gray-200 overflow-hidden mt-8">
+              <div className="p-6 border-b border-gray-100 bg-gray-50/50 flex justify-between items-center">
+                <h3 className="font-bold text-gray-900 text-lg">ACTIVE REQUESTS</h3>
+                <button onClick={loadDashboardData} className="text-xs text-[#15803d] font-bold hover:underline inline-flex items-center gap-1"><svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.992 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182" /></svg> Refresh</button>
+              </div>
+              <div className="p-6">
+                {documents.length === 0 ? (
+                  <div className="text-center py-12 text-gray-400 font-medium">No active request records. Submit one at the top!</div>
+                ) : (
+                  <table className="w-full text-left border-collapse">
+                    <thead>
+                      <tr className="text-gray-400 text-[10px] uppercase tracking-widest border-b border-gray-100">
+                        <th className="pb-4 font-bold pl-4">Date</th>
+                        <th className="pb-4 font-bold">Document /Type</th>
+                        <th className="pb-4 font-bold">Progress</th>
+                        <th className="pb-4 font-bold">Status</th>
+                        <th className="pb-4 font-bold text-right pr-4">Action</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-50">
+                      {documents.map(doc => (
+                        <tr key={doc.id} className="hover:bg-gray-50/50 transition-colors">
+                          <td className="py-4 pl-4 text-xs font-semibold text-gray-400">{new Date(doc.created_at).toLocaleDateString()} {new Date(doc.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</td>
+                          <td className="py-4">
+                            <div className="text-sm font-bold text-gray-900">{doc.document_type}</div>
+                            <div className="text-xs font-mono text-gray-400 mt-0.5">#{doc.tracking_number ? doc.tracking_number.slice(0, 10).toUpperCase() : doc.id}</div>
+                          </td>
+                          <td className="py-4 w-1/3">
+                            <div className="flex items-center gap-3">
+                              <div className="w-full bg-gray-100 rounded-full h-2 overflow-hidden">
+                                <div className="bg-[#15803d] h-2 rounded-full transition-all duration-500" style={{ width: `${getProgressVal(doc.current_status)}%` }}></div>
+                              </div>
+                              <span className="text-[11px] font-bold text-gray-600 font-mono">{getProgressVal(doc.current_status)}%</span>
+                            </div>
+                          </td>
+                          <td className="py-4">
+                            <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${doc.current_status === 'completed' || doc.current_status === 'released' ? 'bg-emerald-50 text-[#15803d]' : 'bg-amber-50 text-amber-700'}`}>
+                              {getStatusLabel(doc.current_status)}
+                            </span>
+                          </td>
+                          <td className="py-4 text-right pr-4 relative">
+                            <div className="flex justify-end gap-2">
+                              {doc.current_status === 'pending_payment' ? (
+                                <>
+                                  <button 
+                                    onClick={() => { setSelectedDoc(doc); setActiveModal('pay'); }}
+                                    className="px-4 py-1.5 bg-[#15803d] text-white rounded-xl text-xs font-bold hover:bg-[#166534] transition-all shadow-sm flex items-center gap-1.5"
+                                  >
+                                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                    Pay GCash
+                                  </button>
+                                  <button 
+                                    onClick={() => handleStudentCancelRequest(doc.id)}
+                                    className="px-4 py-1.5 bg-red-50 text-red-600 rounded-xl text-xs font-bold hover:bg-red-100 transition-all border border-red-200 flex items-center gap-1.5"
+                                  >
+                                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M6 18L18 6M6 6l12 12"/></svg>
+                                    Cancel
+                                  </button>
+                                </>
+                              ) : (
+                                <button 
+                                  onClick={() => { setSelectedDoc(doc); setActiveModal('tracking'); }}
+                                  className="px-4 py-1.5 bg-blue-50 text-blue-600 rounded-xl text-xs font-bold hover:bg-blue-100 transition-all border border-blue-200 flex items-center gap-1.5"
+                                  title="Track Document"
+                                >
+                                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"/></svg>
+                                  Live Track
+                                </button>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
+              </div>
+            </div>
+          </>
+        )}
+
+        {/* 1.2. STUDENT PORTAL - REQUEST HISTORY */}
+        {currentTab === 'request-history' && (
+          <>
+            {/* Header */}
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+              <div>
+                <h2 className="text-3xl font-display font-black text-gray-900 tracking-tight">
+                  Request History
+                </h2>
+              </div>
+            </div>
+
+            {/* History Table */}
+            <div className="bg-white rounded-3xl shadow-sm border border-gray-200 overflow-hidden">
+              <div className="p-6 border-b border-gray-100 bg-gray-50/50 flex justify-between items-center">
+                <h3 className="font-bold text-gray-900 text-lg">Your request history</h3>
+                <button className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 text-[#15803d] border border-emerald-100 rounded-xl text-xs font-bold hover:bg-emerald-100 transition-all">
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"/></svg>
+                  Filters
+                </button>
+              </div>
+              <div className="p-6">
+                {documents.length === 0 ? (
+                  <div className="text-center py-12 text-gray-400 font-medium">No request history found.</div>
+                ) : (
+                  <table className="w-full text-left border-collapse">
+                    <thead>
+                      <tr className="text-gray-400 text-[10px] uppercase tracking-widest border-b border-gray-100">
+                        <th className="pb-4 font-bold pl-4">Docuement</th>
+                        <th className="pb-4 font-bold">Date Requested</th>
+                        <th className="pb-4 font-bold">Tracking ID</th>
+                        <th className="pb-4 font-bold">Status</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-50">
+                      {documents.map(doc => (
+                        <tr key={doc.id} className="hover:bg-gray-50/50 transition-colors">
+                          <td className="py-4 pl-4 text-sm font-bold text-gray-900">{doc.document_type}</td>
+                          <td className="py-4 text-xs font-semibold text-gray-400">{new Date(doc.created_at).toLocaleDateString()} {new Date(doc.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</td>
+                          <td className="py-4 font-mono text-xs text-gray-800 font-bold">#{doc.tracking_number ? doc.tracking_number.slice(0, 10).toUpperCase() : doc.id}</td>
+                          <td className="py-4">
+                            <span className="px-3 py-1 bg-emerald-50 text-[#15803d] text-[10px] font-black rounded-full uppercase tracking-wider">
+                              {doc.current_status === 'completed' || doc.current_status === 'released' ? 'Released' : 'Processing'}
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
+              </div>
+            </div>
+          </>
+        )}
+
+        {/* 1.3. STUDENT PORTAL - PAYMENT HISTORY */}
+        {currentTab === 'payment-history' && (
+          <>
+            {/* Header */}
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+              <div>
+                <h2 className="text-3xl font-display font-black text-gray-900 tracking-tight">
+                  Payment History
+                </h2>
+              </div>
+            </div>
+
+            {/* Payment Card Table */}
+            <div className="bg-white rounded-3xl shadow-sm border border-gray-200 overflow-hidden">
+              <div className="p-6 border-b border-gray-100 bg-gray-50/50 flex justify-between items-center">
+                <h3 className="font-bold text-gray-900 text-lg">Manage your digital transactions.</h3>
+                <button className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 text-[#15803d] border border-emerald-100 rounded-xl text-xs font-bold hover:bg-emerald-100 transition-all">
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"/></svg>
+                  Filters
+                </button>
+              </div>
+              <div className="p-6">
+                {documents.filter(d => d.payment_status === 'PAID' || d.gcash_reference_no).length === 0 ? (
+                  <div className="text-center py-12 text-gray-400 font-medium">No transaction payments detected.</div>
+                ) : (
+                  <table className="w-full text-left border-collapse">
+                    <thead>
+                      <tr className="text-gray-400 text-[10px] uppercase tracking-widest border-b border-gray-100">
+                        <th className="pb-4 font-bold pl-4">Date</th>
+                        <th className="pb-4 font-bold">Reference Number</th>
+                        <th className="pb-4 font-bold">Document</th>
+                        <th className="pb-4 font-bold">Amount</th>
+                        <th className="pb-4 font-bold">Status</th>
+                        <th className="pb-4 font-bold text-right pr-4">Receipt</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-50">
+                      {documents.filter(d => d.payment_status === 'PAID' || d.gcash_reference_no).map(doc => (
+                        <tr key={doc.id} className="hover:bg-gray-50/50 transition-colors">
+                          <td className="py-4 pl-4 text-xs font-semibold text-gray-400">{new Date(doc.updated_at).toLocaleDateString()} {new Date(doc.updated_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</td>
+                          <td className="py-4 font-mono text-xs text-gray-800 font-black">GC-{doc.gcash_reference_no ? doc.gcash_reference_no.slice(0, 8).toUpperCase() : '992139'}</td>
+                          <td className="py-4 text-sm font-bold text-gray-700">{doc.document_type}</td>
+                          <td className="py-4 text-xs font-bold text-gray-800 font-mono">P {parseFloat(doc.amount || 150).toFixed(2)}</td>
+                          <td className="py-4">
+                            {doc.payment_status === 'PAID' ? (
+                              <span className="px-3 py-1 bg-emerald-50 text-[#15803d] text-[10px] font-black rounded-full uppercase tracking-wider">PAID</span>
+                            ) : (
+                              <span className="px-3 py-1 bg-amber-50 text-amber-600 text-[10px] font-black rounded-full uppercase tracking-wider">VERIFYING</span>
+                            )}
+                          </td>
+                          <td className="py-4 text-right pr-4">
+                            {doc.official_receipt_path ? (
+                              <button 
+                                onClick={() => setViewImageUrl(doc.official_receipt_path)}
+                                className="p-2 text-[#15803d] hover:bg-emerald-50 rounded-xl transition-colors"
+                                title="View Official Finance Receipt"
+                              >
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                              </button>
+                            ) : (
+                              <span className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">Pending</span>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
+              </div>
+            </div>
+          </>
+        )}
+
+        {/* 1.4. NEW REQUEST MODAL */}
+        {activeModal === 'new-request' && (
+          <NewRequestModal 
+            user={user}
+            setActiveModal={setActiveModal}
+            handleStudentSubmitRequest={handleStudentSubmitRequest}
+            selectedDocType={selectedDocType}
+            setSelectedDocType={setSelectedDocType}
+            semesters={semesters}
+            setSemesters={setSemesters}
+            reqCopies={reqCopies}
+            setReqCopies={setReqCopies}
+            requestFile={requestFile}
+            setRequestFile={setRequestFile}
+            actionLoading={actionLoading}
+            requiresAttachment={requiresAttachment}
+            getAttachmentLabel={getAttachmentLabel}
+            getAttachmentHelper={getAttachmentHelper}
+          />
+        )}
+
+        {/* 1.5. COMPLETE YOUR GCASH PAYMENT MODAL */}
+        {activeModal === 'pay' && selectedDoc && createPortal(
+          <div className="fixed inset-0 z-[100] flex items-start sm:items-center justify-center p-4 overflow-y-auto">
+            <div className="absolute inset-0 bg-gray-900/60 backdrop-blur-md" onClick={() => setActiveModal(null)}></div>
+            <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg max-h-[calc(100dvh-2rem)] overflow-y-auto p-6 sm:p-8 z-10 border border-gray-100 relative">
+
+              <button 
+                onClick={() => handleStudentCancelRequest(selectedDoc.id, true)}
+                className="absolute top-4 left-4 px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-xl text-[10px] font-bold transition-all flex items-center gap-1"
+              >
+                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
+                Back to Form
+              </button>
+              <button className="absolute top-4 right-4 w-8 h-8 rounded-full flex items-center justify-center text-gray-400 hover:bg-gray-100" onClick={() => setActiveModal(null)}>✕</button>
+
+              <div className="mt-8 pb-5 mb-6 text-center border-b border-gray-100">
+                <h3 className="text-xl font-black text-gray-900">Complete your Payment</h3>
+                <p className="text-xs text-gray-400 mt-1 font-semibold">Add Payment</p>
+              </div>
+
+              <div className="border-2 border-dashed border-[#15803d]/40 bg-gray-50/50 p-6 rounded-2xl flex flex-col items-center gap-4 mb-6">
+                <span className="text-xs font-bold text-gray-800">Scan this QR code using your GCash app to pay.</span>
+
+                {/* GCash QR Code */}
+                <img src="/gcash-qr.jpg" alt="GCash QR Code" className="w-50 h-60 rounded-xl shadow-sm object-cover border border-gray-200" />
+              </div>
+
+              <form onSubmit={handleStudentSubmitPayment} className="space-y-6">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-[10px] font-bold text-gray-800 uppercase tracking-widest">Document</label>
+                    <input 
+                      type="text" 
+                      disabled 
+                      value={selectedDoc.document_type} 
+                      className="p-3 bg-gray-100 border border-gray-200 rounded-xl text-xs font-semibold text-gray-500"
+                    />
+                  </div>
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-[10px] font-bold text-gray-800 uppercase tracking-widest">Tracking ID</label>
+                    <input 
+                      type="text" 
+                      disabled 
+                      value={`TRC - ${selectedDoc.tracking_number ? selectedDoc.tracking_number.slice(0, 6).toUpperCase() : selectedDoc.id}`} 
+                      className="p-3 bg-gray-100 border border-gray-200 rounded-xl text-xs font-semibold text-gray-500"
+                    />
+                  </div>
+                </div>
+
+                <div className="bg-emerald-50 border border-emerald-100 rounded-xl p-4 flex flex-col gap-2">
+                  <div className="flex justify-between items-center text-xs text-emerald-800">
+                    <span className="font-medium">Amount per copy</span>
+                    <span className="font-bold">₱{(selectedDoc.amount / selectedDoc.copies).toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between items-center text-xs text-emerald-800">
+                    <span className="font-medium">Number of copies</span>
+                    <span className="font-bold">x {selectedDoc.copies}</span>
+                  </div>
+                  <div className="pt-2 border-t border-emerald-200 flex justify-between items-center text-sm text-emerald-900 mt-1">
+                    <span className="font-bold">Total Amount Due</span>
+                    <span className="font-black text-lg">₱{selectedDoc.amount}</span>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-[10px] font-bold text-gray-800 uppercase tracking-widest">GCash Reference Number</label>
+                    <input 
+                      type="text" 
+                      required 
+                      placeholder="e.g. 5001 0293 8472" 
+                      value={paymentRef}
+                      onChange={(e) => setPaymentRef(e.target.value)}
+                      className="p-3 bg-gray-50 border border-gray-200 rounded-xl text-xs font-semibold focus:ring-2 focus:ring-[#15803d]/20 outline-none"
+                    />
+                  </div>
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-[10px] font-bold text-gray-800 uppercase tracking-widest">Upload Receipt</label>
+                    <div className="relative">
+                      <input 
+                        type="file" 
+                        required 
+                        accept="image/*"
+                        onChange={(e) => setPaymentFile(e.target.files[0])}
+                        className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+                      />
+                      <div className="p-3 bg-gray-50 border border-gray-200 rounded-xl text-xs font-semibold text-gray-500 flex justify-between items-center pointer-events-none">
+                        <span className="truncate">{paymentFile ? paymentFile.name : 'Upload your receipt...'}</span>
+                        <svg className="w-4 h-4 text-[#15803d]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <button 
+                  type="submit" 
+                  disabled={actionLoading} 
+                  className="w-full bg-[#15803d] hover:bg-[#166534] disabled:opacity-70 text-white font-bold py-3.5 rounded-xl transition-all shadow-md uppercase tracking-wider text-xs flex justify-center items-center"
+                >
+                  {actionLoading ? 'Submitting...' : 'Submit Payment'}
+                </button>
+              </form>
+            </div>
+          </div>,
+          document.body
+        )}
+
+        {/* 1.6. PAYMENT SUCCESS SCREEN MODAL */}
+        {activeModal === 'pay-success' && createPortal(
+          <div className="fixed inset-0 z-[100] flex items-start sm:items-center justify-center p-4 overflow-y-auto">
+            <div className="absolute inset-0 bg-gray-900/60 backdrop-blur-md" onClick={() => setActiveModal(null)}></div>
+            <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg max-h-[calc(100dvh-2rem)] overflow-y-auto p-6 sm:p-8 z-10 border border-gray-100 relative text-center">
+              <h3 className="text-xl font-black text-gray-900 mb-6">Payment Submitted</h3>
+
+              <div className="border-2 border-dashed border-[#15803d]/40 bg-gray-50/50 p-8 rounded-2xl flex flex-col items-center gap-6 mb-6">
+                <p className="text-xs font-semibold text-gray-600 leading-relaxed max-w-xs">
+                  Your reference number and uploaded receipt have been securely routed to Finance Office for verification. Once cleared, your Transcript of Record will be proceed to processing.
+                </p>
+
+                {/* Large Green Check Circle */}
+                <div className="w-16 h-16 rounded-full bg-[#15803d] text-white flex items-center justify-center shadow-md">
+                  <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7"/></svg>
+                </div>
+              </div>
+
+              <button 
+                onClick={() => setActiveModal(null)}
+                className="w-full bg-[#15803d] hover:bg-[#166534] text-white font-bold py-3.5 rounded-xl transition-all shadow-md uppercase tracking-wider text-xs"
+              >
+                Return to Dashboard
+              </button>
+            </div>
+          </div>,
+          document.body
+        )}
+
+        {/* 1.7. LIVE TRACKING MODAL */}
+        {activeModal === 'tracking' && selectedDoc && (
+          <LiveTrackingModal 
+            selectedDoc={selectedDoc}
+            setActiveModal={setActiveModal}
+            trackerProgress={trackerProgress}
+            getStatusLabel={getStatusLabel}
+          />
+        )}
+      </div>
+    </>
+  );
+}
