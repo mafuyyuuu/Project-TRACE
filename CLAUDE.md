@@ -157,6 +157,13 @@ Single-file endpoints in `app.py`, OCR logic isolated in `ocr_engine.py`:
 
 The exact math (CRAFT/CRNN/CTC for OCR, Prophet's additive model, Gini-split Random Forest) with worked examples is documented in `docs/ALGORITHM_COMPUTATION.md` — read that before modifying model behavior rather than re-deriving it.
 
+### Payments & real-time notifications
+Four payment methods live in the admin-managed `payment_methods` table; `src/services/payment/` resolves each to a provider. All use **`manual`** today (pay out-of-band, upload proof, Finance verifies) because PLP reconciles against its own books — the abstraction exists so a gateway can be added without touching `documents.service.js`.
+
+`src/realtime/` runs Socket.IO on the same HTTP server. **Socket.IO provides no auth** — the handshake JWT is verified explicitly against `JWT_SECRET`, and each socket joins only `user:<id>` and its desk room. Emissions fail soft: if realtime is down, the notification is still stored and shows on next fetch. Vite proxies `/socket.io` with `ws: true`.
+
+`notification.service.js` reports channel health at startup and **skips unconfigured channels with a reason** rather than attempting them. Don't reintroduce placeholder SMTP credentials — that is what made the old email failures look like a bug.
+
 ### Admin maintenance, reporting & analytics
 `/api/maintenance/*` (admin-only CRUD for staff, document types, colleges), `/api/reports/documents`, `/api/reports/analytics`, and two CSV export routes.
 

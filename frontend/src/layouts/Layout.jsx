@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { Outlet, Link, useLocation } from 'react-router-dom'
 import useAuth from '@/hooks/useAuth'
 import { getNotifications, markNotificationsRead, updateProfile } from '@/services/authService'
+import { onNotification, disconnectRealtime } from '@/services/realtimeService'
 import plpLogo from '@/assets/plp_logo.png'
 
 export default function Layout() {
@@ -33,6 +34,26 @@ export default function Layout() {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       loadNotifs()
     }
+  }, [user])
+
+  // Live push: a new notification appears in the bell within milliseconds
+  // instead of waiting for the next page load.
+  useEffect(() => {
+    if (!user) return undefined
+
+    const unsubscribe = onNotification((incoming) => {
+      setNotifications((current) => [
+        { id: `live-${Date.now()}`, ...incoming },
+        ...current,
+      ])
+    })
+
+    return unsubscribe
+  }, [user])
+
+  // Drop the socket on logout so the next account doesn't inherit it.
+  useEffect(() => {
+    if (!user) disconnectRealtime()
   }, [user])
 
   const handleNotifClick = async () => {

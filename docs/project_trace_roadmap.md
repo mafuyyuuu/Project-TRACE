@@ -2,7 +2,7 @@
 
 This document serves as the master tracking sheet for Project TRACE. It organizes the system's development into distinct phases across the full technology stack (Frontend, Backend, and Machine Learning) so you can easily track what has been completed and what remains for a true production rollout.
 
-> **On phase numbers:** this roadmap groups work into coarser phases than [`PROGRESS.md`](PROGRESS.md), so the numbers deliberately differ between the two documents. The same production-rollout work is "Phase 10" here and "Phase 13" there. `PROGRESS.md` is the finer-grained checklist; this is the stack-level narrative.
+> **On phase numbers:** this roadmap groups work into coarser phases than [`PROGRESS.md`](PROGRESS.md), so the numbers deliberately differ between the two documents. The same production-rollout work is "Phase 11" here and "Phase 14" there. `PROGRESS.md` is the finer-grained checklist; this is the stack-level narrative.
 
 ---
 
@@ -146,7 +146,22 @@ This document serves as the master tracking sheet for Project TRACE. It organize
 
 ---
 
-## 🚀 Phase 10: Production Deployment (Pending)
+## ✅ Phase 10: Panel Feedback — Category 3 (Completed)
+*Third of four categories from the capstone panel's defense feedback.*
+
+* **Payments:**
+  * ✅ Four payment methods (GCash, Card, Online Banking, Over-the-Counter), each admin-managed with its own instructions and reference label.
+  * ✅ A provider abstraction so a hosted gateway can be added later without changing the document pipeline — every method verifies manually today because PLP reconciles against Finance's own books.
+* **Real-time notifications:**
+  * ✅ Socket.IO with a JWT-authenticated handshake and per-user rooms; **55 ms measured** from event to the clerk's dashboard. Unauthenticated and invalid-token connections are refused.
+  * ✅ Degrades silently to fetch-on-load if realtime is unavailable.
+* **Push notification fix:**
+  * ✅ Diagnosed as missing SMTP configuration rather than a code defect. Placeholder credentials removed, channel health reported at startup, unconfigured channels skipped with a clear reason.
+* **Testing:** 438 tests; zero lint errors.
+
+---
+
+## 🚀 Phase 11: Production Deployment (Pending)
 *Taking the system live on external servers.*
 
 * **Rotate the leaked secrets:** `JWT_SECRET` (the `.env` value matches the placeholder that has been in git history since the first commit — it signs every auth token, so it is a full authentication bypass) and the UniSMS API key. Both must be rotated before any deployment.

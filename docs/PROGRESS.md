@@ -2,9 +2,9 @@
 
 This document tracks the current development and implementation progress of the Project TRACE system.
 
-## Overall Status: 🟢 Panel Feedback — Categories 1 & 2 Complete (Phase 13: Production Rollout Pending)
+## Overall Status: 🟢 Panel Feedback — Categories 1–3 Complete (Phase 14: Production Rollout Pending)
 
-### 📍 Next Steps for Phase 13 (Production Rollout)
+### 📍 Next Steps for Phase 14 (Production Rollout)
 The system is feature-complete locally and the codebase now follows the strict layered architecture (see `CODING_PREFERENCES.md`). The next immediate steps are taking the servers live:
 1. **Rotate the two leaked secrets.** Both were hardcoded as `||` fallback defaults and remain in git history even though they are gone from the source:
    - **`JWT_SECRET` (critical).** The value currently in `.env` is byte-identical to the placeholder `trace-jwt-secret-change-in-production`, committed since the very first commit. Because it signs every auth token, anyone with repo access can forge a login for any account — including `ADMIN001`. Generate a replacement with `node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"`. Rotating it invalidates existing tokens, so everyone simply logs in again.
@@ -129,7 +129,17 @@ The system is feature-complete locally and the codebase now follows the strict l
 - [x] **Indexes** added on `step_logs.timestamp_started`, `step_logs.action_taken`, `documents.current_status` and `documents.created_at` to keep reporting responsive.
 - [x] **Tests:** 407 total (286 backend + 121 frontend), up from 284. Zero lint errors and warnings.
 
-### Phase 13: Production Rollout Checklist
+### Phase 13: Panel Feedback — Category 3 (Payments & Notifications)
+**Status:** Complete
+- [x] **Payment methods expanded:** GCash, Credit/Debit Card, Online Banking/Bank Transfer, and Over-the-Counter. Each is a row in the admin-managed `payment_methods` table with its own instructions and reference label, so the Registrar can enable one without a deploy. The chosen method is recorded on the document and named in the audit trail.
+- [x] **Gateway-ready abstraction:** `src/services/payment/` registers providers by name. Every method resolves to the `manual` provider today — the student pays out-of-band and Finance verifies against the institution's own records, which is what PLP requires. A hosted gateway can be added by registering a provider and setting `payment_methods.provider`, without touching `documents.service.js`.
+- [x] **Real-time in-app notifications:** Socket.IO shares the HTTP server, so no extra port and it rides the existing Vite proxy. **Measured 55 ms** from a student submitting payment to the Finance clerk's dashboard receiving the push.
+- [x] **Socket authentication:** the handshake is verified with the same `JWT_SECRET` as the REST API — connections with no token or an invalid token are refused (both verified live). Each socket joins only `user:<id>` and its own desk room, so it can never receive another account's notifications.
+- [x] **Fails soft:** a missing or broken realtime layer degrades to the existing fetch-on-load behaviour and can never affect a stored notification or the desk action that triggered it.
+- [x] **Push notification fix:** the SMS/email failures were **configuration, not code**. SMTP settings fell back to placeholder credentials (`mock_user`/`mock_pass`), so every email died at send time with an opaque `535 Authentication failed`. Placeholders are gone, channel health is now reported at startup, and unconfigured channels are skipped with a stated reason instead of attempted.
+- [x] **Tests:** 438 total (309 backend + 129 frontend). Zero lint errors and warnings.
+
+### Phase 14: Production Rollout Checklist
 **Status:** In Progress
 - [ ] **Rotate BOTH leaked secrets:** (a) `JWT_SECRET` — the value in `.env` is identical to the placeholder committed in git history since the first commit, so anyone with repo access can forge a token for any account including admins; (b) the UniSMS API key, also previously hardcoded. Generate a new JWT secret with `node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"`. Rotating the JWT secret logs everyone out, which is expected.
 - [ ] **Seed Per-College Secretaries:** `seed.sql` creates only `SEC001` (course `NULL`) while the README documents `SEC-CCS001` … `SEC-CBA001`. College-based queue filtering can't be demonstrated until these exist.

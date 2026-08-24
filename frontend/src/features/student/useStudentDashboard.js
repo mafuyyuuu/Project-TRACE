@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import useDashboardCore from '@/hooks/useDashboardCore';
 import { uploadDocument, submitPayment, cancelDocument } from '@/services/documentsService';
-import { getDocumentTypes } from '@/services/referenceService';
+import { getDocumentTypes, getPaymentMethods } from '@/services/referenceService';
 
 /** Progress-bar target for the live tracking modal, by pipeline stage. */
 const TRACKER_TARGETS = {
@@ -12,8 +12,8 @@ const TRACKER_TARGETS = {
 };
 
 /**
- * Student portal: request submission, GCash checkout, cancellation, and the
- * live tracking animation.
+ * Student portal: request submission, checkout (GCash, card, online banking or
+ * over-the-counter), cancellation, and the live tracking animation.
  */
 export default function useStudentDashboard(user) {
   const core = useDashboardCore(user);
@@ -28,11 +28,29 @@ export default function useStudentDashboard(user) {
   // single request can cover several documents.
   const [selections, setSelections] = useState({});
 
-  // GCash checkout
+  // Checkout. The available methods are admin-managed reference data, so the
+  // Registrar can enable Card or Online Banking without a deploy.
+  const [paymentMethods, setPaymentMethods] = useState([]);
+  const [selectedMethod, setSelectedMethod] = useState('gcash');
   const [paymentRef, setPaymentRef] = useState('');
   const [paymentFile, setPaymentFile] = useState(null);
 
   const [trackerProgress, setTrackerProgress] = useState(0);
+
+  useEffect(() => {
+    let cancelled = false;
+    getPaymentMethods()
+      .then((data) => {
+        if (cancelled) return;
+        const methods = data.payment_methods || [];
+        setPaymentMethods(methods);
+        if (methods.length && !methods.some((m) => m.code === 'gcash')) {
+          setSelectedMethod(methods[0].code);
+        }
+      })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -170,9 +188,13 @@ export default function useStudentDashboard(user) {
       const formData = new FormData();
       formData.append('receipt', paymentFile);
       formData.append('gcash_reference_no', paymentRef);
+      formData.append('payment_method', selectedMethod);
+
+      const methodName =
+        paymentMethods.find((m) => m.code === selectedMethod)?.name || 'Payment';
 
       const ok = await runAction(() => submitPayment(selectedDoc.id, formData), {
-        successMessage: 'GCash receipt submitted. Pending Finance verification!',
+        successMessage: `${methodName} receipt submitted. Pending Finance verification!`,
         errorMessage: 'Payment submission failed.',
       });
 
@@ -182,7 +204,7 @@ export default function useStudentDashboard(user) {
         setPaymentFile(null);
       }
     },
-    [paymentRef, paymentFile, selectedDoc, runAction, triggerNotification, setActiveModal]
+    [paymentRef, paymentFile, selectedMethod, paymentMethods, selectedDoc, runAction, triggerNotification, setActiveModal]
   );
 
   /**
@@ -212,6 +234,8 @@ export default function useStudentDashboard(user) {
     selections,
     toggleDocumentType,
     updateSelection,
+    paymentMethods,
+    selectedMethod, setSelectedMethod,
     paymentRef, setPaymentRef,
     paymentFile, setPaymentFile,
     trackerProgress,

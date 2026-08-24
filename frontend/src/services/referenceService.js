@@ -20,3 +20,12 @@ export async function getDocumentTypes() {
   const { data } = await api.get('/reference/document-types')
   return data
 }
+
+/**
+ * Payment methods the student can choose at checkout, each with its own
+ * instructions and reference label.
+ */
+export async function getPaymentMethods() {
+  const { data } = await api.get('/reference/payment-methods')
+  return data
+}

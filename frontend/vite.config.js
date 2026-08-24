@@ -51,6 +51,12 @@ export default defineConfig({
       '/api': {
         target: 'http://localhost:3300',
         changeOrigin: true,
+      },
+      // Socket.IO needs the websocket upgrade forwarded, not just HTTP.
+      '/socket.io': {
+        target: 'http://localhost:3300',
+        changeOrigin: true,
+        ws: true,
       }
     }
   }

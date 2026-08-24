@@ -391,8 +391,18 @@ frontend/src/
     </div>
 
     <div class="callout spec">
+      <span class="label">Payments</span>
+      <p>Four methods &mdash; GCash, Credit/Debit Card, Online Banking and Over-the-Counter &mdash; each an admin-managed row with its own instructions and reference label. All resolve to the <strong>manual</strong> provider: the student pays out-of-band and a Finance Clerk verifies against PLP's own records, because payments must reconcile with Finance's books rather than a third party's dashboard. A provider registry in <code>services/payment/</code> means a hosted gateway can be added later without changing the document pipeline.</p>
+    </div>
+
+    <div class="callout spec">
+      <span class="label">Real-Time Notifications</span>
+      <p>Socket.IO shares the HTTP server, so there is no extra port. <strong>Socket.IO supplies no authentication</strong>, so the handshake token is verified against the same <code>JWT_SECRET</code> as the REST API and each socket joins only its own <code>user:&lt;id&gt;</code> and desk rooms &mdash; a connection can never receive another account's notifications. Measured latency from a student's payment submission to the Finance clerk's dashboard is <strong>55&nbsp;ms</strong>. If realtime is unavailable the notification is still stored and appears on the next fetch, so a socket fault can never affect a desk action.</p>
+    </div>
+
+    <div class="callout spec">
       <span class="label">Testing</span>
-      <p>Vitest runs per package: <code>cd backend &amp;&amp; npm test</code> and <code>cd frontend &amp;&amp; npm test</code> (407 tests, no database needed — the model layer is mocked). Backend tests must use the <code>.cjs</code> extension: the source is CommonJS, and only a CJS test shares Node's require cache with it, which is what makes the model spies actually intercept. <code>node backend/audit.js</code> runs a live end-to-end audit through all five desks.</p>
+      <p>Vitest runs per package: <code>cd backend &amp;&amp; npm test</code> and <code>cd frontend &amp;&amp; npm test</code> (438 tests, no database needed — the model layer is mocked). Backend tests must use the <code>.cjs</code> extension: the source is CommonJS, and only a CJS test shares Node's require cache with it, which is what makes the model spies actually intercept. <code>node backend/audit.js</code> runs a live end-to-end audit through all five desks.</p>
     </div>
 
     <div class="callout spec">
@@ -480,7 +490,18 @@ frontend/src/
       </li>
 
       <li>
-        <h3>Phase 8: Production Rollout (Pending)</h3>
+        <h3>Phase 8: Panel Feedback &mdash; Category 3 (Payments &amp; Notifications)</h3>
+        <p class="phase-goal">Third of four categories from the panel's defense feedback.</p>
+        <ul>
+          <li>Four admin-managed payment methods, behind a provider abstraction that leaves room for a hosted gateway.</li>
+          <li>Real-time in-app notifications over Socket.IO with an explicitly authenticated handshake &mdash; 55&nbsp;ms measured end to end.</li>
+          <li>Diagnosed the &ldquo;broken&rdquo; SMS/email push as missing configuration, not a defect: placeholder SMTP credentials removed, channel health reported at startup, unconfigured channels skipped with a stated reason.</li>
+          <li>438 automated tests; zero lint errors.</li>
+        </ul>
+      </li>
+
+      <li>
+        <h3>Phase 9: Production Rollout (Pending)</h3>
         <p class="phase-goal">Take the system live. The remaining work before deployment.</p>
         <ul>
           <li><strong>Rotate the UniSMS API key</strong> — it remains exposed in git history even though it is gone from the source.</li>

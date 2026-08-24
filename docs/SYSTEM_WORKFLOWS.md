@@ -34,6 +34,21 @@ Graduates and alumni complete an application form defined by the Registrar. The 
 
 ---
 
+## 1d. Payment Methods
+
+A student chooses how to pay at checkout. Every method follows the same verification path — pay, submit proof, Finance confirms — but each asks for the reference its own channel produces:
+
+| Method | What the student submits |
+| :--- | :--- |
+| **GCash** | Scan the PLP Finance QR, pay in-app, upload the receipt screenshot + GCash reference number |
+| **Credit / Debit Card** | Pay at the Cashier terminal, upload the terminal receipt + approval code |
+| **Online Banking / Bank Transfer** | Transfer to the PLP Finance account, upload the confirmation + transaction reference |
+| **Over-the-Counter (Cashier)** | Pay cash at the Cashier window, upload the official receipt + its number |
+
+> Payments are **never** settled by a third-party gateway. Every method reconciles against the Finance Office's own records, which is what PLP accounting requires. Methods are managed by the admin, so the Registrar can enable or retire one without a code change.
+
+---
+
 ## 2. Document-Specific Workflows & AI Verification
 
 While the pipeline is universal, different documents have unique AI requirements at Step 1 (Submission):
