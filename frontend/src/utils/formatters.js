@@ -1,5 +1,10 @@
 /** Presentation-only formatting helpers shared across dashboards. */
 
+/** Today as "August 24, 2026", for the dashboard headers. */
+export function todayLongDate() {
+  return new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+}
+
 /** Human-readable file size, e.g. 2048 → "2 KB". */
 export function formatFileSize(bytes) {
   if (!bytes) return '0 B';

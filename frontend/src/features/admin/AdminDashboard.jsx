@@ -1,34 +1,45 @@
 import { AreaChart, Area, XAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import MiniSparkline from '@/components/MiniSparkline';
+import useAdminDashboard from '@/features/admin/useAdminDashboard';
+import { todayLongDate } from '@/utils/formatters';
+import DashboardAlerts from '@/components/DashboardAlerts';
+import DashboardLoading from '@/components/DashboardLoading';
 
 /**
  * Registrar admin: ML forecasts, AI insights, account verification, users, and audit logs.
  */
-export default function AdminDashboard({
-  documents,
-  dashStats,
-  forecastData,
-  aiInsights,
-  pendingStudents,
-  actionLoading,
-  setViewImageUrl,
-  handleAdminVerifyStudent,
-  currentTab,
-  todayFormatted,
-  adminDocPage,
-  setAdminDocPage,
-  itemsPerPage,
-  adminDocFilter,
-  setAdminDocFilter,
-  forecastFilter,
-  setForecastFilter,
-  adminUsers,
-  adminUsersFilter,
-  setAdminUsersFilter,
-  adminLogs,
-}) {
+export default function AdminDashboard({ user, currentTab, setViewImageUrl }) {
+  const {
+    loading,
+    success,
+    error,
+    documents,
+    dashStats,
+    forecastData,
+    aiInsights,
+    pendingStudents,
+    actionLoading,
+    handleAdminVerifyStudent,
+    adminDocPage,
+    setAdminDocPage,
+    itemsPerPage,
+    adminDocFilter,
+    setAdminDocFilter,
+    forecastFilter,
+    setForecastFilter,
+    adminUsers,
+    adminUsersFilter,
+    setAdminUsersFilter,
+    adminLogs,
+  } = useAdminDashboard(user, currentTab);
+
+  const todayFormatted = todayLongDate();
+
+  if (loading) return <DashboardLoading />;
+
   return (
     <>
+      <DashboardAlerts success={success} error={error} />
             {currentTab === 'dashboard' && (
               <div className="space-y-8 animate-fade-in">
                 {/* Welcome Header */}

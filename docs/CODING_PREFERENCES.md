@@ -11,7 +11,7 @@ These are mandatory. **Do not create folders outside this schema without explici
 assets/        # Static files (images, icons, global CSS)
 components/    # Reusable UI only (Buttons, Inputs, Modals — NO business logic here)
 features/      # Grouped by domain (e.g. /features/student, /features/finance)
-hooks/         # Global custom React hooks (e.g. useAuth, useDashboard)
+hooks/         # Global custom React hooks (useAuth, useDashboardCore, useAuthedFile)
 layouts/       # Page wrappers (e.g. Layout.jsx)
 pages/         # Top-level route components that stitch features together
 services/      # Axios calls to the backend API (api.js, authService.js, documentsService.js)
@@ -44,8 +44,11 @@ utils/         # Backend helper functions (AppError)
 - **Imports:** Use the `@/` alias for `src/` (configured in `vite.config.js` + `jsconfig.json`) — e.g. `import useAuth from '@/hooks/useAuth'`. Avoid `../../..` chains.
 - **Components:** Keep components modular and reusable. Separate the fetching logic (hooks) from the presentational components.
 - **State Management:** Use standard React hooks (`useState`, `useEffect`, `useMemo`). Keep complex global state minimal, relying on backend fetches when possible.
-  - `store/` exists to satisfy the schema but is **deliberately empty** — no Zustand/Redux is installed. State is already centralized in `useAuth` and `useDashboard` rather than prop-drilled, so a store would add a dependency without solving a real problem. Only introduce one if a genuine cross-component state problem appears.
-- **Feature components:** Each role's command center lives in `features/<role>/` and owns its own modals under `features/<role>/components/`. Only genuinely cross-role UI (e.g. the image lightbox) belongs in top-level `components/`.
+  - `store/` exists to satisfy the schema but is **deliberately empty** — no Zustand/Redux is installed. State is already centralized in `useAuth` and the per-role feature hooks rather than prop-drilled, so a store would add a dependency without solving a real problem. Only introduce one if a genuine cross-component state problem appears.
+- **Feature components:** Each role's command center lives in `features/<role>/` and owns its own modals under `features/<role>/components/`. Only genuinely cross-role UI (the image lightbox, alerts, loading spinner, sparkline) belongs in top-level `components/`.
+- **One hook per feature:** each command center calls its own `features/<role>/use<Role>Dashboard.js`, which builds on the shared `hooks/useDashboardCore.js`. A component should receive a handful of props, never a spread bag of everything a hook returns. If a component needs more than ~5 props, its state probably belongs in its own hook.
+- **Never duplicate a helper between a hook and `utils/`.** Pure presentation helpers live in `utils/` and are imported directly by the components that need them — not defined in a hook and passed down as props.
+- **Protected files:** uploads are authenticated, so `<img src>` cannot load them directly. Use `useAuthedFile` / `<AuthedFilePreview>`, which fetch the bytes with the caller's token and render from a blob URL.
 
 ## ⚙️ Backend (Node.js + Express)
 
@@ -58,6 +61,14 @@ utils/         # Backend helper functions (AppError)
 - **Notifications:** Dispatch through `src/services/notification.service.js`. Every channel fails soft — a failed SMS or email must never roll back the document action that triggered it.
 - **Webhooks:** All webhook endpoints (e.g. from n8n or payment gateways) must handle errors gracefully and respond quickly (200 OK) to avoid timeouts, and must be guarded by `verifyWebhookSecret` — they have no user session, so without it they are open to the world.
 - **Authorization, not just authentication:** a valid JWT proves *who* the caller is, never *what they may touch*. Any endpoint taking a resource id must verify ownership or role before acting — students may only affect their own documents and files. `submitPayment` and `cancelDocument` in `documents.service.js` are the reference pattern.
+
+## 🧪 Testing (Vitest)
+
+- **Run:** `cd backend && npm test` and `cd frontend && npm test`. Tests live in `__tests__/` folders beside the code they cover.
+- **Backend tests must use the `.cjs` extension and `require()`.** The backend source is CommonJS; only a CJS test shares Node's require cache with it, which is what lets `vi.spyOn(model, 'fn')` intercept the call the service actually makes. An ESM test silently receives a different module instance and will hit the real database.
+- **Mock the model layer, not the database.** `vi.spyOn(documentModel, '...')` keeps tests fast and DB-free. `test/setup.js` supplies dummy secrets so config modules import cleanly.
+- **Every security fix gets a regression test.** Authorization rules are the highest-value thing to cover — verify a fix bites by breaking it deliberately and watching the test fail.
+- **Frontend:** pure helpers in `utils/` are tested directly; hooks via `renderHook`; each dashboard has a render smoke test that would catch a prop lost during refactoring.
 
 ## 🧠 AI Engine (Python)
 

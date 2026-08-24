@@ -2,9 +2,9 @@
 
 This document tracks the current development and implementation progress of the Project TRACE system.
 
-## Overall Status: 🟢 Core System Complete + Architecture Restructured (Phase 9: Production Rollout Pending)
+## Overall Status: 🟢 Core System Complete, Restructured, Hardened & Tested (Phase 11: Production Rollout Pending)
 
-### 📍 Next Steps for Phase 9 (Production Rollout)
+### 📍 Next Steps for Phase 11 (Production Rollout)
 The system is feature-complete locally and the codebase now follows the strict layered architecture (see `CODING_PREFERENCES.md`). The next immediate steps are taking the servers live:
 1. **Rotate the two leaked secrets.** Both were hardcoded as `||` fallback defaults and remain in git history even though they are gone from the source:
    - **`JWT_SECRET` (critical).** The value currently in `.env` is byte-identical to the placeholder `trace-jwt-secret-change-in-production`, committed since the very first commit. Because it signs every auth token, anyone with repo access can forge a login for any account — including `ADMIN001`. Generate a replacement with `node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"`. Rotating it invalidates existing tokens, so everyone simply logs in again.
@@ -87,7 +87,27 @@ The system is feature-complete locally and the codebase now follows the strict l
 - [x] **Dead Code Removal:** Deleted the unreachable `QueuePage.jsx`, `UploadPage.jsx`, and their `useDocuments`/`useDocumentUpload` hooks.
 - [x] **Bug Fixed in Passing:** Repaired a latent `setScanFile is not defined` ReferenceError in the Window 1 scanner UI (it was referenced but never destructured in the old `DashboardPage.jsx`).
 
-### Phase 9: Production Rollout Checklist
+### Phase 9: Security Hardening
+**Status:** Complete
+*Five vulnerabilities found by probing the running system, each fixed and covered by a regression test.*
+- [x] **IDOR on payment submission:** any logged-in student could attach a receipt to another student's request. `submitPayment` now verifies ownership and that the request is still awaiting payment.
+- [x] **Forged document ownership:** `uploadDocument` trusted a client-supplied `student_id`, so a student could file a request in someone else's name (and an omitted field created an unowned document nobody could pay for). A student's requests are now always filed against their own record; staff keep the supplied values.
+- [x] **Unauthenticated machine endpoints:** `POST /documents/assign` and the payment webhooks were completely open. They now require the shared `WEBHOOK_SECRET` via an `x-webhook-secret` header, compared in constant time.
+- [x] **World-readable uploads:** student ID photos and GCash receipts were served by `express.static` with no auth. Replaced by `GET /api/files/:filename`, which authenticates the caller, checks ownership, and blocks path traversal.
+- [x] **No login throttling:** added rate limits (10 failed logins / 15 min per IP, 20 registrations / hour, 1000 API requests / 15 min).
+- [x] **Secret rotation:** `JWT_SECRET` was identical to a placeholder public in git history since the first commit — a full authentication bypass. Rotated, and the server now refuses to start without it.
+
+### Phase 10: Technical Debt Paydown & Automated Testing
+**Status:** Complete
+- [x] **Role hook split:** replaced the 542-line `useDashboard.js` (47 return values) with `hooks/useDashboardCore.js` plus one hook per role under `features/<role>/`. Each command center now takes **3–4 props instead of 13–32**, and `DashboardPage.jsx` is a thin dispatcher holding no queue state.
+- [x] **Vitest in both packages:** `cd backend && npm test`, `cd frontend && npm test`. **190 tests** covering the security fixes, pricing rules, desk pipeline transitions, role scoping, AI fallbacks, and a render smoke test per dashboard.
+- [x] **De-duplication:** 7 UI helpers existed both in `useDashboard.js` and `utils/`; the copies are gone and features import from `utils/documentStatus.js` and `utils/formatters.js`.
+- [x] **Pure helpers extracted:** `calculateAmount` and `generateTrackingNumber` moved to `backend/src/utils/pricing.js`.
+- [x] **Cruft removed:** deleted 5 one-off debug scripts (one silently reset a real teammate's password); kept `audit.js` as the live E2E audit.
+- [x] **Zero ESLint errors** across the frontend for the first time.
+- [x] **Ports moved:** frontend 5173→**5273**, backend 3000→**3300** to stop clashing with other local projects. Corrected the AI engine's documented port (5000→**5005**; 5000 is taken by macOS Control Center).
+
+### Phase 11: Production Rollout Checklist
 **Status:** In Progress
 - [ ] **Rotate BOTH leaked secrets:** (a) `JWT_SECRET` — the value in `.env` is identical to the placeholder committed in git history since the first commit, so anyone with repo access can forge a token for any account including admins; (b) the UniSMS API key, also previously hardcoded. Generate a new JWT secret with `node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"`. Rotating the JWT secret logs everyone out, which is expected.
 - [ ] **Seed Per-College Secretaries:** `seed.sql` creates only `SEC001` (course `NULL`) while the README documents `SEC-CCS001` … `SEC-CBA001`. College-based queue filtering can't be demonstrated until these exist.
@@ -101,7 +121,6 @@ The system is feature-complete locally and the codebase now follows the strict l
 ## Known Issues (Pre-existing, surfaced during the Phase 8 audit)
 These predate the restructure and remain open:
 * **Secretary seed drift:** documented `SEC-CCS001` … `SEC-CBA001` accounts don't exist in `seed.sql`; only `SEC001` with a `NULL` course does.
-* **`useDashboard.js` lint:** 2 `react-hooks/set-state-in-effect` errors remain (verified present before the restructure).
 * **Unpassed modal props:** `NewRequestModal` declares `deliveryMethod`/`setDeliveryMethod` and `FinanceVerificationModal` declares `triggerNotification`, but no parent ever passed them — they are `undefined` at runtime.
 * **Unused legacy payments route:** `src/services/payments.service.js` (PayMongo-style webhook + `simulate-payment`) is not called by the frontend at all; it is superseded by the manual GCash flow.
 

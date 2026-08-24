@@ -307,14 +307,15 @@ Table: step_logs
   routes/        URL -> controller wiring only
   services/      Business logic: auth, documents (the pipeline),
                  notification (SMS/email/in-app), aiEngine, n8n
-  utils/         AppError helpers (badRequest/forbidden/notFound/...)
+  utils/         AppError helpers, pricing (calculateAmount)
 
 frontend/src/
   assets/        Images and static files
   components/    Reusable UI only — never calls an API
   features/      One folder per role: student, finance, window1,
-                 secretary, admin (each owns its modals)
-  hooks/         useAuth, useDashboard
+                 secretary, admin — each owns its modals AND its
+                 own use&lt;Role&gt;Dashboard hook
+  hooks/         useAuth, useDashboardCore, useAuthedFile
   layouts/       Layout.jsx (header, sidebar, notifications)
   pages/         Route components: Login, Signup, Dashboard
   services/      api.js (axios instance), authService, documentsService
@@ -329,8 +330,13 @@ frontend/src/
     </div>
 
     <div class="callout spec">
+      <span class="label">Testing</span>
+      <p>Vitest runs per package: <code>cd backend &amp;&amp; npm test</code> and <code>cd frontend &amp;&amp; npm test</code> (190 tests, no database needed — the model layer is mocked). Backend tests must use the <code>.cjs</code> extension: the source is CommonJS, and only a CJS test shares Node's require cache with it, which is what makes the model spies actually intercept. <code>node backend/audit.js</code> runs a live end-to-end audit through all five desks.</p>
+    </div>
+
+    <div class="callout spec">
       <span class="label">Why <code>store/</code> is empty</span>
-      <p>No Zustand/Redux is installed. State is already centralized in <code>useAuth</code> and <code>useDashboard</code> rather than prop-drilled, so a store would add a dependency without solving an existing problem. Introduce one only when a genuine cross-component state need appears.</p>
+      <p>No Zustand/Redux is installed. State is already centralized in <code>useAuth</code> and the per-role feature hooks rather than prop-drilled, so a store would add a dependency without solving an existing problem. Introduce one only when a genuine cross-component state need appears.</p>
     </div>
 
     <h3 style="margin-top: 48px;">9.3 Technical Rollout Phases</h3>
@@ -375,7 +381,19 @@ frontend/src/
       </li>
 
       <li>
-        <h3>Phase 5: Production Rollout (Pending)</h3>
+        <h3>Phase 5: Security Hardening &amp; Automated Testing</h3>
+        <p class="phase-goal">Close the authorization gaps found by probing the running system, and pin every fix with a test.</p>
+        <ul>
+          <li>Fixed an IDOR allowing any student to attach a payment receipt to another student's request, and stopped <code>uploadDocument</code> trusting a client-supplied <code>student_id</code>.</li>
+          <li>Closed two fully-open machine-to-machine endpoints (<code>/documents/assign</code> and the payment webhooks) behind a shared <code>WEBHOOK_SECRET</code> header.</li>
+          <li>Replaced world-readable <code>/uploads</code> static serving with an authenticated, ownership-checked, traversal-safe <code>/api/files</code> route.</li>
+          <li>Added login and registration rate limiting, and rotated a <code>JWT_SECRET</code> that had been public in git history since the first commit.</li>
+          <li>Introduced Vitest in both packages (190 tests) and split the 542-line dashboard hook into a shared core plus five per-role hooks, cutting each command center from 13&ndash;32 props to 3&ndash;4.</li>
+        </ul>
+      </li>
+
+      <li>
+        <h3>Phase 6: Production Rollout (Pending)</h3>
         <p class="phase-goal">Take the system live. The remaining work before deployment.</p>
         <ul>
           <li><strong>Rotate the UniSMS API key</strong> — it remains exposed in git history even though it is gone from the source.</li>

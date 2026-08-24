@@ -47,7 +47,7 @@ utils/         # Backend helper functions
 
 Frontend imports use the `@/` alias for `src/` (configured in `vite.config.js` + `jsconfig.json`) — e.g. `import useAuth from '@/hooks/useAuth'`.
 
-`store/` exists but is intentionally empty: no state library is installed. State lives in `useAuth`/`useDashboard` and backend fetches, per `docs/CODING_PREFERENCES.md` ("keep complex global state minimal"). Don't add Zustand/Redux without a concrete prop-drilling problem to solve.
+`store/` exists but is intentionally empty: no state library is installed. State lives in `useAuth`, `useDashboardCore`, the per-role feature hooks, and backend fetches, per `docs/CODING_PREFERENCES.md` ("keep complex global state minimal"). Don't add Zustand/Redux without a concrete prop-drilling problem to solve.
 
 ## Commands
 
@@ -85,7 +85,14 @@ python ai-engine/mock_data_gen.py
 ```
 
 ### Tests
-There is no automated test suite / test runner wired up (`backend`'s `npm test` is a stub). The only test artifact is `ai-engine/test_ocr.py`, a manual script (`python test_ocr.py [image_path]`) that runs OCR against a synthetic or supplied image — run it directly to sanity-check OCR/regex changes in `ocr_engine.py`.
+```bash
+cd backend && npm test          # vitest run
+cd frontend && npm test         # vitest run
+node backend/audit.js           # live end-to-end API audit (both servers must be running)
+```
+**Backend tests must be `.cjs`.** The backend source is CommonJS, and only a CJS test shares Node's require cache with it — which is what makes `vi.spyOn(model, 'fn')` actually intercept the call a service makes. An ESM test silently gets a separate module instance and hits the real MySQL. Tests live in `__tests__/` next to the code; models are spied on, so no database is needed.
+
+`ai-engine/test_ocr.py` remains a manual script (`python test_ocr.py [image_path]`) for sanity-checking OCR/regex changes in `ocr_engine.py`.
 
 ### Test accounts
 All seeded accounts share the password `trace2024` (see README.md for the full ID table — `ADMIN001`, `FINANCE001`, `WINDOW1001`, `SEC-CCS001`/`SEC-CON001`/etc. per college, `STU2024001`).
@@ -118,7 +125,11 @@ There is no per-role routing. `frontend/src/pages/DashboardPage.jsx` resolves th
 | College Secretary | `features/secretary/SecretaryDashboard.jsx` |
 | Registrar Admin | `features/admin/AdminDashboard.jsx` |
 
-`DashboardPage` calls `useDashboard(user)` once and spreads the result (plus tab/pagination state) into whichever command center renders — so all five receive one flat prop bag. Each feature owns its own modals under `features/<role>/components/`; only the cross-role image lightbox lives in `components/ImageViewerModal.jsx`. Data fetching is in `hooks/useDashboard.js` + `services/`; presentation helpers are in `utils/formatters.js` and `utils/documentStatus.js`.
+Each command center owns its data through its own hook — `features/<role>/use<Role>Dashboard.js` — all of which build on `hooks/useDashboardCore.js` (queue, KPI stats, loading/feedback, modal selection, and the shared `runAction` wrapper). `DashboardPage` therefore holds no queue state and passes only `{ user, currentTab, setViewImageUrl }`.
+
+Each feature owns its modals under `features/<role>/components/`; genuinely cross-role UI lives in `components/` (`ImageViewerModal`, `AuthedFilePreview`, `DashboardAlerts`, `DashboardLoading`, `MiniSparkline`). Presentation helpers are in `utils/formatters.js` and `utils/documentStatus.js` — import them, never duplicate them inside a hook.
+
+Uploaded files are fetched through `hooks/useAuthedFile.js`, which pulls bytes via authenticated axios and hands back a blob URL, because `<img src>` cannot send an `Authorization` header.
 
 ### Backend shape
 `backend/src/` follows route → controller → service → model. Entry point is `src/server.js` (listens) wrapping `src/app.js` (builds the Express app).

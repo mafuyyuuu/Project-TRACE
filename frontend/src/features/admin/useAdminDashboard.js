@@ -36,24 +36,29 @@ export default function useAdminDashboard(user, currentTab) {
    * offline AI engine must not stop the pending-registrations list rendering.
    */
   const loadAdminData = useCallback(async () => {
-    try {
-      setForecastData((await getForecast()).forecast || []);
-    } catch {
-      console.warn('Forecast unavailable');
-    }
-    try {
-      setAiInsights((await getInsights()).insights || []);
-    } catch {
-      console.warn('Insights unavailable');
-    }
-    try {
-      setPendingStudents((await getPendingStudents()).pending_students || []);
-    } catch {
-      console.warn('Pending students unavailable');
-    }
+    // Fetched in parallel; each settles independently so one outage cannot
+    // blank the other two panels.
+    const [forecast, insights, pending] = await Promise.allSettled([
+      getForecast(),
+      getInsights(),
+      getPendingStudents(),
+    ]);
+
+    if (forecast.status === 'fulfilled') setForecastData(forecast.value.forecast || []);
+    else console.warn('Forecast unavailable');
+
+    if (insights.status === 'fulfilled') setAiInsights(insights.value.insights || []);
+    else console.warn('Insights unavailable');
+
+    if (pending.status === 'fulfilled') setPendingStudents(pending.value.pending_students || []);
+    else console.warn('Pending students unavailable');
   }, []);
 
   useEffect(() => {
+    // The fetch is async: every setState inside runs after an await, on a
+    // later tick, so no cascading render actually occurs. The rule cannot
+    // see through the function boundary to verify that.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (user?.role === 'admin') loadAdminData();
   }, [user, loadAdminData]);
 

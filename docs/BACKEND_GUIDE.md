@@ -32,6 +32,7 @@ The Express app follows a strict **route → controller → service → model** 
 | `middlewares/` | `auth` (JWT), `upload` (multer), `errorHandler` | — |
 | `config/` | `db.js` (MySQL pool), `env.js` (all env vars + defaults) | Never read `process.env` elsewhere |
 | `utils/AppError.js` | `badRequest` / `unauthorized` / `forbidden` / `notFound` helpers | Lets services signal HTTP status without importing `res` |
+| `utils/pricing.js` | `calculateAmount`, `generateTrackingNumber` | Pure — no DB or service imports, so it is directly testable |
 
 **Key conventions:**
 - **Transactions:** every multi-write desk action (payment verification, evaluation, release, cancellation) runs inside `beginTransaction`/`commit`/`rollback` with a `FOR UPDATE` row lock. Model functions accept an optional `executor` argument so their queries can join the transaction.
@@ -41,6 +42,19 @@ The Express app follows a strict **route → controller → service → model** 
 - **Only truly public endpoint:** `GET /api/documents/:trackingNumber` (student tracking by tracking number).
 - **Uploaded files are not public.** They are served by `GET /api/files/:filename`, which authenticates the caller and checks ownership — staff may read any file, a student only files attached to their own request plus their own ID proof. Filenames are reduced to a basename and the resolved path is confirmed to sit inside `uploads/`, so traversal attempts fail.
 - **Rate limiting:** login is capped at 10 failed attempts per IP per 15 min (successful logins don't count), registration at 20/hour, and the rest of `/api` at 1000/15 min (`middlewares/rateLimit.middleware.js`).
+
+### Authorization rules
+A valid JWT proves *who* is calling, never *what they may touch*. Every endpoint taking a resource id verifies ownership or role:
+- A student may only submit payment for, cancel, or read files attached to **their own** requests.
+- `uploadDocument` ignores any client-supplied `student_id` for students and files against their own record — otherwise a request could be attributed to another student, or left unowned.
+- Fees are always computed server-side in `utils/pricing.js`; a client-sent `amount` is ignored.
+
+### Running the tests
+```bash
+cd backend && npm test        # vitest run — no database required
+node audit.js                 # live end-to-end audit against a running server
+```
+Backend tests are `.cjs` on purpose — see `docs/CODING_PREFERENCES.md` for why.
 
 ### Environment Variables
 Copy `backend/.env.example` → `backend/.env` and fill it in. Covers `DB_*`, `PORT`, `JWT_SECRET`, `AI_ENGINE_URL`, `N8N_URL`, `UNISMS_*`, `TEST_PHONE_NUMBER`, and `SMTP_*`. Never hardcode a secret as a `||` fallback default in source.

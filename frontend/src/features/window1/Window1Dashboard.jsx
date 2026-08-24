@@ -1,39 +1,50 @@
 import HardwareScannerModal from '@/features/window1/components/HardwareScannerModal';
 import MiniSparkline from '@/components/MiniSparkline';
 import { getProgressVal, getStatusLabel } from '@/utils/documentStatus';
-import { formatFileSize, getWaitTime } from '@/utils/formatters';
+import { formatFileSize, getWaitTime, todayLongDate } from '@/utils/formatters';
+import useWindow1Dashboard from '@/features/window1/useWindow1Dashboard';
+import DashboardAlerts from '@/components/DashboardAlerts';
+import DashboardLoading from '@/components/DashboardLoading';
 
 /**
  * Window 1 clerk: AI intake dropzone, tracking desk, manual input, and release queue.
  */
-export default function Window1Dashboard({
-  documents,
-  dashStats,
-  actionLoading,
-  scanDocType,
-  setScanDocType,
-  activeModal,
-  setActiveModal,
-  scanFile,
-  setScanFile,
-  scanProgress,
-  fileInputRef,
-  loadDashboardData,
-  handleWindow1Release,
-  simulateHardwareScan,
-  handleWindow1ScanUpload,
-  handleManualInputSubmit,
-  handleFetchStudent,
-  currentTab,
-  todayFormatted,
-  w1ReleasePage,
-  setW1ReleasePage,
-  w1ProgressPage,
-  setW1ProgressPage,
-  itemsPerPage,
-}) {
+export default function Window1Dashboard({ user, currentTab }) {
+  const {
+    loading,
+    success,
+    error,
+    documents,
+    dashStats,
+    actionLoading,
+    scanDocType,
+    setScanDocType,
+    activeModal,
+    setActiveModal,
+    scanFile,
+    setScanFile,
+    scanProgress,
+    fileInputRef,
+    loadDashboardData,
+    handleWindow1Release,
+    simulateHardwareScan,
+    handleWindow1ScanUpload,
+    handleManualInputSubmit,
+    handleFetchStudent,
+    w1ReleasePage,
+    setW1ReleasePage,
+    w1ProgressPage,
+    setW1ProgressPage,
+    itemsPerPage,
+  } = useWindow1Dashboard(user);
+
+  const todayFormatted = todayLongDate();
+
+  if (loading) return <DashboardLoading />;
+
   return (
     <>
+      <DashboardAlerts success={success} error={error} />
       <div className="space-y-8 animate-fade-in">
         {/* 3.1. WORKSPACE DASHBOARD VIEW */}
         {currentTab === 'dashboard' && (

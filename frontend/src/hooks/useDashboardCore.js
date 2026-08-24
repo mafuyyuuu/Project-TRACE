@@ -48,12 +48,13 @@ export default function useDashboardCore(user) {
    * Roles needing more (admin forecasts, pending registrations) fetch it in
    * their own hook rather than making every role pay for it.
    */
-  const loadCoreData = useCallback(async () => {
+  const fetchCoreData = useCallback(async () => {
     try {
-      setLoading(true);
-      setError('');
-
+      // The first statement is the await on purpose: nothing may set state
+      // before it, or the initial-load effect below would trigger a
+      // synchronous cascading render.
       const docsData = await getDocuments(1, 100);
+      setError('');
       setDocuments(docsData.documents || []);
 
       try {
@@ -69,9 +70,22 @@ export default function useDashboardCore(user) {
     }
   }, []);
 
+  /**
+   * Refetch triggered by a user action, where showing the spinner again is
+   * correct. The initial load skips this because `loading` already starts true.
+   */
+  const loadDashboardData = useCallback(async () => {
+    setLoading(true);
+    await fetchCoreData();
+  }, [fetchCoreData]);
+
   useEffect(() => {
-    if (user) loadCoreData();
-  }, [user, loadCoreData]);
+    // The fetch is async: every setState inside runs after an await, on a
+    // later tick, so no cascading render actually occurs. The rule cannot
+    // see through the function boundary to verify that.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (user) fetchCoreData();
+  }, [user, fetchCoreData]);
 
   /**
    * Wraps an async action with the shared loading flag, success toast, and
@@ -88,7 +102,7 @@ export default function useDashboardCore(user) {
         if (successMessage) {
           triggerNotification(typeof successMessage === 'function' ? successMessage(result) : successMessage);
         }
-        if (reload) await loadCoreData();
+        if (reload) await fetchCoreData();
         return true;
       } catch (err) {
         triggerNotification(err.response?.data?.error || errorMessage, 'error');
@@ -97,7 +111,7 @@ export default function useDashboardCore(user) {
         setActionLoading(false);
       }
     },
-    [triggerNotification, loadCoreData]
+    [triggerNotification, fetchCoreData]
   );
 
   return {
@@ -112,7 +126,7 @@ export default function useDashboardCore(user) {
     selectedDoc,
     setSelectedDoc,
     triggerNotification,
-    loadDashboardData: loadCoreData,
+    loadDashboardData,
     runAction,
     setActionLoading,
   };

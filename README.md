@@ -3,7 +3,7 @@ Tracking, Routing, and Automated Credential Engine for the PLP Registrar.
 
 This repository contains the complete end-to-end system for tracking and auto-routing document flows, featuring a **manual GCash receipt payment verification pipeline** to comply with school accounting requirements.
 
-> **Current Phase:** 🟢 Core System Complete + Architecture Restructured (Phase 9: Production Rollout Pending). The frontend is fully wired to live AI APIs, machine learning forecasts, and SMS notifications, and the codebase now follows the layered structure documented in [`docs/CODING_PREFERENCES.md`](docs/CODING_PREFERENCES.md).
+> **Current Phase:** 🟢 Core System Complete, Restructured, Hardened & Tested (Phase 11: Production Rollout Pending). The frontend is fully wired to live AI APIs, machine learning forecasts, and SMS notifications, and the codebase now follows the layered structure documented in [`docs/CODING_PREFERENCES.md`](docs/CODING_PREFERENCES.md).
 
 ---
 
@@ -128,6 +128,21 @@ Ensure Docker Desktop is running.
 docker start n8n
 ```
 *(Opens in browser at http://localhost:5678)*
+
+---
+
+## 🧪 Running the Tests
+
+```bash
+cd backend && npm test      # service, authorization and pricing tests
+cd frontend && npm test     # utils, hooks and dashboard render tests
+```
+Neither suite needs a database or a running server — models are mocked.
+
+For a live end-to-end check against real servers (start the backend first):
+```bash
+node backend/audit.js       # walks a document through all five desks
+```
 
 ---
 

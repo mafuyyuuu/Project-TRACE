@@ -3,41 +3,51 @@ import LiveTrackingModal from '@/features/student/components/LiveTrackingModal';
 import MiniSparkline from '@/components/MiniSparkline';
 import { createPortal } from 'react-dom';
 import { getAttachmentHelper, getAttachmentLabel, getProgressVal, getStatusLabel, requiresAttachment } from '@/utils/documentStatus';
+import useStudentDashboard from '@/features/student/useStudentDashboard';
+import { todayLongDate } from '@/utils/formatters';
+import DashboardAlerts from '@/components/DashboardAlerts';
+import DashboardLoading from '@/components/DashboardLoading';
 
 /**
  * Student portal: request KPIs, history, GCash checkout, and live tracking.
  */
-export default function StudentDashboard({
-  documents,
-  actionLoading,
-  selectedDocType,
-  setSelectedDocType,
-  semesters,
-  setSemesters,
-  reqCopies,
-  setReqCopies,
-  requestFile,
-  setRequestFile,
-  paymentRef,
-  setPaymentRef,
-  paymentFile,
-  setPaymentFile,
-  activeModal,
-  setActiveModal,
-  selectedDoc,
-  setSelectedDoc,
-  setViewImageUrl,
-  trackerProgress,
-  loadDashboardData,
-  handleStudentSubmitRequest,
-  handleStudentSubmitPayment,
-  handleStudentCancelRequest,
-  user,
-  currentTab,
-  todayFormatted,
-}) {
+export default function StudentDashboard({ user, currentTab, setViewImageUrl }) {
+  const {
+    loading,
+    success,
+    error,
+    documents,
+    actionLoading,
+    selectedDocType,
+    setSelectedDocType,
+    semesters,
+    setSemesters,
+    reqCopies,
+    setReqCopies,
+    requestFile,
+    setRequestFile,
+    paymentRef,
+    setPaymentRef,
+    paymentFile,
+    setPaymentFile,
+    activeModal,
+    setActiveModal,
+    selectedDoc,
+    setSelectedDoc,
+    trackerProgress,
+    loadDashboardData,
+    handleStudentSubmitRequest,
+    handleStudentSubmitPayment,
+    handleStudentCancelRequest,
+  } = useStudentDashboard(user);
+
+  const todayFormatted = todayLongDate();
+
+  if (loading) return <DashboardLoading />;
+
   return (
     <>
+      <DashboardAlerts success={success} error={error} />
       <div className="space-y-8 animate-fade-in">
         {/* 1.1. STUDENT PORTAL - WORKSPACE DASHBOARD */}
         {currentTab === 'dashboard' && (

@@ -29,8 +29,22 @@ const { generateTrackingNumber, calculateAmount } = require('../utils/pricing');
  */
 async function uploadDocument(user, body, file) {
   const trackingNumber = generateTrackingNumber();
-  const { student_id, student_name, document_type, purpose, copies, semesters } = body;
+  let { student_id, student_name } = body;
+  const { document_type, purpose, copies, semesters } = body;
   const { amount: finalAmount, copies: copiesInt } = calculateAmount(document_type, semesters, copies);
+
+  // A student's request is always filed against their own record. Trusting the
+  // client here would let one student attribute a request to another (and an
+  // omitted field would create an unowned document nobody can pay for). Staff
+  // keep the supplied values, since they file on a student's behalf.
+  if (user.role === 'student') {
+    const owner = await userModel.findStudentIdById(user.id);
+    if (!owner[0]) {
+      throw forbidden('Your account has no student record.');
+    }
+    student_id = owner[0].student_id;
+    student_name = user.full_name || student_name;
+  }
 
   const filePath = file ? file.path : null;
   const originalFilename = file ? file.originalname : null;

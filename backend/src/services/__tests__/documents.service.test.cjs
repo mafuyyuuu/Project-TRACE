@@ -122,6 +122,46 @@ describe('submitPayment — ownership (the IDOR fix)', () => {
   });
 });
 
+describe('uploadDocument — a student can only file for themselves', () => {
+  beforeEach(() => {
+    vi.spyOn(documentModel, 'insert').mockResolvedValue([{ insertId: 77 }]);
+    documentModel.findById.mockResolvedValue([{ id: 77, document_type: 'Diploma', student_id: 'STU-001' }]);
+    vi.spyOn(aiEngine, 'extractDocument').mockResolvedValue(null);
+  });
+
+  it("overrides a student_id the client tried to spoof", async () => {
+    await service.uploadDocument(STUDENT, { student_id: 'STU-999', document_type: 'Diploma' }, null);
+    expect(documentModel.insert.mock.calls[0][0].student_id).toBe('STU-001');
+  });
+
+  it('fills in the owner when the client omits student_id entirely', async () => {
+    await service.uploadDocument(STUDENT, { document_type: 'Diploma' }, null);
+    expect(documentModel.insert.mock.calls[0][0].student_id).toBe('STU-001');
+  });
+
+  it('lets Window 1 file on behalf of a named student', async () => {
+    await service.uploadDocument(
+      WINDOW1,
+      { student_id: 'STU-555', student_name: 'Walk-in', document_type: 'Diploma' },
+      null
+    );
+    const row = documentModel.insert.mock.calls[0][0];
+    expect(row.student_id).toBe('STU-555');
+    // legacy intake is already paid and skips straight to the Secretary
+    expect(row.current_status).toBe('pending_secretary');
+    expect(row.payment_status).toBe('PAID');
+  });
+
+  it('prices the request server-side rather than trusting the client', async () => {
+    await service.uploadDocument(
+      STUDENT,
+      { document_type: 'Transcript of Records', semesters: 8, copies: 2, amount: '1.00' },
+      null
+    );
+    expect(documentModel.insert.mock.calls[0][0].amount).toBe(400);
+  });
+});
+
 describe('verifyPayment — Finance desk only', () => {
   const doc = { id: 5, student_id: 'STU-001', document_type: 'Diploma' };
 

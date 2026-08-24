@@ -2,7 +2,7 @@
 
 This document serves as the master tracking sheet for Project TRACE. It organizes the system's development into distinct phases across the full technology stack (Frontend, Backend, and Machine Learning) so you can easily track what has been completed and what remains for a true production rollout.
 
-> **On phase numbers:** this roadmap groups work into coarser phases than [`PROGRESS.md`](PROGRESS.md), so the numbers deliberately differ between the two documents. The same production-rollout work is "Phase 7" here and "Phase 9" there. `PROGRESS.md` is the finer-grained checklist; this is the stack-level narrative.
+> **On phase numbers:** this roadmap groups work into coarser phases than [`PROGRESS.md`](PROGRESS.md), so the numbers deliberately differ between the two documents. The same production-rollout work is "Phase 8" here and "Phase 11" there. `PROGRESS.md` is the finer-grained checklist; this is the stack-level narrative.
 
 ---
 
@@ -98,7 +98,24 @@ This document serves as the master tracking sheet for Project TRACE. It organize
 
 ---
 
-## 🚀 Phase 7: Production Deployment (Pending)
+## ✅ Phase 7: Security Hardening & Automated Testing (Completed)
+*Probing the running system surfaced five real vulnerabilities; each is fixed and pinned by a regression test.*
+
+* **Security (Backend):**
+  * ✅ **Authorization, not just authentication:** fixed an IDOR letting any student attach a receipt to another student's request, and stopped `uploadDocument` trusting a client-supplied `student_id`.
+  * ✅ **Closed the open machine endpoints:** `/documents/assign` and the payment webhooks now require a shared `WEBHOOK_SECRET` header.
+  * ✅ **Protected uploaded files:** student ID photos and receipts were world-readable; they are now served through an authenticated, ownership-checked, traversal-safe `/api/files` route.
+  * ✅ **Rate limiting** on login and registration, and rotation of a `JWT_SECRET` that had been public in git history since the first commit.
+* **Testing:**
+  * ✅ **Vitest in both packages — 190 tests.** Backend service/authorization coverage plus frontend utils, the file hook, and a render smoke test for all five dashboards.
+* **Frontend Architecture:**
+  * ✅ **Role hook split:** the 542-line `useDashboard.js` became a shared core plus five per-role hooks, cutting each command center from 13–32 props to 3–4 and leaving `DashboardPage` a thin dispatcher. Zero ESLint errors.
+* **Developer Experience:**
+  * ✅ **Ports moved** off the contested 5173/3000 to 5273/3300, and the AI engine's documented port corrected to 5005.
+
+---
+
+## 🚀 Phase 8: Production Deployment (Pending)
 *Taking the system live on external servers.*
 
 * **Rotate the leaked secrets:** `JWT_SECRET` (the `.env` value matches the placeholder that has been in git history since the first commit — it signs every auth token, so it is a full authentication bypass) and the UniSMS API key. Both must be rotated before any deployment.

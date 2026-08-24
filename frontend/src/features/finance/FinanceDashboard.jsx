@@ -1,25 +1,37 @@
 import FinanceVerificationModal from '@/features/finance/components/FinanceVerificationModal';
 import { getStatusLabel } from '@/utils/documentStatus';
+import useFinanceDashboard from '@/features/finance/useFinanceDashboard';
+import { todayLongDate } from '@/utils/formatters';
+import DashboardAlerts from '@/components/DashboardAlerts';
+import DashboardLoading from '@/components/DashboardLoading';
 
 /**
  * Finance clerk: GCash receipt verification queue and review modal.
  */
-export default function FinanceDashboard({
-  documents,
-  dashStats,
-  actionLoading,
-  clerkNotes,
-  setClerkNotes,
-  activeModal,
-  setActiveModal,
-  selectedDoc,
-  setSelectedDoc,
-  setViewImageUrl,
-  handleFinanceVerify,
-  todayFormatted,
-}) {
+export default function FinanceDashboard({ user, setViewImageUrl }) {
+  const {
+    loading,
+    success,
+    error,
+    documents,
+    dashStats,
+    actionLoading,
+    clerkNotes,
+    setClerkNotes,
+    activeModal,
+    setActiveModal,
+    selectedDoc,
+    setSelectedDoc,
+    handleFinanceVerify,
+  } = useFinanceDashboard(user);
+
+  const todayFormatted = todayLongDate();
+
+  if (loading) return <DashboardLoading />;
+
   return (
     <>
+      <DashboardAlerts success={success} error={error} />
       <div className="space-y-8 animate-fade-in">
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">

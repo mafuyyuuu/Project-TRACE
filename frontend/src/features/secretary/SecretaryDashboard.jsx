@@ -1,34 +1,44 @@
 import SecretaryEvaluationModal from '@/features/secretary/components/SecretaryEvaluationModal';
 import MiniSparkline from '@/components/MiniSparkline';
 import { getStatusLabel } from '@/utils/documentStatus';
-import { getRelativeTime } from '@/utils/formatters';
+import { getRelativeTime, todayLongDate } from '@/utils/formatters';
+import useSecretaryDashboard from '@/features/secretary/useSecretaryDashboard';
+import DashboardAlerts from '@/components/DashboardAlerts';
+import DashboardLoading from '@/components/DashboardLoading';
 
 /**
  * College secretary: evaluation queue and split-screen OCR evaluation modal.
  */
-export default function SecretaryDashboard({
-  documents,
-  dashStats,
-  actionLoading,
-  clerkNotes,
-  setClerkNotes,
-  evalStudentId,
-  setEvalStudentId,
-  evalStudentName,
-  setEvalStudentName,
-  evalDocType,
-  setEvalDocType,
-  activeModal,
-  setActiveModal,
-  selectedDoc,
-  setSelectedDoc,
-  setViewImageUrl,
-  handleSecretaryEvaluate,
-  currentTab,
-  todayFormatted,
-}) {
+export default function SecretaryDashboard({ user, currentTab, setViewImageUrl }) {
+  const {
+    loading,
+    success,
+    error,
+    documents,
+    dashStats,
+    actionLoading,
+    clerkNotes,
+    setClerkNotes,
+    evalStudentId,
+    setEvalStudentId,
+    evalStudentName,
+    setEvalStudentName,
+    evalDocType,
+    setEvalDocType,
+    activeModal,
+    setActiveModal,
+    selectedDoc,
+    setSelectedDoc,
+    handleSecretaryEvaluate,
+  } = useSecretaryDashboard(user);
+
+  const todayFormatted = todayLongDate();
+
+  if (loading) return <DashboardLoading />;
+
   return (
     <>
+      <DashboardAlerts success={success} error={error} />
       <div className="space-y-8 animate-fade-in">
         {/* 4.1. COLLEGE SECRETARY - WORKSPACE DASHBOARD */}
         {currentTab === 'dashboard' && (
