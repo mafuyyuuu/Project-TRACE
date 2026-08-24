@@ -6,7 +6,10 @@ const { verifyWebhookSecret } = require('../middlewares/webhookAuth.middleware')
 
 const router = express.Router();
 
-router.post('/upload', authenticate, documentUpload.single('document'), documentsController.upload);
+// `.any()` so a multi-document request can carry one attachment per item
+// (`document_0`, `document_1`, …) while the legacy single `document` field
+// keeps working. The service maps files to items by field name.
+router.post('/upload', authenticate, documentUpload.any(), documentsController.upload);
 router.get('/', authenticate, documentsController.list);
 
 // Dashboard analytics. These must stay above `/:trackingNumber` so the

@@ -15,7 +15,7 @@ function findActiveByStudentId(studentId, executor = pool) {
 function getProfileById(userId, executor = pool) {
   return executor
     .query(
-      'SELECT id, student_id, email, full_name, role, desk_assignment, is_active, phone_number, course, created_at FROM users WHERE id = ?',
+      'SELECT id, student_id, email, full_name, role, desk_assignment, is_active, phone_number, course, enrollment_status, study_load, must_change_password, created_at FROM users WHERE id = ?',
       [userId]
     )
     .then(([rows]) => rows);
@@ -60,7 +60,7 @@ function setVerificationStatus(userId, newStatus, executor = pool) {
 
 function listAllUsers(executor = pool) {
   return executor
-    .query('SELECT id, student_id, full_name, email, course, role, verification_status, created_at FROM users ORDER BY created_at DESC')
+    .query('SELECT id, student_id, full_name, email, course, role, verification_status, enrollment_status, study_load, is_active, created_at FROM users ORDER BY created_at DESC')
     .then(([rows]) => rows);
 }
 
@@ -145,7 +145,67 @@ function findByIdProofFilename(filename, executor = pool) {
     .then(([rows]) => rows);
 }
 
+// ---------------------------------------------------------------------------
+// Staff maintenance (admin)
+// ---------------------------------------------------------------------------
+
+function listStaff({ includeInactive = true } = {}, executor = pool) {
+  const activeClause = includeInactive ? '' : ' AND is_active = TRUE';
+  return executor
+    .query(
+      `SELECT id, student_id, full_name, email, role, desk_assignment, course,
+              is_active, must_change_password, created_at
+       FROM users WHERE role IN ('clerk', 'admin')${activeClause}
+       ORDER BY role, desk_assignment, full_name`
+    )
+    .then(([rows]) => rows);
+}
+
+function findById(userId, executor = pool) {
+  return executor.query('SELECT * FROM users WHERE id = ?', [userId]).then(([rows]) => rows);
+}
+
+/**
+ * Create a staff account. `must_change_password` is set so the admin-chosen
+ * temporary password cannot become a long-lived credential.
+ */
+function createStaff(data, executor = pool) {
+  const { student_id, full_name, email, password_hash, role, desk_assignment, course, phone_number } = data;
+  return executor.query(
+    `INSERT INTO users
+       (student_id, full_name, email, password_hash, role, desk_assignment, course,
+        phone_number, verification_status, is_active, must_change_password)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'verified', TRUE, TRUE)`,
+    [student_id, full_name, email || null, password_hash, role, desk_assignment || null,
+     course || null, phone_number || null]
+  );
+}
+
+function updateStaff(userId, fields, executor = pool) {
+  const setClause = Object.keys(fields).map((col) => `${col} = ?`);
+  if (setClause.length === 0) return Promise.resolve([{ affectedRows: 0 }]);
+  return executor.query(
+    `UPDATE users SET ${setClause.join(', ')} WHERE id = ? AND role IN ('clerk', 'admin')`,
+    [...Object.values(fields), userId]
+  );
+}
+
+function setUserActive(userId, isActive, executor = pool) {
+  return executor.query('UPDATE users SET is_active = ? WHERE id = ?', [isActive, userId]);
+}
+
+/** Clears the forced-change flag once the user has chosen their own password. */
+function clearMustChangePassword(userId, executor = pool) {
+  return executor.query('UPDATE users SET must_change_password = FALSE WHERE id = ?', [userId]);
+}
+
 module.exports = {
+  listStaff,
+  findById,
+  createStaff,
+  updateStaff,
+  setUserActive,
+  clearMustChangePassword,
   findActiveByStudentId,
   findByIdProofFilename,
   getProfileById,

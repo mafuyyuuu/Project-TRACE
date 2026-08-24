@@ -43,9 +43,39 @@ The Express app follows a strict **route → controller → service → model** 
 - **Uploaded files are not public.** They are served by `GET /api/files/:filename`, which authenticates the caller and checks ownership — staff may read any file, a student only files attached to their own request plus their own ID proof. Filenames are reduced to a basename and the resolved path is confirmed to sit inside `uploads/`, so traversal attempts fail.
 - **Rate limiting:** login is capped at 10 failed attempts per IP per 15 min (successful logins don't count), registration at 20/hour, and the rest of `/api` at 1000/15 min (`middlewares/rateLimit.middleware.js`).
 
+### Multi-document requests
+A student can request several document types at once and pay a single combined fee.
+
+- Every item becomes its own `documents` row sharing one `request_group_id`.
+- **Payment is per group:** `submitPayment` and `verifyPayment` act on every document in the group, so one GCash receipt settles the whole request.
+- **Routing is per document:** `evaluateDocument` and `releaseDocument` stay per row, so a Diploma can be ready for pickup while a Transcript is still with the Secretary.
+- The upload route uses multer `.any()`; per-item attachments arrive as `document_0`, `document_1`, … and the legacy single `document` field still works.
+- Historical rows were backfilled with their own tracking number as the group id, so every pre-existing document is simply a group of one.
+
+### Reference data & pricing
+`document_types` and `colleges` replace what used to be hardcoded `<option>` lists.
+`document_types.base_fee` is admin-editable; `fee_rule` selects the calculation in `utils/pricing.js` (`flat`, or `per_semester_block` for Transcript of Records, whose per-4-semester rule isn't a single number). Fees are **always** recomputed server-side — a client-supplied `amount` is ignored.
+
+### Graduate Application module
+The Registrar hasn't finalised the questions, so nothing about the form is hardcoded:
+- `grad_form_fields` holds the field definitions (label, type, required, options, order).
+- `grad_application_values` stores one row per answer, so adding a field never needs a migration.
+- Validation in `gradApplication.service.js` is **generated from the definitions** — making a field required or restricting a select changes what the API accepts, with no code change.
+
+| Endpoint | Purpose |
+| :--- | :--- |
+| `GET /api/reference/colleges` | College list (public — signup has no token yet) |
+| `GET /api/reference/document-types` | Requestable types with fees and attachment rules |
+| `GET /api/grad-applications/form-fields` | The admin-defined form definition |
+| `POST /api/grad-applications` | Submit an application |
+| `GET /api/grad-applications/mine` | A student's own submissions |
+| `GET /api/grad-applications` | Staff review queue |
+| `POST /api/grad-applications/:id/review` | Staff decision |
+
 ### Authorization rules
 A valid JWT proves *who* is calling, never *what they may touch*. Every endpoint taking a resource id verifies ownership or role:
-- A student may only submit payment for, cancel, or read files attached to **their own** requests.
+- A student may only submit payment for, cancel, or read files attached to **their own** requests — including every document in a shared request group.
+- A student may only read or submit **their own** graduate application; staff review anyone's.
 - `uploadDocument` ignores any client-supplied `student_id` for students and files against their own record — otherwise a request could be attributed to another student, or left unowned.
 - Fees are always computed server-side in `utils/pricing.js`; a client-sent `amount` is ignored.
 

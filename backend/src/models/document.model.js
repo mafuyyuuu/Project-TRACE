@@ -7,16 +7,17 @@ const { pool } = require('../config/db');
 
 function insert(data, executor = pool) {
   const {
-    tracking_number, student_id, student_name, document_type, current_status,
-    payment_status, assigned_clerk_id, file_path, original_filename,
+    tracking_number, request_group_id, student_id, student_name, document_type,
+    current_status, payment_status, assigned_clerk_id, file_path, original_filename,
     checkout_url, purpose, copies, amount,
   } = data;
   return executor.query(
-    `INSERT INTO documents (tracking_number, student_id, student_name, document_type,
+    `INSERT INTO documents (tracking_number, request_group_id, student_id, student_name, document_type,
       current_status, payment_status, assigned_clerk_id, file_path, original_filename, checkout_url, purpose, copies, amount)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
-      tracking_number, student_id || null, student_name || null, document_type || null,
+      tracking_number, request_group_id || tracking_number,
+      student_id || null, student_name || null, document_type || null,
       current_status, payment_status, assigned_clerk_id, file_path, original_filename,
       checkout_url, purpose || null, copies, amount,
     ]
@@ -233,9 +234,57 @@ function findByAttachedFilename(filename, executor = pool) {
     .then(([rows]) => rows);
 }
 
+/** Every document requested and paid for in one transaction. */
+function findByRequestGroup(requestGroupId, executor = pool) {
+  return executor
+    .query('SELECT * FROM documents WHERE request_group_id = ? ORDER BY id', [requestGroupId])
+    .then(([rows]) => rows);
+}
+
+/** Row-locking read of a whole group — must be called inside a transaction. */
+function findByRequestGroupForUpdate(requestGroupId, executor) {
+  return executor
+    .query('SELECT * FROM documents WHERE request_group_id = ? ORDER BY id FOR UPDATE', [requestGroupId])
+    .then(([rows]) => rows);
+}
+
+/** One GCash receipt covers every document in the group. */
+function updatePaymentSubmissionForGroup(requestGroupId, gcashReferenceNo, receiptPath, executor = pool) {
+  return executor.query(
+    `UPDATE documents
+     SET current_status = "pending_payment_verification",
+         gcash_reference_no = ?,
+         receipt_image_path = ?
+     WHERE request_group_id = ? AND current_status IN ('pending_payment', 'pending_payment_verification')`,
+    [gcashReferenceNo, receiptPath, requestGroupId]
+  );
+}
+
+/** Finance clears (or bounces) the whole group in one action. */
+function updatePaymentVerificationForGroup(
+  requestGroupId, newStatus, paymentStatus, officialReceiptPath, executor = pool
+) {
+  if (officialReceiptPath) {
+    return executor.query(
+      `UPDATE documents SET current_status = ?, payment_status = ?, official_receipt_path = ?
+       WHERE request_group_id = ? AND current_status = 'pending_payment_verification'`,
+      [newStatus, paymentStatus, officialReceiptPath, requestGroupId]
+    );
+  }
+  return executor.query(
+    `UPDATE documents SET current_status = ?, payment_status = ?
+     WHERE request_group_id = ? AND current_status = 'pending_payment_verification'`,
+    [newStatus, paymentStatus, requestGroupId]
+  );
+}
+
 module.exports = {
   insert,
   findByAttachedFilename,
+  findByRequestGroup,
+  findByRequestGroupForUpdate,
+  updatePaymentSubmissionForGroup,
+  updatePaymentVerificationForGroup,
   findById,
   findByIdForUpdate,
   findByTrackingNumber,

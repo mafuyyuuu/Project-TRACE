@@ -7,6 +7,7 @@ import FinanceDashboard from '@/features/finance/FinanceDashboard';
 import Window1Dashboard from '@/features/window1/Window1Dashboard';
 import SecretaryDashboard from '@/features/secretary/SecretaryDashboard';
 import AdminDashboard from '@/features/admin/AdminDashboard';
+import GraduateApplication from '@/features/graduate/GraduateApplication';
 
 /**
  * The single `/dashboard` route: resolves the user's role and renders the
@@ -34,7 +35,9 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-8 animate-fade-in relative pb-16">
-      {isStudent && <StudentDashboard {...props} />}
+      {/* Graduates/alumni fill in the Registrar's application from its own tab. */}
+      {isStudent && currentTab === 'graduate-application' && <GraduateApplication user={user} />}
+      {isStudent && currentTab !== 'graduate-application' && <StudentDashboard {...props} />}
       {isFinance && <FinanceDashboard {...props} />}
       {isWindow1 && <Window1Dashboard {...props} />}
       {isSecretary && <SecretaryDashboard {...props} />}

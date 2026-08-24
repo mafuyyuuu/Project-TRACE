@@ -5,8 +5,13 @@ const userModel = require('../models/user.model');
 const aiEngine = require('./aiEngine.service');
 const n8n = require('./n8n.service');
 const notifications = require('./notification.service');
+const referenceModel = require('../models/referenceData.model');
 const { badRequest, forbidden, notFound } = require('../utils/AppError');
-const { generateTrackingNumber, calculateAmount } = require('../utils/pricing');
+const {
+  generateTrackingNumber,
+  generateRequestGroupId,
+  calculateGroupAmount,
+} = require('../utils/pricing');
 
 /**
  * Core document pipeline logic.
@@ -21,17 +26,75 @@ const { generateTrackingNumber, calculateAmount } = require('../utils/pricing');
 // ---------------------------------------------------------------------------
 
 /**
- * Create a document request.
+ * Normalise a request body into a list of requested items.
  *
- * Students enter at `pending_payment`. A Window 1 clerk digitizing a legacy
- * physical record skips straight to `pending_secretary` as already-PAID.
- * After the record is committed, OCR and n8n routing run best-effort.
+ * Accepts both shapes: the multi-document form posts an `items` JSON array,
+ * while the older single-document callers (and the n8n/audit paths) post a bare
+ * `document_type`. One item is simply a group of one.
  */
-async function uploadDocument(user, body, file) {
-  const trackingNumber = generateTrackingNumber();
+function parseRequestedItems(body) {
+  if (body.items) {
+    let items = body.items;
+    if (typeof items === 'string') {
+      try {
+        items = JSON.parse(items);
+      } catch {
+        throw badRequest('Invalid items payload.');
+      }
+    }
+    if (!Array.isArray(items) || items.length === 0) {
+      throw badRequest('Select at least one document type.');
+    }
+    if (items.some((i) => !i || !i.document_type)) {
+      throw badRequest('Every requested item needs a document type.');
+    }
+    return items;
+  }
+
+  return [
+    {
+      document_type: body.document_type,
+      copies: body.copies,
+      semesters: body.semesters,
+      purpose: body.purpose,
+    },
+  ];
+}
+
+/**
+ * Pick the uploaded file belonging to item `index`.
+ *
+ * Multer is configured with `.any()`, so the multi-document form can send one
+ * attachment per item as `document_0`, `document_1`, … A single file named
+ * `document` (the legacy field) applies to the first item.
+ */
+function fileForItem(files, index) {
+  if (!files || !files.length) return null;
+  return (
+    files.find((f) => f.fieldname === `document_${index}`) ||
+    (index === 0 ? files.find((f) => f.fieldname === 'document') : null) ||
+    null
+  );
+}
+
+/**
+ * Create a document request, which may cover several document types at once.
+ *
+ * Every item becomes its own `documents` row sharing one `request_group_id`:
+ * the group is paid for in a single transaction, but each document then routes
+ * through the desks independently, so a fast Diploma isn't held up by a slow
+ * Transcript.
+ *
+ * Students enter at `pending_payment`. A Window 1 clerk digitising a legacy
+ * physical record skips straight to `pending_secretary` as already-PAID.
+ * After the rows are committed, OCR and n8n routing run best-effort.
+ */
+async function uploadDocument(user, body, files) {
+  // Tolerate a single multer file object as well as the `.any()` array.
+  const fileList = Array.isArray(files) ? files : files ? [files] : [];
+
+  const requested = parseRequestedItems(body);
   let { student_id, student_name } = body;
-  const { document_type, purpose, copies, semesters } = body;
-  const { amount: finalAmount, copies: copiesInt } = calculateAmount(document_type, semesters, copies);
 
   // A student's request is always filed against their own record. Trusting the
   // client here would let one student attribute a request to another (and an
@@ -46,59 +109,66 @@ async function uploadDocument(user, body, file) {
     student_name = user.full_name || student_name;
   }
 
-  const filePath = file ? file.path : null;
-  const originalFilename = file ? file.originalname : null;
+  // Fees are always computed server-side from the admin-managed rates; any
+  // client-supplied amount is ignored.
+  const types = await referenceModel.findDocumentTypesByNames(
+    requested.map((i) => i.document_type)
+  );
+  const { total, items: priced } = calculateGroupAmount(requested, types);
 
+  const isWindow1Intake = user.role === 'clerk' && user.desk_assignment === 'Window 1';
+  const initialStatus = isWindow1Intake ? 'pending_secretary' : 'pending_payment';
+  const initialPaymentStatus = isWindow1Intake ? 'PAID' : 'UNPAID';
+  const logAction = isWindow1Intake ? 'manual_intake' : 'submitted';
+
+  const requestGroupId = generateRequestGroupId();
   const connection = await pool.getConnection();
-  let documentId;
+  const created = [];
 
   try {
     await connection.beginTransaction();
 
-    let initialStatus = 'pending_payment';
-    let initialPaymentStatus = 'UNPAID';
-    let logAction = 'submitted';
-    let logNotes = `Document requested. Awaiting payment of ₱${finalAmount}.`;
+    for (const [index, item] of priced.entries()) {
+      const trackingNumber = generateTrackingNumber();
+      const attachment = fileForItem(fileList, index);
 
-    if (user && user.role === 'clerk' && user.desk_assignment === 'Window 1') {
-      initialStatus = 'pending_secretary';
-      initialPaymentStatus = 'PAID';
-      logAction = 'manual_intake';
-      logNotes = 'Legacy record manually digitized by Window 1.';
+      const [docResult] = await documentModel.insert(
+        {
+          tracking_number: trackingNumber,
+          request_group_id: requestGroupId,
+          student_id,
+          student_name,
+          document_type: item.document_type,
+          current_status: initialStatus,
+          payment_status: initialPaymentStatus,
+          assigned_clerk_id: user.id,
+          file_path: attachment ? attachment.path : null,
+          original_filename: attachment ? attachment.originalname : null,
+          checkout_url: `https://pm.link/mock/${trackingNumber}`,
+          purpose: requested[index].purpose ?? body.purpose ?? null,
+          copies: item.copies,
+          amount: item.amount,
+        },
+        connection
+      );
+
+      const documentId = docResult.insertId;
+      created.push({ documentId, trackingNumber, item, attachment });
+
+      await stepLogModel.insert(
+        {
+          document_id: documentId,
+          clerk_id: user.id,
+          action_taken: logAction,
+          from_status: null,
+          to_status: initialStatus,
+          notes: isWindow1Intake
+            ? 'Legacy record manually digitized by Window 1.'
+            : `Document requested. Awaiting payment of ₱${item.amount} (group total ₱${total}).`,
+        },
+        connection
+      );
     }
-
-    const [docResult] = await documentModel.insert(
-      {
-        tracking_number: trackingNumber,
-        student_id,
-        student_name,
-        document_type,
-        current_status: initialStatus,
-        payment_status: initialPaymentStatus,
-        assigned_clerk_id: user.id,
-        file_path: filePath,
-        original_filename: originalFilename,
-        checkout_url: `https://pm.link/mock/${trackingNumber}`,
-        purpose,
-        copies: copiesInt,
-        amount: finalAmount,
-      },
-      connection
-    );
-
-    documentId = docResult.insertId;
-
-    await stepLogModel.insert(
-      {
-        document_id: documentId,
-        clerk_id: user.id,
-        action_taken: logAction,
-        from_status: null,
-        to_status: initialStatus,
-        notes: logNotes,
-      },
-      connection
-    );
 
     await connection.commit();
   } catch (err) {
@@ -108,63 +178,76 @@ async function uploadDocument(user, body, file) {
     connection.release();
   }
 
-  let document = (await documentModel.findById(documentId))[0];
-
-  // Best-effort OCR pass — only when an actual file was attached.
-  if (filePath) {
-    const ocrData = await aiEngine.extractDocument(file, { trackingNumber });
-
-    if (ocrData && ocrData.success && ocrData.extracted_data) {
-      console.log(`📄 OCR processing complete for ${trackingNumber}`);
-
-      const rawText = (ocrData.raw_text || '').toLowerCase();
-      let aiVerified = false;
-      let aiNotes = 'AI analyzed the document but could not definitively verify it.';
-
-      // Requirement verification: does the scan match what was requested?
-      if (document_type === 'Honorable Dismissal' && rawText.includes('clearance')) {
-        aiVerified = true;
-        aiNotes = 'AI Verified: Valid Clearance document detected for Honorable Dismissal.';
-      } else if (document_type && rawText.includes(document_type.toLowerCase())) {
-        aiVerified = true;
-        aiNotes = `AI Verified: Document content matches requested type (${document_type}).`;
-      }
-
-      const confidence = ocrData.confidence || (aiVerified ? 92.5 : 45.0);
-
-      await documentModel.updateOcrData(documentId, {
-        raw_text: ocrData.raw_text,
-        extracted_data_json: JSON.stringify(ocrData.extracted_data),
-        confidence,
-        student_id: ocrData.extracted_data.student_id,
-        form_type: ocrData.extracted_data.form_type,
-      });
-
-      await stepLogModel.insert({
-        document_id: documentId,
-        clerk_id: user.id,
-        action_taken: aiVerified ? 'ai_verified' : 'ai_flagged',
-        from_status: 'pending_payment',
-        to_status: 'pending_payment',
-        notes: aiNotes,
-      });
-
-      document = (await documentModel.findById(documentId))[0];
+  // Best-effort post-commit work, per document that actually carried a file.
+  for (const entry of created) {
+    if (entry.attachment) {
+      await runOcrPass(user, entry);
     }
+    await n8n.triggerDocumentRouting({
+      document_id: entry.documentId,
+      tracking_number: entry.trackingNumber,
+      document_type: entry.item.document_type,
+      student_id,
+    });
   }
 
-  await n8n.triggerDocumentRouting({
-    document_id: documentId,
-    tracking_number: trackingNumber,
-    document_type: document.document_type,
-    student_id: document.student_id,
-  });
+  const documents = await documentModel.findByRequestGroup(requestGroupId);
 
   return {
-    message: 'Document uploaded successfully.',
-    tracking_number: trackingNumber,
-    document,
+    message:
+      documents.length > 1
+        ? `${documents.length} documents requested successfully.`
+        : 'Document uploaded successfully.',
+    request_group_id: requestGroupId,
+    total_amount: total,
+    // Single-document callers (and the existing E2E audit) still read these.
+    tracking_number: created[0].trackingNumber,
+    document: documents[0],
+    documents,
   };
+}
+
+/**
+ * Run the OCR engine over one uploaded attachment and record what it found.
+ * Failures are swallowed by aiEngine.extractDocument — a missing AI engine must
+ * never invalidate an already-committed request.
+ */
+async function runOcrPass(user, { documentId, trackingNumber, item, attachment }) {
+  const ocrData = await aiEngine.extractDocument(attachment, { trackingNumber });
+  if (!ocrData || !ocrData.success || !ocrData.extracted_data) return;
+
+  console.log(`📄 OCR processing complete for ${trackingNumber}`);
+
+  const rawText = (ocrData.raw_text || '').toLowerCase();
+  const documentType = item.document_type;
+  let aiVerified = false;
+  let aiNotes = 'AI analyzed the document but could not definitively verify it.';
+
+  // Requirement verification: does the scan match what was requested?
+  if (documentType === 'Honorable Dismissal' && rawText.includes('clearance')) {
+    aiVerified = true;
+    aiNotes = 'AI Verified: Valid Clearance document detected for Honorable Dismissal.';
+  } else if (documentType && rawText.includes(documentType.toLowerCase())) {
+    aiVerified = true;
+    aiNotes = `AI Verified: Document content matches requested type (${documentType}).`;
+  }
+
+  await documentModel.updateOcrData(documentId, {
+    raw_text: ocrData.raw_text,
+    extracted_data_json: JSON.stringify(ocrData.extracted_data),
+    confidence: ocrData.confidence || (aiVerified ? 92.5 : 45.0),
+    student_id: ocrData.extracted_data.student_id,
+    form_type: ocrData.extracted_data.form_type,
+  });
+
+  await stepLogModel.insert({
+    document_id: documentId,
+    clerk_id: user.id,
+    action_taken: aiVerified ? 'ai_verified' : 'ai_flagged',
+    from_status: 'pending_payment',
+    to_status: 'pending_payment',
+    notes: aiNotes,
+  });
 }
 
 // ---------------------------------------------------------------------------
@@ -468,30 +551,45 @@ async function submitPayment(user, documentId, { gcash_reference_no }, file) {
     throw badRequest('This request is not awaiting payment.');
   }
 
+  // One receipt settles every document requested together, so the update and
+  // the audit trail cover the whole group rather than the single row clicked.
+  const groupId = doc.request_group_id || doc.tracking_number;
   const receiptPath = `/uploads/${file.filename}`;
-  const [result] = await documentModel.updatePaymentSubmission(documentId, gcash_reference_no, receiptPath);
+
+  const [result] = await documentModel.updatePaymentSubmissionForGroup(
+    groupId,
+    gcash_reference_no,
+    receiptPath
+  );
 
   if (result.affectedRows === 0) {
     throw notFound('Document request not found.');
   }
 
-  await stepLogModel.insert({
-    document_id: documentId,
-    clerk_id: user.id,
-    action_taken: 'payment_submitted',
-    from_status: 'pending_payment',
-    to_status: 'pending_payment_verification',
-    notes: `Payment reference ${gcash_reference_no} submitted by student.`,
-  });
+  const groupDocs = await documentModel.findByRequestGroup(groupId);
+  for (const groupDoc of groupDocs) {
+    await stepLogModel.insert({
+      document_id: groupDoc.id,
+      clerk_id: user.id,
+      action_taken: 'payment_submitted',
+      from_status: 'pending_payment',
+      to_status: 'pending_payment_verification',
+      notes: `Payment reference ${gcash_reference_no} submitted by student.`,
+    });
+  }
 
   const financeClerks = await userModel.findFinanceClerks();
+  const countLabel = result.affectedRows > 1 ? `${result.affectedRows} documents` : 'a document';
   await notifications.notifyInAppBulk(financeClerks, {
     title: 'New Payment Submission',
-    message: `Student submitted payment (Ref: ${gcash_reference_no}) for verification.`,
+    message: `Student submitted payment (Ref: ${gcash_reference_no}) for ${countLabel} awaiting verification.`,
     type: 'info',
   });
 
-  return { message: 'Payment receipt submitted successfully. Waiting for clerk verification.' };
+  return {
+    message: 'Payment receipt submitted successfully. Waiting for clerk verification.',
+    documents_covered: result.affectedRows,
+  };
 }
 
 /**
@@ -510,6 +608,7 @@ async function verifyPayment(user, documentId, { action, notes }, file) {
   const officialReceiptPath = file ? `/uploads/${file.filename}` : null;
   const connection = await pool.getConnection();
   let doc;
+  let clearedCount = 0;
 
   try {
     await connection.beginTransaction();
@@ -523,19 +622,30 @@ async function verifyPayment(user, documentId, { action, notes }, file) {
     const newStatus = action === 'approve' ? 'pending_secretary' : 'pending_payment';
     const paymentStatus = action === 'approve' ? 'PAID' : 'UNPAID';
 
-    await documentModel.updatePaymentVerification(documentId, newStatus, paymentStatus, officialReceiptPath, connection);
+    // The receipt covered the whole request, so one decision settles every
+    // document in the group. Each row then routes independently from here.
+    const groupId = doc.request_group_id || doc.tracking_number;
+    const groupDocs = await documentModel.findByRequestGroupForUpdate(groupId, connection);
 
-    await stepLogModel.insert(
-      {
-        document_id: documentId,
-        clerk_id: user.id,
-        action_taken: action === 'approve' ? 'payment_approved' : 'payment_rejected',
-        from_status: 'pending_payment_verification',
-        to_status: newStatus,
-        notes: notes || `Payment ${action}d by Finance Clerk.`,
-      },
-      connection
+    const [result] = await documentModel.updatePaymentVerificationForGroup(
+      groupId, newStatus, paymentStatus, officialReceiptPath, connection
     );
+    clearedCount = result.affectedRows;
+
+    for (const groupDoc of groupDocs) {
+      if (groupDoc.current_status !== 'pending_payment_verification') continue;
+      await stepLogModel.insert(
+        {
+          document_id: groupDoc.id,
+          clerk_id: user.id,
+          action_taken: action === 'approve' ? 'payment_approved' : 'payment_rejected',
+          from_status: 'pending_payment_verification',
+          to_status: newStatus,
+          notes: notes || `Payment ${action}d by Finance Clerk.`,
+        },
+        connection
+      );
+    }
 
     await connection.commit();
   } catch (err) {
@@ -571,7 +681,10 @@ async function verifyPayment(user, documentId, { action, notes }, file) {
     });
   }
 
-  return { message: `Payment successfully ${action === 'approve' ? 'verified' : 'rejected'}.` };
+  return {
+    message: `Payment successfully ${action === 'approve' ? 'verified' : 'rejected'}.`,
+    documents_covered: clearedCount,
+  };
 }
 
 /**
@@ -754,8 +867,10 @@ async function cancelDocument(user, documentId) {
 }
 
 module.exports = {
+  // Re-exported for convenience; the implementations live in utils/pricing.js.
   generateTrackingNumber,
-  calculateAmount,
+  generateRequestGroupId,
+  calculateGroupAmount,
   uploadDocument,
   listDocuments,
   trackByTrackingNumber,

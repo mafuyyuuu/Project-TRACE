@@ -53,6 +53,9 @@ async function login({ employee_id, password }) {
       role: user.role,
       desk_assignment: user.desk_assignment,
       course: user.course,
+      // Set for staff accounts created with an admin-chosen temporary password.
+      // The client must send the user to a password change before anything else.
+      must_change_password: Boolean(user.must_change_password),
     },
   };
 }
@@ -168,7 +171,11 @@ async function updateProfile(userId, { phone_number, email, course, password }) 
   if (phone_number !== undefined) fields.phone_number = phone_number;
   if (email !== undefined) fields.email = email;
   if (course !== undefined) fields.course = course;
-  if (password) fields.password_hash = await bcrypt.hash(password, 10);
+  if (password) {
+    fields.password_hash = await bcrypt.hash(password, 10);
+    // Choosing a password satisfies the forced-change requirement.
+    fields.must_change_password = false;
+  }
 
   const updated = await userModel.updateProfile(userId, fields);
   if (!updated) {

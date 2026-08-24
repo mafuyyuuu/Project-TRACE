@@ -8,6 +8,7 @@ const stepLogModel = require('../../models/stepLog.model');
 const userModel = require('../../models/user.model');
 const notifications = require('../notification.service');
 const aiEngine = require('../aiEngine.service');
+const referenceModel = require('../../models/referenceData.model');
 const { pool } = require('../../config/db');
 const service = require('../documents.service');
 
@@ -41,6 +42,12 @@ beforeEach(() => {
   vi.spyOn(documentModel, 'findByIdForUpdate').mockResolvedValue([]);
   vi.spyOn(documentModel, 'updatePaymentSubmission').mockResolvedValue([{ affectedRows: 1 }]);
   vi.spyOn(documentModel, 'updatePaymentVerification').mockResolvedValue([{ affectedRows: 1 }]);
+  // Group-aware payment paths: one receipt settles every document requested together.
+  vi.spyOn(documentModel, 'updatePaymentSubmissionForGroup').mockResolvedValue([{ affectedRows: 1 }]);
+  vi.spyOn(documentModel, 'updatePaymentVerificationForGroup').mockResolvedValue([{ affectedRows: 1 }]);
+  vi.spyOn(documentModel, 'findByRequestGroup').mockResolvedValue([]);
+  vi.spyOn(documentModel, 'findByRequestGroupForUpdate').mockResolvedValue([]);
+  vi.spyOn(referenceModel, 'findDocumentTypesByNames').mockResolvedValue([]);
   vi.spyOn(documentModel, 'updateEvaluation').mockResolvedValue([{ affectedRows: 1 }]);
   vi.spyOn(documentModel, 'markCompleted').mockResolvedValue([{ affectedRows: 1 }]);
   vi.spyOn(documentModel, 'deleteById').mockResolvedValue([{ affectedRows: 1 }]);
@@ -69,24 +76,27 @@ beforeEach(() => {
 describe('submitPayment — ownership (the IDOR fix)', () => {
   it("rejects a student submitting against another student's document", async () => {
     documentModel.findById.mockResolvedValue([
-      { id: 9, student_id: 'STU-999', current_status: 'pending_payment' },
+      { id: 9, student_id: 'STU-999', request_group_id: 'REQ-OTHER1', current_status: 'pending_payment' },
     ]);
     expect(await statusOf(service.submitPayment(STUDENT, 9, { gcash_reference_no: 'X' }, RECEIPT))).toBe(403);
-    expect(documentModel.updatePaymentSubmission).not.toHaveBeenCalled();
+    expect(documentModel.updatePaymentSubmissionForGroup).not.toHaveBeenCalled();
   });
 
   it('allows a student submitting against their own document', async () => {
     documentModel.findById.mockResolvedValue([
-      { id: 5, student_id: 'STU-001', current_status: 'pending_payment' },
+      { id: 5, student_id: 'STU-001', request_group_id: 'REQ-TEST01', current_status: 'pending_payment' },
     ]);
     const res = await service.submitPayment(STUDENT, 5, { gcash_reference_no: 'REF-1' }, RECEIPT);
     expect(res.message).toMatch(/submitted successfully/i);
-    expect(documentModel.updatePaymentSubmission).toHaveBeenCalledWith(5, 'REF-1', '/uploads/receipt.png');
+    // Keyed by the request group, so a multi-document request settles at once.
+    expect(documentModel.updatePaymentSubmissionForGroup).toHaveBeenCalledWith(
+      'REQ-TEST01', 'REF-1', '/uploads/receipt.png'
+    );
   });
 
   it('allows re-submission while awaiting verification', async () => {
     documentModel.findById.mockResolvedValue([
-      { id: 5, student_id: 'STU-001', current_status: 'pending_payment_verification' },
+      { id: 5, student_id: 'STU-001', request_group_id: 'REQ-TEST01', current_status: 'pending_payment_verification' },
     ]);
     await expect(service.submitPayment(STUDENT, 5, { gcash_reference_no: 'R' }, RECEIPT)).resolves.toBeTruthy();
   });
@@ -94,7 +104,7 @@ describe('submitPayment — ownership (the IDOR fix)', () => {
   it.each(['pending_secretary', 'ready_window_1', 'completed'])(
     'refuses to attach a receipt to a document already at %s',
     async (current_status) => {
-      documentModel.findById.mockResolvedValue([{ id: 5, student_id: 'STU-001', current_status }]);
+      documentModel.findById.mockResolvedValue([{ id: 5, student_id: 'STU-001', request_group_id: 'REQ-TEST01', current_status }]);
       expect(await statusOf(service.submitPayment(STUDENT, 5, { gcash_reference_no: 'R' }, RECEIPT))).toBe(400);
     }
   );
@@ -111,7 +121,7 @@ describe('submitPayment — ownership (the IDOR fix)', () => {
 
   it('notifies the Finance desk once the receipt lands', async () => {
     documentModel.findById.mockResolvedValue([
-      { id: 5, student_id: 'STU-001', current_status: 'pending_payment' },
+      { id: 5, student_id: 'STU-001', request_group_id: 'REQ-TEST01', current_status: 'pending_payment' },
     ]);
     userModel.findFinanceClerks.mockResolvedValue([{ id: 40 }, { id: 41 }]);
     await service.submitPayment(STUDENT, 5, { gcash_reference_no: 'REF-9' }, RECEIPT);
@@ -126,6 +136,9 @@ describe('uploadDocument — a student can only file for themselves', () => {
   beforeEach(() => {
     vi.spyOn(documentModel, 'insert').mockResolvedValue([{ insertId: 77 }]);
     documentModel.findById.mockResolvedValue([{ id: 77, document_type: 'Diploma', student_id: 'STU-001' }]);
+    documentModel.findByRequestGroup.mockResolvedValue([
+      { id: 77, document_type: 'Diploma', student_id: 'STU-001' },
+    ]);
     vi.spyOn(aiEngine, 'extractDocument').mockResolvedValue(null);
   });
 
@@ -162,8 +175,158 @@ describe('uploadDocument — a student can only file for themselves', () => {
   });
 });
 
+describe('multi-document requests', () => {
+  const TYPES = [
+    { name: 'Transcript of Records', base_fee: '100.00', fee_rule: 'per_semester_block' },
+    { name: 'Diploma', base_fee: '50.00', fee_rule: 'flat' },
+  ];
+
+  beforeEach(() => {
+    let nextId = 100;
+    vi.spyOn(documentModel, 'insert').mockImplementation(async () => [{ insertId: nextId++ }]);
+    vi.spyOn(aiEngine, 'extractDocument').mockResolvedValue(null);
+    referenceModel.findDocumentTypesByNames.mockResolvedValue(TYPES);
+    documentModel.findByRequestGroup.mockResolvedValue([
+      { id: 100, document_type: 'Transcript of Records' },
+      { id: 101, document_type: 'Diploma' },
+    ]);
+  });
+
+  const twoItems = {
+    items: JSON.stringify([
+      { document_type: 'Transcript of Records', semesters: 8, copies: 1 },
+      { document_type: 'Diploma', copies: 1 },
+    ]),
+  };
+
+  it('writes one row per requested document', async () => {
+    await service.uploadDocument(STUDENT, twoItems, []);
+    expect(documentModel.insert).toHaveBeenCalledTimes(2);
+    const names = documentModel.insert.mock.calls.map((c) => c[0].document_type);
+    expect(names).toEqual(['Transcript of Records', 'Diploma']);
+  });
+
+  it('files every row under one shared request group', async () => {
+    await service.uploadDocument(STUDENT, twoItems, []);
+    const groups = documentModel.insert.mock.calls.map((c) => c[0].request_group_id);
+    expect(new Set(groups).size).toBe(1);
+    expect(groups[0]).toMatch(/^REQ-/);
+  });
+
+  it('prices each document separately and reports the combined total', async () => {
+    const res = await service.uploadDocument(STUDENT, twoItems, []);
+    const amounts = documentModel.insert.mock.calls.map((c) => c[0].amount);
+    expect(amounts).toEqual([200, 50]); // TOR 8 semesters + Diploma
+    expect(res.total_amount).toBe(250);
+  });
+
+  it('still files every row against the requesting student, never a spoofed id', async () => {
+    await service.uploadDocument(
+      STUDENT,
+      { ...twoItems, student_id: 'STU-999' },
+      []
+    );
+    const owners = documentModel.insert.mock.calls.map((c) => c[0].student_id);
+    expect(owners).toEqual(['STU-001', 'STU-001']);
+  });
+
+  it('maps a per-item attachment to the right document', async () => {
+    const files = [
+      { fieldname: 'document_1', path: '/tmp/dip.png', originalname: 'dip.png', mimetype: 'image/png' },
+    ];
+    await service.uploadDocument(STUDENT, twoItems, files);
+    const [torRow, diplomaRow] = documentModel.insert.mock.calls.map((c) => c[0]);
+    expect(torRow.file_path).toBeNull();
+    expect(diplomaRow.file_path).toBe('/tmp/dip.png');
+  });
+
+  it('rejects an empty selection', async () => {
+    expect(await statusOf(service.uploadDocument(STUDENT, { items: '[]' }, []))).toBe(400);
+    expect(documentModel.insert).not.toHaveBeenCalled();
+  });
+
+  it('rejects an item with no document type', async () => {
+    const bad = { items: JSON.stringify([{ copies: 1 }]) };
+    expect(await statusOf(service.uploadDocument(STUDENT, bad, []))).toBe(400);
+  });
+
+  it('rejects a malformed items payload', async () => {
+    expect(await statusOf(service.uploadDocument(STUDENT, { items: 'not json' }, []))).toBe(400);
+  });
+
+  it('treats a legacy single-document request as a group of one', async () => {
+    documentModel.findByRequestGroup.mockResolvedValue([{ id: 100, document_type: 'Diploma' }]);
+    const res = await service.uploadDocument(STUDENT, { document_type: 'Diploma', copies: 1 }, null);
+    expect(documentModel.insert).toHaveBeenCalledTimes(1);
+    expect(res.tracking_number).toMatch(/^TRC-/);
+    expect(res.document).toBeDefined();
+  });
+
+  it('rolls back the whole group if one insert fails', async () => {
+    documentModel.insert
+      .mockResolvedValueOnce([{ insertId: 100 }])
+      .mockRejectedValueOnce(new Error('db exploded'));
+    await expect(service.uploadDocument(STUDENT, twoItems, [])).rejects.toThrow('db exploded');
+    expect(connection.rollback).toHaveBeenCalled();
+    expect(connection.commit).not.toHaveBeenCalled();
+  });
+});
+
+describe('group payment settles every document at once', () => {
+  it('a single receipt covers the whole group', async () => {
+    documentModel.findById.mockResolvedValue([
+      { id: 5, student_id: 'STU-001', request_group_id: 'REQ-G1', current_status: 'pending_payment' },
+    ]);
+    documentModel.updatePaymentSubmissionForGroup.mockResolvedValue([{ affectedRows: 3 }]);
+    documentModel.findByRequestGroup.mockResolvedValue([{ id: 5 }, { id: 6 }, { id: 7 }]);
+
+    const res = await service.submitPayment(STUDENT, 5, { gcash_reference_no: 'R' }, RECEIPT);
+    expect(res.documents_covered).toBe(3);
+    // every document in the group gets its own audit entry
+    expect(stepLogModel.insert).toHaveBeenCalledTimes(3);
+  });
+
+  it('Finance approving once clears all of them', async () => {
+    const groupDocs = [
+      { id: 5, request_group_id: 'REQ-G1', student_id: 'STU-001', current_status: 'pending_payment_verification' },
+      { id: 6, request_group_id: 'REQ-G1', student_id: 'STU-001', current_status: 'pending_payment_verification' },
+    ];
+    documentModel.findByIdForUpdate.mockResolvedValue([groupDocs[0]]);
+    documentModel.findByRequestGroupForUpdate.mockResolvedValue(groupDocs);
+    documentModel.updatePaymentVerificationForGroup.mockResolvedValue([{ affectedRows: 2 }]);
+
+    const res = await service.verifyPayment(FINANCE, 5, { action: 'approve' }, null);
+    expect(res.documents_covered).toBe(2);
+    expect(documentModel.updatePaymentVerificationForGroup).toHaveBeenCalledWith(
+      'REQ-G1', 'pending_secretary', 'PAID', null, connection
+    );
+  });
+
+  it("a student still cannot pay for another student's group", async () => {
+    documentModel.findById.mockResolvedValue([
+      { id: 9, student_id: 'STU-999', request_group_id: 'REQ-OTHER', current_status: 'pending_payment' },
+    ]);
+    expect(await statusOf(service.submitPayment(STUDENT, 9, { gcash_reference_no: 'R' }, RECEIPT))).toBe(403);
+    expect(documentModel.updatePaymentSubmissionForGroup).not.toHaveBeenCalled();
+  });
+
+  it('documents in a group still advance through the desks independently', async () => {
+    // Approving one document must not touch its siblings.
+    documentModel.findByIdForUpdate.mockResolvedValue([
+      { id: 5, request_group_id: 'REQ-G1', student_id: 'STU-001', tracking_number: 'TRC-1' },
+    ]);
+    await service.evaluateDocument(SECRETARY, 5, {
+      student_id: 'STU-001', student_name: 'Ana', document_type: 'Diploma', action: 'approve',
+    });
+    expect(documentModel.updateEvaluation).toHaveBeenCalledTimes(1);
+    expect(documentModel.updateEvaluation).toHaveBeenCalledWith(
+      5, 'ready_window_1', 'STU-001', 'Ana', 'Diploma', connection
+    );
+  });
+});
+
 describe('verifyPayment — Finance desk only', () => {
-  const doc = { id: 5, student_id: 'STU-001', document_type: 'Diploma' };
+  const doc = { id: 5, student_id: 'STU-001', request_group_id: 'REQ-TEST01', document_type: 'Diploma' };
 
   it.each([
     ['a student', STUDENT],
@@ -180,24 +343,24 @@ describe('verifyPayment — Finance desk only', () => {
   it('marks the document PAID and routes it to the Secretary on approve', async () => {
     documentModel.findByIdForUpdate.mockResolvedValue([doc]);
     await service.verifyPayment(FINANCE, 5, { action: 'approve' }, null);
-    expect(documentModel.updatePaymentVerification).toHaveBeenCalledWith(
-      5, 'pending_secretary', 'PAID', null, connection
+    expect(documentModel.updatePaymentVerificationForGroup).toHaveBeenCalledWith(
+      'REQ-TEST01', 'pending_secretary', 'PAID', null, connection
     );
   });
 
   it('sends the document back as UNPAID on reject', async () => {
     documentModel.findByIdForUpdate.mockResolvedValue([doc]);
     await service.verifyPayment(FINANCE, 5, { action: 'reject', notes: 'blurry' }, null);
-    expect(documentModel.updatePaymentVerification).toHaveBeenCalledWith(
-      5, 'pending_payment', 'UNPAID', null, connection
+    expect(documentModel.updatePaymentVerificationForGroup).toHaveBeenCalledWith(
+      'REQ-TEST01', 'pending_payment', 'UNPAID', null, connection
     );
   });
 
   it('stores the official receipt when the clerk uploads one', async () => {
     documentModel.findByIdForUpdate.mockResolvedValue([doc]);
     await service.verifyPayment(FINANCE, 5, { action: 'approve' }, { filename: 'official.png' });
-    expect(documentModel.updatePaymentVerification).toHaveBeenCalledWith(
-      5, 'pending_secretary', 'PAID', '/uploads/official.png', connection
+    expect(documentModel.updatePaymentVerificationForGroup).toHaveBeenCalledWith(
+      'REQ-TEST01', 'pending_secretary', 'PAID', '/uploads/official.png', connection
     );
   });
 
@@ -283,7 +446,7 @@ describe('cancelDocument — owner only, unpaid only', () => {
     connection = fakeConnection();
     pool.getConnection.mockResolvedValue(connection);
     documentModel.findByIdForUpdate.mockResolvedValue([
-      { id: 9, student_id: 'STU-999', current_status: 'pending_payment' },
+      { id: 9, student_id: 'STU-999', request_group_id: 'REQ-OTHER1', current_status: 'pending_payment' },
     ]);
     expect(await statusOf(service.cancelDocument(STUDENT, 9))).toBe(400);
     expect(documentModel.deleteById).not.toHaveBeenCalled();
@@ -300,7 +463,7 @@ describe('cancelDocument — owner only, unpaid only', () => {
 
   it('deletes an unpaid request of its owner, audit trail first', async () => {
     documentModel.findByIdForUpdate.mockResolvedValue([
-      { id: 5, student_id: 'STU-001', current_status: 'pending_payment' },
+      { id: 5, student_id: 'STU-001', request_group_id: 'REQ-TEST01', current_status: 'pending_payment' },
     ]);
     await service.cancelDocument(STUDENT, 5);
     expect(stepLogModel.deleteByDocumentId).toHaveBeenCalledWith(5, connection);

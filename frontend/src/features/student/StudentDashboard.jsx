@@ -18,14 +18,11 @@ export default function StudentDashboard({ user, currentTab, setViewImageUrl }) 
     error,
     documents,
     actionLoading,
-    selectedDocType,
-    setSelectedDocType,
-    semesters,
-    setSemesters,
-    reqCopies,
-    setReqCopies,
-    requestFile,
-    setRequestFile,
+    documentTypes,
+    documentTypesLoading,
+    selections,
+    toggleDocumentType,
+    updateSelection,
     paymentRef,
     setPaymentRef,
     paymentFile,
@@ -339,14 +336,11 @@ export default function StudentDashboard({ user, currentTab, setViewImageUrl }) 
             user={user}
             setActiveModal={setActiveModal}
             handleStudentSubmitRequest={handleStudentSubmitRequest}
-            selectedDocType={selectedDocType}
-            setSelectedDocType={setSelectedDocType}
-            semesters={semesters}
-            setSemesters={setSemesters}
-            reqCopies={reqCopies}
-            setReqCopies={setReqCopies}
-            requestFile={requestFile}
-            setRequestFile={setRequestFile}
+            documentTypes={documentTypes}
+            documentTypesLoading={documentTypesLoading}
+            selections={selections}
+            toggleDocumentType={toggleDocumentType}
+            updateSelection={updateSelection}
             actionLoading={actionLoading}
             requiresAttachment={requiresAttachment}
             getAttachmentLabel={getAttachmentLabel}

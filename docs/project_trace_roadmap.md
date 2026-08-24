@@ -2,7 +2,7 @@
 
 This document serves as the master tracking sheet for Project TRACE. It organizes the system's development into distinct phases across the full technology stack (Frontend, Backend, and Machine Learning) so you can easily track what has been completed and what remains for a true production rollout.
 
-> **On phase numbers:** this roadmap groups work into coarser phases than [`PROGRESS.md`](PROGRESS.md), so the numbers deliberately differ between the two documents. The same production-rollout work is "Phase 8" here and "Phase 11" there. `PROGRESS.md` is the finer-grained checklist; this is the stack-level narrative.
+> **On phase numbers:** this roadmap groups work into coarser phases than [`PROGRESS.md`](PROGRESS.md), so the numbers deliberately differ between the two documents. The same production-rollout work is "Phase 9" here and "Phase 12" there. `PROGRESS.md` is the finer-grained checklist; this is the stack-level narrative.
 
 ---
 
@@ -115,7 +115,23 @@ This document serves as the master tracking sheet for Project TRACE. It organize
 
 ---
 
-## 🚀 Phase 8: Production Deployment (Pending)
+## ✅ Phase 8: Panel Feedback — Category 1 (Completed)
+*First of four categories from the capstone panel's defense feedback.*
+
+* **Database:**
+  * ✅ **Student statuses:** `enrollment_status` + `study_load` as two orthogonal axes, so "Irregular" and "Dropout" are modelled correctly rather than crammed into one column.
+  * ✅ **Reference data:** `document_types` and `colleges` tables replace hardcoded frontend lists, making fees and document availability admin-editable.
+  * ✅ **Graduate application:** `grad_form_fields` / `grad_applications` / `grad_application_values` support a form whose questions the Registrar defines — adding a field needs no migration.
+* **Core Features:**
+  * ✅ **Multi-document requests:** one selection, one payment, one combined total — but each document routes through the desks independently via a shared `request_group_id`.
+  * ✅ **Graduate Application module:** dynamic form rendering plus a staff review queue, with validation derived from the field definitions.
+* **Hardening:**
+  * ✅ Fees are computed server-side from the database; a client-sent amount is ignored. `uploadDocument` no longer trusts a client-supplied `student_id`.
+* **Testing:** 284 tests (184 backend, 100 frontend); zero lint errors.
+
+---
+
+## 🚀 Phase 9: Production Deployment (Pending)
 *Taking the system live on external servers.*
 
 * **Rotate the leaked secrets:** `JWT_SECRET` (the `.env` value matches the placeholder that has been in git history since the first commit — it signs every auth token, so it is a full authentication bypass) and the UniSMS API key. Both must be rotated before any deployment.

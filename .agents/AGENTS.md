@@ -85,9 +85,11 @@ The codebase was migrated into a strict layered folder schema. **File paths refe
 * **Frontend** — `DashboardPage.jsx` is now a thin role dispatcher; each command center lives in `src/features/<role>/` (student, finance, window1, secretary, admin) with its own modals. `useAuth` moved to `src/hooks/useAuth.js` (`utils/hooks.js` is deleted), `Layout.jsx` to `src/layouts/`, and `services/api.js` split into `authService.js` + `documentsService.js`. Imports use the `@/` → `src/` alias.
 * **Rules** — components never call APIs directly; controllers hold no logic; no hardcoded secrets (see `docs/CODING_PREFERENCES.md`).
 
-**Since then (Phases 9–10):** five security holes fixed (payment IDOR, forged document ownership, two unauthenticated machine endpoints, world-readable uploads, no login throttling) and `JWT_SECRET` rotated. Vitest added to both packages — **190 tests**, run with `npm test` in each; backend tests must be `.cjs`. `useDashboard.js` is gone: each role now has its own hook in `features/<role>/`, built on `hooks/useDashboardCore.js`. Ports moved — frontend **5273**, backend **3300**, AI engine **5005**.
+**Since then (Phases 9–10):** five security holes fixed (payment IDOR, forged document ownership, two unauthenticated machine endpoints, world-readable uploads, no login throttling) and `JWT_SECRET` rotated. Vitest added to both packages — **284 tests**, run with `npm test` in each; backend tests must be `.cjs`. `useDashboard.js` is gone: each role now has its own hook in `features/<role>/`, built on `hooks/useDashboardCore.js`. Ports moved — frontend **5273**, backend **3300**, AI engine **5005**.
 
-**Open items:** rotate the UniSMS key (still in git history); seed the seven `SEC-CCS001`…`SEC-CBA001` accounts (only `SEC001` exists); point the n8n HTTP node at port 3300 with an `x-webhook-secret` header.
+**Category 1 of the panel feedback (done):** student `enrollment_status` + `study_load`; multi-document requests (shared `request_group_id`, one payment, independent desk routing); admin-configurable Graduate Application (`grad_form_fields`); document types and colleges moved into reference tables with admin-editable fees. Fees are computed server-side; `uploadDocument` ignores a client-supplied `student_id`.
+
+**Open items:** rotate the UniSMS key (still in git history); point the n8n HTTP node at port 3300 with an `x-webhook-secret` header; consider removing the legacy `SEC001` account (no college, so it sees every queue). Categories 2–4 of the panel feedback are still to do.
 
 ---
 

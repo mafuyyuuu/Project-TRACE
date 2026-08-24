@@ -62,6 +62,12 @@ utils/         # Backend helper functions (AppError)
 - **Webhooks:** All webhook endpoints (e.g. from n8n or payment gateways) must handle errors gracefully and respond quickly (200 OK) to avoid timeouts, and must be guarded by `verifyWebhookSecret` — they have no user session, so without it they are open to the world.
 - **Authorization, not just authentication:** a valid JWT proves *who* the caller is, never *what they may touch*. Any endpoint taking a resource id must verify ownership or role before acting — students may only affect their own documents and files. `submitPayment` and `cancelDocument` in `documents.service.js` are the reference pattern.
 
+## 🗂️ Reference Data Over Hardcoding
+
+- **Never hardcode a list the Registrar might change.** Document types, colleges, fees and form fields live in database tables (`document_types`, `colleges`, `grad_form_fields`) and are served through `/api/reference` and `/api/grad-applications/form-fields`. A new document type or a fee change must not require a deploy.
+- **Fees are computed server-side, always.** `backend/src/utils/pricing.js` is the authority; the frontend's `utils/pricing.js` mirrors it purely to preview a total, and a client-supplied `amount` is ignored on the server.
+- **Validation follows the data.** Where a form is admin-configurable, generate its validation from the field definitions rather than writing per-field rules — see `gradApplication.service.js`.
+
 ## 🧪 Testing (Vitest)
 
 - **Run:** `cd backend && npm test` and `cd frontend && npm test`. Tests live in `__tests__/` folders beside the code they cover.

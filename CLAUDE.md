@@ -104,8 +104,8 @@ Every document, regardless of type, moves through a fixed `current_status` state
 ```
 pending_payment → pending_payment_verification → pending_secretary → ready_window_1 → completed/released
 ```
-- **pending_payment**: student submits request; dynamic form fields + price are computed client-side per `document_type` (e.g. TOR price = `Math.ceil(semesters / 4) * 100`).
-- **pending_payment_verification**: student uploaded GCash receipt + reference number; a document is *never* allowed to reach the Secretary until Finance flips `payment_status` to `PAID`.
+- **pending_payment**: student submits a request covering **one or more** document types. Each becomes its own row under a shared `request_group_id`; the price is computed **server-side** from `document_types` (a client-sent `amount` is ignored). TOR = `Math.ceil(semesters / 4) * base_fee`.
+- **pending_payment_verification**: student uploaded GCash receipt + reference number. **Payment is per request group** — one receipt settles every document in it — while routing from the Secretary onward is per document. A document is *never* allowed to reach the Secretary until Finance flips `payment_status` to `PAID`.
 - **pending_secretary**: routed to the College Secretary matching the student's `course` (college-based queue segregation — each `SEC-XXX001` account only sees its own college's students).
 - **ready_window_1**: Secretary approved; document is printed and waits for physical pickup at Window 1.
 - **completed/released**: Window 1 clerk scans/releases; `step_logs` gets the final audit entry.
@@ -157,10 +157,13 @@ Single-file endpoints in `app.py`, OCR logic isolated in `ocr_engine.py`:
 
 The exact math (CRAFT/CRNN/CTC for OCR, Prophet's additive model, Gini-split Random Forest) with worked examples is documented in `docs/ALGORITHM_COMPUTATION.md` — read that before modifying model behavior rather than re-deriving it.
 
+### Reference data & configurable forms
+Document types, colleges, and the Graduate Application's fields are **database rows, not code**: `document_types` (with admin-editable `base_fee` and a `fee_rule` selecting the calculation), `colleges`, and `grad_form_fields`. The graduate form's validation is generated from its field definitions, so adding a question needs no migration and no code change. Don't reintroduce a hardcoded `<option>` list.
+
 ### Database
 MySQL, single source of truth, `backend/database/schema.sql` + `seed.sql` + `migration.js` for upgrades. Core tables: `users` (role/verification_status/course/id_proof_path), `documents` (current_status/payment_status/tracking_number/gcash fields), `step_logs` (append-only audit trail — every desk transition writes here and is what both Prophet and the Admin Activity Log read from), `notifications` (in-app bell icon).
 
-**Seed drift to be aware of:** the README documents seven per-college secretary logins (`SEC-CCS001` … `SEC-CBA001`), but `seed.sql` only creates a single `SEC001` with `course = NULL`. College-based queue filtering therefore can't be exercised locally until per-college secretary rows exist.
+**Seeding note:** the seven per-college secretaries (`SEC-CCS001` … `SEC-CBA001`) are created by `migration.js`, not `seed.sql` — run the migration after seeding. A legacy `SEC001` with `course = NULL` may also exist; it bypasses college filtering and sees every queue, so use the `SEC-*` accounts when exercising college-based routing.
 
 ## Coding Preferences
 

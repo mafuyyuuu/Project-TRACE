@@ -7,6 +7,10 @@ const authRoutes = require('./routes/auth.routes');
 const documentRoutes = require('./routes/documents.routes');
 const paymentRoutes = require('./routes/payments.routes');
 const fileRoutes = require('./routes/files.routes');
+const referenceRoutes = require('./routes/referenceData.routes');
+const gradApplicationRoutes = require('./routes/gradApplication.routes');
+const maintenanceRoutes = require('./routes/maintenance.routes');
+const reportRoutes = require('./routes/reports.routes');
 const errorHandler = require('./middlewares/errorHandler.middleware');
 const { apiLimiter } = require('./middlewares/rateLimit.middleware');
 
@@ -30,6 +34,10 @@ app.use('/api/auth', authRoutes);
 app.use('/api/documents', documentRoutes);
 app.use('/api/payments', paymentRoutes);
 app.use('/api/files', fileRoutes);
+app.use('/api/reference', referenceRoutes);
+app.use('/api/grad-applications', gradApplicationRoutes);
+app.use('/api/maintenance', maintenanceRoutes);
+app.use('/api/reports', reportRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {

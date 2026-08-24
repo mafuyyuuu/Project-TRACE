@@ -15,6 +15,25 @@ Regardless of the document type, the core routing logic in Project TRACE follows
 
 ---
 
+## 1b. Multi-Document Requests (One Payment, Independent Routing)
+
+A student may tick several document types in a single request — for example a Transcript of Records **and** a Diploma — and pay **once** for the combined total instead of filing separate requests.
+
+1. **Selection**: each ticked type expands to its own fields (copies, semesters, attachment), because fees and requirements differ per document. A running total shows what will be charged.
+2. **One request**: all selected documents are created together under a shared **request group**, each with its own tracking number.
+3. **One payment**: the student uploads a single GCash receipt. It settles **every** document in the group, and Finance clears them all in one action.
+4. **Independent routing**: from the Secretary desk onward each document moves on its own. A Diploma can be ready for pickup at Window 1 while the Transcript is still being evaluated — a slow document never holds up a fast one.
+
+> Requesting a single document is simply a group of one, so the pipeline in section 1 is unchanged.
+
+---
+
+## 1c. Graduate Application
+
+Graduates and alumni complete an application form defined by the Registrar. The questions are **configured, not coded**: an admin adds, reorders or removes fields, and both the form and its validation follow automatically. Submissions land in a staff review queue and move through `submitted → under_review → approved / rejected`.
+
+---
+
 ## 2. Document-Specific Workflows & AI Verification
 
 While the pipeline is universal, different documents have unique AI requirements at Step 1 (Submission):

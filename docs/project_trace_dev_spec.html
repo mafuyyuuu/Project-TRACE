@@ -256,6 +256,7 @@ thead th { background: var(--gray-50); color: var(--gray-500); font: 700 11.5px 
 {
   id: INT (PK, Auto-Increment),
   tracking_number: VARCHAR(64) (Unique Hash) NOT NULL,
+  request_group_id: VARCHAR(64) (Indexed),          // documents requested & paid for together
   student_id: VARCHAR(50) (Nullable),
   student_name: VARCHAR(255) (Nullable),
   document_type: VARCHAR(100) (Nullable),
@@ -277,6 +278,46 @@ thead th { background: var(--gray-50); color: var(--gray-500); font: 700 11.5px 
   ocr_confidence_score: DECIMAL(5,2) (Nullable),    // (fields found / 3) * 100
   created_at: TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at: TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+}
+
+Table: users (status columns)
+{
+  // Two orthogonal axes: a student can be Irregular *and* Active, whereas
+  // graduated / dropout / transferred are mutually exclusive outcomes.
+  enrollment_status: ENUM('active','graduated','dropout','transferred') DEFAULT 'active',
+  study_load: ENUM('regular','irregular') DEFAULT 'regular'
+}
+
+Table: colleges
+{
+  id, name (UNIQUE), short_code, is_active, sort_order
+}
+
+Table: document_types            // replaces hardcoded frontend option lists
+{
+  id, name (UNIQUE),
+  base_fee: DECIMAL(10,2),       // admin-editable
+  fee_rule: ENUM('flat','per_semester_block'),
+  requires_attachment: BOOLEAN, attachment_label, attachment_helper,
+  is_active, sort_order
+}
+
+Table: grad_form_fields          // the Registrar defines the application form
+{
+  id, field_key (UNIQUE), label,
+  field_type: ENUM('text','textarea','number','date','select','email','tel'),
+  options: JSON, placeholder, help_text, is_required, is_active, sort_order
+}
+
+Table: grad_applications
+{
+  id, student_id, status: ENUM('submitted','under_review','approved','rejected'),
+  reviewed_by, notes, submitted_at, updated_at
+}
+
+Table: grad_application_values   // one row per answer — new fields need no migration
+{
+  id, application_id (FK), field_key, value
 }
 
 Table: step_logs
@@ -330,8 +371,18 @@ frontend/src/
     </div>
 
     <div class="callout spec">
+      <span class="label">Multi-Document Requests</span>
+      <p>A student may request several document types at once. Each becomes its own <code>documents</code> row under a shared <code>request_group_id</code>: <strong>payment is per group</strong> (one GCash receipt settles all of them), while <strong>routing is per document</strong>, so a Diploma can reach Window 1 while a Transcript is still with the Secretary. A single-document request is simply a group of one, so all pre-existing behaviour is unchanged.</p>
+    </div>
+
+    <div class="callout spec">
+      <span class="label">Configured, Not Coded</span>
+      <p>Document types, colleges, fees and the Graduate Application's fields live in database tables rather than in source. The Registrar can add a document type, change a fee, or add a form question without a deploy — and the graduate form's <em>validation</em> is generated from its field definitions, so it follows automatically. Fees are always recomputed server-side; a client-supplied amount is ignored.</p>
+    </div>
+
+    <div class="callout spec">
       <span class="label">Testing</span>
-      <p>Vitest runs per package: <code>cd backend &amp;&amp; npm test</code> and <code>cd frontend &amp;&amp; npm test</code> (190 tests, no database needed — the model layer is mocked). Backend tests must use the <code>.cjs</code> extension: the source is CommonJS, and only a CJS test shares Node's require cache with it, which is what makes the model spies actually intercept. <code>node backend/audit.js</code> runs a live end-to-end audit through all five desks.</p>
+      <p>Vitest runs per package: <code>cd backend &amp;&amp; npm test</code> and <code>cd frontend &amp;&amp; npm test</code> (284 tests, no database needed — the model layer is mocked). Backend tests must use the <code>.cjs</code> extension: the source is CommonJS, and only a CJS test shares Node's require cache with it, which is what makes the model spies actually intercept. <code>node backend/audit.js</code> runs a live end-to-end audit through all five desks.</p>
     </div>
 
     <div class="callout spec">
@@ -393,7 +444,20 @@ frontend/src/
       </li>
 
       <li>
-        <h3>Phase 6: Production Rollout (Pending)</h3>
+        <h3>Phase 6: Panel Feedback &mdash; Category 1 (Database &amp; Core Features)</h3>
+        <p class="phase-goal">First of four categories from the capstone panel's defense feedback.</p>
+        <ul>
+          <li>Added <code>enrollment_status</code> and <code>study_load</code> so Irregular and Dropout are modelled as two orthogonal axes rather than one overloaded column.</li>
+          <li>Multi-document requests: one selection, one payment, one combined total &mdash; with each document still routing through the desks independently.</li>
+          <li>Graduate Application module with an admin-configurable form; adding a question requires neither a migration nor a code change.</li>
+          <li>Moved document types and colleges into reference tables, making fees and availability admin-editable.</li>
+          <li>Hardened request creation: server-side pricing, and a student's request is always filed against their own record.</li>
+          <li>284 automated tests (184 backend, 100 frontend); zero lint errors.</li>
+        </ul>
+      </li>
+
+      <li>
+        <h3>Phase 7: Production Rollout (Pending)</h3>
         <p class="phase-goal">Take the system live. The remaining work before deployment.</p>
         <ul>
           <li><strong>Rotate the UniSMS API key</strong> — it remains exposed in git history even though it is gone from the source.</li>

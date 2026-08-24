@@ -12,7 +12,7 @@ function fail(res, err, logLabel, fallbackMessage) {
 
 async function upload(req, res) {
   try {
-    res.status(201).json(await documentsService.uploadDocument(req.user, req.body, req.file));
+    res.status(201).json(await documentsService.uploadDocument(req.user, req.body, req.files));
   } catch (err) {
     fail(res, err, 'Document upload error', 'Failed to upload document.');
   }

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import useAuth from '@/hooks/useAuth'
+import { getColleges } from '@/services/referenceService'
 
 export default function SignupPage() {
   const { register, loading } = useAuth()
@@ -9,6 +10,16 @@ export default function SignupPage() {
   const [localError, setLocalError] = useState('')
   const [success, setSuccess] = useState('')
   const [showPassword, setShowPassword] = useState(false)
+  // Colleges are admin-managed reference data rather than a hardcoded list.
+  const [colleges, setColleges] = useState([])
+
+  useEffect(() => {
+    let cancelled = false
+    getColleges()
+      .then((data) => { if (!cancelled) setColleges(data.colleges || []) })
+      .catch(() => { if (!cancelled) setColleges([]) })
+    return () => { cancelled = true }
+  }, [])
   const [showConfirm, setShowConfirm] = useState(false)
   const navigate = useNavigate()
 
@@ -97,14 +108,12 @@ export default function SignupPage() {
             <div className="flex flex-col gap-1.5">
               <label className="text-sm font-semibold text-gray-800 ml-1">College *</label>
               <select value={formData.college} onChange={(e) => setFormData({...formData, college: e.target.value})} className="w-full p-3.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-pine-500 focus:bg-white outline-none transition-all appearance-none cursor-pointer">
-                <option value="" disabled>Select your college...</option>
-                <option value="College of Computer Studies">College of Computer Studies</option>
-                <option value="College of Nursing">College of Nursing</option>
-                <option value="College of International Hospitality Management">College of International Hospitality Management</option>
-                <option value="College of Engineering">College of Engineering</option>
-                <option value="College of Education">College of Education</option>
-                <option value="College of Arts and Sciences">College of Arts and Sciences</option>
-                <option value="College of Business and Accountancy">College of Business and Accountancy</option>
+                  <option value="" disabled>
+                    {colleges.length ? 'Select your college...' : 'Loading colleges...'}
+                  </option>
+                  {colleges.map((c) => (
+                    <option key={c.id} value={c.name}>{c.name}</option>
+                  ))}
               </select>
             </div>
 

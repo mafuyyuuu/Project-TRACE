@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import useDashboardCore from '@/hooks/useDashboardCore';
 import { uploadDocument, submitPayment, cancelDocument } from '@/services/documentsService';
+import { getDocumentTypes } from '@/services/referenceService';
 
 /** Progress-bar target for the live tracking modal, by pipeline stage. */
 const TRACKER_TARGETS = {
@@ -18,17 +19,59 @@ export default function useStudentDashboard(user) {
   const core = useDashboardCore(user);
   const { runAction, triggerNotification, setActiveModal, setSelectedDoc, selectedDoc, activeModal } = core;
 
-  // New-request form
-  const [selectedDocType, setSelectedDocType] = useState('');
-  const [semesters, setSemesters] = useState(8);
-  const [reqCopies, setReqCopies] = useState(1);
-  const [requestFile, setRequestFile] = useState(null);
+  // Document types come from the database so the Registrar can add or reprice
+  // one without a code change.
+  const [documentTypes, setDocumentTypes] = useState([]);
+  const [documentTypesLoading, setDocumentTypesLoading] = useState(true);
+
+  // New-request form: a map of type name -> that document's own fields, so a
+  // single request can cover several documents.
+  const [selections, setSelections] = useState({});
 
   // GCash checkout
   const [paymentRef, setPaymentRef] = useState('');
   const [paymentFile, setPaymentFile] = useState(null);
 
   const [trackerProgress, setTrackerProgress] = useState(0);
+
+  useEffect(() => {
+    let cancelled = false;
+    getDocumentTypes()
+      .then((data) => {
+        if (!cancelled) setDocumentTypes(data.document_types || []);
+      })
+      .catch(() => {
+        if (!cancelled) setDocumentTypes([]);
+      })
+      .finally(() => {
+        if (!cancelled) setDocumentTypesLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  /** Tick or untick a document type. Unticking discards its fields. */
+  const toggleDocumentType = useCallback((name) => {
+    setSelections((current) => {
+      if (current[name]) {
+        const rest = { ...current };
+        delete rest[name];
+        return rest;
+      }
+      return {
+        ...current,
+        [name]: { copies: 1, semesters: 8, purpose: '', requestingSchool: '', yearGraduated: '', file: null },
+      };
+    });
+  }, []);
+
+  /** Update one field of one selected document. */
+  const updateSelection = useCallback((name, patch) => {
+    setSelections((current) =>
+      current[name] ? { ...current, [name]: { ...current[name], ...patch } } : current
+    );
+  }, []);
 
   // Animate the tracker from 0 so the bar visibly fills when the modal opens.
   useEffect(() => {
@@ -48,37 +91,48 @@ export default function useStudentDashboard(user) {
     if (trackerProgress !== 0) setTrackerProgress(0);
   }
 
-  const isTOR = (docType) =>
-    docType === 'Transcript of Records' || docType === 'Transcript of Records (TOR)';
-
+  /**
+   * Submit every selected document as one request.
+   *
+   * The items go up as a JSON array with each document's own copies/semesters,
+   * and any per-item attachment is sent as `document_<index>` so the server can
+   * match files to items. The server re-prices everything — the total shown in
+   * the modal is only a preview.
+   */
   const handleStudentSubmitRequest = useCallback(
     async (e) => {
       e.preventDefault();
-      const form = e.target;
-      const docType = selectedDocType;
 
-      if (!docType) {
-        triggerNotification('Please select a document type.', 'error');
+      const names = Object.keys(selections);
+      if (names.length === 0) {
+        triggerNotification('Please select at least one document type.', 'error');
         return;
       }
 
-      // The dynamic per-document fields are stored as a JSON blob in `purpose`.
-      const extra = {};
-      if (form.yearGraduated?.value) extra.year_graduated = form.yearGraduated.value;
-      if (form.requestingSchool?.value) extra.requesting_school = form.requestingSchool.value;
-      if (form.purpose?.value) extra.purpose = form.purpose.value;
-      if (form.reason?.value) extra.reason = form.reason.value;
-      if (isTOR(docType)) extra.semesters = semesters;
+      const items = names.map((name) => {
+        const selection = selections[name];
+        // The dynamic per-document fields ride along as a JSON blob in `purpose`.
+        const extra = {};
+        if (selection.purpose) extra.purpose = selection.purpose;
+        if (selection.requestingSchool) extra.requesting_school = selection.requestingSchool;
+        if (selection.yearGraduated) extra.year_graduated = selection.yearGraduated;
+        if (selection.semesters) extra.semesters = selection.semesters;
+
+        return {
+          document_type: name,
+          copies: selection.copies,
+          semesters: selection.semesters,
+          purpose: JSON.stringify(extra),
+        };
+      });
 
       const formData = new FormData();
-      const file = form.docFile?.files[0];
-      if (file) formData.append('document', file);
-      formData.append('document_type', docType);
-      formData.append('student_id', user.student_id || 'STU-' + Date.now().toString().slice(-6));
+      formData.append('items', JSON.stringify(items));
       formData.append('student_name', user.full_name);
-      formData.append('purpose', JSON.stringify(extra));
-      formData.append('copies', form.copies?.value || 1);
-      if (isTOR(docType)) formData.append('semesters', semesters);
+      names.forEach((name, index) => {
+        const { file } = selections[name];
+        if (file) formData.append(`document_${index}`, file);
+      });
 
       let created = null;
       const ok = await runAction(
@@ -87,20 +141,22 @@ export default function useStudentDashboard(user) {
           return created;
         },
         {
-          successMessage: (r) => `Request submitted! Tracking ID: ${r.tracking_number}. Please pay now.`,
+          successMessage: (r) =>
+            r.documents?.length > 1
+              ? `${r.documents.length} documents requested — ₱${r.total_amount} total. Please pay now.`
+              : `Request submitted! Tracking ID: ${r.tracking_number}. Please pay now.`,
           errorMessage: 'Upload failed.',
         }
       );
 
       if (ok && created) {
-        form.reset();
-        setRequestFile(null);
-        setSelectedDocType('');
-        setSelectedDoc(created.document);
-        setActiveModal('pay'); // straight into checkout
+        setSelections({});
+        // Checkout is per group; any document in it settles the whole request.
+        setSelectedDoc({ ...created.document, group_total: created.total_amount });
+        setActiveModal('pay');
       }
     },
-    [selectedDocType, semesters, user, runAction, triggerNotification, setSelectedDoc, setActiveModal]
+    [selections, user, runAction, triggerNotification, setSelectedDoc, setActiveModal]
   );
 
   const handleStudentSubmitPayment = useCallback(
@@ -151,10 +207,11 @@ export default function useStudentDashboard(user) {
 
   return {
     ...core,
-    selectedDocType, setSelectedDocType,
-    semesters, setSemesters,
-    reqCopies, setReqCopies,
-    requestFile, setRequestFile,
+    documentTypes,
+    documentTypesLoading,
+    selections,
+    toggleDocumentType,
+    updateSelection,
     paymentRef, setPaymentRef,
     paymentFile, setPaymentFile,
     trackerProgress,

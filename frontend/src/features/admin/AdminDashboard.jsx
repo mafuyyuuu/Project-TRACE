@@ -4,6 +4,9 @@ import useAdminDashboard from '@/features/admin/useAdminDashboard';
 import { todayLongDate } from '@/utils/formatters';
 import DashboardAlerts from '@/components/DashboardAlerts';
 import DashboardLoading from '@/components/DashboardLoading';
+import MaintenancePanel from '@/features/admin/components/MaintenancePanel';
+import ReportsPanel from '@/features/admin/components/ReportsPanel';
+import AnalyticsPanel from '@/features/admin/components/AnalyticsPanel';
 
 /**
  * Registrar admin: ML forecasts, AI insights, account verification, users, and audit logs.
@@ -36,6 +39,11 @@ export default function AdminDashboard({ user, currentTab, setViewImageUrl }) {
   const todayFormatted = todayLongDate();
 
   if (loading) return <DashboardLoading />;
+
+  // These three own their data via their own hooks and replace the default view.
+  if (currentTab === 'admin-maintenance') return <MaintenancePanel user={user} currentTab={currentTab} />;
+  if (currentTab === 'admin-reports') return <ReportsPanel user={user} currentTab={currentTab} />;
+  if (currentTab === 'admin-analytics') return <AnalyticsPanel user={user} currentTab={currentTab} />;
 
   return (
     <>

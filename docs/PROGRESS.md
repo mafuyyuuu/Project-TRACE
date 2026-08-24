@@ -2,9 +2,9 @@
 
 This document tracks the current development and implementation progress of the Project TRACE system.
 
-## Overall Status: 🟢 Core System Complete, Restructured, Hardened & Tested (Phase 11: Production Rollout Pending)
+## Overall Status: 🟢 Panel Feedback — Category 1 Complete (Phase 12: Production Rollout Pending)
 
-### 📍 Next Steps for Phase 11 (Production Rollout)
+### 📍 Next Steps for Phase 12 (Production Rollout)
 The system is feature-complete locally and the codebase now follows the strict layered architecture (see `CODING_PREFERENCES.md`). The next immediate steps are taking the servers live:
 1. **Rotate the two leaked secrets.** Both were hardcoded as `||` fallback defaults and remain in git history even though they are gone from the source:
    - **`JWT_SECRET` (critical).** The value currently in `.env` is byte-identical to the placeholder `trace-jwt-secret-change-in-production`, committed since the very first commit. Because it signs every auth token, anyone with repo access can forge a login for any account — including `ADMIN001`. Generate a replacement with `node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"`. Rotating it invalidates existing tokens, so everyone simply logs in again.
@@ -107,7 +107,18 @@ The system is feature-complete locally and the codebase now follows the strict l
 - [x] **Zero ESLint errors** across the frontend for the first time.
 - [x] **Ports moved:** frontend 5173→**5273**, backend 3000→**3300** to stop clashing with other local projects. Corrected the AI engine's documented port (5000→**5005**; 5000 is taken by macOS Control Center).
 
-### Phase 11: Production Rollout Checklist
+### Phase 11: Panel Feedback — Category 1 (Database & Core Features)
+**Status:** Complete
+*Panel defense feedback, category 1 of 4. Categories 2–4 follow in order.*
+- [x] **Student status expansion:** added `users.enrollment_status` (active/graduated/dropout/transferred) and `users.study_load` (regular/irregular) as **two orthogonal axes** — a student can be Irregular *and* Active, whereas graduated/dropout are mutually exclusive outcomes. Existing alumni backfilled automatically.
+- [x] **Multi-document requests:** a student can select several document types and **pay once for the combined total**. Documents share a `request_group_id` but keep their own status and desk routing, so a fast Diploma isn't held up by a slow Transcript. All 10,015 existing documents were backfilled as single-item groups, leaving every prior query correct.
+- [x] **Graduate Application module:** admin-configurable form. Field definitions live in `grad_form_fields` and answers are one row each in `grad_application_values`, so the Registrar can add a question **without a migration or a code change**. Validation is generated from the definitions.
+- [x] **Reference data:** document types and colleges moved out of hardcoded frontend `<option>` lists into `document_types` and `colleges` tables. Fees are now admin-editable (`base_fee`); TOR's per-4-semester rule stays in `utils/pricing.js` because it isn't a single number.
+- [x] **Server-side pricing:** a client-supplied `amount` is ignored — totals are always recomputed from the database.
+- [x] **Ownership hardening:** `uploadDocument` no longer trusts a client-supplied `student_id`. A student's request is always filed against their own record, which also fixed unowned documents nobody could pay for.
+- [x] **Tests:** 284 total (184 backend + 100 frontend), up from 190. Zero ESLint errors and warnings.
+
+### Phase 12: Production Rollout Checklist
 **Status:** In Progress
 - [ ] **Rotate BOTH leaked secrets:** (a) `JWT_SECRET` — the value in `.env` is identical to the placeholder committed in git history since the first commit, so anyone with repo access can forge a token for any account including admins; (b) the UniSMS API key, also previously hardcoded. Generate a new JWT secret with `node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"`. Rotating the JWT secret logs everyone out, which is expected.
 - [ ] **Seed Per-College Secretaries:** `seed.sql` creates only `SEC001` (course `NULL`) while the README documents `SEC-CCS001` … `SEC-CBA001`. College-based queue filtering can't be demonstrated until these exist.
@@ -120,7 +131,7 @@ The system is feature-complete locally and the codebase now follows the strict l
 
 ## Known Issues (Pre-existing, surfaced during the Phase 8 audit)
 These predate the restructure and remain open:
-* **Secretary seed drift:** documented `SEC-CCS001` … `SEC-CBA001` accounts don't exist in `seed.sql`; only `SEC001` with a `NULL` course does.
+* ~~Secretary seed drift~~ — **resolved.** `migration.js` seeds all seven per-college secretaries; they now exist. A stale `SEC001` with a `NULL` course remains and sees every college's queue, so consider removing it.
 * **Unpassed modal props:** `NewRequestModal` declares `deliveryMethod`/`setDeliveryMethod` and `FinanceVerificationModal` declares `triggerNotification`, but no parent ever passed them — they are `undefined` at runtime.
 * **Unused legacy payments route:** `src/services/payments.service.js` (PayMongo-style webhook + `simulate-payment`) is not called by the frontend at all; it is superseded by the manual GCash flow.
 
