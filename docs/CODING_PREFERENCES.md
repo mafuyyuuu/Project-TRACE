@@ -68,6 +68,25 @@ utils/         # Backend helper functions (AppError)
 - **Fees are computed server-side, always.** `backend/src/utils/pricing.js` is the authority; the frontend's `utils/pricing.js` mirrors it purely to preview a total, and a client-supplied `amount` is ignored on the server.
 - **Validation follows the data.** Where a form is admin-configurable, generate its validation from the field definitions rather than writing per-field rules — see `gradApplication.service.js`.
 
+## 🗑️ Deletion & Destructive Actions
+
+- **Prefer deactivation over deletion for anything referenced by history.** This is a registrar's system of record: documents store their document type by name and users store their college by name. Set `is_active = false` so the entry disappears from dropdowns while existing records keep working — and can be restored. Reserve hard deletes for rows nothing points at (e.g. a student cancelling their own unpaid request).
+- **Say what actually happened.** If an action is a deactivation, the button says "Deactivate" and the response says so. Never label something "Delete" when it isn't.
+- **Report the blast radius.** Before hiding shared reference data, tell the admin how many records reference it.
+- **Block edits that would strand history** — such as renaming a document type that existing documents point to.
+
+## 🔐 Credentials
+
+- **Admin-set passwords are single-use.** Creating or resetting a staff account sets `must_change_password`, so an admin-chosen secret can never become a long-lived credential. The flag clears only when the user sets their own.
+- **Never return or log a password**, even one the caller just supplied. Hash with bcrypt at the service layer.
+
+## 📤 Data Export
+
+- **Escape by hand, deliberately.** `backend/src/utils/csv.js` covers commas, quotes and newlines, and neutralises spreadsheet formula injection (`=`, `+`, `-`, `@`) — user-supplied names and purposes end up in these files.
+- **Emit a UTF-8 BOM** on CSV downloads or Excel mangles accented characters.
+- **Cap exports.** An export endpoint must never try to serialise an unbounded table.
+- **Export what the user is looking at** — the on-screen filters and the export must share one filter object.
+
 ## 🧪 Testing (Vitest)
 
 - **Run:** `cd backend && npm test` and `cd frontend && npm test`. Tests live in `__tests__/` folders beside the code they cover.

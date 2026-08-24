@@ -249,14 +249,20 @@ function findByRequestGroupForUpdate(requestGroupId, executor) {
 }
 
 /** One GCash receipt covers every document in the group. */
-function updatePaymentSubmissionForGroup(requestGroupId, gcashReferenceNo, receiptPath, executor = pool) {
+function updatePaymentSubmissionForGroup(
+  requestGroupId, reference, receiptPath, paymentMethod = 'gcash', executor = pool
+) {
+  // `gcash_reference_no` is kept in step with `payment_reference_id` so older
+  // records and any UI still reading the legacy column stay correct.
   return executor.query(
     `UPDATE documents
      SET current_status = "pending_payment_verification",
+         payment_method = ?,
+         payment_reference_id = ?,
          gcash_reference_no = ?,
          receipt_image_path = ?
      WHERE request_group_id = ? AND current_status IN ('pending_payment', 'pending_payment_verification')`,
-    [gcashReferenceNo, receiptPath, requestGroupId]
+    [paymentMethod, reference, reference, receiptPath, requestGroupId]
   );
 }
 

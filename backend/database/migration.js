@@ -436,6 +436,66 @@ async function migrate() {
     await addIndex('documents', 'idx_documents_status', 'current_status');
     await addIndex('documents', 'idx_documents_created', 'created_at');
 
+    // =======================================================================
+    // Category 3 — payment methods & real-time notifications
+    // =======================================================================
+    console.log('\n--- Category 3: payment methods ---');
+
+    // Which method the student actually used. Kept alongside the legacy
+    // gcash_reference_no so existing records stay readable.
+    await addColumn('documents', 'payment_method', "VARCHAR(50) NULL DEFAULT 'gcash' AFTER payment_status");
+    await addIndex('documents', 'idx_documents_payment_method', 'payment_method');
+
+    // Admin-managed like every other reference list (see Category 2), so the
+    // Registrar can enable a method without a deploy.
+    //
+    // `provider` selects the code path in services/payment/: 'manual' means the
+    // student pays out-of-band and uploads proof for the Finance desk, which is
+    // every method today. A hosted gateway would register as its own provider.
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS payment_methods (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        code VARCHAR(50) NOT NULL UNIQUE,
+        name VARCHAR(150) NOT NULL,
+        provider VARCHAR(50) NOT NULL DEFAULT 'manual',
+        instructions TEXT NULL,
+        requires_reference BOOLEAN NOT NULL DEFAULT TRUE,
+        reference_label VARCHAR(150) NULL,
+        requires_proof BOOLEAN NOT NULL DEFAULT TRUE,
+        is_active BOOLEAN NOT NULL DEFAULT TRUE,
+        sort_order INT NOT NULL DEFAULT 0,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
+    const PAYMENT_METHODS = [
+      ['gcash', 'GCash', 'manual',
+       'Scan the PLP Finance GCash QR code, complete the payment in your GCash app, then upload a screenshot of the receipt and enter the reference number.',
+       true, 'GCash Reference Number', true, 0],
+      ['card', 'Credit / Debit Card', 'manual',
+       'Pay at the Cashier using your credit or debit card, then upload a photo of the card terminal receipt and enter its approval code.',
+       true, 'Approval / Reference Code', true, 1],
+      ['online_banking', 'Online Banking / Bank Transfer', 'manual',
+       'Transfer to the PLP Finance bank account through your online banking app, then upload the transfer confirmation and enter the transaction reference.',
+       true, 'Transaction Reference Number', true, 2],
+      ['over_the_counter', 'Over-the-Counter (Cashier)', 'manual',
+       'Pay in cash at the PLP Cashier window and upload a photo of the official receipt issued to you.',
+       true, 'Official Receipt Number', true, 3],
+    ];
+    for (const [code, name, provider, instructions, reqRef, refLabel, reqProof, order] of PAYMENT_METHODS) {
+      await pool.query(
+        `INSERT INTO payment_methods
+           (code, name, provider, instructions, requires_reference, reference_label, requires_proof, sort_order)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+         ON DUPLICATE KEY UPDATE
+           name = VALUES(name), provider = VALUES(provider), instructions = VALUES(instructions),
+           requires_reference = VALUES(requires_reference), reference_label = VALUES(reference_label),
+           requires_proof = VALUES(requires_proof), sort_order = VALUES(sort_order)`,
+        [code, name, provider, instructions, reqRef, refLabel, reqProof, order]
+      );
+    }
+    console.log(`-> Seeded ${PAYMENT_METHODS.length} payment methods`);
+
     console.log('✅ Database migration completed successfully.');
     process.exit(0);
   } catch (err) {

@@ -62,8 +62,12 @@ module.exports = {
   UNISMS_SECRET_KEY: process.env.UNISMS_SECRET_KEY || '',
   UNISMS_SENDER_ID: process.env.UNISMS_SENDER_ID || 'TRACE',
   TEST_PHONE_NUMBER: process.env.TEST_PHONE_NUMBER || '',
-  SMTP_HOST: process.env.SMTP_HOST || 'smtp.ethereal.email',
+  // No placeholder fallbacks: fake credentials would fail at send time with an
+  // opaque SMTP error that looks like a bug. Empty means "not configured", and
+  // notification.service.js reports that clearly at startup.
+  SMTP_HOST: process.env.SMTP_HOST || '',
   SMTP_PORT: process.env.SMTP_PORT || 587,
-  SMTP_USER: process.env.SMTP_USER || 'mock_user',
-  SMTP_PASS: process.env.SMTP_PASS || 'mock_pass',
+  SMTP_USER: process.env.SMTP_USER || '',
+  SMTP_PASS: process.env.SMTP_PASS || '',
+  SMTP_FROM: process.env.SMTP_FROM || '',
 };

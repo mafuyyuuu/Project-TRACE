@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import useAuth from '@/hooks/useAuth';
 import ImageViewerModal from '@/components/ImageViewerModal';
+import ForcePasswordChange from '@/components/ForcePasswordChange';
 import StudentDashboard from '@/features/student/StudentDashboard';
 import FinanceDashboard from '@/features/finance/FinanceDashboard';
 import Window1Dashboard from '@/features/window1/Window1Dashboard';
@@ -19,7 +20,7 @@ import GraduateApplication from '@/features/graduate/GraduateApplication';
  * which is rendered once here because every role can open it.
  */
 export default function DashboardPage() {
-  const { user } = useAuth();
+  const { user, logout, updateCachedUser } = useAuth();
   const [searchParams] = useSearchParams();
   const currentTab = searchParams.get('tab') || 'dashboard';
 
@@ -32,6 +33,19 @@ export default function DashboardPage() {
   const isAdmin = user?.role === 'admin';
 
   const props = { user, currentTab, setViewImageUrl };
+
+  // An account created with an admin-set temporary password cannot use the
+  // system until it has its own. This replaces the dashboard rather than
+  // overlaying it, so there is nothing to dismiss.
+  if (user?.must_change_password) {
+    return (
+      <ForcePasswordChange
+        user={user}
+        onChanged={() => updateCachedUser({ must_change_password: false })}
+        onLogout={logout}
+      />
+    );
+  }
 
   return (
     <div className="space-y-8 animate-fade-in relative pb-16">

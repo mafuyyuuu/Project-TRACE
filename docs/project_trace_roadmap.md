@@ -2,7 +2,7 @@
 
 This document serves as the master tracking sheet for Project TRACE. It organizes the system's development into distinct phases across the full technology stack (Frontend, Backend, and Machine Learning) so you can easily track what has been completed and what remains for a true production rollout.
 
-> **On phase numbers:** this roadmap groups work into coarser phases than [`PROGRESS.md`](PROGRESS.md), so the numbers deliberately differ between the two documents. The same production-rollout work is "Phase 9" here and "Phase 12" there. `PROGRESS.md` is the finer-grained checklist; this is the stack-level narrative.
+> **On phase numbers:** this roadmap groups work into coarser phases than [`PROGRESS.md`](PROGRESS.md), so the numbers deliberately differ between the two documents. The same production-rollout work is "Phase 10" here and "Phase 13" there. `PROGRESS.md` is the finer-grained checklist; this is the stack-level narrative.
 
 ---
 
@@ -131,7 +131,22 @@ This document serves as the master tracking sheet for Project TRACE. It organize
 
 ---
 
-## 🚀 Phase 9: Production Deployment (Pending)
+## ✅ Phase 9: Panel Feedback — Category 2 (Completed)
+*Second of four categories from the capstone panel's defense feedback.*
+
+* **Admin Maintenance:**
+  * ✅ CRUD for Staff, Document Types and Colleges, where **deletion is always deactivation** so historical records are never orphaned — and can be restored.
+  * ✅ Staff accounts are created with a single-use temporary password that the user must replace at first login.
+* **Reporting & Export:**
+  * ✅ Filtering by date range, status, document type and payment status, with summary totals computed over the same slice as the rows.
+  * ✅ CSV export by student category (Active / Alumni / Others) and of the filtered document report, with escaping and formula-injection protection written and tested by hand.
+* **Efficiency Analytics:**
+  * ✅ Turnaround per desk, end-to-end completion, throughput trend and staff workload — all traceable to the `step_logs` audit trail.
+* **Testing:** 407 tests (286 backend, 121 frontend); zero lint errors.
+
+---
+
+## 🚀 Phase 10: Production Deployment (Pending)
 *Taking the system live on external servers.*
 
 * **Rotate the leaked secrets:** `JWT_SECRET` (the `.env` value matches the placeholder that has been in git history since the first commit — it signs every auth token, so it is a full authentication bypass) and the UniSMS API key. Both must be rotated before any deployment.

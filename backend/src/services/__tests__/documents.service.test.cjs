@@ -48,6 +48,11 @@ beforeEach(() => {
   vi.spyOn(documentModel, 'findByRequestGroup').mockResolvedValue([]);
   vi.spyOn(documentModel, 'findByRequestGroupForUpdate').mockResolvedValue([]);
   vi.spyOn(referenceModel, 'findDocumentTypesByNames').mockResolvedValue([]);
+  // Payment methods are reference data; GCash is the default the student sees.
+  vi.spyOn(referenceModel, 'findPaymentMethodByCode').mockResolvedValue([
+    { id: 1, code: 'gcash', name: 'GCash', provider: 'manual', is_active: 1,
+      requires_reference: 1, reference_label: 'GCash Reference Number', requires_proof: 1 },
+  ]);
   vi.spyOn(documentModel, 'updateEvaluation').mockResolvedValue([{ affectedRows: 1 }]);
   vi.spyOn(documentModel, 'markCompleted').mockResolvedValue([{ affectedRows: 1 }]);
   vi.spyOn(documentModel, 'deleteById').mockResolvedValue([{ affectedRows: 1 }]);
@@ -90,7 +95,7 @@ describe('submitPayment — ownership (the IDOR fix)', () => {
     expect(res.message).toMatch(/submitted successfully/i);
     // Keyed by the request group, so a multi-document request settles at once.
     expect(documentModel.updatePaymentSubmissionForGroup).toHaveBeenCalledWith(
-      'REQ-TEST01', 'REF-1', '/uploads/receipt.png'
+      'REQ-TEST01', 'REF-1', '/uploads/receipt.png', 'gcash'
     );
   });
 
@@ -109,9 +114,49 @@ describe('submitPayment — ownership (the IDOR fix)', () => {
     }
   );
 
-  it('requires a reference number and a receipt file', async () => {
+  it("requires whatever the chosen payment method asks for", async () => {
+    documentModel.findById.mockResolvedValue([
+      { id: 5, student_id: 'STU-001', request_group_id: 'REQ-TEST01', current_status: 'pending_payment' },
+    ]);
+    // GCash requires both a reference and a receipt image.
     expect(await statusOf(service.submitPayment(STUDENT, 5, {}, RECEIPT))).toBe(400);
     expect(await statusOf(service.submitPayment(STUDENT, 5, { gcash_reference_no: 'R' }, null))).toBe(400);
+    expect(documentModel.updatePaymentSubmissionForGroup).not.toHaveBeenCalled();
+  });
+
+  it('records the payment method the student actually used', async () => {
+    documentModel.findById.mockResolvedValue([
+      { id: 5, student_id: 'STU-001', request_group_id: 'REQ-TEST01', current_status: 'pending_payment' },
+    ]);
+    referenceModel.findPaymentMethodByCode.mockResolvedValue([
+      { id: 3, code: 'online_banking', name: 'Online Banking / Bank Transfer', provider: 'manual',
+        is_active: 1, requires_reference: 1, reference_label: 'Transaction Reference Number', requires_proof: 1 },
+    ]);
+
+    await service.submitPayment(
+      STUDENT, 5, { gcash_reference_no: 'TXN-9', payment_method: 'online_banking' }, RECEIPT
+    );
+    expect(documentModel.updatePaymentSubmissionForGroup).toHaveBeenCalledWith(
+      'REQ-TEST01', 'TXN-9', '/uploads/receipt.png', 'online_banking'
+    );
+  });
+
+  it('rejects a payment method that is not available', async () => {
+    documentModel.findById.mockResolvedValue([
+      { id: 5, student_id: 'STU-001', request_group_id: 'REQ-TEST01', current_status: 'pending_payment' },
+    ]);
+    referenceModel.findPaymentMethodByCode.mockResolvedValue([]);
+    expect(await statusOf(service.submitPayment(STUDENT, 5, { gcash_reference_no: 'R', payment_method: 'crypto' }, RECEIPT))).toBe(400);
+  });
+
+  it('rejects a method the admin has deactivated', async () => {
+    documentModel.findById.mockResolvedValue([
+      { id: 5, student_id: 'STU-001', request_group_id: 'REQ-TEST01', current_status: 'pending_payment' },
+    ]);
+    referenceModel.findPaymentMethodByCode.mockResolvedValue([
+      { id: 2, code: 'card', name: 'Card', provider: 'manual', is_active: 0 },
+    ]);
+    expect(await statusOf(service.submitPayment(STUDENT, 5, { gcash_reference_no: 'R', payment_method: 'card' }, RECEIPT))).toBe(400);
   });
 
   it('404s for a document that does not exist', async () => {

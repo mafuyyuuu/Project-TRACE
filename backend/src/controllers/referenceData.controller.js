@@ -28,4 +28,12 @@ async function getDocumentTypes(req, res) {
   }
 }
 
-module.exports = { getColleges, getDocumentTypes };
+async function getPaymentMethods(req, res) {
+  try {
+    res.json(await referenceService.listPaymentMethods({ includeInactive: wantsInactive(req) }));
+  } catch (err) {
+    fail(res, err, 'List payment methods error', 'Failed to fetch payment methods.');
+  }
+}
+
+module.exports = { getColleges, getDocumentTypes, getPaymentMethods };

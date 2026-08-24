@@ -72,6 +72,30 @@ The Registrar hasn't finalised the questions, so nothing about the form is hardc
 | `GET /api/grad-applications` | Staff review queue |
 | `POST /api/grad-applications/:id/review` | Staff decision |
 
+### Admin Maintenance, Reporting & Analytics
+
+**Deletion is deactivation.** Documents reference document types by name and users reference colleges by name, so no maintenance endpoint hard-deletes. `PATCH .../active` toggles `is_active`, hiding an entry from new requests while every historical record keeps working — and it can be restored. Two guardrails follow from this:
+- A document type already referenced by documents **cannot be renamed** (the error reports how many). Its fee can still change, since fees apply per request at submission time.
+- An admin **cannot deactivate their own account**, which would lock them out.
+
+**Staff passwords.** An admin creates an account with a temporary password; the row is flagged `must_change_password`, so that secret is single-use. `updateProfile` clears the flag when the user sets their own. Resetting a password re-arms it. Passwords are hashed with bcrypt and never returned or logged.
+
+| Endpoint | Purpose |
+| :--- | :--- |
+| `GET/POST /api/maintenance/staff`, `PUT /:id`, `PATCH /:id/active` | Staff CRUD |
+| `GET/POST /api/maintenance/document-types`, `PUT /:id`, `PATCH /:id/active` | Document type CRUD |
+| `GET/POST /api/maintenance/colleges`, `PUT /:id`, `PATCH /:id/active` | College CRUD |
+| `GET /api/reports/documents` | Filtered report + summary + breakdowns |
+| `GET /api/reports/analytics` | Efficiency metrics |
+| `GET /api/reports/export/students.csv?category=` | active \| alumni \| others \| all |
+| `GET /api/reports/export/documents.csv` | The filtered report as CSV |
+
+**Reporting.** `report.model.js` builds every WHERE clause from fixed column names with parameterised values — no user input reaches SQL text, and `groupDocumentsBy` whitelists its column because that one is interpolated. Rows, summary and export share one filter object so they can never disagree. Page size is capped at 1000 and exports at 10,000 rows.
+
+**CSV.** `utils/csv.js` is hand-written: it quotes fields containing commas/quotes/newlines, doubles embedded quotes, and prefixes values starting with `=`, `+`, `-` or `@` to stop spreadsheets executing user-supplied text as a formula. The controller prepends a UTF-8 BOM so Excel renders accented names correctly.
+
+**Analytics.** All figures derive from `step_logs`, so any number can be traced to a recorded desk action. Per-clerk output is volume and actions only — never a computed score — because desks differ in difficulty.
+
 ### Authorization rules
 A valid JWT proves *who* is calling, never *what they may touch*. Every endpoint taking a resource id verifies ownership or role:
 - A student may only submit payment for, cancel, or read files attached to **their own** requests — including every document in a shared request group.

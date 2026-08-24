@@ -2,9 +2,9 @@
 
 This document tracks the current development and implementation progress of the Project TRACE system.
 
-## Overall Status: 🟢 Panel Feedback — Category 1 Complete (Phase 12: Production Rollout Pending)
+## Overall Status: 🟢 Panel Feedback — Categories 1 & 2 Complete (Phase 13: Production Rollout Pending)
 
-### 📍 Next Steps for Phase 12 (Production Rollout)
+### 📍 Next Steps for Phase 13 (Production Rollout)
 The system is feature-complete locally and the codebase now follows the strict layered architecture (see `CODING_PREFERENCES.md`). The next immediate steps are taking the servers live:
 1. **Rotate the two leaked secrets.** Both were hardcoded as `||` fallback defaults and remain in git history even though they are gone from the source:
    - **`JWT_SECRET` (critical).** The value currently in `.env` is byte-identical to the placeholder `trace-jwt-secret-change-in-production`, committed since the very first commit. Because it signs every auth token, anyone with repo access can forge a login for any account — including `ADMIN001`. Generate a replacement with `node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"`. Rotating it invalidates existing tokens, so everyone simply logs in again.
@@ -118,7 +118,18 @@ The system is feature-complete locally and the codebase now follows the strict l
 - [x] **Ownership hardening:** `uploadDocument` no longer trusts a client-supplied `student_id`. A student's request is always filed against their own record, which also fixed unowned documents nobody could pay for.
 - [x] **Tests:** 284 total (184 backend + 100 frontend), up from 190. Zero ESLint errors and warnings.
 
-### Phase 12: Production Rollout Checklist
+### Phase 12: Panel Feedback — Category 2 (Admin Maintenance & Analytics)
+**Status:** Complete
+- [x] **Maintenance CRUD:** admin management of Staff, Document Types and Colleges. **"Delete" is always a deactivation** (`is_active = false`) — documents reference document types by name and users reference colleges by name, so removing a row would orphan historical records. Entries can be restored.
+- [x] **Guardrails:** a document type already used by requests cannot be renamed (the error names how many documents reference it), though its fee can still change. An admin cannot deactivate their own account.
+- [x] **Staff passwords:** an admin sets a temporary password and the account is flagged `must_change_password`, so the admin-chosen secret is single-use. The flag clears once the user sets their own. Passwords are never returned or logged.
+- [x] **Report generation:** filter by date range, status, document type and payment status. The rows, the summary totals and the CSV export all use the same filter set, so they cannot disagree. Malformed dates are rejected instead of silently returning everything.
+- [x] **CSV export:** by student category (Active / Graduates-Alumni / Others / All) and of the filtered document report. Written by hand rather than via a dependency — it escapes commas, quotes and newlines, neutralises spreadsheet formula injection (`=`, `+`, `-`, `@`), and emits a UTF-8 BOM so accented names open correctly in Excel.
+- [x] **Efficiency analytics:** turnaround per desk, end-to-end completion time, throughput trend, and workload per staff member — all derived from the `step_logs` audit trail. On current data this identifies **Secretary Evaluation as the bottleneck**. Per-clerk figures are deliberately presented as workload distribution, not a performance ranking.
+- [x] **Indexes** added on `step_logs.timestamp_started`, `step_logs.action_taken`, `documents.current_status` and `documents.created_at` to keep reporting responsive.
+- [x] **Tests:** 407 total (286 backend + 121 frontend), up from 284. Zero lint errors and warnings.
+
+### Phase 13: Production Rollout Checklist
 **Status:** In Progress
 - [ ] **Rotate BOTH leaked secrets:** (a) `JWT_SECRET` — the value in `.env` is identical to the placeholder committed in git history since the first commit, so anyone with repo access can forge a token for any account including admins; (b) the UniSMS API key, also previously hardcoded. Generate a new JWT secret with `node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"`. Rotating the JWT secret logs everyone out, which is expected.
 - [ ] **Seed Per-College Secretaries:** `seed.sql` creates only `SEC001` (course `NULL`) while the README documents `SEC-CCS001` … `SEC-CBA001`. College-based queue filtering can't be demonstrated until these exist.

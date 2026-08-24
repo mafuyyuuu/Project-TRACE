@@ -381,8 +381,18 @@ frontend/src/
     </div>
 
     <div class="callout spec">
+      <span class="label">Deletion Is Deactivation</span>
+      <p>No maintenance endpoint hard-deletes. Documents reference document types by name and users reference colleges by name, so removing a row would orphan historical records in a system of record. <code>is_active</code> hides an entry from new requests while leaving history intact and restorable. A document type already in use cannot be renamed, and an admin cannot deactivate their own account.</p>
+    </div>
+
+    <div class="callout spec">
+      <span class="label">Reporting &amp; Export</span>
+      <p>The report rows, their summary totals and the CSV export share a single filter object, so what is exported always matches what is on screen. <code>utils/csv.js</code> is written by hand: it escapes commas, quotes and newlines, neutralises spreadsheet formula injection, and the response carries a UTF-8 BOM so Excel renders accented names correctly. Efficiency analytics derive entirely from the <code>step_logs</code> audit trail; per-clerk figures are reported as workload distribution, never as a performance score.</p>
+    </div>
+
+    <div class="callout spec">
       <span class="label">Testing</span>
-      <p>Vitest runs per package: <code>cd backend &amp;&amp; npm test</code> and <code>cd frontend &amp;&amp; npm test</code> (284 tests, no database needed — the model layer is mocked). Backend tests must use the <code>.cjs</code> extension: the source is CommonJS, and only a CJS test shares Node's require cache with it, which is what makes the model spies actually intercept. <code>node backend/audit.js</code> runs a live end-to-end audit through all five desks.</p>
+      <p>Vitest runs per package: <code>cd backend &amp;&amp; npm test</code> and <code>cd frontend &amp;&amp; npm test</code> (407 tests, no database needed — the model layer is mocked). Backend tests must use the <code>.cjs</code> extension: the source is CommonJS, and only a CJS test shares Node's require cache with it, which is what makes the model spies actually intercept. <code>node backend/audit.js</code> runs a live end-to-end audit through all five desks.</p>
     </div>
 
     <div class="callout spec">
@@ -457,7 +467,20 @@ frontend/src/
       </li>
 
       <li>
-        <h3>Phase 7: Production Rollout (Pending)</h3>
+        <h3>Phase 7: Panel Feedback &mdash; Category 2 (Admin Maintenance &amp; Analytics)</h3>
+        <p class="phase-goal">Second of four categories from the panel's defense feedback.</p>
+        <ul>
+          <li>Admin CRUD for Staff, Document Types and Colleges, where deletion is always a reversible deactivation.</li>
+          <li>Staff accounts issued with a single-use temporary password the user must replace at first login.</li>
+          <li>Report generation filtered by date range, status, document type and payment, with matching CSV export.</li>
+          <li>Student CSV export by category: Active, Graduates/Alumni, and Others (dropouts and transferees).</li>
+          <li>Efficiency analytics &mdash; turnaround per desk, end-to-end completion, throughput and staff workload &mdash; all derived from the audit trail.</li>
+          <li>407 automated tests; zero lint errors.</li>
+        </ul>
+      </li>
+
+      <li>
+        <h3>Phase 8: Production Rollout (Pending)</h3>
         <p class="phase-goal">Take the system live. The remaining work before deployment.</p>
         <ul>
           <li><strong>Rotate the UniSMS API key</strong> — it remains exposed in git history even though it is gone from the source.</li>

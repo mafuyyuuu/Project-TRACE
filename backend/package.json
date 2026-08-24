@@ -1,7 +1,7 @@
 {
   "name": "backend",
   "version": "1.0.0",
-  "description": "TRACE Backend API \u2014 Node.js Express server for PLP Registrar",
+  "description": "TRACE Backend API — Node.js Express server for PLP Registrar",
   "main": "src/server.js",
   "scripts": {
     "start": "node src/server.js",
@@ -24,7 +24,8 @@
     "jsonwebtoken": "^9.0.3",
     "multer": "^2.2.0",
     "mysql2": "^3.22.5",
-    "nodemailer": "^9.0.3"
+    "nodemailer": "^9.0.3",
+    "socket.io": "^4.8.3"
   },
   "devDependencies": {
     "nodemon": "^3.1.14",

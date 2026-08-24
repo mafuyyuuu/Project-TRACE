@@ -35,4 +35,27 @@ async function listDocumentTypes({ includeInactive = false } = {}) {
   };
 }
 
-module.exports = { listColleges, listDocumentTypes };
+/**
+ * Payment methods a student may choose at checkout, with the per-method
+ * instructions and reference label the UI renders.
+ */
+async function listPaymentMethods({ includeInactive = false } = {}) {
+  const rows = await referenceModel.listPaymentMethods({ includeInactive });
+  return {
+    payment_methods: rows.map((row) => ({
+      id: row.id,
+      code: row.code,
+      name: row.name,
+      provider: row.provider,
+      instructions: row.instructions,
+      requires_reference: Boolean(row.requires_reference),
+      reference_label: row.reference_label,
+      requires_proof: Boolean(row.requires_proof),
+      is_active: Boolean(row.is_active),
+      // Only GCash has an on-screen QR to scan.
+      show_qr: row.code === 'gcash',
+    })),
+  };
+}
+
+module.exports = { listColleges, listDocumentTypes, listPaymentMethods };

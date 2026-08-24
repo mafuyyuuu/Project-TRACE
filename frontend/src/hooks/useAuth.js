@@ -79,7 +79,20 @@ export function useAuth() {
     }
   };
 
-  return { user, loading, error, login, logout, register };
+  /**
+   * Patch the cached user after a profile change (e.g. clearing
+   * `must_change_password` once the user has chosen their own password), so the
+   * UI updates without a round-trip or a reload.
+   */
+  const updateCachedUser = (patch) => {
+    setUser((current) => {
+      const next = { ...current, ...patch };
+      localStorage.setItem('trace_user', JSON.stringify(next));
+      return next;
+    });
+  };
+
+  return { user, loading, error, login, logout, register, updateCachedUser };
 }
 
 export default useAuth;

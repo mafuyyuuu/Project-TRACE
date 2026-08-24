@@ -149,7 +149,35 @@ function countUsersInCollege(name, executor = pool) {
     .then(([rows]) => rows[0].n);
 }
 
+// ---------------------------------------------------------------------------
+// Payment methods
+// ---------------------------------------------------------------------------
+
+function listPaymentMethods({ includeInactive = false } = {}, executor = pool) {
+  const where = includeInactive ? '' : ' WHERE is_active = TRUE';
+  return executor
+    .query(
+      `SELECT id, code, name, provider, instructions, requires_reference,
+              reference_label, requires_proof, is_active, sort_order
+       FROM payment_methods${where} ORDER BY sort_order, name`
+    )
+    .then(([rows]) => rows);
+}
+
+function findPaymentMethodByCode(code, executor = pool) {
+  return executor
+    .query('SELECT * FROM payment_methods WHERE code = ?', [code])
+    .then(([rows]) => rows);
+}
+
+function setPaymentMethodActive(id, isActive, executor = pool) {
+  return executor.query('UPDATE payment_methods SET is_active = ? WHERE id = ?', [isActive, id]);
+}
+
 module.exports = {
+  listPaymentMethods,
+  findPaymentMethodByCode,
+  setPaymentMethodActive,
   createCollege,
   updateCollege,
   setCollegeActive,

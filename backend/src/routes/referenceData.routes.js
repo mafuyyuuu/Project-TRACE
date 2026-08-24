@@ -8,5 +8,6 @@ const router = express.Router();
 // one read is deliberately public. Everything else requires a session.
 router.get('/colleges', referenceController.getColleges);
 router.get('/document-types', authenticate, referenceController.getDocumentTypes);
+router.get('/payment-methods', authenticate, referenceController.getPaymentMethods);
 
 module.exports = router;

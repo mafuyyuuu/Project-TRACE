@@ -6,6 +6,7 @@ const aiEngine = require('./aiEngine.service');
 const n8n = require('./n8n.service');
 const notifications = require('./notification.service');
 const referenceModel = require('../models/referenceData.model');
+const { getProvider } = require('./payment');
 const { badRequest, forbidden, notFound } = require('../utils/AppError');
 const {
   generateTrackingNumber,
@@ -526,14 +527,7 @@ async function processAction(user, documentId, action) {
  * student could attach a receipt to somebody else's request and push it into
  * the Finance queue on their behalf.
  */
-async function submitPayment(user, documentId, { gcash_reference_no }, file) {
-  if (!gcash_reference_no) {
-    throw badRequest('GCash Reference Number is required.');
-  }
-  if (!file) {
-    throw badRequest('Receipt image file upload is required.');
-  }
-
+async function submitPayment(user, documentId, { gcash_reference_no, payment_method }, file) {
   const docs = await documentModel.findById(documentId);
   if (docs.length === 0) {
     throw notFound('Document request not found.');
@@ -551,6 +545,21 @@ async function submitPayment(user, documentId, { gcash_reference_no }, file) {
     throw badRequest('This request is not awaiting payment.');
   }
 
+  // Which method the student used. Defaults to GCash so older clients that
+  // don't send one keep working.
+  const methodCode = payment_method || 'gcash';
+  const methodRows = await referenceModel.findPaymentMethodByCode(methodCode);
+  if (!methodRows.length || !methodRows[0].is_active) {
+    throw badRequest('That payment method is not available.');
+  }
+  const method = methodRows[0];
+
+  // Each provider decides what proof it needs. Today every method verifies
+  // manually against Finance's records; a hosted gateway would validate
+  // differently without changing this call site.
+  const provider = getProvider(method);
+  const { reference } = provider.validateSubmission(method, { reference: gcash_reference_no, file });
+
   // One receipt settles every document requested together, so the update and
   // the audit trail cover the whole group rather than the single row clicked.
   const groupId = doc.request_group_id || doc.tracking_number;
@@ -558,8 +567,9 @@ async function submitPayment(user, documentId, { gcash_reference_no }, file) {
 
   const [result] = await documentModel.updatePaymentSubmissionForGroup(
     groupId,
-    gcash_reference_no,
-    receiptPath
+    reference,
+    receiptPath,
+    methodCode
   );
 
   if (result.affectedRows === 0) {
@@ -574,7 +584,7 @@ async function submitPayment(user, documentId, { gcash_reference_no }, file) {
       action_taken: 'payment_submitted',
       from_status: 'pending_payment',
       to_status: 'pending_payment_verification',
-      notes: `Payment reference ${gcash_reference_no} submitted by student.`,
+      notes: `${method.name} payment reference ${reference} submitted by student.`,
     });
   }
 
@@ -582,7 +592,7 @@ async function submitPayment(user, documentId, { gcash_reference_no }, file) {
   const countLabel = result.affectedRows > 1 ? `${result.affectedRows} documents` : 'a document';
   await notifications.notifyInAppBulk(financeClerks, {
     title: 'New Payment Submission',
-    message: `Student submitted payment (Ref: ${gcash_reference_no}) for ${countLabel} awaiting verification.`,
+    message: `Student submitted a ${method.name} payment (Ref: ${reference}) for ${countLabel} awaiting verification.`,
     type: 'info',
   });
 

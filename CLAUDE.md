@@ -157,6 +157,13 @@ Single-file endpoints in `app.py`, OCR logic isolated in `ocr_engine.py`:
 
 The exact math (CRAFT/CRNN/CTC for OCR, Prophet's additive model, Gini-split Random Forest) with worked examples is documented in `docs/ALGORITHM_COMPUTATION.md` — read that before modifying model behavior rather than re-deriving it.
 
+### Admin maintenance, reporting & analytics
+`/api/maintenance/*` (admin-only CRUD for staff, document types, colleges), `/api/reports/documents`, `/api/reports/analytics`, and two CSV export routes.
+
+**Deletion is always deactivation** (`PATCH .../active` toggling `is_active`) — documents and users reference these by name, so a hard delete would orphan history. A document type already in use cannot be renamed; an admin cannot deactivate their own account. Staff are created with a temporary password plus `must_change_password`, which clears when they set their own.
+
+Reporting filters, summary totals and CSV exports all share one filter object. `utils/csv.js` is hand-written and handles quoting plus spreadsheet formula injection. Analytics come from `step_logs` only; per-clerk figures are workload, never a ranking.
+
 ### Reference data & configurable forms
 Document types, colleges, and the Graduate Application's fields are **database rows, not code**: `document_types` (with admin-editable `base_fee` and a `fee_rule` selecting the calculation), `colleges`, and `grad_form_fields`. The graduate form's validation is generated from its field definitions, so adding a question needs no migration and no code change. Don't reintroduce a hardcoded `<option>` list.
 

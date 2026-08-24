@@ -3,7 +3,7 @@ Tracking, Routing, and Automated Credential Engine for the PLP Registrar.
 
 This repository contains the complete end-to-end system for tracking and auto-routing document flows, featuring a **manual GCash receipt payment verification pipeline** to comply with school accounting requirements.
 
-> **Current Phase:** 🟢 Panel Feedback — Category 1 Complete (Phase 12: Production Rollout Pending). The frontend is fully wired to live AI APIs, machine learning forecasts, and SMS notifications, and the codebase now follows the layered structure documented in [`docs/CODING_PREFERENCES.md`](docs/CODING_PREFERENCES.md).
+> **Current Phase:** 🟢 Panel Feedback — Categories 1 & 2 Complete (Phase 13: Production Rollout Pending). The frontend is fully wired to live AI APIs, machine learning forecasts, and SMS notifications, and the codebase now follows the layered structure documented in [`docs/CODING_PREFERENCES.md`](docs/CODING_PREFERENCES.md).
 
 ---
 

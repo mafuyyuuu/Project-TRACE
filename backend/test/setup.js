@@ -13,9 +13,11 @@ process.env.WEBHOOK_SECRET = 'test-webhook-secret-not-a-real-key';
 process.env.UNISMS_SECRET_KEY = 'test-unisms-key';
 process.env.UNISMS_SENDER_ID = 'TRACE';
 process.env.TEST_PHONE_NUMBER = '';
-process.env.SMTP_HOST = 'localhost';
-process.env.SMTP_USER = 'test';
-process.env.SMTP_PASS = 'test';
+// Deliberately left unset: tests assert the "email not configured" path, which
+// is also the real default until SMTP credentials are supplied.
+process.env.SMTP_HOST = '';
+process.env.SMTP_USER = '';
+process.env.SMTP_PASS = '';
 process.env.DB_HOST = '127.0.0.1';
 process.env.DB_USER = 'test';
 process.env.DB_PASSWORD = 'test';
