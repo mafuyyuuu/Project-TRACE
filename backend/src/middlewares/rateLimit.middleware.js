@@ -28,6 +28,19 @@ const registerLimiter = rateLimit({
   message: { error: 'Too many registration attempts. Please try again later.' },
 });
 
+/**
+ * Password reset requests send an email to an address the requester does not
+ * have to prove they control, so an unthrottled endpoint is a free relay for
+ * mail-bombing any registered user. Keyed by IP, like the other limiters.
+ */
+const passwordResetLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, // 1 hour
+  limit: 10,
+  standardHeaders: 'draft-7',
+  legacyHeaders: false,
+  message: { error: 'Too many password reset requests. Please try again later.' },
+});
+
 /** Broad backstop for the rest of the API. Generous enough not to affect normal use. */
 const apiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
@@ -37,4 +50,4 @@ const apiLimiter = rateLimit({
   message: { error: 'Too many requests. Please slow down.' },
 });
 
-module.exports = { loginLimiter, registerLimiter, apiLimiter };
+module.exports = { loginLimiter, registerLimiter, passwordResetLimiter, apiLimiter };

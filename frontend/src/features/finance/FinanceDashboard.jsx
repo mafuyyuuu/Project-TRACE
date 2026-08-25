@@ -23,6 +23,7 @@ export default function FinanceDashboard({ user, setViewImageUrl }) {
     selectedDoc,
     setSelectedDoc,
     handleFinanceVerify,
+    triggerNotification,
   } = useFinanceDashboard(user);
 
   const todayFormatted = todayLongDate();
@@ -109,6 +110,7 @@ export default function FinanceDashboard({ user, setViewImageUrl }) {
             handleFinanceVerify={handleFinanceVerify}
             actionLoading={actionLoading}
             setViewImageUrl={setViewImageUrl}
+            triggerNotification={triggerNotification}
             clerkNotes={clerkNotes}
             setClerkNotes={setClerkNotes}
           />

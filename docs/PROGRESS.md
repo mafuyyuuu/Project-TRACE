@@ -2,17 +2,31 @@
 
 This document tracks the current development and implementation progress of the Project TRACE system.
 
-## Overall Status: 🟢 Panel Feedback — All Four Categories Complete (Phase 15: Production Rollout Pending)
+## Overall Status: 🟢 Pre-Deployment Refinement Complete (Phase 16) — Phase 15 Production Rollout in progress
 
 ### 📍 Next Steps for Phase 15 (Production Rollout)
-The system is feature-complete locally and the codebase now follows the strict layered architecture (see `CODING_PREFERENCES.md`). The next immediate steps are taking the servers live:
-1. **Rotate the two leaked secrets.** Both were hardcoded as `||` fallback defaults and remain in git history even though they are gone from the source:
-   - **`JWT_SECRET` (critical).** The value currently in `.env` is byte-identical to the placeholder `trace-jwt-secret-change-in-production`, committed since the very first commit. Because it signs every auth token, anyone with repo access can forge a login for any account — including `ADMIN001`. Generate a replacement with `node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"`. Rotating it invalidates existing tokens, so everyone simply logs in again.
-   - **UniSMS API key.** Rotate it in the UniSMS dashboard.
-2. **Fix secretary seed drift.** `seed.sql` only creates a single `SEC001` (with `course = NULL`), while the README documents seven per-college logins (`SEC-CCS001` … `SEC-CBA001`). College-based queue filtering cannot be demonstrated locally until those rows exist.
-3. **Forgot Password Flow:** Implement the full JWT reset token email flow in `src/services/auth.service.js` and build the `/reset-password` frontend route.
-4. **Cloud Deployment:** Build the Vite frontend for Vercel/Netlify, containerize the Flask AI Engine, and deploy the Node.js API to a cloud host (e.g., Render, Railway, AWS).
-5. **Database Migration:** Migrate the local MySQL database to a managed cloud database (e.g., PlanetScale, AWS RDS).
+Phase 16 closed the application-level gaps that a deployment would otherwise have baked in. What
+remains is infrastructure, plus one credential the maintainer must rotate personally:
+
+1. **Rotate the UniSMS API key.** It was hardcoded as a `||` fallback default and remains in git
+   history even though it is gone from the source. (`JWT_SECRET` — the more serious of the two, since
+   it signs every auth token — **has been rotated**.)
+2. **Configure SMTP.** `backend/.env` has commented `SMTP_*` placeholders; email stays disabled until
+   they are filled in (a Gmail App Password, not an account password). Password-reset links are
+   logged to the server console until then, so the flow is testable without it.
+3. **Production API URL for the frontend.** `services/api.js` uses `baseURL: '/api'` and
+   `realtimeService.js` calls `io()` with no URL — both work only through the Vite dev proxy, which
+   does not exist in a `vite build`. Either serve the built frontend same-origin behind a reverse
+   proxy, or introduce a `VITE_API_URL` (baked in at build time).
+4. **Persistent uploads.** `backend/uploads/` is container-local disk and the directory is never
+   created at boot, so a fresh container fails its first upload with `ENOENT`. Needs a mounted volume
+   or object storage.
+5. **Managed-database TLS.** `config/db.js` passes no `ssl` option; most managed MySQL will refuse
+   the connection outright.
+6. **Harden the AI engine for serving.** `ai-engine/app.py` runs the Werkzeug dev server and defaults
+   to `debug=True` when `FLASK_ENV` is unset; EasyOCR also downloads ~100 MB of models at import, so
+   the models should be baked into the image rather than fetched on first boot.
+7. **Dockerization & cloud deployment**, then migrating MySQL to a managed instance.
 
 ---
 
@@ -153,20 +167,76 @@ The system is feature-complete locally and the codebase now follows the strict l
 
 ### Phase 15: Production Rollout Checklist
 **Status:** In Progress
-- [ ] **Rotate BOTH leaked secrets:** (a) `JWT_SECRET` — the value in `.env` is identical to the placeholder committed in git history since the first commit, so anyone with repo access can forge a token for any account including admins; (b) the UniSMS API key, also previously hardcoded. Generate a new JWT secret with `node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"`. Rotating the JWT secret logs everyone out, which is expected.
-- [ ] **Seed Per-College Secretaries:** `seed.sql` creates only `SEC001` (course `NULL`) while the README documents `SEC-CCS001` … `SEC-CBA001`. College-based queue filtering can't be demonstrated until these exist.
-- [ ] **Forgot Password Recovery:** Complete the email-based token reset flow.
-- [ ] **Dockerization:** Create Dockerfiles for Frontend, Backend, and AI Engine.
-- [ ] **Database Connection Pool Load Testing:** Conduct final load checks to ensure pooled connections release cleanly during high-volume spikes.
+- [x] **Rotate `JWT_SECRET`** — done. The old value was identical to a placeholder public in git history since the first commit, which made every auth token forgeable.
+- [x] ~~**Seed Per-College Secretaries**~~ — resolved. `seed.sql` now creates all seven (`SEC-CCS001` … `SEC-CBA001`) and the `course = NULL` legacy `SEC001` is gone from the seeds.
+- [x] **Forgot Password Recovery** — delivered in Phase 16 below.
+- [ ] **Rotate the UniSMS API key** in the UniSMS dashboard; it is still in git history.
+- [ ] **Configure SMTP** so reset links and student alerts actually send.
+- [ ] **Production API URL for the frontend** — the built SPA has no way to reach the backend without the Vite dev proxy.
+- [ ] **Persistent uploads** — container-local disk today; the directory is not even created at boot.
+- [ ] **Managed-database TLS** — `config/db.js` passes no `ssl` option.
+- [ ] **Dockerization:** Create Dockerfiles for Frontend, Backend, and AI Engine (none exist yet), and serve Flask under a WSGI server instead of the Werkzeug dev server.
+- [ ] **Database Connection Pool Load Testing:** Conduct final load checks to ensure pooled connections release cleanly during high-volume spikes. `connectionLimit` is a hardcoded 10 with an unbounded queue.
 - [ ] **Cloud Deployment:** Host Frontend, Backend, and Flask AI microservices.
+
+### Phase 16: Pre-Deployment Refinement
+**Status:** Complete
+*Closing the application-level gaps before infrastructure work begins — a promised feature that did
+not exist, an orchestration feature that had been silently dead for a month, a live crash, and
+documentation that contradicted both the code and itself.*
+- [x] **Forgot-password recovery.** `LoginPage` had a `<Link to="#">` and nothing behind it. Now a
+  full flow: `POST /api/auth/forgot-password` accepts a student ID **or** an email and **always
+  answers identically** whether or not the account exists, so it cannot be used to enumerate
+  registered accounts (verified live — the two responses are byte-identical). Tokens are 32 random
+  bytes stored **only as a SHA-256 hash**, so a database dump yields no usable links.
+- [x] **Single-use, not just short-lived.** A JWT reset token — which the earlier plan called for —
+  can be replayed until it expires, even after the password has already changed. `password_resets`
+  records `used_at`, and `findUsableByTokenHash` filters used *and* expired rows **in SQL**, so a
+  wrong clock on the app server cannot extend a token's life. Verified end to end: reset succeeds,
+  the same token is refused on reuse (400), the old password stops working (401), the new one works.
+- [x] **Testable without SMTP.** Email is optional configuration, so an unconfigured channel logs the
+  reset link to the server console rather than failing silently — the same "skip with a stated
+  reason" pattern the other notification channels use.
+- [x] **n8n routing repaired.** `routing-workflow.json` was last touched 2026-07-11 and had **three**
+  independent breakages: it posted to port **3000** after the backend moved to 3300, it sent no
+  `x-webhook-secret` (added later, so every call was 401), and it hardcoded a clerk `SEC001` that no
+  longer exists. Nothing surfaced because the client swallows errors and the queues filtered on
+  `current_status` alone. The URL and secret now come from n8n environment variables so a port change
+  cannot silently re-break it.
+- [x] **Routing made load-bearing.** The webhook payload now carries `college_code`, so the workflow
+  can resolve the correct `SEC-<code>001` secretary instead of one hardcoded clerk, and
+  `assigned_clerk_id` genuinely affects the Secretary queue — verified live: after routing, the
+  target secretary sees the document and another college's secretary does not. Two deliberate limits
+  keep it safe: an **unassigned** document still falls back to the college filter (old vs new SQL
+  return identical counts on the live 10,015-row dataset), and an assignment to a **non-Secretary**
+  desk is ignored there, since the workflow also routes TOR/Diploma to Window 1 at intake.
+- [x] **Finance modal crash fixed.** `FinanceVerificationModal` called `triggerNotification` when a
+  clerk picked a receipt over 5 MB, but `FinanceDashboard` never passed it — a `TypeError`, not a
+  cosmetic gap. The regression test was confirmed to reproduce the original error before the fix.
+- [x] **Health check tells the truth.** The server deliberately boots without a database, but
+  `/api/health` never touched one, so it answered **200 with a dead database** — an orchestrator would
+  call a broken container healthy. It now runs `SELECT 1` and returns **503** with the reason
+  (verified against an unreachable database), and sits above the rate limiter so probes are never
+  throttled.
+- [x] **CORS tightened.** `app.js` used a bare `cors()` and Socket.IO reflected **any** origin *with
+  credentials*, which would let any website open an authenticated socket. Both now share one
+  `FRONTEND_URL`-driven allowlist that stays permissive in development.
+- [x] **Legacy code deleted.** `payments.service.js` (PayMongo-style webhook + `simulate-payment`),
+  its controller and its routes — unreachable from the frontend and superseded by the manual GCash
+  flow. It also self-called `http://localhost:${PORT}`, which breaks behind any load balancer.
+- [x] **Documentation reconciled.** `CLAUDE.md` claimed `POST /api/documents/assign` was
+  "deliberately unauthenticated" while `BACKEND_GUIDE.md` correctly documented its webhook secret;
+  the dev spec cited 438 tests in one section and 483 in another; the README still said Category 4
+  was outstanding. All corrected.
+- [x] **Tests:** 514 total (339 backend + 175 frontend), up from 483. Zero ESLint errors.
 
 ---
 
 ## Known Issues (Pre-existing, surfaced during the Phase 8 audit)
 These predate the restructure and remain open:
 * ~~Secretary seed drift~~ — **resolved.** `migration.js` seeds all seven per-college secretaries; they now exist. A stale `SEC001` with a `NULL` course remains and sees every college's queue, so consider removing it.
-* **Unpassed modal props:** `NewRequestModal` declares `deliveryMethod`/`setDeliveryMethod` and `FinanceVerificationModal` declares `triggerNotification`, but no parent ever passed them — they are `undefined` at runtime.
-* **Unused legacy payments route:** `src/services/payments.service.js` (PayMongo-style webhook + `simulate-payment`) is not called by the frontend at all; it is superseded by the manual GCash flow.
+* ~~**Unpassed modal props**~~ — **resolved.** `deliveryMethod`/`setDeliveryMethod` no longer exist on `NewRequestModal`, and `FinanceVerificationModal`'s `triggerNotification` is now passed by `FinanceDashboard` (Phase 16). The latter was a live crash, not just an unused prop.
+* ~~**Unused legacy payments route**~~ — **resolved.** `payments.service.js`, its controller and its routes were deleted in Phase 16.
 
 ---
 

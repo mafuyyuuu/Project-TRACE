@@ -1,3 +1,4 @@
+const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
 const bcrypt = require('bcryptjs');
@@ -5,7 +6,9 @@ const jwt = require('jsonwebtoken');
 const env = require('../config/env');
 const userModel = require('../models/user.model');
 const notificationModel = require('../models/notification.model');
+const passwordResetModel = require('../models/passwordReset.model');
 const aiEngine = require('./aiEngine.service');
+const notifications = require('./notification.service');
 const { UPLOAD_DIR } = require('../middlewares/upload.middleware');
 const { badRequest, unauthorized, forbidden, notFound } = require('../utils/AppError');
 
@@ -227,6 +230,115 @@ async function markNotificationsRead(userId) {
   return { message: 'Notifications marked as read.' };
 }
 
+// ---------------------------------------------------------------------------
+// Password recovery
+// ---------------------------------------------------------------------------
+
+/** How long an emailed reset link stays usable. */
+const RESET_TOKEN_TTL_MS = 60 * 60 * 1000; // 1 hour
+
+/** Tokens are stored hashed, so this is the only way back to a stored row. */
+function hashResetToken(token) {
+  return crypto.createHash('sha256').update(token).digest('hex');
+}
+
+/**
+ * Begin a password reset.
+ *
+ * Always resolves the same way whether or not the account exists — otherwise
+ * the endpoint becomes an oracle for which student IDs and emails are
+ * registered. The caller is told "if the account exists, a link has been sent"
+ * in every case.
+ */
+async function requestPasswordReset({ identifier }) {
+  if (!identifier || !String(identifier).trim()) {
+    throw badRequest('Enter your Student ID / Staff ID or your email address.');
+  }
+
+  const generic = {
+    message:
+      'If that account exists, a password reset link has been sent to its registered email address.',
+  };
+
+  const rows = await userModel.findActiveByStudentIdOrEmail(String(identifier).trim());
+  if (rows.length === 0) return generic;
+
+  const user = rows[0];
+
+  // No email on file means there is nowhere to send the link. Silently stop:
+  // saying so out loud would leak that the account exists.
+  if (!user.email) return generic;
+
+  // Only the newest link should work, so retire any earlier outstanding ones.
+  await passwordResetModel.invalidateAllForUser(user.id);
+
+  const token = crypto.randomBytes(32).toString('hex');
+  await passwordResetModel.create({
+    user_id: user.id,
+    token_hash: hashResetToken(token),
+    expires_at: new Date(Date.now() + RESET_TOKEN_TTL_MS),
+  });
+
+  const base = (env.FRONTEND_URL.split(',')[0] || '').trim() || 'http://localhost:5273';
+  const link = `${base.replace(/\/$/, '')}/reset-password?token=${token}`;
+
+  const sent = await notifications.sendEmail(
+    user.email,
+    'Password reset request',
+    `Hi ${user.full_name ? user.full_name.split(',')[0] : 'there'},\n\n` +
+      `A password reset was requested for ${user.student_id}. Open the link below within the hour to choose a new password:\n\n` +
+      `${link}\n\n` +
+      `If you did not request this, you can ignore this email — your password will not change.`
+  );
+
+  // Email is optional configuration (see notification.service.js). Without it
+  // the flow would be untestable, so surface the link on the server console
+  // rather than failing silently — matching how every other channel here
+  // reports being unconfigured instead of erroring opaquely.
+  if (!sent.ok) {
+    console.warn(
+      `⚠️  [Password reset] Email not delivered (${sent.reason}).\n` +
+        `   Reset link for ${user.student_id}: ${link}`
+    );
+  }
+
+  return generic;
+}
+
+/**
+ * Complete a password reset.
+ *
+ * The token is single-use and time-limited, both enforced in SQL. A successful
+ * reset also retires the user's other outstanding tokens, so an older link
+ * still sitting in an inbox cannot be used to take the account back.
+ */
+async function resetPassword({ token, password }) {
+  if (!token || !password) {
+    throw badRequest('A reset token and a new password are required.');
+  }
+  if (String(password).length < 8) {
+    throw badRequest('Password must be at least 8 characters.');
+  }
+
+  const rows = await passwordResetModel.findUsableByTokenHash(hashResetToken(String(token)));
+  if (rows.length === 0) {
+    throw badRequest('This reset link is invalid or has expired. Please request a new one.');
+  }
+
+  const reset = rows[0];
+  const password_hash = await bcrypt.hash(password, 10);
+
+  await userModel.updateProfile(reset.user_id, {
+    password_hash,
+    // Choosing a password satisfies any pending forced-change requirement.
+    must_change_password: false,
+  });
+  await passwordResetModel.markUsed(reset.id);
+  await passwordResetModel.invalidateAllForUser(reset.user_id);
+
+  return { message: 'Password updated. You can now sign in with your new password.' };
+}
+
 module.exports = {
   login,
   getCurrentUser,
@@ -237,6 +349,8 @@ module.exports = {
   lookupStudent,
   updateProfile,
   updateProfilePicture,
+  requestPasswordReset,
+  resetPassword,
   listNotifications,
   markNotificationsRead,
 };

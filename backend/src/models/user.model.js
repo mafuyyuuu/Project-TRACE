@@ -82,6 +82,25 @@ async function updateProfile(userId, fields, executor = pool) {
   return true;
 }
 
+/**
+ * Resolve an account from whatever the user typed into the forgot-password
+ * form. Students know their student ID; staff more often reach for their email,
+ * so accepting either avoids a dead end for half the users.
+ *
+ * Inactive accounts are excluded: a deactivated account must not be
+ * recoverable by resetting its password.
+ */
+function findActiveByStudentIdOrEmail(identifier, executor = pool) {
+  return executor
+    .query(
+      `SELECT id, student_id, full_name, email FROM users
+        WHERE (student_id = ? OR email = ?) AND is_active = TRUE
+        LIMIT 1`,
+      [identifier, identifier]
+    )
+    .then(([rows]) => rows);
+}
+
 function findStudentIdById(userId, executor = pool) {
   return executor
     .query('SELECT student_id FROM users WHERE id = ?', [userId])
@@ -231,6 +250,7 @@ module.exports = {
   listAllUsers,
   findStudentBasicInfo,
   updateProfile,
+  findActiveByStudentIdOrEmail,
   findStudentIdById,
   findCourseById,
   findFinanceClerks,

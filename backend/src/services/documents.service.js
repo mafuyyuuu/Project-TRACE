@@ -179,6 +179,23 @@ async function uploadDocument(user, body, files) {
     connection.release();
   }
 
+  // Resolve the student's college once for the whole group. n8n routes on the
+  // short code (CCS, CON, …), which maps directly onto the SEC-<code>001
+  // secretary accounts; a student with no course simply routes to the fallback.
+  let course = null;
+  let collegeCode = null;
+  try {
+    const courseRows = await userModel.findStudentCourseByStudentId(student_id);
+    course = courseRows[0]?.course || null;
+    if (course) {
+      const collegeRows = await referenceModel.findCollegeByName(course);
+      collegeCode = collegeRows[0]?.short_code || null;
+    }
+  } catch (err) {
+    // Routing metadata is best-effort: never fail a committed request over it.
+    console.warn('⚠️ Could not resolve college for routing:', err.message);
+  }
+
   // Best-effort post-commit work, per document that actually carried a file.
   for (const entry of created) {
     if (entry.attachment) {
@@ -189,6 +206,8 @@ async function uploadDocument(user, body, files) {
       tracking_number: entry.trackingNumber,
       document_type: entry.item.document_type,
       student_id,
+      course,
+      college_code: collegeCode,
     });
   }
 
@@ -288,9 +307,34 @@ async function listDocuments(user, query) {
       conditions.push('current_status = "pending_payment_verification"');
     } else if (desk === 'Secretary') {
       conditions.push('current_status IN ("pending_secretary", "ready_window_1", "completed", "released")');
+
+      // College segregation, plus n8n's routing decision layered on top.
+      //
+      // A document explicitly assigned to this secretary always shows, and one
+      // assigned to a *different* secretary is hidden — that is what makes the
+      // n8n routing decision load-bearing rather than decorative.
+      //
+      // Two deliberate limits. Unassigned documents fall back to the college
+      // filter, so the ~10,000 records that predate routing (and anything
+      // filed while n8n is stopped) stay visible. And an assignment to a
+      // non-Secretary desk is ignored here, because the workflow also routes
+      // TOR/Diploma to Window 1 at intake — honouring that would delete those
+      // documents from the secretary queue they still have to pass through.
       const secUser = await userModel.findCourseById(user.id);
-      if (secUser.length > 0 && secUser[0].course) {
-        conditions.push('student_id IN (SELECT student_id FROM users WHERE course = ?)');
+      const collegeSql =
+        secUser.length > 0 && secUser[0].course
+          ? 'student_id IN (SELECT student_id FROM users WHERE course = ?)'
+          : '1 = 1';
+
+      conditions.push(
+        `(assigned_clerk_id = ?
+          OR (${collegeSql}
+              AND (assigned_clerk_id IS NULL
+                   OR assigned_clerk_id NOT IN
+                      (SELECT id FROM users WHERE desk_assignment = 'Secretary'))))`
+      );
+      params.push(user.id);
+      if (collegeSql !== '1 = 1') {
         params.push(secUser[0].course);
       }
     }

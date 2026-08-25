@@ -59,11 +59,21 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "http://host.docker.internal:3000/api/documents/assign",
+        "url": "={{ $env.TRACE_API_URL || 'http://host.docker.internal:3300' }}/api/documents/assign",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\n  \"document_id\": {{ $json.body.document_id }},\n  \"assigned_clerk_employee_id\": \"SEC001\"\n}",
-        "options": {}
+        "jsonBody": "={\n  \"document_id\": {{ $json.body.document_id }},\n  \"assigned_clerk_employee_id\": \"{{ $json.body.college_code ? 'SEC-' + $json.body.college_code + '001' : 'ADMIN001' }}\"\n}",
+        "options": {},
+        "sendHeaders": true,
+        "specifyHeaders": "keypair",
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-webhook-secret",
+              "value": "={{ $env.TRACE_WEBHOOK_SECRET }}"
+            }
+          ]
+        }
       },
       "id": "4568db6b-67e4-4c45-9856-11f81df2f6b8",
       "name": "Assign to College Secretary",
@@ -72,16 +82,27 @@
       "position": [
         740,
         180
-      ]
+      ],
+      "onError": "continueRegularOutput"
     },
     {
       "parameters": {
         "method": "POST",
-        "url": "http://host.docker.internal:3000/api/documents/assign",
+        "url": "={{ $env.TRACE_API_URL || 'http://host.docker.internal:3300' }}/api/documents/assign",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\n  \"document_id\": {{ $json.body.document_id }},\n  \"assigned_clerk_employee_id\": \"WINDOW1001\"\n}",
-        "options": {}
+        "jsonBody": "={\n  \"document_id\": {{ $json.body.document_id }},\n  \"assigned_clerk_employee_id\": \"{{ 'WINDOW1001' }}\"\n}",
+        "options": {},
+        "sendHeaders": true,
+        "specifyHeaders": "keypair",
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-webhook-secret",
+              "value": "={{ $env.TRACE_WEBHOOK_SECRET }}"
+            }
+          ]
+        }
       },
       "id": "1b08f4b1-9b19-4806-a81d-b7c4a046c823",
       "name": "Assign to Window 1",
@@ -90,16 +111,27 @@
       "position": [
         740,
         340
-      ]
+      ],
+      "onError": "continueRegularOutput"
     },
     {
       "parameters": {
         "method": "POST",
-        "url": "http://host.docker.internal:3000/api/documents/assign",
+        "url": "={{ $env.TRACE_API_URL || 'http://host.docker.internal:3300' }}/api/documents/assign",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\n  \"document_id\": {{ $json.body.document_id }},\n  \"assigned_clerk_employee_id\": \"ADMIN001\"\n}",
-        "options": {}
+        "jsonBody": "={\n  \"document_id\": {{ $json.body.document_id }},\n  \"assigned_clerk_employee_id\": \"{{ 'ADMIN001' }}\"\n}",
+        "options": {},
+        "sendHeaders": true,
+        "specifyHeaders": "keypair",
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-webhook-secret",
+              "value": "={{ $env.TRACE_WEBHOOK_SECRET }}"
+            }
+          ]
+        }
       },
       "id": "581d6f4c-e806-4fc7-bf9e-f00e93cd1b24",
       "name": "Assign to Admin (Fallback)",
@@ -108,7 +140,8 @@
       "position": [
         740,
         500
-      ]
+      ],
+      "onError": "continueRegularOutput"
     }
   ],
   "pinData": {},

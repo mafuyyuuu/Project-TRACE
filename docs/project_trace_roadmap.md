@@ -177,12 +177,44 @@ This document serves as the master tracking sheet for Project TRACE. It organize
 
 ---
 
-## 🚀 Phase 12: Production Deployment (Pending)
+## ✅ Phase 12: Pre-Deployment Refinement (Completed)
+*Closing the application-level gaps before infrastructure work — done deliberately first, so a
+deployment would not bake them in.*
+
+* **Password recovery:**
+  * ✅ The login page's "Forgot Password?" link had nothing behind it. Now a full flow, accepting a
+    student ID or an email and **answering identically either way** so it cannot be used to discover
+    which accounts exist.
+  * ✅ Tokens are stored only as a SHA-256 hash and are **single-use** — a plain JWT would stay
+    replayable until expiry even after the password had changed. Verified end to end, including that
+    reusing a spent link is refused.
+  * ✅ Works before SMTP is configured: the link is logged to the server console rather than the
+    request failing silently.
+* **n8n orchestration restored:**
+  * ✅ The workflow had been dead for a month without anyone noticing — wrong port, missing auth
+    header, and a hardcoded secretary account that no longer exists. Its target and secret now come
+    from environment variables so a port change cannot silently break it again.
+  * ✅ Routing is now **load-bearing**: the payload carries the student's college, the workflow picks
+    that college's secretary, and the assignment visibly changes whose queue the document appears in.
+    Unassigned documents still fall back to the college filter, so the ten thousand records that
+    predate routing stay exactly where they were.
+* **Correctness and deployment-readiness fixes:**
+  * ✅ A live crash in the Finance receipt modal, reproduced by a regression test before fixing.
+  * ✅ `/api/health` returned 200 with a dead database; it now reports 503 with the reason.
+  * ✅ CORS tightened from "any origin, with credentials" to one shared, configurable allowlist.
+  * ✅ Legacy PayMongo-era payment code deleted.
+* **Testing:** 514 tests (339 backend, 175 frontend); zero lint errors.
+
+---
+
+## 🚀 Phase 13: Production Deployment (Pending)
 *Taking the system live on external servers.*
 
-* **Rotate the leaked secrets:** `JWT_SECRET` (the `.env` value matches the placeholder that has been in git history since the first commit — it signs every auth token, so it is a full authentication bypass) and the UniSMS API key. Both must be rotated before any deployment.
-* **Seed Per-College Secretaries:** `seed.sql` creates only `SEC001` (course `NULL`); the seven documented `SEC-CCS001` … `SEC-CBA001` accounts must be seeded before college-based routing can be demonstrated.
-* **Forgot Password Flow:** Implement the full JWT reset token email flow in `src/services/auth.service.js` and build the `/reset-password` frontend route.
+* **Rotate the UniSMS API key** — still present in git history. (`JWT_SECRET`, the more serious of
+  the two since it signs every auth token, has already been rotated.)
+* **Configure SMTP** so reset links and student alerts actually leave the building.
+* **Give the built frontend a way to reach the backend:** it currently relies entirely on the Vite
+  dev proxy, which does not exist in a production build.
 * **Frontend:** Build the Vite project (`npm run build`) and serve via Nginx or deploy to Vercel/Netlify.
 * **Backend:** Deploy the Node.js API to a VPS (e.g., DigitalOcean, AWS EC2) or a PaaS (e.g., Render, Railway) using PM2 for process management.
 * **ML/AI Engine:** Deploy the Flask application. *(Note: Because PyTorch/EasyOCR is heavy, this microservice may require a server with adequate RAM or a small GPU for fast inference).*

@@ -91,7 +91,24 @@ The codebase was migrated into a strict layered folder schema. **File paths refe
 
 **Categories 2–4 (done):** Category 2 — admin maintenance CRUD (delete is always deactivation), report filtering, hand-written formula-injection-safe CSV, `step_logs` efficiency analytics. Category 3 — four admin-managed payment methods behind a provider abstraction, Socket.IO real-time notifications with a JWT-authenticated handshake, SMTP placeholders removed. Category 4 — mobile navigation drawer (the sidebar rail is `hidden md:flex`, so phones had none), queue tables capped at `max-h-[60vh]` with sticky headers, and Account Settings redesigned as a profile card with avatar upload through the authenticated `/api/files` route. **All four panel categories are now closed.** 483 tests (318 backend + 165 frontend).
 
-**Open items:** rotate the UniSMS key (still in git history); point the n8n HTTP node at port 3300 with an `x-webhook-secret` header; consider removing the legacy `SEC001` account (no college, so it sees every queue). Production rollout (forgot-password flow, Dockerization, cloud deploy) is the only phase left.
+**Pre-deployment refinement (done):** forgot-password recovery — DB-backed **single-use** tokens
+(`password_resets`, SHA-256 hashed, expiry compared in SQL), an enumeration-resistant
+`forgot-password` that answers identically for real and unknown accounts, and a console-logged link
+while SMTP is unconfigured. n8n routing repaired: the workflow had been dead since 2026-08-22 with
+**three** breakages (port 3000 vs 3300, no `x-webhook-secret`, and a hardcoded `SEC001` that no
+longer exists) — its URL and secret now come from the `TRACE_API_URL` / `TRACE_WEBHOOK_SECRET` n8n
+env vars, and routing is **load-bearing** (payload carries `college_code`; `assigned_clerk_id`
+affects the Secretary queue, with an unassigned fallback to the college filter so the 10,015 legacy
+records stay visible). Also: fixed a live `triggerNotification` TypeError in the Finance modal,
+`/api/health` now does a real DB check and 503s, CORS is a shared `FRONTEND_URL` allowlist for both
+REST and Socket.IO, and legacy `payments.service.js` is deleted. **514 tests** (339 backend + 175
+frontend), zero lint errors.
+
+**Open items:** rotate the UniSMS key (still in git history) and configure SMTP — both are the
+maintainer's to do, not an agent's. `JWT_SECRET` is already rotated. The seven `SEC-*` secretaries
+are now in `seed.sql` and the legacy `SEC001` is gone. Production rollout (Dockerization, a
+production API URL for the built frontend, persistent uploads, managed-DB TLS, cloud deploy) is the
+only phase left.
 
 ---
 

@@ -112,7 +112,21 @@ pending_payment → pending_payment_verification → pending_secretary → ready
 
 Some document types (Honorable Dismissal, Graduation Clearance, Certificate of Good Moral Character) additionally *require* an upload at submission time that EasyOCR must validate before the request proceeds — see `docs/SYSTEM_WORKFLOWS.md` for the per-document AI requirements.
 
-n8n owns the conditional/institutional routing logic (which desk gets which document type) — do not hardcode that routing in Node.js; emit an event/webhook and let `n8n/routing-workflow.json` decide.
+n8n owns the conditional/institutional routing logic (which desk gets which document type) — do not
+hardcode that routing in Node.js; emit an event/webhook and let `n8n/routing-workflow.json` decide.
+The webhook payload carries `college_code` (`colleges.short_code`: CCS, CON, …), which is what lets
+the workflow resolve the right `SEC-<code>001` secretary; without it every document would have to go
+to one hardcoded clerk. The workflow calls back into `POST /api/documents/assign` with the
+`x-webhook-secret` header, and reads its target from the `TRACE_API_URL` / `TRACE_WEBHOOK_SECRET`
+n8n environment variables — do not hardcode the port there again, that is exactly how the workflow
+silently broke for a month after the backend moved to 3300.
+
+The assignment is **load-bearing** for the Secretary queue: a document assigned to a secretary shows
+in that secretary's queue and not in another's. Two deliberate limits in `documents.service.js` keep
+that safe — an **unassigned** document falls back to the college filter (so records predating
+routing, and anything filed while n8n is stopped, stay visible), and an assignment to a
+**non-Secretary** desk is ignored by that queue (the workflow also routes TOR/Diploma to Window 1 at
+intake, which must not delete them from the secretary step they still pass through).
 
 ### One dashboard, five renders
 There is no per-role routing. `frontend/src/pages/DashboardPage.jsx` resolves the user's `role`/`desk_assignment` and renders one of five command centers from `features/`:
@@ -147,8 +161,11 @@ Queue tables scroll inside a `max-h-[60vh]` container with a `sticky top-0 bg-wh
   - `aiEngine.service.js`, `n8n.service.js` — HTTP clients for the Flask engine and the orchestrator; both return `null`/log rather than throw, since those services are optional locally.
 - `models/*.model.js` — raw SQL only. Each function takes an optional `executor` (pool or in-flight transaction connection) so callers can enlist queries in a transaction.
 - `utils/AppError.js` — `badRequest`/`forbidden`/`notFound`/`unauthorized` helpers carrying an HTTP status, so services never touch `res`.
+- `config/cors.js` — one allowlist shared by the REST API and the Socket.IO handshake, driven by `FRONTEND_URL`. Blank means development (origins reflected); set it in any deployment. Never give Socket.IO `origin: true` with `credentials: true` again — that lets any website open an authenticated socket.
 
-Two endpoints are deliberately unauthenticated: `GET /api/documents/:trackingNumber` (public tracking) and `POST /api/documents/assign` (called by n8n).
+`GET /api/health` runs a `SELECT 1` and returns **503** when the database is unreachable. The server deliberately boots without a database, so a liveness-only check would report a completely unusable container as healthy. It is mounted **above** `apiLimiter` so probe traffic never consumes the rate-limit budget.
+
+Three endpoints are deliberately without a user session: `GET /api/documents/:trackingNumber` (public tracking, fully open) and `POST /api/auth/forgot-password` / `POST /api/auth/reset-password` (a user who needs them cannot log in — both are throttled by `passwordResetLimiter`). `POST /api/documents/assign` is **not** open: it is machine-to-machine and requires the shared `WEBHOOK_SECRET` in an `x-webhook-secret` header, constant-time compared in `middlewares/webhookAuth.middleware.js`.
 
 File uploads go through Multer to disk (`backend/uploads/`, gitignored) via `middlewares/upload.middleware.js` before being forwarded to the Flask OCR service — don't hold upload buffers in memory.
 
@@ -170,6 +187,22 @@ Four payment methods live in the admin-managed `payment_methods` table; `src/ser
 
 ### Profile pictures
 `users.profile_picture` holds a filename only; the bytes live in `backend/uploads/` and are read back through the authenticated `/api/files/:filename` route like every other upload — **never a public static path**. `PUT /api/auth/profile/picture` (multipart field `picture`, JPG/PNG/WebP, 2 MB via `profilePictureUpload`) replaces it and deletes the previous file. In `files.service.js` an avatar is resolved on its own branch: only its owner may read it, and the check never falls through to the document/ID-proof rules. A multer `fileFilter` must reject with `badRequest`, not a bare `Error` — the shared error handler maps an unstatused error to 500.
+
+### Password recovery
+`POST /api/auth/forgot-password` (student ID **or** email) always answers with the same generic
+message whether or not the account exists — the endpoint must never become an oracle for which IDs
+are registered. It stores only `sha256(token)` in `password_resets`, so a database dump yields no
+usable links, and issuing a new token retires the account's outstanding ones.
+
+`POST /api/auth/reset-password` consumes the token: `findUsableByTokenHash` filters out used and
+expired rows **in SQL**, so a wrong clock on the app server cannot extend a token's life, and a
+successful reset marks it used and invalidates the user's others. Email is optional configuration —
+when SMTP is unset the link is logged to the server console rather than failing silently, matching
+how every other channel reports being unconfigured.
+
+Frontend: `pages/ForgotPasswordPage.jsx` + `pages/ResetPasswordPage.jsx` share the presentational
+`components/AuthShell.jsx`; state and API calls live in `hooks/usePasswordReset.js`, never in the
+pages.
 
 ### Admin maintenance, reporting & analytics
 `/api/maintenance/*` (admin-only CRUD for staff, document types, colleges), `/api/reports/documents`, `/api/reports/analytics`, and two CSV export routes.

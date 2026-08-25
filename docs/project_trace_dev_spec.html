@@ -405,7 +405,12 @@ frontend/src/
 
     <div class="callout spec">
       <span class="label">Testing</span>
-      <p>Vitest runs per package: <code>cd backend &amp;&amp; npm test</code> and <code>cd frontend &amp;&amp; npm test</code> (438 tests, no database needed — the model layer is mocked). Backend tests must use the <code>.cjs</code> extension: the source is CommonJS, and only a CJS test shares Node's require cache with it, which is what makes the model spies actually intercept. <code>node backend/audit.js</code> runs a live end-to-end audit through all five desks.</p>
+      <p>Vitest runs per package: <code>cd backend &amp;&amp; npm test</code> and <code>cd frontend &amp;&amp; npm test</code> (514 tests, no database needed — the model layer is mocked). Backend tests must use the <code>.cjs</code> extension: the source is CommonJS, and only a CJS test shares Node's require cache with it, which is what makes the model spies actually intercept. <code>node backend/audit.js</code> runs a live end-to-end audit through all five desks.</p>
+    </div>
+
+    <div class="callout spec">
+      <span class="label">Password Recovery</span>
+      <p><code>POST /api/auth/forgot-password</code> accepts a student ID <em>or</em> an email and <strong>always returns the same message</strong> whether or not the account exists &mdash; otherwise the endpoint becomes an oracle for which IDs are registered. The <code>password_resets</code> table stores <code>token_hash</code> (the SHA-256 of the emailed token, <strong>never the token</strong>), <code>expires_at</code> and <code>used_at</code>; expiry is compared in SQL so the app server's clock cannot extend a token's life, and <code>used_at</code> is what makes a token single-use rather than merely short-lived. Both endpoints are unauthenticated by necessity and throttled at 10 requests per IP per hour.</p>
     </div>
 
     <div class="callout spec">
@@ -516,13 +521,28 @@ frontend/src/
       </li>
 
       <li>
-        <h3>Phase 10: Production Rollout (Pending)</h3>
-        <p class="phase-goal">Take the system live. The remaining work before deployment.</p>
+        <h3>Phase 10: Pre-Deployment Refinement</h3>
+        <p class="phase-goal">Closing the application-level gaps before infrastructure work, so a deployment would not bake them in.</p>
         <ul>
-          <li><strong>Rotate the UniSMS API key</strong> — it remains exposed in git history even though it is gone from the source.</li>
-          <li>Seed the seven per-college secretary accounts (<code>SEC-CCS001</code> &hellip; <code>SEC-CBA001</code>); <code>seed.sql</code> currently creates only <code>SEC001</code> with a NULL course, so college-based queue filtering cannot be demonstrated.</li>
-          <li>Implement the forgot-password JWT reset flow in <code>src/services/auth.service.js</code> plus the <code>/reset-password</code> route.</li>
-          <li>Containerize all three services and migrate MySQL to a managed cloud instance.</li>
+          <li><strong>Password recovery.</strong> The login page's &ldquo;Forgot Password?&rdquo; link had nothing behind it. The flow now accepts a student ID or an email and <strong>answers identically either way</strong>, so it cannot be used to discover which accounts exist. Tokens are stored only as a SHA-256 hash and are <strong>single-use</strong> &mdash; a plain JWT would remain replayable until expiry even after the password had changed.</li>
+          <li><strong>n8n routing repaired and made load-bearing.</strong> The workflow had been silently dead for a month: wrong port, missing auth header, and a hardcoded secretary account that no longer existed. It now resolves the correct college secretary from the payload, and the assignment visibly changes whose queue a document appears in &mdash; while unassigned documents still fall back to the college filter, so the ten thousand records predating routing stay put.</li>
+          <li><strong>A live crash</strong> in the Finance receipt modal, reproduced by a regression test before being fixed.</li>
+          <li><strong><code>/api/health</code> told the truth.</strong> It previously answered 200 with a dead database, which would have made an orchestrator call a broken container healthy; it now returns 503 with the reason.</li>
+          <li><strong>CORS</strong> tightened from &ldquo;any origin, with credentials&rdquo; to one shared, configurable allowlist covering both the REST API and the Socket.IO handshake.</li>
+          <li>514 automated tests; zero lint errors.</li>
+        </ul>
+      </li>
+
+      <li>
+        <h3>Phase 11: Production Rollout (Pending)</h3>
+        <p class="phase-goal">Take the system live. The remaining work is infrastructure, plus one credential.</p>
+        <ul>
+          <li><strong>Rotate the UniSMS API key</strong> &mdash; it remains exposed in git history even though it is gone from the source. (<code>JWT_SECRET</code>, the more serious of the two, has been rotated.)</li>
+          <li><strong>Configure SMTP</strong> so reset links and student alerts actually send; until then a reset link is logged to the server console.</li>
+          <li><strong>Give the built frontend a route to the backend.</strong> <code>services/api.js</code> uses a relative <code>/api</code> and the Socket.IO client takes no URL, so both depend on the Vite dev proxy &mdash; which does not exist in a production build.</li>
+          <li><strong>Persist uploads.</strong> They are written to container-local disk, and the directory is never created at boot.</li>
+          <li><strong>TLS for a managed database</strong> &mdash; the pool passes no <code>ssl</code> option, which most managed MySQL will refuse.</li>
+          <li>Containerize all three services (serving Flask under a WSGI server rather than the Werkzeug dev server) and migrate MySQL to a managed cloud instance.</li>
         </ul>
       </li>
     </ol>

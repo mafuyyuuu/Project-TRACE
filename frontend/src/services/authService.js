@@ -94,3 +94,23 @@ export async function lookupStudent(studentId) {
   const { data } = await api.get(`/auth/student/${studentId}`)
   return data
 }
+
+/**
+ * Start a password reset. Resolves identically whether or not the account
+ * exists — the backend deliberately gives nothing away, so the UI must not
+ * imply otherwise.
+ * @param {string} identifier Student/Staff ID or email address.
+ */
+export async function forgotPassword(identifier) {
+  const { data } = await api.post('/auth/forgot-password', { identifier })
+  return data
+}
+
+/**
+ * Complete a password reset with the single-use token from the emailed link.
+ * @param {{ token: string, password: string }} payload
+ */
+export async function resetPassword({ token, password }) {
+  const { data } = await api.post('/auth/reset-password', { token, password })
+  return data
+}

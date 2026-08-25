@@ -506,6 +506,28 @@ async function migrate() {
     // so an avatar is never publicly readable by filename guessing.
     await addColumn('users', 'profile_picture', 'VARCHAR(500) NULL AFTER id_proof_path');
 
+    // =======================================================================
+    // Phase 15 — password recovery
+    // =======================================================================
+    console.log('\n--- Phase 15: password resets ---');
+
+    // Only the SHA-256 of the emailed token is stored. A leaked database dump
+    // therefore yields no usable reset links, and `used_at` makes each token
+    // single-use rather than replayable until it expires.
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS password_resets (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        user_id INT NOT NULL,
+        token_hash CHAR(64) NOT NULL,
+        expires_at DATETIME NOT NULL,
+        used_at DATETIME NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+      )
+    `);
+    await addIndex('password_resets', 'idx_password_resets_token', 'token_hash');
+    await addIndex('password_resets', 'idx_password_resets_user', 'user_id');
+
     console.log('✅ Database migration completed successfully.');
     process.exit(0);
   } catch (err) {

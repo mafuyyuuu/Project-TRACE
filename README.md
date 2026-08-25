@@ -3,7 +3,7 @@ Tracking, Routing, and Automated Credential Engine for the PLP Registrar.
 
 This repository contains the complete end-to-end system for tracking and auto-routing document flows, featuring a **manual GCash receipt payment verification pipeline** to comply with school accounting requirements.
 
-> **Current Phase:** 🟢 Panel Feedback — Categories 1–3 Complete (Phase 14: Production Rollout Pending). The frontend is fully wired to live AI APIs, machine learning forecasts, and SMS notifications, and the codebase now follows the layered structure documented in [`docs/CODING_PREFERENCES.md`](docs/CODING_PREFERENCES.md).
+> **Current Phase:** 🟢 Panel Feedback — All Four Categories Complete (Phase 15: Production Rollout in progress). The frontend is fully wired to live AI APIs, machine learning forecasts, and SMS notifications, and the codebase now follows the layered structure documented in [`docs/CODING_PREFERENCES.md`](docs/CODING_PREFERENCES.md).
 
 ---
 
@@ -79,8 +79,17 @@ n8n handles the automated routing between desks. It runs locally via Docker.
 **Step 2: Create the n8n Container**
 Open a terminal and run the following command to pull the n8n image and create the container:
 ```bash
-docker run -d --name n8n -p 5678:5678 -v ~/.n8n:/home/node/.n8n docker.n8n.io/n8nio/n8n
+docker run -d --name n8n -p 5678:5678 -v ~/.n8n:/home/node/.n8n \
+  -e TRACE_API_URL="http://host.docker.internal:3300" \
+  -e TRACE_WEBHOOK_SECRET="<paste WEBHOOK_SECRET from backend/.env>" \
+  docker.n8n.io/n8nio/n8n
 ```
+
+The workflow reads its callback target and auth header from these two variables rather than
+hardcoding them. That matters: the workflow previously had `localhost:3000` baked into three nodes
+and kept pointing there for a month after the backend moved to **3300**, so routing failed silently.
+If you created the container before, recreate it (`docker rm -f n8n`, then the command above) or set
+the variables from **Settings → Environments** in the n8n UI.
 
 **Step 3: Initial Account Setup**
 1. Open your browser and go to `http://localhost:5678`.
@@ -92,7 +101,19 @@ docker run -d --name n8n -p 5678:5678 -v ~/.n8n:/home/node/.n8n docker.n8n.io/n8
 2. In the top right corner, click the **three dots (...)** and select **"Import from File"**.
 3. Navigate to the cloned `project-trace/n8n` directory and select `routing-workflow.json`.
 4. The workflow nodes will appear on the screen. **Make sure to toggle it to "Active" (top right switch).**
-5. **Add the webhook secret.** The node that calls back into `POST /api/documents/assign` must send a header `x-webhook-secret` whose value matches `WEBHOOK_SECRET` in `backend/.env`. Without it the call is rejected with 401 (documents still flow through the desks normally — only the auto-assignment step is skipped).
+5. **Check the two environment variables are set** (Step 2). The three HTTP nodes call
+   `POST /api/documents/assign` with an `x-webhook-secret` header taken from `TRACE_WEBHOOK_SECRET`;
+   it must match `WEBHOOK_SECRET` in `backend/.env` or the call is rejected with 401.
+6. **Re-import after pulling changes to the workflow.** n8n stores an imported copy in its own
+   database, so editing `n8n/routing-workflow.json` in the repo does nothing until you import it
+   again.
+
+**What routing actually does:** the workflow reads `college_code` from the webhook payload and
+assigns the document to that college's secretary (`SEC-CCS001`, `SEC-CON001`, …); a student with no
+college on file falls back to the Registrar. The assignment is visible in the Secretary's queue —
+a routed document appears for the secretary it was routed to and not for the others. If n8n is
+stopped the document is simply left unassigned and every secretary sees it under the normal
+college filter, so the pipeline never stalls on the orchestrator being down.
 
 ---
 

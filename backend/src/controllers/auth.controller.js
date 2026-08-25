@@ -99,10 +99,28 @@ async function markNotificationsRead(req, res) {
   }
 }
 
+async function forgotPassword(req, res) {
+  try {
+    res.json(await authService.requestPasswordReset(req.body));
+  } catch (err) {
+    fail(res, err, 'Forgot password error', 'Failed to start password reset.');
+  }
+}
+
+async function resetPassword(req, res) {
+  try {
+    res.json(await authService.resetPassword(req.body));
+  } catch (err) {
+    fail(res, err, 'Reset password error', 'Failed to reset password.');
+  }
+}
+
 module.exports = {
   login,
   getMe,
   register,
+  forgotPassword,
+  resetPassword,
   getPendingStudents,
   verifyStudent,
   getUsers,

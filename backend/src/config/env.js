@@ -57,6 +57,11 @@ module.exports = {
   DB_PASSWORD: process.env.DB_PASSWORD || '',
   DB_NAME: process.env.DB_NAME || 'trace_db',
   PORT: process.env.PORT || 3300,
+  // Origin of the React app. Serves two purposes: it is the allowlist for CORS
+  // and the Socket.IO handshake, and it is the base of the password-reset link
+  // emailed to users. Empty means "development" — origins are reflected, which
+  // is what the Vite dev proxy and a teammate's localhost both need.
+  FRONTEND_URL: process.env.FRONTEND_URL || '',
   AI_ENGINE_URL: process.env.AI_ENGINE_URL || 'http://127.0.0.1:5005',
   N8N_URL: process.env.N8N_URL || 'http://localhost:5678',
   UNISMS_SECRET_KEY: process.env.UNISMS_SECRET_KEY || '',

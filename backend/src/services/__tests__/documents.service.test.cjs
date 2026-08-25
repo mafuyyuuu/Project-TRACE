@@ -543,6 +543,42 @@ describe('listDocuments — role scoping', () => {
     expect(documentModel.listWithFilters.mock.calls[0][1]).toContain('College of Computer Studies');
   });
 
+  it('shows a Secretary a document n8n assigned to them', async () => {
+    userModel.findCourseById.mockResolvedValue([{ course: 'College of Computer Studies' }]);
+    await service.listDocuments(SECRETARY, {});
+    expect(conditionsFrom()).toContain('assigned_clerk_id = ?');
+    expect(documentModel.listWithFilters.mock.calls[0][1]).toContain(SECRETARY.id);
+  });
+
+  it('still shows a Secretary unassigned documents from their college', async () => {
+    // The ~10,000 records that predate n8n routing all have a NULL
+    // assigned_clerk_id. If routing became the only filter they would vanish
+    // from every queue in the system.
+    userModel.findCourseById.mockResolvedValue([{ course: 'College of Computer Studies' }]);
+    await service.listDocuments(SECRETARY, {});
+    expect(conditionsFrom()).toContain('assigned_clerk_id IS NULL');
+  });
+
+  it('hides from a Secretary only documents routed to a *different* Secretary', async () => {
+    // An assignment to Window 1 or the Registrar must not remove a document
+    // from the secretary queue it still has to pass through.
+    userModel.findCourseById.mockResolvedValue([{ course: 'College of Computer Studies' }]);
+    await service.listDocuments(SECRETARY, {});
+    expect(conditionsFrom()).toContain(
+      "assigned_clerk_id NOT IN\n                      (SELECT id FROM users WHERE desk_assignment = 'Secretary')"
+    );
+  });
+
+  it('falls back to every college for a Secretary with no college on record', async () => {
+    userModel.findCourseById.mockResolvedValue([{ course: null }]);
+    await service.listDocuments(SECRETARY, {});
+    const conditions = conditionsFrom();
+    expect(conditions).toContain('1 = 1');
+    expect(conditions).not.toContain('SELECT student_id FROM users WHERE course = ?');
+    // Only the clerk id is bound; no course parameter is appended.
+    expect(documentModel.listWithFilters.mock.calls[0][1]).toEqual([SECRETARY.id]);
+  });
+
   it('gives Window 1 the whole queue', async () => {
     await service.listDocuments(WINDOW1, {});
     expect(documentModel.listWithFilters.mock.calls[0][0]).toEqual([]);

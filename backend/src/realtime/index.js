@@ -1,6 +1,7 @@
 const { Server } = require('socket.io');
 const jwt = require('jsonwebtoken');
 const env = require('../config/env');
+const { corsOrigin } = require('../config/cors');
 
 /**
  * Real-time in-app notifications over Socket.IO.
@@ -22,7 +23,9 @@ let io = null;
 function init(httpServer) {
   io = new Server(httpServer, {
     path: '/socket.io',
-    cors: { origin: true, credentials: true },
+    // Same allowlist as the REST API — reflecting any origin *with*
+    // credentials would let any site open an authenticated socket.
+    cors: { origin: corsOrigin(), credentials: true },
     // Notifications are small and infrequent; keep buffers modest.
     maxHttpBufferSize: 1e6,
   });

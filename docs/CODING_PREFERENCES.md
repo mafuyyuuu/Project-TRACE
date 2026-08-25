@@ -65,6 +65,12 @@ utils/         # Backend helper functions (AppError)
 - **Webhooks:** All webhook endpoints (e.g. from n8n or payment gateways) must handle errors gracefully and respond quickly (200 OK) to avoid timeouts, and must be guarded by `verifyWebhookSecret` — they have no user session, so without it they are open to the world.
 - **Authorization, not just authentication:** a valid JWT proves *who* the caller is, never *what they may touch*. Any endpoint taking a resource id must verify ownership or role before acting — students may only affect their own documents and files. `submitPayment` and `cancelDocument` in `documents.service.js` are the reference pattern.
 
+## 🌐 CORS & Health Checks
+
+- **One CORS policy, one place.** `src/config/cors.js` is shared by the REST API and the Socket.IO handshake so the two cannot drift. Never give Socket.IO `origin: true` together with `credentials: true` — that lets any website open an authenticated socket.
+- **A health check must check something.** `/api/health` runs a real `SELECT 1` and returns 503 when the database is unreachable. The server deliberately boots without a database, so a liveness-only check reports a completely unusable container as healthy.
+- **Mount health above the rate limiter**, or an orchestrator's own probes eventually throttle it.
+
 ## 🗂️ Reference Data Over Hardcoding
 
 - **Never hardcode a list the Registrar might change.** Document types, colleges, fees and form fields live in database tables (`document_types`, `colleges`, `grad_form_fields`) and are served through `/api/reference` and `/api/grad-applications/form-fields`. A new document type or a fee change must not require a deploy.
@@ -82,6 +88,11 @@ utils/         # Backend helper functions (AppError)
 
 - **Admin-set passwords are single-use.** Creating or resetting a staff account sets `must_change_password`, so an admin-chosen secret can never become a long-lived credential. The flag clears only when the user sets their own.
 - **Never return or log a password**, even one the caller just supplied. Hash with bcrypt at the service layer.
+- **Never store a usable token.** A password-reset token is stored as `sha256(token)` only, so a database dump yields no working links. The same reasoning applies to any future token: store what lets you *verify* a presented secret, never the secret.
+- **Time-limited is not the same as single-use.** A signed token (a JWT, say) stays replayable until it expires, even after the password it reset has already changed. `password_resets.used_at` is what makes it one-shot — and a successful reset retires the user's other outstanding tokens too.
+- **Compare expiry in SQL, not in Node.** A wrong clock on the app server must not be able to extend a token's life.
+- **Auth endpoints must not leak which accounts exist.** `forgot-password` returns the same response whether the account is real, missing, or has no email on file. Resist the temptation to be more "helpful" here — a distinguishable response turns the endpoint into an account-enumeration oracle.
+- **Throttle anything that sends mail on an unauthenticated request.** `passwordResetLimiter` exists because the caller never had to prove they control the address.
 
 ## 📤 Data Export
 
@@ -109,6 +120,10 @@ utils/         # Backend helper functions (AppError)
 
 - **Logic Separation:** Hardcoded institutional routing rules should be avoided in Node.js. If a document path depends on the document type, Node.js should emit an event to n8n (via `src/services/n8n.service.js`), which visually handles the routing logic.
 - **Idempotency:** Workflows should be designed to handle duplicate triggers safely.
+- **Never hardcode the callback URL or the secret inside the workflow JSON.** Read them from n8n environment variables (`TRACE_API_URL`, `TRACE_WEBHOOK_SECRET`). The workflow once had `localhost:3000` baked into three nodes and kept pointing there for a month after the backend moved to 3300 — the client swallows errors by design, so nothing surfaced.
+- **A failing orchestrator must degrade, never block.** Routing metadata is resolved best-effort and a stopped n8n simply leaves the document unassigned; every queue therefore needs a sensible fallback for `assigned_clerk_id IS NULL`, or records that predate routing vanish.
+- **Scope an assignment to the desk that owns it.** The Secretary queue honours an assignment to a secretary and ignores one to any other desk — the workflow also routes TOR/Diploma to Window 1 at intake, and treating that as authoritative would delete those documents from the secretary step they still have to pass through.
+- **Re-import after editing.** n8n keeps its own copy; changing `n8n/routing-workflow.json` in the repo does nothing until it is imported again.
 
 ## 💳 Payments
 

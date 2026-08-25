@@ -15,6 +15,17 @@ Before a student can request documents, they must create an account.
 - **AI Auto-Verification:** The Python AI Engine (EasyOCR) scans the uploaded ID. If it finds the school name and matching Student ID, it automatically verifies the account.
 - If the AI fails to read the ID, the account is placed in a **pending verification** state for manual Administrator review.
 
+### 1b. Forgotten Passwords
+Anyone who cannot sign in — student or staff — can use **Forgot Password?** on the login page.
+- Enter a Student ID, Staff ID, or the email address on the account.
+- The confirmation is deliberately the same whether or not the account exists, so nobody can use the
+  form to find out which IDs are registered. If the account is real and has an email on file, a link
+  arrives there.
+- The link works **once** and expires after an hour. Requesting a new one retires the old link, and
+  completing a reset retires every other outstanding link for that account.
+- Staff accounts created by an admin still use the temporary-password route instead; this flow is for
+  people locked out of an account they already own.
+
 ### 2. Document Submission (Student Portal)
 - Verified students log in and are presented with the **Upload Interface**.
 - They select the document type (e.g., TOR, Diploma) and upload a file.
