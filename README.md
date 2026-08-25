@@ -3,7 +3,7 @@ Tracking, Routing, and Automated Credential Engine for the PLP Registrar.
 
 This repository contains the complete end-to-end system for tracking and auto-routing document flows, featuring a **manual GCash receipt payment verification pipeline** to comply with school accounting requirements.
 
-> **Current Phase:** 🟢 Panel Feedback — All Four Categories Complete (Phase 15: Production Rollout in progress). The frontend is fully wired to live AI APIs, machine learning forecasts, and SMS notifications, and the codebase now follows the layered structure documented in [`docs/CODING_PREFERENCES.md`](docs/CODING_PREFERENCES.md).
+> **Current Phase:** 🟢 Deployment-Ready — every phase through 17 is complete; **Phase 18 (Go Live)** is outstanding and needs an account and a machine, not code. See [`docs/PROGRESS.md`](docs/PROGRESS.md). The frontend is fully wired to live AI APIs, machine learning forecasts, and SMS notifications, and the codebase follows the layered structure documented in [`docs/CODING_PREFERENCES.md`](docs/CODING_PREFERENCES.md).
 
 ---
 
@@ -39,18 +39,18 @@ npm install
 ```
 
 ### 2.5. Configure Backend Environment Variables
-The backend will not connect to MySQL without this step. Copy the template and fill in your local values:
+The backend will not start without this step. Copy the template and fill it in:
 ```bash
 cd backend
 cp .env.example .env
 ```
-At minimum set `DB_USER`, `DB_PASSWORD`, and `DB_NAME` to match your MySQL install, and generate a `JWT_SECRET` (the server will not start without one):
-```bash
-node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"
-```
-Do **not** reuse the old `trace-jwt-secret-change-in-production` value — it is public in this repo's git history, and anyone who knows it can forge a login for any account. The SMS (`UNISMS_*`) and email (`SMTP_*`) variables can be left blank — those notifications will simply fail soft and log a warning, without breaking any document workflow.
 
-*(`.env` is gitignored and never committed. Ask a teammate for the shared service credentials.)*
+**👉 Every variable — what it does, where its value comes from, and how to verify it — is documented
+in [`docs/ENV_SETUP_GUIDE.md`](docs/ENV_SETUP_GUIDE.md).** For local development you need
+`DB_USER`/`DB_PASSWORD`/`DB_NAME` matching your MySQL install, plus a generated `JWT_SECRET` and
+`WEBHOOK_SECRET`; SMS and email can stay blank and fail soft.
+
+*(`.env` is gitignored and never committed.)*
 
 ### 3. Install Frontend Dependencies
 ```bash
@@ -86,10 +86,8 @@ docker run -d --name n8n -p 5678:5678 -v ~/.n8n:/home/node/.n8n \
 ```
 
 The workflow reads its callback target and auth header from these two variables rather than
-hardcoding them. That matters: the workflow previously had `localhost:3000` baked into three nodes
-and kept pointing there for a month after the backend moved to **3300**, so routing failed silently.
-If you created the container before, recreate it (`docker rm -f n8n`, then the command above) or set
-the variables from **Settings → Environments** in the n8n UI.
+hardcoding them — see [`docs/ENV_SETUP_GUIDE.md` §6.4](docs/ENV_SETUP_GUIDE.md#64-n8n-standalone-container)
+for why, and what to do if you created the container before setting them.
 
 **Step 3: Initial Account Setup**
 1. Open your browser and go to `http://localhost:5678`.
@@ -200,13 +198,14 @@ backend lives beside it. That also keeps Socket.IO on a real process and uploads
 ### Run the whole stack locally with Docker
 
 ```bash
-cp .env.example .env          # then fill in JWT_SECRET and WEBHOOK_SECRET
+cp .env.example .env          # then fill in JWT_SECRET, WEBHOOK_SECRET and DB_PASSWORD
 docker compose up -d --build
 docker compose exec backend node database/migration.js
 ```
 
-`schema.sql` and `seed.sql` apply automatically the first time the MySQL volume is created; the
-migration adds the later columns. Compose **refuses to start** without `JWT_SECRET` and
+See [`docs/ENV_SETUP_GUIDE.md` §7](docs/ENV_SETUP_GUIDE.md#7-the-docker-stack-locally) for what goes
+in that `.env`. `schema.sql` and `seed.sql` apply automatically the first time the MySQL volume is
+created; the migration adds the later columns. Compose **refuses to start** without `JWT_SECRET` and
 `WEBHOOK_SECRET` rather than falling back to a default.
 
 If you already run the standalone `n8n` container from the setup above, it holds port 5678 and the
@@ -238,13 +237,9 @@ single-box deployment; with Vercel hosting the frontend, leave it out.
 
 ### Deployment environment variables
 
-| Variable | Where | Why |
-| --- | --- | --- |
-| `VITE_API_URL` | Vercel (**build**) | The API's origin. Empty = relative, which only works behind the dev proxy. |
-| `FRONTEND_URL` | backend | CORS allowlist + password-reset link base. |
-| `TRUST_PROXY` | backend | Hop count. Without it every request looks like the proxy's IP and the rate limiters share one bucket. |
-| `DB_SSL` / `DB_SSL_CA` | backend, ai-engine | Managed MySQL generally refuses a plaintext connection. |
-| `JWT_SECRET`, `WEBHOOK_SECRET` | backend | Required; the server refuses to start without them. |
+**👉 [`docs/ENV_SETUP_GUIDE.md`](docs/ENV_SETUP_GUIDE.md) is the complete reference** — every
+variable, where to obtain each credential (DuckDNS hostname, Gmail App Password, UniSMS key, managed
+database), the order to fill them in, and a verification command for each.
 
 **Persistence:** the uploads volume is the only state outside MySQL. The database stores *filenames*
 only, so without a mounted volume the rows survive a redeploy and the files do not.

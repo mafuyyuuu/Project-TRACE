@@ -37,13 +37,21 @@ services:
         condition: service_healthy
     environment:
       PORT: 3300
-      DB_HOST: mysql
-      DB_USER: root
+      # Defaults point at the bundled `mysql` service. Override all five in
+      # .env to use a managed database instead — the bundled container then
+      # simply goes unused (`docker compose stop mysql` once the stack is up).
+      DB_HOST: ${DB_HOST:-mysql}
+      DB_PORT: ${DB_PORT:-3306}
+      DB_USER: ${DB_USER:-root}
       DB_PASSWORD: ${DB_PASSWORD:-trace}
       DB_NAME: ${DB_NAME:-trace_db}
       # In-cluster traffic on the compose network is not TLS; a managed
       # database outside it needs DB_SSL=true.
       DB_SSL: ${DB_SSL:-false}
+      # The PEM itself, not a path — only when the provider issues its own CA.
+      DB_SSL_CA: ${DB_SSL_CA:-}
+      # Keep under the managed database's per-account connection cap.
+      DB_POOL_LIMIT: ${DB_POOL_LIMIT:-10}
       JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required}
       WEBHOOK_SECRET: ${WEBHOOK_SECRET:?WEBHOOK_SECRET is required}
       FRONTEND_URL: ${FRONTEND_URL:-}
@@ -53,6 +61,7 @@ services:
       N8N_URL: http://n8n:5678
       UNISMS_SECRET_KEY: ${UNISMS_SECRET_KEY:-}
       UNISMS_SENDER_ID: ${UNISMS_SENDER_ID:-TRACE}
+      TEST_PHONE_NUMBER: ${TEST_PHONE_NUMBER:-}
       SMTP_HOST: ${SMTP_HOST:-}
       SMTP_PORT: ${SMTP_PORT:-587}
       SMTP_USER: ${SMTP_USER:-}
@@ -73,11 +82,14 @@ services:
         condition: service_healthy
     environment:
       PORT: 5005
-      DB_HOST: mysql
-      DB_USER: root
+      # Mirrors the backend: same database, same managed-provider overrides.
+      DB_HOST: ${DB_HOST:-mysql}
+      DB_PORT: ${DB_PORT:-3306}
+      DB_USER: ${DB_USER:-root}
       DB_PASSWORD: ${DB_PASSWORD:-trace}
       DB_NAME: ${DB_NAME:-trace_db}
       DB_SSL: ${DB_SSL:-false}
+      DB_SSL_CA: ${DB_SSL_CA:-}
     ports:
       - "5005:5005"
 

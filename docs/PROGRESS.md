@@ -1,32 +1,31 @@
 # Project TRACE Progress
 
-This document tracks the current development and implementation progress of the Project TRACE system.
+The single record of what has been built, phase by phase. (The former
+`project_trace_roadmap.md` covered the same history at a coarser grain with a *different* phase
+numbering; it was merged into this file so "Phase 12" can only mean one thing.)
 
-## Overall Status: 🟢 Deployment-Ready (Phase 17) — awaiting a provisioned host
+## Overall Status: 🟢 Deployment-Ready (Phase 17 complete) — awaiting a provisioned host
 
-### 📍 Next Steps for Phase 15 (Production Rollout)
-Phase 16 closed the application-level gaps that a deployment would otherwise have baked in. What
-remains is infrastructure, plus one credential the maintainer must rotate personally:
+Every phase through 17 is done. **Phase 18 (Go Live) is the only one outstanding, and what it needs
+is an account and a machine, not code.**
 
-1. **Rotate the UniSMS API key.** It was hardcoded as a `||` fallback default and remains in git
-   history even though it is gone from the source. (`JWT_SECRET` — the more serious of the two, since
-   it signs every auth token — **has been rotated**.)
-2. **Configure SMTP.** `backend/.env` has commented `SMTP_*` placeholders; email stays disabled until
-   they are filled in (a Gmail App Password, not an account password). Password-reset links are
-   logged to the server console until then, so the flow is testable without it.
-3. **Production API URL for the frontend.** `services/api.js` uses `baseURL: '/api'` and
-   `realtimeService.js` calls `io()` with no URL — both work only through the Vite dev proxy, which
-   does not exist in a `vite build`. Either serve the built frontend same-origin behind a reverse
-   proxy, or introduce a `VITE_API_URL` (baked in at build time).
-4. **Persistent uploads.** `backend/uploads/` is container-local disk and the directory is never
-   created at boot, so a fresh container fails its first upload with `ENOENT`. Needs a mounted volume
-   or object storage.
-5. **Managed-database TLS.** `config/db.js` passes no `ssl` option; most managed MySQL will refuse
-   the connection outright.
-6. **Harden the AI engine for serving.** `ai-engine/app.py` runs the Werkzeug dev server and defaults
-   to `debug=True` when `FLASK_ENV` is unset; EasyOCR also downloads ~100 MB of models at import, so
-   the models should be baked into the image rather than fetched on first boot.
-7. **Dockerization & cloud deployment**, then migrating MySQL to a managed instance.
+### 📍 What actually remains
+
+1. **Provision the VM** and point a hostname at it. HTTPS is not optional — a browser on an `https://`
+   frontend refuses to call an `http://` backend, and a bare IP cannot be issued a certificate.
+2. **Rotate the UniSMS API key.** It shipped as a `||` fallback default and remains in git history
+   even though it is gone from the source. (`JWT_SECRET` — the more serious of the two, since it
+   signs every auth token — **has been rotated**.)
+3. **Configure SMTP** (a Gmail App Password, not an account password), or password-reset links only
+   reach the server console. The flow is testable without it, which is why this did not block
+   Phase 16.
+4. **Walk `docs/DEPLOYMENT_GUIDE.md`**, whose eight parts each end in a check to pass before
+   continuing. Credentials for every variable come from `docs/ENV_SETUP_GUIDE.md`.
+5. **Optional:** migrate MySQL to a managed instance. `DB_SSL`/`DB_SSL_CA` already exist for it.
+
+> The five *code* blockers this list used to carry — no production API URL for the built frontend,
+> uploads failing their first write, no database TLS, the AI engine on the Werkzeug dev server, and
+> no containers — were all closed in **Phase 17**.
 
 ---
 
@@ -285,6 +284,26 @@ uploads onto object storage and adding a Redis adapter for Socket.IO.*
   building this (CORS mismatch, `VITE_API_URL` set after the build, port 5678 already held by a
   standalone n8n container, certificate blocked by the VM's own iptables).
 - [x] **Tests:** 523 total (345 backend + 178 frontend), up from 514. Zero ESLint errors.
+
+---
+
+### Phase 18: Go Live
+**Status:** Pending — blocked on infrastructure, not code
+*Everything below needs an account and a machine. No application change is outstanding.*
+- [ ] **Provision the VM** (target: Oracle Cloud Ampere, Always Free, aarch64 — ARM viability was
+  proven in Phase 17 rather than assumed) and open ingress on 80/443. Both the provider's security
+  list **and** the VM's own iptables must allow them; forgetting the second is the usual cause of a
+  certificate that will not issue.
+- [ ] **Point a hostname at it** (a free DuckDNS subdomain suffices) and confirm DNS resolves before
+  starting Caddy — Let's Encrypt validates over the public internet.
+- [ ] **Rotate the UniSMS API key** in the UniSMS dashboard. Rotation at the source is the only fix;
+  the value cannot be removed from git history retroactively.
+- [ ] **Configure SMTP** with a Gmail App Password so reset links and student alerts actually leave
+  the building.
+- [ ] **Deploy**, following `docs/DEPLOYMENT_GUIDE.md`; fill every variable from
+  `docs/ENV_SETUP_GUIDE.md`.
+- [ ] **Optional — managed database.** `DB_SSL`/`DB_SSL_CA` and the pool limit already support it;
+  compose passes the full `DB_*` set through.
 
 ---
 

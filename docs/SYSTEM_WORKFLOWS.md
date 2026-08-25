@@ -1,6 +1,42 @@
 # Project TRACE: System Workflows & Operational Pipeline
 
-This document serves as the official operational manual for Project TRACE, detailing the lifecycle of every document and the exact role each administrative desk plays in the system.
+The official operational manual for Project TRACE: how someone gets an account, the lifecycle of
+every document, and the exact role each administrative desk plays. (The former `APP_GUIDE.md`
+described the same roles and the same pipeline a second time; it was merged into this file.)
+
+**Project TRACE** — Tracking, Routing, and Automated Credential Engine — is an end-to-end digital
+system for the Pamantasan ng Lungsod ng Pasig (PLP) Registrar's Office. It tracks and auto-routes
+document flows to eliminate manual encoding errors and speed up processing.
+
+---
+
+## 0. Getting an Account
+
+Everything in section 1 onward assumes the person is already signed in. This is how they get there.
+
+### 0a. Student Registration & AI Identity Verification
+- Students sign up with their Student ID, name and password, and **must declare whether they are a
+  current student or an alumnus**.
+- **Proof of identity:** they upload a valid Student ID or Diploma during registration.
+- **AI auto-verification:** the Flask AI engine runs a **3-point check** on the upload — school name,
+  student ID and course must all appear in the OCR text. All three matching verifies the account
+  automatically.
+- If the check fails, the account is held in **pending verification** for manual Registrar Admin
+  review rather than being rejected. A failed OCR read is a bad photo far more often than a bad
+  account.
+
+### 0b. Password Recovery
+Anyone who cannot sign in — student or staff — uses **Forgot Password?** on the login page.
+- Accepts a Student ID, a Staff ID, or the email address on the account.
+- The confirmation is **deliberately identical whether or not the account exists**, so the form
+  cannot be used to discover which IDs are registered.
+- The link works **once** and expires after an hour. Requesting a new one retires the old link, and
+  completing a reset retires every other outstanding link for that account.
+
+### 0c. Staff Accounts
+Staff are created by the Registrar Admin with a temporary password and a `must_change_password` flag
+that clears when they set their own. That is a separate route from 0b, which is for people locked out
+of an account they already own.
 
 ---
 
@@ -88,10 +124,14 @@ While the pipeline is universal, different documents have unique AI requirements
   2. Opens the Split-Screen Modal to compare the student's uploaded GCash receipt against the system's GCash Merchant logs.
   3. **Action:** Clicks "Verify" to instantly route the document to the College Secretary.
 
-### 📜 College Secretary (`SEC001`)
+### 📜 College Secretary (`SEC-CCS001`, `SEC-CON001`, … one per college)
 * **Role:** Academic evaluator.
 * **Workflow:**
-  1. Receives documents *only* after Finance has cleared them.
+  1. Receives documents *only* after Finance has cleared them — and **only for their own college**.
+     n8n routes each document to the secretary matching the student's course, so a CCS document
+     appears in the CCS secretary's queue and in no other. A document filed while n8n is stopped is
+     simply left unassigned and falls back to the college filter, so the pipeline never stalls on the
+     orchestrator being down.
   2. Evaluates the student's academic standing, checks semesters attended, and prepares the physical document.
   3. **Action:** Clicks "Evaluate & Approve" to route the document to Window 1 for releasing.
 
@@ -108,5 +148,13 @@ While the pipeline is universal, different documents have unique AI requirements
   1. Does not handle individual documents.
   2. Monitors the **AI Insights Panel** (Random Forest) for queue bottlenecks (e.g., "Warning: Secretary queue is backing up").
   3. Uses **Predictive Analytics** (Prophet ML) to forecast 7-day document volume, allowing the admin to schedule more clerks on predicted busy days.
-  4. Manages the global **Registered Users** table, manually verifying/rejecting flagged accounts.
+  4. Manages the global **Registered Users** table, manually verifying or rejecting the accounts
+     that failed automatic AI verification at registration (section 0a), and administering staff
+     accounts, document types and colleges.
   5. Monitors the global **Activity Logs** (`step_logs` audit trail) to maintain total system accountability across all desks.
+
+---
+
+**See also:** `docs/ENV_SETUP_GUIDE.md` for configuration · `docs/BACKEND_GUIDE.md` for the endpoints
+behind each step · `docs/ALGORITHM_COMPUTATION.md` for how the OCR, forecast and classifier actually
+compute.

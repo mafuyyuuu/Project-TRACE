@@ -36,16 +36,10 @@ You'll need:
 - **A GitHub account** with this repo pushed, and a **Vercel account** signed in through it.
 - **A hostname for the backend.** A free [DuckDNS](https://www.duckdns.org) subdomain is fine. This
   is not optional — see Part 4.
-- **Your two secrets**, generated fresh (never reuse the ones in git history):
-
-```bash
-node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"   # JWT_SECRET
-node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"   # WEBHOOK_SECRET
-```
-
-> **Do this before you deploy, not after:** rotate the **UniSMS API key** in the UniSMS dashboard —
-> the old one is still readable in this repo's git history. Set up **SMTP** too (a Gmail *App
-> Password*, not your account password), or password-reset emails will never leave the server.
+- **Your credentials**, gathered before you start. **[`ENV_SETUP_GUIDE.md`](ENV_SETUP_GUIDE.md) is
+  the reference for all of them** — what each variable does, where to obtain its value, and the
+  order to fill them in. At minimum you need a freshly generated `JWT_SECRET` and `WEBHOOK_SECRET`,
+  a `DB_PASSWORD`, a Gmail App Password for SMTP, and a **rotated** UniSMS key.
 
 ---
 
@@ -88,22 +82,9 @@ cp .env.example .env
 nano .env
 ```
 
-Fill in at minimum:
-
-```ini
-JWT_SECRET=<the 96-char hex you generated>
-WEBHOOK_SECRET=<the 64-char hex you generated>
-DB_PASSWORD=<a strong password>
-API_DOMAIN=api.yourname.duckdns.org
-ACME_EMAIL=you@example.com
-TRUST_PROXY=1
-# FRONTEND_URL is filled in during Part 5, once Vercel has given you a domain.
-```
-
-`TRUST_PROXY=1` matters: Caddy is one proxy hop, and without this every request looks like it came
-from Caddy's IP, so all users share a single rate-limit bucket. It's a hop **count** rather than
-`true` on purpose — trusting `X-Forwarded-For` unconditionally would let anyone spoof their address
-and walk past the login limiter.
+**Fill it in from [`ENV_SETUP_GUIDE.md` §8.2](ENV_SETUP_GUIDE.md#82-the-vms-env)** — it has the
+complete production `.env` with every value explained. Leave `FRONTEND_URL` blank for now; you fill
+it in during Part 6, once Vercel has given you a domain.
 
 **Check:** `docker compose config --quiet` exits silently. If it complains about a missing variable,
 that's the guard working — compose refuses to start without the secrets rather than defaulting.
@@ -174,20 +155,14 @@ HTTPS, with no certificate warning.
 1. Vercel → **Add New → Project** → import the repo.
 2. Leave the build settings alone. `vercel.json` already sets the build command, the output directory
    and the SPA rewrite.
-3. **Add an environment variable** before the first deploy:
-
-   | Name | Value | Environments |
-   | --- | --- | --- |
-   | `VITE_API_URL` | `https://api.yourname.duckdns.org` | Production, Preview, Development |
-
-   No trailing slash.
-
+3. **Add `VITE_API_URL` before the first deploy** — value `https://api.yourname.duckdns.org`, no
+   trailing slash, applied to Production, Preview and Development. See
+   [`ENV_SETUP_GUIDE.md` §4.3](ENV_SETUP_GUIDE.md#43-vite_api_url--set-in-vercel-not-in-a-file).
 4. **Deploy**, and copy the domain it gives you (e.g. `project-trace.vercel.app`).
 
-> **`VITE_API_URL` is baked in at build time, not read at runtime.** Vite inlines `VITE_*` variables
-> into the bundle during `npm run build`. Changing it later needs a **redeploy** — restarting nothing
-> will pick it up. If you forget to set it before the first deploy, the build succeeds and every API
-> call quietly 404s against Vercel's static host.
+> **`VITE_API_URL` is baked in at build time, not read at runtime.** Setting it before the *first*
+> deploy matters: forget, and the build succeeds while every API call quietly 404s against Vercel's
+> static host. Changing it later needs a **redeploy**, not a restart.
 
 ---
 
@@ -331,17 +306,9 @@ dump alone restores rows pointing at files that no longer exist.
 
 ## Environment variable reference
 
-| Variable | Set where | Notes |
-| --- | --- | --- |
-| `JWT_SECRET` | VM `.env` | **Required.** Server refuses to boot without it. |
-| `WEBHOOK_SECRET` | VM `.env` | **Required.** Shared with n8n. |
-| `DB_PASSWORD` | VM `.env` | Fixed when the MySQL volume is first created. |
-| `FRONTEND_URL` | VM `.env` | CORS allowlist + password-reset link base. |
-| `API_DOMAIN` | VM `.env` | Caddy's hostname for the certificate. |
-| `TRUST_PROXY` | VM `.env` | `1` behind Caddy. Hop count, never `true`. |
-| `VITE_API_URL` | **Vercel (build)** | Inlined at build time — changing it needs a redeploy. |
-| `DB_SSL` / `DB_SSL_CA` | VM `.env` | Only for a managed database outside the compose network. |
-| `UNISMS_*`, `SMTP_*` | VM `.env` | Optional; unconfigured channels are skipped with a stated reason. |
+Moved to **[`ENV_SETUP_GUIDE.md` §10](ENV_SETUP_GUIDE.md#10-complete-variable-reference)**, which
+carries the full table for all four configuration surfaces, plus where each credential is obtained
+and a verification command for each.
 
 ---
 
@@ -351,5 +318,7 @@ dump alone restores rows pointing at files that no longer exist.
 - **Provisioning** — no Terraform. One VM, set up once.
 - **CI/CD** — deployment is `git pull && docker compose up -d --build` on the VM.
 
-See also: [`README.md`](../README.md) for local setup, [`BACKEND_GUIDE.md`](BACKEND_GUIDE.md) for the
-endpoint and schema reference, and [`PROGRESS.md`](PROGRESS.md) for the phase history.
+See also: [`ENV_SETUP_GUIDE.md`](ENV_SETUP_GUIDE.md) for every environment variable and where its
+value comes from, [`README.md`](../README.md) for local setup,
+[`BACKEND_GUIDE.md`](BACKEND_GUIDE.md) for the endpoint and schema reference, and
+[`PROGRESS.md`](PROGRESS.md) for the phase history.

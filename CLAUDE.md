@@ -263,9 +263,9 @@ needs a real hostname — a bare IP cannot be issued a certificate.
 Step-by-step deployment instructions live in `docs/DEPLOYMENT_GUIDE.md`.
 
 ## Other docs worth reading before large changes
+- `docs/ENV_SETUP_GUIDE.md` — **the single source of truth for configuration**: every environment variable across the four config surfaces (root `.env`, `backend/.env`, `frontend/.env`, Vercel), where each credential is obtained, and how to verify it. Other docs link here instead of repeating it — keep it that way.
 - `docs/DEPLOYMENT_GUIDE.md` — taking the system live, part by part, with a verification gate after each
-- `docs/APP_GUIDE.md` — role/portal walkthrough
-- `docs/SYSTEM_WORKFLOWS.md` — per-document-type AI requirements and per-role operational workflow
+- `docs/SYSTEM_WORKFLOWS.md` — the operational manual: account registration/recovery, the pipeline, per-document-type AI requirements, and the per-role workflow. (`APP_GUIDE.md` was merged into it — it duplicated the same roles and pipeline.)
 - `docs/BACKEND_GUIDE.md` — endpoint list and DB flow detail
-- `docs/PROGRESS.md` — phase-by-phase status; Phase 8 (production rollout: Dockerization, cloud deploy, forgot-password flow) is the only incomplete phase
+- `docs/PROGRESS.md` — **the single** phase-by-phase record; Phase 18 (Go Live) is the only incomplete phase, and it is blocked on infrastructure rather than code. (`project_trace_roadmap.md` was merged into it — it retold the same history under a second, conflicting phase numbering.)
 - `.agents/AGENTS.md` — gitignored, agent-local workspace memory with the same kind of system-state notes; not synced to the repo
