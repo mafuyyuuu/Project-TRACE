@@ -75,6 +75,14 @@ async function updateProfile(req, res) {
   }
 }
 
+async function updateProfilePicture(req, res) {
+  try {
+    res.json(await authService.updateProfilePicture(req.user.id, req.file));
+  } catch (err) {
+    fail(res, err, 'Update profile picture error', 'Failed to update profile picture.');
+  }
+}
+
 async function getNotifications(req, res) {
   try {
     res.json(await authService.listNotifications(req.user.id));
@@ -100,6 +108,7 @@ module.exports = {
   getUsers,
   getStudent,
   updateProfile,
+  updateProfilePicture,
   getNotifications,
   markNotificationsRead,
 };

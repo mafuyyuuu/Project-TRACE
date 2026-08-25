@@ -2,7 +2,7 @@
 
 This document serves as the master tracking sheet for Project TRACE. It organizes the system's development into distinct phases across the full technology stack (Frontend, Backend, and Machine Learning) so you can easily track what has been completed and what remains for a true production rollout.
 
-> **On phase numbers:** this roadmap groups work into coarser phases than [`PROGRESS.md`](PROGRESS.md), so the numbers deliberately differ between the two documents. The same production-rollout work is "Phase 11" here and "Phase 14" there. `PROGRESS.md` is the finer-grained checklist; this is the stack-level narrative.
+> **On phase numbers:** this roadmap groups work into coarser phases than [`PROGRESS.md`](PROGRESS.md), so the numbers deliberately differ between the two documents. The same production-rollout work is "Phase 12" here and "Phase 15" there. `PROGRESS.md` is the finer-grained checklist; this is the stack-level narrative.
 
 ---
 
@@ -161,7 +161,23 @@ This document serves as the master tracking sheet for Project TRACE. It organize
 
 ---
 
-## 🚀 Phase 11: Production Deployment (Pending)
+## ✅ Phase 11: Panel Feedback — Category 4 (Completed)
+*Last of the four categories — the panel's feedback list is now closed.*
+
+* **Mobile responsiveness:**
+  * ✅ The sidebar rail is hidden below 768 px, which left a phone with no navigation at all. A hamburger drawer now carries the same role-aware links, rendered from a single shared definition so the two can never drift apart.
+  * ✅ Titles, card padding, KPI cards and two-column form grids all adapt below the `sm` breakpoint.
+* **Bounded queue tables:**
+  * ✅ Every table scrolls inside a capped container with a sticky header, rather than rendering thousands of rows down the page and scrolling the header away.
+* **Profile Card:**
+  * ✅ Account Settings redesigned as a profile card — avatar, identity, then editable contact and password fields — with the API work moved into a hook so the component makes no calls of its own.
+  * ✅ Profile-picture upload (JPG/PNG/WebP, 2 MB). The image is a protected upload fetched with the caller's token: **owner 200, staff 200, another student 403, unauthenticated 401**, all verified against the running system. Replacing an avatar deletes the old file.
+  * ✅ Save and upload feedback moved from `alert()` dialogs to inline banners.
+* **Testing:** 483 tests; zero lint errors.
+
+---
+
+## 🚀 Phase 12: Production Deployment (Pending)
 *Taking the system live on external servers.*
 
 * **Rotate the leaked secrets:** `JWT_SECRET` (the `.env` value matches the placeholder that has been in git history since the first commit — it signs every auth token, so it is a full authentication bypass) and the UniSMS API key. Both must be rotated before any deployment.

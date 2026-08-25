@@ -22,6 +22,7 @@ beforeEach(() => {
   vi.spyOn(documentModel, 'findByAttachedFilename').mockResolvedValue([]);
   vi.spyOn(userModel, 'findStudentIdById').mockResolvedValue([{ student_id: 'STU-001' }]);
   vi.spyOn(userModel, 'findByIdProofFilename').mockResolvedValue([]);
+  vi.spyOn(userModel, 'findByProfilePictureFilename').mockResolvedValue([]);
 });
 
 describe('resolveSafePath — path traversal defence', () => {
@@ -86,5 +87,28 @@ describe('file authorization', () => {
   it('denies a student with no student_id on record', async () => {
     userModel.findStudentIdById.mockResolvedValue([]);
     expect(await statusOf(getFilePathForUser(STUDENT, 'anything.jpg'))).toBe(403);
+  });
+
+  it('allows a student their own profile picture', async () => {
+    userModel.findByProfilePictureFilename.mockResolvedValue([{ id: 3, student_id: 'STU-001' }]);
+    expect(await statusOf(getFilePathForUser(STUDENT, 'avatar-mine.png'))).not.toBe(403);
+  });
+
+  it("denies a student another student's profile picture", async () => {
+    userModel.findByProfilePictureFilename.mockResolvedValue([{ id: 77, student_id: 'STU-999' }]);
+    expect(await statusOf(getFilePathForUser(STUDENT, 'avatar-theirs.png'))).toBe(403);
+  });
+
+  // An avatar match is decided on its own; it must not fall through to the
+  // document/ID-proof checks and get let in by an unrelated ownership rule.
+  it("denies another student's avatar even when the caller owns a document by that name", async () => {
+    userModel.findByProfilePictureFilename.mockResolvedValue([{ id: 77, student_id: 'STU-999' }]);
+    documentModel.findByAttachedFilename.mockResolvedValue([{ id: 5, student_id: 'STU-001' }]);
+    expect(await statusOf(getFilePathForUser(STUDENT, 'avatar-theirs.png'))).toBe(403);
+  });
+
+  it('lets a clerk read a student avatar, as they do every other upload', async () => {
+    userModel.findByProfilePictureFilename.mockResolvedValue([{ id: 77, student_id: 'STU-999' }]);
+    expect(await statusOf(getFilePathForUser(STAFF, 'avatar-theirs.png'))).not.toBe(403);
   });
 });

@@ -40,7 +40,7 @@ The Express app follows a strict **route → controller → service → model** 
 - **Route ordering:** in `documents.routes.js`, the literal paths `/stats`, `/stats/forecast`, `/stats/insights`, and `/activity-logs` must stay **above** the `/:trackingNumber` wildcard or they'll be swallowed by it.
 - **Machine-to-machine auth:** `POST /api/documents/assign` (n8n) and `/api/payments/*` have no user session, so they require the shared `WEBHOOK_SECRET` in an `x-webhook-secret` header (`middlewares/webhookAuth.middleware.js`, constant-time compared). The n8n HTTP Request node must be configured to send it.
 - **Only truly public endpoint:** `GET /api/documents/:trackingNumber` (student tracking by tracking number).
-- **Uploaded files are not public.** They are served by `GET /api/files/:filename`, which authenticates the caller and checks ownership — staff may read any file, a student only files attached to their own request plus their own ID proof. Filenames are reduced to a basename and the resolved path is confirmed to sit inside `uploads/`, so traversal attempts fail.
+- **Uploaded files are not public.** They are served by `GET /api/files/:filename`, which authenticates the caller and checks ownership — staff may read any file, a student only files attached to their own request plus their own ID proof and their own profile picture. Filenames are reduced to a basename and the resolved path is confirmed to sit inside `uploads/`, so traversal attempts fail.
 - **Rate limiting:** login is capped at 10 failed attempts per IP per 15 min (successful logins don't count), registration at 20/hour, and the rest of `/api` at 1000/15 min (`middlewares/rateLimit.middleware.js`).
 
 ### Multi-document requests
@@ -118,6 +118,7 @@ A valid JWT proves *who* is calling, never *what they may touch*. Every endpoint
 - A student may only read or submit **their own** graduate application; staff review anyone's.
 - `uploadDocument` ignores any client-supplied `student_id` for students and files against their own record — otherwise a request could be attributed to another student, or left unowned.
 - Fees are always computed server-side in `utils/pricing.js`; a client-sent `amount` is ignored.
+- A profile picture is readable only by the account it belongs to (staff keep their blanket read). The avatar check is decided on its own and never falls through to the document/ID-proof rules, so owning an unrelated file by the same name grants nothing.
 
 ### Running the tests
 ```bash
@@ -143,6 +144,7 @@ Copy `backend/.env.example` → `backend/.env` and fill it in. Covers `DB_*`, `P
   - `role`: 'student', 'clerk', 'admin'.
   - `user_type`: 'student' or 'alumni'.
   - `id_proof_path`: File path to the uploaded Student ID or Diploma.
+  - `profile_picture`: Filename of the uploaded avatar (`avatar-*`), or `NULL` for a generated placeholder. Read back through `/api/files/:filename` like every other upload.
   - `verification_status`: 'pending', 'verified', 'rejected'. New students are 'pending' until verified by an admin.
 - **Documents (`documents`):** The core entity. for document tracking.
 - `id` (PK)
@@ -179,6 +181,10 @@ To comply with PLP Finance policies, Project TRACE implements a manual payment v
 - `POST /api/documents/:id/submit-payment`: Student uploads GCash receipt image and submits transaction Reference Number.
 - `POST /api/documents/:id/verify-payment`: Finance Clerk approves or rejects the uploaded payment receipt.
 - `GET /api/documents?status=pending_payment_verification`: Lists all document requests waiting for manual payment review.
+
+### Account & Profile Endpoints
+- `PUT /api/auth/profile`: Updates the caller's own phone number, email, and/or password. A new password is hashed; supplying one also clears `must_change_password`.
+- `PUT /api/auth/profile/picture`: Multipart upload (field `picture`) replacing the caller's avatar. JPG/PNG/WebP only, 2 MB max — enforced by `profilePictureUpload` in `upload.middleware.js`, which rejects anything else with a 400. Only the filename is stored; the previous avatar is deleted best-effort so uploads do not accumulate on disk.
 
 ### Dashboard & Analytics Endpoints (New)
 - `GET /api/documents/stats`: Returns KPI metrics (backlogs, processed today, avg time).

@@ -496,6 +496,16 @@ async function migrate() {
     }
     console.log(`-> Seeded ${PAYMENT_METHODS.length} payment methods`);
 
+    // =======================================================================
+    // Category 4 — UI/UX overhaul
+    // =======================================================================
+    console.log('\n--- Category 4: profile pictures ---');
+
+    // Stores the uploaded avatar's filename only. The bytes live in
+    // backend/uploads/ and are served by the authenticated /api/files route,
+    // so an avatar is never publicly readable by filename guessing.
+    await addColumn('users', 'profile_picture', 'VARCHAR(500) NULL AFTER id_proof_path');
+
     console.log('✅ Database migration completed successfully.');
     process.exit(0);
   } catch (err) {

@@ -1,9 +1,12 @@
+const fs = require('fs');
+const path = require('path');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const env = require('../config/env');
 const userModel = require('../models/user.model');
 const notificationModel = require('../models/notification.model');
 const aiEngine = require('./aiEngine.service');
+const { UPLOAD_DIR } = require('../middlewares/upload.middleware');
 const { badRequest, unauthorized, forbidden, notFound } = require('../utils/AppError');
 
 /**
@@ -53,6 +56,7 @@ async function login({ employee_id, password }) {
       role: user.role,
       desk_assignment: user.desk_assignment,
       course: user.course,
+      profile_picture: user.profile_picture || null,
       // Set for staff accounts created with an admin-chosen temporary password.
       // The client must send the user to a password change before anything else.
       must_change_password: Boolean(user.must_change_password),
@@ -185,6 +189,35 @@ async function updateProfile(userId, { phone_number, email, course, password }) 
   return { message: 'Profile updated successfully.' };
 }
 
+/**
+ * Replace the caller's avatar with a freshly uploaded image.
+ *
+ * Only the filename is stored — the bytes stay in UPLOAD_DIR and are read back
+ * through the authenticated /api/files route, so an avatar is never public.
+ * The previous file is removed best-effort: a failed unlink leaves an orphan
+ * on disk, which is preferable to failing an otherwise successful update.
+ */
+async function updateProfilePicture(userId, file) {
+  if (!file) {
+    throw badRequest('No image was uploaded.');
+  }
+
+  const previous = await userModel.findProfilePictureById(userId);
+  const previousName = previous[0] && previous[0].profile_picture;
+
+  await userModel.updateProfile(userId, { profile_picture: file.filename });
+
+  if (previousName && previousName !== file.filename) {
+    try {
+      fs.unlinkSync(path.join(UPLOAD_DIR, path.basename(previousName)));
+    } catch {
+      // Already gone, or never written to disk. Nothing to clean up.
+    }
+  }
+
+  return { message: 'Profile picture updated.', profile_picture: file.filename };
+}
+
 async function listNotifications(userId) {
   return { notifications: await notificationModel.findByUserId(userId, 50) };
 }
@@ -203,6 +236,7 @@ module.exports = {
   listAllUsers,
   lookupStudent,
   updateProfile,
+  updateProfilePicture,
   listNotifications,
   markNotificationsRead,
 };

@@ -92,7 +92,7 @@ export default function GraduateApplication({ user }) {
       <div className="space-y-8 animate-fade-in">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <h2 className="text-3xl font-display font-black text-gray-900 tracking-tight">
+            <h2 className="text-2xl sm:text-3xl font-display font-black text-gray-900 tracking-tight">
               Graduate <span className="text-[#15803d]">Application</span>
             </h2>
             <p className="text-xs text-gray-400 mt-1 font-semibold">

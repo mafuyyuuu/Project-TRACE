@@ -114,7 +114,7 @@ export default function SecretaryEvaluationModal({
             )}
 
             <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="flex flex-col gap-1.5">
                   <label className="text-[10px] font-bold text-gray-800 uppercase tracking-widest">Student ID</label>
                   <input 

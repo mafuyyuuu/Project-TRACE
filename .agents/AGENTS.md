@@ -89,7 +89,9 @@ The codebase was migrated into a strict layered folder schema. **File paths refe
 
 **Category 1 of the panel feedback (done):** student `enrollment_status` + `study_load`; multi-document requests (shared `request_group_id`, one payment, independent desk routing); admin-configurable Graduate Application (`grad_form_fields`); document types and colleges moved into reference tables with admin-editable fees. Fees are computed server-side; `uploadDocument` ignores a client-supplied `student_id`.
 
-**Open items:** rotate the UniSMS key (still in git history); point the n8n HTTP node at port 3300 with an `x-webhook-secret` header; consider removing the legacy `SEC001` account (no college, so it sees every queue). Categories 2–4 of the panel feedback are still to do.
+**Categories 2–4 (done):** Category 2 — admin maintenance CRUD (delete is always deactivation), report filtering, hand-written formula-injection-safe CSV, `step_logs` efficiency analytics. Category 3 — four admin-managed payment methods behind a provider abstraction, Socket.IO real-time notifications with a JWT-authenticated handshake, SMTP placeholders removed. Category 4 — mobile navigation drawer (the sidebar rail is `hidden md:flex`, so phones had none), queue tables capped at `max-h-[60vh]` with sticky headers, and Account Settings redesigned as a profile card with avatar upload through the authenticated `/api/files` route. **All four panel categories are now closed.** 483 tests (318 backend + 165 frontend).
+
+**Open items:** rotate the UniSMS key (still in git history); point the n8n HTTP node at port 3300 with an `x-webhook-secret` header; consider removing the legacy `SEC001` account (no college, so it sees every queue). Production rollout (forgot-password flow, Dockerization, cloud deploy) is the only phase left.
 
 ---
 

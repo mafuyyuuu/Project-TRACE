@@ -36,6 +36,20 @@ export const updateProfile = async (payload) => {
   return res.data
 }
 
+/**
+ * Replace the signed-in account's avatar.
+ * @param {File} file the selected image
+ * @returns {Promise<{ profile_picture: string }>} the stored filename
+ */
+export const uploadProfilePicture = async (file) => {
+  const form = new FormData()
+  form.append('picture', file)
+  const res = await api.put('/auth/profile/picture', form, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  })
+  return res.data
+}
+
 export const getNotifications = async () => {
   const res = await api.get('/auth/notifications')
   return res.data

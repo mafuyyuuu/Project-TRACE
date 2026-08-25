@@ -52,7 +52,7 @@ export default function StudentDashboard({ user, currentTab, setViewImageUrl }) 
             {/* Welcome Header */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
               <div>
-                <h2 className="text-3xl font-display font-black text-gray-900 tracking-tight">
+                <h2 className="text-2xl sm:text-3xl font-display font-black text-gray-900 tracking-tight">
                   Welcome back, <span className="text-[#15803d] font-bold">{user.full_name || 'Student'}</span>
                 </h2>
               </div>
@@ -74,11 +74,11 @@ export default function StudentDashboard({ user, currentTab, setViewImageUrl }) 
 
             {/* KPI Cards */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div className="bg-white rounded-3xl p-6 shadow-sm border border-gray-200 flex flex-col justify-between h-44">
+              <div className="bg-white rounded-3xl p-6 shadow-sm border border-gray-200 flex flex-col justify-between min-h-44">
                 <div className="flex justify-between items-start">
                   <div>
                     <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block">TOTAL REQUESTS</span>
-                    <span className="text-3xl font-display font-black text-gray-900 mt-2 block">{documents.length} <span className="text-sm text-gray-400 font-medium font-sans">Documents</span></span>
+                    <span className="text-2xl sm:text-3xl font-display font-black text-gray-900 mt-2 block">{documents.length} <span className="text-sm text-gray-400 font-medium font-sans">Documents</span></span>
                   </div>
                   <MiniSparkline trend="up" />
                 </div>
@@ -88,11 +88,11 @@ export default function StudentDashboard({ user, currentTab, setViewImageUrl }) 
                 </div>
               </div>
 
-              <div className="bg-white rounded-3xl p-6 shadow-sm border border-gray-200 flex flex-col justify-between h-44">
+              <div className="bg-white rounded-3xl p-6 shadow-sm border border-gray-200 flex flex-col justify-between min-h-44">
                 <div className="flex justify-between items-start">
                   <div>
                     <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block">IN PROGRESS</span>
-                    <span className="text-3xl font-display font-black text-gray-900 mt-2 block">
+                    <span className="text-2xl sm:text-3xl font-display font-black text-gray-900 mt-2 block">
                       {documents.filter(d => ['pending_payment', 'pending_payment_verification', 'pending_secretary', 'ready_window_1'].includes(d.current_status)).length} <span className="text-sm text-gray-400 font-medium font-sans">in progress</span>
                     </span>
                   </div>
@@ -103,11 +103,11 @@ export default function StudentDashboard({ user, currentTab, setViewImageUrl }) 
                 </div>
               </div>
 
-              <div className="bg-white rounded-3xl p-6 shadow-sm border border-gray-200 flex flex-col justify-between h-44">
+              <div className="bg-white rounded-3xl p-6 shadow-sm border border-gray-200 flex flex-col justify-between min-h-44">
                 <div className="flex justify-between items-start">
                   <div>
                     <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block">READY / COMPLETED</span>
-                    <span className="text-3xl font-display font-black text-gray-900 mt-2 block">
+                    <span className="text-2xl sm:text-3xl font-display font-black text-gray-900 mt-2 block">
                       {documents.filter(d => ['completed', 'released'].includes(d.current_status)).length} <span className="text-sm text-gray-400 font-medium font-sans">Completed</span>
                     </span>
                   </div>
@@ -122,81 +122,84 @@ export default function StudentDashboard({ user, currentTab, setViewImageUrl }) 
 
             {/* Active Requests Card Table */}
             <div className="bg-white rounded-3xl shadow-sm border border-gray-200 overflow-hidden mt-8">
-              <div className="p-6 border-b border-gray-100 bg-gray-50/50 flex justify-between items-center">
+              <div className="p-4 sm:p-6 border-b border-gray-100 bg-gray-50/50 flex justify-between items-center">
                 <h3 className="font-bold text-gray-900 text-lg">ACTIVE REQUESTS</h3>
                 <button onClick={loadDashboardData} className="text-xs text-[#15803d] font-bold hover:underline inline-flex items-center gap-1"><svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.992 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182" /></svg> Refresh</button>
               </div>
-              <div className="p-6">
-                {documents.length === 0 ? (
-                  <div className="text-center py-12 text-gray-400 font-medium">No active request records. Submit one at the top!</div>
-                ) : (
-                  <table className="w-full text-left border-collapse">
-                    <thead>
-                      <tr className="text-gray-400 text-[10px] uppercase tracking-widest border-b border-gray-100">
-                        <th className="pb-4 font-bold pl-4">Date</th>
-                        <th className="pb-4 font-bold">Document /Type</th>
-                        <th className="pb-4 font-bold">Progress</th>
-                        <th className="pb-4 font-bold">Status</th>
-                        <th className="pb-4 font-bold text-right pr-4">Action</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-50">
-                      {documents.map(doc => (
-                        <tr key={doc.id} className="hover:bg-gray-50/50 transition-colors">
-                          <td className="py-4 pl-4 text-xs font-semibold text-gray-400">{new Date(doc.created_at).toLocaleDateString()} {new Date(doc.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</td>
-                          <td className="py-4">
-                            <div className="text-sm font-bold text-gray-900">{doc.document_type}</div>
-                            <div className="text-xs font-mono text-gray-400 mt-0.5">#{doc.tracking_number ? doc.tracking_number.slice(0, 10).toUpperCase() : doc.id}</div>
-                          </td>
-                          <td className="py-4 w-1/3">
-                            <div className="flex items-center gap-3">
-                              <div className="w-full bg-gray-100 rounded-full h-2 overflow-hidden">
-                                <div className="bg-[#15803d] h-2 rounded-full transition-all duration-500" style={{ width: `${getProgressVal(doc.current_status)}%` }}></div>
-                              </div>
-                              <span className="text-[11px] font-bold text-gray-600 font-mono">{getProgressVal(doc.current_status)}%</span>
-                            </div>
-                          </td>
-                          <td className="py-4">
-                            <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${doc.current_status === 'completed' || doc.current_status === 'released' ? 'bg-emerald-50 text-[#15803d]' : 'bg-amber-50 text-amber-700'}`}>
-                              {getStatusLabel(doc.current_status)}
-                            </span>
-                          </td>
-                          <td className="py-4 text-right pr-4 relative">
-                            <div className="flex justify-end gap-2">
-                              {doc.current_status === 'pending_payment' ? (
-                                <>
-                                  <button 
-                                    onClick={() => { setSelectedDoc(doc); setActiveModal('pay'); }}
-                                    className="px-4 py-1.5 bg-[#15803d] text-white rounded-xl text-xs font-bold hover:bg-[#166534] transition-all shadow-sm flex items-center gap-1.5"
-                                  >
-                                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                                    Pay GCash
-                                  </button>
-                                  <button 
-                                    onClick={() => handleStudentCancelRequest(doc.id)}
-                                    className="px-4 py-1.5 bg-red-50 text-red-600 rounded-xl text-xs font-bold hover:bg-red-100 transition-all border border-red-200 flex items-center gap-1.5"
-                                  >
-                                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M6 18L18 6M6 6l12 12"/></svg>
-                                    Cancel
-                                  </button>
-                                </>
-                              ) : (
-                                <button 
-                                  onClick={() => { setSelectedDoc(doc); setActiveModal('tracking'); }}
-                                  className="px-4 py-1.5 bg-blue-50 text-blue-600 rounded-xl text-xs font-bold hover:bg-blue-100 transition-all border border-blue-200 flex items-center gap-1.5"
-                                  title="Track Document"
-                                >
-                                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"/></svg>
-                                  Live Track
-                                </button>
-                              )}
-                            </div>
-                          </td>
+              <div className="p-4 sm:p-6">
+                <div className="max-h-[60vh] overflow-y-auto overflow-x-auto">
+                  {documents.length === 0 ? (
+                    <div className="text-center py-12 text-gray-400 font-medium">No active request records. Submit one at the top!</div>
+                  ) : (
+                    <table className="w-full text-left border-collapse">
+                      <thead className="sticky top-0 bg-white z-10">
+                        <tr className="text-gray-400 text-[10px] uppercase tracking-widest border-b border-gray-100">
+                          <th className="pb-4 font-bold pl-4">Date</th>
+                          <th className="pb-4 font-bold">Document /Type</th>
+                          <th className="pb-4 font-bold">Progress</th>
+                          <th className="pb-4 font-bold">Status</th>
+                          <th className="pb-4 font-bold text-right pr-4">Action</th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                )}
+                      </thead>
+                      <tbody className="divide-y divide-gray-50">
+                        {documents.map(doc => (
+                          <tr key={doc.id} className="hover:bg-gray-50/50 transition-colors">
+                            <td className="py-4 pl-4 text-xs font-semibold text-gray-400">{new Date(doc.created_at).toLocaleDateString()} {new Date(doc.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</td>
+                            <td className="py-4">
+                              <div className="text-sm font-bold text-gray-900">{doc.document_type}</div>
+                              <div className="text-xs font-mono text-gray-400 mt-0.5">#{doc.tracking_number ? doc.tracking_number.slice(0, 10).toUpperCase() : doc.id}</div>
+                            </td>
+                            <td className="py-4 w-1/3">
+                              <div className="flex items-center gap-3">
+                                <div className="w-full bg-gray-100 rounded-full h-2 overflow-hidden">
+                                  <div className="bg-[#15803d] h-2 rounded-full transition-all duration-500" style={{ width: `${getProgressVal(doc.current_status)}%` }}></div>
+                                </div>
+                                <span className="text-[11px] font-bold text-gray-600 font-mono">{getProgressVal(doc.current_status)}%</span>
+                              </div>
+                            </td>
+                            <td className="py-4">
+                              <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${doc.current_status === 'completed' || doc.current_status === 'released' ? 'bg-emerald-50 text-[#15803d]' : 'bg-amber-50 text-amber-700'}`}>
+                                {getStatusLabel(doc.current_status)}
+                              </span>
+                            </td>
+                            <td className="py-4 text-right pr-4 relative">
+                              <div className="flex justify-end gap-2">
+                                {doc.current_status === 'pending_payment' ? (
+                                  <>
+                                    <button 
+                                      onClick={() => { setSelectedDoc(doc); setActiveModal('pay'); }}
+                                      className="px-4 py-1.5 bg-[#15803d] text-white rounded-xl text-xs font-bold hover:bg-[#166534] transition-all shadow-sm flex items-center gap-1.5"
+                                    >
+                                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                      Pay GCash
+                                    </button>
+                                    <button 
+                                      onClick={() => handleStudentCancelRequest(doc.id)}
+                                      className="px-4 py-1.5 bg-red-50 text-red-600 rounded-xl text-xs font-bold hover:bg-red-100 transition-all border border-red-200 flex items-center gap-1.5"
+                                    >
+                                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M6 18L18 6M6 6l12 12"/></svg>
+                                      Cancel
+                                    </button>
+                                  </>
+                                ) : (
+                                  <button 
+                                    onClick={() => { setSelectedDoc(doc); setActiveModal('tracking'); }}
+                                    className="px-4 py-1.5 bg-blue-50 text-blue-600 rounded-xl text-xs font-bold hover:bg-blue-100 transition-all border border-blue-200 flex items-center gap-1.5"
+                                    title="Track Document"
+                                  >
+                                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"/></svg>
+                                    Live Track
+                                  </button>
+                                )}
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  )}
+              
+                </div>
               </div>
             </div>
           </>
@@ -208,7 +211,7 @@ export default function StudentDashboard({ user, currentTab, setViewImageUrl }) 
             {/* Header */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
               <div>
-                <h2 className="text-3xl font-display font-black text-gray-900 tracking-tight">
+                <h2 className="text-2xl sm:text-3xl font-display font-black text-gray-900 tracking-tight">
                   Request History
                 </h2>
               </div>
@@ -216,42 +219,45 @@ export default function StudentDashboard({ user, currentTab, setViewImageUrl }) 
 
             {/* History Table */}
             <div className="bg-white rounded-3xl shadow-sm border border-gray-200 overflow-hidden">
-              <div className="p-6 border-b border-gray-100 bg-gray-50/50 flex justify-between items-center">
+              <div className="p-4 sm:p-6 border-b border-gray-100 bg-gray-50/50 flex justify-between items-center">
                 <h3 className="font-bold text-gray-900 text-lg">Your request history</h3>
                 <button className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 text-[#15803d] border border-emerald-100 rounded-xl text-xs font-bold hover:bg-emerald-100 transition-all">
                   <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"/></svg>
                   Filters
                 </button>
               </div>
-              <div className="p-6">
-                {documents.length === 0 ? (
-                  <div className="text-center py-12 text-gray-400 font-medium">No request history found.</div>
-                ) : (
-                  <table className="w-full text-left border-collapse">
-                    <thead>
-                      <tr className="text-gray-400 text-[10px] uppercase tracking-widest border-b border-gray-100">
-                        <th className="pb-4 font-bold pl-4">Docuement</th>
-                        <th className="pb-4 font-bold">Date Requested</th>
-                        <th className="pb-4 font-bold">Tracking ID</th>
-                        <th className="pb-4 font-bold">Status</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-50">
-                      {documents.map(doc => (
-                        <tr key={doc.id} className="hover:bg-gray-50/50 transition-colors">
-                          <td className="py-4 pl-4 text-sm font-bold text-gray-900">{doc.document_type}</td>
-                          <td className="py-4 text-xs font-semibold text-gray-400">{new Date(doc.created_at).toLocaleDateString()} {new Date(doc.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</td>
-                          <td className="py-4 font-mono text-xs text-gray-800 font-bold">#{doc.tracking_number ? doc.tracking_number.slice(0, 10).toUpperCase() : doc.id}</td>
-                          <td className="py-4">
-                            <span className="px-3 py-1 bg-emerald-50 text-[#15803d] text-[10px] font-black rounded-full uppercase tracking-wider">
-                              {doc.current_status === 'completed' || doc.current_status === 'released' ? 'Released' : 'Processing'}
-                            </span>
-                          </td>
+              <div className="p-4 sm:p-6">
+                <div className="max-h-[60vh] overflow-y-auto overflow-x-auto">
+                  {documents.length === 0 ? (
+                    <div className="text-center py-12 text-gray-400 font-medium">No request history found.</div>
+                  ) : (
+                    <table className="w-full text-left border-collapse">
+                      <thead className="sticky top-0 bg-white z-10">
+                        <tr className="text-gray-400 text-[10px] uppercase tracking-widest border-b border-gray-100">
+                          <th className="pb-4 font-bold pl-4">Docuement</th>
+                          <th className="pb-4 font-bold">Date Requested</th>
+                          <th className="pb-4 font-bold">Tracking ID</th>
+                          <th className="pb-4 font-bold">Status</th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                )}
+                      </thead>
+                      <tbody className="divide-y divide-gray-50">
+                        {documents.map(doc => (
+                          <tr key={doc.id} className="hover:bg-gray-50/50 transition-colors">
+                            <td className="py-4 pl-4 text-sm font-bold text-gray-900">{doc.document_type}</td>
+                            <td className="py-4 text-xs font-semibold text-gray-400">{new Date(doc.created_at).toLocaleDateString()} {new Date(doc.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</td>
+                            <td className="py-4 font-mono text-xs text-gray-800 font-bold">#{doc.tracking_number ? doc.tracking_number.slice(0, 10).toUpperCase() : doc.id}</td>
+                            <td className="py-4">
+                              <span className="px-3 py-1 bg-emerald-50 text-[#15803d] text-[10px] font-black rounded-full uppercase tracking-wider">
+                                {doc.current_status === 'completed' || doc.current_status === 'released' ? 'Released' : 'Processing'}
+                              </span>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  )}
+              
+                </div>
               </div>
             </div>
           </>
@@ -263,7 +269,7 @@ export default function StudentDashboard({ user, currentTab, setViewImageUrl }) 
             {/* Header */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
               <div>
-                <h2 className="text-3xl font-display font-black text-gray-900 tracking-tight">
+                <h2 className="text-2xl sm:text-3xl font-display font-black text-gray-900 tracking-tight">
                   Payment History
                 </h2>
               </div>
@@ -271,60 +277,63 @@ export default function StudentDashboard({ user, currentTab, setViewImageUrl }) 
 
             {/* Payment Card Table */}
             <div className="bg-white rounded-3xl shadow-sm border border-gray-200 overflow-hidden">
-              <div className="p-6 border-b border-gray-100 bg-gray-50/50 flex justify-between items-center">
+              <div className="p-4 sm:p-6 border-b border-gray-100 bg-gray-50/50 flex justify-between items-center">
                 <h3 className="font-bold text-gray-900 text-lg">Manage your digital transactions.</h3>
                 <button className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 text-[#15803d] border border-emerald-100 rounded-xl text-xs font-bold hover:bg-emerald-100 transition-all">
                   <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"/></svg>
                   Filters
                 </button>
               </div>
-              <div className="p-6">
-                {documents.filter(d => d.payment_status === 'PAID' || d.gcash_reference_no).length === 0 ? (
-                  <div className="text-center py-12 text-gray-400 font-medium">No transaction payments detected.</div>
-                ) : (
-                  <table className="w-full text-left border-collapse">
-                    <thead>
-                      <tr className="text-gray-400 text-[10px] uppercase tracking-widest border-b border-gray-100">
-                        <th className="pb-4 font-bold pl-4">Date</th>
-                        <th className="pb-4 font-bold">Reference Number</th>
-                        <th className="pb-4 font-bold">Document</th>
-                        <th className="pb-4 font-bold">Amount</th>
-                        <th className="pb-4 font-bold">Status</th>
-                        <th className="pb-4 font-bold text-right pr-4">Receipt</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-50">
-                      {documents.filter(d => d.payment_status === 'PAID' || d.gcash_reference_no).map(doc => (
-                        <tr key={doc.id} className="hover:bg-gray-50/50 transition-colors">
-                          <td className="py-4 pl-4 text-xs font-semibold text-gray-400">{new Date(doc.updated_at).toLocaleDateString()} {new Date(doc.updated_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</td>
-                          <td className="py-4 font-mono text-xs text-gray-800 font-black">GC-{doc.gcash_reference_no ? doc.gcash_reference_no.slice(0, 8).toUpperCase() : '992139'}</td>
-                          <td className="py-4 text-sm font-bold text-gray-700">{doc.document_type}</td>
-                          <td className="py-4 text-xs font-bold text-gray-800 font-mono">P {parseFloat(doc.amount || 150).toFixed(2)}</td>
-                          <td className="py-4">
-                            {doc.payment_status === 'PAID' ? (
-                              <span className="px-3 py-1 bg-emerald-50 text-[#15803d] text-[10px] font-black rounded-full uppercase tracking-wider">PAID</span>
-                            ) : (
-                              <span className="px-3 py-1 bg-amber-50 text-amber-600 text-[10px] font-black rounded-full uppercase tracking-wider">VERIFYING</span>
-                            )}
-                          </td>
-                          <td className="py-4 text-right pr-4">
-                            {doc.official_receipt_path ? (
-                              <button 
-                                onClick={() => setViewImageUrl(doc.official_receipt_path)}
-                                className="p-2 text-[#15803d] hover:bg-emerald-50 rounded-xl transition-colors"
-                                title="View Official Finance Receipt"
-                              >
-                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-                              </button>
-                            ) : (
-                              <span className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">Pending</span>
-                            )}
-                          </td>
+              <div className="p-4 sm:p-6">
+                <div className="max-h-[60vh] overflow-y-auto overflow-x-auto">
+                  {documents.filter(d => d.payment_status === 'PAID' || d.gcash_reference_no).length === 0 ? (
+                    <div className="text-center py-12 text-gray-400 font-medium">No transaction payments detected.</div>
+                  ) : (
+                    <table className="w-full text-left border-collapse">
+                      <thead className="sticky top-0 bg-white z-10">
+                        <tr className="text-gray-400 text-[10px] uppercase tracking-widest border-b border-gray-100">
+                          <th className="pb-4 font-bold pl-4">Date</th>
+                          <th className="pb-4 font-bold">Reference Number</th>
+                          <th className="pb-4 font-bold">Document</th>
+                          <th className="pb-4 font-bold">Amount</th>
+                          <th className="pb-4 font-bold">Status</th>
+                          <th className="pb-4 font-bold text-right pr-4">Receipt</th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                )}
+                      </thead>
+                      <tbody className="divide-y divide-gray-50">
+                        {documents.filter(d => d.payment_status === 'PAID' || d.gcash_reference_no).map(doc => (
+                          <tr key={doc.id} className="hover:bg-gray-50/50 transition-colors">
+                            <td className="py-4 pl-4 text-xs font-semibold text-gray-400">{new Date(doc.updated_at).toLocaleDateString()} {new Date(doc.updated_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</td>
+                            <td className="py-4 font-mono text-xs text-gray-800 font-black">GC-{doc.gcash_reference_no ? doc.gcash_reference_no.slice(0, 8).toUpperCase() : '992139'}</td>
+                            <td className="py-4 text-sm font-bold text-gray-700">{doc.document_type}</td>
+                            <td className="py-4 text-xs font-bold text-gray-800 font-mono">P {parseFloat(doc.amount || 150).toFixed(2)}</td>
+                            <td className="py-4">
+                              {doc.payment_status === 'PAID' ? (
+                                <span className="px-3 py-1 bg-emerald-50 text-[#15803d] text-[10px] font-black rounded-full uppercase tracking-wider">PAID</span>
+                              ) : (
+                                <span className="px-3 py-1 bg-amber-50 text-amber-600 text-[10px] font-black rounded-full uppercase tracking-wider">VERIFYING</span>
+                              )}
+                            </td>
+                            <td className="py-4 text-right pr-4">
+                              {doc.official_receipt_path ? (
+                                <button 
+                                  onClick={() => setViewImageUrl(doc.official_receipt_path)}
+                                  className="p-2 text-[#15803d] hover:bg-emerald-50 rounded-xl transition-colors"
+                                  title="View Official Finance Receipt"
+                                >
+                                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                                </button>
+                              ) : (
+                                <span className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">Pending</span>
+                              )}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  )}
+              
+                </div>
               </div>
             </div>
           </>
@@ -376,7 +385,7 @@ export default function StudentDashboard({ user, currentTab, setViewImageUrl }) 
               </div>
 
               <form onSubmit={handleStudentSubmitPayment} className="space-y-6">
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="flex flex-col gap-1.5">
                     <label className="text-[10px] font-bold text-gray-800 uppercase tracking-widest">Document</label>
                     <input 
@@ -412,7 +421,7 @@ export default function StudentDashboard({ user, currentTab, setViewImageUrl }) 
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="flex flex-col gap-1.5">
                     <label className="text-[10px] font-bold text-gray-800 uppercase tracking-widest">GCash Reference Number</label>
                     <input 

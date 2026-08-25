@@ -52,7 +52,7 @@ export default function Window1Dashboard({ user, currentTab }) {
             {/* Welcome Header */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
               <div>
-                <h2 className="text-3xl font-display font-black text-gray-900 tracking-tight">
+                <h2 className="text-2xl sm:text-3xl font-display font-black text-gray-900 tracking-tight">
                   Welcome back, <span className="text-[#15803d]">Window 1 Clerk</span>
                 </h2>
               </div>
@@ -65,11 +65,11 @@ export default function Window1Dashboard({ user, currentTab }) {
 
             {/* Top KPIs Row */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div className="bg-white rounded-3xl p-6 shadow-sm border border-gray-200 flex flex-col justify-between h-44">
+              <div className="bg-white rounded-3xl p-6 shadow-sm border border-gray-200 flex flex-col justify-between min-h-44">
                 <div className="flex justify-between items-start">
                   <div>
                     <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block">PROCESSED MANUAL DOCUMENT TODAY</span>
-                    <span className="text-3xl font-display font-black text-gray-900 mt-2 block">{dashStats.processed_today} <span className="text-sm text-gray-400 font-medium font-sans">Documents</span></span>
+                    <span className="text-2xl sm:text-3xl font-display font-black text-gray-900 mt-2 block">{dashStats.processed_today} <span className="text-sm text-gray-400 font-medium font-sans">Documents</span></span>
                   </div>
                   <MiniSparkline trend="up" />
                 </div>
@@ -79,11 +79,11 @@ export default function Window1Dashboard({ user, currentTab }) {
                 </div>
               </div>
 
-              <div className="bg-white rounded-3xl p-6 shadow-sm border border-gray-200 flex flex-col justify-between h-44">
+              <div className="bg-white rounded-3xl p-6 shadow-sm border border-gray-200 flex flex-col justify-between min-h-44">
                 <div className="flex justify-between items-start">
                   <div>
                     <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block">AWAITING SECRETARY</span>
-                    <span className="text-3xl font-display font-black text-gray-900 mt-2 block">
+                    <span className="text-2xl sm:text-3xl font-display font-black text-gray-900 mt-2 block">
                       {dashStats.pending_secretary_count} <span className="text-sm text-gray-400 font-medium font-sans">Pending</span>
                     </span>
                   </div>
@@ -94,11 +94,11 @@ export default function Window1Dashboard({ user, currentTab }) {
                 </div>
               </div>
 
-              <div className="bg-white rounded-3xl p-6 shadow-sm border border-gray-200 flex flex-col justify-between h-44">
+              <div className="bg-white rounded-3xl p-6 shadow-sm border border-gray-200 flex flex-col justify-between min-h-44">
                 <div className="flex justify-between items-start">
                   <div>
                     <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block">COMPLETED TODAY</span>
-                    <span className="text-3xl font-display font-black text-gray-900 mt-2 block">
+                    <span className="text-2xl sm:text-3xl font-display font-black text-gray-900 mt-2 block">
                       {dashStats.completed_today_count} <span className="text-sm text-gray-400 font-medium font-sans">Completed</span>
                     </span>
                   </div>
@@ -167,7 +167,7 @@ export default function Window1Dashboard({ user, currentTab }) {
             </div>
             {/* Active release queue card */}
             <div className="bg-white rounded-3xl shadow-sm border border-gray-200 overflow-hidden mt-8">
-              <div className="p-6 border-b border-gray-100 bg-gray-50/50 flex flex-col sm:flex-row justify-between sm:items-center gap-4">
+              <div className="p-4 sm:p-6 border-b border-gray-100 bg-gray-50/50 flex flex-col sm:flex-row justify-between sm:items-center gap-4">
                 <div>
                   <h3 className="font-bold text-gray-900 text-lg uppercase tracking-wider">RELEASE DESK</h3>
                   <div className="flex items-center gap-4 mt-1 text-xs text-gray-500 font-medium">
@@ -178,71 +178,74 @@ export default function Window1Dashboard({ user, currentTab }) {
                 <button onClick={loadDashboardData} className="text-xs text-[#15803d] font-bold hover:underline inline-flex items-center gap-1"><svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.992 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182" /></svg> Refresh</button>
               </div>
 
-              <div className="p-6">
-                {dashStats.ready_window_1_count === 0 ? (
-                  <div className="text-center py-16 text-gray-400 font-medium">No documents waiting for release.</div>
-                ) : (
-                  <>
-                    <table className="w-full text-left border-collapse">
-                      <thead>
-                        <tr className="text-gray-400 text-[10px] uppercase tracking-widest border-b border-gray-100">
-                          <th className="pb-4 font-bold pl-4">Tracking Hash</th>
-                          <th className="pb-4 font-bold">Student</th>
-                          <th className="pb-4 font-bold">Document Type</th>
-                          <th className="pb-4 font-bold">Wait Time</th>
-                          <th className="pb-4 font-bold text-right pr-4">Action</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-gray-50">
-                        {documents.filter(d => d.current_status === 'ready_window_1')
-                          .slice((w1ReleasePage - 1) * itemsPerPage, w1ReleasePage * itemsPerPage)
-                          .map(doc => (
-                          <tr key={doc.id} className="hover:bg-gray-50/50 group">
-                            <td className="py-4 pl-4 font-mono text-xs text-gray-500">#{doc.tracking_number ? doc.tracking_number.slice(0, 10).toUpperCase() : doc.id}</td>
-                            <td className="py-4">
-                              <div className="text-sm font-bold text-gray-900">{doc.student_name || 'Name Unresolved'}</div>
-                              <div className="text-xs font-mono text-gray-400 mt-0.5">{doc.student_id || 'ID Pending'}</div>
-                            </td>
-                            <td className="py-4 text-xs font-bold text-gray-600">{doc.document_type}</td>
-                            <td className="py-4 text-xs font-bold text-gray-505 font-mono">{getWaitTime(doc.updated_at)}</td>
-                            <td className="py-4 text-right pr-4">
-                              <button 
-                                onClick={() => handleWindow1Release(doc.id)}
-                                disabled={actionLoading}
-                                className="px-5 py-2.5 bg-[#15803d] hover:bg-[#166534] text-white text-xs font-bold rounded-xl shadow-sm transition-all flex items-center gap-1.5 ml-auto"
-                              >
-                                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M5 13l4 4L19 7"/></svg>
-                                Release Doc
-                              </button>
-                            </td>
+              <div className="p-4 sm:p-6">
+                <div className="max-h-[60vh] overflow-y-auto overflow-x-auto">
+                  {dashStats.ready_window_1_count === 0 ? (
+                    <div className="text-center py-16 text-gray-400 font-medium">No documents waiting for release.</div>
+                  ) : (
+                    <>
+                      <table className="w-full text-left border-collapse">
+                        <thead className="sticky top-0 bg-white z-10">
+                          <tr className="text-gray-400 text-[10px] uppercase tracking-widest border-b border-gray-100">
+                            <th className="pb-4 font-bold pl-4">Tracking Hash</th>
+                            <th className="pb-4 font-bold">Student</th>
+                            <th className="pb-4 font-bold">Document Type</th>
+                            <th className="pb-4 font-bold">Wait Time</th>
+                            <th className="pb-4 font-bold text-right pr-4">Action</th>
                           </tr>
-                        ))}
-                      </tbody>
-                    </table>
+                        </thead>
+                        <tbody className="divide-y divide-gray-50">
+                          {documents.filter(d => d.current_status === 'ready_window_1')
+                            .slice((w1ReleasePage - 1) * itemsPerPage, w1ReleasePage * itemsPerPage)
+                            .map(doc => (
+                            <tr key={doc.id} className="hover:bg-gray-50/50 group">
+                              <td className="py-4 pl-4 font-mono text-xs text-gray-500">#{doc.tracking_number ? doc.tracking_number.slice(0, 10).toUpperCase() : doc.id}</td>
+                              <td className="py-4">
+                                <div className="text-sm font-bold text-gray-900">{doc.student_name || 'Name Unresolved'}</div>
+                                <div className="text-xs font-mono text-gray-400 mt-0.5">{doc.student_id || 'ID Pending'}</div>
+                              </td>
+                              <td className="py-4 text-xs font-bold text-gray-600">{doc.document_type}</td>
+                              <td className="py-4 text-xs font-bold text-gray-505 font-mono">{getWaitTime(doc.updated_at)}</td>
+                              <td className="py-4 text-right pr-4">
+                                <button 
+                                  onClick={() => handleWindow1Release(doc.id)}
+                                  disabled={actionLoading}
+                                  className="px-5 py-2.5 bg-[#15803d] hover:bg-[#166534] text-white text-xs font-bold rounded-xl shadow-sm transition-all flex items-center gap-1.5 ml-auto"
+                                >
+                                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M5 13l4 4L19 7"/></svg>
+                                  Release Doc
+                                </button>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
 
-                    {documents.filter(d => d.current_status === 'ready_window_1').length > itemsPerPage && (
-                      <div className="flex justify-between items-center mt-6 border-t border-gray-100 pt-4">
-                        <button 
-                          disabled={w1ReleasePage === 1} 
-                          onClick={() => setW1ReleasePage(p => p - 1)}
-                          className="px-4 py-2 text-xs font-bold text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-xl disabled:opacity-50 transition-colors"
-                        >
-                          Previous
-                        </button>
-                        <span className="text-xs font-bold text-gray-500">
-                          Page {w1ReleasePage} of {Math.ceil(documents.filter(d => d.current_status === 'ready_window_1').length / itemsPerPage)}
-                        </span>
-                        <button 
-                          disabled={w1ReleasePage >= Math.ceil(documents.filter(d => d.current_status === 'ready_window_1').length / itemsPerPage)} 
-                          onClick={() => setW1ReleasePage(p => p + 1)}
-                          className="px-4 py-2 text-xs font-bold text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-xl disabled:opacity-50 transition-colors"
-                        >
-                          Next
-                        </button>
-                      </div>
-                    )}
-                  </>
-                )}
+                      {documents.filter(d => d.current_status === 'ready_window_1').length > itemsPerPage && (
+                        <div className="flex justify-between items-center mt-6 border-t border-gray-100 pt-4">
+                          <button 
+                            disabled={w1ReleasePage === 1} 
+                            onClick={() => setW1ReleasePage(p => p - 1)}
+                            className="px-4 py-2 text-xs font-bold text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-xl disabled:opacity-50 transition-colors"
+                          >
+                            Previous
+                          </button>
+                          <span className="text-xs font-bold text-gray-500">
+                            Page {w1ReleasePage} of {Math.ceil(documents.filter(d => d.current_status === 'ready_window_1').length / itemsPerPage)}
+                          </span>
+                          <button 
+                            disabled={w1ReleasePage >= Math.ceil(documents.filter(d => d.current_status === 'ready_window_1').length / itemsPerPage)} 
+                            onClick={() => setW1ReleasePage(p => p + 1)}
+                            className="px-4 py-2 text-xs font-bold text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-xl disabled:opacity-50 transition-colors"
+                          >
+                            Next
+                          </button>
+                        </div>
+                      )}
+                    </>
+                  )}
+              
+                </div>
               </div>
             </div>
           </>
@@ -254,7 +257,7 @@ export default function Window1Dashboard({ user, currentTab }) {
             {/* Header */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
               <div>
-                <h2 className="text-3xl font-display font-black text-gray-900 tracking-tight">
+                <h2 className="text-2xl sm:text-3xl font-display font-black text-gray-900 tracking-tight">
                   Tracking Desk
                 </h2>
               </div>
@@ -266,20 +269,20 @@ export default function Window1Dashboard({ user, currentTab }) {
             </div>
             {/* System Documents Progress Queue */}
             <div className="bg-white rounded-3xl shadow-sm border border-gray-200 overflow-hidden mt-8">
-              <div className="p-6 border-b border-gray-100 bg-gray-50/50 flex justify-between items-center">
+              <div className="p-4 sm:p-6 border-b border-gray-100 bg-gray-50/50 flex justify-between items-center">
                 <div>
                   <h3 className="font-bold text-gray-900 text-lg uppercase tracking-wider">SYSTEM DOCUMENTS PROGRESS</h3>
                   <p className="text-xs text-gray-400 mt-1">Live tracking of all active requested documents in the system.</p>
                 </div>
               </div>
-              <div className="p-6">
+              <div className="p-4 sm:p-6">
                 {documents.length === 0 ? (
                   <div className="text-center py-12 text-gray-400 font-medium">No active document requests.</div>
                 ) : (
                   <>
-                    <div className="overflow-x-auto">
+                    <div className="max-h-[60vh] overflow-y-auto overflow-x-auto">
                       <table className="w-full text-left border-collapse min-w-[700px]">
-                        <thead>
+                        <thead className="sticky top-0 bg-white z-10">
                           <tr className="text-gray-400 text-[10px] uppercase tracking-widest border-b border-gray-100">
                             <th className="pb-4 font-bold pl-4">Date Requested</th>
                             <th className="pb-4 font-bold">Document</th>
@@ -350,7 +353,7 @@ export default function Window1Dashboard({ user, currentTab }) {
             {/* Header */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
               <div>
-                <h2 className="text-3xl font-display font-black text-gray-900 tracking-tight">
+                <h2 className="text-2xl sm:text-3xl font-display font-black text-gray-900 tracking-tight">
                   Manual Input
                 </h2>
               </div>

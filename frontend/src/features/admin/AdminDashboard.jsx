@@ -53,7 +53,7 @@ export default function AdminDashboard({ user, currentTab, setViewImageUrl }) {
                 {/* Welcome Header */}
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
                   <div>
-                    <h2 className="text-3xl font-display font-black text-gray-900 tracking-tight">
+                    <h2 className="text-2xl sm:text-3xl font-display font-black text-gray-900 tracking-tight">
                       Welcome back, <span className="text-slate-400 font-medium">Registrar Admin</span>
                     </h2>
                   </div>
@@ -66,11 +66,11 @@ export default function AdminDashboard({ user, currentTab, setViewImageUrl }) {
 
                 {/* Metrics Overview Row */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  <div className="bg-white rounded-3xl p-6 shadow-sm border border-gray-200 flex flex-col justify-between h-44">
+                  <div className="bg-white rounded-3xl p-6 shadow-sm border border-gray-200 flex flex-col justify-between min-h-44">
                     <div className="flex justify-between items-start">
                       <div>
                         <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block">System Throughput</span>
-                        <span className="text-3xl font-display font-black text-gray-900 mt-2 block">{dashStats.avg_processing_minutes > 0 ? dashStats.avg_processing_minutes.toFixed(1) : '—'} <span className="text-sm text-gray-400 font-medium font-sans">min</span></span>
+                        <span className="text-2xl sm:text-3xl font-display font-black text-gray-900 mt-2 block">{dashStats.avg_processing_minutes > 0 ? dashStats.avg_processing_minutes.toFixed(1) : '—'} <span className="text-sm text-gray-400 font-medium font-sans">min</span></span>
                       </div>
                       <MiniSparkline trend="up" />
                     </div>
@@ -80,11 +80,11 @@ export default function AdminDashboard({ user, currentTab, setViewImageUrl }) {
                     </div>
                   </div>
 
-                  <div className="bg-white rounded-3xl p-6 shadow-sm border border-gray-200 flex flex-col justify-between h-44">
+                  <div className="bg-white rounded-3xl p-6 shadow-sm border border-gray-200 flex flex-col justify-between min-h-44">
                     <div className="flex justify-between items-start">
                       <div>
                         <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block">AI Confidence Avg</span>
-                        <span className="text-3xl font-display font-black text-gray-900 mt-2 block">{dashStats.avg_ocr_confidence > 0 ? dashStats.avg_ocr_confidence.toFixed(1) + '%' : '—'}</span>
+                        <span className="text-2xl sm:text-3xl font-display font-black text-gray-900 mt-2 block">{dashStats.avg_ocr_confidence > 0 ? dashStats.avg_ocr_confidence.toFixed(1) + '%' : '—'}</span>
                       </div>
                       <MiniSparkline trend="down" />
                     </div>
@@ -93,11 +93,11 @@ export default function AdminDashboard({ user, currentTab, setViewImageUrl }) {
                     </div>
                   </div>
 
-                  <div className="bg-white rounded-3xl p-6 shadow-sm border border-gray-200 flex flex-col justify-between h-44">
+                  <div className="bg-white rounded-3xl p-6 shadow-sm border border-gray-200 flex flex-col justify-between min-h-44">
                     <div className="flex justify-between items-start">
                       <div>
                         <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block">Real-time Backlog</span>
-                        <span className="text-3xl font-display font-black text-gray-900 mt-2 block">
+                        <span className="text-2xl sm:text-3xl font-display font-black text-gray-900 mt-2 block">
                           {dashStats.backlog_count}
                         </span>
                       </div>
@@ -217,69 +217,72 @@ export default function AdminDashboard({ user, currentTab, setViewImageUrl }) {
 
                 {/* Student Account Verification dashboard */}
                 <div className="bg-white rounded-3xl shadow-sm border border-gray-200 overflow-hidden">
-                  <div className="p-6 border-b border-gray-100 bg-gray-50/50 flex justify-between items-center">
+                  <div className="p-4 sm:p-6 border-b border-gray-100 bg-gray-50/50 flex justify-between items-center">
                     <h3 className="font-bold text-gray-900 text-lg">Student Accounts Manual Verification Queue</h3>
                     <span className="bg-amber-100 text-amber-800 text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-wider">
                       {pendingStudents.length} Account Verification Requests
                     </span>
                   </div>
-                  <div className="p-6 overflow-x-auto">
-                    {pendingStudents.length === 0 ? (
-                      <div className="text-center py-12 text-gray-400 font-medium">No pending student accounts requiring manual validation.</div>
-                    ) : (
-                      <table className="w-full text-left border-collapse">
-                        <thead>
-                          <tr className="text-gray-400 text-[10px] uppercase tracking-widest border-b border-gray-100">
-                            <th className="pb-4 font-bold pl-4 font-mono">Student ID</th>
-                            <th className="pb-4 font-bold">Full Name</th>
-                            <th className="pb-4 font-bold">Email</th>
-                            <th className="pb-4 font-bold">Proof of Registration</th>
-                            <th className="pb-4 font-bold text-center">Action</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-gray-50">
-                          {pendingStudents.map(student => (
-                            <tr key={student.id} className="hover:bg-gray-50/30">
-                              <td className="py-4 pl-4 font-mono text-sm font-semibold text-gray-800">{student.student_id}</td>
-                              <td className="py-4 text-sm font-bold text-gray-900">{student.full_name}</td>
-                              <td className="py-4 text-sm text-gray-600">{student.email || '—'}</td>
-                              <td className="py-4">
-                                {student.id_proof_path ? (
-                                  <button 
-                                    onClick={() => setViewImageUrl(student.id_proof_path)}
-                                    className="text-xs text-indigo-600 font-bold hover:underline flex items-center gap-1"
-                                  >
-                                    <svg className="w-3.5 h-3.5 inline-block mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" /></svg>View ID / Diploma Attachment
-                                  </button>
-                                ) : (
-                                  <span className="text-xs text-gray-400 italic">No proof uploaded</span>
-                                )}
-                              </td>
-                              <td className="py-4">
-                                <div className="flex items-center justify-center gap-2">
-                                  <button 
-                                    onClick={() => handleAdminVerifyStudent(student.id, 'reject')}
-                                    disabled={actionLoading}
-                                    className="px-3 py-1.5 bg-white border border-red-200 text-red-500 rounded-xl text-xs font-bold hover:bg-red-50 flex items-center gap-1.5"
-                                  >
-                                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M6 18L18 6M6 6l12 12"/></svg>
-                                    Reject
-                                  </button>
-                                  <button 
-                                    onClick={() => handleAdminVerifyStudent(student.id, 'verify')}
-                                    disabled={actionLoading}
-                                    className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-sm flex items-center gap-1.5"
-                                  >
-                                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                                    Verify Student
-                                  </button>
-                                </div>
-                              </td>
+                  <div className="p-4 sm:p-6">
+                    <div className="max-h-[60vh] overflow-y-auto overflow-x-auto">
+                      {pendingStudents.length === 0 ? (
+                        <div className="text-center py-12 text-gray-400 font-medium">No pending student accounts requiring manual validation.</div>
+                      ) : (
+                        <table className="w-full text-left border-collapse">
+                          <thead className="sticky top-0 bg-white z-10">
+                            <tr className="text-gray-400 text-[10px] uppercase tracking-widest border-b border-gray-100">
+                              <th className="pb-4 font-bold pl-4 font-mono">Student ID</th>
+                              <th className="pb-4 font-bold">Full Name</th>
+                              <th className="pb-4 font-bold">Email</th>
+                              <th className="pb-4 font-bold">Proof of Registration</th>
+                              <th className="pb-4 font-bold text-center">Action</th>
                             </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    )}
+                          </thead>
+                          <tbody className="divide-y divide-gray-50">
+                            {pendingStudents.map(student => (
+                              <tr key={student.id} className="hover:bg-gray-50/30">
+                                <td className="py-4 pl-4 font-mono text-sm font-semibold text-gray-800">{student.student_id}</td>
+                                <td className="py-4 text-sm font-bold text-gray-900">{student.full_name}</td>
+                                <td className="py-4 text-sm text-gray-600">{student.email || '—'}</td>
+                                <td className="py-4">
+                                  {student.id_proof_path ? (
+                                    <button 
+                                      onClick={() => setViewImageUrl(student.id_proof_path)}
+                                      className="text-xs text-indigo-600 font-bold hover:underline flex items-center gap-1"
+                                    >
+                                      <svg className="w-3.5 h-3.5 inline-block mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" /></svg>View ID / Diploma Attachment
+                                    </button>
+                                  ) : (
+                                    <span className="text-xs text-gray-400 italic">No proof uploaded</span>
+                                  )}
+                                </td>
+                                <td className="py-4">
+                                  <div className="flex items-center justify-center gap-2">
+                                    <button 
+                                      onClick={() => handleAdminVerifyStudent(student.id, 'reject')}
+                                      disabled={actionLoading}
+                                      className="px-3 py-1.5 bg-white border border-red-200 text-red-500 rounded-xl text-xs font-bold hover:bg-red-50 flex items-center gap-1.5"
+                                    >
+                                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M6 18L18 6M6 6l12 12"/></svg>
+                                      Reject
+                                    </button>
+                                    <button 
+                                      onClick={() => handleAdminVerifyStudent(student.id, 'verify')}
+                                      disabled={actionLoading}
+                                      className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-sm flex items-center gap-1.5"
+                                    >
+                                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                      Verify Student
+                                    </button>
+                                  </div>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      )}
+
+                    </div>
                   </div>
                 </div>
               </div>
@@ -289,7 +292,7 @@ export default function AdminDashboard({ user, currentTab, setViewImageUrl }) {
                 {/* Header */}
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
                   <div>
-                    <h2 className="text-3xl font-display font-black text-gray-900 tracking-tight">
+                    <h2 className="text-2xl sm:text-3xl font-display font-black text-gray-900 tracking-tight">
                       System-Wide Tracker
                     </h2>
                   </div>
@@ -297,7 +300,7 @@ export default function AdminDashboard({ user, currentTab, setViewImageUrl }) {
 
                 {/* All Documents Tracker */}
                 <div className="bg-white rounded-3xl shadow-sm border border-gray-200 overflow-hidden">
-                  <div className="p-6 border-b border-gray-100 bg-gray-50/50 flex justify-between items-center">
+                  <div className="p-4 sm:p-6 border-b border-gray-100 bg-gray-50/50 flex justify-between items-center">
                     <h3 className="font-bold text-gray-900 text-lg">System-Wide Document Tracker</h3>
                     <div className="flex items-center gap-2">
                       <span className="text-xs font-bold text-gray-500 uppercase tracking-widest">Filter:</span>
@@ -316,65 +319,68 @@ export default function AdminDashboard({ user, currentTab, setViewImageUrl }) {
                       </select>
                     </div>
                   </div>
-                  <div className="p-6 overflow-x-auto">
-                    {documents.filter(doc => adminDocFilter === 'All' || doc.document_type === adminDocFilter).length === 0 ? (
-                      <div className="text-center py-12 text-gray-400 font-medium">No documents match the current filter.</div>
-                    ) : (
-                      <table className="w-full text-left border-collapse">
-                        <thead>
-                          <tr className="text-gray-400 text-[10px] uppercase tracking-widest border-b border-gray-100">
-                            <th className="pb-4 font-bold pl-4">Tracking ID</th>
-                            <th className="pb-4 font-bold">Student</th>
-                            <th className="pb-4 font-bold">Document Type</th>
-                            <th className="pb-4 font-bold">Status</th>
-                            <th className="pb-4 font-bold">Date Updated</th>
-                            <th className="pb-4 font-bold text-right pr-4">Attachment</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-gray-50">
-                          {documents
-                            .filter(doc => adminDocFilter === 'All' || doc.document_type === adminDocFilter)
-                            .slice((adminDocPage - 1) * itemsPerPage, adminDocPage * itemsPerPage)
-                            .map(doc => (
-                              <tr key={doc.id} className="hover:bg-gray-50/30">
-                                <td className="py-4 pl-4 font-mono text-xs font-bold text-gray-900">
-                                  #{doc.tracking_number ? doc.tracking_number.slice(0, 10).toUpperCase() : doc.id}
-                                </td>
-                                <td className="py-4 text-sm font-bold text-gray-700">{doc.student_name || doc.student_id || 'Unknown'}</td>
-                                <td className="py-4 text-xs font-bold text-gray-600">{doc.document_type}</td>
-                                <td className="py-4">
-                                  <span className={`px-3 py-1 text-[10px] font-black rounded-full uppercase tracking-wider ${
-                                    doc.current_status === 'completed' || doc.current_status === 'released'
-                                      ? 'bg-emerald-50 text-emerald-600'
-                                      : doc.current_status === 'rejected'
-                                      ? 'bg-red-50 text-red-600'
-                                      : 'bg-blue-50 text-blue-600'
-                                  }`}>
-                                    {doc.current_status.replace('_', ' ')}
-                                  </span>
-                                </td>
-                                <td className="py-4 text-xs font-semibold text-gray-400">
-                                  {new Date(doc.updated_at).toLocaleDateString()} {new Date(doc.updated_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
-                                </td>
-                                <td className="py-4 text-right pr-4">
-                                  {doc.file_path ? (
-                                    <button 
-                                      onClick={() => setViewImageUrl(doc.file_path)}
-                                      className="p-2 text-[#15803d] hover:bg-emerald-50 rounded-xl transition-colors inline-flex items-center gap-1 text-xs font-bold"
-                                      title="View Attached File"
-                                    >
-                                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
-                                      View
-                                    </button>
-                                  ) : (
-                                    <span className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">No File</span>
-                                  )}
-                                </td>
-                              </tr>
-                            ))}
-                        </tbody>
-                      </table>
-                    )}
+                  <div className="p-4 sm:p-6">
+                    <div className="max-h-[60vh] overflow-y-auto overflow-x-auto">
+                      {documents.filter(doc => adminDocFilter === 'All' || doc.document_type === adminDocFilter).length === 0 ? (
+                        <div className="text-center py-12 text-gray-400 font-medium">No documents match the current filter.</div>
+                      ) : (
+                        <table className="w-full text-left border-collapse">
+                          <thead className="sticky top-0 bg-white z-10">
+                            <tr className="text-gray-400 text-[10px] uppercase tracking-widest border-b border-gray-100">
+                              <th className="pb-4 font-bold pl-4">Tracking ID</th>
+                              <th className="pb-4 font-bold">Student</th>
+                              <th className="pb-4 font-bold">Document Type</th>
+                              <th className="pb-4 font-bold">Status</th>
+                              <th className="pb-4 font-bold">Date Updated</th>
+                              <th className="pb-4 font-bold text-right pr-4">Attachment</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-gray-50">
+                            {documents
+                              .filter(doc => adminDocFilter === 'All' || doc.document_type === adminDocFilter)
+                              .slice((adminDocPage - 1) * itemsPerPage, adminDocPage * itemsPerPage)
+                              .map(doc => (
+                                <tr key={doc.id} className="hover:bg-gray-50/30">
+                                  <td className="py-4 pl-4 font-mono text-xs font-bold text-gray-900">
+                                    #{doc.tracking_number ? doc.tracking_number.slice(0, 10).toUpperCase() : doc.id}
+                                  </td>
+                                  <td className="py-4 text-sm font-bold text-gray-700">{doc.student_name || doc.student_id || 'Unknown'}</td>
+                                  <td className="py-4 text-xs font-bold text-gray-600">{doc.document_type}</td>
+                                  <td className="py-4">
+                                    <span className={`px-3 py-1 text-[10px] font-black rounded-full uppercase tracking-wider ${
+                                      doc.current_status === 'completed' || doc.current_status === 'released'
+                                        ? 'bg-emerald-50 text-emerald-600'
+                                        : doc.current_status === 'rejected'
+                                        ? 'bg-red-50 text-red-600'
+                                        : 'bg-blue-50 text-blue-600'
+                                    }`}>
+                                      {doc.current_status.replace('_', ' ')}
+                                    </span>
+                                  </td>
+                                  <td className="py-4 text-xs font-semibold text-gray-400">
+                                    {new Date(doc.updated_at).toLocaleDateString()} {new Date(doc.updated_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                                  </td>
+                                  <td className="py-4 text-right pr-4">
+                                    {doc.file_path ? (
+                                      <button 
+                                        onClick={() => setViewImageUrl(doc.file_path)}
+                                        className="p-2 text-[#15803d] hover:bg-emerald-50 rounded-xl transition-colors inline-flex items-center gap-1 text-xs font-bold"
+                                        title="View Attached File"
+                                      >
+                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+                                        View
+                                      </button>
+                                    ) : (
+                                      <span className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">No File</span>
+                                    )}
+                                  </td>
+                                </tr>
+                              ))}
+                          </tbody>
+                        </table>
+                      )}
+
+                    </div>
                   </div>
                   {/* Pagination Controls */}
                   {documents.filter(doc => adminDocFilter === 'All' || doc.document_type === adminDocFilter).length > itemsPerPage && (
@@ -407,11 +413,11 @@ export default function AdminDashboard({ user, currentTab, setViewImageUrl }) {
               <div className="space-y-8 animate-fade-in">
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
                   <div>
-                    <h2 className="text-3xl font-display font-black text-gray-900 tracking-tight">Registered Users</h2>
+                    <h2 className="text-2xl sm:text-3xl font-display font-black text-gray-900 tracking-tight">Registered Users</h2>
                   </div>
                 </div>
                 <div className="bg-white rounded-3xl shadow-sm border border-gray-200 overflow-hidden">
-                  <div className="p-6 border-b border-gray-100 bg-gray-50/50 flex justify-between items-center">
+                  <div className="p-4 sm:p-6 border-b border-gray-100 bg-gray-50/50 flex justify-between items-center">
                     <h3 className="font-bold text-gray-900 text-lg">System Users</h3>
                     <input 
                       type="text" 
@@ -421,33 +427,36 @@ export default function AdminDashboard({ user, currentTab, setViewImageUrl }) {
                       className="px-4 py-2 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-[#15803d]"
                     />
                   </div>
-                  <div className="p-6 overflow-x-auto">
-                    <table className="w-full text-left border-collapse whitespace-nowrap">
-                      <thead>
-                        <tr className="text-xs uppercase tracking-widest text-gray-400 border-b border-gray-100">
-                          <th className="pb-4 font-bold pl-4">ID</th>
-                          <th className="pb-4 font-bold">Name</th>
-                          <th className="pb-4 font-bold">Email</th>
-                          <th className="pb-4 font-bold">Role</th>
-                          <th className="pb-4 font-bold">Status</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-gray-50">
-                        {adminUsers.filter(u => u?.full_name?.toLowerCase().includes(adminUsersFilter.toLowerCase()) || u?.student_id?.toLowerCase().includes(adminUsersFilter.toLowerCase()) || u?.email?.toLowerCase().includes(adminUsersFilter.toLowerCase())).map(u => (
-                          <tr key={u.id} className="hover:bg-gray-50/30">
-                            <td className="py-4 pl-4 text-sm font-semibold text-gray-800">{u.student_id || '—'}</td>
-                            <td className="py-4 text-sm font-bold text-gray-900">{u.full_name}</td>
-                            <td className="py-4 text-sm text-gray-600">{u.email}</td>
-                            <td className="py-4 text-sm text-gray-600 capitalize">{u.role}</td>
-                            <td className="py-4">
-                              <span className={`px-3 py-1 rounded-full text-xs font-bold ${(!u.verification_status || u.verification_status === 'verified') ? 'bg-emerald-100 text-emerald-700' : u.verification_status === 'rejected' ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-700'}`}>
-                                {u.verification_status || 'verified'}
-                              </span>
-                            </td>
+                  <div className="p-4 sm:p-6">
+                    <div className="max-h-[60vh] overflow-y-auto overflow-x-auto">
+                      <table className="w-full text-left border-collapse whitespace-nowrap">
+                        <thead className="sticky top-0 bg-white z-10">
+                          <tr className="text-xs uppercase tracking-widest text-gray-400 border-b border-gray-100">
+                            <th className="pb-4 font-bold pl-4">ID</th>
+                            <th className="pb-4 font-bold">Name</th>
+                            <th className="pb-4 font-bold">Email</th>
+                            <th className="pb-4 font-bold">Role</th>
+                            <th className="pb-4 font-bold">Status</th>
                           </tr>
-                        ))}
-                      </tbody>
-                    </table>
+                        </thead>
+                        <tbody className="divide-y divide-gray-50">
+                          {adminUsers.filter(u => u?.full_name?.toLowerCase().includes(adminUsersFilter.toLowerCase()) || u?.student_id?.toLowerCase().includes(adminUsersFilter.toLowerCase()) || u?.email?.toLowerCase().includes(adminUsersFilter.toLowerCase())).map(u => (
+                            <tr key={u.id} className="hover:bg-gray-50/30">
+                              <td className="py-4 pl-4 text-sm font-semibold text-gray-800">{u.student_id || '—'}</td>
+                              <td className="py-4 text-sm font-bold text-gray-900">{u.full_name}</td>
+                              <td className="py-4 text-sm text-gray-600">{u.email}</td>
+                              <td className="py-4 text-sm text-gray-600 capitalize">{u.role}</td>
+                              <td className="py-4">
+                                <span className={`px-3 py-1 rounded-full text-xs font-bold ${(!u.verification_status || u.verification_status === 'verified') ? 'bg-emerald-100 text-emerald-700' : u.verification_status === 'rejected' ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-700'}`}>
+                                  {u.verification_status || 'verified'}
+                                </span>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+
+                    </div>
                   </div>
                 </div>
               </div>
@@ -456,40 +465,43 @@ export default function AdminDashboard({ user, currentTab, setViewImageUrl }) {
               <div className="space-y-8 animate-fade-in">
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
                   <div>
-                    <h2 className="text-3xl font-display font-black text-gray-900 tracking-tight">Activity Logs</h2>
+                    <h2 className="text-2xl sm:text-3xl font-display font-black text-gray-900 tracking-tight">Activity Logs</h2>
                   </div>
                 </div>
                 <div className="bg-white rounded-3xl shadow-sm border border-gray-200 overflow-hidden">
-                  <div className="p-6 border-b border-gray-100 bg-gray-50/50 flex justify-between items-center">
+                  <div className="p-4 sm:p-6 border-b border-gray-100 bg-gray-50/50 flex justify-between items-center">
                     <h3 className="font-bold text-gray-900 text-lg">System-Wide Audit Log</h3>
                   </div>
-                  <div className="p-6 overflow-x-auto">
-                    <table className="w-full text-left border-collapse whitespace-nowrap">
-                      <thead>
-                        <tr className="text-xs uppercase tracking-widest text-gray-400 border-b border-gray-100">
-                          <th className="pb-4 font-bold pl-4">Timestamp</th>
-                          <th className="pb-4 font-bold">Document</th>
-                          <th className="pb-4 font-bold">Action</th>
-                          <th className="pb-4 font-bold">User</th>
-                          <th className="pb-4 font-bold">Status</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-gray-50">
-                        {adminLogs.map(log => (
-                          <tr key={log.id} className="hover:bg-gray-50/30">
-                            <td className="py-4 pl-4 text-xs font-semibold text-gray-500">{new Date(log.timestamp_started).toLocaleString()}</td>
-                            <td className="py-4 text-sm font-bold text-gray-900">{log.document_type || 'Unknown'} <span className="text-gray-400 font-mono text-xs">#{log.tracking_number || 'N/A'}</span></td>
-                            <td className="py-4 text-sm text-gray-600 capitalize">{log.step_name ? log.step_name.replace(/_/g, ' ') : 'System Action'}</td>
-                            <td className="py-4 text-sm text-gray-600">{log.user_name || 'System'}</td>
-                            <td className="py-4">
-                              <span className={`px-3 py-1 rounded-full text-xs font-bold ${log.status === 'completed' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>
-                                {log.status}
-                              </span>
-                            </td>
+                  <div className="p-4 sm:p-6">
+                    <div className="max-h-[60vh] overflow-y-auto overflow-x-auto">
+                      <table className="w-full text-left border-collapse whitespace-nowrap">
+                        <thead className="sticky top-0 bg-white z-10">
+                          <tr className="text-xs uppercase tracking-widest text-gray-400 border-b border-gray-100">
+                            <th className="pb-4 font-bold pl-4">Timestamp</th>
+                            <th className="pb-4 font-bold">Document</th>
+                            <th className="pb-4 font-bold">Action</th>
+                            <th className="pb-4 font-bold">User</th>
+                            <th className="pb-4 font-bold">Status</th>
                           </tr>
-                        ))}
-                      </tbody>
-                    </table>
+                        </thead>
+                        <tbody className="divide-y divide-gray-50">
+                          {adminLogs.map(log => (
+                            <tr key={log.id} className="hover:bg-gray-50/30">
+                              <td className="py-4 pl-4 text-xs font-semibold text-gray-500">{new Date(log.timestamp_started).toLocaleString()}</td>
+                              <td className="py-4 text-sm font-bold text-gray-900">{log.document_type || 'Unknown'} <span className="text-gray-400 font-mono text-xs">#{log.tracking_number || 'N/A'}</span></td>
+                              <td className="py-4 text-sm text-gray-600 capitalize">{log.step_name ? log.step_name.replace(/_/g, ' ') : 'System Action'}</td>
+                              <td className="py-4 text-sm text-gray-600">{log.user_name || 'System'}</td>
+                              <td className="py-4">
+                                <span className={`px-3 py-1 rounded-full text-xs font-bold ${log.status === 'completed' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>
+                                  {log.status}
+                                </span>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+
+                    </div>
                   </div>
                 </div>
               </div>

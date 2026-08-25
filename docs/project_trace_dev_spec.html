@@ -285,7 +285,10 @@ Table: users (status columns)
   // Two orthogonal axes: a student can be Irregular *and* Active, whereas
   // graduated / dropout / transferred are mutually exclusive outcomes.
   enrollment_status: ENUM('active','graduated','dropout','transferred') DEFAULT 'active',
-  study_load: ENUM('regular','irregular') DEFAULT 'regular'
+  study_load: ENUM('regular','irregular') DEFAULT 'regular',
+  // Uploaded avatar filename only ('avatar-*'). NULL falls back to a
+  // generated placeholder. Read through /api/files, never a public path.
+  profile_picture: VARCHAR(500) NULL
 }
 
 Table: colleges
@@ -501,7 +504,19 @@ frontend/src/
       </li>
 
       <li>
-        <h3>Phase 9: Production Rollout (Pending)</h3>
+        <h3>Phase 9: Panel Feedback &mdash; Category 4 (UI/UX Overhaul)</h3>
+        <p class="phase-goal">Last of the four categories &mdash; the panel's feedback list is now closed.</p>
+        <ul>
+          <li>Mobile navigation: the sidebar rail is hidden below 768&nbsp;px, so a hamburger drawer now carries the same role-aware links. Both are rendered from one definition, so a tab cannot exist on one and be missing from the other.</li>
+          <li>Every queue table scrolls inside a capped container with a sticky header, instead of rendering thousands of rows down the page.</li>
+          <li>Account Settings redesigned as a profile card with avatar upload. The image is a protected upload fetched with the caller's token &mdash; a student may read only their own, verified live at 403 for anyone else.</li>
+          <li>Feedback moved from <code>alert()</code> dialogs to inline banners.</li>
+          <li>483 automated tests; zero lint errors.</li>
+        </ul>
+      </li>
+
+      <li>
+        <h3>Phase 10: Production Rollout (Pending)</h3>
         <p class="phase-goal">Take the system live. The remaining work before deployment.</p>
         <ul>
           <li><strong>Rotate the UniSMS API key</strong> — it remains exposed in git history even though it is gone from the source.</li>

@@ -1,8 +1,12 @@
 import { useState, useEffect } from 'react'
-import { Outlet, Link, useLocation } from 'react-router-dom'
+import { Outlet, useLocation } from 'react-router-dom'
 import useAuth from '@/hooks/useAuth'
-import { getNotifications, markNotificationsRead, updateProfile } from '@/services/authService'
+import useProfileSettings from '@/hooks/useProfileSettings'
+import { getNotifications, markNotificationsRead } from '@/services/authService'
 import { onNotification, disconnectRealtime } from '@/services/realtimeService'
+import SidebarNav from '@/layouts/SidebarNav'
+import ProfileSettingsModal from '@/components/ProfileSettingsModal'
+import UserAvatar from '@/components/UserAvatar'
 import plpLogo from '@/assets/plp_logo.png'
 
 export default function Layout() {
@@ -11,13 +15,12 @@ export default function Layout() {
   const query = new URLSearchParams(location.search)
   const tab = query.get('tab') || 'dashboard'
 
-  const isWindow1 = user?.role === 'clerk' && (user?.desk_assignment === 'Window 1' || user?.desk_assignment === 'Receiving Desk')
-
   const [notifications, setNotifications] = useState([])
   const [showNotifs, setShowNotifs] = useState(false)
   const [showSettings, setShowSettings] = useState(false)
-  const [profileData, setProfileData] = useState({ phone_number: user?.phone_number || '', email: user?.email || '', password: '' })
-  const [savingSettings, setSavingSettings] = useState(false)
+  const [showMobileNav, setShowMobileNav] = useState(false)
+
+  const settings = useProfileSettings(user)
 
   const loadNotifs = async () => {
     try {
@@ -56,6 +59,16 @@ export default function Layout() {
     if (!user) disconnectRealtime()
   }, [user])
 
+  // A tab change on mobile should leave the drawer closed behind it — including
+  // one driven by the browser's back button, which no click handler sees.
+  // Adjusting state during render is React's documented alternative to an
+  // effect here, and avoids the extra render pass an effect would cost.
+  const [navLocationKey, setNavLocationKey] = useState(location.key)
+  if (navLocationKey !== location.key) {
+    setNavLocationKey(location.key)
+    setShowMobileNav(false)
+  }
+
   const handleNotifClick = async () => {
     setShowNotifs(!showNotifs)
       if (!showNotifs && (notifications || []).some(n => !n?.is_read)) {
@@ -70,29 +83,27 @@ export default function Layout() {
 
   const unreadCount = (notifications || []).filter(n => !n?.is_read).length
 
-  const handleSaveSettings = async (e) => {
-    e.preventDefault()
-    setSavingSettings(true)
-    try {
-      await updateProfile(profileData)
-      setShowSettings(false)
-      alert('Profile updated successfully! Note: You may need to log out and log back in to see some changes.')
-    } catch (err) {
-      alert('Failed to update profile: ' + err.message)
-    } finally {
-      setSavingSettings(false)
-    }
+  const openSettings = () => {
+    settings.resetFeedback()
+    setShowSettings(true)
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col p-4 md:p-6 gap-6 font-body text-gray-800">
+    <div className="min-h-screen bg-gray-50 flex flex-col p-3 sm:p-4 md:p-6 gap-4 sm:gap-6 font-body text-gray-800">
       {/* Header */}
-      <header className="bg-white rounded-full shadow-sm px-6 py-3 flex items-center justify-between shrink-0 border border-gray-100">
-        <div className="flex items-center gap-3">
-          <img src={plpLogo} alt="PLP Logo" className="w-10 h-10 rounded-full object-cover shadow-md" />
-          <span className="font-display font-black text-[#15803d] text-lg tracking-widest uppercase">TRACE</span>
+      <header className="bg-white rounded-full shadow-sm px-4 sm:px-6 py-3 flex items-center justify-between shrink-0 border border-gray-100">
+        <div className="flex items-center gap-2 sm:gap-3">
+          <button
+            onClick={() => setShowMobileNav(true)}
+            aria-label="Open navigation menu"
+            className="md:hidden w-9 h-9 -ml-1 rounded-full flex items-center justify-center text-gray-500 hover:bg-gray-100 transition-colors"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
+          </button>
+          <img src={plpLogo} alt="PLP Logo" className="w-9 h-9 sm:w-10 sm:h-10 rounded-full object-cover shadow-md" />
+          <span className="font-display font-black text-[#15803d] text-base sm:text-lg tracking-widest uppercase">TRACE</span>
         </div>
-        
+
         <div className="flex-1 max-w-xl mx-8 hidden sm:block">
           <div className="relative">
             <span className="absolute inset-y-0 left-0 pl-4 flex items-center text-gray-400">
@@ -102,16 +113,16 @@ export default function Layout() {
           </div>
         </div>
 
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2 sm:gap-4">
           <div className="relative">
-            <button onClick={handleNotifClick} className="w-10 h-10 rounded-full flex items-center justify-center text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors relative">
+            <button onClick={handleNotifClick} aria-label="Notifications" className="w-10 h-10 rounded-full flex items-center justify-center text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors relative">
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
               {unreadCount > 0 && (
                 <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full"></span>
               )}
             </button>
             {showNotifs && (
-              <div className="absolute right-0 mt-2 w-80 bg-white rounded-xl shadow-xl border border-gray-100 overflow-hidden z-50">
+              <div className="absolute right-0 mt-2 w-72 sm:w-80 max-w-[calc(100vw-2rem)] bg-white rounded-xl shadow-xl border border-gray-100 overflow-hidden z-50">
                 <div className="p-3 border-b border-gray-50 bg-gray-50/50">
                   <h4 className="text-sm font-bold text-gray-800">Notifications</h4>
                 </div>
@@ -131,156 +142,84 @@ export default function Layout() {
               </div>
             )}
           </div>
-          <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-white shadow-sm shrink-0 bg-gray-100">
-            <img src={`https://api.dicebear.com/7.x/notionists/svg?seed=${user?.full_name ? user.full_name.split(' ').map(n => n[0]).join('') : 'MK'}&backgroundColor=c4e3d3`} alt="User" className="w-full h-full object-cover" />
-          </div>
+          <button
+            onClick={openSettings}
+            aria-label="Account settings"
+            className="w-10 h-10 rounded-full overflow-hidden border-2 border-white shadow-sm shrink-0 bg-gray-100"
+          >
+            <UserAvatar
+              user={user}
+              overridePath={settings.avatarPath}
+              className="w-full h-full object-cover"
+            />
+          </button>
         </div>
       </header>
 
       {/* Main Area */}
       <div className="flex-1 flex gap-6 min-h-0 relative">
-        {/* Sidebar */}
+        {/* Desktop rail */}
         <aside className="hidden md:flex w-20 flex-col items-center justify-between bg-white rounded-[2rem] shadow-sm py-8 shrink-0 border border-gray-100/50">
-          <nav className="flex flex-col gap-4">
-            {user?.role === 'student' && (
-              <>
-                <Link to="/dashboard" className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all ${tab === 'dashboard' ? 'bg-[#15803d] text-white shadow-md' : 'text-gray-400 hover:bg-gray-50 hover:text-gray-600'}`} title="Dashboard">
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 002 2h2a2 2 0 002-2"/></svg>
-                </Link>
-                <Link to="/dashboard?tab=request-history" className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all ${tab === 'request-history' ? 'bg-[#15803d] text-white shadow-md' : 'text-gray-400 hover:bg-gray-50 hover:text-gray-600'}`} title="Request History">
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-                </Link>
-                <Link to="/dashboard?tab=payment-history" className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all ${tab === 'payment-history' ? 'bg-[#15803d] text-white shadow-md' : 'text-gray-400 hover:bg-gray-50 hover:text-gray-600'}`} title="Payment History">
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/></svg>
-                </Link>
-                <Link to="/dashboard?tab=graduate-application" className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all ${tab === 'graduate-application' ? 'bg-[#15803d] text-white shadow-md' : 'text-gray-400 hover:bg-gray-50 hover:text-gray-600'}`} title="Graduate Application">
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 14l9-5-9-5-9 5 9 5z"/><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 14l6.16-3.422A12.083 12.083 0 0112 20.055a12.083 12.083 0 01-6.16-9.477L12 14z"/></svg>
-                </Link>
-              </>
-            )}
-
-            {user?.role === 'clerk' && user?.desk_assignment === 'Secretary' && (
-              <>
-                <Link to="/dashboard" className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all ${tab === 'dashboard' ? 'bg-[#15803d] text-white shadow-md' : 'text-gray-400 hover:bg-gray-50 hover:text-gray-600'}`} title="Dashboard">
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 002 2h2a2 2 0 002-2"/></svg>
-                </Link>
-                <Link to="/dashboard?tab=completed-logs" className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all ${tab === 'completed-logs' ? 'bg-[#15803d] text-white shadow-md' : 'text-gray-400 hover:bg-gray-50 hover:text-gray-600'}`} title="Completed Logs">
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
-                </Link>
-              </>
-            )}
-
-            {isWindow1 && (
-              <>
-                <Link to="/dashboard" className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all ${tab === 'dashboard' ? 'bg-[#15803d] text-white shadow-md' : 'text-gray-400 hover:bg-gray-50 hover:text-gray-600'}`} title="Workspace Dashboard">
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 002 2h2a2 2 0 002-2"/></svg>
-                </Link>
-                <Link to="/dashboard?tab=tracking-desk" className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all ${tab === 'tracking-desk' ? 'bg-[#15803d] text-white shadow-md' : 'text-gray-400 hover:bg-gray-50 hover:text-gray-600'}`} title="Tracking Desk">
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
-                </Link>
-                <Link to="/dashboard?tab=manual-input" className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all ${tab === 'manual-input' ? 'bg-[#15803d] text-white shadow-md' : 'text-gray-400 hover:bg-gray-50 hover:text-gray-600'}`} title="Manual Input Form">
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-                </Link>
-              </>
-            )}
-
-            {(user?.role === 'admin' || (user?.role === 'clerk' && user?.desk_assignment === 'Finance')) && (
-              <Link to="/dashboard" className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all ${tab === 'dashboard' ? 'bg-[#15803d] text-white shadow-md' : 'text-gray-400 hover:bg-gray-50 hover:text-gray-600'}`} title="Dashboard">
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 002 2h2a2 2 0 002-2"/></svg>
-              </Link>
-            )}
-            {user?.role === 'admin' && (
-              <>
-                <Link to="/dashboard?tab=admin-tracker" className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all ${tab === 'admin-tracker' ? 'bg-[#15803d] text-white shadow-md' : 'text-gray-400 hover:bg-gray-50 hover:text-gray-600'}`} title="System-Wide Document Tracker">
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-                </Link>
-                <Link to="/dashboard?tab=admin-users" className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all ${tab === 'admin-users' ? 'bg-[#15803d] text-white shadow-md' : 'text-gray-400 hover:bg-gray-50 hover:text-gray-600'}`} title="Registered Users">
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
-                </Link>
-                <Link to="/dashboard?tab=admin-logs" className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all ${tab === 'admin-logs' ? 'bg-[#15803d] text-white shadow-md' : 'text-gray-400 hover:bg-gray-50 hover:text-gray-600'}`} title="Activity Logs">
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
-                </Link>
-                <Link to="/dashboard?tab=admin-reports" className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all ${tab === 'admin-reports' ? 'bg-[#15803d] text-white shadow-md' : 'text-gray-400 hover:bg-gray-50 hover:text-gray-600'}`} title="Reports & Export">
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-                </Link>
-                <Link to="/dashboard?tab=admin-analytics" className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all ${tab === 'admin-analytics' ? 'bg-[#15803d] text-white shadow-md' : 'text-gray-400 hover:bg-gray-50 hover:text-gray-600'}`} title="Efficiency Analytics">
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
-                </Link>
-                <Link to="/dashboard?tab=admin-maintenance" className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all ${tab === 'admin-maintenance' ? 'bg-[#15803d] text-white shadow-md' : 'text-gray-400 hover:bg-gray-50 hover:text-gray-600'}`} title="System Maintenance">
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
-                </Link>
-              </>
-            )}
-          </nav>
-          <div className="flex flex-col gap-4">
-            <button onClick={() => setShowSettings(true)} className="w-12 h-12 rounded-full flex items-center justify-center text-gray-400 hover:bg-gray-50 hover:text-gray-600 transition-colors" title="Settings">
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
-            </button>
-            <button onClick={logout} className="w-12 h-12 rounded-full flex items-center justify-center text-gray-400 hover:bg-red-50 hover:text-red-500 transition-colors" title="Logout">
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
-            </button>
-          </div>
+          <SidebarNav
+            user={user}
+            tab={tab}
+            onOpenSettings={openSettings}
+            onLogout={logout}
+          />
         </aside>
 
+        {/* Mobile drawer — the rail is hidden below md, so without this there is
+            no navigation at all on a phone. */}
+        {showMobileNav && (
+          <div className="md:hidden fixed inset-0 z-[90] flex">
+            <div
+              className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+              onClick={() => setShowMobileNav(false)}
+              aria-hidden="true"
+            />
+            <aside className="relative w-72 max-w-[85vw] h-full bg-white shadow-2xl p-4 overflow-y-auto flex flex-col">
+              <div className="flex items-center justify-between mb-6 px-2">
+                <span className="font-display font-black text-[#15803d] text-lg tracking-widest uppercase">TRACE</span>
+                <button
+                  onClick={() => setShowMobileNav(false)}
+                  aria-label="Close navigation menu"
+                  className="text-gray-400 hover:text-gray-600 transition-colors"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                </button>
+              </div>
+              <SidebarNav
+                user={user}
+                tab={tab}
+                showLabels
+                onNavigate={() => setShowMobileNav(false)}
+                onOpenSettings={openSettings}
+                onLogout={logout}
+              />
+            </aside>
+          </div>
+        )}
+
         {/* Main Content Area */}
-        <main className="flex-1 overflow-y-auto">
+        <main className="flex-1 min-w-0 overflow-y-auto">
           <Outlet />
         </main>
       </div>
 
-      {/* Settings Modal */}
       {showSettings && (
-        <div className="fixed inset-0 z-[100] flex items-start sm:items-center justify-center bg-black/40 backdrop-blur-sm p-4 overflow-y-auto">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[calc(100dvh-2rem)] overflow-y-auto">
-            <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
-              <h2 className="text-xl font-bold text-gray-800">Account Settings</h2>
-              <button onClick={() => setShowSettings(false)} className="text-gray-400 hover:text-gray-600 transition-colors">
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"/></svg>
-              </button>
-            </div>
-            <div className="p-6">
-              <form onSubmit={handleSaveSettings} className="space-y-4">
-                <div>
-                  <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Phone Number</label>
-                  <input
-                    type="text"
-                    value={profileData.phone_number}
-                    onChange={(e) => setProfileData({...profileData, phone_number: e.target.value})}
-                    placeholder="+639123456789"
-                    className="w-full bg-gray-50 border-none rounded-xl py-3 px-4 text-sm font-semibold focus:ring-2 focus:ring-[#15803d]/20 outline-none"
-                  />
-                  <p className="text-xs text-gray-400 mt-1">Required for UniSMS notifications.</p>
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Email Address</label>
-                  <input
-                    type="email"
-                    value={profileData.email}
-                    onChange={(e) => setProfileData({...profileData, email: e.target.value})}
-                    placeholder="juan@plp.edu.ph"
-                    className="w-full bg-gray-50 border-none rounded-xl py-3 px-4 text-sm font-semibold focus:ring-2 focus:ring-[#15803d]/20 outline-none"
-                  />
-                  <p className="text-xs text-gray-400 mt-1">Required for Email notifications.</p>
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Change Password</label>
-                  <input
-                    type="password"
-                    value={profileData.password}
-                    onChange={(e) => setProfileData({...profileData, password: e.target.value})}
-                    placeholder="Leave blank to keep current password"
-                    className="w-full bg-gray-50 border-none rounded-xl py-3 px-4 text-sm font-semibold focus:ring-2 focus:ring-[#15803d]/20 outline-none"
-                  />
-                </div>
-                <div className="pt-4">
-                  <button disabled={savingSettings} type="submit" className="w-full bg-[#15803d] hover:bg-[#166534] text-white font-bold py-3 px-4 rounded-xl transition-colors disabled:opacity-50">
-                    {savingSettings ? 'Saving...' : 'Save Settings'}
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
-        </div>
+        <ProfileSettingsModal
+          user={user}
+          onClose={() => setShowSettings(false)}
+          profileData={settings.profileData}
+          setField={settings.setField}
+          avatarPath={settings.avatarPath}
+          saving={settings.saving}
+          uploading={settings.uploading}
+          success={settings.success}
+          error={settings.error}
+          onSave={settings.saveProfile}
+          onAvatarChange={settings.changeAvatar}
+        />
       )}
     </div>
   )

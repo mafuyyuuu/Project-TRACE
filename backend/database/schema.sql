@@ -20,6 +20,9 @@ CREATE TABLE IF NOT EXISTS users (
   study_load ENUM('regular', 'irregular') NOT NULL DEFAULT 'regular',
   desk_assignment VARCHAR(100),
   id_proof_path VARCHAR(500),
+  -- Uploaded avatar filename. Served through the authenticated /api/files
+  -- route like every other upload, never from a public static path.
+  profile_picture VARCHAR(500),
   verification_status ENUM('pending', 'verified', 'rejected') DEFAULT 'pending',
   course VARCHAR(100),
   phone_number VARCHAR(20),

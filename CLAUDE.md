@@ -127,9 +127,13 @@ There is no per-role routing. `frontend/src/pages/DashboardPage.jsx` resolves th
 
 Each command center owns its data through its own hook — `features/<role>/use<Role>Dashboard.js` — all of which build on `hooks/useDashboardCore.js` (queue, KPI stats, loading/feedback, modal selection, and the shared `runAction` wrapper). `DashboardPage` therefore holds no queue state and passes only `{ user, currentTab, setViewImageUrl }`.
 
-Each feature owns its modals under `features/<role>/components/`; genuinely cross-role UI lives in `components/` (`ImageViewerModal`, `AuthedFilePreview`, `DashboardAlerts`, `DashboardLoading`, `MiniSparkline`). Presentation helpers are in `utils/formatters.js` and `utils/documentStatus.js` — import them, never duplicate them inside a hook.
+Each feature owns its modals under `features/<role>/components/`; genuinely cross-role UI lives in `components/` (`ImageViewerModal`, `AuthedFilePreview`, `UserAvatar`, `ProfileSettingsModal`, `DashboardAlerts`, `DashboardLoading`, `MiniSparkline`). Presentation helpers are in `utils/formatters.js` and `utils/documentStatus.js` — import them, never duplicate them inside a hook.
 
-Uploaded files are fetched through `hooks/useAuthedFile.js`, which pulls bytes via authenticated axios and hands back a blob URL, because `<img src>` cannot send an `Authorization` header.
+Uploaded files are fetched through `hooks/useAuthedFile.js`, which pulls bytes via authenticated axios and hands back a blob URL, because `<img src>` cannot send an `Authorization` header. It passes a fully-qualified `http(s)` URL through untouched, so `UserAvatar` covers both an uploaded profile picture and its generated fallback with one call.
+
+`layouts/Layout.jsx` renders navigation twice — the icon-only desktop rail and a hamburger drawer for phones, since the rail is `hidden md:flex` and would otherwise leave mobile with no navigation at all. Both render `layouts/SidebarNav.jsx`, whose tab list comes from `utils/navigation.js`; add a tab there, not in the JSX. Account Settings is `components/ProfileSettingsModal.jsx` (presentational) driven by `hooks/useProfileSettings.js` (state + API calls) — the component makes no calls of its own.
+
+Queue tables scroll inside a `max-h-[60vh]` container with a `sticky top-0 bg-white z-10` `<thead>`; the opaque background is required or rows show through the header.
 
 ### Backend shape
 `backend/src/` follows route → controller → service → model. Entry point is `src/server.js` (listens) wrapping `src/app.js` (builds the Express app).
@@ -163,6 +167,9 @@ Four payment methods live in the admin-managed `payment_methods` table; `src/ser
 `src/realtime/` runs Socket.IO on the same HTTP server. **Socket.IO provides no auth** — the handshake JWT is verified explicitly against `JWT_SECRET`, and each socket joins only `user:<id>` and its desk room. Emissions fail soft: if realtime is down, the notification is still stored and shows on next fetch. Vite proxies `/socket.io` with `ws: true`.
 
 `notification.service.js` reports channel health at startup and **skips unconfigured channels with a reason** rather than attempting them. Don't reintroduce placeholder SMTP credentials — that is what made the old email failures look like a bug.
+
+### Profile pictures
+`users.profile_picture` holds a filename only; the bytes live in `backend/uploads/` and are read back through the authenticated `/api/files/:filename` route like every other upload — **never a public static path**. `PUT /api/auth/profile/picture` (multipart field `picture`, JPG/PNG/WebP, 2 MB via `profilePictureUpload`) replaces it and deletes the previous file. In `files.service.js` an avatar is resolved on its own branch: only its owner may read it, and the check never falls through to the document/ID-proof rules. A multer `fileFilter` must reject with `badRequest`, not a bare `Error` — the shared error handler maps an unstatused error to 500.
 
 ### Admin maintenance, reporting & analytics
 `/api/maintenance/*` (admin-only CRUD for staff, document types, colleges), `/api/reports/documents`, `/api/reports/analytics`, and two CSV export routes.

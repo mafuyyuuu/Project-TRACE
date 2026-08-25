@@ -1,6 +1,7 @@
 /**
  * Login gating, registration behaviour, and the admin-only guards.
  */
+const fs = require('fs');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const userModel = require('../../models/user.model');
@@ -39,6 +40,7 @@ beforeEach(() => {
   vi.spyOn(userModel, 'getProfileById').mockResolvedValue([]);
   vi.spyOn(userModel, 'findStudentBasicInfo').mockResolvedValue([]);
   vi.spyOn(userModel, 'updateProfile').mockResolvedValue(true);
+  vi.spyOn(userModel, 'findProfilePictureById').mockResolvedValue([{ profile_picture: null }]);
   vi.spyOn(notificationModel, 'findByUserId').mockResolvedValue([]);
   vi.spyOn(notificationModel, 'markAllRead').mockResolvedValue([{}]);
   vi.spyOn(aiEngine, 'verifyIdDocument').mockResolvedValue(null);
@@ -194,5 +196,40 @@ describe('updateProfile', () => {
   it('only writes the fields actually supplied', async () => {
     await service.updateProfile(3, { phone_number: '+63999' });
     expect(userModel.updateProfile.mock.calls[0][1]).toEqual({ phone_number: '+63999' });
+  });
+});
+
+describe('updateProfilePicture', () => {
+  it('rejects a request that carried no image', async () => {
+    expect(await statusOf(service.updateProfilePicture(3, undefined))).toBe(400);
+  });
+
+  it('stores only the filename, never a client-supplied path', async () => {
+    const result = await service.updateProfilePicture(3, { filename: 'avatar-123-ab.png' });
+    expect(userModel.updateProfile).toHaveBeenCalledWith(3, { profile_picture: 'avatar-123-ab.png' });
+    expect(result.profile_picture).toBe('avatar-123-ab.png');
+  });
+
+  it('removes the previous avatar so uploads do not pile up on disk', async () => {
+    userModel.findProfilePictureById.mockResolvedValue([{ profile_picture: 'avatar-old.png' }]);
+    const unlink = vi.spyOn(fs, 'unlinkSync').mockImplementation(() => {});
+    await service.updateProfilePicture(3, { filename: 'avatar-new.png' });
+    expect(unlink).toHaveBeenCalledTimes(1);
+    expect(unlink.mock.calls[0][0]).toContain('avatar-old.png');
+  });
+
+  it('still succeeds when the old file is already gone', async () => {
+    userModel.findProfilePictureById.mockResolvedValue([{ profile_picture: 'avatar-missing.png' }]);
+    vi.spyOn(fs, 'unlinkSync').mockImplementation(() => {
+      throw new Error('ENOENT');
+    });
+    const result = await service.updateProfilePicture(3, { filename: 'avatar-new.png' });
+    expect(result.profile_picture).toBe('avatar-new.png');
+  });
+
+  it('does not delete anything when the account had no avatar yet', async () => {
+    const unlink = vi.spyOn(fs, 'unlinkSync').mockImplementation(() => {});
+    await service.updateProfilePicture(3, { filename: 'avatar-first.png' });
+    expect(unlink).not.toHaveBeenCalled();
   });
 });

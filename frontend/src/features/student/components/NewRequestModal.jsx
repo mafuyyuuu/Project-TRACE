@@ -45,7 +45,7 @@ export default function NewRequestModal({
 
         <form onSubmit={handleStudentSubmitRequest} className="space-y-6">
           {/* Auto-filled identity */}
-          <div className="grid grid-cols-2 gap-4 bg-gray-50/50 p-4 rounded-2xl border border-gray-100">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-gray-50/50 p-4 rounded-2xl border border-gray-100">
             <div className="flex flex-col gap-1.5">
               <label className="text-[9px] font-bold text-gray-500 uppercase tracking-widest">Student Name</label>
               <input type="text" value={user?.full_name || ''} disabled className="bg-transparent border-none p-0 text-sm font-bold text-gray-900" />
@@ -145,7 +145,7 @@ export default function NewRequestModal({
                             </div>
                           )}
 
-                          <div className="grid grid-cols-2 gap-3">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                             <div className="flex flex-col gap-1.5">
                               <label className="text-[10px] font-bold text-gray-700 uppercase tracking-widest">Copies</label>
                               <input

@@ -81,7 +81,7 @@ export default function MaintenancePanel({ user, currentTab }) {
 
       <div className="space-y-6 animate-fade-in">
         <div>
-          <h2 className="text-3xl font-display font-black text-gray-900 tracking-tight">
+          <h2 className="text-2xl sm:text-3xl font-display font-black text-gray-900 tracking-tight">
             System <span className="text-[#15803d]">Maintenance</span>
           </h2>
           <p className="text-xs text-gray-400 mt-1 font-semibold">

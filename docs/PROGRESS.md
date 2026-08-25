@@ -2,9 +2,9 @@
 
 This document tracks the current development and implementation progress of the Project TRACE system.
 
-## Overall Status: 🟢 Panel Feedback — Categories 1–3 Complete (Phase 14: Production Rollout Pending)
+## Overall Status: 🟢 Panel Feedback — All Four Categories Complete (Phase 15: Production Rollout Pending)
 
-### 📍 Next Steps for Phase 14 (Production Rollout)
+### 📍 Next Steps for Phase 15 (Production Rollout)
 The system is feature-complete locally and the codebase now follows the strict layered architecture (see `CODING_PREFERENCES.md`). The next immediate steps are taking the servers live:
 1. **Rotate the two leaked secrets.** Both were hardcoded as `||` fallback defaults and remain in git history even though they are gone from the source:
    - **`JWT_SECRET` (critical).** The value currently in `.env` is byte-identical to the placeholder `trace-jwt-secret-change-in-production`, committed since the very first commit. Because it signs every auth token, anyone with repo access can forge a login for any account — including `ADMIN001`. Generate a replacement with `node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"`. Rotating it invalidates existing tokens, so everyone simply logs in again.
@@ -139,7 +139,19 @@ The system is feature-complete locally and the codebase now follows the strict l
 - [x] **Push notification fix:** the SMS/email failures were **configuration, not code**. SMTP settings fell back to placeholder credentials (`mock_user`/`mock_pass`), so every email died at send time with an opaque `535 Authentication failed`. Placeholders are gone, channel health is now reported at startup, and unconfigured channels are skipped with a stated reason instead of attempted.
 - [x] **Tests:** 438 total (309 backend + 129 frontend). Zero lint errors and warnings.
 
-### Phase 14: Production Rollout Checklist
+### Phase 14: Panel Feedback — Category 4 (UI/UX Overhaul)
+**Status:** Complete
+*The last of the four panel-feedback categories. With this the panel's list is closed.*
+- [x] **Mobile navigation:** the sidebar rail is `hidden md:flex`, so below 768 px there was previously **no navigation at all** — a student on a phone could not reach Request History, Payment History, or the Graduate Application. A hamburger now opens a labelled drawer. Both the rail and the drawer render from one definition (`layouts/SidebarNav.jsx` + `utils/navigation.js`), so a tab can never appear on one and be missing from the other.
+- [x] **Bounded tables:** every queue table now scrolls inside a `max-h-[60vh]` container with a `sticky` header, instead of the Admin tracker rendering all 10,015 documents down the page and pushing the header out of view. The header rows needed an explicit `bg-white` — they were transparent, so rows would otherwise show through as they scrolled underneath.
+- [x] **Responsive pass:** page titles, card padding, fixed-height KPI cards and two-column form grids all adapt below `sm`. Fixed `h-44` KPI cards became `min-h-44`, since they clipped their own text once it wrapped.
+- [x] **Profile Card:** Account Settings was a bare three-input form inlined in `Layout.jsx`. It is now a profile card — avatar, identity, then the editable fields — extracted to `components/ProfileSettingsModal.jsx` (presentational) driven by `hooks/useProfileSettings.js` (state + API), per the components-never-call-APIs rule.
+- [x] **Profile picture upload:** new `users.profile_picture` column and `PUT /api/auth/profile/picture` (JPG/PNG/WebP, 2 MB). Only the filename is stored; the previous avatar is deleted on replace so uploads do not accumulate. **Served through the authenticated `/api/files` route, never a public static path** — verified live: owner 200, staff 200, another student **403**, unauthenticated **401**.
+- [x] **A wrong file type answered 500**, because the multer `fileFilter` raised a plain `Error` with no status for the shared error handler to map. It now raises `badRequest`, so the student sees the real reason with a 400.
+- [x] **Feedback moved out of `alert()`:** saves and upload failures render as inline banners.
+- [x] **Tests:** 483 total (318 backend + 165 frontend), up from 438. Zero ESLint errors and warnings.
+
+### Phase 15: Production Rollout Checklist
 **Status:** In Progress
 - [ ] **Rotate BOTH leaked secrets:** (a) `JWT_SECRET` — the value in `.env` is identical to the placeholder committed in git history since the first commit, so anyone with repo access can forge a token for any account including admins; (b) the UniSMS API key, also previously hardcoded. Generate a new JWT secret with `node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"`. Rotating the JWT secret logs everyone out, which is expected.
 - [ ] **Seed Per-College Secretaries:** `seed.sql` creates only `SEC001` (course `NULL`) while the README documents `SEC-CCS001` … `SEC-CBA001`. College-based queue filtering can't be demonstrated until these exist.

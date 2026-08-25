@@ -34,10 +34,18 @@ function resolveSafePath(requested) {
 /**
  * Staff review other people's documents as part of their job, so clerks and
  * admins may read any upload. A student may only read files attached to their
- * own request, plus their own registration ID proof.
+ * own request, their own registration ID proof, and their own avatar.
  */
 async function assertCanRead(user, filename) {
   if (user.role === 'clerk' || user.role === 'admin') return;
+
+  // Cheapest check first, and it needs no student_id: an avatar is readable
+  // only by the account it belongs to. Students never see each other's.
+  const avatarOwner = await userModel.findByProfilePictureFilename(filename);
+  if (avatarOwner.length > 0) {
+    if (avatarOwner[0].id === user.id) return;
+    throw forbidden('You do not have access to this file.');
+  }
 
   const owner = await userModel.findStudentIdById(user.id);
   const studentId = owner[0] && owner[0].student_id;
