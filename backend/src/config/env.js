@@ -56,12 +56,28 @@ module.exports = {
   DB_USER: process.env.DB_USER || 'root',
   DB_PASSWORD: process.env.DB_PASSWORD || '',
   DB_NAME: process.env.DB_NAME || 'trace_db',
+  // Managed MySQL (Aiven, RDS, TiDB, …) generally requires TLS and will refuse
+  // a plaintext connection outright. Off by default so local development is
+  // untouched. Set DB_SSL=true for a provider using a public CA; supply
+  // DB_SSL_CA (the PEM itself) when the provider issues its own certificate.
+  DB_SSL: String(process.env.DB_SSL || '').toLowerCase() === 'true',
+  DB_SSL_CA: process.env.DB_SSL_CA || '',
+  // Per-instance pool ceiling. N replicas each open this many, so it has to be
+  // tunable against a managed database's connection cap.
+  DB_POOL_LIMIT: parseInt(process.env.DB_POOL_LIMIT, 10) || 10,
   PORT: process.env.PORT || 3300,
   // Origin of the React app. Serves two purposes: it is the allowlist for CORS
   // and the Socket.IO handshake, and it is the base of the password-reset link
   // emailed to users. Empty means "development" — origins are reflected, which
   // is what the Vite dev proxy and a teammate's localhost both need.
   FRONTEND_URL: process.env.FRONTEND_URL || '',
+  // Number of reverse proxies in front of the app, for Express's `trust proxy`.
+  // 0 (the default) means "direct", which is correct locally. Behind Caddy or a
+  // load balancer this must be set, or every request carries the proxy's IP and
+  // the IP-keyed rate limiters collapse into one shared bucket. Deliberately a
+  // count rather than `true`: blindly trusting X-Forwarded-For lets a client
+  // spoof its own address and evade the login limiter entirely.
+  TRUST_PROXY: parseInt(process.env.TRUST_PROXY, 10) || 0,
   AI_ENGINE_URL: process.env.AI_ENGINE_URL || 'http://127.0.0.1:5005',
   N8N_URL: process.env.N8N_URL || 'http://localhost:5678',
   UNISMS_SECRET_KEY: process.env.UNISMS_SECRET_KEY || '',

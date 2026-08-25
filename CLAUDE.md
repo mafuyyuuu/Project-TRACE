@@ -162,6 +162,9 @@ Queue tables scroll inside a `max-h-[60vh]` container with a `sticky top-0 bg-wh
 - `models/*.model.js` — raw SQL only. Each function takes an optional `executor` (pool or in-flight transaction connection) so callers can enlist queries in a transaction.
 - `utils/AppError.js` — `badRequest`/`forbidden`/`notFound`/`unauthorized` helpers carrying an HTTP status, so services never touch `res`.
 - `config/cors.js` — one allowlist shared by the REST API and the Socket.IO handshake, driven by `FRONTEND_URL`. Blank means development (origins reflected); set it in any deployment. Never give Socket.IO `origin: true` with `credentials: true` again — that lets any website open an authenticated socket.
+- `config/db.js` — `sslOptions()` turns on TLS from `DB_SSL` (+ optional `DB_SSL_CA`). Off by default because a local MySQL has no certificate; **a managed provider will refuse a plaintext connection**, so a deployment must set it. `rejectUnauthorized` is always true — accepting any certificate would defeat the point.
+- `middlewares/upload.middleware.js` `mkdir`s `UPLOAD_DIR` at module load. In the repo the directory only existed because `.gitkeep` held it open, so a fresh container had no `uploads/` and multer failed the *first* upload with `ENOENT`.
+- `app.js` sets `trust proxy` from `TRUST_PROXY` (a **hop count**, not `true`) when it is above 0. Without it, everything behind a proxy shares one rate-limit bucket; with `true`, a client could spoof `X-Forwarded-For` and evade `loginLimiter` entirely.
 
 `GET /api/health` runs a `SELECT 1` and returns **503** when the database is unreachable. The server deliberately boots without a database, so a liveness-only check would report a completely unusable container as healthy. It is mounted **above** `apiLimiter` so probe traffic never consumes the rate-limit budget.
 
@@ -228,7 +231,39 @@ Full detail lives in `docs/CODING_PREFERENCES.md`; key points:
 - Routing decisions belong in n8n, not hardcoded in Express.
 - Payment state changes are one-directional through Finance only — nothing should ever set `payment_status = 'PAID'` outside the Finance verify endpoint.
 
+## Deployment
+
+Frontend on **Vercel**, everything else as containers on a single VM (the plan targets Oracle Cloud
+Always Free — ARM/aarch64, so images must build for `linux/arm64`; this is verified working, torch
+ships aarch64 wheels and Prophet's Stan binary compiles). **n8n cannot run on Vercel** — it is a
+stateful container — which is why the backend lives beside it rather than as a function.
+
+`docker-compose.yml` runs all four services plus MySQL and is both the local-parity setup and the
+deployment unit. `JWT_SECRET`/`WEBHOOK_SECRET` are declared `${VAR:?}` so compose refuses to start
+without them. The `frontend` service sits behind a `local-frontend` profile — it is only for a
+single-box deployment where nginx also serves the SPA; with Vercel it stays down.
+
+**`VITE_API_URL` is baked in at build time**, not read at runtime — `services/api.js` and
+`services/realtimeService.js` are the only two places the frontend builds a URL. Unset (or empty) it
+stays relative, which is what the Vite dev proxy needs; set, it points at the API's own origin.
+Changing it on Vercel requires a **redeploy**, not a restart.
+
+`vercel.json` rewrites every non-asset path to `index.html`. Without that,
+`/reset-password?token=…` — the link the password-reset email sends — returns a **404** on a static
+host, and the feature looks broken in production while working locally. `frontend/nginx.conf` does
+the same `try_files` for the container path.
+
+The **uploads volume is the only state outside MySQL**. The database stores filenames only, so an
+unmounted volume means the rows survive a redeploy and the bytes do not.
+
+`deploy/Caddyfile` + the compose `tls` profile handle HTTPS. It is required, not cosmetic: the
+Vercel-hosted frontend is https, and a browser will not let an https page call an http API. Caddy
+needs a real hostname — a bare IP cannot be issued a certificate.
+
+Step-by-step deployment instructions live in `docs/DEPLOYMENT_GUIDE.md`.
+
 ## Other docs worth reading before large changes
+- `docs/DEPLOYMENT_GUIDE.md` — taking the system live, part by part, with a verification gate after each
 - `docs/APP_GUIDE.md` — role/portal walkthrough
 - `docs/SYSTEM_WORKFLOWS.md` — per-document-type AI requirements and per-role operational workflow
 - `docs/BACKEND_GUIDE.md` — endpoint list and DB flow detail

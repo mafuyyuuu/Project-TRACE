@@ -71,6 +71,14 @@ utils/         # Backend helper functions (AppError)
 - **A health check must check something.** `/api/health` runs a real `SELECT 1` and returns 503 when the database is unreachable. The server deliberately boots without a database, so a liveness-only check reports a completely unusable container as healthy.
 - **Mount health above the rate limiter**, or an orchestrator's own probes eventually throttle it.
 
+## 🚢 Deployment
+
+- **Never hardcode an origin in the frontend.** `services/api.js` and `services/realtimeService.js` are the only two places a URL is built; both read `VITE_API_URL`, which is **inlined at build time** — a change needs a rebuild, not a restart. Unset means relative, which is what the Vite dev proxy expects, so development must keep working with it empty.
+- **A static host needs an SPA rewrite.** Every non-asset path must fall back to `index.html`, or deep links 404 — `/reset-password?token=…` arrives from an email and is the one that matters.
+- **Treat the uploads directory as state.** It is the only state outside MySQL; the database stores filenames only, so an unmounted volume loses every file while the rows survive. Create the directory at boot — never assume it exists.
+- **Serve Python under a WSGI server.** `app.run()` is the Werkzeug dev server; debug mode must be strictly opt-in, since the interactive debugger is remote code execution behind any traceback.
+- **Bake model weights into the image.** Downloading them on first import blocks the port opening and fails outright in a network with restricted egress.
+
 ## 🗂️ Reference Data Over Hardcoding
 
 - **Never hardcode a list the Registrar might change.** Document types, colleges, fees and form fields live in database tables (`document_types`, `colleges`, `grad_form_fields`) and are served through `/api/reference` and `/api/grad-applications/form-fields`. A new document type or a fee change must not require a deploy.

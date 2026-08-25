@@ -207,14 +207,49 @@ deployment would not bake them in.*
 
 ---
 
-## 🚀 Phase 13: Production Deployment (Pending)
-*Taking the system live on external servers.*
+## ✅ Phase 13: Deployment Readiness (Completed)
+*Everything needed to go live, short of a provisioned machine. Frontend on Vercel (free); backend,
+AI engine, n8n and MySQL as containers on one VM — **n8n cannot run on Vercel**, so a container host
+was required regardless, and putting the backend beside it avoided rewriting uploads onto object
+storage and bolting a Redis adapter onto Socket.IO.*
 
-* **Rotate the UniSMS API key** — still present in git history. (`JWT_SECRET`, the more serious of
-  the two since it signs every auth token, has already been rotated.)
+* **The risk that could have undone the hosting choice, retired first:**
+  * ✅ The target VM is ARM. Built and ran the AI engine at `linux/arm64` before committing to
+    anything else — PyTorch resolves an aarch64 wheel, Prophet's Stan binary compiles and fits, and
+    OCR returned correct text from a test image.
+* **The deployment blockers:**
+  * ✅ The built frontend had **no way to reach the backend at all** — both the API client and the
+    Socket.IO client worked only through the Vite dev proxy, which a production build does not
+    include. Both now read a build-time `VITE_API_URL`, with the old relative behaviour preserved
+    when it is unset.
+  * ✅ Deep links 404'd on a static host, which would have broken the emailed password-reset link in
+    production while it worked perfectly locally.
+  * ✅ The database connection offered no TLS, which most managed MySQL refuses outright.
+  * ✅ The uploads directory was never created, so a fresh container failed its **first** upload.
+  * ✅ Behind a proxy, every visitor shared one rate-limit bucket.
+* **Making the AI engine servable:** production WSGI server instead of the Flask dev server, the
+  debugger made strictly opt-in rather than on-by-default, model weights baked into the image
+  instead of downloaded at first import, and a per-request database connection that no longer leaks
+  on the error path.
+* **Verified end to end, not assumed:** with the frontend served from a different origin, CORS
+  allowed the configured origin and refused a hostile one, cross-origin login and authenticated file
+  reads succeeded, and **three live notifications arrived over the cross-origin WebSocket** while the
+  document pipeline ran.
+* **HTTPS and a written runbook:** automatic certificate issuance via Caddy, and a deployment guide
+  broken into gated parts — each one ends with a check to pass before moving on, so a failure is
+  caught where it happened rather than three steps later.
+* **Testing:** 523 tests (345 backend, 178 frontend); zero lint errors.
+
+---
+
+## 🚀 Phase 14: Go Live (Pending)
+*What remains needs an account and a machine, not code.*
+
+* **Provision the VM** and point a hostname at it for HTTPS (a browser on an `https://` frontend will
+  refuse to call an `http://` backend).
+* **Rotate the UniSMS API key** — still present in git history. (`JWT_SECRET`, the more serious of the
+  two since it signs every auth token, has already been rotated.)
 * **Configure SMTP** so reset links and student alerts actually leave the building.
-* **Give the built frontend a way to reach the backend:** it currently relies entirely on the Vite
-  dev proxy, which does not exist in a production build.
 * **Frontend:** Build the Vite project (`npm run build`) and serve via Nginx or deploy to Vercel/Netlify.
 * **Backend:** Deploy the Node.js API to a VPS (e.g., DigitalOcean, AWS EC2) or a PaaS (e.g., Render, Railway) using PM2 for process management.
 * **ML/AI Engine:** Deploy the Flask application. *(Note: Because PyTorch/EasyOCR is heavy, this microservice may require a server with adequate RAM or a small GPU for fast inference).*

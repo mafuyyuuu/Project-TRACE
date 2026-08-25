@@ -2,7 +2,7 @@
 
 This document tracks the current development and implementation progress of the Project TRACE system.
 
-## Overall Status: 🟢 Pre-Deployment Refinement Complete (Phase 16) — Phase 15 Production Rollout in progress
+## Overall Status: 🟢 Deployment-Ready (Phase 17) — awaiting a provisioned host
 
 ### 📍 Next Steps for Phase 15 (Production Rollout)
 Phase 16 closed the application-level gaps that a deployment would otherwise have baked in. What
@@ -229,6 +229,62 @@ documentation that contradicted both the code and itself.*
   the dev spec cited 438 tests in one section and 483 in another; the README still said Category 4
   was outstanding. All corrected.
 - [x] **Tests:** 514 total (339 backend + 175 frontend), up from 483. Zero ESLint errors.
+
+### Phase 17: Deployment Readiness
+**Status:** Complete (code) — awaiting a provisioned host
+*Target: frontend on Vercel (free), everything else as containers on one VM. **n8n cannot run on
+Vercel** — it is a stateful container with its own database — so a container host is required
+regardless, and the backend lives beside it rather than as a function. That also avoids rewriting
+uploads onto object storage and adding a Redis adapter for Socket.IO.*
+- [x] **ARM viability proven first.** The target VM (Oracle Cloud Ampere) is aarch64, which was the
+  one risk that could have invalidated the whole hosting choice, so it was retired before anything
+  else. Built and ran the AI engine at `linux/arm64`: `torch 2.8.0+cpu` resolves an aarch64 wheel,
+  **Prophet fits** (the cmdstanpy Stan binary compiles), and `/ocr/extract` returned correct text and
+  form type from a test image. 2.46 GB image.
+- [x] **Frontend can reach a remote API.** `services/api.js` was `baseURL: '/api'` and
+  `realtimeService.js` a bare `io()` — both worked **only** through the Vite dev proxy, which
+  `vite build` does not produce, so a deployed SPA had no route to the backend at all. Both now read
+  `VITE_API_URL`; unset keeps today's relative behaviour. These are the only two URL-construction
+  points, and `useAuthedFile` inherits the shared axios instance.
+- [x] **SPA deep links.** Added `vercel.json` (and `nginx.conf` for the container path) rewriting
+  non-asset paths to `index.html`. Without it `/reset-password?token=…` — the link the reset email
+  sends — returns **404** on a static host, so the feature would have looked broken in production
+  while working locally.
+- [x] **Database TLS.** `config/db.js` passed no `ssl` option; most managed MySQL refuses a plaintext
+  connection, which would have been the first deploy failure. Added `DB_SSL`/`DB_SSL_CA` with
+  verification always on, plus a bounded queue and an env-driven pool limit.
+- [x] **The uploads `ENOENT` bug.** `UPLOAD_DIR` was computed but never created — the directory only
+  existed in the repo because `.gitkeep` held it open, so a fresh container failed its **first**
+  upload. Now created at boot; verified live in a fresh container with an empty volume: upload → 200,
+  read back through the authenticated route → 200, unauthenticated → 401, survives a restart.
+- [x] **Proxy-aware rate limiting.** No `trust proxy` meant every request behind a load balancer
+  carried the proxy's IP, collapsing the IP-keyed limiters into one shared bucket. Now set from
+  `TRUST_PROXY` as a **hop count**, never `true` — trusting `X-Forwarded-For` outright would let a
+  client spoof its address and evade `loginLimiter`.
+- [x] **AI engine made servable.** `app.py` defaulted to `debug=True` whenever `FLASK_ENV` was unset,
+  serving the Werkzeug interactive debugger — now strictly opt-in via `FLASK_DEBUG`. Added gunicorn.
+  EasyOCR's ~100 MB of models are **baked into the image** instead of downloaded at import, which
+  previously blocked the port opening. The per-request MySQL connection is now a context manager, so
+  an error no longer leaks a connection against the provider's cap.
+- [x] **Containers.** Dockerfiles for all three services plus `docker-compose.yml` covering all four
+  and MySQL, with `schema.sql`/`seed.sql` auto-applied to a fresh volume. `JWT_SECRET` and
+  `WEBHOOK_SECRET` are `${VAR:?}` so compose refuses to start rather than defaulting.
+- [x] **Split-origin verified end to end.** Built with `VITE_API_URL`, served from a different port:
+  CORS allowed the configured origin and **refused a hostile one**, cross-origin login and an
+  authenticated file read both succeeded, the Socket.IO handshake authenticated over the **websocket**
+  transport, and **three live notifications arrived over the cross-origin socket** while the pipeline
+  ran. Deep links resolved 200.
+- [x] **HTTPS layer.** Added `deploy/Caddyfile` and a compose `tls` profile for automatic Let's
+  Encrypt. Required rather than optional: the Vercel-hosted frontend is served over https, and a
+  browser blocks an https page from calling an http API, so without a certificate the deployed app
+  cannot reach its own backend. `API_DOMAIN` uses a soft default because compose interpolates the
+  whole file regardless of which profiles are active — a hard `${VAR:?}` guard there broke plain
+  local `docker compose up`.
+- [x] **Deployment guide.** `docs/DEPLOYMENT_GUIDE.md` — eight parts, each ending in a verification
+  check to pass before continuing, plus troubleshooting for the failure modes actually hit while
+  building this (CORS mismatch, `VITE_API_URL` set after the build, port 5678 already held by a
+  standalone n8n container, certificate blocked by the VM's own iptables).
+- [x] **Tests:** 523 total (345 backend + 178 frontend), up from 514. Zero ESLint errors.
 
 ---
 

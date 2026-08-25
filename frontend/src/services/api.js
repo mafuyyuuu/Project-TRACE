@@ -3,9 +3,15 @@ import axios from 'axios'
 /**
  * Shared axios instance. Domain-specific calls live in authService.js and
  * documentsService.js — components never import this directly.
+ *
+ * `VITE_API_URL` is the backend's origin when the frontend is served from a
+ * different host (the built SPA on Vercel, the API on its own server). Left
+ * unset it stays relative, which is what the Vite dev proxy expects — so
+ * development is unaffected. Note Vite inlines this at *build* time, so
+ * changing it needs a rebuild, not a restart.
  */
 const api = axios.create({
-  baseURL: '/api',
+  baseURL: `${import.meta.env.VITE_API_URL ?? ''}/api`,
   headers: {
     'Content-Type': 'application/json',
   },

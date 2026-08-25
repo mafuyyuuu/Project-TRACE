@@ -11,6 +11,7 @@ const gradApplicationRoutes = require('./routes/gradApplication.routes');
 const maintenanceRoutes = require('./routes/maintenance.routes');
 const reportRoutes = require('./routes/reports.routes');
 const errorHandler = require('./middlewares/errorHandler.middleware');
+const env = require('./config/env');
 const { corsOrigin } = require('./config/cors');
 const { pool } = require('./config/db');
 const { apiLimiter } = require('./middlewares/rateLimit.middleware');
@@ -20,6 +21,14 @@ const app = express();
 // ---------------------------------------------------------------------------
 // Middleware
 // ---------------------------------------------------------------------------
+// Behind a reverse proxy (Caddy, a load balancer) every request otherwise
+// carries the proxy's IP, which collapses the IP-keyed rate limiters into a
+// single shared bucket and makes loginLimiter far weaker than it looks.
+// A hop count rather than `true`, so X-Forwarded-For cannot be spoofed.
+if (env.TRUST_PROXY > 0) {
+  app.set('trust proxy', env.TRUST_PROXY);
+}
+
 app.use(cors({ origin: corsOrigin(), credentials: true }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));

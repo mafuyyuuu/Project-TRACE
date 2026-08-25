@@ -18,7 +18,10 @@ export function connectRealtime() {
 
   if (socket?.connected || socket?.connecting) return socket
 
-  socket = io({
+  // Same origin rule as api.js: an explicit URL when the API lives on another
+  // host, and `undefined` to keep socket.io-client's default of connecting to
+  // window.location.origin (which the Vite dev proxy forwards).
+  socket = io(import.meta.env.VITE_API_URL || undefined, {
     path: '/socket.io',
     auth: { token },
     // Socket.IO reconnects on its own; cap the backoff so a dashboard left open

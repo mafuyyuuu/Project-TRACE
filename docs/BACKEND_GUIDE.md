@@ -130,6 +130,19 @@ Backend tests are `.cjs` on purpose — see `docs/CODING_PREFERENCES.md` for why
 ### Environment Variables
 Copy `backend/.env.example` → `backend/.env` and fill it in. Covers `DB_*`, `PORT`, `FRONTEND_URL`, `JWT_SECRET`, `WEBHOOK_SECRET`, `AI_ENGINE_URL`, `N8N_URL`, `UNISMS_*`, `TEST_PHONE_NUMBER`, and `SMTP_*`. Never hardcode a secret as a `||` fallback default in source.
 
+`DB_SSL` turns on TLS for the database connection (`config/db.js` → `sslOptions()`), with
+`DB_SSL_CA` for a provider that issues its own certificate — paste the PEM itself, not a path.
+Off by default because a local MySQL has no certificate; **a managed provider generally refuses a
+plaintext connection**, so this is usually the first thing a deployment must set. Certificate
+verification is never disabled. `DB_POOL_LIMIT` caps connections *per instance*, so N replicas open
+N× that many — keep it under the provider's cap.
+
+`TRUST_PROXY` is the number of reverse proxies in front of the app. Behind Caddy or a load balancer
+every request otherwise carries the proxy's IP, collapsing the IP-keyed limiters in
+`rateLimit.middleware.js` into a single shared bucket and making `loginLimiter` far weaker than it
+looks. It is a **hop count rather than `true`** on purpose: trusting `X-Forwarded-For` unconditionally
+would let a client spoof its own address and walk straight past the login limiter.
+
 `FRONTEND_URL` is the origin of the React app. It does double duty: it is the CORS allowlist for both the REST API and the Socket.IO handshake (`src/config/cors.js`), and it is the base of the password-reset link. Blank means development — origins are reflected, which is what the Vite dev proxy needs. **A deployment must set it**, or any website can open an authenticated socket. Comma-separate to allow more than one origin.
 
 `JWT_SECRET` is **required** — `src/config/env.js` throws on startup if it is unset, and warns loudly if it still equals the old placeholder that is public in git history. Generate a strong one with `node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"`.

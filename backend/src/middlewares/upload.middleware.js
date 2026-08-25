@@ -1,9 +1,15 @@
 const multer = require('multer');
 const { badRequest } = require('../utils/AppError');
 const crypto = require('crypto');
+const fs = require('fs');
 const path = require('path');
 
 const UPLOAD_DIR = path.join(__dirname, '..', '..', 'uploads');
+
+// Created eagerly: in the repo this directory only ever existed because
+// .gitkeep held it open, so a fresh container (or a freshly mounted volume)
+// has no uploads/ at all and multer fails the *first* upload with ENOENT.
+fs.mkdirSync(UPLOAD_DIR, { recursive: true });
 
 /**
  * Storage for account-verification proof (Student ID / Diploma) uploaded

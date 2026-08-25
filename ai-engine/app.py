@@ -13,6 +13,7 @@ import os
 import sys
 import logging
 import tempfile
+from contextlib import contextmanager
 
 from flask import Flask, request, jsonify
 from flask_cors import CORS
@@ -88,21 +89,49 @@ def health_check():
     })
 
 def get_db_connection():
-    return mysql.connector.connect(
+    """
+    Open a MySQL connection.
+
+    DB_SSL mirrors the Node backend's setting: managed providers generally
+    require TLS and refuse a plaintext connection outright.
+    """
+    params = dict(
         host=os.getenv('DB_HOST', 'localhost'),
         port=int(os.getenv('DB_PORT', 3306)),
         user=os.getenv('DB_USER', 'root'),
         password=os.getenv('DB_PASSWORD', ''),
-        database=os.getenv('DB_NAME', 'trace_db')
+        database=os.getenv('DB_NAME', 'trace_db'),
+        connection_timeout=10,
     )
+    if os.getenv('DB_SSL', '').lower() == 'true':
+        params['ssl_disabled'] = False
+        ca = os.getenv('DB_SSL_CA')
+        if ca:
+            params['ssl_ca'] = ca
+    return mysql.connector.connect(**params)
+
+
+@contextmanager
+def db_connection():
+    """
+    Always close the connection, including on the error path.
+
+    Each request opens its own connection (there is no pool here), so a bare
+    conn.close() after the query leaked one connection per failed request and
+    would eventually exhaust a managed database's connection cap.
+    """
+    conn = get_db_connection()
+    try:
+        yield conn
+    finally:
+        conn.close()
 
 @app.route('/forecast', methods=['GET'])
 def forecast():
     try:
-        conn = get_db_connection()
         query = "SELECT DATE(timestamp_started) as ds, COUNT(*) as y FROM step_logs GROUP BY DATE(timestamp_started)"
-        df = pd.read_sql(query, conn)
-        conn.close()
+        with db_connection() as conn:
+            df = pd.read_sql(query, conn)
 
         if len(df) < 2:
             return jsonify({'error': 'Not enough data for forecasting'}), 400
@@ -140,19 +169,17 @@ def forecast():
 @app.route('/ai/recommend', methods=['GET'])
 def ai_recommend():
     try:
-        conn = get_db_connection()
-        cursor = conn.cursor(dictionary=True)
-        
-        cursor.execute("SELECT COUNT(*) as c FROM documents WHERE current_status = 'pending_secretary'")
-        pending_sec = cursor.fetchone()['c']
-        
-        cursor.execute("SELECT COUNT(*) as c FROM documents WHERE current_status = 'ready_window_1'")
-        pending_release = cursor.fetchone()['c']
-        
-        cursor.execute("SELECT COUNT(*) as c FROM step_logs WHERE DATE(timestamp_started) = CURDATE()")
-        today_vol = cursor.fetchone()['c']
-        
-        conn.close()
+        with db_connection() as conn:
+            cursor = conn.cursor(dictionary=True)
+
+            cursor.execute("SELECT COUNT(*) as c FROM documents WHERE current_status = 'pending_secretary'")
+            pending_sec = cursor.fetchone()['c']
+
+            cursor.execute("SELECT COUNT(*) as c FROM documents WHERE current_status = 'ready_window_1'")
+            pending_release = cursor.fetchone()['c']
+
+            cursor.execute("SELECT COUNT(*) as c FROM step_logs WHERE DATE(timestamp_started) = CURDATE()")
+            today_vol = cursor.fetchone()['c']
 
         X_train = np.array([
             [1, 0, 5],    # Low load
@@ -340,7 +367,12 @@ def request_entity_too_large(error):
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5005))
-    debug = os.environ.get('FLASK_ENV', 'development') == 'development'
+    # Opt-in, not opt-out. This previously defaulted to development when
+    # FLASK_ENV was unset, so an unconfigured deployment served the Werkzeug
+    # interactive debugger — remote code execution behind any traceback.
+    debug = os.environ.get('FLASK_DEBUG', '').lower() in ('1', 'true')
 
     logger.info("Starting TRACE AI Engine on port %d (debug=%s)", port, debug)
+    # Development entry point only. Production runs under gunicorn (see the
+    # Dockerfile) — app.run() is the single-threaded Werkzeug dev server.
     app.run(host='0.0.0.0', port=port, debug=debug)

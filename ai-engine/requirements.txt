@@ -11,6 +11,7 @@ flask-cors==5.0.1
 fonttools==4.60.2
 fsspec==2025.10.0
 holidays==0.83
+gunicorn==23.0.0
 ImageIO==2.37.2
 importlib_metadata==8.7.1
 importlib_resources==6.5.2

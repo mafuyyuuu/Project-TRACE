@@ -405,12 +405,17 @@ frontend/src/
 
     <div class="callout spec">
       <span class="label">Testing</span>
-      <p>Vitest runs per package: <code>cd backend &amp;&amp; npm test</code> and <code>cd frontend &amp;&amp; npm test</code> (514 tests, no database needed — the model layer is mocked). Backend tests must use the <code>.cjs</code> extension: the source is CommonJS, and only a CJS test shares Node's require cache with it, which is what makes the model spies actually intercept. <code>node backend/audit.js</code> runs a live end-to-end audit through all five desks.</p>
+      <p>Vitest runs per package: <code>cd backend &amp;&amp; npm test</code> and <code>cd frontend &amp;&amp; npm test</code> (523 tests, no database needed — the model layer is mocked). Backend tests must use the <code>.cjs</code> extension: the source is CommonJS, and only a CJS test shares Node's require cache with it, which is what makes the model spies actually intercept. <code>node backend/audit.js</code> runs a live end-to-end audit through all five desks.</p>
     </div>
 
     <div class="callout spec">
       <span class="label">Password Recovery</span>
       <p><code>POST /api/auth/forgot-password</code> accepts a student ID <em>or</em> an email and <strong>always returns the same message</strong> whether or not the account exists &mdash; otherwise the endpoint becomes an oracle for which IDs are registered. The <code>password_resets</code> table stores <code>token_hash</code> (the SHA-256 of the emailed token, <strong>never the token</strong>), <code>expires_at</code> and <code>used_at</code>; expiry is compared in SQL so the app server's clock cannot extend a token's life, and <code>used_at</code> is what makes a token single-use rather than merely short-lived. Both endpoints are unauthenticated by necessity and throttled at 10 requests per IP per hour.</p>
+    </div>
+
+    <div class="callout spec">
+      <span class="label">Deployment</span>
+      <p>Frontend on <strong>Vercel</strong>; backend, AI engine, n8n and MySQL as containers on one VM. <strong>n8n cannot run on Vercel</strong> &mdash; it is a stateful container with its own database &mdash; so a container host is needed regardless, which is why the backend sits beside it rather than as a function. <code>VITE_API_URL</code> is inlined at <em>build</em> time, so changing it needs a redeploy; unset, the frontend stays relative for the Vite dev proxy. <code>vercel.json</code> rewrites non-asset paths to <code>index.html</code> &mdash; without it <code>/reset-password?token=&hellip;</code>, the link the reset email sends, returns 404 on a static host. The uploads volume is the only state outside MySQL: the database stores filenames only, so an unmounted volume loses every file while the rows survive.</p>
     </div>
 
     <div class="callout spec">
@@ -534,7 +539,7 @@ frontend/src/
       </li>
 
       <li>
-        <h3>Phase 11: Production Rollout (Pending)</h3>
+        <h3>Phase 11: Deployment Readiness</h3>
         <p class="phase-goal">Take the system live. The remaining work is infrastructure, plus one credential.</p>
         <ul>
           <li><strong>Rotate the UniSMS API key</strong> &mdash; it remains exposed in git history even though it is gone from the source. (<code>JWT_SECRET</code>, the more serious of the two, has been rotated.)</li>

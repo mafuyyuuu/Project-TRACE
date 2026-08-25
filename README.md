@@ -188,6 +188,69 @@ node backend/audit.js       # walks a document through all five desks
 
 ---
 
+## 🚀 Deployment
+
+**Full step-by-step runbook: [`docs/DEPLOYMENT_GUIDE.md`](docs/DEPLOYMENT_GUIDE.md).** The summary
+below is enough to run the stack locally in Docker; follow the guide to take it live.
+
+Frontend on **Vercel** (free), everything else as containers on one VM. n8n cannot run on Vercel —
+it is a stateful container with its own database — so a container host is needed regardless, and the
+backend lives beside it. That also keeps Socket.IO on a real process and uploads on a real disk.
+
+### Run the whole stack locally with Docker
+
+```bash
+cp .env.example .env          # then fill in JWT_SECRET and WEBHOOK_SECRET
+docker compose up -d --build
+docker compose exec backend node database/migration.js
+```
+
+`schema.sql` and `seed.sql` apply automatically the first time the MySQL volume is created; the
+migration adds the later columns. Compose **refuses to start** without `JWT_SECRET` and
+`WEBHOOK_SECRET` rather than falling back to a default.
+
+If you already run the standalone `n8n` container from the setup above, it holds port 5678 and the
+compose one will not start. Stop it first (`docker stop n8n`) or drop the `n8n` service from your
+compose file.
+
+Add `--profile local-frontend` to also serve the built SPA (port 8080) — only needed for a
+single-box deployment; with Vercel hosting the frontend, leave it out.
+
+### Deploying
+
+1. **Provision the VM** and install Docker. On an ARM host (e.g. Oracle Cloud Ampere) images build
+   for `linux/arm64` — verified working: PyTorch ships aarch64 wheels and Prophet's Stan binary
+   compiles.
+2. **Bring up MySQL and the backend**, then run the migration. Confirm `GET /api/health` returns
+   200 — it runs a real `SELECT 1` and answers **503** if the database is unreachable.
+3. **Put HTTPS in front of it.** This is not optional: a browser on `https://…vercel.app` refuses to
+   call an `http://` backend (mixed content). Caddy with automatic Let's Encrypt is the least work,
+   and it needs a hostname — a bare IP cannot get a certificate.
+4. **Deploy the frontend to Vercel.** Import the repo; `vercel.json` already sets the build command,
+   output directory and the SPA rewrite. Set **`VITE_API_URL`** to the backend's HTTPS origin as a
+   **build** environment variable — Vite inlines `VITE_*` at build time, so changing it later needs
+   a redeploy, not a restart.
+5. **Point the backend back at it:** set `FRONTEND_URL` to the Vercel domain and restart. That is
+   both the CORS allowlist and the base of password-reset links. Set `TRUST_PROXY=1` so the rate
+   limiters see real client IPs.
+6. **Walk the pipeline live**: register → request → pay → Finance verify → Secretary → Window 1.
+7. **Then** the AI engine and n8n.
+
+### Deployment environment variables
+
+| Variable | Where | Why |
+| --- | --- | --- |
+| `VITE_API_URL` | Vercel (**build**) | The API's origin. Empty = relative, which only works behind the dev proxy. |
+| `FRONTEND_URL` | backend | CORS allowlist + password-reset link base. |
+| `TRUST_PROXY` | backend | Hop count. Without it every request looks like the proxy's IP and the rate limiters share one bucket. |
+| `DB_SSL` / `DB_SSL_CA` | backend, ai-engine | Managed MySQL generally refuses a plaintext connection. |
+| `JWT_SECRET`, `WEBHOOK_SECRET` | backend | Required; the server refuses to start without them. |
+
+**Persistence:** the uploads volume is the only state outside MySQL. The database stores *filenames*
+only, so without a mounted volume the rows survive a redeploy and the files do not.
+
+---
+
 ## 🚚 How to Transfer Database to Another Computer
 
 If you need to move Project TRACE to a different computer (like a deployment server or a colleague's laptop), you must export your MySQL database.
