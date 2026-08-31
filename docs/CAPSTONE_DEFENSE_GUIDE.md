@@ -86,30 +86,50 @@ graph TB
 ```
 
 ### Diagram 2: Document Lifecycle Pipeline
-This traces every status transition a document goes through, from submission to release. Use this to explain the core workflow during the demo.
+
+Eight statuses, **evaluate first and pay later**. Use this to explain the core workflow during the
+demo — and be ready for the question it invites, which is *why* payment comes so late. The answer is
+below the diagram.
 
 ```mermaid
 flowchart LR
-    A["🧑‍🎓 Student<br/>Submits Request"] -->|"Auto-calculates fee"| B["pending_payment"]
-    B -->|"Uploads GCash<br/>Receipt + Ref No."| C["pending_payment<br/>_verification"]
-    C -->|"💰 Finance Clerk<br/>Approves Payment"| D["pending_secretary"]
-    C -->|"💰 Finance Clerk<br/>Rejects Payment"| B
-    D -->|"📜 Secretary<br/>Evaluates via<br/>Split-Screen Modal"| E["ready_window_1"]
-    D -->|"📜 Secretary<br/>Rejects Document"| REJ["rejected"]
-    E -->|"🏢 Window 1<br/>Releases Document"| F["completed"]
+    A["🧑‍🎓 Student<br/>Files Request"] --> B["PENDING_W1_INTAKE"]
+    W1["🏢 Window 1<br/>Walk-in at counter"] --> B
+    B -->|"🏢 Window 1<br/>Checks paperwork, scans"| C["PENDING_SEC_EVALUATION"]
+    C -->|"📜 Secretary<br/>Accepts + sets ready date"| D["SEC_PROCESSING"]
+    D -->|"📜 Secretary<br/>Prints, then prices it"| E["PENDING_STUDENT_PAYMENT"]
+    E -->|"🧑‍🎓 Pays online"| F["PENDING_FINANCE_VERIFICATION"]
+    E -->|"💰 Finance logs<br/>counter payment"| F
+    F -->|"💰 Finance verifies<br/>sets PAID"| G["PAID_PENDING_SEC_RELEASE"]
+    F -->|"💰 Finance rejects"| E
+    G -->|"📜 Secretary hands<br/>paper to Window 1"| H["READY_FOR_RELEASE"]
+    H -->|"🏢 Window 1 releases<br/>against the OR"| I["COMPLETED"]
 
-    B -.->|"📱 SMS + 📧 Email"| A
-    REJ -.->|"📱 SMS + 📧 Email<br/>Rejection Notice"| A
-    E -.->|"📱 SMS + 📧 Email<br/>Ready for Pickup"| A
+    D -.->|"📱 SMS + 📧 Email<br/>Estimated ready date"| A
+    E -.->|"📱 SMS + 📧 Email<br/>Amount due"| A
+    H -.->|"📱 SMS + 📧 Email<br/>Ready for pickup"| A
 
     style A fill:#3b82f6,color:#fff
+    style W1 fill:#3b82f6,color:#fff
     style B fill:#f59e0b,color:#fff
-    style C fill:#f97316,color:#fff
+    style C fill:#8b5cf6,color:#fff
     style D fill:#8b5cf6,color:#fff
-    style E fill:#22c55e,color:#fff
-    style F fill:#10b981,color:#fff
-    style REJ fill:#ef4444,color:#fff
+    style E fill:#f97316,color:#fff
+    style F fill:#f97316,color:#fff
+    style G fill:#22c55e,color:#fff
+    style H fill:#22c55e,color:#fff
+    style I fill:#10b981,color:#fff
 ```
+
+**Why payment is last.** The registrar prices a document by its page count, which nobody knows until
+it has been printed. The old design charged a fee up front and hoped it matched; this one bills what
+the document actually cost. It also means a student never pays for something the office later finds
+it cannot issue.
+
+**Two rules the panel will probe.** Rejection returns a document *exactly one step*, never to the
+start — so the desk that can fix the problem is the one that receives it. And nothing reverses past
+`PAID_PENDING_SEC_RELEASE`, because undoing a payment is a refund the Registrar handles off-system,
+not a state transition.
 
 ### Diagram 3: AI & Machine Learning Data Flow
 This shows exactly how each AI/ML module receives data, processes it, and returns results to the system.
@@ -235,7 +255,14 @@ erDiagram
         VARCHAR tracking_number UK
         VARCHAR student_id FK
         VARCHAR document_type
-        VARCHAR current_status "pending_payment / pending_secretary / etc"
+        VARCHAR current_status "PENDING_W1_INTAKE / SEC_PROCESSING / etc (8 values)"
+        DATE estimated_ready_date "what the Secretary promised"
+        INT page_count "basis for the charge"
+        VARCHAR pricing_notes "why the amount is what it is"
+        INT priced_by_clerk_id FK "which Secretary set it"
+        DATETIME priced_at "gates billing, not `amount`"
+        VARCHAR payment_channel "digital / walk_in"
+        VARCHAR or_number "Official Receipt, counter payments"
         ENUM payment_status "UNPAID / PAID"
         VARCHAR file_path
         VARCHAR receipt_image_path
@@ -434,14 +461,25 @@ Your panel will heavily scrutinize the "AI" part of your title. Here is exactly 
 
 ### 💳 Payment & Workflow Questions
 
-**Q14: Why manual GCash verification instead of an automated payment gateway like PayMongo?**
-> "PLP's Finance Office requires manual human verification of all payments per their existing accounting policies. Automated gateways would bypass their compliance requirements. Our system digitizes their existing workflow — students still pay via GCash, but instead of bringing a physical receipt to the window, they upload a screenshot and Reference Number digitally. The Finance Clerk then verifies it from their dashboard, which is faster and fully auditable."
+**Q14: Why manual verification instead of an automated payment gateway like PayMongo?**
+> "PLP's Finance Office requires manual human verification of all payments per their existing accounting policies — every peso has to reconcile against their own books, not a third party's dashboard. Our system digitizes that workflow rather than replacing it. A provider abstraction in `services/payment/` means a hosted gateway could be added later without touching the document pipeline; today every method resolves to the manual provider."
 
 **Q15: What happens if the Finance Clerk rejects a payment?**
-> "The document status resets to `pending_payment`. The student receives an SMS and Email notification explaining the rejection, and they can re-upload a new receipt. The rejection is permanently logged in the `step_logs` table with the clerk's ID and timestamp, maintaining full accountability."
+> "It returns to `PENDING_STUDENT_PAYMENT` — one step back, to the student who can fix it. They get an SMS and email explaining why, and can submit again. The rejection is permanently logged in `step_logs` with the clerk's ID and timestamp. That one-step-back rule is uniform across every desk: a rejected document always lands with whoever can actually correct it, never back at the start."
 
 **Q16: Can you walk us through the complete lifecycle of a document request?**
-> "Sure. (1) A verified student logs in and submits a request — the system auto-calculates the fee based on document type. (2) The student uploads a GCash receipt with Reference Number — status becomes `pending_payment_verification`. (3) The Finance Clerk reviews and approves it — status becomes `pending_secretary`. (4) The College Secretary evaluates the request using the Split-Screen modal — status becomes `ready_window_1`. (5) Window 1 releases the physical document to the student — status becomes `completed`. Every single step is logged in the `step_logs` table and the student receives SMS + Email at key transitions."
+> "Sure — and the thing to notice is that payment comes near the end, not the start. (1) A student files a request online, or a Window 1 clerk types in a walk-in; both enter at `PENDING_W1_INTAKE`. (2) Window 1 checks the paperwork, scans anything the student brought in, and n8n routes it to their own college's secretary — `PENDING_SEC_EVALUATION`. (3) The Secretary accepts it and commits to a ready date the student is told — `SEC_PROCESSING`. (4) They print it, then price it from the page count — `PENDING_STUDENT_PAYMENT`. (5) The student pays online, or takes the printed slip to the Finance counter — `PENDING_FINANCE_VERIFICATION`. (6) Finance verifies, and that is what sets PAID — `PAID_PENDING_SEC_RELEASE`. (7) The Secretary hands the paper to Window 1 — `READY_FOR_RELEASE`. (8) Window 1 releases it against the Official Receipt — `COMPLETED`. Every transition is logged in `step_logs`, and the student gets SMS and email at the three moments that need action: the ready date, the amount due, and pickup."
+
+**Q17: Why does the Secretary set the price rather than the system, or Finance?**
+> "Because only the Secretary knows what it cost. They price it from the page count after printing — a Transcript for a student with more semesters is physically more paper. The system does compute an estimate from the admin-managed fee table, and the student sees it at submission clearly labelled as an estimate, but the charge is what the document actually came to.
+>
+> Finance deliberately does *not* set it. The Secretary decides the amount; Finance confirms the money arrived, and `verifyPayment` is the only code path in the entire system that writes `payment_status = 'PAID'`. Separating who sets the charge from who confirms it received is what makes the money trail auditable — one person cannot do both. Every amount is also stored with the clerk's ID, the page count and a written justification, so any charge can be explained months later."
+
+**Q18: A student requests three documents at once. Do they pay three times?**
+> "No — once, for the whole request. Pricing is per document because page counts differ, but billing is per request group, and the system only bills when the *last* document in the group has been priced. If we billed after the first, a student with three documents would be sent to the Finance Office three times. One receipt then settles all three, and Finance clears them in a single action."
+
+**Q19: What if a student has no internet, or does not want to pay online?**
+> "They can do the whole thing at the counter. Window 1 files the request for them, and when it is priced the Secretary prints an Order of Payment slip carrying a QR code of the tracking number. The student takes it to the Finance Office, pays cash, and the clerk logs the Official Receipt — either typing it, or scanning the receipt and letting our OCR fill in the number, amount and date, which they then re-check. That is the third OCR use in the system, after document intake and ID verification. The student presents that same Official Receipt at Window 1 to collect the document."
 
 ### 📊 Scalability & Deployment Questions
 

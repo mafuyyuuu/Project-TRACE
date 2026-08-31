@@ -4,13 +4,16 @@ The single record of what has been built, phase by phase. (The former
 `project_trace_roadmap.md` covered the same history at a coarser grain with a *different* phase
 numbering; it was merged into this file so "Phase 12" can only mean one thing.)
 
-## Overall Status: 🟢 Deployment-Ready (Phase 17 complete) — awaiting a provisioned host
+## Overall Status: 🟢 Deployment-Ready — pipeline rebuilt (Phase 19), awaiting a provisioned host
 
-Every phase through 17 is done. **Phase 18 (Go Live) is the only one outstanding, and what it needs
-is an account and a machine, not code.**
+Every phase through 17 is done, and **Phase 19 rebuilt the core pipeline** around how the registrar
+actually works. **Phase 18 (Go Live) remains the only outstanding phase, and what it needs is an
+account and a machine, not code.**
 
 ### 📍 What actually remains
 
+0. *(Phase 19 rebuilt the pipeline after this list was written; none of it changed what Go Live
+   needs.)*
 1. **Provision the VM** and point a hostname at it. HTTPS is not optional — a browser on an `https://`
    frontend refuses to call an `http://` backend, and a bare IP cannot be issued a certificate.
 2. **Rotate the UniSMS API key.** It shipped as a `||` fallback default and remains in git history
@@ -304,6 +307,71 @@ uploads onto object storage and adding a Redis adapter for Socket.IO.*
   `docs/ENV_SETUP_GUIDE.md`.
 - [ ] **Optional — managed database.** `DB_SSL`/`DB_SSL_CA` and the pool limit already support it;
   compose passes the full `DB_*` set through.
+
+---
+
+### Phase 19: "Evaluate First, Pay Later" Pipeline
+**Status:** ✅ Complete
+*The pipeline was inverted to match the registrar's real process. Payment used to come first; it now
+comes near the end, because the College Secretary prices a document from its page count and cannot
+quote anything until it has been printed.*
+
+- [x] **Eight statuses replacing five**, and a shared vocabulary to enforce them.
+  `backend/src/utils/documentStatus.js` (mirrored in the frontend the way `utils/pricing.js` is) owns
+  the constants, the legal transitions, `assertTransition`, the legacy mapping and the desk labels.
+  This was the real defect the refactor exposed: **28 files hardcoded status strings**, including
+  `ai-engine/app.py` in raw Python SQL. A database ENUM would have caught none of them, which is why
+  `current_status` deliberately stays a `VARCHAR`.
+- [x] **Pricing authority moved to the Secretary; payment authority stayed with Finance.**
+  `priceDocument()` is the only place an amount is written, recording the clerk, page count and a
+  justification alongside it. `verifyPayment()` remains the only place `payment_status` becomes
+  `PAID`. Keeping those apart is what makes the money trail defensible.
+- [x] **Billing is per request, pricing is per document.** Page counts differ, so each document is
+  priced on its own; the group only becomes payable when the last one has a price. Billing after the
+  first would send a student to Finance once per document.
+- [x] **Two payment channels.** Online as before, plus a counter path: the Secretary prints an Order
+  of Payment carrying a QR of the tracking number, and Finance logs the Official Receipt — by hand,
+  or by scanning it. Logging is not clearing; a walk-in goes to the same verification queue.
+- [x] **A third OCR mode** (`POST /ocr/receipt`) reading OR number, amount and date. It takes the
+  *largest* peso figure, because a receipt lists line items before its total and first-match would
+  systematically under-record every multi-item payment. Fails soft: with the engine stopped the
+  counter form still works by hand.
+- [x] **New desk actions:** `intakeDocument`, `acceptForProcessing`, `priceDocument`,
+  `logWalkInPayment`, `confirmHandoff`, `scanReceipt`. Deleted as dead: `processAction` (and its
+  route, controller and frontend caller), `markPaidByTrackingNumber`, `updatePaymentSubmission`,
+  `updatePaymentVerification`, `updateStatusClearingClerk`.
+- [x] **Migration run and idempotent.** 10 new columns, 2 foreign keys, 1 index; 10,020 documents and
+  10,124 audit-trail values backfilled. A second run changes 0 rows.
+  - The guard had to be `CAST(current_status AS BINARY) = ?`: these columns collate
+    `utf8mb4_0900_ai_ci`, so a plain `= 'completed'` also matched rows already holding `'COMPLETED'`
+    and rewrote ten thousand rows on every run.
+  - `pending_secretary` maps **forward** to `PAID_PENDING_SEC_RELEASE` — under the old pipeline,
+    reaching the Secretary meant Finance had already cleared payment.
+  - 10,003 of 10,020 rows are `APPROVED`/`REJECTED` from `mock_data_gen.py`. They are preserved as
+    legacy terminals rather than remapped: rewriting them would claim those documents passed through
+    desks they never saw.
+- [x] **All five dashboards rebuilt.** Window 1 gained an Intake queue beside Release (keeping its
+  unfiltered Tracking Desk — it is the public counter). The Secretary gained three queues and a
+  pricing modal. Finance gained a read-only Awaiting Payment queue and the walk-in form. The student
+  gained an Action Required banner and lost the checkout-at-submission step entirely.
+- [x] **n8n rewritten** to route on college rather than document type — every document reaches a
+  secretary now, so the document-type switch had become decorative. Routing also moved from
+  submission to intake, since the college is only worth resolving once a human has confirmed the
+  paperwork.
+- [x] **Tests:** 620 total (417 backend + 203 frontend), up from 523. Zero ESLint errors.
+
+> **Found while verifying, and fixed:** n8n routing had never actually worked since Phase 16.
+> `N8N_BLOCK_ENV_ACCESS_IN_NODE` defaults to blocking `$env` in expressions, so
+> `TRACE_WEBHOOK_SECRET` resolved to nothing and every callback was rejected 401 — while the webhook
+> still answered `200 {"message":"Workflow was started"}` and n8n still recorded the execution as
+> **success**. The only symptom was that documents were never assigned. Now documented in the README,
+> `ENV_SETUP_GUIDE.md` §6.4 and `docker-compose.yml`.
+
+> **Still open (data, not code):** `seed.sql` gives `STU2024001` the course `'BS Information
+> Technology'`, but college routing matches `colleges.name` exactly and the `SEC-*` accounts use
+> values like `'College of Computer Studies'`. The seeded student therefore always falls through to
+> the admin fallback. Decide whether `course` should hold the college name, or whether a separate
+> college column is wanted.
 
 ---
 

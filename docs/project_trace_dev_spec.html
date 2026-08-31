@@ -209,15 +209,18 @@ thead th { background: var(--gray-50); color: var(--gray-500); font: 700 11.5px 
   </ul>
 
   <h2 id="payment-flow">5. The Manual Payment Workflow</h2>
-  <p>To comply with university restrictions on third-party payment gateways, TRACE utilizes a secure manual verification pipeline.</p>
+  <p>To comply with university restrictions on third-party payment gateways, TRACE collects payment manually against the Finance Office's own records. Payment happens <strong>late</strong> in the pipeline: the registrar cannot quote a price until a document has been printed, because the College Secretary prices it from the page count.</p>
   <div class="callout tip">
     <span class="label">Workflow</span>
-    <p>When a student initiates a request, the UI presents a static GCash QR code belonging to the PLP Finance office. The student pays via their app, then uploads a screenshot and inputs the Reference Number into TRACE. The Node.js backend flags the document as <code>PENDING_PAYMENT_VERIFICATION</code>. It sits in the <strong>Finance Clerk's</strong> dashboard until they manually confirm the transaction against their records and click "Approve."</p>
+    <p>The College Secretary prints the document, then sets the amount &mdash; recording the page count, a justification and their own clerk id alongside it. When the last document in a request has a price, the whole request becomes payable at once: the student is notified, the Finance Office is notified, and an <strong>Order of Payment</strong> slip is produced carrying a QR code of the tracking number.</p>
+    <p>The student then pays either way. <strong>Online</strong>, they upload a reference and proof from their dashboard. <strong>At the counter</strong>, they carry the slip to the Finance Office, and the clerk logs the Official Receipt &mdash; typing the details, or scanning the OR and letting the AI engine fill them in, re-checking every field before saving. Both land in the same verification queue: logging a counter payment does not clear it.</p>
+    <p>The Finance Clerk confirms the transaction against their records and approves. That single action is the <strong>only</strong> place in the system that writes <code>payment_status = 'PAID'</code>. The Secretary decides the charge; Finance confirms the money &mdash; holding those two authorities apart is what makes the money trail auditable.</p>
   </div>
 
   <h2 id="ocr">6. Split-Screen OCR Evaluation (AI)</h2>
   <p>When the College Secretary clicks a pending document, it triggers the <strong>Evaluation Modal</strong>.</p>
-  <p>The modal locks the background and presents a split-screen view. The left side displays the original scanned image with simulated AI bounding boxes. The right side displays the extracted data (Student ID, Name, Type) alongside an AI Confidence Score. The Secretary verifies the fields and clicks "Approve & Route".</p>
+  <p>The modal locks the background and presents a split-screen view. The left side displays the original scanned image with simulated AI bounding boxes. The right side displays the extracted data (Student ID, Name, Type) alongside an AI Confidence Score. The Secretary corrects anything the OCR misread, gives the student an <strong>estimated ready date</strong>, and clicks "Accept for Processing".</p>
+  <p>Pricing is a separate step, and deliberately so: the amount is only knowable once the document has actually been printed and its pages counted. The Secretary returns to it from the Processing queue.</p>
 
   <h2 id="ml">7. Predictive Analytics &amp; Admin Tools</h2>
   <p>The Registrar Admin view is a dedicated analytics and operations command center.</p>
@@ -260,7 +263,14 @@ thead th { background: var(--gray-50); color: var(--gray-500); font: 700 11.5px 
   student_id: VARCHAR(50) (Nullable),
   student_name: VARCHAR(255) (Nullable),
   document_type: VARCHAR(100) (Nullable),
-  current_status: VARCHAR(50) DEFAULT 'pending_payment', // values: 'pending_payment', 'pending_payment_verification', 'pending_secretary', 'ready_window_1', 'completed', 'rejected'
+  current_status: VARCHAR(50) DEFAULT 'PENDING_W1_INTAKE',
+  //   PENDING_W1_INTAKE -&gt; PENDING_SEC_EVALUATION -&gt; SEC_PROCESSING
+  //   -&gt; PENDING_STUDENT_PAYMENT -&gt; PENDING_FINANCE_VERIFICATION
+  //   -&gt; PAID_PENDING_SEC_RELEASE -&gt; READY_FOR_RELEASE -&gt; COMPLETED
+  //   A VARCHAR, not an ENUM: the vocabulary and the legal transitions live in
+  //   backend/src/utils/documentStatus.js, which also covers the Python engine
+  //   and the React queues. REJECTED / APPROVED persist on pre-2026-08 rows only.
+  estimated_ready_date: DATE (Nullable),            // what the Secretary promised the student
   payment_status: ENUM('UNPAID', 'PAID') DEFAULT 'UNPAID',
   assigned_clerk_id: INT (FK, Nullable),
   file_path: VARCHAR(500) (Nullable),
@@ -270,7 +280,16 @@ thead th { background: var(--gray-50); color: var(--gray-500); font: 700 11.5px 
   payment_reference_id: VARCHAR(255) (Nullable),
   gcash_reference_no: VARCHAR(255) (Nullable),
   checkout_url: VARCHAR(500) (Nullable),
-  amount: DECIMAL(10,2) DEFAULT 150.00,             // schema fallback; real fee computed at submission
+  amount: DECIMAL(10,2) DEFAULT 150.00,             // an estimate until priced_at is set
+  page_count: INT (Nullable),                       // basis for the charge
+  pricing_notes: VARCHAR(255) (Nullable),           // why the amount is what it is
+  priced_by_clerk_id: INT (FK, Nullable),           // which Secretary set it
+  priced_at: DATETIME (Nullable),                   // gates billing — never `amount`
+  stub_issued_at: DATETIME (Nullable),              // Order of Payment printed
+  payment_channel: VARCHAR(20) (Nullable),          // 'digital' | 'walk_in'
+  or_number: VARCHAR(100) (Nullable),               // Official Receipt, counter payments
+  or_date: DATE (Nullable),
+  logged_by_clerk_id: INT (FK, Nullable),           // Finance clerk who logged a walk-in
   copies: INT DEFAULT 1,
   purpose: VARCHAR(255) (Nullable),                 // JSON blob of the dynamic form fields
   ocr_raw_text: TEXT (Nullable),
