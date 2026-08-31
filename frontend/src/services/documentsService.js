@@ -36,13 +36,75 @@ export async function getDocumentByTracking(trackingNumber) {
 }
 
 /**
- * Process a document (approve or reject).
+ * Window 1 intake: clear the paperwork through to the College Secretary, or
+ * return it to the student with notes.
  * @param {string} id
- * @param {string} action - 'approve' or 'reject'
- * @returns {Promise<object>}
+ * @param {FormData} formData - Contains `action` ('approve' | 'return'), `notes`,
+ *   and optionally a `document` scan taken at the counter
  */
-export async function processDocument(id, action) {
-  const { data } = await api.post(`/documents/${id}/action`, { action })
+export async function intakeDocument(id, formData) {
+  const { data } = await api.post(`/documents/${id}/intake`, formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  })
+  return data
+}
+
+/**
+ * College Secretary accepts a request for processing, committing to a date.
+ * @param {string} id
+ * @param {object} payload - `action` ('approve' | 'reject'), `estimated_ready_date`,
+ *   `notes`, and any OCR corrections
+ */
+export async function acceptForProcessing(id, payload) {
+  const { data } = await api.post(`/documents/${id}/accept`, payload)
+  return data
+}
+
+/**
+ * College Secretary prices a printed document. The request is only billed once
+ * every document in it has a price.
+ * @param {string} id
+ * @param {object} payload - `amount`, `page_count`, `pricing_notes`
+ */
+export async function priceDocument(id, payload) {
+  const { data } = await api.post(`/documents/${id}/price`, payload)
+  return data
+}
+
+/**
+ * College Secretary confirms the printed document has physically reached
+ * Window 1.
+ * @param {string} id
+ * @param {object} payload - optional `notes`
+ */
+export async function confirmHandoff(id, payload = {}) {
+  const { data } = await api.post(`/documents/${id}/handoff`, payload)
+  return data
+}
+
+/**
+ * Read an Official Receipt so the walk-in form can be pre-filled. Records
+ * nothing — the clerk confirms every field before saving.
+ * @param {FormData} formData - Contains a `receipt` image
+ * @returns {Promise<{ success: boolean, message: string, extracted_data: object }>}
+ */
+export async function scanReceipt(formData) {
+  const { data } = await api.post('/documents/scan-receipt', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  })
+  return data
+}
+
+/**
+ * Finance logs a payment taken at the counter.
+ * @param {string} id
+ * @param {FormData} formData - Contains `or_number`, `or_date`, `notes`,
+ *   and optionally the scanned `officialReceipt`
+ */
+export async function logWalkInPayment(id, formData) {
+  const { data } = await api.post(`/documents/${id}/log-walkin-payment`, formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  })
   return data
 }
 

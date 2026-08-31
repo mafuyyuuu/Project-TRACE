@@ -74,14 +74,6 @@ async function assign(req, res) {
   }
 }
 
-async function action(req, res) {
-  try {
-    res.json(await documentsService.processAction(req.user, req.params.id, req.body.action));
-  } catch (err) {
-    fail(res, err, 'Process document error', 'Failed to process document.');
-  }
-}
-
 async function submitPayment(req, res) {
   try {
     res.json(await documentsService.submitPayment(req.user, req.params.id, req.body, req.file));
@@ -98,17 +90,57 @@ async function verifyPayment(req, res) {
   }
 }
 
-async function evaluate(req, res) {
+async function intake(req, res) {
   try {
-    res.json(await documentsService.evaluateDocument(req.user, req.params.id, req.body));
+    res.json(await documentsService.intakeDocument(req.user, req.params.id, req.body, req.file));
+  } catch (err) {
+    fail(res, err, 'Intake error', 'Failed to process intake.');
+  }
+}
+
+async function accept(req, res) {
+  try {
+    res.json(await documentsService.acceptForProcessing(req.user, req.params.id, req.body));
   } catch (err) {
     fail(res, err, 'Evaluate document error', 'Failed to evaluate document.');
   }
 }
 
+async function price(req, res) {
+  try {
+    res.json(await documentsService.priceDocument(req.user, req.params.id, req.body));
+  } catch (err) {
+    fail(res, err, 'Price document error', 'Failed to price document.');
+  }
+}
+
+async function scanReceipt(req, res) {
+  try {
+    res.json(await documentsService.scanReceipt(req.user, req.file));
+  } catch (err) {
+    fail(res, err, 'Receipt scan error', 'Failed to read the receipt.');
+  }
+}
+
+async function logWalkInPayment(req, res) {
+  try {
+    res.json(await documentsService.logWalkInPayment(req.user, req.params.id, req.body, req.file));
+  } catch (err) {
+    fail(res, err, 'Walk-in payment error', 'Failed to log counter payment.');
+  }
+}
+
+async function handoff(req, res) {
+  try {
+    res.json(await documentsService.confirmHandoff(req.user, req.params.id, req.body));
+  } catch (err) {
+    fail(res, err, 'Handoff error', 'Failed to record handoff.');
+  }
+}
+
 async function release(req, res) {
   try {
-    res.json(await documentsService.releaseDocument(req.user, req.params.id));
+    res.json(await documentsService.releaseDocument(req.user, req.params.id, req.body));
   } catch (err) {
     fail(res, err, 'Release document error', 'Failed to release document.');
   }
@@ -131,10 +163,14 @@ module.exports = {
   activityLogs,
   track,
   assign,
-  action,
   submitPayment,
   verifyPayment,
-  evaluate,
+  intake,
+  accept,
+  price,
+  scanReceipt,
+  logWalkInPayment,
+  handoff,
   release,
   cancel,
 };

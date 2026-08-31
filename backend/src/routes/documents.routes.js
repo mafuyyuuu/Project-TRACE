@@ -26,11 +26,18 @@ router.get('/:trackingNumber', documentsController.track);
 // guarded by the shared webhook secret instead of a JWT.
 router.post('/assign', verifyWebhookSecret, documentsController.assign);
 
-// Desk actions
-router.post('/:id/action', authenticate, documentsController.action);
+// Desk actions, in pipeline order. All POSTs, so none of them is shadowed by
+// the `GET /:trackingNumber` wildcard above.
+router.post('/:id/intake', authenticate, documentUpload.single('document'), documentsController.intake);
+router.post('/:id/accept', authenticate, documentsController.accept);
+router.post('/:id/price', authenticate, documentsController.price);
 router.post('/:id/submit-payment', authenticate, documentUpload.single('receipt'), documentsController.submitPayment);
+// Reads a receipt image and returns what it saw. Records nothing, so it takes
+// no document id — the clerk confirms the figures before submitting them.
+router.post('/scan-receipt', authenticate, documentUpload.single('receipt'), documentsController.scanReceipt);
+router.post('/:id/log-walkin-payment', authenticate, documentUpload.single('officialReceipt'), documentsController.logWalkInPayment);
 router.post('/:id/verify-payment', authenticate, documentUpload.single('officialReceipt'), documentsController.verifyPayment);
-router.post('/:id/evaluate', authenticate, documentsController.evaluate);
+router.post('/:id/handoff', authenticate, documentsController.handoff);
 router.post('/:id/release', authenticate, documentsController.release);
 router.delete('/:id', authenticate, documentsController.cancel);
 

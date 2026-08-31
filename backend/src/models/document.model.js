@@ -1,4 +1,5 @@
 const { pool } = require('../config/db');
+const { STATUS, PIPELINE } = require('../utils/documentStatus');
 
 /**
  * All raw SQL for the `documents` table. Every function accepts an optional
@@ -77,58 +78,27 @@ function updateAssignedClerk(documentId, clerkId, executor = pool) {
   return executor.query('UPDATE documents SET assigned_clerk_id = ? WHERE id = ?', [clerkId, documentId]);
 }
 
-function updateStatusClearingClerk(documentId, newStatus, executor = pool) {
-  return executor.query(
-    'UPDATE documents SET current_status = ?, assigned_clerk_id = NULL WHERE id = ?',
-    [newStatus, documentId]
-  );
-}
-
-function updatePaymentSubmission(documentId, gcashReferenceNo, receiptPath, executor = pool) {
-  return executor.query(
-    `UPDATE documents
-     SET current_status = "pending_payment_verification",
-         gcash_reference_no = ?,
-         receipt_image_path = ?
-     WHERE id = ?`,
-    [gcashReferenceNo, receiptPath, documentId]
-  );
-}
-
-function updatePaymentVerification(documentId, newStatus, paymentStatus, officialReceiptPath, executor = pool) {
-  if (officialReceiptPath) {
-    return executor.query(
-      'UPDATE documents SET current_status = ?, payment_status = ?, official_receipt_path = ? WHERE id = ?',
-      [newStatus, paymentStatus, officialReceiptPath, documentId]
-    );
-  }
-  return executor.query(
-    'UPDATE documents SET current_status = ?, payment_status = ? WHERE id = ?',
-    [newStatus, paymentStatus, documentId]
-  );
-}
-
-function updateEvaluation(documentId, newStatus, studentId, studentName, documentType, executor = pool) {
+/**
+ * The Secretary takes the request on: any OCR corrections and the date the
+ * student is promised, written together because they are one decision.
+ */
+function updateEvaluation(
+  documentId, newStatus, studentId, studentName, documentType, estimatedReadyDate, executor = pool
+) {
   return executor.query(
     `UPDATE documents SET
       current_status = ?,
       student_id = COALESCE(?, student_id),
       student_name = COALESCE(?, student_name),
-      document_type = COALESCE(?, document_type)
+      document_type = COALESCE(?, document_type),
+      estimated_ready_date = COALESCE(?, estimated_ready_date)
      WHERE id = ?`,
-    [newStatus, studentId, studentName, documentType, documentId]
+    [newStatus, studentId, studentName, documentType, estimatedReadyDate || null, documentId]
   );
 }
 
 function markCompleted(documentId, executor = pool) {
-  return executor.query('UPDATE documents SET current_status = "completed" WHERE id = ?', [documentId]);
-}
-
-function markPaidByTrackingNumber(trackingNumber, executor = pool) {
-  return executor.query(
-    'UPDATE documents SET payment_status = "PAID", current_status = "submitted" WHERE tracking_number = ? AND payment_status = "UNPAID"',
-    [trackingNumber]
-  );
+  return executor.query('UPDATE documents SET current_status = ? WHERE id = ?', [STATUS.COMPLETED, documentId]);
 }
 
 function deleteById(documentId, executor = pool) {
@@ -166,7 +136,8 @@ function avgProcessingMinutes(executor = pool) {
         (SELECT MIN(sl2.timestamp_started) FROM step_logs sl2 WHERE sl2.document_id = d.id),
         (SELECT MAX(sl3.timestamp_started) FROM step_logs sl3 WHERE sl3.document_id = d.id)
        )) as avg_minutes
-       FROM documents d WHERE d.current_status IN ('completed', 'released')`
+       FROM documents d WHERE d.current_status = ?`,
+      [STATUS.COMPLETED]
     )
     .then(([rows]) => parseFloat(rows[0].avg_minutes) || 0);
 }
@@ -177,10 +148,19 @@ function avgOcrConfidence(executor = pool) {
     .then(([rows]) => parseFloat(rows[0].avg_confidence) || 0);
 }
 
+/**
+ * Everything still in flight: every pipeline status except the last one.
+ *
+ * Derived from PIPELINE rather than listed, so adding a desk to the workflow
+ * cannot silently leave a queue out of the backlog figure.
+ */
+const IN_FLIGHT = PIPELINE.slice(0, -1);
+
 function countBacklog(executor = pool) {
   return executor
     .query(
-      `SELECT COUNT(*) as count FROM documents WHERE current_status IN ('pending_payment', 'pending_payment_verification', 'pending_secretary', 'ready_window_1')`
+      `SELECT COUNT(*) as count FROM documents WHERE current_status IN (${IN_FLIGHT.map(() => '?').join(', ')})`,
+      IN_FLIGHT
     )
     .then(([rows]) => rows[0].count || 0);
 }
@@ -194,7 +174,8 @@ function countByStatus(status, executor = pool) {
 function countCompletedToday(executor = pool) {
   return executor
     .query(
-      `SELECT COUNT(*) as count FROM documents WHERE current_status IN ('completed', 'released') AND DATE(updated_at) = CURDATE()`
+      'SELECT COUNT(*) as count FROM documents WHERE current_status = ? AND DATE(updated_at) = CURDATE()',
+      [STATUS.COMPLETED]
     )
     .then(([rows]) => rows[0].count || 0);
 }
@@ -248,21 +229,29 @@ function findByRequestGroupForUpdate(requestGroupId, executor) {
     .then(([rows]) => rows);
 }
 
-/** One GCash receipt covers every document in the group. */
+/** One digital receipt covers every document in the group. */
 function updatePaymentSubmissionForGroup(
   requestGroupId, reference, receiptPath, paymentMethod = 'gcash', executor = pool
 ) {
   // `gcash_reference_no` is kept in step with `payment_reference_id` so older
   // records and any UI still reading the legacy column stay correct.
+  //
+  // Re-submitting over a document already awaiting verification is allowed on
+  // purpose: a student who uploaded the wrong screenshot must be able to
+  // replace it without Finance having to bounce it first.
   return executor.query(
     `UPDATE documents
-     SET current_status = "pending_payment_verification",
+     SET current_status = ?,
+         payment_channel = 'digital',
          payment_method = ?,
          payment_reference_id = ?,
          gcash_reference_no = ?,
          receipt_image_path = ?
-     WHERE request_group_id = ? AND current_status IN ('pending_payment', 'pending_payment_verification')`,
-    [paymentMethod, reference, reference, receiptPath, requestGroupId]
+     WHERE request_group_id = ? AND current_status IN (?, ?)`,
+    [
+      STATUS.PENDING_FINANCE_VERIFICATION, paymentMethod, reference, reference, receiptPath,
+      requestGroupId, STATUS.PENDING_STUDENT_PAYMENT, STATUS.PENDING_FINANCE_VERIFICATION,
+    ]
   );
 }
 
@@ -273,19 +262,126 @@ function updatePaymentVerificationForGroup(
   if (officialReceiptPath) {
     return executor.query(
       `UPDATE documents SET current_status = ?, payment_status = ?, official_receipt_path = ?
-       WHERE request_group_id = ? AND current_status = 'pending_payment_verification'`,
-      [newStatus, paymentStatus, officialReceiptPath, requestGroupId]
+       WHERE request_group_id = ? AND current_status = ?`,
+      [newStatus, paymentStatus, officialReceiptPath, requestGroupId, STATUS.PENDING_FINANCE_VERIFICATION]
     );
   }
   return executor.query(
     `UPDATE documents SET current_status = ?, payment_status = ?
-     WHERE request_group_id = ? AND current_status = 'pending_payment_verification'`,
-    [newStatus, paymentStatus, requestGroupId]
+     WHERE request_group_id = ? AND current_status = ?`,
+    [newStatus, paymentStatus, requestGroupId, STATUS.PENDING_FINANCE_VERIFICATION]
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Evaluate-first pipeline writes
+// ---------------------------------------------------------------------------
+
+/**
+ * Replace the supporting attachment.
+ *
+ * Window 1 scans paperwork a walk-in student brought to the counter, which is
+ * the only copy that will ever exist for that request.
+ */
+function updateAttachment(documentId, filePath, originalFilename, executor = pool) {
+  return executor.query(
+    'UPDATE documents SET file_path = ?, original_filename = ? WHERE id = ?',
+    [filePath, originalFilename, documentId]
+  );
+}
+
+/** Plain status move, for desk actions that carry no other data. */
+function updateStatus(documentId, newStatus, executor = pool) {
+  return executor.query('UPDATE documents SET current_status = ? WHERE id = ?', [newStatus, documentId]);
+}
+
+/**
+ * Secretary prices one document from what printing it actually took.
+ *
+ * The author and timestamp are written in the same statement as the amount,
+ * never afterwards: a charge whose origin is unknown cannot be defended when a
+ * student disputes it, and this is the only place a price is ever set.
+ */
+function updatePricing(documentId, { amount, pageCount, pricingNotes, clerkId }, executor = pool) {
+  return executor.query(
+    `UPDATE documents
+     SET amount = ?, page_count = ?, pricing_notes = ?, priced_by_clerk_id = ?, priced_at = NOW()
+     WHERE id = ?`,
+    [amount, pageCount ?? null, pricingNotes || null, clerkId, documentId]
+  );
+}
+
+/**
+ * How many documents in the group are still waiting on a price.
+ *
+ * This is the billing gate. A student pays for a request once, so the group
+ * only becomes payable when the last of its documents has been priced —
+ * otherwise a two-document request would generate two bills.
+ */
+function countUnpricedInGroup(requestGroupId, executor = pool) {
+  return executor
+    .query(
+      'SELECT COUNT(*) AS count FROM documents WHERE request_group_id = ? AND priced_at IS NULL',
+      [requestGroupId]
+    )
+    .then(([rows]) => rows[0].count);
+}
+
+/** Total owed for the whole request — the figure on the stub. */
+function sumGroupAmount(requestGroupId, executor = pool) {
+  return executor
+    .query('SELECT COALESCE(SUM(amount), 0) AS total FROM documents WHERE request_group_id = ?', [requestGroupId])
+    .then(([rows]) => parseFloat(rows[0].total));
+}
+
+/**
+ * Every document is priced, so the group becomes payable and the stub the
+ * student can carry to Finance is timestamped.
+ */
+function markGroupPayable(requestGroupId, executor = pool) {
+  return executor.query(
+    `UPDATE documents
+     SET current_status = ?, stub_issued_at = NOW()
+     WHERE request_group_id = ? AND current_status = ?`,
+    [STATUS.PENDING_STUDENT_PAYMENT, requestGroupId, STATUS.SEC_PROCESSING]
+  );
+}
+
+/**
+ * Finance logs a payment collected at the counter.
+ *
+ * A walk-in leaves no student-uploaded screenshot behind — the Official Receipt
+ * Finance issues is the only proof the payment happened, which is why the OR
+ * number is mandatory here and absent from the digital path.
+ */
+function updateWalkInPaymentForGroup(
+  requestGroupId, { orNumber, orDate, clerkId, receiptPath }, executor = pool
+) {
+  return executor.query(
+    `UPDATE documents
+     SET current_status = ?,
+         payment_channel = 'walk_in',
+         or_number = ?,
+         or_date = ?,
+         logged_by_clerk_id = ?,
+         official_receipt_path = COALESCE(?, official_receipt_path)
+     WHERE request_group_id = ? AND current_status = ?`,
+    [
+      STATUS.PENDING_FINANCE_VERIFICATION, orNumber, orDate || null, clerkId, receiptPath || null,
+      requestGroupId, STATUS.PENDING_STUDENT_PAYMENT,
+    ]
   );
 }
 
 module.exports = {
   insert,
+  updateAttachment,
+  updateStatus,
+  updatePricing,
+  countUnpricedInGroup,
+  sumGroupAmount,
+  markGroupPayable,
+  updateWalkInPaymentForGroup,
   findByAttachedFilename,
   findByRequestGroup,
   findByRequestGroupForUpdate,
@@ -298,12 +394,8 @@ module.exports = {
   countWithFilters,
   updateOcrData,
   updateAssignedClerk,
-  updateStatusClearingClerk,
-  updatePaymentSubmission,
-  updatePaymentVerification,
   updateEvaluation,
   markCompleted,
-  markPaidByTrackingNumber,
   deleteById,
   countProcessedTodayByClerk,
   countClearedBySecretaryToday,

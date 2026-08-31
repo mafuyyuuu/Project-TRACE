@@ -379,6 +379,7 @@ container:
 docker run -d --name n8n -p 5678:5678 -v ~/.n8n:/home/node/.n8n \
   -e TRACE_API_URL="http://host.docker.internal:3300" \
   -e TRACE_WEBHOOK_SECRET="<the same WEBHOOK_SECRET from backend/.env>" \
+  -e N8N_BLOCK_ENV_ACCESS_IN_NODE=false \
   docker.n8n.io/n8nio/n8n
 ```
 
@@ -386,8 +387,27 @@ docker run -d --name n8n -p 5678:5678 -v ~/.n8n:/home/node/.n8n \
   be the container itself.
 - `TRACE_WEBHOOK_SECRET` must match `WEBHOOK_SECRET` **exactly**, or every routing call is rejected
   with 401 and documents are silently left unassigned.
-- Already created the container without them? `docker rm -f n8n` and re-run, or set them in the n8n
-  UI under **Settings → Environments**.
+- **`N8N_BLOCK_ENV_ACCESS_IN_NODE=false` is not optional.** n8n blocks `$env` inside expressions by
+  default, so without it the other two variables are invisible to the workflow no matter how
+  correctly they are set: `$env.TRACE_WEBHOOK_SECRET` evaluates to nothing, the callback goes out
+  with an empty `x-webhook-secret`, and the backend rejects it with 401. The webhook still answers
+  `200 {"message":"Workflow was started"}` and the execution is still recorded as **success**, so
+  the only visible symptom is that documents are never assigned to a secretary.
+- Already created the container without them? `docker rm -f n8n` and re-run the command above. The
+  workflows live in the `~/.n8n` bind mount, so nothing is lost.
+
+**Re-importing the workflow after editing `n8n/routing-workflow.json`:**
+
+```bash
+docker cp n8n/routing-workflow.json n8n:/tmp/routing-workflow.json
+docker exec n8n n8n import:workflow --input=/tmp/routing-workflow.json
+docker exec n8n n8n update:workflow --id=xEqDV7fQqTczcJ3v --active=true
+docker restart n8n        # required: the webhook only re-registers on boot
+```
+
+The import **deactivates** the workflow, which is why the reactivate and restart are part of the
+sequence rather than optional extras. The `id` at the top of the JSON exists so the CLI import
+updates the workflow in place instead of failing on a NOT NULL constraint.
 
 > Never hardcode the URL into the workflow JSON. It previously had `localhost:3000` baked into three
 > nodes and kept pointing there for a month after the backend moved to 3300 — failing silently the

@@ -8,6 +8,8 @@ const stepLogModel = require('../../models/stepLog.model');
 const userModel = require('../../models/user.model');
 const notifications = require('../notification.service');
 const aiEngine = require('../aiEngine.service');
+const n8n = require('../n8n.service');
+const { STATUS } = require('../../utils/documentStatus');
 const referenceModel = require('../../models/referenceData.model');
 const { pool } = require('../../config/db');
 const service = require('../documents.service');
@@ -40,11 +42,18 @@ beforeEach(() => {
 
   vi.spyOn(documentModel, 'findById').mockResolvedValue([]);
   vi.spyOn(documentModel, 'findByIdForUpdate').mockResolvedValue([]);
-  vi.spyOn(documentModel, 'updatePaymentSubmission').mockResolvedValue([{ affectedRows: 1 }]);
-  vi.spyOn(documentModel, 'updatePaymentVerification').mockResolvedValue([{ affectedRows: 1 }]);
   // Group-aware payment paths: one receipt settles every document requested together.
   vi.spyOn(documentModel, 'updatePaymentSubmissionForGroup').mockResolvedValue([{ affectedRows: 1 }]);
   vi.spyOn(documentModel, 'updatePaymentVerificationForGroup').mockResolvedValue([{ affectedRows: 1 }]);
+  vi.spyOn(documentModel, 'updateWalkInPaymentForGroup').mockResolvedValue([{ affectedRows: 1 }]);
+  // Evaluate-first pipeline writes.
+  vi.spyOn(documentModel, 'updateStatus').mockResolvedValue([{ affectedRows: 1 }]);
+  vi.spyOn(documentModel, 'updateAttachment').mockResolvedValue([{ affectedRows: 1 }]);
+  vi.spyOn(documentModel, 'updatePricing').mockResolvedValue([{ affectedRows: 1 }]);
+  vi.spyOn(documentModel, 'markGroupPayable').mockResolvedValue([{ affectedRows: 1 }]);
+  vi.spyOn(documentModel, 'sumGroupAmount').mockResolvedValue(0);
+  // Default: this was the last unpriced document, so pricing bills the group.
+  vi.spyOn(documentModel, 'countUnpricedInGroup').mockResolvedValue(0);
   vi.spyOn(documentModel, 'findByRequestGroup').mockResolvedValue([]);
   vi.spyOn(documentModel, 'findByRequestGroupForUpdate').mockResolvedValue([]);
   vi.spyOn(referenceModel, 'findDocumentTypesByNames').mockResolvedValue([]);
@@ -73,6 +82,8 @@ beforeEach(() => {
   vi.spyOn(userModel, 'findStudentContactByStudentId').mockResolvedValue([]);
   vi.spyOn(userModel, 'findStudentCourseByStudentId').mockResolvedValue([]);
 
+  vi.spyOn(n8n, 'triggerDocumentRouting').mockResolvedValue(undefined);
+
   vi.spyOn(notifications, 'notifyInApp').mockResolvedValue(undefined);
   vi.spyOn(notifications, 'notifyInAppBulk').mockResolvedValue(undefined);
   vi.spyOn(notifications, 'dispatchStudentAlert').mockResolvedValue(undefined);
@@ -81,7 +92,7 @@ beforeEach(() => {
 describe('submitPayment — ownership (the IDOR fix)', () => {
   it("rejects a student submitting against another student's document", async () => {
     documentModel.findById.mockResolvedValue([
-      { id: 9, student_id: 'STU-999', request_group_id: 'REQ-OTHER1', current_status: 'pending_payment' },
+      { id: 9, student_id: 'STU-999', request_group_id: 'REQ-OTHER1', current_status: STATUS.PENDING_STUDENT_PAYMENT },
     ]);
     expect(await statusOf(service.submitPayment(STUDENT, 9, { gcash_reference_no: 'X' }, RECEIPT))).toBe(403);
     expect(documentModel.updatePaymentSubmissionForGroup).not.toHaveBeenCalled();
@@ -89,7 +100,7 @@ describe('submitPayment — ownership (the IDOR fix)', () => {
 
   it('allows a student submitting against their own document', async () => {
     documentModel.findById.mockResolvedValue([
-      { id: 5, student_id: 'STU-001', request_group_id: 'REQ-TEST01', current_status: 'pending_payment' },
+      { id: 5, student_id: 'STU-001', request_group_id: 'REQ-TEST01', current_status: STATUS.PENDING_STUDENT_PAYMENT },
     ]);
     const res = await service.submitPayment(STUDENT, 5, { gcash_reference_no: 'REF-1' }, RECEIPT);
     expect(res.message).toMatch(/submitted successfully/i);
@@ -101,12 +112,21 @@ describe('submitPayment — ownership (the IDOR fix)', () => {
 
   it('allows re-submission while awaiting verification', async () => {
     documentModel.findById.mockResolvedValue([
-      { id: 5, student_id: 'STU-001', request_group_id: 'REQ-TEST01', current_status: 'pending_payment_verification' },
+      { id: 5, student_id: 'STU-001', request_group_id: 'REQ-TEST01', current_status: STATUS.PENDING_FINANCE_VERIFICATION },
     ]);
     await expect(service.submitPayment(STUDENT, 5, { gcash_reference_no: 'R' }, RECEIPT)).resolves.toBeTruthy();
   });
 
-  it.each(['pending_secretary', 'ready_window_1', 'completed'])(
+  // Before pricing there is no amount to pay; after Finance clears it the money
+  // is already accounted for. Either way a receipt belongs to nothing.
+  it.each([
+    STATUS.PENDING_W1_INTAKE,
+    STATUS.PENDING_SEC_EVALUATION,
+    STATUS.SEC_PROCESSING,
+    STATUS.PAID_PENDING_SEC_RELEASE,
+    STATUS.READY_FOR_RELEASE,
+    STATUS.COMPLETED,
+  ])(
     'refuses to attach a receipt to a document already at %s',
     async (current_status) => {
       documentModel.findById.mockResolvedValue([{ id: 5, student_id: 'STU-001', request_group_id: 'REQ-TEST01', current_status }]);
@@ -116,7 +136,7 @@ describe('submitPayment — ownership (the IDOR fix)', () => {
 
   it("requires whatever the chosen payment method asks for", async () => {
     documentModel.findById.mockResolvedValue([
-      { id: 5, student_id: 'STU-001', request_group_id: 'REQ-TEST01', current_status: 'pending_payment' },
+      { id: 5, student_id: 'STU-001', request_group_id: 'REQ-TEST01', current_status: STATUS.PENDING_STUDENT_PAYMENT },
     ]);
     // GCash requires both a reference and a receipt image.
     expect(await statusOf(service.submitPayment(STUDENT, 5, {}, RECEIPT))).toBe(400);
@@ -126,7 +146,7 @@ describe('submitPayment — ownership (the IDOR fix)', () => {
 
   it('records the payment method the student actually used', async () => {
     documentModel.findById.mockResolvedValue([
-      { id: 5, student_id: 'STU-001', request_group_id: 'REQ-TEST01', current_status: 'pending_payment' },
+      { id: 5, student_id: 'STU-001', request_group_id: 'REQ-TEST01', current_status: STATUS.PENDING_STUDENT_PAYMENT },
     ]);
     referenceModel.findPaymentMethodByCode.mockResolvedValue([
       { id: 3, code: 'online_banking', name: 'Online Banking / Bank Transfer', provider: 'manual',
@@ -143,7 +163,7 @@ describe('submitPayment — ownership (the IDOR fix)', () => {
 
   it('rejects a payment method that is not available', async () => {
     documentModel.findById.mockResolvedValue([
-      { id: 5, student_id: 'STU-001', request_group_id: 'REQ-TEST01', current_status: 'pending_payment' },
+      { id: 5, student_id: 'STU-001', request_group_id: 'REQ-TEST01', current_status: STATUS.PENDING_STUDENT_PAYMENT },
     ]);
     referenceModel.findPaymentMethodByCode.mockResolvedValue([]);
     expect(await statusOf(service.submitPayment(STUDENT, 5, { gcash_reference_no: 'R', payment_method: 'crypto' }, RECEIPT))).toBe(400);
@@ -151,7 +171,7 @@ describe('submitPayment — ownership (the IDOR fix)', () => {
 
   it('rejects a method the admin has deactivated', async () => {
     documentModel.findById.mockResolvedValue([
-      { id: 5, student_id: 'STU-001', request_group_id: 'REQ-TEST01', current_status: 'pending_payment' },
+      { id: 5, student_id: 'STU-001', request_group_id: 'REQ-TEST01', current_status: STATUS.PENDING_STUDENT_PAYMENT },
     ]);
     referenceModel.findPaymentMethodByCode.mockResolvedValue([
       { id: 2, code: 'card', name: 'Card', provider: 'manual', is_active: 0 },
@@ -166,7 +186,7 @@ describe('submitPayment — ownership (the IDOR fix)', () => {
 
   it('notifies the Finance desk once the receipt lands', async () => {
     documentModel.findById.mockResolvedValue([
-      { id: 5, student_id: 'STU-001', request_group_id: 'REQ-TEST01', current_status: 'pending_payment' },
+      { id: 5, student_id: 'STU-001', request_group_id: 'REQ-TEST01', current_status: STATUS.PENDING_STUDENT_PAYMENT },
     ]);
     userModel.findFinanceClerks.mockResolvedValue([{ id: 40 }, { id: 41 }]);
     await service.submitPayment(STUDENT, 5, { gcash_reference_no: 'REF-9' }, RECEIPT);
@@ -205,9 +225,11 @@ describe('uploadDocument — a student can only file for themselves', () => {
     );
     const row = documentModel.insert.mock.calls[0][0];
     expect(row.student_id).toBe('STU-555');
-    // legacy intake is already paid and skips straight to the Secretary
-    expect(row.current_status).toBe('pending_secretary');
-    expect(row.payment_status).toBe('PAID');
+    // A walk-in is the same request typed in at the counter: it enters the
+    // intake queue unpaid, exactly as an online submission does. Filing it as
+    // already-PAID would let it skip both its evaluation and its bill.
+    expect(row.current_status).toBe(STATUS.PENDING_W1_INTAKE);
+    expect(row.payment_status).toBe('UNPAID');
   });
 
   it('prices the request server-side rather than trusting the client', async () => {
@@ -320,7 +342,7 @@ describe('multi-document requests', () => {
 describe('group payment settles every document at once', () => {
   it('a single receipt covers the whole group', async () => {
     documentModel.findById.mockResolvedValue([
-      { id: 5, student_id: 'STU-001', request_group_id: 'REQ-G1', current_status: 'pending_payment' },
+      { id: 5, student_id: 'STU-001', request_group_id: 'REQ-G1', current_status: STATUS.PENDING_STUDENT_PAYMENT },
     ]);
     documentModel.updatePaymentSubmissionForGroup.mockResolvedValue([{ affectedRows: 3 }]);
     documentModel.findByRequestGroup.mockResolvedValue([{ id: 5 }, { id: 6 }, { id: 7 }]);
@@ -333,8 +355,8 @@ describe('group payment settles every document at once', () => {
 
   it('Finance approving once clears all of them', async () => {
     const groupDocs = [
-      { id: 5, request_group_id: 'REQ-G1', student_id: 'STU-001', current_status: 'pending_payment_verification' },
-      { id: 6, request_group_id: 'REQ-G1', student_id: 'STU-001', current_status: 'pending_payment_verification' },
+      { id: 5, request_group_id: 'REQ-G1', student_id: 'STU-001', current_status: STATUS.PENDING_FINANCE_VERIFICATION },
+      { id: 6, request_group_id: 'REQ-G1', student_id: 'STU-001', current_status: STATUS.PENDING_FINANCE_VERIFICATION },
     ];
     documentModel.findByIdForUpdate.mockResolvedValue([groupDocs[0]]);
     documentModel.findByRequestGroupForUpdate.mockResolvedValue(groupDocs);
@@ -343,35 +365,41 @@ describe('group payment settles every document at once', () => {
     const res = await service.verifyPayment(FINANCE, 5, { action: 'approve' }, null);
     expect(res.documents_covered).toBe(2);
     expect(documentModel.updatePaymentVerificationForGroup).toHaveBeenCalledWith(
-      'REQ-G1', 'pending_secretary', 'PAID', null, connection
+      'REQ-G1', STATUS.PAID_PENDING_SEC_RELEASE, 'PAID', null, connection
     );
   });
 
   it("a student still cannot pay for another student's group", async () => {
     documentModel.findById.mockResolvedValue([
-      { id: 9, student_id: 'STU-999', request_group_id: 'REQ-OTHER', current_status: 'pending_payment' },
+      { id: 9, student_id: 'STU-999', request_group_id: 'REQ-OTHER', current_status: STATUS.PENDING_STUDENT_PAYMENT },
     ]);
     expect(await statusOf(service.submitPayment(STUDENT, 9, { gcash_reference_no: 'R' }, RECEIPT))).toBe(403);
     expect(documentModel.updatePaymentSubmissionForGroup).not.toHaveBeenCalled();
   });
 
-  it('documents in a group still advance through the desks independently', async () => {
-    // Approving one document must not touch its siblings.
+  it('documents in a group are still evaluated one at a time', async () => {
+    // Accepting one document must not touch its siblings. Only *billing* is
+    // group-wide, because the student pays for the request once.
     documentModel.findByIdForUpdate.mockResolvedValue([
-      { id: 5, request_group_id: 'REQ-G1', student_id: 'STU-001', tracking_number: 'TRC-1' },
+      { id: 5, request_group_id: 'REQ-G1', student_id: 'STU-001', tracking_number: 'TRC-1',
+        current_status: STATUS.PENDING_SEC_EVALUATION },
     ]);
-    await service.evaluateDocument(SECRETARY, 5, {
-      student_id: 'STU-001', student_name: 'Ana', document_type: 'Diploma', action: 'approve',
+    await service.acceptForProcessing(SECRETARY, 5, {
+      student_id: 'STU-001', student_name: 'Ana', document_type: 'Diploma',
+      action: 'approve', estimated_ready_date: '2026-09-05',
     });
     expect(documentModel.updateEvaluation).toHaveBeenCalledTimes(1);
     expect(documentModel.updateEvaluation).toHaveBeenCalledWith(
-      5, 'ready_window_1', 'STU-001', 'Ana', 'Diploma', connection
+      5, STATUS.SEC_PROCESSING, 'STU-001', 'Ana', 'Diploma', '2026-09-05', connection
     );
   });
 });
 
 describe('verifyPayment — Finance desk only', () => {
-  const doc = { id: 5, student_id: 'STU-001', request_group_id: 'REQ-TEST01', document_type: 'Diploma' };
+  const doc = {
+    id: 5, student_id: 'STU-001', request_group_id: 'REQ-TEST01', document_type: 'Diploma',
+    tracking_number: 'TRC-1', current_status: STATUS.PENDING_FINANCE_VERIFICATION,
+  };
 
   it.each([
     ['a student', STUDENT],
@@ -385,19 +413,25 @@ describe('verifyPayment — Finance desk only', () => {
     expect(await statusOf(service.verifyPayment(FINANCE, 5, { action: 'maybe' }, null))).toBe(400);
   });
 
-  it('marks the document PAID and routes it to the Secretary on approve', async () => {
+  it('marks the document PAID and returns it to the Secretary for handoff', async () => {
     documentModel.findByIdForUpdate.mockResolvedValue([doc]);
     await service.verifyPayment(FINANCE, 5, { action: 'approve' }, null);
     expect(documentModel.updatePaymentVerificationForGroup).toHaveBeenCalledWith(
-      'REQ-TEST01', 'pending_secretary', 'PAID', null, connection
+      'REQ-TEST01', STATUS.PAID_PENDING_SEC_RELEASE, 'PAID', null, connection
     );
+  });
+
+  it('refuses to verify a document that is not awaiting verification', async () => {
+    documentModel.findByIdForUpdate.mockResolvedValue([{ ...doc, current_status: STATUS.SEC_PROCESSING }]);
+    expect(await statusOf(service.verifyPayment(FINANCE, 5, { action: 'approve' }, null))).toBe(400);
+    expect(documentModel.updatePaymentVerificationForGroup).not.toHaveBeenCalled();
   });
 
   it('sends the document back as UNPAID on reject', async () => {
     documentModel.findByIdForUpdate.mockResolvedValue([doc]);
     await service.verifyPayment(FINANCE, 5, { action: 'reject', notes: 'blurry' }, null);
     expect(documentModel.updatePaymentVerificationForGroup).toHaveBeenCalledWith(
-      'REQ-TEST01', 'pending_payment', 'UNPAID', null, connection
+      'REQ-TEST01', STATUS.PENDING_STUDENT_PAYMENT, 'UNPAID', null, connection
     );
   });
 
@@ -405,7 +439,7 @@ describe('verifyPayment — Finance desk only', () => {
     documentModel.findByIdForUpdate.mockResolvedValue([doc]);
     await service.verifyPayment(FINANCE, 5, { action: 'approve' }, { filename: 'official.png' });
     expect(documentModel.updatePaymentVerificationForGroup).toHaveBeenCalledWith(
-      'REQ-TEST01', 'pending_secretary', 'PAID', '/uploads/official.png', connection
+      'REQ-TEST01', STATUS.PAID_PENDING_SEC_RELEASE, 'PAID', '/uploads/official.png', connection
     );
   });
 
@@ -417,47 +451,362 @@ describe('verifyPayment — Finance desk only', () => {
   });
 });
 
-describe('evaluateDocument — Secretary desk only', () => {
-  const doc = { id: 5, student_id: 'STU-001', tracking_number: 'TRC-1' };
-  const body = { student_id: 'STU-001', student_name: 'Ana', document_type: 'Diploma', action: 'approve' };
+describe('acceptForProcessing — Secretary desk only', () => {
+  const doc = {
+    id: 5, student_id: 'STU-001', tracking_number: 'TRC-1',
+    current_status: STATUS.PENDING_SEC_EVALUATION,
+  };
+  const body = {
+    student_id: 'STU-001', student_name: 'Ana', document_type: 'Diploma',
+    action: 'approve', estimated_ready_date: '2026-09-05',
+  };
 
   it.each([['a student', STUDENT], ['Finance', FINANCE], ['Window 1', WINDOW1]])(
     'rejects %s',
     async (_label, user) => {
-      expect(await statusOf(service.evaluateDocument(user, 5, body))).toBe(403);
+      expect(await statusOf(service.acceptForProcessing(user, 5, body))).toBe(403);
     }
   );
 
-  it('routes an approved document to Window 1', async () => {
+  it('takes the document on and records the promised date', async () => {
     documentModel.findByIdForUpdate.mockResolvedValue([doc]);
-    await service.evaluateDocument(SECRETARY, 5, body);
+    await service.acceptForProcessing(SECRETARY, 5, body);
     expect(documentModel.updateEvaluation).toHaveBeenCalledWith(
-      5, 'ready_window_1', 'STU-001', 'Ana', 'Diploma', connection
+      5, STATUS.SEC_PROCESSING, 'STU-001', 'Ana', 'Diploma', '2026-09-05', connection
     );
   });
 
-  it('marks a rejected document as rejected', async () => {
+  it('will not accept work without telling the student when to expect it', async () => {
     documentModel.findByIdForUpdate.mockResolvedValue([doc]);
-    await service.evaluateDocument(SECRETARY, 5, { ...body, action: 'reject', notes: 'incomplete' });
+    const { estimated_ready_date, ...noDate } = body;
+    expect(await statusOf(service.acceptForProcessing(SECRETARY, 5, noDate))).toBe(400);
+    expect(documentModel.updateEvaluation).not.toHaveBeenCalled();
+  });
+
+  it('sends a rejected document back one desk, to Window 1', async () => {
+    documentModel.findByIdForUpdate.mockResolvedValue([doc]);
+    await service.acceptForProcessing(SECRETARY, 5, { ...body, action: 'reject', notes: 'incomplete' });
     expect(documentModel.updateEvaluation).toHaveBeenCalledWith(
-      5, 'rejected', 'STU-001', 'Ana', 'Diploma', connection
+      5, STATUS.PENDING_W1_INTAKE, 'STU-001', 'Ana', 'Diploma', null, connection
     );
   });
 
-  it('sends SMS and email only when approved', async () => {
+  it('will not reject without saying why', async () => {
+    documentModel.findByIdForUpdate.mockResolvedValue([doc]);
+    expect(await statusOf(service.acceptForProcessing(SECRETARY, 5, { ...body, action: 'reject' }))).toBe(400);
+  });
+
+  it('reaches the student off-app either way', async () => {
+    // Both outcomes are worth an SMS: an acceptance carries a date the student
+    // plans around, and a rejection is blocking them until they act on it.
     documentModel.findByIdForUpdate.mockResolvedValue([doc]);
     userModel.findStudentContactByStudentId.mockResolvedValue([{ id: 3, email: 'a@b.c', phone_number: '+639' }]);
 
-    await service.evaluateDocument(SECRETARY, 5, body);
+    await service.acceptForProcessing(SECRETARY, 5, body);
     expect(notifications.dispatchStudentAlert).toHaveBeenCalledWith(
       expect.objectContaining({ alsoSmsAndEmail: true })
     );
 
     notifications.dispatchStudentAlert.mockClear();
-    await service.evaluateDocument(SECRETARY, 5, { ...body, action: 'reject', notes: 'no' });
+    await service.acceptForProcessing(SECRETARY, 5, { ...body, action: 'reject', notes: 'no' });
     expect(notifications.dispatchStudentAlert).toHaveBeenCalledWith(
-      expect.objectContaining({ alsoSmsAndEmail: false })
+      expect.objectContaining({ alsoSmsAndEmail: true })
     );
+  });
+});
+
+describe('priceDocument — the Secretary sets the price, nobody else', () => {
+  const doc = {
+    id: 5, student_id: 'STU-001', tracking_number: 'TRC-1', request_group_id: 'REQ-G1',
+    document_type: 'Diploma', student_name: 'Ana', current_status: STATUS.SEC_PROCESSING,
+  };
+  const body = { amount: 250, page_count: 5, pricing_notes: '5 pages at standard rate' };
+
+  it.each([['a student', STUDENT], ['Finance', FINANCE], ['Window 1', WINDOW1]])(
+    'rejects %s',
+    async (_label, user) => {
+      expect(await statusOf(service.priceDocument(user, 5, body))).toBe(403);
+    }
+  );
+
+  it('records the amount with its author and its basis', async () => {
+    documentModel.findByIdForUpdate.mockResolvedValue([doc]);
+    documentModel.findByRequestGroupForUpdate.mockResolvedValue([doc]);
+    await service.priceDocument(SECRETARY, 5, body);
+    expect(documentModel.updatePricing).toHaveBeenCalledWith(
+      5,
+      { amount: 250, pageCount: 5, pricingNotes: '5 pages at standard rate', clerkId: SECRETARY.id },
+      connection
+    );
+  });
+
+  it.each([[0, 'zero'], [-5, 'negative'], ['abc', 'non-numeric'], [undefined, 'missing']])(
+    'refuses a %s amount (%s)',
+    async (amount) => {
+      documentModel.findByIdForUpdate.mockResolvedValue([doc]);
+      expect(await statusOf(service.priceDocument(SECRETARY, 5, { ...body, amount }))).toBe(400);
+      expect(documentModel.updatePricing).not.toHaveBeenCalled();
+    }
+  );
+
+  it('will not price a document that is not being processed', async () => {
+    documentModel.findByIdForUpdate.mockResolvedValue([
+      { ...doc, current_status: STATUS.PENDING_SEC_EVALUATION },
+    ]);
+    expect(await statusOf(service.priceDocument(SECRETARY, 5, body))).toBe(400);
+    expect(documentModel.updatePricing).not.toHaveBeenCalled();
+  });
+
+  describe('the group billing gate', () => {
+    it('bills the request once the last document has a price', async () => {
+      documentModel.findByIdForUpdate.mockResolvedValue([doc]);
+      documentModel.findByRequestGroupForUpdate.mockResolvedValue([doc, { ...doc, id: 6 }]);
+      documentModel.countUnpricedInGroup.mockResolvedValue(0);
+      documentModel.sumGroupAmount.mockResolvedValue(400);
+
+      const res = await service.priceDocument(SECRETARY, 5, body);
+      expect(res.billed).toBe(true);
+      expect(res.total_amount).toBe(400);
+      expect(documentModel.markGroupPayable).toHaveBeenCalledWith('REQ-G1', connection);
+    });
+
+    it('holds the bill while a sibling is still unpriced', async () => {
+      // Otherwise a two-document request would send the student to Finance
+      // twice — once for each document as it happened to finish.
+      documentModel.findByIdForUpdate.mockResolvedValue([doc]);
+      documentModel.findByRequestGroupForUpdate.mockResolvedValue([doc, { ...doc, id: 6 }]);
+      documentModel.countUnpricedInGroup.mockResolvedValue(1);
+
+      const res = await service.priceDocument(SECRETARY, 5, body);
+      expect(res.billed).toBe(false);
+      expect(documentModel.markGroupPayable).not.toHaveBeenCalled();
+    });
+
+    it('tells the student and Finance the same total, once', async () => {
+      documentModel.findByIdForUpdate.mockResolvedValue([doc]);
+      documentModel.findByRequestGroupForUpdate.mockResolvedValue([doc]);
+      documentModel.countUnpricedInGroup.mockResolvedValue(0);
+      documentModel.sumGroupAmount.mockResolvedValue(250);
+      userModel.findStudentContactByStudentId.mockResolvedValue([{ id: 3, email: 'a@b.c' }]);
+      userModel.findFinanceClerks.mockResolvedValue([{ id: 4 }]);
+
+      await service.priceDocument(SECRETARY, 5, body);
+      expect(notifications.dispatchStudentAlert).toHaveBeenCalledWith(
+        expect.objectContaining({ message: expect.stringContaining('250.00') })
+      );
+      expect(notifications.notifyInAppBulk).toHaveBeenCalledWith(
+        [{ id: 4 }],
+        expect.objectContaining({ message: expect.stringContaining('250.00') })
+      );
+    });
+  });
+
+  it('never marks the document PAID — that is Finance\'s alone', async () => {
+    documentModel.findByIdForUpdate.mockResolvedValue([doc]);
+    documentModel.findByRequestGroupForUpdate.mockResolvedValue([doc]);
+    await service.priceDocument(SECRETARY, 5, body);
+    expect(documentModel.updatePaymentVerificationForGroup).not.toHaveBeenCalled();
+  });
+});
+
+describe('confirmHandoff — Secretary passes the paper to Window 1', () => {
+  const paid = {
+    id: 5, student_id: 'STU-001', tracking_number: 'TRC-1', document_type: 'Diploma',
+    current_status: STATUS.PAID_PENDING_SEC_RELEASE, payment_status: 'PAID',
+  };
+
+  it.each([['a student', STUDENT], ['Finance', FINANCE], ['Window 1', WINDOW1]])(
+    'rejects %s',
+    async (_label, user) => {
+      expect(await statusOf(service.confirmHandoff(user, 5, {}))).toBe(403);
+    }
+  );
+
+  it('moves a paid document to the release desk', async () => {
+    documentModel.findByIdForUpdate.mockResolvedValue([paid]);
+    await service.confirmHandoff(SECRETARY, 5, {});
+    expect(documentModel.updateStatus).toHaveBeenCalledWith(5, STATUS.READY_FOR_RELEASE, connection);
+  });
+
+  it('refuses to hand over a document that has not been paid for', async () => {
+    documentModel.findByIdForUpdate.mockResolvedValue([{ ...paid, payment_status: 'UNPAID' }]);
+    expect(await statusOf(service.confirmHandoff(SECRETARY, 5, {}))).toBe(400);
+    expect(documentModel.updateStatus).not.toHaveBeenCalled();
+  });
+
+  it('refuses to skip the Finance desk entirely', async () => {
+    documentModel.findByIdForUpdate.mockResolvedValue([
+      { ...paid, current_status: STATUS.SEC_PROCESSING, payment_status: 'UNPAID' },
+    ]);
+    expect(await statusOf(service.confirmHandoff(SECRETARY, 5, {}))).toBe(400);
+  });
+});
+
+describe('scanReceipt — OCR assist for the walk-in form', () => {
+  const RECEIPT_IMAGE = { path: '/tmp/or.png', originalname: 'or.png', mimetype: 'image/png' };
+
+  it.each([['a student', STUDENT], ['the Secretary', SECRETARY], ['Window 1', WINDOW1]])(
+    'rejects %s',
+    async (_label, user) => {
+      expect(await statusOf(service.scanReceipt(user, RECEIPT_IMAGE))).toBe(403);
+    }
+  );
+
+  it('requires an image', async () => {
+    expect(await statusOf(service.scanReceipt(FINANCE, null))).toBe(400);
+  });
+
+  it('returns what the engine read', async () => {
+    vi.spyOn(aiEngine, 'extractReceipt').mockResolvedValue({
+      success: true,
+      extracted_data: { or_number: 'OR-12345', amount: 300, or_date: '2026-09-06', confidence: 100 },
+    });
+    const res = await service.scanReceipt(FINANCE, RECEIPT_IMAGE);
+    expect(res.success).toBe(true);
+    expect(res.extracted_data.or_number).toBe('OR-12345');
+    // The clerk is told to check, never that the read is authoritative.
+    expect(res.message).toMatch(/check every field/i);
+  });
+
+  it('degrades to manual entry when the engine is down', async () => {
+    // A student is standing at the counter; the form has to stay usable.
+    vi.spyOn(aiEngine, 'extractReceipt').mockResolvedValue(null);
+    const res = await service.scanReceipt(FINANCE, RECEIPT_IMAGE);
+    expect(res.success).toBe(false);
+    expect(res.extracted_data).toEqual({ or_number: null, amount: null, or_date: null, confidence: 0 });
+    expect(res.message).toMatch(/by hand/i);
+  });
+
+  it('degrades the same way when the engine reads nothing usable', async () => {
+    vi.spyOn(aiEngine, 'extractReceipt').mockResolvedValue({ success: false, extracted_data: {} });
+    const res = await service.scanReceipt(FINANCE, RECEIPT_IMAGE);
+    expect(res.success).toBe(false);
+  });
+
+  it('records nothing — reading a receipt is not logging a payment', async () => {
+    vi.spyOn(aiEngine, 'extractReceipt').mockResolvedValue({
+      success: true, extracted_data: { or_number: 'OR-1', amount: 1, or_date: null, confidence: 33 },
+    });
+    await service.scanReceipt(FINANCE, RECEIPT_IMAGE);
+    expect(documentModel.updateWalkInPaymentForGroup).not.toHaveBeenCalled();
+    expect(stepLogModel.insert).not.toHaveBeenCalled();
+  });
+});
+
+describe('logWalkInPayment — Finance records a counter payment', () => {
+  const billed = {
+    id: 5, student_id: 'STU-001', request_group_id: 'REQ-G1', document_type: 'Diploma',
+    tracking_number: 'TRC-1', current_status: STATUS.PENDING_STUDENT_PAYMENT,
+  };
+  const body = { or_number: 'OR-12345', or_date: '2026-09-06' };
+
+  it.each([['a student', STUDENT], ['the Secretary', SECRETARY], ['Window 1', WINDOW1]])(
+    'rejects %s',
+    async (_label, user) => {
+      expect(await statusOf(service.logWalkInPayment(user, 5, body, null))).toBe(403);
+    }
+  );
+
+  it('records the receipt against the whole request', async () => {
+    documentModel.findById.mockResolvedValue([billed]);
+    documentModel.findByRequestGroup.mockResolvedValue([billed, { ...billed, id: 6 }]);
+    documentModel.updateWalkInPaymentForGroup.mockResolvedValue([{ affectedRows: 2 }]);
+
+    const res = await service.logWalkInPayment(FINANCE, 5, body, null);
+    expect(res.documents_covered).toBe(2);
+    expect(documentModel.updateWalkInPaymentForGroup).toHaveBeenCalledWith(
+      'REQ-G1',
+      { orNumber: 'OR-12345', orDate: '2026-09-06', clerkId: FINANCE.id, receiptPath: null }
+    );
+  });
+
+  it('requires the Official Receipt number', async () => {
+    // A counter payment leaves no other trace in the system.
+    documentModel.findById.mockResolvedValue([billed]);
+    expect(await statusOf(service.logWalkInPayment(FINANCE, 5, { or_date: '2026-09-06' }, null))).toBe(400);
+    expect(documentModel.updateWalkInPaymentForGroup).not.toHaveBeenCalled();
+  });
+
+  it('stores the scanned receipt image when one is provided', async () => {
+    documentModel.findById.mockResolvedValue([billed]);
+    documentModel.findByRequestGroup.mockResolvedValue([billed]);
+    await service.logWalkInPayment(FINANCE, 5, body, { filename: 'or.png' });
+    expect(documentModel.updateWalkInPaymentForGroup).toHaveBeenCalledWith(
+      'REQ-G1', expect.objectContaining({ receiptPath: '/uploads/or.png' })
+    );
+  });
+
+  it('will not log a payment against a request that has not been billed', async () => {
+    documentModel.findById.mockResolvedValue([{ ...billed, current_status: STATUS.SEC_PROCESSING }]);
+    expect(await statusOf(service.logWalkInPayment(FINANCE, 5, body, null))).toBe(400);
+  });
+
+  it('leaves verification to a separate act', async () => {
+    // A walk-in is held to the same standard as a digital payment: logging it
+    // records the claim, it does not clear it.
+    documentModel.findById.mockResolvedValue([billed]);
+    documentModel.findByRequestGroup.mockResolvedValue([billed]);
+    await service.logWalkInPayment(FINANCE, 5, body, null);
+    expect(documentModel.updatePaymentVerificationForGroup).not.toHaveBeenCalled();
+  });
+});
+
+describe('intakeDocument — Window 1 checks the paperwork', () => {
+  const filed = {
+    id: 5, student_id: 'STU-001', tracking_number: 'TRC-1', document_type: 'Diploma',
+    current_status: STATUS.PENDING_W1_INTAKE,
+  };
+
+  it.each([['a student', STUDENT], ['Finance', FINANCE], ['the Secretary', SECRETARY]])(
+    'rejects %s',
+    async (_label, user) => {
+      expect(await statusOf(service.intakeDocument(user, 5, { action: 'approve' }, null))).toBe(403);
+    }
+  );
+
+  it('routes an approved intake to the College Secretary', async () => {
+    documentModel.findByIdForUpdate.mockResolvedValue([filed]);
+    await service.intakeDocument(WINDOW1, 5, { action: 'approve' }, null);
+    expect(documentModel.updateStatus).toHaveBeenCalledWith(5, STATUS.PENDING_SEC_EVALUATION, connection);
+  });
+
+  it('only asks n8n for a desk once a human has cleared the paperwork', async () => {
+    documentModel.findByIdForUpdate.mockResolvedValue([filed]);
+    userModel.findStudentCourseByStudentId.mockResolvedValue([{ course: 'BS Computer Science' }]);
+    referenceModel.findCollegeByName = vi.fn().mockResolvedValue([{ short_code: 'CCS' }]);
+
+    await service.intakeDocument(WINDOW1, 5, { action: 'approve' }, null);
+    expect(n8n.triggerDocumentRouting).toHaveBeenCalledWith(
+      expect.objectContaining({ document_id: 5, college_code: 'CCS' })
+    );
+  });
+
+  it('leaves a returned request in the intake queue, since there is nowhere earlier', async () => {
+    documentModel.findByIdForUpdate.mockResolvedValue([filed]);
+    await service.intakeDocument(WINDOW1, 5, { action: 'return', notes: 'Bring your clearance.' }, null);
+    expect(documentModel.updateStatus).not.toHaveBeenCalled();
+    expect(n8n.triggerDocumentRouting).not.toHaveBeenCalled();
+  });
+
+  it('will not return a request without telling the student what to fix', async () => {
+    documentModel.findByIdForUpdate.mockResolvedValue([filed]);
+    expect(await statusOf(service.intakeDocument(WINDOW1, 5, { action: 'return' }, null))).toBe(400);
+  });
+
+  it('attaches paperwork the clerk scanned at the counter', async () => {
+    documentModel.findByIdForUpdate.mockResolvedValue([filed]);
+    vi.spyOn(aiEngine, 'extractDocument').mockResolvedValue(null);
+    await service.intakeDocument(
+      WINDOW1, 5, { action: 'approve' },
+      { path: '/uploads/scan.png', originalname: 'scan.png', filename: 'scan.png' }
+    );
+    expect(documentModel.updateAttachment).toHaveBeenCalledWith(
+      5, '/uploads/scan.png', 'scan.png', connection
+    );
+  });
+
+  it('rejects an unknown action', async () => {
+    expect(await statusOf(service.intakeDocument(WINDOW1, 5, { action: 'maybe' }, null))).toBe(400);
   });
 });
 
@@ -471,7 +820,8 @@ describe('releaseDocument — Window 1 only', () => {
 
   it('completes the document and alerts the student', async () => {
     documentModel.findByIdForUpdate.mockResolvedValue([
-      { id: 5, student_id: 'STU-001', document_type: 'Diploma', tracking_number: 'TRC-1' },
+      { id: 5, student_id: 'STU-001', document_type: 'Diploma', tracking_number: 'TRC-1',
+        current_status: STATUS.READY_FOR_RELEASE },
     ]);
     userModel.findStudentContactByStudentId.mockResolvedValue([{ id: 3, email: 'a@b.c' }]);
     await service.releaseDocument(WINDOW1, 5);
@@ -491,13 +841,21 @@ describe('cancelDocument — owner only, unpaid only', () => {
     connection = fakeConnection();
     pool.getConnection.mockResolvedValue(connection);
     documentModel.findByIdForUpdate.mockResolvedValue([
-      { id: 9, student_id: 'STU-999', request_group_id: 'REQ-OTHER1', current_status: 'pending_payment' },
+      { id: 9, student_id: 'STU-999', request_group_id: 'REQ-OTHER1', current_status: STATUS.PENDING_W1_INTAKE },
     ]);
     expect(await statusOf(service.cancelDocument(STUDENT, 9))).toBe(400);
     expect(documentModel.deleteById).not.toHaveBeenCalled();
   });
 
-  it.each(['pending_payment_verification', 'pending_secretary', 'completed'])(
+  // The window closes when the Secretary starts work: past that point paper and
+  // toner have been spent on a document that cannot be un-printed.
+  it.each([
+    STATUS.SEC_PROCESSING,
+    STATUS.PENDING_STUDENT_PAYMENT,
+    STATUS.PENDING_FINANCE_VERIFICATION,
+    STATUS.PAID_PENDING_SEC_RELEASE,
+    STATUS.COMPLETED,
+  ])(
     'refuses to cancel a request already at %s',
     async (current_status) => {
       documentModel.findByIdForUpdate.mockResolvedValue([{ id: 5, student_id: 'STU-001', current_status }]);
@@ -506,9 +864,11 @@ describe('cancelDocument — owner only, unpaid only', () => {
     }
   );
 
-  it('deletes an unpaid request of its owner, audit trail first', async () => {
+  it.each([STATUS.PENDING_W1_INTAKE, STATUS.PENDING_SEC_EVALUATION])(
+    'deletes an owner\'s request at %s, audit trail first',
+    async (current_status) => {
     documentModel.findByIdForUpdate.mockResolvedValue([
-      { id: 5, student_id: 'STU-001', request_group_id: 'REQ-TEST01', current_status: 'pending_payment' },
+      { id: 5, student_id: 'STU-001', request_group_id: 'REQ-TEST01', current_status },
     ]);
     await service.cancelDocument(STUDENT, 5);
     expect(stepLogModel.deleteByDocumentId).toHaveBeenCalledWith(5, connection);
@@ -531,9 +891,12 @@ describe('listDocuments — role scoping', () => {
     expect(conditionsFrom()).toContain('1 = 0');
   });
 
-  it('defaults Finance to the payment-verification queue', async () => {
+  it('gives Finance both money queues: awaiting payment and awaiting verification', async () => {
     await service.listDocuments(FINANCE, {});
-    expect(conditionsFrom()).toContain('pending_payment_verification');
+    // Statuses are bound rather than inlined, so the assertion is on the params.
+    const params = documentModel.listWithFilters.mock.calls[0][1];
+    expect(params).toContain(STATUS.PENDING_STUDENT_PAYMENT);
+    expect(params).toContain(STATUS.PENDING_FINANCE_VERIFICATION);
   });
 
   it("scopes a Secretary to their own college's students", async () => {
@@ -575,8 +938,16 @@ describe('listDocuments — role scoping', () => {
     const conditions = conditionsFrom();
     expect(conditions).toContain('1 = 1');
     expect(conditions).not.toContain('SELECT student_id FROM users WHERE course = ?');
-    // Only the clerk id is bound; no course parameter is appended.
-    expect(documentModel.listWithFilters.mock.calls[0][1]).toEqual([SECRETARY.id]);
+    // The bound params are the five queue statuses and the clerk id, and
+    // nothing else: no course value is appended when there is no college.
+    expect(documentModel.listWithFilters.mock.calls[0][1]).toEqual([
+      STATUS.PENDING_SEC_EVALUATION,
+      STATUS.SEC_PROCESSING,
+      STATUS.PAID_PENDING_SEC_RELEASE,
+      STATUS.READY_FOR_RELEASE,
+      STATUS.COMPLETED,
+      SECRETARY.id,
+    ]);
   });
 
   it('gives Window 1 the whole queue', async () => {
@@ -623,7 +994,7 @@ describe('AI-engine fallbacks', () => {
   it('raises a bottleneck warning when the Secretary queue is long', async () => {
     vi.spyOn(aiEngine, 'getInsights').mockResolvedValue(null);
     documentModel.countByStatus.mockImplementation(async (status) =>
-      status === 'pending_secretary' ? 8 : 0
+      status === STATUS.PENDING_SEC_EVALUATION ? 8 : 0
     );
     const res = await service.getInsights();
     expect(res.insights.some((i) => /Secretary Queue Alert/i.test(i.title))).toBe(true);

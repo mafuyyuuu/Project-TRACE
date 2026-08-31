@@ -82,6 +82,7 @@ Open a terminal and run the following command to pull the n8n image and create t
 docker run -d --name n8n -p 5678:5678 -v ~/.n8n:/home/node/.n8n \
   -e TRACE_API_URL="http://host.docker.internal:3300" \
   -e TRACE_WEBHOOK_SECRET="<paste WEBHOOK_SECRET from backend/.env>" \
+  -e N8N_BLOCK_ENV_ACCESS_IN_NODE=false \
   docker.n8n.io/n8nio/n8n
 ```
 

@@ -176,11 +176,11 @@ describe('document CSV export', () => {
 describe('efficiency analytics', () => {
   it('labels raw pipeline statuses with readable desk names', async () => {
     reportModel.turnaroundByDesk.mockResolvedValue([
-      { stage: 'pending_secretary', transitions: '4', avg_minutes: '638.75', max_minutes: '2491' },
+      { stage: 'PENDING_SEC_EVALUATION', transitions: '4', avg_minutes: '638.75', max_minutes: '2491' },
     ]);
     const res = await service.getEfficiencyAnalytics(ADMIN, {});
     expect(res.turnaround_by_desk[0]).toMatchObject({
-      stage: 'pending_secretary',
+      stage: 'PENDING_SEC_EVALUATION',
       label: 'Secretary Evaluation',
       transitions: 4,
       avg_minutes: 639,

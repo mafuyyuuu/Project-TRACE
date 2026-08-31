@@ -101,6 +101,12 @@ services:
       # baking in a port is exactly how routing silently broke for a month.
       TRACE_API_URL: http://backend:3300
       TRACE_WEBHOOK_SECRET: ${WEBHOOK_SECRET:?WEBHOOK_SECRET is required}
+      # Without this n8n hides $env from expressions, so the two variables above
+      # are invisible to the workflow: the callback goes out with an empty
+      # x-webhook-secret, the backend answers 401, and the execution is still
+      # recorded as a success. Nothing looks wrong except that no document is
+      # ever assigned to a secretary.
+      N8N_BLOCK_ENV_ACCESS_IN_NODE: "false"
       N8N_SECURE_COOKIE: "false"
     volumes:
       - n8n-data:/home/node/.n8n

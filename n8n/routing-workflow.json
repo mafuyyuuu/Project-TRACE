@@ -1,4 +1,5 @@
 {
+  "id": "xEqDV7fQqTczcJ3v",
   "name": "Project TRACE Routing Engine",
   "nodes": [
     {
@@ -20,35 +21,20 @@
     {
       "parameters": {
         "dataType": "string",
-        "value1": "={{ $json.body.document_type }}",
+        "value1": "={{ $json.body.college_code || \"\" }}",
         "rules": {
           "rules": [
             {
-              "value2": "Honorable Dismissal",
+              "operation": "regex",
+              "value2": ".+",
               "output": 0
-            },
-            {
-              "value2": "Graduation Clearance",
-              "output": 0
-            },
-            {
-              "value2": "Certificate of Good Moral",
-              "output": 0
-            },
-            {
-              "value2": "Transcript of Records",
-              "output": 1
-            },
-            {
-              "value2": "Diploma",
-              "output": 1
             }
           ]
         },
-        "fallbackOutput": 2
+        "fallbackOutput": 1
       },
       "id": "76d54508-3ab0-4ba3-ab0e-c14d9b4b0a88",
-      "name": "Switch on Document Type",
+      "name": "Switch on College",
       "type": "n8n-nodes-base.switch",
       "typeVersion": 1,
       "position": [
@@ -81,36 +67,7 @@
       "typeVersion": 3,
       "position": [
         740,
-        180
-      ],
-      "onError": "continueRegularOutput"
-    },
-    {
-      "parameters": {
-        "method": "POST",
-        "url": "={{ $env.TRACE_API_URL || 'http://host.docker.internal:3300' }}/api/documents/assign",
-        "sendBody": true,
-        "specifyBody": "json",
-        "jsonBody": "={\n  \"document_id\": {{ $json.body.document_id }},\n  \"assigned_clerk_employee_id\": \"{{ 'WINDOW1001' }}\"\n}",
-        "options": {},
-        "sendHeaders": true,
-        "specifyHeaders": "keypair",
-        "headerParameters": {
-          "parameters": [
-            {
-              "name": "x-webhook-secret",
-              "value": "={{ $env.TRACE_WEBHOOK_SECRET }}"
-            }
-          ]
-        }
-      },
-      "id": "1b08f4b1-9b19-4806-a81d-b7c4a046c823",
-      "name": "Assign to Window 1",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 3,
-      "position": [
-        740,
-        340
+        260
       ],
       "onError": "continueRegularOutput"
     },
@@ -139,7 +96,7 @@
       "typeVersion": 3,
       "position": [
         740,
-        500
+        420
       ],
       "onError": "continueRegularOutput"
     }
@@ -150,25 +107,18 @@
       "main": [
         [
           {
-            "node": "Switch on Document Type",
+            "node": "Switch on College",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Switch on Document Type": {
+    "Switch on College": {
       "main": [
         [
           {
             "node": "Assign to College Secretary",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "Assign to Window 1",
             "type": "main",
             "index": 0
           }

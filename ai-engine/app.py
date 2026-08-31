@@ -19,7 +19,7 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 from dotenv import load_dotenv
 
-from ocr_engine import process_document, verify_id_document
+from ocr_engine import process_document, verify_id_document, process_receipt
 import pandas as pd
 from prophet import Prophet
 import mysql.connector
@@ -172,10 +172,13 @@ def ai_recommend():
         with db_connection() as conn:
             cursor = conn.cursor(dictionary=True)
 
-            cursor.execute("SELECT COUNT(*) as c FROM documents WHERE current_status = 'pending_secretary'")
+            # Status vocabulary is defined in backend/src/utils/documentStatus.js.
+            # This service reads the same table directly, so it has to be kept in
+            # step by hand - there is no shared module across the language split.
+            cursor.execute("SELECT COUNT(*) as c FROM documents WHERE current_status = 'PENDING_SEC_EVALUATION'")
             pending_sec = cursor.fetchone()['c']
 
-            cursor.execute("SELECT COUNT(*) as c FROM documents WHERE current_status = 'ready_window_1'")
+            cursor.execute("SELECT COUNT(*) as c FROM documents WHERE current_status = 'READY_FOR_RELEASE'")
             pending_release = cursor.fetchone()['c']
 
             cursor.execute("SELECT COUNT(*) as c FROM step_logs WHERE DATE(timestamp_started) = CURDATE()")
@@ -310,6 +313,84 @@ def ocr_extract():
         if temp_path and os.path.exists(temp_path):
             os.remove(temp_path)
             logger.debug("Cleaned up temp file: %s", temp_path)
+
+
+@app.route('/ocr/receipt', methods=['POST'])
+def ocr_receipt():
+    """
+    Official Receipt extraction, for Finance logging a walk-in payment.
+
+    The third OCR use in the system, alongside document intake (/ocr/extract)
+    and registration ID checks (/ocr/verify). A student who paid at the cashier
+    brings back a printed OR; this reads it so the clerk verifies figures
+    instead of transcribing them.
+
+    Accepts a multipart file upload (field name: 'receipt').
+
+    Returns:
+        JSON with keys: raw_text, extracted_data, success, error
+    """
+    empty = {'or_number': None, 'amount': None, 'or_date': None, 'confidence': 0.0}
+
+    if 'receipt' not in request.files:
+        logger.warning("No 'receipt' field in upload request")
+        return jsonify({
+            'success': False,
+            'error': "No 'receipt' file provided in the request.",
+            'raw_text': '',
+            'extracted_data': empty,
+        }), 400
+
+    file = request.files['receipt']
+
+    if file.filename == '':
+        return jsonify({
+            'success': False,
+            'error': 'No file selected.',
+            'raw_text': '',
+            'extracted_data': empty,
+        }), 400
+
+    if not allowed_file(file.filename):
+        logger.warning("Rejected receipt with disallowed extension: %s", file.filename)
+        return jsonify({
+            'success': False,
+            'error': (
+                f"File type not allowed. "
+                f"Accepted types: {', '.join(sorted(ALLOWED_EXTENSIONS))}"
+            ),
+            'raw_text': '',
+            'extracted_data': empty,
+        }), 400
+
+    temp_path = None
+    try:
+        _, ext = os.path.splitext(file.filename)
+        temp_fd, temp_path = tempfile.mkstemp(suffix=ext)
+        os.close(temp_fd)
+
+        file.save(temp_path)
+        result = process_receipt(temp_path)
+
+        logger.info(
+            "Receipt OCR for '%s' - success: %s, confidence: %.2f",
+            file.filename, result['success'], result['extracted_data']['confidence'],
+        )
+
+        return jsonify(result)
+
+    except Exception as e:
+        logger.error("Unexpected error processing receipt: %s", str(e))
+        return jsonify({
+            'success': False,
+            'error': f'Server error: {str(e)}',
+            'raw_text': '',
+            'extracted_data': empty,
+        }), 500
+
+    finally:
+        if temp_path and os.path.exists(temp_path):
+            os.remove(temp_path)
 
 
 @app.route('/ocr/verify', methods=['POST'])

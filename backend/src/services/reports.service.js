@@ -172,15 +172,10 @@ async function exportDocumentsCsv(user, query = {}) {
 // Efficiency analytics
 // ---------------------------------------------------------------------------
 
-/** Human-friendly desk names for the raw status values in step_logs. */
-const STAGE_LABELS = {
-  pending_payment: 'Awaiting Student Payment',
-  pending_payment_verification: 'Finance Verification',
-  pending_secretary: 'Secretary Evaluation',
-  ready_window_1: 'Window 1 Release',
-  submitted: 'Intake',
-  processing: 'Processing',
-};
+// Desk names for the raw status values in step_logs. Shared with the pipeline
+// itself so a renamed stage cannot end up labelled one way in the workflow and
+// another way in the reports drawn from it.
+const { STAGE_LABELS } = require('../utils/documentStatus');
 
 /**
  * The efficiency dashboard.

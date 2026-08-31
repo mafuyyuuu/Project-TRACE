@@ -1,32 +1,29 @@
 import { describe, it, expect } from 'vitest';
 import {
+  STATUS,
+  PIPELINE,
+  LEGACY_STATUS,
   getProgressVal,
   getStatusLabel,
+  getStageLabel,
+  isAwaitingStudent,
+  isPaid,
+  isCancellable,
   requiresAttachment,
   getAttachmentLabel,
   getAttachmentHelper,
 } from '@/utils/documentStatus';
 
-// The pipeline order these helpers describe, per docs/SYSTEM_WORKFLOWS.md.
-const PIPELINE = [
-  'pending_payment',
-  'pending_payment_verification',
-  'pending_secretary',
-  'ready_window_1',
-  'completed',
-];
-
 describe('getProgressVal', () => {
   it('increases monotonically along the pipeline', () => {
     const values = PIPELINE.map(getProgressVal);
-    const sorted = [...values].sort((a, b) => a - b);
-    expect(values).toEqual(sorted);
+    expect(values).toEqual([...values].sort((a, b) => a - b));
     expect(new Set(values).size).toBe(values.length);
   });
 
-  it('reports 100% for both completed and released', () => {
-    expect(getProgressVal('completed')).toBe(100);
-    expect(getProgressVal('released')).toBe(100);
+  it('reports 100% only at the end of the pipeline', () => {
+    expect(getProgressVal(STATUS.COMPLETED)).toBe(100);
+    PIPELINE.slice(0, -1).forEach((s) => expect(getProgressVal(s)).toBeLessThan(100));
   });
 
   it('falls back to a small non-zero value for an unknown status', () => {
@@ -37,38 +34,78 @@ describe('getProgressVal', () => {
 
 describe('getStatusLabel', () => {
   it.each([
-    ['pending_payment', 'Awaiting Payment'],
-    ['pending_payment_verification', 'Verifying Payment'],
-    ['pending_secretary', 'Secretary Evaluation'],
-    ['ready_window_1', 'Ready for Release'],
+    [STATUS.PENDING_W1_INTAKE, 'Received — Awaiting Intake'],
+    [STATUS.PENDING_SEC_EVALUATION, 'With the College Secretary'],
+    [STATUS.SEC_PROCESSING, 'Being Processed'],
+    [STATUS.PENDING_STUDENT_PAYMENT, 'Payment Required'],
+    [STATUS.PENDING_FINANCE_VERIFICATION, 'Verifying Payment'],
+    [STATUS.PAID_PENDING_SEC_RELEASE, 'Paid — Preparing for Release'],
+    [STATUS.READY_FOR_RELEASE, 'Ready for Pick-up'],
+    [STATUS.COMPLETED, 'Completed'],
   ])('renders %s as "%s"', (status, label) => {
     expect(getStatusLabel(status)).toBe(label);
   });
 
-  it('shows both completed and released as "Completed" to the student', () => {
-    expect(getStatusLabel('completed')).toBe('Completed');
-    expect(getStatusLabel('released')).toBe('Completed');
+  it('never leaks a raw SCREAMING_CASE status for a known pipeline step', () => {
+    PIPELINE.forEach((status) => expect(getStatusLabel(status)).not.toContain('_'));
+  });
+
+  it('still labels documents left on the pre-refactor pipeline', () => {
+    expect(getStatusLabel(LEGACY_STATUS.REJECTED)).toBe('Rejected');
+    expect(getStatusLabel(LEGACY_STATUS.APPROVED)).toBe('Approved');
   });
 
   it('passes an unrecognised status through unchanged', () => {
-    expect(getStatusLabel('rejected')).toBe('rejected');
+    expect(getStatusLabel('something_else')).toBe('something_else');
+  });
+});
+
+describe('getStageLabel', () => {
+  it('names the desk rather than addressing the student', () => {
+    expect(getStageLabel(STATUS.PENDING_STUDENT_PAYMENT)).toBe('Awaiting Student Payment');
+    expect(getStageLabel(STATUS.PAID_PENDING_SEC_RELEASE)).toBe('Secretary Handoff');
   });
 
-  it('never leaks a raw snake_case status for a known pipeline step', () => {
-    PIPELINE.forEach((status) => expect(getStatusLabel(status)).not.toContain('_'));
+  it('covers every pipeline status', () => {
+    PIPELINE.forEach((status) => expect(getStageLabel(status)).not.toBe(status));
+  });
+});
+
+describe('pipeline predicates', () => {
+  it('flags only the payment step as waiting on the student', () => {
+    PIPELINE.forEach((s) =>
+      expect(isAwaitingStudent(s)).toBe(s === STATUS.PENDING_STUDENT_PAYMENT)
+    );
+  });
+
+  it('treats everything from the Finance handoff onward as paid', () => {
+    expect(isPaid(STATUS.PENDING_FINANCE_VERIFICATION)).toBe(false);
+    [STATUS.PAID_PENDING_SEC_RELEASE, STATUS.READY_FOR_RELEASE, STATUS.COMPLETED].forEach((s) =>
+      expect(isPaid(s)).toBe(true)
+    );
+  });
+
+  it('allows cancellation only before the Secretary starts printing', () => {
+    expect(isCancellable(STATUS.PENDING_W1_INTAKE)).toBe(true);
+    expect(isCancellable(STATUS.PENDING_SEC_EVALUATION)).toBe(true);
+    expect(isCancellable(STATUS.SEC_PROCESSING)).toBe(false);
+  });
+
+  it('never calls a paid document cancellable', () => {
+    PIPELINE.filter(isPaid).forEach((s) => expect(isCancellable(s)).toBe(false));
   });
 });
 
 describe('requiresAttachment', () => {
   it.each(['Honorable Dismissal', 'Graduation Clearance', 'Certificate of Good Moral'])(
-    '%s requires a supporting upload',
+    '%s needs supporting paperwork',
     (docType) => {
       expect(requiresAttachment(docType)).toBe(true);
     }
   );
 
   it.each(['Transcript of Records', 'Diploma', 'Certification'])(
-    '%s does not require one',
+    '%s does not',
     (docType) => {
       expect(requiresAttachment(docType)).toBe(false);
     }

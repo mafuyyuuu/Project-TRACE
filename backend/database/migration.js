@@ -1,4 +1,5 @@
 const { pool } = require('../src/config/db');
+const { STATUS, LEGACY_STATUS_MAP } = require('../src/utils/documentStatus');
 
 /**
  * Add a column only if it isn't already there, so the whole script stays safe
@@ -25,6 +26,25 @@ async function addIndex(table, indexName, columns) {
   } catch (err) {
     if (err.code === 'ER_DUP_KEYNAME') {
       console.log(`-> Index ${indexName} already exists.`);
+    } else {
+      throw err;
+    }
+  }
+}
+
+/**
+ * Same idea for foreign keys. Safe on a re-run, and safe on a table with data
+ * only because every column we attach one to is added NULL in the same pass.
+ */
+async function addForeignKey(table, name, column, references) {
+  try {
+    await pool.query(
+      `ALTER TABLE ${table} ADD CONSTRAINT ${name} FOREIGN KEY (${column}) REFERENCES ${references}`
+    );
+    console.log(`-> Added foreign key ${name} on ${table}.${column}`);
+  } catch (err) {
+    if (['ER_DUP_KEYNAME', 'ER_FK_DUP_NAME', 'ER_CANT_CREATE_TABLE'].includes(err.code)) {
+      console.log(`-> Foreign key ${name} already exists.`);
     } else {
       throw err;
     }
@@ -527,6 +547,81 @@ async function migrate() {
     `);
     await addIndex('password_resets', 'idx_password_resets_token', 'token_hash');
     await addIndex('password_resets', 'idx_password_resets_user', 'user_id');
+
+    // =======================================================================
+    // Phase 19 - "evaluate first, pay later" pipeline
+    // =======================================================================
+    console.log('\n--- Phase 19: evaluate-first pipeline ---');
+
+    // The Secretary now prices a document after printing it, so the figures
+    // behind that decision have to be recorded: an amount with no page count
+    // and no author is not auditable, and the panel will ask.
+    await addColumn('documents', 'estimated_ready_date', 'DATE NULL AFTER current_status');
+    await addColumn('documents', 'page_count', 'INT NULL AFTER amount');
+    await addColumn('documents', 'pricing_notes', 'VARCHAR(255) NULL AFTER page_count');
+    await addColumn('documents', 'priced_by_clerk_id', 'INT NULL AFTER pricing_notes');
+    await addColumn('documents', 'priced_at', 'DATETIME NULL AFTER priced_by_clerk_id');
+
+    // Walk-in payments are collected off-system and typed (or scanned) back in
+    // by Finance, so a document has to record which channel settled it.
+    await addColumn('documents', 'stub_issued_at', 'DATETIME NULL AFTER priced_at');
+    await addColumn('documents', 'payment_channel', 'VARCHAR(20) NULL AFTER payment_method');
+    await addColumn('documents', 'or_number', 'VARCHAR(100) NULL AFTER official_receipt_path');
+    await addColumn('documents', 'or_date', 'DATE NULL AFTER or_number');
+    await addColumn('documents', 'logged_by_clerk_id', 'INT NULL AFTER or_date');
+
+    await addForeignKey('documents', 'fk_documents_priced_by', 'priced_by_clerk_id', 'users(id) ON DELETE SET NULL');
+    await addForeignKey('documents', 'fk_documents_logged_by', 'logged_by_clerk_id', 'users(id) ON DELETE SET NULL');
+    await addIndex('documents', 'idx_documents_or_number', 'or_number');
+
+    // Backfill the old pipeline onto the new vocabulary. Each UPDATE is guarded
+    // by the old value, so a second run matches nothing and reports 0 - that is
+    // what keeps this script re-runnable.
+    //
+    // The mapping deliberately lives in src/utils/documentStatus.js rather than
+    // here: the same table has to be readable by the application, and two copies
+    // would eventually disagree about what `pending_secretary` became.
+    //
+    // The guard has to be CASE-SENSITIVE. These columns collate as
+    // utf8mb4_0900_ai_ci, so a plain `= 'completed'` also matches a row already
+    // holding 'COMPLETED' - the mapping would still be correct, but every run
+    // would rewrite ten thousand rows and report them as freshly migrated,
+    // which is exactly the signal an operator uses to tell a real migration
+    // from a no-op. CAST(... AS BINARY) makes a second run match nothing.
+    console.log('Backfilling statuses onto the new pipeline...');
+    let migratedDocs = 0;
+    for (const [oldStatus, newStatus] of Object.entries(LEGACY_STATUS_MAP)) {
+      const [res] = await pool.query(
+        'UPDATE documents SET current_status = ? WHERE CAST(current_status AS BINARY) = ?',
+        [newStatus, oldStatus]
+      );
+      if (res.affectedRows > 0) {
+        console.log(`   ${oldStatus} -> ${newStatus}: ${res.affectedRows} document(s)`);
+        migratedDocs += res.affectedRows;
+      }
+    }
+    console.log(`-> ${migratedDocs} document(s) moved onto the new pipeline`);
+
+    // step_logs is the append-only audit trail both Prophet and the Admin
+    // Activity Log read from. Its status columns have to speak the same
+    // vocabulary or every historical transition renders as a raw string.
+    let migratedLogs = 0;
+    for (const column of ['from_status', 'to_status']) {
+      for (const [oldStatus, newStatus] of Object.entries(LEGACY_STATUS_MAP)) {
+        const [res] = await pool.query(
+          `UPDATE step_logs SET ${column} = ? WHERE CAST(${column} AS BINARY) = ?`,
+          [newStatus, oldStatus]
+        );
+        migratedLogs += res.affectedRows;
+      }
+    }
+    console.log(`-> ${migratedLogs} audit-trail status value(s) rewritten`);
+
+    // New requests start at the counter, not at a payment screen.
+    await pool.query(
+      `ALTER TABLE documents MODIFY COLUMN current_status VARCHAR(50) DEFAULT '${STATUS.PENDING_W1_INTAKE}'`
+    );
+    console.log(`-> Default current_status is now ${STATUS.PENDING_W1_INTAKE}`);
 
     console.log('✅ Database migration completed successfully.');
     process.exit(0);

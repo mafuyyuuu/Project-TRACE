@@ -1,4 +1,16 @@
 const { pool } = require('../config/db');
+const { STATUS, LEGACY_STATUS } = require('../utils/documentStatus');
+
+/**
+ * Status literals for the aggregates below.
+ *
+ * These come from `utils/documentStatus.js` and never from a request, so they
+ * are interpolated rather than bound: several of these queries take a `params`
+ * array assembled by a filter builder, and prepending SELECT-clause parameters
+ * to it is exactly how ordering bugs get introduced.
+ */
+const SQL_COMPLETED = `'${STATUS.COMPLETED}'`;
+const SQL_REJECTED = `'${LEGACY_STATUS.REJECTED}'`;
 
 /**
  * Read-only SQL for reporting, exports and efficiency analytics.
@@ -79,8 +91,8 @@ function summariseDocuments(filters, executor = pool) {
   return executor
     .query(
       `SELECT COUNT(*) AS total,
-              SUM(d.current_status IN ('completed', 'released')) AS completed,
-              SUM(d.current_status = 'rejected') AS rejected,
+              SUM(d.current_status = ${SQL_COMPLETED}) AS completed,
+              SUM(d.current_status = ${SQL_REJECTED}) AS rejected,
               SUM(d.payment_status = 'PAID') AS paid,
               COALESCE(SUM(CASE WHEN d.payment_status = 'PAID' THEN d.amount ELSE 0 END), 0) AS revenue
        FROM documents d${where}`,
@@ -133,7 +145,7 @@ function listStudentsForExport(bucket, executor = pool) {
               u.enrollment_status, u.study_load, u.user_type, u.verification_status,
               u.created_at,
               COUNT(d.id) AS total_requests,
-              SUM(d.current_status IN ('completed', 'released')) AS completed_requests
+              SUM(d.current_status = ${SQL_COMPLETED}) AS completed_requests
        FROM users u
        LEFT JOIN documents d ON d.student_id = u.student_id
        WHERE u.role = 'student' AND ${clause}
@@ -203,7 +215,7 @@ function endToEndCompletion({ dateFrom, dateTo } = {}, executor = pool) {
          ON first.document_id = d.id
        JOIN (SELECT document_id, MAX(timestamp_started) AS started FROM step_logs GROUP BY document_id) last
          ON last.document_id = d.id
-       ${scoped} d.current_status IN ('completed', 'released')`,
+       ${scoped} d.current_status = ${SQL_COMPLETED}`,
       params
     )
     .then(([rows]) => rows[0]);

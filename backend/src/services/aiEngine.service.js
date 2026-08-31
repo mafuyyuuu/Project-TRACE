@@ -54,6 +54,26 @@ async function extractDocument(file, { trackingNumber }) {
   }
 }
 
+/**
+ * Official Receipt OCR, used when Finance logs a walk-in payment.
+ *
+ * Returns { success, raw_text, extracted_data: { or_number, amount, or_date,
+ * confidence } } or null when the engine is unreachable. Null is a normal
+ * outcome here, not an error: the walk-in form must still be usable by hand
+ * with the AI engine stopped, since a student is standing at the counter.
+ */
+async function extractReceipt(file) {
+  try {
+    const form = buildFormData(file, 'receipt');
+    const res = await fetch(`${env.AI_ENGINE_URL}/ocr/receipt`, { method: 'POST', body: form });
+    if (!res.ok) return null;
+    return await res.json();
+  } catch (err) {
+    console.warn('⚠️ Receipt OCR unavailable:', err.message);
+    return null;
+  }
+}
+
 /** Prophet 7-day volume forecast. Returns null when unavailable (caller falls back). */
 async function getForecast() {
   try {
@@ -78,4 +98,4 @@ async function getInsights() {
   }
 }
 
-module.exports = { verifyIdDocument, extractDocument, getForecast, getInsights };
+module.exports = { verifyIdDocument, extractDocument, extractReceipt, getForecast, getInsights };

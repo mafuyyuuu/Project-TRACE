@@ -41,25 +41,45 @@ CREATE TABLE IF NOT EXISTS documents (
   student_id VARCHAR(50),
   student_name VARCHAR(255),
   document_type VARCHAR(100),
-  current_status VARCHAR(50) DEFAULT 'pending_payment',
+  -- Pipeline vocabulary lives in src/utils/documentStatus.js, not in an ENUM:
+  -- a VARCHAR lets the pipeline change without an ALTER, and the constants
+  -- module is what actually enforces the values (it also covers the Python
+  -- engine and the React queues, which a database ENUM never could).
+  current_status VARCHAR(50) DEFAULT 'PENDING_W1_INTAKE',
+  -- What the Secretary told the student to expect, set when work begins.
+  estimated_ready_date DATE,
   payment_status ENUM('UNPAID', 'PAID') DEFAULT 'UNPAID',
   assigned_clerk_id INT,
   file_path VARCHAR(500),
   receipt_image_path VARCHAR(500),
   official_receipt_path VARCHAR(500),
+  -- Official Receipt issued by Finance. For a walk-in this is the only proof
+  -- of payment that exists, and it is what the student shows at Window 1.
+  or_number VARCHAR(100),
+  or_date DATE,
+  logged_by_clerk_id INT,
   original_filename VARCHAR(255),
   ocr_raw_text TEXT,
   ocr_extracted_data JSON,
   payment_reference_id VARCHAR(255),
   gcash_reference_no VARCHAR(255),
   amount DECIMAL(10,2) DEFAULT 150.00,
+  -- The basis for the amount. The Secretary prices from the printed output, so
+  -- an amount without these is an unexplainable charge.
+  page_count INT,
+  pricing_notes VARCHAR(255),
+  priced_by_clerk_id INT,
+  priced_at DATETIME,
+  stub_issued_at DATETIME,
   copies INT DEFAULT 1,
   ocr_confidence_score DECIMAL(5,2),
   purpose VARCHAR(255),
   checkout_url VARCHAR(500),
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  FOREIGN KEY (assigned_clerk_id) REFERENCES users(id) ON DELETE SET NULL
+  FOREIGN KEY (assigned_clerk_id) REFERENCES users(id) ON DELETE SET NULL,
+  FOREIGN KEY (priced_by_clerk_id) REFERENCES users(id) ON DELETE SET NULL,
+  FOREIGN KEY (logged_by_clerk_id) REFERENCES users(id) ON DELETE SET NULL
 );
 
 -- Notifications table: in-app alerts
