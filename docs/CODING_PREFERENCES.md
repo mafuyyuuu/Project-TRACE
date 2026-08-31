@@ -124,6 +124,24 @@ utils/         # Backend helper functions (AppError)
 - **Dependencies:** Keep `requirements.txt` strictly updated with only the necessary OCR and web packages.
 - **Availability:** The Node backend must treat the AI engine as optional — every call goes through `src/services/aiEngine.service.js`, which returns `null` on failure so the caller can fall back.
 
+## 🔀 The document state machine
+
+- **Never write a bare status string.** The vocabulary, the legal transitions and the desk labels all
+  live in `backend/src/utils/documentStatus.js`, mirrored by `frontend/src/utils/documentStatus.js`
+  the same way `utils/pricing.js` is. Import the constant.
+- **Guard every desk action with `assertTransition(from, to)`** before writing. `step_logs` is
+  append-only, so an illegal move cannot be tidied away afterwards — it has to be refused up front,
+  as a 400 the clerk can understand rather than a silent UPDATE.
+- **`current_status` is a `VARCHAR`, not a database ENUM, on purpose.** An ENUM would not cover the
+  Python engine's raw SQL or the React queues, and `migration.js` deliberately widened this column
+  years ago. The constants module is what enforces the vocabulary.
+- **The Python AI engine queries `current_status` directly** (`ai-engine/app.py`), and there is no
+  shared module across the language split. Any change to the vocabulary has to be applied there by
+  hand, or the Random Forest silently trains on zeroes.
+- **Rejection moves a document exactly one step back**, with the reason in `step_logs.notes`. Two
+  gaps are intentional and documented in the module: the first status has no backward edge, and
+  nothing reverses past payment.
+
 ## 🛣️ Orchestration (n8n)
 
 - **Logic Separation:** Hardcoded institutional routing rules should be avoided in Node.js. If a document path depends on the document type, Node.js should emit an event to n8n (via `src/services/n8n.service.js`), which visually handles the routing logic.
@@ -135,5 +153,24 @@ utils/         # Backend helper functions (AppError)
 
 ## 💳 Payments
 
-- **Integration:** The system uses a manual GCash Verification pipeline. Students upload receipt screenshots and Reference Numbers.
-- **Verification:** All payments must pass through the `Finance Clerk` desk (`pending_payment_verification`) for manual visual cross-referencing. Never process a document to the Secretary without the Finance Clerk changing the `payment_status` to `PAID` — `verifyPayment()` in `documents.service.js` is the only place that sets `PAID`.
+- **Integration:** Payment is collected manually against the Finance Office's own records — no
+  third-party gateway. Students either upload proof online, or pay at the counter and have Finance
+  log the Official Receipt.
+- **Pricing and payment are separate authorities, and must stay that way.** The College Secretary
+  sets the **amount** (`priceDocument()`), because only they know the page count once the document is
+  printed. The Finance Clerk confirms the **money** (`verifyPayment()`), which is the only place in
+  the entire system that writes `payment_status = 'PAID'`. Never let one endpoint do both: separating
+  who decides the charge from who confirms it received is what makes the money trail auditable, and
+  it is the first thing a panel will ask about.
+- **Every amount is written with its justification.** `priceDocument()` records the clerk id, the
+  page count and a free-text reason in the same statement as the amount. An amount whose origin is
+  unknown cannot be defended when a student disputes it.
+- **Billing is per request, pricing is per document.** Page counts differ, so each document is priced
+  on its own; the request only becomes payable when the last one has a price. Billing earlier would
+  send a student to Finance once per document in a single request.
+- **Logging a counter payment is not clearing it.** `logWalkInPayment()` records the claim and moves
+  the request into the verification queue — a walk-in is held to exactly the same standard as an
+  online payment.
+- **OCR never records a payment on its own.** `/ocr/receipt` fills the walk-in form's fields; the
+  clerk confirms them before saving. A misread amount here is a money error, which is precisely where
+  a human check earns its cost.

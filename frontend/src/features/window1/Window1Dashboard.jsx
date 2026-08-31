@@ -1,22 +1,38 @@
 import HardwareScannerModal from '@/features/window1/components/HardwareScannerModal';
+import IntakeReviewModal from '@/features/window1/components/IntakeReviewModal';
 import MiniSparkline from '@/components/MiniSparkline';
-import { getProgressVal, getStatusLabel } from '@/utils/documentStatus';
+import { STATUS, getProgressVal, getStatusLabel, requiresAttachment } from '@/utils/documentStatus';
 import { formatFileSize, getWaitTime, todayLongDate } from '@/utils/formatters';
 import useWindow1Dashboard from '@/features/window1/useWindow1Dashboard';
 import DashboardAlerts from '@/components/DashboardAlerts';
 import DashboardLoading from '@/components/DashboardLoading';
 
 /**
- * Window 1 clerk: AI intake dropzone, tracking desk, manual input, and release queue.
+ * Window 1 clerk: the counter at both ends of the pipeline.
+ *
+ * Two working queues — Intake at the front, Release at the back — plus a
+ * Tracking Desk that shows every document in the system, because this is the
+ * window a student walks up to and asks "where is mine?".
  */
-export default function Window1Dashboard({ user, currentTab }) {
+export default function Window1Dashboard({ user, currentTab, setViewImageUrl }) {
   const {
     loading,
     success,
     error,
     documents,
+    intakeQueue,
+    releaseQueue,
     dashStats,
     actionLoading,
+    selectedDoc,
+    setSelectedDoc,
+    intakeNotes,
+    setIntakeNotes,
+    intakeFile,
+    setIntakeFile,
+    handleIntake,
+    w1IntakePage,
+    setW1IntakePage,
     scanDocType,
     setScanDocType,
     activeModal,
@@ -165,6 +181,95 @@ export default function Window1Dashboard({ user, currentTab }) {
                 />
               </div>
             </div>
+            {/* Intake queue — the first human look at every request, online or walk-in */}
+            <div className="bg-white rounded-3xl shadow-sm border border-gray-200 overflow-hidden mt-8">
+              <div className="p-4 sm:p-6 border-b border-gray-100 bg-gray-50/50 flex flex-col sm:flex-row justify-between sm:items-center gap-4">
+                <div>
+                  <h3 className="font-bold text-gray-900 text-lg uppercase tracking-wider">INTAKE QUEUE</h3>
+                  <div className="flex items-center gap-4 mt-1 text-xs text-gray-500 font-medium">
+                    <span>Awaiting Intake Check: <strong className="text-gray-900">{intakeQueue.length}</strong></span>
+                    <span className="hidden sm:inline text-gray-400">Check the paperwork, then route to the College Secretary.</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="p-4 sm:p-6">
+                <div className="max-h-[60vh] overflow-y-auto overflow-x-auto">
+                  {intakeQueue.length === 0 ? (
+                    <div className="text-center py-16 text-gray-400 font-medium">Nothing waiting for intake.</div>
+                  ) : (
+                    <>
+                      <table className="w-full text-left border-collapse">
+                        <thead className="sticky top-0 bg-white z-10">
+                          <tr className="text-gray-400 text-[10px] uppercase tracking-widest border-b border-gray-100">
+                            <th className="pb-4 font-bold pl-4">Tracking Hash</th>
+                            <th className="pb-4 font-bold">Student</th>
+                            <th className="pb-4 font-bold">Document Type</th>
+                            <th className="pb-4 font-bold">Attachment</th>
+                            <th className="pb-4 font-bold">Waiting</th>
+                            <th className="pb-4 font-bold text-right pr-4">Action</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-50">
+                          {intakeQueue
+                            .slice((w1IntakePage - 1) * itemsPerPage, w1IntakePage * itemsPerPage)
+                            .map(doc => (
+                            <tr key={doc.id} className="hover:bg-gray-50/50 group">
+                              <td className="py-4 pl-4 font-mono text-xs text-gray-500">#{doc.tracking_number ? doc.tracking_number.slice(0, 10).toUpperCase() : doc.id}</td>
+                              <td className="py-4">
+                                <div className="text-sm font-bold text-gray-900">{doc.student_name || 'Name Unresolved'}</div>
+                                <div className="text-xs font-mono text-gray-400 mt-0.5">{doc.student_id || 'ID Pending'}</div>
+                              </td>
+                              <td className="py-4 text-xs font-bold text-gray-600">{doc.document_type}</td>
+                              <td className="py-4 text-xs font-semibold">
+                                {doc.file_path
+                                  ? <span className="text-[#15803d]">Attached</span>
+                                  : requiresAttachment(doc.document_type)
+                                    ? <span className="text-amber-600">Needs scan</span>
+                                    : <span className="text-gray-400">None</span>}
+                              </td>
+                              <td className="py-4 text-xs font-bold text-gray-500 font-mono">{getWaitTime(doc.created_at)}</td>
+                              <td className="py-4 text-right pr-4">
+                                <button
+                                  onClick={() => { setSelectedDoc(doc); setActiveModal('intake-review'); }}
+                                  className="px-5 py-2.5 bg-[#15803d] hover:bg-[#166534] text-white text-xs font-bold rounded-xl shadow-sm transition-all flex items-center gap-1.5 ml-auto"
+                                >
+                                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                  Check
+                                </button>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+
+                      {intakeQueue.length > itemsPerPage && (
+                        <div className="flex justify-between items-center mt-6 border-t border-gray-100 pt-4">
+                          <button
+                            disabled={w1IntakePage === 1}
+                            onClick={() => setW1IntakePage(p => p - 1)}
+                            className="px-4 py-2 text-xs font-bold text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-xl disabled:opacity-50 transition-colors"
+                          >
+                            Previous
+                          </button>
+                          <span className="text-xs font-bold text-gray-500">
+                            Page {w1IntakePage} of {Math.ceil(intakeQueue.length / itemsPerPage)}
+                          </span>
+                          <button
+                            disabled={w1IntakePage >= Math.ceil(intakeQueue.length / itemsPerPage)}
+                            onClick={() => setW1IntakePage(p => p + 1)}
+                            className="px-4 py-2 text-xs font-bold text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-xl disabled:opacity-50 transition-colors"
+                          >
+                            Next
+                          </button>
+                        </div>
+                      )}
+                    </>
+                  )}
+                </div>
+              </div>
+            </div>
+
             {/* Active release queue card */}
             <div className="bg-white rounded-3xl shadow-sm border border-gray-200 overflow-hidden mt-8">
               <div className="p-4 sm:p-6 border-b border-gray-100 bg-gray-50/50 flex flex-col sm:flex-row justify-between sm:items-center gap-4">
@@ -180,7 +285,7 @@ export default function Window1Dashboard({ user, currentTab }) {
 
               <div className="p-4 sm:p-6">
                 <div className="max-h-[60vh] overflow-y-auto overflow-x-auto">
-                  {dashStats.ready_window_1_count === 0 ? (
+                  {releaseQueue.length === 0 ? (
                     <div className="text-center py-16 text-gray-400 font-medium">No documents waiting for release.</div>
                   ) : (
                     <>
@@ -190,12 +295,13 @@ export default function Window1Dashboard({ user, currentTab }) {
                             <th className="pb-4 font-bold pl-4">Tracking Hash</th>
                             <th className="pb-4 font-bold">Student</th>
                             <th className="pb-4 font-bold">Document Type</th>
+                            <th className="pb-4 font-bold">Official Receipt</th>
                             <th className="pb-4 font-bold">Wait Time</th>
                             <th className="pb-4 font-bold text-right pr-4">Action</th>
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-50">
-                          {documents.filter(d => d.current_status === 'ready_window_1')
+                          {releaseQueue
                             .slice((w1ReleasePage - 1) * itemsPerPage, w1ReleasePage * itemsPerPage)
                             .map(doc => (
                             <tr key={doc.id} className="hover:bg-gray-50/50 group">
@@ -205,10 +311,15 @@ export default function Window1Dashboard({ user, currentTab }) {
                                 <div className="text-xs font-mono text-gray-400 mt-0.5">{doc.student_id || 'ID Pending'}</div>
                               </td>
                               <td className="py-4 text-xs font-bold text-gray-600">{doc.document_type}</td>
+                              <td className="py-4 text-xs font-mono">
+                                {doc.or_number
+                                  ? <span className="font-bold text-gray-700">{doc.or_number}</span>
+                                  : <span className="text-gray-400">paid online</span>}
+                              </td>
                               <td className="py-4 text-xs font-bold text-gray-505 font-mono">{getWaitTime(doc.updated_at)}</td>
                               <td className="py-4 text-right pr-4">
                                 <button 
-                                  onClick={() => handleWindow1Release(doc.id)}
+                                  onClick={() => handleWindow1Release(doc)}
                                   disabled={actionLoading}
                                   className="px-5 py-2.5 bg-[#15803d] hover:bg-[#166534] text-white text-xs font-bold rounded-xl shadow-sm transition-all flex items-center gap-1.5 ml-auto"
                                 >
@@ -221,7 +332,7 @@ export default function Window1Dashboard({ user, currentTab }) {
                         </tbody>
                       </table>
 
-                      {documents.filter(d => d.current_status === 'ready_window_1').length > itemsPerPage && (
+                      {releaseQueue.length > itemsPerPage && (
                         <div className="flex justify-between items-center mt-6 border-t border-gray-100 pt-4">
                           <button 
                             disabled={w1ReleasePage === 1} 
@@ -231,10 +342,10 @@ export default function Window1Dashboard({ user, currentTab }) {
                             Previous
                           </button>
                           <span className="text-xs font-bold text-gray-500">
-                            Page {w1ReleasePage} of {Math.ceil(documents.filter(d => d.current_status === 'ready_window_1').length / itemsPerPage)}
+                            Page {w1ReleasePage} of {Math.ceil(releaseQueue.length / itemsPerPage)}
                           </span>
                           <button 
-                            disabled={w1ReleasePage >= Math.ceil(documents.filter(d => d.current_status === 'ready_window_1').length / itemsPerPage)} 
+                            disabled={w1ReleasePage >= Math.ceil(releaseQueue.length / itemsPerPage)} 
                             onClick={() => setW1ReleasePage(p => p + 1)}
                             className="px-4 py-2 text-xs font-bold text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-xl disabled:opacity-50 transition-colors"
                           >
@@ -307,7 +418,7 @@ export default function Window1Dashboard({ user, currentTab }) {
                                 </div>
                               </td>
                               <td className="py-4">
-                                <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${['completed', 'released'].includes(doc.current_status) ? 'bg-emerald-50 text-[#15803d]' : 'bg-amber-50 text-amber-700'}`}>
+                                <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${doc.current_status === STATUS.COMPLETED ? 'bg-emerald-50 text-[#15803d]' : 'bg-amber-50 text-amber-700'}`}>
                                   {getStatusLabel(doc.current_status)}
                                 </span>
                               </td>
@@ -587,6 +698,20 @@ export default function Window1Dashboard({ user, currentTab }) {
         scanFile={scanFile}
         scanProgress={scanProgress}
       />
+
+      {activeModal === 'intake-review' && selectedDoc && (
+        <IntakeReviewModal
+          selectedDoc={selectedDoc}
+          setActiveModal={setActiveModal}
+          setViewImageUrl={setViewImageUrl}
+          handleIntake={handleIntake}
+          actionLoading={actionLoading}
+          intakeNotes={intakeNotes}
+          setIntakeNotes={setIntakeNotes}
+          intakeFile={intakeFile}
+          setIntakeFile={setIntakeFile}
+        />
+      )}
     </>
   );
 }

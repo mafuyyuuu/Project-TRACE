@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { STATUS } from '@/utils/documentStatus';
 import { render, screen, waitFor } from '@testing-library/react';
 
 /**
@@ -16,7 +17,12 @@ vi.mock('@/services/documentsService', () => ({
   uploadDocument: vi.fn(),
   submitPayment: vi.fn(),
   verifyPayment: vi.fn(),
-  evaluateDocument: vi.fn(),
+  intakeDocument: vi.fn(),
+  acceptForProcessing: vi.fn(),
+  priceDocument: vi.fn(),
+  confirmHandoff: vi.fn(),
+  scanReceipt: vi.fn(),
+  logWalkInPayment: vi.fn(),
   releaseDocument: vi.fn(),
   cancelDocument: vi.fn(),
 }));
@@ -43,7 +49,7 @@ const DOC = {
   student_id: 'STU2024001',
   student_name: 'Ana Reyes',
   document_type: 'Transcript of Records',
-  current_status: 'pending_payment',
+  current_status: STATUS.PENDING_W1_INTAKE,
   payment_status: 'UNPAID',
   amount: '200.00',
   copies: 1,

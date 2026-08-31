@@ -1,18 +1,13 @@
 import useReports from '@/features/admin/useReports';
 import DashboardLoading from '@/components/DashboardLoading';
 import DashboardAlerts from '@/components/DashboardAlerts';
-import { getStatusLabel } from '@/utils/documentStatus';
+import { getStatusLabel, PIPELINE, LEGACY_STATUS } from '@/utils/documentStatus';
 import { formatPeso } from '@/utils/pricing';
 
-const STATUSES = [
-  'pending_payment',
-  'pending_payment_verification',
-  'pending_secretary',
-  'ready_window_1',
-  'completed',
-  'released',
-  'rejected',
-];
+// The live pipeline, plus the terminals only pre-refactor records can hold —
+// those rows still exist and an admin filtering reports has to be able to
+// reach them.
+const STATUSES = [...PIPELINE, LEGACY_STATUS.REJECTED, LEGACY_STATUS.APPROVED];
 
 const EXPORT_CATEGORIES = [
   { key: 'active', label: 'Active Students', hint: 'Currently enrolled' },

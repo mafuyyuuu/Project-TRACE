@@ -15,7 +15,9 @@ export default function SecretaryEvaluationModal({
   setClerkNotes,
   handleSecretaryEvaluate,
   actionLoading,
-  setViewImageUrl
+  setViewImageUrl,
+  estimatedReadyDate,
+  setEstimatedReadyDate
 }) {
   if (!selectedDoc) return null;
 
@@ -151,6 +153,24 @@ export default function SecretaryEvaluationModal({
               </div>
 
               <div className="flex flex-col gap-1.5">
+                <label className="text-[10px] font-bold text-gray-800 uppercase tracking-widest">
+                  Ready By <span className="text-red-600">*</span>
+                </label>
+                <input
+                  type="date"
+                  value={estimatedReadyDate || ''}
+                  onChange={(e) => setEstimatedReadyDate(e.target.value)}
+                  min={new Date().toISOString().split('T')[0]}
+                  className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl text-xs font-semibold focus:ring-2 focus:ring-[#15803d]/20 outline-none"
+                />
+                {/* The student is told this date, and the office is measured
+                    against it — so it is required to accept the work. */}
+                <span className="text-[10px] text-gray-400 font-medium">
+                  Sent to the student. They are told the amount separately, once it is printed and priced.
+                </span>
+              </div>
+
+              <div className="flex flex-col gap-1.5">
                 <label className="text-[10px] font-bold text-gray-800 uppercase tracking-widest">Secretary Notes</label>
                 <textarea 
                   value={clerkNotes}
@@ -168,14 +188,14 @@ export default function SecretaryEvaluationModal({
               disabled={actionLoading}
               className="w-1/2 py-3 rounded-xl font-bold text-xs shadow-md transition-all text-center uppercase tracking-wider bg-red-600 hover:bg-red-700 text-white disabled:opacity-50"
             >
-              Reject Request
+              Return to Window 1
             </button>
             <button 
               onClick={() => handleSecretaryEvaluate('approve')}
               disabled={actionLoading}
               className="w-1/2 py-3 bg-[#15803d] hover:bg-[#166534] text-white rounded-xl font-bold text-xs shadow-md transition-all text-center uppercase tracking-wider disabled:opacity-50"
             >
-              Approve & Route
+              Accept for Processing
             </button>
           </div>
         </div>

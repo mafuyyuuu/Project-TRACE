@@ -133,21 +133,11 @@ export async function verifyPayment(id, formData) {
 }
 
 /**
- * Evaluate and route OCR extraction (Secretary).
- * @param {string} id
- * @param {{ student_id: string, student_name: string, document_type: string, action: string, notes: string }} payload
- */
-export async function evaluateDocument(id, payload) {
-  const { data } = await api.post(`/documents/${id}/evaluate`, payload)
-  return data
-}
-
-/**
  * Release document (Window 1 Clerk).
  * @param {string} id
  */
-export async function releaseDocument(id) {
-  const { data } = await api.post(`/documents/${id}/release`)
+export async function releaseDocument(id, payload = {}) {
+  const { data } = await api.post(`/documents/${id}/release`, payload)
   return data
 }
 

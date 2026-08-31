@@ -2,6 +2,7 @@ import { AreaChart, Area, XAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import MiniSparkline from '@/components/MiniSparkline';
 import useAdminDashboard from '@/features/admin/useAdminDashboard';
 import { todayLongDate } from '@/utils/formatters';
+import { STATUS } from '@/utils/documentStatus';
 import DashboardAlerts from '@/components/DashboardAlerts';
 import DashboardLoading from '@/components/DashboardLoading';
 import MaintenancePanel from '@/features/admin/components/MaintenancePanel';
@@ -348,7 +349,7 @@ export default function AdminDashboard({ user, currentTab, setViewImageUrl }) {
                                   <td className="py-4 text-xs font-bold text-gray-600">{doc.document_type}</td>
                                   <td className="py-4">
                                     <span className={`px-3 py-1 text-[10px] font-black rounded-full uppercase tracking-wider ${
-                                      doc.current_status === 'completed' || doc.current_status === 'released'
+                                      doc.current_status === STATUS.COMPLETED
                                         ? 'bg-emerald-50 text-emerald-600'
                                         : doc.current_status === 'rejected'
                                         ? 'bg-red-50 text-red-600'

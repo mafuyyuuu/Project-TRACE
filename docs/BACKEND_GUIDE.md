@@ -48,7 +48,8 @@ A student can request several document types at once and pay a single combined f
 
 - Every item becomes its own `documents` row sharing one `request_group_id`.
 - **Payment is per group:** `submitPayment` and `verifyPayment` act on every document in the group, so one GCash receipt settles the whole request.
-- **Routing is per document:** `evaluateDocument` and `releaseDocument` stay per row, so a Diploma can be ready for pickup while a Transcript is still with the Secretary.
+- **Routing is per document, billing is per request:** the desk actions stay per row, so a Diploma can be waiting at Window 1 while a Transcript is still being evaluated. Only pricing's final step and the two payment writers are group-scoped, because the student pays once.
+- **Transitions are guarded:** every desk action calls `assertTransition(from, to)` from `utils/documentStatus.js` before writing. An illegal move is a 400, never a silent UPDATE — `step_logs` is append-only and cannot be corrected afterwards.
 - The upload route uses multer `.any()`; per-item attachments arrive as `document_0`, `document_1`, … and the legacy single `document` field still works.
 - Historical rows were backfilled with their own tracking number as the group id, so every pre-existing document is simply a group of one.
 
@@ -166,7 +167,10 @@ would let a client spoof its own address and walk straight past the login limite
 - `tracking_number` (Unique Hash)
 - `student_id` (FK)
 - `document_type`
-- `current_status` (e.g., PENDING_PAYMENT, PROCESSING, APPROVED, READY)
+- `current_status` — one of the eight pipeline values in `utils/documentStatus.js`. A `VARCHAR`, not an ENUM: the constants module enforces the vocabulary, and it also covers the Python engine and the React queues, which a database ENUM never could.
+- `estimated_ready_date` — what the Secretary promised the student
+- `amount`, `page_count`, `pricing_notes`, `priced_by_clerk_id`, `priced_at` — the charge and its justification. `priced_at` (never `amount`) is what gates billing, since `amount` starts as an estimate.
+- `stub_issued_at`, `payment_channel` (`digital` | `walk_in`), `or_number`, `or_date`, `logged_by_clerk_id` — the counter-payment trail
 - `assigned_desk` (e.g., WINDOW_1, SECRETARY)
 - `payment_status` (e.g., UNPAID, PAID) - *Updated for Payment Phase*
 
@@ -194,20 +198,52 @@ An audit trail table recording every movement.
 
 ## 💳 Manual GCash Payment Verification Flow
 
-To comply with PLP Finance policies, Project TRACE implements a manual payment verification pipeline where student GCash receipt screenshots are reviewed by a Finance Clerk.
+To comply with PLP Finance policies, Project TRACE collects payment manually against the Finance
+Office's own records — no third-party gateway. Payment happens **late**: a document is evaluated,
+printed and priced first, because the amount comes from the page count.
 
 ### Payment Flow
-1. **Request Creation:** The student initiates a document request, creating a document record in the MySQL database with `current_status = 'pending_payment'` and `payment_status = 'UNPAID'`.
-2. **GCash QR Scanning:** The student is shown the official PLP Finance static GCash QR code. They scan the code, pay via their GCash app, and take a screenshot of the receipt.
-3. **Proof Submission:** The student uploads the receipt image and enters the transaction's Reference Number into the portal. The backend updates `gcash_reference_no`, `receipt_image_path`, and changes `current_status = 'pending_payment_verification'`.
-4. **Finance Verification:** The Finance Clerk reviews the receipt and Reference Number on their dashboard.
-   - If approved: updates `payment_status = 'PAID'` and advances status to `'pending_secretary'`.
-   - If rejected: resets status to `'pending_payment'` with comments so the student can re-upload.
 
-### Backend Endpoints
-- `POST /api/documents/:id/submit-payment`: Student uploads GCash receipt image and submits transaction Reference Number.
-- `POST /api/documents/:id/verify-payment`: Finance Clerk approves or rejects the uploaded payment receipt.
-- `GET /api/documents?status=pending_payment_verification`: Lists all document requests waiting for manual payment review.
+1. **Billing.** The College Secretary prices each printed document (`POST /:id/price`), writing
+   `amount`, `page_count`, `pricing_notes`, `priced_by_clerk_id` and `priced_at`. When the **last**
+   document in a `request_group_id` has a price, `markGroupPayable` moves the whole group to
+   `PENDING_STUDENT_PAYMENT` and stamps `stub_issued_at`. The student and Finance are both notified.
+2. **The student pays**, one of two ways:
+   - **Online** — `POST /:id/submit-payment` writes `gcash_reference_no`, `receipt_image_path` and
+     `payment_channel = 'digital'` across the group, moving it to `PENDING_FINANCE_VERIFICATION`.
+   - **At the counter** — the student brings the printed slip; Finance calls
+     `POST /:id/log-walkin-payment`, writing `or_number`, `or_date`, `logged_by_clerk_id` and
+     `payment_channel = 'walk_in'`. Same destination: logging is not clearing.
+3. **Finance verification.** `POST /:id/verify-payment` reviews whichever proof exists.
+   - Approved: sets `payment_status = 'PAID'` and advances the group to `PAID_PENDING_SEC_RELEASE`.
+     **This is the only place in the system that writes `PAID`.**
+   - Rejected: returns the group to `PENDING_STUDENT_PAYMENT` with the clerk's notes.
+
+> One receipt — digital or an Official Receipt — settles **every** document in the request group,
+> which is why both writers are group-scoped while pricing and desk routing are per document.
+
+### Desk action endpoints, in pipeline order
+
+| Endpoint | Desk | Moves |
+| :--- | :--- | :--- |
+| `POST /api/documents/upload` | student / Window 1 | → `PENDING_W1_INTAKE` |
+| `POST /api/documents/:id/intake` | Window 1 | → `PENDING_SEC_EVALUATION` (or returns with notes). Accepts a `document` scan; fires the n8n routing webhook. |
+| `POST /api/documents/:id/accept` | Secretary | → `SEC_PROCESSING`, requires `estimated_ready_date` |
+| `POST /api/documents/:id/price` | Secretary | sets the amount; bills the group when it is the last one |
+| `POST /api/documents/:id/submit-payment` | student | → `PENDING_FINANCE_VERIFICATION` (online) |
+| `POST /api/documents/scan-receipt` | Finance | reads an OR image and returns the fields. **Records nothing** — hence no document id |
+| `POST /api/documents/:id/log-walkin-payment` | Finance | → `PENDING_FINANCE_VERIFICATION` (counter) |
+| `POST /api/documents/:id/verify-payment` | Finance | → `PAID_PENDING_SEC_RELEASE`, sets `PAID` |
+| `POST /api/documents/:id/handoff` | Secretary | → `READY_FOR_RELEASE` |
+| `POST /api/documents/:id/release` | Window 1 | → `COMPLETED` |
+| `DELETE /api/documents/:id` | student | cancels, allowed only through `PENDING_SEC_EVALUATION` |
+
+Every desk action is a **POST**, so none is shadowed by the `GET /:trackingNumber` wildcard. A new
+`GET /:id/...` *would* be — which is why the payment slip is rendered client-side rather than fetched.
+
+`GET /api/documents` is role-scoped rather than taking a status: students see only their own, Finance
+the two money queues, Secretaries their three working queues filtered by college, and Window 1
+everything (it is the public counter — its Tracking Desk has to answer "where is my document?").
 
 ### Account & Profile Endpoints
 - `PUT /api/auth/profile`: Updates the caller's own phone number, email, and/or password. A new password is hashed; supplying one also clears `must_change_password`.

@@ -1,23 +1,36 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import useDashboardCore from '@/hooks/useDashboardCore';
 import { uploadDocument, submitPayment, cancelDocument } from '@/services/documentsService';
 import { getDocumentTypes, getPaymentMethods } from '@/services/referenceService';
+import { STATUS, isCancellable } from '@/utils/documentStatus';
 
-/** Progress-bar target for the live tracking modal, by pipeline stage. */
+/**
+ * Progress-bar target for the live tracking modal, by pipeline stage.
+ *
+ * Eight stages now, and payment sits near the end rather than at the start:
+ * a student who has been asked to pay is most of the way there.
+ */
 const TRACKER_TARGETS = {
-  pending_payment: 0,
-  pending_payment_verification: 25,
-  pending_secretary: 50,
-  ready_window_1: 75,
+  [STATUS.PENDING_W1_INTAKE]: 0,
+  [STATUS.PENDING_SEC_EVALUATION]: 15,
+  [STATUS.SEC_PROCESSING]: 35,
+  [STATUS.PENDING_STUDENT_PAYMENT]: 55,
+  [STATUS.PENDING_FINANCE_VERIFICATION]: 70,
+  [STATUS.PAID_PENDING_SEC_RELEASE]: 85,
+  [STATUS.READY_FOR_RELEASE]: 95,
 };
 
 /**
- * Student portal: request submission, checkout (GCash, card, online banking or
- * over-the-counter), cancellation, and the live tracking animation.
+ * Student portal: request submission, checkout, cancellation, and the live
+ * tracking animation.
+ *
+ * Nothing is paid at submission any more. The registrar cannot quote a price
+ * until the document has been printed, so the student files first and is asked
+ * for money later — which is why `actionRequired` exists as its own idea here.
  */
 export default function useStudentDashboard(user) {
   const core = useDashboardCore(user);
-  const { runAction, triggerNotification, setActiveModal, setSelectedDoc, selectedDoc, activeModal } = core;
+  const { documents, runAction, triggerNotification, setActiveModal, selectedDoc, activeModal } = core;
 
   // Document types come from the database so the Registrar can add or reprice
   // one without a code change.
@@ -36,6 +49,27 @@ export default function useStudentDashboard(user) {
   const [paymentFile, setPaymentFile] = useState(null);
 
   const [trackerProgress, setTrackerProgress] = useState(0);
+
+  /**
+   * Requests that are waiting on the student rather than on a desk.
+   *
+   * Everything else in the pipeline is somebody else's move; this is the one
+   * state where nothing happens until the student acts, so it gets its own
+   * banner rather than being one row among many.
+   */
+  const actionRequired = useMemo(
+    () => documents.filter((d) => d.current_status === STATUS.PENDING_STUDENT_PAYMENT),
+    [documents]
+  );
+
+  /** Total owed across a request, since one payment settles the whole group. */
+  const groupTotalFor = useCallback(
+    (doc) =>
+      documents
+        .filter((d) => d.request_group_id === doc.request_group_id)
+        .reduce((sum, d) => sum + (parseFloat(d.amount) || 0), 0),
+    [documents]
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -161,20 +195,21 @@ export default function useStudentDashboard(user) {
         {
           successMessage: (r) =>
             r.documents?.length > 1
-              ? `${r.documents.length} documents requested — ₱${r.total_amount} total. Please pay now.`
-              : `Request submitted! Tracking ID: ${r.tracking_number}. Please pay now.`,
+              ? `${r.documents.length} documents requested. Tracking ID: ${r.tracking_number}. You will be told the amount once they are ready.`
+              : `Request submitted! Tracking ID: ${r.tracking_number}. You will be told the amount once it is ready.`,
           errorMessage: 'Upload failed.',
         }
       );
 
       if (ok && created) {
         setSelections({});
-        // Checkout is per group; any document in it settles the whole request.
-        setSelectedDoc({ ...created.document, group_total: created.total_amount });
-        setActiveModal('pay');
+        // No checkout here. Nothing is payable until the College Secretary has
+        // printed the documents and priced them, which is the whole point of
+        // this pipeline — a price quoted at submission would be a guess.
+        setActiveModal(null);
       }
     },
-    [selections, user, runAction, triggerNotification, setSelectedDoc, setActiveModal]
+    [selections, user, runAction, triggerNotification, setActiveModal]
   );
 
   const handleStudentSubmitPayment = useCallback(
@@ -229,6 +264,9 @@ export default function useStudentDashboard(user) {
 
   return {
     ...core,
+    actionRequired,
+    groupTotalFor,
+    isCancellable,
     documentTypes,
     documentTypesLoading,
     selections,

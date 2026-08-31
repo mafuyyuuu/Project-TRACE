@@ -100,33 +100,84 @@ All seeded accounts share the password `trace2024` (see README.md for the full I
 ## Architecture
 
 ### Request lifecycle (the thing every feature hangs off of)
-Every document, regardless of type, moves through a fixed `current_status` state machine:
-```
-pending_payment → pending_payment_verification → pending_secretary → ready_window_1 → completed/released
-```
-- **pending_payment**: student submits a request covering **one or more** document types. Each becomes its own row under a shared `request_group_id`; the price is computed **server-side** from `document_types` (a client-sent `amount` is ignored). TOR = `Math.ceil(semesters / 4) * base_fee`.
-- **pending_payment_verification**: student uploaded GCash receipt + reference number. **Payment is per request group** — one receipt settles every document in it — while routing from the Secretary onward is per document. A document is *never* allowed to reach the Secretary until Finance flips `payment_status` to `PAID`.
-- **pending_secretary**: routed to the College Secretary matching the student's `course` (college-based queue segregation — each `SEC-XXX001` account only sees its own college's students).
-- **ready_window_1**: Secretary approved; document is printed and waits for physical pickup at Window 1.
-- **completed/released**: Window 1 clerk scans/releases; `step_logs` gets the final audit entry.
 
-Some document types (Honorable Dismissal, Graduation Clearance, Certificate of Good Moral Character) additionally *require* an upload at submission time that EasyOCR must validate before the request proceeds — see `docs/SYSTEM_WORKFLOWS.md` for the per-document AI requirements.
+The pipeline is **evaluate first, pay later**: the registrar cannot quote a price until a document
+has been printed, because the College Secretary prices it from the page count. Work happens first,
+money is collected near the end, and the paper only changes hands once an Official Receipt exists.
 
-n8n owns the conditional/institutional routing logic (which desk gets which document type) — do not
-hardcode that routing in Node.js; emit an event/webhook and let `n8n/routing-workflow.json` decide.
-The webhook payload carries `college_code` (`colleges.short_code`: CCS, CON, …), which is what lets
-the workflow resolve the right `SEC-<code>001` secretary; without it every document would have to go
-to one hardcoded clerk. The workflow calls back into `POST /api/documents/assign` with the
-`x-webhook-secret` header, and reads its target from the `TRACE_API_URL` / `TRACE_WEBHOOK_SECRET`
-n8n environment variables — do not hardcode the port there again, that is exactly how the workflow
-silently broke for a month after the backend moved to 3300.
+```
+PENDING_W1_INTAKE → PENDING_SEC_EVALUATION → SEC_PROCESSING
+  → PENDING_STUDENT_PAYMENT → PENDING_FINANCE_VERIFICATION
+  → PAID_PENDING_SEC_RELEASE → READY_FOR_RELEASE → COMPLETED
+```
+
+- **PENDING_W1_INTAKE**: request filed — online by the student, or typed in at the counter by Window
+  1 for a walk-in. **Both channels produce identical rows**; only `step_logs` records which. Each
+  document type becomes its own row under a shared `request_group_id`. The `amount` written here is a
+  **provisional estimate** from `document_types` shown so a student isn't quoted nothing; it is not a
+  price, and `priced_at` — never `amount` — is what gates billing.
+- **PENDING_SEC_EVALUATION**: Window 1 checked the paperwork and n8n routed it to the secretary
+  matching the student's college (each `SEC-XXX001` sees only its own college's students).
+- **SEC_PROCESSING**: Secretary accepted it and committed to an `estimated_ready_date` the student is
+  told. The document is prepared and printed.
+- **PENDING_STUDENT_PAYMENT**: printed and priced. **Pricing is per document** (page counts differ)
+  but **billing is per request** — the group only becomes payable when the last of its documents has
+  a price, or a two-document request would send the student to Finance twice.
+- **PENDING_FINANCE_VERIFICATION**: payment claimed, through either channel — the student uploaded
+  proof online, or Finance logged a counter payment against the printed slip.
+- **PAID_PENDING_SEC_RELEASE**: Finance confirmed. **This is the only place `payment_status` becomes
+  `PAID`.** The Secretary sets the price; only Finance confirms the money — those authorities are
+  deliberately separate.
+- **READY_FOR_RELEASE**: the Secretary physically handed the printed document to Window 1 and
+  recorded it. A separate step because it marks a real physical event.
+- **COMPLETED**: Window 1 released it, for a walk-in against the OR the student presents.
+
+**The vocabulary and the transitions live in `backend/src/utils/documentStatus.js`**, mirrored by
+`frontend/src/utils/documentStatus.js` exactly as `utils/pricing.js` is. Never write a bare status
+string anywhere — that module also owns `assertTransition`, which every desk action calls before
+writing. `step_logs` is append-only, so an illegal move cannot be tidied away afterwards; it has to
+be refused up front. `current_status` is a `VARCHAR`, not a database ENUM, on purpose: an ENUM would
+not cover the Python engine or the React queues, and `migration.js` deliberately widened it years ago.
+
+Rejection returns a document exactly one step. Two gaps are intentional: `PENDING_W1_INTAKE` has no
+backward edge (it is the first desk, so a return logs the reason and leaves the status alone), and
+nothing reverses past `PAID_PENDING_SEC_RELEASE` (that would be a refund, an off-system decision).
+Students may cancel only through `PENDING_SEC_EVALUATION` — past that, paper has been spent.
+
+Some document types (Honorable Dismissal, Graduation Clearance, Certificate of Good Moral Character)
+need supporting paperwork. That is **no longer a submission gate**: a walk-in arrives at the counter
+with paper and no upload, so the request form prompts and Window 1 intake enforces it. See
+`docs/SYSTEM_WORKFLOWS.md`.
+
+n8n owns the conditional/institutional routing logic — do not hardcode that routing in Node.js; emit
+a webhook and let `n8n/routing-workflow.json` decide. **Routing fires from `intakeDocument`, not from
+submission**: the first desk is Window 1, and the college secretary is only chosen once a human has
+confirmed there is something real to route. The payload carries `college_code`
+(`colleges.short_code`: CCS, CON, …), which is what lets the workflow resolve the right
+`SEC-<code>001`; without it every document would go to one hardcoded clerk. The workflow calls back
+into `POST /api/documents/assign` with the `x-webhook-secret` header and reads its target from the
+`TRACE_API_URL` / `TRACE_WEBHOOK_SECRET` n8n environment variables — do not hardcode the port there
+again, that is exactly how the workflow silently broke for a month after the backend moved to 3300.
+
+**The n8n container also needs `N8N_BLOCK_ENV_ACCESS_IN_NODE=false`.** n8n hides `$env` from
+expressions by default, so without it those two variables are invisible to the workflow no matter how
+correctly they are set: the callback goes out with an empty secret and the backend rejects it 401.
+The webhook still answers `200 {"message":"Workflow was started"}` and the execution is still
+recorded as **success** — the only symptom is that documents are never assigned. See
+`docs/ENV_SETUP_GUIDE.md` §6.4.
 
 The assignment is **load-bearing** for the Secretary queue: a document assigned to a secretary shows
 in that secretary's queue and not in another's. Two deliberate limits in `documents.service.js` keep
 that safe — an **unassigned** document falls back to the college filter (so records predating
 routing, and anything filed while n8n is stopped, stay visible), and an assignment to a
-**non-Secretary** desk is ignored by that queue (the workflow also routes TOR/Diploma to Window 1 at
-intake, which must not delete them from the secretary step they still pass through).
+**non-Secretary** desk is ignored by that queue.
+
+**Queue scoping** (`listDocuments`): students see only their own; Finance sees the two money queues
+(`PENDING_STUDENT_PAYMENT` read-only, `PENDING_FINANCE_VERIFICATION` actionable); Secretaries see
+their three working queues plus the tail, filtered by college. **Window 1 is deliberately
+unrestricted** even though it only acts on two statuses — it is the public counter, and its Tracking
+Desk has to answer "where is my document?" about anything in the system. Its two queues are a
+client-side split.
 
 ### One dashboard, five renders
 There is no per-role routing. `frontend/src/pages/DashboardPage.jsx` resolves the user's `role`/`desk_assignment` and renders one of five command centers from `features/`:
@@ -152,7 +203,7 @@ Queue tables scroll inside a `max-h-[60vh]` container with a `sticky top-0 bg-wh
 ### Backend shape
 `backend/src/` follows route → controller → service → model. Entry point is `src/server.js` (listens) wrapping `src/app.js` (builds the Express app).
 
-- `routes/*.routes.js` — URL wiring only. Note `documents.routes.js` order matters: `/stats`, `/stats/forecast`, `/stats/insights`, `/activity-logs` must stay above the `/:trackingNumber` wildcard.
+- `routes/*.routes.js` — URL wiring only. Note `documents.routes.js` order matters: `/stats`, `/stats/forecast`, `/stats/insights`, `/activity-logs` must stay above the `/:trackingNumber` wildcard. Every desk action is a **POST**, so none of them is shadowed by that wildcard — but a new `GET /:id/...` would be, which is why the payment slip is rendered client-side rather than fetched.
 - `controllers/*.controller.js` — unpack `req`, call the service, map errors to status codes. No logic.
 - `services/` — where the work lives:
   - `auth.service.js` — login/JWT, registration incl. AI 3-point ID verification, admin account governance.
@@ -176,8 +227,9 @@ File uploads go through Multer to disk (`backend/uploads/`, gitignored) via `mid
 Single-file endpoints in `app.py`, OCR logic isolated in `ocr_engine.py`:
 - `POST /ocr/extract` — document intake OCR (EasyOCR run twice — preprocessed + original — longer text wins; regex-parses `student_id`/`last_name`/`form_type`; confidence = fields found / 3).
 - `POST /ocr/verify` — registration ID verification (3-point: school name, student ID, course all substring-matched in lowercased OCR text).
+- `POST /ocr/receipt` — Official Receipt OCR for Finance logging a walk-in payment (field name `receipt`). Regex-parses `or_number`/`amount`/`or_date`; confidence = fields found / 3. It takes the **largest** peso figure rather than the first: a receipt lists line items before its total, and reading a line item as the amount paid would under-record the payment. The clerk re-verifies every field, and `aiEngine.extractReceipt` returns `null` on failure so the counter form still works by hand with the engine down.
 - `GET /forecast` — Prophet, daily seasonality only, trained live each call on `step_logs` grouped by date, returns next 7 days.
-- `GET /ai/recommend` — RandomForestClassifier(n_estimators=10, random_state=42) trained on a small hardcoded heuristic dataset, feature vector `[pending_secretary, pending_release, today_volume]` computed live from MySQL; insight generation is dual-condition (classifier vote OR raw threshold), so a misclassification still gets caught by the threshold check.
+- `GET /ai/recommend` — RandomForestClassifier(n_estimators=10, random_state=42) trained on a small hardcoded heuristic dataset, feature vector `[PENDING_SEC_EVALUATION, READY_FOR_RELEASE, today_volume]` computed live from MySQL (**this service queries `documents.current_status` in raw SQL, so it has to be kept in step with `utils/documentStatus.js` by hand — there is no shared module across the language split**); insight generation is dual-condition (classifier vote OR raw threshold), so a misclassification still gets caught by the threshold check.
 
 The exact math (CRAFT/CRNN/CTC for OCR, Prophet's additive model, Gini-split Random Forest) with worked examples is documented in `docs/ALGORITHM_COMPUTATION.md` — read that before modifying model behavior rather than re-deriving it.
 
@@ -229,7 +281,8 @@ Full detail lives in `docs/CODING_PREFERENCES.md`; key points:
 - Backend: parameterize all SQL (raw queries / mysql2, no string-concatenated SQL); webhook endpoints must ack fast (200 OK) and handle errors gracefully.
 - AI engine: always run inside `.venv`; keep `requirements.txt` limited to what's actually used.
 - Routing decisions belong in n8n, not hardcoded in Express.
-- Payment state changes are one-directional through Finance only — nothing should ever set `payment_status = 'PAID'` outside the Finance verify endpoint.
+- **The Secretary sets the price; Finance alone sets `PAID`.** `priceDocument` is the only place an amount is written, and it records the clerk, the page count and a reason alongside it. `verifyPayment` remains the only place `payment_status` becomes `'PAID'`. Holding those two authorities apart is what makes the money trail auditable — never let one endpoint do both.
+- Every desk action calls `assertTransition(from, to)` before writing a status. `step_logs` is append-only, so an illegal move cannot be tidied away afterwards.
 
 ## Deployment
 

@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { STATUS } from '@/utils/documentStatus';
 import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
@@ -45,7 +46,7 @@ const COLLEGES = [{ id: 1, name: 'College of Computer Studies', short_code: 'CCS
 const REPORT = {
   documents: [
     { id: 1, tracking_number: 'TRC-AAA', student_id: 'STU-001', student_name: 'Ana Reyes',
-      document_type: 'Diploma', current_status: 'completed', payment_status: 'PAID', amount: '50.00' },
+      document_type: 'Diploma', current_status: STATUS.COMPLETED, payment_status: 'PAID', amount: '50.00' },
   ],
   total: 1, page: 1, limit: 25, totalPages: 1,
   summary: { total: 1, completed: 1, rejected: 0, paid: 1, revenue: 50 },
@@ -54,8 +55,8 @@ const REPORT = {
 
 const ANALYTICS = {
   turnaround_by_desk: [
-    { stage: 'pending_secretary', label: 'Secretary Evaluation', transitions: 4, avg_minutes: 639, avg_hours: 10.6, max_minutes: 2491 },
-    { stage: 'ready_window_1', label: 'Window 1 Release', transitions: 8, avg_minutes: 3, avg_hours: 0.1, max_minutes: 18 },
+    { stage: STATUS.PENDING_SEC_EVALUATION, label: 'Secretary Evaluation', transitions: 4, avg_minutes: 639, avg_hours: 10.6, max_minutes: 2491 },
+    { stage: STATUS.READY_FOR_RELEASE, label: 'Window 1 Release', transitions: 8, avg_minutes: 3, avg_hours: 0.1, max_minutes: 18 },
   ],
   end_to_end: { completed_count: 5, avg_minutes: 615, avg_hours: 10.2, min_minutes: 0, max_minutes: 2958 },
   throughput: [{ date: '2026-08-23', completed: 3 }],
@@ -174,9 +175,13 @@ describe('ReportsPanel', () => {
   it('shows the summary for the current slice', async () => {
     await renderPanel();
     // "Records"/"Completed"/"₱50.00" each appear in both the summary cards and
-    // the table below, so assert on the labels unique to the summary.
+    // the table below, so assert on the labels unique to the summary. "Rejected"
+    // now also names an option in the status filter, so exclude <option> nodes
+    // rather than matching on the bare text.
     expect(await screen.findByText('Revenue')).toBeInTheDocument();
-    expect(screen.getByText('Rejected')).toBeInTheDocument();
+    expect(
+      screen.getByText('Rejected', { selector: ':not(option)' })
+    ).toBeInTheDocument();
     // the revenue figure renders (twice: summary card and row amount)
     expect(screen.getAllByText('₱50.00').length).toBeGreaterThan(0);
   });
@@ -191,12 +196,12 @@ describe('ReportsPanel', () => {
     const user = userEvent.setup();
     await renderPanel();
 
-    await user.selectOptions(await screen.findByDisplayValue('All statuses'), 'completed');
+    await user.selectOptions(await screen.findByDisplayValue('All statuses'), STATUS.COMPLETED);
     await user.click(screen.getByRole('button', { name: /apply filters/i }));
 
     await waitFor(() =>
       expect(reportsService.getDocumentReport).toHaveBeenLastCalledWith(
-        expect.objectContaining({ status: 'completed' })
+        expect.objectContaining({ status: STATUS.COMPLETED })
       )
     );
   });
@@ -220,12 +225,12 @@ describe('ReportsPanel', () => {
     const user = userEvent.setup();
     await renderPanel();
 
-    await user.selectOptions(await screen.findByDisplayValue('All statuses'), 'completed');
+    await user.selectOptions(await screen.findByDisplayValue('All statuses'), STATUS.COMPLETED);
     await user.click(screen.getByRole('button', { name: /export these records/i }));
 
     await waitFor(() =>
       expect(reportsService.exportDocumentsCsv).toHaveBeenCalledWith(
-        expect.objectContaining({ status: 'completed' })
+        expect.objectContaining({ status: STATUS.COMPLETED })
       )
     );
   });

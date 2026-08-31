@@ -4,7 +4,7 @@ import { itemAmount, groupTotal, formatPeso } from '@/utils/pricing';
 /**
  * Multi-document request form.
  *
- * A student ticks any number of document types and pays for the whole
+ * A student ticks any number of document types; the whole
  * selection once. Each ticked type expands to its own fields (copies,
  * semesters, attachment), because fees and requirements differ per type.
  *
@@ -40,7 +40,7 @@ export default function NewRequestModal({
 
         <h3 className="text-xl font-black text-gray-900">New Request</h3>
         <p className="text-xs text-gray-400 mt-1 font-semibold pb-5 mb-6 border-b border-gray-100">
-          Select one or more documents — you only pay once for the whole request.
+          Select one or more documents. Nothing is paid now — the College Secretary sets the amount once your documents are printed.
         </p>
 
         <form onSubmit={handleStudentSubmitRequest} className="space-y-6">
@@ -170,7 +170,10 @@ export default function NewRequestModal({
                           {type.requires_attachment && (
                             <div className="flex flex-col gap-1.5">
                               <label className="text-[10px] font-bold text-gray-700 uppercase tracking-widest">
-                                {type.attachment_label || 'Required Attachment'}
+                                {type.attachment_label || 'Supporting Attachment'}
+                                <span className="font-normal normal-case text-gray-400 ml-1">
+                                  · upload now, or bring it to Window 1
+                                </span>
                               </label>
                               <div className="border-2 border-dashed border-gray-300 rounded-xl p-3 bg-white flex items-center justify-center cursor-pointer hover:bg-gray-50 relative">
                                 {selection.file ? (
@@ -180,11 +183,11 @@ export default function NewRequestModal({
                                 ) : (
                                   <span className="text-xs font-bold text-gray-600">
                                     <span className="text-[#15803d]">Click here</span> to upload{' '}
-                                    {type.attachment_helper || 'the required file'}
+                                    {type.attachment_helper || 'the supporting file'}
                                   </span>
                                 )}
                                 <input
-                                  type="file" required
+                                  type="file"
                                   onChange={(e) => updateSelection(type.name, { file: e.target.files[0] })}
                                   className="absolute inset-0 opacity-0 cursor-pointer"
                                 />
@@ -204,7 +207,7 @@ export default function NewRequestModal({
           <div className="bg-gray-50 border border-gray-200 rounded-2xl p-4">
             {selectedNames.length === 0 ? (
               <p className="text-xs text-gray-400 text-center font-semibold">
-                Select at least one document to see your total.
+                Select at least one document to see an estimate.
               </p>
             ) : (
               <>
@@ -224,7 +227,7 @@ export default function NewRequestModal({
                 </div>
                 <div className="flex justify-between items-center pt-3">
                   <span className="text-xs font-bold text-gray-500 uppercase tracking-widest">
-                    Total ({selectedNames.length} document{selectedNames.length > 1 ? 's' : ''})
+                    Estimate ({selectedNames.length} document{selectedNames.length > 1 ? 's' : ''})
                   </span>
                   <span className="text-lg font-black text-[#15803d]">{formatPeso(total)}</span>
                 </div>
@@ -234,7 +237,8 @@ export default function NewRequestModal({
 
           <div className="bg-emerald-50 border border-emerald-100 p-4 rounded-xl text-xs leading-relaxed text-[#15803d] font-bold flex items-center gap-2">
             <span className="w-2 h-2 bg-[#15803d] rounded-full shrink-0"></span>
-            One payment covers every document in this request.
+            An estimate from the standard fee table, not a bill. The College Secretary sets the
+            final amount after printing, and one payment then covers the whole request.
           </div>
 
           <div className="flex justify-end gap-3 pt-2">

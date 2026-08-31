@@ -2,7 +2,18 @@ import NewRequestModal from '@/features/student/components/NewRequestModal';
 import LiveTrackingModal from '@/features/student/components/LiveTrackingModal';
 import MiniSparkline from '@/components/MiniSparkline';
 import { createPortal } from 'react-dom';
-import { getAttachmentHelper, getAttachmentLabel, getProgressVal, getStatusLabel, requiresAttachment } from '@/utils/documentStatus';
+import {
+  STATUS,
+  PIPELINE,
+  getAttachmentHelper,
+  getAttachmentLabel,
+  getProgressVal,
+  getStatusLabel,
+  isAwaitingStudent,
+  isCancellable,
+  requiresAttachment,
+} from '@/utils/documentStatus';
+import { formatPeso } from '@/utils/pricing';
 import useStudentDashboard from '@/features/student/useStudentDashboard';
 import { todayLongDate } from '@/utils/formatters';
 import DashboardAlerts from '@/components/DashboardAlerts';
@@ -17,6 +28,8 @@ export default function StudentDashboard({ user, currentTab, setViewImageUrl }) 
     success,
     error,
     documents,
+    actionRequired,
+    groupTotalFor,
     actionLoading,
     documentTypes,
     documentTypesLoading,
@@ -93,7 +106,7 @@ export default function StudentDashboard({ user, currentTab, setViewImageUrl }) 
                   <div>
                     <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block">IN PROGRESS</span>
                     <span className="text-2xl sm:text-3xl font-display font-black text-gray-900 mt-2 block">
-                      {documents.filter(d => ['pending_payment', 'pending_payment_verification', 'pending_secretary', 'ready_window_1'].includes(d.current_status)).length} <span className="text-sm text-gray-400 font-medium font-sans">in progress</span>
+                      {documents.filter(d => PIPELINE.includes(d.current_status) && d.current_status !== STATUS.COMPLETED).length} <span className="text-sm text-gray-400 font-medium font-sans">in progress</span>
                     </span>
                   </div>
                   <MiniSparkline trend="down" />
@@ -108,7 +121,7 @@ export default function StudentDashboard({ user, currentTab, setViewImageUrl }) 
                   <div>
                     <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block">READY / COMPLETED</span>
                     <span className="text-2xl sm:text-3xl font-display font-black text-gray-900 mt-2 block">
-                      {documents.filter(d => ['completed', 'released'].includes(d.current_status)).length} <span className="text-sm text-gray-400 font-medium font-sans">Completed</span>
+                      {documents.filter(d => d.current_status === STATUS.COMPLETED).length} <span className="text-sm text-gray-400 font-medium font-sans">Completed</span>
                     </span>
                   </div>
                   <MiniSparkline trend="up" />
@@ -119,6 +132,38 @@ export default function StudentDashboard({ user, currentTab, setViewImageUrl }) 
                 </div>
               </div>
             </div>
+
+            {/* Action Required — the one state where nothing moves until the
+                student does something. Everything else is somebody else's move,
+                so this earns a banner rather than a row in the table. */}
+            {actionRequired.length > 0 && (
+              <div className="bg-white rounded-3xl shadow-sm border-2 border-[#15803d] overflow-hidden mt-8">
+                <div className="bg-[#15803d] px-6 py-3 flex items-center gap-2">
+                  <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 9v2m0 4h.01M5 19h14a2 2 0 001.84-2.75L13.74 4a2 2 0 00-3.48 0l-7.1 12.25A2 2 0 005 19z"/></svg>
+                  <h3 className="font-black text-white text-sm uppercase tracking-wider">Action Required — Payment</h3>
+                </div>
+                <div className="p-6 space-y-4">
+                  {actionRequired.map(doc => (
+                    <div key={doc.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-gray-100 last:border-0 last:pb-0">
+                      <div>
+                        <p className="text-sm font-bold text-gray-900">{doc.document_type}</p>
+                        <p className="text-xs font-mono text-gray-400 mt-0.5">#{doc.tracking_number}</p>
+                        <p className="text-xs text-gray-600 mt-2 leading-relaxed">
+                          Your document is ready. Pay <strong className="text-gray-900">{formatPeso(groupTotalFor(doc))}</strong> to collect it —
+                          online here, or bring your payment slip to the Finance Office.
+                        </p>
+                      </div>
+                      <button
+                        onClick={() => { setSelectedDoc({ ...doc, group_total: groupTotalFor(doc) }); setActiveModal('pay'); }}
+                        className="px-6 py-3 bg-[#15803d] hover:bg-[#166534] text-white rounded-2xl text-xs font-bold shadow-sm transition-all whitespace-nowrap shrink-0"
+                      >
+                        Pay {formatPeso(groupTotalFor(doc))}
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* Active Requests Card Table */}
             <div className="bg-white rounded-3xl shadow-sm border border-gray-200 overflow-hidden mt-8">
@@ -158,29 +203,28 @@ export default function StudentDashboard({ user, currentTab, setViewImageUrl }) 
                               </div>
                             </td>
                             <td className="py-4">
-                              <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${doc.current_status === 'completed' || doc.current_status === 'released' ? 'bg-emerald-50 text-[#15803d]' : 'bg-amber-50 text-amber-700'}`}>
+                              <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${doc.current_status === STATUS.COMPLETED ? 'bg-emerald-50 text-[#15803d]' : isAwaitingStudent(doc.current_status) ? 'bg-red-50 text-red-700' : 'bg-amber-50 text-amber-700'}`}>
                                 {getStatusLabel(doc.current_status)}
                               </span>
                             </td>
                             <td className="py-4 text-right pr-4 relative">
                               <div className="flex justify-end gap-2">
-                                {doc.current_status === 'pending_payment' ? (
-                                  <>
-                                    <button 
-                                      onClick={() => { setSelectedDoc(doc); setActiveModal('pay'); }}
-                                      className="px-4 py-1.5 bg-[#15803d] text-white rounded-xl text-xs font-bold hover:bg-[#166534] transition-all shadow-sm flex items-center gap-1.5"
-                                    >
-                                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                                      Pay GCash
-                                    </button>
-                                    <button 
-                                      onClick={() => handleStudentCancelRequest(doc.id)}
-                                      className="px-4 py-1.5 bg-red-50 text-red-600 rounded-xl text-xs font-bold hover:bg-red-100 transition-all border border-red-200 flex items-center gap-1.5"
-                                    >
-                                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M6 18L18 6M6 6l12 12"/></svg>
-                                      Cancel
-                                    </button>
-                                  </>
+                                {isAwaitingStudent(doc.current_status) ? (
+                                  <button
+                                    onClick={() => { setSelectedDoc({ ...doc, group_total: groupTotalFor(doc) }); setActiveModal('pay'); }}
+                                    className="px-4 py-1.5 bg-[#15803d] text-white rounded-xl text-xs font-bold hover:bg-[#166534] transition-all shadow-sm flex items-center gap-1.5"
+                                  >
+                                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                    Pay {formatPeso(groupTotalFor(doc))}
+                                  </button>
+                                ) : isCancellable(doc.current_status) ? (
+                                  <button
+                                    onClick={() => handleStudentCancelRequest(doc.id)}
+                                    className="px-4 py-1.5 bg-red-50 text-red-600 rounded-xl text-xs font-bold hover:bg-red-100 transition-all border border-red-200 flex items-center gap-1.5"
+                                  >
+                                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M6 18L18 6M6 6l12 12"/></svg>
+                                    Cancel
+                                  </button>
                                 ) : (
                                   <button 
                                     onClick={() => { setSelectedDoc(doc); setActiveModal('tracking'); }}
@@ -248,7 +292,7 @@ export default function StudentDashboard({ user, currentTab, setViewImageUrl }) 
                             <td className="py-4 font-mono text-xs text-gray-800 font-bold">#{doc.tracking_number ? doc.tracking_number.slice(0, 10).toUpperCase() : doc.id}</td>
                             <td className="py-4">
                               <span className="px-3 py-1 bg-emerald-50 text-[#15803d] text-[10px] font-black rounded-full uppercase tracking-wider">
-                                {doc.current_status === 'completed' || doc.current_status === 'released' ? 'Released' : 'Processing'}
+                                {doc.current_status === STATUS.COMPLETED ? 'Released' : 'Processing'}
                               </span>
                             </td>
                           </tr>

@@ -16,6 +16,8 @@ vi.mock('@/services/documentsService', () => ({
   getDocuments: vi.fn(),
   getDashboardStats: vi.fn(),
   verifyPayment: vi.fn(),
+  logWalkInPayment: vi.fn(),
+  scanReceipt: vi.fn(),
 }));
 
 vi.mock('@/services/authService', () => ({}));
@@ -38,6 +40,7 @@ vi.mock('@/features/finance/components/FinanceVerificationModal', () => ({
 
 import * as documentsService from '@/services/documentsService';
 import FinanceDashboard from '@/features/finance/FinanceDashboard';
+import { STATUS } from '@/utils/documentStatus';
 
 const USER = { id: 4, full_name: 'Finance Officer', role: 'clerk', desk_assignment: 'Finance' };
 
@@ -47,7 +50,7 @@ const DOC = {
   student_id: 'STU2024001',
   student_name: 'Ana Reyes',
   document_type: 'Transcript of Records',
-  current_status: 'pending_payment_verification',
+  current_status: STATUS.PENDING_FINANCE_VERIFICATION,
   payment_status: 'UNPAID',
   amount: '200.00',
   copies: 1,

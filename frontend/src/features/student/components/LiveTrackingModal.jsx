@@ -1,4 +1,34 @@
 import { createPortal } from 'react-dom';
+import { STATUS, PIPELINE } from '@/utils/documentStatus';
+
+/**
+ * The tracker's dots, one per pipeline stage.
+ *
+ * Short labels because eight of them share one row on a phone; the full
+ * explanation is in the panel underneath.
+ */
+const TRACKER_NODES = [
+  { step: 1, label: 'Filed', key: STATUS.PENDING_W1_INTAKE },
+  { step: 2, label: 'Intake', key: STATUS.PENDING_SEC_EVALUATION },
+  { step: 3, label: 'Processing', key: STATUS.SEC_PROCESSING },
+  { step: 4, label: 'Payment', key: STATUS.PENDING_STUDENT_PAYMENT },
+  { step: 5, label: 'Verifying', key: STATUS.PENDING_FINANCE_VERIFICATION },
+  { step: 6, label: 'Paid', key: STATUS.PAID_PENDING_SEC_RELEASE },
+  { step: 7, label: 'Window 1', key: STATUS.READY_FOR_RELEASE },
+  { step: 8, label: 'Released', key: STATUS.COMPLETED },
+];
+
+/** What is actually happening, in words the student can act on. */
+const STAGE_MESSAGE = {
+  [STATUS.PENDING_W1_INTAKE]: 'Your request has been filed. Window 1 is checking the paperwork.',
+  [STATUS.PENDING_SEC_EVALUATION]: 'Your request is with the College Secretary for evaluation.',
+  [STATUS.SEC_PROCESSING]: 'Your document is being prepared and printed. You will be told the amount once it is ready.',
+  [STATUS.PENDING_STUDENT_PAYMENT]: 'Your document is ready. Pay online here, or bring your payment slip to the Finance Office.',
+  [STATUS.PENDING_FINANCE_VERIFICATION]: 'The Finance Office is verifying your payment.',
+  [STATUS.PAID_PENDING_SEC_RELEASE]: 'Payment confirmed. The College Secretary is passing your document to Window 1.',
+  [STATUS.READY_FOR_RELEASE]: 'Ready for pick-up at Window 1. Bring your Official Receipt.',
+  [STATUS.COMPLETED]: 'This request is complete. The document has been released.',
+};
 
 export default function LiveTrackingModal({ 
   selectedDoc, 
@@ -16,7 +46,7 @@ export default function LiveTrackingModal({
 
         <div className="flex justify-between items-center border-b border-gray-100 pb-4">
           <h3 className="text-lg font-black text-gray-900 truncate pr-4">{selectedDoc.document_type || 'Transcript of Records (TOR)'}</h3>
-          <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider shrink-0 ${selectedDoc.current_status === 'completed' || selectedDoc.current_status === 'released' ? 'bg-emerald-50 text-[#15803d]' : 'bg-amber-50 text-amber-700'}`}>
+          <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider shrink-0 ${selectedDoc.current_status === STATUS.COMPLETED ? 'bg-emerald-50 text-[#15803d]' : 'bg-amber-50 text-amber-700'}`}>
             {getStatusLabel(selectedDoc.current_status)}
           </span>
         </div>
@@ -44,21 +74,15 @@ export default function LiveTrackingModal({
             </div>
 
             {/* Nodes */}
-            {[
-              { step: 1, label: 'Submitted', key: 'pending_payment' },
-              { step: 2, label: 'Verifying', key: 'pending_payment_verification' },
-              { step: 3, label: 'Secretary', key: 'pending_secretary' },
-              { step: 4, label: 'Window 1', key: 'ready_window_1' },
-              { step: 5, label: 'Released', key: 'completed' }
-            ].map((node, index) => {
-              const currentIndex = selectedDoc.current_status === 'pending_payment' ? 0 :
-                                   selectedDoc.current_status === 'pending_payment_verification' ? 1 :
-                                   selectedDoc.current_status === 'pending_secretary' ? 2 :
-                                   selectedDoc.current_status === 'ready_window_1' ? 3 : 4;
-              
-              // For 'completed' or 'released' status, step 5 is fully completed.
-              const isReleased = selectedDoc.current_status === 'completed' || selectedDoc.current_status === 'released';
-              const isCompleted = index < currentIndex || (index === 4 && isReleased);
+            {TRACKER_NODES.map((node, index) => {
+              // Derived from the shared pipeline rather than a second copy of
+              // it, so a change to the workflow cannot leave the student's
+              // tracker describing a process the office no longer follows.
+              const rawIndex = PIPELINE.indexOf(selectedDoc.current_status);
+              const currentIndex = rawIndex === -1 ? 0 : rawIndex;
+
+              const isReleased = selectedDoc.current_status === STATUS.COMPLETED;
+              const isCompleted = index < currentIndex || (index === TRACKER_NODES.length - 1 && isReleased);
               const isActive = index === currentIndex && !isReleased;
               
               let exactTime = null;
@@ -66,7 +90,7 @@ export default function LiveTrackingModal({
                 if (index === 0) {
                   exactTime = new Date(selectedDoc.created_at);
                 } else {
-                  const log = selectedDoc.step_logs.find(l => l.to_status === node.key || (node.key === 'completed' && l.to_status === 'released'));
+                  const log = selectedDoc.step_logs.find(l => l.to_status === node.key);
                   if (log && log.timestamp_completed) {
                     exactTime = new Date(log.timestamp_completed);
                   } else if (log && log.timestamp_started) {
@@ -119,11 +143,12 @@ export default function LiveTrackingModal({
           {/* Context Panel */}
           <div className="mt-4 bg-emerald-50/50 border border-emerald-100 rounded-2xl p-5 text-center">
             <p className="text-xs font-semibold text-emerald-800 leading-relaxed">
-              {selectedDoc.current_status === 'pending_payment' && 'Your document request is saved. Please complete your GCash payment to begin processing.'}
-              {selectedDoc.current_status === 'pending_payment_verification' && 'Your GCash receipt is currently being verified by the Finance Office.'}
-              {selectedDoc.current_status === 'pending_secretary' && 'Your payment was verified. The College Secretary is now evaluating your documents.'}
-              {selectedDoc.current_status === 'ready_window_1' && 'Success! Your document is printed and ready for pickup at Window 1.'}
-              {(selectedDoc.current_status === 'completed' || selectedDoc.current_status === 'released') && 'This request is complete. The document has been released.'}
+              {STAGE_MESSAGE[selectedDoc.current_status] || 'Your request is being processed.'}
+              {selectedDoc.estimated_ready_date && [STATUS.PENDING_SEC_EVALUATION, STATUS.SEC_PROCESSING].includes(selectedDoc.current_status) && (
+                <span className="block mt-2 font-bold">
+                  Expected ready by {new Date(selectedDoc.estimated_ready_date).toLocaleDateString()}.
+                </span>
+              )}
             </p>
           </div>
         </div>
