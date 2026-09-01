@@ -2,6 +2,8 @@
 
 This file serves as the workspace-scoped memory and developer rulebook for any AI agents working on Project TRACE. Read this to immediately sync with the current system state, database schema, credentials, and recent architectural changes.
 
+> **Note:** `CLAUDE.md` at the repo root is the primary, up-to-date agent guide (folder schema, architecture, commands). This file is retained as historical phase-by-phase memory. Where they disagree, trust `CLAUDE.md` and `docs/CODING_PREFERENCES.md`.
+
 ---
 
 ## 💾 System State & Feature Memory
@@ -74,7 +76,43 @@ Run [migration.js](file:///Users/jhervin/project-trace/backend/database/migratio
 
 ---
 
-## 📍 Integration Next Steps (Phase 5)
+---
+
+## 🏗️ Architecture Restructure (Phase 8 — Completed 2026-08-22)
+The codebase was migrated into a strict layered folder schema. **File paths referenced earlier in this document are historical.** Current locations:
+
+* **Backend** — `backend/src/` follows route → controller → service → model. Entry point `src/server.js` → `src/app.js`. The old `backend/routes/`, `backend/config/`, `backend/middleware/`, and `backend/server.js` no longer exist. Business logic is in `src/services/` (`auth`, `documents`, `payments`, `notification`, `aiEngine`, `n8n`); all SQL is in `src/models/*.model.js`; env config is centralized in `src/config/env.js`.
+* **Frontend** — `DashboardPage.jsx` is now a thin role dispatcher; each command center lives in `src/features/<role>/` (student, finance, window1, secretary, admin) with its own modals. `useAuth` moved to `src/hooks/useAuth.js` (`utils/hooks.js` is deleted), `Layout.jsx` to `src/layouts/`, and `services/api.js` split into `authService.js` + `documentsService.js`. Imports use the `@/` → `src/` alias.
+* **Rules** — components never call APIs directly; controllers hold no logic; no hardcoded secrets (see `docs/CODING_PREFERENCES.md`).
+
+**Since then (Phases 9–10):** five security holes fixed (payment IDOR, forged document ownership, two unauthenticated machine endpoints, world-readable uploads, no login throttling) and `JWT_SECRET` rotated. Vitest added to both packages — **284 tests**, run with `npm test` in each; backend tests must be `.cjs`. `useDashboard.js` is gone: each role now has its own hook in `features/<role>/`, built on `hooks/useDashboardCore.js`. Ports moved — frontend **5273**, backend **3300**, AI engine **5005**.
+
+**Category 1 of the panel feedback (done):** student `enrollment_status` + `study_load`; multi-document requests (shared `request_group_id`, one payment, independent desk routing); admin-configurable Graduate Application (`grad_form_fields`); document types and colleges moved into reference tables with admin-editable fees. Fees are computed server-side; `uploadDocument` ignores a client-supplied `student_id`.
+
+**Categories 2–4 (done):** Category 2 — admin maintenance CRUD (delete is always deactivation), report filtering, hand-written formula-injection-safe CSV, `step_logs` efficiency analytics. Category 3 — four admin-managed payment methods behind a provider abstraction, Socket.IO real-time notifications with a JWT-authenticated handshake, SMTP placeholders removed. Category 4 — mobile navigation drawer (the sidebar rail is `hidden md:flex`, so phones had none), queue tables capped at `max-h-[60vh]` with sticky headers, and Account Settings redesigned as a profile card with avatar upload through the authenticated `/api/files` route. **All four panel categories are now closed.** 483 tests (318 backend + 165 frontend).
+
+**Pre-deployment refinement (done):** forgot-password recovery — DB-backed **single-use** tokens
+(`password_resets`, SHA-256 hashed, expiry compared in SQL), an enumeration-resistant
+`forgot-password` that answers identically for real and unknown accounts, and a console-logged link
+while SMTP is unconfigured. n8n routing repaired: the workflow had been dead since 2026-08-22 with
+**three** breakages (port 3000 vs 3300, no `x-webhook-secret`, and a hardcoded `SEC001` that no
+longer exists) — its URL and secret now come from the `TRACE_API_URL` / `TRACE_WEBHOOK_SECRET` n8n
+env vars, and routing is **load-bearing** (payload carries `college_code`; `assigned_clerk_id`
+affects the Secretary queue, with an unassigned fallback to the college filter so the 10,015 legacy
+records stay visible). Also: fixed a live `triggerNotification` TypeError in the Finance modal,
+`/api/health` now does a real DB check and 503s, CORS is a shared `FRONTEND_URL` allowlist for both
+REST and Socket.IO, and legacy `payments.service.js` is deleted. **514 tests** (339 backend + 175
+frontend), zero lint errors.
+
+**Open items:** rotate the UniSMS key (still in git history) and configure SMTP — both are the
+maintainer's to do, not an agent's. `JWT_SECRET` is already rotated. The seven `SEC-*` secretaries
+are now in `seed.sql` and the legacy `SEC001` is gone. Production rollout (Dockerization, a
+production API URL for the built frontend, persistent uploads, managed-DB TLS, cloud deploy) is the
+only phase left.
+
+---
+
+## 📍 Integration Next Steps
 If continuing system development:
 1. **Machine Learning Prep**: Run `ai-engine/mock_data_gen.py` to seed historical log timestamps into the database to immediately train the Prophet forecasting models and Random Forest insights engine.
 2. **Forgot Password Flow**: Implement the full JWT reset token email flow in `auth.js` and build the `/reset-password` frontend route.

@@ -1,7 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 
-const API_URL = 'http://localhost:3000/api';
+const API_URL = `http://localhost:${process.env.PORT || 3300}/api`;
 
 async function runAudit() {
   console.log('🚀 Starting End-to-End System Audit...\n');

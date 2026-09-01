@@ -6,3 +6,43 @@ body {
   color: #1f2937; /* text-gray-800 */
   -webkit-font-smoothing: antialiased;
 }
+
+/*
+ * Printing a payment slip.
+ *
+ * The slip is a modal on top of a full dashboard, so printing the page as-is
+ * would produce several pages of queue tables with the slip buried inside.
+ * `.print-slip` marks the one element that should reach the printer; everything
+ * else is hidden for the duration.
+ *
+ * This lives here rather than in a <style> tag because it has to reach elements
+ * the component does not own — the app shell it is layered over.
+ */
+@media print {
+  body * {
+    visibility: hidden;
+  }
+
+  .print-slip,
+  .print-slip * {
+    visibility: visible;
+  }
+
+  .print-slip {
+    position: absolute;
+    inset: 0;
+    margin: 0;
+    padding: 24px;
+    width: 100%;
+    max-height: none;
+    overflow: visible;
+    box-shadow: none;
+    border: none;
+    border-radius: 0;
+  }
+
+  /* Backdrop and any control that would print as a grey slab or a dead button. */
+  .print-hide {
+    display: none !important;
+  }
+}

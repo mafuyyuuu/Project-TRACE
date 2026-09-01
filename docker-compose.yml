@@ -1,0 +1,163 @@
+# ---------------------------------------------------------------------------
+# Project TRACE — all four services plus MySQL.
+#
+# Gives local parity with the deployed system and doubles as the deployment
+# unit for the Oracle VM. In the Vercel deployment the `frontend` service is
+# simply not started (Vercel builds and serves it); everything else is the same.
+#
+#   docker compose up -d --build
+#   docker compose --profile local-frontend up -d --build   # include the SPA
+# ---------------------------------------------------------------------------
+
+services:
+  mysql:
+    image: mysql:8
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD:-trace}
+      MYSQL_DATABASE: ${DB_NAME:-trace_db}
+    volumes:
+      - mysql-data:/var/lib/mysql
+      # *-entrypoint.d runs only on an empty data directory, so this seeds a
+      # fresh volume once and never re-runs against real data.
+      - ./backend/database/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+      - ./backend/database/seed.sql:/docker-entrypoint-initdb.d/02-seed.sql:ro
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-p${DB_PASSWORD:-trace}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  backend:
+    build: ./backend
+    restart: unless-stopped
+    depends_on:
+      mysql:
+        condition: service_healthy
+    environment:
+      PORT: 3300
+      # Defaults point at the bundled `mysql` service. Override all five in
+      # .env to use a managed database instead — the bundled container then
+      # simply goes unused (`docker compose stop mysql` once the stack is up).
+      DB_HOST: ${DB_HOST:-mysql}
+      DB_PORT: ${DB_PORT:-3306}
+      DB_USER: ${DB_USER:-root}
+      DB_PASSWORD: ${DB_PASSWORD:-trace}
+      DB_NAME: ${DB_NAME:-trace_db}
+      # In-cluster traffic on the compose network is not TLS; a managed
+      # database outside it needs DB_SSL=true.
+      DB_SSL: ${DB_SSL:-false}
+      # The PEM itself, not a path — only when the provider issues its own CA.
+      DB_SSL_CA: ${DB_SSL_CA:-}
+      # Keep under the managed database's per-account connection cap.
+      DB_POOL_LIMIT: ${DB_POOL_LIMIT:-10}
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required}
+      WEBHOOK_SECRET: ${WEBHOOK_SECRET:?WEBHOOK_SECRET is required}
+      FRONTEND_URL: ${FRONTEND_URL:-}
+      # Caddy is the single proxy hop in front of this.
+      TRUST_PROXY: ${TRUST_PROXY:-1}
+      AI_ENGINE_URL: http://ai-engine:5005
+      N8N_URL: http://n8n:5678
+      UNISMS_SECRET_KEY: ${UNISMS_SECRET_KEY:-}
+      UNISMS_SENDER_ID: ${UNISMS_SENDER_ID:-TRACE}
+      TEST_PHONE_NUMBER: ${TEST_PHONE_NUMBER:-}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASS: ${SMTP_PASS:-}
+      SMTP_FROM: ${SMTP_FROM:-}
+    volumes:
+      # The one piece of state outside MySQL. Without it, uploaded IDs,
+      # receipts and avatars are lost on every redeploy.
+      - uploads:/app/uploads
+    ports:
+      - "3300:3300"
+
+  ai-engine:
+    build: ./ai-engine
+    restart: unless-stopped
+    depends_on:
+      mysql:
+        condition: service_healthy
+    environment:
+      PORT: 5005
+      # Mirrors the backend: same database, same managed-provider overrides.
+      DB_HOST: ${DB_HOST:-mysql}
+      DB_PORT: ${DB_PORT:-3306}
+      DB_USER: ${DB_USER:-root}
+      DB_PASSWORD: ${DB_PASSWORD:-trace}
+      DB_NAME: ${DB_NAME:-trace_db}
+      DB_SSL: ${DB_SSL:-false}
+      DB_SSL_CA: ${DB_SSL_CA:-}
+    ports:
+      - "5005:5005"
+
+  n8n:
+    image: docker.n8n.io/n8nio/n8n
+    restart: unless-stopped
+    environment:
+      # The routing workflow reads both of these instead of hardcoding them —
+      # baking in a port is exactly how routing silently broke for a month.
+      TRACE_API_URL: http://backend:3300
+      TRACE_WEBHOOK_SECRET: ${WEBHOOK_SECRET:?WEBHOOK_SECRET is required}
+      # Without this n8n hides $env from expressions, so the two variables above
+      # are invisible to the workflow: the callback goes out with an empty
+      # x-webhook-secret, the backend answers 401, and the execution is still
+      # recorded as a success. Nothing looks wrong except that no document is
+      # ever assigned to a secretary.
+      N8N_BLOCK_ENV_ACCESS_IN_NODE: "false"
+      N8N_SECURE_COOKIE: "false"
+    volumes:
+      - n8n-data:/home/node/.n8n
+    ports:
+      - "5678:5678"
+
+  # HTTPS termination. Enabled with `--profile tls` on the deployed VM; not
+  # used locally, where plain http on :3300 is fine.
+  #
+  # Required in production: the Vercel-hosted frontend is https, and a browser
+  # will not let an https page call an http API. Caddy handles Let's Encrypt
+  # issuance and renewal by itself, but needs a real hostname — a bare IP
+  # cannot be issued a certificate.
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    depends_on:
+      - backend
+    environment:
+      # Soft default so a local `docker compose up` (which does not start this
+      # service) still interpolates: compose evaluates the whole file
+      # regardless of which profiles are active. Set it for real before using
+      # --profile tls, or Caddy serves a self-signed cert on localhost.
+      API_DOMAIN: ${API_DOMAIN:-localhost}
+      ACME_EMAIL: ${ACME_EMAIL:-}
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    ports:
+      - "80:80"
+      - "443:443"
+    profiles: ["tls"]
+
+  # Optional: only for a single-box deployment where nginx also serves the SPA.
+  # Not used when Vercel hosts the frontend.
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        VITE_API_URL: ${VITE_API_URL:-}
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - "8080:80"
+    profiles: ["local-frontend"]
+
+volumes:
+  mysql-data:
+  uploads:
+  n8n-data:
+  caddy-data:
+  caddy-config:

@@ -112,6 +112,11 @@ thead th { background: var(--gray-50); color: var(--gray-500); font: 700 11.5px 
 .dev-section h3, .dev-section strong { color: white; }
 .dev-section h4 { color: #9ca3af; }
 .dev-section p, .dev-section li { color: #d1d5db; }
+/* Callouts keep their light background inside the dark dev section, so their
+   text must stay dark or it becomes unreadable. */
+.dev-section .callout p, .dev-section .callout li { color: var(--gray-700); }
+.dev-section .callout strong { color: var(--gray-900); }
+.dev-section .callout code { background: rgba(17,24,39,0.08); color: var(--gray-900); }
 @media (max-width: 760px) {
   .help-shell { padding: 36px 20px 64px; }
   .dev-section .help-shell { padding: 0 24px; }
@@ -128,7 +133,7 @@ thead th { background: var(--gray-50); color: var(--gray-500); font: 700 11.5px 
   </div>
   <h1>Project TRACE — How it works, end to end</h1>
   <p class="lede">
-    This document is the canonical reference for <strong>Project TRACE</strong> (Tracking, Routing, and Analytics Computing Engine) for the Pamantasan ng Lungsod ng Pasig (PLP) Registrar's Office. It outlines the core digital workflow, the Command-Center UI architecture, manual payment verifications, and Machine Learning forecasting.
+    This document is the canonical reference for <strong>Project TRACE</strong> (Tracking, Routing, and Automated Credential Engine) for the Pamantasan ng Lungsod ng Pasig (PLP) Registrar's Office. It outlines the core digital workflow, the Command-Center UI architecture, manual payment verifications, and Machine Learning forecasting.
   </p>
 
   <h4 style="margin-top: 8px; color: var(--gray-500); font: 700 11.5px var(--font-body); text-transform: uppercase; letter-spacing: 0.12em;">Design principles & UI Mandates</h4>
@@ -204,15 +209,18 @@ thead th { background: var(--gray-50); color: var(--gray-500); font: 700 11.5px 
   </ul>
 
   <h2 id="payment-flow">5. The Manual Payment Workflow</h2>
-  <p>To comply with university restrictions on third-party payment gateways, TRACE utilizes a secure manual verification pipeline.</p>
+  <p>To comply with university restrictions on third-party payment gateways, TRACE collects payment manually against the Finance Office's own records. Payment happens <strong>late</strong> in the pipeline: the registrar cannot quote a price until a document has been printed, because the College Secretary prices it from the page count.</p>
   <div class="callout tip">
     <span class="label">Workflow</span>
-    <p>When a student initiates a request, the UI presents a static GCash QR code belonging to the PLP Finance office. The student pays via their app, then uploads a screenshot and inputs the Reference Number into TRACE. The Node.js backend flags the document as <code>PENDING_PAYMENT_VERIFICATION</code>. It sits in the <strong>Finance Clerk's</strong> dashboard until they manually confirm the transaction against their records and click "Approve."</p>
+    <p>The College Secretary prints the document, then sets the amount &mdash; recording the page count, a justification and their own clerk id alongside it. When the last document in a request has a price, the whole request becomes payable at once: the student is notified, the Finance Office is notified, and an <strong>Order of Payment</strong> slip is produced carrying a QR code of the tracking number.</p>
+    <p>The student then pays either way. <strong>Online</strong>, they upload a reference and proof from their dashboard. <strong>At the counter</strong>, they carry the slip to the Finance Office, and the clerk logs the Official Receipt &mdash; typing the details, or scanning the OR and letting the AI engine fill them in, re-checking every field before saving. Both land in the same verification queue: logging a counter payment does not clear it.</p>
+    <p>The Finance Clerk confirms the transaction against their records and approves. That single action is the <strong>only</strong> place in the system that writes <code>payment_status = 'PAID'</code>. The Secretary decides the charge; Finance confirms the money &mdash; holding those two authorities apart is what makes the money trail auditable.</p>
   </div>
 
   <h2 id="ocr">6. Split-Screen OCR Evaluation (AI)</h2>
   <p>When the College Secretary clicks a pending document, it triggers the <strong>Evaluation Modal</strong>.</p>
-  <p>The modal locks the background and presents a split-screen view. The left side displays the original scanned image with simulated AI bounding boxes. The right side displays the extracted data (Student ID, Name, Type) alongside an AI Confidence Score. The Secretary verifies the fields and clicks "Approve & Route".</p>
+  <p>The modal locks the background and presents a split-screen view. The left side displays the original scanned image with simulated AI bounding boxes. The right side displays the extracted data (Student ID, Name, Type) alongside an AI Confidence Score. The Secretary corrects anything the OCR misread, gives the student an <strong>estimated ready date</strong>, and clicks "Accept for Processing".</p>
+  <p>Pricing is a separate step, and deliberately so: the amount is only knowable once the document has actually been printed and its pages counted. The Secretary returns to it from the Processing queue.</p>
 
   <h2 id="ml">7. Predictive Analytics &amp; Admin Tools</h2>
   <p>The Registrar Admin view is a dedicated analytics and operations command center.</p>
@@ -246,23 +254,92 @@ thead th { background: var(--gray-50); color: var(--gray-500); font: 700 11.5px 
     <p>This section is the technical build-order companion for the development team.</p>
 
     <h3>9.1 Data Model (MySQL)</h3>
+    <p>Reflects the live schema after <code>backend/database/migration.js</code> has been applied.</p>
     <pre><code>Table: documents
 {
   id: INT (PK, Auto-Increment),
-  tracking_number: VARCHAR (Unique Hash) NOT NULL,
+  tracking_number: VARCHAR(64) (Unique Hash) NOT NULL,
+  request_group_id: VARCHAR(64) (Indexed),          // documents requested & paid for together
   student_id: VARCHAR(50) (Nullable),
   student_name: VARCHAR(255) (Nullable),
   document_type: VARCHAR(100) (Nullable),
-  current_status: VARCHAR(50) DEFAULT 'pending_payment', // values: 'pending_payment', 'pending_payment_verification', 'pending_secretary', 'ready_window_1', 'completed', 'rejected'
+  current_status: VARCHAR(50) DEFAULT 'PENDING_W1_INTAKE',
+  //   PENDING_W1_INTAKE -&gt; PENDING_SEC_EVALUATION -&gt; SEC_PROCESSING
+  //   -&gt; PENDING_STUDENT_PAYMENT -&gt; PENDING_FINANCE_VERIFICATION
+  //   -&gt; PAID_PENDING_SEC_RELEASE -&gt; READY_FOR_RELEASE -&gt; COMPLETED
+  //   A VARCHAR, not an ENUM: the vocabulary and the legal transitions live in
+  //   backend/src/utils/documentStatus.js, which also covers the Python engine
+  //   and the React queues. REJECTED / APPROVED persist on pre-2026-08 rows only.
+  estimated_ready_date: DATE (Nullable),            // what the Secretary promised the student
   payment_status: ENUM('UNPAID', 'PAID') DEFAULT 'UNPAID',
   assigned_clerk_id: INT (FK, Nullable),
   file_path: VARCHAR(500) (Nullable),
   original_filename: VARCHAR(255) (Nullable),
-  receipt_image_path: VARCHAR(500) (Nullable),
+  receipt_image_path: VARCHAR(500) (Nullable),      // student's uploaded GCash screenshot
+  official_receipt_path: VARCHAR(500) (Nullable),   // Finance Clerk's official receipt
   payment_reference_id: VARCHAR(255) (Nullable),
   gcash_reference_no: VARCHAR(255) (Nullable),
+  checkout_url: VARCHAR(500) (Nullable),
+  amount: DECIMAL(10,2) DEFAULT 150.00,             // an estimate until priced_at is set
+  page_count: INT (Nullable),                       // basis for the charge
+  pricing_notes: VARCHAR(255) (Nullable),           // why the amount is what it is
+  priced_by_clerk_id: INT (FK, Nullable),           // which Secretary set it
+  priced_at: DATETIME (Nullable),                   // gates billing — never `amount`
+  stub_issued_at: DATETIME (Nullable),              // Order of Payment printed
+  payment_channel: VARCHAR(20) (Nullable),          // 'digital' | 'walk_in'
+  or_number: VARCHAR(100) (Nullable),               // Official Receipt, counter payments
+  or_date: DATE (Nullable),
+  logged_by_clerk_id: INT (FK, Nullable),           // Finance clerk who logged a walk-in
+  copies: INT DEFAULT 1,
+  purpose: VARCHAR(255) (Nullable),                 // JSON blob of the dynamic form fields
   ocr_raw_text: TEXT (Nullable),
-  ocr_extracted_data: JSON (Nullable)
+  ocr_extracted_data: JSON (Nullable),
+  ocr_confidence_score: DECIMAL(5,2) (Nullable),    // (fields found / 3) * 100
+  created_at: TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at: TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+}
+
+Table: users (status columns)
+{
+  // Two orthogonal axes: a student can be Irregular *and* Active, whereas
+  // graduated / dropout / transferred are mutually exclusive outcomes.
+  enrollment_status: ENUM('active','graduated','dropout','transferred') DEFAULT 'active',
+  study_load: ENUM('regular','irregular') DEFAULT 'regular',
+  // Uploaded avatar filename only ('avatar-*'). NULL falls back to a
+  // generated placeholder. Read through /api/files, never a public path.
+  profile_picture: VARCHAR(500) NULL
+}
+
+Table: colleges
+{
+  id, name (UNIQUE), short_code, is_active, sort_order
+}
+
+Table: document_types            // replaces hardcoded frontend option lists
+{
+  id, name (UNIQUE),
+  base_fee: DECIMAL(10,2),       // admin-editable
+  fee_rule: ENUM('flat','per_semester_block'),
+  requires_attachment: BOOLEAN, attachment_label, attachment_helper,
+  is_active, sort_order
+}
+
+Table: grad_form_fields          // the Registrar defines the application form
+{
+  id, field_key (UNIQUE), label,
+  field_type: ENUM('text','textarea','number','date','select','email','tel'),
+  options: JSON, placeholder, help_text, is_required, is_active, sort_order
+}
+
+Table: grad_applications
+{
+  id, student_id, status: ENUM('submitted','under_review','approved','rejected'),
+  reviewed_by, notes, submitted_at, updated_at
+}
+
+Table: grad_application_values   // one row per answer — new fields need no migration
+{
+  id, application_id (FK), field_key, value
 }
 
 Table: step_logs
@@ -282,8 +359,90 @@ Table: step_logs
       <span class="label">UI Spec Adherence</span>
       <p>The UI must strictly adhere to the "Command-Center" philosophy. Do not wrap dashboards in max-width containers. Ensure the "TRACE" branding is prominent in the header. Use the exact specified Tailwind color palette (Pine & Dusk).</p>
     </div>
-    
-    <h3 style="margin-top: 48px;">9.2 Technical Rollout Phases</h3>
+
+    <h3 style="margin-top: 48px;">9.2 Codebase Architecture</h3>
+    <p>The codebase follows a strict layered folder schema. The full rules live in <code>docs/CODING_PREFERENCES.md</code> and <code>CLAUDE.md</code>; this is the shape.</p>
+    <pre><code>backend/src/
+  config/        Environment variables (env.js), MySQL pool (db.js)
+  controllers/   HTTP req/res only — no business logic
+  middlewares/   auth (JWT), upload (multer), errorHandler
+  models/        Raw parameterized SQL, one function per query
+  routes/        URL -> controller wiring only
+  services/      Business logic: auth, documents (the pipeline),
+                 notification (SMS/email/in-app), aiEngine, n8n
+  utils/         AppError helpers, pricing (calculateAmount)
+
+frontend/src/
+  assets/        Images and static files
+  components/    Reusable UI only — never calls an API
+  features/      One folder per role: student, finance, window1,
+                 secretary, admin — each owns its modals AND its
+                 own use&lt;Role&gt;Dashboard hook
+  hooks/         useAuth, useDashboardCore, useAuthedFile
+  layouts/       Layout.jsx (header, sidebar, notifications)
+  pages/         Route components: Login, Signup, Dashboard
+  services/      api.js (axios instance), authService, documentsService
+  store/         Intentionally empty — no Zustand/Redux, see below
+  utils/         formatters, documentStatus, env</code></pre>
+
+    <div class="callout spec">
+      <span class="label">Three Non-Negotiable Rules</span>
+      <p><strong>1.</strong> UI components never call APIs directly — all calls live in <code>services/</code>.
+      <strong>2.</strong> Controllers only handle <code>req</code>/<code>res</code>; logic belongs in <code>services/</code>.
+      <strong>3.</strong> Never hardcode secrets, not even as a <code>||</code> fallback — read <code>.env</code> through <code>src/config/env.js</code> and document every variable in <code>backend/.env.example</code>.</p>
+    </div>
+
+    <div class="callout spec">
+      <span class="label">Multi-Document Requests</span>
+      <p>A student may request several document types at once. Each becomes its own <code>documents</code> row under a shared <code>request_group_id</code>: <strong>payment is per group</strong> (one GCash receipt settles all of them), while <strong>routing is per document</strong>, so a Diploma can reach Window 1 while a Transcript is still with the Secretary. A single-document request is simply a group of one, so all pre-existing behaviour is unchanged.</p>
+    </div>
+
+    <div class="callout spec">
+      <span class="label">Configured, Not Coded</span>
+      <p>Document types, colleges, fees and the Graduate Application's fields live in database tables rather than in source. The Registrar can add a document type, change a fee, or add a form question without a deploy — and the graduate form's <em>validation</em> is generated from its field definitions, so it follows automatically. Fees are always recomputed server-side; a client-supplied amount is ignored.</p>
+    </div>
+
+    <div class="callout spec">
+      <span class="label">Deletion Is Deactivation</span>
+      <p>No maintenance endpoint hard-deletes. Documents reference document types by name and users reference colleges by name, so removing a row would orphan historical records in a system of record. <code>is_active</code> hides an entry from new requests while leaving history intact and restorable. A document type already in use cannot be renamed, and an admin cannot deactivate their own account.</p>
+    </div>
+
+    <div class="callout spec">
+      <span class="label">Reporting &amp; Export</span>
+      <p>The report rows, their summary totals and the CSV export share a single filter object, so what is exported always matches what is on screen. <code>utils/csv.js</code> is written by hand: it escapes commas, quotes and newlines, neutralises spreadsheet formula injection, and the response carries a UTF-8 BOM so Excel renders accented names correctly. Efficiency analytics derive entirely from the <code>step_logs</code> audit trail; per-clerk figures are reported as workload distribution, never as a performance score.</p>
+    </div>
+
+    <div class="callout spec">
+      <span class="label">Payments</span>
+      <p>Four methods &mdash; GCash, Credit/Debit Card, Online Banking and Over-the-Counter &mdash; each an admin-managed row with its own instructions and reference label. All resolve to the <strong>manual</strong> provider: the student pays out-of-band and a Finance Clerk verifies against PLP's own records, because payments must reconcile with Finance's books rather than a third party's dashboard. A provider registry in <code>services/payment/</code> means a hosted gateway can be added later without changing the document pipeline.</p>
+    </div>
+
+    <div class="callout spec">
+      <span class="label">Real-Time Notifications</span>
+      <p>Socket.IO shares the HTTP server, so there is no extra port. <strong>Socket.IO supplies no authentication</strong>, so the handshake token is verified against the same <code>JWT_SECRET</code> as the REST API and each socket joins only its own <code>user:&lt;id&gt;</code> and desk rooms &mdash; a connection can never receive another account's notifications. Measured latency from a student's payment submission to the Finance clerk's dashboard is <strong>55&nbsp;ms</strong>. If realtime is unavailable the notification is still stored and appears on the next fetch, so a socket fault can never affect a desk action.</p>
+    </div>
+
+    <div class="callout spec">
+      <span class="label">Testing</span>
+      <p>Vitest runs per package: <code>cd backend &amp;&amp; npm test</code> and <code>cd frontend &amp;&amp; npm test</code> (523 tests, no database needed — the model layer is mocked). Backend tests must use the <code>.cjs</code> extension: the source is CommonJS, and only a CJS test shares Node's require cache with it, which is what makes the model spies actually intercept. <code>node backend/audit.js</code> runs a live end-to-end audit through all five desks.</p>
+    </div>
+
+    <div class="callout spec">
+      <span class="label">Password Recovery</span>
+      <p><code>POST /api/auth/forgot-password</code> accepts a student ID <em>or</em> an email and <strong>always returns the same message</strong> whether or not the account exists &mdash; otherwise the endpoint becomes an oracle for which IDs are registered. The <code>password_resets</code> table stores <code>token_hash</code> (the SHA-256 of the emailed token, <strong>never the token</strong>), <code>expires_at</code> and <code>used_at</code>; expiry is compared in SQL so the app server's clock cannot extend a token's life, and <code>used_at</code> is what makes a token single-use rather than merely short-lived. Both endpoints are unauthenticated by necessity and throttled at 10 requests per IP per hour.</p>
+    </div>
+
+    <div class="callout spec">
+      <span class="label">Deployment</span>
+      <p>Frontend on <strong>Vercel</strong>; backend, AI engine, n8n and MySQL as containers on one VM. <strong>n8n cannot run on Vercel</strong> &mdash; it is a stateful container with its own database &mdash; so a container host is needed regardless, which is why the backend sits beside it rather than as a function. <code>VITE_API_URL</code> is inlined at <em>build</em> time, so changing it needs a redeploy; unset, the frontend stays relative for the Vite dev proxy. <code>vercel.json</code> rewrites non-asset paths to <code>index.html</code> &mdash; without it <code>/reset-password?token=&hellip;</code>, the link the reset email sends, returns 404 on a static host. The uploads volume is the only state outside MySQL: the database stores filenames only, so an unmounted volume loses every file while the rows survive.</p>
+    </div>
+
+    <div class="callout spec">
+      <span class="label">Why <code>store/</code> is empty</span>
+      <p>No Zustand/Redux is installed. State is already centralized in <code>useAuth</code> and the per-role feature hooks rather than prop-drilled, so a store would add a dependency without solving an existing problem. Introduce one only when a genuine cross-component state need appears.</p>
+    </div>
+
+    <h3 style="margin-top: 48px;">9.3 Technical Rollout Phases</h3>
     <ol class="phase-list">
       <li>
         <h3>Phase 1: Foundation &amp; Upload Pipelines</h3>
@@ -310,6 +469,104 @@ Table: step_logs
         <ul>
           <li>Deploy the Prophet volume forecasting model and Random Forest insight generator for the Admin dashboard.</li>
           <li>Set up scheduled cron jobs for continuous ML model retraining based on new <code>step_logs</code> timestamp data.</li>
+        </ul>
+      </li>
+
+      <li>
+        <h3>Phase 4: Architecture Restructure &amp; Hardening</h3>
+        <p class="phase-goal">Migrate the organically-grown codebase into the strict layered schema in 9.2.</p>
+        <ul>
+          <li>Decompose <code>backend/routes/*.js</code> into route &rarr; controller &rarr; service &rarr; model layers under <code>backend/src/</code>.</li>
+          <li>Split the ~2,000-line <code>DashboardPage.jsx</code> into five per-role components under <code>frontend/src/features/</code>, leaving the page as a thin role dispatcher.</li>
+          <li>Extract notification, AI-engine, and n8n integrations into dedicated services that fail soft, so an outage in an optional service never rolls back a document action.</li>
+          <li>Remove the hardcoded UniSMS fallback secret; centralize configuration in <code>src/config/env.js</code> and document it in <code>.env.example</code>.</li>
+        </ul>
+      </li>
+
+      <li>
+        <h3>Phase 5: Security Hardening &amp; Automated Testing</h3>
+        <p class="phase-goal">Close the authorization gaps found by probing the running system, and pin every fix with a test.</p>
+        <ul>
+          <li>Fixed an IDOR allowing any student to attach a payment receipt to another student's request, and stopped <code>uploadDocument</code> trusting a client-supplied <code>student_id</code>.</li>
+          <li>Closed two fully-open machine-to-machine endpoints (<code>/documents/assign</code> and the payment webhooks) behind a shared <code>WEBHOOK_SECRET</code> header.</li>
+          <li>Replaced world-readable <code>/uploads</code> static serving with an authenticated, ownership-checked, traversal-safe <code>/api/files</code> route.</li>
+          <li>Added login and registration rate limiting, and rotated a <code>JWT_SECRET</code> that had been public in git history since the first commit.</li>
+          <li>Introduced Vitest in both packages (190 tests) and split the 542-line dashboard hook into a shared core plus five per-role hooks, cutting each command center from 13&ndash;32 props to 3&ndash;4.</li>
+        </ul>
+      </li>
+
+      <li>
+        <h3>Phase 6: Panel Feedback &mdash; Category 1 (Database &amp; Core Features)</h3>
+        <p class="phase-goal">First of four categories from the capstone panel's defense feedback.</p>
+        <ul>
+          <li>Added <code>enrollment_status</code> and <code>study_load</code> so Irregular and Dropout are modelled as two orthogonal axes rather than one overloaded column.</li>
+          <li>Multi-document requests: one selection, one payment, one combined total &mdash; with each document still routing through the desks independently.</li>
+          <li>Graduate Application module with an admin-configurable form; adding a question requires neither a migration nor a code change.</li>
+          <li>Moved document types and colleges into reference tables, making fees and availability admin-editable.</li>
+          <li>Hardened request creation: server-side pricing, and a student's request is always filed against their own record.</li>
+          <li>284 automated tests (184 backend, 100 frontend); zero lint errors.</li>
+        </ul>
+      </li>
+
+      <li>
+        <h3>Phase 7: Panel Feedback &mdash; Category 2 (Admin Maintenance &amp; Analytics)</h3>
+        <p class="phase-goal">Second of four categories from the panel's defense feedback.</p>
+        <ul>
+          <li>Admin CRUD for Staff, Document Types and Colleges, where deletion is always a reversible deactivation.</li>
+          <li>Staff accounts issued with a single-use temporary password the user must replace at first login.</li>
+          <li>Report generation filtered by date range, status, document type and payment, with matching CSV export.</li>
+          <li>Student CSV export by category: Active, Graduates/Alumni, and Others (dropouts and transferees).</li>
+          <li>Efficiency analytics &mdash; turnaround per desk, end-to-end completion, throughput and staff workload &mdash; all derived from the audit trail.</li>
+          <li>407 automated tests; zero lint errors.</li>
+        </ul>
+      </li>
+
+      <li>
+        <h3>Phase 8: Panel Feedback &mdash; Category 3 (Payments &amp; Notifications)</h3>
+        <p class="phase-goal">Third of four categories from the panel's defense feedback.</p>
+        <ul>
+          <li>Four admin-managed payment methods, behind a provider abstraction that leaves room for a hosted gateway.</li>
+          <li>Real-time in-app notifications over Socket.IO with an explicitly authenticated handshake &mdash; 55&nbsp;ms measured end to end.</li>
+          <li>Diagnosed the &ldquo;broken&rdquo; SMS/email push as missing configuration, not a defect: placeholder SMTP credentials removed, channel health reported at startup, unconfigured channels skipped with a stated reason.</li>
+          <li>438 automated tests; zero lint errors.</li>
+        </ul>
+      </li>
+
+      <li>
+        <h3>Phase 9: Panel Feedback &mdash; Category 4 (UI/UX Overhaul)</h3>
+        <p class="phase-goal">Last of the four categories &mdash; the panel's feedback list is now closed.</p>
+        <ul>
+          <li>Mobile navigation: the sidebar rail is hidden below 768&nbsp;px, so a hamburger drawer now carries the same role-aware links. Both are rendered from one definition, so a tab cannot exist on one and be missing from the other.</li>
+          <li>Every queue table scrolls inside a capped container with a sticky header, instead of rendering thousands of rows down the page.</li>
+          <li>Account Settings redesigned as a profile card with avatar upload. The image is a protected upload fetched with the caller's token &mdash; a student may read only their own, verified live at 403 for anyone else.</li>
+          <li>Feedback moved from <code>alert()</code> dialogs to inline banners.</li>
+          <li>483 automated tests; zero lint errors.</li>
+        </ul>
+      </li>
+
+      <li>
+        <h3>Phase 10: Pre-Deployment Refinement</h3>
+        <p class="phase-goal">Closing the application-level gaps before infrastructure work, so a deployment would not bake them in.</p>
+        <ul>
+          <li><strong>Password recovery.</strong> The login page's &ldquo;Forgot Password?&rdquo; link had nothing behind it. The flow now accepts a student ID or an email and <strong>answers identically either way</strong>, so it cannot be used to discover which accounts exist. Tokens are stored only as a SHA-256 hash and are <strong>single-use</strong> &mdash; a plain JWT would remain replayable until expiry even after the password had changed.</li>
+          <li><strong>n8n routing repaired and made load-bearing.</strong> The workflow had been silently dead for a month: wrong port, missing auth header, and a hardcoded secretary account that no longer existed. It now resolves the correct college secretary from the payload, and the assignment visibly changes whose queue a document appears in &mdash; while unassigned documents still fall back to the college filter, so the ten thousand records predating routing stay put.</li>
+          <li><strong>A live crash</strong> in the Finance receipt modal, reproduced by a regression test before being fixed.</li>
+          <li><strong><code>/api/health</code> told the truth.</strong> It previously answered 200 with a dead database, which would have made an orchestrator call a broken container healthy; it now returns 503 with the reason.</li>
+          <li><strong>CORS</strong> tightened from &ldquo;any origin, with credentials&rdquo; to one shared, configurable allowlist covering both the REST API and the Socket.IO handshake.</li>
+          <li>514 automated tests; zero lint errors.</li>
+        </ul>
+      </li>
+
+      <li>
+        <h3>Phase 11: Deployment Readiness</h3>
+        <p class="phase-goal">Take the system live. The remaining work is infrastructure, plus one credential.</p>
+        <ul>
+          <li><strong>Rotate the UniSMS API key</strong> &mdash; it remains exposed in git history even though it is gone from the source. (<code>JWT_SECRET</code>, the more serious of the two, has been rotated.)</li>
+          <li><strong>Configure SMTP</strong> so reset links and student alerts actually send; until then a reset link is logged to the server console.</li>
+          <li><strong>Give the built frontend a route to the backend.</strong> <code>services/api.js</code> uses a relative <code>/api</code> and the Socket.IO client takes no URL, so both depend on the Vite dev proxy &mdash; which does not exist in a production build.</li>
+          <li><strong>Persist uploads.</strong> They are written to container-local disk, and the directory is never created at boot.</li>
+          <li><strong>TLS for a managed database</strong> &mdash; the pool passes no <code>ssl</code> option, which most managed MySQL will refuse.</li>
+          <li>Containerize all three services (serving Flask under a WSGI server rather than the Werkzeug dev server) and migrate MySQL to a managed cloud instance.</li>
         </ul>
       </li>
     </ol>

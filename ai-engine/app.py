@@ -6,19 +6,20 @@ Endpoints:
     GET  /health        — Health check with EasyOCR availability status
     POST /ocr/extract   — Upload a document image and receive extracted data
 
-Port: 5000
+Port: 5005 (5000 is reserved by macOS Control Center / AirPlay)
 """
 
 import os
 import sys
 import logging
 import tempfile
+from contextlib import contextmanager
 
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 from dotenv import load_dotenv
 
-from ocr_engine import process_document, verify_id_document
+from ocr_engine import process_document, verify_id_document, process_receipt
 import pandas as pd
 from prophet import Prophet
 import mysql.connector
@@ -36,10 +37,13 @@ app = Flask(__name__)
 # Maximum upload size: 16 MB
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024
 
-# Enable CORS for the React frontend (default: localhost:3000)
+# The Node backend calls this service server-to-server, where CORS does not
+# apply. These origins only matter if a browser ever calls Flask directly.
 CORS(app, origins=[
-    'http://localhost:3000',
-    'http://127.0.0.1:3000',
+    'http://localhost:3300',   # Node API gateway
+    'http://127.0.0.1:3300',
+    'http://localhost:5273',   # Vite dev server
+    'http://127.0.0.1:5273',
 ])
 
 # Allowed file extensions for document uploads
@@ -85,21 +89,49 @@ def health_check():
     })
 
 def get_db_connection():
-    return mysql.connector.connect(
+    """
+    Open a MySQL connection.
+
+    DB_SSL mirrors the Node backend's setting: managed providers generally
+    require TLS and refuse a plaintext connection outright.
+    """
+    params = dict(
         host=os.getenv('DB_HOST', 'localhost'),
         port=int(os.getenv('DB_PORT', 3306)),
         user=os.getenv('DB_USER', 'root'),
         password=os.getenv('DB_PASSWORD', ''),
-        database=os.getenv('DB_NAME', 'trace_db')
+        database=os.getenv('DB_NAME', 'trace_db'),
+        connection_timeout=10,
     )
+    if os.getenv('DB_SSL', '').lower() == 'true':
+        params['ssl_disabled'] = False
+        ca = os.getenv('DB_SSL_CA')
+        if ca:
+            params['ssl_ca'] = ca
+    return mysql.connector.connect(**params)
+
+
+@contextmanager
+def db_connection():
+    """
+    Always close the connection, including on the error path.
+
+    Each request opens its own connection (there is no pool here), so a bare
+    conn.close() after the query leaked one connection per failed request and
+    would eventually exhaust a managed database's connection cap.
+    """
+    conn = get_db_connection()
+    try:
+        yield conn
+    finally:
+        conn.close()
 
 @app.route('/forecast', methods=['GET'])
 def forecast():
     try:
-        conn = get_db_connection()
         query = "SELECT DATE(timestamp_started) as ds, COUNT(*) as y FROM step_logs GROUP BY DATE(timestamp_started)"
-        df = pd.read_sql(query, conn)
-        conn.close()
+        with db_connection() as conn:
+            df = pd.read_sql(query, conn)
 
         if len(df) < 2:
             return jsonify({'error': 'Not enough data for forecasting'}), 400
@@ -137,19 +169,20 @@ def forecast():
 @app.route('/ai/recommend', methods=['GET'])
 def ai_recommend():
     try:
-        conn = get_db_connection()
-        cursor = conn.cursor(dictionary=True)
-        
-        cursor.execute("SELECT COUNT(*) as c FROM documents WHERE current_status = 'pending_secretary'")
-        pending_sec = cursor.fetchone()['c']
-        
-        cursor.execute("SELECT COUNT(*) as c FROM documents WHERE current_status = 'ready_window_1'")
-        pending_release = cursor.fetchone()['c']
-        
-        cursor.execute("SELECT COUNT(*) as c FROM step_logs WHERE DATE(timestamp_started) = CURDATE()")
-        today_vol = cursor.fetchone()['c']
-        
-        conn.close()
+        with db_connection() as conn:
+            cursor = conn.cursor(dictionary=True)
+
+            # Status vocabulary is defined in backend/src/utils/documentStatus.js.
+            # This service reads the same table directly, so it has to be kept in
+            # step by hand - there is no shared module across the language split.
+            cursor.execute("SELECT COUNT(*) as c FROM documents WHERE current_status = 'PENDING_SEC_EVALUATION'")
+            pending_sec = cursor.fetchone()['c']
+
+            cursor.execute("SELECT COUNT(*) as c FROM documents WHERE current_status = 'READY_FOR_RELEASE'")
+            pending_release = cursor.fetchone()['c']
+
+            cursor.execute("SELECT COUNT(*) as c FROM step_logs WHERE DATE(timestamp_started) = CURDATE()")
+            today_vol = cursor.fetchone()['c']
 
         X_train = np.array([
             [1, 0, 5],    # Low load
@@ -282,6 +315,84 @@ def ocr_extract():
             logger.debug("Cleaned up temp file: %s", temp_path)
 
 
+@app.route('/ocr/receipt', methods=['POST'])
+def ocr_receipt():
+    """
+    Official Receipt extraction, for Finance logging a walk-in payment.
+
+    The third OCR use in the system, alongside document intake (/ocr/extract)
+    and registration ID checks (/ocr/verify). A student who paid at the cashier
+    brings back a printed OR; this reads it so the clerk verifies figures
+    instead of transcribing them.
+
+    Accepts a multipart file upload (field name: 'receipt').
+
+    Returns:
+        JSON with keys: raw_text, extracted_data, success, error
+    """
+    empty = {'or_number': None, 'amount': None, 'or_date': None, 'confidence': 0.0}
+
+    if 'receipt' not in request.files:
+        logger.warning("No 'receipt' field in upload request")
+        return jsonify({
+            'success': False,
+            'error': "No 'receipt' file provided in the request.",
+            'raw_text': '',
+            'extracted_data': empty,
+        }), 400
+
+    file = request.files['receipt']
+
+    if file.filename == '':
+        return jsonify({
+            'success': False,
+            'error': 'No file selected.',
+            'raw_text': '',
+            'extracted_data': empty,
+        }), 400
+
+    if not allowed_file(file.filename):
+        logger.warning("Rejected receipt with disallowed extension: %s", file.filename)
+        return jsonify({
+            'success': False,
+            'error': (
+                f"File type not allowed. "
+                f"Accepted types: {', '.join(sorted(ALLOWED_EXTENSIONS))}"
+            ),
+            'raw_text': '',
+            'extracted_data': empty,
+        }), 400
+
+    temp_path = None
+    try:
+        _, ext = os.path.splitext(file.filename)
+        temp_fd, temp_path = tempfile.mkstemp(suffix=ext)
+        os.close(temp_fd)
+
+        file.save(temp_path)
+        result = process_receipt(temp_path)
+
+        logger.info(
+            "Receipt OCR for '%s' - success: %s, confidence: %.2f",
+            file.filename, result['success'], result['extracted_data']['confidence'],
+        )
+
+        return jsonify(result)
+
+    except Exception as e:
+        logger.error("Unexpected error processing receipt: %s", str(e))
+        return jsonify({
+            'success': False,
+            'error': f'Server error: {str(e)}',
+            'raw_text': '',
+            'extracted_data': empty,
+        }), 500
+
+    finally:
+        if temp_path and os.path.exists(temp_path):
+            os.remove(temp_path)
+
+
 @app.route('/ocr/verify', methods=['POST'])
 def ocr_verify():
     """
@@ -337,7 +448,12 @@ def request_entity_too_large(error):
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5005))
-    debug = os.environ.get('FLASK_ENV', 'development') == 'development'
+    # Opt-in, not opt-out. This previously defaulted to development when
+    # FLASK_ENV was unset, so an unconfigured deployment served the Werkzeug
+    # interactive debugger — remote code execution behind any traceback.
+    debug = os.environ.get('FLASK_DEBUG', '').lower() in ('1', 'true')
 
     logger.info("Starting TRACE AI Engine on port %d (debug=%s)", port, debug)
+    # Development entry point only. Production runs under gunicorn (see the
+    # Dockerfile) — app.run() is the single-threaded Werkzeug dev server.
     app.run(host='0.0.0.0', port=port, debug=debug)

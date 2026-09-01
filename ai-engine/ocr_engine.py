@@ -11,6 +11,7 @@ This module provides functions to:
 
 import re
 import logging
+from datetime import date
 import easyocr
 import cv2
 import numpy as np
@@ -191,6 +192,150 @@ def parse_student_data(raw_text):
         'form_type': form_type,
         'confidence': confidence,
     }
+
+
+def parse_receipt_data(raw_text):
+    """
+    Parse an Official Receipt so a Finance clerk logging a counter payment can
+    check figures rather than type them.
+
+    A walk-in student pays at the cashier and brings back a printed OR. Nothing
+    about that transaction reaches the system on its own, so this is a
+    transcription aid — and transcription of money is exactly where a typo is
+    expensive. The clerk always re-verifies before submitting; nothing here is
+    trusted on its own.
+
+    Extracts three fields:
+    - OR number (e.g. "OR No. 12345", "O.R. 2026-0042")
+    - Amount (the largest peso figure on the receipt, which is the total)
+    - Date (several common Philippine formats)
+
+    Args:
+        raw_text (str): Raw text output from OCR extraction.
+
+    Returns:
+        dict: A dictionary containing:
+            - or_number (str|None): The matched receipt number.
+            - amount (float|None): The matched total.
+            - or_date (str|None): The matched date, ISO-formatted where parseable.
+            - confidence (float): Ratio of found fields to total fields (0–100).
+    """
+    or_number = None
+    amount = None
+    or_date = None
+
+    # --- Extract OR number ---
+    # Tolerates "OR", "O.R.", "Official Receipt", and the "No."/"#" that may or
+    # may not follow. EasyOCR frequently reads "O.R." as "OR" or "0R", so the
+    # leading character class allows a zero.
+    or_pattern = (
+        r'(?:official\s*receipt|[O0]\.?\s*R\.?)\s*'
+        r'(?:no|num(?:ber)?|#)?[.:\s#]*([A-Z0-9][A-Z0-9\-]{2,20})'
+    )
+    or_match = re.search(or_pattern, raw_text, re.IGNORECASE)
+    if or_match:
+        or_number = or_match.group(1).upper().strip('-')
+        logger.info("Found OR number: %s", or_number)
+
+    # --- Extract amount ---
+    # Take the LARGEST figure rather than the first. A receipt lists line items
+    # before its total, and reading a line item as the amount paid would
+    # under-record the payment — the failure that actually costs money.
+    amount_pattern = r'(?:₱|P|PHP)?\s*([0-9]{1,3}(?:,[0-9]{3})*(?:\.[0-9]{2})?|[0-9]+\.[0-9]{2})'
+    candidates = []
+    for match in re.finditer(amount_pattern, raw_text):
+        try:
+            value = float(match.group(1).replace(',', ''))
+        except ValueError:
+            continue
+        # Ignore bare integers with no decimal part unless they are prefixed by
+        # a currency marker: a year or a receipt number would otherwise win.
+        if value > 0 and ('.' in match.group(1) or match.group(0).strip()[0] in '₱Pp'):
+            candidates.append(value)
+    if candidates:
+        amount = max(candidates)
+        logger.info("Found amount: %.2f (from %d candidate(s))", amount, len(candidates))
+
+    # --- Extract date ---
+    date_patterns = [
+        (r'\b(\d{4})[-/](\d{1,2})[-/](\d{1,2})\b', 'ymd'),   # 2026-09-06
+        (r'\b(\d{1,2})[-/](\d{1,2})[-/](\d{4})\b', 'mdy'),   # 09/06/2026
+    ]
+    for pattern, order in date_patterns:
+        match = re.search(pattern, raw_text)
+        if not match:
+            continue
+        try:
+            if order == 'ymd':
+                year, month, day = (int(g) for g in match.groups())
+            else:
+                month, day, year = (int(g) for g in match.groups())
+            or_date = date(year, month, day).isoformat()
+            logger.info("Found OR date: %s", or_date)
+            break
+        except ValueError:
+            # A plausible-looking but impossible date (13/45/2026) is no date.
+            continue
+
+    fields_found = sum(1 for field in [or_number, amount, or_date] if field is not None)
+    confidence = (fields_found / 3.0) * 100.0
+
+    logger.info(
+        "Receipt parse — OR: %s, Amount: %s, Date: %s, Confidence: %.2f",
+        or_number, amount, or_date, confidence,
+    )
+
+    return {
+        'or_number': or_number,
+        'amount': amount,
+        'or_date': or_date,
+        'confidence': confidence,
+    }
+
+
+def process_receipt(filepath):
+    """
+    Run the OCR pipeline over an Official Receipt.
+
+    Mirrors process_document: same two-pass text extraction, same result shape,
+    so the caller handles both the same way.
+
+    Args:
+        filepath (str): Path to the receipt image.
+
+    Returns:
+        dict: raw_text, extracted_data, success and error.
+    """
+    empty = {'or_number': None, 'amount': None, 'or_date': None, 'confidence': 0.0}
+    try:
+        raw_text = extract_text(filepath)
+
+        if not raw_text:
+            logger.warning("No text extracted from receipt: %s", filepath)
+            return {
+                'raw_text': '',
+                'extracted_data': empty,
+                'success': False,
+                'error': 'No text could be extracted from the receipt.',
+            }
+
+        extracted_data = parse_receipt_data(raw_text)
+
+        return {
+            'raw_text': raw_text,
+            'extracted_data': extracted_data,
+            'success': extracted_data['confidence'] > 0,
+            'error': None,
+        }
+
+    except Exception as e:
+        logger.error("Receipt processing failed for %s: %s", filepath, str(e))
+        return {
+            'raw_text': '',
+            'extracted_data': empty,
+            'success': False,
+            'error': str(e),
+        }
 
 
 def process_document(filepath):
