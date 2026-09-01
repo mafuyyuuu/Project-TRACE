@@ -1,6 +1,7 @@
 const bcrypt = require('bcryptjs');
 const referenceModel = require('../models/referenceData.model');
 const userModel = require('../models/user.model');
+const { PROVIDERS } = require('./payment');
 const { badRequest, forbidden, notFound } = require('../utils/AppError');
 
 /**
@@ -259,10 +260,72 @@ async function setStaffActive(user, id, isActive) {
   return { message: isActive ? 'Staff account reactivated.' : 'Staff account deactivated.' };
 }
 
+// ---------------------------------------------------------------------------
+// Payment methods
+//
+// Same deletion-is-deactivation rule as above. `code` is immutable once
+// created (see the model) because `documents.payment_method` stores it
+// directly — renaming it would break the lookup for every document that
+// already used it. `provider` must name a registered provider in
+// `services/payment/`, or a later checkout would fail with a 400 the admin
+// never sees coming.
+// ---------------------------------------------------------------------------
+
+async function listPaymentMethods(user) {
+  assertAdmin(user);
+  return { payment_methods: await referenceModel.listPaymentMethods({ includeInactive: true }) };
+}
+
+async function createPaymentMethod(user, data) {
+  assertAdmin(user);
+
+  const code = String(data.code || '').trim().toLowerCase();
+  if (!/^[a-z][a-z0-9_]*$/.test(code)) {
+    throw badRequest('Code must start with a letter and contain only lowercase letters, numbers and underscores.');
+  }
+  if (!data.name || !data.name.trim()) throw badRequest('Payment method name is required.');
+
+  const provider = data.provider || 'manual';
+  if (!PROVIDERS[provider]) throw badRequest(`Unknown payment provider "${provider}".`);
+
+  const existing = await referenceModel.findPaymentMethodByCode(code);
+  if (existing.length) throw badRequest('A payment method with that code already exists.');
+
+  const [result] = await referenceModel.createPaymentMethod({ ...data, code, name: data.name.trim(), provider });
+  return { message: 'Payment method created.', id: result.insertId };
+}
+
+async function updatePaymentMethod(user, id, data) {
+  assertAdmin(user);
+  const rows = await referenceModel.findPaymentMethodById(id);
+  if (!rows.length) throw notFound('Payment method not found.');
+
+  if (data.provider && !PROVIDERS[data.provider]) {
+    throw badRequest(`Unknown payment provider "${data.provider}".`);
+  }
+
+  await referenceModel.updatePaymentMethod(id, data);
+  return { message: 'Payment method updated.' };
+}
+
+async function setPaymentMethodActive(user, id, isActive) {
+  assertAdmin(user);
+  const rows = await referenceModel.findPaymentMethodById(id);
+  if (!rows.length) throw notFound('Payment method not found.');
+
+  await referenceModel.setPaymentMethodActive(id, Boolean(isActive));
+  return {
+    message: isActive
+      ? 'Payment method restored and available at checkout again.'
+      : 'Payment method deactivated. Students can no longer select it; past payments are unaffected.',
+  };
+}
+
 module.exports = {
   VALID_DESKS,
   VALID_ROLES,
   listColleges, createCollege, updateCollege, setCollegeActive,
   listDocumentTypes, createDocumentType, updateDocumentType, setDocumentTypeActive,
   listStaff, createStaff, updateStaff, setStaffActive,
+  listPaymentMethods, createPaymentMethod, updatePaymentMethod, setPaymentMethodActive,
 };

@@ -67,6 +67,7 @@ The Registrar hasn't finalised the questions, so nothing about the form is hardc
 | :--- | :--- |
 | `GET /api/reference/colleges` | College list (public — signup has no token yet) |
 | `GET /api/reference/document-types` | Requestable types with fees and attachment rules |
+| `GET /api/reference/payment-methods` | Active payment methods, for the student checkout picker |
 | `GET /api/grad-applications/form-fields` | The admin-defined form definition |
 | `POST /api/grad-applications` | Submit an application |
 | `GET /api/grad-applications/mine` | A student's own submissions |
@@ -86,6 +87,7 @@ The Registrar hasn't finalised the questions, so nothing about the form is hardc
 | `GET/POST /api/maintenance/staff`, `PUT /:id`, `PATCH /:id/active` | Staff CRUD |
 | `GET/POST /api/maintenance/document-types`, `PUT /:id`, `PATCH /:id/active` | Document type CRUD |
 | `GET/POST /api/maintenance/colleges`, `PUT /:id`, `PATCH /:id/active` | College CRUD |
+| `GET/POST /api/maintenance/payment-methods`, `PUT /:id`, `PATCH /:id/active` | Payment method CRUD |
 | `GET /api/reports/documents` | Filtered report + summary + breakdowns |
 | `GET /api/reports/analytics` | Efficiency metrics |
 | `GET /api/reports/export/students.csv?category=` | active \| alumni \| others \| all |
@@ -98,7 +100,7 @@ The Registrar hasn't finalised the questions, so nothing about the form is hardc
 **Analytics.** All figures derive from `step_logs`, so any number can be traced to a recorded desk action. Per-clerk output is volume and actions only — never a computed score — because desks differ in difficulty.
 
 ### Payments & payment methods
-`payment_methods` is admin-managed reference data (code, name, instructions, reference label, `requires_proof`), so the Registrar can enable Card or Online Banking without a deploy. The chosen method is stored on `documents.payment_method` and named in the step log.
+`payment_methods` is admin-managed reference data (code, name, instructions, reference label, `requires_proof`) through `GET/POST /api/maintenance/payment-methods` (`PUT`/`PATCH .../active` to edit and deactivate — the same deletion-is-deactivation rule as document types and colleges applies, and `code` is intentionally not editable once created, since `documents.payment_method` stores it directly), so the Registrar can enable Card or Online Banking without a deploy. `provider` is validated against the registered providers in `services/payment/` at create and update time, so a typo can't silently produce a method that 400s the first time a student tries to pay with it. The chosen method is stored on `documents.payment_method` and named in the step log. The student checkout modal (`StudentDashboard.jsx`) renders a picker over every active method rather than assuming GCash, with the GCash QR shown only for that one method and the reference/proof fields rendered per-method from `requires_reference`/`requires_proof`.
 
 `src/services/payment/` registers providers by name. Every method resolves to **`manual`** today: the student pays out-of-band and uploads proof, and a Finance Clerk verifies it against PLP's own records — deliberate, because payments must reconcile against Finance's books rather than a third party's dashboard. Each provider owns its own `validateSubmission`, so what counts as valid proof is a per-method decision. Adding a hosted gateway means registering a provider and setting `payment_methods.provider`; `documents.service.js` does not change.
 

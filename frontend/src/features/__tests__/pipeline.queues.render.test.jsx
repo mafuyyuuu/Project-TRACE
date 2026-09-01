@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { STATUS } from '@/utils/documentStatus';
 
@@ -100,6 +100,14 @@ const ALL_STAGES = [
   at(STATUS.COMPLETED, { payment_status: 'PAID' }),
 ];
 
+const PAYMENT_METHODS = [
+  { id: 1, code: 'gcash', name: 'GCash', provider: 'manual', instructions: 'Scan the QR code.',
+    requires_reference: 1, reference_label: 'GCash Reference Number', requires_proof: 1, is_active: 1 },
+  { id: 2, code: 'card', name: 'Credit / Debit Card', provider: 'manual',
+    instructions: 'Pay at the Cashier using your card.', requires_reference: 1,
+    reference_label: 'Approval / Reference Code', requires_proof: 1, is_active: 1 },
+];
+
 const USERS = {
   student: { id: 3, role: 'student', full_name: 'Ana Reyes', student_id: 'STU2024001' },
   finance: { id: 4, role: 'clerk', desk_assignment: 'Finance', full_name: 'Finance Officer' },
@@ -112,7 +120,7 @@ beforeEach(() => {
   documentsService.getDocuments.mockResolvedValue({ documents: ALL_STAGES, total: 8, totalPages: 1 });
   documentsService.getDashboardStats.mockResolvedValue({});
   referenceService.getDocumentTypes.mockResolvedValue({ document_types: [] });
-  referenceService.getPaymentMethods.mockResolvedValue({ payment_methods: [] });
+  referenceService.getPaymentMethods.mockResolvedValue({ payment_methods: PAYMENT_METHODS });
 });
 
 async function renderDashboard(ui) {
@@ -268,5 +276,61 @@ describe('Student — asked for money only once there is an amount', () => {
     );
     // Exactly one of the two is cancellable: paper has been spent on the other.
     expect((await screen.findAllByRole('button', { name: /cancel/i })).length).toBe(1);
+  });
+
+  it('offers every active payment method, defaulting to the GCash QR', async () => {
+    const user = userEvent.setup();
+    await renderDashboard(
+      <StudentDashboard user={USERS.student} currentTab="dashboard" setViewImageUrl={vi.fn()} />
+    );
+    const [payButton] = await screen.findAllByRole('button', { name: /pay ₱250\.00/i });
+    await user.click(payButton);
+
+    expect(await screen.findByAltText('GCash QR Code')).toBeInTheDocument();
+    expect(screen.getByText('GCash Reference Number')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Credit / Debit Card' })).toBeInTheDocument();
+  });
+
+  it('switches to another method\'s own instructions and reference label', async () => {
+    const user = userEvent.setup();
+    await renderDashboard(
+      <StudentDashboard user={USERS.student} currentTab="dashboard" setViewImageUrl={vi.fn()} />
+    );
+    const [payButton] = await screen.findAllByRole('button', { name: /pay ₱250\.00/i });
+    await user.click(payButton);
+    await user.click(await screen.findByRole('button', { name: 'Credit / Debit Card' }));
+
+    expect(screen.queryByAltText('GCash QR Code')).not.toBeInTheDocument();
+    expect(screen.getByText(/Pay at the Cashier using your card/i)).toBeInTheDocument();
+    expect(screen.getByText('Approval / Reference Code')).toBeInTheDocument();
+  });
+
+  it('submits the selected method code alongside the reference and receipt', async () => {
+    const user = userEvent.setup();
+    documentsService.submitPayment.mockResolvedValue({ message: 'ok' });
+    await renderDashboard(
+      <StudentDashboard user={USERS.student} currentTab="dashboard" setViewImageUrl={vi.fn()} />
+    );
+    const [payButton] = await screen.findAllByRole('button', { name: /pay ₱250\.00/i });
+    await user.click(payButton);
+    await user.click(await screen.findByRole('button', { name: 'Credit / Debit Card' }));
+
+    await user.type(screen.getByPlaceholderText(/5001 0293 8472/), 'APPROVE123');
+    // The payment modal renders through a portal onto document.body, outside
+    // the render container, so the file input has to be found there instead.
+    const fileInput = document.body.querySelector('input[type="file"]');
+    await user.upload(fileInput, new File(['x'], 'receipt.png', { type: 'image/png' }));
+
+    // jsdom never reports a `required` file input as valid even with a file
+    // attached (real browsers do, via the fake path they assign to `.value`),
+    // so a real button click gets silently vetoed by native constraint
+    // validation here. Submitting the form directly exercises the same
+    // `onSubmit` handler without that jsdom-only false negative.
+    fireEvent.submit(screen.getByRole('button', { name: /submit payment/i }).closest('form'));
+
+    await waitFor(() => expect(documentsService.submitPayment).toHaveBeenCalled());
+    const [, formData] = documentsService.submitPayment.mock.calls[0];
+    expect(formData.get('payment_method')).toBe('card');
+    expect(formData.get('gcash_reference_no')).toBe('APPROVE123');
   });
 });

@@ -44,6 +44,24 @@ export async function setDocumentTypeActive(id, isActive) {
   return data
 }
 
+// -- Payment methods ----------------------------------------------------------
+export async function getPaymentMethods() {
+  const { data } = await api.get('/maintenance/payment-methods')
+  return data
+}
+export async function createPaymentMethod(payload) {
+  const { data } = await api.post('/maintenance/payment-methods', payload)
+  return data
+}
+export async function updatePaymentMethod(id, payload) {
+  const { data } = await api.put(`/maintenance/payment-methods/${id}`, payload)
+  return data
+}
+export async function setPaymentMethodActive(id, isActive) {
+  const { data } = await api.patch(`/maintenance/payment-methods/${id}/active`, { is_active: isActive })
+  return data
+}
+
 // -- Staff ------------------------------------------------------------------
 export async function getStaff() {
   const { data } = await api.get('/maintenance/staff')

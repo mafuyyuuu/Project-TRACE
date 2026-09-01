@@ -12,6 +12,7 @@ export default function useMaintenance(user, currentTab) {
   const [staff, setStaff] = useState([]);
   const [documentTypes, setDocumentTypes] = useState([]);
   const [colleges, setColleges] = useState([]);
+  const [paymentMethods, setPaymentMethods] = useState([]);
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -22,15 +23,17 @@ export default function useMaintenance(user, currentTab) {
 
   const load = useCallback(async () => {
     try {
-      const [s, d, c] = await Promise.allSettled([
+      const [s, d, c, p] = await Promise.allSettled([
         maintenanceService.getStaff(),
         maintenanceService.getDocumentTypes(),
         maintenanceService.getColleges(),
+        maintenanceService.getPaymentMethods(),
       ]);
       if (s.status === 'fulfilled') setStaff(s.value.staff || []);
       if (d.status === 'fulfilled') setDocumentTypes(d.value.document_types || []);
       if (c.status === 'fulfilled') setColleges(c.value.colleges || []);
-      if ([s, d, c].some((r) => r.status === 'rejected')) {
+      if (p.status === 'fulfilled') setPaymentMethods(p.value.payment_methods || []);
+      if ([s, d, c, p].some((r) => r.status === 'rejected')) {
         setError('Some maintenance data could not be loaded.');
       }
     } finally {
@@ -72,7 +75,7 @@ export default function useMaintenance(user, currentTab) {
   );
 
   return {
-    staff, documentTypes, colleges,
+    staff, documentTypes, colleges, paymentMethods,
     loading, saving, error, success,
     reload: load,
 
@@ -90,5 +93,10 @@ export default function useMaintenance(user, currentTab) {
     createCollege: (payload) => run(() => maintenanceService.createCollege(payload), 'Failed to create college.'),
     updateCollege: (id, payload) => run(() => maintenanceService.updateCollege(id, payload), 'Failed to update college.'),
     setCollegeActive: (id, active) => run(() => maintenanceService.setCollegeActive(id, active), 'Failed to update college.'),
+
+    // Payment methods
+    createPaymentMethod: (payload) => run(() => maintenanceService.createPaymentMethod(payload), 'Failed to create payment method.'),
+    updatePaymentMethod: (id, payload) => run(() => maintenanceService.updatePaymentMethod(id, payload), 'Failed to update payment method.'),
+    setPaymentMethodActive: (id, active) => run(() => maintenanceService.setPaymentMethodActive(id, active), 'Failed to update payment method.'),
   };
 }

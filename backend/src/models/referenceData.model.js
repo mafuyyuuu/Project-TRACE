@@ -174,9 +174,53 @@ function setPaymentMethodActive(id, isActive, executor = pool) {
   return executor.query('UPDATE payment_methods SET is_active = ? WHERE id = ?', [isActive, id]);
 }
 
+function findPaymentMethodById(id, executor = pool) {
+  return executor.query('SELECT * FROM payment_methods WHERE id = ?', [id]).then(([rows]) => rows);
+}
+
+function createPaymentMethod(data, executor = pool) {
+  const {
+    code, name, provider = 'manual', instructions = null,
+    requires_reference = true, reference_label = null,
+    requires_proof = true, sort_order = 0,
+  } = data;
+  return executor.query(
+    `INSERT INTO payment_methods
+       (code, name, provider, instructions, requires_reference, reference_label, requires_proof, sort_order)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+    [code, name, provider, instructions, requires_reference, reference_label, requires_proof, sort_order]
+  );
+}
+
+/** `code` is deliberately not editable here — `documents.payment_method` stores it
+ *  directly, so changing it would strand the lookup for historical rows. */
+function updatePaymentMethod(id, data, executor = pool) {
+  const {
+    name, provider, instructions, requires_reference,
+    reference_label, requires_proof, sort_order,
+  } = data;
+  return executor.query(
+    `UPDATE payment_methods SET
+       name = COALESCE(?, name),
+       provider = COALESCE(?, provider),
+       instructions = COALESCE(?, instructions),
+       requires_reference = COALESCE(?, requires_reference),
+       reference_label = COALESCE(?, reference_label),
+       requires_proof = COALESCE(?, requires_proof),
+       sort_order = COALESCE(?, sort_order)
+     WHERE id = ?`,
+    [name ?? null, provider ?? null, instructions ?? null,
+     requires_reference ?? null, reference_label ?? null,
+     requires_proof ?? null, sort_order ?? null, id]
+  );
+}
+
 module.exports = {
   listPaymentMethods,
   findPaymentMethodByCode,
+  findPaymentMethodById,
+  createPaymentMethod,
+  updatePaymentMethod,
   setPaymentMethodActive,
   createCollege,
   updateCollege,

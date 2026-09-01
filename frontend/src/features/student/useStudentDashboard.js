@@ -215,18 +215,27 @@ export default function useStudentDashboard(user) {
   const handleStudentSubmitPayment = useCallback(
     async (e) => {
       e.preventDefault();
-      if (!paymentRef || !paymentFile || !selectedDoc) {
-        triggerNotification('Reference number and receipt image are required.', 'error');
+      if (!selectedDoc) return;
+
+      // Each method decides for itself whether a reference/proof is required —
+      // an admin can configure either off for a given method, so the guard has
+      // to check the selected method's flags rather than assume both apply.
+      const method = paymentMethods.find((m) => m.code === selectedMethod);
+      if (method?.requires_reference !== false && !paymentRef) {
+        triggerNotification(`${method?.reference_label || 'Reference number'} is required.`, 'error');
+        return;
+      }
+      if (method?.requires_proof !== false && !paymentFile) {
+        triggerNotification('A photo or screenshot of your payment is required.', 'error');
         return;
       }
 
       const formData = new FormData();
-      formData.append('receipt', paymentFile);
+      if (paymentFile) formData.append('receipt', paymentFile);
       formData.append('gcash_reference_no', paymentRef);
       formData.append('payment_method', selectedMethod);
 
-      const methodName =
-        paymentMethods.find((m) => m.code === selectedMethod)?.name || 'Payment';
+      const methodName = method?.name || 'Payment';
 
       const ok = await runAction(() => submitPayment(selectedDoc.id, formData), {
         successMessage: `${methodName} receipt submitted. Pending Finance verification!`,

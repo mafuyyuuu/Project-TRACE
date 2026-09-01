@@ -26,4 +26,10 @@ router.post('/staff', maintenanceController.createStaff);
 router.put('/staff/:id', maintenanceController.updateStaff);
 router.patch('/staff/:id/active', maintenanceController.setStaffActive);
 
+// Payment methods
+router.get('/payment-methods', maintenanceController.listPaymentMethods);
+router.post('/payment-methods', maintenanceController.createPaymentMethod);
+router.put('/payment-methods/:id', maintenanceController.updatePaymentMethod);
+router.patch('/payment-methods/:id/active', maintenanceController.setPaymentMethodActive);
+
 module.exports = router;

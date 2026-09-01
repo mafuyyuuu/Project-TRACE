@@ -8,6 +8,7 @@ const SECTIONS = [
   { key: 'staff', label: 'Staff' },
   { key: 'documentTypes', label: 'Document Types' },
   { key: 'colleges', label: 'Colleges' },
+  { key: 'paymentMethods', label: 'Payment Methods' },
 ];
 
 const inputClass =
@@ -75,6 +76,19 @@ export default function MaintenancePanel({ user, currentTab }) {
     if (ok) resetForm();
   };
 
+  const submitPaymentMethod = async (e) => {
+    e.preventDefault();
+    const ok = await m.createPaymentMethod({
+      code: form.pm_code,
+      name: form.pm_name,
+      instructions: form.pm_instructions || null,
+      requires_reference: form.pm_requires_reference !== false,
+      reference_label: form.pm_requires_reference !== false ? (form.pm_reference_label || null) : null,
+      requires_proof: form.pm_requires_proof !== false,
+    });
+    if (ok) resetForm();
+  };
+
   return (
     <>
       <DashboardAlerts success={m.success} error={m.error} />
@@ -85,8 +99,8 @@ export default function MaintenancePanel({ user, currentTab }) {
             System <span className="text-[#15803d]">Maintenance</span>
           </h2>
           <p className="text-xs text-gray-400 mt-1 font-semibold">
-            Manage staff accounts, document types and colleges. Deactivating hides an entry from new
-            requests without affecting existing records.
+            Manage staff accounts, document types, colleges and payment methods. Deactivating hides an
+            entry from new requests without affecting existing records.
           </p>
         </div>
 
@@ -317,6 +331,97 @@ export default function MaintenancePanel({ user, currentTab }) {
                             className="text-[10px] font-bold px-3 py-1.5 rounded-lg border border-gray-200 hover:bg-gray-100 disabled:opacity-40"
                           >
                             {c.is_active ? 'Deactivate' : 'Restore'}
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ---------------------------------------------------------- Payment methods */}
+        {section === 'paymentMethods' && (
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <form onSubmit={submitPaymentMethod} className="bg-white rounded-3xl p-6 shadow-sm border border-gray-200 space-y-3 h-fit">
+              <h3 className="text-sm font-bold text-gray-900 mb-2">Add Payment Method</h3>
+
+              <div>
+                <input className={`${inputClass} font-mono`} placeholder="Code * (e.g. paymaya)" required
+                  value={form.pm_code || ''} onChange={(e) => set('pm_code', e.target.value)} />
+                <p className="text-[10px] text-gray-400 mt-1.5">
+                  Lowercase, letters/numbers/underscores only. Cannot be changed later.
+                </p>
+              </div>
+              <input className={inputClass} placeholder="Display name *" required
+                value={form.pm_name || ''} onChange={(e) => set('pm_name', e.target.value)} />
+              <textarea className={`${inputClass} min-h-20`} placeholder="Instructions shown to the student"
+                value={form.pm_instructions || ''} onChange={(e) => set('pm_instructions', e.target.value)} />
+
+              <label className="flex items-center gap-2 text-xs font-semibold text-gray-700 cursor-pointer">
+                <input type="checkbox" className="accent-[#15803d]"
+                  checked={form.pm_requires_reference !== false}
+                  onChange={(e) => set('pm_requires_reference', e.target.checked)} />
+                Requires a reference number
+              </label>
+              {form.pm_requires_reference !== false && (
+                <input className={inputClass} placeholder="Reference field label (e.g. Approval Code)"
+                  value={form.pm_reference_label || ''} onChange={(e) => set('pm_reference_label', e.target.value)} />
+              )}
+
+              <label className="flex items-center gap-2 text-xs font-semibold text-gray-700 cursor-pointer">
+                <input type="checkbox" className="accent-[#15803d]"
+                  checked={form.pm_requires_proof !== false}
+                  onChange={(e) => set('pm_requires_proof', e.target.checked)} />
+                Requires a proof-of-payment upload
+              </label>
+
+              <button type="submit" disabled={m.saving}
+                className="w-full py-3 bg-[#15803d] hover:bg-[#166534] disabled:opacity-60 text-white rounded-xl text-xs font-bold uppercase tracking-wider transition-all">
+                {m.saving ? 'Saving...' : 'Create Method'}
+              </button>
+            </form>
+
+            <div className="lg:col-span-2 bg-white rounded-3xl shadow-sm border border-gray-200 overflow-hidden">
+              <div className="p-5 border-b border-gray-100">
+                <h3 className="text-sm font-bold text-gray-900">Payment Methods</h3>
+                <p className="text-[10px] text-gray-400 mt-1">
+                  Every method settles manually against Finance's own records — a hosted gateway can be
+                  added later without changing how these are listed.
+                </p>
+              </div>
+              <div className="max-h-[32rem] overflow-y-auto">
+                <table className="w-full text-left">
+                  <thead className="bg-gray-50 sticky top-0">
+                    <tr className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">
+                      <th className="py-3 px-5">Method</th>
+                      <th className="py-3">Reference</th>
+                      <th className="py-3">Proof</th>
+                      <th className="py-3">Status</th>
+                      <th className="py-3 pr-5 text-right">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {m.paymentMethods.map((p) => (
+                      <tr key={p.id} className="border-b border-gray-50 hover:bg-gray-50/50">
+                        <td className="py-3 px-5">
+                          <div className="text-xs font-bold text-gray-900">{p.name}</div>
+                          <div className="text-[10px] text-gray-400 font-mono">{p.code}</div>
+                        </td>
+                        <td className="py-3 text-xs text-gray-600">
+                          {p.requires_reference ? (p.reference_label || 'Required') : '—'}
+                        </td>
+                        <td className="py-3 text-xs text-gray-600">{p.requires_proof ? 'Required' : '—'}</td>
+                        <td className="py-3"><StatusBadge active={p.is_active} /></td>
+                        <td className="py-3 pr-5 text-right">
+                          <button
+                            onClick={() => m.setPaymentMethodActive(p.id, !p.is_active)}
+                            disabled={m.saving}
+                            className="text-[10px] font-bold px-3 py-1.5 rounded-lg border border-gray-200 hover:bg-gray-100 disabled:opacity-40"
+                          >
+                            {p.is_active ? 'Deactivate' : 'Restore'}
                           </button>
                         </td>
                       </tr>

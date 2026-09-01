@@ -40,6 +40,9 @@ export default function StudentDashboard({ user, currentTab, setViewImageUrl }) 
     setPaymentRef,
     paymentFile,
     setPaymentFile,
+    paymentMethods,
+    selectedMethod,
+    setSelectedMethod,
     activeModal,
     setActiveModal,
     selectedDoc,
@@ -52,6 +55,7 @@ export default function StudentDashboard({ user, currentTab, setViewImageUrl }) 
   } = useStudentDashboard(user);
 
   const todayFormatted = todayLongDate();
+  const selectedPaymentMethod = paymentMethods.find((m) => m.code === selectedMethod);
 
   if (loading) return <DashboardLoading />;
 
@@ -421,11 +425,35 @@ export default function StudentDashboard({ user, currentTab, setViewImageUrl }) 
                 <p className="text-xs text-gray-400 mt-1 font-semibold">Add Payment</p>
               </div>
 
-              <div className="border-2 border-dashed border-[#15803d]/40 bg-gray-50/50 p-6 rounded-2xl flex flex-col items-center gap-4 mb-6">
-                <span className="text-xs font-bold text-gray-800">Scan this QR code using your GCash app to pay.</span>
+              {/* Payment method picker */}
+              <div className="flex flex-wrap gap-2 mb-6">
+                {paymentMethods.map((m) => (
+                  <button
+                    key={m.code}
+                    type="button"
+                    onClick={() => setSelectedMethod(m.code)}
+                    className={`px-4 py-2 rounded-xl text-[11px] font-bold border transition-all ${
+                      selectedMethod === m.code
+                        ? 'bg-[#15803d] border-[#15803d] text-white shadow-sm'
+                        : 'bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100'
+                    }`}
+                  >
+                    {m.name}
+                  </button>
+                ))}
+              </div>
 
-                {/* GCash QR Code */}
-                <img src="/gcash-qr.jpg" alt="GCash QR Code" className="w-50 h-60 rounded-xl shadow-sm object-cover border border-gray-200" />
+              <div className="border-2 border-dashed border-[#15803d]/40 bg-gray-50/50 p-6 rounded-2xl flex flex-col items-center gap-4 mb-6 text-center">
+                {selectedMethod === 'gcash' ? (
+                  <>
+                    <span className="text-xs font-bold text-gray-800">Scan this QR code using your GCash app to pay.</span>
+                    <img src="/gcash-qr.jpg" alt="GCash QR Code" className="w-50 h-60 rounded-xl shadow-sm object-cover border border-gray-200" />
+                  </>
+                ) : (
+                  <span className="text-xs font-semibold text-gray-700 leading-relaxed">
+                    {selectedPaymentMethod?.instructions || 'Complete your payment, then submit proof below.'}
+                  </span>
+                )}
               </div>
 
               <form onSubmit={handleStudentSubmitPayment} className="space-y-6">
@@ -466,36 +494,42 @@ export default function StudentDashboard({ user, currentTab, setViewImageUrl }) 
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="flex flex-col gap-1.5">
-                    <label className="text-[10px] font-bold text-gray-800 uppercase tracking-widest">GCash Reference Number</label>
-                    <input 
-                      type="text" 
-                      required 
-                      placeholder="e.g. 5001 0293 8472" 
-                      value={paymentRef}
-                      onChange={(e) => setPaymentRef(e.target.value)}
-                      className="p-3 bg-gray-50 border border-gray-200 rounded-xl text-xs font-semibold focus:ring-2 focus:ring-[#15803d]/20 outline-none"
-                    />
-                  </div>
-                  <div className="flex flex-col gap-1.5">
-                    <label className="text-[10px] font-bold text-gray-800 uppercase tracking-widest">Upload Receipt</label>
-                    <div className="relative">
-                      <input 
-                        type="file" 
-                        required 
-                        accept="image/*"
-                        onChange={(e) => setPaymentFile(e.target.files[0])}
-                        className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+                  {selectedPaymentMethod?.requires_reference !== false && (
+                    <div className="flex flex-col gap-1.5">
+                      <label className="text-[10px] font-bold text-gray-800 uppercase tracking-widest">
+                        {selectedPaymentMethod?.reference_label || 'Reference Number'}
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        placeholder="e.g. 5001 0293 8472"
+                        value={paymentRef}
+                        onChange={(e) => setPaymentRef(e.target.value)}
+                        className="p-3 bg-gray-50 border border-gray-200 rounded-xl text-xs font-semibold focus:ring-2 focus:ring-[#15803d]/20 outline-none"
                       />
-                      <div className="p-3 bg-gray-50 border border-gray-200 rounded-xl text-xs font-semibold text-gray-500 flex justify-between items-center pointer-events-none">
-                        <span className="truncate">{paymentFile ? paymentFile.name : 'Upload your receipt...'}</span>
-                        <svg className="w-4 h-4 text-[#15803d]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+                    </div>
+                  )}
+                  {selectedPaymentMethod?.requires_proof !== false && (
+                    <div className="flex flex-col gap-1.5">
+                      <label className="text-[10px] font-bold text-gray-800 uppercase tracking-widest">Upload Receipt</label>
+                      <div className="relative">
+                        <input
+                          type="file"
+                          required
+                          accept="image/*"
+                          onChange={(e) => setPaymentFile(e.target.files[0])}
+                          className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+                        />
+                        <div className="p-3 bg-gray-50 border border-gray-200 rounded-xl text-xs font-semibold text-gray-500 flex justify-between items-center pointer-events-none">
+                          <span className="truncate">{paymentFile ? paymentFile.name : 'Upload your receipt...'}</span>
+                          <svg className="w-4 h-4 text-[#15803d]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+                        </div>
                       </div>
                     </div>
-                  </div>
+                  )}
                 </div>
 
-                <button 
+                <button
                   type="submit" 
                   disabled={actionLoading} 
                   className="w-full bg-[#15803d] hover:bg-[#166534] disabled:opacity-70 text-white font-bold py-3.5 rounded-xl transition-all shadow-md uppercase tracking-wider text-xs flex justify-center items-center"

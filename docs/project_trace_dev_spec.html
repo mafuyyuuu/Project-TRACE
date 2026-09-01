@@ -324,6 +324,14 @@ Table: document_types            // replaces hardcoded frontend option lists
   is_active, sort_order
 }
 
+Table: payment_methods           // admin-managed via /api/maintenance/payment-methods
+{
+  id, code (UNIQUE, immutable once created — documents.payment_method stores it directly),
+  name, provider VARCHAR(50) DEFAULT 'manual',  // must name a registered provider in services/payment/
+  instructions: TEXT, requires_reference: BOOLEAN, reference_label,
+  requires_proof: BOOLEAN, is_active, sort_order
+}
+
 Table: grad_form_fields          // the Registrar defines the application form
 {
   id, field_key (UNIQUE), label,
@@ -404,7 +412,7 @@ frontend/src/
 
     <div class="callout spec">
       <span class="label">Deletion Is Deactivation</span>
-      <p>No maintenance endpoint hard-deletes. Documents reference document types by name and users reference colleges by name, so removing a row would orphan historical records in a system of record. <code>is_active</code> hides an entry from new requests while leaving history intact and restorable. A document type already in use cannot be renamed, and an admin cannot deactivate their own account.</p>
+      <p>No maintenance endpoint hard-deletes. Documents reference document types by name, users reference colleges by name, and documents reference payment methods by code, so removing a row would orphan historical records in a system of record. <code>is_active</code> hides an entry from new requests while leaving history intact and restorable. A document type already in use cannot be renamed, a payment method's <code>code</code> is never editable once created, and an admin cannot deactivate their own account.</p>
     </div>
 
     <div class="callout spec">

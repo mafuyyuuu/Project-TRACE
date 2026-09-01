@@ -4,16 +4,16 @@ The single record of what has been built, phase by phase. (The former
 `project_trace_roadmap.md` covered the same history at a coarser grain with a *different* phase
 numbering; it was merged into this file so "Phase 12" can only mean one thing.)
 
-## Overall Status: 🟢 Deployment-Ready — pipeline rebuilt (Phase 19), awaiting a provisioned host
+## Overall Status: 🟢 Deployment-Ready — pipeline rebuilt (Phase 19), checkout wired for every payment method (Phase 20), awaiting a provisioned host
 
-Every phase through 17 is done, and **Phase 19 rebuilt the core pipeline** around how the registrar
-actually works. **Phase 18 (Go Live) remains the only outstanding phase, and what it needs is an
+Every phase through 17 is done, **Phase 19 rebuilt the core pipeline** around how the registrar
+actually works, and **Phase 20 finished wiring the payment-methods feature that Phase 13 had only
+half-built**. **Phase 18 (Go Live) remains the only outstanding phase, and what it needs is an
 account and a machine, not code.**
 
 ### 📍 What actually remains
 
-0. *(Phase 19 rebuilt the pipeline after this list was written; none of it changed what Go Live
-   needs.)*
+0. *(Phases 19 and 20 landed after this list was written; neither changed what Go Live needs.)*
 1. **Provision the VM** and point a hostname at it. HTTPS is not optional — a browser on an `https://`
    frontend refuses to call an `http://` backend, and a bare IP cannot be issued a certificate.
 2. **Rotate the UniSMS API key.** It shipped as a `||` fallback default and remains in git history
@@ -372,6 +372,43 @@ quote anything until it has been printed.*
 > values like `'College of Computer Studies'`. The seeded student therefore always falls through to
 > the admin fallback. Decide whether `course` should hold the college name, or whether a separate
 > college column is wanted.
+
+---
+
+### Phase 20: Payment Methods — Finish What Phase 13 Started
+**Status:** ✅ Complete
+*Phase 13 built four payment methods into the data model — GCash, Card, Online Banking, Over-the-
+Counter — behind a gateway-ready provider abstraction. Only GCash was ever reachable: the student
+checkout modal was hardcoded to it (fixed QR image, fixed "GCash Reference Number" label, and
+`selectedMethod` defaulted to `'gcash'` with nothing ever calling `setSelectedMethod`), and there was
+no admin screen to manage the other three at all, despite `payment_methods` being called
+"admin-managed" in the docs since Phase 13.*
+- [x] **Admin CRUD.** New `GET/POST /api/maintenance/payment-methods`, `PUT /:id`,
+  `PATCH /:id/active`, mirroring the Document Type/College CRUD exactly: deletion is deactivation,
+  admin-only. Two guardrails specific to this table: `code` is never editable once created (it's
+  what `documents.payment_method` stores directly, so changing it would strand the lookup for every
+  document that already used it), and `provider` is validated against the registry in
+  `services/payment/` at create *and* update time, so a typo can't produce a method that 400s the
+  first time a student tries to pay with it. New "Payment Methods" tab in the Maintenance panel.
+- [x] **The student checkout modal now shows every active method**, not just GCash. A picker row
+  drives `selectedMethod`/`paymentMethods`, which `useStudentDashboard.js` had already been fetching
+  and threading through unused. The GCash QR renders only when GCash is selected; every other method
+  shows its own `instructions` text. The reference-number field's label and requirement, and whether
+  a proof upload is required at all, now come from the selected method's `reference_label` /
+  `requires_reference` / `requires_proof` instead of being hardcoded — an admin can configure either
+  requirement off for a method and the form (and `handleStudentSubmitPayment`'s validation) honors it.
+  `submitPayment` on the backend needed no change: it already accepted an arbitrary `payment_method`
+  and resolved it through the same provider registry.
+- [x] **Tests:** 644 total (435 backend + 209 frontend), up from 620. Zero ESLint errors.
+
+> **Found while verifying, and fixed:** neither the Document Type nor College CRUD (Phase 12) had
+> ever had an edit-in-place path exposed in the UI, despite `updateDocumentType`/`updateCollege`
+> existing in both the service and the frontend hook since that phase — only Create and
+> Deactivate/Restore were ever wired to a button. Payment methods follow that same, apparently
+> deliberate precedent: `updatePaymentMethod` exists end to end but isn't yet exposed as an "Edit"
+> button either. Left as-is rather than introducing a new UI pattern the other two entities don't
+> have; worth a follow-up if the Registrar actually needs to edit a method's instructions without a
+> database console.
 
 ---
 

@@ -15,6 +15,7 @@ vi.mock('@/services/maintenanceService', () => ({
   getStaff: vi.fn(), createStaff: vi.fn(), updateStaff: vi.fn(), setStaffActive: vi.fn(),
   getDocumentTypes: vi.fn(), createDocumentType: vi.fn(), updateDocumentType: vi.fn(), setDocumentTypeActive: vi.fn(),
   getColleges: vi.fn(), createCollege: vi.fn(), updateCollege: vi.fn(), setCollegeActive: vi.fn(),
+  getPaymentMethods: vi.fn(), createPaymentMethod: vi.fn(), updatePaymentMethod: vi.fn(), setPaymentMethodActive: vi.fn(),
 }));
 
 vi.mock('@/services/reportsService', () => ({
@@ -42,6 +43,14 @@ const DOC_TYPES = [
 ];
 
 const COLLEGES = [{ id: 1, name: 'College of Computer Studies', short_code: 'CCS', is_active: 1 }];
+
+const PAYMENT_METHODS = [
+  { id: 1, code: 'gcash', name: 'GCash', provider: 'manual', instructions: 'Scan the QR code.',
+    requires_reference: 1, reference_label: 'GCash Reference Number', requires_proof: 1, is_active: 1 },
+  { id: 4, code: 'over_the_counter', name: 'Over-the-Counter (Cashier)', provider: 'manual',
+    instructions: 'Pay in cash at the Cashier.', requires_reference: 1,
+    reference_label: 'Official Receipt Number', requires_proof: 1, is_active: 0 },
+];
 
 const REPORT = {
   documents: [
@@ -71,9 +80,12 @@ beforeEach(() => {
   maintenanceService.getStaff.mockResolvedValue({ staff: STAFF });
   maintenanceService.getDocumentTypes.mockResolvedValue({ document_types: DOC_TYPES });
   maintenanceService.getColleges.mockResolvedValue({ colleges: COLLEGES });
+  maintenanceService.getPaymentMethods.mockResolvedValue({ payment_methods: PAYMENT_METHODS });
   maintenanceService.createStaff.mockResolvedValue({ message: 'Staff account created.' });
   maintenanceService.setStaffActive.mockResolvedValue({ message: 'Staff account deactivated.' });
   maintenanceService.setDocumentTypeActive.mockResolvedValue({ message: 'Document type deactivated.' });
+  maintenanceService.createPaymentMethod.mockResolvedValue({ message: 'Payment method created.' });
+  maintenanceService.setPaymentMethodActive.mockResolvedValue({ message: 'Payment method deactivated.' });
 
   reportsService.getDocumentReport.mockResolvedValue(REPORT);
   reportsService.getAnalytics.mockResolvedValue(ANALYTICS);
@@ -91,11 +103,12 @@ describe('MaintenancePanel', () => {
     return utils;
   };
 
-  it('loads all three entity lists', async () => {
+  it('loads all four entity lists', async () => {
     await renderPanel();
     await waitFor(() => expect(maintenanceService.getStaff).toHaveBeenCalled());
     expect(maintenanceService.getDocumentTypes).toHaveBeenCalled();
     expect(maintenanceService.getColleges).toHaveBeenCalled();
+    expect(maintenanceService.getPaymentMethods).toHaveBeenCalled();
   });
 
   it('shows staff with their active state', async () => {
@@ -157,6 +170,42 @@ describe('MaintenancePanel', () => {
     await user.click(await screen.findByRole('button', { name: /Document Types/ }));
     expect(await screen.findByText('Transcript of Records')).toBeInTheDocument();
     expect(screen.getByText(/cannot be renamed/i)).toBeInTheDocument();
+  });
+
+  it('switches to the payment methods section and shows both active and inactive rows', async () => {
+    const user = userEvent.setup();
+    await renderPanel();
+    await user.click(await screen.findByRole('button', { name: /Payment Methods/ }));
+    expect(await screen.findByText('GCash')).toBeInTheDocument();
+    expect(screen.getByText('Over-the-Counter (Cashier)')).toBeInTheDocument();
+    expect(screen.getByText('Active')).toBeInTheDocument();
+    expect(screen.getByText('Inactive')).toBeInTheDocument();
+  });
+
+  it('creates a payment method with the entered code and name', async () => {
+    const user = userEvent.setup();
+    await renderPanel();
+    await user.click(await screen.findByRole('button', { name: /Payment Methods/ }));
+
+    await user.type(screen.getByPlaceholderText(/Code \*/), 'paymaya');
+    await user.type(screen.getByPlaceholderText(/Display name/), 'PayMaya');
+    await user.click(screen.getByRole('button', { name: /create method/i }));
+
+    await waitFor(() => expect(maintenanceService.createPaymentMethod).toHaveBeenCalled());
+    expect(maintenanceService.createPaymentMethod).toHaveBeenCalledWith(
+      expect.objectContaining({ code: 'paymaya', name: 'PayMaya' })
+    );
+  });
+
+  it('deactivates a payment method rather than deleting it', async () => {
+    const user = userEvent.setup();
+    await renderPanel();
+    await user.click(await screen.findByRole('button', { name: /Payment Methods/ }));
+
+    const row = (await screen.findByText('GCash')).closest('tr');
+    await user.click(within(row).getByRole('button', { name: /deactivate/i }));
+
+    await waitFor(() => expect(maintenanceService.setPaymentMethodActive).toHaveBeenCalledWith(1, false));
   });
 });
 
