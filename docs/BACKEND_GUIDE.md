@@ -169,10 +169,11 @@ would let a client spoof its own address and walk straight past the login limite
 - `tracking_number` (Unique Hash)
 - `student_id` (FK)
 - `document_type`
-- `current_status` — one of the eight pipeline values in `utils/documentStatus.js`. A `VARCHAR`, not an ENUM: the constants module enforces the vocabulary, and it also covers the Python engine and the React queues, which a database ENUM never could.
+- `current_status` — one of the nine pipeline values in `utils/documentStatus.js`. A `VARCHAR`, not an ENUM: the constants module enforces the vocabulary, and it also covers the Python engine and the React queues, which a database ENUM never could.
 - `estimated_ready_date` — what the Secretary promised the student
 - `amount`, `page_count`, `pricing_notes`, `priced_by_clerk_id`, `priced_at` — the charge and its justification. `priced_at` (never `amount`) is what gates billing, since `amount` starts as an estimate.
 - `stub_issued_at`, `payment_channel` (`digital` | `walk_in`), `or_number`, `or_date`, `logged_by_clerk_id` — the counter-payment trail
+- `or_verified_by_clerk_id`, `or_verified_at` — who on the Secretary desk checked the Official Receipt and when. Written only by `verify-or`, never by anything that also touches `payment_status`.
 - `assigned_desk` (e.g., WINDOW_1, SECRETARY)
 - `payment_status` (e.g., UNPAID, PAID) - *Updated for Payment Phase*
 
@@ -216,10 +217,16 @@ printed and priced first, because the amount comes from the page count.
    - **At the counter** — the student brings the printed slip; Finance calls
      `POST /:id/log-walkin-payment`, writing `or_number`, `or_date`, `logged_by_clerk_id` and
      `payment_channel = 'walk_in'`. Same destination: logging is not clearing.
-3. **Finance verification.** `POST /:id/verify-payment` reviews whichever proof exists.
+3. **Finance verification.** `POST /:id/verify-payment` reviews whichever proof exists. Approving
+   requires an `or_number` in the body — typed in for a digital payment, or the number Finance already
+   logged for a walk-in — which is written across the group alongside `payment_status`.
    - Approved: sets `payment_status = 'PAID'` and advances the group to `PAID_PENDING_SEC_RELEASE`.
      **This is the only place in the system that writes `PAID`.**
    - Rejected: returns the group to `PENDING_STUDENT_PAYMENT` with the clerk's notes.
+4. **OR Verification.** `POST /:id/verify-or` (Secretary) checks the Official Receipt is present and
+   its number looks right before moving to `SEC_OR_VERIFIED`. Deliberately a paperwork completeness
+   check, not a second payment decision — it never touches `payment_status`, which stays exclusively
+   Finance's to write.
 
 > One receipt — digital or an Official Receipt — settles **every** document in the request group,
 > which is why both writers are group-scoped while pricing and desk routing are per document.
@@ -235,7 +242,8 @@ printed and priced first, because the amount comes from the page count.
 | `POST /api/documents/:id/submit-payment` | student | → `PENDING_FINANCE_VERIFICATION` (online) |
 | `POST /api/documents/scan-receipt` | Finance | reads an OR image and returns the fields. **Records nothing** — hence no document id |
 | `POST /api/documents/:id/log-walkin-payment` | Finance | → `PENDING_FINANCE_VERIFICATION` (counter) |
-| `POST /api/documents/:id/verify-payment` | Finance | → `PAID_PENDING_SEC_RELEASE`, sets `PAID` |
+| `POST /api/documents/:id/verify-payment` | Finance | → `PAID_PENDING_SEC_RELEASE`, sets `PAID`, requires `or_number` to approve |
+| `POST /api/documents/:id/verify-or` | Secretary | → `SEC_OR_VERIFIED`; checks the OR, never touches `payment_status` |
 | `POST /api/documents/:id/handoff` | Secretary | → `READY_FOR_RELEASE` |
 | `POST /api/documents/:id/release` | Window 1 | → `COMPLETED` |
 | `DELETE /api/documents/:id` | student | cancels, allowed only through `PENDING_SEC_EVALUATION` |
@@ -244,7 +252,7 @@ Every desk action is a **POST**, so none is shadowed by the `GET /:trackingNumbe
 `GET /:id/...` *would* be — which is why the payment slip is rendered client-side rather than fetched.
 
 `GET /api/documents` is role-scoped rather than taking a status: students see only their own, Finance
-the two money queues, Secretaries their three working queues filtered by college, and Window 1
+the two money queues, Secretaries their four working queues filtered by college, and Window 1
 everything (it is the public counter — its Tracking Desk has to answer "where is my document?").
 
 ### Account & Profile Endpoints

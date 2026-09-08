@@ -1,21 +1,24 @@
 import { useState, useCallback, useMemo } from 'react';
 import useDashboardCore from '@/hooks/useDashboardCore';
-import { acceptForProcessing, priceDocument, confirmHandoff } from '@/services/documentsService';
+import { acceptForProcessing, priceDocument, verifyOfficialReceipt, confirmHandoff } from '@/services/documentsService';
 import { STATUS } from '@/utils/documentStatus';
 
 /**
- * College Secretary: the desk that does the actual work, in three passes.
+ * College Secretary: the desk that does the actual work, in four passes.
  *
  * 1. **Initial Evaluation** — check the request against the student's records,
  *    take it on, and commit to a date the student can plan around.
  * 2. **Processing** — prepare and print, then price it from what printing it
  *    actually took. The request is billed once every document in it is priced.
- * 3. **Final Handoff** — once Finance confirms the money, physically pass the
- *    printed document to Window 1.
+ * 3. **OR Verification** — once Finance confirms the money, check the Official
+ *    Receipt they attached is present and the number looks right.
+ * 4. **Final Handoff** — physically pass the printed document to Window 1.
  *
  * Pricing lives here and payment does not: the Secretary sets the amount, and
- * only Finance can ever mark it paid. Keeping those apart is what makes the
- * money trail auditable.
+ * only Finance can ever mark it paid. OR Verification does not change that —
+ * it is a paperwork check, never a second payment decision, and it never
+ * touches `payment_status`. Keeping those apart is what makes the money trail
+ * auditable.
  */
 export default function useSecretaryDashboard(user) {
   const core = useDashboardCore(user);
@@ -37,6 +40,9 @@ export default function useSecretaryDashboard(user) {
   // The document staged for a handoff confirmation, or null when the dialog is closed.
   const [handoffToConfirm, setHandoffToConfirm] = useState(null);
 
+  // The document staged for an OR-verification confirmation, or null when closed.
+  const [orVerifyToConfirm, setOrVerifyToConfirm] = useState(null);
+
   // The evaluate action ('approve' | 'reject') staged for confirmation, or null.
   const [evaluateActionToConfirm, setEvaluateActionToConfirm] = useState(null);
 
@@ -51,8 +57,12 @@ export default function useSecretaryDashboard(user) {
     () => documents.filter((d) => d.current_status === STATUS.SEC_PROCESSING),
     [documents]
   );
-  const handoffQueue = useMemo(
+  const orVerificationQueue = useMemo(
     () => documents.filter((d) => d.current_status === STATUS.PAID_PENDING_SEC_RELEASE),
+    [documents]
+  );
+  const handoffQueue = useMemo(
+    () => documents.filter((d) => d.current_status === STATUS.SEC_OR_VERIFIED),
     [documents]
   );
   const clearedQueue = useMemo(
@@ -171,6 +181,25 @@ export default function useSecretaryDashboard(user) {
     setPricingToConfirm(false);
   }, []);
 
+  /** Stage an OR-verification check for confirmation. */
+  const handleVerifyOfficialReceipt = useCallback((doc) => {
+    setOrVerifyToConfirm(doc);
+  }, []);
+
+  /** Confirm the Official Receipt Finance attached is present and checks out. */
+  const confirmVerifyOfficialReceiptAction = useCallback(async () => {
+    if (!orVerifyToConfirm) return;
+    const ok = await runAction(() => verifyOfficialReceipt(orVerifyToConfirm.id), {
+      successMessage: 'Official Receipt verified. Ready for handoff to Window 1.',
+      errorMessage: 'Could not verify the Official Receipt.',
+    });
+    if (ok) setOrVerifyToConfirm(null);
+  }, [orVerifyToConfirm, runAction]);
+
+  const cancelVerifyOfficialReceiptConfirm = useCallback(() => {
+    setOrVerifyToConfirm(null);
+  }, []);
+
   /** Stage a handoff for confirmation. */
   const handleConfirmHandoff = useCallback((doc) => {
     setHandoffToConfirm(doc);
@@ -194,6 +223,7 @@ export default function useSecretaryDashboard(user) {
     ...core,
     evaluationQueue,
     processingQueue,
+    orVerificationQueue,
     handoffQueue,
     clearedQueue,
     clerkNotes, setClerkNotes,
@@ -212,6 +242,10 @@ export default function useSecretaryDashboard(user) {
     pricingToConfirm,
     confirmPriceDocument,
     cancelPriceDocument,
+    handleVerifyOfficialReceipt,
+    orVerifyToConfirm,
+    confirmVerifyOfficialReceiptAction,
+    cancelVerifyOfficialReceiptConfirm,
     handleConfirmHandoff,
     handoffToConfirm,
     confirmHandoffAction,

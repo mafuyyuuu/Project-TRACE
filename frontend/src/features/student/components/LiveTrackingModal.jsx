@@ -14,8 +14,9 @@ const TRACKER_NODES = [
   { step: 4, label: 'Payment', key: STATUS.PENDING_STUDENT_PAYMENT },
   { step: 5, label: 'Verifying', key: STATUS.PENDING_FINANCE_VERIFICATION },
   { step: 6, label: 'Paid', key: STATUS.PAID_PENDING_SEC_RELEASE },
-  { step: 7, label: 'Window 1', key: STATUS.READY_FOR_RELEASE },
-  { step: 8, label: 'Released', key: STATUS.COMPLETED },
+  { step: 7, label: 'OR Check', key: STATUS.SEC_OR_VERIFIED },
+  { step: 8, label: 'Window 1', key: STATUS.READY_FOR_RELEASE },
+  { step: 9, label: 'Released', key: STATUS.COMPLETED },
 ];
 
 /** What is actually happening, in words the student can act on. */
@@ -25,7 +26,8 @@ const STAGE_MESSAGE = {
   [STATUS.SEC_PROCESSING]: 'Your document is being prepared and printed. You will be told the amount once it is ready.',
   [STATUS.PENDING_STUDENT_PAYMENT]: 'Your document is ready. Pay online here, or bring your payment slip to the Finance Office.',
   [STATUS.PENDING_FINANCE_VERIFICATION]: 'The Finance Office is verifying your payment.',
-  [STATUS.PAID_PENDING_SEC_RELEASE]: 'Payment confirmed. The College Secretary is passing your document to Window 1.',
+  [STATUS.PAID_PENDING_SEC_RELEASE]: 'Payment confirmed. The College Secretary is checking your Official Receipt.',
+  [STATUS.SEC_OR_VERIFIED]: 'Official Receipt verified. The College Secretary is passing your document to Window 1.',
   [STATUS.READY_FOR_RELEASE]: 'Ready for pick-up at Window 1. Bring your Official Receipt.',
   [STATUS.COMPLETED]: 'This request is complete. The document has been released.',
 };

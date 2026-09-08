@@ -29,6 +29,7 @@ export default function SecretaryDashboard({ user, currentTab, setViewImageUrl }
     actionLoading,
     evaluationQueue,
     processingQueue,
+    orVerificationQueue,
     handoffQueue,
     clearedQueue,
     clerkNotes,
@@ -45,6 +46,10 @@ export default function SecretaryDashboard({ user, currentTab, setViewImageUrl }
     pricingToConfirm,
     confirmPriceDocument,
     cancelPriceDocument,
+    handleVerifyOfficialReceipt,
+    orVerifyToConfirm,
+    confirmVerifyOfficialReceiptAction,
+    cancelVerifyOfficialReceiptConfirm,
     handleConfirmHandoff,
     handoffToConfirm,
     confirmHandoffAction,
@@ -144,6 +149,7 @@ export default function SecretaryDashboard({ user, currentTab, setViewImageUrl }
               tabs={[
                 { key: 'evaluation', label: 'Initial Evaluation', count: evaluationQueue.length },
                 { key: 'processing', label: 'Processing & Pricing', count: processingQueue.length },
+                { key: 'or-verification', label: 'OR Verification', count: orVerificationQueue.length },
                 { key: 'handoff', label: 'Final Handoff', count: handoffQueue.length },
               ]}
               activeKey={activeQueueTab}
@@ -285,11 +291,70 @@ export default function SecretaryDashboard({ user, currentTab, setViewImageUrl }
             </div>
             )}
 
-            {/* 3 · Paid and waiting to physically change hands. */}
+            {/* 3 · Paid, waiting on a paperwork check before handoff. */}
+            {activeQueueTab === 'or-verification' && (
+            <div className="bg-white rounded-3xl shadow-sm border border-gray-200 overflow-hidden mt-6">
+              <div className="p-4 sm:p-6 border-b border-gray-100 bg-gray-50/50">
+                <h3 className="font-bold text-gray-950 text-sm tracking-wider uppercase">3 · OR VERIFICATION</h3>
+                <p className="text-[11px] text-gray-500 font-medium mt-1">Finance has confirmed the payment. Check the Official Receipt is present and the number looks right before handoff.</p>
+              </div>
+              <div className="p-4 sm:p-6">
+                <div className="max-h-[60vh] overflow-y-auto overflow-x-auto">
+                  {orVerificationQueue.length === 0 ? (
+                    <div className="text-center py-12 text-gray-400 font-medium">Nothing waiting on an OR check.</div>
+                  ) : (
+                    <table className="w-full text-left border-collapse">
+                      <thead className="sticky top-0 bg-white z-10">
+                        <tr className="text-gray-400 text-[10px] uppercase tracking-widest border-b border-gray-100">
+                          <th className="pb-4 font-bold pl-4">Document Details</th>
+                          <th className="pb-4 font-bold">Category</th>
+                          <th className="pb-4 font-bold">Official Receipt</th>
+                          <th className="pb-4 font-bold text-right pr-4">Action</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-50">
+                        {orVerificationQueue.map(doc => (
+                          <tr key={doc.id} className="hover:bg-gray-50/30 group">
+                            <td className="py-4 pl-4">
+                              <div className="font-bold text-gray-900">{doc.student_name || 'Unresolved Student'}</div>
+                              <div className="text-xs font-mono text-gray-400 mt-0.5">#{doc.tracking_number ? doc.tracking_number.slice(0, 10).toUpperCase() : doc.id}</div>
+                            </td>
+                            <td className="py-4 text-xs font-bold text-gray-600">{doc.document_type}</td>
+                            <td className="py-4 text-xs font-mono">
+                              <span className="font-bold text-gray-700">{doc.or_number || 'None on file'}</span>
+                              {doc.official_receipt_path && (
+                                <button
+                                  onClick={() => setViewImageUrl(doc.official_receipt_path)}
+                                  className="ml-2 text-[#15803d] hover:underline font-sans font-bold"
+                                >
+                                  View
+                                </button>
+                              )}
+                            </td>
+                            <td className="py-4 text-right pr-4">
+                              <button
+                                onClick={() => handleVerifyOfficialReceipt(doc)}
+                                disabled={actionLoading}
+                                className="px-4 py-2 bg-[#15803d] hover:bg-[#166534] text-white rounded-xl text-xs font-bold shadow-sm transition-all disabled:opacity-50 ml-auto block"
+                              >
+                                Verify Receipt
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  )}
+                </div>
+              </div>
+            </div>
+            )}
+
+            {/* 4 · Paid and waiting to physically change hands. */}
             {activeQueueTab === 'handoff' && (
             <div className="bg-white rounded-3xl shadow-sm border border-gray-200 overflow-hidden mt-6">
               <div className="p-4 sm:p-6 border-b border-gray-100 bg-gray-50/50">
-                <h3 className="font-bold text-gray-950 text-sm tracking-wider uppercase">3 · FINAL HANDOFF</h3>
+                <h3 className="font-bold text-gray-950 text-sm tracking-wider uppercase">4 · FINAL HANDOFF</h3>
                 <p className="text-[11px] text-gray-500 font-medium mt-1">Paid and signed. Confirm once the printed document is physically at Window 1.</p>
               </div>
               <div className="p-4 sm:p-6">
@@ -445,6 +510,25 @@ export default function SecretaryDashboard({ user, currentTab, setViewImageUrl }
             setActiveModal={setActiveModal}
           />
         )}
+
+        <ConfirmDialog
+          open={!!orVerifyToConfirm}
+          title="Verify Official Receipt"
+          message={
+            orVerifyToConfirm
+              ? [
+                  `Confirm the Official Receipt for ${orVerifyToConfirm.document_type} is present and the number looks right?`,
+                  orVerifyToConfirm.or_number ? `OR on file: ${orVerifyToConfirm.or_number}` : 'No OR number on file.',
+                ]
+              : ''
+          }
+          variant="neutral"
+          confirmLabel="Verify Receipt"
+          loadingLabel="Saving…"
+          loading={actionLoading}
+          onConfirm={confirmVerifyOfficialReceiptAction}
+          onCancel={cancelVerifyOfficialReceiptConfirm}
+        />
 
         <ConfirmDialog
           open={!!handoffToConfirm}

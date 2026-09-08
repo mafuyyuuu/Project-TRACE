@@ -25,6 +25,7 @@ vi.mock('@/services/documentsService', () => ({
   intakeDocument: vi.fn(),
   acceptForProcessing: vi.fn(),
   priceDocument: vi.fn(),
+  verifyOfficialReceipt: vi.fn(),
   confirmHandoff: vi.fn(),
   scanReceipt: vi.fn(),
   logWalkInPayment: vi.fn(),
@@ -64,6 +65,7 @@ const CODE = {
   [STATUS.PENDING_STUDENT_PAYMENT]: 'BILL',
   [STATUS.PENDING_FINANCE_VERIFICATION]: 'VRFY',
   [STATUS.PAID_PENDING_SEC_RELEASE]: 'HAND',
+  [STATUS.SEC_OR_VERIFIED]: 'ORVF',
   [STATUS.READY_FOR_RELEASE]: 'RLSE',
   [STATUS.COMPLETED]: 'DONE',
 };
@@ -96,6 +98,7 @@ const ALL_STAGES = [
   at(STATUS.PENDING_STUDENT_PAYMENT, { amount: '250.00', priced_at: '2026-09-01T00:00:00.000Z' }),
   at(STATUS.PENDING_FINANCE_VERIFICATION, { payment_channel: 'digital' }),
   at(STATUS.PAID_PENDING_SEC_RELEASE, { payment_status: 'PAID', or_number: 'OR-2026-0099' }),
+  at(STATUS.SEC_OR_VERIFIED, { payment_status: 'PAID', or_number: 'OR-2026-0098' }),
   at(STATUS.READY_FOR_RELEASE, { payment_status: 'PAID', or_number: 'OR-2026-0100' }),
   at(STATUS.COMPLETED, { payment_status: 'PAID' }),
 ];
@@ -172,21 +175,22 @@ describe('Window 1 — intake at the front, release at the back', () => {
   });
 });
 
-describe('Secretary — three passes over the same request', () => {
-  // The three queues now live behind a tab bar (one table visible at a
-  // time) instead of stacked cards, so "showing" a queue means selecting
-  // its tab first.
+describe('Secretary — four passes over the same request', () => {
+  // The queues now live behind a tab bar (one table visible at a time)
+  // instead of stacked cards, so "showing" a queue means selecting its tab
+  // first.
 
-  it('shows all three queue tabs', async () => {
+  it('shows all four queue tabs', async () => {
     await renderDashboard(
       <SecretaryDashboard user={USERS.secretary} currentTab="dashboard" setViewImageUrl={vi.fn()} />
     );
     expect(await screen.findByRole('tab', { name: /initial evaluation/i })).toBeInTheDocument();
     expect(screen.getByRole('tab', { name: /processing & pricing/i })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: /or verification/i })).toBeInTheDocument();
     expect(screen.getByRole('tab', { name: /final handoff/i })).toBeInTheDocument();
   });
 
-  it('separates evaluation, processing and handoff, one queue visible at a time', async () => {
+  it('separates evaluation, processing, OR verification and handoff, one queue visible at a time', async () => {
     const user = userEvent.setup();
     await renderDashboard(
       <SecretaryDashboard user={USERS.secretary} currentTab="dashboard" setViewImageUrl={vi.fn()} />
@@ -201,8 +205,13 @@ describe('Secretary — three passes over the same request', () => {
     expect(await screen.findByText(idFor(STATUS.SEC_PROCESSING))).toBeInTheDocument();
     expect(screen.queryByText(idFor(STATUS.PENDING_SEC_EVALUATION))).not.toBeInTheDocument();
 
-    await user.click(screen.getByRole('tab', { name: /final handoff/i }));
+    await user.click(screen.getByRole('tab', { name: /or verification/i }));
     expect(await screen.findByText(idFor(STATUS.PAID_PENDING_SEC_RELEASE))).toBeInTheDocument();
+    expect(screen.queryByText(idFor(STATUS.SEC_OR_VERIFIED))).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole('tab', { name: /final handoff/i }));
+    expect(await screen.findByText(idFor(STATUS.SEC_OR_VERIFIED))).toBeInTheDocument();
+    expect(screen.queryByText(idFor(STATUS.PAID_PENDING_SEC_RELEASE))).not.toBeInTheDocument();
     expect(screen.queryByText(idFor(STATUS.SEC_PROCESSING))).not.toBeInTheDocument();
 
     // Money is Finance's business, not the Secretary's — never shown here.

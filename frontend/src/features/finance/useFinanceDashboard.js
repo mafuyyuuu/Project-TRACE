@@ -42,22 +42,24 @@ export default function useFinanceDashboard(user) {
   /**
    * @param {'approve'|'reject'} action
    * @param {File} [file] optional official receipt to attach
+   * @param {string} [orNumber] required to approve — the Official Receipt number
    */
   const handleFinanceVerify = useCallback(
-    (action, file) => {
+    (action, file, orNumber) => {
       if (!selectedDoc) return;
-      setFinanceVerifyToConfirm({ action, file });
+      setFinanceVerifyToConfirm({ action, file, orNumber });
     },
     [selectedDoc]
   );
 
   const confirmFinanceVerify = useCallback(async () => {
     if (!financeVerifyToConfirm) return;
-    const { action, file } = financeVerifyToConfirm;
+    const { action, file, orNumber } = financeVerifyToConfirm;
 
     const formData = new FormData();
     formData.append('action', action);
     formData.append('notes', clerkNotes);
+    if (orNumber) formData.append('or_number', orNumber);
     if (file) formData.append('officialReceipt', file);
 
     const ok = await runAction(() => verifyPayment(selectedDoc.id, formData), {

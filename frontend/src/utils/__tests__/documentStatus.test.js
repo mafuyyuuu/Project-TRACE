@@ -40,6 +40,7 @@ describe('getStatusLabel', () => {
     [STATUS.PENDING_STUDENT_PAYMENT, 'Payment Required'],
     [STATUS.PENDING_FINANCE_VERIFICATION, 'Verifying Payment'],
     [STATUS.PAID_PENDING_SEC_RELEASE, 'Paid — Preparing for Release'],
+    [STATUS.SEC_OR_VERIFIED, 'Paid — Final Checks Before Release'],
     [STATUS.READY_FOR_RELEASE, 'Ready for Pick-up'],
     [STATUS.COMPLETED, 'Completed'],
   ])('renders %s as "%s"', (status, label) => {
@@ -80,7 +81,7 @@ describe('pipeline predicates', () => {
 
   it('treats everything from the Finance handoff onward as paid', () => {
     expect(isPaid(STATUS.PENDING_FINANCE_VERIFICATION)).toBe(false);
-    [STATUS.PAID_PENDING_SEC_RELEASE, STATUS.READY_FOR_RELEASE, STATUS.COMPLETED].forEach((s) =>
+    [STATUS.PAID_PENDING_SEC_RELEASE, STATUS.SEC_OR_VERIFIED, STATUS.READY_FOR_RELEASE, STATUS.COMPLETED].forEach((s) =>
       expect(isPaid(s)).toBe(true)
     );
   });

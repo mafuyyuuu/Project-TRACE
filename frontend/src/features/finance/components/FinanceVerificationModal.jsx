@@ -13,8 +13,13 @@ export default function FinanceVerificationModal({
   setClerkNotes
 }) {
   const [financeReceiptFile, setFinanceReceiptFile] = useState(null);
+  // Walk-in documents already carry an OR number from logWalkInPayment; a
+  // digital payment has none until Finance types it in here.
+  const [orNumber, setOrNumber] = useState(selectedDoc?.or_number || '');
 
   if (!selectedDoc) return null;
+
+  const canVerify = financeReceiptFile && orNumber.trim();
 
   return (
     <ModalShell
@@ -32,10 +37,10 @@ export default function FinanceVerificationModal({
             Reject Payment
           </button>
           <button
-            onClick={() => handleFinanceVerify('approve', financeReceiptFile)}
-            disabled={actionLoading || !financeReceiptFile}
+            onClick={() => handleFinanceVerify('approve', financeReceiptFile, orNumber.trim())}
+            disabled={actionLoading || !canVerify}
             className={`w-1/2 py-3 rounded-xl font-bold text-xs shadow-md transition-all text-center uppercase tracking-wider ${
-              !financeReceiptFile ? 'bg-gray-300 text-gray-500 cursor-not-allowed' : 'bg-[#15803d] hover:bg-[#166534] text-white'
+              !canVerify ? 'bg-gray-300 text-gray-500 cursor-not-allowed' : 'bg-[#15803d] hover:bg-[#166534] text-white'
             }`}
           >
             Verify Payment
@@ -76,6 +81,20 @@ export default function FinanceVerificationModal({
 
         <div className="text-center font-bold text-xs text-gray-800 py-2 border-b border-gray-100 mb-2">
           GCash Reference Number: <span className="font-mono text-gray-600 font-bold">{selectedDoc.gcash_reference_no || 'None'}</span>
+        </div>
+
+        <div className="flex flex-col gap-2">
+          <label htmlFor="finance-verify-or-number" className="text-[10px] font-bold text-red-600 uppercase tracking-widest flex items-center gap-1">
+            Official Receipt Number <span className="text-red-500">*</span>
+          </label>
+          <input
+            id="finance-verify-or-number"
+            type="text"
+            value={orNumber}
+            onChange={(e) => setOrNumber(e.target.value)}
+            placeholder="e.g. OR-2026-00123"
+            className="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 text-xs font-bold font-mono focus:ring-2 focus:ring-[#15803d]/20 focus:bg-white outline-none transition-all"
+          />
         </div>
 
         <div className="flex flex-col gap-2">

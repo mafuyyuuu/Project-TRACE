@@ -72,6 +72,17 @@ export async function priceDocument(id, payload) {
 }
 
 /**
+ * College Secretary checks the Official Receipt Finance attached before the
+ * printed document can be handed to Window 1.
+ * @param {string} id
+ * @param {object} payload - optional `notes`
+ */
+export async function verifyOfficialReceipt(id, payload = {}) {
+  const { data } = await api.post(`/documents/${id}/verify-or`, payload)
+  return data
+}
+
+/**
  * College Secretary confirms the printed document has physically reached
  * Window 1.
  * @param {string} id
@@ -123,7 +134,8 @@ export async function submitPayment(id, formData) {
 /**
  * Verify GCash payment (Finance Clerk).
  * @param {string} id
- * @param {FormData} formData - Contains `action`, `notes`, optional `officialReceipt`
+ * @param {FormData} formData - Contains `action`, `notes`, `or_number` (required to approve),
+ *   optional `officialReceipt`
  */
 export async function verifyPayment(id, formData) {
   const { data } = await api.post(`/documents/${id}/verify-payment`, formData, {

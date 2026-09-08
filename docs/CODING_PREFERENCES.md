@@ -173,6 +173,12 @@ utils/         # Backend helper functions (AppError)
 - **Logging a counter payment is not clearing it.** `logWalkInPayment()` records the claim and moves
   the request into the verification queue — a walk-in is held to exactly the same standard as an
   online payment.
+- **The Secretary's OR check stays procedural.** `verifyOfficialReceipt()` sits between Finance's
+  approval and physical handoff — the Secretary confirms the Official Receipt is present and its
+  number looks right before releasing the document. It is a deliberate, narrow exception that sits
+  close to the authority split above, so it is held to the same rule by never writing
+  `payment_status` itself: that stays exclusively `verifyPayment()`'s. Approving `verifyPayment()`
+  now also requires an `or_number` — typed in for a digital payment, already on file for a walk-in.
 - **OCR never records a payment on its own.** `/ocr/receipt` fills the walk-in form's fields; the
   clerk confirms them before saving. A misread amount here is a money error, which is precisely where
   a human check earns its cost.

@@ -33,6 +33,16 @@ const STATUS = {
   PENDING_FINANCE_VERIFICATION: 'PENDING_FINANCE_VERIFICATION',
   /** Finance confirmed the money. The Secretary still holds the physical copy. */
   PAID_PENDING_SEC_RELEASE: 'PAID_PENDING_SEC_RELEASE',
+  /**
+   * The Secretary has checked the Official Receipt paperwork Finance attached —
+   * present, and the number looks right. Still holds the physical copy.
+   *
+   * A procedural completeness check, not a second money decision: it never
+   * touches `payment_status`. Only Finance ever sets PAID (verifyPayment) —
+   * this step exists so the Secretary doesn't hand a document to Window 1 on
+   * the strength of a payment nobody has actually looked the paperwork for.
+   */
+  SEC_OR_VERIFIED: 'SEC_OR_VERIFIED',
   /** Physically at Window 1, waiting for the student to collect it. */
   READY_FOR_RELEASE: 'READY_FOR_RELEASE',
   /** Handed over. Terminal. */
@@ -59,6 +69,7 @@ const PIPELINE = [
   STATUS.PENDING_STUDENT_PAYMENT,
   STATUS.PENDING_FINANCE_VERIFICATION,
   STATUS.PAID_PENDING_SEC_RELEASE,
+  STATUS.SEC_OR_VERIFIED,
   STATUS.READY_FOR_RELEASE,
   STATUS.COMPLETED,
 ];
@@ -84,8 +95,9 @@ const TRANSITIONS = {
   [STATUS.SEC_PROCESSING]: [STATUS.PENDING_STUDENT_PAYMENT, STATUS.PENDING_SEC_EVALUATION],
   [STATUS.PENDING_STUDENT_PAYMENT]: [STATUS.PENDING_FINANCE_VERIFICATION, STATUS.SEC_PROCESSING],
   [STATUS.PENDING_FINANCE_VERIFICATION]: [STATUS.PAID_PENDING_SEC_RELEASE, STATUS.PENDING_STUDENT_PAYMENT],
-  [STATUS.PAID_PENDING_SEC_RELEASE]: [STATUS.READY_FOR_RELEASE],
-  [STATUS.READY_FOR_RELEASE]: [STATUS.COMPLETED, STATUS.PAID_PENDING_SEC_RELEASE],
+  [STATUS.PAID_PENDING_SEC_RELEASE]: [STATUS.SEC_OR_VERIFIED],
+  [STATUS.SEC_OR_VERIFIED]: [STATUS.READY_FOR_RELEASE],
+  [STATUS.READY_FOR_RELEASE]: [STATUS.COMPLETED, STATUS.SEC_OR_VERIFIED],
   [STATUS.COMPLETED]: [],
   [LEGACY_STATUS.REJECTED]: [],
   [LEGACY_STATUS.APPROVED]: [],
@@ -119,6 +131,7 @@ const STAGE_LABELS = {
   [STATUS.PENDING_STUDENT_PAYMENT]: 'Awaiting Student Payment',
   [STATUS.PENDING_FINANCE_VERIFICATION]: 'Finance Verification',
   [STATUS.PAID_PENDING_SEC_RELEASE]: 'Secretary Handoff',
+  [STATUS.SEC_OR_VERIFIED]: 'OR Verification',
   [STATUS.READY_FOR_RELEASE]: 'Window 1 Release',
   [STATUS.COMPLETED]: 'Completed',
   [LEGACY_STATUS.REJECTED]: 'Rejected (legacy)',

@@ -322,6 +322,14 @@ export default function Window1Dashboard({ user, currentTab, setViewImageUrl }) 
                                 {doc.or_number
                                   ? <span className="font-bold text-gray-700">{doc.or_number}</span>
                                   : <span className="text-gray-400">paid online</span>}
+                                {doc.official_receipt_path && (
+                                  <button
+                                    onClick={() => setViewImageUrl(doc.official_receipt_path)}
+                                    className="ml-2 text-[#15803d] hover:underline font-sans font-bold"
+                                  >
+                                    View
+                                  </button>
+                                )}
                               </td>
                               <td className="py-4 text-xs font-bold text-gray-505 font-mono">{getWaitTime(doc.updated_at)}</td>
                               <td className="py-4 text-right pr-4">
@@ -728,6 +736,16 @@ export default function Window1Dashboard({ user, currentTab, setViewImageUrl }) 
             ? [
                 `Release ${releaseToConfirm.document_type} to ${releaseToConfirm.student_name || releaseToConfirm.student_id}?`,
                 releaseToConfirm.or_number ? `Official Receipt on file: ${releaseToConfirm.or_number}` : null,
+                releaseToConfirm.official_receipt_path ? (
+                  <button
+                    key="view-receipt"
+                    type="button"
+                    onClick={() => setViewImageUrl(releaseToConfirm.official_receipt_path)}
+                    className="text-[#15803d] font-bold hover:underline"
+                  >
+                    View Official Receipt
+                  </button>
+                ) : null,
               ]
             : ''
         }

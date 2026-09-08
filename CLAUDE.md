@@ -108,7 +108,7 @@ money is collected near the end, and the paper only changes hands once an Offici
 ```
 PENDING_W1_INTAKE → PENDING_SEC_EVALUATION → SEC_PROCESSING
   → PENDING_STUDENT_PAYMENT → PENDING_FINANCE_VERIFICATION
-  → PAID_PENDING_SEC_RELEASE → READY_FOR_RELEASE → COMPLETED
+  → PAID_PENDING_SEC_RELEASE → SEC_OR_VERIFIED → READY_FOR_RELEASE → COMPLETED
 ```
 
 - **PENDING_W1_INTAKE**: request filed — online by the student, or typed in at the counter by Window
@@ -125,9 +125,12 @@ PENDING_W1_INTAKE → PENDING_SEC_EVALUATION → SEC_PROCESSING
   a price, or a two-document request would send the student to Finance twice.
 - **PENDING_FINANCE_VERIFICATION**: payment claimed, through either channel — the student uploaded
   proof online, or Finance logged a counter payment against the printed slip.
-- **PAID_PENDING_SEC_RELEASE**: Finance confirmed. **This is the only place `payment_status` becomes
-  `PAID`.** The Secretary sets the price; only Finance confirms the money — those authorities are
-  deliberately separate.
+- **PAID_PENDING_SEC_RELEASE**: Finance confirmed, via `verifyPayment`, which also requires an
+  `or_number` to approve. **This is the only place `payment_status` becomes `PAID`.** The Secretary
+  sets the price; only Finance confirms the money — those authorities are deliberately separate.
+- **SEC_OR_VERIFIED**: the Secretary checked the Official Receipt Finance attached — present, and the
+  number looks right — via `verifyOfficialReceipt`. A paperwork completeness check, not a second
+  payment decision: it never writes `payment_status`, so it does not blur the authority split above.
 - **READY_FOR_RELEASE**: the Secretary physically handed the printed document to Window 1 and
   recorded it. A separate step because it marks a real physical event.
 - **COMPLETED**: Window 1 released it, for a walk-in against the OR the student presents.
@@ -283,7 +286,7 @@ Full detail lives in `docs/CODING_PREFERENCES.md`; key points:
 - Backend: parameterize all SQL (raw queries / mysql2, no string-concatenated SQL); webhook endpoints must ack fast (200 OK) and handle errors gracefully.
 - AI engine: always run inside `.venv`; keep `requirements.txt` limited to what's actually used.
 - Routing decisions belong in n8n, not hardcoded in Express.
-- **The Secretary sets the price; Finance alone sets `PAID`.** `priceDocument` is the only place an amount is written, and it records the clerk, the page count and a reason alongside it. `verifyPayment` remains the only place `payment_status` becomes `'PAID'`. Holding those two authorities apart is what makes the money trail auditable — never let one endpoint do both.
+- **The Secretary sets the price; Finance alone sets `PAID`.** `priceDocument` is the only place an amount is written, and it records the clerk, the page count and a reason alongside it. `verifyPayment` remains the only place `payment_status` becomes `'PAID'`. Holding those two authorities apart is what makes the money trail auditable — never let one endpoint do both. `verifyOfficialReceipt` (the Secretary's post-payment OR check) is the one deliberate near-exception: it sits between Finance's approval and handoff, but it stays a paperwork completeness check and never touches `payment_status` — don't let a future change turn it into a second money decision.
 - Every desk action calls `assertTransition(from, to)` before writing a status. `step_logs` is append-only, so an illegal move cannot be tidied away afterwards.
 
 ## Deployment

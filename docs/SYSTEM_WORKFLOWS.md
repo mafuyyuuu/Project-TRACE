@@ -56,8 +56,9 @@ Every request, whatever its type and whichever channel it arrived through, follo
 | 4 | `PENDING_STUDENT_PAYMENT` | Student | Printed and priced. The student is told what to pay; Finance is told to expect it. A payment slip is issued for anyone paying at the counter. |
 | 5 | `PENDING_FINANCE_VERIFICATION` | Finance | Payment claimed — either the student uploaded proof online, or Finance logged a counter payment. |
 | 6 | `PAID_PENDING_SEC_RELEASE` | Secretary | Finance confirmed the money. The Secretary still physically holds the printed document. |
-| 7 | `READY_FOR_RELEASE` | Window 1 | The document has physically reached the release desk. |
-| 8 | `COMPLETED` | — | Handed to the student. For a walk-in, against the Official Receipt they present. |
+| 7 | `SEC_OR_VERIFIED` | Secretary | The Secretary has checked the Official Receipt Finance attached — present, and the number looks right. A paperwork check, not a second payment decision; `payment_status` is untouched here. |
+| 8 | `READY_FOR_RELEASE` | Window 1 | The document has physically reached the release desk. |
+| 9 | `COMPLETED` | — | Handed to the student. For a walk-in, against the Official Receipt they present. |
 
 **Rejection at any desk returns the request exactly one step**, with the reason written to the audit
 trail. Two deliberate exceptions: Window 1 is the first desk, so returning a request there leaves it
@@ -179,7 +180,7 @@ runs whether the file came from the student or the counter.
      not knowable until the document is printed.
   2. Attachments are optional here. A required supporting document can be uploaded now or brought to
      Window 1; the intake desk checks for it either way.
-  3. Watches the **Live Tracker** — eight stages, driven by the same pipeline definition the backend
+  3. Watches the **Live Tracker** — nine stages, driven by the same pipeline definition the backend
      uses, so the student's view can never describe a process the office no longer follows.
   4. When the Secretary prices the request, an **Action Required** banner appears with the amount.
      This is the one state where nothing moves until the student acts, which is why it gets a banner
@@ -197,14 +198,18 @@ runs whether the file came from the student or the counter.
      number, amount and date, then confirm each field by eye. Works with the AI engine stopped: the
      form falls back to manual entry, because a student is standing at the counter either way.
   3. **Verification Queue** — the actionable one. Compare the proof against the Finance Office's own
-     records and approve or reject. Approving is what sets `payment_status = PAID` and returns the
-     document to the Secretary for handoff; rejecting sends it back to the student with the reason.
+     records and approve or reject. Approving requires an **Official Receipt number** — typed in for a
+     digital payment, or confirmed from what Finance already logged for a walk-in — and is what sets
+     `payment_status = PAID` and returns the document to the Secretary for an OR check before handoff;
+     rejecting sends it back to the student with the reason.
 
 > The Secretary sets the **price**; Finance confirms the **payment**. Those two authorities are
-> deliberately held apart — it is what makes the money trail auditable.
+> deliberately held apart — it is what makes the money trail auditable. The Secretary's later OR
+> Verification step (below) does not change this: it only checks the paperwork Finance attached is
+> present and correct, and never writes `payment_status` itself.
 
 ### 📜 College Secretary (`SEC-CCS001`, `SEC-CON001`, … one per college)
-* **Role:** Academic evaluator, and the desk that does the actual work. Three queues, because a
+* **Role:** Academic evaluator, and the desk that does the actual work. Four queues, because a
   document sitting in one is waiting on something different from the others.
 * **Workflow:**
   1. **Initial Evaluation.** Documents arrive **only for their own college** — n8n routes each one to
@@ -220,9 +225,12 @@ runs whether the file came from the student or the counter.
      be defended when a student disputes it.
      Pricing the **last** document in a request bills the whole request: the student is notified,
      Finance is notified, and the payment slip is produced.
-  3. **Final Handoff.** Once Finance confirms the money, physically pass the printed document to
-     Window 1 and record it. This is a separate step on purpose — it marks a real physical event, and
-     marking it while the document sits in a drawer is exactly the drift this pipeline exists to stop.
+  3. **OR Verification.** Once Finance confirms the money, check that the Official Receipt they
+     attached is present and its number looks right — a paperwork completeness check, not a second
+     money decision. It never sets `payment_status`; only Finance does that.
+  4. **Final Handoff.** Physically pass the printed document to Window 1 and record it. This is a
+     separate step on purpose — it marks a real physical event, and marking it while the document sits
+     in a drawer is exactly the drift this pipeline exists to stop.
 
 ### 🏢 Window 1 Clerk (`WINDOW1001`)
 * **Role:** The counter at both ends of the pipeline.
@@ -232,8 +240,9 @@ runs whether the file came from the student or the counter.
      Secretary or return it to the student with a note saying what to fix.
   2. **File a walk-in** — type in a request for a student at the counter. It enters the intake queue
      unpaid exactly like an online submission, so a walk-in cannot skip its own evaluation or its bill.
-  3. **Release Queue** — hand the finished document over. For a walk-in the student presents the
-     Official Receipt, which is shown on the row so the clerk checks it against the paper in hand.
+  3. **Release Queue** — hand the finished document over. The Official Receipt number is shown on the
+     row, with a **View** link to the scanned or uploaded image itself, so the clerk can check it
+     against the paper the student presents — whichever channel the payment came through.
      Releasing closes the request and notifies both the student and the Secretary who prepared it.
   4. **Tracking Desk** — every document in the system, at any stage. This is the window a student
      walks up to and asks "where is mine?", which is why it is deliberately **not** filtered down to

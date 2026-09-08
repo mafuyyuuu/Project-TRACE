@@ -413,7 +413,8 @@ no admin screen to manage the other three at all, despite `payment_methods` bein
 ---
 
 ### Phase 21: UI/UX Revision Pass (Internal User Testing)
-**Status:** In progress — Batches 1–4 complete, one item deferred
+**Status:** Batches 1–4 complete. FX-05 deferred out of this phase's presentation-layer-only scope —
+resolved separately in Phase 22.
 *Four batches of presentation-layer fixes from two rounds of internal user testing on Window 1,
 Secretary, Student and Admin. Every batch's ground rules: presentation layer only, no schema/API/auth
 changes beyond wiring already-existing endpoints, reuse existing components, keep Vitest green.*
@@ -449,17 +450,77 @@ changes beyond wiring already-existing endpoints, reuse existing components, kee
   `ConfirmDialog` extended to 14 more state-changing buttons across Finance, Secretary, Window 1 and
   Admin (approve, reject, deactivate, log a payment) — pure-navigation and view-only buttons (Refresh,
   View, Live Tracking) deliberately left alone.
-- [ ] **FX-05 (Window 1 release without an Official Receipt) deferred, not built.** Traced to the
-  Release action, which has no validation today — not hidden, genuinely absent. What was actually
-  asked for turned out to be a new Finance-uploads-an-Official-Receipt step for **online** payments
-  plus a College Secretary verification step before Window 1 is signaled — real schema and workflow
-  design, and the walk-in half of it isn't decided yet. Flagged back rather than guessed at.
+- [x] **FX-05 (Window 1 release without an Official Receipt), resolved in Phase 22 below.** Traced to
+  the Release action, which had no validation at all — not hidden, genuinely absent. What was actually
+  asked for was a new Secretary OR-verification pipeline stage; see Phase 22 for the real
+  schema/status/endpoint work this turned into, once out of presentation-layer-only scope.
 - [x] **Tests:** 209 frontend tests passing throughout (backend untouched — every change was
   presentation-layer). Zero ESLint errors.
 
-> **Not yet committed.** All four batches' changes exist only in the working tree on `dev` as of this
-> writing (`git status` shows every touched file as modified or untracked against `origin/dev`).
-> Nothing here has been committed or pushed.
+> **Not yet committed (Batches 1–4).** All four batches' changes existed only in the working tree on
+> `dev` as of this writing (`git status` showed every touched file as modified or untracked against
+> `origin/dev`). Nothing here had been committed or pushed at that point — see Phase 22 for what
+> followed.
+
+---
+
+### Phase 22: FX-05 Resolved — Official Receipt Verification
+**Status:** Complete
+*The online-payment half of the deferred FX-05 ticket, scoped after research showed the walk-in half
+the user described (Finance OCR-scanning a physical OR and attaching it to the request) was already
+fully built end-to-end — nothing new was needed there. This phase is the first in the whole Phase 21
+revision pass to touch schema, status vocabulary and endpoints rather than presentation only, done
+with explicit authorization for that scope.*
+
+- [x] **New pipeline stage.** `SEC_OR_VERIFIED` inserted between `PAID_PENDING_SEC_RELEASE` and
+  `READY_FOR_RELEASE` in `backend/src/utils/documentStatus.js` (`STATUS`, `PIPELINE`, `TRANSITIONS`,
+  `STAGE_LABELS`), mirrored in `frontend/src/utils/documentStatus.js`. The pipeline is now nine
+  stages. `confirmHandoff`'s existing `assertTransition` call needed no code change — it now only
+  succeeds from the new status because the transition map says so.
+- [x] **Migration.** Two new nullable columns + FK on `documents`:
+  `or_verified_by_clerk_id`, `or_verified_at` — mirroring the existing `priced_by_clerk_id` /
+  `logged_by_clerk_id` audit-trail pattern. Verified idempotent (second run changes 0 rows) against
+  the local dev database.
+- [x] **Finance now captures the OR number on approval.** `verifyPayment()` requires `or_number` to
+  approve (mirroring `logWalkInPayment`'s existing guard) and writes it — previously this was written
+  only for walk-ins, never for a digital payment. `FinanceVerificationModal.jsx` gained a required OR
+  Number field, pre-filled from `selectedDoc.or_number` for a walk-in already carrying one.
+- [x] **New Secretary action: `verifyOfficialReceipt()`.** A deliberate, narrow exception to
+  "pricing and payment are separate authorities" (`docs/CODING_PREFERENCES.md`) — kept procedural on
+  purpose: it never writes `payment_status`, only Finance's `verifyPayment()` still does that. New
+  route `POST /:id/verify-or`, a new "OR Verification" tab in the Secretary dashboard (now four tabs),
+  with a View-Receipt-then-Verify action following the same stage/confirm/cancel `ConfirmDialog`
+  pattern as every other desk action this session. No reject/dispute path — not requested, and there
+  is nothing to send back to a previous desk from here; a wrong OR is a Finance data fix.
+- [x] **Window 1 can now view the receipt image at release**, not just the typed OR number — the
+  confirmed, uncontroversial gap found during research, now wired via the existing
+  `setViewImageUrl`/`ImageViewerModal` pattern (`Window1Dashboard.jsx`'s release queue row and its
+  release `ConfirmDialog`), and it now applies uniformly since every document reaching Release has
+  passed through OR verification regardless of channel.
+- [x] **Live Tracking, progress bars and stage labels** all gained the new stage — `LiveTrackingModal.jsx`'s
+  `TRACKER_NODES`/`STAGE_MESSAGE`, `useStudentDashboard.js`'s `TRACKER_TARGETS`, and
+  `utils/documentStatus.js`'s `PROGRESS`/`STATUS_LABELS`/`STAGE_LABELS` on both sides. The stepper's
+  sizing already derived from `TRACKER_NODES.length` since Batch 3's FX-07 fix, so the 9th node needed
+  no layout change.
+- [x] **Docs updated to match:** `docs/SYSTEM_WORKFLOWS.md` (pipeline table, Finance/Secretary/Window 1
+  role sections), `docs/BACKEND_GUIDE.md` (endpoint table, `documents` column list, payment flow
+  narrative), `CLAUDE.md` (pipeline diagram and authority-split callout), `docs/CODING_PREFERENCES.md`
+  (💳 Payments section).
+- [x] **Tests:** backend — 2 new `describe` blocks (`verifyOfficialReceipt`, updated `confirmHandoff`
+  and `verifyPayment` expectations) in `documents.service.test.cjs`, plus `documentStatus.test.cjs`
+  updated for the 9-step pipeline; 444 backend tests passing (this phase's first time the backend test
+  suite was touched all session). Frontend — `pipeline.queues.render.test.jsx` extended to a 4th
+  Secretary tab and the new stage; `documentStatus.test.js` extended; 210 frontend tests passing, zero
+  ESLint errors, production build succeeds (same pre-existing >500kB chunk-size warning as before,
+  unrelated to this work).
+- [x] **Migration run against the local dev database** to verify it applies cleanly; 3 existing local
+  documents were sitting at `PAID_PENDING_SEC_RELEASE` and will now need an OR-verification pass
+  before their next handoff — expected, not a data problem, since it is local dev data.
+
+> **Still not committed.** Phase 22, like Batches 1–4 before it, exists only in the working tree on
+> `dev`. Visual/browser verification of the new Secretary tab and Window 1 receipt-viewing button was
+> not performed (no Claude-in-Chrome connection this session, consistent with every batch before it);
+> both dev servers were left running for manual review.
 
 ---
 

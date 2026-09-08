@@ -37,6 +37,10 @@ router.post('/:id/submit-payment', authenticate, documentUpload.single('receipt'
 router.post('/scan-receipt', authenticate, documentUpload.single('receipt'), documentsController.scanReceipt);
 router.post('/:id/log-walkin-payment', authenticate, documentUpload.single('officialReceipt'), documentsController.logWalkInPayment);
 router.post('/:id/verify-payment', authenticate, documentUpload.single('officialReceipt'), documentsController.verifyPayment);
+// College Secretary checks the Official Receipt before the printed document
+// can be handed to Window 1 — see docs/CODING_PREFERENCES.md on why this stays
+// a procedural check and never sets payment_status itself.
+router.post('/:id/verify-or', authenticate, documentsController.verifyOfficialReceipt);
 router.post('/:id/handoff', authenticate, documentsController.handoff);
 router.post('/:id/release', authenticate, documentsController.release);
 router.delete('/:id', authenticate, documentsController.cancel);
