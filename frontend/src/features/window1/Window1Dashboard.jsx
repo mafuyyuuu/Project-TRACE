@@ -1,5 +1,6 @@
 import HardwareScannerModal from '@/features/window1/components/HardwareScannerModal';
 import IntakeReviewModal from '@/features/window1/components/IntakeReviewModal';
+import ConfirmDialog from '@/components/ConfirmDialog';
 import MiniSparkline from '@/components/MiniSparkline';
 import { STATUS, getProgressVal, getStatusLabel, requiresAttachment } from '@/utils/documentStatus';
 import { formatFileSize, getWaitTime, todayLongDate } from '@/utils/formatters';
@@ -31,6 +32,9 @@ export default function Window1Dashboard({ user, currentTab, setViewImageUrl }) 
     intakeFile,
     setIntakeFile,
     handleIntake,
+    intakeActionToConfirm,
+    confirmIntake,
+    cancelIntake,
     w1IntakePage,
     setW1IntakePage,
     scanDocType,
@@ -43,6 +47,9 @@ export default function Window1Dashboard({ user, currentTab, setViewImageUrl }) 
     fileInputRef,
     loadDashboardData,
     handleWindow1Release,
+    releaseToConfirm,
+    confirmWindow1Release,
+    cancelWindow1ReleaseConfirm,
     simulateHardwareScan,
     handleWindow1ScanUpload,
     handleManualInputSubmit,
@@ -694,7 +701,7 @@ export default function Window1Dashboard({ user, currentTab, setViewImageUrl }) 
       </div>
 
       <HardwareScannerModal
-        activeModal={activeModal}
+        open={activeModal === 'hardware-scanner' && !!scanFile}
         scanFile={scanFile}
         scanProgress={scanProgress}
       />
@@ -712,6 +719,43 @@ export default function Window1Dashboard({ user, currentTab, setViewImageUrl }) 
           setIntakeFile={setIntakeFile}
         />
       )}
+
+      <ConfirmDialog
+        open={!!releaseToConfirm}
+        title="Release Document"
+        message={
+          releaseToConfirm
+            ? [
+                `Release ${releaseToConfirm.document_type} to ${releaseToConfirm.student_name || releaseToConfirm.student_id}?`,
+                releaseToConfirm.or_number ? `Official Receipt on file: ${releaseToConfirm.or_number}` : null,
+              ]
+            : ''
+        }
+        variant="neutral"
+        confirmLabel="Release"
+        loadingLabel="Releasing…"
+        loading={actionLoading}
+        onConfirm={confirmWindow1Release}
+        onCancel={cancelWindow1ReleaseConfirm}
+      />
+
+      <ConfirmDialog
+        open={!!intakeActionToConfirm}
+        title={intakeActionToConfirm === 'approve' ? 'Route to Secretary' : 'Return to Student'}
+        message={
+          selectedDoc
+            ? intakeActionToConfirm === 'approve'
+              ? `Route ${selectedDoc.document_type} to the College Secretary?`
+              : `Return ${selectedDoc.document_type} to the student with your notes?`
+            : ''
+        }
+        variant="neutral"
+        confirmLabel={intakeActionToConfirm === 'approve' ? 'Route to Secretary' : 'Return to Student'}
+        loadingLabel={intakeActionToConfirm === 'approve' ? 'Routing…' : 'Saving…'}
+        loading={actionLoading}
+        onConfirm={confirmIntake}
+        onCancel={cancelIntake}
+      />
     </>
   );
 }

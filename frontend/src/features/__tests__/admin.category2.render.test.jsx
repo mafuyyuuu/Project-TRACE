@@ -118,36 +118,49 @@ describe('MaintenancePanel', () => {
     expect(screen.getAllByText('Inactive').length).toBeGreaterThan(0);
   });
 
+  // Staff are now cards; Deactivate/Restore live inside the detail modal a
+  // card opens, not directly on the grid.
+
   it('offers Deactivate for active entries and Restore for inactive ones — never Delete', async () => {
+    const user = userEvent.setup();
     await renderPanel();
-    await screen.findByText('Finance Officer');
-    expect(screen.getAllByRole('button', { name: /deactivate/i }).length).toBeGreaterThan(0);
-    expect(screen.getAllByRole('button', { name: /restore/i }).length).toBeGreaterThan(0);
+
+    await user.click(await screen.findByText('Finance Officer'));
+    expect(await screen.findByRole('button', { name: /deactivate user/i })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /^delete$/i })).not.toBeInTheDocument();
+    await user.keyboard('{Escape}');
+
+    await user.click(await screen.findByText('Retired Clerk'));
+    expect(await screen.findByRole('button', { name: /restore user/i })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /^delete$/i })).not.toBeInTheDocument();
   });
 
   it('deactivates rather than deletes when clicked', async () => {
     const user = userEvent.setup();
     await renderPanel();
-    await screen.findByText('Finance Officer');
 
-    const row = screen.getByText('Finance Officer').closest('tr');
-    await user.click(within(row).getByRole('button', { name: /deactivate/i }));
+    await user.click(await screen.findByText('Finance Officer'));
+    await user.click(await screen.findByRole('button', { name: /deactivate user/i }));
+    // The row's own button reads "Deactivate User"; only the confirmation
+    // dialog's button is the exact text "Deactivate".
+    await user.click(await screen.findByRole('button', { name: 'Deactivate' }));
 
     await waitFor(() => expect(maintenanceService.setStaffActive).toHaveBeenCalledWith(13, false));
   });
 
   it("disables deactivation of the signed-in admin's own account", async () => {
+    const user = userEvent.setup();
     await renderPanel();
-    await screen.findByText('Registrar Admin');
-    const ownRow = screen.getAllByText('Registrar Admin').at(-1).closest('tr');
-    expect(within(ownRow).getByRole('button')).toBeDisabled();
+
+    await user.click(await screen.findByText('Registrar Admin'));
+    expect(await screen.findByRole('button', { name: /deactivate user/i })).toBeDisabled();
   });
 
   it('creates a staff account with the entered details', async () => {
     const user = userEvent.setup();
     await renderPanel();
 
+    await user.click(await screen.findByRole('button', { name: /\+ add user/i }));
     await user.type(await screen.findByPlaceholderText(/Employee ID/), 'CLERK99');
     await user.type(screen.getByPlaceholderText(/Full Name/), 'New Clerk');
     await user.type(screen.getByPlaceholderText(/Temporary password/), 'temporary-1234');
@@ -160,7 +173,9 @@ describe('MaintenancePanel', () => {
   });
 
   it('explains that the temporary password must be replaced', async () => {
+    const user = userEvent.setup();
     await renderPanel();
+    await user.click(await screen.findByRole('button', { name: /\+ add user/i }));
     expect(await screen.findByText(/replace it at first login/i)).toBeInTheDocument();
   });
 
@@ -204,6 +219,11 @@ describe('MaintenancePanel', () => {
 
     const row = (await screen.findByText('GCash')).closest('tr');
     await user.click(within(row).getByRole('button', { name: /deactivate/i }));
+
+    // Both the row's own button and the confirmation dialog's button read
+    // "Deactivate" — scope to the dialog to disambiguate.
+    const dialog = await screen.findByRole('dialog');
+    await user.click(within(dialog).getByRole('button', { name: 'Deactivate' }));
 
     await waitFor(() => expect(maintenanceService.setPaymentMethodActive).toHaveBeenCalledWith(1, false));
   });

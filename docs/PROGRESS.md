@@ -412,6 +412,57 @@ no admin screen to manage the other three at all, despite `payment_methods` bein
 
 ---
 
+### Phase 21: UI/UX Revision Pass (Internal User Testing)
+**Status:** In progress — Batches 1–4 complete, one item deferred
+*Four batches of presentation-layer fixes from two rounds of internal user testing on Window 1,
+Secretary, Student and Admin. Every batch's ground rules: presentation layer only, no schema/API/auth
+changes beyond wiring already-existing endpoints, reuse existing components, keep Vitest green.*
+
+- [x] **Batch 1 — App shell & global behavior.** Sidebar and navbar made properly sticky (the shell's
+  root moved from `min-h-screen` to `h-dvh overflow-hidden`, so `<main>` is the one real scroll
+  region instead of the whole page scrolling together). Icon audit: replaced the wrong bar-chart
+  "Dashboard" icon and the duplicate gear shared between Settings and System Maintenance. Text
+  selection disabled app-wide except table cells, inputs and tracking numbers. Defined the `fade-in`
+  keyframe — referenced at 13 call sites but never actually defined anywhere, a real dead-class bug —
+  and added entrance animation to all 11 modals and the mobile drawer. Mobile table layout fixes
+  across the Student and Finance dashboards.
+- [x] **Batch 2 — Shared components.** New `components/ModalShell.jsx` (portal, backdrop, focus trap,
+  Esc-to-close, a scrollable body with a footer pinned regardless of content length) and
+  `components/ConfirmDialog.jsx` built on it, replacing all three `window.confirm()` call sites
+  (Secretary handoff, Window 1 release, Student cancel) plus adding a Logout confirmation that never
+  existed. `components/QueueTabs.jsx` replaced Secretary's three stacked tables with a tab bar.
+  `components/UserCard.jsx` plus a card grid (`features/admin/components/UserGrid.jsx`,
+  `UserDetailModal.jsx`, `UserEditModal.jsx`, `AddUserModal.jsx`) replaced the plain Registered
+  Users / Staff Accounts tables — gated by a real backend check first: no email-verification flow
+  exists anywhere, so that block in the Edit User modal renders visibly disabled rather than faked,
+  and "Delete User" was dropped entirely since no hard-delete endpoint exists (deactivation only,
+  per this doc's own rule under "Deletion & Destructive Actions").
+- [x] **Batch 3 — Student view.** Active Requests row spacing given a consistent column rhythm. The
+  "Action Required — Payment" banner now shows one row and one button per **request group** instead
+  of one per document — `submitPayment` already settles the whole group from any single document id
+  it's called with, so the duplicate buttons were the actual bug, not a missing backend capability.
+  Live Tracking's stepper was hardcoded for 5 columns against the real 8-stage pipeline; node width
+  and the connecting bar's position now derive from the real stage count instead of a fixed fraction.
+- [x] **Batch 4 — Window 1 & Secretary.** All 11 existing modals retrofitted onto `ModalShell` (8 new
+  optional class-override props added — `bare`, `panelClassName`, `backdropClassName`, etc. — every
+  one defaulting to the prior hardcoded output, so no existing consumer needed to change).
+  `ConfirmDialog` extended to 14 more state-changing buttons across Finance, Secretary, Window 1 and
+  Admin (approve, reject, deactivate, log a payment) — pure-navigation and view-only buttons (Refresh,
+  View, Live Tracking) deliberately left alone.
+- [ ] **FX-05 (Window 1 release without an Official Receipt) deferred, not built.** Traced to the
+  Release action, which has no validation today — not hidden, genuinely absent. What was actually
+  asked for turned out to be a new Finance-uploads-an-Official-Receipt step for **online** payments
+  plus a College Secretary verification step before Window 1 is signaled — real schema and workflow
+  design, and the walk-in half of it isn't decided yet. Flagged back rather than guessed at.
+- [x] **Tests:** 209 frontend tests passing throughout (backend untouched — every change was
+  presentation-layer). Zero ESLint errors.
+
+> **Not yet committed.** All four batches' changes exist only in the working tree on `dev` as of this
+> writing (`git status` shows every touched file as modified or untracked against `origin/dev`).
+> Nothing here has been committed or pushed.
+
+---
+
 ## Known Issues (Pre-existing, surfaced during the Phase 8 audit)
 These predate the restructure and remain open:
 * ~~Secretary seed drift~~ — **resolved.** `migration.js` seeds all seven per-college secretaries; they now exist. A stale `SEC001` with a `NULL` course remains and sees every college's queue, so consider removing it.

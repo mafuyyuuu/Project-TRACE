@@ -8,6 +8,9 @@ import DashboardLoading from '@/components/DashboardLoading';
 import MaintenancePanel from '@/features/admin/components/MaintenancePanel';
 import ReportsPanel from '@/features/admin/components/ReportsPanel';
 import AnalyticsPanel from '@/features/admin/components/AnalyticsPanel';
+import UserGrid from '@/features/admin/components/UserGrid';
+import UserDetailModal from '@/features/admin/components/UserDetailModal';
+import ConfirmDialog from '@/components/ConfirmDialog';
 
 /**
  * Registrar admin: ML forecasts, AI insights, account verification, users, and audit logs.
@@ -24,6 +27,9 @@ export default function AdminDashboard({ user, currentTab, setViewImageUrl }) {
     pendingStudents,
     actionLoading,
     handleAdminVerifyStudent,
+    studentVerifyToConfirm,
+    confirmAdminVerifyStudent,
+    cancelAdminVerifyStudent,
     adminDocPage,
     setAdminDocPage,
     itemsPerPage,
@@ -31,9 +37,13 @@ export default function AdminDashboard({ user, currentTab, setViewImageUrl }) {
     setAdminDocFilter,
     forecastFilter,
     setForecastFilter,
-    adminUsers,
     adminUsersFilter,
     setAdminUsersFilter,
+    adminUsersRoleFilter,
+    setAdminUsersRoleFilter,
+    filteredAdminUsers,
+    selectedUser,
+    setSelectedUser,
     adminLogs,
   } = useAdminDashboard(user, currentTab);
 
@@ -259,16 +269,16 @@ export default function AdminDashboard({ user, currentTab, setViewImageUrl }) {
                                 </td>
                                 <td className="py-4">
                                   <div className="flex items-center justify-center gap-2">
-                                    <button 
-                                      onClick={() => handleAdminVerifyStudent(student.id, 'reject')}
+                                    <button
+                                      onClick={() => handleAdminVerifyStudent(student, 'reject')}
                                       disabled={actionLoading}
                                       className="px-3 py-1.5 bg-white border border-red-200 text-red-500 rounded-xl text-xs font-bold hover:bg-red-50 flex items-center gap-1.5"
                                     >
                                       <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M6 18L18 6M6 6l12 12"/></svg>
                                       Reject
                                     </button>
-                                    <button 
-                                      onClick={() => handleAdminVerifyStudent(student.id, 'verify')}
+                                    <button
+                                      onClick={() => handleAdminVerifyStudent(student, 'verify')}
                                       disabled={actionLoading}
                                       className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-sm flex items-center gap-1.5"
                                     >
@@ -417,49 +427,26 @@ export default function AdminDashboard({ user, currentTab, setViewImageUrl }) {
                     <h2 className="text-2xl sm:text-3xl font-display font-black text-gray-900 tracking-tight">Registered Users</h2>
                   </div>
                 </div>
-                <div className="bg-white rounded-3xl shadow-sm border border-gray-200 overflow-hidden">
-                  <div className="p-4 sm:p-6 border-b border-gray-100 bg-gray-50/50 flex justify-between items-center">
-                    <h3 className="font-bold text-gray-900 text-lg">System Users</h3>
-                    <input 
-                      type="text" 
-                      placeholder="Search name, ID, or email..." 
-                      value={adminUsersFilter}
-                      onChange={(e) => setAdminUsersFilter(e.target.value)}
-                      className="px-4 py-2 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-[#15803d]"
-                    />
-                  </div>
-                  <div className="p-4 sm:p-6">
-                    <div className="max-h-[60vh] overflow-y-auto overflow-x-auto">
-                      <table className="w-full text-left border-collapse whitespace-nowrap">
-                        <thead className="sticky top-0 bg-white z-10">
-                          <tr className="text-xs uppercase tracking-widest text-gray-400 border-b border-gray-100">
-                            <th className="pb-4 font-bold pl-4">ID</th>
-                            <th className="pb-4 font-bold">Name</th>
-                            <th className="pb-4 font-bold">Email</th>
-                            <th className="pb-4 font-bold">Role</th>
-                            <th className="pb-4 font-bold">Status</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-gray-50">
-                          {adminUsers.filter(u => u?.full_name?.toLowerCase().includes(adminUsersFilter.toLowerCase()) || u?.student_id?.toLowerCase().includes(adminUsersFilter.toLowerCase()) || u?.email?.toLowerCase().includes(adminUsersFilter.toLowerCase())).map(u => (
-                            <tr key={u.id} className="hover:bg-gray-50/30">
-                              <td className="py-4 pl-4 text-sm font-semibold text-gray-800">{u.student_id || '—'}</td>
-                              <td className="py-4 text-sm font-bold text-gray-900">{u.full_name}</td>
-                              <td className="py-4 text-sm text-gray-600">{u.email}</td>
-                              <td className="py-4 text-sm text-gray-600 capitalize">{u.role}</td>
-                              <td className="py-4">
-                                <span className={`px-3 py-1 rounded-full text-xs font-bold ${(!u.verification_status || u.verification_status === 'verified') ? 'bg-emerald-100 text-emerald-700' : u.verification_status === 'rejected' ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-700'}`}>
-                                  {u.verification_status || 'verified'}
-                                </span>
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-
-                    </div>
-                  </div>
-                </div>
+                <UserGrid
+                  users={filteredAdminUsers}
+                  onSelectUser={setSelectedUser}
+                  searchValue={adminUsersFilter}
+                  onSearchChange={setAdminUsersFilter}
+                  roleFilter={adminUsersRoleFilter}
+                  onRoleFilterChange={setAdminUsersRoleFilter}
+                  roleOptions={[
+                    { value: 'All', label: 'All Roles' },
+                    { value: 'student', label: 'Student' },
+                    { value: 'clerk', label: 'Clerk' },
+                    { value: 'admin', label: 'Administrator' },
+                  ]}
+                />
+                <UserDetailModal
+                  open={!!selectedUser}
+                  onClose={() => setSelectedUser(null)}
+                  user={selectedUser}
+                  viewerId={user.id}
+                />
               </div>
             )}
             {currentTab === 'admin-logs' && (
@@ -507,6 +494,24 @@ export default function AdminDashboard({ user, currentTab, setViewImageUrl }) {
                 </div>
               </div>
             )}
+
+      <ConfirmDialog
+        open={!!studentVerifyToConfirm}
+        title={studentVerifyToConfirm?.action === 'verify' ? 'Verify Student' : 'Reject Registration'}
+        message={
+          studentVerifyToConfirm
+            ? studentVerifyToConfirm.action === 'verify'
+              ? `Verify ${studentVerifyToConfirm.student.full_name}'s account registration?`
+              : `Reject ${studentVerifyToConfirm.student.full_name}'s account registration?`
+            : ''
+        }
+        variant={studentVerifyToConfirm?.action === 'verify' ? 'neutral' : 'destructive'}
+        confirmLabel={studentVerifyToConfirm?.action === 'verify' ? 'Verify Student' : 'Reject'}
+        loadingLabel="Saving…"
+        loading={actionLoading}
+        onConfirm={confirmAdminVerifyStudent}
+        onCancel={cancelAdminVerifyStudent}
+      />
     </>
   );
 }

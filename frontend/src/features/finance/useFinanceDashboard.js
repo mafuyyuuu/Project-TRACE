@@ -27,6 +27,9 @@ export default function useFinanceDashboard(user) {
   const [scanning, setScanning] = useState(false);
   const [scanConfidence, setScanConfidence] = useState(null);
 
+  // The pending approve/reject action staged for confirmation, or null when closed.
+  const [financeVerifyToConfirm, setFinanceVerifyToConfirm] = useState(null);
+
   const awaitingPaymentQueue = useMemo(
     () => documents.filter((d) => d.current_status === STATUS.PENDING_STUDENT_PAYMENT),
     [documents]
@@ -41,26 +44,37 @@ export default function useFinanceDashboard(user) {
    * @param {File} [file] optional official receipt to attach
    */
   const handleFinanceVerify = useCallback(
-    async (action, file) => {
+    (action, file) => {
       if (!selectedDoc) return;
-
-      const formData = new FormData();
-      formData.append('action', action);
-      formData.append('notes', clerkNotes);
-      if (file) formData.append('officialReceipt', file);
-
-      const ok = await runAction(() => verifyPayment(selectedDoc.id, formData), {
-        successMessage: `Payment reference successfully ${action === 'approve' ? 'approved' : 'rejected'}.`,
-        errorMessage: 'Verification action failed.',
-      });
-
-      if (ok) {
-        setActiveModal(null);
-        setClerkNotes('');
-      }
+      setFinanceVerifyToConfirm({ action, file });
     },
-    [selectedDoc, clerkNotes, runAction, setActiveModal]
+    [selectedDoc]
   );
+
+  const confirmFinanceVerify = useCallback(async () => {
+    if (!financeVerifyToConfirm) return;
+    const { action, file } = financeVerifyToConfirm;
+
+    const formData = new FormData();
+    formData.append('action', action);
+    formData.append('notes', clerkNotes);
+    if (file) formData.append('officialReceipt', file);
+
+    const ok = await runAction(() => verifyPayment(selectedDoc.id, formData), {
+      successMessage: `Payment reference successfully ${action === 'approve' ? 'approved' : 'rejected'}.`,
+      errorMessage: 'Verification action failed.',
+    });
+
+    if (ok) {
+      setActiveModal(null);
+      setClerkNotes('');
+      setFinanceVerifyToConfirm(null);
+    }
+  }, [financeVerifyToConfirm, selectedDoc, clerkNotes, runAction, setActiveModal]);
+
+  const cancelFinanceVerify = useCallback(() => {
+    setFinanceVerifyToConfirm(null);
+  }, []);
 
   /**
    * Read an Official Receipt and pre-fill the form from it.
@@ -102,13 +116,22 @@ export default function useFinanceDashboard(user) {
     [triggerNotification]
   );
 
-  /** Record a payment taken at the counter, against the whole request. */
-  const handleLogWalkIn = useCallback(async () => {
+  // Whether the counter-payment confirmation is open.
+  const [walkInToConfirm, setWalkInToConfirm] = useState(false);
+
+  /** Stage a counter payment for confirmation. */
+  const handleLogWalkIn = useCallback(() => {
     if (!selectedDoc) return;
     if (!orNumber.trim()) {
       triggerNotification('Enter the Official Receipt number.', 'error');
       return;
     }
+    setWalkInToConfirm(true);
+  }, [selectedDoc, orNumber, triggerNotification]);
+
+  /** Record a payment taken at the counter, against the whole request. */
+  const confirmLogWalkIn = useCallback(async () => {
+    if (!selectedDoc) return;
 
     const formData = new FormData();
     formData.append('or_number', orNumber.trim());
@@ -129,8 +152,13 @@ export default function useFinanceDashboard(user) {
       setOrFile(null);
       setClerkNotes('');
       setScanConfidence(null);
+      setWalkInToConfirm(false);
     }
-  }, [selectedDoc, orNumber, orDate, orFile, clerkNotes, runAction, setActiveModal, triggerNotification]);
+  }, [selectedDoc, orNumber, orDate, orFile, clerkNotes, runAction, setActiveModal]);
+
+  const cancelLogWalkIn = useCallback(() => {
+    setWalkInToConfirm(false);
+  }, []);
 
   return {
     ...core,
@@ -143,7 +171,13 @@ export default function useFinanceDashboard(user) {
     scanning,
     scanConfidence,
     handleFinanceVerify,
+    financeVerifyToConfirm,
+    confirmFinanceVerify,
+    cancelFinanceVerify,
     handleScanReceipt,
     handleLogWalkIn,
+    walkInToConfirm,
+    confirmLogWalkIn,
+    cancelLogWalkIn,
   };
 }

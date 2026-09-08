@@ -19,6 +19,16 @@ export default function useMaintenance(user, currentTab) {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
+  // Card-grid modal state: detail and edit are separate flags so "Edit User"
+  // can open the edit modal without tearing down the detail modal beneath it.
+  const [selectedUser, setSelectedUser] = useState(null);
+  const [editingUser, setEditingUser] = useState(null);
+  const [addingUser, setAddingUser] = useState(false);
+
+  // A pending deactivate/restore staged for confirmation, or null when closed.
+  // { kind: 'staff'|'documentType'|'college'|'paymentMethod', id, label, active }
+  const [activeToggleToConfirm, setActiveToggleToConfirm] = useState(null);
+
   const isActive = user?.role === 'admin' && currentTab === 'admin-maintenance';
 
   const load = useCallback(async () => {
@@ -74,29 +84,116 @@ export default function useMaintenance(user, currentTab) {
     [notify, load]
   );
 
+  const updateStaff = useCallback(
+    (id, payload) => run(() => maintenanceService.updateStaff(id, payload), 'Failed to update staff account.'),
+    [run]
+  );
+  const setStaffActive = useCallback(
+    (id, active) => run(() => maintenanceService.setStaffActive(id, active), 'Failed to update staff status.'),
+    [run]
+  );
+  const setDocumentTypeActive = useCallback(
+    (id, active) => run(() => maintenanceService.setDocumentTypeActive(id, active), 'Failed to update document type.'),
+    [run]
+  );
+  const setCollegeActive = useCallback(
+    (id, active) => run(() => maintenanceService.setCollegeActive(id, active), 'Failed to update college.'),
+    [run]
+  );
+  const setPaymentMethodActive = useCallback(
+    (id, active) => run(() => maintenanceService.setPaymentMethodActive(id, active), 'Failed to update payment method.'),
+    [run]
+  );
+
+  /** Stage a staff deactivate/restore for confirmation. */
+  const handleToggleActive = useCallback((u) => {
+    setActiveToggleToConfirm({ kind: 'staff', id: u.id, label: u.full_name, active: u.is_active });
+  }, []);
+
+  /** Stage a document type deactivate/restore for confirmation. */
+  const handleToggleDocumentTypeActive = useCallback((d) => {
+    setActiveToggleToConfirm({ kind: 'documentType', id: d.id, label: d.name, active: d.is_active });
+  }, []);
+
+  /** Stage a college deactivate/restore for confirmation. */
+  const handleToggleCollegeActive = useCallback((c) => {
+    setActiveToggleToConfirm({ kind: 'college', id: c.id, label: c.name, active: c.is_active });
+  }, []);
+
+  /** Stage a payment method deactivate/restore for confirmation. */
+  const handleTogglePaymentMethodActive = useCallback((p) => {
+    setActiveToggleToConfirm({ kind: 'paymentMethod', id: p.id, label: p.name, active: p.is_active });
+  }, []);
+
+  /** Runs whichever entity's toggle was staged, then patches the still-open detail modal in place for staff. */
+  const confirmActiveToggle = useCallback(async () => {
+    if (!activeToggleToConfirm) return;
+    const { kind, id, active } = activeToggleToConfirm;
+
+    const toggleFn = {
+      staff: setStaffActive,
+      documentType: setDocumentTypeActive,
+      college: setCollegeActive,
+      paymentMethod: setPaymentMethodActive,
+    }[kind];
+
+    const ok = await toggleFn(id, !active);
+    if (ok) {
+      if (kind === 'staff') {
+        setSelectedUser((prev) => (prev && prev.id === id ? { ...prev, is_active: !active } : prev));
+      }
+      setActiveToggleToConfirm(null);
+    }
+  }, [activeToggleToConfirm, setStaffActive, setDocumentTypeActive, setCollegeActive, setPaymentMethodActive]);
+
+  const cancelActiveToggle = useCallback(() => {
+    setActiveToggleToConfirm(null);
+  }, []);
+
+  const handleSaveEdit = useCallback(
+    async (id, payload) => {
+      const ok = await updateStaff(id, payload);
+      if (ok) setEditingUser(null);
+      return ok;
+    },
+    [updateStaff]
+  );
+
   return {
     staff, documentTypes, colleges, paymentMethods,
     loading, saving, error, success,
     reload: load,
 
+    selectedUser, setSelectedUser,
+    editingUser, setEditingUser,
+    addingUser, setAddingUser,
+    handleToggleActive,
+    handleToggleDocumentTypeActive,
+    handleToggleCollegeActive,
+    handleTogglePaymentMethodActive,
+    activeToggleToConfirm,
+    confirmActiveToggle,
+    cancelActiveToggle,
+    handleSaveEdit,
+
     // Staff
     createStaff: (payload) => run(() => maintenanceService.createStaff(payload), 'Failed to create staff account.'),
-    updateStaff: (id, payload) => run(() => maintenanceService.updateStaff(id, payload), 'Failed to update staff account.'),
-    setStaffActive: (id, active) => run(() => maintenanceService.setStaffActive(id, active), 'Failed to update staff status.'),
+    updateStaff,
+    setStaffActive,
 
     // Document types
     createDocumentType: (payload) => run(() => maintenanceService.createDocumentType(payload), 'Failed to create document type.'),
     updateDocumentType: (id, payload) => run(() => maintenanceService.updateDocumentType(id, payload), 'Failed to update document type.'),
-    setDocumentTypeActive: (id, active) => run(() => maintenanceService.setDocumentTypeActive(id, active), 'Failed to update document type.'),
+    setDocumentTypeActive,
 
     // Colleges
     createCollege: (payload) => run(() => maintenanceService.createCollege(payload), 'Failed to create college.'),
     updateCollege: (id, payload) => run(() => maintenanceService.updateCollege(id, payload), 'Failed to update college.'),
-    setCollegeActive: (id, active) => run(() => maintenanceService.setCollegeActive(id, active), 'Failed to update college.'),
+    setCollegeActive,
 
     // Payment methods
     createPaymentMethod: (payload) => run(() => maintenanceService.createPaymentMethod(payload), 'Failed to create payment method.'),
     updatePaymentMethod: (id, payload) => run(() => maintenanceService.updatePaymentMethod(id, payload), 'Failed to update payment method.'),
-    setPaymentMethodActive: (id, active) => run(() => maintenanceService.setPaymentMethodActive(id, active), 'Failed to update payment method.'),
+    setPaymentMethodActive,
   };
 }

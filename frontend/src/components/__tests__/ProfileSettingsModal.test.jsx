@@ -72,10 +72,12 @@ describe('ProfileSettingsModal', () => {
   });
 
   it('hands the chosen file to the upload handler', () => {
+    // ProfileSettingsModal now renders via ModalShell's portal to
+    // document.body, so the input lives outside the RTL render container.
     const onAvatarChange = vi.fn();
-    const { container } = renderModal({ onAvatarChange });
+    renderModal({ onAvatarChange });
 
-    const input = container.querySelector('input[type="file"]');
+    const input = document.querySelector('input[type="file"]');
     const file = new File(['x'], 'me.png', { type: 'image/png' });
     fireEvent.change(input, { target: { files: [file] } });
 
@@ -83,8 +85,8 @@ describe('ProfileSettingsModal', () => {
   });
 
   it('only accepts the image types the server allows', () => {
-    const { container } = renderModal();
-    expect(container.querySelector('input[type="file"]').accept).toBe('image/jpeg,image/png,image/webp');
+    renderModal();
+    expect(document.querySelector('input[type="file"]').accept).toBe('image/jpeg,image/png,image/webp');
   });
 
   it('disables the picture control while an upload is in flight', () => {

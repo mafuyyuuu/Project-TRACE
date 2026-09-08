@@ -2,8 +2,19 @@ import { useState } from 'react';
 import useMaintenance from '@/features/admin/useMaintenance';
 import DashboardLoading from '@/components/DashboardLoading';
 import DashboardAlerts from '@/components/DashboardAlerts';
+import UserGrid from '@/features/admin/components/UserGrid';
+import UserDetailModal from '@/features/admin/components/UserDetailModal';
+import UserEditModal from '@/features/admin/components/UserEditModal';
+import AddUserModal from '@/features/admin/components/AddUserModal';
+import ConfirmDialog from '@/components/ConfirmDialog';
 
 const DESKS = ['Finance', 'Window 1', 'Secretary', 'Admin Office', 'Receiving Desk', 'Records Desk'];
+const TOGGLE_KIND_LABELS = {
+  staff: 'User',
+  documentType: 'Document Type',
+  college: 'College',
+  paymentMethod: 'Payment Method',
+};
 const SECTIONS = [
   { key: 'staff', label: 'Staff' },
   { key: 'documentTypes', label: 'Document Types' },
@@ -39,24 +50,23 @@ export default function MaintenancePanel({ user, currentTab }) {
   const m = useMaintenance(user, currentTab);
   const [section, setSection] = useState('staff');
   const [form, setForm] = useState({});
+  const [staffSearch, setStaffSearch] = useState('');
+  const [staffRoleFilter, setStaffRoleFilter] = useState('All');
+  const [staffDeskFilter, setStaffDeskFilter] = useState('All');
 
   if (m.loading) return <DashboardLoading />;
 
   const set = (key, value) => setForm((f) => ({ ...f, [key]: value }));
   const resetForm = () => setForm({});
 
-  const submitStaff = async (e) => {
-    e.preventDefault();
-    const ok = await m.createStaff({
-      employee_id: form.employee_id,
-      full_name: form.full_name,
-      email: form.email,
-      password: form.password,
-      role: form.role || 'clerk',
-      desk_assignment: form.desk_assignment || 'Finance',
-    });
-    if (ok) resetForm();
-  };
+  const filteredStaff = m.staff.filter((s) => {
+    const q = staffSearch.toLowerCase();
+    const matchesSearch =
+      !q || s.full_name?.toLowerCase().includes(q) || s.student_id?.toLowerCase().includes(q) || s.email?.toLowerCase().includes(q);
+    const matchesRole = staffRoleFilter === 'All' || s.role === staffRoleFilter;
+    const matchesDesk = staffDeskFilter === 'All' || s.desk_assignment === staffDeskFilter;
+    return matchesSearch && matchesRole && matchesDesk;
+  });
 
   const submitDocType = async (e) => {
     e.preventDefault();
@@ -123,88 +133,50 @@ export default function MaintenancePanel({ user, currentTab }) {
 
         {/* ---------------------------------------------------------------- Staff */}
         {section === 'staff' && (
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <form onSubmit={submitStaff} className="bg-white rounded-3xl p-6 shadow-sm border border-gray-200 space-y-3 h-fit">
-              <h3 className="text-sm font-bold text-gray-900 mb-2">Add Staff Account</h3>
+          <>
+            <UserGrid
+              users={filteredStaff}
+              onSelectUser={m.setSelectedUser}
+              searchValue={staffSearch}
+              onSearchChange={setStaffSearch}
+              roleFilter={staffRoleFilter}
+              onRoleFilterChange={setStaffRoleFilter}
+              roleOptions={[
+                { value: 'All', label: 'All Roles' },
+                { value: 'clerk', label: 'Clerk' },
+                { value: 'admin', label: 'Administrator' },
+              ]}
+              deskFilter={staffDeskFilter}
+              onDeskFilterChange={setStaffDeskFilter}
+              deskOptions={[{ value: 'All', label: 'All Desks' }, ...DESKS.map((d) => ({ value: d, label: d }))]}
+              onAddUser={() => m.setAddingUser(true)}
+            />
 
-              <input className={inputClass} placeholder="Employee ID *" required
-                value={form.employee_id || ''} onChange={(e) => set('employee_id', e.target.value)} />
-              <input className={inputClass} placeholder="Full Name *" required
-                value={form.full_name || ''} onChange={(e) => set('full_name', e.target.value)} />
-              <input className={inputClass} type="email" placeholder="Email"
-                value={form.email || ''} onChange={(e) => set('email', e.target.value)} />
+            <UserDetailModal
+              open={!!m.selectedUser}
+              onClose={() => m.setSelectedUser(null)}
+              user={m.selectedUser}
+              viewerId={user.id}
+              saving={m.saving}
+              onEdit={() => m.setEditingUser(m.selectedUser)}
+              onToggleActive={() => m.handleToggleActive(m.selectedUser)}
+            />
 
-              <select className={`${inputClass} cursor-pointer`} value={form.role || 'clerk'}
-                onChange={(e) => set('role', e.target.value)}>
-                <option value="clerk">Clerk</option>
-                <option value="admin">Administrator</option>
-              </select>
+            <UserEditModal
+              open={!!m.editingUser}
+              onClose={() => m.setEditingUser(null)}
+              user={m.editingUser}
+              saving={m.saving}
+              onSave={m.handleSaveEdit}
+            />
 
-              <select className={`${inputClass} cursor-pointer`} value={form.desk_assignment || 'Finance'}
-                onChange={(e) => set('desk_assignment', e.target.value)}>
-                {DESKS.map((d) => <option key={d} value={d}>{d}</option>)}
-              </select>
-
-              <div>
-                <input className={inputClass} type="password" placeholder="Temporary password *" required minLength={8}
-                  value={form.password || ''} onChange={(e) => set('password', e.target.value)} />
-                <p className="text-[10px] text-gray-400 mt-1.5 leading-relaxed">
-                  At least 8 characters. The user must replace it at first login, so it is never a
-                  permanent credential.
-                </p>
-              </div>
-
-              <button type="submit" disabled={m.saving}
-                className="w-full py-3 bg-[#15803d] hover:bg-[#166534] disabled:opacity-60 text-white rounded-xl text-xs font-bold uppercase tracking-wider transition-all">
-                {m.saving ? 'Saving...' : 'Create Account'}
-              </button>
-            </form>
-
-            <div className="lg:col-span-2 bg-white rounded-3xl shadow-sm border border-gray-200 overflow-hidden">
-              <div className="p-5 border-b border-gray-100">
-                <h3 className="text-sm font-bold text-gray-900">Staff Accounts</h3>
-              </div>
-              <div className="max-h-[32rem] overflow-y-auto">
-                <table className="w-full text-left">
-                  <thead className="bg-gray-50 sticky top-0">
-                    <tr className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">
-                      <th className="py-3 px-5">Name</th>
-                      <th className="py-3">Desk</th>
-                      <th className="py-3">Role</th>
-                      <th className="py-3">Status</th>
-                      <th className="py-3 pr-5 text-right">Action</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {m.staff.map((s) => (
-                      <tr key={s.id} className="border-b border-gray-50 hover:bg-gray-50/50">
-                        <td className="py-3 px-5">
-                          <div className="text-xs font-bold text-gray-900">{s.full_name}</div>
-                          <div className="text-[10px] text-gray-400 font-mono">{s.student_id}</div>
-                          {Boolean(s.must_change_password) && (
-                            <span className="text-[9px] font-bold text-amber-600">Must change password</span>
-                          )}
-                        </td>
-                        <td className="py-3 text-xs text-gray-600">{s.desk_assignment || '—'}</td>
-                        <td className="py-3 text-xs text-gray-600 capitalize">{s.role}</td>
-                        <td className="py-3"><StatusBadge active={s.is_active} /></td>
-                        <td className="py-3 pr-5 text-right">
-                          <button
-                            onClick={() => m.setStaffActive(s.id, !s.is_active)}
-                            disabled={m.saving || s.id === user.id}
-                            title={s.id === user.id ? 'You cannot deactivate your own account' : ''}
-                            className="text-[10px] font-bold px-3 py-1.5 rounded-lg border border-gray-200 hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed"
-                          >
-                            {s.is_active ? 'Deactivate' : 'Restore'}
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </div>
+            <AddUserModal
+              open={m.addingUser}
+              onClose={() => m.setAddingUser(false)}
+              onCreate={m.createStaff}
+              saving={m.saving}
+            />
+          </>
         )}
 
         {/* -------------------------------------------------------- Document types */}
@@ -273,7 +245,7 @@ export default function MaintenancePanel({ user, currentTab }) {
                         <td className="py-3"><StatusBadge active={d.is_active} /></td>
                         <td className="py-3 pr-5 text-right">
                           <button
-                            onClick={() => m.setDocumentTypeActive(d.id, !d.is_active)}
+                            onClick={() => m.handleToggleDocumentTypeActive(d)}
                             disabled={m.saving}
                             className="text-[10px] font-bold px-3 py-1.5 rounded-lg border border-gray-200 hover:bg-gray-100 disabled:opacity-40"
                           >
@@ -326,7 +298,7 @@ export default function MaintenancePanel({ user, currentTab }) {
                         <td className="py-3"><StatusBadge active={c.is_active} /></td>
                         <td className="py-3 pr-5 text-right">
                           <button
-                            onClick={() => m.setCollegeActive(c.id, !c.is_active)}
+                            onClick={() => m.handleToggleCollegeActive(c)}
                             disabled={m.saving}
                             className="text-[10px] font-bold px-3 py-1.5 rounded-lg border border-gray-200 hover:bg-gray-100 disabled:opacity-40"
                           >
@@ -417,7 +389,7 @@ export default function MaintenancePanel({ user, currentTab }) {
                         <td className="py-3"><StatusBadge active={p.is_active} /></td>
                         <td className="py-3 pr-5 text-right">
                           <button
-                            onClick={() => m.setPaymentMethodActive(p.id, !p.is_active)}
+                            onClick={() => m.handleTogglePaymentMethodActive(p)}
                             disabled={m.saving}
                             className="text-[10px] font-bold px-3 py-1.5 rounded-lg border border-gray-200 hover:bg-gray-100 disabled:opacity-40"
                           >
@@ -432,6 +404,28 @@ export default function MaintenancePanel({ user, currentTab }) {
             </div>
           </div>
         )}
+
+        <ConfirmDialog
+          open={!!m.activeToggleToConfirm}
+          title={
+            m.activeToggleToConfirm
+              ? `${m.activeToggleToConfirm.active ? 'Deactivate' : 'Restore'} ${TOGGLE_KIND_LABELS[m.activeToggleToConfirm.kind]}`
+              : ''
+          }
+          message={
+            m.activeToggleToConfirm
+              ? m.activeToggleToConfirm.active
+                ? `Deactivate "${m.activeToggleToConfirm.label}"? It will be hidden from new requests, but existing records are unaffected.`
+                : `Restore "${m.activeToggleToConfirm.label}"? It will be available again for new requests.`
+              : ''
+          }
+          variant={m.activeToggleToConfirm?.active ? 'destructive' : 'neutral'}
+          confirmLabel={m.activeToggleToConfirm?.active ? 'Deactivate' : 'Restore'}
+          loadingLabel="Saving…"
+          loading={m.saving}
+          onConfirm={m.confirmActiveToggle}
+          onCancel={m.cancelActiveToggle}
+        />
       </div>
     </>
   );

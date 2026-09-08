@@ -1,5 +1,6 @@
 import FinanceVerificationModal from '@/features/finance/components/FinanceVerificationModal';
 import WalkInPaymentModal from '@/features/finance/components/WalkInPaymentModal';
+import ConfirmDialog from '@/components/ConfirmDialog';
 import { formatPeso } from '@/utils/pricing';
 import { getStatusLabel } from '@/utils/documentStatus';
 import useFinanceDashboard from '@/features/finance/useFinanceDashboard';
@@ -37,6 +38,12 @@ export default function FinanceDashboard({ user, setViewImageUrl }) {
     selectedDoc,
     setSelectedDoc,
     handleFinanceVerify,
+    financeVerifyToConfirm,
+    confirmFinanceVerify,
+    cancelFinanceVerify,
+    walkInToConfirm,
+    confirmLogWalkIn,
+    cancelLogWalkIn,
     triggerNotification,
   } = useFinanceDashboard(user);
 
@@ -65,7 +72,7 @@ export default function FinanceDashboard({ user, setViewImageUrl }) {
         {/* 1 · Billed, waiting on the student. Read-only, except that a student
             can walk up with the printed slip and pay at the counter. */}
         <div className="bg-white rounded-3xl shadow-sm border border-gray-200 overflow-hidden">
-          <div className="p-4 sm:p-6 border-b border-gray-100 bg-gray-50/50 flex justify-between items-center">
+          <div className="p-4 sm:p-6 border-b border-gray-100 bg-gray-50/50 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
             <div>
               <h3 className="font-bold text-gray-950 text-sm tracking-wider uppercase">1 · AWAITING PAYMENT</h3>
               <p className="text-[11px] text-gray-500 font-medium mt-1">Billed by the College Secretary. Log a payment here when the student pays at the counter.</p>
@@ -79,14 +86,14 @@ export default function FinanceDashboard({ user, setViewImageUrl }) {
               {awaitingPaymentQueue.length === 0 ? (
                 <div className="text-center py-12 text-gray-400 font-medium">Nothing waiting to be paid.</div>
               ) : (
-                <table className="w-full text-left border-collapse">
+                <table className="w-full text-left border-collapse min-w-[680px]">
                   <thead className="sticky top-0 bg-white z-10">
                     <tr className="text-gray-400 text-[10px] uppercase tracking-widest border-b border-gray-100">
-                      <th className="pb-4 font-bold pl-4">Tracking ID</th>
-                      <th className="pb-4 font-bold">Name</th>
-                      <th className="pb-4 font-bold">Document Type</th>
-                      <th className="pb-4 font-bold">Amount</th>
-                      <th className="pb-4 font-bold text-right pr-4">Action</th>
+                      <th className="pb-4 font-bold pl-4 min-w-[110px]">Tracking ID</th>
+                      <th className="pb-4 font-bold min-w-[150px]">Name</th>
+                      <th className="pb-4 font-bold min-w-[140px]">Document Type</th>
+                      <th className="pb-4 font-bold min-w-[90px]">Amount</th>
+                      <th className="pb-4 font-bold text-right pr-4 min-w-[190px]">Action</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-50">
@@ -99,10 +106,10 @@ export default function FinanceDashboard({ user, setViewImageUrl }) {
                         </td>
                         <td className="py-4 text-xs font-bold text-gray-600">{doc.document_type}</td>
                         <td className="py-4 text-xs font-bold text-gray-800 font-mono">{formatPeso(doc.amount)}</td>
-                        <td className="py-4 text-right pr-4">
+                        <td className="py-4 text-right pr-4 min-w-[190px]">
                           <button
                             onClick={() => { setSelectedDoc(doc); setActiveModal('walk-in-payment'); }}
-                            className="px-4 py-2 bg-gray-900 hover:bg-gray-800 text-white rounded-xl text-xs font-bold shadow-sm transition-all ml-auto block"
+                            className="px-4 py-2 bg-gray-900 hover:bg-gray-800 text-white rounded-xl text-xs font-bold shadow-sm transition-all ml-auto block whitespace-nowrap shrink-0"
                           >
                             Log Counter Payment
                           </button>
@@ -118,9 +125,9 @@ export default function FinanceDashboard({ user, setViewImageUrl }) {
 
         {/* Verification Queue Table */}
         <div className="bg-white rounded-3xl shadow-sm border border-gray-200 overflow-hidden">
-          <div className="p-4 sm:p-6 border-b border-gray-100 bg-gray-50/50 flex justify-between items-center">
+          <div className="p-4 sm:p-6 border-b border-gray-100 bg-gray-50/50 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
             <h3 className="font-bold text-gray-950 text-sm tracking-wider uppercase">2 · VERIFICATION QUEUE</h3>
-            <span className="text-xs text-gray-500 font-semibold">
+            <span className="text-xs text-gray-500 font-semibold whitespace-nowrap">
               Pending Request: <strong className="text-gray-900">{verificationQueue.length}</strong>
             </span>
           </div>
@@ -129,15 +136,15 @@ export default function FinanceDashboard({ user, setViewImageUrl }) {
               {verificationQueue.length === 0 ? (
                 <div className="text-center py-12 text-gray-400 font-medium">No pending receipts to verify. Queue is clean!</div>
               ) : (
-                <table className="w-full text-left border-collapse">
+                <table className="w-full text-left border-collapse min-w-[730px]">
                   <thead className="sticky top-0 bg-white z-10">
                     <tr className="text-gray-400 text-[10px] uppercase tracking-widest border-b border-gray-100">
-                      <th className="pb-4 font-bold pl-4">Tracking ID</th>
-                      <th className="pb-4 font-bold">Name</th>
-                      <th className="pb-4 font-bold">Document Type</th>
-                      <th className="pb-4 font-bold">Amount</th>
-                      <th className="pb-4 font-bold">Paid via</th>
-                      <th className="pb-4 font-bold text-right pr-4">Action</th>
+                      <th className="pb-4 font-bold pl-4 min-w-[110px]">Tracking ID</th>
+                      <th className="pb-4 font-bold min-w-[150px]">Name</th>
+                      <th className="pb-4 font-bold min-w-[140px]">Document Type</th>
+                      <th className="pb-4 font-bold min-w-[90px]">Amount</th>
+                      <th className="pb-4 font-bold min-w-[130px]">Paid via</th>
+                      <th className="pb-4 font-bold text-right pr-4 min-w-[110px]">Action</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-50">
@@ -155,10 +162,10 @@ export default function FinanceDashboard({ user, setViewImageUrl }) {
                             ? <span className="text-gray-700">Counter · <span className="font-mono">{doc.or_number}</span></span>
                             : <span className="text-gray-500">Online</span>}
                         </td>
-                        <td className="py-4 text-right pr-4">
-                          <button 
+                        <td className="py-4 text-right pr-4 min-w-[110px]">
+                          <button
                             onClick={() => { setSelectedDoc(doc); setActiveModal('verify-pay'); }}
-                            className="px-4 py-2 bg-[#15803d] hover:bg-[#166534] text-white rounded-xl text-xs font-bold shadow-sm transition-all flex items-center gap-1.5 ml-auto"
+                            className="px-4 py-2 bg-[#15803d] hover:bg-[#166534] text-white rounded-xl text-xs font-bold shadow-sm transition-all flex items-center gap-1.5 ml-auto whitespace-nowrap shrink-0"
                           >
                             <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                             Review
@@ -209,6 +216,36 @@ export default function FinanceDashboard({ user, setViewImageUrl }) {
             setClerkNotes={setClerkNotes}
           />
         )}
+
+        <ConfirmDialog
+          open={!!financeVerifyToConfirm}
+          title={financeVerifyToConfirm?.action === 'approve' ? 'Verify Payment' : 'Reject Payment'}
+          message={
+            financeVerifyToConfirm
+              ? financeVerifyToConfirm.action === 'approve'
+                ? `Confirm this payment for ${selectedDoc?.document_type} is verified? This marks the request paid.`
+                : `Reject this payment for ${selectedDoc?.document_type}? The student will need to resubmit.`
+              : ''
+          }
+          variant={financeVerifyToConfirm?.action === 'approve' ? 'neutral' : 'destructive'}
+          confirmLabel={financeVerifyToConfirm?.action === 'approve' ? 'Verify Payment' : 'Reject Payment'}
+          loadingLabel="Saving…"
+          loading={actionLoading}
+          onConfirm={confirmFinanceVerify}
+          onCancel={cancelFinanceVerify}
+        />
+
+        <ConfirmDialog
+          open={walkInToConfirm}
+          title="Record Payment"
+          message={selectedDoc ? `Record this counter payment for ${selectedDoc.document_type}?` : ''}
+          variant="neutral"
+          confirmLabel="Record Payment"
+          loadingLabel="Saving…"
+          loading={actionLoading}
+          onConfirm={confirmLogWalkIn}
+          onCancel={cancelLogWalkIn}
+        />
       </div>
     </>
   );

@@ -167,7 +167,7 @@ export default function GraduateApplication({ user }) {
                     <p className="text-[10px] text-gray-400 mt-2 font-semibold">
                       Submitted {new Date(app.submitted_at).toLocaleDateString()}
                     </p>
-                    {app.notes && <p className="text-[11px] text-gray-600 mt-2 leading-relaxed">{app.notes}</p>}
+                    {app.notes && <p className="text-[11px] text-gray-600 mt-2 leading-relaxed select-text">{app.notes}</p>}
                   </div>
                 ))}
               </div>

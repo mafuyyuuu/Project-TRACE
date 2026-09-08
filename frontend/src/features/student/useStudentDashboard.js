@@ -50,6 +50,9 @@ export default function useStudentDashboard(user) {
 
   const [trackerProgress, setTrackerProgress] = useState(0);
 
+  // The request id staged for a cancel confirmation, or null when the dialog is closed.
+  const [cancelRequestIdToConfirm, setCancelRequestIdToConfirm] = useState(null);
+
   /**
    * Requests that are waiting on the student rather than on a desk.
    *
@@ -70,6 +73,26 @@ export default function useStudentDashboard(user) {
         .reduce((sum, d) => sum + (parseFloat(d.amount) || 0), 0),
     [documents]
   );
+
+  /**
+   * `actionRequired`, one entry per request group rather than per document.
+   *
+   * Billing happens once for the whole request, so more than one of its
+   * documents can land in PENDING_STUDENT_PAYMENT together — and one receipt
+   * settles the whole group regardless of which document it's paid against.
+   * Grouping here is what lets the banner show one total and one button per
+   * request instead of a duplicate row per document.
+   */
+  const billableGroups = useMemo(() => {
+    const groups = new Map();
+    for (const doc of actionRequired) {
+      if (!groups.has(doc.request_group_id)) {
+        groups.set(doc.request_group_id, { groupId: doc.request_group_id, docs: [] });
+      }
+      groups.get(doc.request_group_id).docs.push(doc);
+    }
+    return Array.from(groups.values()).map((g) => ({ ...g, total: groupTotalFor(g.docs[0]) }));
+  }, [actionRequired, groupTotalFor]);
 
   useEffect(() => {
     let cancelled = false;
@@ -257,23 +280,37 @@ export default function useStudentDashboard(user) {
    */
   const handleStudentCancelRequest = useCallback(
     async (id, isBackAction = false) => {
-      if (!isBackAction && !window.confirm('Are you sure you want to cancel this request? This action cannot be undone.')) {
+      if (!isBackAction) {
+        setCancelRequestIdToConfirm(id);
         return;
       }
 
       const ok = await runAction(() => cancelDocument(id), {
-        successMessage: isBackAction ? null : 'Request cancelled successfully.',
+        successMessage: null,
         errorMessage: 'Failed to cancel request.',
       });
 
-      if (ok && isBackAction) setActiveModal('new-request');
+      if (ok) setActiveModal('new-request');
     },
     [runAction, setActiveModal]
   );
 
+  const confirmStudentCancelRequest = useCallback(async () => {
+    if (!cancelRequestIdToConfirm) return;
+    const ok = await runAction(() => cancelDocument(cancelRequestIdToConfirm), {
+      successMessage: 'Request cancelled successfully.',
+      errorMessage: 'Failed to cancel request.',
+    });
+    if (ok) setCancelRequestIdToConfirm(null);
+  }, [cancelRequestIdToConfirm, runAction]);
+
+  const cancelStudentCancelConfirm = useCallback(() => {
+    setCancelRequestIdToConfirm(null);
+  }, []);
+
   return {
     ...core,
-    actionRequired,
+    billableGroups,
     groupTotalFor,
     isCancellable,
     documentTypes,
@@ -289,5 +326,8 @@ export default function useStudentDashboard(user) {
     handleStudentSubmitRequest,
     handleStudentSubmitPayment,
     handleStudentCancelRequest,
+    cancelRequestIdToConfirm,
+    confirmStudentCancelRequest,
+    cancelStudentCancelConfirm,
   };
 }

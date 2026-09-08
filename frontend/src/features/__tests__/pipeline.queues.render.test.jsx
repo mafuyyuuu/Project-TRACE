@@ -173,23 +173,39 @@ describe('Window 1 — intake at the front, release at the back', () => {
 });
 
 describe('Secretary — three passes over the same request', () => {
-  it('shows all three working queues', async () => {
+  // The three queues now live behind a tab bar (one table visible at a
+  // time) instead of stacked cards, so "showing" a queue means selecting
+  // its tab first.
+
+  it('shows all three queue tabs', async () => {
     await renderDashboard(
       <SecretaryDashboard user={USERS.secretary} currentTab="dashboard" setViewImageUrl={vi.fn()} />
     );
-    expect(await screen.findByText(/INITIAL EVALUATION/i)).toBeInTheDocument();
-    expect(screen.getByText(/PROCESSING & PRICING/i)).toBeInTheDocument();
-    expect(screen.getByText(/FINAL HANDOFF/i)).toBeInTheDocument();
+    expect(await screen.findByRole('tab', { name: /initial evaluation/i })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: /processing & pricing/i })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: /final handoff/i })).toBeInTheDocument();
   });
 
-  it('separates evaluation, processing and handoff', async () => {
+  it('separates evaluation, processing and handoff, one queue visible at a time', async () => {
+    const user = userEvent.setup();
     await renderDashboard(
       <SecretaryDashboard user={USERS.secretary} currentTab="dashboard" setViewImageUrl={vi.fn()} />
     );
+
+    // Evaluation is the default tab.
     expect(await screen.findByText(idFor(STATUS.PENDING_SEC_EVALUATION))).toBeInTheDocument();
-    expect(screen.getByText(idFor(STATUS.SEC_PROCESSING))).toBeInTheDocument();
-    expect(screen.getByText(idFor(STATUS.PAID_PENDING_SEC_RELEASE))).toBeInTheDocument();
-    // Money is Finance's business, not the Secretary's.
+    expect(screen.queryByText(idFor(STATUS.SEC_PROCESSING))).not.toBeInTheDocument();
+    expect(screen.queryByText(idFor(STATUS.PAID_PENDING_SEC_RELEASE))).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole('tab', { name: /processing & pricing/i }));
+    expect(await screen.findByText(idFor(STATUS.SEC_PROCESSING))).toBeInTheDocument();
+    expect(screen.queryByText(idFor(STATUS.PENDING_SEC_EVALUATION))).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole('tab', { name: /final handoff/i }));
+    expect(await screen.findByText(idFor(STATUS.PAID_PENDING_SEC_RELEASE))).toBeInTheDocument();
+    expect(screen.queryByText(idFor(STATUS.SEC_PROCESSING))).not.toBeInTheDocument();
+
+    // Money is Finance's business, not the Secretary's — never shown here.
     expect(screen.queryByText(idFor(STATUS.PENDING_STUDENT_PAYMENT))).not.toBeInTheDocument();
     expect(screen.queryByText(idFor(STATUS.PENDING_FINANCE_VERIFICATION))).not.toBeInTheDocument();
   });
@@ -210,6 +226,7 @@ describe('Secretary — three passes over the same request', () => {
     await renderDashboard(
       <SecretaryDashboard user={USERS.secretary} currentTab="dashboard" setViewImageUrl={vi.fn()} />
     );
+    await user.click(await screen.findByRole('tab', { name: /processing & pricing/i }));
     await user.click(await screen.findByRole('button', { name: /set price/i }));
     expect(await screen.findByRole('heading', { name: /Set the Amount/i })).toBeInTheDocument();
     // The last document in a request bills it, so the button says so.

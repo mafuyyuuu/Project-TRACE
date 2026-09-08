@@ -1,6 +1,9 @@
+import { useState } from 'react';
 import SecretaryEvaluationModal from '@/features/secretary/components/SecretaryEvaluationModal';
 import PricingModal from '@/features/secretary/components/PricingModal';
 import PaymentStubModal from '@/features/secretary/components/PaymentStubModal';
+import ConfirmDialog from '@/components/ConfirmDialog';
+import QueueTabs from '@/components/QueueTabs';
 import MiniSparkline from '@/components/MiniSparkline';
 import { getStatusLabel } from '@/utils/documentStatus';
 import { getRelativeTime, todayLongDate } from '@/utils/formatters';
@@ -39,7 +42,13 @@ export default function SecretaryDashboard({ user, currentTab, setViewImageUrl }
     priceNotes,
     setPriceNotes,
     handlePriceDocument,
+    pricingToConfirm,
+    confirmPriceDocument,
+    cancelPriceDocument,
     handleConfirmHandoff,
+    handoffToConfirm,
+    confirmHandoffAction,
+    cancelHandoffConfirm,
     evalStudentId,
     setEvalStudentId,
     evalStudentName,
@@ -51,8 +60,12 @@ export default function SecretaryDashboard({ user, currentTab, setViewImageUrl }
     selectedDoc,
     setSelectedDoc,
     handleSecretaryEvaluate,
+    evaluateActionToConfirm,
+    confirmSecretaryEvaluate,
+    cancelSecretaryEvaluate,
   } = useSecretaryDashboard(user);
 
+  const [activeQueueTab, setActiveQueueTab] = useState('evaluation');
   const todayFormatted = todayLongDate();
 
   if (loading) return <DashboardLoading />;
@@ -126,8 +139,19 @@ export default function SecretaryDashboard({ user, currentTab, setViewImageUrl }
               </div>
             </div>
 
-            {/* Active Queue Table */}
-            <div className="bg-white rounded-3xl shadow-sm border border-gray-200 overflow-hidden mt-8">
+            {/* Queue Tabs — one table visible at a time instead of three stacked */}
+            <QueueTabs
+              tabs={[
+                { key: 'evaluation', label: 'Initial Evaluation', count: evaluationQueue.length },
+                { key: 'processing', label: 'Processing & Pricing', count: processingQueue.length },
+                { key: 'handoff', label: 'Final Handoff', count: handoffQueue.length },
+              ]}
+              activeKey={activeQueueTab}
+              onChange={setActiveQueueTab}
+            />
+
+            {activeQueueTab === 'evaluation' && (
+            <div className="bg-white rounded-3xl shadow-sm border border-gray-200 overflow-hidden mt-6">
               <div className="p-4 sm:p-6 border-b border-gray-100 bg-gray-50/50">
                 <h3 className="font-bold text-gray-950 text-sm tracking-wider uppercase">1 · INITIAL EVALUATION</h3>
                 <p className="text-[11px] text-gray-500 font-medium mt-1">Check the request, then give the student a date to expect it by.</p>
@@ -185,10 +209,12 @@ export default function SecretaryDashboard({ user, currentTab, setViewImageUrl }
                 </div>
               </div>
             </div>
+            )}
 
             {/* 2 · Printed and awaiting a price. The student is only billed
                 once every document in their request has one. */}
-            <div className="bg-white rounded-3xl shadow-sm border border-gray-200 overflow-hidden mt-8">
+            {activeQueueTab === 'processing' && (
+            <div className="bg-white rounded-3xl shadow-sm border border-gray-200 overflow-hidden mt-6">
               <div className="p-4 sm:p-6 border-b border-gray-100 bg-gray-50/50">
                 <h3 className="font-bold text-gray-950 text-sm tracking-wider uppercase">2 · PROCESSING &amp; PRICING</h3>
                 <p className="text-[11px] text-gray-500 font-medium mt-1">Print the document, then set what it costs. The request is billed once every document in it is priced.</p>
@@ -257,9 +283,11 @@ export default function SecretaryDashboard({ user, currentTab, setViewImageUrl }
                 </div>
               </div>
             </div>
+            )}
 
             {/* 3 · Paid and waiting to physically change hands. */}
-            <div className="bg-white rounded-3xl shadow-sm border border-gray-200 overflow-hidden mt-8">
+            {activeQueueTab === 'handoff' && (
+            <div className="bg-white rounded-3xl shadow-sm border border-gray-200 overflow-hidden mt-6">
               <div className="p-4 sm:p-6 border-b border-gray-100 bg-gray-50/50">
                 <h3 className="font-bold text-gray-950 text-sm tracking-wider uppercase">3 · FINAL HANDOFF</h3>
                 <p className="text-[11px] text-gray-500 font-medium mt-1">Paid and signed. Confirm once the printed document is physically at Window 1.</p>
@@ -307,6 +335,7 @@ export default function SecretaryDashboard({ user, currentTab, setViewImageUrl }
                 </div>
               </div>
             </div>
+            )}
           </>
         )}
 
@@ -416,6 +445,48 @@ export default function SecretaryDashboard({ user, currentTab, setViewImageUrl }
             setActiveModal={setActiveModal}
           />
         )}
+
+        <ConfirmDialog
+          open={!!handoffToConfirm}
+          title="Confirm Handoff"
+          message={handoffToConfirm ? `Confirm you have handed ${handoffToConfirm.document_type} to Window 1?` : ''}
+          variant="neutral"
+          confirmLabel="Confirm Handoff"
+          loadingLabel="Recording…"
+          loading={actionLoading}
+          onConfirm={confirmHandoffAction}
+          onCancel={cancelHandoffConfirm}
+        />
+
+        <ConfirmDialog
+          open={!!evaluateActionToConfirm}
+          title={evaluateActionToConfirm === 'approve' ? 'Accept for Processing' : 'Return to Window 1'}
+          message={
+            selectedDoc
+              ? evaluateActionToConfirm === 'approve'
+                ? `Accept ${selectedDoc.document_type} for processing? The student will be told to expect it by ${estimatedReadyDate}.`
+                : `Return ${selectedDoc.document_type} to Window 1 with your notes?`
+              : ''
+          }
+          variant={evaluateActionToConfirm === 'approve' ? 'neutral' : 'destructive'}
+          confirmLabel={evaluateActionToConfirm === 'approve' ? 'Accept for Processing' : 'Return to Window 1'}
+          loadingLabel="Saving…"
+          loading={actionLoading}
+          onConfirm={confirmSecretaryEvaluate}
+          onCancel={cancelSecretaryEvaluate}
+        />
+
+        <ConfirmDialog
+          open={pricingToConfirm}
+          title="Set the Amount"
+          message={selectedDoc ? `Save ${formatPeso(parseFloat(priceAmount) || 0)} as the price for ${selectedDoc.document_type}?` : ''}
+          variant="neutral"
+          confirmLabel="Save Price"
+          loadingLabel="Saving…"
+          loading={actionLoading}
+          onConfirm={confirmPriceDocument}
+          onCancel={cancelPriceDocument}
+        />
       </div>
     </>
   );

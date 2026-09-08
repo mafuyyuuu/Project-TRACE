@@ -29,6 +29,12 @@ export default function useWindow1Dashboard(user) {
   const [intakeFile, setIntakeFile] = useState(null);
   const fileInputRef = useRef(null);
 
+  // The document staged for a release confirmation, or null when the dialog is closed.
+  const [releaseToConfirm, setReleaseToConfirm] = useState(null);
+
+  // The intake action ('approve' | 'return') staged for confirmation, or null.
+  const [intakeActionToConfirm, setIntakeActionToConfirm] = useState(null);
+
   // Table pagination lives here rather than in the page component.
   const [w1IntakePage, setW1IntakePage] = useState(1);
   const [w1ReleasePage, setW1ReleasePage] = useState(1);
@@ -53,34 +59,45 @@ export default function useWindow1Dashboard(user) {
    * @param {'approve'|'return'} action
    */
   const handleIntake = useCallback(
-    async (action) => {
+    (action) => {
       if (!selectedDoc) return;
       if (action === 'return' && !intakeNotes.trim()) {
         triggerNotification('Say what the student needs to correct.', 'error');
         return;
       }
-
-      const formData = new FormData();
-      formData.append('action', action);
-      formData.append('notes', intakeNotes);
-      if (intakeFile) formData.append('document', intakeFile);
-
-      const ok = await runAction(() => intakeDocument(selectedDoc.id, formData), {
-        successMessage:
-          action === 'approve'
-            ? 'Intake cleared and routed to the College Secretary.'
-            : 'Returned to the student with your notes.',
-        errorMessage: 'Intake action failed.',
-      });
-
-      if (ok) {
-        setActiveModal(null);
-        setIntakeNotes('');
-        setIntakeFile(null);
-      }
+      setIntakeActionToConfirm(action);
     },
-    [selectedDoc, intakeNotes, intakeFile, runAction, setActiveModal, triggerNotification]
+    [selectedDoc, intakeNotes, triggerNotification]
   );
+
+  const confirmIntake = useCallback(async () => {
+    if (!intakeActionToConfirm || !selectedDoc) return;
+    const action = intakeActionToConfirm;
+
+    const formData = new FormData();
+    formData.append('action', action);
+    formData.append('notes', intakeNotes);
+    if (intakeFile) formData.append('document', intakeFile);
+
+    const ok = await runAction(() => intakeDocument(selectedDoc.id, formData), {
+      successMessage:
+        action === 'approve'
+          ? 'Intake cleared and routed to the College Secretary.'
+          : 'Returned to the student with your notes.',
+      errorMessage: 'Intake action failed.',
+    });
+
+    if (ok) {
+      setActiveModal(null);
+      setIntakeNotes('');
+      setIntakeFile(null);
+      setIntakeActionToConfirm(null);
+    }
+  }, [intakeActionToConfirm, selectedDoc, intakeNotes, intakeFile, runAction, setActiveModal]);
+
+  const cancelIntake = useCallback(() => {
+    setIntakeActionToConfirm(null);
+  }, []);
 
   /**
    * Hand the physical document over and close the request.
@@ -89,17 +106,22 @@ export default function useWindow1Dashboard(user) {
    * it is shown in the confirmation so the clerk checks it against the paper
    * in their hand rather than taking the system's word for it.
    */
-  const handleWindow1Release = useCallback(
-    async (doc) => {
-      const or = doc.or_number ? `\n\nOfficial Receipt on file: ${doc.or_number}` : '';
-      if (!window.confirm(`Release ${doc.document_type} to ${doc.student_name || doc.student_id}?${or}`)) return;
-      await runAction(() => releaseDocument(doc.id), {
-        successMessage: 'Document released.',
-        errorMessage: 'Failed to release document.',
-      });
-    },
-    [runAction]
-  );
+  const handleWindow1Release = useCallback((doc) => {
+    setReleaseToConfirm(doc);
+  }, []);
+
+  const confirmWindow1Release = useCallback(async () => {
+    if (!releaseToConfirm) return;
+    const ok = await runAction(() => releaseDocument(releaseToConfirm.id), {
+      successMessage: 'Document released.',
+      errorMessage: 'Failed to release document.',
+    });
+    if (ok) setReleaseToConfirm(null);
+  }, [releaseToConfirm, runAction]);
+
+  const cancelWindow1ReleaseConfirm = useCallback(() => {
+    setReleaseToConfirm(null);
+  }, []);
 
   /**
    * Stands in for a physical scanner: animates a capture, then opens the
@@ -214,7 +236,13 @@ export default function useWindow1Dashboard(user) {
     w1ProgressPage, setW1ProgressPage,
     itemsPerPage: ITEMS_PER_PAGE,
     handleIntake,
+    intakeActionToConfirm,
+    confirmIntake,
+    cancelIntake,
     handleWindow1Release,
+    releaseToConfirm,
+    confirmWindow1Release,
+    cancelWindow1ReleaseConfirm,
     simulateHardwareScan,
     handleWindow1ScanUpload,
     handleManualInputSubmit,

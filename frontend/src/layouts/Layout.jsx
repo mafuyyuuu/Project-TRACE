@@ -6,6 +6,7 @@ import { getNotifications, markNotificationsRead } from '@/services/authService'
 import { onNotification, disconnectRealtime } from '@/services/realtimeService'
 import SidebarNav from '@/layouts/SidebarNav'
 import ProfileSettingsModal from '@/components/ProfileSettingsModal'
+import ConfirmDialog from '@/components/ConfirmDialog'
 import UserAvatar from '@/components/UserAvatar'
 import plpLogo from '@/assets/plp_logo.png'
 
@@ -19,6 +20,8 @@ export default function Layout() {
   const [showNotifs, setShowNotifs] = useState(false)
   const [showSettings, setShowSettings] = useState(false)
   const [showMobileNav, setShowMobileNav] = useState(false)
+  const [confirmingLogout, setConfirmingLogout] = useState(false)
+  const [loggingOut, setLoggingOut] = useState(false)
 
   const settings = useProfileSettings(user)
 
@@ -88,8 +91,18 @@ export default function Layout() {
     setShowSettings(true)
   }
 
+  const handleConfirmLogout = async () => {
+    setLoggingOut(true)
+    try {
+      await logout()
+    } finally {
+      setLoggingOut(false)
+      setConfirmingLogout(false)
+    }
+  }
+
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col p-3 sm:p-4 md:p-6 gap-4 sm:gap-6 font-body text-gray-800">
+    <div className="h-dvh overflow-hidden bg-gray-50 flex flex-col p-3 sm:p-4 md:p-6 gap-4 sm:gap-6 font-body text-gray-800">
       {/* Header */}
       <header className="bg-white rounded-full shadow-sm px-4 sm:px-6 py-3 flex items-center justify-between shrink-0 border border-gray-100">
         <div className="flex items-center gap-2 sm:gap-3">
@@ -157,14 +170,14 @@ export default function Layout() {
       </header>
 
       {/* Main Area */}
-      <div className="flex-1 flex gap-6 min-h-0 relative">
+      <div className="flex-1 flex gap-6 min-h-0 overflow-hidden relative">
         {/* Desktop rail */}
-        <aside className="hidden md:flex w-20 flex-col items-center justify-between bg-white rounded-[2rem] shadow-sm py-8 shrink-0 border border-gray-100/50">
+        <aside className="hidden md:flex w-20 h-full overflow-y-auto flex-col items-center justify-between bg-white rounded-[2rem] shadow-sm py-8 shrink-0 border border-gray-100/50">
           <SidebarNav
             user={user}
             tab={tab}
             onOpenSettings={openSettings}
-            onLogout={logout}
+            onLogout={() => setConfirmingLogout(true)}
           />
         </aside>
 
@@ -173,11 +186,11 @@ export default function Layout() {
         {showMobileNav && (
           <div className="md:hidden fixed inset-0 z-[90] flex">
             <div
-              className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+              className="absolute inset-0 bg-black/40 backdrop-blur-sm transition-opacity duration-200"
               onClick={() => setShowMobileNav(false)}
               aria-hidden="true"
             />
-            <aside className="relative w-72 max-w-[85vw] h-full bg-white shadow-2xl p-4 overflow-y-auto flex flex-col">
+            <aside className="relative w-72 max-w-[85vw] h-full bg-white shadow-2xl p-4 overflow-y-auto flex flex-col animate-slide-up">
               <div className="flex items-center justify-between mb-6 px-2">
                 <span className="font-display font-black text-[#15803d] text-lg tracking-widest uppercase">TRACE</span>
                 <button
@@ -194,14 +207,14 @@ export default function Layout() {
                 showLabels
                 onNavigate={() => setShowMobileNav(false)}
                 onOpenSettings={openSettings}
-                onLogout={logout}
+                onLogout={() => setConfirmingLogout(true)}
               />
             </aside>
           </div>
         )}
 
         {/* Main Content Area */}
-        <main className="flex-1 min-w-0 overflow-y-auto">
+        <main className="flex-1 min-w-0 h-full overflow-y-auto">
           <Outlet />
         </main>
       </div>
@@ -221,6 +234,19 @@ export default function Layout() {
           onAvatarChange={settings.changeAvatar}
         />
       )}
+
+      <ConfirmDialog
+        open={confirmingLogout}
+        title="Log Out"
+        message="You'll need to sign in again to continue."
+        variant="neutral"
+        confirmLabel="Log Out"
+        cancelLabel="Stay Signed In"
+        loadingLabel="Logging Out…"
+        loading={loggingOut}
+        onConfirm={handleConfirmLogout}
+        onCancel={() => setConfirmingLogout(false)}
+      />
     </div>
   )
 }
