@@ -15,8 +15,8 @@ export default function ProfileSettingsModal({
   profileData,
   setField,
   avatarPath,
+  avatarPreviewUrl,
   saving,
-  uploading,
   success,
   error,
   onSave,
@@ -57,20 +57,28 @@ export default function ProfileSettingsModal({
       {/* Profile card: picture + identity */}
       <div className="flex flex-col items-center text-center pb-6 mb-6 border-b border-gray-100 -mt-2">
         <div className="relative">
-          <UserAvatar
-            user={user}
-            overridePath={avatarPath}
-            alt="Profile picture"
-            className="w-24 h-24 rounded-full object-cover border-4 border-white shadow-md bg-gray-100"
-          />
+          {avatarPreviewUrl ? (
+            <img
+              src={avatarPreviewUrl}
+              alt="New profile picture preview"
+              className="w-24 h-24 rounded-full object-cover border-4 border-white shadow-md bg-gray-100"
+            />
+          ) : (
+            <UserAvatar
+              user={user}
+              overridePath={avatarPath}
+              alt="Profile picture"
+              className="w-24 h-24 rounded-full object-cover border-4 border-white shadow-md bg-gray-100"
+            />
+          )}
           <button
             type="button"
             onClick={() => fileInputRef.current?.click()}
-            disabled={uploading}
+            disabled={saving}
             aria-label="Change profile picture"
             className="absolute bottom-0 right-0 w-9 h-9 rounded-full bg-[#15803d] hover:bg-[#166534] text-white flex items-center justify-center shadow-md transition-colors disabled:opacity-50"
           >
-            {uploading ? (
+            {saving && avatarPreviewUrl ? (
               <span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
             ) : (
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
@@ -93,7 +101,13 @@ export default function ProfileSettingsModal({
         {user?.student_id && (
           <p className="text-xs text-gray-400 font-semibold mt-1">{user.student_id}</p>
         )}
-        <p className="text-[11px] text-gray-400 mt-3">JPG, PNG or WebP · up to 2 MB</p>
+        {avatarPreviewUrl ? (
+          <p className="text-[11px] text-amber-600 font-semibold mt-3">
+            New photo selected — click Save Settings to apply, or close to discard.
+          </p>
+        ) : (
+          <p className="text-[11px] text-gray-400 mt-3">JPG, PNG or WebP · up to 2 MB</p>
+        )}
       </div>
 
       {success && (

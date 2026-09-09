@@ -91,6 +91,12 @@ export default function Layout() {
     setShowSettings(true)
   }
 
+  // A picked-but-unsaved picture must not survive closing without Save.
+  const closeSettings = () => {
+    settings.discardAvatarChange()
+    setShowSettings(false)
+  }
+
   const handleConfirmLogout = async () => {
     setLoggingOut(true)
     try {
@@ -222,12 +228,12 @@ export default function Layout() {
       {showSettings && (
         <ProfileSettingsModal
           user={user}
-          onClose={() => setShowSettings(false)}
+          onClose={closeSettings}
           profileData={settings.profileData}
           setField={settings.setField}
           avatarPath={settings.avatarPath}
+          avatarPreviewUrl={settings.avatarPreviewUrl}
           saving={settings.saving}
-          uploading={settings.uploading}
           success={settings.success}
           error={settings.error}
           onSave={settings.saveProfile}

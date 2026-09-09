@@ -67,33 +67,64 @@ describe('useProfileSettings', () => {
     await waitFor(() => expect(result.current.profileData.password).toBe(''));
   });
 
-  it('adopts the uploaded avatar and caches it for the next page load', async () => {
+  it('stages a picked avatar as a local preview without uploading it', () => {
+    const { result } = renderHook(() => useProfileSettings(USER));
+
+    act(() => result.current.changeAvatar(new File(['x'], 'me.png')));
+
+    expect(uploadProfilePicture).not.toHaveBeenCalled();
+    expect(result.current.avatarPreviewUrl).toBeTruthy();
+    expect(result.current.avatarPath).toBe('avatar-old.png');
+  });
+
+  it('uploads the staged avatar and adopts it on save', async () => {
+    updateProfile.mockResolvedValue({ message: 'ok' });
     uploadProfilePicture.mockResolvedValue({ profile_picture: 'avatar-new.png' });
     const { result } = renderHook(() => useProfileSettings(USER));
 
-    await act(async () => result.current.changeAvatar(new File(['x'], 'me.png')));
+    act(() => result.current.changeAvatar(new File(['x'], 'me.png')));
+    await act(async () => result.current.saveProfile());
 
+    expect(uploadProfilePicture).toHaveBeenCalledWith(expect.any(File));
     await waitFor(() => expect(result.current.avatarPath).toBe('avatar-new.png'));
     expect(JSON.parse(localStorage.getItem('trace_user')).profile_picture).toBe('avatar-new.png');
+    expect(result.current.avatarPreviewUrl).toBeNull();
   });
 
-  it('reports a rejected upload and keeps the previous avatar', async () => {
+  it('reports a rejected upload, keeps the previous avatar, and keeps the staged file for a retry', async () => {
+    updateProfile.mockResolvedValue({ message: 'ok' });
     uploadProfilePicture.mockRejectedValue({
       response: { data: { error: 'Profile pictures must be a JPG, PNG, or WebP image.' } },
     });
     const { result } = renderHook(() => useProfileSettings(USER));
 
-    await act(async () => result.current.changeAvatar(new File(['x'], 'me.gif')));
+    act(() => result.current.changeAvatar(new File(['x'], 'me.gif')));
+    await act(async () => result.current.saveProfile());
 
     await waitFor(() =>
-      expect(result.current.error).toBe('Profile pictures must be a JPG, PNG, or WebP image.')
+      expect(result.current.error).toContain('Profile pictures must be a JPG, PNG, or WebP image.')
     );
     expect(result.current.avatarPath).toBe('avatar-old.png');
+    // Retrying Save shouldn't require re-picking the image.
+    expect(result.current.avatarPreviewUrl).toBeTruthy();
   });
 
-  it('does nothing when the file picker is dismissed', async () => {
+  it('does nothing when the file picker is dismissed', () => {
     const { result } = renderHook(() => useProfileSettings(USER));
-    await act(async () => result.current.changeAvatar(undefined));
+    act(() => result.current.changeAvatar(undefined));
+    expect(uploadProfilePicture).not.toHaveBeenCalled();
+    expect(result.current.avatarPreviewUrl).toBeNull();
+  });
+
+  it('discards a staged avatar without ever uploading it', async () => {
+    updateProfile.mockResolvedValue({ message: 'ok' });
+    const { result } = renderHook(() => useProfileSettings(USER));
+
+    act(() => result.current.changeAvatar(new File(['x'], 'me.png')));
+    act(() => result.current.discardAvatarChange());
+    expect(result.current.avatarPreviewUrl).toBeNull();
+
+    await act(async () => result.current.saveProfile());
     expect(uploadProfilePicture).not.toHaveBeenCalled();
   });
 
