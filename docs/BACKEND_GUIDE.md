@@ -71,8 +71,13 @@ The Registrar hasn't finalised the questions, so nothing about the form is hardc
 | `GET /api/grad-applications/form-fields` | The admin-defined form definition |
 | `POST /api/grad-applications` | Submit an application |
 | `GET /api/grad-applications/mine` | A student's own submissions |
-| `GET /api/grad-applications` | Staff review queue |
-| `POST /api/grad-applications/:id/review` | Staff decision |
+| `GET /api/grad-applications` | Staff review queue (admin or clerk) |
+| `POST /api/grad-applications/:id/review` | Staff decision — `{status: 'approved'\|'rejected'\|'under_review', notes}` |
+
+The last two existed unconsumed for a while — nothing on the frontend called them, so a submitted
+application only ever showed up on the alumnus's own account. Both are now wired to a shared review
+panel (`frontend/src/features/graduate/components/GradApplicationReviewPanel.jsx`) dropped into both
+the Admin and Secretary dashboards.
 
 ### Admin Maintenance, Reporting & Analytics
 
@@ -257,7 +262,12 @@ everything (it is the public counter — its Tracking Desk has to answer "where 
 
 ### Account & Profile Endpoints
 - `PUT /api/auth/profile`: Updates the caller's own phone number, email, and/or password. A new password is hashed; supplying one also clears `must_change_password`.
-- `PUT /api/auth/profile/picture`: Multipart upload (field `picture`) replacing the caller's avatar. JPG/PNG/WebP only, 2 MB max — enforced by `profilePictureUpload` in `upload.middleware.js`, which rejects anything else with a 400. Only the filename is stored; the previous avatar is deleted best-effort so uploads do not accumulate on disk.
+- `PUT /api/auth/profile/picture`: Multipart upload (field `picture`) replacing the caller's avatar. JPG/PNG/WebP only, 2 MB max — enforced by `profilePictureUpload` in `upload.middleware.js`, which rejects anything else with a 400. Only the filename is stored; the previous avatar is deleted best-effort so uploads do not accumulate on disk. The frontend now stages a picked file as a local preview and only calls this endpoint from "Save Settings" — closing Account Settings without saving discards the pick, and nothing is uploaded until the click.
+- `POST /api/auth/login` and `GET /api/auth/me` both return `user_type` on the `user` object (a
+  fix — the login query fetched the column but never forwarded it, and `/auth/me`'s own SELECT
+  excluded it outright, so every signed-in user looked like a plain student regardless of what they
+  declared at signup). The JWT payload itself still doesn't carry `user_type`; nothing server-side
+  authorizes on it, only `role` does.
 
 ### Password Recovery Endpoints
 Both are deliberately unauthenticated — a user who needs them cannot log in — and both are throttled

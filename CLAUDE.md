@@ -246,7 +246,7 @@ Four payment methods live in the admin-managed `payment_methods` table; `src/ser
 `notification.service.js` reports channel health at startup and **skips unconfigured channels with a reason** rather than attempting them. Don't reintroduce placeholder SMTP credentials — that is what made the old email failures look like a bug.
 
 ### Profile pictures
-`users.profile_picture` holds a filename only; the bytes live in `backend/uploads/` and are read back through the authenticated `/api/files/:filename` route like every other upload — **never a public static path**. `PUT /api/auth/profile/picture` (multipart field `picture`, JPG/PNG/WebP, 2 MB via `profilePictureUpload`) replaces it and deletes the previous file. In `files.service.js` an avatar is resolved on its own branch: only its owner may read it, and the check never falls through to the document/ID-proof rules. A multer `fileFilter` must reject with `badRequest`, not a bare `Error` — the shared error handler maps an unstatused error to 500.
+`users.profile_picture` holds a filename only; the bytes live in `backend/uploads/` and are read back through the authenticated `/api/files/:filename` route like every other upload — **never a public static path**. `PUT /api/auth/profile/picture` (multipart field `picture`, JPG/PNG/WebP, 2 MB via `profilePictureUpload`) replaces it and deletes the previous file. In `files.service.js` an avatar is resolved on its own branch: only its owner may read it, and the check never falls through to the document/ID-proof rules. A multer `fileFilter` must reject with `badRequest`, not a bare `Error` — the shared error handler maps an unstatused error to 500. On the frontend, picking a new picture in Account Settings only stages a local preview (`useProfileSettings.js`'s `avatarFile`/`avatarPreviewUrl`) — it uploads as part of "Save Settings", the same gate every other field goes through, and closing the modal without saving discards the pick. It used to upload on selection; that was the bug, not the design.
 
 ### Password recovery
 `POST /api/auth/forgot-password` (student ID **or** email) always answers with the same generic
@@ -273,6 +273,13 @@ Reporting filters, summary totals and CSV exports all share one filter object. `
 
 ### Reference data & configurable forms
 Document types, colleges, and the Graduate Application's fields are **database rows, not code**: `document_types` (with admin-editable `base_fee` and a `fee_rule` selecting the calculation), `colleges`, and `grad_form_fields`. The graduate form's validation is generated from its field definitions, so adding a question needs no migration and no code change. Don't reintroduce a hardcoded `<option>` list.
+
+Only an alumnus (`users.user_type`, self-declared at signup) reaches the Graduate Application tab —
+`frontend/src/pages/DashboardPage.jsx`'s `isAlumni` and the nav entry in `utils/navigation.js` both
+gate on it, not on `role === 'student'` alone. Submitted applications are reviewed through
+`features/graduate/components/GradApplicationReviewPanel.jsx`, shared by the Admin and Secretary
+dashboards (`features/graduate/useGradApplicationReview.js` owns its data), against the
+`listApplications`/`reviewApplication` endpoints in `gradApplication.service.js`.
 
 ### Database
 MySQL, single source of truth, `backend/database/schema.sql` + `seed.sql` + `migration.js` for upgrades. Core tables: `users` (role/verification_status/course/id_proof_path), `documents` (current_status/payment_status/tracking_number/gcash fields), `step_logs` (append-only audit trail — every desk transition writes here and is what both Prophet and the Admin Activity Log read from), `notifications` (in-app bell icon).

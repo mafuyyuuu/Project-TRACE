@@ -94,7 +94,14 @@ A student may tick several document types in a single request — for example a 
 
 ## 1c. Graduate Application
 
-Graduates and alumni complete an application form defined by the Registrar. The questions are **configured, not coded**: an admin adds, reorders or removes fields, and both the form and its validation follow automatically. Submissions land in a staff review queue and move through `submitted → under_review → approved / rejected`.
+Only an alumnus (the `user_type` declared at registration, section 0a) sees the Graduate
+Application tab at all — a current student cannot reach it, including by navigating to it directly.
+The questions are **configured, not coded**: an admin adds, reorders or removes fields, and both the
+form and its validation follow automatically. Submissions land in a staff review queue — a
+**Graduate Applications** tab on both the Registrar Admin and the College Secretary dashboards (any
+staff account can act on one; both roles get the tab so either desk can pick it up) — and move
+through `submitted → under_review → approved / rejected`. Approving needs nothing further; rejecting
+requires a note, the same as every other reject action in the system.
 
 ---
 
@@ -231,6 +238,8 @@ runs whether the file came from the student or the counter.
   4. **Final Handoff.** Physically pass the printed document to Window 1 and record it. This is a
      separate step on purpose — it marks a real physical event, and marking it while the document sits
      in a drawer is exactly the drift this pipeline exists to stop.
+  5. **Graduate Applications** (shared with the Registrar Admin, section 1c). Review an alumnus's
+     submitted answers and approve or reject, with a required note on rejection.
 
 ### 🏢 Window 1 Clerk (`WINDOW1001`)
 * **Role:** The counter at both ends of the pipeline.
@@ -258,6 +267,8 @@ runs whether the file came from the student or the counter.
      that failed automatic AI verification at registration (section 0a), and administering staff
      accounts, document types and colleges.
   5. Monitors the global **Activity Logs** (`step_logs` audit trail) to maintain total system accountability across all desks.
+  6. **Graduate Applications** (shared with the College Secretary, section 1c). Review an alumnus's
+     submitted answers and approve or reject, with a required note on rejection.
 
 ---
 

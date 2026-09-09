@@ -413,11 +413,12 @@ no admin screen to manage the other three at all, despite `payment_methods` bein
 ---
 
 ### Phase 21: UI/UX Revision Pass (Internal User Testing)
-**Status:** Batches 1–4 complete. FX-05 deferred out of this phase's presentation-layer-only scope —
+**Status:** Batches 1–7 complete. FX-05 deferred out of this phase's presentation-layer-only scope —
 resolved separately in Phase 22.
-*Four batches of presentation-layer fixes from two rounds of internal user testing on Window 1,
-Secretary, Student and Admin. Every batch's ground rules: presentation layer only, no schema/API/auth
-changes beyond wiring already-existing endpoints, reuse existing components, keep Vitest green.*
+*Presentation-layer fixes from rounds of internal user testing, batch by batch. Every batch's ground
+rules: presentation layer only, no schema/API/auth changes beyond wiring already-existing endpoints
+(a named exception needs explicit sign-off, the same way Phase 22 and Batch 7 below got one), reuse
+existing components, keep Vitest green.*
 
 - [x] **Batch 1 — App shell & global behavior.** Sidebar and navbar made properly sticky (the shell's
   root moved from `min-h-screen` to `h-dvh overflow-hidden`, so `<main>` is the one real scroll
@@ -461,6 +462,60 @@ changes beyond wiring already-existing endpoints, reuse existing components, kee
 > `dev` as of this writing (`git status` showed every touched file as modified or untracked against
 > `origin/dev`). Nothing here had been committed or pushed at that point — see Phase 22 for what
 > followed.
+
+- [x] **Batch 5 — Admin & Finance.** Window 1's Manual Input moved off its own sidebar tab and onto
+  the intake dashboard as a panel (`ManualInputModal.jsx`, built on `ModalShell`), keeping the same
+  form field ids `handleFetchStudent` reads by DOM id; the tab, its nav entry and its now-orphaned
+  `formPlus` icon were removed. Admin's System Throughput KPI card had two bugs: the value collapsed
+  to a dash whenever the average happened to round near zero (a broken proxy for "no completed
+  documents ever"), and its sparkline was 100% decorative fake data shared by all four dashboards.
+  Both are fixed by sourcing the card from `GET /api/reports/analytics` — already fetched elsewhere
+  for the Efficiency Analytics tab — which carries a real all-time completed count and a real
+  per-day throughput series, so neither fix needed the new backend field that was first proposed and
+  flagged for sign-off. The 7-day forecast card gained an expand-to-full-week modal
+  (`ForecastModal.jsx`), since the compact card only ever showed the last 5 of the 7 days it had.
+  Finance's two queues (Awaiting Payment / Verification) became tabs via the existing `QueueTabs`,
+  matching Secretary's precedent. The Finance verification modal and the student's Payment History
+  table stopped hardcoding "GCash" labels and a "GC-" prefix regardless of actual payment method —
+  both now show the real method's name and reference label via the existing `payment_methods` data,
+  and a fake fallback reference number (`'992139'`) shown when none existed was removed alongside it.
+  Two of the batch's tickets (WI-03/WI-04, converting Registered Users/Staff Accounts to a card grid)
+  turned out to already be done, from Batch 2.
+- [x] **Batch 6 — Bugs.** Account Settings' profile picture uploaded to the server the instant a file
+  was picked, independent of "Save Settings" — so it looked like part of the gated form but wasn't
+  one. `useProfileSettings.js` now stages a picked file as a local preview only (`avatarFile`/
+  `avatarPreviewUrl`); the upload happens as the first step of `saveProfile`, alongside the existing
+  phone/email/password save, and closing Account Settings without saving discards the pick via a new
+  `discardAvatarChange()`, wired into `Layout.jsx`'s modal close.
+- [x] **Batch 7 — Sign-up & Graduate Application.** Alumni self-declare `user_type` at signup and it
+  was stored correctly, but the login query never selected it and `login()` never forwarded it to the
+  frontend — every signed-in user looked like a plain student, so nothing could gate on being an
+  alumnus. The second batch in this pass authorized to touch the backend (after Phase 22), on
+  explicit sign-off: `getProfileById` (backing `GET /api/auth/me`, which `useAuth.js` calls on every
+  page load) and `login()`'s returned `user` object both now carry `user_type` — fixing only `login()`
+  as the ticket named would have left the gate working right after login and broken again on the next
+  refresh. With that in place, the Graduate Application tab is now gated on alumni status instead of
+  `role === 'student'` in both `DashboardPage.jsx` and the nav entry itself in `navigation.js` — a
+  regular student no longer sees the tab at all, including by navigating to it directly. Finally, a
+  submitted application previously only ever showed up on the alumnus's own account: the staff
+  review endpoints (`listApplications`/`reviewApplication`) already existed, fully tested, and even
+  had unused frontend service wrappers already written — nothing called them. New
+  `useGradApplicationReview.js` + `GradApplicationReviewPanel.jsx` (Pending/Approved/Rejected tabs,
+  a detail view showing the six answers by their real labels, approve/reject behind the existing
+  `ConfirmDialog` stage/confirm/cancel pattern, reject requiring a note like every other reject
+  action in the system) are shared, unmodified, between a new tab on both the Admin and the Secretary
+  dashboards.
+- [x] **Tests, Batches 5–7:** backend 444 → **445** (Batch 7's `user_type` additions — the only
+  backend change across all three batches); frontend 210 → **222** (Batch 6 added 3, Batch 7 added 9
+  across the nav-gating and the new review panel's own test file). Zero ESLint errors throughout;
+  production build succeeds after each batch (same pre-existing >500kB chunk-size warning, unrelated).
+
+> **Committed, unlike Batches 1–4 and Phase 22.** All three batches landed as separate commits on
+> `dev` this session. Visual/browser verification was not performed for any of the three — no
+> Claude-in-Chrome connection was available — so the manual pass each batch's own notes call for
+> (picking a photo and confirming the revert-on-discard behavior, exercising the alumni gate with a
+> real account, approving/rejecting a real submitted application from both dashboards) is still
+> outstanding.
 
 ---
 
