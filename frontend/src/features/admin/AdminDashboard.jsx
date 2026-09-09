@@ -9,6 +9,7 @@ import MaintenancePanel from '@/features/admin/components/MaintenancePanel';
 import ReportsPanel from '@/features/admin/components/ReportsPanel';
 import AnalyticsPanel from '@/features/admin/components/AnalyticsPanel';
 import ForecastModal from '@/features/admin/components/ForecastModal';
+import GradApplicationReviewPanel from '@/features/graduate/components/GradApplicationReviewPanel';
 import UserGrid from '@/features/admin/components/UserGrid';
 import UserDetailModal from '@/features/admin/components/UserDetailModal';
 import ConfirmDialog from '@/components/ConfirmDialog';
@@ -59,6 +60,7 @@ export default function AdminDashboard({ user, currentTab, setViewImageUrl }) {
   if (currentTab === 'admin-maintenance') return <MaintenancePanel user={user} currentTab={currentTab} />;
   if (currentTab === 'admin-reports') return <ReportsPanel user={user} currentTab={currentTab} />;
   if (currentTab === 'admin-analytics') return <AnalyticsPanel user={user} currentTab={currentTab} />;
+  if (currentTab === 'admin-grad-applications') return <GradApplicationReviewPanel user={user} currentTab={currentTab} />;
 
   return (
     <>

@@ -11,6 +11,7 @@ const WINDOW1 = { id: 5, role: 'clerk', desk_assignment: 'Window 1' };
 const RECEIVING = { id: 6, role: 'clerk', desk_assignment: 'Receiving Desk' };
 const FINANCE = { id: 7, role: 'clerk', desk_assignment: 'Finance' };
 const ADMIN = { id: 8, role: 'admin' };
+const ALUMNI = { id: 9, role: 'student', user_type: 'alumni' };
 
 const renderNav = (props) =>
   render(
@@ -21,8 +22,9 @@ const renderNav = (props) =>
 
 describe('navItemsForUser', () => {
   it.each([
-    ['student', STUDENT, ['dashboard', 'request-history', 'payment-history', 'graduate-application']],
-    ['secretary', SECRETARY, ['dashboard', 'completed-logs']],
+    ['student', STUDENT, ['dashboard', 'request-history', 'payment-history']],
+    ['alumnus', ALUMNI, ['dashboard', 'request-history', 'payment-history', 'graduate-application']],
+    ['secretary', SECRETARY, ['dashboard', 'completed-logs', 'grad-applications']],
     ['window 1', WINDOW1, ['dashboard', 'tracking-desk']],
     ['finance', FINANCE, ['dashboard']],
   ])('gives a %s their own tabs', (_label, user, expected) => {
@@ -42,6 +44,7 @@ describe('navItemsForUser', () => {
       'admin-logs',
       'admin-reports',
       'admin-analytics',
+      'admin-grad-applications',
       'admin-maintenance',
     ]);
   });
@@ -53,10 +56,17 @@ describe('navItemsForUser', () => {
 
 describe('SidebarNav', () => {
   it('labels every destination in drawer mode', () => {
-    renderNav({ user: STUDENT, showLabels: true });
+    renderNav({ user: ALUMNI, showLabels: true });
     expect(screen.getByText('Request History')).toBeInTheDocument();
     expect(screen.getByText('Payment History')).toBeInTheDocument();
     expect(screen.getByText('Graduate Application')).toBeInTheDocument();
+  });
+
+  // A regular (non-alumni) student must not see the tab at all, not even to
+  // navigate to it directly.
+  it('hides Graduate Application from a regular student', () => {
+    renderNav({ user: STUDENT, showLabels: true });
+    expect(screen.queryByText('Graduate Application')).not.toBeInTheDocument();
   });
 
   // The desktop rail is icon-only; the labels live in the title attribute.

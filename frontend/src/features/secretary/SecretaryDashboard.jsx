@@ -5,6 +5,7 @@ import PaymentStubModal from '@/features/secretary/components/PaymentStubModal';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import QueueTabs from '@/components/QueueTabs';
 import MiniSparkline from '@/components/MiniSparkline';
+import GradApplicationReviewPanel from '@/features/graduate/components/GradApplicationReviewPanel';
 import { getStatusLabel } from '@/utils/documentStatus';
 import { getRelativeTime, todayLongDate } from '@/utils/formatters';
 import { formatPeso } from '@/utils/pricing';
@@ -457,6 +458,11 @@ export default function SecretaryDashboard({ user, currentTab, setViewImageUrl }
               </div>
             </div>
           </>
+        )}
+
+        {/* 4.3. COLLEGE SECRETARY - GRADUATE APPLICATIONS */}
+        {currentTab === 'grad-applications' && (
+          <GradApplicationReviewPanel user={user} currentTab={currentTab} />
         )}
 
         {/* College Secretary Split-Screen Modal */}

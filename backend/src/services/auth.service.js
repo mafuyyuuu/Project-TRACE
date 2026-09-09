@@ -57,6 +57,7 @@ async function login({ employee_id, password }) {
       student_id: user.student_id,
       full_name: user.full_name,
       role: user.role,
+      user_type: user.user_type,
       desk_assignment: user.desk_assignment,
       course: user.course,
       profile_picture: user.profile_picture || null,
