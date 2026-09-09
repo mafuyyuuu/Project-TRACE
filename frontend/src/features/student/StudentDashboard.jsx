@@ -364,7 +364,7 @@ export default function StudentDashboard({ user, currentTab, setViewImageUrl }) 
                         {documents.filter(d => d.payment_status === 'PAID' || d.gcash_reference_no).map(doc => (
                           <tr key={doc.id} className="hover:bg-gray-50/50 transition-colors">
                             <td className="py-4 pl-4 text-xs font-semibold text-gray-400">{new Date(doc.updated_at).toLocaleDateString()} {new Date(doc.updated_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</td>
-                            <td className="py-4 font-mono text-xs text-gray-800 font-black">GC-{doc.gcash_reference_no ? doc.gcash_reference_no.slice(0, 8).toUpperCase() : '992139'}</td>
+                            <td className="py-4 font-mono text-xs text-gray-800 font-black">{doc.gcash_reference_no ? doc.gcash_reference_no.slice(0, 8).toUpperCase() : '—'}</td>
                             <td className="py-4 text-sm font-bold text-gray-700">{doc.document_type}</td>
                             <td className="py-4 text-xs font-bold text-gray-800 font-mono">P {parseFloat(doc.amount || 150).toFixed(2)}</td>
                             <td className="py-4">

@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import useDashboardCore from '@/hooks/useDashboardCore';
 import { getForecast, getInsights, getActivityLogs } from '@/services/documentsService';
 import { getPendingStudents, verifyStudent, getUsers } from '@/services/authService';
+import { getAnalytics } from '@/services/reportsService';
 
 const ITEMS_PER_PAGE = 10;
 
@@ -22,6 +23,7 @@ export default function useAdminDashboard(user, currentTab) {
   const [forecastData, setForecastData] = useState([]);
   const [aiInsights, setAiInsights] = useState([]);
   const [pendingStudents, setPendingStudents] = useState([]);
+  const [analyticsSummary, setAnalyticsSummary] = useState(null);
 
   // Table state
   const [adminDocPage, setAdminDocPage] = useState(1);
@@ -59,11 +61,12 @@ export default function useAdminDashboard(user, currentTab) {
    */
   const loadAdminData = useCallback(async () => {
     // Fetched in parallel; each settles independently so one outage cannot
-    // blank the other two panels.
-    const [forecast, insights, pending] = await Promise.allSettled([
+    // blank the other panels.
+    const [forecast, insights, pending, analytics] = await Promise.allSettled([
       getForecast(),
       getInsights(),
       getPendingStudents(),
+      getAnalytics(),
     ]);
 
     if (forecast.status === 'fulfilled') setForecastData(forecast.value.forecast || []);
@@ -74,6 +77,11 @@ export default function useAdminDashboard(user, currentTab) {
 
     if (pending.status === 'fulfilled') setPendingStudents(pending.value.pending_students || []);
     else console.warn('Pending students unavailable');
+
+    // Powers the System Throughput KPI card's real value, empty state and
+    // sparkline trend — same endpoint the Efficiency Analytics tab already uses.
+    if (analytics.status === 'fulfilled') setAnalyticsSummary(analytics.value);
+    else console.warn('Analytics summary unavailable');
   }, []);
 
   useEffect(() => {
@@ -130,6 +138,7 @@ export default function useAdminDashboard(user, currentTab) {
     forecastData,
     aiInsights,
     pendingStudents,
+    analyticsSummary,
     adminDocPage, setAdminDocPage,
     adminDocFilter, setAdminDocFilter,
     forecastFilter, setForecastFilter,

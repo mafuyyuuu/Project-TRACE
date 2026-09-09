@@ -2,15 +2,7 @@ import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, BarChart, 
 import useReports from '@/features/admin/useReports';
 import DashboardLoading from '@/components/DashboardLoading';
 import DashboardAlerts from '@/components/DashboardAlerts';
-
-/** Minutes → a readable duration, since a desk can hold a document for days. */
-function formatDuration(minutes) {
-  if (!minutes || minutes < 1) return '< 1 min';
-  if (minutes < 60) return `${Math.round(minutes)} min`;
-  const hours = minutes / 60;
-  if (hours < 24) return `${hours.toFixed(1)} hrs`;
-  return `${(hours / 24).toFixed(1)} days`;
-}
+import { formatDuration } from '@/utils/formatters';
 
 function MetricCard({ label, value, sub, tone = 'default' }) {
   const tones = { default: 'text-gray-900', good: 'text-[#15803d]', warn: 'text-amber-600' };

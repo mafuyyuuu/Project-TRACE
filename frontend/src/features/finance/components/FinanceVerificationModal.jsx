@@ -10,7 +10,8 @@ export default function FinanceVerificationModal({
   handleFinanceVerify,
   actionLoading,
   clerkNotes,
-  setClerkNotes
+  setClerkNotes,
+  paymentMethods = [],
 }) {
   const [financeReceiptFile, setFinanceReceiptFile] = useState(null);
   // Walk-in documents already carry an OR number from logWalkInPayment; a
@@ -20,6 +21,11 @@ export default function FinanceVerificationModal({
   if (!selectedDoc) return null;
 
   const canVerify = financeReceiptFile && orNumber.trim();
+  // documents.payment_method defaults to 'gcash' for rows predating the
+  // column — matching document.model.js's own default.
+  const method = paymentMethods.find((m) => m.code === (selectedDoc.payment_method || 'gcash'));
+  const methodName = method?.name || 'GCash';
+  const referenceLabel = method?.reference_label || 'Reference Number';
 
   return (
     <ModalShell
@@ -61,7 +67,7 @@ export default function FinanceVerificationModal({
       </div>
 
       <div className="space-y-4">
-        <span className="text-[10px] font-bold text-gray-800 uppercase tracking-widest block">Gcash Receipt Screenshot</span>
+        <span className="text-[10px] font-bold text-gray-800 uppercase tracking-widest block">{methodName} Receipt / Proof</span>
 
         {/* Receipt Preview */}
         <div className="bg-gray-100 rounded-2xl overflow-hidden border border-gray-200 h-64 relative flex items-center justify-center">
@@ -80,7 +86,7 @@ export default function FinanceVerificationModal({
         </div>
 
         <div className="text-center font-bold text-xs text-gray-800 py-2 border-b border-gray-100 mb-2">
-          GCash Reference Number: <span className="font-mono text-gray-600 font-bold">{selectedDoc.gcash_reference_no || 'None'}</span>
+          {referenceLabel}: <span className="font-mono text-gray-600 font-bold">{selectedDoc.gcash_reference_no || 'None'}</span>
         </div>
 
         <div className="flex flex-col gap-2">

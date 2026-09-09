@@ -29,7 +29,6 @@ export function navItemsForUser(user) {
     return [
       { tab: 'dashboard', to: '/dashboard', label: 'Workspace Dashboard', icon: 'dashboard' },
       { tab: 'tracking-desk', to: '/dashboard?tab=tracking-desk', label: 'Tracking Desk', icon: 'users' },
-      { tab: 'manual-input', to: '/dashboard?tab=manual-input', label: 'Manual Input Form', icon: 'formPlus' },
     ];
   }
 

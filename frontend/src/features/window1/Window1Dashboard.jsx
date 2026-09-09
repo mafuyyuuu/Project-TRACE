@@ -1,5 +1,6 @@
 import HardwareScannerModal from '@/features/window1/components/HardwareScannerModal';
 import IntakeReviewModal from '@/features/window1/components/IntakeReviewModal';
+import ManualInputModal from '@/features/window1/components/ManualInputModal';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import MiniSparkline from '@/components/MiniSparkline';
 import { STATUS, getProgressVal, getStatusLabel, requiresAttachment } from '@/utils/documentStatus';
@@ -136,9 +137,18 @@ export default function Window1Dashboard({ user, currentTab, setViewImageUrl }) 
 
             {/* Upload Document Dropzone */}
             <div className="bg-white p-6 md:p-8 rounded-3xl shadow-sm border border-gray-200 flex flex-col justify-between mt-8">
-              <div>
-                <h3 className="text-lg font-bold text-gray-900">UPLOAD DOCUMENT</h3>
-                <p className="text-xs text-gray-400 mt-1">Upload physical papers to extract data via AI Engine.</p>
+              <div className="flex justify-between items-start gap-4">
+                <div>
+                  <h3 className="text-lg font-bold text-gray-900">UPLOAD DOCUMENT</h3>
+                  <p className="text-xs text-gray-400 mt-1">Upload physical papers to extract data via AI Engine.</p>
+                </div>
+                <button
+                  onClick={() => setActiveModal('manual-input')}
+                  className="shrink-0 px-4 py-2.5 bg-gray-50 hover:bg-gray-100 border border-gray-200 text-gray-700 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#15803d]/40"
+                >
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4"/></svg>
+                  Manual Entry
+                </button>
               </div>
 
               <div className="flex-1 mt-6 border-2 border-dashed border-[#15803d]/40 rounded-3xl p-8 bg-gray-50/50 flex flex-col items-center justify-center relative min-h-[250px]">
@@ -473,144 +483,6 @@ export default function Window1Dashboard({ user, currentTab, setViewImageUrl }) 
 
 
 
-        {/* 3.3. MANUAL INPUT VIEW */}
-        {currentTab === 'manual-input' && (
-          <>
-            {/* Header */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
-              <div>
-                <h2 className="text-2xl sm:text-3xl font-display font-black text-gray-900 tracking-tight">
-                  Manual Input
-                </h2>
-              </div>
-              <div className="flex items-center gap-3 bg-white border border-gray-200 rounded-2xl px-5 py-2.5 shadow-sm">
-                <span className="text-xs font-semibold text-gray-500">Today:</span>
-                <span className="text-xs font-bold text-gray-800">{todayFormatted}</span>
-                <svg className="w-4 h-4 text-gray-400 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
-              </div>
-            </div>
-
-            {/* Form Card */}
-            <div className="bg-white rounded-3xl shadow-sm border border-gray-200 p-8">
-              <p className="text-sm font-semibold text-gray-500 mb-8 leading-relaxed">Digitize physical walk-in requests and legacy records.</p>
-
-              <form onSubmit={handleManualInputSubmit} className="space-y-10">
-                {/* STUDENT INFORMATION */}
-                <div>
-                  <h3 className="text-xs font-black text-[#15803d] uppercase tracking-widest border-b border-gray-100 pb-3 mb-6">STUDENT INFORMATION</h3>
-
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <div className="flex flex-col gap-2">
-                      <label className="text-[10px] font-bold text-gray-800 uppercase tracking-widest">Student ID</label>
-                      <div className="flex gap-2">
-                        <input 
-                          type="text" 
-                          name="studentId"
-                          id="manual-student-id"
-                          placeholder="e.g. 23-23922" 
-                          required
-                          className="flex-1 p-3 bg-gray-50 border border-gray-200 rounded-xl text-xs font-semibold focus:ring-2 focus:ring-[#15803d]/20 outline-none transition-all" 
-                        />
-                        <button 
-                          onClick={handleFetchStudent}
-                          className="px-4 py-3 bg-[#15803d] text-white rounded-xl text-xs font-bold hover:bg-[#166534] transition-all shadow-sm shrink-0"
-                        >
-                          FETCH
-                        </button>
-                      </div>
-                    </div>
-
-                    <div className="flex flex-col gap-2">
-                      <label className="text-[10px] font-bold text-gray-800 uppercase tracking-widest">Full Name</label>
-                      <input 
-                        type="text" 
-                        name="fullName"
-                        id="manual-full-name"
-                        placeholder="Last Name, First Name" 
-                        required
-                        className="p-3 bg-gray-50 border border-gray-200 rounded-xl text-xs font-semibold focus:ring-2 focus:ring-[#15803d]/20 outline-none transition-all" 
-                      />
-                    </div>
-
-                    <div className="flex flex-col gap-2">
-                      <label className="text-[10px] font-bold text-gray-800 uppercase tracking-widest">Course / Program</label>
-                      <select 
-                        name="course"
-                        id="manual-course"
-                        required
-                        className="p-3 bg-gray-50 border border-gray-200 rounded-xl text-xs font-semibold focus:ring-2 focus:ring-[#15803d]/20 outline-none transition-all cursor-pointer"
-                      >
-                        <option value="" disabled selected>Select Course...</option>
-                        <option value="BSCS">BS Computer Science</option>
-                        <option value="BSIT">BS Information Technology</option>
-                        <option value="BSCPE">BS Computer Engineering</option>
-                        <option value="BSA">BS Accountancy</option>
-                        <option value="BSBA">BS Business Administration</option>
-                      </select>
-                    </div>
-                  </div>
-                </div>
-
-                {/* DOCUMENT DETAILS */}
-                <div>
-                  <h3 className="text-xs font-black text-[#15803d] uppercase tracking-widest border-b border-gray-100 pb-3 mb-6">DOCUMENT DETAILS</h3>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="flex flex-col gap-2">
-                      <label className="text-[10px] font-bold text-gray-800 uppercase tracking-widest">Requested Document</label>
-                      <select 
-                        name="docType"
-                        required
-                        className="p-3 bg-gray-50 border border-gray-200 rounded-xl text-xs font-semibold focus:ring-2 focus:ring-[#15803d]/20 outline-none transition-all cursor-pointer"
-                      >
-                        <option value="" disabled selected>Document Type</option>
-                        <option>Transcript of Records</option>
-                        <option>Clearance</option>
-                        <option>Certification</option>
-                        <option>Diploma</option>
-                      </select>
-                    </div>
-
-                    <div className="flex flex-col gap-2">
-                      <label className="text-[10px] font-bold text-gray-800 uppercase tracking-widest">Purpose of Request</label>
-                      <select 
-                        name="purpose"
-                        required
-                        className="p-3 bg-gray-50 border border-gray-200 rounded-xl text-xs font-semibold focus:ring-2 focus:ring-[#15803d]/20 outline-none transition-all cursor-pointer"
-                      >
-                        <option value="" disabled selected>Purpose of Request</option>
-                        <option>Graduation Clearance</option>
-                        <option>Employment Requirements</option>
-                        <option>Scholarship Application</option>
-                        <option>Transfer of Credentials</option>
-                      </select>
-                    </div>
-                  </div>
-
-                  <div className="flex flex-col gap-2 mt-6">
-                    <label className="text-[10px] font-bold text-gray-800 uppercase tracking-widest">Clerk Remarks / Notes (Optional)</label>
-                    <textarea 
-                      name="remarks"
-                      placeholder="Enter remarks..." 
-                      className="p-4 bg-gray-50 border border-gray-200 rounded-xl text-xs font-semibold focus:ring-2 focus:ring-[#15803d]/20 outline-none transition-all h-28 resize-none"
-                    />
-                  </div>
-                </div>
-
-                <div className="flex justify-end pt-4">
-                  <button 
-                    type="submit" 
-                    disabled={actionLoading}
-                    className="px-8 py-3 bg-[#15803d] hover:bg-[#166534] disabled:opacity-75 text-white font-bold rounded-xl text-xs shadow-md transition-all uppercase tracking-wider"
-                  >
-                    {actionLoading ? 'Saving...' : 'Submit Request'}
-                  </button>
-                </div>
-              </form>
-            </div>
-          </>
-        )}
-
         {/* 3.4. CAMERA SCANNING MODAL */}
         {activeModal === 'scanning' && (
           <div className="fixed inset-0 z-[100] flex items-start sm:items-center justify-center p-4 overflow-y-auto">
@@ -727,6 +599,14 @@ export default function Window1Dashboard({ user, currentTab, setViewImageUrl }) 
           setIntakeFile={setIntakeFile}
         />
       )}
+
+      <ManualInputModal
+        open={activeModal === 'manual-input'}
+        onClose={() => setActiveModal(null)}
+        handleManualInputSubmit={handleManualInputSubmit}
+        handleFetchStudent={handleFetchStudent}
+        actionLoading={actionLoading}
+      />
 
       <ConfirmDialog
         open={!!releaseToConfirm}

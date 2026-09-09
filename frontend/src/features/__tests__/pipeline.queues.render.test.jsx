@@ -244,16 +244,26 @@ describe('Secretary — four passes over the same request', () => {
 });
 
 describe('Finance — awaiting payment, then verification', () => {
-  it('shows both money queues', async () => {
+  // Batch 5 / WI-06: the two queues became tabs, one table visible at a time
+  // instead of stacked cards, so "showing" a queue means selecting its tab
+  // first — same treatment as the Secretary dashboard's four queues.
+  it('shows both money queue tabs', async () => {
     await renderDashboard(<FinanceDashboard user={USERS.finance} setViewImageUrl={vi.fn()} />);
-    expect(await screen.findByText(/AWAITING PAYMENT/i)).toBeInTheDocument();
-    expect(screen.getByText(/VERIFICATION QUEUE/i)).toBeInTheDocument();
+    expect(await screen.findByRole('tab', { name: /awaiting payment/i })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: /verification queue/i })).toBeInTheDocument();
   });
 
   it('keeps billed and claimed payments apart', async () => {
+    const user = userEvent.setup();
     await renderDashboard(<FinanceDashboard user={USERS.finance} setViewImageUrl={vi.fn()} />);
+
+    // Awaiting Payment is the default tab.
     expect(await screen.findByText(idFor(STATUS.PENDING_STUDENT_PAYMENT))).toBeInTheDocument();
-    expect(screen.getByText(idFor(STATUS.PENDING_FINANCE_VERIFICATION))).toBeInTheDocument();
+    expect(screen.queryByText(idFor(STATUS.PENDING_FINANCE_VERIFICATION))).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole('tab', { name: /verification queue/i }));
+    expect(await screen.findByText(idFor(STATUS.PENDING_FINANCE_VERIFICATION))).toBeInTheDocument();
+    expect(screen.queryByText(idFor(STATUS.PENDING_STUDENT_PAYMENT))).not.toBeInTheDocument();
     expect(screen.queryByText(idFor(STATUS.SEC_PROCESSING))).not.toBeInTheDocument();
   });
 

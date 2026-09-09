@@ -1,6 +1,8 @@
+import { useState } from 'react';
 import FinanceVerificationModal from '@/features/finance/components/FinanceVerificationModal';
 import WalkInPaymentModal from '@/features/finance/components/WalkInPaymentModal';
 import ConfirmDialog from '@/components/ConfirmDialog';
+import QueueTabs from '@/components/QueueTabs';
 import { formatPeso } from '@/utils/pricing';
 import { getStatusLabel } from '@/utils/documentStatus';
 import useFinanceDashboard from '@/features/finance/useFinanceDashboard';
@@ -45,7 +47,10 @@ export default function FinanceDashboard({ user, setViewImageUrl }) {
     confirmLogWalkIn,
     cancelLogWalkIn,
     triggerNotification,
+    paymentMethods,
   } = useFinanceDashboard(user);
+
+  const [activeQueueTab, setActiveQueueTab] = useState('awaiting-payment');
 
   const todayFormatted = todayLongDate();
 
@@ -69,9 +74,20 @@ export default function FinanceDashboard({ user, setViewImageUrl }) {
           </div>
         </div>
 
+        {/* Queue Tabs — one table visible at a time instead of two stacked */}
+        <QueueTabs
+          tabs={[
+            { key: 'awaiting-payment', label: 'Awaiting Payment', count: awaitingPaymentQueue.length },
+            { key: 'verification', label: 'Verification Queue', count: verificationQueue.length },
+          ]}
+          activeKey={activeQueueTab}
+          onChange={setActiveQueueTab}
+        />
+
         {/* 1 · Billed, waiting on the student. Read-only, except that a student
             can walk up with the printed slip and pay at the counter. */}
-        <div className="bg-white rounded-3xl shadow-sm border border-gray-200 overflow-hidden">
+        {activeQueueTab === 'awaiting-payment' && (
+        <div className="bg-white rounded-3xl shadow-sm border border-gray-200 overflow-hidden mt-6">
           <div className="p-4 sm:p-6 border-b border-gray-100 bg-gray-50/50 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
             <div>
               <h3 className="font-bold text-gray-950 text-sm tracking-wider uppercase">1 · AWAITING PAYMENT</h3>
@@ -122,9 +138,11 @@ export default function FinanceDashboard({ user, setViewImageUrl }) {
             </div>
           </div>
         </div>
+        )}
 
         {/* Verification Queue Table */}
-        <div className="bg-white rounded-3xl shadow-sm border border-gray-200 overflow-hidden">
+        {activeQueueTab === 'verification' && (
+        <div className="bg-white rounded-3xl shadow-sm border border-gray-200 overflow-hidden mt-6">
           <div className="p-4 sm:p-6 border-b border-gray-100 bg-gray-50/50 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
             <h3 className="font-bold text-gray-950 text-sm tracking-wider uppercase">2 · VERIFICATION QUEUE</h3>
             <span className="text-xs text-gray-500 font-semibold whitespace-nowrap">
@@ -180,6 +198,7 @@ export default function FinanceDashboard({ user, setViewImageUrl }) {
             </div>
           </div>
         </div>
+        )}
 
         {/* Finance Receipt Verification Modal */}
         {/* 2.1 FINANCE VERIFICATION MODAL */}
@@ -194,6 +213,7 @@ export default function FinanceDashboard({ user, setViewImageUrl }) {
             triggerNotification={triggerNotification}
             clerkNotes={clerkNotes}
             setClerkNotes={setClerkNotes}
+            paymentMethods={paymentMethods}
           />
         )}
 

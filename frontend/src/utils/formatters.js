@@ -32,3 +32,12 @@ export function getWaitTime(dateStr) {
   if (diff < 60) return `${diff} min${diff > 1 ? 's' : ''}`;
   return `${Math.floor(diff / 60)} hr${Math.floor(diff / 60) > 1 ? 's' : ''}`;
 }
+
+/** Minutes → a readable duration, since a desk can hold a document for days. */
+export function formatDuration(minutes) {
+  if (!minutes || minutes < 1) return '< 1 min';
+  if (minutes < 60) return `${Math.round(minutes)} min`;
+  const hours = minutes / 60;
+  if (hours < 24) return `${hours.toFixed(1)} hrs`;
+  return `${(hours / 24).toFixed(1)} days`;
+}

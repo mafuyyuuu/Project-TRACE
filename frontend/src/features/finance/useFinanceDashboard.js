@@ -1,6 +1,7 @@
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import useDashboardCore from '@/hooks/useDashboardCore';
 import { verifyPayment, logWalkInPayment, scanReceipt } from '@/services/documentsService';
+import { getPaymentMethods } from '@/services/referenceService';
 import { STATUS } from '@/utils/documentStatus';
 
 /**
@@ -19,6 +20,19 @@ export default function useFinanceDashboard(user) {
   const { documents, runAction, selectedDoc, setActiveModal, triggerNotification } = core;
 
   const [clerkNotes, setClerkNotes] = useState('');
+
+  // The real per-method reference label/name, so the verification modal
+  // doesn't assume every payment is GCash.
+  const [paymentMethods, setPaymentMethods] = useState([]);
+  useEffect(() => {
+    let cancelled = false;
+    getPaymentMethods()
+      .then((data) => {
+        if (!cancelled) setPaymentMethods(data.payment_methods || []);
+      })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, []);
 
   // Walk-in logging: what the clerk reads off the Official Receipt.
   const [orNumber, setOrNumber] = useState('');
@@ -181,5 +195,6 @@ export default function useFinanceDashboard(user) {
     walkInToConfirm,
     confirmLogWalkIn,
     cancelLogWalkIn,
+    paymentMethods,
   };
 }
