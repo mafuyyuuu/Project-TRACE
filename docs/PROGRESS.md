@@ -458,10 +458,8 @@ existing components, keep Vitest green.*
 - [x] **Tests:** 209 frontend tests passing throughout (backend untouched — every change was
   presentation-layer). Zero ESLint errors.
 
-> **Not yet committed (Batches 1–4).** All four batches' changes existed only in the working tree on
-> `dev` as of this writing (`git status` showed every touched file as modified or untracked against
-> `origin/dev`). Nothing here had been committed or pushed at that point — see Phase 22 for what
-> followed.
+> **Committed since.** Batches 1–4 existed only in the working tree as of this writing, but all four
+> are now committed and pushed to `origin/dev`, along with everything through Phase 22 below.
 
 - [x] **Batch 5 — Admin & Finance.** Window 1's Manual Input moved off its own sidebar tab and onto
   the intake dashboard as a panel (`ManualInputModal.jsx`, built on `ModalShell`), keeping the same
@@ -510,12 +508,11 @@ existing components, keep Vitest green.*
   across the nav-gating and the new review panel's own test file). Zero ESLint errors throughout;
   production build succeeds after each batch (same pre-existing >500kB chunk-size warning, unrelated).
 
-> **Committed, unlike Batches 1–4 and Phase 22.** All three batches landed as separate commits on
-> `dev` this session. Visual/browser verification was not performed for any of the three — no
-> Claude-in-Chrome connection was available — so the manual pass each batch's own notes call for
-> (picking a photo and confirming the revert-on-discard behavior, exercising the alumni gate with a
-> real account, approving/rejecting a real submitted application from both dashboards) is still
-> outstanding.
+> **Committed.** All three batches landed as separate commits on `dev` this session. Visual/browser
+> verification was not performed for any of the three — no Claude-in-Chrome connection was available
+> — so the manual pass each batch's own notes call for (picking a photo and confirming the
+> revert-on-discard behavior, exercising the alumni gate with a real account, approving/rejecting a
+> real submitted application from both dashboards) is still outstanding.
 
 ---
 
@@ -572,10 +569,10 @@ with explicit authorization for that scope.*
   documents were sitting at `PAID_PENDING_SEC_RELEASE` and will now need an OR-verification pass
   before their next handoff — expected, not a data problem, since it is local dev data.
 
-> **Still not committed.** Phase 22, like Batches 1–4 before it, exists only in the working tree on
-> `dev`. Visual/browser verification of the new Secretary tab and Window 1 receipt-viewing button was
-> not performed (no Claude-in-Chrome connection this session, consistent with every batch before it);
-> both dev servers were left running for manual review.
+> **Committed.** Phase 22, like Batches 1–4 before it, is now on `dev` at `origin/dev`. Visual/browser
+> verification of the new Secretary tab and Window 1 receipt-viewing button was not performed (no
+> Claude-in-Chrome connection this session, consistent with every batch before it) and is still
+> outstanding.
 
 ---
 
@@ -584,6 +581,7 @@ These predate the restructure and remain open:
 * ~~Secretary seed drift~~ — **resolved.** `migration.js` seeds all seven per-college secretaries; they now exist. A stale `SEC001` with a `NULL` course remains and sees every college's queue, so consider removing it.
 * ~~**Unpassed modal props**~~ — **resolved.** `deliveryMethod`/`setDeliveryMethod` no longer exist on `NewRequestModal`, and `FinanceVerificationModal`'s `triggerNotification` is now passed by `FinanceDashboard` (Phase 16). The latter was a live crash, not just an unused prop.
 * ~~**Unused legacy payments route**~~ — **resolved.** `payments.service.js`, its controller and its routes were deleted in Phase 16.
+* ~~**AI engine segfault on macOS after an OCR request**~~ — **resolved.** `torch`, `scikit-image` and `scikit-learn` each bundle their own copy of `libomp.dylib`; loading all three into one process (as `ai-engine/app.py` does) is a known macOS "duplicate OpenMP runtime" crash — it surfaced as a silent `segmentation fault` immediately after a successful `/ocr/extract` response, right as EasyOCR's torch thread pool spun up, rather than the usual `OMP: Error #15` abort. Fixed by setting `KMP_DUPLICATE_LIB_OK`/`OMP_NUM_THREADS` at the top of `ocr_engine.py`, before its `easyocr`/`cv2` imports. Apple Silicon dev-machine issue; the Linux/arm64 production container (Phase 17) isn't expected to hit the same conflict.
 
 ---
 
