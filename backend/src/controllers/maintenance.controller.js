@@ -67,8 +67,25 @@ const setStaffActive = handler(
   { logLabel: 'Toggle staff error', fallback: 'Failed to update staff status.' }
 );
 
+// -- Payment methods ----------------------------------------------------------
+const listPaymentMethods = handler((req) => maintenanceService.listPaymentMethods(req.user), {
+  logLabel: 'List payment methods error', fallback: 'Failed to fetch payment methods.',
+});
+const createPaymentMethod = handler((req) => maintenanceService.createPaymentMethod(req.user, req.body), {
+  logLabel: 'Create payment method error', fallback: 'Failed to create payment method.', status: 201,
+});
+const updatePaymentMethod = handler(
+  (req) => maintenanceService.updatePaymentMethod(req.user, req.params.id, req.body),
+  { logLabel: 'Update payment method error', fallback: 'Failed to update payment method.' }
+);
+const setPaymentMethodActive = handler(
+  (req) => maintenanceService.setPaymentMethodActive(req.user, req.params.id, req.body.is_active),
+  { logLabel: 'Toggle payment method error', fallback: 'Failed to update payment method status.' }
+);
+
 module.exports = {
   listColleges, createCollege, updateCollege, setCollegeActive,
   listDocumentTypes, createDocumentType, updateDocumentType, setDocumentTypeActive,
   listStaff, createStaff, updateStaff, setStaffActive,
+  listPaymentMethods, createPaymentMethod, updatePaymentMethod, setPaymentMethodActive,
 };

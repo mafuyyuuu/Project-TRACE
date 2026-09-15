@@ -13,8 +13,8 @@ const {
 const ALL = [...Object.values(STATUS), ...Object.values(LEGACY_STATUS)];
 
 describe('pipeline shape', () => {
-  it('runs from Window 1 intake to completion in eight steps', () => {
-    expect(PIPELINE).toHaveLength(8);
+  it('runs from Window 1 intake to completion in nine steps', () => {
+    expect(PIPELINE).toHaveLength(9);
     expect(PIPELINE[0]).toBe(STATUS.PENDING_W1_INTAKE);
     expect(PIPELINE[PIPELINE.length - 1]).toBe(STATUS.COMPLETED);
   });
@@ -54,7 +54,7 @@ describe('rejection edges', () => {
   it('refuses to reverse a document once it has been paid for', () => {
     // Past this point reversal is a refund — an accounting decision made off
     // the system, not a state transition.
-    expect(TRANSITIONS[STATUS.PAID_PENDING_SEC_RELEASE]).toEqual([STATUS.READY_FOR_RELEASE]);
+    expect(TRANSITIONS[STATUS.PAID_PENDING_SEC_RELEASE]).toEqual([STATUS.SEC_OR_VERIFIED]);
     expect(canTransition(STATUS.PAID_PENDING_SEC_RELEASE, STATUS.PENDING_FINANCE_VERIFICATION)).toBe(false);
   });
 

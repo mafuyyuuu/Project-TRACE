@@ -9,6 +9,15 @@ This module provides functions to:
 - Orchestrate the full document processing pipeline
 """
 
+import os
+
+# Must run before easyocr/torch/cv2 load: torch, scikit-image and scikit-learn
+# each bundle their own copy of libomp.dylib, and macOS loading more than one
+# into the same process is a known segfault (usually right as a second
+# thread pool spins up), not just a slowdown.
+os.environ.setdefault('KMP_DUPLICATE_LIB_OK', 'TRUE')
+os.environ.setdefault('OMP_NUM_THREADS', '1')
+
 import re
 import logging
 from datetime import date

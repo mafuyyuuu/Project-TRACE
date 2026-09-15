@@ -51,6 +51,7 @@ beforeEach(() => {
   vi.spyOn(documentModel, 'updateAttachment').mockResolvedValue([{ affectedRows: 1 }]);
   vi.spyOn(documentModel, 'updatePricing').mockResolvedValue([{ affectedRows: 1 }]);
   vi.spyOn(documentModel, 'markGroupPayable').mockResolvedValue([{ affectedRows: 1 }]);
+  vi.spyOn(documentModel, 'updateOrVerification').mockResolvedValue([{ affectedRows: 1 }]);
   vi.spyOn(documentModel, 'sumGroupAmount').mockResolvedValue(0);
   // Default: this was the last unpriced document, so pricing bills the group.
   vi.spyOn(documentModel, 'countUnpricedInGroup').mockResolvedValue(0);
@@ -124,6 +125,7 @@ describe('submitPayment — ownership (the IDOR fix)', () => {
     STATUS.PENDING_SEC_EVALUATION,
     STATUS.SEC_PROCESSING,
     STATUS.PAID_PENDING_SEC_RELEASE,
+    STATUS.SEC_OR_VERIFIED,
     STATUS.READY_FOR_RELEASE,
     STATUS.COMPLETED,
   ])(
@@ -362,10 +364,11 @@ describe('group payment settles every document at once', () => {
     documentModel.findByRequestGroupForUpdate.mockResolvedValue(groupDocs);
     documentModel.updatePaymentVerificationForGroup.mockResolvedValue([{ affectedRows: 2 }]);
 
-    const res = await service.verifyPayment(FINANCE, 5, { action: 'approve' }, null);
+    const res = await service.verifyPayment(FINANCE, 5, { action: 'approve', or_number: 'OR-1' }, null);
     expect(res.documents_covered).toBe(2);
     expect(documentModel.updatePaymentVerificationForGroup).toHaveBeenCalledWith(
-      'REQ-G1', STATUS.PAID_PENDING_SEC_RELEASE, 'PAID', null, connection
+      'REQ-G1', STATUS.PAID_PENDING_SEC_RELEASE, 'PAID',
+      { officialReceiptPath: null, orNumber: 'OR-1', orDate: null }, connection
     );
   });
 
@@ -413,39 +416,48 @@ describe('verifyPayment — Finance desk only', () => {
     expect(await statusOf(service.verifyPayment(FINANCE, 5, { action: 'maybe' }, null))).toBe(400);
   });
 
+  it('requires the Official Receipt number to approve', async () => {
+    documentModel.findByIdForUpdate.mockResolvedValue([doc]);
+    expect(await statusOf(service.verifyPayment(FINANCE, 5, { action: 'approve' }, null))).toBe(400);
+    expect(documentModel.updatePaymentVerificationForGroup).not.toHaveBeenCalled();
+  });
+
   it('marks the document PAID and returns it to the Secretary for handoff', async () => {
     documentModel.findByIdForUpdate.mockResolvedValue([doc]);
-    await service.verifyPayment(FINANCE, 5, { action: 'approve' }, null);
+    await service.verifyPayment(FINANCE, 5, { action: 'approve', or_number: 'OR-77' }, null);
     expect(documentModel.updatePaymentVerificationForGroup).toHaveBeenCalledWith(
-      'REQ-TEST01', STATUS.PAID_PENDING_SEC_RELEASE, 'PAID', null, connection
+      'REQ-TEST01', STATUS.PAID_PENDING_SEC_RELEASE, 'PAID',
+      { officialReceiptPath: null, orNumber: 'OR-77', orDate: null }, connection
     );
   });
 
   it('refuses to verify a document that is not awaiting verification', async () => {
     documentModel.findByIdForUpdate.mockResolvedValue([{ ...doc, current_status: STATUS.SEC_PROCESSING }]);
-    expect(await statusOf(service.verifyPayment(FINANCE, 5, { action: 'approve' }, null))).toBe(400);
+    expect(await statusOf(service.verifyPayment(FINANCE, 5, { action: 'approve', or_number: 'OR-77' }, null))).toBe(400);
     expect(documentModel.updatePaymentVerificationForGroup).not.toHaveBeenCalled();
   });
 
-  it('sends the document back as UNPAID on reject', async () => {
+  it('sends the document back as UNPAID on reject, without requiring an OR number', async () => {
     documentModel.findByIdForUpdate.mockResolvedValue([doc]);
     await service.verifyPayment(FINANCE, 5, { action: 'reject', notes: 'blurry' }, null);
     expect(documentModel.updatePaymentVerificationForGroup).toHaveBeenCalledWith(
-      'REQ-TEST01', STATUS.PENDING_STUDENT_PAYMENT, 'UNPAID', null, connection
+      'REQ-TEST01', STATUS.PENDING_STUDENT_PAYMENT, 'UNPAID',
+      { officialReceiptPath: null, orNumber: null, orDate: null }, connection
     );
   });
 
   it('stores the official receipt when the clerk uploads one', async () => {
     documentModel.findByIdForUpdate.mockResolvedValue([doc]);
-    await service.verifyPayment(FINANCE, 5, { action: 'approve' }, { filename: 'official.png' });
+    await service.verifyPayment(FINANCE, 5, { action: 'approve', or_number: 'OR-77' }, { filename: 'official.png' });
     expect(documentModel.updatePaymentVerificationForGroup).toHaveBeenCalledWith(
-      'REQ-TEST01', STATUS.PAID_PENDING_SEC_RELEASE, 'PAID', '/uploads/official.png', connection
+      'REQ-TEST01', STATUS.PAID_PENDING_SEC_RELEASE, 'PAID',
+      { officialReceiptPath: '/uploads/official.png', orNumber: 'OR-77', orDate: null }, connection
     );
   });
 
   it('rolls back and does not commit when the document is missing', async () => {
     documentModel.findByIdForUpdate.mockResolvedValue([]);
-    expect(await statusOf(service.verifyPayment(FINANCE, 404, { action: 'approve' }, null))).toBe(404);
+    expect(await statusOf(service.verifyPayment(FINANCE, 404, { action: 'approve', or_number: 'OR-77' }, null))).toBe(404);
     expect(connection.rollback).toHaveBeenCalled();
     expect(connection.commit).not.toHaveBeenCalled();
   });
@@ -609,10 +621,44 @@ describe('priceDocument — the Secretary sets the price, nobody else', () => {
   });
 });
 
-describe('confirmHandoff — Secretary passes the paper to Window 1', () => {
-  const paid = {
+describe('verifyOfficialReceipt — Secretary checks the OR before handoff', () => {
+  const paidUnverified = {
     id: 5, student_id: 'STU-001', tracking_number: 'TRC-1', document_type: 'Diploma',
-    current_status: STATUS.PAID_PENDING_SEC_RELEASE, payment_status: 'PAID',
+    or_number: 'OR-77', current_status: STATUS.PAID_PENDING_SEC_RELEASE, payment_status: 'PAID',
+  };
+
+  it.each([['a student', STUDENT], ['Finance', FINANCE], ['Window 1', WINDOW1]])(
+    'rejects %s',
+    async (_label, user) => {
+      expect(await statusOf(service.verifyOfficialReceipt(user, 5, {}))).toBe(403);
+    }
+  );
+
+  it('moves a paid document to SEC_OR_VERIFIED', async () => {
+    documentModel.findByIdForUpdate.mockResolvedValue([paidUnverified]);
+    await service.verifyOfficialReceipt(SECRETARY, 5, {});
+    expect(documentModel.updateOrVerification).toHaveBeenCalledWith(5, SECRETARY.id, connection);
+  });
+
+  it('refuses a document Finance has not yet paid', async () => {
+    documentModel.findByIdForUpdate.mockResolvedValue([
+      { ...paidUnverified, current_status: STATUS.PENDING_FINANCE_VERIFICATION, payment_status: 'UNPAID' },
+    ]);
+    expect(await statusOf(service.verifyOfficialReceipt(SECRETARY, 5, {}))).toBe(400);
+    expect(documentModel.updateOrVerification).not.toHaveBeenCalled();
+  });
+
+  it('never touches payment_status — that stays Finance\'s alone', async () => {
+    documentModel.findByIdForUpdate.mockResolvedValue([paidUnverified]);
+    await service.verifyOfficialReceipt(SECRETARY, 5, {});
+    expect(documentModel.updatePaymentVerificationForGroup).not.toHaveBeenCalled();
+  });
+});
+
+describe('confirmHandoff — Secretary passes the paper to Window 1', () => {
+  const verified = {
+    id: 5, student_id: 'STU-001', tracking_number: 'TRC-1', document_type: 'Diploma',
+    current_status: STATUS.SEC_OR_VERIFIED, payment_status: 'PAID',
   };
 
   it.each([['a student', STUDENT], ['Finance', FINANCE], ['Window 1', WINDOW1]])(
@@ -622,23 +668,31 @@ describe('confirmHandoff — Secretary passes the paper to Window 1', () => {
     }
   );
 
-  it('moves a paid document to the release desk', async () => {
-    documentModel.findByIdForUpdate.mockResolvedValue([paid]);
+  it('moves a verified document to the release desk', async () => {
+    documentModel.findByIdForUpdate.mockResolvedValue([verified]);
     await service.confirmHandoff(SECRETARY, 5, {});
     expect(documentModel.updateStatus).toHaveBeenCalledWith(5, STATUS.READY_FOR_RELEASE, connection);
   });
 
   it('refuses to hand over a document that has not been paid for', async () => {
-    documentModel.findByIdForUpdate.mockResolvedValue([{ ...paid, payment_status: 'UNPAID' }]);
+    documentModel.findByIdForUpdate.mockResolvedValue([{ ...verified, payment_status: 'UNPAID' }]);
     expect(await statusOf(service.confirmHandoff(SECRETARY, 5, {}))).toBe(400);
     expect(documentModel.updateStatus).not.toHaveBeenCalled();
   });
 
   it('refuses to skip the Finance desk entirely', async () => {
     documentModel.findByIdForUpdate.mockResolvedValue([
-      { ...paid, current_status: STATUS.SEC_PROCESSING, payment_status: 'UNPAID' },
+      { ...verified, current_status: STATUS.SEC_PROCESSING, payment_status: 'UNPAID' },
     ]);
     expect(await statusOf(service.confirmHandoff(SECRETARY, 5, {}))).toBe(400);
+  });
+
+  it('refuses to skip the OR verification step', async () => {
+    documentModel.findByIdForUpdate.mockResolvedValue([
+      { ...verified, current_status: STATUS.PAID_PENDING_SEC_RELEASE },
+    ]);
+    expect(await statusOf(service.confirmHandoff(SECRETARY, 5, {}))).toBe(400);
+    expect(documentModel.updateStatus).not.toHaveBeenCalled();
   });
 });
 
@@ -938,12 +992,13 @@ describe('listDocuments — role scoping', () => {
     const conditions = conditionsFrom();
     expect(conditions).toContain('1 = 1');
     expect(conditions).not.toContain('SELECT student_id FROM users WHERE course = ?');
-    // The bound params are the five queue statuses and the clerk id, and
+    // The bound params are the six queue statuses and the clerk id, and
     // nothing else: no course value is appended when there is no college.
     expect(documentModel.listWithFilters.mock.calls[0][1]).toEqual([
       STATUS.PENDING_SEC_EVALUATION,
       STATUS.SEC_PROCESSING,
       STATUS.PAID_PENDING_SEC_RELEASE,
+      STATUS.SEC_OR_VERIFIED,
       STATUS.READY_FOR_RELEASE,
       STATUS.COMPLETED,
       SECRETARY.id,

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { STATUS } from '@/utils/documentStatus';
 
@@ -25,6 +25,7 @@ vi.mock('@/services/documentsService', () => ({
   intakeDocument: vi.fn(),
   acceptForProcessing: vi.fn(),
   priceDocument: vi.fn(),
+  verifyOfficialReceipt: vi.fn(),
   confirmHandoff: vi.fn(),
   scanReceipt: vi.fn(),
   logWalkInPayment: vi.fn(),
@@ -64,6 +65,7 @@ const CODE = {
   [STATUS.PENDING_STUDENT_PAYMENT]: 'BILL',
   [STATUS.PENDING_FINANCE_VERIFICATION]: 'VRFY',
   [STATUS.PAID_PENDING_SEC_RELEASE]: 'HAND',
+  [STATUS.SEC_OR_VERIFIED]: 'ORVF',
   [STATUS.READY_FOR_RELEASE]: 'RLSE',
   [STATUS.COMPLETED]: 'DONE',
 };
@@ -96,8 +98,17 @@ const ALL_STAGES = [
   at(STATUS.PENDING_STUDENT_PAYMENT, { amount: '250.00', priced_at: '2026-09-01T00:00:00.000Z' }),
   at(STATUS.PENDING_FINANCE_VERIFICATION, { payment_channel: 'digital' }),
   at(STATUS.PAID_PENDING_SEC_RELEASE, { payment_status: 'PAID', or_number: 'OR-2026-0099' }),
+  at(STATUS.SEC_OR_VERIFIED, { payment_status: 'PAID', or_number: 'OR-2026-0098' }),
   at(STATUS.READY_FOR_RELEASE, { payment_status: 'PAID', or_number: 'OR-2026-0100' }),
   at(STATUS.COMPLETED, { payment_status: 'PAID' }),
+];
+
+const PAYMENT_METHODS = [
+  { id: 1, code: 'gcash', name: 'GCash', provider: 'manual', instructions: 'Scan the QR code.',
+    requires_reference: 1, reference_label: 'GCash Reference Number', requires_proof: 1, is_active: 1 },
+  { id: 2, code: 'card', name: 'Credit / Debit Card', provider: 'manual',
+    instructions: 'Pay at the Cashier using your card.', requires_reference: 1,
+    reference_label: 'Approval / Reference Code', requires_proof: 1, is_active: 1 },
 ];
 
 const USERS = {
@@ -112,7 +123,7 @@ beforeEach(() => {
   documentsService.getDocuments.mockResolvedValue({ documents: ALL_STAGES, total: 8, totalPages: 1 });
   documentsService.getDashboardStats.mockResolvedValue({});
   referenceService.getDocumentTypes.mockResolvedValue({ document_types: [] });
-  referenceService.getPaymentMethods.mockResolvedValue({ payment_methods: [] });
+  referenceService.getPaymentMethods.mockResolvedValue({ payment_methods: PAYMENT_METHODS });
 });
 
 async function renderDashboard(ui) {
@@ -164,24 +175,46 @@ describe('Window 1 — intake at the front, release at the back', () => {
   });
 });
 
-describe('Secretary — three passes over the same request', () => {
-  it('shows all three working queues', async () => {
+describe('Secretary — four passes over the same request', () => {
+  // The queues now live behind a tab bar (one table visible at a time)
+  // instead of stacked cards, so "showing" a queue means selecting its tab
+  // first.
+
+  it('shows all four queue tabs', async () => {
     await renderDashboard(
       <SecretaryDashboard user={USERS.secretary} currentTab="dashboard" setViewImageUrl={vi.fn()} />
     );
-    expect(await screen.findByText(/INITIAL EVALUATION/i)).toBeInTheDocument();
-    expect(screen.getByText(/PROCESSING & PRICING/i)).toBeInTheDocument();
-    expect(screen.getByText(/FINAL HANDOFF/i)).toBeInTheDocument();
+    expect(await screen.findByRole('tab', { name: /initial evaluation/i })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: /processing & pricing/i })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: /or verification/i })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: /final handoff/i })).toBeInTheDocument();
   });
 
-  it('separates evaluation, processing and handoff', async () => {
+  it('separates evaluation, processing, OR verification and handoff, one queue visible at a time', async () => {
+    const user = userEvent.setup();
     await renderDashboard(
       <SecretaryDashboard user={USERS.secretary} currentTab="dashboard" setViewImageUrl={vi.fn()} />
     );
+
+    // Evaluation is the default tab.
     expect(await screen.findByText(idFor(STATUS.PENDING_SEC_EVALUATION))).toBeInTheDocument();
-    expect(screen.getByText(idFor(STATUS.SEC_PROCESSING))).toBeInTheDocument();
-    expect(screen.getByText(idFor(STATUS.PAID_PENDING_SEC_RELEASE))).toBeInTheDocument();
-    // Money is Finance's business, not the Secretary's.
+    expect(screen.queryByText(idFor(STATUS.SEC_PROCESSING))).not.toBeInTheDocument();
+    expect(screen.queryByText(idFor(STATUS.PAID_PENDING_SEC_RELEASE))).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole('tab', { name: /processing & pricing/i }));
+    expect(await screen.findByText(idFor(STATUS.SEC_PROCESSING))).toBeInTheDocument();
+    expect(screen.queryByText(idFor(STATUS.PENDING_SEC_EVALUATION))).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole('tab', { name: /or verification/i }));
+    expect(await screen.findByText(idFor(STATUS.PAID_PENDING_SEC_RELEASE))).toBeInTheDocument();
+    expect(screen.queryByText(idFor(STATUS.SEC_OR_VERIFIED))).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole('tab', { name: /final handoff/i }));
+    expect(await screen.findByText(idFor(STATUS.SEC_OR_VERIFIED))).toBeInTheDocument();
+    expect(screen.queryByText(idFor(STATUS.PAID_PENDING_SEC_RELEASE))).not.toBeInTheDocument();
+    expect(screen.queryByText(idFor(STATUS.SEC_PROCESSING))).not.toBeInTheDocument();
+
+    // Money is Finance's business, not the Secretary's — never shown here.
     expect(screen.queryByText(idFor(STATUS.PENDING_STUDENT_PAYMENT))).not.toBeInTheDocument();
     expect(screen.queryByText(idFor(STATUS.PENDING_FINANCE_VERIFICATION))).not.toBeInTheDocument();
   });
@@ -202,6 +235,7 @@ describe('Secretary — three passes over the same request', () => {
     await renderDashboard(
       <SecretaryDashboard user={USERS.secretary} currentTab="dashboard" setViewImageUrl={vi.fn()} />
     );
+    await user.click(await screen.findByRole('tab', { name: /processing & pricing/i }));
     await user.click(await screen.findByRole('button', { name: /set price/i }));
     expect(await screen.findByRole('heading', { name: /Set the Amount/i })).toBeInTheDocument();
     // The last document in a request bills it, so the button says so.
@@ -210,16 +244,26 @@ describe('Secretary — three passes over the same request', () => {
 });
 
 describe('Finance — awaiting payment, then verification', () => {
-  it('shows both money queues', async () => {
+  // Batch 5 / WI-06: the two queues became tabs, one table visible at a time
+  // instead of stacked cards, so "showing" a queue means selecting its tab
+  // first — same treatment as the Secretary dashboard's four queues.
+  it('shows both money queue tabs', async () => {
     await renderDashboard(<FinanceDashboard user={USERS.finance} setViewImageUrl={vi.fn()} />);
-    expect(await screen.findByText(/AWAITING PAYMENT/i)).toBeInTheDocument();
-    expect(screen.getByText(/VERIFICATION QUEUE/i)).toBeInTheDocument();
+    expect(await screen.findByRole('tab', { name: /awaiting payment/i })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: /verification queue/i })).toBeInTheDocument();
   });
 
   it('keeps billed and claimed payments apart', async () => {
+    const user = userEvent.setup();
     await renderDashboard(<FinanceDashboard user={USERS.finance} setViewImageUrl={vi.fn()} />);
+
+    // Awaiting Payment is the default tab.
     expect(await screen.findByText(idFor(STATUS.PENDING_STUDENT_PAYMENT))).toBeInTheDocument();
-    expect(screen.getByText(idFor(STATUS.PENDING_FINANCE_VERIFICATION))).toBeInTheDocument();
+    expect(screen.queryByText(idFor(STATUS.PENDING_FINANCE_VERIFICATION))).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole('tab', { name: /verification queue/i }));
+    expect(await screen.findByText(idFor(STATUS.PENDING_FINANCE_VERIFICATION))).toBeInTheDocument();
+    expect(screen.queryByText(idFor(STATUS.PENDING_STUDENT_PAYMENT))).not.toBeInTheDocument();
     expect(screen.queryByText(idFor(STATUS.SEC_PROCESSING))).not.toBeInTheDocument();
   });
 
@@ -268,5 +312,61 @@ describe('Student — asked for money only once there is an amount', () => {
     );
     // Exactly one of the two is cancellable: paper has been spent on the other.
     expect((await screen.findAllByRole('button', { name: /cancel/i })).length).toBe(1);
+  });
+
+  it('offers every active payment method, defaulting to the GCash QR', async () => {
+    const user = userEvent.setup();
+    await renderDashboard(
+      <StudentDashboard user={USERS.student} currentTab="dashboard" setViewImageUrl={vi.fn()} />
+    );
+    const [payButton] = await screen.findAllByRole('button', { name: /pay ₱250\.00/i });
+    await user.click(payButton);
+
+    expect(await screen.findByAltText('GCash QR Code')).toBeInTheDocument();
+    expect(screen.getByText('GCash Reference Number')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Credit / Debit Card' })).toBeInTheDocument();
+  });
+
+  it('switches to another method\'s own instructions and reference label', async () => {
+    const user = userEvent.setup();
+    await renderDashboard(
+      <StudentDashboard user={USERS.student} currentTab="dashboard" setViewImageUrl={vi.fn()} />
+    );
+    const [payButton] = await screen.findAllByRole('button', { name: /pay ₱250\.00/i });
+    await user.click(payButton);
+    await user.click(await screen.findByRole('button', { name: 'Credit / Debit Card' }));
+
+    expect(screen.queryByAltText('GCash QR Code')).not.toBeInTheDocument();
+    expect(screen.getByText(/Pay at the Cashier using your card/i)).toBeInTheDocument();
+    expect(screen.getByText('Approval / Reference Code')).toBeInTheDocument();
+  });
+
+  it('submits the selected method code alongside the reference and receipt', async () => {
+    const user = userEvent.setup();
+    documentsService.submitPayment.mockResolvedValue({ message: 'ok' });
+    await renderDashboard(
+      <StudentDashboard user={USERS.student} currentTab="dashboard" setViewImageUrl={vi.fn()} />
+    );
+    const [payButton] = await screen.findAllByRole('button', { name: /pay ₱250\.00/i });
+    await user.click(payButton);
+    await user.click(await screen.findByRole('button', { name: 'Credit / Debit Card' }));
+
+    await user.type(screen.getByPlaceholderText(/5001 0293 8472/), 'APPROVE123');
+    // The payment modal renders through a portal onto document.body, outside
+    // the render container, so the file input has to be found there instead.
+    const fileInput = document.body.querySelector('input[type="file"]');
+    await user.upload(fileInput, new File(['x'], 'receipt.png', { type: 'image/png' }));
+
+    // jsdom never reports a `required` file input as valid even with a file
+    // attached (real browsers do, via the fake path they assign to `.value`),
+    // so a real button click gets silently vetoed by native constraint
+    // validation here. Submitting the form directly exercises the same
+    // `onSubmit` handler without that jsdom-only false negative.
+    fireEvent.submit(screen.getByRole('button', { name: /submit payment/i }).closest('form'));
+
+    await waitFor(() => expect(documentsService.submitPayment).toHaveBeenCalled());
+    const [, formData] = documentsService.submitPayment.mock.calls[0];
+    expect(formData.get('payment_method')).toBe('card');
+    expect(formData.get('gcash_reference_no')).toBe('APPROVE123');
   });
 });

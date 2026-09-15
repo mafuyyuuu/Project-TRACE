@@ -28,8 +28,8 @@ const baseProps = {
   profileData: { phone_number: '+639171234567', email: 'ana@plp.edu.ph', password: '' },
   setField: vi.fn(),
   avatarPath: null,
+  avatarPreviewUrl: null,
   saving: false,
-  uploading: false,
   success: '',
   error: '',
   onSave: vi.fn(),
@@ -72,10 +72,12 @@ describe('ProfileSettingsModal', () => {
   });
 
   it('hands the chosen file to the upload handler', () => {
+    // ProfileSettingsModal now renders via ModalShell's portal to
+    // document.body, so the input lives outside the RTL render container.
     const onAvatarChange = vi.fn();
-    const { container } = renderModal({ onAvatarChange });
+    renderModal({ onAvatarChange });
 
-    const input = container.querySelector('input[type="file"]');
+    const input = document.querySelector('input[type="file"]');
     const file = new File(['x'], 'me.png', { type: 'image/png' });
     fireEvent.change(input, { target: { files: [file] } });
 
@@ -83,13 +85,19 @@ describe('ProfileSettingsModal', () => {
   });
 
   it('only accepts the image types the server allows', () => {
-    const { container } = renderModal();
-    expect(container.querySelector('input[type="file"]').accept).toBe('image/jpeg,image/png,image/webp');
+    renderModal();
+    expect(document.querySelector('input[type="file"]').accept).toBe('image/jpeg,image/png,image/webp');
   });
 
-  it('disables the picture control while an upload is in flight', () => {
-    renderModal({ uploading: true });
+  it('disables the picture control while saving', () => {
+    renderModal({ saving: true });
     expect(screen.getByLabelText('Change profile picture')).toBeDisabled();
+  });
+
+  it('shows a local preview of a staged, not-yet-uploaded picture', () => {
+    renderModal({ avatarPreviewUrl: 'blob:staged-preview' });
+    expect(screen.getByAltText('New profile picture preview')).toHaveAttribute('src', 'blob:staged-preview');
+    expect(screen.getByText(/click save settings to apply/i)).toBeInTheDocument();
   });
 
   it('disables the save button while saving', () => {

@@ -67,11 +67,17 @@ The Registrar hasn't finalised the questions, so nothing about the form is hardc
 | :--- | :--- |
 | `GET /api/reference/colleges` | College list (public — signup has no token yet) |
 | `GET /api/reference/document-types` | Requestable types with fees and attachment rules |
+| `GET /api/reference/payment-methods` | Active payment methods, for the student checkout picker |
 | `GET /api/grad-applications/form-fields` | The admin-defined form definition |
 | `POST /api/grad-applications` | Submit an application |
 | `GET /api/grad-applications/mine` | A student's own submissions |
-| `GET /api/grad-applications` | Staff review queue |
-| `POST /api/grad-applications/:id/review` | Staff decision |
+| `GET /api/grad-applications` | Staff review queue (admin or clerk) |
+| `POST /api/grad-applications/:id/review` | Staff decision — `{status: 'approved'\|'rejected'\|'under_review', notes}` |
+
+The last two existed unconsumed for a while — nothing on the frontend called them, so a submitted
+application only ever showed up on the alumnus's own account. Both are now wired to a shared review
+panel (`frontend/src/features/graduate/components/GradApplicationReviewPanel.jsx`) dropped into both
+the Admin and Secretary dashboards.
 
 ### Admin Maintenance, Reporting & Analytics
 
@@ -86,6 +92,7 @@ The Registrar hasn't finalised the questions, so nothing about the form is hardc
 | `GET/POST /api/maintenance/staff`, `PUT /:id`, `PATCH /:id/active` | Staff CRUD |
 | `GET/POST /api/maintenance/document-types`, `PUT /:id`, `PATCH /:id/active` | Document type CRUD |
 | `GET/POST /api/maintenance/colleges`, `PUT /:id`, `PATCH /:id/active` | College CRUD |
+| `GET/POST /api/maintenance/payment-methods`, `PUT /:id`, `PATCH /:id/active` | Payment method CRUD |
 | `GET /api/reports/documents` | Filtered report + summary + breakdowns |
 | `GET /api/reports/analytics` | Efficiency metrics |
 | `GET /api/reports/export/students.csv?category=` | active \| alumni \| others \| all |
@@ -98,7 +105,7 @@ The Registrar hasn't finalised the questions, so nothing about the form is hardc
 **Analytics.** All figures derive from `step_logs`, so any number can be traced to a recorded desk action. Per-clerk output is volume and actions only — never a computed score — because desks differ in difficulty.
 
 ### Payments & payment methods
-`payment_methods` is admin-managed reference data (code, name, instructions, reference label, `requires_proof`), so the Registrar can enable Card or Online Banking without a deploy. The chosen method is stored on `documents.payment_method` and named in the step log.
+`payment_methods` is admin-managed reference data (code, name, instructions, reference label, `requires_proof`) through `GET/POST /api/maintenance/payment-methods` (`PUT`/`PATCH .../active` to edit and deactivate — the same deletion-is-deactivation rule as document types and colleges applies, and `code` is intentionally not editable once created, since `documents.payment_method` stores it directly), so the Registrar can enable Card or Online Banking without a deploy. `provider` is validated against the registered providers in `services/payment/` at create and update time, so a typo can't silently produce a method that 400s the first time a student tries to pay with it. The chosen method is stored on `documents.payment_method` and named in the step log. The student checkout modal (`StudentDashboard.jsx`) renders a picker over every active method rather than assuming GCash, with the GCash QR shown only for that one method and the reference/proof fields rendered per-method from `requires_reference`/`requires_proof`.
 
 `src/services/payment/` registers providers by name. Every method resolves to **`manual`** today: the student pays out-of-band and uploads proof, and a Finance Clerk verifies it against PLP's own records — deliberate, because payments must reconcile against Finance's books rather than a third party's dashboard. Each provider owns its own `validateSubmission`, so what counts as valid proof is a per-method decision. Adding a hosted gateway means registering a provider and setting `payment_methods.provider`; `documents.service.js` does not change.
 
@@ -167,10 +174,11 @@ would let a client spoof its own address and walk straight past the login limite
 - `tracking_number` (Unique Hash)
 - `student_id` (FK)
 - `document_type`
-- `current_status` — one of the eight pipeline values in `utils/documentStatus.js`. A `VARCHAR`, not an ENUM: the constants module enforces the vocabulary, and it also covers the Python engine and the React queues, which a database ENUM never could.
+- `current_status` — one of the nine pipeline values in `utils/documentStatus.js`. A `VARCHAR`, not an ENUM: the constants module enforces the vocabulary, and it also covers the Python engine and the React queues, which a database ENUM never could.
 - `estimated_ready_date` — what the Secretary promised the student
 - `amount`, `page_count`, `pricing_notes`, `priced_by_clerk_id`, `priced_at` — the charge and its justification. `priced_at` (never `amount`) is what gates billing, since `amount` starts as an estimate.
 - `stub_issued_at`, `payment_channel` (`digital` | `walk_in`), `or_number`, `or_date`, `logged_by_clerk_id` — the counter-payment trail
+- `or_verified_by_clerk_id`, `or_verified_at` — who on the Secretary desk checked the Official Receipt and when. Written only by `verify-or`, never by anything that also touches `payment_status`.
 - `assigned_desk` (e.g., WINDOW_1, SECRETARY)
 - `payment_status` (e.g., UNPAID, PAID) - *Updated for Payment Phase*
 
@@ -214,10 +222,16 @@ printed and priced first, because the amount comes from the page count.
    - **At the counter** — the student brings the printed slip; Finance calls
      `POST /:id/log-walkin-payment`, writing `or_number`, `or_date`, `logged_by_clerk_id` and
      `payment_channel = 'walk_in'`. Same destination: logging is not clearing.
-3. **Finance verification.** `POST /:id/verify-payment` reviews whichever proof exists.
+3. **Finance verification.** `POST /:id/verify-payment` reviews whichever proof exists. Approving
+   requires an `or_number` in the body — typed in for a digital payment, or the number Finance already
+   logged for a walk-in — which is written across the group alongside `payment_status`.
    - Approved: sets `payment_status = 'PAID'` and advances the group to `PAID_PENDING_SEC_RELEASE`.
      **This is the only place in the system that writes `PAID`.**
    - Rejected: returns the group to `PENDING_STUDENT_PAYMENT` with the clerk's notes.
+4. **OR Verification.** `POST /:id/verify-or` (Secretary) checks the Official Receipt is present and
+   its number looks right before moving to `SEC_OR_VERIFIED`. Deliberately a paperwork completeness
+   check, not a second payment decision — it never touches `payment_status`, which stays exclusively
+   Finance's to write.
 
 > One receipt — digital or an Official Receipt — settles **every** document in the request group,
 > which is why both writers are group-scoped while pricing and desk routing are per document.
@@ -233,7 +247,8 @@ printed and priced first, because the amount comes from the page count.
 | `POST /api/documents/:id/submit-payment` | student | → `PENDING_FINANCE_VERIFICATION` (online) |
 | `POST /api/documents/scan-receipt` | Finance | reads an OR image and returns the fields. **Records nothing** — hence no document id |
 | `POST /api/documents/:id/log-walkin-payment` | Finance | → `PENDING_FINANCE_VERIFICATION` (counter) |
-| `POST /api/documents/:id/verify-payment` | Finance | → `PAID_PENDING_SEC_RELEASE`, sets `PAID` |
+| `POST /api/documents/:id/verify-payment` | Finance | → `PAID_PENDING_SEC_RELEASE`, sets `PAID`, requires `or_number` to approve |
+| `POST /api/documents/:id/verify-or` | Secretary | → `SEC_OR_VERIFIED`; checks the OR, never touches `payment_status` |
 | `POST /api/documents/:id/handoff` | Secretary | → `READY_FOR_RELEASE` |
 | `POST /api/documents/:id/release` | Window 1 | → `COMPLETED` |
 | `DELETE /api/documents/:id` | student | cancels, allowed only through `PENDING_SEC_EVALUATION` |
@@ -242,12 +257,17 @@ Every desk action is a **POST**, so none is shadowed by the `GET /:trackingNumbe
 `GET /:id/...` *would* be — which is why the payment slip is rendered client-side rather than fetched.
 
 `GET /api/documents` is role-scoped rather than taking a status: students see only their own, Finance
-the two money queues, Secretaries their three working queues filtered by college, and Window 1
+the two money queues, Secretaries their four working queues filtered by college, and Window 1
 everything (it is the public counter — its Tracking Desk has to answer "where is my document?").
 
 ### Account & Profile Endpoints
 - `PUT /api/auth/profile`: Updates the caller's own phone number, email, and/or password. A new password is hashed; supplying one also clears `must_change_password`.
-- `PUT /api/auth/profile/picture`: Multipart upload (field `picture`) replacing the caller's avatar. JPG/PNG/WebP only, 2 MB max — enforced by `profilePictureUpload` in `upload.middleware.js`, which rejects anything else with a 400. Only the filename is stored; the previous avatar is deleted best-effort so uploads do not accumulate on disk.
+- `PUT /api/auth/profile/picture`: Multipart upload (field `picture`) replacing the caller's avatar. JPG/PNG/WebP only, 2 MB max — enforced by `profilePictureUpload` in `upload.middleware.js`, which rejects anything else with a 400. Only the filename is stored; the previous avatar is deleted best-effort so uploads do not accumulate on disk. The frontend now stages a picked file as a local preview and only calls this endpoint from "Save Settings" — closing Account Settings without saving discards the pick, and nothing is uploaded until the click.
+- `POST /api/auth/login` and `GET /api/auth/me` both return `user_type` on the `user` object (a
+  fix — the login query fetched the column but never forwarded it, and `/auth/me`'s own SELECT
+  excluded it outright, so every signed-in user looked like a plain student regardless of what they
+  declared at signup). The JWT payload itself still doesn't carry `user_type`; nothing server-side
+  authorizes on it, only `role` does.
 
 ### Password Recovery Endpoints
 Both are deliberately unauthenticated — a user who needs them cannot log in — and both are throttled

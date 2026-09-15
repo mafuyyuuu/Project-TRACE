@@ -1,7 +1,11 @@
+import { useState } from 'react';
 import SecretaryEvaluationModal from '@/features/secretary/components/SecretaryEvaluationModal';
 import PricingModal from '@/features/secretary/components/PricingModal';
 import PaymentStubModal from '@/features/secretary/components/PaymentStubModal';
+import ConfirmDialog from '@/components/ConfirmDialog';
+import QueueTabs from '@/components/QueueTabs';
 import MiniSparkline from '@/components/MiniSparkline';
+import GradApplicationReviewPanel from '@/features/graduate/components/GradApplicationReviewPanel';
 import { getStatusLabel } from '@/utils/documentStatus';
 import { getRelativeTime, todayLongDate } from '@/utils/formatters';
 import { formatPeso } from '@/utils/pricing';
@@ -26,6 +30,7 @@ export default function SecretaryDashboard({ user, currentTab, setViewImageUrl }
     actionLoading,
     evaluationQueue,
     processingQueue,
+    orVerificationQueue,
     handoffQueue,
     clearedQueue,
     clerkNotes,
@@ -39,7 +44,17 @@ export default function SecretaryDashboard({ user, currentTab, setViewImageUrl }
     priceNotes,
     setPriceNotes,
     handlePriceDocument,
+    pricingToConfirm,
+    confirmPriceDocument,
+    cancelPriceDocument,
+    handleVerifyOfficialReceipt,
+    orVerifyToConfirm,
+    confirmVerifyOfficialReceiptAction,
+    cancelVerifyOfficialReceiptConfirm,
     handleConfirmHandoff,
+    handoffToConfirm,
+    confirmHandoffAction,
+    cancelHandoffConfirm,
     evalStudentId,
     setEvalStudentId,
     evalStudentName,
@@ -51,8 +66,12 @@ export default function SecretaryDashboard({ user, currentTab, setViewImageUrl }
     selectedDoc,
     setSelectedDoc,
     handleSecretaryEvaluate,
+    evaluateActionToConfirm,
+    confirmSecretaryEvaluate,
+    cancelSecretaryEvaluate,
   } = useSecretaryDashboard(user);
 
+  const [activeQueueTab, setActiveQueueTab] = useState('evaluation');
   const todayFormatted = todayLongDate();
 
   if (loading) return <DashboardLoading />;
@@ -126,8 +145,20 @@ export default function SecretaryDashboard({ user, currentTab, setViewImageUrl }
               </div>
             </div>
 
-            {/* Active Queue Table */}
-            <div className="bg-white rounded-3xl shadow-sm border border-gray-200 overflow-hidden mt-8">
+            {/* Queue Tabs — one table visible at a time instead of three stacked */}
+            <QueueTabs
+              tabs={[
+                { key: 'evaluation', label: 'Initial Evaluation', count: evaluationQueue.length },
+                { key: 'processing', label: 'Processing & Pricing', count: processingQueue.length },
+                { key: 'or-verification', label: 'OR Verification', count: orVerificationQueue.length },
+                { key: 'handoff', label: 'Final Handoff', count: handoffQueue.length },
+              ]}
+              activeKey={activeQueueTab}
+              onChange={setActiveQueueTab}
+            />
+
+            {activeQueueTab === 'evaluation' && (
+            <div className="bg-white rounded-3xl shadow-sm border border-gray-200 overflow-hidden mt-6">
               <div className="p-4 sm:p-6 border-b border-gray-100 bg-gray-50/50">
                 <h3 className="font-bold text-gray-950 text-sm tracking-wider uppercase">1 · INITIAL EVALUATION</h3>
                 <p className="text-[11px] text-gray-500 font-medium mt-1">Check the request, then give the student a date to expect it by.</p>
@@ -185,10 +216,12 @@ export default function SecretaryDashboard({ user, currentTab, setViewImageUrl }
                 </div>
               </div>
             </div>
+            )}
 
             {/* 2 · Printed and awaiting a price. The student is only billed
                 once every document in their request has one. */}
-            <div className="bg-white rounded-3xl shadow-sm border border-gray-200 overflow-hidden mt-8">
+            {activeQueueTab === 'processing' && (
+            <div className="bg-white rounded-3xl shadow-sm border border-gray-200 overflow-hidden mt-6">
               <div className="p-4 sm:p-6 border-b border-gray-100 bg-gray-50/50">
                 <h3 className="font-bold text-gray-950 text-sm tracking-wider uppercase">2 · PROCESSING &amp; PRICING</h3>
                 <p className="text-[11px] text-gray-500 font-medium mt-1">Print the document, then set what it costs. The request is billed once every document in it is priced.</p>
@@ -257,11 +290,72 @@ export default function SecretaryDashboard({ user, currentTab, setViewImageUrl }
                 </div>
               </div>
             </div>
+            )}
 
-            {/* 3 · Paid and waiting to physically change hands. */}
-            <div className="bg-white rounded-3xl shadow-sm border border-gray-200 overflow-hidden mt-8">
+            {/* 3 · Paid, waiting on a paperwork check before handoff. */}
+            {activeQueueTab === 'or-verification' && (
+            <div className="bg-white rounded-3xl shadow-sm border border-gray-200 overflow-hidden mt-6">
               <div className="p-4 sm:p-6 border-b border-gray-100 bg-gray-50/50">
-                <h3 className="font-bold text-gray-950 text-sm tracking-wider uppercase">3 · FINAL HANDOFF</h3>
+                <h3 className="font-bold text-gray-950 text-sm tracking-wider uppercase">3 · OR VERIFICATION</h3>
+                <p className="text-[11px] text-gray-500 font-medium mt-1">Finance has confirmed the payment. Check the Official Receipt is present and the number looks right before handoff.</p>
+              </div>
+              <div className="p-4 sm:p-6">
+                <div className="max-h-[60vh] overflow-y-auto overflow-x-auto">
+                  {orVerificationQueue.length === 0 ? (
+                    <div className="text-center py-12 text-gray-400 font-medium">Nothing waiting on an OR check.</div>
+                  ) : (
+                    <table className="w-full text-left border-collapse">
+                      <thead className="sticky top-0 bg-white z-10">
+                        <tr className="text-gray-400 text-[10px] uppercase tracking-widest border-b border-gray-100">
+                          <th className="pb-4 font-bold pl-4">Document Details</th>
+                          <th className="pb-4 font-bold">Category</th>
+                          <th className="pb-4 font-bold">Official Receipt</th>
+                          <th className="pb-4 font-bold text-right pr-4">Action</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-50">
+                        {orVerificationQueue.map(doc => (
+                          <tr key={doc.id} className="hover:bg-gray-50/30 group">
+                            <td className="py-4 pl-4">
+                              <div className="font-bold text-gray-900">{doc.student_name || 'Unresolved Student'}</div>
+                              <div className="text-xs font-mono text-gray-400 mt-0.5">#{doc.tracking_number ? doc.tracking_number.slice(0, 10).toUpperCase() : doc.id}</div>
+                            </td>
+                            <td className="py-4 text-xs font-bold text-gray-600">{doc.document_type}</td>
+                            <td className="py-4 text-xs font-mono">
+                              <span className="font-bold text-gray-700">{doc.or_number || 'None on file'}</span>
+                              {doc.official_receipt_path && (
+                                <button
+                                  onClick={() => setViewImageUrl(doc.official_receipt_path)}
+                                  className="ml-2 text-[#15803d] hover:underline font-sans font-bold"
+                                >
+                                  View
+                                </button>
+                              )}
+                            </td>
+                            <td className="py-4 text-right pr-4">
+                              <button
+                                onClick={() => handleVerifyOfficialReceipt(doc)}
+                                disabled={actionLoading}
+                                className="px-4 py-2 bg-[#15803d] hover:bg-[#166534] text-white rounded-xl text-xs font-bold shadow-sm transition-all disabled:opacity-50 ml-auto block"
+                              >
+                                Verify Receipt
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  )}
+                </div>
+              </div>
+            </div>
+            )}
+
+            {/* 4 · Paid and waiting to physically change hands. */}
+            {activeQueueTab === 'handoff' && (
+            <div className="bg-white rounded-3xl shadow-sm border border-gray-200 overflow-hidden mt-6">
+              <div className="p-4 sm:p-6 border-b border-gray-100 bg-gray-50/50">
+                <h3 className="font-bold text-gray-950 text-sm tracking-wider uppercase">4 · FINAL HANDOFF</h3>
                 <p className="text-[11px] text-gray-500 font-medium mt-1">Paid and signed. Confirm once the printed document is physically at Window 1.</p>
               </div>
               <div className="p-4 sm:p-6">
@@ -307,6 +401,7 @@ export default function SecretaryDashboard({ user, currentTab, setViewImageUrl }
                 </div>
               </div>
             </div>
+            )}
           </>
         )}
 
@@ -365,6 +460,11 @@ export default function SecretaryDashboard({ user, currentTab, setViewImageUrl }
           </>
         )}
 
+        {/* 4.3. COLLEGE SECRETARY - GRADUATE APPLICATIONS */}
+        {currentTab === 'grad-applications' && (
+          <GradApplicationReviewPanel user={user} currentTab={currentTab} />
+        )}
+
         {/* College Secretary Split-Screen Modal */}
         {activeModal === 'evaluate' && selectedDoc && (
           <SecretaryEvaluationModal
@@ -416,6 +516,67 @@ export default function SecretaryDashboard({ user, currentTab, setViewImageUrl }
             setActiveModal={setActiveModal}
           />
         )}
+
+        <ConfirmDialog
+          open={!!orVerifyToConfirm}
+          title="Verify Official Receipt"
+          message={
+            orVerifyToConfirm
+              ? [
+                  `Confirm the Official Receipt for ${orVerifyToConfirm.document_type} is present and the number looks right?`,
+                  orVerifyToConfirm.or_number ? `OR on file: ${orVerifyToConfirm.or_number}` : 'No OR number on file.',
+                ]
+              : ''
+          }
+          variant="neutral"
+          confirmLabel="Verify Receipt"
+          loadingLabel="Saving…"
+          loading={actionLoading}
+          onConfirm={confirmVerifyOfficialReceiptAction}
+          onCancel={cancelVerifyOfficialReceiptConfirm}
+        />
+
+        <ConfirmDialog
+          open={!!handoffToConfirm}
+          title="Confirm Handoff"
+          message={handoffToConfirm ? `Confirm you have handed ${handoffToConfirm.document_type} to Window 1?` : ''}
+          variant="neutral"
+          confirmLabel="Confirm Handoff"
+          loadingLabel="Recording…"
+          loading={actionLoading}
+          onConfirm={confirmHandoffAction}
+          onCancel={cancelHandoffConfirm}
+        />
+
+        <ConfirmDialog
+          open={!!evaluateActionToConfirm}
+          title={evaluateActionToConfirm === 'approve' ? 'Accept for Processing' : 'Return to Window 1'}
+          message={
+            selectedDoc
+              ? evaluateActionToConfirm === 'approve'
+                ? `Accept ${selectedDoc.document_type} for processing? The student will be told to expect it by ${estimatedReadyDate}.`
+                : `Return ${selectedDoc.document_type} to Window 1 with your notes?`
+              : ''
+          }
+          variant={evaluateActionToConfirm === 'approve' ? 'neutral' : 'destructive'}
+          confirmLabel={evaluateActionToConfirm === 'approve' ? 'Accept for Processing' : 'Return to Window 1'}
+          loadingLabel="Saving…"
+          loading={actionLoading}
+          onConfirm={confirmSecretaryEvaluate}
+          onCancel={cancelSecretaryEvaluate}
+        />
+
+        <ConfirmDialog
+          open={pricingToConfirm}
+          title="Set the Amount"
+          message={selectedDoc ? `Save ${formatPeso(parseFloat(priceAmount) || 0)} as the price for ${selectedDoc.document_type}?` : ''}
+          variant="neutral"
+          confirmLabel="Save Price"
+          loadingLabel="Saving…"
+          loading={actionLoading}
+          onConfirm={confirmPriceDocument}
+          onCancel={cancelPriceDocument}
+        />
       </div>
     </>
   );

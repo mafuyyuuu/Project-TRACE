@@ -27,6 +27,7 @@ export default function DashboardPage() {
   const [viewImageUrl, setViewImageUrl] = useState(null);
 
   const isStudent = user?.role === 'student';
+  const isAlumni = isStudent && user?.user_type === 'alumni';
   const isFinance = user?.role === 'clerk' && user?.desk_assignment === 'Finance';
   const isWindow1 = user?.role === 'clerk' && user?.desk_assignment === 'Window 1';
   const isSecretary = user?.role === 'clerk' && user?.desk_assignment === 'Secretary';
@@ -49,9 +50,11 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-8 animate-fade-in relative pb-16">
-      {/* Graduates/alumni fill in the Registrar's application from its own tab. */}
-      {isStudent && currentTab === 'graduate-application' && <GraduateApplication user={user} />}
-      {isStudent && currentTab !== 'graduate-application' && <StudentDashboard {...props} />}
+      {/* Graduates/alumni fill in the Registrar's application from its own tab.
+          A regular student forcing this tab via the URL falls through to their
+          normal dashboard instead, same as any other unrecognized tab value. */}
+      {isAlumni && currentTab === 'graduate-application' && <GraduateApplication user={user} />}
+      {isStudent && !(isAlumni && currentTab === 'graduate-application') && <StudentDashboard {...props} />}
       {isFinance && <FinanceDashboard {...props} />}
       {isWindow1 && <Window1Dashboard {...props} />}
       {isSecretary && <SecretaryDashboard {...props} />}

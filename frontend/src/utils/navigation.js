@@ -10,18 +10,24 @@ export function navItemsForUser(user) {
     (user?.desk_assignment === 'Window 1' || user?.desk_assignment === 'Receiving Desk');
 
   if (user?.role === 'student') {
-    return [
+    const items = [
       { tab: 'dashboard', to: '/dashboard', label: 'Dashboard', icon: 'dashboard' },
       { tab: 'request-history', to: '/dashboard?tab=request-history', label: 'Request History', icon: 'document' },
       { tab: 'payment-history', to: '/dashboard?tab=payment-history', label: 'Payment History', icon: 'card' },
-      { tab: 'graduate-application', to: '/dashboard?tab=graduate-application', label: 'Graduate Application', icon: 'cap' },
     ];
+    // Only an alumnus can file the Graduate Application — a regular student
+    // never sees the tab at all, not even to navigate to it directly.
+    if (user?.user_type === 'alumni') {
+      items.push({ tab: 'graduate-application', to: '/dashboard?tab=graduate-application', label: 'Graduate Application', icon: 'cap' });
+    }
+    return items;
   }
 
   if (user?.role === 'clerk' && user?.desk_assignment === 'Secretary') {
     return [
       { tab: 'dashboard', to: '/dashboard', label: 'Dashboard', icon: 'dashboard' },
       { tab: 'completed-logs', to: '/dashboard?tab=completed-logs', label: 'Completed Logs', icon: 'checklist' },
+      { tab: 'grad-applications', to: '/dashboard?tab=grad-applications', label: 'Graduate Applications', icon: 'cap' },
     ];
   }
 
@@ -29,7 +35,6 @@ export function navItemsForUser(user) {
     return [
       { tab: 'dashboard', to: '/dashboard', label: 'Workspace Dashboard', icon: 'dashboard' },
       { tab: 'tracking-desk', to: '/dashboard?tab=tracking-desk', label: 'Tracking Desk', icon: 'users' },
-      { tab: 'manual-input', to: '/dashboard?tab=manual-input', label: 'Manual Input Form', icon: 'formPlus' },
     ];
   }
 
@@ -41,7 +46,8 @@ export function navItemsForUser(user) {
       { tab: 'admin-logs', to: '/dashboard?tab=admin-logs', label: 'Activity Logs', icon: 'checklist' },
       { tab: 'admin-reports', to: '/dashboard?tab=admin-reports', label: 'Reports & Export', icon: 'report' },
       { tab: 'admin-analytics', to: '/dashboard?tab=admin-analytics', label: 'Efficiency Analytics', icon: 'bolt' },
-      { tab: 'admin-maintenance', to: '/dashboard?tab=admin-maintenance', label: 'System Maintenance', icon: 'cog' },
+      { tab: 'admin-grad-applications', to: '/dashboard?tab=admin-grad-applications', label: 'Graduate Applications', icon: 'cap' },
+      { tab: 'admin-maintenance', to: '/dashboard?tab=admin-maintenance', label: 'System Maintenance', icon: 'wrench' },
     ];
   }
 

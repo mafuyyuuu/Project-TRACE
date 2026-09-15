@@ -108,7 +108,7 @@ money is collected near the end, and the paper only changes hands once an Offici
 ```
 PENDING_W1_INTAKE → PENDING_SEC_EVALUATION → SEC_PROCESSING
   → PENDING_STUDENT_PAYMENT → PENDING_FINANCE_VERIFICATION
-  → PAID_PENDING_SEC_RELEASE → READY_FOR_RELEASE → COMPLETED
+  → PAID_PENDING_SEC_RELEASE → SEC_OR_VERIFIED → READY_FOR_RELEASE → COMPLETED
 ```
 
 - **PENDING_W1_INTAKE**: request filed — online by the student, or typed in at the counter by Window
@@ -125,9 +125,12 @@ PENDING_W1_INTAKE → PENDING_SEC_EVALUATION → SEC_PROCESSING
   a price, or a two-document request would send the student to Finance twice.
 - **PENDING_FINANCE_VERIFICATION**: payment claimed, through either channel — the student uploaded
   proof online, or Finance logged a counter payment against the printed slip.
-- **PAID_PENDING_SEC_RELEASE**: Finance confirmed. **This is the only place `payment_status` becomes
-  `PAID`.** The Secretary sets the price; only Finance confirms the money — those authorities are
-  deliberately separate.
+- **PAID_PENDING_SEC_RELEASE**: Finance confirmed, via `verifyPayment`, which also requires an
+  `or_number` to approve. **This is the only place `payment_status` becomes `PAID`.** The Secretary
+  sets the price; only Finance confirms the money — those authorities are deliberately separate.
+- **SEC_OR_VERIFIED**: the Secretary checked the Official Receipt Finance attached — present, and the
+  number looks right — via `verifyOfficialReceipt`. A paperwork completeness check, not a second
+  payment decision: it never writes `payment_status`, so it does not blur the authority split above.
 - **READY_FOR_RELEASE**: the Secretary physically handed the printed document to Window 1 and
   recorded it. A separate step because it marks a real physical event.
 - **COMPLETED**: Window 1 released it, for a walk-in against the OR the student presents.
@@ -192,7 +195,9 @@ There is no per-role routing. `frontend/src/pages/DashboardPage.jsx` resolves th
 
 Each command center owns its data through its own hook — `features/<role>/use<Role>Dashboard.js` — all of which build on `hooks/useDashboardCore.js` (queue, KPI stats, loading/feedback, modal selection, and the shared `runAction` wrapper). `DashboardPage` therefore holds no queue state and passes only `{ user, currentTab, setViewImageUrl }`.
 
-Each feature owns its modals under `features/<role>/components/`; genuinely cross-role UI lives in `components/` (`ImageViewerModal`, `AuthedFilePreview`, `UserAvatar`, `ProfileSettingsModal`, `DashboardAlerts`, `DashboardLoading`, `MiniSparkline`). Presentation helpers are in `utils/formatters.js` and `utils/documentStatus.js` — import them, never duplicate them inside a hook.
+Each feature owns its modals under `features/<role>/components/`; genuinely cross-role UI lives in `components/` (`ImageViewerModal`, `AuthedFilePreview`, `UserAvatar`, `ProfileSettingsModal`, `DashboardAlerts`, `DashboardLoading`, `MiniSparkline`, `ModalShell`, `ConfirmDialog`, `UserCard`, `QueueTabs`). Presentation helpers are in `utils/formatters.js` and `utils/documentStatus.js` — import them, never duplicate them inside a hook.
+
+Every modal — all 11 feature-owned ones plus the admin user modals — builds on `components/ModalShell.jsx` rather than hand-rolling its own `createPortal`/backdrop/panel: it owns the portal, focus trap, Esc/backdrop dismissal, and a scrollable body with a footer pinned to the bottom regardless of content length. Its `bare`/`panelClassName`/`backdropClassName`/etc. props exist for real outliers (a lightbox, a print-only slip, a split-screen layout) — a normal modal only passes `title`, `children`, `footer`. `components/ConfirmDialog.jsx`, built on the same shell, is what `window.confirm()` was replaced with everywhere: any button that changes state or isn't trivially undoable (approve, reject, deactivate, cancel, release, log a payment) stages its target instead of acting immediately, and a `confirm*`/`cancel*` pair does the real work — never add a new one-off browser `confirm()`.
 
 Uploaded files are fetched through `hooks/useAuthedFile.js`, which pulls bytes via authenticated axios and hands back a blob URL, because `<img src>` cannot send an `Authorization` header. It passes a fully-qualified `http(s)` URL through untouched, so `UserAvatar` covers both an uploaded profile picture and its generated fallback with one call.
 
@@ -241,7 +246,7 @@ Four payment methods live in the admin-managed `payment_methods` table; `src/ser
 `notification.service.js` reports channel health at startup and **skips unconfigured channels with a reason** rather than attempting them. Don't reintroduce placeholder SMTP credentials — that is what made the old email failures look like a bug.
 
 ### Profile pictures
-`users.profile_picture` holds a filename only; the bytes live in `backend/uploads/` and are read back through the authenticated `/api/files/:filename` route like every other upload — **never a public static path**. `PUT /api/auth/profile/picture` (multipart field `picture`, JPG/PNG/WebP, 2 MB via `profilePictureUpload`) replaces it and deletes the previous file. In `files.service.js` an avatar is resolved on its own branch: only its owner may read it, and the check never falls through to the document/ID-proof rules. A multer `fileFilter` must reject with `badRequest`, not a bare `Error` — the shared error handler maps an unstatused error to 500.
+`users.profile_picture` holds a filename only; the bytes live in `backend/uploads/` and are read back through the authenticated `/api/files/:filename` route like every other upload — **never a public static path**. `PUT /api/auth/profile/picture` (multipart field `picture`, JPG/PNG/WebP, 2 MB via `profilePictureUpload`) replaces it and deletes the previous file. In `files.service.js` an avatar is resolved on its own branch: only its owner may read it, and the check never falls through to the document/ID-proof rules. A multer `fileFilter` must reject with `badRequest`, not a bare `Error` — the shared error handler maps an unstatused error to 500. On the frontend, picking a new picture in Account Settings only stages a local preview (`useProfileSettings.js`'s `avatarFile`/`avatarPreviewUrl`) — it uploads as part of "Save Settings", the same gate every other field goes through, and closing the modal without saving discards the pick. It used to upload on selection; that was the bug, not the design.
 
 ### Password recovery
 `POST /api/auth/forgot-password` (student ID **or** email) always answers with the same generic
@@ -269,6 +274,13 @@ Reporting filters, summary totals and CSV exports all share one filter object. `
 ### Reference data & configurable forms
 Document types, colleges, and the Graduate Application's fields are **database rows, not code**: `document_types` (with admin-editable `base_fee` and a `fee_rule` selecting the calculation), `colleges`, and `grad_form_fields`. The graduate form's validation is generated from its field definitions, so adding a question needs no migration and no code change. Don't reintroduce a hardcoded `<option>` list.
 
+Only an alumnus (`users.user_type`, self-declared at signup) reaches the Graduate Application tab —
+`frontend/src/pages/DashboardPage.jsx`'s `isAlumni` and the nav entry in `utils/navigation.js` both
+gate on it, not on `role === 'student'` alone. Submitted applications are reviewed through
+`features/graduate/components/GradApplicationReviewPanel.jsx`, shared by the Admin and Secretary
+dashboards (`features/graduate/useGradApplicationReview.js` owns its data), against the
+`listApplications`/`reviewApplication` endpoints in `gradApplication.service.js`.
+
 ### Database
 MySQL, single source of truth, `backend/database/schema.sql` + `seed.sql` + `migration.js` for upgrades. Core tables: `users` (role/verification_status/course/id_proof_path), `documents` (current_status/payment_status/tracking_number/gcash fields), `step_logs` (append-only audit trail — every desk transition writes here and is what both Prophet and the Admin Activity Log read from), `notifications` (in-app bell icon).
 
@@ -281,7 +293,7 @@ Full detail lives in `docs/CODING_PREFERENCES.md`; key points:
 - Backend: parameterize all SQL (raw queries / mysql2, no string-concatenated SQL); webhook endpoints must ack fast (200 OK) and handle errors gracefully.
 - AI engine: always run inside `.venv`; keep `requirements.txt` limited to what's actually used.
 - Routing decisions belong in n8n, not hardcoded in Express.
-- **The Secretary sets the price; Finance alone sets `PAID`.** `priceDocument` is the only place an amount is written, and it records the clerk, the page count and a reason alongside it. `verifyPayment` remains the only place `payment_status` becomes `'PAID'`. Holding those two authorities apart is what makes the money trail auditable — never let one endpoint do both.
+- **The Secretary sets the price; Finance alone sets `PAID`.** `priceDocument` is the only place an amount is written, and it records the clerk, the page count and a reason alongside it. `verifyPayment` remains the only place `payment_status` becomes `'PAID'`. Holding those two authorities apart is what makes the money trail auditable — never let one endpoint do both. `verifyOfficialReceipt` (the Secretary's post-payment OR check) is the one deliberate near-exception: it sits between Finance's approval and handoff, but it stays a paperwork completeness check and never touches `payment_status` — don't let a future change turn it into a second money decision.
 - Every desk action calls `assertTransition(from, to)` before writing a status. `step_logs` is append-only, so an illegal move cannot be tidied away afterwards.
 
 ## Deployment

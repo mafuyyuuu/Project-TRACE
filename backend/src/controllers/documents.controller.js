@@ -130,6 +130,14 @@ async function logWalkInPayment(req, res) {
   }
 }
 
+async function verifyOfficialReceipt(req, res) {
+  try {
+    res.json(await documentsService.verifyOfficialReceipt(req.user, req.params.id, req.body));
+  } catch (err) {
+    fail(res, err, 'OR verification error', 'Failed to verify the Official Receipt.');
+  }
+}
+
 async function handoff(req, res) {
   try {
     res.json(await documentsService.confirmHandoff(req.user, req.params.id, req.body));
@@ -170,6 +178,7 @@ module.exports = {
   price,
   scanReceipt,
   logWalkInPayment,
+  verifyOfficialReceipt,
   handoff,
   release,
   cancel,

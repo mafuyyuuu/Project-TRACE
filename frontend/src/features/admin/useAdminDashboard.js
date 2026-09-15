@@ -1,7 +1,8 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import useDashboardCore from '@/hooks/useDashboardCore';
 import { getForecast, getInsights, getActivityLogs } from '@/services/documentsService';
 import { getPendingStudents, verifyStudent, getUsers } from '@/services/authService';
+import { getAnalytics } from '@/services/reportsService';
 
 const ITEMS_PER_PAGE = 10;
 
@@ -22,6 +23,7 @@ export default function useAdminDashboard(user, currentTab) {
   const [forecastData, setForecastData] = useState([]);
   const [aiInsights, setAiInsights] = useState([]);
   const [pendingStudents, setPendingStudents] = useState([]);
+  const [analyticsSummary, setAnalyticsSummary] = useState(null);
 
   // Table state
   const [adminDocPage, setAdminDocPage] = useState(1);
@@ -29,7 +31,29 @@ export default function useAdminDashboard(user, currentTab) {
   const [forecastFilter, setForecastFilter] = useState('All');
   const [adminUsers, setAdminUsers] = useState([]);
   const [adminUsersFilter, setAdminUsersFilter] = useState('');
+  const [adminUsersRoleFilter, setAdminUsersRoleFilter] = useState('All');
   const [adminLogs, setAdminLogs] = useState([]);
+
+  // The card grid's detail modal — view-only here, this surface has no
+  // mutation wiring (that authority lives with MaintenancePanel).
+  const [selectedUser, setSelectedUser] = useState(null);
+
+  // The { student, action } staged for a verification confirmation, or null.
+  const [studentVerifyToConfirm, setStudentVerifyToConfirm] = useState(null);
+
+  const filteredAdminUsers = useMemo(
+    () =>
+      adminUsers.filter((u) => {
+        const q = adminUsersFilter.toLowerCase();
+        const matchesSearch =
+          u?.full_name?.toLowerCase().includes(q) ||
+          u?.student_id?.toLowerCase().includes(q) ||
+          u?.email?.toLowerCase().includes(q);
+        const matchesRole = adminUsersRoleFilter === 'All' || u.role === adminUsersRoleFilter;
+        return matchesSearch && matchesRole;
+      }),
+    [adminUsers, adminUsersFilter, adminUsersRoleFilter]
+  );
 
   /**
    * Analytics and the verification queue. Each source is independent: an
@@ -37,11 +61,12 @@ export default function useAdminDashboard(user, currentTab) {
    */
   const loadAdminData = useCallback(async () => {
     // Fetched in parallel; each settles independently so one outage cannot
-    // blank the other two panels.
-    const [forecast, insights, pending] = await Promise.allSettled([
+    // blank the other panels.
+    const [forecast, insights, pending, analytics] = await Promise.allSettled([
       getForecast(),
       getInsights(),
       getPendingStudents(),
+      getAnalytics(),
     ]);
 
     if (forecast.status === 'fulfilled') setForecastData(forecast.value.forecast || []);
@@ -52,6 +77,11 @@ export default function useAdminDashboard(user, currentTab) {
 
     if (pending.status === 'fulfilled') setPendingStudents(pending.value.pending_students || []);
     else console.warn('Pending students unavailable');
+
+    // Powers the System Throughput KPI card's real value, empty state and
+    // sparkline trend — same endpoint the Efficiency Analytics tab already uses.
+    if (analytics.status === 'fulfilled') setAnalyticsSummary(analytics.value);
+    else console.warn('Analytics summary unavailable');
   }, []);
 
   useEffect(() => {
@@ -78,32 +108,50 @@ export default function useAdminDashboard(user, currentTab) {
   }, [user, currentTab]);
 
   /** @param {'verify'|'reject'} action */
-  const handleAdminVerifyStudent = useCallback(
-    async (userId, action) => {
-      const ok = await runAction(() => verifyStudent(userId, action), {
-        successMessage: `Student account registration successfully ${
-          action === 'verify' ? 'verified' : 'rejected'
-        }.`,
-        errorMessage: 'Verification failed.',
-      });
+  const handleAdminVerifyStudent = useCallback((student, action) => {
+    setStudentVerifyToConfirm({ student, action });
+  }, []);
+
+  const confirmAdminVerifyStudent = useCallback(async () => {
+    if (!studentVerifyToConfirm) return;
+    const { student, action } = studentVerifyToConfirm;
+
+    const ok = await runAction(() => verifyStudent(student.id, action), {
+      successMessage: `Student account registration successfully ${
+        action === 'verify' ? 'verified' : 'rejected'
+      }.`,
+      errorMessage: 'Verification failed.',
+    });
+    if (ok) {
+      setStudentVerifyToConfirm(null);
       // Refresh the queue this action just changed.
-      if (ok) await loadAdminData();
-    },
-    [runAction, loadAdminData]
-  );
+      await loadAdminData();
+    }
+  }, [studentVerifyToConfirm, runAction, loadAdminData]);
+
+  const cancelAdminVerifyStudent = useCallback(() => {
+    setStudentVerifyToConfirm(null);
+  }, []);
 
   return {
     ...core,
     forecastData,
     aiInsights,
     pendingStudents,
+    analyticsSummary,
     adminDocPage, setAdminDocPage,
     adminDocFilter, setAdminDocFilter,
     forecastFilter, setForecastFilter,
     adminUsers, adminUsersFilter, setAdminUsersFilter,
+    adminUsersRoleFilter, setAdminUsersRoleFilter,
+    filteredAdminUsers,
+    selectedUser, setSelectedUser,
     adminLogs,
     itemsPerPage: ITEMS_PER_PAGE,
     handleAdminVerifyStudent,
+    studentVerifyToConfirm,
+    confirmAdminVerifyStudent,
+    cancelAdminVerifyStudent,
     loadDashboardData,
   };
 }

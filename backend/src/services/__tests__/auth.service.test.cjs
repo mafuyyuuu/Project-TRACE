@@ -23,6 +23,7 @@ const verifiedStudent = () => ({
   student_id: 'STU-001',
   full_name: 'Ana Reyes',
   role: 'student',
+  user_type: 'student',
   desk_assignment: null,
   course: 'CCS',
   verification_status: 'verified',
@@ -81,6 +82,12 @@ describe('login', () => {
     expect(decoded).toMatchObject({ id: 3, role: 'student', course: 'CCS' });
     expect(JSON.stringify(res)).not.toContain(passwordHash);
     expect(res.user).not.toHaveProperty('password_hash');
+  });
+
+  it('carries user_type through to the returned user object, so the frontend can tell alumni apart from students', async () => {
+    userModel.findActiveByStudentId.mockResolvedValue([{ ...verifiedStudent(), user_type: 'alumni' }]);
+    const res = await service.login({ employee_id: 'STU-001', password: 'trace2024' });
+    expect(res.user.user_type).toBe('alumni');
   });
 
   it('rejects a token signed with the wrong secret', async () => {

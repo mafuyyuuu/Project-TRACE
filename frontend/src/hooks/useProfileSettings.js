@@ -14,6 +14,11 @@ const STORED_USER_KEY = 'trace_user';
  *
  * Feedback is returned as `success`/`error` strings instead of the `alert()`
  * calls this replaces, so the modal can render it inline.
+ *
+ * A picked profile picture is staged locally (`avatarFile`/`avatarPreviewUrl`)
+ * rather than uploaded on selection — it only reaches the server as part of
+ * `saveProfile`, the same gate every other field already goes through, and
+ * `discardAvatarChange` drops the stage without ever having called the server.
  */
 export default function useProfileSettings(user) {
   const [profileData, setProfileData] = useState({
@@ -22,8 +27,9 @@ export default function useProfileSettings(user) {
     password: '',
   });
   const [avatarPath, setAvatarPath] = useState(user?.profile_picture || null);
+  const [avatarFile, setAvatarFile] = useState(null);
+  const [avatarPreviewUrl, setAvatarPreviewUrl] = useState(null);
   const [saving, setSaving] = useState(false);
-  const [uploading, setUploading] = useState(false);
   const [success, setSuccess] = useState('');
   const [error, setError] = useState('');
 
@@ -50,33 +56,54 @@ export default function useProfileSettings(user) {
     setSaving(true);
     setSuccess('');
     setError('');
+
+    const messages = [];
+    const errors = [];
+
+    if (avatarFile) {
+      try {
+        const data = await uploadProfilePicture(avatarFile);
+        setAvatarPath(data.profile_picture);
+        patchStoredUser({ profile_picture: data.profile_picture });
+        URL.revokeObjectURL(avatarPreviewUrl);
+        setAvatarFile(null);
+        setAvatarPreviewUrl(null);
+        messages.push('Profile picture updated.');
+      } catch (err) {
+        // Keep the staged file so retrying Save doesn't require re-picking the image.
+        errors.push(readError(err));
+      }
+    }
+
     try {
       await updateProfile(profileData);
       patchStoredUser({ phone_number: profileData.phone_number, email: profileData.email });
       setProfileData((current) => ({ ...current, password: '' }));
-      setSuccess('Profile updated successfully.');
+      messages.push('Profile updated successfully.');
     } catch (err) {
-      setError(readError(err));
-    } finally {
-      setSaving(false);
+      errors.push(readError(err));
     }
+
+    if (messages.length) setSuccess(messages.join(' '));
+    if (errors.length) setError(errors.join(' '));
+    setSaving(false);
   };
 
-  const changeAvatar = async (file) => {
+  /** Stage a picked file as a local preview only — it uploads on Save. */
+  const changeAvatar = (file) => {
     if (!file) return;
-    setUploading(true);
+    if (avatarPreviewUrl) URL.revokeObjectURL(avatarPreviewUrl);
+    setAvatarFile(file);
+    setAvatarPreviewUrl(URL.createObjectURL(file));
     setSuccess('');
     setError('');
-    try {
-      const data = await uploadProfilePicture(file);
-      setAvatarPath(data.profile_picture);
-      patchStoredUser({ profile_picture: data.profile_picture });
-      setSuccess('Profile picture updated.');
-    } catch (err) {
-      setError(readError(err));
-    } finally {
-      setUploading(false);
-    }
+  };
+
+  /** Drop a staged, unsaved picture — closing the modal without saving. */
+  const discardAvatarChange = () => {
+    if (avatarPreviewUrl) URL.revokeObjectURL(avatarPreviewUrl);
+    setAvatarFile(null);
+    setAvatarPreviewUrl(null);
   };
 
   /** Drop any stale banner when the modal is reopened. */
@@ -89,12 +116,13 @@ export default function useProfileSettings(user) {
     profileData,
     setField,
     avatarPath,
+    avatarPreviewUrl,
     saving,
-    uploading,
     success,
     error,
     saveProfile,
     changeAvatar,
+    discardAvatarChange,
     resetFeedback,
   };
 }

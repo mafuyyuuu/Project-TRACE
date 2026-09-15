@@ -1,4 +1,4 @@
-import { createPortal } from 'react-dom';
+import ModalShell from '@/components/ModalShell';
 import { itemAmount, groupTotal, formatPeso } from '@/utils/pricing';
 
 /**
@@ -32,18 +32,37 @@ export default function NewRequestModal({
   const needsYearGraduated = (name) =>
     name === 'Graduation Clearance' || name === 'Diploma';
 
-  return createPortal(
-    <div className="fixed inset-0 z-[100] flex items-start sm:items-center justify-center p-4 overflow-y-auto">
-      <div className="absolute inset-0 bg-gray-900/60 backdrop-blur-md" onClick={() => setActiveModal(null)}></div>
-      <div className="bg-white rounded-3xl shadow-2xl w-full max-w-2xl max-h-[calc(100dvh-2rem)] overflow-y-auto p-6 sm:p-8 z-10 border border-gray-100 relative">
-        <button className="absolute top-4 right-4 w-8 h-8 rounded-full flex items-center justify-center text-gray-400 hover:bg-gray-100" onClick={() => setActiveModal(null)}>✕</button>
+  return (
+    <ModalShell
+      open
+      onClose={() => setActiveModal(null)}
+      title="New Request"
+      maxWidth="max-w-2xl"
+      footer={
+        <div className="flex justify-end gap-3">
+          <button
+            type="button"
+            onClick={() => setActiveModal(null)}
+            className="px-6 py-3 border border-gray-200 text-gray-700 rounded-xl text-xs font-bold hover:bg-gray-50"
+          >
+            Cancel
+          </button>
+          <button
+            type="submit"
+            form="new-request-form"
+            disabled={actionLoading || selectedNames.length === 0}
+            className="px-8 py-3 bg-[#15803d] hover:bg-[#166534] disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-xl text-xs font-bold shadow-md transition-all uppercase tracking-wider"
+          >
+            {actionLoading ? 'Submitting...' : 'Next'}
+          </button>
+        </div>
+      }
+    >
+      <p className="text-xs text-gray-400 mt-1 font-semibold pb-5 mb-6 border-b border-gray-100">
+        Select one or more documents. Nothing is paid now — the College Secretary sets the amount once your documents are printed.
+      </p>
 
-        <h3 className="text-xl font-black text-gray-900">New Request</h3>
-        <p className="text-xs text-gray-400 mt-1 font-semibold pb-5 mb-6 border-b border-gray-100">
-          Select one or more documents. Nothing is paid now — the College Secretary sets the amount once your documents are printed.
-        </p>
-
-        <form onSubmit={handleStudentSubmitRequest} className="space-y-6">
+      <form id="new-request-form" onSubmit={handleStudentSubmitRequest} className="space-y-6">
           {/* Auto-filled identity */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-gray-50/50 p-4 rounded-2xl border border-gray-100">
             <div className="flex flex-col gap-1.5">
@@ -240,26 +259,7 @@ export default function NewRequestModal({
             An estimate from the standard fee table, not a bill. The College Secretary sets the
             final amount after printing, and one payment then covers the whole request.
           </div>
-
-          <div className="flex justify-end gap-3 pt-2">
-            <button
-              type="button"
-              onClick={() => setActiveModal(null)}
-              className="px-6 py-3 border border-gray-200 text-gray-700 rounded-xl text-xs font-bold hover:bg-gray-50"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={actionLoading || selectedNames.length === 0}
-              className="px-8 py-3 bg-[#15803d] hover:bg-[#166534] disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-xl text-xs font-bold shadow-md transition-all uppercase tracking-wider"
-            >
-              {actionLoading ? 'Submitting...' : 'Next'}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>,
-    document.body
+      </form>
+    </ModalShell>
   );
 }

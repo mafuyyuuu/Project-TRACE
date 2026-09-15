@@ -255,21 +255,28 @@ function updatePaymentSubmissionForGroup(
   );
 }
 
-/** Finance clears (or bounces) the whole group in one action. */
+/**
+ * Finance clears (or bounces) the whole group in one action.
+ *
+ * `orNumber`/`orDate` are COALESCE-d rather than overwritten so a walk-in's
+ * number — already recorded by logWalkInPayment before this ever runs — isn't
+ * blanked when Finance approves without retyping it.
+ */
 function updatePaymentVerificationForGroup(
-  requestGroupId, newStatus, paymentStatus, officialReceiptPath, executor = pool
+  requestGroupId, newStatus, paymentStatus, { officialReceiptPath, orNumber, orDate } = {}, executor = pool
 ) {
-  if (officialReceiptPath) {
-    return executor.query(
-      `UPDATE documents SET current_status = ?, payment_status = ?, official_receipt_path = ?
-       WHERE request_group_id = ? AND current_status = ?`,
-      [newStatus, paymentStatus, officialReceiptPath, requestGroupId, STATUS.PENDING_FINANCE_VERIFICATION]
-    );
-  }
   return executor.query(
-    `UPDATE documents SET current_status = ?, payment_status = ?
+    `UPDATE documents SET
+       current_status = ?,
+       payment_status = ?,
+       official_receipt_path = COALESCE(?, official_receipt_path),
+       or_number = COALESCE(?, or_number),
+       or_date = COALESCE(?, or_date)
      WHERE request_group_id = ? AND current_status = ?`,
-    [newStatus, paymentStatus, requestGroupId, STATUS.PENDING_FINANCE_VERIFICATION]
+    [
+      newStatus, paymentStatus, officialReceiptPath || null, orNumber || null, orDate || null,
+      requestGroupId, STATUS.PENDING_FINANCE_VERIFICATION,
+    ]
   );
 }
 
@@ -373,6 +380,23 @@ function updateWalkInPaymentForGroup(
   );
 }
 
+/**
+ * Secretary checks the Official Receipt paperwork before the printed document
+ * can be handed to Window 1.
+ *
+ * Author and timestamp are written in the same statement as the status, same
+ * as updatePricing — a step nobody can trace back to a person is not
+ * auditable, and this never touches payment_status: only Finance sets PAID.
+ */
+function updateOrVerification(documentId, clerkId, executor = pool) {
+  return executor.query(
+    `UPDATE documents
+     SET current_status = ?, or_verified_by_clerk_id = ?, or_verified_at = NOW()
+     WHERE id = ?`,
+    [STATUS.SEC_OR_VERIFIED, clerkId, documentId]
+  );
+}
+
 module.exports = {
   insert,
   updateAttachment,
@@ -382,6 +406,7 @@ module.exports = {
   sumGroupAmount,
   markGroupPayable,
   updateWalkInPaymentForGroup,
+  updateOrVerification,
   findByAttachedFilename,
   findByRequestGroup,
   findByRequestGroupForUpdate,

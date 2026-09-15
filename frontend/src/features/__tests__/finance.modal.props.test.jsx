@@ -22,6 +22,10 @@ vi.mock('@/services/documentsService', () => ({
 
 vi.mock('@/services/authService', () => ({}));
 
+vi.mock('@/services/referenceService', () => ({
+  getPaymentMethods: vi.fn().mockResolvedValue({ payment_methods: [] }),
+}));
+
 /** Capture the props the dashboard passes, and expose the oversized-file path. */
 const received = {};
 vi.mock('@/features/finance/components/FinanceVerificationModal', () => ({
@@ -68,6 +72,8 @@ describe('FinanceDashboard → FinanceVerificationModal', () => {
   it('passes triggerNotification down to the modal', async () => {
     render(<FinanceDashboard user={USER} setViewImageUrl={() => {}} />);
 
+    // The Verification Queue is a tab now, not a stacked panel (Batch 5 / WI-06).
+    fireEvent.click(await screen.findByRole('tab', { name: /verification queue/i }));
     fireEvent.click(await screen.findByRole('button', { name: /review/i }));
 
     await waitFor(() => expect(received.triggerNotification).toBeDefined());
@@ -77,6 +83,7 @@ describe('FinanceDashboard → FinanceVerificationModal', () => {
   it('shows the size limit inline instead of throwing', async () => {
     render(<FinanceDashboard user={USER} setViewImageUrl={() => {}} />);
 
+    fireEvent.click(await screen.findByRole('tab', { name: /verification queue/i }));
     fireEvent.click(await screen.findByRole('button', { name: /review/i }));
 
     const trigger = await screen.findByText('oversized-file');

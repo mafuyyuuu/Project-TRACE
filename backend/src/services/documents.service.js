@@ -329,13 +329,14 @@ async function listDocuments(user, query) {
       conditions.push('current_status IN (?, ?)');
       params.push(STATUS.PENDING_STUDENT_PAYMENT, STATUS.PENDING_FINANCE_VERIFICATION);
     } else if (desk === 'Secretary') {
-      // Three working queues plus the tail, so a secretary can still see what
+      // Four working queues plus the tail, so a secretary can still see what
       // they released rather than having documents vanish at handoff.
-      conditions.push('current_status IN (?, ?, ?, ?, ?)');
+      conditions.push('current_status IN (?, ?, ?, ?, ?, ?)');
       params.push(
         STATUS.PENDING_SEC_EVALUATION,
         STATUS.SEC_PROCESSING,
         STATUS.PAID_PENDING_SEC_RELEASE,
+        STATUS.SEC_OR_VERIFIED,
         STATUS.READY_FOR_RELEASE,
         STATUS.COMPLETED
       );
@@ -661,13 +662,20 @@ async function submitPayment(user, documentId, { gcash_reference_no, payment_met
  * the *price*, but pricing authority and payment authority are deliberately
  * separate: no document is released as paid without Finance saying so
  * (docs/CODING_PREFERENCES.md).
+ *
+ * Approving requires the Official Receipt number, same as logWalkInPayment —
+ * a walk-in already has one from the counter and the clerk just confirms it,
+ * but a digital payment had none recorded anywhere until now.
  */
-async function verifyPayment(user, documentId, { action, notes }, file) {
+async function verifyPayment(user, documentId, { action, notes, or_number, or_date }, file) {
   if (user.role !== 'clerk' || user.desk_assignment !== 'Finance') {
     throw forbidden('Only Finance Clerks can verify payments.');
   }
   if (!['approve', 'reject'].includes(action)) {
     throw badRequest('Invalid action. Must be approve or reject.');
+  }
+  if (action === 'approve' && !or_number) {
+    throw badRequest('Enter the Official Receipt number.');
   }
 
   const officialReceiptPath = file ? `/uploads/${file.filename}` : null;
@@ -694,7 +702,13 @@ async function verifyPayment(user, documentId, { action, notes }, file) {
     const groupDocs = await documentModel.findByRequestGroupForUpdate(groupId, connection);
 
     const [result] = await documentModel.updatePaymentVerificationForGroup(
-      groupId, newStatus, paymentStatus, officialReceiptPath, connection
+      groupId, newStatus, paymentStatus,
+      {
+        officialReceiptPath,
+        orNumber: action === 'approve' ? or_number : null,
+        orDate: action === 'approve' ? (or_date || null) : null,
+      },
+      connection
     );
     clearedCount = result.affectedRows;
 
@@ -741,8 +755,8 @@ async function verifyPayment(user, documentId, { action, notes }, file) {
     const studentCollege = studentInfo.length > 0 ? studentInfo[0].course : null;
     const secretaryClerks = await userModel.findSecretaryClerks(studentCollege);
     await notifications.notifyInAppBulk(secretaryClerks, {
-      title: 'Payment Verified — Ready for Handoff',
-      message: `Payment cleared for ${doc.document_type} (${doc.tracking_number}). Hand the printed document to Window 1 and mark it released.`,
+      title: 'Payment Verified — Check the Receipt',
+      message: `Payment cleared for ${doc.document_type} (${doc.tracking_number}). Verify the Official Receipt, then hand the printed document to Window 1.`,
       type: 'success',
     });
   }
@@ -1136,8 +1150,65 @@ async function priceDocument(user, documentId, { amount, page_count, pricing_not
 }
 
 /**
+ * College Secretary checks the Official Receipt Finance attached before the
+ * printed document can be handed to Window 1.
+ *
+ * Deliberately a procedural completeness check, not a second money decision:
+ * it never touches `payment_status`. Only Finance's verifyPayment ever marks a
+ * document PAID — this step exists so nothing reaches Window 1 on the strength
+ * of a payment nobody actually looked the paperwork for
+ * (docs/CODING_PREFERENCES.md — pricing and payment stay separate authorities).
+ *
+ * No reject path: unlike verifyPayment or intakeDocument, there is nothing to
+ * send back to a previous desk here. A genuinely wrong OR is a Finance data
+ * problem, fixed by Finance re-approving with the correct number — not a
+ * pipeline transition.
+ */
+async function verifyOfficialReceipt(user, documentId, { notes } = {}) {
+  requireDesk(user, 'Secretary', 'Only College Secretaries can verify the Official Receipt.');
+
+  const connection = await pool.getConnection();
+  let doc;
+
+  try {
+    await connection.beginTransaction();
+
+    const docs = await documentModel.findByIdForUpdate(documentId, connection);
+    if (docs.length === 0) {
+      throw notFound('Document not found.');
+    }
+    doc = docs[0];
+
+    assertTransition(doc.current_status, STATUS.SEC_OR_VERIFIED);
+    await documentModel.updateOrVerification(documentId, user.id, connection);
+
+    await stepLogModel.insert(
+      {
+        document_id: documentId,
+        clerk_id: user.id,
+        action_taken: 'or_verified',
+        from_status: STATUS.PAID_PENDING_SEC_RELEASE,
+        to_status: STATUS.SEC_OR_VERIFIED,
+        notes: notes || `Official Receipt${doc.or_number ? ` (${doc.or_number})` : ''} checked by ${user.full_name}.`,
+      },
+      connection
+    );
+
+    await connection.commit();
+  } catch (err) {
+    await connection.rollback();
+    throw err;
+  } finally {
+    connection.release();
+  }
+
+  return { message: 'Official Receipt verified. Ready for handoff to Window 1.' };
+}
+
+/**
  * College Secretary hands the printed, signed and dry-sealed document to
- * Window 1 once Finance has confirmed the money.
+ * Window 1 once Finance has confirmed the money and the Official Receipt has
+ * been checked.
  *
  * A separate step rather than an automatic move, because it records a physical
  * event: the paper actually changing hands. Marking it in the system while the
@@ -1172,7 +1243,7 @@ async function confirmHandoff(user, documentId, { notes }) {
         document_id: documentId,
         clerk_id: user.id,
         action_taken: 'handed_to_window_1',
-        from_status: STATUS.PAID_PENDING_SEC_RELEASE,
+        from_status: STATUS.SEC_OR_VERIFIED,
         to_status: STATUS.READY_FOR_RELEASE,
         notes: notes || `Physical document handed to Window 1 by ${user.full_name}.`,
       },
@@ -1437,6 +1508,7 @@ module.exports = {
   scanReceipt,
   logWalkInPayment,
   verifyPayment,
+  verifyOfficialReceipt,
   confirmHandoff,
   releaseDocument,
   cancelDocument,

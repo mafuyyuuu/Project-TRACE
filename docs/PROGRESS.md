@@ -4,16 +4,16 @@ The single record of what has been built, phase by phase. (The former
 `project_trace_roadmap.md` covered the same history at a coarser grain with a *different* phase
 numbering; it was merged into this file so "Phase 12" can only mean one thing.)
 
-## Overall Status: 🟢 Deployment-Ready — pipeline rebuilt (Phase 19), awaiting a provisioned host
+## Overall Status: 🟢 Deployment-Ready — pipeline rebuilt (Phase 19), checkout wired for every payment method (Phase 20), awaiting a provisioned host
 
-Every phase through 17 is done, and **Phase 19 rebuilt the core pipeline** around how the registrar
-actually works. **Phase 18 (Go Live) remains the only outstanding phase, and what it needs is an
+Every phase through 17 is done, **Phase 19 rebuilt the core pipeline** around how the registrar
+actually works, and **Phase 20 finished wiring the payment-methods feature that Phase 13 had only
+half-built**. **Phase 18 (Go Live) remains the only outstanding phase, and what it needs is an
 account and a machine, not code.**
 
 ### 📍 What actually remains
 
-0. *(Phase 19 rebuilt the pipeline after this list was written; none of it changed what Go Live
-   needs.)*
+0. *(Phases 19 and 20 landed after this list was written; neither changed what Go Live needs.)*
 1. **Provision the VM** and point a hostname at it. HTTPS is not optional — a browser on an `https://`
    frontend refuses to call an `http://` backend, and a bare IP cannot be issued a certificate.
 2. **Rotate the UniSMS API key.** It shipped as a `||` fallback default and remains in git history
@@ -375,11 +375,213 @@ quote anything until it has been printed.*
 
 ---
 
+### Phase 20: Payment Methods — Finish What Phase 13 Started
+**Status:** ✅ Complete
+*Phase 13 built four payment methods into the data model — GCash, Card, Online Banking, Over-the-
+Counter — behind a gateway-ready provider abstraction. Only GCash was ever reachable: the student
+checkout modal was hardcoded to it (fixed QR image, fixed "GCash Reference Number" label, and
+`selectedMethod` defaulted to `'gcash'` with nothing ever calling `setSelectedMethod`), and there was
+no admin screen to manage the other three at all, despite `payment_methods` being called
+"admin-managed" in the docs since Phase 13.*
+- [x] **Admin CRUD.** New `GET/POST /api/maintenance/payment-methods`, `PUT /:id`,
+  `PATCH /:id/active`, mirroring the Document Type/College CRUD exactly: deletion is deactivation,
+  admin-only. Two guardrails specific to this table: `code` is never editable once created (it's
+  what `documents.payment_method` stores directly, so changing it would strand the lookup for every
+  document that already used it), and `provider` is validated against the registry in
+  `services/payment/` at create *and* update time, so a typo can't produce a method that 400s the
+  first time a student tries to pay with it. New "Payment Methods" tab in the Maintenance panel.
+- [x] **The student checkout modal now shows every active method**, not just GCash. A picker row
+  drives `selectedMethod`/`paymentMethods`, which `useStudentDashboard.js` had already been fetching
+  and threading through unused. The GCash QR renders only when GCash is selected; every other method
+  shows its own `instructions` text. The reference-number field's label and requirement, and whether
+  a proof upload is required at all, now come from the selected method's `reference_label` /
+  `requires_reference` / `requires_proof` instead of being hardcoded — an admin can configure either
+  requirement off for a method and the form (and `handleStudentSubmitPayment`'s validation) honors it.
+  `submitPayment` on the backend needed no change: it already accepted an arbitrary `payment_method`
+  and resolved it through the same provider registry.
+- [x] **Tests:** 644 total (435 backend + 209 frontend), up from 620. Zero ESLint errors.
+
+> **Found while verifying, and fixed:** neither the Document Type nor College CRUD (Phase 12) had
+> ever had an edit-in-place path exposed in the UI, despite `updateDocumentType`/`updateCollege`
+> existing in both the service and the frontend hook since that phase — only Create and
+> Deactivate/Restore were ever wired to a button. Payment methods follow that same, apparently
+> deliberate precedent: `updatePaymentMethod` exists end to end but isn't yet exposed as an "Edit"
+> button either. Left as-is rather than introducing a new UI pattern the other two entities don't
+> have; worth a follow-up if the Registrar actually needs to edit a method's instructions without a
+> database console.
+
+---
+
+### Phase 21: UI/UX Revision Pass (Internal User Testing)
+**Status:** Batches 1–7 complete. FX-05 deferred out of this phase's presentation-layer-only scope —
+resolved separately in Phase 22.
+*Presentation-layer fixes from rounds of internal user testing, batch by batch. Every batch's ground
+rules: presentation layer only, no schema/API/auth changes beyond wiring already-existing endpoints
+(a named exception needs explicit sign-off, the same way Phase 22 and Batch 7 below got one), reuse
+existing components, keep Vitest green.*
+
+- [x] **Batch 1 — App shell & global behavior.** Sidebar and navbar made properly sticky (the shell's
+  root moved from `min-h-screen` to `h-dvh overflow-hidden`, so `<main>` is the one real scroll
+  region instead of the whole page scrolling together). Icon audit: replaced the wrong bar-chart
+  "Dashboard" icon and the duplicate gear shared between Settings and System Maintenance. Text
+  selection disabled app-wide except table cells, inputs and tracking numbers. Defined the `fade-in`
+  keyframe — referenced at 13 call sites but never actually defined anywhere, a real dead-class bug —
+  and added entrance animation to all 11 modals and the mobile drawer. Mobile table layout fixes
+  across the Student and Finance dashboards.
+- [x] **Batch 2 — Shared components.** New `components/ModalShell.jsx` (portal, backdrop, focus trap,
+  Esc-to-close, a scrollable body with a footer pinned regardless of content length) and
+  `components/ConfirmDialog.jsx` built on it, replacing all three `window.confirm()` call sites
+  (Secretary handoff, Window 1 release, Student cancel) plus adding a Logout confirmation that never
+  existed. `components/QueueTabs.jsx` replaced Secretary's three stacked tables with a tab bar.
+  `components/UserCard.jsx` plus a card grid (`features/admin/components/UserGrid.jsx`,
+  `UserDetailModal.jsx`, `UserEditModal.jsx`, `AddUserModal.jsx`) replaced the plain Registered
+  Users / Staff Accounts tables — gated by a real backend check first: no email-verification flow
+  exists anywhere, so that block in the Edit User modal renders visibly disabled rather than faked,
+  and "Delete User" was dropped entirely since no hard-delete endpoint exists (deactivation only,
+  per this doc's own rule under "Deletion & Destructive Actions").
+- [x] **Batch 3 — Student view.** Active Requests row spacing given a consistent column rhythm. The
+  "Action Required — Payment" banner now shows one row and one button per **request group** instead
+  of one per document — `submitPayment` already settles the whole group from any single document id
+  it's called with, so the duplicate buttons were the actual bug, not a missing backend capability.
+  Live Tracking's stepper was hardcoded for 5 columns against the real 8-stage pipeline; node width
+  and the connecting bar's position now derive from the real stage count instead of a fixed fraction.
+- [x] **Batch 4 — Window 1 & Secretary.** All 11 existing modals retrofitted onto `ModalShell` (8 new
+  optional class-override props added — `bare`, `panelClassName`, `backdropClassName`, etc. — every
+  one defaulting to the prior hardcoded output, so no existing consumer needed to change).
+  `ConfirmDialog` extended to 14 more state-changing buttons across Finance, Secretary, Window 1 and
+  Admin (approve, reject, deactivate, log a payment) — pure-navigation and view-only buttons (Refresh,
+  View, Live Tracking) deliberately left alone.
+- [x] **FX-05 (Window 1 release without an Official Receipt), resolved in Phase 22 below.** Traced to
+  the Release action, which had no validation at all — not hidden, genuinely absent. What was actually
+  asked for was a new Secretary OR-verification pipeline stage; see Phase 22 for the real
+  schema/status/endpoint work this turned into, once out of presentation-layer-only scope.
+- [x] **Tests:** 209 frontend tests passing throughout (backend untouched — every change was
+  presentation-layer). Zero ESLint errors.
+
+> **Committed since.** Batches 1–4 existed only in the working tree as of this writing, but all four
+> are now committed and pushed to `origin/dev`, along with everything through Phase 22 below.
+
+- [x] **Batch 5 — Admin & Finance.** Window 1's Manual Input moved off its own sidebar tab and onto
+  the intake dashboard as a panel (`ManualInputModal.jsx`, built on `ModalShell`), keeping the same
+  form field ids `handleFetchStudent` reads by DOM id; the tab, its nav entry and its now-orphaned
+  `formPlus` icon were removed. Admin's System Throughput KPI card had two bugs: the value collapsed
+  to a dash whenever the average happened to round near zero (a broken proxy for "no completed
+  documents ever"), and its sparkline was 100% decorative fake data shared by all four dashboards.
+  Both are fixed by sourcing the card from `GET /api/reports/analytics` — already fetched elsewhere
+  for the Efficiency Analytics tab — which carries a real all-time completed count and a real
+  per-day throughput series, so neither fix needed the new backend field that was first proposed and
+  flagged for sign-off. The 7-day forecast card gained an expand-to-full-week modal
+  (`ForecastModal.jsx`), since the compact card only ever showed the last 5 of the 7 days it had.
+  Finance's two queues (Awaiting Payment / Verification) became tabs via the existing `QueueTabs`,
+  matching Secretary's precedent. The Finance verification modal and the student's Payment History
+  table stopped hardcoding "GCash" labels and a "GC-" prefix regardless of actual payment method —
+  both now show the real method's name and reference label via the existing `payment_methods` data,
+  and a fake fallback reference number (`'992139'`) shown when none existed was removed alongside it.
+  Two of the batch's tickets (WI-03/WI-04, converting Registered Users/Staff Accounts to a card grid)
+  turned out to already be done, from Batch 2.
+- [x] **Batch 6 — Bugs.** Account Settings' profile picture uploaded to the server the instant a file
+  was picked, independent of "Save Settings" — so it looked like part of the gated form but wasn't
+  one. `useProfileSettings.js` now stages a picked file as a local preview only (`avatarFile`/
+  `avatarPreviewUrl`); the upload happens as the first step of `saveProfile`, alongside the existing
+  phone/email/password save, and closing Account Settings without saving discards the pick via a new
+  `discardAvatarChange()`, wired into `Layout.jsx`'s modal close.
+- [x] **Batch 7 — Sign-up & Graduate Application.** Alumni self-declare `user_type` at signup and it
+  was stored correctly, but the login query never selected it and `login()` never forwarded it to the
+  frontend — every signed-in user looked like a plain student, so nothing could gate on being an
+  alumnus. The second batch in this pass authorized to touch the backend (after Phase 22), on
+  explicit sign-off: `getProfileById` (backing `GET /api/auth/me`, which `useAuth.js` calls on every
+  page load) and `login()`'s returned `user` object both now carry `user_type` — fixing only `login()`
+  as the ticket named would have left the gate working right after login and broken again on the next
+  refresh. With that in place, the Graduate Application tab is now gated on alumni status instead of
+  `role === 'student'` in both `DashboardPage.jsx` and the nav entry itself in `navigation.js` — a
+  regular student no longer sees the tab at all, including by navigating to it directly. Finally, a
+  submitted application previously only ever showed up on the alumnus's own account: the staff
+  review endpoints (`listApplications`/`reviewApplication`) already existed, fully tested, and even
+  had unused frontend service wrappers already written — nothing called them. New
+  `useGradApplicationReview.js` + `GradApplicationReviewPanel.jsx` (Pending/Approved/Rejected tabs,
+  a detail view showing the six answers by their real labels, approve/reject behind the existing
+  `ConfirmDialog` stage/confirm/cancel pattern, reject requiring a note like every other reject
+  action in the system) are shared, unmodified, between a new tab on both the Admin and the Secretary
+  dashboards.
+- [x] **Tests, Batches 5–7:** backend 444 → **445** (Batch 7's `user_type` additions — the only
+  backend change across all three batches); frontend 210 → **222** (Batch 6 added 3, Batch 7 added 9
+  across the nav-gating and the new review panel's own test file). Zero ESLint errors throughout;
+  production build succeeds after each batch (same pre-existing >500kB chunk-size warning, unrelated).
+
+> **Committed.** All three batches landed as separate commits on `dev` this session. Visual/browser
+> verification was not performed for any of the three — no Claude-in-Chrome connection was available
+> — so the manual pass each batch's own notes call for (picking a photo and confirming the
+> revert-on-discard behavior, exercising the alumni gate with a real account, approving/rejecting a
+> real submitted application from both dashboards) is still outstanding.
+
+---
+
+### Phase 22: FX-05 Resolved — Official Receipt Verification
+**Status:** Complete
+*The online-payment half of the deferred FX-05 ticket, scoped after research showed the walk-in half
+the user described (Finance OCR-scanning a physical OR and attaching it to the request) was already
+fully built end-to-end — nothing new was needed there. This phase is the first in the whole Phase 21
+revision pass to touch schema, status vocabulary and endpoints rather than presentation only, done
+with explicit authorization for that scope.*
+
+- [x] **New pipeline stage.** `SEC_OR_VERIFIED` inserted between `PAID_PENDING_SEC_RELEASE` and
+  `READY_FOR_RELEASE` in `backend/src/utils/documentStatus.js` (`STATUS`, `PIPELINE`, `TRANSITIONS`,
+  `STAGE_LABELS`), mirrored in `frontend/src/utils/documentStatus.js`. The pipeline is now nine
+  stages. `confirmHandoff`'s existing `assertTransition` call needed no code change — it now only
+  succeeds from the new status because the transition map says so.
+- [x] **Migration.** Two new nullable columns + FK on `documents`:
+  `or_verified_by_clerk_id`, `or_verified_at` — mirroring the existing `priced_by_clerk_id` /
+  `logged_by_clerk_id` audit-trail pattern. Verified idempotent (second run changes 0 rows) against
+  the local dev database.
+- [x] **Finance now captures the OR number on approval.** `verifyPayment()` requires `or_number` to
+  approve (mirroring `logWalkInPayment`'s existing guard) and writes it — previously this was written
+  only for walk-ins, never for a digital payment. `FinanceVerificationModal.jsx` gained a required OR
+  Number field, pre-filled from `selectedDoc.or_number` for a walk-in already carrying one.
+- [x] **New Secretary action: `verifyOfficialReceipt()`.** A deliberate, narrow exception to
+  "pricing and payment are separate authorities" (`docs/CODING_PREFERENCES.md`) — kept procedural on
+  purpose: it never writes `payment_status`, only Finance's `verifyPayment()` still does that. New
+  route `POST /:id/verify-or`, a new "OR Verification" tab in the Secretary dashboard (now four tabs),
+  with a View-Receipt-then-Verify action following the same stage/confirm/cancel `ConfirmDialog`
+  pattern as every other desk action this session. No reject/dispute path — not requested, and there
+  is nothing to send back to a previous desk from here; a wrong OR is a Finance data fix.
+- [x] **Window 1 can now view the receipt image at release**, not just the typed OR number — the
+  confirmed, uncontroversial gap found during research, now wired via the existing
+  `setViewImageUrl`/`ImageViewerModal` pattern (`Window1Dashboard.jsx`'s release queue row and its
+  release `ConfirmDialog`), and it now applies uniformly since every document reaching Release has
+  passed through OR verification regardless of channel.
+- [x] **Live Tracking, progress bars and stage labels** all gained the new stage — `LiveTrackingModal.jsx`'s
+  `TRACKER_NODES`/`STAGE_MESSAGE`, `useStudentDashboard.js`'s `TRACKER_TARGETS`, and
+  `utils/documentStatus.js`'s `PROGRESS`/`STATUS_LABELS`/`STAGE_LABELS` on both sides. The stepper's
+  sizing already derived from `TRACKER_NODES.length` since Batch 3's FX-07 fix, so the 9th node needed
+  no layout change.
+- [x] **Docs updated to match:** `docs/SYSTEM_WORKFLOWS.md` (pipeline table, Finance/Secretary/Window 1
+  role sections), `docs/BACKEND_GUIDE.md` (endpoint table, `documents` column list, payment flow
+  narrative), `CLAUDE.md` (pipeline diagram and authority-split callout), `docs/CODING_PREFERENCES.md`
+  (💳 Payments section).
+- [x] **Tests:** backend — 2 new `describe` blocks (`verifyOfficialReceipt`, updated `confirmHandoff`
+  and `verifyPayment` expectations) in `documents.service.test.cjs`, plus `documentStatus.test.cjs`
+  updated for the 9-step pipeline; 444 backend tests passing (this phase's first time the backend test
+  suite was touched all session). Frontend — `pipeline.queues.render.test.jsx` extended to a 4th
+  Secretary tab and the new stage; `documentStatus.test.js` extended; 210 frontend tests passing, zero
+  ESLint errors, production build succeeds (same pre-existing >500kB chunk-size warning as before,
+  unrelated to this work).
+- [x] **Migration run against the local dev database** to verify it applies cleanly; 3 existing local
+  documents were sitting at `PAID_PENDING_SEC_RELEASE` and will now need an OR-verification pass
+  before their next handoff — expected, not a data problem, since it is local dev data.
+
+> **Committed.** Phase 22, like Batches 1–4 before it, is now on `dev` at `origin/dev`. Visual/browser
+> verification of the new Secretary tab and Window 1 receipt-viewing button was not performed (no
+> Claude-in-Chrome connection this session, consistent with every batch before it) and is still
+> outstanding.
+
+---
+
 ## Known Issues (Pre-existing, surfaced during the Phase 8 audit)
 These predate the restructure and remain open:
 * ~~Secretary seed drift~~ — **resolved.** `migration.js` seeds all seven per-college secretaries; they now exist. A stale `SEC001` with a `NULL` course remains and sees every college's queue, so consider removing it.
 * ~~**Unpassed modal props**~~ — **resolved.** `deliveryMethod`/`setDeliveryMethod` no longer exist on `NewRequestModal`, and `FinanceVerificationModal`'s `triggerNotification` is now passed by `FinanceDashboard` (Phase 16). The latter was a live crash, not just an unused prop.
 * ~~**Unused legacy payments route**~~ — **resolved.** `payments.service.js`, its controller and its routes were deleted in Phase 16.
+* ~~**AI engine segfault on macOS after an OCR request**~~ — **resolved.** `torch`, `scikit-image` and `scikit-learn` each bundle their own copy of `libomp.dylib`; loading all three into one process (as `ai-engine/app.py` does) is a known macOS "duplicate OpenMP runtime" crash — it surfaced as a silent `segmentation fault` immediately after a successful `/ocr/extract` response, right as EasyOCR's torch thread pool spun up, rather than the usual `OMP: Error #15` abort. Fixed by setting `KMP_DUPLICATE_LIB_OK`/`OMP_NUM_THREADS` at the top of `ocr_engine.py`, before its `easyocr`/`cv2` imports. Apple Silicon dev-machine issue; the Linux/arm64 production container (Phase 17) isn't expected to hit the same conflict.
 
 ---
 

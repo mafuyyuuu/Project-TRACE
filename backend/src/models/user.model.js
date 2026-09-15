@@ -15,7 +15,7 @@ function findActiveByStudentId(studentId, executor = pool) {
 function getProfileById(userId, executor = pool) {
   return executor
     .query(
-      'SELECT id, student_id, email, full_name, role, desk_assignment, is_active, phone_number, course, enrollment_status, study_load, must_change_password, profile_picture, created_at FROM users WHERE id = ?',
+      'SELECT id, student_id, email, full_name, role, user_type, desk_assignment, is_active, phone_number, course, enrollment_status, study_load, must_change_password, profile_picture, created_at FROM users WHERE id = ?',
       [userId]
     )
     .then(([rows]) => rows);

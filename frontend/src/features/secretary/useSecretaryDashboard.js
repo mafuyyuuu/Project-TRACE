@@ -1,21 +1,24 @@
 import { useState, useCallback, useMemo } from 'react';
 import useDashboardCore from '@/hooks/useDashboardCore';
-import { acceptForProcessing, priceDocument, confirmHandoff } from '@/services/documentsService';
+import { acceptForProcessing, priceDocument, verifyOfficialReceipt, confirmHandoff } from '@/services/documentsService';
 import { STATUS } from '@/utils/documentStatus';
 
 /**
- * College Secretary: the desk that does the actual work, in three passes.
+ * College Secretary: the desk that does the actual work, in four passes.
  *
  * 1. **Initial Evaluation** — check the request against the student's records,
  *    take it on, and commit to a date the student can plan around.
  * 2. **Processing** — prepare and print, then price it from what printing it
  *    actually took. The request is billed once every document in it is priced.
- * 3. **Final Handoff** — once Finance confirms the money, physically pass the
- *    printed document to Window 1.
+ * 3. **OR Verification** — once Finance confirms the money, check the Official
+ *    Receipt they attached is present and the number looks right.
+ * 4. **Final Handoff** — physically pass the printed document to Window 1.
  *
  * Pricing lives here and payment does not: the Secretary sets the amount, and
- * only Finance can ever mark it paid. Keeping those apart is what makes the
- * money trail auditable.
+ * only Finance can ever mark it paid. OR Verification does not change that —
+ * it is a paperwork check, never a second payment decision, and it never
+ * touches `payment_status`. Keeping those apart is what makes the money trail
+ * auditable.
  */
 export default function useSecretaryDashboard(user) {
   const core = useDashboardCore(user);
@@ -34,6 +37,18 @@ export default function useSecretaryDashboard(user) {
   const [pricePageCount, setPricePageCount] = useState('');
   const [priceNotes, setPriceNotes] = useState('');
 
+  // The document staged for a handoff confirmation, or null when the dialog is closed.
+  const [handoffToConfirm, setHandoffToConfirm] = useState(null);
+
+  // The document staged for an OR-verification confirmation, or null when closed.
+  const [orVerifyToConfirm, setOrVerifyToConfirm] = useState(null);
+
+  // The evaluate action ('approve' | 'reject') staged for confirmation, or null.
+  const [evaluateActionToConfirm, setEvaluateActionToConfirm] = useState(null);
+
+  // Whether the pricing confirmation is open.
+  const [pricingToConfirm, setPricingToConfirm] = useState(false);
+
   const evaluationQueue = useMemo(
     () => documents.filter((d) => d.current_status === STATUS.PENDING_SEC_EVALUATION),
     [documents]
@@ -42,8 +57,12 @@ export default function useSecretaryDashboard(user) {
     () => documents.filter((d) => d.current_status === STATUS.SEC_PROCESSING),
     [documents]
   );
-  const handoffQueue = useMemo(
+  const orVerificationQueue = useMemo(
     () => documents.filter((d) => d.current_status === STATUS.PAID_PENDING_SEC_RELEASE),
+    [documents]
+  );
+  const handoffQueue = useMemo(
+    () => documents.filter((d) => d.current_status === STATUS.SEC_OR_VERIFIED),
     [documents]
   );
   const clearedQueue = useMemo(
@@ -57,7 +76,7 @@ export default function useSecretaryDashboard(user) {
    * @param {'approve'|'reject'} action
    */
   const handleSecretaryEvaluate = useCallback(
-    async (action) => {
+    (action) => {
       if (!selectedDoc) return;
       if (action === 'approve' && !estimatedReadyDate) {
         triggerNotification('Give the student a date to expect it by.', 'error');
@@ -67,37 +86,48 @@ export default function useSecretaryDashboard(user) {
         triggerNotification('Say why the request is being returned.', 'error');
         return;
       }
-
-      const ok = await runAction(
-        () =>
-          acceptForProcessing(selectedDoc.id, {
-            student_id: evalStudentId,
-            student_name: evalStudentName,
-            document_type: evalDocType,
-            estimated_ready_date: estimatedReadyDate,
-            action,
-            notes: clerkNotes,
-          }),
-        {
-          successMessage:
-            action === 'approve'
-              ? 'Accepted for processing. The student has been told when to expect it.'
-              : 'Returned to Window 1 with your notes.',
-          errorMessage: 'Evaluation action failed.',
-        }
-      );
-
-      if (ok) {
-        setActiveModal(null);
-        setClerkNotes('');
-        setEstimatedReadyDate('');
-      }
+      setEvaluateActionToConfirm(action);
     },
-    [
-      selectedDoc, evalStudentId, evalStudentName, evalDocType, estimatedReadyDate,
-      clerkNotes, runAction, setActiveModal, triggerNotification,
-    ]
+    [selectedDoc, estimatedReadyDate, clerkNotes, triggerNotification]
   );
+
+  const confirmSecretaryEvaluate = useCallback(async () => {
+    if (!evaluateActionToConfirm || !selectedDoc) return;
+    const action = evaluateActionToConfirm;
+
+    const ok = await runAction(
+      () =>
+        acceptForProcessing(selectedDoc.id, {
+          student_id: evalStudentId,
+          student_name: evalStudentName,
+          document_type: evalDocType,
+          estimated_ready_date: estimatedReadyDate,
+          action,
+          notes: clerkNotes,
+        }),
+      {
+        successMessage:
+          action === 'approve'
+            ? 'Accepted for processing. The student has been told when to expect it.'
+            : 'Returned to Window 1 with your notes.',
+        errorMessage: 'Evaluation action failed.',
+      }
+    );
+
+    if (ok) {
+      setActiveModal(null);
+      setClerkNotes('');
+      setEstimatedReadyDate('');
+      setEvaluateActionToConfirm(null);
+    }
+  }, [
+    evaluateActionToConfirm, selectedDoc, evalStudentId, evalStudentName, evalDocType,
+    estimatedReadyDate, clerkNotes, runAction, setActiveModal,
+  ]);
+
+  const cancelSecretaryEvaluate = useCallback(() => {
+    setEvaluateActionToConfirm(null);
+  }, []);
 
   /**
    * Price the printed document.
@@ -105,7 +135,7 @@ export default function useSecretaryDashboard(user) {
    * The response says whether this was the last one — only then is the student
    * billed, and only then is there a payment slip to print.
    */
-  const handlePriceDocument = useCallback(async () => {
+  const handlePriceDocument = useCallback(() => {
     if (!selectedDoc) return;
 
     const amount = parseFloat(priceAmount);
@@ -113,6 +143,12 @@ export default function useSecretaryDashboard(user) {
       triggerNotification('Enter the amount to charge.', 'error');
       return;
     }
+    setPricingToConfirm(true);
+  }, [selectedDoc, priceAmount, triggerNotification]);
+
+  const confirmPriceDocument = useCallback(async () => {
+    if (!selectedDoc) return;
+    const amount = parseFloat(priceAmount);
 
     let billedResult = null;
     const ok = await runAction(
@@ -134,28 +170,60 @@ export default function useSecretaryDashboard(user) {
       setPriceAmount('');
       setPricePageCount('');
       setPriceNotes('');
+      setPricingToConfirm(false);
       // When the whole request just became payable, go straight to the slip the
       // student needs to carry to Finance. Otherwise close and pick up the next.
       setActiveModal(billedResult?.billed ? 'payment-stub' : null);
     }
-  }, [selectedDoc, priceAmount, pricePageCount, priceNotes, runAction, setActiveModal, triggerNotification]);
+  }, [selectedDoc, priceAmount, pricePageCount, priceNotes, runAction, setActiveModal]);
+
+  const cancelPriceDocument = useCallback(() => {
+    setPricingToConfirm(false);
+  }, []);
+
+  /** Stage an OR-verification check for confirmation. */
+  const handleVerifyOfficialReceipt = useCallback((doc) => {
+    setOrVerifyToConfirm(doc);
+  }, []);
+
+  /** Confirm the Official Receipt Finance attached is present and checks out. */
+  const confirmVerifyOfficialReceiptAction = useCallback(async () => {
+    if (!orVerifyToConfirm) return;
+    const ok = await runAction(() => verifyOfficialReceipt(orVerifyToConfirm.id), {
+      successMessage: 'Official Receipt verified. Ready for handoff to Window 1.',
+      errorMessage: 'Could not verify the Official Receipt.',
+    });
+    if (ok) setOrVerifyToConfirm(null);
+  }, [orVerifyToConfirm, runAction]);
+
+  const cancelVerifyOfficialReceiptConfirm = useCallback(() => {
+    setOrVerifyToConfirm(null);
+  }, []);
+
+  /** Stage a handoff for confirmation. */
+  const handleConfirmHandoff = useCallback((doc) => {
+    setHandoffToConfirm(doc);
+  }, []);
 
   /** Confirm the printed document has physically reached Window 1. */
-  const handleConfirmHandoff = useCallback(
-    async (doc) => {
-      if (!window.confirm(`Confirm you have handed ${doc.document_type} to Window 1?`)) return;
-      await runAction(() => confirmHandoff(doc.id), {
-        successMessage: 'Handoff recorded. Window 1 and the student have been notified.',
-        errorMessage: 'Could not record the handoff.',
-      });
-    },
-    [runAction]
-  );
+  const confirmHandoffAction = useCallback(async () => {
+    if (!handoffToConfirm) return;
+    const ok = await runAction(() => confirmHandoff(handoffToConfirm.id), {
+      successMessage: 'Handoff recorded. Window 1 and the student have been notified.',
+      errorMessage: 'Could not record the handoff.',
+    });
+    if (ok) setHandoffToConfirm(null);
+  }, [handoffToConfirm, runAction]);
+
+  const cancelHandoffConfirm = useCallback(() => {
+    setHandoffToConfirm(null);
+  }, []);
 
   return {
     ...core,
     evaluationQueue,
     processingQueue,
+    orVerificationQueue,
     handoffQueue,
     clearedQueue,
     clerkNotes, setClerkNotes,
@@ -167,7 +235,20 @@ export default function useSecretaryDashboard(user) {
     pricePageCount, setPricePageCount,
     priceNotes, setPriceNotes,
     handleSecretaryEvaluate,
+    evaluateActionToConfirm,
+    confirmSecretaryEvaluate,
+    cancelSecretaryEvaluate,
     handlePriceDocument,
+    pricingToConfirm,
+    confirmPriceDocument,
+    cancelPriceDocument,
+    handleVerifyOfficialReceipt,
+    orVerifyToConfirm,
+    confirmVerifyOfficialReceiptAction,
+    cancelVerifyOfficialReceiptConfirm,
     handleConfirmHandoff,
+    handoffToConfirm,
+    confirmHandoffAction,
+    cancelHandoffConfirm,
   };
 }

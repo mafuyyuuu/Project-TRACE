@@ -20,6 +20,7 @@ vi.mock('@/services/documentsService', () => ({
   intakeDocument: vi.fn(),
   acceptForProcessing: vi.fn(),
   priceDocument: vi.fn(),
+  verifyOfficialReceipt: vi.fn(),
   confirmHandoff: vi.fn(),
   scanReceipt: vi.fn(),
   logWalkInPayment: vi.fn(),

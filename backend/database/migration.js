@@ -623,6 +623,18 @@ async function migrate() {
     );
     console.log(`-> Default current_status is now ${STATUS.PENDING_W1_INTAKE}`);
 
+    // =======================================================================
+    // Phase 22 — Secretary Official Receipt verification
+    // =======================================================================
+    console.log('\n--- Phase 22: OR verification ---');
+
+    // Who checked the OR paperwork and when, mirroring priced_by_clerk_id /
+    // logged_by_clerk_id: a step with no author and no timestamp cannot be
+    // defended when a document's history is questioned.
+    await addColumn('documents', 'or_verified_by_clerk_id', 'INT NULL AFTER logged_by_clerk_id');
+    await addColumn('documents', 'or_verified_at', 'DATETIME NULL AFTER or_verified_by_clerk_id');
+    await addForeignKey('documents', 'fk_documents_or_verified_by', 'or_verified_by_clerk_id', 'users(id) ON DELETE SET NULL');
+
     console.log('✅ Database migration completed successfully.');
     process.exit(0);
   } catch (err) {

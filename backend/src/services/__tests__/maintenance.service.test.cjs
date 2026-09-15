@@ -34,6 +34,13 @@ beforeEach(() => {
   vi.spyOn(referenceModel, 'setDocumentTypeActive').mockResolvedValue([{ affectedRows: 1 }]);
   vi.spyOn(referenceModel, 'countDocumentsUsingType').mockResolvedValue(0);
 
+  vi.spyOn(referenceModel, 'listPaymentMethods').mockResolvedValue([]);
+  vi.spyOn(referenceModel, 'findPaymentMethodByCode').mockResolvedValue([]);
+  vi.spyOn(referenceModel, 'findPaymentMethodById').mockResolvedValue([{ id: 1, code: 'gcash' }]);
+  vi.spyOn(referenceModel, 'createPaymentMethod').mockResolvedValue([{ insertId: 9 }]);
+  vi.spyOn(referenceModel, 'updatePaymentMethod').mockResolvedValue([{ affectedRows: 1 }]);
+  vi.spyOn(referenceModel, 'setPaymentMethodActive').mockResolvedValue([{ affectedRows: 1 }]);
+
   vi.spyOn(userModel, 'listStaff').mockResolvedValue([]);
   vi.spyOn(userModel, 'findById').mockResolvedValue([{ id: 5, role: 'clerk' }]);
   vi.spyOn(userModel, 'findExistingByStudentId').mockResolvedValue([]);
@@ -52,6 +59,9 @@ describe('admin-only access', () => {
     listStaff: (u) => service.listStaff(u),
     createStaff: (u) => service.createStaff(u, { employee_id: 'X' }),
     setStaffActive: (u) => service.setStaffActive(u, 5, false),
+    listPaymentMethods: (u) => service.listPaymentMethods(u),
+    createPaymentMethod: (u) => service.createPaymentMethod(u, { code: 'x', name: 'X' }),
+    setPaymentMethodActive: (u) => service.setPaymentMethodActive(u, 1, false),
   };
 
   it.each(Object.keys(calls))('%s rejects a clerk', async (name) => {
@@ -142,6 +152,62 @@ describe('document types', () => {
     referenceModel.countDocumentsUsingType.mockResolvedValue(12);
     const res = await service.setDocumentTypeActive(ADMIN, 1, false);
     expect(res.affected_documents).toBe(12);
+    expect(res.message).toMatch(/unaffected/i);
+  });
+});
+
+describe('payment methods', () => {
+  it('creates one, lowercasing and trimming the code', async () => {
+    await service.createPaymentMethod(ADMIN, { code: '  Card  ', name: 'Credit / Debit Card' });
+    expect(referenceModel.createPaymentMethod).toHaveBeenCalledWith(
+      expect.objectContaining({ code: 'card', name: 'Credit / Debit Card', provider: 'manual' })
+    );
+  });
+
+  it.each(['1card', 'Card Payment', 'card-payment', ''])('rejects an invalid code (%s)', async (code) => {
+    expect(await statusOf(service.createPaymentMethod(ADMIN, { code, name: 'X' }))).toBe(400);
+  });
+
+  it('rejects a duplicate code', async () => {
+    referenceModel.findPaymentMethodByCode.mockResolvedValue([{ id: 2, code: 'gcash' }]);
+    const msg = await messageOf(service.createPaymentMethod(ADMIN, { code: 'gcash', name: 'GCash' }));
+    expect(msg).toMatch(/already exists/i);
+    expect(referenceModel.createPaymentMethod).not.toHaveBeenCalled();
+  });
+
+  it('rejects an unregistered provider on create', async () => {
+    const msg = await messageOf(
+      service.createPaymentMethod(ADMIN, { code: 'paypal', name: 'PayPal', provider: 'paypal' })
+    );
+    expect(msg).toMatch(/unknown payment provider/i);
+  });
+
+  it('rejects an unregistered provider on update', async () => {
+    const msg = await messageOf(service.updatePaymentMethod(ADMIN, 1, { provider: 'paypal' }));
+    expect(msg).toMatch(/unknown payment provider/i);
+    expect(referenceModel.updatePaymentMethod).not.toHaveBeenCalled();
+  });
+
+  it('updates without touching code', async () => {
+    await service.updatePaymentMethod(ADMIN, 1, { name: 'Renamed', requires_proof: false });
+    expect(referenceModel.updatePaymentMethod).toHaveBeenCalledWith(
+      1, expect.objectContaining({ name: 'Renamed', requires_proof: false })
+    );
+    expect(referenceModel.updatePaymentMethod.mock.calls[0][1].code).toBeUndefined();
+  });
+
+  it('update 404s on an unknown id', async () => {
+    referenceModel.findPaymentMethodById.mockResolvedValue([]);
+    expect(await statusOf(service.updatePaymentMethod(ADMIN, 99, { name: 'X' }))).toBe(404);
+  });
+
+  it('toggle 404s on an unknown id', async () => {
+    referenceModel.findPaymentMethodById.mockResolvedValue([]);
+    expect(await statusOf(service.setPaymentMethodActive(ADMIN, 99, false))).toBe(404);
+  });
+
+  it('deactivating explains existing payments are unaffected', async () => {
+    const res = await service.setPaymentMethodActive(ADMIN, 1, false);
     expect(res.message).toMatch(/unaffected/i);
   });
 });
