@@ -251,6 +251,65 @@ If any one point fails (e.g., the uploaded image is from a different school), th
 
 ---
 
+### 1.7 Sample Computation — Official Receipt Extraction
+
+The third OCR use in the system, after document intake (§1.5) and registration ID verification
+(§1.6). A student who paid at the Finance counter brings back a printed Official Receipt; this reads
+it so the clerk **verifies figures instead of transcribing them**. Money is the one place in TRACE
+where a typo is expensive, which is why nothing here is trusted on its own.
+
+**Raw OCR text** (`extract_text`, the same dual-pass in §1.3):
+
+```
+PAMANTASAN NG LUNGSOD NG PASIG
+OFFICIAL RECEIPT No. 2026-0042
+Date: 09/06/2026
+Transcript of Records   200.00
+Honorable Dismissal     100.00
+TOTAL  P 300.00
+```
+
+**Field 1 — OR number.** The pattern tolerates `OR`, `O.R.`, `Official Receipt`, and the optional
+`No.`/`#` that may follow. EasyOCR frequently reads `O.R.` as `0R`, so the leading character class
+accepts a zero:
+
+```
+(?:official\s*receipt|[O0]\.?\s*R\.?)\s*(?:no|num(?:ber)?|#)?[.:\s#]*([A-Z0-9][A-Z0-9\-]{2,20})
+        → "2026-0042"
+```
+
+**Field 2 — amount.** Every peso figure is collected, then the **largest** is taken:
+
+```
+candidates = [200.00, 100.00, 300.00]     →  max = 300.00
+```
+
+Taking the *first* match would return `200.00` — a line item, not the total. A receipt lists what was
+bought before what was paid, so first-match would systematically under-record every multi-item
+payment. Bare integers are ignored unless prefixed by a currency marker, or a year or receipt number
+would win.
+
+**Field 3 — date.** Tried as `YYYY-MM-DD` then `MM/DD/YYYY`, and constructed through `date()` so an
+impossible reading is discarded rather than stored:
+
+```
+"09/06/2026"  →  date(2026, 9, 6)  →  "2026-09-06"
+"45/99/2026"  →  ValueError        →  None
+```
+
+**Confidence** follows the same convention as §1.4 — fields found over fields sought:
+
+```
+        Confidence = 3 / 3 × 100 = 100.0%
+```
+
+**What the clerk sees.** 100% means every field was read, *not* that every field is right. The form
+says so, and the fields stay editable. Below 100% the banner names how much was read and asks the
+clerk to fill in the rest. If the AI engine is unreachable, `extractReceipt` returns `null` and the
+form simply falls back to manual entry — a student is standing at the counter either way.
+
+---
+
 ## 2. Facebook Prophet — 7-Day Volume Forecasting
 
 ### 2.1 Algorithm Overview
@@ -502,13 +561,13 @@ The feature and threshold that maximize *ΔGini* are chosen for each split.
 Project TRACE constructs a **3-dimensional feature vector** from real-time database metrics:
 
 ```
-        x = [ pending_secretary,  pending_release,  today_volume ]
+        x = [ pending_evaluation,  pending_release,  today_volume ]
 ```
 
 Where:
 
-- **pending_secretary** = COUNT of documents with `current_status = 'pending_secretary'`
-- **pending_release** = COUNT of documents with `current_status = 'ready_window_1'`
+- **pending_evaluation** = COUNT of documents with `current_status = 'PENDING_SEC_EVALUATION'`
+- **pending_release** = COUNT of documents with `current_status = 'READY_FOR_RELEASE'`
 - **today_volume** = COUNT of `step_logs` entries where `DATE(timestamp_started) = CURDATE()`
 
 These three SQL queries are executed in real time against the MySQL database when the `/ai/recommend` endpoint is called.
@@ -519,7 +578,7 @@ These three SQL queries are executed in real time against the MySQL database whe
 
 The classifier is trained on a **heuristic-defined** training set representing four operational states:
 
-| Training Sample | pending_secretary | pending_release | today_volume | Label | Interpretation |
+| Training Sample | pending_evaluation | pending_release | today_volume | Label | Interpretation |
 |:-:|:-:|:-:|:-:|:-:|:--|
 | 1 | 1 | 0 | 5 | **0** | Low load — System is running smoothly |
 | 2 | 10 | 2 | 25 | **1** | Secretary bottleneck — Evaluation queue is congested |
@@ -535,7 +594,7 @@ The Random Forest with `n_estimators=10` and `random_state=42` fits 10 decision 
 After classification, the prediction label is mapped to actionable insights with a **dual-condition** approach — both the Random Forest label AND direct threshold checks are evaluated:
 
 ```
-        if prediction == 1  OR  pending_secretary > 5:
+        if prediction == 1  OR  pending_evaluation > 5:
             → "Secretary Bottleneck Detected"
 
         if prediction == 2  OR  pending_release > 3:
@@ -559,10 +618,10 @@ This hybrid approach ensures that even if the classifier produces a false negati
 **Step 1 — Feature Vector Construction (SQL Queries):**
 
 ```sql
-SELECT COUNT(*) FROM documents WHERE current_status = 'pending_secretary';
--- Result: pending_secretary = 8
+SELECT COUNT(*) FROM documents WHERE current_status = 'PENDING_SEC_EVALUATION';
+-- Result: pending_evaluation = 8
 
-SELECT COUNT(*) FROM documents WHERE current_status = 'ready_window_1';
+SELECT COUNT(*) FROM documents WHERE current_status = 'READY_FOR_RELEASE';
 -- Result: pending_release = 2
 
 SELECT COUNT(*) FROM step_logs WHERE DATE(timestamp_started) = CURDATE();
@@ -600,7 +659,7 @@ Each of the 10 decision trees casts a vote based on x = [8, 2, 19]:
 
 ```
         prediction == 1?  → YES  ✅
-        pending_secretary (8) > 5?  → YES  ✅
+        pending_evaluation (8) > 5?  → YES  ✅
         → Generate: "Secretary Bottleneck Detected"
 
         prediction == 2?  → NO

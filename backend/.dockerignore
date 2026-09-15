@@ -1,0 +1,7 @@
+node_modules/
+uploads/*
+!uploads/.gitkeep
+.env
+npm-debug.log
+**/__tests__/
+audit.js

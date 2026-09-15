@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import { useAuth } from '../utils/hooks'
-import plpLogo from '../assets/plp_logo.png'
+import useAuth from '@/hooks/useAuth'
+import plpLogo from '@/assets/plp_logo.png'
 
 export default function LoginPage() {
   const { login, loading, error: authError } = useAuth()
@@ -105,7 +105,7 @@ export default function LoginPage() {
                 </button>
               </div>
               <div className="text-right mt-2">
-                <Link to="#" className="text-sm font-medium text-white/90 hover:text-white hover:underline">Forgot Password?</Link>
+                <Link to="/forgot-password" className="text-sm font-medium text-white/90 hover:text-white hover:underline">Forgot Password?</Link>
               </div>
             </div>
 

@@ -1,0 +1,30 @@
+# TLS termination for the TRACE backend.
+#
+# HTTPS is mandatory, not cosmetic: the frontend is served from Vercel over
+# https, and a browser refuses to let an https page call an http API (mixed
+# content). Caddy obtains and renews a Let's Encrypt certificate on its own.
+#
+# It needs a real hostname — a bare IP cannot be issued a certificate. A free
+# subdomain (DuckDNS) or any domain pointed at the VM's IP both work.
+#
+# Set API_DOMAIN and ACME_EMAIL in the repo-root .env.
+
+{$API_DOMAIN} {
+	# Socket.IO needs the websocket upgrade forwarded, which reverse_proxy
+	# does by default — do not add a header filter that strips it.
+	reverse_proxy backend:3300
+
+	encode gzip
+
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "DENY"
+		Referrer-Policy "strict-origin-when-cross-origin"
+	}
+
+	log {
+		output stdout
+		format console
+	}
+}
