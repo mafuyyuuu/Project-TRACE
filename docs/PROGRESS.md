@@ -600,3 +600,4 @@ These predate the restructure and remain open:
 * **Notification System Fixed:** Patched Axios wrapper bugs in `api.js` to ensure the real-time bell dropdown accurately populates, and added notification triggers to the Window 1 release endpoint.
 * **Defense Script Generated:** Built a highly detailed, stage-directed Capstone defense transcript for a 3-person team.
 * **Unified Dashboard Page:** Rebuilt `DashboardPage.jsx` and `Layout.jsx` with responsive layouts and multi-tab sidebars corresponding to the active role.
+* **Production Deployment:** Successfully rotated UniSMS API keys, fully configured Nodemailer SMTP, and deployed the entire architecture to a live Google Cloud VM with automated snapshots, persistent volumes, and a live n8n orchestrator.

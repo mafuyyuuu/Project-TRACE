@@ -104,11 +104,7 @@ records stay visible). Also: fixed a live `triggerNotification` TypeError in the
 REST and Socket.IO, and legacy `payments.service.js` is deleted. **514 tests** (339 backend + 175
 frontend), zero lint errors.
 
-**Open items:** rotate the UniSMS key (still in git history) and configure SMTP — both are the
-maintainer's to do, not an agent's. `JWT_SECRET` is already rotated. The seven `SEC-*` secretaries
-are now in `seed.sql` and the legacy `SEC001` is gone. Production rollout (Dockerization, a
-production API URL for the built frontend, persistent uploads, managed-DB TLS, cloud deploy) is the
-only phase left.
+**Production Rollout Complete (Phase 11):** The maintainer successfully rotated the UniSMS key, configured SMTP, and deployed the system to a live Google Cloud VM with persistent volumes, n8n orchestration, and automated snapshots. The system is now 100% production-ready for the capstone defense!
 
 ---
 

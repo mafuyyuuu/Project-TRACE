@@ -26,7 +26,7 @@ def get_db_connection():
         database=os.getenv('DB_NAME', 'trace_db')
     )
 
-def generate_mock_data(num_docs=500):
+def generate_mock_data(num_docs=5000):
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
 
