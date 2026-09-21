@@ -16,15 +16,9 @@ account and a machine, not code.**
 0. *(Phases 19 and 20 landed after this list was written; neither changed what Go Live needs.)*
 1. **Provision the VM** and point a hostname at it. HTTPS is not optional — a browser on an `https://`
    frontend refuses to call an `http://` backend, and a bare IP cannot be issued a certificate.
-2. **Rotate the UniSMS API key.** It shipped as a `||` fallback default and remains in git history
-   even though it is gone from the source. (`JWT_SECRET` — the more serious of the two, since it
-   signs every auth token — **has been rotated**.)
-3. **Configure SMTP** (a Gmail App Password, not an account password), or password-reset links only
-   reach the server console. The flow is testable without it, which is why this did not block
-   Phase 16.
-4. **Walk `docs/DEPLOYMENT_GUIDE.md`**, whose eight parts each end in a check to pass before
+2. **Walk `docs/DEPLOYMENT_GUIDE.md`**, whose eight parts each end in a check to pass before
    continuing. Credentials for every variable come from `docs/ENV_SETUP_GUIDE.md`.
-5. **Optional:** migrate MySQL to a managed instance. `DB_SSL`/`DB_SSL_CA` already exist for it.
+3. **Optional:** migrate MySQL to a managed instance. `DB_SSL`/`DB_SSL_CA` already exist for it.
 
 > The five *code* blockers this list used to carry — no production API URL for the built frontend,
 > uploads failing their first write, no database TLS, the AI engine on the Werkzeug dev server, and
@@ -172,8 +166,8 @@ account and a machine, not code.**
 - [x] **Rotate `JWT_SECRET`** — done. The old value was identical to a placeholder public in git history since the first commit, which made every auth token forgeable.
 - [x] ~~**Seed Per-College Secretaries**~~ — resolved. `seed.sql` now creates all seven (`SEC-CCS001` … `SEC-CBA001`) and the `course = NULL` legacy `SEC001` is gone from the seeds.
 - [x] **Forgot Password Recovery** — delivered in Phase 16 below.
-- [ ] **Rotate the UniSMS API key** in the UniSMS dashboard; it is still in git history.
-- [ ] **Configure SMTP** so reset links and student alerts actually send.
+- [x] **Rotate the UniSMS API key** in the UniSMS dashboard; it is still in git history.
+- [x] **Configure SMTP** so reset links and student alerts actually send.
 - [ ] **Production API URL for the frontend** — the built SPA has no way to reach the backend without the Vite dev proxy.
 - [ ] **Persistent uploads** — container-local disk today; the directory is not even created at boot.
 - [ ] **Managed-database TLS** — `config/db.js` passes no `ssl` option.
@@ -299,9 +293,9 @@ uploads onto object storage and adding a Redis adapter for Socket.IO.*
   certificate that will not issue.
 - [ ] **Point a hostname at it** (a free DuckDNS subdomain suffices) and confirm DNS resolves before
   starting Caddy — Let's Encrypt validates over the public internet.
-- [ ] **Rotate the UniSMS API key** in the UniSMS dashboard. Rotation at the source is the only fix;
+- [x] **Rotate the UniSMS API key** in the UniSMS dashboard. Rotation at the source is the only fix;
   the value cannot be removed from git history retroactively.
-- [ ] **Configure SMTP** with a Gmail App Password so reset links and student alerts actually leave
+- [x] **Configure SMTP** with a Gmail App Password so reset links and student alerts actually leave
   the building.
 - [ ] **Deploy**, following `docs/DEPLOYMENT_GUIDE.md`; fill every variable from
   `docs/ENV_SETUP_GUIDE.md`.
@@ -601,3 +595,11 @@ These predate the restructure and remain open:
 * **Defense Script Generated:** Built a highly detailed, stage-directed Capstone defense transcript for a 3-person team.
 * **Unified Dashboard Page:** Rebuilt `DashboardPage.jsx` and `Layout.jsx` with responsive layouts and multi-tab sidebars corresponding to the active role.
 * **Production Deployment:** Successfully rotated UniSMS API keys, fully configured Nodemailer SMTP, and deployed the entire architecture to a live Google Cloud VM with automated snapshots, persistent volumes, and a live n8n orchestrator.
+* **Admin Maintenance & Analytics (Phase 12):** Added CRUD for Staff, Document Types, and Colleges. Added efficiency analytics and CSV exports.
+* **Payments & Notifications (Phase 13):** Expanded to 4 payment methods. Added Socket.IO real-time in-app notifications.
+* **UI/UX Overhaul (Phase 14):** Added mobile navigation drawer, capped table heights, and profile picture upload.
+* **Deployment Readiness & Refinement (Phases 15-18):** Completed forgot-password recovery, repaired n8n routing, configured database TLS, and dockerized services. Ready for VM host.
+* **Pipeline Restructure (Phase 19):** Inverted pipeline to "Evaluate First, Pay Later".
+* **Payment Methods Finished (Phase 20):** Finalized multi-payment support with dynamic checkout forms.
+* **UI/UX Revision Pass (Phase 21):** Refined modals, components, styling, and added alumni gating to forms.
+* **Official Receipt Verification (Phase 22):** Integrated physical OCR receipt verification and OR capture.

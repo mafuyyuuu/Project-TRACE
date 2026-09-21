@@ -94,7 +94,7 @@ tbody tr:last-child td { border-bottom: 0; }
 
   <div class="help-masthead">
     <span class="brand">PLP Registrar Systems</span>
-    <span class="version">Project TRACE · Master Operational Guide</span>
+    <span class="version">Project TRACE · Master Operational Guide (Phase 22 / 654 Tests)</span>
   </div>
   <h1>Project TRACE — How it works, end to end</h1>
   <p class="lede">
@@ -135,9 +135,9 @@ tbody tr:last-child td { border-bottom: 0; }
   <p>TRACE utilizes a dynamic, role-based login screen. Choosing a persona completely alters the available navigation sidebars and workspace layout.</p>
   <ul>
     <li><strong>Student:</strong> Accesses the unified request form and tracking grid.</li>
-    <li><strong>Finance Clerk:</strong> Accesses the Pending Payments queue to manually verify GCash Reference numbers.</li>
+    <li><strong>Finance Clerk:</strong> Accesses the Pending Payments queue to manually verify GCash Reference numbers and attach ORs.</li>
     <li><strong>Window 1 Clerk:</strong> Accesses the Intake Scanner drop-zone and Release Queue.</li>
-    <li><strong>College Secretary:</strong> Accesses the Evaluation Queue and Split-Screen validation tools.</li>
+    <li><strong>College Secretary:</strong> Accesses the Evaluation Queue, Split-Screen validation tools, and verifies Official Receipts (ORs).</li>
     <li><strong>Registrar Admin:</strong> Accesses ML Forecast charts, AI prescriptive insights, and the student registration verification queue.</li>
   </ul>
 
@@ -148,11 +148,12 @@ tbody tr:last-child td { border-bottom: 0; }
     <li><strong>Visual Tracker:</strong> The main table features dynamic percentage progress bars (color-coded based on completion) rather than generic text statuses.</li>
   </ul>
 
-  <h2 id="finance">3. Finance Office Payment Verification</h2>
+  <h2 id="finance">3. Finance Office Payment Verification &amp; OR Check</h2>
   <p>TRACE does not use automated payment gateways to ensure strict compliance with school accounting policies.</p>
   <ul>
     <li><strong>Student Action:</strong> Students scan a static official PLP GCash QR code. They must then upload a screenshot of their receipt and type in the Reference Number into TRACE.</li>
-    <li><strong>Clerk Action:</strong> The Finance Clerk opens their dashboard, clicks the pending request, views the screenshot, and checks the official GCash phone to ensure the funds actually arrived. Clicking "Verify & Approve" automatically forwards the request to the Secretary.</li>
+    <li><strong>Clerk Action (Finance):</strong> The Finance Clerk opens their dashboard, clicks the pending request, views the screenshot, and checks the official GCash phone to ensure the funds actually arrived. The clerk attaches the Official Receipt (OR) number and clicks "Verify & Approve", routing it to the Secretary.</li>
+    <li><strong>Secretary Action (SEC_OR_VERIFIED):</strong> Before routing to Window 1 for release, the Secretary checks the Official Receipt (OR) attached by Finance to ensure the physical paper is present and the OR number is correct.</li>
   </ul>
 
   <h2 id="clerk-dashboard">4. Command-Center Clerk Workspaces</h2>
