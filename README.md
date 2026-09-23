@@ -183,8 +183,6 @@ node backend/audit.js       # walks a document through all five desks
 | **Secretary (CBA)** | `SEC-CBA001` | CBA Secretary | College of Business and Accountancy |
 | **Student** | `STU2024001` | Ana Reyes | BS Information Technology (Sample student account) |
 
-> ⚠️ **Seed drift:** the seven per-college secretary accounts above are **not created by `seed.sql`** — it seeds only a single `SEC001` (College Secretary) with no college assigned. Until those rows are added, log in as `SEC001` to reach the Secretary dashboard, and note that college-based queue filtering cannot be demonstrated. Tracked in `docs/PROGRESS.md` (Phase 9).
-
 ---
 
 ## 🚀 Deployment

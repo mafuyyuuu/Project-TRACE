@@ -266,7 +266,7 @@ thead th { background: var(--gray-50); color: var(--gray-500); font: 700 11.5px 
   current_status: VARCHAR(50) DEFAULT 'PENDING_W1_INTAKE',
   //   PENDING_W1_INTAKE -&gt; PENDING_SEC_EVALUATION -&gt; SEC_PROCESSING
   //   -&gt; PENDING_STUDENT_PAYMENT -&gt; PENDING_FINANCE_VERIFICATION
-  //   -&gt; PAID_PENDING_SEC_RELEASE -&gt; READY_FOR_RELEASE -&gt; COMPLETED
+  //   -&gt; PAID_PENDING_SEC_RELEASE -&gt; SEC_OR_VERIFIED -&gt; READY_FOR_RELEASE -&gt; COMPLETED
   //   A VARCHAR, not an ENUM: the vocabulary and the legal transitions live in
   //   backend/src/utils/documentStatus.js, which also covers the Python engine
   //   and the React queues. REJECTED / APPROVED persist on pre-2026-08 rows only.
@@ -432,7 +432,7 @@ frontend/src/
 
     <div class="callout spec">
       <span class="label">Testing</span>
-      <p>Vitest runs per package: <code>cd backend &amp;&amp; npm test</code> and <code>cd frontend &amp;&amp; npm test</code> (523 tests, no database needed — the model layer is mocked). Backend tests must use the <code>.cjs</code> extension: the source is CommonJS, and only a CJS test shares Node's require cache with it, which is what makes the model spies actually intercept. <code>node backend/audit.js</code> runs a live end-to-end audit through all five desks.</p>
+      <p>Vitest runs per package: <code>cd backend &amp;&amp; npm test</code> and <code>cd frontend &amp;&amp; npm test</code> (654 automated tests (444 backend, 210 frontend), no database needed — the model layer is mocked). Backend tests must use the <code>.cjs</code> extension: the source is CommonJS, and only a CJS test shares Node's require cache with it, which is what makes the model spies actually intercept. <code>node backend/audit.js</code> runs a live end-to-end audit through all five desks.</p>
     </div>
 
     <div class="callout spec">
@@ -561,7 +561,7 @@ frontend/src/
           <li><strong>A live crash</strong> in the Finance receipt modal, reproduced by a regression test before being fixed.</li>
           <li><strong><code>/api/health</code> told the truth.</strong> It previously answered 200 with a dead database, which would have made an orchestrator call a broken container healthy; it now returns 503 with the reason.</li>
           <li><strong>CORS</strong> tightened from &ldquo;any origin, with credentials&rdquo; to one shared, configurable allowlist covering both the REST API and the Socket.IO handshake.</li>
-          <li>514 automated tests; zero lint errors.</li>
+          <li>654 automated tests (444 backend, 210 frontend); zero lint errors.</li>
         </ul>
       </li>
 
@@ -576,6 +576,31 @@ frontend/src/
           <li><strong>TLS for a managed database</strong> &mdash; the pool passes no <code>ssl</code> option, which most managed MySQL will refuse.</li>
           <li>Containerize all three services (serving Flask under a WSGI server rather than the Werkzeug dev server) and migrate MySQL to a managed cloud instance.</li>
         </ul>
+      </li>
+
+      <li>
+        <h3>Phases 12-17: Post-Deployment Enhancements</h3>
+        <p class="phase-goal">Admin maintenance, analytics, payments, and UI/UX improvements.</p>
+      </li>
+      <li>
+        <h3>Phase 18: Go Live tasks completed</h3>
+        <p class="phase-goal">Infrastructure blockers resolved, live deployment completed.</p>
+      </li>
+      <li>
+        <h3>Phase 19: Evaluate First, Pay Later</h3>
+        <p class="phase-goal">Inverted the pipeline to Evaluate First, Pay Later. Added new 8-status vocabulary.</p>
+      </li>
+      <li>
+        <h3>Phase 20: Payment Methods</h3>
+        <p class="phase-goal">Admin CRUD for payment methods and checkout modal updates.</p>
+      </li>
+      <li>
+        <h3>Phase 21: UI/UX Pass &amp; Alumni Gating</h3>
+        <p class="phase-goal">Refined modals, fixed UI bugs, implemented alumni gating.</p>
+      </li>
+      <li>
+        <h3>Phase 22: Official Receipt Verification</h3>
+        <p class="phase-goal">Added the SEC_OR_VERIFIED stage for Finance to capture OR numbers and Secretary to verify physical receipts.</p>
       </li>
     </ol>
 
