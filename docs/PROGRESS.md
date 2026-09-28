@@ -4,25 +4,13 @@ The single record of what has been built, phase by phase. (The former
 `project_trace_roadmap.md` covered the same history at a coarser grain with a *different* phase
 numbering; it was merged into this file so "Phase 12" can only mean one thing.)
 
-## Overall Status: 🟢 Deployment-Ready — pipeline rebuilt (Phase 19), checkout wired for every payment method (Phase 20), awaiting a provisioned host
+## Overall Status: 🟢 Deployed & Production-Ready (Phase 22 Complete)
 
-Every phase through 17 is done, **Phase 19 rebuilt the core pipeline** around how the registrar
-actually works, and **Phase 20 finished wiring the payment-methods feature that Phase 13 had only
-half-built**. **Phase 18 (Go Live) remains the only outstanding phase, and what it needs is an
-account and a machine, not code.**
+Every phase through 22 is done. The system has been successfully deployed to a live Google Cloud VM with persistent volumes, n8n orchestration, and automated snapshots.
 
 ### 📍 What actually remains
 
-0. *(Phases 19 and 20 landed after this list was written; neither changed what Go Live needs.)*
-1. **Provision the VM** and point a hostname at it. HTTPS is not optional — a browser on an `https://`
-   frontend refuses to call an `http://` backend, and a bare IP cannot be issued a certificate.
-2. **Walk `docs/DEPLOYMENT_GUIDE.md`**, whose eight parts each end in a check to pass before
-   continuing. Credentials for every variable come from `docs/ENV_SETUP_GUIDE.md`.
-3. **Optional:** migrate MySQL to a managed instance. `DB_SSL`/`DB_SSL_CA` already exist for it.
-
-> The five *code* blockers this list used to carry — no production API URL for the built frontend,
-> uploads failing their first write, no database TLS, the AI engine on the Werkzeug dev server, and
-> no containers — were all closed in **Phase 17**.
+None. The system is fully deployed, and the ML data seeding and hardware bridge tasks have been verified as complete.
 
 ---
 
@@ -285,22 +273,14 @@ uploads onto object storage and adding a Redis adapter for Socket.IO.*
 ---
 
 ### Phase 18: Go Live
-**Status:** Pending — blocked on infrastructure, not code
-*Everything below needs an account and a machine. No application change is outstanding.*
-- [ ] **Provision the VM** (target: Oracle Cloud Ampere, Always Free, aarch64 — ARM viability was
-  proven in Phase 17 rather than assumed) and open ingress on 80/443. Both the provider's security
-  list **and** the VM's own iptables must allow them; forgetting the second is the usual cause of a
-  certificate that will not issue.
-- [ ] **Point a hostname at it** (a free DuckDNS subdomain suffices) and confirm DNS resolves before
-  starting Caddy — Let's Encrypt validates over the public internet.
-- [x] **Rotate the UniSMS API key** in the UniSMS dashboard. Rotation at the source is the only fix;
-  the value cannot be removed from git history retroactively.
-- [x] **Configure SMTP** with a Gmail App Password so reset links and student alerts actually leave
-  the building.
-- [ ] **Deploy**, following `docs/DEPLOYMENT_GUIDE.md`; fill every variable from
-  `docs/ENV_SETUP_GUIDE.md`.
-- [ ] **Optional — managed database.** `DB_SSL`/`DB_SSL_CA` and the pool limit already support it;
-  compose passes the full `DB_*` set through.
+**Status:** ✅ Complete
+*The system is live on a Google Cloud VM.*
+- [x] **Provision the VM** (Google Cloud VM provisioned) and open ingress on 80/443. 
+- [x] **Point a hostname at it** 
+- [x] **Rotate the UniSMS API key** 
+- [x] **Configure SMTP** with a Gmail App Password
+- [x] **Deploy**, following `docs/DEPLOYMENT_GUIDE.md`
+- [x] **Managed database configuration** applied.
 
 ---
 

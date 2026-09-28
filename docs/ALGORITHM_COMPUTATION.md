@@ -709,3 +709,70 @@ If the feature vector had been **x = [1, 0, 3]** instead, the Random Forest woul
 - Baek, Y., Lee, B., Han, D., Yun, S., & Lee, H. (2019). Character Region Awareness for Text Detection. *IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR)*, 9365–9374.
 - Shi, B., Bai, X., & Yao, C. (2017). An End-to-End Trainable Neural Network for Image-Based Sequence Recognition and Its Application to Scene Text Recognition. *IEEE Transactions on Pattern Analysis and Machine Intelligence*, 39(11), 2298–2304.
 - Graves, A., Fernández, S., Gomez, F., & Schmidhuber, J. (2006). Connectionist Temporal Classification: Labelling Unsegmented Sequence Data with Recurrent Neural Networks. *Proceedings of the 23rd International Conference on Machine Learning*, 369–376.
+
+## 4. System Accuracy and Evaluation Metrics
+
+To ensure the reliability of Project TRACE's AI modules, we evaluate their performance using industry-standard metrics. These metrics measure how accurately the system extracts text, classifies system states, and forecasts future document volumes.
+
+### 4.1 Average Confidence Score (OCR)
+
+In the Admin Dashboard, the **Average Confidence Score** represents the mean confidence of all OCR extractions processed by the system.
+
+*   **What it is for:** It provides a macro-level view of the OCR engine's reliability over time. A declining average alerts the Admin that recent document uploads are of poor quality (e.g., blurry images) or that the engine needs retraining.
+*   **How it is calculated:** The system averages the `ocr_confidence_score` column from the `documents` table. Since the extraction confidence for a single document is computed as `(Fields Found / 3) × 100`, the average score is simply:
+    ```
+    Average Confidence = SUM(ocr_confidence_score) / Total OCR Transactions
+    ```
+
+### 4.2 Recognition Accuracy (%) for Optical Character Recognition (OCR)
+
+Beyond the heuristic "Confidence Score" used in the application, the true performance of the EasyOCR engine is measured using **Recognition Accuracy (%)**, often evaluated via the Character Error Rate (CER) or Word Error Rate (WER).
+
+*   **What it is for:** To measure how accurately the model translates pixels into the exact correct characters.
+*   **How it is calculated:** 
+    ```
+    Recognition Accuracy (%) = 100 - CER
+    ```
+    Where CER (Character Error Rate) is computed using the Levenshtein distance:
+    ```
+    CER = (Substitutions + Insertions + Deletions) / Total Characters in Ground Truth
+    ```
+    For example, if the true string is "DELA CRUZ" (9 characters) and the OCR outputs "OELA CRU" (1 substitution 'O', 1 deletion 'Z'), the CER is 2/9 = 22.2%, giving a Recognition Accuracy of 77.8%.
+
+### 4.3 Accuracy and F1-Score for Random Forest
+
+The Random Forest classifier, which generates prescriptive insights for the Admin Dashboard, is evaluated using classification metrics.
+
+*   **What they are for:** To measure how well the classifier correctly identifies the current state of the system (e.g., "Optimal", "Secretary Bottleneck", "Release Buildup", "Overloaded").
+*   **How they are calculated:**
+    *   **Accuracy:** The ratio of correctly predicted states to the total number of predictions.
+        ```
+        Accuracy = (True Positives + True Negatives) / Total Predictions
+        ```
+    *   **F1-Score:** The harmonic mean of Precision and Recall. It is especially useful for imbalanced classes (e.g., if the system is "Optimal" 90% of the time, accuracy alone is misleading).
+        ```
+        Precision = True Positives / (True Positives + False Positives)
+        Recall = True Positives / (True Positives + False Negatives)
+        
+        F1-Score = 2 × (Precision × Recall) / (Precision + Recall)
+        ```
+    A high F1-Score ensures that when the dashboard alerts the Admin of a bottleneck, it is genuinely a bottleneck (high precision), and it rarely misses actual bottlenecks (high recall).
+
+### 4.4 Mean Absolute Percentage Error (MAPE) for Prophet
+
+The Facebook Prophet time-series model predicts the next 7 days of document request volumes. Its forecasting accuracy is evaluated using MAPE.
+
+*   **What it is for:** To measure the average forecasting error as a percentage of the actual document volume. It answers the question: "On average, how far off are the Prophet predictions from the real number of student requests?"
+*   **How it is calculated:**
+    ```
+                   1     n   | y(t) - ŷ(t) |
+        MAPE =   ——— ×  ___  ——————————————— × 100%
+                  n     /__       y(t)
+                        t=1
+    ```
+    Where:
+    *   `n` = the number of forecasted days evaluated
+    *   `y(t)` = the actual volume of document requests on day `t`
+    *   `ŷ(t)` = the Prophet predicted volume on day `t`
+
+    *Example:* If Prophet predicts 20 documents for Monday, but the actual volume is 25, the absolute error is 5, and the percentage error for that day is `(5 / 25) × 100% = 20%`. The MAPE is the average of these percentage errors over the evaluated period. A lower MAPE indicates a more accurate forecasting model.
