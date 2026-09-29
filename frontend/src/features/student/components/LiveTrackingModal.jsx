@@ -1,4 +1,3 @@
-import DocumentChat from '@/components/DocumentChat';
 import ModalShell from '@/components/ModalShell';
 import { STATUS, PIPELINE } from '@/utils/documentStatus';
 
@@ -75,8 +74,8 @@ export default function LiveTrackingModal({
       {/* Horizontal Map Visualizer */}
       <div className="px-4 py-6 flex flex-col justify-center w-full bg-white rounded-2xl border border-gray-100 shadow-sm">
 
-        <div className="relative w-full min-w-[700px] flex items-center justify-between mb-20 mt-2">
-          <div className="w-full overflow-x-auto pb-4 -mx-6 px-6 sm:mx-0 sm:px-0 sm:overflow-visible">
+        <div className="w-full overflow-x-auto pb-4 -mx-6 px-6 sm:mx-0 sm:px-0 sm:overflow-visible">
+          <div className="relative w-full min-w-[700px] flex items-center justify-between mb-20 mt-2">
           {/* Background Progress Bar */}
           <div
             className="absolute top-1/2 -translate-y-1/2 h-1.5 bg-gray-100 rounded-full z-0"
@@ -174,7 +173,7 @@ export default function LiveTrackingModal({
           <div className="flex items-center justify-between mb-3">
              <label className="text-[10px] font-bold text-gray-800 uppercase tracking-widest">Document Discussion</label>
           </div>
-          <DocumentChat documentId={selectedDoc.id} user={user} />
+          
         </div>
       </div>
       </div>

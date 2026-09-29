@@ -160,7 +160,11 @@ export default function Layout() {
                     <div className="p-4 text-center text-sm text-gray-400">No new notifications</div>
                   ) : (
                     notifications.map(n => (
-                      <div key={n.id} className={`p-3 text-sm border-b border-gray-50 ${n.is_read ? 'bg-white text-gray-500' : 'bg-green-50/30 text-gray-800 font-medium'}`}>
+                      <div key={n.id} onClick={() => {
+                          const match = n.message.match(/TRC-[A-Z0-9]+/i) || n.message.match(/#([0-9]+)/);
+                          if (match) window.dispatchEvent(new CustomEvent('trace-open-doc', { detail: match[0].replace('#', '') }));
+                          setShowNotifs(false);
+                        }} className={`p-3 text-sm border-b border-gray-50 cursor-pointer hover:bg-gray-100 transition-colors ${n.is_read ? 'bg-white text-gray-500' : 'bg-green-50/30 text-gray-800 font-medium'}`}>
                         <div className="font-bold mb-1">{n.title}</div>
                         <div className="text-xs">{n.message}</div>
                         <div className="text-[10px] text-gray-400 mt-1">{new Date(n.created_at).toLocaleString()}</div>

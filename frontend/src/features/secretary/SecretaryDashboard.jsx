@@ -186,7 +186,7 @@ export default function SecretaryDashboard({ user, currentTab, setViewImageUrl }
                         {evaluationQueue.map(doc => (
                           <tr key={doc.id} className="hover:bg-gray-50/30 group">
                             <td className="py-4 pl-4">
-                              <button onClick={() => setViewProfileId(doc.student_name || 'Unresolved Student'.student_id)} className="font-bold text-[#15803d] hover:underline hover:text-[#166534] text-left">{doc.student_name || 'Unresolved Student'}</button>
+                              <button onClick={() => setViewProfileId(doc.student_id)} className="font-bold text-[#15803d] hover:underline hover:text-[#166534] text-left">{doc.student_name || 'Unresolved Student'}</button>
                               <div className="text-xs font-mono text-gray-400 mt-0.5">#{doc.tracking_number ? doc.tracking_number.slice(0, 10).toUpperCase() : doc.id}</div>
                             </td>
                             <td className="py-4 text-xs font-bold text-gray-600">{doc.document_sequence_number || doc.document_type || 'Transcript of Records'}</td>
@@ -255,7 +255,7 @@ export default function SecretaryDashboard({ user, currentTab, setViewImageUrl }
                           return (
                             <tr key={doc.id} className="hover:bg-gray-50/30 group">
                               <td className="py-4 pl-4">
-                                <button onClick={() => setViewProfileId(doc.student_name || 'Unresolved Student'.student_id)} className="font-bold text-[#15803d] hover:underline hover:text-[#166534] text-left">{doc.student_name || 'Unresolved Student'}</button>
+                                <button onClick={() => setViewProfileId(doc.student_id)} className="font-bold text-[#15803d] hover:underline hover:text-[#166534] text-left">{doc.student_name || 'Unresolved Student'}</button>
                                 <div className="text-xs font-mono text-gray-400 mt-0.5">#{doc.tracking_number ? doc.tracking_number.slice(0, 10).toUpperCase() : doc.id}</div>
                               </td>
                               <td className="py-4 text-xs font-bold text-gray-600">{doc.document_sequence_number || doc.document_type}</td>
@@ -320,7 +320,7 @@ export default function SecretaryDashboard({ user, currentTab, setViewImageUrl }
                         {orVerificationQueue.map(doc => (
                           <tr key={doc.id} className="hover:bg-gray-50/30 group">
                             <td className="py-4 pl-4">
-                              <button onClick={() => setViewProfileId(doc.student_name || 'Unresolved Student'.student_id)} className="font-bold text-[#15803d] hover:underline hover:text-[#166534] text-left">{doc.student_name || 'Unresolved Student'}</button>
+                              <button onClick={() => setViewProfileId(doc.student_id)} className="font-bold text-[#15803d] hover:underline hover:text-[#166534] text-left">{doc.student_name || 'Unresolved Student'}</button>
                               <div className="text-xs font-mono text-gray-400 mt-0.5">#{doc.tracking_number ? doc.tracking_number.slice(0, 10).toUpperCase() : doc.id}</div>
                             </td>
                             <td className="py-4 text-xs font-bold text-gray-600">{doc.document_sequence_number || doc.document_type}</td>
@@ -379,7 +379,7 @@ export default function SecretaryDashboard({ user, currentTab, setViewImageUrl }
                         {handoffQueue.map(doc => (
                           <tr key={doc.id} className="hover:bg-gray-50/30 group">
                             <td className="py-4 pl-4">
-                              <button onClick={() => setViewProfileId(doc.student_name || 'Unresolved Student'.student_id)} className="font-bold text-[#15803d] hover:underline hover:text-[#166534] text-left">{doc.student_name || 'Unresolved Student'}</button>
+                              <button onClick={() => setViewProfileId(doc.student_id)} className="font-bold text-[#15803d] hover:underline hover:text-[#166534] text-left">{doc.student_name || 'Unresolved Student'}</button>
                               <div className="text-xs font-mono text-gray-400 mt-0.5">#{doc.tracking_number ? doc.tracking_number.slice(0, 10).toUpperCase() : doc.id}</div>
                             </td>
                             <td className="py-4 text-xs font-bold text-gray-600">{doc.document_sequence_number || doc.document_type}</td>
@@ -444,7 +444,7 @@ export default function SecretaryDashboard({ user, currentTab, setViewImageUrl }
                           <tr key={doc.id} className="hover:bg-gray-50/30">
                             <td className="py-4 pl-4 text-xs font-semibold text-gray-400">{new Date(doc.updated_at).toLocaleDateString()} {new Date(doc.updated_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</td>
                             <td className="py-4">
-                              <button onClick={() => setViewProfileId(doc.student_name || 'Unknown Student'.student_id)} className="font-bold text-[#15803d] hover:underline hover:text-[#166534] text-left">{doc.student_name || 'Unknown Student'}</button>
+                              <button onClick={() => setViewProfileId(doc.student_id)} className="font-bold text-[#15803d] hover:underline hover:text-[#166534] text-left">{doc.student_name || 'Unknown Student'}</button>
                               <div className="text-xs font-mono text-gray-400 mt-0.5">#{doc.tracking_number ? doc.tracking_number.slice(0, 10).toUpperCase() : doc.id}</div>
                             </td>
                             <td className="py-4 text-xs font-bold text-gray-600">{doc.document_sequence_number || doc.document_type}</td>

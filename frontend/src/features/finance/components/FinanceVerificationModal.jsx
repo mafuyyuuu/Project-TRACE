@@ -2,6 +2,7 @@ import DocumentChat from '@/components/DocumentChat';
 import { useState } from 'react';
 import ModalShell from '@/components/ModalShell';
 import AuthedFilePreview from '@/components/AuthedFilePreview';
+import { itemBreakdown } from '@/utils/pricing';
 
 export default function FinanceVerificationModal({
   user,

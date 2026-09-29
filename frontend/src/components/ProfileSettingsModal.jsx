@@ -1,5 +1,6 @@
-import { useRef, useState, useMemo } from 'react';
+import { useRef, useState, useMemo, useEffect } from 'react';
 import ModalShell from '@/components/ModalShell';
+import api from '@/services/api';
 import UserAvatar from '@/components/UserAvatar';
 
 export default function ProfileSettingsModal({
@@ -16,7 +17,15 @@ export default function ProfileSettingsModal({
   onAvatarChange,
 }) {
   const fileInputRef = useRef(null);
+
   const [activeTab, setActiveTab] = useState('personal');
+  const [securityLogs, setSecurityLogs] = useState([]);
+  
+  useEffect(() => {
+    if (activeTab === 'security') {
+      api.get('/auth/security-logs').then(res => setSecurityLogs(res.data)).catch(console.error);
+    }
+  }, [activeTab]);
 
   const roleLabel =
     user?.role === 'admin'
@@ -36,7 +45,8 @@ export default function ProfileSettingsModal({
       requiredPersonal.push('maiden_name');
     }
     
-    const requiredEdu = ['last_attendance_year', 'elem_school', 'elem_grad_year', 'jhs_school', 'jhs_grad_year', 'shs_school', 'shs_grad_year'];
+    const requiredEdu = ['elem_school', 'elem_grad_year', 'jhs_school', 'jhs_grad_year', 'shs_school', 'shs_grad_year'];
+    if (user?.user_type === 'alumni') requiredEdu.push('last_attendance_year');
     if (profileData.is_transfer_student) {
       requiredEdu.push('previous_school');
     }
@@ -311,10 +321,12 @@ export default function ProfileSettingsModal({
             <div className="space-y-6">
               
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-white p-4 border border-gray-200 rounded-2xl">
-                <div>
-                  <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">{user?.user_type === 'alumni' ? 'Graduation Year' : 'Last Attendance Year'} <span className="text-red-500">*</span></label>
-                  <input type="number" min="1950" max="2100" value={profileData.last_attendance_year} onChange={(e) => setField('last_attendance_year', e.target.value)} required className="w-full bg-gray-50 border-none rounded-xl py-3 px-4 text-sm font-semibold focus:ring-2 focus:ring-[#15803d]/20 outline-none" />
-                </div>
+                {user?.user_type === 'alumni' && (
+                  <div>
+                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Graduation Year <span className="text-red-500">*</span></label>
+                    <input type="number" min="1950" max="2100" value={profileData.last_attendance_year} onChange={(e) => setField('last_attendance_year', e.target.value)} required className="w-full bg-gray-50 border-none rounded-xl py-3 px-4 text-sm font-semibold focus:ring-2 focus:ring-[#15803d]/20 outline-none" />
+                  </div>
+                )}
                 <div>
                   <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Transfer Student?</label>
                   <select value={profileData.is_transfer_student ? 'yes' : 'no'} onChange={(e) => setField('is_transfer_student', e.target.value === 'yes')} className="w-full bg-gray-50 border-none rounded-xl py-3 px-4 text-sm font-semibold focus:ring-2 focus:ring-[#15803d]/20 outline-none">
@@ -335,30 +347,30 @@ export default function ProfileSettingsModal({
                 <h4 className="text-xs font-bold text-gray-800 uppercase tracking-widest border-b border-gray-200 pb-2">Elementary</h4>
                 <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
                   <div className="sm:col-span-3">
-                    <input type="text" placeholder="School Name *" required value={profileData.elem_school} onChange={(e) => setField('elem_school', e.target.value)} className="w-full bg-white border border-gray-200 rounded-xl py-3 px-4 text-sm font-semibold focus:ring-2 focus:ring-[#15803d]/20 outline-none" />
+                    <input type="text" placeholder="School Name" required value={profileData.elem_school} onChange={(e) => setField('elem_school', e.target.value)} className="w-full bg-white border border-gray-200 rounded-xl py-3 px-4 text-sm font-semibold focus:ring-2 focus:ring-[#15803d]/20 outline-none" />
                   </div>
                   <div>
-                    <input type="number" placeholder="Year *" required value={profileData.elem_grad_year} onChange={(e) => setField('elem_grad_year', e.target.value)} className="w-full bg-white border border-gray-200 rounded-xl py-3 px-4 text-sm font-semibold focus:ring-2 focus:ring-[#15803d]/20 outline-none" />
+                    <input type="number" placeholder="Year" required value={profileData.elem_grad_year} onChange={(e) => setField('elem_grad_year', e.target.value)} className="w-full bg-white border border-gray-200 rounded-xl py-3 px-4 text-sm font-semibold focus:ring-2 focus:ring-[#15803d]/20 outline-none" />
                   </div>
                 </div>
 
                 <h4 className="text-xs font-bold text-gray-800 uppercase tracking-widest border-b border-gray-200 pb-2 pt-2">Junior High School</h4>
                 <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
                   <div className="sm:col-span-3">
-                    <input type="text" placeholder="School Name *" required value={profileData.jhs_school} onChange={(e) => setField('jhs_school', e.target.value)} className="w-full bg-white border border-gray-200 rounded-xl py-3 px-4 text-sm font-semibold focus:ring-2 focus:ring-[#15803d]/20 outline-none" />
+                    <input type="text" placeholder="School Name" required value={profileData.jhs_school} onChange={(e) => setField('jhs_school', e.target.value)} className="w-full bg-white border border-gray-200 rounded-xl py-3 px-4 text-sm font-semibold focus:ring-2 focus:ring-[#15803d]/20 outline-none" />
                   </div>
                   <div>
-                    <input type="number" placeholder="Year *" required value={profileData.jhs_grad_year} onChange={(e) => setField('jhs_grad_year', e.target.value)} className="w-full bg-white border border-gray-200 rounded-xl py-3 px-4 text-sm font-semibold focus:ring-2 focus:ring-[#15803d]/20 outline-none" />
+                    <input type="number" placeholder="Year" required value={profileData.jhs_grad_year} onChange={(e) => setField('jhs_grad_year', e.target.value)} className="w-full bg-white border border-gray-200 rounded-xl py-3 px-4 text-sm font-semibold focus:ring-2 focus:ring-[#15803d]/20 outline-none" />
                   </div>
                 </div>
 
                 <h4 className="text-xs font-bold text-gray-800 uppercase tracking-widest border-b border-gray-200 pb-2 pt-2">Senior High School</h4>
                 <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
                   <div className="sm:col-span-3">
-                    <input type="text" placeholder="School Name *" required value={profileData.shs_school} onChange={(e) => setField('shs_school', e.target.value)} className="w-full bg-white border border-gray-200 rounded-xl py-3 px-4 text-sm font-semibold focus:ring-2 focus:ring-[#15803d]/20 outline-none" />
+                    <input type="text" placeholder="School Name" required value={profileData.shs_school} onChange={(e) => setField('shs_school', e.target.value)} className="w-full bg-white border border-gray-200 rounded-xl py-3 px-4 text-sm font-semibold focus:ring-2 focus:ring-[#15803d]/20 outline-none" />
                   </div>
                   <div>
-                    <input type="number" placeholder="Year *" required value={profileData.shs_grad_year} onChange={(e) => setField('shs_grad_year', e.target.value)} className="w-full bg-white border border-gray-200 rounded-xl py-3 px-4 text-sm font-semibold focus:ring-2 focus:ring-[#15803d]/20 outline-none" />
+                    <input type="number" placeholder="Year" required value={profileData.shs_grad_year} onChange={(e) => setField('shs_grad_year', e.target.value)} className="w-full bg-white border border-gray-200 rounded-xl py-3 px-4 text-sm font-semibold focus:ring-2 focus:ring-[#15803d]/20 outline-none" />
                   </div>
                 </div>
               </div>

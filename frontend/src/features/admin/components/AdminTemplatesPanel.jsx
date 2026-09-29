@@ -22,7 +22,7 @@ export default function AdminTemplatesPanel() {
 
   const fetchTemplates = async () => {
     try {
-      const res = await api.get('/api/templates');
+      const res = await api.get('/templates');
       setTemplates(res.data);
       if (res.data.length > 0 && !selectedKey) setSelectedKey(res.data[0].template_key);
     } catch (err) {
@@ -34,7 +34,7 @@ export default function AdminTemplatesPanel() {
 
   const fetchTemplateDetails = async (key) => {
     try {
-      const res = await api.get(`/api/templates/${key}`);
+      const res = await api.get(`/templates/${key}`);
       setFormData({
         content: res.data.content || '',
         font_family: res.data.font_family || 'sans-serif',
@@ -51,7 +51,7 @@ export default function AdminTemplatesPanel() {
     setSaving(true);
     setSuccess('');
     try {
-      await api.put(`/api/templates/${selectedKey}`, formData);
+      await api.put(`/templates/${selectedKey}`, formData);
       setSuccess('Template saved successfully!');
     } catch (err) {
       console.error(err);

@@ -239,7 +239,7 @@ export default function Window1Dashboard({ user, currentTab, setViewImageUrl }) 
                             <tr key={doc.id} className="hover:bg-gray-50/50 group">
                               <td className="py-4 pl-4 font-mono text-xs text-gray-500">#{doc.tracking_number ? doc.tracking_number.slice(0, 10).toUpperCase() : doc.id}</td>
                               <td className="py-4">
-                                <button onClick={() => setViewProfileId(doc.student_name || 'Name Unresolved'.student_id)} className="text-sm font-bold text-[#15803d] hover:underline hover:text-[#166534] text-left">{doc.student_name || 'Name Unresolved'}</button>
+                                <button onClick={() => setViewProfileId(doc.student_id)} className="text-sm font-bold text-[#15803d] hover:underline hover:text-[#166534] text-left">{doc.student_name || 'Name Unresolved'}</button>
                                 <div className="text-xs font-mono text-gray-400 mt-0.5">{doc.student_id || 'ID Pending'}</div>
                               </td>
                               <td className="py-4 text-xs font-bold text-gray-600">{doc.document_type}</td>
@@ -329,7 +329,7 @@ export default function Window1Dashboard({ user, currentTab, setViewImageUrl }) 
                             <tr key={doc.id} className="hover:bg-gray-50/50 group">
                               <td className="py-4 pl-4 font-mono text-xs text-gray-500">#{doc.tracking_number ? doc.tracking_number.slice(0, 10).toUpperCase() : doc.id}</td>
                               <td className="py-4">
-                                <button onClick={() => setViewProfileId(doc.student_name || 'Name Unresolved'.student_id)} className="text-sm font-bold text-[#15803d] hover:underline hover:text-[#166534] text-left">{doc.student_name || 'Name Unresolved'}</button>
+                                <button onClick={() => setViewProfileId(doc.student_id)} className="text-sm font-bold text-[#15803d] hover:underline hover:text-[#166534] text-left">{doc.student_name || 'Name Unresolved'}</button>
                                 <div className="text-xs font-mono text-gray-400 mt-0.5">{doc.student_id || 'ID Pending'}</div>
                               </td>
                               <td className="py-4 text-xs font-bold text-gray-600">{doc.document_type}</td>

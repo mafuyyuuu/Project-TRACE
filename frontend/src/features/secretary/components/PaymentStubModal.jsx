@@ -22,7 +22,7 @@ export default function PaymentStubModal({ selectedDoc, groupDocs, setActiveModa
 
 useEffect(() => {
     let mounted = true;
-    api.get('/api/templates/payment_slip').then(res => {
+    api.get('/templates/payment_slip').then(res => {
       if (mounted) setTemplate(res.data);
     }).catch(() => {});
     return () => { mounted = false; };
@@ -78,7 +78,7 @@ const items = groupDocs?.length ? groupDocs : [selectedDoc];
             Close
           </button>
           <button
-            onClick={() => window.print()}
+            type="button" onClick={() => setTimeout(() => window.print(), 100)}
             className="flex-1 px-5 py-3 rounded-2xl text-xs font-bold bg-gray-900 hover:bg-gray-800 text-white shadow-sm transition-colors"
           >
             Print Slip

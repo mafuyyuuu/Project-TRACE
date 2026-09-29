@@ -13,7 +13,7 @@ export default function DocumentChat({ documentId, user }) {
     let mounted = true;
     const fetchMessages = async () => {
       try {
-        const res = await api.get(`/api/documents/${documentId}/messages`);
+        const res = await api.get(`/documents/${documentId}/messages`);
         if (mounted) setMessages(res.data);
       } catch (err) {
         console.error('Failed to load messages', err);
@@ -46,9 +46,9 @@ export default function DocumentChat({ documentId, user }) {
     setSending(true);
 
     try {
-      await api.post(`/api/documents/${documentId}/messages`, { message: optimisticMsg.message });
+      await api.post(`/documents/${documentId}/messages`, { message: optimisticMsg.message });
       // Refresh to get real IDs and read status
-      const res = await api.get(`/api/documents/${documentId}/messages`);
+      const res = await api.get(`/documents/${documentId}/messages`);
       setMessages(res.data);
     } catch (err) {
       console.error('Failed to send message', err);
