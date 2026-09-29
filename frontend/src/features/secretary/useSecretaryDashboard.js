@@ -1,4 +1,5 @@
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useEffect } from 'react';
+import { getDocumentTypes } from '@/services/referenceService';
 import useDashboardCore from '@/hooks/useDashboardCore';
 import { acceptForProcessing, priceDocument, verifyOfficialReceipt, confirmHandoff } from '@/services/documentsService';
 import { STATUS } from '@/utils/documentStatus';
@@ -31,6 +32,11 @@ export default function useSecretaryDashboard(user) {
   const [evalStudentName, setEvalStudentName] = useState('');
   const [evalDocType, setEvalDocType] = useState('Transcript of Records');
   const [estimatedReadyDate, setEstimatedReadyDate] = useState('');
+  const [documentTypes, setDocumentTypes] = useState([]);
+  useEffect(() => {
+    getDocumentTypes().then(setDocumentTypes).catch(console.error);
+  }, []);
+
 
   // Pricing inputs, filled in once the document is printed and countable.
   const [priceAmount, setPriceAmount] = useState('');
@@ -230,6 +236,8 @@ export default function useSecretaryDashboard(user) {
     evalStudentId, setEvalStudentId,
     evalStudentName, setEvalStudentName,
     evalDocType, setEvalDocType,
+    documentTypes,
+
     estimatedReadyDate, setEstimatedReadyDate,
     priceAmount, setPriceAmount,
     pricePageCount, setPricePageCount,

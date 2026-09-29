@@ -23,6 +23,7 @@ function EvaluationForm({
   estimatedReadyDate,
   setEstimatedReadyDate,
   clerkNotes,
+  documentTypes = [],
   setClerkNotes,
 }) {
   return (

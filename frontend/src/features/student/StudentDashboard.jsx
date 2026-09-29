@@ -188,11 +188,11 @@ export default function StudentDashboard({ user, currentTab, setViewImageUrl }) 
                 <button onClick={loadDashboardData} className="text-xs text-[#15803d] font-bold hover:underline inline-flex items-center gap-1"><svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.992 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182" /></svg> Refresh</button>
               </div>
               <div className="p-4 sm:p-6">
-                <div className="max-h-[60vh] overflow-y-auto overflow-x-auto">
+                <div className="max-h-[calc(100vh-280px)] overflow-y-auto overflow-x-auto">
                   {documents.length === 0 ? (
                     <div className="text-center py-12 text-gray-400 font-medium">No active request records. Submit one at the top!</div>
                   ) : (
-                    <table className="w-full text-left border-collapse min-w-[720px]">
+                    <table className="w-full text-left border-collapse table-fixed min-w-[720px]">
                       <thead className="sticky top-0 bg-white z-10">
                         <tr className="text-gray-400 text-[10px] uppercase tracking-widest border-b border-gray-100">
                           <th className="pb-4 font-bold pl-4 min-w-[90px]">Date</th>
@@ -287,11 +287,11 @@ export default function StudentDashboard({ user, currentTab, setViewImageUrl }) 
                 </button>
               </div>
               <div className="p-4 sm:p-6">
-                <div className="max-h-[60vh] overflow-y-auto overflow-x-auto">
+                <div className="max-h-[calc(100vh-280px)] overflow-y-auto overflow-x-auto">
                   {documents.length === 0 ? (
                     <div className="text-center py-12 text-gray-400 font-medium">No request history found.</div>
                   ) : (
-                    <table className="w-full text-left border-collapse min-w-[560px]">
+                    <table className="w-full text-left border-collapse table-fixed min-w-[560px]">
                       <thead className="sticky top-0 bg-white z-10">
                         <tr className="text-gray-400 text-[10px] uppercase tracking-widest border-b border-gray-100">
                           <th className="pb-4 font-bold pl-4 min-w-[160px]">Docuement</th>
@@ -345,11 +345,11 @@ export default function StudentDashboard({ user, currentTab, setViewImageUrl }) 
                 </button>
               </div>
               <div className="p-4 sm:p-6">
-                <div className="max-h-[60vh] overflow-y-auto overflow-x-auto">
+                <div className="max-h-[calc(100vh-280px)] overflow-y-auto overflow-x-auto">
                   {documents.filter(d => d.payment_status === 'PAID' || d.gcash_reference_no).length === 0 ? (
                     <div className="text-center py-12 text-gray-400 font-medium">No transaction payments detected.</div>
                   ) : (
-                    <table className="w-full text-left border-collapse min-w-[620px]">
+                    <table className="w-full text-left border-collapse table-fixed min-w-[620px]">
                       <thead className="sticky top-0 bg-white z-10">
                         <tr className="text-gray-400 text-[10px] uppercase tracking-widest border-b border-gray-100">
                           <th className="pb-4 font-bold pl-4 min-w-[90px]">Date</th>

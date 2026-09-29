@@ -5,6 +5,7 @@ const fs = require('fs');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const userModel = require('../../models/user.model');
+const sessionModel = require('../../models/session.model');
 const notificationModel = require('../../models/notification.model');
 const aiEngine = require('../aiEngine.service');
 const env = require('../../config/env');
@@ -31,6 +32,8 @@ const verifiedStudent = () => ({
 });
 
 beforeEach(() => {
+  vi.spyOn(sessionModel, 'findSession').mockResolvedValue({ id: 1 });
+  vi.spyOn(sessionModel, 'createSession').mockResolvedValue(1);
   vi.spyOn(userModel, 'findActiveByStudentId').mockResolvedValue([]);
   vi.spyOn(userModel, 'findExistingByStudentId').mockResolvedValue([]);
   vi.spyOn(userModel, 'createUser').mockResolvedValue([{ insertId: 1 }]);

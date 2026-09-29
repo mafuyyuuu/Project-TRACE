@@ -32,7 +32,7 @@ function listDocumentTypes({ includeInactive = false } = {}, executor = pool) {
   return executor
     .query(
       `SELECT id, name, base_fee, fee_rule, requires_attachment,
-              attachment_label, attachment_helper, is_active, sort_order
+              attachment_label, attachment_helper, is_active, sort_order, available_to
        FROM document_types${where} ORDER BY sort_order, name`
     )
     .then(([rows]) => rows);

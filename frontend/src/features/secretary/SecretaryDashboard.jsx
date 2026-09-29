@@ -3,6 +3,7 @@ import SecretaryEvaluationModal from '@/features/secretary/components/SecretaryE
 import PricingModal from '@/features/secretary/components/PricingModal';
 import PaymentStubModal from '@/features/secretary/components/PaymentStubModal';
 import ConfirmDialog from '@/components/ConfirmDialog';
+import ReceiptVerificationModal from '@/features/secretary/components/ReceiptVerificationModal';
 import QueueTabs from '@/components/QueueTabs';
 import MiniSparkline from '@/components/MiniSparkline';
 import GradApplicationReviewPanel from '@/features/graduate/components/GradApplicationReviewPanel';
@@ -61,6 +62,7 @@ export default function SecretaryDashboard({ user, currentTab, setViewImageUrl }
     setEvalStudentName,
     evalDocType,
     setEvalDocType,
+    documentTypes,
     activeModal,
     setActiveModal,
     selectedDoc,
@@ -164,11 +166,11 @@ export default function SecretaryDashboard({ user, currentTab, setViewImageUrl }
                 <p className="text-[11px] text-gray-500 font-medium mt-1">Check the request, then give the student a date to expect it by.</p>
               </div>
               <div className="p-4 sm:p-6">
-                <div className="max-h-[60vh] overflow-y-auto overflow-x-auto">
+                <div className="max-h-[calc(100vh-280px)] overflow-y-auto overflow-x-auto">
                   {evaluationQueue.length === 0 ? (
                     <div className="text-center py-12 text-gray-400 font-medium">Evaluation queue is empty! Beautiful.</div>
                   ) : (
-                    <table className="w-full text-left border-collapse">
+                    <table className="w-full text-left border-collapse table-fixed">
                       <thead className="sticky top-0 bg-white z-10">
                         <tr className="text-gray-400 text-[10px] uppercase tracking-widest border-b border-gray-100">
                           <th className="pb-4 font-bold pl-4">Document Details</th>
@@ -227,11 +229,11 @@ export default function SecretaryDashboard({ user, currentTab, setViewImageUrl }
                 <p className="text-[11px] text-gray-500 font-medium mt-1">Print the document, then set what it costs. The request is billed once every document in it is priced.</p>
               </div>
               <div className="p-4 sm:p-6">
-                <div className="max-h-[60vh] overflow-y-auto overflow-x-auto">
+                <div className="max-h-[calc(100vh-280px)] overflow-y-auto overflow-x-auto">
                   {processingQueue.length === 0 ? (
                     <div className="text-center py-12 text-gray-400 font-medium">Nothing being processed right now.</div>
                   ) : (
-                    <table className="w-full text-left border-collapse">
+                    <table className="w-full text-left border-collapse table-fixed">
                       <thead className="sticky top-0 bg-white z-10">
                         <tr className="text-gray-400 text-[10px] uppercase tracking-widest border-b border-gray-100">
                           <th className="pb-4 font-bold pl-4">Document Details</th>
@@ -300,11 +302,11 @@ export default function SecretaryDashboard({ user, currentTab, setViewImageUrl }
                 <p className="text-[11px] text-gray-500 font-medium mt-1">Finance has confirmed the payment. Check the Official Receipt is present and the number looks right before handoff.</p>
               </div>
               <div className="p-4 sm:p-6">
-                <div className="max-h-[60vh] overflow-y-auto overflow-x-auto">
+                <div className="max-h-[calc(100vh-280px)] overflow-y-auto overflow-x-auto">
                   {orVerificationQueue.length === 0 ? (
                     <div className="text-center py-12 text-gray-400 font-medium">Nothing waiting on an OR check.</div>
                   ) : (
-                    <table className="w-full text-left border-collapse">
+                    <table className="w-full text-left border-collapse table-fixed">
                       <thead className="sticky top-0 bg-white z-10">
                         <tr className="text-gray-400 text-[10px] uppercase tracking-widest border-b border-gray-100">
                           <th className="pb-4 font-bold pl-4">Document Details</th>
@@ -359,11 +361,11 @@ export default function SecretaryDashboard({ user, currentTab, setViewImageUrl }
                 <p className="text-[11px] text-gray-500 font-medium mt-1">Paid and signed. Confirm once the printed document is physically at Window 1.</p>
               </div>
               <div className="p-4 sm:p-6">
-                <div className="max-h-[60vh] overflow-y-auto overflow-x-auto">
+                <div className="max-h-[calc(100vh-280px)] overflow-y-auto overflow-x-auto">
                   {handoffQueue.length === 0 ? (
                     <div className="text-center py-12 text-gray-400 font-medium">Nothing waiting to be handed over.</div>
                   ) : (
-                    <table className="w-full text-left border-collapse">
+                    <table className="w-full text-left border-collapse table-fixed">
                       <thead className="sticky top-0 bg-white z-10">
                         <tr className="text-gray-400 text-[10px] uppercase tracking-widest border-b border-gray-100">
                           <th className="pb-4 font-bold pl-4">Document Details</th>
@@ -423,11 +425,11 @@ export default function SecretaryDashboard({ user, currentTab, setViewImageUrl }
                 <h3 className="font-bold text-gray-950 text-sm tracking-wider uppercase">COMPLETED LOGS</h3>
               </div>
               <div className="p-4 sm:p-6">
-                <div className="max-h-[60vh] overflow-y-auto overflow-x-auto">
+                <div className="max-h-[calc(100vh-280px)] overflow-y-auto overflow-x-auto">
                   {clearedQueue.length === 0 ? (
                     <div className="text-center py-12 text-gray-400 font-medium">No completed evaluation logs found.</div>
                   ) : (
-                    <table className="w-full text-left border-collapse">
+                    <table className="w-full text-left border-collapse table-fixed">
                       <thead className="sticky top-0 bg-white z-10">
                         <tr className="text-gray-400 text-[10px] uppercase tracking-widest border-b border-gray-100">
                           <th className="pb-4 font-bold pl-4">Date Approved</th>
@@ -477,6 +479,7 @@ export default function SecretaryDashboard({ user, currentTab, setViewImageUrl }
             setEvalStudentName={setEvalStudentName}
             evalDocType={evalDocType}
             setEvalDocType={setEvalDocType}
+            documentTypes={documentTypes}
             clerkNotes={clerkNotes}
             setClerkNotes={setClerkNotes}
             actionLoading={actionLoading}
@@ -517,23 +520,12 @@ export default function SecretaryDashboard({ user, currentTab, setViewImageUrl }
           />
         )}
 
-        <ConfirmDialog
-          open={!!orVerifyToConfirm}
-          title="Verify Official Receipt"
-          message={
-            orVerifyToConfirm
-              ? [
-                  `Confirm the Official Receipt for ${orVerifyToConfirm.document_type} is present and the number looks right?`,
-                  orVerifyToConfirm.or_number ? `OR on file: ${orVerifyToConfirm.or_number}` : 'No OR number on file.',
-                ]
-              : ''
-          }
-          variant="neutral"
-          confirmLabel="Verify Receipt"
-          loadingLabel="Saving…"
-          loading={actionLoading}
-          onConfirm={confirmVerifyOfficialReceiptAction}
-          onCancel={cancelVerifyOfficialReceiptConfirm}
+        <ReceiptVerificationModal
+          selectedDoc={orVerifyToConfirm}
+          setActiveModal={cancelVerifyOfficialReceiptConfirm}
+          setViewImageUrl={setViewImageUrl}
+          handleSecretaryVerifyReceipt={confirmVerifyOfficialReceiptAction}
+          actionLoading={actionLoading}
         />
 
         <ConfirmDialog

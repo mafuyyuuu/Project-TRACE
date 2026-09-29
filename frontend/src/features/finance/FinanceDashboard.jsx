@@ -98,11 +98,11 @@ export default function FinanceDashboard({ user, setViewImageUrl }) {
             </span>
           </div>
           <div className="p-4 sm:p-6">
-            <div className="max-h-[60vh] overflow-y-auto overflow-x-auto">
+            <div className="max-h-[calc(100vh-280px)] overflow-y-auto overflow-x-auto">
               {awaitingPaymentQueue.length === 0 ? (
                 <div className="text-center py-12 text-gray-400 font-medium">Nothing waiting to be paid.</div>
               ) : (
-                <table className="w-full text-left border-collapse min-w-[680px]">
+                <table className="w-full text-left border-collapse table-fixed min-w-[680px]">
                   <thead className="sticky top-0 bg-white z-10">
                     <tr className="text-gray-400 text-[10px] uppercase tracking-widest border-b border-gray-100">
                       <th className="pb-4 font-bold pl-4 min-w-[110px]">Tracking ID</th>
@@ -150,11 +150,11 @@ export default function FinanceDashboard({ user, setViewImageUrl }) {
             </span>
           </div>
           <div className="p-4 sm:p-6">
-            <div className="max-h-[60vh] overflow-y-auto overflow-x-auto">
+            <div className="max-h-[calc(100vh-280px)] overflow-y-auto overflow-x-auto">
               {verificationQueue.length === 0 ? (
                 <div className="text-center py-12 text-gray-400 font-medium">No pending receipts to verify. Queue is clean!</div>
               ) : (
-                <table className="w-full text-left border-collapse min-w-[730px]">
+                <table className="w-full text-left border-collapse table-fixed min-w-[730px]">
                   <thead className="sticky top-0 bg-white z-10">
                     <tr className="text-gray-400 text-[10px] uppercase tracking-widest border-b border-gray-100">
                       <th className="pb-4 font-bold pl-4 min-w-[110px]">Tracking ID</th>

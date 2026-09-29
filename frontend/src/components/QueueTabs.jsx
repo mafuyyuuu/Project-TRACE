@@ -7,7 +7,7 @@
  */
 export default function QueueTabs({ tabs, activeKey, onChange }) {
   return (
-    <div className="inline-flex bg-gray-100 rounded-2xl p-1 gap-1 mt-8" role="tablist">
+    <div className="inline-flex bg-gray-100 rounded-full p-1.5 gap-1 mt-8" role="tablist">
       {tabs.map((tab) => {
         const isActive = tab.key === activeKey;
         return (
@@ -17,11 +17,18 @@ export default function QueueTabs({ tabs, activeKey, onChange }) {
             role="tab"
             aria-selected={isActive}
             onClick={() => onChange(tab.key)}
-            className={`px-4 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-all ${
-              isActive ? 'bg-[#15803d] text-white shadow-md' : 'text-gray-500 hover:bg-gray-50 hover:text-gray-800'
+            className={`flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold uppercase tracking-wider transition-all ${
+              isActive ? 'bg-[#15803d] text-white shadow-md' : 'text-gray-500 hover:bg-gray-200 hover:text-gray-800'
             }`}
           >
-            {tab.label} ({tab.count})
+            {tab.label}
+            {tab.count !== undefined && (
+              <span className={`w-5 h-5 flex items-center justify-center rounded-full text-[10px] ${
+                isActive ? 'bg-white text-[#15803d]' : 'bg-gray-300 text-gray-700'
+              }`}>
+                {tab.count}
+              </span>
+            )}
           </button>
         );
       })}

@@ -211,12 +211,12 @@ export default function Window1Dashboard({ user, currentTab, setViewImageUrl }) 
               </div>
 
               <div className="p-4 sm:p-6">
-                <div className="max-h-[60vh] overflow-y-auto overflow-x-auto">
+                <div className="max-h-[calc(100vh-280px)] overflow-y-auto overflow-x-auto">
                   {intakeQueue.length === 0 ? (
                     <div className="text-center py-16 text-gray-400 font-medium">Nothing waiting for intake.</div>
                   ) : (
                     <>
-                      <table className="w-full text-left border-collapse">
+                      <table className="w-full text-left border-collapse table-fixed">
                         <thead className="sticky top-0 bg-white z-10">
                           <tr className="text-gray-400 text-[10px] uppercase tracking-widest border-b border-gray-100">
                             <th className="pb-4 font-bold pl-4">Tracking Hash</th>
@@ -301,12 +301,12 @@ export default function Window1Dashboard({ user, currentTab, setViewImageUrl }) 
               </div>
 
               <div className="p-4 sm:p-6">
-                <div className="max-h-[60vh] overflow-y-auto overflow-x-auto">
+                <div className="max-h-[calc(100vh-280px)] overflow-y-auto overflow-x-auto">
                   {releaseQueue.length === 0 ? (
                     <div className="text-center py-16 text-gray-400 font-medium">No documents waiting for release.</div>
                   ) : (
                     <>
-                      <table className="w-full text-left border-collapse">
+                      <table className="w-full text-left border-collapse table-fixed">
                         <thead className="sticky top-0 bg-white z-10">
                           <tr className="text-gray-400 text-[10px] uppercase tracking-widest border-b border-gray-100">
                             <th className="pb-4 font-bold pl-4">Tracking Hash</th>
@@ -416,8 +416,8 @@ export default function Window1Dashboard({ user, currentTab, setViewImageUrl }) 
                   <div className="text-center py-12 text-gray-400 font-medium">No active document requests.</div>
                 ) : (
                   <>
-                    <div className="max-h-[60vh] overflow-y-auto overflow-x-auto">
-                      <table className="w-full text-left border-collapse min-w-[700px]">
+                    <div className="max-h-[calc(100vh-280px)] overflow-y-auto overflow-x-auto">
+                      <table className="w-full text-left border-collapse table-fixed min-w-[700px]">
                         <thead className="sticky top-0 bg-white z-10">
                           <tr className="text-gray-400 text-[10px] uppercase tracking-widest border-b border-gray-100">
                             <th className="pb-4 font-bold pl-4">Date Requested</th>

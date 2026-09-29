@@ -27,11 +27,24 @@ async function verifyIdDocument(file, { studentId, course }) {
     form.append('student_id', studentId);
     if (course) form.append('course', course);
 
-    const res = await fetch(`${env.AI_ENGINE_URL}/ocr/verify`, { method: 'POST', body: form });
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 15000);
+
+    const res = await fetch(`${env.AI_ENGINE_URL}/ocr/verify`, {
+      method: 'POST',
+      body: form,
+      signal: controller.signal
+    });
+    clearTimeout(timeoutId);
+
     if (!res.ok) return null;
     return await res.json();
   } catch (err) {
-    console.warn('⚠️ AI verification unavailable:', err.message);
+    if (err.name === 'AbortError') {
+      console.warn('⚠️ AI verification timed out after 15s');
+    } else {
+      console.warn('⚠️ AI verification unavailable:', err.message);
+    }
     return null;
   }
 }

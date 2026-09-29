@@ -1,4 +1,4 @@
-import { AreaChart, Area, XAxis, Tooltip, ResponsiveContainer } from 'recharts';
+import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import MiniSparkline from '@/components/MiniSparkline';
 import useAdminDashboard from '@/features/admin/useAdminDashboard';
 import { todayLongDate, formatDuration } from '@/utils/formatters';
@@ -196,6 +196,14 @@ export default function AdminDashboard({ user, currentTab, setViewImageUrl }) {
                               tick={{ fill: '#9ca3af', fontSize: 10, fontWeight: 'bold' }} 
                               dy={10}
                             />
+                            <YAxis 
+                              allowDecimals={false} 
+                              axisLine={false} 
+                              tickLine={false} 
+                              tick={{ fill: '#9ca3af', fontSize: 10, fontWeight: 'bold' }} 
+                              width={30}
+
+                            />
                             <Tooltip 
                               contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
                               itemStyle={{ color: '#15803d', fontWeight: 'bold' }}
@@ -261,11 +269,11 @@ export default function AdminDashboard({ user, currentTab, setViewImageUrl }) {
                     </span>
                   </div>
                   <div className="p-4 sm:p-6">
-                    <div className="max-h-[60vh] overflow-y-auto overflow-x-auto">
+                    <div className="max-h-[calc(100vh-280px)] overflow-y-auto overflow-x-auto">
                       {pendingStudents.length === 0 ? (
                         <div className="text-center py-12 text-gray-400 font-medium">No pending student accounts requiring manual validation.</div>
                       ) : (
-                        <table className="w-full text-left border-collapse">
+                        <table className="w-full text-left border-collapse table-fixed">
                           <thead className="sticky top-0 bg-white z-10">
                             <tr className="text-gray-400 text-[10px] uppercase tracking-widest border-b border-gray-100">
                               <th className="pb-4 font-bold pl-4 font-mono">Student ID</th>
@@ -357,11 +365,11 @@ export default function AdminDashboard({ user, currentTab, setViewImageUrl }) {
                     </div>
                   </div>
                   <div className="p-4 sm:p-6">
-                    <div className="max-h-[60vh] overflow-y-auto overflow-x-auto">
+                    <div className="max-h-[calc(100vh-280px)] overflow-y-auto overflow-x-auto">
                       {documents.filter(doc => adminDocFilter === 'All' || doc.document_type === adminDocFilter).length === 0 ? (
                         <div className="text-center py-12 text-gray-400 font-medium">No documents match the current filter.</div>
                       ) : (
-                        <table className="w-full text-left border-collapse">
+                        <table className="w-full text-left border-collapse table-fixed">
                           <thead className="sticky top-0 bg-white z-10">
                             <tr className="text-gray-400 text-[10px] uppercase tracking-widest border-b border-gray-100">
                               <th className="pb-4 font-bold pl-4">Tracking ID</th>
@@ -487,8 +495,8 @@ export default function AdminDashboard({ user, currentTab, setViewImageUrl }) {
                     <h3 className="font-bold text-gray-900 text-lg">System-Wide Audit Log</h3>
                   </div>
                   <div className="p-4 sm:p-6">
-                    <div className="max-h-[60vh] overflow-y-auto overflow-x-auto">
-                      <table className="w-full text-left border-collapse whitespace-nowrap">
+                    <div className="max-h-[calc(100vh-280px)] overflow-y-auto overflow-x-auto">
+                      <table className="w-full text-left border-collapse table-fixed whitespace-nowrap">
                         <thead className="sticky top-0 bg-white z-10">
                           <tr className="text-xs uppercase tracking-widest text-gray-400 border-b border-gray-100">
                             <th className="pb-4 font-bold pl-4">Timestamp</th>

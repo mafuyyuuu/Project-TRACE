@@ -635,6 +635,33 @@ async function migrate() {
     await addColumn('documents', 'or_verified_at', 'DATETIME NULL AFTER or_verified_by_clerk_id');
     await addForeignKey('documents', 'fk_documents_or_verified_by', 'or_verified_by_clerk_id', 'users(id) ON DELETE SET NULL');
 
+    // =======================================================================
+    // Batch 8 - Branding, security, account, mobile
+    // =======================================================================
+    console.log('\n--- Batch 8: Security & Account ---');
+
+    // SEC-01: Sessions table for new device tracking
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS sessions (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        user_id INT NOT NULL,
+        device_fingerprint VARCHAR(255) NOT NULL,
+        ip_address VARCHAR(45) NULL,
+        user_agent TEXT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        last_active TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+      )
+    `);
+    await addIndex('sessions', 'idx_sessions_user', 'user_id');
+    await addIndex('sessions', 'idx_sessions_device', 'device_fingerprint');
+
+    // SU-06: Alumni onboarding completion
+    await addColumn('users', 'profile_completed', 'BOOLEAN NOT NULL DEFAULT FALSE');
+
+    // ST-02: Document role filtering
+    await addColumn('document_types', 'available_to', "ENUM('student', 'alumni', 'both') NOT NULL DEFAULT 'both'");
+
     console.log('✅ Database migration completed successfully.');
     process.exit(0);
   } catch (err) {

@@ -10,7 +10,7 @@ function ApplicationsTable({ applications, onReview, emptyMessage }) {
     return <div className="text-center py-12 text-gray-400 font-medium">{emptyMessage}</div>;
   }
   return (
-    <table className="w-full text-left border-collapse">
+    <table className="w-full text-left border-collapse table-fixed">
       <thead className="sticky top-0 bg-white z-10">
         <tr className="text-gray-400 text-[10px] uppercase tracking-widest border-b border-gray-100">
           <th className="pb-4 font-bold pl-4">Applicant</th>
@@ -125,7 +125,7 @@ export default function GradApplicationReviewPanel({ user, currentTab }) {
 
       <div className="bg-white rounded-3xl shadow-sm border border-gray-200 overflow-hidden mt-6">
         <div className="p-4 sm:p-6">
-          <div className="max-h-[60vh] overflow-y-auto overflow-x-auto">
+          <div className="max-h-[calc(100vh-280px)] overflow-y-auto overflow-x-auto">
             <ApplicationsTable
               applications={queues[activeQueueTab]}
               onReview={openReview}
