@@ -30,6 +30,7 @@ vi.mock('@/services/documentsService', () => ({
   scanReceipt: vi.fn(),
   logWalkInPayment: vi.fn(),
   releaseDocument: vi.fn(),
+  uploadDeferredOR: vi.fn(),
   cancelDocument: vi.fn(),
 }));
 
@@ -284,11 +285,12 @@ describe('Student — asked for money only once there is an amount', () => {
     expect(await screen.findByText(/Action Required — Payment/i)).toBeInTheDocument();
   });
 
-  it('offers to pay the amount the Secretary set', async () => {
+  it('offers one grouped payment action for the amount the Secretary set', async () => {
     await renderDashboard(
       <StudentDashboard user={USERS.student} currentTab="dashboard" setViewImageUrl={vi.fn()} />
     );
-    expect((await screen.findAllByRole('button', { name: /pay ₱250\.00/i })).length).toBeGreaterThan(0);
+    expect(await screen.findByRole('button', { name: 'Pay ₱250.00 (1 document)' })).toBeInTheDocument();
+    expect(screen.getAllByRole('button', { name: /^pay /i })).toHaveLength(1);
   });
 
   it('never offers to pay for a request that has not been priced', async () => {
@@ -319,7 +321,7 @@ describe('Student — asked for money only once there is an amount', () => {
     await renderDashboard(
       <StudentDashboard user={USERS.student} currentTab="dashboard" setViewImageUrl={vi.fn()} />
     );
-    const [payButton] = await screen.findAllByRole('button', { name: /pay ₱250\.00/i });
+    const payButton = await screen.findByRole('button', { name: 'Pay ₱250.00 (1 document)' });
     await user.click(payButton);
 
     expect(await screen.findByAltText('GCash QR Code')).toBeInTheDocument();
@@ -332,7 +334,7 @@ describe('Student — asked for money only once there is an amount', () => {
     await renderDashboard(
       <StudentDashboard user={USERS.student} currentTab="dashboard" setViewImageUrl={vi.fn()} />
     );
-    const [payButton] = await screen.findAllByRole('button', { name: /pay ₱250\.00/i });
+    const payButton = await screen.findByRole('button', { name: 'Pay ₱250.00 (1 document)' });
     await user.click(payButton);
     await user.click(await screen.findByRole('button', { name: 'Credit / Debit Card' }));
 
@@ -347,7 +349,7 @@ describe('Student — asked for money only once there is an amount', () => {
     await renderDashboard(
       <StudentDashboard user={USERS.student} currentTab="dashboard" setViewImageUrl={vi.fn()} />
     );
-    const [payButton] = await screen.findAllByRole('button', { name: /pay ₱250\.00/i });
+    const payButton = await screen.findByRole('button', { name: 'Pay ₱250.00 (1 document)' });
     await user.click(payButton);
     await user.click(await screen.findByRole('button', { name: 'Credit / Debit Card' }));
 
@@ -362,8 +364,10 @@ describe('Student — asked for money only once there is an amount', () => {
     // so a real button click gets silently vetoed by native constraint
     // validation here. Submitting the form directly exercises the same
     // `onSubmit` handler without that jsdom-only false negative.
-    fireEvent.submit(screen.getByRole('button', { name: /submit payment/i }).closest('form'));
+    fireEvent.submit(screen.getByRole('button', { name: /submit payment/i }).form);
 
+    expect(documentsService.submitPayment).not.toHaveBeenCalled();
+    await user.click(screen.getByRole('button', { name: 'Confirm Payment' }));
     await waitFor(() => expect(documentsService.submitPayment).toHaveBeenCalled());
     const [, formData] = documentsService.submitPayment.mock.calls[0];
     expect(formData.get('payment_method')).toBe('card');

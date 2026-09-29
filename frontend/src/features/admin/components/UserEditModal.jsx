@@ -1,3 +1,4 @@
+import ConfirmDialog from '@/components/ConfirmDialog';
 import { useState } from 'react';
 import ModalShell from '@/components/ModalShell';
 
@@ -30,6 +31,7 @@ function Note({ children }) {
  */
 export default function UserEditModal({ open, onClose, user, onSave, saving }) {
   const [activeTab, setActiveTab] = useState('personal');
+  const [editToConfirm, setEditToConfirm] = useState(null);
   const [fullName, setFullName] = useState(user?.full_name || '');
   const [phoneNumber, setPhoneNumber] = useState(user?.phone_number || '');
   const [email, setEmail] = useState(user?.email || '');
@@ -54,7 +56,7 @@ export default function UserEditModal({ open, onClose, user, onSave, saving }) {
       onClose();
       return;
     }
-    await onSave(user.id, payload);
+    setEditToConfirm({ id: user.id, payload });
   };
 
   return (
@@ -84,6 +86,12 @@ export default function UserEditModal({ open, onClose, user, onSave, saving }) {
         </div>
       }
     >
+      <ConfirmDialog open={!!editToConfirm} title="Confirm User Changes"
+        message={`Save changes to ${user.full_name}'s account?`} confirmLabel="Save Changes"
+        loading={saving} onCancel={() => setEditToConfirm(null)}
+        onConfirm={async () => {
+          if (await onSave(editToConfirm.id, editToConfirm.payload)) setEditToConfirm(null);
+        }} />
       <div className="flex gap-2 border-b border-gray-200 dark:border-gray-700 mb-6">
         {TABS.map((t) => (
           <button

@@ -1,8 +1,8 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import useDashboardCore from '@/hooks/useDashboardCore';
-import { verifyPayment, logWalkInPayment, scanReceipt } from '@/services/documentsService';
+import { verifyPayment, logWalkInPayment, scanReceipt, uploadDeferredOR } from '@/services/documentsService';
 import { getPaymentMethods } from '@/services/referenceService';
-import { STATUS } from '@/utils/documentStatus';
+import { STATUS, PIPELINE } from '@/utils/documentStatus';
 
 /**
  * Finance clerk: the desk money passes through, in two queues.
@@ -52,6 +52,21 @@ export default function useFinanceDashboard(user) {
     () => documents.filter((d) => d.current_status === STATUS.PENDING_FINANCE_VERIFICATION),
     [documents]
   );
+
+  const transactionsQueue = useMemo(
+    () => documents.filter((doc) =>
+      PIPELINE.slice(PIPELINE.indexOf(STATUS.PAID_PENDING_SEC_RELEASE)).includes(doc.current_status)),
+    [documents]
+  );
+
+  const handleDeferredUpload = useCallback(async (doc, file) => {
+    const ok = await runAction(() => uploadDeferredOR(doc.id, file), {
+      successMessage: 'Official Receipt copy uploaded. The document stage is unchanged.',
+      errorMessage: 'Could not upload the Official Receipt copy.',
+    });
+    if (ok) setActiveModal(null);
+    return ok;
+  }, [runAction, setActiveModal]);
 
   /**
    * @param {'approve'|'reject'} action
@@ -180,6 +195,8 @@ export default function useFinanceDashboard(user) {
     ...core,
     awaitingPaymentQueue,
     verificationQueue,
+    transactionsQueue,
+    handleDeferredUpload,
     clerkNotes, setClerkNotes,
     orNumber, setOrNumber,
     orDate, setOrDate,

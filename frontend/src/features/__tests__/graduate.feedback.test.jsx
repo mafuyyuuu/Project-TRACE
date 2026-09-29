@@ -45,12 +45,18 @@ describe('Graduate application feedback', () => {
     fireEvent.change(await screen.findByRole('textbox', { name: /Full name/ }), { target: { value: 'Ana Reyes' } });
     fireEvent.change(screen.getByRole('textbox', { name: /Program/ }), { target: { value: 'Computer Science' } });
     fireEvent.click(screen.getByRole('button', { name: 'Submit Application' }));
+    expect(gradService.submitApplication).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', { name: 'Confirm Submission' }));
     const title = outcome === 'success' ? 'Success' : 'Attention Needed';
     expect(await screen.findByRole('dialog', { name: title })).toHaveTextContent(
       outcome === 'success' ? 'Application received.' : 'Please try again later.'
     );
     expect(gradService.submitApplication).toHaveBeenCalledWith({ name: 'Ana Reyes', program: 'Computer Science' });
     fireEvent.click(screen.getByRole('button', { name: 'OK' }));
+    if (outcome === 'error') {
+      expect(screen.getByRole('dialog', { name: 'Confirm Graduate Application' })).toBeInTheDocument();
+      fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+    }
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
     expect(screen.getByRole('textbox', { name: /Full name/ })).toHaveValue(outcome === 'success' ? '' : 'Ana Reyes');
   });

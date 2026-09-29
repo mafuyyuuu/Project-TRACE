@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
 
 vi.mock('@/services/api', () => ({
   default: { get: vi.fn(() => new Promise(() => {})), post: vi.fn() },
@@ -44,6 +44,20 @@ beforeEach(() => {
 });
 
 describe('ProfileSettingsModal', () => {
+  it('keeps Settings open on confirmation cancellation and saves only after confirmation', async () => {
+    const onSave = vi.fn().mockResolvedValue(true);
+    renderModal({ onSave, user: CLERK });
+    const save = screen.getByRole('button', { name: 'Save Profile' });
+    fireEvent.click(save);
+    expect(onSave).not.toHaveBeenCalled();
+    fireEvent.keyDown(document, { key: 'Escape' });
+    expect(screen.getByDisplayValue('ana@plp.edu.ph')).toBeInTheDocument();
+    fireEvent.click(save);
+    const confirmation = screen.getByRole('dialog', { name: 'Confirm Profile Save' });
+    fireEvent.click(within(confirmation).getByRole('button', { name: 'Save Profile' }));
+    await waitFor(() => expect(onSave).toHaveBeenCalledOnce());
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Confirm Profile Save' })).not.toBeInTheDocument());
+  });
   it('presents the account as a profile card', () => {
     renderModal();
     expect(screen.getByText('Ana Reyes')).toBeInTheDocument();
@@ -127,6 +141,8 @@ describe('ProfileSettingsModal', () => {
     const logout = screen.getByRole('button', { name: 'Logout All Devices' });
     logout.focus();
     fireEvent.click(logout);
+    expect(api.post).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', { name: 'Log Out Other Devices' }));
 
     const feedback = await screen.findByRole('dialog', { name: title });
     expect(feedback).toHaveTextContent(message);
@@ -137,6 +153,10 @@ describe('ProfileSettingsModal', () => {
     fireEvent.click(screen.getByRole('button', { name: 'OK' }));
     expect(screen.queryByRole('dialog', { name: title })).not.toBeInTheDocument();
     expect(screen.getByRole('dialog', { name: 'Account Settings' })).toBeInTheDocument();
+    if (outcome === 'error') {
+      expect(screen.getByRole('dialog', { name: 'Log Out Other Devices' })).toBeInTheDocument();
+      fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+    }
     expect(logout).toHaveFocus();
     expect(onClose).not.toHaveBeenCalled();
     nativeAlert.mockRestore();

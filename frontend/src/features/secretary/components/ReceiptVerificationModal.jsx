@@ -1,6 +1,7 @@
 import ModalShell from '@/components/ModalShell';
 import AuthedFilePreview from '@/components/AuthedFilePreview';
 import { formatPeso } from '@/utils/pricing';
+import { useState } from 'react';
 
 export default function ReceiptVerificationModal({
   selectedDoc,
@@ -9,22 +10,38 @@ export default function ReceiptVerificationModal({
   handleSecretaryVerifyReceipt,
   actionLoading,
 }) {
+  const [physicalReceiptChecked, setPhysicalReceiptChecked] = useState(false);
+  const [receiptId, setReceiptId] = useState(null);
+  if (receiptId !== (selectedDoc?.id ?? null)) {
+    setReceiptId(selectedDoc?.id ?? null);
+    setPhysicalReceiptChecked(false);
+  }
   if (!selectedDoc) return null;
+  const canConfirm = Boolean(selectedDoc.or_number?.trim()) &&
+    (Boolean(selectedDoc.official_receipt_path) || physicalReceiptChecked);
+  const close = () => {
+    setPhysicalReceiptChecked(false);
+    setActiveModal(null);
+  };
 
   return (
     <ModalShell
       open={!!selectedDoc}
-      onClose={() => setActiveModal(null)}
+      onClose={close}
+      busy={actionLoading}
+      closeOnEsc={!actionLoading}
+      closeOnBackdrop={!actionLoading}
+      showCloseButton={!actionLoading}
       bare
       title="Verify Official Receipt"
       panelClassName="bg-white dark:bg-gray-900 rounded-3xl shadow-2xl w-full max-w-5xl h-[85vh] z-10 border border-gray-100 dark:border-gray-700 relative animate-slide-up flex flex-col lg:flex-row overflow-hidden"
       closeButtonClassName="absolute top-4 right-4 w-8 h-8 rounded-full flex items-center justify-center text-gray-400 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 z-20"
     >
-      <div className="lg:w-1/2 p-6 flex flex-col border-r border-gray-200 dark:border-gray-700 min-h-0 bg-gray-50/30 dark:bg-gray-800/30">
+      <div className="shrink-0 lg:shrink lg:w-1/2 p-6 flex flex-col border-r border-gray-200 dark:border-gray-700 min-h-0 bg-gray-50/30 dark:bg-gray-800/30">
         <div className="flex justify-between items-center mb-3">
           <span className="text-xs font-black text-gray-800 dark:text-gray-100">Finance Attachment</span>
         </div>
-        <div className="flex-1 bg-gray-200 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-2xl overflow-hidden relative flex items-center justify-center shadow-inner">
+        <div className="flex-1 min-h-20 lg:min-h-0 bg-gray-200 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-2xl overflow-hidden relative flex items-center justify-center shadow-inner">
           {selectedDoc.official_receipt_path ? (
             <AuthedFilePreview
               path={selectedDoc.official_receipt_path}
@@ -36,13 +53,13 @@ export default function ReceiptVerificationModal({
             />
           ) : (
             <span className="text-xs text-gray-400 dark:text-gray-400 px-6 text-center">
-              No receipt image attached by Finance.
+              Digital copy pending upload. Check the physical OR handed over by Finance.
             </span>
           )}
         </div>
       </div>
 
-      <div className="lg:w-1/2 flex flex-col overflow-hidden">
+      <div className="lg:w-1/2 min-h-0 flex-1 flex flex-col overflow-hidden">
         <div className="flex-1 overflow-y-auto p-6 sm:p-8">
           <h3 className="text-xl font-black text-gray-900 dark:text-gray-100">Verify Official Receipt</h3>
           <p className="text-xs text-gray-400 dark:text-gray-400 mt-1 font-semibold pb-5 mb-6 border-b border-gray-100 dark:border-gray-700">
@@ -67,23 +84,32 @@ export default function ReceiptVerificationModal({
             {!selectedDoc.or_number && (
               <div className="bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 rounded-2xl p-4 mt-4">
                 <p className="text-[11px] text-amber-900 dark:text-amber-300 font-semibold leading-relaxed">
-                  Finance did not record an OR number for this payment. You may want to verify this manually.
+                  Ask Finance to record the OR number before verifying this receipt.
                 </p>
               </div>
+            )}
+            {!selectedDoc.official_receipt_path && (
+              <label className="flex items-start gap-3 rounded-xl border border-gray-200 dark:border-gray-700 p-4 text-xs font-semibold text-gray-700 dark:text-gray-300">
+                <input type="checkbox" checked={physicalReceiptChecked}
+                  onChange={(e) => setPhysicalReceiptChecked(e.target.checked)}
+                  disabled={actionLoading} className="mt-0.5 shrink-0 accent-[#15803d]" />
+                I inspected the physical Official Receipt from Finance and its number matches this request.
+              </label>
             )}
           </div>
         </div>
 
         <div className="shrink-0 px-6 sm:px-8 py-6 border-t border-gray-100 dark:border-gray-700 flex items-center gap-3">
           <button
-            onClick={() => setActiveModal(null)}
+            onClick={close}
+            disabled={actionLoading}
             className="w-1/3 py-3 rounded-xl font-bold text-xs border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors uppercase tracking-wider text-center"
           >
             Cancel
           </button>
           <button
-            onClick={() => handleSecretaryVerifyReceipt('confirm')}
-            disabled={actionLoading}
+            onClick={() => handleSecretaryVerifyReceipt('confirm', { physicalReceiptChecked })}
+            disabled={actionLoading || !canConfirm}
             className="w-2/3 py-3 rounded-xl font-bold text-xs shadow-md transition-all text-center uppercase tracking-wider bg-[#15803d] hover:bg-[#166534] text-white disabled:opacity-50"
           >
             Confirm Receipt

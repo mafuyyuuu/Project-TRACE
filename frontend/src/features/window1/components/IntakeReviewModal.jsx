@@ -125,6 +125,9 @@ export default function IntakeReviewModal({
           </div>
         )}
 
+      </div>
+      )}
+
         <label className="block">
           <span className="text-[10px] font-bold text-gray-800 dark:text-gray-100 uppercase tracking-widest block mb-2">
             Notes <span className="text-gray-400 dark:text-gray-400 normal-case font-semibold">· required when returning</span>
@@ -146,8 +149,6 @@ export default function IntakeReviewModal({
             </p>
           </div>
         )}
-      </div>
-      )}
     </ModalShell>
   );
 }

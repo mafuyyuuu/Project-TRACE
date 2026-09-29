@@ -1,3 +1,4 @@
+import ConfirmDialog from '@/components/ConfirmDialog'
 import { useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import AuthShell from '@/components/AuthShell'
@@ -13,15 +14,23 @@ export default function ResetPasswordPage() {
 
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
-  const { loading, error, message, done, submitNewPassword } = usePasswordReset()
+  const [passwordToConfirm, setPasswordToConfirm] = useState(null)
+  const [localError, setLocalError] = useState('')
+  const { loading, error: resetError, message, done, submitNewPassword } = usePasswordReset()
 
   const handleSubmit = (e) => {
     e.preventDefault()
-    submitNewPassword(token, password, confirmPassword)
+    setLocalError('')
+    if (!token) { setLocalError('This reset link is missing its token. Please request a new one.'); return }
+    if (password.length < 8) { setLocalError('Password must be at least 8 characters.'); return }
+    if (password !== confirmPassword) { setLocalError('The two passwords do not match.'); return }
+    setPasswordToConfirm({ token, password, confirmPassword })
   }
 
   const field =
     'w-full px-5 py-4 rounded-xl bg-white/10 dark:bg-gray-900/10 border border-white/30 text-white placeholder-white/50 font-medium focus:outline-none focus:ring-2 focus:ring-white/60'
+
+  const error = localError || resetError
 
   return (
     <AuthShell
@@ -33,6 +42,11 @@ export default function ResetPasswordPage() {
         </Link>
       }
     >
+      <ConfirmDialog open={!!passwordToConfirm && !done} title="Confirm Password Reset"
+        message={['Save this new password?', error ? <span role="alert">{error}</span> : null]}
+        confirmLabel="Reset Password" loading={loading}
+        onConfirm={() => submitNewPassword(passwordToConfirm.token, passwordToConfirm.password, passwordToConfirm.confirmPassword)}
+        onCancel={() => setPasswordToConfirm(null)} />
       {error && (
         <div className="mb-6 p-4 rounded-xl bg-red-900/40 dark:bg-red-900/40 border border-red-300/40 dark:border-red-800/40 text-sm font-bold">
           {error}

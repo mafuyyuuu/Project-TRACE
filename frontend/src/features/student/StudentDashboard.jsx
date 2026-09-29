@@ -4,7 +4,7 @@ import LiveTrackingModal from '@/features/student/components/LiveTrackingModal';
 import FloatingSupportChat from '@/features/student/components/FloatingSupportChat';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import MiniSparkline from '@/components/MiniSparkline';
-import { createPortal } from 'react-dom';
+import ModalShell from '@/components/ModalShell';
 import {
   STATUS,
   PIPELINE,
@@ -35,7 +35,6 @@ export default function StudentDashboard({ user, currentTab, setViewImageUrl }) 
     error,
     documents,
     billableGroups,
-    groupTotalFor,
     actionLoading,
     documentTypes,
     documentTypesLoading,
@@ -61,10 +60,16 @@ export default function StudentDashboard({ user, currentTab, setViewImageUrl }) 
     cancelRequestIdToConfirm,
     confirmStudentCancelRequest,
     cancelStudentCancelConfirm,
+    submissionToConfirm,
+    confirmStudentSubmission,
+    cancelStudentSubmission,
   } = useStudentDashboard(user);
 
   const todayFormatted = todayLongDate();
   const selectedPaymentMethod = paymentMethods.find((m) => m.code === selectedMethod);
+  const selectedPaymentDocuments = selectedDoc
+    ? documents.filter((doc) => doc.request_group_id === selectedDoc.request_group_id)
+    : [];
 
   if (loading) return <DashboardLoading />;
 
@@ -167,28 +172,30 @@ export default function StudentDashboard({ user, currentTab, setViewImageUrl }) 
                   <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 9v2m0 4h.01M5 19h14a2 2 0 001.84-2.75L13.74 4a2 2 0 00-3.48 0l-7.1 12.25A2 2 0 005 19z"/></svg>
                   <h3 className="font-black text-white text-sm uppercase tracking-wider">Action Required — Payment</h3>
                 </div>
-                <div className="p-6">
+                <div className="p-4 sm:p-6">
                   <p className="text-xs text-gray-600 dark:text-gray-300 leading-relaxed mb-5">
                     Your documents are ready. Pay online here, or bring your payment slip to the Finance Office.
                   </p>
                   <div className="space-y-4">
                     {billableGroups.map((group) => (
-                      <div key={group.groupId} className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-gray-100 dark:border-gray-700 last:border-0 last:pb-0">
-                        <div className="space-y-1.5">
-                          {group.docs.map((doc) => (
-                            <div key={doc.id} className="flex items-baseline justify-between gap-4 text-sm">
-                              <span className="font-bold text-gray-900 dark:text-gray-100">{doc.document_sequence_number || doc.document_type}</span>
-                              <span className="font-mono text-xs text-gray-400 dark:text-gray-400 select-text">{formatPeso(doc.amount)}</span>
-                            </div>
-                          ))}
-                        </div>
+                      <section key={group.groupId} aria-label={`Payment for request ${group.groupId}`} className="space-y-4 pb-5 border-b border-gray-100 dark:border-gray-700 last:border-0 last:pb-0">
+                        <p className="text-xs font-mono text-gray-500 dark:text-gray-400 break-words select-text">Request {group.groupId}</p>
                         <button
+                          type="button"
                           onClick={() => { setSelectedDoc({ ...group.docs[0], group_total: group.total }); setActiveModal('pay'); }}
-                          className="px-6 py-3 bg-[#15803d] hover:bg-[#166534] text-white rounded-2xl text-xs font-bold shadow-sm transition-all whitespace-nowrap shrink-0"
+                          className="w-full sm:w-auto px-4 sm:px-6 py-3 bg-[#15803d] hover:bg-[#166534] text-white rounded-2xl text-xs font-bold shadow-sm transition-all"
                         >
-                          Pay {formatPeso(group.total)}{group.docs.length > 1 ? ` (${group.docs.length} documents)` : ''}
+                          Pay {formatPeso(group.total)} ({group.docs.length} {group.docs.length === 1 ? 'document' : 'documents'})
                         </button>
-                      </div>
+                        <ul className="space-y-2">
+                          {group.docs.map((doc) => (
+                            <li key={doc.id} className="flex items-baseline justify-between gap-4 text-sm">
+                              <span className="min-w-0 font-bold text-gray-900 dark:text-gray-100 break-words select-text">{doc.document_sequence_number || doc.document_type}</span>
+                              <span className="shrink-0 font-mono text-xs text-gray-500 dark:text-gray-400 select-text">{formatPeso(doc.amount)}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </section>
                     ))}
                   </div>
                 </div>
@@ -206,48 +213,48 @@ export default function StudentDashboard({ user, currentTab, setViewImageUrl }) 
                   {documents.length === 0 ? (
                     <div className="text-center py-12 text-gray-400 dark:text-gray-400 font-medium">No active request records. Submit one at the top!</div>
                   ) : (
-                    <table className="w-full text-left border-collapse table-fixed min-w-[720px]">
+                    <table aria-label="Active requests" className="w-full text-left border-collapse table-auto min-w-[800px]">
                       <thead className="sticky top-0 bg-white dark:bg-gray-900 z-10">
                         <tr className="text-gray-400 dark:text-gray-400 text-[10px] uppercase tracking-widest border-b border-gray-100 dark:border-gray-700">
-                          <th className="pb-4 font-bold pl-4 min-w-[90px]">Date</th>
-                          <th className="pb-4 font-bold px-3 min-w-[160px]">Document /Type</th>
-                          <th className="pb-4 font-bold px-3 min-w-[140px]">Progress</th>
-                          <th className="pb-4 font-bold px-3 min-w-[110px]">Status</th>
-                          <th className="pb-4 font-bold text-right pr-4 min-w-[150px]">Action</th>
+                          <th className="pb-4 px-4 font-bold min-w-[120px]">Date</th>
+                          <th className="pb-4 px-4 font-bold min-w-[180px]">Document /Type</th>
+                          <th className="pb-4 px-4 font-bold min-w-[160px]">Progress</th>
+                          <th className="pb-4 px-4 font-bold min-w-[180px]">Status</th>
+                          <th className="pb-4 px-4 font-bold text-right min-w-[140px]">Action</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-gray-50 dark:divide-gray-700">
                         {documents.filter(d => docFilter === 'ALL' || (docFilter === 'COMPLETED' ? d.current_status === STATUS.COMPLETED : d.current_status !== STATUS.COMPLETED)).map(doc => (
                           <tr key={doc.id} className="hover:bg-gray-50/50 dark:hover:bg-gray-800/50 transition-colors">
-                            <td className="py-4 pl-4 text-xs font-semibold text-gray-400 dark:text-gray-400">{new Date(doc.created_at).toLocaleDateString()} {new Date(doc.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</td>
-                            <td className="py-4 px-3">
-                              <div className="text-sm font-bold text-gray-900 dark:text-gray-100">{doc.document_sequence_number || doc.document_type} {doc.is_same_day ? <span className="ml-2 px-1.5 py-0.5 bg-green-100 dark:bg-green-950/40 text-green-700 dark:text-green-300 text-[9px] uppercase font-black rounded">Same Day Release</span> : null}</div>
-                              <div className="text-xs font-mono text-gray-400 dark:text-gray-400 mt-0.5">#{doc.tracking_number ? doc.tracking_number.slice(0, 10).toUpperCase() : doc.id}</div>
-                            </td>
-                            <td className="py-4 px-3">
-                              <div className="flex items-center gap-3">
-                                <div className="w-full bg-gray-100 dark:bg-gray-800 rounded-full h-2 overflow-hidden">
-                                  <div className="bg-[#15803d] h-2 rounded-full transition-all duration-200" style={{ width: `${getProgressVal(doc.current_status)}%` }}></div>
-                                </div>
-                                <span className="text-[11px] font-bold text-gray-600 dark:text-gray-300 font-mono">{getProgressVal(doc.current_status)}%</span>
+                            <td className="py-4 px-4 align-middle text-xs font-semibold text-gray-400 dark:text-gray-400">
+                              <div className="space-y-1 whitespace-nowrap">
+                                <span className="block">{new Date(doc.created_at).toLocaleDateString()}</span>
+                                <span className="block">{new Date(doc.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
                               </div>
                             </td>
-                            <td className="py-4 px-3">
-                              <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${doc.current_status === STATUS.COMPLETED || doc.current_status === 'APPROVED' ? 'bg-emerald-50 dark:bg-emerald-950/40 text-[#15803d] dark:text-green-300' : doc.current_status === 'REJECTED' ? 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 line-through' : isAwaitingStudent(doc.current_status) ? 'bg-red-50 dark:bg-red-950/40 text-red-700 dark:text-red-300' : 'bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300'}`}>
+                            <td className="py-4 px-4 align-middle">
+                              <div className="max-w-xs space-y-1.5 break-words">
+                                <div className="text-sm font-bold text-gray-900 dark:text-gray-100">{doc.document_sequence_number || doc.document_type}</div>
+                                {doc.is_same_day ? <span className="inline-block px-1.5 py-0.5 bg-green-100 dark:bg-green-950/40 text-green-700 dark:text-green-300 text-[9px] uppercase font-black rounded">Same Day Release</span> : null}
+                                <div className="text-xs font-mono text-gray-400 dark:text-gray-400">#{doc.tracking_number ? doc.tracking_number.slice(0, 10).toUpperCase() : doc.id}</div>
+                              </div>
+                            </td>
+                            <td className="py-4 px-4 align-middle">
+                              <div className="flex items-center gap-3 min-w-32">
+                                <div role="progressbar" aria-label={`Progress for ${doc.tracking_number || doc.id}`} aria-valuemin={0} aria-valuemax={100} aria-valuenow={getProgressVal(doc.current_status)} className="flex-1 min-w-12 bg-gray-100 dark:bg-gray-800 rounded-full h-2 overflow-hidden">
+                                  <div className="bg-[#15803d] h-2 rounded-full transition-all duration-200" style={{ width: `${getProgressVal(doc.current_status)}%` }}></div>
+                                </div>
+                                <span className="shrink-0 whitespace-nowrap text-[11px] font-bold text-gray-600 dark:text-gray-300 font-mono">{getProgressVal(doc.current_status)}%</span>
+                              </div>
+                            </td>
+                            <td className="py-4 px-4 align-middle">
+                              <span className={`inline-flex max-w-48 px-3 py-1 rounded-full text-[10px] leading-relaxed font-black uppercase tracking-wider ${doc.current_status === STATUS.COMPLETED || doc.current_status === 'APPROVED' ? 'bg-emerald-50 dark:bg-emerald-950/40 text-[#15803d] dark:text-green-300' : doc.current_status === 'REJECTED' ? 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 line-through' : isAwaitingStudent(doc.current_status) ? 'bg-red-50 dark:bg-red-950/40 text-red-700 dark:text-red-300' : 'bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300'}`}>
                                 {getStatusLabel(doc.current_status)}
                               </span>
                             </td>
-                            <td className="py-4 text-right pr-4 relative min-w-[150px]">
+                            <td className="py-4 px-4 align-middle text-right">
                               <div className="flex justify-end gap-2">
-                                {isAwaitingStudent(doc.current_status) ? (
-                                  <button
-                                    onClick={() => { setSelectedDoc({ ...doc, group_total: groupTotalFor(doc) }); setActiveModal('pay'); }}
-                                    className="px-4 py-1.5 bg-[#15803d] text-white rounded-xl text-xs font-bold hover:bg-[#166534] transition-all shadow-sm flex items-center gap-1.5 whitespace-nowrap shrink-0"
-                                  >
-                                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                                    Pay {formatPeso(groupTotalFor(doc))}
-                                  </button>
-                                ) : isCancellable(doc.current_status) ? (
+                                {isCancellable(doc.current_status) ? (
                                   <button
                                     onClick={() => handleStudentCancelRequest(doc.id)}
                                     className="px-4 py-1.5 bg-red-50 dark:bg-red-950/40 text-red-600 dark:text-red-300 rounded-xl text-xs font-bold hover:bg-red-100 dark:hover:bg-red-950/40 transition-all border border-red-200 dark:border-red-800 flex items-center gap-1.5 whitespace-nowrap shrink-0"
@@ -281,8 +288,9 @@ export default function StudentDashboard({ user, currentTab, setViewImageUrl }) 
 
       {/* INCOMPLETE PROFILE MODAL */}
       {missingProfileFields && (
-        <ModalShell open={true} onClose={() => setMissingProfileFields(null)} title="Profile Incomplete" bare panelClassName="bg-white dark:bg-gray-900 rounded-3xl shadow-2xl w-full max-w-sm z-10 border border-gray-100 dark:border-gray-700 relative text-center">
-          <div className="p-8 flex flex-col items-center gap-4">
+        <ModalShell open={true} onClose={() => setMissingProfileFields(null)} title="Profile Incomplete" maxWidth="max-w-sm"
+          footer={<button onClick={() => setMissingProfileFields(null)} className="w-full py-3 bg-[#15803d] text-white rounded-xl font-bold text-xs uppercase tracking-wider hover:bg-[#166534] transition-colors">Understood</button>}>
+          <div className="flex flex-col items-center gap-4 text-center">
             <div className="w-16 h-16 rounded-full bg-amber-50 dark:bg-amber-950/40 text-amber-500 dark:text-amber-300 flex items-center justify-center mb-2">
               <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
             </div>
@@ -290,12 +298,7 @@ export default function StudentDashboard({ user, currentTab, setViewImageUrl }) 
             <p className="text-sm text-gray-500 dark:text-gray-400">
               You cannot request documents until you complete your profile. Please open your <strong>Account Settings</strong> and add your {missingProfileFields.join(' and ')}.
             </p>
-            <button 
-              onClick={() => setMissingProfileFields(null)}
-              className="mt-4 w-full py-3 bg-[#15803d] text-white rounded-xl font-bold text-xs uppercase tracking-wider hover:bg-[#166534] transition-colors"
-            >
-              Understood
-            </button>
+
           </div>
         </ModalShell>
       )}
@@ -457,24 +460,33 @@ export default function StudentDashboard({ user, currentTab, setViewImageUrl }) 
         )}
 
         {/* 1.5. COMPLETE YOUR GCASH PAYMENT MODAL */}
-        {activeModal === 'pay' && selectedDoc && createPortal(
-          <div className="fixed inset-0 z-[100] flex items-start sm:items-center justify-center p-4 overflow-y-auto">
-            <div className="absolute inset-0 bg-gray-900/60 dark:bg-gray-800/60 backdrop-blur-md" onClick={() => setActiveModal(null)}></div>
-            <div className="bg-white dark:bg-gray-900 rounded-3xl shadow-2xl w-full max-w-lg max-h-[calc(100dvh-2rem)] overflow-y-auto p-6 sm:p-8 z-10 border border-gray-100 dark:border-gray-700 relative">
-
+        {activeModal === 'pay' && selectedDoc && (
+          <ModalShell open onClose={() => setActiveModal(null)} title="Complete your Payment"
+            footer={<div><button
+                  type="submit" form="student-payment-form"
+                  disabled={actionLoading}
+                  className="w-full bg-[#15803d] hover:bg-[#166534] disabled:opacity-70 text-white font-bold py-3.5 rounded-xl transition-all shadow-md uppercase tracking-wider text-xs flex justify-center items-center"
+                >
+                  {actionLoading ? 'Submitting...' : 'Submit Payment'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveModal('payment-stub')}
+                  className="w-full mt-3 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300 font-bold py-3.5 rounded-xl transition-all uppercase tracking-wider text-xs flex justify-center items-center gap-2"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
+                  Print Payment Slip (Walk-in)
+                </button></div>}>
               <button 
                 onClick={() => handleStudentCancelRequest(selectedDoc.id, true)}
-                className="absolute top-4 left-4 px-3 py-1.5 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-300 rounded-xl text-[10px] font-bold transition-all flex items-center gap-1"
+                className="mb-4 w-fit px-3 py-1.5 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-300 rounded-xl text-[10px] font-bold transition-all flex items-center gap-1"
               >
                 <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
                 Back to Form
               </button>
-              <button className="absolute top-4 right-4 w-8 h-8 rounded-full flex items-center justify-center text-gray-400 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800" onClick={() => setActiveModal(null)}>✕</button>
 
-              <div className="mt-8 pb-5 mb-6 text-center border-b border-gray-100 dark:border-gray-700">
-                <h3 className="text-xl font-black text-gray-900 dark:text-gray-100">Complete your Payment</h3>
-                <p className="text-xs text-gray-400 dark:text-gray-400 mt-1 font-semibold">Add Payment</p>
-              </div>
+
+              <p className="text-xs text-gray-400 dark:text-gray-400 mb-6 font-semibold">One payment for {selectedPaymentDocuments.length} {selectedPaymentDocuments.length === 1 ? 'document' : 'documents'}</p>
 
               {/* Payment method picker */}
               <div className="flex flex-wrap gap-2 mb-6">
@@ -507,23 +519,25 @@ export default function StudentDashboard({ user, currentTab, setViewImageUrl }) 
                 )}
               </div>
 
-              <form onSubmit={handleStudentSubmitPayment} className="space-y-6">
+              <form id="student-payment-form" onSubmit={handleStudentSubmitPayment} className="space-y-6">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="flex flex-col gap-1.5">
-                    <label className="text-[10px] font-bold text-gray-800 dark:text-gray-100 uppercase tracking-widest">Document</label>
+                    <label htmlFor="student-payment-documents" className="text-[10px] font-bold text-gray-800 dark:text-gray-100 uppercase tracking-widest">Documents</label>
                     <input 
+                      id="student-payment-documents"
                       type="text" 
-                      disabled 
-                      value={selectedDoc.document_type} 
+                      readOnly
+                      value={selectedPaymentDocuments.length === 1 ? selectedDoc.document_type : `${selectedPaymentDocuments.length} documents`}
                       className="p-3 bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-xs font-semibold text-gray-500 dark:text-gray-400"
                     />
                   </div>
                   <div className="flex flex-col gap-1.5">
-                    <label className="text-[10px] font-bold text-gray-800 dark:text-gray-100 uppercase tracking-widest">Tracking ID</label>
+                    <label htmlFor="student-payment-request" className="text-[10px] font-bold text-gray-800 dark:text-gray-100 uppercase tracking-widest">Request</label>
                     <input 
+                      id="student-payment-request"
                       type="text" 
-                      disabled 
-                      value={`TRC - ${selectedDoc.tracking_number ? selectedDoc.tracking_number.slice(0, 6).toUpperCase() : selectedDoc.id}`} 
+                      readOnly
+                      value={selectedDoc.request_group_id || selectedDoc.tracking_number || selectedDoc.id}
                       className="p-3 bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-xs font-semibold text-gray-500 dark:text-gray-400"
                     />
                   </div>
@@ -536,20 +550,14 @@ export default function StudentDashboard({ user, currentTab, setViewImageUrl }) 
                     <span className="font-bold">Total Amount Due</span>
                     <span className="font-black text-lg">{formatPeso(selectedDoc.group_total)}</span>
                   </div>
-                  <div className="text-xs text-emerald-800/80 dark:text-emerald-300/80 space-y-3">
-                    {documents.filter(d => d.request_group_id === selectedDoc.request_group_id).map(doc => {
-                      return (
-                        <div key={doc.id} className="flex flex-col gap-0.5">
-                          <span className="font-bold text-emerald-900 dark:text-emerald-300">{doc.document_sequence_number || doc.document_type}</span>
-                          <div className="flex justify-between pl-2 text-emerald-800/80 dark:text-emerald-300/80">
-                            <span>Evaluated Price</span>
-                            <span className="font-mono font-semibold">{formatPeso(doc.amount)}</span>
-                          </div>
-                        </div>
-                      );
-
-                    })}
-                  </div>
+                  <ul aria-label="Payment breakdown" className="text-xs text-emerald-800/80 dark:text-emerald-300/80 space-y-3">
+                    {selectedPaymentDocuments.map(doc => (
+                      <li key={doc.id} className="flex items-baseline justify-between gap-4">
+                        <span className="min-w-0 font-bold text-emerald-900 dark:text-emerald-300 break-words select-text">{doc.document_sequence_number || doc.document_type}</span>
+                        <span className="shrink-0 font-mono font-semibold select-text">{formatPeso(doc.amount)}</span>
+                      </li>
+                    ))}
+                  </ul>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -588,35 +596,19 @@ export default function StudentDashboard({ user, currentTab, setViewImageUrl }) 
                   )}
                 </div>
 
-                <button
-                  type="submit" 
-                  disabled={actionLoading} 
-                  className="w-full bg-[#15803d] hover:bg-[#166534] disabled:opacity-70 text-white font-bold py-3.5 rounded-xl transition-all shadow-md uppercase tracking-wider text-xs flex justify-center items-center"
-                >
-                  {actionLoading ? 'Submitting...' : 'Submit Payment'}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setActiveModal('payment-stub')}
-                  className="w-full mt-3 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300 font-bold py-3.5 rounded-xl transition-all uppercase tracking-wider text-xs flex justify-center items-center gap-2"
-                >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
-                  Print Payment Slip (Walk-in)
-                </button>
-    
               </form>
-            </div>
-          </div>,
-          document.body
+          </ModalShell>
         )}
 
         {/* 1.6. PAYMENT SUCCESS SCREEN MODAL */}
-        {activeModal === 'pay-success' && createPortal(
-          <div className="fixed inset-0 z-[100] flex items-start sm:items-center justify-center p-4 overflow-y-auto">
-            <div className="absolute inset-0 bg-gray-900/60 dark:bg-gray-800/60 backdrop-blur-md" onClick={() => setActiveModal(null)}></div>
-            <div className="bg-white dark:bg-gray-900 rounded-3xl shadow-2xl w-full max-w-lg max-h-[calc(100dvh-2rem)] overflow-y-auto p-6 sm:p-8 z-10 border border-gray-100 dark:border-gray-700 relative text-center">
-              <h3 className="text-xl font-black text-gray-900 dark:text-gray-100 mb-6">Payment Submitted</h3>
-
+        {activeModal === 'pay-success' && (
+          <ModalShell open onClose={() => setActiveModal(null)} title="Payment Submitted"
+            footer={<button
+                onClick={() => setActiveModal(null)}
+                className="w-full bg-[#15803d] hover:bg-[#166534] text-white font-bold py-3.5 rounded-xl transition-all shadow-md uppercase tracking-wider text-xs"
+              >
+                Return to Dashboard
+              </button>}>
               <div className="border-2 border-dashed border-[#15803d]/40 bg-gray-50/50 dark:bg-gray-800/50 p-8 rounded-2xl flex flex-col items-center gap-6 mb-6">
                 <p className="text-xs font-semibold text-gray-600 dark:text-gray-300 leading-relaxed max-w-xs">
                   Your reference number and uploaded receipt have been securely routed to Finance Office for verification. Once cleared, your Transcript of Record will be proceed to processing.
@@ -628,18 +620,9 @@ export default function StudentDashboard({ user, currentTab, setViewImageUrl }) 
                 </div>
               </div>
 
-              <button 
-                onClick={() => setActiveModal(null)}
-                className="w-full bg-[#15803d] hover:bg-[#166534] text-white font-bold py-3.5 rounded-xl transition-all shadow-md uppercase tracking-wider text-xs"
-              >
-                Return to Dashboard
-              </button>
-            </div>
-          </div>,
-          document.body
+          </ModalShell>
         )}
 
-        {/* 1.7. LIVE TRACKING MODAL */}
         {activeModal === 'tracking' && selectedDoc && (
           <LiveTrackingModal 
             user={user}
@@ -649,6 +632,15 @@ export default function StudentDashboard({ user, currentTab, setViewImageUrl }) 
             getStatusLabel={getStatusLabel}
           />
         )}
+
+        <ConfirmDialog open={!!submissionToConfirm}
+          title={submissionToConfirm?.kind === 'payment' ? 'Confirm Payment Submission' : 'Confirm Document Request'}
+          message={submissionToConfirm?.kind === 'payment'
+            ? `Submit your ${submissionToConfirm.methodName} proof for ${formatPeso(submissionToConfirm.total)}?`
+            : `Submit ${submissionToConfirm?.count || 0} document${submissionToConfirm?.count === 1 ? '' : 's'} as one request?`}
+          confirmLabel={submissionToConfirm?.kind === 'payment' ? 'Confirm Payment' : 'Confirm Request'}
+          loading={actionLoading} loadingLabel="Submitting…"
+          onConfirm={confirmStudentSubmission} onCancel={cancelStudentSubmission} />
 
         <ConfirmDialog
           open={!!cancelRequestIdToConfirm}

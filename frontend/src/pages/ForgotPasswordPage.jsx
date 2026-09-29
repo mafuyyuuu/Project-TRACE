@@ -1,3 +1,4 @@
+import ConfirmDialog from '@/components/ConfirmDialog'
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import AuthShell from '@/components/AuthShell'
@@ -11,12 +12,18 @@ import usePasswordReset from '@/hooks/usePasswordReset'
  */
 export default function ForgotPasswordPage() {
   const [identifier, setIdentifier] = useState('')
-  const { loading, error, message, done, requestLink } = usePasswordReset()
+  const [identifierToConfirm, setIdentifierToConfirm] = useState(null)
+  const [localError, setLocalError] = useState('')
+  const { loading, error: requestError, message, done, requestLink } = usePasswordReset()
 
   const handleSubmit = (e) => {
     e.preventDefault()
-    requestLink(identifier)
+    setLocalError('')
+    if (!identifier.trim()) { setLocalError('Enter your Student ID / Staff ID or your email address.'); return }
+    setIdentifierToConfirm(identifier.trim())
   }
+
+  const error = localError || requestError
 
   return (
     <AuthShell
@@ -28,6 +35,10 @@ export default function ForgotPasswordPage() {
         </Link>
       }
     >
+      <ConfirmDialog open={identifierToConfirm !== null && !done} title="Confirm Password Reset Request"
+        message={['Request a password reset link?', error ? <span role="alert">{error}</span> : null]}
+        confirmLabel="Request Link" loading={loading} onConfirm={() => requestLink(identifierToConfirm)}
+        onCancel={() => setIdentifierToConfirm(null)} />
       {error && (
         <div className="mb-6 p-4 rounded-xl bg-red-900/40 dark:bg-red-900/40 border border-red-300/40 dark:border-red-800/40 text-sm font-bold">
           {error}

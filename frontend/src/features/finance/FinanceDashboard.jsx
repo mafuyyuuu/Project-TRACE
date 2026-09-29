@@ -6,7 +6,6 @@ import DeferredOrUploadModal from './components/DeferredOrUploadModal';
 import QueueTabs from '@/components/QueueTabs';
 import { formatPeso } from '@/utils/pricing';
 import { getStatusLabel } from '@/utils/documentStatus';
-import { uploadDeferredOR } from '@/services/documentsService';
 import useFinanceDashboard from '@/features/finance/useFinanceDashboard';
 import { todayLongDate } from '@/utils/formatters';
 import DashboardAlerts from '@/components/DashboardAlerts';
@@ -32,6 +31,8 @@ export default function FinanceDashboard({ user, setViewImageUrl }) {
     documents,
     awaitingPaymentQueue,
     verificationQueue,
+    transactionsQueue,
+    handleDeferredUpload,
     actionLoading,
     clerkNotes,
     setClerkNotes,
@@ -86,6 +87,7 @@ export default function FinanceDashboard({ user, setViewImageUrl }) {
           tabs={[
             { key: 'awaiting-payment', label: 'Awaiting Payment', count: awaitingPaymentQueue.length },
             { key: 'verification', label: 'Verification Queue', count: verificationQueue.length },
+            { key: 'transactions', label: 'Transactions & OR Copies', count: transactionsQueue.length },
           ]}
           activeKey={activeQueueTab}
           onChange={setActiveQueueTab}
@@ -248,7 +250,7 @@ export default function FinanceDashboard({ user, setViewImageUrl }) {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-50 dark:divide-gray-700">
-                  {documents.filter(d => ['PAID_PENDING_SEC_RELEASE', 'SEC_OR_VERIFIED', 'READY_FOR_RELEASE', 'COMPLETED'].includes(d.current_status)).map(doc => (
+                  {transactionsQueue.map(doc => (
                     <tr key={doc.id} className="hover:bg-gray-50/30 dark:hover:bg-gray-800/30 group">
                       <td className="py-4 pl-4 font-mono text-xs font-semibold text-gray-500 dark:text-gray-400">#{doc.tracking_number ? doc.tracking_number.slice(0, 10).toUpperCase() : doc.id}</td>
                       <td className="py-4 text-sm font-bold text-gray-700 dark:text-gray-300">{doc.student_name}</td>
@@ -257,7 +259,7 @@ export default function FinanceDashboard({ user, setViewImageUrl }) {
                       <td className="py-4 text-xs font-semibold">
                         {doc.official_receipt_path 
                           ? <span className="text-[#15803d] dark:text-green-300">Uploaded</span>
-                          : <span className="text-amber-600 dark:text-amber-300 font-bold">Missing</span>}
+                          : <span className="text-amber-600 dark:text-amber-300 font-bold">Digital copy pending upload</span>}
                       </td>
                       <td className="py-4 text-right pr-4 min-w-[110px]">
                         {!doc.official_receipt_path && (

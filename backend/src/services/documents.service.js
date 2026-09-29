@@ -1513,7 +1513,7 @@ async function uploadDeferredOR(user, documentId, file) {
   const officialReceiptPath = `/uploads/${file.filename}`;
   
   // Find document
-  const doc = await documentModel.findById(documentId);
+  const [doc] = await documentModel.findById(documentId);
   if (!doc) throw notFound('Document not found.');
   
   // Only update if it doesn't already have one, or if we allow overwriting.

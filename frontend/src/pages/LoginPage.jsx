@@ -1,3 +1,4 @@
+import ConfirmDialog from '@/components/ConfirmDialog'
 import { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import useAuth from '@/hooks/useAuth'
@@ -17,18 +18,34 @@ export default function LoginPage() {
   const [tempToken, setTempToken] = useState('')
   const [otp, setOtp] = useState('')
   const [maskedEmail, setMaskedEmail] = useState('')
+  const [submissionToConfirm, setSubmissionToConfirm] = useState(null)
+  const [confirming, setConfirming] = useState(false)
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = (e) => {
     e.preventDefault()
     setLocalError('')
-    if (!requires2FA) {
+    if (!requires2FA && (!employeeId.trim() || !password.trim())) {
+      setLocalError('Please enter both ID and password.')
+      return
+    }
+    if (requires2FA && !otp.trim()) { setLocalError('Please enter the OTP.'); return }
+    setSubmissionToConfirm({ employeeId: employeeId.trim(), password, requires2FA, tempToken, otp: otp.trim() })
+  }
+
+  const confirmSubmission = async () => {
+    if (!submissionToConfirm || confirming) return
+    setConfirming(true)
+    try {
+    setLocalError('')
+    if (!submissionToConfirm.requires2FA) {
       if (!employeeId.trim() || !password.trim()) {
         setLocalError('Please enter both ID and password.')
         return
       }
       try {
-        const response = await login({ employeeId: employeeId.trim(), password })
+        const response = await login({ employeeId: submissionToConfirm.employeeId, password: submissionToConfirm.password })
         if (response && response.requires_2fa) {
+          setSubmissionToConfirm(null)
           setRequires2FA(true)
           setTempToken(response.temp_token)
           // Mask email for UI: "a***@plp.edu.ph"
@@ -45,13 +62,14 @@ export default function LoginPage() {
         return
       }
       try {
-        const res = await api.post('/auth/verify-2fa', { temp_token: tempToken, otp: otp.trim() })
+        const res = await api.post('/auth/verify-2fa', { temp_token: submissionToConfirm.tempToken, otp: submissionToConfirm.otp })
         localStorage.setItem('token', res.data.token)
         window.location.href = '/dashboard'
       } catch (err) {
         setLocalError(err.response?.data?.error || 'Invalid OTP.')
       }
     }
+    } finally { setConfirming(false) }
   }
 
   const error = localError || authError
@@ -65,6 +83,10 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen flex flex-col md:flex-row font-body relative overflow-hidden bg-white dark:bg-gray-900">
+      <ConfirmDialog open={!!submissionToConfirm} title={requires2FA ? 'Confirm Verification' : 'Confirm Sign In'}
+        message={['Submit your sign-in details?', error ? <span role="alert">{error}</span> : null]}
+        confirmLabel={requires2FA ? 'Verify' : 'Sign In'} loading={loading || confirming}
+        onConfirm={confirmSubmission} onCancel={() => setSubmissionToConfirm(null)} />
       {/* Left Column (Light Spec) */}
       <div className="md:w-1/2 bg-[#f8f9fa] dark:bg-gray-900 p-12 md:p-24 flex flex-col justify-between shrink-0">
         <div>

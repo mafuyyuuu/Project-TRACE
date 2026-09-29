@@ -104,6 +104,7 @@ export default function useProfileSettings(user) {
     if (messages.length) setSuccess(messages.join(' '));
     if (errors.length) setError(errors.join(' '));
     setSaving(false);
+    return errors.length === 0;
   };
 
   /** Stage a picked file as a local preview only — it uploads on Save. */

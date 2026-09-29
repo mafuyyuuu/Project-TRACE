@@ -1,3 +1,4 @@
+import ConfirmDialog from '@/components/ConfirmDialog'
 import { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import useAuth from '@/hooks/useAuth'
@@ -10,6 +11,7 @@ export default function SignupPage() {
   const [file, setFile] = useState(null)
   const [localError, setLocalError] = useState('')
   const [success, setSuccess] = useState('')
+  const [registrationToConfirm, setRegistrationToConfirm] = useState(null)
   const [showPassword, setShowPassword] = useState(false)
   // Colleges are admin-managed reference data rather than a hardcoded list.
   const [colleges, setColleges] = useState([])
@@ -42,7 +44,6 @@ export default function SignupPage() {
       return
     }
     
-    try {
       const form = new FormData();
       form.append('employee_id', formData.employeeId.trim());
       form.append('full_name', formData.fullName.trim());
@@ -53,7 +54,15 @@ export default function SignupPage() {
       form.append('course', formData.college);
       form.append('id_proof', file);
 
-      const result = await register(form)
+    setRegistrationToConfirm(form)
+  }
+
+  const confirmRegistration = async () => {
+    if (!registrationToConfirm) return
+    setLocalError('')
+    try {
+      const result = await register(registrationToConfirm)
+      setRegistrationToConfirm(null)
       setSuccess(result.message || 'Registration successful. Please wait for admin verification.')
       setTimeout(() => navigate('/'), 3000)
     } catch (err) {
@@ -70,6 +79,10 @@ export default function SignupPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-800 flex items-center justify-center p-4 font-body relative overflow-hidden">
+      <ConfirmDialog open={!!registrationToConfirm} title="Confirm Registration"
+        message={['Submit your registration and proof of identity for review?', localError ? <span role="alert">{localError}</span> : null]}
+        confirmLabel="Submit Registration" loading={loading} onConfirm={confirmRegistration}
+        onCancel={() => setRegistrationToConfirm(null)} />
       <div className="absolute top-[-10%] left-[-5%] w-[40vw] h-[40vw] rounded-full bg-pine-500/5 blur-[100px] pointer-events-none"></div>
       <div className="absolute bottom-[-10%] right-[-5%] w-[30vw] h-[30vw] rounded-full bg-blue-500/5 dark:bg-blue-500/5 blur-[100px] pointer-events-none"></div>
 

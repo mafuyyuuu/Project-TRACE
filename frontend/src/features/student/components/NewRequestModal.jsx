@@ -168,7 +168,6 @@ export default function NewRequestModal({
                             </div>
                           )}
 
-                          {!dropsPurpose(type.name) && (
                             <div className="grid grid-cols-1 gap-3">
                               <div className="flex flex-col gap-1.5">
                                 <label className="text-[10px] font-bold text-gray-700 dark:text-gray-300 uppercase tracking-widest">Purpose</label>
@@ -181,9 +180,8 @@ export default function NewRequestModal({
                               />
                             </div>
                           </div>
-                          )}
 
-                          {!dropsPurpose(type.name) && type.requires_attachment ? (
+                          {type.requires_attachment ? (
                             <div className="flex flex-col gap-1.5">
                               <label className="text-[10px] font-bold text-gray-700 dark:text-gray-300 uppercase tracking-widest">
                                 {type.attachment_label || 'Supporting Attachment'}

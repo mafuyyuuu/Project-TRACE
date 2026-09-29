@@ -1,3 +1,4 @@
+import ConfirmDialog from '@/components/ConfirmDialog';
 import { useState, useEffect } from 'react';
 import api from '@/services/api';
 
@@ -9,6 +10,8 @@ export default function AdminTemplatesPanel() {
   const [formData, setFormData] = useState({ content: '', font_family: 'sans-serif', font_size: '12px' });
   const [saving, setSaving] = useState(false);
   const [success, setSuccess] = useState('');
+  const [templateToConfirm, setTemplateToConfirm] = useState(null);
+  const [saveError, setSaveError] = useState('');
 
   useEffect(() => {
     fetchTemplates();
@@ -48,13 +51,22 @@ export default function AdminTemplatesPanel() {
 
   const handleSave = async (e) => {
     e.preventDefault();
+    setSaveError('');
+    setTemplateToConfirm({ key: selectedKey, payload: { ...formData } });
+  };
+
+  const confirmSave = async () => {
+    if (!templateToConfirm) return;
+    setSaveError('');
     setSaving(true);
     setSuccess('');
     try {
-      await api.put(`/templates/${selectedKey}`, formData);
+      await api.put(`/templates/${templateToConfirm.key}`, templateToConfirm.payload);
       setSuccess('Template saved successfully!');
+      setTemplateToConfirm(null);
     } catch (err) {
       console.error(err);
+      setSaveError(err.response?.data?.error || 'Could not save the template. Please try again.');
     } finally {
       setSaving(false);
     }
@@ -64,6 +76,10 @@ export default function AdminTemplatesPanel() {
 
   return (
     <div className="bg-white dark:bg-gray-900 rounded-3xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden flex flex-col md:flex-row min-h-[600px]">
+      <ConfirmDialog open={!!templateToConfirm} title="Confirm Template Save"
+        message={['Save this template?', saveError ? <span role="alert">{saveError}</span> : null]}
+        confirmLabel="Save Template" loading={saving} onConfirm={confirmSave}
+        onCancel={() => setTemplateToConfirm(null)} />
       {/* Sidebar List */}
       <div className="w-full md:w-64 bg-gray-50 dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 shrink-0">
         <div className="p-4 border-b border-gray-200 dark:border-gray-700">
@@ -132,7 +148,7 @@ export default function AdminTemplatesPanel() {
             
             <div className="flex-1 min-w-0 p-4 bg-gray-50 dark:bg-gray-800 flex flex-col lg:flex-row gap-4">
               <div className="flex-1 flex flex-col">
-                <label className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest block mb-2">HTML Template (Use {{VARIABLE_NAME}})</label>
+                <label className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest block mb-2">HTML Template (Use {'{{VARIABLE_NAME}}'})</label>
                 <textarea
                   value={formData.content}
                   onChange={e => setFormData({...formData, content: e.target.value})}

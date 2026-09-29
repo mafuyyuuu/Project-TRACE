@@ -21,6 +21,7 @@ export default function ForcePasswordChange({ user, onChanged, onLogout }) {
   const [confirmingLogout, setConfirmingLogout] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
   const [logoutError, setLogoutError] = useState('');
+  const [passwordToConfirm, setPasswordToConfirm] = useState(null);
 
   const confirmLogout = async () => {
     setLoggingOut(true);
@@ -48,9 +49,15 @@ export default function ForcePasswordChange({ user, onChanged, onLogout }) {
       return;
     }
 
+    setPasswordToConfirm(password);
+  };
+
+  const confirmPasswordChange = async () => {
+    if (!passwordToConfirm) return;
     setSaving(true);
     try {
-      await updateProfile({ password });
+      await updateProfile({ password: passwordToConfirm });
+      setPasswordToConfirm(null);
       onChanged();
     } catch (err) {
       setError(err.response?.data?.error || 'Could not update your password. Please try again.');
@@ -124,6 +131,10 @@ export default function ForcePasswordChange({ user, onChanged, onLogout }) {
           </button>
         </form>
       </div>
+      <ConfirmDialog open={passwordToConfirm !== null} title="Confirm Password Change"
+        message={['Save your new password?', error ? <span role="alert">{error}</span> : null]}
+        confirmLabel="Change Password" loading={saving} onConfirm={confirmPasswordChange}
+        onCancel={() => setPasswordToConfirm(null)} />
       <ConfirmDialog
         open={confirmingLogout}
         title="Log Out"

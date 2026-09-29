@@ -1,3 +1,4 @@
+import ConfirmDialog from '@/components/ConfirmDialog';
 import { useState } from 'react';
 import ModalShell from '@/components/ModalShell';
 
@@ -13,11 +14,12 @@ const inputClass =
  */
 export default function AddUserModal({ open, onClose, onCreate, saving }) {
   const [form, setForm] = useState({ role: 'clerk', desk_assignment: 'Finance' });
+  const [accountToConfirm, setAccountToConfirm] = useState(null);
   const set = (key, value) => setForm((f) => ({ ...f, [key]: value }));
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const ok = await onCreate({
+    setAccountToConfirm({
       employee_id: form.employee_id,
       full_name: form.full_name,
       email: form.email,
@@ -25,7 +27,7 @@ export default function AddUserModal({ open, onClose, onCreate, saving }) {
       role: form.role || 'clerk',
       desk_assignment: form.desk_assignment || 'Finance',
     });
-    if (ok) onClose();
+
   };
 
   return (
@@ -55,6 +57,12 @@ export default function AddUserModal({ open, onClose, onCreate, saving }) {
         </div>
       }
     >
+      <ConfirmDialog open={!!accountToConfirm} title="Confirm Staff Account"
+        message={accountToConfirm ? `Create an account for ${accountToConfirm.full_name} (${accountToConfirm.employee_id})?` : ''}
+        confirmLabel="Create Account" loading={saving} onCancel={() => setAccountToConfirm(null)}
+        onConfirm={async () => {
+          if (await onCreate(accountToConfirm)) { setAccountToConfirm(null); onClose(); }
+        }} />
       <form id="add-user-form" onSubmit={handleSubmit} className="space-y-3">
         <input className={inputClass} placeholder="Employee ID *" required
           value={form.employee_id || ''} onChange={(e) => set('employee_id', e.target.value)} />

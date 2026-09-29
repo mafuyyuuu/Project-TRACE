@@ -2,7 +2,7 @@ import DocumentChat from '@/components/DocumentChat';
 import { useState } from 'react';
 import ModalShell from '@/components/ModalShell';
 import AuthedFilePreview from '@/components/AuthedFilePreview';
-import { itemBreakdown } from '@/utils/pricing';
+import { itemBreakdown, formatPeso } from '@/utils/pricing';
 
 export default function FinanceVerificationModal({
   user,
@@ -23,7 +23,7 @@ export default function FinanceVerificationModal({
 
   if (!selectedDoc) return null;
 
-  const canVerify = financeReceiptFile && orNumber.trim();
+  const canVerify = Boolean(orNumber.trim());
   // documents.payment_method defaults to 'gcash' for rows predating the
   // column — matching document.model.js's own default.
   const method = paymentMethods.find((m) => m.code === (selectedDoc.payment_method || 'gcash'));
@@ -92,14 +92,12 @@ export default function FinanceVerificationModal({
       </div>
 
       
-      {new Date().getHours() >= 16 && (
         <div className="bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 text-amber-800 dark:text-amber-300 text-xs p-3 rounded-lg font-semibold flex items-start gap-2 mb-4">
           <svg className="w-4 h-4 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
           <p>
-            <strong>4:00 PM Cut-off:</strong> Payments verified after 4 PM will not generate a same-day Official Receipt. Ensure the student is aware.
+            Give the physical Official Receipt to the College Secretary. Finance can upload its retained copy later; the digital copy does not delay verification or release.
           </p>
         </div>
-      )}
 
       <div className="space-y-4">
         <span className="text-[10px] font-bold text-gray-800 dark:text-gray-100 uppercase tracking-widest block">{methodName} Receipt / Proof</span>

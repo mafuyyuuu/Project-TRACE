@@ -19,12 +19,20 @@ export default function ManualInputModal({
   const [purpose, setPurpose] = useState('');
   const isGraduate = purpose === 'Graduation Clearance' || docType === 'Graduate Clearance';
   return (
-    <ModalShell open={open} onClose={onClose} title="Manual Input" maxWidth="max-w-3xl">
+    <ModalShell open={open} onClose={onClose} title="Manual Input" maxWidth="max-w-3xl" footer={<div className="flex justify-end pt-4">
+          <button
+            type="submit" form="manual-input-form"
+            disabled={actionLoading || isGraduate}
+            className="px-8 py-3 bg-[#15803d] hover:bg-[#166534] disabled:opacity-75 text-white font-bold rounded-xl text-xs shadow-md transition-all uppercase tracking-wider"
+          >
+            {actionLoading ? 'Saving...' : 'Submit Request'}
+          </button>
+        </div>}>
       <p className="text-sm font-semibold text-gray-500 dark:text-gray-400 mb-8 leading-relaxed">
         Digitize physical walk-in requests and legacy records.
       </p>
 
-      <form onSubmit={handleManualInputSubmit} className="space-y-10">
+      <form id="manual-input-form" onSubmit={handleManualInputSubmit} className="space-y-10">
         {/* STUDENT INFORMATION */}
         <div>
           <h3 className="text-xs font-black text-[#15803d] dark:text-green-300 uppercase tracking-widest border-b border-gray-100 dark:border-gray-700 pb-3 mb-6">STUDENT INFORMATION</h3>
@@ -130,15 +138,6 @@ export default function ManualInputModal({
           </div>
         </div>
 
-        <div className="flex justify-end pt-4">
-          <button
-            type="submit"
-            disabled={actionLoading || isGraduate}
-            className="px-8 py-3 bg-[#15803d] hover:bg-[#166534] disabled:opacity-75 text-white font-bold rounded-xl text-xs shadow-md transition-all uppercase tracking-wider"
-          >
-            {actionLoading ? 'Saving...' : 'Submit Request'}
-          </button>
-        </div>
       </form>
     </ModalShell>
   );

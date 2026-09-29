@@ -39,7 +39,9 @@ describe('useProfileSettings', () => {
     updateProfile.mockResolvedValue({ message: 'ok' });
     const { result } = renderHook(() => useProfileSettings(USER));
 
-    await act(async () => result.current.saveProfile());
+    let saved;
+    await act(async () => { saved = await result.current.saveProfile(); });
+    expect(saved).toBe(true);
 
     await waitFor(() => expect(result.current.success).toBe('Profile updated successfully.'));
     expect(result.current.error).toBe('');
@@ -49,7 +51,9 @@ describe('useProfileSettings', () => {
     updateProfile.mockRejectedValue({ response: { data: { error: 'Email already in use.' } } });
     const { result } = renderHook(() => useProfileSettings(USER));
 
-    await act(async () => result.current.saveProfile());
+    let saved;
+    await act(async () => { saved = await result.current.saveProfile(); });
+    expect(saved).toBe(false);
 
     await waitFor(() => expect(result.current.error).toBe('Email already in use.'));
     expect(result.current.success).toBe('');

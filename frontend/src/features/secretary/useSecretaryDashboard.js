@@ -12,7 +12,7 @@ import { STATUS } from '@/utils/documentStatus';
  * 2. **Processing** — prepare and print, then price it from what printing it
  *    actually took. The request is billed once every document in it is priced.
  * 3. **OR Verification** — once Finance confirms the money, check the Official
- *    Receipt they attached is present and the number looks right.
+ *    Receipt handed over by Finance, or its uploaded copy, against the OR number.
  * 4. **Final Handoff** — physically pass the printed document to Window 1.
  *
  * Pricing lives here and payment does not: the Secretary sets the amount, and
@@ -188,7 +188,6 @@ export default function useSecretaryDashboard(user) {
     if (ok) {
       setPriceAmount('');
       setPricePageCount('');
-      setPriceNotes('');
       setPricingToConfirm(false);
       // When the whole request just became payable, go straight to the slip the
       // student needs to carry to Finance. Otherwise close and pick up the next.
@@ -205,15 +204,26 @@ export default function useSecretaryDashboard(user) {
     setOrVerifyToConfirm(doc);
   }, []);
 
-  /** Confirm the Official Receipt Finance attached is present and checks out. */
-  const confirmVerifyOfficialReceiptAction = useCallback(async () => {
+  /** Confirm the uploaded copy or explicitly inspected physical OR. */
+  const confirmVerifyOfficialReceiptAction = useCallback(async (_action, { physicalReceiptChecked = false } = {}) => {
     if (!orVerifyToConfirm) return;
-    const ok = await runAction(() => verifyOfficialReceipt(orVerifyToConfirm.id), {
+    if (!orVerifyToConfirm.or_number?.trim()) {
+      triggerNotification('Ask Finance to record the Official Receipt number before verifying it.', 'error');
+      return;
+    }
+    if (!orVerifyToConfirm.official_receipt_path && !physicalReceiptChecked) {
+      triggerNotification('Confirm that you inspected the physical Official Receipt handed over by Finance.', 'error');
+      return;
+    }
+    const notes = physicalReceiptChecked
+      ? `Physical Official Receipt ${orVerifyToConfirm.or_number} inspected by ${user.full_name}. Finance may upload its retained copy later.`
+      : `Uploaded Official Receipt ${orVerifyToConfirm.or_number} inspected by ${user.full_name}.`;
+    const ok = await runAction(() => verifyOfficialReceipt(orVerifyToConfirm.id, { notes }), {
       successMessage: 'Official Receipt verified. Ready for handoff to Window 1.',
       errorMessage: 'Could not verify the Official Receipt.',
     });
     if (ok) setOrVerifyToConfirm(null);
-  }, [orVerifyToConfirm, runAction]);
+  }, [orVerifyToConfirm, runAction, triggerNotification, user.full_name]);
 
   const cancelVerifyOfficialReceiptConfirm = useCallback(() => {
     setOrVerifyToConfirm(null);

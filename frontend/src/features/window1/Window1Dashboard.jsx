@@ -3,6 +3,7 @@ import HardwareScannerModal from '@/features/window1/components/HardwareScannerM
 import IntakeReviewModal from '@/features/window1/components/IntakeReviewModal';
 import ManualInputModal from '@/features/window1/components/ManualInputModal';
 import ConfirmDialog from '@/components/ConfirmDialog';
+import ModalShell from '@/components/ModalShell';
 import MiniSparkline from '@/components/MiniSparkline';
 import { STATUS, getProgressVal, getStatusLabel, requiresAttachment } from '@/utils/documentStatus';
 import { formatFileSize, getWaitTime, todayLongDate } from '@/utils/formatters';
@@ -42,6 +43,9 @@ export default function Window1Dashboard({ user, currentTab, setViewImageUrl }) 
     intakeActionToConfirm,
     confirmIntake,
     cancelIntake,
+    submissionToConfirm,
+    confirmWindow1Submission,
+    cancelWindow1Submission,
     w1IntakePage,
     setW1IntakePage,
     scanDocType,
@@ -337,7 +341,8 @@ export default function Window1Dashboard({ user, currentTab, setViewImageUrl }) 
                               <td className="py-4 text-xs font-mono">
                                 {doc.or_number
                                   ? <span className="font-bold text-gray-700 dark:text-gray-300">{doc.or_number}</span>
-                                  : <span className="text-gray-400 dark:text-gray-400">paid online</span>}
+                                  : <span className="text-gray-400 dark:text-gray-400">OR number not recorded</span>}
+                                {!doc.official_receipt_path && <span className="block text-[10px] text-gray-500 dark:text-gray-400 font-sans">Digital copy pending upload</span>}
                                 {doc.official_receipt_path && (
                                   <button
                                     onClick={() => setViewImageUrl(doc.official_receipt_path)}
@@ -491,17 +496,24 @@ export default function Window1Dashboard({ user, currentTab, setViewImageUrl }) 
 
         {/* 3.4. CAMERA SCANNING MODAL */}
         {activeModal === 'scanning' && (
-          <div className="fixed inset-0 z-[100] flex items-start sm:items-center justify-center p-4 overflow-y-auto">
-            <div className="absolute inset-0 bg-gray-900/60 dark:bg-gray-800/60 backdrop-blur-md" onClick={() => setActiveModal(null)}></div>
-            <div className="bg-white dark:bg-gray-900 rounded-3xl shadow-2xl w-full max-w-lg p-6 sm:p-8 z-10 border border-gray-100 dark:border-gray-700 relative flex flex-col h-[70vh] max-h-[calc(100dvh-2rem)] overflow-y-auto justify-between">
-              <button className="absolute top-4 right-4 w-8 h-8 rounded-full flex items-center justify-center text-gray-400 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800" onClick={() => setActiveModal(null)}>✕</button>
-
-              <div className="pb-5 mb-4 border-b border-gray-100 dark:border-gray-700">
-                <h3 className="text-xl font-black text-gray-900 dark:text-gray-100 tracking-tight">Scan Document</h3>
-              </div>
-
+          <ModalShell open onClose={() => setActiveModal(null)} title="Scan Document" footer={<div className="flex items-center justify-center gap-8 pt-2">
+                <button type="button" aria-label="Flash" className="w-12 h-12 rounded-full border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 flex items-center justify-center hover:bg-gray-50 dark:hover:bg-gray-800 text-gray-500 dark:text-gray-400 shadow-sm">
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                </button>
+                <button type="button" aria-label="Capture document"
+                  onClick={() => {
+                    setScanFile({ name: 'scan_doc_00129.jpg', size: 245800 });
+                    setScanDocType('Transcript of Records');
+                    setActiveModal('scan-confirm');
+                  }}
+                  className="w-16 h-16 rounded-full bg-white dark:bg-gray-900 border-8 border-gray-200 dark:border-gray-700 flex items-center justify-center hover:border-gray-300 dark:hover:border-gray-700 transition-all shadow-md focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-700"
+                >
+                  <div className="w-10 h-10 rounded-full bg-[#15803d] hover:bg-[#166534] transition-all"></div>
+                </button>
+                <div className="w-12 h-12"></div> {/* spacer */}
+              </div>}>
               {/* Mock Camera Preview Box */}
-              <div className="flex-1 bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl overflow-hidden my-4 relative flex flex-col items-center justify-center shadow-inner">
+              <div className="min-h-80 bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl overflow-hidden my-4 relative flex flex-col items-center justify-center shadow-inner">
                 <span className="absolute top-4 px-4 py-1.5 bg-[#15803d]/90 text-white text-[10px] font-bold tracking-widest uppercase rounded-full shadow-sm animate-pulse">
                   Document Detected
                 </span>
@@ -515,37 +527,22 @@ export default function Window1Dashboard({ user, currentTab, setViewImageUrl }) 
                 </span>
               </div>
 
-              <div className="flex items-center justify-center gap-8 pt-2">
-                <button className="w-12 h-12 rounded-full border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 flex items-center justify-center hover:bg-gray-50 dark:hover:bg-gray-800 text-gray-500 dark:text-gray-400 shadow-sm">
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
-                </button>
-                <button 
-                  onClick={() => {
-                    setScanFile({ name: 'scan_doc_00129.jpg', size: 245800 });
-                    setScanDocType('Transcript of Records');
-                    setActiveModal('scan-confirm');
-                  }}
-                  className="w-16 h-16 rounded-full bg-white dark:bg-gray-900 border-8 border-gray-200 dark:border-gray-700 flex items-center justify-center hover:border-gray-300 dark:hover:border-gray-700 transition-all shadow-md focus:outline-none"
-                >
-                  <div className="w-10 h-10 rounded-full bg-[#15803d] hover:bg-[#166534] transition-all"></div>
-                </button>
-                <div className="w-12 h-12"></div> {/* spacer */}
-              </div>
-            </div>
-          </div>
+          </ModalShell>
         )}
 
         {/* 3.5. INTAKE SCAN CONFIRMATION MODAL */}
         {activeModal === 'scan-confirm' && scanFile && (
-          <div className="fixed inset-0 z-[100] flex items-start sm:items-center justify-center p-4 overflow-y-auto">
-            <div className="absolute inset-0 bg-gray-900/60 dark:bg-gray-800/60 backdrop-blur-md" onClick={() => setActiveModal(null)}></div>
-            <div className="bg-white dark:bg-gray-900 rounded-3xl shadow-2xl w-full max-w-lg p-6 sm:p-8 z-10 border border-gray-100 dark:border-gray-700 relative flex flex-col h-[75vh] max-h-[calc(100dvh-2rem)] overflow-y-auto justify-between">
-              <button className="absolute top-4 right-4 w-8 h-8 rounded-full flex items-center justify-center text-gray-400 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800" onClick={() => setActiveModal(null)}>✕</button>
-
-              <div className="pb-5 mb-4 border-b border-gray-100 dark:border-gray-700">
-                <h3 className="text-xl font-black text-gray-900 dark:text-gray-100 tracking-tight">Confirm Information</h3>
-              </div>
-
+          <ModalShell open onClose={() => setActiveModal(null)} title="Confirm Information" footer={<div className="flex justify-end pt-2">
+                <button 
+                  onClick={() => {
+                    handleWindow1ScanUpload(scanDocType);
+                  }}
+                  disabled={actionLoading}
+                  className="px-8 py-3.5 bg-[#15803d] hover:bg-[#166534] disabled:opacity-75 text-white font-bold rounded-xl text-xs shadow-md transition-all uppercase tracking-wider w-full text-center"
+                >
+                  {actionLoading ? 'Uploading...' : 'Create Request'}
+                </button>
+              </div>}>
               <div className="flex flex-col gap-2 my-4">
                 <label className="text-[10px] font-bold text-gray-800 dark:text-gray-100 uppercase tracking-widest">Document Type</label>
                 <select 
@@ -561,7 +558,7 @@ export default function Window1Dashboard({ user, currentTab, setViewImageUrl }) 
               </div>
 
               {/* Scanned Image Preview Container */}
-              <div className="flex-1 bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl overflow-hidden mb-6 flex items-center justify-center shadow-inner relative">
+              <div className="min-h-56 bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl overflow-hidden mb-6 flex items-center justify-center shadow-inner relative">
                 <div className="text-center p-6 bg-white/60 dark:bg-gray-900/60 backdrop-blur-sm rounded-2xl shadow-sm border border-gray-200/50 dark:border-gray-700/50">
                   <svg className="w-8 h-8 text-gray-400 dark:text-gray-400 block mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M6.827 6.175A2.31 2.31 0 015.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 00-1.134-.175 2.31 2.31 0 01-1.64-1.055l-.822-1.316a2.192 2.192 0 00-1.736-1.039 48.774 48.774 0 00-5.232 0 2.192 2.192 0 00-1.736 1.039l-.821 1.316z" /><path strokeLinecap="round" strokeLinejoin="round" d="M16.5 12.75a4.5 4.5 0 11-9 0 4.5 4.5 0 019 0z" /></svg>
                   <span className="text-xs font-bold text-gray-800 dark:text-gray-100 block truncate max-w-xs">{scanFile.name}</span>
@@ -569,20 +566,7 @@ export default function Window1Dashboard({ user, currentTab, setViewImageUrl }) 
                 </div>
               </div>
 
-              <div className="flex justify-end pt-2">
-                <button 
-                  onClick={() => {
-                    setActiveModal(null);
-                    handleWindow1ScanUpload(scanDocType);
-                  }}
-                  disabled={actionLoading}
-                  className="px-8 py-3.5 bg-[#15803d] hover:bg-[#166534] disabled:opacity-75 text-white font-bold rounded-xl text-xs shadow-md transition-all uppercase tracking-wider w-full text-center"
-                >
-                  {actionLoading ? 'Uploading...' : 'Create Request'}
-                </button>
-              </div>
-            </div>
-          </div>
+          </ModalShell>
         )}
       </div>
 
@@ -613,6 +597,11 @@ export default function Window1Dashboard({ user, currentTab, setViewImageUrl }) 
         handleFetchStudent={handleFetchStudent}
         actionLoading={actionLoading}
       />
+
+      <ConfirmDialog open={!!submissionToConfirm} title="Confirm Request Submission"
+        message={submissionToConfirm ? `File ${submissionToConfirm.documentType}${submissionToConfirm.studentName ? ` for ${submissionToConfirm.studentName}` : ' from this scan'}?` : ''}
+        confirmLabel="Submit Request" loadingLabel="Submitting…" loading={actionLoading}
+        onConfirm={confirmWindow1Submission} onCancel={cancelWindow1Submission} />
 
       <ConfirmDialog
         open={!!releaseToConfirm}

@@ -85,6 +85,8 @@ beforeEach(() => {
   maintenanceService.setStaffActive.mockResolvedValue({ message: 'Staff account deactivated.' });
   maintenanceService.setDocumentTypeActive.mockResolvedValue({ message: 'Document type deactivated.' });
   maintenanceService.createPaymentMethod.mockResolvedValue({ message: 'Payment method created.' });
+  maintenanceService.createCollege.mockResolvedValue({ message: 'College created.' });
+  maintenanceService.createDocumentType.mockResolvedValue({ message: 'Document type created.' });
   maintenanceService.setPaymentMethodActive.mockResolvedValue({ message: 'Payment method deactivated.' });
 
   reportsService.getDocumentReport.mockResolvedValue(REPORT);
@@ -166,6 +168,9 @@ describe('MaintenancePanel', () => {
     await user.type(screen.getByPlaceholderText(/Temporary password/), 'temporary-1234');
     await user.click(screen.getByRole('button', { name: /create account/i }));
 
+    expect(maintenanceService.createStaff).not.toHaveBeenCalled();
+    const confirmation = await screen.findByRole('dialog', { name: /confirm staff account/i });
+    await user.click(within(confirmation).getByRole('button', { name: /create account/i }));
     await waitFor(() => expect(maintenanceService.createStaff).toHaveBeenCalled());
     expect(maintenanceService.createStaff).toHaveBeenCalledWith(
       expect.objectContaining({ employee_id: 'CLERK99', full_name: 'New Clerk', role: 'clerk' })
@@ -177,6 +182,36 @@ describe('MaintenancePanel', () => {
     await renderPanel();
     await user.click(await screen.findByRole('button', { name: /\+ add user/i }));
     expect(await screen.findByText(/replace it at first login/i)).toBeInTheDocument();
+  });
+
+  it('preserves a college draft after cancelling and creates it only after confirmation', async () => {
+    const user = userEvent.setup();
+    await renderPanel();
+    await user.click(screen.getByRole('button', { name: /Colleges/ }));
+    const name = screen.getByPlaceholderText('College name *');
+    await user.type(name, 'College of Engineering');
+    await user.type(screen.getByPlaceholderText('Short code (e.g. CCS)'), 'COE');
+    await user.click(screen.getByRole('button', { name: 'Create College' }));
+    expect(maintenanceService.createCollege).not.toHaveBeenCalled();
+    await user.keyboard('{Escape}');
+    expect(name).toHaveValue('College of Engineering');
+    await user.click(screen.getByRole('button', { name: 'Create College' }));
+    await user.click(within(screen.getByRole('dialog', { name: 'Confirm College' })).getByRole('button', { name: 'Save' }));
+    await waitFor(() => expect(maintenanceService.createCollege).toHaveBeenCalledExactlyOnceWith({ name: 'College of Engineering', short_code: 'COE' }));
+  });
+
+  it('confirms a document type before sending its configured defaults', async () => {
+    const user = userEvent.setup();
+    await renderPanel();
+    await user.click(screen.getByRole('button', { name: /Document Types/ }));
+    await user.type(screen.getByPlaceholderText('Name *'), 'Certification');
+    await user.type(screen.getByPlaceholderText('Base fee (₱)'), '50');
+    await user.click(screen.getByRole('button', { name: 'Create Type' }));
+    expect(maintenanceService.createDocumentType).not.toHaveBeenCalled();
+    await user.click(within(screen.getByRole('dialog', { name: 'Confirm Document Type' })).getByRole('button', { name: 'Save' }));
+    await waitFor(() => expect(maintenanceService.createDocumentType).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({
+      name: 'Certification', base_fee: '50', fee_rule: 'flat', available_to: 'both', requires_attachment: false,
+    })));
   });
 
   it('switches to the document types section', async () => {
@@ -206,6 +241,9 @@ describe('MaintenancePanel', () => {
     await user.type(screen.getByPlaceholderText(/Display name/), 'PayMaya');
     await user.click(screen.getByRole('button', { name: /create method/i }));
 
+    expect(maintenanceService.createPaymentMethod).not.toHaveBeenCalled();
+    const confirmation = await screen.findByRole('dialog', { name: /confirm payment method/i });
+    await user.click(within(confirmation).getByRole('button', { name: 'Save' }));
     await waitFor(() => expect(maintenanceService.createPaymentMethod).toHaveBeenCalled());
     expect(maintenanceService.createPaymentMethod).toHaveBeenCalledWith(
       expect.objectContaining({ code: 'paymaya', name: 'PayMaya' })

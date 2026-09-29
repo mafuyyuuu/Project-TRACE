@@ -20,6 +20,7 @@ export default function useGraduateApplication(user) {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [answersToConfirm, setAnswersToConfirm] = useState(null);
 
   const load = useCallback(async () => {
     try {
@@ -74,11 +75,19 @@ export default function useGraduateApplication(user) {
         return;
       }
 
+      setAnswersToConfirm({ ...answers });
+    },
+    [answers, missingRequired]
+  );
+
+  const confirmSubmission = useCallback(async () => {
+    if (!answersToConfirm) return;
       setSubmitting(true);
       try {
-        const res = await submitApplication(answers);
+        const res = await submitApplication(answersToConfirm);
         setSuccess(res.message || 'Application submitted.');
         setAnswers({});
+        setAnswersToConfirm(null);
         const mine = await getMyApplications();
         setApplications(mine.applications || []);
       } catch (err) {
@@ -86,11 +95,12 @@ export default function useGraduateApplication(user) {
       } finally {
         setSubmitting(false);
       }
-    },
-    [answers, missingRequired]
-  );
+  }, [answersToConfirm]);
 
   return {
+    answersToConfirm,
+    confirmSubmission,
+    cancelSubmission: () => setAnswersToConfirm(null),
     fields,
     answers,
     applications,

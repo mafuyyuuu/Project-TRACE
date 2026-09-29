@@ -34,6 +34,7 @@ export default function useWindow1Dashboard(user) {
 
   // The intake action ('approve' | 'return') staged for confirmation, or null.
   const [intakeActionToConfirm, setIntakeActionToConfirm] = useState(null);
+  const [submissionToConfirm, setSubmissionToConfirm] = useState(null);
 
   // Table pagination lives here rather than in the page component.
   const [w1IntakePage, setW1IntakePage] = useState(1);
@@ -157,17 +158,9 @@ export default function useWindow1Dashboard(user) {
       formData.append('student_name', '');
       formData.append('document_type', docType || '');
 
-      const ok = await runAction(() => uploadDocument(formData), {
-        successMessage: (r) => `Scan filed. Tracking: ${r.tracking_number}`,
-        errorMessage: 'Scan upload failed.',
-      });
-
-      if (ok) {
-        setScanFile(null);
-        if (fileInputRef.current) fileInputRef.current.value = '';
-      }
+      setSubmissionToConfirm({ kind: 'scan', payload: formData, documentType: docType });
     },
-    [scanFile, runAction]
+    [scanFile]
   );
 
   /**
@@ -188,15 +181,28 @@ export default function useWindow1Dashboard(user) {
       formData.append('student_name', form.fullName.value);
       formData.append('document_type', form.docType.value);
 
-      const ok = await runAction(() => uploadDocument(formData), {
-        successMessage: (r) => `Walk-in request filed. Tracking: ${r.tracking_number}`,
-        errorMessage: 'Walk-in intake failed.',
-      });
-
-      if (ok) form.reset();
+      setSubmissionToConfirm({ kind: 'manual', payload: formData, form, documentType: form.docType.value, studentName: form.fullName.value });
     },
-    [runAction]
+    []
   );
+
+  const confirmWindow1Submission = useCallback(async () => {
+    if (!submissionToConfirm) return;
+    const staged = submissionToConfirm;
+    const ok = await runAction(() => uploadDocument(staged.payload), {
+      successMessage: (r) => `${staged.kind === 'scan' ? 'Scan' : 'Walk-in request'} filed. Tracking: ${r.tracking_number}`,
+      errorMessage: staged.kind === 'scan' ? 'Scan upload failed.' : 'Walk-in intake failed.',
+    });
+    if (ok) {
+      if (staged.kind === 'manual') staged.form.reset();
+      else {
+        setScanFile(null);
+        if (fileInputRef.current) fileInputRef.current.value = '';
+      }
+      setActiveModal(null);
+      setSubmissionToConfirm(null);
+    }
+  }, [submissionToConfirm, runAction, setActiveModal]);
 
   /** Autofills the walk-in form from an existing student record. */
   const handleFetchStudent = useCallback(
@@ -223,6 +229,9 @@ export default function useWindow1Dashboard(user) {
 
   return {
     ...core,
+    submissionToConfirm,
+    confirmWindow1Submission,
+    cancelWindow1Submission: () => setSubmissionToConfirm(null),
     intakeQueue,
     releaseQueue,
     scanDocType, setScanDocType,

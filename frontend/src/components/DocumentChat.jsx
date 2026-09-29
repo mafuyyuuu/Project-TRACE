@@ -1,3 +1,4 @@
+import ConfirmDialog from '@/components/ConfirmDialog';
 import { useState, useEffect, useRef } from 'react';
 import api from '@/services/api';
 import { getRelativeTime } from '@/utils/formatters';
@@ -7,6 +8,8 @@ export default function DocumentChat({ documentId, user }) {
   const [loading, setLoading] = useState(true);
   const [input, setInput] = useState('');
   const [sending, setSending] = useState(false);
+  const [messageToConfirm, setMessageToConfirm] = useState(null);
+  const [sendError, setSendError] = useState('');
   const messagesEndRef = useRef(null);
 
   useEffect(() => {
@@ -34,11 +37,18 @@ export default function DocumentChat({ documentId, user }) {
     e.preventDefault();
     if (!input.trim() || sending) return;
 
+    setSendError('');
+    setMessageToConfirm(input);
+  };
+
+  const confirmSend = async () => {
+    if (!messageToConfirm || sending) return;
+    setSendError('');
     const optimisticMsg = {
       id: Date.now(),
       sender_id: user.id,
       sender_name: user.full_name || 'You',
-      message: input,
+      message: messageToConfirm,
       created_at: new Date().toISOString()
     };
 
@@ -51,8 +61,11 @@ export default function DocumentChat({ documentId, user }) {
       // Refresh to get real IDs and read status
       const res = await api.get(`/documents/${documentId}/messages`);
       setMessages(res.data);
+      setMessageToConfirm(null);
     } catch (err) {
       console.error('Failed to send message', err);
+      setInput(optimisticMsg.message);
+      setSendError(err.response?.data?.error || 'Could not send your message. Please try again.');
       // Revert optimistic if failed
       setMessages(prev => prev.filter(m => m.id !== optimisticMsg.id));
     } finally {
@@ -70,6 +83,10 @@ export default function DocumentChat({ documentId, user }) {
 
   return (
     <div className="flex flex-col h-full bg-gray-50/50 dark:bg-gray-800/50 rounded-2xl border border-gray-200 dark:border-gray-700 overflow-hidden max-h-80">
+      <ConfirmDialog open={messageToConfirm !== null} title="Confirm Message"
+        message={['Send this message?', messageToConfirm, sendError ? <span role="alert">{sendError}</span> : null]}
+        confirmLabel="Send Message" loading={sending} loadingLabel="Sending…" onConfirm={confirmSend}
+        onCancel={() => setMessageToConfirm(null)} />
       <div className="flex-1 p-4 overflow-y-auto space-y-4">
         {messages.length === 0 ? (
           <p className="text-xs text-center text-gray-400 dark:text-gray-400 font-semibold my-4">No messages yet. Send a message to clarify this request.</p>

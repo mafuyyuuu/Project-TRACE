@@ -865,6 +865,47 @@ describe('intakeDocument — Window 1 checks the paperwork', () => {
   });
 });
 
+describe('uploadDeferredOR — Finance uploads its retained copy later', () => {
+  it.each([STATUS.PAID_PENDING_SEC_RELEASE, STATUS.SEC_OR_VERIFIED, STATUS.READY_FOR_RELEASE, STATUS.COMPLETED])(
+    'attaches the copy to the request group at %s without changing payment or stage', async (stage) => {
+      const doc = { id: 5, request_group_id: 'REQ-G1', student_id: 'STU-001', current_status: stage, payment_status: 'PAID' };
+      documentModel.findById.mockResolvedValue([doc]);
+      const query = vi.spyOn(pool, 'query').mockResolvedValue([{ affectedRows: 2 }]);
+      userModel.findStudentContactByStudentId.mockResolvedValue([{ id: 3 }]);
+      expect(await service.uploadDeferredOR(FINANCE, 5, RECEIPT)).toEqual({
+        success: true, official_receipt_path: '/uploads/receipt.png',
+      });
+      expect(query).toHaveBeenCalledWith(
+        'UPDATE documents SET official_receipt_path = ?, or_uploaded_at = CURRENT_TIMESTAMP WHERE request_group_id = ?',
+        ['/uploads/receipt.png', 'REQ-G1']
+      );
+      expect(doc.current_status).toBe(stage);
+      expect(doc.payment_status).toBe('PAID');
+      expect(documentModel.updateStatus).not.toHaveBeenCalled();
+      expect(documentModel.updatePaymentVerificationForGroup).not.toHaveBeenCalled();
+      expect(stepLogModel.insert).not.toHaveBeenCalled();
+      expect(notifications.notifyInApp).toHaveBeenCalledWith(expect.objectContaining({ userId: 3 }));
+    }
+  );
+
+  it('rejects a missing document before writing or notifying', async () => {
+    const query = vi.spyOn(pool, 'query');
+    expect(await statusOf(service.uploadDeferredOR(FINANCE, 999, RECEIPT))).toBe(404);
+    expect(query).not.toHaveBeenCalled();
+    expect(notifications.notifyInApp).not.toHaveBeenCalled();
+  });
+
+  it('requires a file', async () => {
+    expect(await statusOf(service.uploadDeferredOR(FINANCE, 5, null))).toBe(400);
+    expect(documentModel.findById).not.toHaveBeenCalled();
+  });
+
+  it.each([STUDENT, SECRETARY, WINDOW1, ADMIN])('preserves Finance-only authorization for $role/$desk_assignment', async (user) => {
+    expect(await statusOf(service.uploadDeferredOR(user, 5, RECEIPT))).toBe(403);
+    expect(documentModel.findById).not.toHaveBeenCalled();
+  });
+});
+
 describe('releaseDocument — Window 1 only', () => {
   it.each([['a student', STUDENT], ['Finance', FINANCE], ['the Secretary', SECRETARY]])(
     'rejects %s',

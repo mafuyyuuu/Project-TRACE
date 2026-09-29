@@ -69,13 +69,15 @@ As a student, you use this system to ask the school for your official papers (li
    - The dot that is highlighted in color shows you exactly where your paper is right now (for example, "Pending Intake" means the front desk is looking at it, "Pending Secretary Evaluation" means the secretary is reviewing it).
 
 ### How to Pay Your Bill
-When the secretary figures out how much your document costs, you need to pay.
+When the Secretary finishes pricing all documents in a request, its payment action becomes available.
 1. Look at the very top of your dashboard screen. You will see a large, brightly colored banner that says **"Action Required - Payment"**. 
-2. Click the button inside that banner.
+2. Each ready request has one button showing its combined total and document count, such as **"Pay ₱200.00 (2 documents)"**. Review the document amounts listed beneath it, then click that button. Separate requests have separate payment buttons.
 3. A new window will pop up. Click on the circle next to how you want to pay (like GCash, Bank Transfer, or Over-the-Counter).
 4. Follow the instructions on the screen. If you chose an online method like GCash, there will be a dashed box. Click it to upload a picture of your GCash receipt, just like you did for your ID earlier.
 5. Find the box labeled **"Reference Number"**. Click it and type the long string of numbers from your GCash receipt.
-6. Click the **"Submit Payment"** button at the bottom.
+6. Check the request, document count, total, and breakdown, then click **"Submit Payment"**. Read the confirmation and choose **Confirm Payment** to send it. Cancel keeps the reference and attachment. One receipt covers every document in that request.
+
+The Active Requests table shows progress and status for each document. Use **Live Track** to inspect its progress, or **Cancel** when cancellation is available. At narrow widths, scroll within the table card to reach the later columns.
 
 ---
 
@@ -87,20 +89,17 @@ As the Window 1 Clerk (`WINDOW1001`), you are the front door. You check requests
 When you log in, look near the top left area of your screen, just under the main title. You will see three words you can click on: **Intake**, **Release**, and **Tracking Desk**. These are your "Tabs". Think of them as different folders of work.
 
 ### Task 1: The Intake Queue (Checking New Requests)
-1. Click the **Intake** tab at the top. You will see a list of students who want documents.
-2. Click on the first student's name in the list. This opens their file.
-3. Look at the middle of your screen to see the picture they uploaded (like their ID). Read the text. Make sure it matches their name.
-4. **If everything looks good:** Look at the bottom right for a green button that says **"Accept for Processing"**. Click it. The computer will automatically send it to the secretary.
-5. **If there is a mistake (Error Handling):** What if the picture is too blurry to read? 
-   - Find the empty white text box on the screen. Click inside it and type a polite message, like "Your ID picture is too blurry. Please take a clearer photo and try again."
-   - Look for the red button that says **"Return to Student"** or **"Reject"** and click it. This sends the request back to the student so they can fix it.
+1. In the dashboard's **Intake Queue**, choose **Check** beside the request.
+2. Review the student details and any supporting paperwork. Attachment requirements depend on the document type.
+3. If correct, choose **Route to Secretary**, then confirm.
+4. For a correction, enter the reason in **Notes**, choose **Return to Student**, then confirm. Notes are available even for documents without a required attachment. Cancelling keeps the notes; a return leaves the request at intake with the correction message.
+5. For a walk-in, choose **Manual Entry**, fill the form, choose **Submit Request**, then confirm. The form resets only after a successful submission.
 
 ### Task 2: The Release Queue (Giving Documents to Students)
-1. When a student physically walks up to your window and says "I am here to pick up my document," click the **Release** tab at the top of your screen.
-2. You will see a list of documents that are printed and ready. Look for the student's name in the list.
-3. Click the button next to their name that says **"View Receipt"**. Look at the computer screen, and compare it to the paper receipt the student is holding in their hand. 
-4. If they match, hand the physical document to the student.
-5. Finally, click the **"Release"** button on the computer screen. This tells the computer the job is 100% finished.
+1. Find the student in the dashboard's **Release Desk**. These documents have passed the Secretary's OR check and physical handoff.
+2. Compare the recorded OR number with the physical receipt. **View** is available when Finance has uploaded its copy; **Digital copy pending upload** means the retained copy will be added later.
+3. Choose **Release Doc**, review the confirmation, then choose **Release** once the physical handover is complete. Cancel records nothing.
+4. A missing digital copy does not block release. There is no release-stage return-to-Secretary action in the current system; resolve a physical receipt discrepancy with the desks before confirming release.
 
 ### Task 3: The Tracking Desk (Answering Questions)
 1. If a student walks up and asks, "Where is my document?", click the **Tracking Desk** tab.
@@ -114,7 +113,7 @@ When you log in, look near the top left area of your screen, just under the main
 As a College Secretary (e.g., `SEC-CCS001`), you do the actual printing and signing for the students in your specific college. 
 
 ### Looking at Your Dashboard Tabs
-Look near the top left of your screen. You have four tabs: **Evaluation Queue**, **Processing & Pricing**, **OR Verification**, and **Completed**. 
+The four queue tabs are **Initial Evaluation**, **Processing & Pricing**, **OR Verification**, and **Final Handoff**. Each shows its queue count; only the selected queue table is displayed.
 
 ### Task 1: Evaluation Queue (Reviewing the Request)
 1. Click the **Evaluation Queue** tab. Click on a document in the list to open it.
@@ -126,22 +125,17 @@ Look near the top left of your screen. You have four tabs: **Evaluation Queue**,
 5. A small box will pop up asking for an **"Estimated Ready Date"**. Click the little calendar icon next to the box, and click on the date you think the document will be printed and ready. (This is very important, as it texts the student so they know when to expect it!). Click **Save** or **Confirm**.
 
 ### Task 2: Processing & Pricing (Doing the Work)
-1. Now, stand up from your computer. Go to your filing cabinets, print the requested document, sign it, and stamp it with the dry seal. 
-2. Count how many physical pages the document is.
-3. Sit back down at your computer. Click the **Processing & Pricing** tab at the top of the screen.
-4. Click on the student's document in the list.
-5. Find the box labeled **"Price"**. Click it, and type the exact dollar/peso amount the student needs to pay based on the number of pages.
-6. Find the **"Notes"** box. Click it and type a short explanation, like "Total is for 3 pages."
-7. Click the button to **Submit**. The system will now send a text to the student telling them to pay you.
+1. Prepare, print, sign, and seal the document.
+2. In **Processing & Pricing**, choose **Set Price** or **Adjust Price**.
+3. Enter the amount and **Pages printed**. The current pricing form has no notes field.
+4. Choose **Save Price** or **Save & Bill Student**, then confirm **Save Price**. Billing occurs when the last document in the request has a price; the payment slip opens then. Otherwise the pricing dialog closes.
 
-### Task 3: OR Verification (Checking the Finance Receipt)
-After the student pays the Finance department, the document comes back to you to check.
-1. Click the **OR Verification** tab at the top of your screen.
-2. Click on the document in the list.
-3. Look at the screen. You will see an Official Receipt (OR) number that the Finance Clerk typed in.
-4. If everything looks okay, click the button that says **"Verify Official Receipt"**. 
-5. Now, pick up the physical paper document with your hands, walk over to Window 1, and place it on their desk.
-6. Walk back to your computer and click the button that says **"Confirm Handoff"**. You are done!
+### Task 3: OR Verification and Final Handoff
+1. In **OR Verification**, choose **Verify Receipt**.
+2. Check the OR number against the physical Official Receipt Finance handed over, or inspect its uploaded copy.
+3. When the digital copy is pending, select **I inspected the physical Official Receipt…** after checking it. An OR number is required. Choose **Confirm Receipt** to record the check; Cancel records nothing.
+4. The physical inspection is recorded in the audit notes. Finance can upload its retained copy later without delaying the document.
+5. Physically pass the printed document to Window 1, then use **Final Handoff** and confirm the handoff. Receipt verification and handoff are separate actions.
 
 ---
 
@@ -150,7 +144,7 @@ After the student pays the Finance department, the document comes back to you to
 As the Finance Clerk (`FINANCE001`), you handle the money. You check bank transfers and hand out Official Receipts (OR).
 
 ### Looking at Your Dashboard Tabs
-Look near the top left of your screen. You have two tabs: **Awaiting Payment** and **Verification Queue**.
+The queue tabs are **Awaiting Payment**, **Verification Queue**, and **Transactions & OR Copies**, each with its current count.
 
 ### Task 1: Awaiting Payment (For Walk-In Students)
 1. Click the **Awaiting Payment** tab. This shows a list of everyone who owes money but hasn't paid yet.
@@ -159,17 +153,23 @@ Look near the top left of your screen. You have two tabs: **Awaiting Payment** a
 4. Take their money, and write them a paper Official Receipt (OR) from your receipt book.
 5. Look at the computer screen. Click the button that says **"Log Counter Payment"**.
 6. A box will appear. Click the first space and type the **OR Number** from the paper receipt you just wrote. Click the next space and type the amount of money they handed you.
-7. Click **Save**.
+7. Choose the form's save action, review the confirmation, then confirm. Logging a payment still requires Finance verification.
 
 ### Task 2: Verification Queue (For Online Payments like GCash)
 1. Click the **Verification Queue** tab. This is for students who paid online from their phones.
 2. Click on a payment in the list. The screen will show you a picture of their phone screenshot (like a GCash text message).
 3. Open a new window on your computer or look at your school's official mobile phone to check the school's actual bank account.
 4. **Compare:** Look at the "Reference Number" the student typed on the screen, and see if that exact same number is in the school's real bank account.
-5. **If the money is really there:** Click the box labeled **"Official Receipt (OR) Number"**, type in the OR number you are assigning to this payment, and click the green **"Approve Payment"** button.
+5. **If the money is really there:** Click the box labeled **"Official Receipt (OR) Number"**, type in the OR number you are assigning to this payment, and choose **Verify Payment**, then confirm **Verify Payment**. The digital OR attachment is optional. Hand the physical Official Receipt to the College Secretary; Finance can upload its retained second copy later.
 6. **If the money is NOT there (Error Handling):** What if the screenshot is fake or blurry?
    - Find the large text box labeled **"Clerk Notes"**. Click inside it and type clearly what is wrong (e.g., "The reference number does not match our records. Please try again.").
    - Click the red button that says **"Reject Payment"**. The computer will send your note directly to the student so they can fix it.
+
+### Task 3: Upload the Retained OR Copy Later
+1. Open **Transactions & OR Copies**, which includes paid requests through completion.
+2. Find a row marked **Digital copy pending upload** and choose **Upload OR**.
+3. Select the retained receipt image or PDF, choose **Upload Receipt**, then **Confirm Upload**.
+4. Cancel or a failed upload keeps the selected file. A successful upload adds the copy to the existing request group without changing payment status or the document's stage.
 
 ---
 
@@ -212,7 +212,7 @@ Take your time, read the buttons before you click them, and thank you for doing 
 
 ## Confirmations and Feedback
 
-- **Confirm an action:** read the in-app confirmation, then choose its action button or Cancel. Escape, the close button, and the backdrop also cancel. While an action is processing, its controls and dismissal are disabled.
+- **Confirm a save or submission:** all saves and submissions now require confirmation, including document requests, payments, walk-in entries, Graduate applications, chat messages, account forms, profile/password changes, and Admin saves. Read the in-app confirmation, then choose its action button or Cancel. Cancel keeps your draft and attachments. Escape, the close button, and the backdrop also cancel. While an action is processing, its controls and dismissal are disabled.
 - **Logout from the mobile menu:** Escape cancels the logout confirmation and returns focus to Logout in the still-open menu. Press Escape again to close the menu.
 - **Acknowledge a message:** dashboard success and error messages appear in a matching dialog above any open form. They remain until you choose **OK**, press Escape, or click the backdrop. Dismissing the message keeps the underlying form and its draft open and returns keyboard focus there.
 - **Account Settings → Security:** the existing **Logout All Devices** action now reports its result in this feedback dialog. Profile-save and field-validation messages still appear within their forms.

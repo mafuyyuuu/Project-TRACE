@@ -66,6 +66,8 @@ describe('ForcePasswordChange', () => {
     await user.type(screen.getByLabelText('New Password'), 'a-good-password');
     await user.type(screen.getByLabelText('Confirm Password'), 'a-good-password');
     await user.click(screen.getByRole('button', { name: /set password/i }));
+    expect(updateProfile).not.toHaveBeenCalled();
+    await user.click(screen.getByRole('button', { name: 'Change Password' }));
 
     await waitFor(() => expect(updateProfile).toHaveBeenCalledWith({ password: 'a-good-password' }));
     expect(onChanged).toHaveBeenCalled();
@@ -78,8 +80,10 @@ describe('ForcePasswordChange', () => {
     await user.type(screen.getByLabelText('New Password'), 'a-good-password');
     await user.type(screen.getByLabelText('Confirm Password'), 'a-good-password');
     await user.click(screen.getByRole('button', { name: /set password/i }));
+    expect(updateProfile).not.toHaveBeenCalled();
+    await user.click(screen.getByRole('button', { name: 'Change Password' }));
 
-    expect(await screen.findByText(/Password too weak/)).toBeInTheDocument();
+    await waitFor(() => expect(screen.getByRole('dialog', { name: 'Confirm Password Change' })).toHaveTextContent('Password too weak.'));
     expect(onChanged).not.toHaveBeenCalled();
   });
 

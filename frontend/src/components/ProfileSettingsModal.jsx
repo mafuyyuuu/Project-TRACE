@@ -1,3 +1,4 @@
+import ConfirmDialog from '@/components/ConfirmDialog';
 import { useRef, useState, useMemo, useEffect } from 'react';
 import ModalShell from '@/components/ModalShell';
 import DashboardAlerts from '@/components/DashboardAlerts';
@@ -20,6 +21,8 @@ export default function ProfileSettingsModal({
   const fileInputRef = useRef(null);
 
   const [activeTab, setActiveTab] = useState('personal');
+  const [confirmation, setConfirmation] = useState(null);
+  const [loggingOut, setLoggingOut] = useState(false);
   const [securityLogs, setSecurityLogs] = useState([]);
   const [sessionFeedback, setSessionFeedback] = useState({ success: '', error: '' });
   
@@ -75,6 +78,23 @@ export default function ProfileSettingsModal({
     };
   }, [profileData, isStudent]);
 
+  const confirmAction = async () => {
+    if (confirmation === 'profile') {
+      if (await onSave()) setConfirmation(null);
+      return;
+    }
+    setLoggingOut(true);
+    try {
+      await api.post('/auth/logout-all');
+      setSessionFeedback({ success: 'Logged out of all other devices.', error: '' });
+      setConfirmation(null);
+    } catch {
+      setSessionFeedback({ success: '', error: 'Error logging out of other devices.' });
+    } finally {
+      setLoggingOut(false);
+    }
+  };
+
   return (
     <ModalShell
       open
@@ -98,6 +118,14 @@ export default function ProfileSettingsModal({
         </button>
       }
     >
+      <ConfirmDialog open={!!confirmation}
+        title={confirmation === 'profile' ? 'Confirm Profile Save' : 'Log Out Other Devices'}
+        message={confirmation === 'profile'
+          ? ['Save your profile changes and selected picture?', error ? <span role="alert">{error}</span> : null]
+          : 'Log out of all other active sessions?'}
+        confirmLabel={confirmation === 'profile' ? 'Save Profile' : 'Log Out Other Devices'}
+        variant={confirmation === 'profile' ? 'neutral' : 'destructive'}
+        loading={saving || loggingOut} onConfirm={confirmAction} onCancel={() => setConfirmation(null)} />
       <DashboardAlerts
         success={sessionFeedback.success}
         error={sessionFeedback.error}
@@ -179,7 +207,7 @@ export default function ProfileSettingsModal({
         {success && <div className="mb-6 rounded-xl bg-green-50 dark:bg-green-950/40 border border-green-100 dark:border-green-800 px-4 py-3 text-sm font-semibold text-green-800 dark:text-green-300">{success}</div>}
         {error && <div className="mb-6 rounded-xl bg-red-50 dark:bg-red-950/40 border border-red-100 dark:border-red-800 px-4 py-3 text-sm font-semibold text-red-700 dark:text-red-300">{error}</div>}
 
-        <form id="profile-settings-form" onSubmit={onSave} className="space-y-6">
+        <form id="profile-settings-form" onSubmit={(e) => { e.preventDefault(); setConfirmation('profile'); }} className="space-y-6">
           {activeTab === 'personal' && (
             <div className="space-y-6">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -278,14 +306,7 @@ export default function ProfileSettingsModal({
               <div className="bg-white dark:bg-gray-900 p-4 border border-gray-200 dark:border-gray-700 rounded-2xl">
                 <h3 className="text-sm font-black text-gray-900 dark:text-gray-100 mb-4 border-b border-gray-100 dark:border-gray-700 pb-2">Session Management</h3>
                 <p className="text-sm text-gray-600 dark:text-gray-300 mb-4">Log out of all other active sessions across all devices. You will remain logged in on this device.</p>
-                <button type="button" onClick={async () => {
-                   try {
-                     await api.post('/auth/logout-all');
-                     setSessionFeedback({ success: 'Logged out of all other devices.', error: '' });
-                   } catch {
-                     setSessionFeedback({ success: '', error: 'Error logging out of other devices.' });
-                   }
-                }} className="bg-red-50 dark:bg-red-950/40 text-red-600 dark:text-red-300 font-bold uppercase tracking-widest text-xs py-2 px-4 rounded-xl hover:bg-red-100 dark:hover:bg-red-950/40 transition-colors border border-red-200 dark:border-red-800">
+                <button type="button" disabled={loggingOut} onClick={() => setConfirmation('sessions')} className="bg-red-50 dark:bg-red-950/40 text-red-600 dark:text-red-300 font-bold uppercase tracking-widest text-xs py-2 px-4 rounded-xl hover:bg-red-100 dark:hover:bg-red-950/40 transition-colors border border-red-200 dark:border-red-800">
                   Logout All Devices
                 </button>
               </div>

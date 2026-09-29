@@ -50,6 +50,7 @@ export default function MaintenancePanel({ user, currentTab }) {
   const m = useMaintenance(user, currentTab);
   const [section, setSection] = useState('staff');
   const [form, setForm] = useState({});
+  const [saveToConfirm, setSaveToConfirm] = useState(null);
   const [staffSearch, setStaffSearch] = useState('');
   const [staffRoleFilter, setStaffRoleFilter] = useState('All');
   const [staffDeskFilter, setStaffDeskFilter] = useState('All');
@@ -70,7 +71,7 @@ export default function MaintenancePanel({ user, currentTab }) {
 
   const submitDocType = async (e) => {
     e.preventDefault();
-    const ok = await m.createDocumentType({
+    setSaveToConfirm({ method: 'createDocumentType', label: 'Document Type', payload: {
       name: form.dt_name,
       base_fee: form.dt_fee,
       fee_rule: form.dt_rule || 'flat',
@@ -82,31 +83,34 @@ export default function MaintenancePanel({ user, currentTab }) {
       requires_original: Boolean(form.dt_requires_original),
       registrar_attachment_rule: form.dt_reg_attach || 'none',
       is_same_day: Boolean(form.dt_is_same_day),
-    });
-    if (ok) resetForm();
+    } });
   };
 
   const submitCollege = async (e) => {
     e.preventDefault();
-    const ok = await m.createCollege({ name: form.c_name, short_code: form.c_code });
-    if (ok) resetForm();
+    setSaveToConfirm({ method: 'createCollege', label: 'College', payload: { name: form.c_name, short_code: form.c_code } });
   };
 
   const submitPaymentMethod = async (e) => {
     e.preventDefault();
-    const ok = await m.createPaymentMethod({
+    setSaveToConfirm({ method: 'createPaymentMethod', label: 'Payment Method', payload: {
       code: form.pm_code,
       name: form.pm_name,
       instructions: form.pm_instructions || null,
       requires_reference: form.pm_requires_reference !== false,
       reference_label: form.pm_requires_reference !== false ? (form.pm_reference_label || null) : null,
       requires_proof: form.pm_requires_proof !== false,
-    });
-    if (ok) resetForm();
+    } });
   };
 
   return (
     <>
+      <ConfirmDialog open={!!saveToConfirm} title={`Confirm ${saveToConfirm?.label || 'Save'}`}
+        message={`Create this ${saveToConfirm?.label?.toLowerCase() || 'record'}?`} confirmLabel="Save"
+        loading={m.saving} onCancel={() => setSaveToConfirm(null)}
+        onConfirm={async () => {
+          if (await m[saveToConfirm.method](saveToConfirm.payload)) { resetForm(); setSaveToConfirm(null); }
+        }} />
       <DashboardAlerts success={m.success} error={m.error} onDismiss={m.dismissNotification} />
 
       <div className="space-y-6 animate-fade-in">

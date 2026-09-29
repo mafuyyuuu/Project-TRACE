@@ -1,3 +1,4 @@
+import ConfirmDialog from '@/components/ConfirmDialog';
 import useGraduateApplication from '@/features/graduate/useGraduateApplication';
 import DashboardLoading from '@/components/DashboardLoading';
 import DashboardAlerts from '@/components/DashboardAlerts';
@@ -81,12 +82,16 @@ export default function GraduateApplication({ user }) {
   const {
     fields, answers, applications, loading, submitting, error, success,
     updateAnswer, handleSubmit, dismissNotification,
+    answersToConfirm, confirmSubmission, cancelSubmission,
   } = useGraduateApplication(user);
 
   if (loading) return <DashboardLoading />;
 
   return (
     <>
+      <ConfirmDialog open={!!answersToConfirm} title="Confirm Graduate Application"
+        message="Submit this graduate application for review?" confirmLabel="Confirm Submission"
+        loading={submitting} loadingLabel="Submitting…" onConfirm={confirmSubmission} onCancel={cancelSubmission} />
       <DashboardAlerts success={success} error={error} onDismiss={dismissNotification} />
 
       <div className="space-y-8 animate-fade-in">
