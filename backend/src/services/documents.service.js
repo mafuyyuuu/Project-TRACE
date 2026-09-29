@@ -743,7 +743,11 @@ async function verifyPayment(user, documentId, { action, notes, or_number, or_da
         userId: students[0].id,
         title: action === 'approve' ? 'Payment Verified' : 'Payment Rejected',
         message: action === 'approve'
-          ? `Your payment for ${doc.document_type} has been verified. Your document is being prepared for release at Window 1.`
+          ? officialReceiptPath
+          ? (new Date().getHours() >= 16 
+             ? `Your payment for ${doc.document_type} has been verified. Your digital Official Receipt will be generated and uploaded by tomorrow.`
+             : `Your payment for ${doc.document_type} has been verified. Your digital Official Receipt is now available in your dashboard.`)
+          : `Your payment for ${doc.document_type} has been verified. Your document is being prepared for release at Window 1.`
           : `Your payment for ${doc.document_type} was rejected. Reason: ${notes || 'Invalid receipt or reference number.'}`,
         type: action === 'approve' ? 'success' : 'error',
       });
@@ -1488,7 +1492,41 @@ async function cancelDocument(user, documentId) {
   }
 }
 
+
+/** FIN-03: Deferred OR Upload */
+async function uploadDeferredOR(user, documentId, file) {
+  requireDesk(user, 'Finance', 'Only Finance can upload deferred ORs.');
+  if (!file) throw badRequest('No receipt file provided.');
+  
+  const officialReceiptPath = `/uploads/${file.filename}`;
+  
+  // Find document
+  const doc = await documentModel.findById(documentId);
+  if (!doc) throw notFound('Document not found.');
+  
+  // Only update if it doesn't already have one, or if we allow overwriting.
+  await pool.query(
+    'UPDATE documents SET official_receipt_path = ?, or_uploaded_at = CURRENT_TIMESTAMP WHERE request_group_id = ?',
+    [officialReceiptPath, doc.request_group_id || doc.tracking_number]
+  );
+  
+  // Notify student (FIN-02)
+  const notifications = require('./notification.service');
+  const students = await userModel.findStudentContactByStudentId(doc.student_id);
+  if (students.length > 0) {
+    await notifications.notifyInApp({
+      userId: students[0].id,
+      title: 'Official Receipt Uploaded',
+      message: `Your Official Receipt for request #${doc.tracking_number || doc.id} has been uploaded and is available to view in your dashboard.`,
+      type: 'success',
+    });
+  }
+  
+  return { success: true, official_receipt_path: officialReceiptPath };
+}
+
 module.exports = {
+  uploadDeferredOR,
   // Re-exported for convenience; the implementations live in utils/pricing.js.
   generateTrackingNumber,
   generateRequestGroupId,

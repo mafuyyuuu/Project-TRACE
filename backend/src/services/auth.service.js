@@ -37,10 +37,7 @@ async function login({ employee_id, password }, ipAddress, userAgent) {
     throw forbidden('Your account is pending verification. Please wait for an admin to approve your request.');
   }
 
-   else {
-    // Update last_active
-    await pool.query('UPDATE sessions SET last_active = CURRENT_TIMESTAMP WHERE id = ?', [existingSessions[0].id]);
-  }
+
 
   const token = jwt.sign(
     {

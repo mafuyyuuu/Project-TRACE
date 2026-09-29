@@ -162,7 +162,13 @@ async function cancel(req, res) {
   }
 }
 
+
+async function uploadDeferredOR(req, res) {
+  res.json(await documentsService.uploadDeferredOR(req.user, req.params.id, req.file));
+}
+
 module.exports = {
+  uploadDeferredOR,
   upload,
   list,
   stats,
