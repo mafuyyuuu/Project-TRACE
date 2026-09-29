@@ -75,7 +75,8 @@ export default function LiveTrackingModal({
       {/* Horizontal Map Visualizer */}
       <div className="px-4 py-6 flex flex-col justify-center w-full bg-white rounded-2xl border border-gray-100 shadow-sm">
 
-        <div className="relative w-full flex items-center justify-between mb-20 mt-2">
+        <div className="relative w-full min-w-[700px] flex items-center justify-between mb-20 mt-2">
+          <div className="w-full overflow-x-auto pb-4 -mx-6 px-6 sm:mx-0 sm:px-0 sm:overflow-visible">
           {/* Background Progress Bar */}
           <div
             className="absolute top-1/2 -translate-y-1/2 h-1.5 bg-gray-100 rounded-full z-0"
@@ -139,7 +140,7 @@ export default function LiveTrackingModal({
                   )}
                 </div>
 
-                <div className={`absolute top-10 text-[10px] font-black uppercase tracking-wider text-center w-full break-words px-0.5
+                <div className={`absolute top-10 text-[10px] font-black uppercase tracking-wider text-center w-full  px-0.5
                   ${isCompleted ? 'text-gray-900' : isActive ? 'text-blue-600' : 'text-gray-400'}`}>
                   <div>{node.label}</div>
                   {isActive && <div className="text-[7px] animate-pulse mt-0.5 tracking-widest text-blue-400">In Progress</div>}
@@ -175,6 +176,7 @@ export default function LiveTrackingModal({
           </div>
           <DocumentChat documentId={selectedDoc.id} user={user} />
         </div>
+      </div>
       </div>
     </ModalShell>
   );

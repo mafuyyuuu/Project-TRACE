@@ -18,7 +18,7 @@
 function escapeCell(value) {
   if (value === null || value === undefined) return '';
 
-  let str = value instanceof Date ? value.toISOString() : String(value);
+  let str = value instanceof Date ? value.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : String(value);
 
   if (/^[=+\-@\t\r]/.test(str)) {
     str = `'${str}`;

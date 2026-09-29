@@ -22,7 +22,7 @@ export default function QueueTabs({ tabs, activeKey, onChange }) {
             }`}
           >
             {tab.label}
-            {tab.count !== undefined && (
+            {tab.count > 0 && (
               <span className={`w-5 h-5 flex items-center justify-center rounded-full text-[10px] ${
                 isActive ? 'bg-white text-[#15803d]' : 'bg-gray-300 text-gray-700'
               }`}>

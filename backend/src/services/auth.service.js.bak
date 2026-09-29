@@ -137,7 +137,6 @@ async function login({ employee_id, password }, ipAddress, userAgent) {
       profile_picture: user.profile_picture || null,
       profile_completed: Boolean(user.profile_completed),
       must_change_password: Boolean(user.must_change_password),
-      has_grad_application: Boolean(user.has_grad_application),
     },
   };
 }
@@ -584,15 +583,6 @@ async function resetPassword({ token, password }) {
   });
   await passwordResetModel.markUsed(reset.id);
   await passwordResetModel.invalidateAllForUser(reset.user_id);
-
-  const uRows = await userModel.findById(reset.user_id);
-  if (uRows.length > 0 && uRows[0].email && notifications.notifyByEmail) {
-    await notifications.notifyByEmail({
-      email: uRows[0].email,
-      title: 'Password Reset Successful',
-      message: 'Your Project TRACE password has been successfully reset. If this was not you, please contact the administrator immediately.'
-    });
-  }
 
   return { message: 'Password updated. You can now sign in with your new password.' };
 }

@@ -38,6 +38,10 @@ export default function DashboardPage() {
   // An account created with an admin-set temporary password cannot use the
   // system until it has its own. This replaces the dashboard rather than
   // overlaying it, so there is nothing to dismiss.
+  if (user?.user_type === 'alumni' && !user?.has_grad_application) {
+    return <GraduateApplication user={user} />;
+  }
+
   if (user?.must_change_password) {
     return (
       <ForcePasswordChange

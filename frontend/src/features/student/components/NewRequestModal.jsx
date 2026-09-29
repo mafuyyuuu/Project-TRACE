@@ -23,6 +23,7 @@ export default function NewRequestModal({
   actionLoading,
 }) {
   const selectedNames = Object.keys(selections);
+  const availableTypes = documentTypes.filter(t => t.available_to === 'both' || t.available_to === user.user_type);
   const total = groupTotal(documentTypes, selections);
 
   /** TOR asks for semesters; a couple of types ask where the document is going. */
@@ -84,11 +85,11 @@ export default function NewRequestModal({
               <div className="py-8 flex justify-center">
                 <div className="w-6 h-6 border-2 border-gray-300 border-t-[#15803d] rounded-full animate-spin" />
               </div>
-            ) : documentTypes.length === 0 ? (
+            ) : availableTypes.length === 0 ? (
               <p className="text-xs text-gray-400 py-4">No document types are available right now.</p>
             ) : (
               <div className="space-y-3 max-h-[22rem] overflow-y-auto pr-1">
-                {documentTypes.map((type) => {
+                {availableTypes.map((type) => {
                   const selection = selections[type.name];
                   const isSelected = Boolean(selection);
 

@@ -31,8 +31,8 @@ describe('escapeCell', () => {
     expect(out).toContain(nl);
   });
 
-  it('serialises dates as ISO strings', () => {
-    expect(escapeCell(new Date('2026-08-24T00:00:00Z'))).toBe('2026-08-24T00:00:00.000Z');
+  it('serialises dates as readable strings', () => {
+    expect(escapeCell(new Date('2026-08-24T00:00:00Z'))).toMatch(/Aug 2/);
   });
 
   describe('spreadsheet formula injection', () => {

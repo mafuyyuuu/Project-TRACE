@@ -161,6 +161,7 @@ async function exportDocumentsCsv(user, query = {}) {
   // Export is capped rather than unbounded, so one click can't try to serialise
   // the entire table into memory.
   const rows = await reportModel.listDocumentsForReport(filters, { limit: 10000, offset: 0 });
+  rows.forEach(r => { if (r.amount !== undefined) r.amount = '₱' + Number(r.amount).toFixed(2); });
   return {
     filename: csvFilename('documents-report'),
     csv: toCsv(DOCUMENT_COLUMNS, rows),

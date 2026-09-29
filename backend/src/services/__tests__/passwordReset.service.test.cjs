@@ -21,6 +21,7 @@ const account = () => ({
 beforeEach(() => {
   vi.spyOn(userModel, 'findActiveByStudentIdOrEmail').mockResolvedValue([]);
   vi.spyOn(userModel, 'updateProfile').mockResolvedValue(true);
+  vi.spyOn(userModel, 'findById').mockResolvedValue([{ id: 12, email: 'student@example.com' }]);
   vi.spyOn(passwordResetModel, 'create').mockResolvedValue([{ insertId: 1 }]);
   vi.spyOn(passwordResetModel, 'findUsableByTokenHash').mockResolvedValue([]);
   vi.spyOn(passwordResetModel, 'markUsed').mockResolvedValue([{ affectedRows: 1 }]);

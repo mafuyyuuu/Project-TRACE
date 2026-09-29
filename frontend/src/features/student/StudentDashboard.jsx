@@ -85,7 +85,16 @@ export default function StudentDashboard({ user, currentTab, setViewImageUrl }) 
                   <svg className="w-4 h-4 text-gray-400 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
                 </div>
                 <button 
-                  onClick={() => setActiveModal('new-request')}
+                  onClick={() => {
+                    const missing = [];
+                    if (!user.email) missing.push('Email Address');
+                    if (!user.phone_number) missing.push('Phone Number');
+                    if (missing.length > 0) {
+                      window.alert(`Incomplete Profile: You cannot request documents until you add your ${missing.join(' and ')} in Profile Settings.`);
+                      return;
+                    }
+                    setActiveModal('new-request');
+                  }}
                   className="flex items-center gap-2 px-5 py-2.5 bg-white border border-gray-300 hover:border-gray-400 text-gray-800 text-xs font-bold rounded-full shadow-sm transition-all"
                 >
                   <span>New Request</span>
@@ -220,7 +229,7 @@ export default function StudentDashboard({ user, currentTab, setViewImageUrl }) 
                               </div>
                             </td>
                             <td className="py-4 px-3">
-                              <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${doc.current_status === STATUS.COMPLETED ? 'bg-emerald-50 text-[#15803d]' : isAwaitingStudent(doc.current_status) ? 'bg-red-50 text-red-700' : 'bg-amber-50 text-amber-700'}`}>
+                              <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${doc.current_status === STATUS.COMPLETED || doc.current_status === 'APPROVED' ? 'bg-emerald-50 text-[#15803d]' : doc.current_status === 'REJECTED' ? 'bg-gray-100 text-gray-500 line-through' : isAwaitingStudent(doc.current_status) ? 'bg-red-50 text-red-700' : 'bg-amber-50 text-amber-700'}`}>
                                 {getStatusLabel(doc.current_status)}
                               </span>
                             </td>

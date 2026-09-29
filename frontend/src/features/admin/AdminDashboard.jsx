@@ -284,6 +284,7 @@ export default function AdminDashboard({ user, currentTab, setViewImageUrl }) {
                           <thead className="sticky top-0 bg-white z-10">
                             <tr className="text-gray-400 text-[10px] uppercase tracking-widest border-b border-gray-100">
                               <th className="pb-4 font-bold pl-4 font-mono">Student ID</th>
+                              <th className="pb-4 font-bold">Type</th>
                               <th className="pb-4 font-bold">Full Name</th>
                               <th className="pb-4 font-bold">Email</th>
                               <th className="pb-4 font-bold">Proof of Registration</th>
@@ -294,6 +295,7 @@ export default function AdminDashboard({ user, currentTab, setViewImageUrl }) {
                             {pendingStudents.map(student => (
                               <tr key={student.id} className="hover:bg-gray-50/30">
                                 <td className="py-4 pl-4 font-mono text-sm font-semibold text-gray-800">{student.student_id}</td>
+                                <td className="py-4 text-xs font-bold text-gray-500 uppercase tracking-widest">{student.user_type}</td>
                                 <td className="py-4 text-sm font-bold text-gray-900">{student.full_name}</td>
                                 <td className="py-4 text-sm text-gray-600">{student.email || '—'}</td>
                                 <td className="py-4">

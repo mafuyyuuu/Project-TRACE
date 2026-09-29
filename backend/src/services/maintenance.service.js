@@ -257,6 +257,16 @@ async function setStaffActive(user, id, isActive) {
   }
 
   await userModel.setUserActive(id, Boolean(isActive));
+
+  if (!isActive && rows[0].email) {
+    if (notifications.notifyByEmail) {
+      await notifications.notifyByEmail({
+        email: rows[0].email,
+        title: 'Account Deactivated',
+        message: 'Your Project TRACE staff account has been deactivated. Please contact an administrator if you believe this is a mistake.'
+      });
+    }
+  }
   return { message: isActive ? 'Staff account reactivated.' : 'Staff account deactivated.' };
 }
 
