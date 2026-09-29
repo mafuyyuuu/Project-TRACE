@@ -1,31 +1,10 @@
-const crypto = require('crypto');
+const fs = require('fs');
 
-/**
- * Pure request-pricing and identifier helpers.
- *
- * Kept free of database and service imports so they can be reasoned about (and
- * tested) in isolation — this is the fee logic the registrar actually charges.
- * Callers pass the document-type rows in; this file never queries.
- */
+let file = 'backend/src/utils/pricing.js';
+let content = fs.readFileSync(file, 'utf8');
 
-/** Unique, human-quotable tracking number, e.g. "TRC-9F2A41B7". */
-function generateTrackingNumber() {
-  return 'TRC-' + crypto.randomBytes(4).toString('hex').toUpperCase();
-}
-
-/** A multi-document request groups its documents under one of these. */
-function generateRequestGroupId() {
-  return 'REQ-' + crypto.randomBytes(6).toString('hex').toUpperCase();
-}
-
-/** Fallback fees, used only when a document type is missing from the database. */
-const LEGACY_FEES = {
-  'Transcript of Records': { base_fee: 100.0, fee_rule: 'per_semester_block' },
-  'Transcript of Records (TOR)': { base_fee: 100.0, fee_rule: 'per_semester_block' },
-  'Honorable Dismissal': { base_fee: 100.0, fee_rule: 'flat' },
-};
-const DEFAULT_FEE = { base_fee: 50.0, fee_rule: 'flat' };
-
+// We'll replace feeForType, calculateAmount, and calculateGroupAmount.
+const newFunctions = `
 /**
  * Fee for one line item (Estimate).
  *
@@ -79,3 +58,7 @@ module.exports = {
   calculateGroupAmount,
   feeForType,
 };
+`;
+
+content = content.replace(/\/\*\*\n \* Fee for one line item\.[\s\S]*$/, newFunctions.trim() + '\n');
+fs.writeFileSync(file, content);

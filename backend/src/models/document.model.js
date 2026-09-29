@@ -10,19 +10,24 @@ function insert(data, executor = pool) {
   const {
     tracking_number, request_group_id, student_id, student_name, document_type,
     current_status, payment_status, assigned_clerk_id, file_path, original_filename,
-    checkout_url, purpose, copies, amount,
+    checkout_url, purpose, copies, amount, document_sequence_number,
   } = data;
   return executor.query(
     `INSERT INTO documents (tracking_number, request_group_id, student_id, student_name, document_type,
-      current_status, payment_status, assigned_clerk_id, file_path, original_filename, checkout_url, purpose, copies, amount)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      current_status, payment_status, assigned_clerk_id, file_path, original_filename, checkout_url, purpose, copies, amount, document_sequence_number)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       tracking_number, request_group_id || tracking_number,
       student_id || null, student_name || null, document_type || null,
       current_status, payment_status, assigned_clerk_id, file_path, original_filename,
-      checkout_url, purpose || null, copies, amount,
+      checkout_url, purpose || null, copies, amount, document_sequence_number || null,
     ]
   );
+}
+
+
+function countByTypeAndStudent(documentType, studentId, executor = pool) {
+  return executor.query('SELECT COUNT(*) as count FROM documents WHERE document_type = ? AND student_id = ?', [documentType, studentId]).then(([rows]) => rows[0].count);
 }
 
 function findById(documentId, executor = pool) {
@@ -399,6 +404,7 @@ function updateOrVerification(documentId, clerkId, executor = pool) {
 
 module.exports = {
   insert,
+  countByTypeAndStudent,
   updateAttachment,
   updateStatus,
   updatePricing,

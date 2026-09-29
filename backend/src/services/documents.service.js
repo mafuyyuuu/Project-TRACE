@@ -148,9 +148,19 @@ async function uploadDocument(user, body, files) {
   try {
     await connection.beginTransaction();
 
+    // Determine if the student is an alumni for sequence offset
+    let isAlumni = false;
+    const [targetStudentRows] = await connection.query('SELECT user_type FROM users WHERE student_id = ? LIMIT 1', [student_id]);
+    if (targetStudentRows.length > 0 && targetStudentRows[0].user_type === 'alumni') {
+      isAlumni = true;
+    }
+
     for (const [index, item] of priced.entries()) {
       const trackingNumber = generateTrackingNumber();
       const attachment = fileForItem(fileList, index);
+
+      const previousCount = await documentModel.countByTypeAndStudent(item.document_type, student_id, connection);
+      const sequenceNumberStr = `${item.document_type} – Request No. ${previousCount + (isAlumni ? 2 : 1)}`;
 
       const [docResult] = await documentModel.insert(
         {
@@ -170,6 +180,7 @@ async function uploadDocument(user, body, files) {
           purpose: requested[index].purpose ?? body.purpose ?? null,
           copies: item.copies,
           amount: item.amount,
+          document_sequence_number: sequenceNumberStr,
         },
         connection
       );

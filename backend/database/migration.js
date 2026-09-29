@@ -662,6 +662,16 @@ async function migrate() {
     // ST-02: Document role filtering
     await addColumn('document_types', 'available_to', "ENUM('student', 'alumni', 'both') NOT NULL DEFAULT 'both'");
 
+// =======================================================================
+    // Batch 9 - Registrar Consultation
+    // =======================================================================
+    console.log('\n--- Batch 9: Request Numbering ---');
+
+    await addColumn('documents', 'document_sequence_number', 'VARCHAR(50) NULL AFTER tracking_number');
+
+    console.log('Renaming Document Type: Certificate of Transfer Credential -> Transcript Credential Set');
+    await pool.query("UPDATE document_types SET name = 'Transcript Credential Set' WHERE name = 'Certificate of Transfer Credential'");
+    await pool.query("UPDATE documents SET document_type = 'Transcript Credential Set' WHERE document_type = 'Certificate of Transfer Credential'");
     console.log('✅ Database migration completed successfully.');
     process.exit(0);
   } catch (err) {

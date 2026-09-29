@@ -1,23 +1,14 @@
 const fs = require('fs');
+let file = 'frontend/src/features/finance/components/FinanceVerificationModal.jsx';
+let content = fs.readFileSync(file, 'utf8');
 
-function injectBreakdown(file) {
-  let content = fs.readFileSync(file, 'utf8');
+content = content.replace("import { formatPeso, itemBreakdown } from '@/utils/pricing';", "import { formatPeso } from '@/utils/pricing';");
 
-  if (!content.includes('itemBreakdown')) {
-    content = content.replace(
-      'import { STATUS } from \'@/utils/documentStatus\';',
-      'import { STATUS } from \'@/utils/documentStatus\';\nimport { formatPeso, itemBreakdown } from \'@/utils/pricing\';'
-    );
-    
-    // Replace Copies and Amount with a full breakdown section
-    const replaceTarget = /<div className="flex justify-between"><span>Copies<\/span><span className="font-bold text-gray-950">\{selectedDoc\.copies \|\| 1\}<\/span><\/div>\s*<div className="flex justify-between border-t border-gray-200\/50 pt-2"><span>Amount<\/span><span className="font-bold text-gray-950">P\{parseFloat\(selectedDoc\.amount \|\| 150\)\.toFixed\(2\)\}<\/span><\/div>/;
-    
-    const newSection = `
-        {/* Itemization */}
-        <div className="border-t border-gray-200/50 pt-3 mt-1 space-y-1">
+const oldBlock = `
+          <div className="flex justify-between"><span>Copies</span><span className="font-bold text-gray-950">{selectedDoc.copies || 1}</span></div>
+          <div className="border-t border-gray-200/50 pt-2 mt-2 space-y-1">
           {(() => {
             const typeObj = {
-              name: selectedDoc.document_type,
               base_fee: selectedDoc.base_fee,
               rental_fee: selectedDoc.rental_fee,
               special_fee: selectedDoc.special_fee,
@@ -29,17 +20,24 @@ function injectBreakdown(file) {
                 <span>{item.label}</span>
                 <span className="font-mono">{formatPeso(item.amount)}</span>
               </div>
-            )) : null;
+            )) : (
+              <div className="flex justify-between text-[11px] text-gray-600">
+                <span>Document Fee</span>
+                <span className="font-mono">{formatPeso(selectedDoc.amount)}</span>
+              </div>
+            );
           })()}
-        </div>
-        <div className="flex justify-between border-t border-gray-200/50 pt-2">
-          <span>Amount</span>
-          <span className="font-bold text-gray-950">{formatPeso(selectedDoc.amount)}</span>
-        </div>`;
-    
-    content = content.replace(replaceTarget, newSection);
-    fs.writeFileSync(file, content);
-  }
-}
+          </div>
+`;
 
-injectBreakdown('frontend/src/features/finance/components/FinanceVerificationModal.jsx');
+const newBlock = `
+          <div className="border-t border-gray-200/50 pt-2 mt-2 space-y-1">
+            <div className="flex justify-between text-[11px] text-gray-600 font-semibold">
+              <span>Evaluated Price</span>
+              <span className="font-mono text-gray-950">{formatPeso(selectedDoc.amount)}</span>
+            </div>
+          </div>
+`;
+
+content = content.replace(oldBlock.trim(), newBlock.trim());
+fs.writeFileSync(file, content);

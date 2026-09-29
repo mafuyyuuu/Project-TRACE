@@ -396,7 +396,7 @@ export default function AdminDashboard({ user, currentTab, setViewImageUrl }) {
                                     #{doc.tracking_number ? doc.tracking_number.slice(0, 10).toUpperCase() : doc.id}
                                   </td>
                                   <td className="py-4 text-sm font-bold text-gray-700">{doc.student_name || doc.student_id || 'Unknown'}</td>
-                                  <td className="py-4 text-xs font-bold text-gray-600">{doc.document_type}</td>
+                                  <td className="py-4 text-xs font-bold text-gray-600">{doc.document_sequence_number || doc.document_type}</td>
                                   <td className="py-4">
                                     <span className={`px-3 py-1 text-[10px] font-black rounded-full uppercase tracking-wider ${
                                       doc.current_status === STATUS.COMPLETED

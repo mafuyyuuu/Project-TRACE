@@ -41,10 +41,23 @@ export default function useSecretaryDashboard(user) {
   // Pricing inputs, filled in once the document is printed and countable.
   const [priceAmount, setPriceAmount] = useState('');
   const [pricePageCount, setPricePageCount] = useState('');
-  const [priceNotes, setPriceNotes] = useState('');
 
   // The document staged for a handoff confirmation, or null when the dialog is closed.
   const [handoffToConfirm, setHandoffToConfirm] = useState(null);
+
+  // Automatically calculate price based on pages typed (CN-08)
+  useEffect(() => {
+    if (core.activeModal === 'price' && selectedDoc && pricePageCount) {
+      const pages = parseInt(pricePageCount, 10) || 0;
+      const base = parseFloat(selectedDoc.base_fee) || 0;
+      if (pages > 0 && base > 0) {
+        setPriceAmount((pages * base).toFixed(2));
+      } else {
+        setPriceAmount('');
+      }
+    }
+  }, [pricePageCount, selectedDoc, core.activeModal]);
+
 
   // The document staged for an OR-verification confirmation, or null when closed.
   const [orVerifyToConfirm, setOrVerifyToConfirm] = useState(null);
@@ -162,7 +175,7 @@ export default function useSecretaryDashboard(user) {
         billedResult = await priceDocument(selectedDoc.id, {
           amount,
           page_count: pricePageCount ? parseInt(pricePageCount, 10) : null,
-          pricing_notes: priceNotes,
+          
         });
         return billedResult;
       },
@@ -181,7 +194,7 @@ export default function useSecretaryDashboard(user) {
       // student needs to carry to Finance. Otherwise close and pick up the next.
       setActiveModal(billedResult?.billed ? 'payment-stub' : null);
     }
-  }, [selectedDoc, priceAmount, pricePageCount, priceNotes, runAction, setActiveModal]);
+  }, [selectedDoc, priceAmount, pricePageCount, runAction, setActiveModal]);
 
   const cancelPriceDocument = useCallback(() => {
     setPricingToConfirm(false);
@@ -241,7 +254,7 @@ export default function useSecretaryDashboard(user) {
     estimatedReadyDate, setEstimatedReadyDate,
     priceAmount, setPriceAmount,
     pricePageCount, setPricePageCount,
-    priceNotes, setPriceNotes,
+    
     handleSecretaryEvaluate,
     evaluateActionToConfirm,
     confirmSecretaryEvaluate,

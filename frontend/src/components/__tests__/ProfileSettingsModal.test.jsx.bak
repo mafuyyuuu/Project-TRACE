@@ -52,7 +52,7 @@ describe('ProfileSettingsModal', () => {
 
   it('names the desk for a staff account', () => {
     renderModal({ user: CLERK });
-    expect(screen.getByText(/Finance Clerk/i)).toBeInTheDocument();
+    expect(screen.getByText('Finance Clerk')).toBeInTheDocument();
   });
 
   it('renders the editable contact fields', () => {
@@ -96,7 +96,7 @@ describe('ProfileSettingsModal', () => {
 
   it('shows a local preview of a staged, not-yet-uploaded picture', () => {
     renderModal({ avatarPreviewUrl: 'blob:staged-preview' });
-    expect(screen.getByAltText('User')).toHaveAttribute('src', 'blob:staged-preview');
+    expect(screen.getByAltText('Preview')).toHaveAttribute('src', 'blob:staged-preview');
     
   });
 

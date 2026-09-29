@@ -167,10 +167,10 @@ export default function NewRequestModal({
                             </div>
                           )}
 
-                          <div className="grid grid-cols-1 gap-3">
-                            
-                            <div className="flex flex-col gap-1.5">
-                              <label className="text-[10px] font-bold text-gray-700 uppercase tracking-widest">Purpose</label>
+                          {!dropsPurpose(type.name) && (
+                            <div className="grid grid-cols-1 gap-3">
+                              <div className="flex flex-col gap-1.5">
+                                <label className="text-[10px] font-bold text-gray-700 uppercase tracking-widest">Purpose</label>
                               <input
                                 type="text" required
                                 value={selection.purpose}
@@ -180,8 +180,9 @@ export default function NewRequestModal({
                               />
                             </div>
                           </div>
+                          )}
 
-                          {type.requires_attachment ? (
+                          {!dropsPurpose(type.name) && type.requires_attachment ? (
                             <div className="flex flex-col gap-1.5">
                               <label className="text-[10px] font-bold text-gray-700 uppercase tracking-widest">
                                 {type.attachment_label || 'Supporting Attachment'}

@@ -241,7 +241,7 @@ describe('uploadDocument — a student can only file for themselves', () => {
       { document_type: 'Transcript of Records', semesters: 8, copies: 2, amount: '1.00' },
       null
     );
-    expect(documentModel.insert.mock.calls[0][0].amount).toBe(200);
+    expect(documentModel.insert.mock.calls[0][0].amount).toBe(400);
   });
 });
 
