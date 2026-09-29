@@ -1,19 +1,77 @@
 @import "tailwindcss";
 @config "../tailwind.config.js";
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --default-transition-duration: 200ms;
+  --default-transition-timing-function: cubic-bezier(0.2, 0, 0, 1);
+}
+
+:root {
+  color-scheme: light;
+  --trace-chart-line: #0f172a;
+  --trace-chart-surface: #ffffff;
+  --trace-chart-text: #6b7280;
+  --trace-chart-accent: #15803d;
+}
+
+:root.dark {
+  color-scheme: dark;
+  --trace-chart-line: #e2e8f0;
+  --trace-chart-surface: #1f2937;
+  --trace-chart-text: #d1d5db;
+  --trace-chart-accent: #86efac;
+}
 
 body {
   background-color: #f9fafb; /* bg-gray-50 */
   color: #1f2937; /* text-gray-800 */
   -webkit-font-smoothing: antialiased;
   user-select: none;
+  -webkit-user-select: none;
 }
 
-input, textarea, select, [contenteditable] {
-  user-select: text;
+body:where(.dark *) {
+  background-color: #111827;
+  color: #e5e7eb;
 }
 
-td, th {
+button, a, [role="tab"], label {
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+input, textarea, select, [contenteditable="true"], td, th, .select-text {
   user-select: text;
+  -webkit-user-select: text;
+}
+
+input, textarea, select {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.select-text {
+  overflow-wrap: anywhere;
+}
+
+:where(button, a, input, textarea, select, [tabindex]):focus-visible {
+  outline: 2px solid #15803d;
+  outline-offset: 3px;
+}
+
+.dark :where(button, a, input, textarea, select, [tabindex]):focus-visible {
+  outline-color: #86efac;
+}
+
+.recharts-default-tooltip {
+  background-color: var(--trace-chart-surface) !important;
+  color: var(--trace-chart-text) !important;
+  border-color: var(--trace-chart-text) !important;
+}
+
+.dark .recharts-cartesian-axis-tick-value {
+  fill: var(--trace-chart-text);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -57,6 +115,9 @@ td, th {
     box-shadow: none;
     border: none;
     border-radius: 0;
+    color-scheme: light;
+    background: white !important;
+    color: #111827 !important;
   }
 
   /* Backdrop and any control that would print as a grey slab or a dead button. */

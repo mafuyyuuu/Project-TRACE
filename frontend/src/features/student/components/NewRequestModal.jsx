@@ -44,7 +44,7 @@ export default function NewRequestModal({
           <button
             type="button"
             onClick={() => setActiveModal(null)}
-            className="px-6 py-3 border border-gray-200 text-gray-700 rounded-xl text-xs font-bold hover:bg-gray-50"
+            className="px-6 py-3 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 rounded-xl text-xs font-bold hover:bg-gray-50 dark:hover:bg-gray-800"
           >
             Cancel
           </button>
@@ -59,34 +59,34 @@ export default function NewRequestModal({
         </div>
       }
     >
-      <p className="text-xs text-gray-400 mt-1 font-semibold pb-5 mb-6 border-b border-gray-100">
+      <p className="text-xs text-gray-400 dark:text-gray-400 mt-1 font-semibold pb-5 mb-6 border-b border-gray-100 dark:border-gray-700">
         Select one or more documents. Nothing is paid now — the College Secretary sets the amount once your documents are printed.
       </p>
 
       <form id="new-request-form" onSubmit={handleStudentSubmitRequest} className="space-y-6">
           {/* Auto-filled identity */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-gray-50/50 p-4 rounded-2xl border border-gray-100">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-gray-50/50 dark:bg-gray-800/50 p-4 rounded-2xl border border-gray-100 dark:border-gray-700">
             <div className="flex flex-col gap-1.5">
-              <label className="text-[9px] font-bold text-gray-500 uppercase tracking-widest">Student Name</label>
-              <input type="text" value={user?.full_name || ''} disabled className="bg-transparent border-none p-0 text-sm font-bold text-gray-900" />
+              <label className="text-[9px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest">Student Name</label>
+              <input type="text" value={user?.full_name || ''} disabled className="bg-transparent border-none p-0 text-sm font-bold text-gray-900 dark:text-gray-100" />
             </div>
             <div className="flex flex-col gap-1.5">
-              <label className="text-[9px] font-bold text-gray-500 uppercase tracking-widest">Student ID</label>
-              <input type="text" value={user?.student_id || ''} disabled className="bg-transparent border-none p-0 text-sm font-bold text-gray-900" />
+              <label className="text-[9px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest">Student ID</label>
+              <input type="text" value={user?.student_id || ''} disabled className="bg-transparent border-none p-0 text-sm font-bold text-gray-900 dark:text-gray-100" />
             </div>
           </div>
 
           <div className="flex flex-col gap-2">
-            <label className="text-[10px] font-bold text-gray-800 uppercase tracking-widest">
+            <label className="text-[10px] font-bold text-gray-800 dark:text-gray-100 uppercase tracking-widest">
               Documents Requested {selectedNames.length > 0 && `(${selectedNames.length} selected)`}
             </label>
 
             {documentTypesLoading ? (
               <div className="py-8 flex justify-center">
-                <div className="w-6 h-6 border-2 border-gray-300 border-t-[#15803d] rounded-full animate-spin" />
+                <div className="w-6 h-6 border-2 border-gray-300 dark:border-gray-700 border-t-[#15803d] rounded-full animate-spin" />
               </div>
             ) : availableTypes.length === 0 ? (
-              <p className="text-xs text-gray-400 py-4">No document types are available right now.</p>
+              <p className="text-xs text-gray-400 dark:text-gray-400 py-4">No document types are available right now.</p>
             ) : (
               <div className="space-y-3 max-h-[22rem] overflow-y-auto pr-1">
                 {availableTypes.map((type) => {
@@ -97,7 +97,7 @@ export default function NewRequestModal({
                     <div
                       key={type.name}
                       className={`rounded-2xl border transition-all ${
-                        isSelected ? 'border-[#15803d] bg-emerald-50/40' : 'border-gray-200 bg-white hover:bg-gray-50'
+                        isSelected ? 'border-[#15803d] bg-emerald-50/40 dark:bg-emerald-950/40' : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 hover:bg-gray-50 dark:hover:bg-gray-800'
                       }`}
                     >
                       <label className="flex items-center gap-3 p-4 cursor-pointer">
@@ -107,32 +107,32 @@ export default function NewRequestModal({
                           onChange={() => toggleDocumentType(type.name)}
                           className="w-4 h-4 accent-[#15803d] cursor-pointer"
                         />
-                        <span className="flex-1 text-xs font-bold text-gray-800">
+                        <span className="flex-1 text-xs font-bold text-gray-800 dark:text-gray-100">
                           {type.name}
-                          {type.name === 'Diploma' && <span className="ml-1 text-[10px] text-gray-500 font-normal italic">(Reissue Fee)</span>}
+                          {type.name === 'Diploma' && <span className="ml-1 text-[10px] text-gray-500 dark:text-gray-400 font-normal italic">(Reissue Fee)</span>}
                         </span>
-                        <span className="text-xs font-black text-[#15803d]">
+                        <span className="text-xs font-black text-[#15803d] dark:text-green-300">
                           {isSelected ? formatPeso(itemAmount(type, selection)) : formatPeso(type.base_fee)}
                           {type.fee_rule === 'per_semester_block' && !isSelected && (
-                            <span className="text-[9px] text-gray-400 font-semibold"> /4 sems</span>
+                            <span className="text-[9px] text-gray-400 dark:text-gray-400 font-semibold"> /4 sems</span>
                           )}
                         </span>
                       </label>
 
                       {isSelected && (
-                        <div className="px-4 pb-4 pt-1 space-y-3 border-t border-emerald-100/70">
+                        <div className="px-4 pb-4 pt-1 space-y-3 border-t border-emerald-100/70 dark:border-emerald-800/70">
                           {needsSemesters(type) && (
                             <div className="flex flex-col gap-1.5">
-                              <label className="text-[10px] font-bold text-gray-700 uppercase tracking-widest">
+                              <label className="text-[10px] font-bold text-gray-700 dark:text-gray-300 uppercase tracking-widest">
                                 Semesters attended
                               </label>
                               <input
                                 type="number" min="1" required
                                 value={selection.semesters}
                                 onChange={(e) => updateSelection(type.name, { semesters: e.target.value })}
-                                className="w-full bg-white border border-gray-200 rounded-xl p-2.5 text-xs outline-none focus:ring-2 focus:ring-[#15803d]/20"
+                                className="w-full bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-2.5 text-xs outline-none focus:ring-2 focus:ring-[#15803d]/20"
                               />
-                              <p className="text-[10px] text-gray-400">
+                              <p className="text-[10px] text-gray-400 dark:text-gray-400">
                                 4 semesters = 1 page ({formatPeso(type.base_fee)}/page)
                               </p>
                             </div>
@@ -140,7 +140,7 @@ export default function NewRequestModal({
 
                           {needsRequestingSchool(type.name) && (
                             <div className="flex flex-col gap-1.5">
-                              <label className="text-[10px] font-bold text-gray-700 uppercase tracking-widest">
+                              <label className="text-[10px] font-bold text-gray-700 dark:text-gray-300 uppercase tracking-widest">
                                 Requesting School / Company
                               </label>
                               <input
@@ -148,14 +148,14 @@ export default function NewRequestModal({
                                 value={selection.requestingSchool}
                                 onChange={(e) => updateSelection(type.name, { requestingSchool: e.target.value })}
                                 placeholder="e.g. Mapua University"
-                                className="w-full bg-white border border-gray-200 rounded-xl p-2.5 text-xs outline-none focus:ring-2 focus:ring-[#15803d]/20"
+                                className="w-full bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-2.5 text-xs outline-none focus:ring-2 focus:ring-[#15803d]/20"
                               />
                             </div>
                           )}
 
                           {needsYearGraduated(type.name) && (
                             <div className="flex flex-col gap-1.5">
-                              <label className="text-[10px] font-bold text-gray-700 uppercase tracking-widest">
+                              <label className="text-[10px] font-bold text-gray-700 dark:text-gray-300 uppercase tracking-widest">
                                 Year Graduated / Last Attended
                               </label>
                               <input
@@ -163,7 +163,7 @@ export default function NewRequestModal({
                                 value={selection.yearGraduated}
                                 onChange={(e) => updateSelection(type.name, { yearGraduated: e.target.value })}
                                 placeholder="e.g. 2025"
-                                className="w-full bg-white border border-gray-200 rounded-xl p-2.5 text-xs outline-none focus:ring-2 focus:ring-[#15803d]/20"
+                                className="w-full bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-2.5 text-xs outline-none focus:ring-2 focus:ring-[#15803d]/20"
                               />
                             </div>
                           )}
@@ -171,13 +171,13 @@ export default function NewRequestModal({
                           {!dropsPurpose(type.name) && (
                             <div className="grid grid-cols-1 gap-3">
                               <div className="flex flex-col gap-1.5">
-                                <label className="text-[10px] font-bold text-gray-700 uppercase tracking-widest">Purpose</label>
+                                <label className="text-[10px] font-bold text-gray-700 dark:text-gray-300 uppercase tracking-widest">Purpose</label>
                               <input
                                 type="text" required
                                 value={selection.purpose}
                                 onChange={(e) => updateSelection(type.name, { purpose: e.target.value })}
                                 placeholder="e.g. Employment"
-                                className="w-full bg-white border border-gray-200 rounded-xl p-2.5 text-xs outline-none focus:ring-2 focus:ring-[#15803d]/20"
+                                className="w-full bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-2.5 text-xs outline-none focus:ring-2 focus:ring-[#15803d]/20"
                               />
                             </div>
                           </div>
@@ -185,20 +185,20 @@ export default function NewRequestModal({
 
                           {!dropsPurpose(type.name) && type.requires_attachment ? (
                             <div className="flex flex-col gap-1.5">
-                              <label className="text-[10px] font-bold text-gray-700 uppercase tracking-widest">
+                              <label className="text-[10px] font-bold text-gray-700 dark:text-gray-300 uppercase tracking-widest">
                                 {type.attachment_label || 'Supporting Attachment'}
-                                <span className="font-normal normal-case text-gray-400 ml-1">
+                                <span className="font-normal normal-case text-gray-400 dark:text-gray-400 ml-1">
                                   · upload now, or bring it to Window 1
                                 </span>
                               </label>
-                              <div className="border-2 border-dashed border-gray-300 rounded-xl p-3 bg-white flex items-center justify-center cursor-pointer hover:bg-gray-50 relative">
+                              <div className="border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-xl p-3 bg-white dark:bg-gray-900 flex items-center justify-center cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 relative">
                                 {selection.file ? (
-                                  <span className="text-xs font-bold text-[#15803d] truncate px-4">
+                                  <span className="text-xs font-bold text-[#15803d] dark:text-green-300 truncate px-4">
                                     ✓ {selection.file.name}
                                   </span>
                                 ) : (
-                                  <span className="text-xs font-bold text-gray-600">
-                                    <span className="text-[#15803d]">Click here</span> to upload{' '}
+                                  <span className="text-xs font-bold text-gray-600 dark:text-gray-300">
+                                    <span className="text-[#15803d] dark:text-green-300">Click here</span> to upload{' '}
                                     {type.attachment_helper || 'the supporting file'}
                                   </span>
                                 )}
@@ -211,8 +211,8 @@ export default function NewRequestModal({
                             </div>
                           ) : (
                             <div className="flex flex-col gap-1.5">
-                              <label className="text-[10px] font-bold text-gray-700 uppercase tracking-widest">
-                                Required Attachment: <span className="text-gray-500 font-normal">None</span>
+                              <label className="text-[10px] font-bold text-gray-700 dark:text-gray-300 uppercase tracking-widest">
+                                Required Attachment: <span className="text-gray-500 dark:text-gray-400 font-normal">None</span>
                               </label>
                             </div>
                           )}
@@ -226,18 +226,18 @@ export default function NewRequestModal({
           </div>
 
           {/* Running total for the whole request */}
-          <div className="bg-gray-50 border border-gray-200 rounded-2xl p-4">
+          <div className="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl p-4">
             {selectedNames.length === 0 ? (
-              <p className="text-xs text-gray-400 text-center font-semibold">
+              <p className="text-xs text-gray-400 dark:text-gray-400 text-center font-semibold">
                 Select at least one document to see an estimate.
               </p>
             ) : (
               <>
-                <div className="space-y-1.5 pb-3 border-b border-gray-200">
+                <div className="space-y-1.5 pb-3 border-b border-gray-200 dark:border-gray-700">
                   {selectedNames.map((name) => {
                     const type = documentTypes.find((t) => t.name === name);
                     return (
-                      <div key={name} className="flex justify-between text-[11px] text-gray-600 font-semibold">
+                      <div key={name} className="flex justify-between text-[11px] text-gray-600 dark:text-gray-300 font-semibold">
                         <span>
                           {name}
                           
@@ -248,16 +248,16 @@ export default function NewRequestModal({
                   })}
                 </div>
                 <div className="flex justify-between items-center pt-3">
-                  <span className="text-xs font-bold text-gray-500 uppercase tracking-widest">
+                  <span className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest">
                     Estimate ({selectedNames.length} document{selectedNames.length > 1 ? 's' : ''})
                   </span>
-                  <span className="text-lg font-black text-[#15803d]">{formatPeso(total)}</span>
+                  <span className="text-lg font-black text-[#15803d] dark:text-green-300">{formatPeso(total)}</span>
                 </div>
               </>
             )}
           </div>
 
-          <div className="bg-emerald-50 border border-emerald-100 p-4 rounded-xl text-xs leading-relaxed text-[#15803d] font-bold flex items-center gap-2">
+          <div className="bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-100 dark:border-emerald-800 p-4 rounded-xl text-xs leading-relaxed text-[#15803d] dark:text-green-300 font-bold flex items-center gap-2">
             <span className="w-2 h-2 bg-[#15803d] rounded-full shrink-0"></span>
             An estimate from the standard fee table, not a bill. The College Secretary sets the
             final amount after printing, and one payment then covers the whole request.

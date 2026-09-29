@@ -58,11 +58,16 @@ export default function useMaintenance(user, currentTab) {
   const notify = useCallback((message, isError = false) => {
     if (isError) {
       setError(message);
-      setTimeout(() => setError(''), 5000);
+      setSuccess('');
     } else {
       setSuccess(message);
-      setTimeout(() => setSuccess(''), 4000);
+      setError('');
     }
+  }, []);
+
+  const dismissNotification = useCallback(() => {
+    setSuccess('');
+    setError('');
   }, []);
 
   /** Runs a mutation, surfaces the server's message, and refreshes the tables. */
@@ -162,6 +167,7 @@ export default function useMaintenance(user, currentTab) {
   return {
     staff, documentTypes, colleges, paymentMethods,
     loading, saving, error, success,
+    dismissNotification,
     reload: load,
 
     selectedUser, setSelectedUser,

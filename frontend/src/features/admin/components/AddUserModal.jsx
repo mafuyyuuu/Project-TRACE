@@ -4,7 +4,7 @@ import ModalShell from '@/components/ModalShell';
 const DESKS = ['Finance', 'Window 1', 'Secretary', 'Admin Office', 'Receiving Desk', 'Records Desk'];
 
 const inputClass =
-  'w-full bg-gray-50 border border-gray-200 rounded-xl p-2.5 text-xs font-semibold outline-none focus:ring-2 focus:ring-[#15803d]/20 focus:bg-white transition-all';
+  'w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-2.5 text-xs font-semibold outline-none focus:ring-2 focus:ring-[#15803d]/20 focus:bg-white dark:focus:bg-gray-900 transition-all';
 
 /**
  * Creates a staff account — the same fields and the same `createStaff` call
@@ -40,7 +40,7 @@ export default function AddUserModal({ open, onClose, onCreate, saving }) {
             type="button"
             onClick={onClose}
             disabled={saving}
-            className="flex-1 px-5 py-3 rounded-2xl text-xs font-bold border border-gray-200 text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-50"
+            className="flex-1 px-5 py-3 rounded-2xl text-xs font-bold border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors disabled:opacity-50"
           >
             Cancel
           </button>
@@ -77,7 +77,7 @@ export default function AddUserModal({ open, onClose, onCreate, saving }) {
         <div>
           <input className={inputClass} type="password" placeholder="Temporary password *" required minLength={8}
             value={form.password || ''} onChange={(e) => set('password', e.target.value)} />
-          <p className="text-[10px] text-gray-400 mt-1.5 leading-relaxed">
+          <p className="text-[10px] text-gray-400 dark:text-gray-400 mt-1.5 leading-relaxed">
             At least 8 characters. The user must replace it at first login, so it is never a
             permanent credential.
           </p>

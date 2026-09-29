@@ -21,6 +21,10 @@ const renderNav = (props) =>
   );
 
 describe('navItemsForUser', () => {
+  it('gives each admin destination a distinct icon', () => {
+    const icons = navItemsForUser(ADMIN).map((item) => item.icon);
+    expect(new Set(icons).size).toBe(icons.length);
+  });
   it.each([
     ['student', STUDENT, ['dashboard', 'request-history', 'payment-history']],
     ['alumnus', ALUMNI, ['dashboard', 'request-history', 'payment-history', 'graduate-application']],

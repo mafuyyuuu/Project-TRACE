@@ -27,6 +27,7 @@ export default function FinanceDashboard({ user, setViewImageUrl }) {
   const {
     loading,
     success,
+    dismissNotification,
     error,
     documents,
     awaitingPaymentQueue,
@@ -64,19 +65,19 @@ export default function FinanceDashboard({ user, setViewImageUrl }) {
 
   return (
     <>
-      <DashboardAlerts success={success} error={error} />
+      <DashboardAlerts success={success} error={error} onDismiss={dismissNotification} />
       <div className="space-y-8 animate-fade-in">
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
           <div>
-            <h2 className="text-2xl sm:text-3xl font-display font-black text-gray-900 tracking-tight">
+            <h2 className="text-2xl sm:text-3xl font-display font-black text-gray-900 dark:text-gray-100 tracking-tight">
               Finance Office Command Center
             </h2>
           </div>
-          <div className="flex items-center gap-3 bg-white border border-gray-200 rounded-2xl px-5 py-2.5 shadow-sm">
-            <span className="text-xs font-semibold text-gray-500">Today:</span>
-            <span className="text-xs font-bold text-gray-800">{todayFormatted}</span>
-            <svg className="w-4 h-4 text-gray-400 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+          <div className="flex items-center gap-3 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-2xl px-5 py-2.5 shadow-sm">
+            <span className="text-xs font-semibold text-gray-500 dark:text-gray-400">Today:</span>
+            <span className="text-xs font-bold text-gray-800 dark:text-gray-100">{todayFormatted}</span>
+            <svg className="w-4 h-4 text-gray-400 dark:text-gray-400 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
           </div>
         </div>
 
@@ -93,24 +94,24 @@ export default function FinanceDashboard({ user, setViewImageUrl }) {
         {/* 1 · Billed, waiting on the student. Read-only, except that a student
             can walk up with the printed slip and pay at the counter. */}
         {activeQueueTab === 'awaiting-payment' && (
-        <div className="bg-white rounded-3xl shadow-sm border border-gray-200 overflow-hidden mt-6">
-          <div className="p-4 sm:p-6 border-b border-gray-100 bg-gray-50/50 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
+        <div className="animate-fade-in bg-white dark:bg-gray-900 rounded-3xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden mt-6">
+          <div className="p-4 sm:p-6 border-b border-gray-100 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800/50 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
             <div>
-              <h3 className="font-bold text-gray-950 text-sm tracking-wider uppercase">1 · AWAITING PAYMENT</h3>
-              <p className="text-[11px] text-gray-500 font-medium mt-1">Billed by the College Secretary. Log a payment here when the student pays at the counter.</p>
+              <h3 className="font-bold text-gray-950 dark:text-gray-100 text-sm tracking-wider uppercase">1 · AWAITING PAYMENT</h3>
+              <p className="text-[11px] text-gray-500 dark:text-gray-400 font-medium mt-1">Billed by the College Secretary. Log a payment here when the student pays at the counter.</p>
             </div>
-            <span className="text-xs text-gray-500 font-semibold whitespace-nowrap">
-              Awaiting: <strong className="text-gray-900">{awaitingPaymentQueue.length}</strong>
+            <span className="text-xs text-gray-500 dark:text-gray-400 font-semibold whitespace-nowrap">
+              Awaiting: <strong className="text-gray-900 dark:text-gray-100">{awaitingPaymentQueue.length}</strong>
             </span>
           </div>
           <div className="p-4 sm:p-6">
             <div className="max-h-[calc(100vh-280px)] overflow-y-auto overflow-x-auto">
               {awaitingPaymentQueue.length === 0 ? (
-                <div className="text-center py-12 text-gray-400 font-medium">Nothing waiting to be paid.</div>
+                <div className="text-center py-12 text-gray-400 dark:text-gray-400 font-medium">Nothing waiting to be paid.</div>
               ) : (
-                <table className="w-full text-left border-collapse table-fixed min-w-[680px]">
-                  <thead className="sticky top-0 bg-white z-10">
-                    <tr className="text-gray-400 text-[10px] uppercase tracking-widest border-b border-gray-100">
+                <table className="w-full text-left border-collapse table-auto min-w-[680px]">
+                  <thead className="sticky top-0 bg-white dark:bg-gray-900 z-10">
+                    <tr className="text-gray-400 dark:text-gray-400 text-[10px] uppercase tracking-widest border-b border-gray-100 dark:border-gray-700">
                       <th className="pb-4 font-bold pl-4 min-w-[110px]">Tracking ID</th>
                       <th className="pb-4 font-bold min-w-[150px]">Name</th>
                       <th className="pb-4 font-bold min-w-[140px]">Document Type</th>
@@ -118,31 +119,31 @@ export default function FinanceDashboard({ user, setViewImageUrl }) {
                       <th className="pb-4 font-bold text-right pr-4 min-w-[190px]">Action</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-gray-50">
+                  <tbody className="divide-y divide-gray-50 dark:divide-gray-700">
                     {awaitingPaymentQueue.map(doc => (
-                      <tr key={doc.id} className="hover:bg-gray-50/30 group">
-                        <td className="py-4 pl-4 font-mono text-xs font-semibold text-gray-500">#{doc.tracking_number ? doc.tracking_number.slice(0, 10).toUpperCase() : doc.id}</td>
+                      <tr key={doc.id} className="hover:bg-gray-50/30 dark:hover:bg-gray-800/30 group">
+                        <td className="py-4 pl-4 font-mono text-xs font-semibold text-gray-500 dark:text-gray-400">#{doc.tracking_number ? doc.tracking_number.slice(0, 10).toUpperCase() : doc.id}</td>
                         <td className="py-4">
-                          <button onClick={() => setViewProfileId(doc.student_id)} className="text-sm font-bold text-[#15803d] hover:underline hover:text-[#166534] text-left">{doc.student_name || 'Unknown Student'}</button>
-                          <div className="text-xs font-mono text-gray-400 mt-0.5">{doc.student_id || 'ID Pending'}</div>
+                          <button onClick={() => setViewProfileId(doc.student_id)} className="text-sm font-bold text-[#15803d] dark:text-green-300 hover:underline hover:text-[#166534] text-left">{doc.student_name || 'Unknown Student'}</button>
+                          <div className="text-xs font-mono text-gray-400 dark:text-gray-400 mt-0.5 select-text break-words">{doc.student_id || 'ID Pending'}</div>
                         </td>
-                        <td className="py-4 text-xs font-bold text-gray-600">{doc.document_type}</td>
-                        <td className="py-4 text-xs font-bold text-gray-800 font-mono">{formatPeso(doc.amount)}</td>
-                        <td className="py-4 text-right pr-4 min-w-[200px] flex justify-end gap-2 items-center h-full">
+                        <td className="py-4 text-xs font-bold text-gray-600 dark:text-gray-300">{doc.document_type}</td>
+                        <td className="py-4 text-xs font-bold text-gray-800 dark:text-gray-100 font-mono">{formatPeso(doc.amount)}</td>
+                        <td className="py-4 text-right pr-4 min-w-[200px]"><div className="flex flex-wrap justify-end gap-2 items-center">
 
                           <button
                             onClick={() => { setSelectedDoc(doc); setActiveModal('payment-stub'); }}
-                            className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-800 rounded-xl text-xs font-bold shadow-sm transition-all block whitespace-nowrap shrink-0"
+                            className="px-4 py-2 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-800 text-gray-800 dark:text-gray-100 rounded-xl text-xs font-bold shadow-sm transition-all block whitespace-nowrap shrink-0"
                           >
                             View Slip
                           </button>
                           <button
                             onClick={() => { setSelectedDoc(doc); setActiveModal('walk-in-payment'); }}
-                            className="px-4 py-2 bg-gray-900 hover:bg-gray-800 text-white rounded-xl text-xs font-bold shadow-sm transition-all ml-auto block whitespace-nowrap shrink-0"
+                            className="px-4 py-2 bg-gray-900 dark:bg-gray-800 hover:bg-gray-800 dark:hover:bg-gray-800 text-white rounded-xl text-xs font-bold shadow-sm transition-all ml-auto block whitespace-nowrap shrink-0"
                           >
                             Log Counter Payment
                           </button>
-                        </td>
+                        </div></td>
                       </tr>
                     ))}
                   </tbody>
@@ -155,21 +156,21 @@ export default function FinanceDashboard({ user, setViewImageUrl }) {
 
         {/* Verification Queue Table */}
         {activeQueueTab === 'verification' && (
-        <div className="bg-white rounded-3xl shadow-sm border border-gray-200 overflow-hidden mt-6">
-          <div className="p-4 sm:p-6 border-b border-gray-100 bg-gray-50/50 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
-            <h3 className="font-bold text-gray-950 text-sm tracking-wider uppercase">2 · VERIFICATION QUEUE</h3>
-            <span className="text-xs text-gray-500 font-semibold whitespace-nowrap">
-              Pending Request: <strong className="text-gray-900">{verificationQueue.length}</strong>
+        <div className="animate-fade-in bg-white dark:bg-gray-900 rounded-3xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden mt-6">
+          <div className="p-4 sm:p-6 border-b border-gray-100 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800/50 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
+            <h3 className="font-bold text-gray-950 dark:text-gray-100 text-sm tracking-wider uppercase">2 · VERIFICATION QUEUE</h3>
+            <span className="text-xs text-gray-500 dark:text-gray-400 font-semibold whitespace-nowrap">
+              Pending Request: <strong className="text-gray-900 dark:text-gray-100">{verificationQueue.length}</strong>
             </span>
           </div>
           <div className="p-4 sm:p-6">
             <div className="max-h-[calc(100vh-280px)] overflow-y-auto overflow-x-auto">
               {verificationQueue.length === 0 ? (
-                <div className="text-center py-12 text-gray-400 font-medium">No pending receipts to verify. Queue is clean!</div>
+                <div className="text-center py-12 text-gray-400 dark:text-gray-400 font-medium">No pending receipts to verify. Queue is clean!</div>
               ) : (
-                <table className="w-full text-left border-collapse table-fixed min-w-[730px]">
-                  <thead className="sticky top-0 bg-white z-10">
-                    <tr className="text-gray-400 text-[10px] uppercase tracking-widest border-b border-gray-100">
+                <table className="w-full text-left border-collapse table-auto min-w-[730px]">
+                  <thead className="sticky top-0 bg-white dark:bg-gray-900 z-10">
+                    <tr className="text-gray-400 dark:text-gray-400 text-[10px] uppercase tracking-widest border-b border-gray-100 dark:border-gray-700">
                       <th className="pb-4 font-bold pl-4 min-w-[110px]">Tracking ID</th>
                       <th className="pb-4 font-bold min-w-[150px]">Name</th>
                       <th className="pb-4 font-bold min-w-[140px]">Document Type</th>
@@ -178,26 +179,26 @@ export default function FinanceDashboard({ user, setViewImageUrl }) {
                       <th className="pb-4 font-bold text-right pr-4 min-w-[110px]">Action</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-gray-50">
+                  <tbody className="divide-y divide-gray-50 dark:divide-gray-700">
                     {verificationQueue.map(doc => (
-                      <tr key={doc.id} className="hover:bg-gray-50/30 group">
-                        <td className="py-4 pl-4 font-mono text-xs font-semibold text-gray-500">#{doc.tracking_number ? doc.tracking_number.slice(0, 10).toUpperCase() : doc.id}</td>
+                      <tr key={doc.id} className="hover:bg-gray-50/30 dark:hover:bg-gray-800/30 group">
+                        <td className="py-4 pl-4 font-mono text-xs font-semibold text-gray-500 dark:text-gray-400">#{doc.tracking_number ? doc.tracking_number.slice(0, 10).toUpperCase() : doc.id}</td>
                         <td className="py-4">
-                          <button onClick={() => setViewProfileId(doc.student_id)} className="text-sm font-bold text-[#15803d] hover:underline hover:text-[#166534] text-left">{doc.student_name || 'Unknown Student'}</button>
-                          <div className="text-xs font-mono text-gray-400 mt-0.5">{doc.student_id || 'ID Pending'}</div>
+                          <button onClick={() => setViewProfileId(doc.student_id)} className="text-sm font-bold text-[#15803d] dark:text-green-300 hover:underline hover:text-[#166534] text-left">{doc.student_name || 'Unknown Student'}</button>
+                          <div className="text-xs font-mono text-gray-400 dark:text-gray-400 mt-0.5 select-text break-words">{doc.student_id || 'ID Pending'}</div>
                         </td>
-                        <td className="py-4 text-xs font-bold text-gray-600">{doc.document_type}</td>
-                        <td className="py-4 text-xs font-bold text-gray-800 font-mono">{formatPeso(doc.amount)}</td>
+                        <td className="py-4 text-xs font-bold text-gray-600 dark:text-gray-300">{doc.document_type}</td>
+                        <td className="py-4 text-xs font-bold text-gray-800 dark:text-gray-100 font-mono">{formatPeso(doc.amount)}</td>
                         <td className="py-4 text-xs font-semibold">
                           {doc.payment_channel === 'walk_in'
-                            ? <span className="text-gray-700">Counter · <span className="font-mono">{doc.or_number}</span></span>
-                            : <span className="text-gray-500">Online</span>}
+                            ? <span className="text-gray-700 dark:text-gray-300">Counter · <span className="font-mono">{doc.or_number}</span></span>
+                            : <span className="text-gray-500 dark:text-gray-400">Online</span>}
                         </td>
-                        <td className="py-4 text-right pr-4 min-w-[140px] flex justify-end gap-2 items-center h-full">
+                        <td className="py-4 text-right pr-4 min-w-[140px]"><div className="flex flex-wrap justify-end gap-2 items-center">
 
                           <button
                             onClick={() => { setSelectedDoc(doc); setActiveModal('payment-stub'); }}
-                            className="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-800 rounded-lg text-[11px] font-bold shadow-sm transition-all whitespace-nowrap shrink-0"
+                            className="px-3 py-1.5 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-800 text-gray-800 dark:text-gray-100 rounded-lg text-[11px] font-bold shadow-sm transition-all whitespace-nowrap shrink-0"
                           >
                             Slip
                           </button>
@@ -208,7 +209,7 @@ export default function FinanceDashboard({ user, setViewImageUrl }) {
                             <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                             Review
                           </button>
-                        </td>
+                        </div></td>
                       </tr>
                     ))}
                   </tbody>
@@ -223,21 +224,21 @@ export default function FinanceDashboard({ user, setViewImageUrl }) {
         
         {/* Transactions Tab (FIN-05, FIN-03) */}
         {activeQueueTab === 'transactions' && (
-        <div className="bg-white rounded-3xl shadow-sm border border-gray-200 overflow-hidden mt-6">
-          <div className="p-4 sm:p-6 border-b border-gray-100 bg-gray-50/50 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
-            <h3 className="font-bold text-gray-950 text-sm tracking-wider uppercase">3 · TRANSACTIONS & EXPORTS</h3>
+        <div className="animate-fade-in bg-white dark:bg-gray-900 rounded-3xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden mt-6">
+          <div className="p-4 sm:p-6 border-b border-gray-100 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800/50 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
+            <h3 className="font-bold text-gray-950 dark:text-gray-100 text-sm tracking-wider uppercase">3 · TRANSACTIONS & EXPORTS</h3>
             <button
-              onClick={() => alert('Exporting CSV... (Simulated)')}
-              className="px-4 py-2 bg-gray-900 hover:bg-gray-800 text-white rounded-xl text-xs font-bold shadow-sm transition-all whitespace-nowrap shrink-0"
+              onClick={() => triggerNotification('Exporting CSV... (Simulated)')}
+              className="px-4 py-2 bg-gray-900 dark:bg-gray-800 hover:bg-gray-800 dark:hover:bg-gray-800 text-white rounded-xl text-xs font-bold shadow-sm transition-all whitespace-nowrap shrink-0"
             >
               Export CSV
             </button>
           </div>
           <div className="p-4 sm:p-6">
             <div className="max-h-[calc(100vh-280px)] overflow-y-auto overflow-x-auto">
-              <table className="w-full text-left border-collapse table-fixed min-w-[730px]">
-                <thead className="sticky top-0 bg-white z-10">
-                  <tr className="text-gray-400 text-[10px] uppercase tracking-widest border-b border-gray-100">
+              <table className="w-full text-left border-collapse table-auto min-w-[730px]">
+                <thead className="sticky top-0 bg-white dark:bg-gray-900 z-10">
+                  <tr className="text-gray-400 dark:text-gray-400 text-[10px] uppercase tracking-widest border-b border-gray-100 dark:border-gray-700">
                     <th className="pb-4 font-bold pl-4 min-w-[110px]">Tracking ID</th>
                     <th className="pb-4 font-bold min-w-[150px]">Student Name</th>
                     <th className="pb-4 font-bold min-w-[120px]">Date Paid</th>
@@ -246,23 +247,23 @@ export default function FinanceDashboard({ user, setViewImageUrl }) {
                     <th className="pb-4 font-bold text-right pr-4 min-w-[110px]">Action</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-50">
+                <tbody className="divide-y divide-gray-50 dark:divide-gray-700">
                   {documents.filter(d => ['PAID_PENDING_SEC_RELEASE', 'SEC_OR_VERIFIED', 'READY_FOR_RELEASE', 'COMPLETED'].includes(d.current_status)).map(doc => (
-                    <tr key={doc.id} className="hover:bg-gray-50/30 group">
-                      <td className="py-4 pl-4 font-mono text-xs font-semibold text-gray-500">#{doc.tracking_number ? doc.tracking_number.slice(0, 10).toUpperCase() : doc.id}</td>
-                      <td className="py-4 text-sm font-bold text-gray-700">{doc.student_name}</td>
-                      <td className="py-4 text-xs font-semibold text-gray-500">{new Date(doc.updated_at).toLocaleDateString()}</td>
-                      <td className="py-4 text-xs font-bold text-gray-800 font-mono">{formatPeso(doc.amount)}</td>
+                    <tr key={doc.id} className="hover:bg-gray-50/30 dark:hover:bg-gray-800/30 group">
+                      <td className="py-4 pl-4 font-mono text-xs font-semibold text-gray-500 dark:text-gray-400">#{doc.tracking_number ? doc.tracking_number.slice(0, 10).toUpperCase() : doc.id}</td>
+                      <td className="py-4 text-sm font-bold text-gray-700 dark:text-gray-300">{doc.student_name}</td>
+                      <td className="py-4 text-xs font-semibold text-gray-500 dark:text-gray-400">{new Date(doc.updated_at).toLocaleDateString()}</td>
+                      <td className="py-4 text-xs font-bold text-gray-800 dark:text-gray-100 font-mono">{formatPeso(doc.amount)}</td>
                       <td className="py-4 text-xs font-semibold">
                         {doc.official_receipt_path 
-                          ? <span className="text-[#15803d]">Uploaded</span>
-                          : <span className="text-amber-600 font-bold">Missing</span>}
+                          ? <span className="text-[#15803d] dark:text-green-300">Uploaded</span>
+                          : <span className="text-amber-600 dark:text-amber-300 font-bold">Missing</span>}
                       </td>
                       <td className="py-4 text-right pr-4 min-w-[110px]">
                         {!doc.official_receipt_path && (
                           <button
                             onClick={() => { setSelectedDoc(doc); setActiveModal('upload-or-later'); }}
-                            className="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-800 rounded-lg text-[11px] font-bold shadow-sm transition-all"
+                            className="px-3 py-1.5 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-800 text-gray-800 dark:text-gray-100 rounded-lg text-[11px] font-bold shadow-sm transition-all"
                           >
                             Upload OR
                           </button>

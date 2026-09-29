@@ -60,21 +60,21 @@ export default function AdminTemplatesPanel() {
     }
   };
 
-  if (loading) return <div className="p-8 text-center text-gray-500">Loading templates...</div>;
+  if (loading) return <div className="p-8 text-center text-gray-500 dark:text-gray-400">Loading templates...</div>;
 
   return (
-    <div className="bg-white rounded-3xl shadow-sm border border-gray-200 overflow-hidden flex flex-col md:flex-row min-h-[600px]">
+    <div className="bg-white dark:bg-gray-900 rounded-3xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden flex flex-col md:flex-row min-h-[600px]">
       {/* Sidebar List */}
-      <div className="w-full md:w-64 bg-gray-50 border-r border-gray-200 shrink-0">
-        <div className="p-4 border-b border-gray-200">
-          <h3 className="font-bold text-gray-900">System Templates</h3>
+      <div className="w-full md:w-64 bg-gray-50 dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 shrink-0">
+        <div className="p-4 border-b border-gray-200 dark:border-gray-700">
+          <h3 className="font-bold text-gray-900 dark:text-gray-100">System Templates</h3>
         </div>
         <ul className="py-2">
           {templates.map(t => (
             <li key={t.template_key}>
               <button
                 onClick={() => setSelectedKey(t.template_key)}
-                className={`w-full text-left px-4 py-3 text-sm font-semibold transition-colors ${selectedKey === t.template_key ? 'bg-white text-[#15803d] border-l-4 border-[#15803d]' : 'text-gray-600 hover:bg-gray-100 border-l-4 border-transparent'}`}
+                className={`w-full text-left px-4 py-3 text-sm font-semibold transition-colors ${selectedKey === t.template_key ? 'bg-white dark:bg-gray-900 text-[#15803d] dark:text-green-300 border-l-4 border-[#15803d]' : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 border-l-4 border-transparent'}`}
               >
                 {t.name}
               </button>
@@ -87,14 +87,14 @@ export default function AdminTemplatesPanel() {
       <div className="flex-1 flex flex-col">
         {selectedKey ? (
           <form onSubmit={handleSave} className="flex-1 flex flex-col h-full">
-            <div className="p-4 border-b border-gray-200 flex flex-wrap gap-4 items-center justify-between bg-white">
+            <div className="p-4 border-b border-gray-200 dark:border-gray-700 flex flex-wrap gap-4 items-center justify-between bg-white dark:bg-gray-900">
               <div className="flex gap-4 items-center">
                 <div>
-                  <label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest block mb-1">Font Family</label>
+                  <label className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest block mb-1">Font Family</label>
                   <select
                     value={formData.font_family}
                     onChange={e => setFormData({...formData, font_family: e.target.value})}
-                    className="bg-gray-50 border border-gray-200 rounded-lg px-3 py-1.5 text-xs font-semibold focus:ring-2 focus:ring-[#15803d]/20 outline-none"
+                    className="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-1.5 text-xs font-semibold focus:ring-2 focus:ring-[#15803d]/20 outline-none"
                   >
                     <option value="sans-serif">Sans Serif</option>
                     <option value="serif">Serif</option>
@@ -104,11 +104,11 @@ export default function AdminTemplatesPanel() {
                   </select>
                 </div>
                 <div>
-                  <label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest block mb-1">Base Font Size</label>
+                  <label className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest block mb-1">Base Font Size</label>
                   <select
                     value={formData.font_size}
                     onChange={e => setFormData({...formData, font_size: e.target.value})}
-                    className="bg-gray-50 border border-gray-200 rounded-lg px-3 py-1.5 text-xs font-semibold focus:ring-2 focus:ring-[#15803d]/20 outline-none"
+                    className="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-1.5 text-xs font-semibold focus:ring-2 focus:ring-[#15803d]/20 outline-none"
                   >
                     <option value="10px">10px</option>
                     <option value="11px">11px</option>
@@ -119,7 +119,7 @@ export default function AdminTemplatesPanel() {
                 </div>
               </div>
               <div className="flex items-center gap-3">
-                {success && <span className="text-xs font-bold text-[#15803d] animate-fade-in">{success}</span>}
+                {success && <span className="text-xs font-bold text-[#15803d] dark:text-green-300 animate-fade-in">{success}</span>}
                 <button
                   type="submit"
                   disabled={saving}
@@ -130,21 +130,21 @@ export default function AdminTemplatesPanel() {
               </div>
             </div>
             
-            <div className="flex-1 p-4 bg-gray-50 flex gap-4">
+            <div className="flex-1 min-w-0 p-4 bg-gray-50 dark:bg-gray-800 flex flex-col lg:flex-row gap-4">
               <div className="flex-1 flex flex-col">
-                <label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest block mb-2">HTML Template (Use {{VARIABLE_NAME}})</label>
+                <label className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest block mb-2">HTML Template (Use {{VARIABLE_NAME}})</label>
                 <textarea
                   value={formData.content}
                   onChange={e => setFormData({...formData, content: e.target.value})}
-                  className="flex-1 w-full font-mono text-xs p-4 bg-gray-900 text-green-400 rounded-xl outline-none focus:ring-2 focus:ring-[#15803d] resize-none"
+                  className="flex-1 w-full font-mono text-xs p-4 bg-gray-900 dark:bg-gray-800 text-green-400 dark:text-green-300 rounded-xl outline-none focus:ring-2 focus:ring-[#15803d] resize-none"
                   placeholder="<div><h1>{{STUDENT_NAME}}</h1></div>"
                 />
               </div>
               
-              <div className="w-1/3 flex flex-col">
-                <label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest block mb-2">Live Preview (Mock Data)</label>
+              <div className="w-full lg:w-1/3 flex flex-col">
+                <label className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest block mb-2">Live Preview (Mock Data)</label>
                 <div 
-                  className="flex-1 w-full bg-white border border-gray-200 rounded-xl p-6 shadow-inner overflow-y-auto"
+                  className="flex-1 w-full bg-white text-gray-900 border border-gray-200 rounded-xl p-6 shadow-inner overflow-auto [color-scheme:light]"
                   style={{ fontFamily: formData.font_family, fontSize: formData.font_size }}
                   dangerouslySetInnerHTML={{
                     __html: formData.content
@@ -159,7 +159,7 @@ export default function AdminTemplatesPanel() {
             </div>
           </form>
         ) : (
-          <div className="flex-1 flex items-center justify-center text-gray-400 font-semibold">Select a template to edit</div>
+          <div className="flex-1 flex items-center justify-center text-gray-400 dark:text-gray-400 font-semibold">Select a template to edit</div>
         )}
       </div>
     </div>

@@ -16,6 +16,7 @@ Think of Project TRACE as a digital filing cabinet and delivery system. Instead 
 4. [The College Secretary Guide (Evaluation & Pricing)](#4-the-college-secretary-guide-evaluation--pricing)
 5. [The Finance Clerk Guide (Payments)](#5-the-finance-clerk-guide-payments)
 6. [The Registrar Admin Guide (Overseer)](#6-the-registrar-admin-guide-overseer)
+7. [Display, Navigation, and Copying](#display-navigation-and-copying)
 
 ---
 
@@ -200,3 +201,18 @@ Please remember: **You cannot break this system.** Project TRACE is built to be 
 If you accidentally click "Reject" when you meant to click "Approve", the document is not deleted or destroyed. The student simply gets a message, and they can resubmit it with one click. Everything you do is recorded safely, so if something ever gets lost or confusing, you can always ask the Admin to search for the student's name and figure out exactly what happened. 
 
 Take your time, read the buttons before you click them, and thank you for doing a great job using Project TRACE!
+
+## Display, Navigation, and Copying
+
+- **Light or dark mode:** use the sun/moon button in the dashboard header. It is announced as “Dark mode” to screen readers. Your choice is saved in this browser and survives page reloads and sign-out. On first use, TRACE follows your device's light/dark preference. Payment slips and printable template previews remain light.
+- **Small screens:** open the menu button at the top left to reach the same destinations as the desktop sidebar. Close it with its close button or Escape. Wide tables scroll horizontally within their cards.
+- **Keyboard navigation:** use Tab to move between controls and Enter or Space to activate buttons. A visible outline shows focus. Within a queue tab group, use Left/Right arrows, Home, or End to choose a queue. Open dialogs keep focus inside and return it when closed.
+- **Copying:** names, IDs, tracking numbers, table values, and notes can be selected and copied with Command+C on macOS or Ctrl+C on Windows. Navigation and button labels do not select as ordinary page text.
+- **Reduced motion:** enable your device's reduced-motion preference to suppress UI fades, slides, and animated transitions.
+
+## Confirmations and Feedback
+
+- **Confirm an action:** read the in-app confirmation, then choose its action button or Cancel. Escape, the close button, and the backdrop also cancel. While an action is processing, its controls and dismissal are disabled.
+- **Logout from the mobile menu:** Escape cancels the logout confirmation and returns focus to Logout in the still-open menu. Press Escape again to close the menu.
+- **Acknowledge a message:** dashboard success and error messages appear in a matching dialog above any open form. They remain until you choose **OK**, press Escape, or click the backdrop. Dismissing the message keeps the underlying form and its draft open and returns keyboard focus there.
+- **Account Settings → Security:** the existing **Logout All Devices** action now reports its result in this feedback dialog. Profile-save and field-validation messages still appear within their forms.

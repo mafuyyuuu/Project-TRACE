@@ -55,35 +55,35 @@ export default function LiveTrackingModal({
       onClose={() => setActiveModal(null)}
       maxWidth="max-w-2xl"
       title={
-        <div className="flex justify-between items-center">
-          <span className="truncate pr-4">{selectedDoc.document_type || 'Transcript of Records (TOR)'}</span>
-          <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider shrink-0 ${selectedDoc.current_status === STATUS.COMPLETED ? 'bg-emerald-50 text-[#15803d]' : 'bg-amber-50 text-amber-700'}`}>
+        <div className="flex flex-wrap justify-between items-center gap-2">
+          <span className="min-w-0 break-words pr-4">{selectedDoc.document_type || 'Transcript of Records (TOR)'}</span>
+          <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider shrink-0 ${selectedDoc.current_status === STATUS.COMPLETED ? 'bg-emerald-50 dark:bg-emerald-950/40 text-[#15803d] dark:text-green-300' : 'bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300'}`}>
             {getStatusLabel(selectedDoc.current_status)}
           </span>
         </div>
       }
     >
       {/* Gray detail panel */}
-      <div className="bg-gray-50 border border-gray-200 rounded-2xl p-5 mb-4 font-mono text-[11px] text-gray-600 space-y-2">
-        <div className="flex justify-between"><span>Tracking ID</span><span className="font-bold text-gray-950 select-text">#{selectedDoc.tracking_number || selectedDoc.id}</span></div>
-        <div className="flex justify-between"><span>Date Requested</span><span className="font-bold text-gray-950">{new Date(selectedDoc.created_at).toLocaleDateString('en-US', {month: 'long', day: 'numeric', year: 'numeric'})} at {new Date(selectedDoc.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span></div>
-        <div className="flex justify-between"><span>Copies</span><span className="font-bold text-gray-950">{selectedDoc.copies || 1}</span></div>
-        <div className="flex justify-between border-t border-gray-200/50 pt-2"><span>Amount</span><span className="font-bold text-gray-950">P{parseFloat(selectedDoc.amount || 150).toFixed(2)}</span></div>
+      <div className="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl p-5 mb-4 font-mono text-[11px] text-gray-600 dark:text-gray-300 space-y-2">
+        <div className="flex flex-wrap justify-between gap-x-3 gap-y-1"><span>Tracking ID</span><span className="font-bold text-gray-950 dark:text-gray-100 select-text">#{selectedDoc.tracking_number || selectedDoc.id}</span></div>
+        <div className="flex flex-wrap justify-between gap-x-3 gap-y-1"><span>Date Requested</span><span className="font-bold text-gray-950 dark:text-gray-100">{new Date(selectedDoc.created_at).toLocaleDateString('en-US', {month: 'long', day: 'numeric', year: 'numeric'})} at {new Date(selectedDoc.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span></div>
+        <div className="flex flex-wrap justify-between gap-x-3 gap-y-1"><span>Copies</span><span className="font-bold text-gray-950 dark:text-gray-100">{selectedDoc.copies || 1}</span></div>
+        <div className="flex justify-between border-t border-gray-200/50 dark:border-gray-700/50 pt-2"><span>Amount</span><span className="font-bold text-gray-950 dark:text-gray-100">P{parseFloat(selectedDoc.amount || 150).toFixed(2)}</span></div>
       </div>
 
       {/* Horizontal Map Visualizer */}
-      <div className="px-4 py-6 flex flex-col justify-center w-full bg-white rounded-2xl border border-gray-100 shadow-sm">
+      <div className="px-4 py-6 flex flex-col justify-center w-full bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm">
 
         <div className="w-full overflow-x-auto pb-4 -mx-6 px-6 sm:mx-0 sm:px-0 sm:overflow-visible">
           <div className="relative w-full min-w-[700px] flex items-center justify-between mb-20 mt-2">
           {/* Background Progress Bar */}
           <div
-            className="absolute top-1/2 -translate-y-1/2 h-1.5 bg-gray-100 rounded-full z-0"
+            className="absolute top-1/2 -translate-y-1/2 h-1.5 bg-gray-100 dark:bg-gray-800 rounded-full z-0"
             style={{ left: `${edgeOffsetPercent}%`, right: `${edgeOffsetPercent}%` }}
           ></div>
 
           {/* Active Progress Bar */}
-          <div className="absolute top-1/2 -translate-y-1/2 h-1.5 bg-[#15803d] rounded-full z-0 transition-all duration-1000 ease-out overflow-hidden"
+          <div className="absolute top-1/2 -translate-y-1/2 h-1.5 bg-[#15803d] rounded-full z-0 transition-all duration-200 ease-[cubic-bezier(0.2,0,0,1)] overflow-hidden"
             style={{ left: `${edgeOffsetPercent}%`, width: `${trackerProgress * (barSpanPercent / 100)}%` }}
           >
             <div className="w-full h-full animate-water-flow"></div>
@@ -123,13 +123,13 @@ export default function LiveTrackingModal({
               <div key={node.step} className="relative z-10 flex flex-col items-center" style={{ width: `${nodeWidthPercent}%` }}>
                 {/* Pulsing ring for active step */}
                 {isActive && (
-                  <span className="absolute top-0 w-8 h-8 bg-blue-400/50 rounded-full animate-ping"></span>
+                  <span className="absolute top-0 w-8 h-8 bg-blue-400/50 dark:bg-blue-400/50 rounded-full animate-ping"></span>
                 )}
 
-                <div className={`relative z-10 w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs border-2 transition-all duration-500
+                <div className={`relative z-10 w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs border-2 transition-all duration-200
                   ${isCompleted ? 'bg-[#15803d] border-[#15803d] text-white scale-110 shadow-md' :
-                    isActive ? 'bg-blue-600 border-blue-600 text-white scale-125 shadow-[0_0_15px_rgba(37,99,235,0.4)]' :
-                    'bg-white border-gray-200 text-gray-400 shadow-sm'}`}>
+                    isActive ? 'bg-blue-600 dark:bg-blue-600 border-blue-600 dark:border-blue-800 text-white scale-125 shadow-[0_0_15px_rgba(37,99,235,0.4)]' :
+                    'bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700 text-gray-400 dark:text-gray-400 shadow-sm'}`}>
                   {isCompleted ? (
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7"/></svg>
                   ) : isActive ? (
@@ -140,12 +140,12 @@ export default function LiveTrackingModal({
                 </div>
 
                 <div className={`absolute top-10 text-[10px] font-black uppercase tracking-wider text-center w-full  px-0.5
-                  ${isCompleted ? 'text-gray-900' : isActive ? 'text-blue-600' : 'text-gray-400'}`}>
+                  ${isCompleted ? 'text-gray-900 dark:text-gray-100' : isActive ? 'text-blue-600 dark:text-blue-300' : 'text-gray-400 dark:text-gray-400'}`}>
                   <div>{node.label}</div>
-                  {isActive && <div className="text-[7px] animate-pulse mt-0.5 tracking-widest text-blue-400">In Progress</div>}
+                  {isActive && <div className="text-[7px] animate-pulse mt-0.5 tracking-widest text-blue-400 dark:text-blue-300">In Progress</div>}
 
                   {(isCompleted || isActive) && exactTime && (
-                    <div className="mt-1 text-[8px] font-bold text-gray-500 lowercase tracking-normal flex flex-col items-center">
+                    <div className="mt-1 text-[8px] font-bold text-gray-500 dark:text-gray-400 lowercase tracking-normal flex flex-col items-center">
                       <span>{exactTime.toLocaleDateString('en-US', { month: 'short', day: 'numeric'})}</span>
                       <span>{exactTime.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
                     </div>
@@ -157,8 +157,8 @@ export default function LiveTrackingModal({
         </div>
 
         {/* Context Panel */}
-        <div className="mt-4 bg-emerald-50/50 border border-emerald-100 rounded-2xl p-5 text-center">
-          <p className="text-xs font-semibold text-emerald-800 leading-relaxed">
+        <div className="mt-4 bg-emerald-50/50 dark:bg-emerald-950/50 border border-emerald-100 dark:border-emerald-800 rounded-2xl p-5 text-center">
+          <p className="text-xs font-semibold text-emerald-800 dark:text-emerald-300 leading-relaxed">
             {STAGE_MESSAGE[selectedDoc.current_status] || 'Your request is being processed.'}
             {selectedDoc.estimated_ready_date && [STATUS.PENDING_SEC_EVALUATION, STATUS.SEC_PROCESSING].includes(selectedDoc.current_status) && (
               <span className="block mt-2 font-bold">
@@ -169,9 +169,9 @@ export default function LiveTrackingModal({
         </div>
 
         {/* Chat Panel */}
-        <div className="mt-6 border-t border-gray-100 pt-6">
+        <div className="mt-6 border-t border-gray-100 dark:border-gray-700 pt-6">
           <div className="flex items-center justify-between mb-3">
-             <label className="text-[10px] font-bold text-gray-800 uppercase tracking-widest">Document Discussion</label>
+             <label className="text-[10px] font-bold text-gray-800 dark:text-gray-100 uppercase tracking-widest">Document Discussion</label>
           </div>
           
         </div>

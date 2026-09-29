@@ -2,10 +2,11 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 
 vi.mock('@/services/api', () => ({
-  default: { get: vi.fn(() => new Promise(() => {})) },
+  default: { get: vi.fn(() => new Promise(() => {})), post: vi.fn() },
 }));
 
 import ProfileSettingsModal from '@/components/ProfileSettingsModal';
+import api from '@/services/api';
 
 const STUDENT = {
   id: 3,
@@ -110,5 +111,34 @@ describe('ProfileSettingsModal', () => {
     renderModal({ onClose });
     fireEvent.click(screen.getByLabelText('Close settings'));
     expect(onClose).toHaveBeenCalled();
+  });
+
+  it.each([
+    ['success', 'Success', 'Logged out of all other devices.'],
+    ['error', 'Attention Needed', 'Error logging out of other devices.'],
+  ])('acknowledges session logout %s above settings and restores focus', async (outcome, title, message) => {
+    api.get.mockResolvedValueOnce({ data: [] });
+    if (outcome === 'success') api.post.mockResolvedValueOnce({ data: {} });
+    else api.post.mockRejectedValueOnce(new Error('Request failed'));
+    const nativeAlert = vi.spyOn(window, 'alert').mockImplementation(() => {});
+    const onClose = vi.fn();
+    renderModal({ onClose });
+    fireEvent.click(screen.getByRole('button', { name: /^Security$/ }));
+    const logout = screen.getByRole('button', { name: 'Logout All Devices' });
+    logout.focus();
+    fireEvent.click(logout);
+
+    const feedback = await screen.findByRole('dialog', { name: title });
+    expect(feedback).toHaveTextContent(message);
+    expect(feedback.parentElement).toHaveClass('z-[110]');
+    expect(api.post).toHaveBeenCalledWith('/auth/logout-all');
+    expect(nativeAlert).not.toHaveBeenCalled();
+    expect(screen.getByRole('button', { name: 'OK' })).toHaveFocus();
+    fireEvent.click(screen.getByRole('button', { name: 'OK' }));
+    expect(screen.queryByRole('dialog', { name: title })).not.toBeInTheDocument();
+    expect(screen.getByRole('dialog', { name: 'Account Settings' })).toBeInTheDocument();
+    expect(logout).toHaveFocus();
+    expect(onClose).not.toHaveBeenCalled();
+    nativeAlert.mockRestore();
   });
 });

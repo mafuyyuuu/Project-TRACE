@@ -1,5 +1,6 @@
 import { useRef, useState, useMemo, useEffect } from 'react';
 import ModalShell from '@/components/ModalShell';
+import DashboardAlerts from '@/components/DashboardAlerts';
 import api from '@/services/api';
 import UserAvatar from '@/components/UserAvatar';
 
@@ -20,6 +21,7 @@ export default function ProfileSettingsModal({
 
   const [activeTab, setActiveTab] = useState('personal');
   const [securityLogs, setSecurityLogs] = useState([]);
+  const [sessionFeedback, setSessionFeedback] = useState({ success: '', error: '' });
   
   useEffect(() => {
     if (activeTab === 'security') {
@@ -80,7 +82,7 @@ export default function ProfileSettingsModal({
       title="Account Settings"
       maxWidth="max-w-xl"
       backdropClassName="absolute inset-0 bg-black/40 backdrop-blur-sm transition-opacity duration-200"
-      panelClassName="bg-gray-50 rounded-2xl shadow-2xl w-full max-w-xl max-h-[calc(100dvh-2rem)] z-10 relative animate-slide-up flex flex-col overflow-hidden"
+      panelClassName="bg-gray-50 dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-xl max-h-[calc(100dvh-2rem)] z-10 relative animate-slide-up flex flex-col overflow-hidden"
       closeButtonIcon={
         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"/></svg>
       }
@@ -96,13 +98,18 @@ export default function ProfileSettingsModal({
         </button>
       }
     >
-      <div className="bg-white px-6 pt-4 pb-0 flex flex-col border-b border-gray-100">
+      <DashboardAlerts
+        success={sessionFeedback.success}
+        error={sessionFeedback.error}
+        onDismiss={() => setSessionFeedback({ success: '', error: '' })}
+      />
+      <div className="bg-white dark:bg-gray-900 px-6 pt-4 pb-0 flex flex-col border-b border-gray-100 dark:border-gray-700">
         <div className="flex items-start gap-4 pb-6">
           <div className="relative shrink-0">
             {avatarPreviewUrl ? (
-              <img src={avatarPreviewUrl} alt="New profile picture preview" className="w-20 h-20 rounded-full object-cover border-4 border-white shadow-md bg-gray-100" />
+              <img src={avatarPreviewUrl} alt="New profile picture preview" className="w-20 h-20 rounded-full object-cover border-4 border-white dark:border-gray-800 shadow-md bg-gray-100 dark:bg-gray-800" />
             ) : (
-              <UserAvatar user={user} overridePath={avatarPath} className="w-20 h-20 rounded-full object-cover border-4 border-white shadow-md bg-gray-100" />
+              <UserAvatar user={user} overridePath={avatarPath} className="w-20 h-20 rounded-full object-cover border-4 border-white dark:border-gray-800 shadow-md bg-gray-100 dark:bg-gray-800" />
             )}
             <button
               type="button"
@@ -115,18 +122,18 @@ export default function ProfileSettingsModal({
             </button>
             <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={(e) => { onAvatarChange(e.target.files?.[0]); e.target.value = ''; }} />
           </div>
-          <div className="flex flex-col flex-1 pt-1">
-            <h3 className="text-xl font-display font-black text-gray-900 leading-tight">{user?.full_name || '—'}</h3>
-            <p className="text-xs font-bold text-[#15803d] uppercase tracking-wider mt-0.5">{roleLabel} {user?.student_id && `· ${user.student_id}`}</p>
+          <div className="flex flex-col flex-1 min-w-0 pt-1">
+            <h3 className="text-xl font-display font-black text-gray-900 dark:text-gray-100 leading-tight select-text break-words">{user?.full_name || '—'}</h3>
+            <p className="text-xs font-bold text-[#15803d] dark:text-green-300 uppercase tracking-wider mt-0.5">{roleLabel} {user?.student_id && `· ${user.student_id}`}</p>
             
             {isStudent && (
               <div className="mt-3 w-full max-w-xs">
-                <div className="flex justify-between text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1.5">
+                <div className="flex justify-between text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest mb-1.5">
                   <span>Profile Completion</span>
-                  <span className={progress === 100 ? "text-[#15803d]" : "text-amber-600"}>{progress}%</span>
+                  <span className={progress === 100 ? "text-[#15803d] dark:text-green-300" : "text-amber-600 dark:text-amber-300"}>{progress}%</span>
                 </div>
-                <div className="h-1.5 w-full bg-gray-100 rounded-full overflow-hidden">
-                  <div className={`h-full rounded-full transition-all duration-500 ${progress === 100 ? 'bg-[#15803d]' : 'bg-amber-500'}`} style={{ width: `${progress}%` }}></div>
+                <div className="h-1.5 w-full bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
+                  <div className={`h-full rounded-full transition-all duration-200 ${progress === 100 ? 'bg-[#15803d]' : 'bg-amber-500 dark:bg-amber-500'}`} style={{ width: `${progress}%` }}></div>
                 </div>
               </div>
             )}
@@ -135,54 +142,54 @@ export default function ProfileSettingsModal({
         
         {/* Tabs */}
         {isStudent ? (
-          <div className="flex gap-6 border-b border-gray-100 px-2 mt-2">
+          <div className="flex flex-wrap gap-3 sm:gap-6 border-b border-gray-100 dark:border-gray-700 px-2 mt-2">
             <button
               type="button"
               onClick={() => setActiveTab('personal')}
-              className={`pb-3 text-xs font-bold uppercase tracking-widest transition-colors relative flex items-center gap-1.5 ${activeTab === 'personal' ? 'text-[#15803d] border-b-2 border-[#15803d]' : 'text-gray-400 hover:text-gray-600'}`}
+              className={`pb-3 text-xs font-bold uppercase tracking-widest transition-colors relative flex items-center gap-1.5 ${activeTab === 'personal' ? 'text-[#15803d] dark:text-green-300 border-b-2 border-[#15803d]' : 'text-gray-400 dark:text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'}`}
             >
               Personal Info
-              {missingPersonal && <span className="w-2 h-2 rounded-full bg-red-500 absolute -top-0.5 -right-2"></span>}
+              {missingPersonal && <span className="w-2 h-2 rounded-full bg-red-500 dark:bg-red-500 absolute -top-0.5 -right-2"></span>}
             </button>
             <button
               type="button"
               onClick={() => setActiveTab('educational')}
-              className={`pb-3 text-xs font-bold uppercase tracking-widest transition-colors relative flex items-center gap-1.5 ${activeTab === 'educational' ? 'text-[#15803d] border-b-2 border-[#15803d]' : 'text-gray-400 hover:text-gray-600'}`}
+              className={`pb-3 text-xs font-bold uppercase tracking-widest transition-colors relative flex items-center gap-1.5 ${activeTab === 'educational' ? 'text-[#15803d] dark:text-green-300 border-b-2 border-[#15803d]' : 'text-gray-400 dark:text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'}`}
             >
               Educational Background
-              {missingEdu && <span className="w-2 h-2 rounded-full bg-red-500 absolute -top-0.5 -right-2"></span>}
+              {missingEdu && <span className="w-2 h-2 rounded-full bg-red-500 dark:bg-red-500 absolute -top-0.5 -right-2"></span>}
             </button>
             <button
               type="button"
               onClick={() => setActiveTab('security')}
-              className={`pb-3 text-xs font-bold uppercase tracking-widest transition-colors relative flex items-center gap-1.5 ${activeTab === 'security' ? 'text-[#15803d] border-b-2 border-[#15803d]' : 'text-gray-400 hover:text-gray-600'}`}
+              className={`pb-3 text-xs font-bold uppercase tracking-widest transition-colors relative flex items-center gap-1.5 ${activeTab === 'security' ? 'text-[#15803d] dark:text-green-300 border-b-2 border-[#15803d]' : 'text-gray-400 dark:text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'}`}
             >
               Security
             </button>
           </div>
         ) : (
-           <div className="flex gap-6 border-b border-gray-100 px-2 mt-2">
-             <button type="button" onClick={() => setActiveTab('personal')} className={`pb-3 text-xs font-bold uppercase tracking-widest transition-colors relative flex items-center gap-1.5 ${activeTab === 'personal' ? 'text-[#15803d] border-b-2 border-[#15803d]' : 'text-gray-400 hover:text-gray-600'}`}>Personal Info</button>
-             <button type="button" onClick={() => setActiveTab('security')} className={`pb-3 text-xs font-bold uppercase tracking-widest transition-colors relative flex items-center gap-1.5 ${activeTab === 'security' ? 'text-[#15803d] border-b-2 border-[#15803d]' : 'text-gray-400 hover:text-gray-600'}`}>Security</button>
+           <div className="flex flex-wrap gap-3 sm:gap-6 border-b border-gray-100 dark:border-gray-700 px-2 mt-2">
+             <button type="button" onClick={() => setActiveTab('personal')} className={`pb-3 text-xs font-bold uppercase tracking-widest transition-colors relative flex items-center gap-1.5 ${activeTab === 'personal' ? 'text-[#15803d] dark:text-green-300 border-b-2 border-[#15803d]' : 'text-gray-400 dark:text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'}`}>Personal Info</button>
+             <button type="button" onClick={() => setActiveTab('security')} className={`pb-3 text-xs font-bold uppercase tracking-widest transition-colors relative flex items-center gap-1.5 ${activeTab === 'security' ? 'text-[#15803d] dark:text-green-300 border-b-2 border-[#15803d]' : 'text-gray-400 dark:text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'}`}>Security</button>
            </div>
         )}
       </div>
 
       <div className="p-6 overflow-y-auto max-h-[50vh]">
-        {success && <div className="mb-6 rounded-xl bg-green-50 border border-green-100 px-4 py-3 text-sm font-semibold text-green-800">{success}</div>}
-        {error && <div className="mb-6 rounded-xl bg-red-50 border border-red-100 px-4 py-3 text-sm font-semibold text-red-700">{error}</div>}
+        {success && <div className="mb-6 rounded-xl bg-green-50 dark:bg-green-950/40 border border-green-100 dark:border-green-800 px-4 py-3 text-sm font-semibold text-green-800 dark:text-green-300">{success}</div>}
+        {error && <div className="mb-6 rounded-xl bg-red-50 dark:bg-red-950/40 border border-red-100 dark:border-red-800 px-4 py-3 text-sm font-semibold text-red-700 dark:text-red-300">{error}</div>}
 
         <form id="profile-settings-form" onSubmit={onSave} className="space-y-6">
           {activeTab === 'personal' && (
             <div className="space-y-6">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Phone Number <span className="text-red-500">*</span></label>
-                  <input type="text" value={profileData.phone_number} onChange={(e) => setField('phone_number', e.target.value)} required className="w-full bg-white border border-gray-200 rounded-xl py-3 px-4 text-sm font-semibold focus:ring-2 focus:ring-[#15803d]/20 outline-none" />
+                  <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">Phone Number <span className="text-red-500 dark:text-red-300">*</span></label>
+                  <input type="text" value={profileData.phone_number} onChange={(e) => setField('phone_number', e.target.value)} required className="w-full bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl py-3 px-4 text-sm font-semibold focus:ring-2 focus:ring-[#15803d]/20 outline-none" />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Email Address <span className="text-red-500">*</span></label>
-                  <input type="email" value={profileData.email} onChange={(e) => setField('email', e.target.value)} required className="w-full bg-white border border-gray-200 rounded-xl py-3 px-4 text-sm font-semibold focus:ring-2 focus:ring-[#15803d]/20 outline-none" />
+                  <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">Email Address <span className="text-red-500 dark:text-red-300">*</span></label>
+                  <input type="email" value={profileData.email} onChange={(e) => setField('email', e.target.value)} required className="w-full bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl py-3 px-4 text-sm font-semibold focus:ring-2 focus:ring-[#15803d]/20 outline-none" />
                 </div>
               </div>
 
@@ -190,27 +197,27 @@ export default function ProfileSettingsModal({
                 <>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Birth Date <span className="text-red-500">*</span></label>
-                      <input type="date" value={profileData.birth_date} onChange={(e) => setField('birth_date', e.target.value)} required className="w-full bg-white border border-gray-200 rounded-xl py-3 px-4 text-sm font-semibold focus:ring-2 focus:ring-[#15803d]/20 outline-none" />
+                      <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">Birth Date <span className="text-red-500 dark:text-red-300">*</span></label>
+                      <input type="date" value={profileData.birth_date} onChange={(e) => setField('birth_date', e.target.value)} required className="w-full bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl py-3 px-4 text-sm font-semibold focus:ring-2 focus:ring-[#15803d]/20 outline-none" />
                     </div>
                     <div>
-                      <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Place of Birth <span className="text-red-500">*</span></label>
-                      <input type="text" value={profileData.place_of_birth} onChange={(e) => setField('place_of_birth', e.target.value)} required className="w-full bg-white border border-gray-200 rounded-xl py-3 px-4 text-sm font-semibold focus:ring-2 focus:ring-[#15803d]/20 outline-none" />
+                      <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">Place of Birth <span className="text-red-500 dark:text-red-300">*</span></label>
+                      <input type="text" value={profileData.place_of_birth} onChange={(e) => setField('place_of_birth', e.target.value)} required className="w-full bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl py-3 px-4 text-sm font-semibold focus:ring-2 focus:ring-[#15803d]/20 outline-none" />
                     </div>
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     <div>
-                      <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Sex <span className="text-red-500">*</span></label>
-                      <select value={profileData.sex} onChange={(e) => setField('sex', e.target.value)} required className="w-full bg-white border border-gray-200 rounded-xl py-3 px-4 text-sm font-semibold focus:ring-2 focus:ring-[#15803d]/20 outline-none">
+                      <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">Sex <span className="text-red-500 dark:text-red-300">*</span></label>
+                      <select value={profileData.sex} onChange={(e) => setField('sex', e.target.value)} required className="w-full bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl py-3 px-4 text-sm font-semibold focus:ring-2 focus:ring-[#15803d]/20 outline-none">
                         <option value="">Select...</option>
                         <option value="Male">Male</option>
                         <option value="Female">Female</option>
                       </select>
                     </div>
                     <div>
-                      <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Civil Status <span className="text-red-500">*</span></label>
-                      <select value={profileData.civil_status} onChange={(e) => setField('civil_status', e.target.value)} required className="w-full bg-white border border-gray-200 rounded-xl py-3 px-4 text-sm font-semibold focus:ring-2 focus:ring-[#15803d]/20 outline-none">
+                      <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">Civil Status <span className="text-red-500 dark:text-red-300">*</span></label>
+                      <select value={profileData.civil_status} onChange={(e) => setField('civil_status', e.target.value)} required className="w-full bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl py-3 px-4 text-sm font-semibold focus:ring-2 focus:ring-[#15803d]/20 outline-none">
                         <option value="">Select...</option>
                         <option value="Single">Single</option>
                         <option value="Married">Married</option>
@@ -220,21 +227,21 @@ export default function ProfileSettingsModal({
                       </select>
                     </div>
                     <div>
-                      <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Extension Name</label>
-                      <input type="text" placeholder="Jr., III, etc." value={profileData.extension_name} onChange={(e) => setField('extension_name', e.target.value)} className="w-full bg-white border border-gray-200 rounded-xl py-3 px-4 text-sm font-semibold focus:ring-2 focus:ring-[#15803d]/20 outline-none" />
+                      <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">Extension Name</label>
+                      <input type="text" placeholder="Jr., III, etc." value={profileData.extension_name} onChange={(e) => setField('extension_name', e.target.value)} className="w-full bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl py-3 px-4 text-sm font-semibold focus:ring-2 focus:ring-[#15803d]/20 outline-none" />
                     </div>
                   </div>
 
                   {profileData.sex === 'Female' && profileData.civil_status === 'Married' && (
                     <div>
-                      <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Maiden Name <span className="text-red-500">*</span></label>
-                      <input type="text" value={profileData.maiden_name} onChange={(e) => setField('maiden_name', e.target.value)} required className="w-full bg-white border border-gray-200 rounded-xl py-3 px-4 text-sm font-semibold focus:ring-2 focus:ring-[#15803d]/20 outline-none" />
+                      <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">Maiden Name <span className="text-red-500 dark:text-red-300">*</span></label>
+                      <input type="text" value={profileData.maiden_name} onChange={(e) => setField('maiden_name', e.target.value)} required className="w-full bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl py-3 px-4 text-sm font-semibold focus:ring-2 focus:ring-[#15803d]/20 outline-none" />
                     </div>
                   )}
 
                   <div>
-                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Home Address <span className="text-red-500">*</span></label>
-                    <textarea value={profileData.home_address} onChange={(e) => setField('home_address', e.target.value)} required rows="2" className="w-full bg-white border border-gray-200 rounded-xl py-3 px-4 text-sm font-semibold focus:ring-2 focus:ring-[#15803d]/20 outline-none resize-none"></textarea>
+                    <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">Home Address <span className="text-red-500 dark:text-red-300">*</span></label>
+                    <textarea value={profileData.home_address} onChange={(e) => setField('home_address', e.target.value)} required rows="2" className="w-full bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl py-3 px-4 text-sm font-semibold focus:ring-2 focus:ring-[#15803d]/20 outline-none resize-none"></textarea>
                   </div>
                 </>
               )}
@@ -246,65 +253,65 @@ export default function ProfileSettingsModal({
           
           {activeTab === 'security' && (
             <div className="space-y-6">
-              <div className="bg-white p-4 border border-gray-200 rounded-2xl">
-                <h3 className="text-sm font-black text-gray-900 mb-4 border-b border-gray-100 pb-2">Change Password</h3>
+              <div className="bg-white dark:bg-gray-900 p-4 border border-gray-200 dark:border-gray-700 rounded-2xl">
+                <h3 className="text-sm font-black text-gray-900 dark:text-gray-100 mb-4 border-b border-gray-100 dark:border-gray-700 pb-2">Change Password</h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Current Password</label>
-                    <input type="password" value={profileData.current_password} onChange={(e) => setField('current_password', e.target.value)} placeholder="Required to change email or password" className="w-full bg-white border border-gray-200 rounded-xl py-3 px-4 text-sm font-semibold focus:ring-2 focus:ring-[#15803d]/20 outline-none" />
+                    <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">Current Password</label>
+                    <input type="password" value={profileData.current_password} onChange={(e) => setField('current_password', e.target.value)} placeholder="Required to change email or password" className="w-full bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl py-3 px-4 text-sm font-semibold focus:ring-2 focus:ring-[#15803d]/20 outline-none" />
                   </div>
                   <div>
-                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">New Password</label>
-                    <input type="password" value={profileData.password} onChange={(e) => setField('password', e.target.value)} placeholder="Leave blank to keep current password" className="w-full bg-white border border-gray-200 rounded-xl py-3 px-4 text-sm font-semibold focus:ring-2 focus:ring-[#15803d]/20 outline-none" />
+                    <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">New Password</label>
+                    <input type="password" value={profileData.password} onChange={(e) => setField('password', e.target.value)} placeholder="Leave blank to keep current password" className="w-full bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl py-3 px-4 text-sm font-semibold focus:ring-2 focus:ring-[#15803d]/20 outline-none" />
                     
                     {profileData.password && (
                       <div className="mt-2 text-[10px] font-bold uppercase tracking-widest grid grid-cols-2 gap-1">
-                        <span className={profileData.password.length >= 8 ? 'text-green-600' : 'text-gray-400'}>{profileData.password.length >= 8 ? '✓' : '○'} 8+ Characters</span>
-                        <span className={/[A-Z]/.test(profileData.password) ? 'text-green-600' : 'text-gray-400'}>{/[A-Z]/.test(profileData.password) ? '✓' : '○'} 1 Uppercase</span>
-                        <span className={/\d/.test(profileData.password) ? 'text-green-600' : 'text-gray-400'}>{/\d/.test(profileData.password) ? '✓' : '○'} 1 Number</span>
-                        <span className={/[@$!%*?&]/.test(profileData.password) ? 'text-green-600' : 'text-gray-400'}>{/[@$!%*?&]/.test(profileData.password) ? '✓' : '○'} 1 Special Char</span>
+                        <span className={profileData.password.length >= 8 ? 'text-green-600 dark:text-green-300' : 'text-gray-400 dark:text-gray-400'}>{profileData.password.length >= 8 ? '✓' : '○'} 8+ Characters</span>
+                        <span className={/[A-Z]/.test(profileData.password) ? 'text-green-600 dark:text-green-300' : 'text-gray-400 dark:text-gray-400'}>{/[A-Z]/.test(profileData.password) ? '✓' : '○'} 1 Uppercase</span>
+                        <span className={/\d/.test(profileData.password) ? 'text-green-600 dark:text-green-300' : 'text-gray-400 dark:text-gray-400'}>{/\d/.test(profileData.password) ? '✓' : '○'} 1 Number</span>
+                        <span className={/[@$!%*?&]/.test(profileData.password) ? 'text-green-600 dark:text-green-300' : 'text-gray-400 dark:text-gray-400'}>{/[@$!%*?&]/.test(profileData.password) ? '✓' : '○'} 1 Special Char</span>
                       </div>
                     )}
                   </div>
                 </div>
               </div>
-              <div className="bg-white p-4 border border-gray-200 rounded-2xl">
-                <h3 className="text-sm font-black text-gray-900 mb-4 border-b border-gray-100 pb-2">Session Management</h3>
-                <p className="text-sm text-gray-600 mb-4">Log out of all other active sessions across all devices. You will remain logged in on this device.</p>
+              <div className="bg-white dark:bg-gray-900 p-4 border border-gray-200 dark:border-gray-700 rounded-2xl">
+                <h3 className="text-sm font-black text-gray-900 dark:text-gray-100 mb-4 border-b border-gray-100 dark:border-gray-700 pb-2">Session Management</h3>
+                <p className="text-sm text-gray-600 dark:text-gray-300 mb-4">Log out of all other active sessions across all devices. You will remain logged in on this device.</p>
                 <button type="button" onClick={async () => {
                    try {
                      await api.post('/auth/logout-all');
-                     alert('Logged out of all other devices.');
-                   } catch (e) {
-                     alert('Error logging out of other devices.');
+                     setSessionFeedback({ success: 'Logged out of all other devices.', error: '' });
+                   } catch {
+                     setSessionFeedback({ success: '', error: 'Error logging out of other devices.' });
                    }
-                }} className="bg-red-50 text-red-600 font-bold uppercase tracking-widest text-xs py-2 px-4 rounded-xl hover:bg-red-100 transition-colors border border-red-200">
+                }} className="bg-red-50 dark:bg-red-950/40 text-red-600 dark:text-red-300 font-bold uppercase tracking-widest text-xs py-2 px-4 rounded-xl hover:bg-red-100 dark:hover:bg-red-950/40 transition-colors border border-red-200 dark:border-red-800">
                   Logout All Devices
                 </button>
               </div>
-              <div className="bg-white p-4 border border-gray-200 rounded-2xl">
-                <h3 className="text-sm font-black text-gray-900 mb-4 border-b border-gray-100 pb-2">Recent Security Activity</h3>
-                <div className="text-xs text-gray-500 mb-2">View your recent logins, password changes, and other security events.</div>
+              <div className="bg-white dark:bg-gray-900 p-4 border border-gray-200 dark:border-gray-700 rounded-2xl">
+                <h3 className="text-sm font-black text-gray-900 dark:text-gray-100 mb-4 border-b border-gray-100 dark:border-gray-700 pb-2">Recent Security Activity</h3>
+                <div className="text-xs text-gray-500 dark:text-gray-400 mb-2">View your recent logins, password changes, and other security events.</div>
                 <div className="flex justify-center my-4">
                   
-                <div className="mt-4 border border-gray-100 rounded-xl overflow-hidden">
+                <div className="mt-4 border border-gray-100 dark:border-gray-700 rounded-xl overflow-hidden">
                   <table className="w-full text-left text-xs">
-                    <thead className="bg-gray-50 text-gray-500 font-bold uppercase tracking-wider">
+                    <thead className="bg-gray-50 dark:bg-gray-800 text-gray-500 dark:text-gray-400 font-bold uppercase tracking-wider">
                       <tr>
                         <th className="px-4 py-2">Date</th>
                         <th className="px-4 py-2">Event</th>
                         <th className="px-4 py-2">IP</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-gray-100">
+                    <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
                       {securityLogs.length === 0 ? (
-                        <tr><td colSpan="3" className="px-4 py-4 text-center text-gray-500">No recent activity</td></tr>
+                        <tr><td colSpan="3" className="px-4 py-4 text-center text-gray-500 dark:text-gray-400">No recent activity</td></tr>
                       ) : (
                         securityLogs.slice(0, 5).map((log, i) => (
-                          <tr key={i} className="hover:bg-gray-50">
-                            <td className="px-4 py-2 text-gray-500">{new Date(log.created_at).toLocaleString()}</td>
-                            <td className="px-4 py-2 font-bold text-gray-700">{log.event_type}</td>
-                            <td className="px-4 py-2 text-gray-500">{log.ip_address || 'Unknown'}</td>
+                          <tr key={i} className="hover:bg-gray-50 dark:hover:bg-gray-800">
+                            <td className="px-4 py-2 text-gray-500 dark:text-gray-400">{new Date(log.created_at).toLocaleString()}</td>
+                            <td className="px-4 py-2 font-bold text-gray-700 dark:text-gray-300">{log.event_type}</td>
+                            <td className="px-4 py-2 text-gray-500 dark:text-gray-400">{log.ip_address || 'Unknown'}</td>
                           </tr>
                         ))
                       )}
@@ -320,16 +327,16 @@ export default function ProfileSettingsModal({
           {activeTab === 'educational' && isStudent && (
             <div className="space-y-6">
               
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-white p-4 border border-gray-200 rounded-2xl">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-white dark:bg-gray-900 p-4 border border-gray-200 dark:border-gray-700 rounded-2xl">
                 {user?.user_type === 'alumni' && (
                   <div>
-                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Graduation Year <span className="text-red-500">*</span></label>
-                    <input type="number" min="1950" max="2100" value={profileData.last_attendance_year} onChange={(e) => setField('last_attendance_year', e.target.value)} required className="w-full bg-gray-50 border-none rounded-xl py-3 px-4 text-sm font-semibold focus:ring-2 focus:ring-[#15803d]/20 outline-none" />
+                    <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">Graduation Year <span className="text-red-500 dark:text-red-300">*</span></label>
+                    <input type="number" min="1950" max="2100" value={profileData.last_attendance_year} onChange={(e) => setField('last_attendance_year', e.target.value)} required className="w-full bg-gray-50 dark:bg-gray-800 border-none rounded-xl py-3 px-4 text-sm font-semibold focus:ring-2 focus:ring-[#15803d]/20 outline-none" />
                   </div>
                 )}
                 <div>
-                  <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Transfer Student?</label>
-                  <select value={profileData.is_transfer_student ? 'yes' : 'no'} onChange={(e) => setField('is_transfer_student', e.target.value === 'yes')} className="w-full bg-gray-50 border-none rounded-xl py-3 px-4 text-sm font-semibold focus:ring-2 focus:ring-[#15803d]/20 outline-none">
+                  <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">Transfer Student?</label>
+                  <select value={profileData.is_transfer_student ? 'yes' : 'no'} onChange={(e) => setField('is_transfer_student', e.target.value === 'yes')} className="w-full bg-gray-50 dark:bg-gray-800 border-none rounded-xl py-3 px-4 text-sm font-semibold focus:ring-2 focus:ring-[#15803d]/20 outline-none">
                     <option value="no">No</option>
                     <option value="yes">Yes</option>
                   </select>
@@ -338,39 +345,39 @@ export default function ProfileSettingsModal({
 
               {profileData.is_transfer_student && (
                 <div>
-                  <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Previous School <span className="text-red-500">*</span></label>
-                  <input type="text" value={profileData.previous_school} onChange={(e) => setField('previous_school', e.target.value)} required className="w-full bg-white border border-gray-200 rounded-xl py-3 px-4 text-sm font-semibold focus:ring-2 focus:ring-[#15803d]/20 outline-none" />
+                  <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">Previous School <span className="text-red-500 dark:text-red-300">*</span></label>
+                  <input type="text" value={profileData.previous_school} onChange={(e) => setField('previous_school', e.target.value)} required className="w-full bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl py-3 px-4 text-sm font-semibold focus:ring-2 focus:ring-[#15803d]/20 outline-none" />
                 </div>
               )}
 
               <div className="space-y-4">
-                <h4 className="text-xs font-bold text-gray-800 uppercase tracking-widest border-b border-gray-200 pb-2">Elementary</h4>
+                <h4 className="text-xs font-bold text-gray-800 dark:text-gray-100 uppercase tracking-widest border-b border-gray-200 dark:border-gray-700 pb-2">Elementary</h4>
                 <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
                   <div className="sm:col-span-3">
-                    <input type="text" placeholder="School Name" required value={profileData.elem_school} onChange={(e) => setField('elem_school', e.target.value)} className="w-full bg-white border border-gray-200 rounded-xl py-3 px-4 text-sm font-semibold focus:ring-2 focus:ring-[#15803d]/20 outline-none" />
+                    <input type="text" placeholder="School Name" required value={profileData.elem_school} onChange={(e) => setField('elem_school', e.target.value)} className="w-full bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl py-3 px-4 text-sm font-semibold focus:ring-2 focus:ring-[#15803d]/20 outline-none" />
                   </div>
                   <div>
-                    <input type="number" placeholder="Year" required value={profileData.elem_grad_year} onChange={(e) => setField('elem_grad_year', e.target.value)} className="w-full bg-white border border-gray-200 rounded-xl py-3 px-4 text-sm font-semibold focus:ring-2 focus:ring-[#15803d]/20 outline-none" />
+                    <input type="number" placeholder="Year" required value={profileData.elem_grad_year} onChange={(e) => setField('elem_grad_year', e.target.value)} className="w-full bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl py-3 px-4 text-sm font-semibold focus:ring-2 focus:ring-[#15803d]/20 outline-none" />
                   </div>
                 </div>
 
-                <h4 className="text-xs font-bold text-gray-800 uppercase tracking-widest border-b border-gray-200 pb-2 pt-2">Junior High School</h4>
+                <h4 className="text-xs font-bold text-gray-800 dark:text-gray-100 uppercase tracking-widest border-b border-gray-200 dark:border-gray-700 pb-2 pt-2">Junior High School</h4>
                 <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
                   <div className="sm:col-span-3">
-                    <input type="text" placeholder="School Name" required value={profileData.jhs_school} onChange={(e) => setField('jhs_school', e.target.value)} className="w-full bg-white border border-gray-200 rounded-xl py-3 px-4 text-sm font-semibold focus:ring-2 focus:ring-[#15803d]/20 outline-none" />
+                    <input type="text" placeholder="School Name" required value={profileData.jhs_school} onChange={(e) => setField('jhs_school', e.target.value)} className="w-full bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl py-3 px-4 text-sm font-semibold focus:ring-2 focus:ring-[#15803d]/20 outline-none" />
                   </div>
                   <div>
-                    <input type="number" placeholder="Year" required value={profileData.jhs_grad_year} onChange={(e) => setField('jhs_grad_year', e.target.value)} className="w-full bg-white border border-gray-200 rounded-xl py-3 px-4 text-sm font-semibold focus:ring-2 focus:ring-[#15803d]/20 outline-none" />
+                    <input type="number" placeholder="Year" required value={profileData.jhs_grad_year} onChange={(e) => setField('jhs_grad_year', e.target.value)} className="w-full bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl py-3 px-4 text-sm font-semibold focus:ring-2 focus:ring-[#15803d]/20 outline-none" />
                   </div>
                 </div>
 
-                <h4 className="text-xs font-bold text-gray-800 uppercase tracking-widest border-b border-gray-200 pb-2 pt-2">Senior High School</h4>
+                <h4 className="text-xs font-bold text-gray-800 dark:text-gray-100 uppercase tracking-widest border-b border-gray-200 dark:border-gray-700 pb-2 pt-2">Senior High School</h4>
                 <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
                   <div className="sm:col-span-3">
-                    <input type="text" placeholder="School Name" required value={profileData.shs_school} onChange={(e) => setField('shs_school', e.target.value)} className="w-full bg-white border border-gray-200 rounded-xl py-3 px-4 text-sm font-semibold focus:ring-2 focus:ring-[#15803d]/20 outline-none" />
+                    <input type="text" placeholder="School Name" required value={profileData.shs_school} onChange={(e) => setField('shs_school', e.target.value)} className="w-full bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl py-3 px-4 text-sm font-semibold focus:ring-2 focus:ring-[#15803d]/20 outline-none" />
                   </div>
                   <div>
-                    <input type="number" placeholder="Year" required value={profileData.shs_grad_year} onChange={(e) => setField('shs_grad_year', e.target.value)} className="w-full bg-white border border-gray-200 rounded-xl py-3 px-4 text-sm font-semibold focus:ring-2 focus:ring-[#15803d]/20 outline-none" />
+                    <input type="number" placeholder="Year" required value={profileData.shs_grad_year} onChange={(e) => setField('shs_grad_year', e.target.value)} className="w-full bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl py-3 px-4 text-sm font-semibold focus:ring-2 focus:ring-[#15803d]/20 outline-none" />
                   </div>
                 </div>
               </div>

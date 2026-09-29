@@ -24,7 +24,7 @@ export default function UserAvatar({ user, overridePath = null, className = '', 
   const { url } = useAuthedFile(path);
 
   if (!url) {
-    return <div className={`${className} bg-gray-100 animate-pulse`} aria-hidden="true" />;
+    return <div className={`${className} bg-gray-100 dark:bg-gray-800 animate-pulse`} aria-hidden="true" />;
   }
 
   return <img src={url} alt={alt} className={className} />;

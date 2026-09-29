@@ -62,25 +62,24 @@ export default function OnboardingTutorial({ onComplete }) {
 
   const step = TUTORIAL_STEPS[currentStep];
 
-  // Calculate tooltip position based on placement
-  let tooltipStyle = {};
-  if (step.placement === 'bottom-left') {
-    tooltipStyle = {
-      top: targetRect.top + targetRect.height + 16,
-      right: window.innerWidth - (targetRect.left + targetRect.width)
-    };
-  } else if (step.placement === 'bottom') {
-    tooltipStyle = {
-      top: targetRect.top + targetRect.height + 16,
-      left: targetRect.left + (targetRect.width / 2) - 150 // center approx 300px width
-    };
-  }
+  // Keep the existing placement preference while containing the card on phones.
+  const tooltipWidth = Math.min(300, window.innerWidth - 32);
+  const preferredLeft = step.placement === 'bottom-left'
+    ? targetRect.left + targetRect.width - tooltipWidth
+    : targetRect.left + targetRect.width / 2 - tooltipWidth / 2;
+  const tooltipStyle = {
+    top: Math.max(16, Math.min(targetRect.top + targetRect.height + 16, window.innerHeight - 240)),
+    left: Math.max(16, Math.min(preferredLeft, window.innerWidth - tooltipWidth - 16)),
+    width: tooltipWidth,
+    maxHeight: 'calc(100dvh - 2rem)',
+    overflowY: 'auto',
+  };
 
   return (
     <div className="fixed inset-0 z-50 pointer-events-auto">
       {/* Dimmed background using multiple boxes to create a 'hole' */}
       <div 
-        className="absolute transition-all duration-500 ease-in-out bg-black/60 shadow-[0_0_0_9999px_rgba(0,0,0,0.6)]"
+        className="absolute transition-all duration-200 ease-[cubic-bezier(0.2,0,0,1)] bg-black/60 shadow-[0_0_0_9999px_rgba(0,0,0,0.6)]"
         style={{
           top: targetRect.top - 8,
           left: targetRect.left - 8,
@@ -91,22 +90,22 @@ export default function OnboardingTutorial({ onComplete }) {
       />
 
       <div 
-        className="absolute w-[300px] bg-white rounded-2xl shadow-2xl p-5 animate-slide-up"
+        className="absolute w-[300px] bg-white dark:bg-gray-900 rounded-2xl shadow-2xl p-5 animate-slide-up"
         style={tooltipStyle}
       >
         <div className="flex justify-between items-center mb-2">
-          <h4 className="font-black text-gray-900 text-sm">{step.title}</h4>
-          <span className="text-[10px] font-bold text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">
+          <h4 className="font-black text-gray-900 dark:text-gray-100 text-sm">{step.title}</h4>
+          <span className="text-[10px] font-bold text-gray-400 dark:text-gray-400 bg-gray-100 dark:bg-gray-800 px-2 py-0.5 rounded-full">
             {currentStep + 1} OF {TUTORIAL_STEPS.length}
           </span>
         </div>
-        <p className="text-xs text-gray-600 mb-5 leading-relaxed">
+        <p className="text-xs text-gray-600 dark:text-gray-300 mb-5 leading-relaxed">
           {step.content}
         </p>
         <div className="flex justify-between items-center">
           <button 
             onClick={onComplete}
-            className="text-[10px] font-bold text-gray-400 hover:text-gray-600 uppercase tracking-widest"
+            className="text-[10px] font-bold text-gray-400 dark:text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 uppercase tracking-widest"
           >
             Skip Tour
           </button>

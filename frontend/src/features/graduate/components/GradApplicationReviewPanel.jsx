@@ -7,12 +7,12 @@ import useGradApplicationReview from '@/features/graduate/useGradApplicationRevi
 
 function ApplicationsTable({ applications, onReview, emptyMessage }) {
   if (applications.length === 0) {
-    return <div className="text-center py-12 text-gray-400 font-medium">{emptyMessage}</div>;
+    return <div className="text-center py-12 text-gray-400 dark:text-gray-400 font-medium">{emptyMessage}</div>;
   }
   return (
-    <table className="w-full text-left border-collapse table-fixed">
-      <thead className="sticky top-0 bg-white z-10">
-        <tr className="text-gray-400 text-[10px] uppercase tracking-widest border-b border-gray-100">
+    <table className="w-full text-left border-collapse table-fixed min-w-[680px]">
+      <thead className="sticky top-0 bg-white dark:bg-gray-900 z-10">
+        <tr className="text-gray-400 dark:text-gray-400 text-[10px] uppercase tracking-widest border-b border-gray-100 dark:border-gray-700">
           <th className="pb-4 font-bold pl-4">Applicant</th>
           <th className="pb-4 font-bold">Course</th>
           <th className="pb-4 font-bold">Submitted</th>
@@ -20,23 +20,23 @@ function ApplicationsTable({ applications, onReview, emptyMessage }) {
           <th className="pb-4 font-bold text-right pr-4">Action</th>
         </tr>
       </thead>
-      <tbody className="divide-y divide-gray-50">
+      <tbody className="divide-y divide-gray-50 dark:divide-gray-700">
         {applications.map((a) => (
-          <tr key={a.id} className="hover:bg-gray-50/30 group">
+          <tr key={a.id} className="hover:bg-gray-50/30 dark:hover:bg-gray-800/30 group">
             <td className="py-4 pl-4">
-              <div className="font-bold text-gray-900">{a.full_name || 'Unknown'}</div>
-              <div className="text-xs font-mono text-gray-400 mt-0.5">{a.student_id}</div>
+              <div className="font-bold text-gray-900 dark:text-gray-100 select-text break-words">{a.full_name || 'Unknown'}</div>
+              <div className="text-xs font-mono text-gray-400 dark:text-gray-400 mt-0.5 select-text break-words">{a.student_id}</div>
             </td>
-            <td className="py-4 text-xs font-bold text-gray-600">{a.course || '—'}</td>
-            <td className="py-4 text-xs text-gray-400">{new Date(a.submitted_at).toLocaleDateString()}</td>
+            <td className="py-4 text-xs font-bold text-gray-600 dark:text-gray-300">{a.course || '—'}</td>
+            <td className="py-4 text-xs text-gray-400 dark:text-gray-400">{new Date(a.submitted_at).toLocaleDateString()}</td>
             <td className="py-4">
               <span
                 className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${
                   a.status === 'approved'
-                    ? 'bg-emerald-50 text-[#15803d]'
+                    ? 'bg-emerald-50 dark:bg-emerald-950/40 text-[#15803d] dark:text-green-300'
                     : a.status === 'rejected'
-                      ? 'bg-red-50 text-red-600'
-                      : 'bg-amber-50 text-amber-700'
+                      ? 'bg-red-50 dark:bg-red-950/40 text-red-600 dark:text-red-300'
+                      : 'bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300'
                 }`}
               >
                 {a.status.replace('_', ' ')}
@@ -68,6 +68,7 @@ export default function GradApplicationReviewPanel({ user, currentTab }) {
     loading,
     error,
     success,
+    dismissNotification,
     pendingApplications,
     approvedApplications,
     rejectedApplications,
@@ -103,12 +104,12 @@ export default function GradApplicationReviewPanel({ user, currentTab }) {
 
   return (
     <div className="space-y-8 animate-fade-in">
-      <DashboardAlerts success={success} error={error} />
+      <DashboardAlerts success={success} error={error} onDismiss={dismissNotification} />
       <div>
-        <h2 className="text-2xl sm:text-3xl font-display font-black text-gray-900 tracking-tight">
-          Graduate <span className="text-[#15803d]">Applications</span>
+        <h2 className="text-2xl sm:text-3xl font-display font-black text-gray-900 dark:text-gray-100 tracking-tight">
+          Graduate <span className="text-[#15803d] dark:text-green-300">Applications</span>
         </h2>
-        <p className="text-xs text-gray-400 mt-1 font-semibold">
+        <p className="text-xs text-gray-400 dark:text-gray-400 mt-1 font-semibold">
           Review submissions from alumni requesting their Graduate Application.
         </p>
       </div>
@@ -123,7 +124,7 @@ export default function GradApplicationReviewPanel({ user, currentTab }) {
         onChange={setActiveQueueTab}
       />
 
-      <div className="bg-white rounded-3xl shadow-sm border border-gray-200 overflow-hidden mt-6">
+      <div key={activeQueueTab} className="animate-fade-in bg-white dark:bg-gray-900 rounded-3xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden mt-6">
         <div className="p-4 sm:p-6">
           <div className="max-h-[calc(100vh-280px)] overflow-y-auto overflow-x-auto">
             <ApplicationsTable
@@ -142,18 +143,18 @@ export default function GradApplicationReviewPanel({ user, currentTab }) {
         maxWidth="max-w-xl"
         footer={
           !isDecided ? (
-            <div className="flex items-center gap-3">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-3">
               <button
                 onClick={() => stageReview('rejected')}
                 disabled={actionLoading || !notes.trim()}
-                className="w-1/2 py-3 rounded-xl font-bold text-xs shadow-md transition-all text-center uppercase tracking-wider bg-red-600 hover:bg-red-700 text-white disabled:opacity-50"
+                className="w-full sm:w-1/2 py-3 rounded-xl font-bold text-xs shadow-md transition-all text-center uppercase tracking-wider bg-red-600 dark:bg-red-600 hover:bg-red-700 dark:hover:bg-red-700 text-white disabled:opacity-50"
               >
                 Reject
               </button>
               <button
                 onClick={() => stageReview('approved')}
                 disabled={actionLoading}
-                className="w-1/2 py-3 rounded-xl font-bold text-xs shadow-md transition-all text-center uppercase tracking-wider bg-[#15803d] hover:bg-[#166534] text-white disabled:opacity-50"
+                className="w-full sm:w-1/2 py-3 rounded-xl font-bold text-xs shadow-md transition-all text-center uppercase tracking-wider bg-[#15803d] hover:bg-[#166534] text-white disabled:opacity-50"
               >
                 Approve
               </button>
@@ -163,43 +164,43 @@ export default function GradApplicationReviewPanel({ user, currentTab }) {
       >
         {selectedApplication && (
           <>
-            <div className="bg-gray-50 border border-gray-200 rounded-2xl p-5 my-4 font-mono text-[11px] text-gray-600 space-y-2">
+            <div className="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl p-5 my-4 font-mono text-[11px] text-gray-600 dark:text-gray-300 space-y-2">
               <div className="flex justify-between">
                 <span>Name</span>
-                <span className="font-bold text-gray-950">{selectedApplication.full_name || 'Unknown'}</span>
+                <span className="font-bold text-gray-950 dark:text-gray-100 select-text break-words">{selectedApplication.full_name || 'Unknown'}</span>
               </div>
               <div className="flex justify-between">
                 <span>Student ID</span>
-                <span className="font-bold text-gray-950">{selectedApplication.student_id}</span>
+                <span className="font-bold text-gray-950 dark:text-gray-100 select-text break-words">{selectedApplication.student_id}</span>
               </div>
               <div className="flex justify-between">
                 <span>Email</span>
-                <span className="font-bold text-gray-950">{selectedApplication.email || '—'}</span>
+                <span className="font-bold text-gray-950 dark:text-gray-100 select-text break-words">{selectedApplication.email || '—'}</span>
               </div>
               <div className="flex justify-between">
                 <span>Submitted</span>
-                <span className="font-bold text-gray-950">
+                <span className="font-bold text-gray-950 dark:text-gray-100">
                   {new Date(selectedApplication.submitted_at).toLocaleDateString()}
                 </span>
               </div>
             </div>
 
             {loadingDetail ? (
-              <div className="text-center py-8 text-gray-400 text-xs font-semibold">Loading answers…</div>
+              <div className="text-center py-8 text-gray-400 dark:text-gray-400 text-xs font-semibold">Loading answers…</div>
             ) : (
               <div className="space-y-4">
                 {selectedAnswers.map((a) => (
                   <div key={a.field_key} className="flex flex-col gap-1">
-                    <span className="text-[10px] font-bold text-gray-800 uppercase tracking-widest">{a.label}</span>
-                    <span className="text-sm text-gray-700">{a.value || '—'}</span>
+                    <span className="text-[10px] font-bold text-gray-800 dark:text-gray-100 uppercase tracking-widest">{a.label}</span>
+                    <span className="text-sm text-gray-700 dark:text-gray-300 select-text break-words">{a.value || '—'}</span>
                   </div>
                 ))}
               </div>
             )}
 
             <div className="flex flex-col gap-1.5 mt-6">
-              <label className="text-[10px] font-bold text-gray-800 uppercase tracking-widest">
-                Notes <span className="text-gray-400 normal-case font-semibold">· required to reject</span>
+              <label className="text-[10px] font-bold text-gray-800 dark:text-gray-100 uppercase tracking-widest">
+                Notes <span className="text-gray-400 dark:text-gray-400 normal-case font-semibold">· required to reject</span>
               </label>
               <textarea
                 value={notes}
@@ -207,7 +208,7 @@ export default function GradApplicationReviewPanel({ user, currentTab }) {
                 rows={2}
                 disabled={isDecided}
                 placeholder="Add notes (required for rejection)..."
-                className="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 text-xs font-semibold focus:ring-2 focus:ring-[#15803d]/20 focus:bg-white outline-none transition-all resize-none disabled:opacity-60"
+                className="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-3 text-xs font-semibold focus:ring-2 focus:ring-[#15803d]/20 focus:bg-white dark:focus:bg-gray-900 outline-none transition-all resize-none disabled:opacity-60"
               />
             </div>
           </>

@@ -37,19 +37,19 @@ export default function FinanceVerificationModal({
       title="Verification Details"
       maxWidth="max-w-xl"
       footer={
-        <div className="flex items-center gap-3">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-3">
           <button
             onClick={() => handleFinanceVerify('reject', null)}
             disabled={actionLoading}
-            className="w-1/2 py-3 rounded-xl font-bold text-xs shadow-md transition-all text-center uppercase tracking-wider bg-red-600 hover:bg-red-700 text-white disabled:opacity-50"
+            className="w-full sm:w-1/2 py-3 rounded-xl font-bold text-xs shadow-md transition-all text-center uppercase tracking-wider bg-red-600 dark:bg-red-600 hover:bg-red-700 dark:hover:bg-red-700 text-white disabled:opacity-50"
           >
             Reject Payment
           </button>
           <button
             onClick={() => handleFinanceVerify('approve', financeReceiptFile, orNumber.trim())}
             disabled={actionLoading || !canVerify}
-            className={`w-1/2 py-3 rounded-xl font-bold text-xs shadow-md transition-all text-center uppercase tracking-wider ${
-              !canVerify ? 'bg-gray-300 text-gray-500 cursor-not-allowed' : 'bg-[#15803d] hover:bg-[#166534] text-white'
+            className={`w-full sm:w-1/2 py-3 rounded-xl font-bold text-xs shadow-md transition-all text-center uppercase tracking-wider ${
+              !canVerify ? 'bg-gray-300 dark:bg-gray-700 text-gray-500 dark:text-gray-400 cursor-not-allowed' : 'bg-[#15803d] hover:bg-[#166534] text-white'
             }`}
           >
             Verify Payment
@@ -57,17 +57,17 @@ export default function FinanceVerificationModal({
         </div>
       }
     >
-      <p className="text-xs text-gray-400 mt-1 font-semibold pb-5 mb-6 border-b border-gray-100">Review and verify the student's payment receipt.</p>
+      <p className="text-xs text-gray-400 dark:text-gray-400 mt-1 font-semibold pb-5 mb-6 border-b border-gray-100 dark:border-gray-700">Review and verify the student's payment receipt.</p>
 
       {/* Gray detail panel */}
-      <div className="bg-gray-50 border border-gray-200 rounded-2xl p-5 my-4 font-mono text-[11px] text-gray-600 space-y-2">
-        <div className="flex justify-between"><span>Name</span><span className="font-bold text-gray-950">{selectedDoc.student_name || 'Unknown'}</span></div>
-        <div className="flex justify-between"><span>Document Type</span><span className="font-bold text-gray-950">{selectedDoc.document_type}</span></div>
-        <div className="flex justify-between"><span>Tracking ID</span><span className="font-bold text-gray-950 select-text">#{selectedDoc.tracking_number || selectedDoc.id}</span></div>
-        <div className="flex justify-between"><span>Date Paid</span><span className="font-bold text-gray-950">{new Date(selectedDoc.updated_at).toLocaleDateString('en-US', {month: 'short', day: 'numeric'})} at {new Date(selectedDoc.updated_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span></div>
+      <div className="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl p-5 my-4 font-mono text-[11px] text-gray-600 dark:text-gray-300 space-y-2">
+        <div className="flex flex-wrap justify-between gap-x-3 gap-y-1"><span>Name</span><span className="font-bold text-gray-950 dark:text-gray-100 select-text break-words">{selectedDoc.student_name || 'Unknown'}</span></div>
+        <div className="flex flex-wrap justify-between gap-x-3 gap-y-1"><span>Document Type</span><span className="font-bold text-gray-950 dark:text-gray-100">{selectedDoc.document_type}</span></div>
+        <div className="flex flex-wrap justify-between gap-x-3 gap-y-1"><span>Tracking ID</span><span className="font-bold text-gray-950 dark:text-gray-100 select-text">#{selectedDoc.tracking_number || selectedDoc.id}</span></div>
+        <div className="flex flex-wrap justify-between gap-x-3 gap-y-1"><span>Date Paid</span><span className="font-bold text-gray-950 dark:text-gray-100">{new Date(selectedDoc.updated_at).toLocaleDateString('en-US', {month: 'short', day: 'numeric'})} at {new Date(selectedDoc.updated_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span></div>
         
         {/* Itemization */}
-        <div className="border-t border-gray-200/50 pt-3 mt-1 space-y-1">
+        <div className="border-t border-gray-200/50 dark:border-gray-700/50 pt-3 mt-1 space-y-1">
           {(() => {
             const typeObj = {
               name: selectedDoc.document_type,
@@ -78,22 +78,22 @@ export default function FinanceVerificationModal({
             };
             const breakdown = itemBreakdown(typeObj, { copies: selectedDoc.copies });
             return breakdown.length > 0 ? breakdown.map((item, idx) => (
-              <div key={idx} className="flex justify-between text-[11px] text-gray-600">
+              <div key={idx} className="flex justify-between text-[11px] text-gray-600 dark:text-gray-300">
                 <span>{item.label}</span>
                 <span className="font-mono">{formatPeso(item.amount)}</span>
               </div>
             )) : null;
           })()}
         </div>
-        <div className="flex justify-between border-t border-gray-200/50 pt-2">
+        <div className="flex justify-between border-t border-gray-200/50 dark:border-gray-700/50 pt-2">
           <span>Amount</span>
-          <span className="font-bold text-gray-950">{formatPeso(selectedDoc.amount)}</span>
+          <span className="font-bold text-gray-950 dark:text-gray-100">{formatPeso(selectedDoc.amount)}</span>
         </div>
       </div>
 
       
       {new Date().getHours() >= 16 && (
-        <div className="bg-amber-50 border border-amber-200 text-amber-800 text-xs p-3 rounded-lg font-semibold flex items-start gap-2 mb-4">
+        <div className="bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 text-amber-800 dark:text-amber-300 text-xs p-3 rounded-lg font-semibold flex items-start gap-2 mb-4">
           <svg className="w-4 h-4 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
           <p>
             <strong>4:00 PM Cut-off:</strong> Payments verified after 4 PM will not generate a same-day Official Receipt. Ensure the student is aware.
@@ -102,10 +102,10 @@ export default function FinanceVerificationModal({
       )}
 
       <div className="space-y-4">
-        <span className="text-[10px] font-bold text-gray-800 uppercase tracking-widest block">{methodName} Receipt / Proof</span>
+        <span className="text-[10px] font-bold text-gray-800 dark:text-gray-100 uppercase tracking-widest block">{methodName} Receipt / Proof</span>
 
         {/* Receipt Preview */}
-        <div className="bg-gray-100 rounded-2xl overflow-hidden border border-gray-200 h-64 relative flex items-center justify-center">
+        <div className="bg-gray-100 dark:bg-gray-800 rounded-2xl overflow-hidden border border-gray-200 dark:border-gray-700 h-64 relative flex items-center justify-center">
           {selectedDoc.receipt_image_path ? (
             <AuthedFilePreview
               path={selectedDoc.receipt_image_path}
@@ -116,17 +116,17 @@ export default function FinanceVerificationModal({
               wrapperClassName="cursor-zoom-in w-full h-full flex items-center justify-center"
             />
           ) : (
-            <span className="text-xs text-gray-400">No Image Uploaded</span>
+            <span className="text-xs text-gray-400 dark:text-gray-400">No Image Uploaded</span>
           )}
         </div>
 
-        <div className="text-center font-bold text-xs text-gray-800 py-2 border-b border-gray-100 mb-2">
-          {referenceLabel}: <span className="font-mono text-gray-600 font-bold">{selectedDoc.gcash_reference_no || 'None'}</span>
+        <div className="text-center font-bold text-xs text-gray-800 dark:text-gray-100 py-2 border-b border-gray-100 dark:border-gray-700 mb-2">
+          {referenceLabel}: <span className="font-mono text-gray-600 dark:text-gray-300 font-bold">{selectedDoc.gcash_reference_no || 'None'}</span>
         </div>
 
         <div className="flex flex-col gap-2">
-          <label htmlFor="finance-verify-or-number" className="text-[10px] font-bold text-red-600 uppercase tracking-widest flex items-center gap-1">
-            Official Receipt Number <span className="text-red-500">*</span>
+          <label htmlFor="finance-verify-or-number" className="text-[10px] font-bold text-red-600 dark:text-red-300 uppercase tracking-widest flex items-center gap-1">
+            Official Receipt Number <span className="text-red-500 dark:text-red-300">*</span>
           </label>
           <input
             id="finance-verify-or-number"
@@ -134,13 +134,13 @@ export default function FinanceVerificationModal({
             value={orNumber}
             onChange={(e) => setOrNumber(e.target.value)}
             placeholder="e.g. OR-2026-00123"
-            className="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 text-xs font-bold font-mono focus:ring-2 focus:ring-[#15803d]/20 focus:bg-white outline-none transition-all"
+            className="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-3 text-xs font-bold font-mono focus:ring-2 focus:ring-[#15803d]/20 focus:bg-white dark:focus:bg-gray-900 outline-none transition-all"
           />
         </div>
 
         <div className="flex flex-col gap-2">
-          <label className="text-[10px] font-bold text-red-600 uppercase tracking-widest flex items-center gap-1">
-            Attach Official POS Receipt <span className="text-gray-400 font-normal normal-case">(Optional - upload later if deferred)</span>
+          <label className="text-[10px] font-bold text-red-600 dark:text-red-300 uppercase tracking-widest flex items-center gap-1">
+            Attach Official POS Receipt <span className="text-gray-400 dark:text-gray-400 font-normal normal-case">(Optional - upload later if deferred)</span>
           </label>
           <input
             type="file"
@@ -156,23 +156,23 @@ export default function FinanceVerificationModal({
               }
               setFinanceReceiptFile(file);
             }}
-            className="w-full bg-red-50/50 border border-red-100 rounded-xl p-3 text-xs font-bold text-red-600 file:mr-4 file:py-1.5 file:px-4 file:rounded-full file:border-0 file:text-[10px] file:font-bold file:bg-red-600 file:text-white hover:file:bg-red-700 cursor-pointer transition-colors"
+            className="w-full bg-red-50/50 dark:bg-red-950/50 border border-red-100 dark:border-red-800 rounded-xl p-3 text-xs font-bold text-red-600 dark:text-red-300 file:mr-4 file:py-1.5 file:px-4 file:rounded-full file:border-0 file:text-[10px] file:font-bold file:bg-red-600 dark:file:bg-red-600 file:text-white hover:file:bg-red-700 dark:hover:file:bg-red-700 cursor-pointer transition-colors"
           />
         </div>
       </div>
 
       <div className="flex flex-col gap-1.5 mt-4">
-        <label className="text-[10px] font-bold text-gray-800 uppercase tracking-widest">Clerk Notes / Remarks</label>
+        <label className="text-[10px] font-bold text-gray-800 dark:text-gray-100 uppercase tracking-widest">Clerk Notes / Remarks</label>
         <textarea
           value={clerkNotes}
           onChange={(e) => setClerkNotes(e.target.value)}
           placeholder="Add notes (required for rejection)..."
           rows={2}
-          className="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 text-xs font-semibold focus:ring-2 focus:ring-[#15803d]/20 focus:bg-white outline-none transition-all resize-none"
+          className="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-3 text-xs font-semibold focus:ring-2 focus:ring-[#15803d]/20 focus:bg-white dark:focus:bg-gray-900 outline-none transition-all resize-none"
         />
       </div>
-      <div className="flex flex-col gap-1.5 mt-4 border-t border-gray-100 pt-4">
-        <label className="text-[10px] font-bold text-gray-800 uppercase tracking-widest">Discussion</label>
+      <div className="flex flex-col gap-1.5 mt-4 border-t border-gray-100 dark:border-gray-700 pt-4">
+        <label className="text-[10px] font-bold text-gray-800 dark:text-gray-100 uppercase tracking-widest">Discussion</label>
         <DocumentChat documentId={selectedDoc.id} user={user} />
       </div>
     </ModalShell>

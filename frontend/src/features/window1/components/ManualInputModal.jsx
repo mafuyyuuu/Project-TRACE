@@ -20,18 +20,18 @@ export default function ManualInputModal({
   const isGraduate = purpose === 'Graduation Clearance' || docType === 'Graduate Clearance';
   return (
     <ModalShell open={open} onClose={onClose} title="Manual Input" maxWidth="max-w-3xl">
-      <p className="text-sm font-semibold text-gray-500 mb-8 leading-relaxed">
+      <p className="text-sm font-semibold text-gray-500 dark:text-gray-400 mb-8 leading-relaxed">
         Digitize physical walk-in requests and legacy records.
       </p>
 
       <form onSubmit={handleManualInputSubmit} className="space-y-10">
         {/* STUDENT INFORMATION */}
         <div>
-          <h3 className="text-xs font-black text-[#15803d] uppercase tracking-widest border-b border-gray-100 pb-3 mb-6">STUDENT INFORMATION</h3>
+          <h3 className="text-xs font-black text-[#15803d] dark:text-green-300 uppercase tracking-widest border-b border-gray-100 dark:border-gray-700 pb-3 mb-6">STUDENT INFORMATION</h3>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div className="flex flex-col gap-2">
-              <label className="text-[10px] font-bold text-gray-800 uppercase tracking-widest">Student ID</label>
+              <label className="text-[10px] font-bold text-gray-800 dark:text-gray-100 uppercase tracking-widest">Student ID</label>
               <div className="flex gap-2">
                 <input
                   type="text"
@@ -39,7 +39,7 @@ export default function ManualInputModal({
                   id="manual-student-id"
                   placeholder="e.g. 23-23922"
                   required
-                  className="flex-1 p-3 bg-gray-50 border border-gray-200 rounded-xl text-xs font-semibold focus:ring-2 focus:ring-[#15803d]/20 outline-none transition-all"
+                  className="flex-1 p-3 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-xs font-semibold focus:ring-2 focus:ring-[#15803d]/20 outline-none transition-all"
                 />
                 <button
                   type="button"
@@ -52,24 +52,24 @@ export default function ManualInputModal({
             </div>
 
             <div className="flex flex-col gap-2">
-              <label className="text-[10px] font-bold text-gray-800 uppercase tracking-widest">Full Name</label>
+              <label className="text-[10px] font-bold text-gray-800 dark:text-gray-100 uppercase tracking-widest">Full Name</label>
               <input
                 type="text"
                 name="fullName"
                 id="manual-full-name"
                 placeholder="Last Name, First Name"
                 required
-                className="p-3 bg-gray-50 border border-gray-200 rounded-xl text-xs font-semibold focus:ring-2 focus:ring-[#15803d]/20 outline-none transition-all"
+                className="p-3 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-xs font-semibold focus:ring-2 focus:ring-[#15803d]/20 outline-none transition-all"
               />
             </div>
 
             <div className="flex flex-col gap-2">
-              <label className="text-[10px] font-bold text-gray-800 uppercase tracking-widest">Course / Program</label>
+              <label className="text-[10px] font-bold text-gray-800 dark:text-gray-100 uppercase tracking-widest">Course / Program</label>
               <select
                 name="course"
                 id="manual-course"
                 required
-                className="p-3 bg-gray-50 border border-gray-200 rounded-xl text-xs font-semibold focus:ring-2 focus:ring-[#15803d]/20 outline-none transition-all cursor-pointer"
+                className="p-3 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-xs font-semibold focus:ring-2 focus:ring-[#15803d]/20 outline-none transition-all cursor-pointer"
               >
                 <option value="" disabled selected>Select Course...</option>
                 <option value="BSCS">BS Computer Science</option>
@@ -84,15 +84,15 @@ export default function ManualInputModal({
 
         {/* DOCUMENT DETAILS */}
         <div>
-          <h3 className="text-xs font-black text-[#15803d] uppercase tracking-widest border-b border-gray-100 pb-3 mb-6">DOCUMENT DETAILS</h3>
+          <h3 className="text-xs font-black text-[#15803d] dark:text-green-300 uppercase tracking-widest border-b border-gray-100 dark:border-gray-700 pb-3 mb-6">DOCUMENT DETAILS</h3>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="flex flex-col gap-2">
-              <label className="text-[10px] font-bold text-gray-800 uppercase tracking-widest">Requested Document</label>
+              <label className="text-[10px] font-bold text-gray-800 dark:text-gray-100 uppercase tracking-widest">Requested Document</label>
               <select
                 name="docType"
                 required
-                className="p-3 bg-gray-50 border border-gray-200 rounded-xl text-xs font-semibold focus:ring-2 focus:ring-[#15803d]/20 outline-none transition-all cursor-pointer"
+                className="p-3 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-xs font-semibold focus:ring-2 focus:ring-[#15803d]/20 outline-none transition-all cursor-pointer"
               >
                 <option value="" disabled selected>Document Type</option>
                 <option>Transcript of Records</option>
@@ -103,13 +103,13 @@ export default function ManualInputModal({
             </div>
 
             <div className="flex flex-col gap-2">
-              <label className="text-[10px] font-bold text-gray-800 uppercase tracking-widest">Purpose of Request</label>
+              <label className="text-[10px] font-bold text-gray-800 dark:text-gray-100 uppercase tracking-widest">Purpose of Request</label>
               <select
                 name="purpose"
                 required
                 value={purpose}
                 onChange={(e) => setPurpose(e.target.value)}
-                className="p-3 bg-gray-50 border border-gray-200 rounded-xl text-xs font-semibold focus:ring-2 focus:ring-[#15803d]/20 outline-none transition-all cursor-pointer"
+                className="p-3 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-xs font-semibold focus:ring-2 focus:ring-[#15803d]/20 outline-none transition-all cursor-pointer"
               >
                 <option value="" disabled selected>Purpose of Request</option>
                 <option>Graduation Clearance</option>
@@ -121,11 +121,11 @@ export default function ManualInputModal({
           </div>
 
           <div className="flex flex-col gap-2 mt-6">
-            <label className="text-[10px] font-bold text-gray-800 uppercase tracking-widest">Clerk Remarks / Notes (Optional)</label>
+            <label className="text-[10px] font-bold text-gray-800 dark:text-gray-100 uppercase tracking-widest">Clerk Remarks / Notes (Optional)</label>
             <textarea
               name="remarks"
               placeholder="Enter remarks..."
-              className="p-4 bg-gray-50 border border-gray-200 rounded-xl text-xs font-semibold focus:ring-2 focus:ring-[#15803d]/20 outline-none transition-all h-28 resize-none"
+              className="p-4 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-xs font-semibold focus:ring-2 focus:ring-[#15803d]/20 outline-none transition-all h-28 resize-none"
             />
           </div>
         </div>

@@ -31,6 +31,11 @@ export default function useReports(user, currentTab) {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
+  const dismissNotification = useCallback(() => {
+    setSuccess('');
+    setError('');
+  }, []);
+
   const isActive = user?.role === 'admin' && (currentTab === 'admin-reports' || currentTab === 'admin-analytics');
 
   /** Strip blanks so an untouched filter isn't sent as an empty string. */
@@ -95,10 +100,10 @@ export default function useReports(user, currentTab) {
       try {
         const filename = await exportStudentsCsv(category);
         setSuccess(`Exported ${filename}`);
-        setTimeout(() => setSuccess(''), 4000);
+        setError('');
       } catch {
         setError('Export failed.');
-        setTimeout(() => setError(''), 4000);
+        setSuccess('');
       } finally {
         setExporting('');
       }
@@ -111,10 +116,10 @@ export default function useReports(user, currentTab) {
     try {
       const filename = await exportDocumentsCsv(activeFilters);
       setSuccess(`Exported ${filename}`);
-      setTimeout(() => setSuccess(''), 4000);
+      setError('');
     } catch {
       setError('Export failed.');
-      setTimeout(() => setError(''), 4000);
+      setSuccess('');
     } finally {
       setExporting('');
     }
@@ -125,6 +130,7 @@ export default function useReports(user, currentTab) {
     filters, updateFilter, applyFilters, resetFilters,
     report, analytics, page, goToPage,
     loading, exporting, error, success,
+    dismissNotification,
     downloadStudents, downloadDocuments,
   };
 }

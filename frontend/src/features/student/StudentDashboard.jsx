@@ -31,6 +31,7 @@ export default function StudentDashboard({ user, currentTab, setViewImageUrl }) 
   const {
     loading,
     success,
+    dismissNotification,
     error,
     documents,
     billableGroups,
@@ -69,7 +70,7 @@ export default function StudentDashboard({ user, currentTab, setViewImageUrl }) 
 
   return (
     <>
-      <DashboardAlerts success={success} error={error} />
+      <DashboardAlerts success={success} error={error} onDismiss={dismissNotification} />
       <div className="space-y-8 animate-fade-in">
         {/* 1.1. STUDENT PORTAL - WORKSPACE DASHBOARD */}
         {currentTab === 'dashboard' && (
@@ -77,15 +78,15 @@ export default function StudentDashboard({ user, currentTab, setViewImageUrl }) 
             {/* Welcome Header */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
               <div>
-                <h2 className="text-2xl sm:text-3xl font-display font-black text-gray-900 tracking-tight">
-                  Welcome back, <span className="text-[#15803d] font-bold">{user.full_name || 'Student'}</span>
+                <h2 className="text-2xl sm:text-3xl font-display font-black text-gray-900 dark:text-gray-100 tracking-tight">
+                  Welcome back, <span className="text-[#15803d] dark:text-green-300 font-bold select-text break-words">{user.full_name || 'Student'}</span>
                 </h2>
               </div>
-              <div className="flex items-center gap-4">
-                <div className="flex items-center gap-3 bg-white border border-gray-200 rounded-2xl px-5 py-2.5 shadow-sm">
-                  <span className="text-xs font-semibold text-gray-500">Today:</span>
-                  <span className="text-xs font-bold text-gray-800">{todayFormatted}</span>
-                  <svg className="w-4 h-4 text-gray-400 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+              <div className="flex flex-wrap items-center gap-4">
+                <div className="flex items-center gap-3 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-2xl px-5 py-2.5 shadow-sm">
+                  <span className="text-xs font-semibold text-gray-500 dark:text-gray-400">Today:</span>
+                  <span className="text-xs font-bold text-gray-800 dark:text-gray-100">{todayFormatted}</span>
+                  <svg className="w-4 h-4 text-gray-400 dark:text-gray-400 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
                 </div>
                 <button 
                   onClick={() => {
@@ -98,36 +99,36 @@ export default function StudentDashboard({ user, currentTab, setViewImageUrl }) 
                     }
                     setActiveModal('new-request');
                   }}
-                  className="flex items-center gap-2 px-5 py-2.5 bg-white border border-gray-300 hover:border-gray-400 text-gray-800 text-xs font-bold rounded-full shadow-sm transition-all"
+                  className="flex items-center gap-2 px-5 py-2.5 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 hover:border-gray-400 dark:hover:border-gray-700 text-gray-800 dark:text-gray-100 text-xs font-bold rounded-full shadow-sm transition-all"
                 >
                   <span>New Request</span>
-                  <svg className="w-4 h-4 text-gray-800" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.2" d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                  <svg className="w-4 h-4 text-gray-800 dark:text-gray-100" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.2" d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                 </button>
               </div>
             </div>
 
             {/* KPI Cards */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div className="bg-white rounded-3xl p-6 shadow-sm border border-gray-200 flex flex-col justify-between min-h-44">
+              <div className="bg-white dark:bg-gray-900 rounded-3xl p-6 shadow-sm border border-gray-200 dark:border-gray-700 flex flex-col justify-between min-h-44">
                 <div className="flex justify-between items-start">
                   <div>
-                    <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block">TOTAL REQUESTS</span>
-                    <span className="text-2xl sm:text-3xl font-display font-black text-gray-900 mt-2 block">{documents.length} <span className="text-sm text-gray-400 font-medium font-sans">Documents</span></span>
+                    <span className="text-[10px] font-bold text-gray-400 dark:text-gray-400 uppercase tracking-widest block">TOTAL REQUESTS</span>
+                    <span className="text-2xl sm:text-3xl font-display font-black text-gray-900 dark:text-gray-100 mt-2 block">{documents.length} <span className="text-sm text-gray-400 dark:text-gray-400 font-medium font-sans">Documents</span></span>
                   </div>
                   <MiniSparkline trend="up" />
                 </div>
-                <div className="bg-emerald-50 border border-emerald-100 rounded-full px-3 py-1 text-[10px] font-bold text-[#15803d] w-fit flex items-center gap-1.5 mt-2">
+                <div className="bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-100 dark:border-emerald-800 rounded-full px-3 py-1 text-[10px] font-bold text-[#15803d] dark:text-green-300 w-fit flex items-center gap-1.5 mt-2">
                   <span className="w-1.5 h-1.5 bg-[#15803d] rounded-full"></span>
                   All requests submitted across your account
                 </div>
               </div>
 
-              <div className="bg-white rounded-3xl p-6 shadow-sm border border-gray-200 flex flex-col justify-between min-h-44">
+              <div className="bg-white dark:bg-gray-900 rounded-3xl p-6 shadow-sm border border-gray-200 dark:border-gray-700 flex flex-col justify-between min-h-44">
                 <div className="flex justify-between items-start">
                   <div>
-                    <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block">IN PROGRESS</span>
-                    <span className="text-2xl sm:text-3xl font-display font-black text-gray-900 mt-2 block">
-                      {documents.filter(d => PIPELINE.includes(d.current_status) && d.current_status !== STATUS.COMPLETED).length} <span className="text-sm text-gray-400 font-medium font-sans">in progress</span>
+                    <span className="text-[10px] font-bold text-gray-400 dark:text-gray-400 uppercase tracking-widest block">IN PROGRESS</span>
+                    <span className="text-2xl sm:text-3xl font-display font-black text-gray-900 dark:text-gray-100 mt-2 block">
+                      {documents.filter(d => PIPELINE.includes(d.current_status) && d.current_status !== STATUS.COMPLETED).length} <span className="text-sm text-gray-400 dark:text-gray-400 font-medium font-sans">in progress</span>
                     </span>
                   </div>
                   <MiniSparkline trend="down" />
@@ -137,17 +138,17 @@ export default function StudentDashboard({ user, currentTab, setViewImageUrl }) 
                 </div>
               </div>
 
-              <div className="bg-white rounded-3xl p-6 shadow-sm border border-gray-200 flex flex-col justify-between min-h-44">
+              <div className="bg-white dark:bg-gray-900 rounded-3xl p-6 shadow-sm border border-gray-200 dark:border-gray-700 flex flex-col justify-between min-h-44">
                 <div className="flex justify-between items-start">
                   <div>
-                    <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block">READY / COMPLETED</span>
-                    <span className="text-2xl sm:text-3xl font-display font-black text-gray-900 mt-2 block">
-                      {documents.filter(d => d.current_status === STATUS.COMPLETED).length} <span className="text-sm text-gray-400 font-medium font-sans">Completed</span>
+                    <span className="text-[10px] font-bold text-gray-400 dark:text-gray-400 uppercase tracking-widest block">READY / COMPLETED</span>
+                    <span className="text-2xl sm:text-3xl font-display font-black text-gray-900 dark:text-gray-100 mt-2 block">
+                      {documents.filter(d => d.current_status === STATUS.COMPLETED).length} <span className="text-sm text-gray-400 dark:text-gray-400 font-medium font-sans">Completed</span>
                     </span>
                   </div>
                   <MiniSparkline trend="up" />
                 </div>
-                <div className="bg-emerald-50 border border-emerald-100 rounded-full px-3 py-1 text-[10px] font-bold text-[#15803d] w-fit flex items-center gap-1.5 mt-2">
+                <div className="bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-100 dark:border-emerald-800 rounded-full px-3 py-1 text-[10px] font-bold text-[#15803d] dark:text-green-300 w-fit flex items-center gap-1.5 mt-2">
                   <span className="w-1.5 h-1.5 bg-[#15803d] rounded-full"></span>
                   Available for pickup at Window 1
                 </div>
@@ -161,23 +162,23 @@ export default function StudentDashboard({ user, currentTab, setViewImageUrl }) 
                 once for the whole request, so several of its documents can be
                 awaiting payment together, and one receipt settles all of them. */}
             {billableGroups.length > 0 && (
-              <div className="bg-white rounded-3xl shadow-sm border-2 border-[#15803d] overflow-hidden mt-8">
+              <div className="bg-white dark:bg-gray-900 rounded-3xl shadow-sm border-2 border-[#15803d] overflow-hidden mt-8">
                 <div className="bg-[#15803d] px-6 py-3 flex items-center gap-2">
                   <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 9v2m0 4h.01M5 19h14a2 2 0 001.84-2.75L13.74 4a2 2 0 00-3.48 0l-7.1 12.25A2 2 0 005 19z"/></svg>
                   <h3 className="font-black text-white text-sm uppercase tracking-wider">Action Required — Payment</h3>
                 </div>
                 <div className="p-6">
-                  <p className="text-xs text-gray-600 leading-relaxed mb-5">
+                  <p className="text-xs text-gray-600 dark:text-gray-300 leading-relaxed mb-5">
                     Your documents are ready. Pay online here, or bring your payment slip to the Finance Office.
                   </p>
                   <div className="space-y-4">
                     {billableGroups.map((group) => (
-                      <div key={group.groupId} className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-gray-100 last:border-0 last:pb-0">
+                      <div key={group.groupId} className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-gray-100 dark:border-gray-700 last:border-0 last:pb-0">
                         <div className="space-y-1.5">
                           {group.docs.map((doc) => (
                             <div key={doc.id} className="flex items-baseline justify-between gap-4 text-sm">
-                              <span className="font-bold text-gray-900">{doc.document_sequence_number || doc.document_type}</span>
-                              <span className="font-mono text-xs text-gray-400 select-text">{formatPeso(doc.amount)}</span>
+                              <span className="font-bold text-gray-900 dark:text-gray-100">{doc.document_sequence_number || doc.document_type}</span>
+                              <span className="font-mono text-xs text-gray-400 dark:text-gray-400 select-text">{formatPeso(doc.amount)}</span>
                             </div>
                           ))}
                         </div>
@@ -195,19 +196,19 @@ export default function StudentDashboard({ user, currentTab, setViewImageUrl }) 
             )}
 
             {/* Active Requests Card Table */}
-            <div className="bg-white rounded-3xl shadow-sm border border-gray-200 overflow-hidden mt-8">
-              <div className="p-4 sm:p-6 border-b border-gray-100 bg-gray-50/50 flex justify-between items-center">
-                <h3 className="font-bold text-gray-900 text-lg">ACTIVE REQUESTS</h3>
-                <button onClick={loadDashboardData} className="text-xs text-[#15803d] font-bold hover:underline inline-flex items-center gap-1"><svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.992 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182" /></svg> Refresh</button>
+            <div className="bg-white dark:bg-gray-900 rounded-3xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden mt-8">
+              <div className="p-4 sm:p-6 border-b border-gray-100 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800/50 flex justify-between items-center">
+                <h3 className="font-bold text-gray-900 dark:text-gray-100 text-lg">ACTIVE REQUESTS</h3>
+                <button onClick={loadDashboardData} className="text-xs text-[#15803d] dark:text-green-300 font-bold hover:underline inline-flex items-center gap-1"><svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.992 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182" /></svg> Refresh</button>
               </div>
               <div className="p-4 sm:p-6">
                 <div className="max-h-[calc(100vh-280px)] overflow-y-auto overflow-x-auto">
                   {documents.length === 0 ? (
-                    <div className="text-center py-12 text-gray-400 font-medium">No active request records. Submit one at the top!</div>
+                    <div className="text-center py-12 text-gray-400 dark:text-gray-400 font-medium">No active request records. Submit one at the top!</div>
                   ) : (
                     <table className="w-full text-left border-collapse table-fixed min-w-[720px]">
-                      <thead className="sticky top-0 bg-white z-10">
-                        <tr className="text-gray-400 text-[10px] uppercase tracking-widest border-b border-gray-100">
+                      <thead className="sticky top-0 bg-white dark:bg-gray-900 z-10">
+                        <tr className="text-gray-400 dark:text-gray-400 text-[10px] uppercase tracking-widest border-b border-gray-100 dark:border-gray-700">
                           <th className="pb-4 font-bold pl-4 min-w-[90px]">Date</th>
                           <th className="pb-4 font-bold px-3 min-w-[160px]">Document /Type</th>
                           <th className="pb-4 font-bold px-3 min-w-[140px]">Progress</th>
@@ -215,24 +216,24 @@ export default function StudentDashboard({ user, currentTab, setViewImageUrl }) 
                           <th className="pb-4 font-bold text-right pr-4 min-w-[150px]">Action</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-gray-50">
+                      <tbody className="divide-y divide-gray-50 dark:divide-gray-700">
                         {documents.filter(d => docFilter === 'ALL' || (docFilter === 'COMPLETED' ? d.current_status === STATUS.COMPLETED : d.current_status !== STATUS.COMPLETED)).map(doc => (
-                          <tr key={doc.id} className="hover:bg-gray-50/50 transition-colors">
-                            <td className="py-4 pl-4 text-xs font-semibold text-gray-400">{new Date(doc.created_at).toLocaleDateString()} {new Date(doc.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</td>
+                          <tr key={doc.id} className="hover:bg-gray-50/50 dark:hover:bg-gray-800/50 transition-colors">
+                            <td className="py-4 pl-4 text-xs font-semibold text-gray-400 dark:text-gray-400">{new Date(doc.created_at).toLocaleDateString()} {new Date(doc.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</td>
                             <td className="py-4 px-3">
-                              <div className="text-sm font-bold text-gray-900">{doc.document_sequence_number || doc.document_type} {doc.is_same_day ? <span className="ml-2 px-1.5 py-0.5 bg-green-100 text-green-700 text-[9px] uppercase font-black rounded">Same Day Release</span> : null}</div>
-                              <div className="text-xs font-mono text-gray-400 mt-0.5">#{doc.tracking_number ? doc.tracking_number.slice(0, 10).toUpperCase() : doc.id}</div>
+                              <div className="text-sm font-bold text-gray-900 dark:text-gray-100">{doc.document_sequence_number || doc.document_type} {doc.is_same_day ? <span className="ml-2 px-1.5 py-0.5 bg-green-100 dark:bg-green-950/40 text-green-700 dark:text-green-300 text-[9px] uppercase font-black rounded">Same Day Release</span> : null}</div>
+                              <div className="text-xs font-mono text-gray-400 dark:text-gray-400 mt-0.5">#{doc.tracking_number ? doc.tracking_number.slice(0, 10).toUpperCase() : doc.id}</div>
                             </td>
                             <td className="py-4 px-3">
                               <div className="flex items-center gap-3">
-                                <div className="w-full bg-gray-100 rounded-full h-2 overflow-hidden">
-                                  <div className="bg-[#15803d] h-2 rounded-full transition-all duration-500" style={{ width: `${getProgressVal(doc.current_status)}%` }}></div>
+                                <div className="w-full bg-gray-100 dark:bg-gray-800 rounded-full h-2 overflow-hidden">
+                                  <div className="bg-[#15803d] h-2 rounded-full transition-all duration-200" style={{ width: `${getProgressVal(doc.current_status)}%` }}></div>
                                 </div>
-                                <span className="text-[11px] font-bold text-gray-600 font-mono">{getProgressVal(doc.current_status)}%</span>
+                                <span className="text-[11px] font-bold text-gray-600 dark:text-gray-300 font-mono">{getProgressVal(doc.current_status)}%</span>
                               </div>
                             </td>
                             <td className="py-4 px-3">
-                              <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${doc.current_status === STATUS.COMPLETED || doc.current_status === 'APPROVED' ? 'bg-emerald-50 text-[#15803d]' : doc.current_status === 'REJECTED' ? 'bg-gray-100 text-gray-500 line-through' : isAwaitingStudent(doc.current_status) ? 'bg-red-50 text-red-700' : 'bg-amber-50 text-amber-700'}`}>
+                              <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${doc.current_status === STATUS.COMPLETED || doc.current_status === 'APPROVED' ? 'bg-emerald-50 dark:bg-emerald-950/40 text-[#15803d] dark:text-green-300' : doc.current_status === 'REJECTED' ? 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 line-through' : isAwaitingStudent(doc.current_status) ? 'bg-red-50 dark:bg-red-950/40 text-red-700 dark:text-red-300' : 'bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300'}`}>
                                 {getStatusLabel(doc.current_status)}
                               </span>
                             </td>
@@ -249,7 +250,7 @@ export default function StudentDashboard({ user, currentTab, setViewImageUrl }) 
                                 ) : isCancellable(doc.current_status) ? (
                                   <button
                                     onClick={() => handleStudentCancelRequest(doc.id)}
-                                    className="px-4 py-1.5 bg-red-50 text-red-600 rounded-xl text-xs font-bold hover:bg-red-100 transition-all border border-red-200 flex items-center gap-1.5 whitespace-nowrap shrink-0"
+                                    className="px-4 py-1.5 bg-red-50 dark:bg-red-950/40 text-red-600 dark:text-red-300 rounded-xl text-xs font-bold hover:bg-red-100 dark:hover:bg-red-950/40 transition-all border border-red-200 dark:border-red-800 flex items-center gap-1.5 whitespace-nowrap shrink-0"
                                   >
                                     <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M6 18L18 6M6 6l12 12"/></svg>
                                     Cancel
@@ -257,7 +258,7 @@ export default function StudentDashboard({ user, currentTab, setViewImageUrl }) 
                                 ) : (
                                   <button
                                     onClick={() => { setSelectedDoc(doc); setActiveModal('tracking'); }}
-                                    className="px-4 py-1.5 bg-blue-50 text-blue-600 rounded-xl text-xs font-bold hover:bg-blue-100 transition-all border border-blue-200 flex items-center gap-1.5 whitespace-nowrap shrink-0"
+                                    className="px-4 py-1.5 bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-300 rounded-xl text-xs font-bold hover:bg-blue-100 dark:hover:bg-blue-950/40 transition-all border border-blue-200 dark:border-blue-800 flex items-center gap-1.5 whitespace-nowrap shrink-0"
                                     title="Track Document"
                                   >
                                     <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"/></svg>
@@ -280,13 +281,13 @@ export default function StudentDashboard({ user, currentTab, setViewImageUrl }) 
 
       {/* INCOMPLETE PROFILE MODAL */}
       {missingProfileFields && (
-        <ModalShell open={true} onClose={() => setMissingProfileFields(null)} title="Profile Incomplete" bare panelClassName="bg-white rounded-3xl shadow-2xl w-full max-w-sm z-10 border border-gray-100 relative text-center">
+        <ModalShell open={true} onClose={() => setMissingProfileFields(null)} title="Profile Incomplete" bare panelClassName="bg-white dark:bg-gray-900 rounded-3xl shadow-2xl w-full max-w-sm z-10 border border-gray-100 dark:border-gray-700 relative text-center">
           <div className="p-8 flex flex-col items-center gap-4">
-            <div className="w-16 h-16 rounded-full bg-amber-50 text-amber-500 flex items-center justify-center mb-2">
+            <div className="w-16 h-16 rounded-full bg-amber-50 dark:bg-amber-950/40 text-amber-500 dark:text-amber-300 flex items-center justify-center mb-2">
               <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
             </div>
-            <h3 className="text-lg font-black text-gray-900">Missing Information</h3>
-            <p className="text-sm text-gray-500">
+            <h3 className="text-lg font-black text-gray-900 dark:text-gray-100">Missing Information</h3>
+            <p className="text-sm text-gray-500 dark:text-gray-400">
               You cannot request documents until you complete your profile. Please open your <strong>Account Settings</strong> and add your {missingProfileFields.join(' and ')}.
             </p>
             <button 
@@ -308,17 +309,17 @@ export default function StudentDashboard({ user, currentTab, setViewImageUrl }) 
             {/* Header */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
               <div>
-                <h2 className="text-2xl sm:text-3xl font-display font-black text-gray-900 tracking-tight">
+                <h2 className="text-2xl sm:text-3xl font-display font-black text-gray-900 dark:text-gray-100 tracking-tight">
                   Request History
                 </h2>
               </div>
             </div>
 
             {/* History Table */}
-            <div className="bg-white rounded-3xl shadow-sm border border-gray-200 overflow-hidden">
-              <div className="p-4 sm:p-6 border-b border-gray-100 bg-gray-50/50 flex justify-between items-center">
-                <h3 className="font-bold text-gray-900 text-lg">Your request history</h3>
-                <select value={docFilter} onChange={(e) => setDocFilter(e.target.value)} className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 text-[#15803d] border border-emerald-100 rounded-xl text-xs font-bold hover:bg-emerald-100 transition-all outline-none">
+            <div className="bg-white dark:bg-gray-900 rounded-3xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+              <div className="p-4 sm:p-6 border-b border-gray-100 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800/50 flex justify-between items-center">
+                <h3 className="font-bold text-gray-900 dark:text-gray-100 text-lg">Your request history</h3>
+                <select value={docFilter} onChange={(e) => setDocFilter(e.target.value)} className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 dark:bg-emerald-950/40 text-[#15803d] dark:text-green-300 border border-emerald-100 dark:border-emerald-800 rounded-xl text-xs font-bold hover:bg-emerald-100 dark:hover:bg-emerald-950/40 transition-all outline-none">
                   <option value="ALL">All Documents</option>
                   <option value="ACTIVE">Active Documents</option>
                   <option value="COMPLETED">Completed</option>
@@ -327,25 +328,25 @@ export default function StudentDashboard({ user, currentTab, setViewImageUrl }) 
               <div className="p-4 sm:p-6">
                 <div className="max-h-[calc(100vh-280px)] overflow-y-auto overflow-x-auto">
                   {documents.length === 0 ? (
-                    <div className="text-center py-12 text-gray-400 font-medium">No request history found.</div>
+                    <div className="text-center py-12 text-gray-400 dark:text-gray-400 font-medium">No request history found.</div>
                   ) : (
                     <table className="w-full text-left border-collapse table-fixed min-w-[560px]">
-                      <thead className="sticky top-0 bg-white z-10">
-                        <tr className="text-gray-400 text-[10px] uppercase tracking-widest border-b border-gray-100">
+                      <thead className="sticky top-0 bg-white dark:bg-gray-900 z-10">
+                        <tr className="text-gray-400 dark:text-gray-400 text-[10px] uppercase tracking-widest border-b border-gray-100 dark:border-gray-700">
                           <th className="pb-4 font-bold pl-4 min-w-[160px]">Docuement</th>
                           <th className="pb-4 font-bold min-w-[110px]">Date Requested</th>
                           <th className="pb-4 font-bold min-w-[110px]">Tracking ID</th>
                           <th className="pb-4 font-bold min-w-[110px]">Status</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-gray-50">
+                      <tbody className="divide-y divide-gray-50 dark:divide-gray-700">
                         {documents.map(doc => (
-                          <tr key={doc.id} className="hover:bg-gray-50/50 transition-colors">
-                            <td className="py-4 pl-4 text-sm font-bold text-gray-900">{doc.document_sequence_number || doc.document_type}</td>
-                            <td className="py-4 text-xs font-semibold text-gray-400">{new Date(doc.created_at).toLocaleDateString()} {new Date(doc.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</td>
-                            <td className="py-4 font-mono text-xs text-gray-800 font-bold">#{doc.tracking_number ? doc.tracking_number.slice(0, 10).toUpperCase() : doc.id}</td>
+                          <tr key={doc.id} className="hover:bg-gray-50/50 dark:hover:bg-gray-800/50 transition-colors">
+                            <td className="py-4 pl-4 text-sm font-bold text-gray-900 dark:text-gray-100">{doc.document_sequence_number || doc.document_type}</td>
+                            <td className="py-4 text-xs font-semibold text-gray-400 dark:text-gray-400">{new Date(doc.created_at).toLocaleDateString()} {new Date(doc.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</td>
+                            <td className="py-4 font-mono text-xs text-gray-800 dark:text-gray-100 font-bold">#{doc.tracking_number ? doc.tracking_number.slice(0, 10).toUpperCase() : doc.id}</td>
                             <td className="py-4">
-                              <span className="px-3 py-1 bg-emerald-50 text-[#15803d] text-[10px] font-black rounded-full uppercase tracking-wider">
+                              <span className="px-3 py-1 bg-emerald-50 dark:bg-emerald-950/40 text-[#15803d] dark:text-green-300 text-[10px] font-black rounded-full uppercase tracking-wider">
                                 {doc.current_status === STATUS.COMPLETED ? 'Released' : 'Processing'}
                               </span>
                             </td>
@@ -367,17 +368,17 @@ export default function StudentDashboard({ user, currentTab, setViewImageUrl }) 
             {/* Header */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
               <div>
-                <h2 className="text-2xl sm:text-3xl font-display font-black text-gray-900 tracking-tight">
+                <h2 className="text-2xl sm:text-3xl font-display font-black text-gray-900 dark:text-gray-100 tracking-tight">
                   Payment History
                 </h2>
               </div>
             </div>
 
             {/* Payment Card Table */}
-            <div className="bg-white rounded-3xl shadow-sm border border-gray-200 overflow-hidden">
-              <div className="p-4 sm:p-6 border-b border-gray-100 bg-gray-50/50 flex justify-between items-center">
-                <h3 className="font-bold text-gray-900 text-lg">Manage your digital transactions.</h3>
-                <button className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 text-[#15803d] border border-emerald-100 rounded-xl text-xs font-bold hover:bg-emerald-100 transition-all">
+            <div className="bg-white dark:bg-gray-900 rounded-3xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+              <div className="p-4 sm:p-6 border-b border-gray-100 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800/50 flex justify-between items-center">
+                <h3 className="font-bold text-gray-900 dark:text-gray-100 text-lg">Manage your digital transactions.</h3>
+                <button className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 dark:bg-emerald-950/40 text-[#15803d] dark:text-green-300 border border-emerald-100 dark:border-emerald-800 rounded-xl text-xs font-bold hover:bg-emerald-100 dark:hover:bg-emerald-950/40 transition-all">
                   <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"/></svg>
                   Filters
                 </button>
@@ -385,11 +386,11 @@ export default function StudentDashboard({ user, currentTab, setViewImageUrl }) 
               <div className="p-4 sm:p-6">
                 <div className="max-h-[calc(100vh-280px)] overflow-y-auto overflow-x-auto">
                   {documents.filter(d => d.payment_status === 'PAID' || d.gcash_reference_no).length === 0 ? (
-                    <div className="text-center py-12 text-gray-400 font-medium">No transaction payments detected.</div>
+                    <div className="text-center py-12 text-gray-400 dark:text-gray-400 font-medium">No transaction payments detected.</div>
                   ) : (
                     <table className="w-full text-left border-collapse table-fixed min-w-[620px]">
-                      <thead className="sticky top-0 bg-white z-10">
-                        <tr className="text-gray-400 text-[10px] uppercase tracking-widest border-b border-gray-100">
+                      <thead className="sticky top-0 bg-white dark:bg-gray-900 z-10">
+                        <tr className="text-gray-400 dark:text-gray-400 text-[10px] uppercase tracking-widest border-b border-gray-100 dark:border-gray-700">
                           <th className="pb-4 font-bold pl-4 min-w-[90px]">Date</th>
                           <th className="pb-4 font-bold min-w-[130px]">Reference Number</th>
                           <th className="pb-4 font-bold min-w-[140px]">Document</th>
@@ -398,31 +399,31 @@ export default function StudentDashboard({ user, currentTab, setViewImageUrl }) 
                           <th className="pb-4 font-bold text-right pr-4 min-w-[70px]">Receipt</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-gray-50">
+                      <tbody className="divide-y divide-gray-50 dark:divide-gray-700">
                         {documents.filter(d => d.payment_status === 'PAID' || d.gcash_reference_no).map(doc => (
-                          <tr key={doc.id} className="hover:bg-gray-50/50 transition-colors">
-                            <td className="py-4 pl-4 text-xs font-semibold text-gray-400">{new Date(doc.updated_at).toLocaleDateString()} {new Date(doc.updated_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</td>
-                            <td className="py-4 font-mono text-xs text-gray-800 font-black">{doc.gcash_reference_no ? doc.gcash_reference_no.slice(0, 8).toUpperCase() : '—'}</td>
-                            <td className="py-4 text-sm font-bold text-gray-700">{doc.document_sequence_number || doc.document_type}</td>
-                            <td className="py-4 text-xs font-bold text-gray-800 font-mono">P {parseFloat(doc.amount || 150).toFixed(2)}</td>
+                          <tr key={doc.id} className="hover:bg-gray-50/50 dark:hover:bg-gray-800/50 transition-colors">
+                            <td className="py-4 pl-4 text-xs font-semibold text-gray-400 dark:text-gray-400">{new Date(doc.updated_at).toLocaleDateString()} {new Date(doc.updated_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</td>
+                            <td className="py-4 font-mono text-xs text-gray-800 dark:text-gray-100 font-black">{doc.gcash_reference_no ? doc.gcash_reference_no.slice(0, 8).toUpperCase() : '—'}</td>
+                            <td className="py-4 text-sm font-bold text-gray-700 dark:text-gray-300">{doc.document_sequence_number || doc.document_type}</td>
+                            <td className="py-4 text-xs font-bold text-gray-800 dark:text-gray-100 font-mono">P {parseFloat(doc.amount || 150).toFixed(2)}</td>
                             <td className="py-4">
                               {doc.payment_status === 'PAID' ? (
-                                <span className="px-3 py-1 bg-emerald-50 text-[#15803d] text-[10px] font-black rounded-full uppercase tracking-wider">PAID</span>
+                                <span className="px-3 py-1 bg-emerald-50 dark:bg-emerald-950/40 text-[#15803d] dark:text-green-300 text-[10px] font-black rounded-full uppercase tracking-wider">PAID</span>
                               ) : (
-                                <span className="px-3 py-1 bg-amber-50 text-amber-600 text-[10px] font-black rounded-full uppercase tracking-wider">VERIFYING</span>
+                                <span className="px-3 py-1 bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-300 text-[10px] font-black rounded-full uppercase tracking-wider">VERIFYING</span>
                               )}
                             </td>
                             <td className="py-4 text-right pr-4">
                               {doc.official_receipt_path ? (
                                 <button 
                                   onClick={() => setViewImageUrl(doc.official_receipt_path)}
-                                  className="p-2 text-[#15803d] hover:bg-emerald-50 rounded-xl transition-colors"
+                                  className="p-2 text-[#15803d] dark:text-green-300 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 rounded-xl transition-colors"
                                   title="View Official Finance Receipt"
                                 >
                                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
                                 </button>
                               ) : (
-                                <span className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">Pending</span>
+                                <span className="text-[10px] text-gray-400 dark:text-gray-400 font-bold uppercase tracking-widest">Pending</span>
                               )}
                             </td>
                           </tr>
@@ -458,21 +459,21 @@ export default function StudentDashboard({ user, currentTab, setViewImageUrl }) 
         {/* 1.5. COMPLETE YOUR GCASH PAYMENT MODAL */}
         {activeModal === 'pay' && selectedDoc && createPortal(
           <div className="fixed inset-0 z-[100] flex items-start sm:items-center justify-center p-4 overflow-y-auto">
-            <div className="absolute inset-0 bg-gray-900/60 backdrop-blur-md" onClick={() => setActiveModal(null)}></div>
-            <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg max-h-[calc(100dvh-2rem)] overflow-y-auto p-6 sm:p-8 z-10 border border-gray-100 relative">
+            <div className="absolute inset-0 bg-gray-900/60 dark:bg-gray-800/60 backdrop-blur-md" onClick={() => setActiveModal(null)}></div>
+            <div className="bg-white dark:bg-gray-900 rounded-3xl shadow-2xl w-full max-w-lg max-h-[calc(100dvh-2rem)] overflow-y-auto p-6 sm:p-8 z-10 border border-gray-100 dark:border-gray-700 relative">
 
               <button 
                 onClick={() => handleStudentCancelRequest(selectedDoc.id, true)}
-                className="absolute top-4 left-4 px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-xl text-[10px] font-bold transition-all flex items-center gap-1"
+                className="absolute top-4 left-4 px-3 py-1.5 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-300 rounded-xl text-[10px] font-bold transition-all flex items-center gap-1"
               >
                 <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
                 Back to Form
               </button>
-              <button className="absolute top-4 right-4 w-8 h-8 rounded-full flex items-center justify-center text-gray-400 hover:bg-gray-100" onClick={() => setActiveModal(null)}>✕</button>
+              <button className="absolute top-4 right-4 w-8 h-8 rounded-full flex items-center justify-center text-gray-400 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800" onClick={() => setActiveModal(null)}>✕</button>
 
-              <div className="mt-8 pb-5 mb-6 text-center border-b border-gray-100">
-                <h3 className="text-xl font-black text-gray-900">Complete your Payment</h3>
-                <p className="text-xs text-gray-400 mt-1 font-semibold">Add Payment</p>
+              <div className="mt-8 pb-5 mb-6 text-center border-b border-gray-100 dark:border-gray-700">
+                <h3 className="text-xl font-black text-gray-900 dark:text-gray-100">Complete your Payment</h3>
+                <p className="text-xs text-gray-400 dark:text-gray-400 mt-1 font-semibold">Add Payment</p>
               </div>
 
               {/* Payment method picker */}
@@ -485,7 +486,7 @@ export default function StudentDashboard({ user, currentTab, setViewImageUrl }) 
                     className={`px-4 py-2 rounded-xl text-[11px] font-bold border transition-all ${
                       selectedMethod === m.code
                         ? 'bg-[#15803d] border-[#15803d] text-white shadow-sm'
-                        : 'bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100'
+                        : 'bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800'
                     }`}
                   >
                     {m.name}
@@ -493,14 +494,14 @@ export default function StudentDashboard({ user, currentTab, setViewImageUrl }) 
                 ))}
               </div>
 
-              <div className="border-2 border-dashed border-[#15803d]/40 bg-gray-50/50 p-6 rounded-2xl flex flex-col items-center gap-4 mb-6 text-center">
+              <div className="border-2 border-dashed border-[#15803d]/40 bg-gray-50/50 dark:bg-gray-800/50 p-6 rounded-2xl flex flex-col items-center gap-4 mb-6 text-center">
                 {selectedMethod === 'gcash' ? (
                   <>
-                    <span className="text-xs font-bold text-gray-800">Scan this QR code using your GCash app to pay.</span>
-                    <img src="/gcash-qr.jpg" alt="GCash QR Code" className="w-50 h-60 rounded-xl shadow-sm object-cover border border-gray-200" />
+                    <span className="text-xs font-bold text-gray-800 dark:text-gray-100">Scan this QR code using your GCash app to pay.</span>
+                    <img src="/gcash-qr.jpg" alt="GCash QR Code" className="w-50 h-60 rounded-xl shadow-sm object-cover border border-gray-200 dark:border-gray-700" />
                   </>
                 ) : (
-                  <span className="text-xs font-semibold text-gray-700 leading-relaxed">
+                  <span className="text-xs font-semibold text-gray-700 dark:text-gray-300 leading-relaxed">
                     {selectedPaymentMethod?.instructions || 'Complete your payment, then submit proof below.'}
                   </span>
                 )}
@@ -509,38 +510,38 @@ export default function StudentDashboard({ user, currentTab, setViewImageUrl }) 
               <form onSubmit={handleStudentSubmitPayment} className="space-y-6">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="flex flex-col gap-1.5">
-                    <label className="text-[10px] font-bold text-gray-800 uppercase tracking-widest">Document</label>
+                    <label className="text-[10px] font-bold text-gray-800 dark:text-gray-100 uppercase tracking-widest">Document</label>
                     <input 
                       type="text" 
                       disabled 
                       value={selectedDoc.document_type} 
-                      className="p-3 bg-gray-100 border border-gray-200 rounded-xl text-xs font-semibold text-gray-500"
+                      className="p-3 bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-xs font-semibold text-gray-500 dark:text-gray-400"
                     />
                   </div>
                   <div className="flex flex-col gap-1.5">
-                    <label className="text-[10px] font-bold text-gray-800 uppercase tracking-widest">Tracking ID</label>
+                    <label className="text-[10px] font-bold text-gray-800 dark:text-gray-100 uppercase tracking-widest">Tracking ID</label>
                     <input 
                       type="text" 
                       disabled 
                       value={`TRC - ${selectedDoc.tracking_number ? selectedDoc.tracking_number.slice(0, 6).toUpperCase() : selectedDoc.id}`} 
-                      className="p-3 bg-gray-100 border border-gray-200 rounded-xl text-xs font-semibold text-gray-500"
+                      className="p-3 bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-xs font-semibold text-gray-500 dark:text-gray-400"
                     />
                   </div>
                 </div>
 
                 
                 
-                <div className="bg-emerald-50 border border-emerald-100 rounded-xl p-4 flex flex-col gap-2">
-                  <div className="flex justify-between items-center text-sm text-emerald-900 border-b border-emerald-100/50 pb-2 mb-2">
+                <div className="bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-100 dark:border-emerald-800 rounded-xl p-4 flex flex-col gap-2">
+                  <div className="flex justify-between items-center text-sm text-emerald-900 dark:text-emerald-300 border-b border-emerald-100/50 dark:border-emerald-800/50 pb-2 mb-2">
                     <span className="font-bold">Total Amount Due</span>
                     <span className="font-black text-lg">{formatPeso(selectedDoc.group_total)}</span>
                   </div>
-                  <div className="text-xs text-emerald-800/80 space-y-3">
+                  <div className="text-xs text-emerald-800/80 dark:text-emerald-300/80 space-y-3">
                     {documents.filter(d => d.request_group_id === selectedDoc.request_group_id).map(doc => {
                       return (
                         <div key={doc.id} className="flex flex-col gap-0.5">
-                          <span className="font-bold text-emerald-900">{doc.document_sequence_number || doc.document_type}</span>
-                          <div className="flex justify-between pl-2 text-emerald-800/80">
+                          <span className="font-bold text-emerald-900 dark:text-emerald-300">{doc.document_sequence_number || doc.document_type}</span>
+                          <div className="flex justify-between pl-2 text-emerald-800/80 dark:text-emerald-300/80">
                             <span>Evaluated Price</span>
                             <span className="font-mono font-semibold">{formatPeso(doc.amount)}</span>
                           </div>
@@ -554,7 +555,7 @@ export default function StudentDashboard({ user, currentTab, setViewImageUrl }) 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   {selectedPaymentMethod?.requires_reference !== false && (
                     <div className="flex flex-col gap-1.5">
-                      <label className="text-[10px] font-bold text-gray-800 uppercase tracking-widest">
+                      <label className="text-[10px] font-bold text-gray-800 dark:text-gray-100 uppercase tracking-widest">
                         {selectedPaymentMethod?.reference_label || 'Reference Number'}
                       </label>
                       <input
@@ -563,13 +564,13 @@ export default function StudentDashboard({ user, currentTab, setViewImageUrl }) 
                         placeholder="e.g. 5001 0293 8472"
                         value={paymentRef}
                         onChange={(e) => setPaymentRef(e.target.value)}
-                        className="p-3 bg-gray-50 border border-gray-200 rounded-xl text-xs font-semibold focus:ring-2 focus:ring-[#15803d]/20 outline-none"
+                        className="p-3 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-xs font-semibold focus:ring-2 focus:ring-[#15803d]/20 outline-none"
                       />
                     </div>
                   )}
                   {selectedPaymentMethod?.requires_proof !== false && (
                     <div className="flex flex-col gap-1.5">
-                      <label className="text-[10px] font-bold text-gray-800 uppercase tracking-widest">Upload Receipt</label>
+                      <label className="text-[10px] font-bold text-gray-800 dark:text-gray-100 uppercase tracking-widest">Upload Receipt</label>
                       <div className="relative">
                         <input
                           type="file"
@@ -578,9 +579,9 @@ export default function StudentDashboard({ user, currentTab, setViewImageUrl }) 
                           onChange={(e) => setPaymentFile(e.target.files[0])}
                           className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
                         />
-                        <div className="p-3 bg-gray-50 border border-gray-200 rounded-xl text-xs font-semibold text-gray-500 flex justify-between items-center pointer-events-none">
+                        <div className="p-3 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-xs font-semibold text-gray-500 dark:text-gray-400 flex justify-between items-center pointer-events-none">
                           <span className="truncate">{paymentFile ? paymentFile.name : 'Upload your receipt...'}</span>
-                          <svg className="w-4 h-4 text-[#15803d]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+                          <svg className="w-4 h-4 text-[#15803d] dark:text-green-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
                         </div>
                       </div>
                     </div>
@@ -597,7 +598,7 @@ export default function StudentDashboard({ user, currentTab, setViewImageUrl }) 
                 <button
                   type="button"
                   onClick={() => setActiveModal('payment-stub')}
-                  className="w-full mt-3 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold py-3.5 rounded-xl transition-all uppercase tracking-wider text-xs flex justify-center items-center gap-2"
+                  className="w-full mt-3 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300 font-bold py-3.5 rounded-xl transition-all uppercase tracking-wider text-xs flex justify-center items-center gap-2"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
                   Print Payment Slip (Walk-in)
@@ -612,12 +613,12 @@ export default function StudentDashboard({ user, currentTab, setViewImageUrl }) 
         {/* 1.6. PAYMENT SUCCESS SCREEN MODAL */}
         {activeModal === 'pay-success' && createPortal(
           <div className="fixed inset-0 z-[100] flex items-start sm:items-center justify-center p-4 overflow-y-auto">
-            <div className="absolute inset-0 bg-gray-900/60 backdrop-blur-md" onClick={() => setActiveModal(null)}></div>
-            <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg max-h-[calc(100dvh-2rem)] overflow-y-auto p-6 sm:p-8 z-10 border border-gray-100 relative text-center">
-              <h3 className="text-xl font-black text-gray-900 mb-6">Payment Submitted</h3>
+            <div className="absolute inset-0 bg-gray-900/60 dark:bg-gray-800/60 backdrop-blur-md" onClick={() => setActiveModal(null)}></div>
+            <div className="bg-white dark:bg-gray-900 rounded-3xl shadow-2xl w-full max-w-lg max-h-[calc(100dvh-2rem)] overflow-y-auto p-6 sm:p-8 z-10 border border-gray-100 dark:border-gray-700 relative text-center">
+              <h3 className="text-xl font-black text-gray-900 dark:text-gray-100 mb-6">Payment Submitted</h3>
 
-              <div className="border-2 border-dashed border-[#15803d]/40 bg-gray-50/50 p-8 rounded-2xl flex flex-col items-center gap-6 mb-6">
-                <p className="text-xs font-semibold text-gray-600 leading-relaxed max-w-xs">
+              <div className="border-2 border-dashed border-[#15803d]/40 bg-gray-50/50 dark:bg-gray-800/50 p-8 rounded-2xl flex flex-col items-center gap-6 mb-6">
+                <p className="text-xs font-semibold text-gray-600 dark:text-gray-300 leading-relaxed max-w-xs">
                   Your reference number and uploaded receipt have been securely routed to Finance Office for verification. Once cleared, your Transcript of Record will be proceed to processing.
                 </p>
 

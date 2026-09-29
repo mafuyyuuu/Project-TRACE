@@ -4,9 +4,9 @@ import { getUserLabel } from '@/utils/userLabels';
 
 function Field({ label, value }) {
   return (
-    <div className="flex justify-between text-[11px] font-mono text-gray-600 py-2 border-b border-gray-100 last:border-0">
+    <div className="flex justify-between text-[11px] font-mono text-gray-600 dark:text-gray-300 py-2 border-b border-gray-100 dark:border-gray-700 last:border-0">
       <span>{label}</span>
-      <span className="font-bold text-gray-950 select-text">{value || '—'}</span>
+      <span className="font-bold text-gray-950 dark:text-gray-100 select-text">{value || '—'}</span>
     </div>
   );
 }
@@ -50,39 +50,39 @@ export default function UserDetailModal({ open, onClose, user, onEdit, onToggleA
               onClick={onToggleActive}
               disabled={mutationDisabled || isSelf || saving}
               title={isSelf ? 'You cannot deactivate your own account' : ''}
-              className="flex-1 px-5 py-3 rounded-2xl text-xs font-bold border border-gray-200 text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-50"
+              className="flex-1 px-5 py-3 rounded-2xl text-xs font-bold border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors disabled:opacity-50"
             >
               {user.is_active ? 'Deactivate User' : 'Restore User'}
             </button>
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 px-5 py-3 rounded-2xl text-xs font-bold text-gray-500 hover:text-gray-700 transition-colors"
+              className="flex-1 px-5 py-3 rounded-2xl text-xs font-bold text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"
             >
               Close
             </button>
           </div>
           {mutationDisabled && (
-            <p className="text-[11px] text-gray-400 text-center">
+            <p className="text-[11px] text-gray-400 dark:text-gray-400 text-center">
               {isStudent ? 'Not available for student accounts.' : 'View only.'}
             </p>
           )}
         </div>
       }
     >
-      <div className="flex flex-col items-center text-center pb-6 border-b border-gray-100">
+      <div className="flex flex-col items-center text-center pb-6 border-b border-gray-100 dark:border-gray-700">
         <UserAvatar user={user} className="w-20 h-20 rounded-full object-cover" alt={user.full_name} />
-        <h4 className="mt-3 text-lg font-display font-black text-gray-900">{user.full_name}</h4>
-        <p className="text-xs text-gray-500 select-text">{user.email || '—'}</p>
+        <h4 className="mt-3 text-lg font-display font-black text-gray-900 dark:text-gray-100 select-text break-words">{user.full_name}</h4>
+        <p className="text-xs text-gray-500 dark:text-gray-400 select-text">{user.email || '—'}</p>
         <div className="flex flex-wrap justify-center gap-1.5 mt-3">
-          <span className="text-[10px] font-bold px-2.5 py-1 rounded-full border bg-gray-50 text-gray-600 border-gray-200">
+          <span className="text-[10px] font-bold px-2.5 py-1 rounded-full border bg-gray-50 dark:bg-gray-800 text-gray-600 dark:text-gray-300 border-gray-200 dark:border-gray-700">
             {getUserLabel(user)}
           </span>
           <span
             className={`text-[10px] font-bold px-2.5 py-1 rounded-full border ${
               user.is_active
-                ? 'bg-emerald-50 text-[#15803d] border-emerald-100'
-                : 'bg-gray-100 text-gray-500 border-gray-200'
+                ? 'bg-emerald-50 dark:bg-emerald-950/40 text-[#15803d] dark:text-green-300 border-emerald-100 dark:border-emerald-800'
+                : 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 border-gray-200 dark:border-gray-700'
             }`}
           >
             {user.is_active ? 'Active' : 'Inactive'}

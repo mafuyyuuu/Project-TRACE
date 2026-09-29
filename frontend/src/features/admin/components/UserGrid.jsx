@@ -1,7 +1,7 @@
 import UserCard from '@/components/UserCard';
 
 const selectClass =
-  'px-4 py-2 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-[#15803d] cursor-pointer';
+  'px-4 py-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl text-sm focus:outline-none focus:border-[#15803d] cursor-pointer';
 
 /**
  * Search + filters + a responsive grid of UserCards.
@@ -31,7 +31,7 @@ export default function UserGrid({
           placeholder="Search by name or email…"
           value={searchValue}
           onChange={(e) => onSearchChange(e.target.value)}
-          className="flex-1 min-w-[220px] px-4 py-2 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-[#15803d]"
+          className="flex-1 min-w-[220px] px-4 py-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl text-sm focus:outline-none focus:border-[#15803d]"
         />
         <select className={selectClass} value={roleFilter} onChange={(e) => onRoleFilterChange(e.target.value)}>
           {roleOptions.map((o) => (
@@ -57,7 +57,7 @@ export default function UserGrid({
       </div>
 
       {users.length === 0 ? (
-        <div className="text-center py-12 text-gray-400 font-medium bg-white rounded-3xl border border-gray-200">
+        <div className="text-center py-12 text-gray-400 dark:text-gray-400 font-medium bg-white dark:bg-gray-900 rounded-3xl border border-gray-200 dark:border-gray-700">
           No users match your filters.
         </div>
       ) : (

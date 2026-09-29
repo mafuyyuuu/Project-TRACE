@@ -46,6 +46,11 @@ export default function useGraduateApplication(user) {
     setAnswers((current) => ({ ...current, [fieldKey]: value }));
   }, []);
 
+  const dismissNotification = useCallback(() => {
+    setError('');
+    setSuccess('');
+  }, []);
+
   /**
    * Client-side required check purely for fast feedback — the server validates
    * against the same definitions and is the authority.
@@ -93,6 +98,7 @@ export default function useGraduateApplication(user) {
     submitting,
     error,
     success,
+    dismissNotification,
     updateAnswer,
     handleSubmit,
     reload: load,
