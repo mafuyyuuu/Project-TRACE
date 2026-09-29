@@ -25,6 +25,7 @@ export default function useProfileSettings(user) {
     phone_number: user?.phone_number || '',
     email: user?.email || '',
     password: '',
+    current_password: '',
     extension_name: user?.extension_name || '',
     birth_date: user?.birth_date ? user.birth_date.split('T')[0] : '',
     place_of_birth: user?.place_of_birth || '',
@@ -94,7 +95,7 @@ export default function useProfileSettings(user) {
     try {
       await updateProfile(profileData);
       patchStoredUser({ phone_number: profileData.phone_number, email: profileData.email });
-      setProfileData((current) => ({ ...current, password: '' }));
+      setProfileData((current) => ({ ...current, password: '', current_password: '' }));
       messages.push('Profile updated successfully.');
     } catch (err) {
       errors.push(readError(err));

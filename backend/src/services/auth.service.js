@@ -1,6 +1,23 @@
 const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
+
+function validatePassword(password) {
+  const regex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+  if (!regex.test(password)) {
+    throw badRequest('Password must be at least 8 characters and include uppercase, lowercase, number, and special character.');
+  }
+}
+
+async function checkPasswordHistory(userId, newPassword) {
+  const history = await userModel.getPasswordHistory(userId);
+  for (const row of history) {
+    if (await bcrypt.compare(newPassword, row.password_hash)) {
+      throw badRequest('You cannot reuse any of your last 3 passwords.');
+    }
+  }
+}
+
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const env = require('../config/env');
@@ -16,26 +33,54 @@ const { badRequest, unauthorized, forbidden, notFound } = require('../utils/AppE
  * Authenticate by student/employee ID + password, returning a 24h JWT.
  * Students must be verified before they can log in; staff bypass that check.
  */
+
 async function login({ employee_id, password }, ipAddress, userAgent) {
+
+  const secRows = await userModel.getLoginSecurity(employee_id);
+  if (secRows.length > 0) {
+    const sec = secRows[0];
+    if (sec.locked_until && new Date(sec.locked_until) > new Date()) {
+      const minutesLeft = Math.ceil((new Date(sec.locked_until) - new Date()) / 60000);
+      throw badRequest(`Account locked. Try again in ${minutesLeft} minute(s).`);
+    }
+  }
+
   if (!employee_id || !password) {
     throw badRequest('Employee ID and password are required.');
   }
 
   const rows = await userModel.findActiveByStudentId(employee_id);
-  if (rows.length === 0) {
+  
+  const handleFail = async () => {
+    if (secRows.length > 0) {
+      const sec = secRows[0];
+      const attempts = sec.failed_login_attempts + 1;
+      if (attempts >= 5) {
+        const until = new Date(Date.now() + 15 * 60000);
+        await userModel.lockAccount(sec.id, until);
+        throw unauthorized('Account locked for 15 minutes due to too many failed attempts.');
+      } else {
+        await userModel.incrementFailedLogin(sec.id);
+        throw unauthorized(`Invalid ID or password. Attempt ${attempts} of 5.`);
+      }
+    }
     throw unauthorized('Invalid credentials.');
+  };
+
+  if (rows.length === 0) {
+    await handleFail();
   }
 
   const user = rows[0];
-
   const isMatch = await bcrypt.compare(password, user.password_hash);
   if (!isMatch) {
-    throw unauthorized('Invalid credentials.');
+    await handleFail();
   }
 
   if (user.role === 'student' && user.verification_status !== 'verified') {
-    throw forbidden('Your account is pending verification. Please wait for an admin to approve your request.');
+    throw forbidden(`Account is ${user.verification_status}.`);
   }
+
 
 
 
@@ -106,6 +151,7 @@ async function register(body, file) {
     }
   }
 
+  validatePassword(password);
   const password_hash = await bcrypt.hash(password, 10);
   const id_proof_path = file.path;
 
@@ -178,14 +224,60 @@ async function lookupStudent(studentId) {
 
 /** Partial profile update — only the fields actually supplied are written. */
 
-async function updateProfile(userId, { phone_number, email, course, password, ...profileFields }) {
+
+
+async function updateProfile(userId, { phone_number, email, course, password, current_password, ...profileFields }) {
   const fields = {};
+  
+  const users = await userModel.getProfileById(userId);
+  if (!users || users.length === 0) throw notFound('User not found.');
+  const currentUser = users[0];
+
+  const emailChanged = (email !== undefined && email !== '' && email !== currentUser.email);
+
+  if (emailChanged || password) {
+    if (!current_password) {
+      throw badRequest('Current password is required to change email or password.');
+    }
+    
+    const pwdRows = await userModel.getProfileById(userId);
+    if (!pwdRows || pwdRows.length === 0) throw notFound('User not found.');
+    // getProfileById does not select password_hash. I will use a new method or existing one.
+    // wait, findActiveByStudentId returns the full row including password_hash.
+    const userRow = await userModel.findActiveByStudentId(pwdRows[0].student_id);
+    if (!userRow || userRow.length === 0) throw notFound('User not found.');
+    const match = await bcrypt.compare(current_password, userRow[0].password_hash);
+
+    if (!match) {
+      throw unauthorized('Incorrect current password.');
+    }
+  }
+
+
   if (phone_number !== undefined) fields.phone_number = phone_number;
-  if (email !== undefined) fields.email = email;
+  if (email !== undefined && email !== '') fields.email = email;
   if (course !== undefined) fields.course = course;
+  
   if (password) {
+    validatePassword(password);
+    await checkPasswordHistory(userId, password);
     fields.password_hash = await bcrypt.hash(password, 10);
     fields.must_change_password = false;
+    await userModel.addPasswordHistory(userId, fields.password_hash);
+    
+    // SEC-07 Email notification
+    
+    const userRows = await userModel.getProfileById(userId);
+
+    if (userRows[0] && userRows[0].email) {
+      const nodemailer = require('nodemailer'); // Assumes we use the same mailer. We have notification.service.js
+      const notifications = require('./notification.service');
+      await notifications.notifyByEmail({
+        email: userRows[0].email,
+        title: 'Password Changed',
+        message: 'Your Project TRACE password was recently changed. If this was not you, please contact the administrator immediately.'
+      });
+    }
   }
 
   if (Object.keys(fields).length > 0) {
@@ -206,6 +298,7 @@ async function updateProfile(userId, { phone_number, email, course, password, ..
 
   return { message: 'Profile updated successfully.' };
 }
+
 
 
 /**
