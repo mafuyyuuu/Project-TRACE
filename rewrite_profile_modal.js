@@ -1,4 +1,6 @@
-import { useRef, useState, useMemo } from 'react';
+const fs = require('fs');
+
+const modalContent = `import { useRef, useState, useMemo } from 'react';
 import ModalShell from '@/components/ModalShell';
 import UserAvatar from '@/components/UserAvatar';
 
@@ -22,7 +24,7 @@ export default function ProfileSettingsModal({
     user?.role === 'admin'
       ? 'Registrar Admin'
       : user?.role === 'clerk'
-        ? `${user?.desk_assignment || 'Staff'} Clerk`
+        ? \`\${user?.desk_assignment || 'Staff'} Clerk\`
         : 'Student';
         
   const isStudent = user?.role === 'student' || user?.user_type === 'alumni' || user?.user_type === 'student';
@@ -90,7 +92,7 @@ export default function ProfileSettingsModal({
         <div className="flex items-start gap-4 pb-6">
           <div className="relative shrink-0">
             {avatarPreviewUrl ? (
-              <img src={avatarPreviewUrl} alt="New profile picture preview" className="w-20 h-20 rounded-full object-cover border-4 border-white shadow-md bg-gray-100" />
+              <img src={avatarPreviewUrl} alt="Preview" className="w-20 h-20 rounded-full object-cover border-4 border-white shadow-md bg-gray-100" />
             ) : (
               <UserAvatar user={user} overridePath={avatarPath} className="w-20 h-20 rounded-full object-cover border-4 border-white shadow-md bg-gray-100" />
             )}
@@ -98,7 +100,6 @@ export default function ProfileSettingsModal({
               type="button"
               onClick={() => fileInputRef.current?.click()}
               disabled={saving}
-              aria-label="Change profile picture"
               className="absolute -bottom-1 -right-1 w-8 h-8 rounded-full bg-[#15803d] hover:bg-[#166534] text-white flex items-center justify-center shadow-md transition-colors"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
@@ -107,7 +108,7 @@ export default function ProfileSettingsModal({
           </div>
           <div className="flex flex-col flex-1 pt-1">
             <h3 className="text-xl font-display font-black text-gray-900 leading-tight">{user?.full_name || '—'}</h3>
-            <p className="text-xs font-bold text-[#15803d] uppercase tracking-wider mt-0.5">{roleLabel} {user?.student_id && `· ${user.student_id}`}</p>
+            <p className="text-xs font-bold text-[#15803d] uppercase tracking-wider mt-0.5">{roleLabel} {user?.student_id && \`· \${user.student_id}\`}</p>
             
             {isStudent && (
               <div className="mt-3 w-full max-w-xs">
@@ -116,7 +117,7 @@ export default function ProfileSettingsModal({
                   <span className={progress === 100 ? "text-[#15803d]" : "text-amber-600"}>{progress}%</span>
                 </div>
                 <div className="h-1.5 w-full bg-gray-100 rounded-full overflow-hidden">
-                  <div className={`h-full rounded-full transition-all duration-500 ${progress === 100 ? 'bg-[#15803d]' : 'bg-amber-500'}`} style={{ width: `${progress}%` }}></div>
+                  <div className={\`h-full rounded-full transition-all duration-500 \${progress === 100 ? 'bg-[#15803d]' : 'bg-amber-500'}\`} style={{ width: \`\${progress}%\` }}></div>
                 </div>
               </div>
             )}
@@ -129,7 +130,7 @@ export default function ProfileSettingsModal({
             <button
               type="button"
               onClick={() => setActiveTab('personal')}
-              className={`pb-3 text-xs font-bold uppercase tracking-widest transition-colors relative flex items-center gap-1.5 ${activeTab === 'personal' ? 'text-[#15803d] border-b-2 border-[#15803d]' : 'text-gray-400 hover:text-gray-600'}`}
+              className={\`pb-3 text-xs font-bold uppercase tracking-widest transition-colors relative flex items-center gap-1.5 \${activeTab === 'personal' ? 'text-[#15803d] border-b-2 border-[#15803d]' : 'text-gray-400 hover:text-gray-600'}\`}
             >
               Personal & Security
               {missingPersonal && <span className="w-2 h-2 rounded-full bg-red-500 absolute -top-0.5 -right-2"></span>}
@@ -137,7 +138,7 @@ export default function ProfileSettingsModal({
             <button
               type="button"
               onClick={() => setActiveTab('educational')}
-              className={`pb-3 text-xs font-bold uppercase tracking-widest transition-colors relative flex items-center gap-1.5 ${activeTab === 'educational' ? 'text-[#15803d] border-b-2 border-[#15803d]' : 'text-gray-400 hover:text-gray-600'}`}
+              className={\`pb-3 text-xs font-bold uppercase tracking-widest transition-colors relative flex items-center gap-1.5 \${activeTab === 'educational' ? 'text-[#15803d] border-b-2 border-[#15803d]' : 'text-gray-400 hover:text-gray-600'}\`}
             >
               Educational Background
               {missingEdu && <span className="w-2 h-2 rounded-full bg-red-500 absolute -top-0.5 -right-2"></span>}
@@ -291,3 +292,6 @@ export default function ProfileSettingsModal({
     </ModalShell>
   );
 }
+`;
+
+fs.writeFileSync('frontend/src/components/ProfileSettingsModal.jsx', modalContent);

@@ -9,6 +9,7 @@ import ProfileSettingsModal from '@/components/ProfileSettingsModal'
 import ConfirmDialog from '@/components/ConfirmDialog'
 import UserAvatar from '@/components/UserAvatar'
 import plpLogo from '@/assets/plp_logo.png'
+import OnboardingTutorial from '@/features/student/components/OnboardingTutorial'
 
 export default function Layout() {
   const { user, logout } = useAuth()
@@ -20,6 +21,7 @@ export default function Layout() {
   const [showNotifs, setShowNotifs] = useState(false)
   const [showSettings, setShowSettings] = useState(false)
   const [showMobileNav, setShowMobileNav] = useState(false)
+  const [showTutorial, setShowTutorial] = useState(user?.role === 'student' && !localStorage.getItem('trace_tutorial_seen'))
   const [confirmingLogout, setConfirmingLogout] = useState(false)
   const [loggingOut, setLoggingOut] = useState(false)
 
@@ -93,6 +95,13 @@ export default function Layout() {
   }
 
   // A picked-but-unsaved picture must not survive closing without Save.
+
+  useEffect(() => {
+    const handleOpenSettings = () => setShowSettings(true);
+    window.addEventListener('open-profile-settings', handleOpenSettings);
+    return () => window.removeEventListener('open-profile-settings', handleOpenSettings);
+  }, []);
+
   const closeSettings = () => {
     settings.discardAvatarChange()
     setShowSettings(false)
@@ -163,6 +172,7 @@ export default function Layout() {
             )}
           </div>
           <button
+            id="tutorial-profile"
             onClick={openSettings}
             aria-label="Account settings"
             className="w-10 h-10 rounded-full overflow-hidden border-2 border-white shadow-sm shrink-0 bg-gray-100"

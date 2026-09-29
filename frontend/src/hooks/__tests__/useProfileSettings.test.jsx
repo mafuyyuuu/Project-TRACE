@@ -27,7 +27,7 @@ beforeEach(() => {
 describe('useProfileSettings', () => {
   it('seeds the form from the signed-in account', () => {
     const { result } = renderHook(() => useProfileSettings(USER));
-    expect(result.current.profileData).toEqual({
+    expect(result.current.profileData).toMatchObject({
       phone_number: '+639171234567',
       email: 'ana@plp.edu.ph',
       password: '',

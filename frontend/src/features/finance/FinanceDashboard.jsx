@@ -12,6 +12,7 @@ import { todayLongDate } from '@/utils/formatters';
 import DashboardAlerts from '@/components/DashboardAlerts';
 import DashboardLoading from '@/components/DashboardLoading';
 import StudentProfileModal from '@/components/StudentProfileModal';
+import PaymentStubModal from '@/features/secretary/components/PaymentStubModal';
 
 /**
  * Finance clerk: the two queues money passes through.
@@ -127,7 +128,14 @@ export default function FinanceDashboard({ user, setViewImageUrl }) {
                         </td>
                         <td className="py-4 text-xs font-bold text-gray-600">{doc.document_type}</td>
                         <td className="py-4 text-xs font-bold text-gray-800 font-mono">{formatPeso(doc.amount)}</td>
-                        <td className="py-4 text-right pr-4 min-w-[190px]">
+                        <td className="py-4 text-right pr-4 min-w-[200px] flex justify-end gap-2 items-center h-full">
+
+                          <button
+                            onClick={() => { setSelectedDoc(doc); setActiveModal('payment-stub'); }}
+                            className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-800 rounded-xl text-xs font-bold shadow-sm transition-all block whitespace-nowrap shrink-0"
+                          >
+                            View Slip
+                          </button>
                           <button
                             onClick={() => { setSelectedDoc(doc); setActiveModal('walk-in-payment'); }}
                             className="px-4 py-2 bg-gray-900 hover:bg-gray-800 text-white rounded-xl text-xs font-bold shadow-sm transition-all ml-auto block whitespace-nowrap shrink-0"
@@ -185,7 +193,14 @@ export default function FinanceDashboard({ user, setViewImageUrl }) {
                             ? <span className="text-gray-700">Counter · <span className="font-mono">{doc.or_number}</span></span>
                             : <span className="text-gray-500">Online</span>}
                         </td>
-                        <td className="py-4 text-right pr-4 min-w-[110px]">
+                        <td className="py-4 text-right pr-4 min-w-[140px] flex justify-end gap-2 items-center h-full">
+
+                          <button
+                            onClick={() => { setSelectedDoc(doc); setActiveModal('payment-stub'); }}
+                            className="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-800 rounded-lg text-[11px] font-bold shadow-sm transition-all whitespace-nowrap shrink-0"
+                          >
+                            Slip
+                          </button>
                           <button
                             onClick={() => { setSelectedDoc(doc); setActiveModal('verify-pay'); }}
                             className="px-4 py-2 bg-[#15803d] hover:bg-[#166534] text-white rounded-xl text-xs font-bold shadow-sm transition-all flex items-center gap-1.5 ml-auto whitespace-nowrap shrink-0"
@@ -330,6 +345,7 @@ export default function FinanceDashboard({ user, setViewImageUrl }) {
           onCancel={cancelLogWalkIn}
         />
       </div>
+      {activeModal === 'payment-stub' && <PaymentStubModal selectedDoc={selectedDoc} groupDocs={documents.filter(d => d.request_group_id === selectedDoc.request_group_id)} setActiveModal={setActiveModal} />}
       <StudentProfileModal
         open={!!viewProfileId}
         onClose={() => setViewProfileId(null)}
