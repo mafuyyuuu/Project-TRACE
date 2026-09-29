@@ -44,6 +44,8 @@ router.post('/:id/deferred-or', authenticate, documentUpload.single('officialRec
 router.post('/:id/verify-or', authenticate, documentsController.verifyOfficialReceipt);
 router.post('/:id/handoff', authenticate, documentsController.handoff);
 router.post('/:id/release', authenticate, documentsController.release);
+router.get('/:id/messages', authenticate, documentsController.getMessages);
+router.post('/:id/messages', authenticate, documentsController.sendMessage);
 router.delete('/:id', authenticate, documentsController.cancel);
 
 module.exports = router;

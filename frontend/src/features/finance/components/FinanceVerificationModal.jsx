@@ -1,8 +1,10 @@
+import DocumentChat from '@/components/DocumentChat';
 import { useState } from 'react';
 import ModalShell from '@/components/ModalShell';
 import AuthedFilePreview from '@/components/AuthedFilePreview';
 
 export default function FinanceVerificationModal({
+  user,
   setActiveModal,
   selectedDoc,
   setViewImageUrl,
@@ -167,6 +169,10 @@ export default function FinanceVerificationModal({
           rows={2}
           className="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 text-xs font-semibold focus:ring-2 focus:ring-[#15803d]/20 focus:bg-white outline-none transition-all resize-none"
         />
+      </div>
+      <div className="flex flex-col gap-1.5 mt-4 border-t border-gray-100 pt-4">
+        <label className="text-[10px] font-bold text-gray-800 uppercase tracking-widest">Discussion</label>
+        <DocumentChat documentId={selectedDoc.id} user={user} />
       </div>
     </ModalShell>
   );

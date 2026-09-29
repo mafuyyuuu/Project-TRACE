@@ -282,6 +282,7 @@ export default function FinanceDashboard({ user, setViewImageUrl }) {
         {/* 2.1 FINANCE VERIFICATION MODAL */}
         {activeModal === 'verify-pay' && selectedDoc && (
           <FinanceVerificationModal
+            user={user}
             selectedDoc={selectedDoc}
             setActiveModal={setActiveModal}
             getStatusLabel={getStatusLabel}

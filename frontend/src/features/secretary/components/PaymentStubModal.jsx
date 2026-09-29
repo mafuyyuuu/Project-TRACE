@@ -1,3 +1,4 @@
+import api from '@/services/api';
 import { useEffect, useState } from 'react';
 import ModalShell from '@/components/ModalShell';
 import QRCode from 'qrcode';
@@ -17,6 +18,15 @@ import { todayLongDate } from '@/utils/formatters';
  */
 export default function PaymentStubModal({ selectedDoc, groupDocs, setActiveModal }) {
   const [qrSvg, setQrSvg] = useState('');
+  const [template, setTemplate] = useState('');
+
+useEffect(() => {
+    let mounted = true;
+    api.get('/api/templates/payment_slip').then(res => {
+      if (mounted) setTemplate(res.data);
+    }).catch(() => {});
+    return () => { mounted = false; };
+  }, []);
 
   const tracking = selectedDoc?.tracking_number;
 
@@ -34,8 +44,19 @@ export default function PaymentStubModal({ selectedDoc, groupDocs, setActiveModa
 
   if (!selectedDoc) return null;
 
-  const items = groupDocs?.length ? groupDocs : [selectedDoc];
+const items = groupDocs?.length ? groupDocs : [selectedDoc];
   const total = items.reduce((sum, d) => sum + (parseFloat(d.amount) || 0), 0);
+
+  let printHtml = '';
+  if (template && template.content) {
+    const docList = items.map(d => `${d.document_type} (P${parseFloat(d.amount).toFixed(2)})`).join(', ');
+    printHtml = template.content
+      .replace(/{{STUDENT_NAME}}/g, selectedDoc.student_name || '—')
+      .replace(/{{STUDENT_ID}}/g, selectedDoc.student_id || '—')
+      .replace(/{{DOCUMENT_TYPE}}/g, docList)
+      .replace(/{{OR_NUMBER}}/g, tracking)
+      .replace(/{{AMOUNT}}/g, formatPeso(total));
+  }
 
   return (
     <ModalShell
@@ -65,7 +86,15 @@ export default function PaymentStubModal({ selectedDoc, groupDocs, setActiveModa
         </div>
       }
     >
-      {/* Slip header */}
+{printHtml ? (
+        <div 
+          className="print-slip" 
+          style={{ fontFamily: template.font_family, fontSize: template.font_size }}
+          dangerouslySetInnerHTML={{ __html: printHtml }} 
+        />
+      ) : (
+        <>
+          {/* Slip header */}
       <div className="text-center border-b-2 border-gray-900 pb-4">
         <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-gray-500">
           Pamantasan ng Lungsod ng Pasig
@@ -122,6 +151,8 @@ export default function PaymentStubModal({ selectedDoc, groupDocs, setActiveModa
         Pay at the Finance Office and keep the Official Receipt. Present the receipt at Window 1
         to collect your documents. You may also pay online from your TRACE dashboard instead.
       </p>
+        </>
+      )}
     </ModalShell>
   );
 }

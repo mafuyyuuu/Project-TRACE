@@ -604,6 +604,7 @@ export default function StudentDashboard({ user, currentTab, setViewImageUrl }) 
         {/* 1.7. LIVE TRACKING MODAL */}
         {activeModal === 'tracking' && selectedDoc && (
           <LiveTrackingModal 
+            user={user}
             selectedDoc={selectedDoc}
             setActiveModal={setActiveModal}
             trackerProgress={trackerProgress}

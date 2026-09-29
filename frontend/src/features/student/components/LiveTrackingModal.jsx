@@ -1,3 +1,4 @@
+import DocumentChat from '@/components/DocumentChat';
 import ModalShell from '@/components/ModalShell';
 import { STATUS, PIPELINE } from '@/utils/documentStatus';
 
@@ -33,6 +34,7 @@ const STAGE_MESSAGE = {
 };
 
 export default function LiveTrackingModal({
+  user,
   selectedDoc,
   setActiveModal,
   trackerProgress,
@@ -164,6 +166,14 @@ export default function LiveTrackingModal({
               </span>
             )}
           </p>
+        </div>
+
+        {/* Chat Panel */}
+        <div className="mt-6 border-t border-gray-100 pt-6">
+          <div className="flex items-center justify-between mb-3">
+             <label className="text-[10px] font-bold text-gray-800 uppercase tracking-widest">Document Discussion</label>
+          </div>
+          <DocumentChat documentId={selectedDoc.id} user={user} />
         </div>
       </div>
     </ModalShell>

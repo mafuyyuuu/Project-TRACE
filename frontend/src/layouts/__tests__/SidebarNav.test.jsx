@@ -46,6 +46,7 @@ describe('navItemsForUser', () => {
       'admin-reports',
       'admin-analytics',
       'admin-grad-applications',
+      'admin-templates',
       'admin-maintenance',
     ]);
   });
@@ -101,8 +102,7 @@ describe('SidebarNav', () => {
   });
 
   it('marks the active tab', () => {
-    renderNav({ user: ADMIN, tab: 'admin-security',
-      'admin-reports', showLabels: true });
+    renderNav({ user: ADMIN, tab: 'admin-reports', showLabels: true });
     expect(screen.getByText('Reports & Export').closest('a').className).toContain('bg-[#15803d]');
     expect(screen.getByText('Registered Users').closest('a').className).not.toContain('bg-[#15803d]');
   });

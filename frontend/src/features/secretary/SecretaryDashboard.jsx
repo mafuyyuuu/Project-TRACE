@@ -471,6 +471,7 @@ export default function SecretaryDashboard({ user, currentTab, setViewImageUrl }
         {/* College Secretary Split-Screen Modal */}
         {activeModal === 'evaluate' && selectedDoc && (
           <SecretaryEvaluationModal
+            user={user}
             selectedDoc={selectedDoc}
             setActiveModal={setActiveModal}
             getStatusLabel={getStatusLabel}
