@@ -312,7 +312,7 @@ async function listDocuments(user, query) {
   if (user.role === 'student') {
     const rows = await userModel.findStudentIdById(user.id);
     if (rows.length > 0) {
-      conditions.push('student_id = ?');
+      conditions.push('d.student_id = ?');
       params.push(rows[0].student_id);
     } else {
       conditions.push('1 = 0');
@@ -320,18 +320,18 @@ async function listDocuments(user, query) {
   } else if (user.role === 'clerk') {
     const desk = user.desk_assignment;
     if (status) {
-      conditions.push('current_status = ?');
+      conditions.push('d.current_status = ?');
       params.push(status);
     } else if (desk === 'Finance') {
       // Two queues. The first is read-only — Finance can see what a student has
       // been billed for so it can answer a walk-in holding a stub, but only the
       // second is actionable.
-      conditions.push('current_status IN (?, ?)');
+      conditions.push('d.current_status IN (?, ?)');
       params.push(STATUS.PENDING_STUDENT_PAYMENT, STATUS.PENDING_FINANCE_VERIFICATION);
     } else if (desk === 'Secretary') {
       // Four working queues plus the tail, so a secretary can still see what
       // they released rather than having documents vanish at handoff.
-      conditions.push('current_status IN (?, ?, ?, ?, ?, ?)');
+      conditions.push('d.current_status IN (?, ?, ?, ?, ?, ?)');
       params.push(
         STATUS.PENDING_SEC_EVALUATION,
         STATUS.SEC_PROCESSING,
@@ -356,14 +356,14 @@ async function listDocuments(user, query) {
       const secUser = await userModel.findCourseById(user.id);
       const collegeSql =
         secUser.length > 0 && secUser[0].course
-          ? 'student_id IN (SELECT student_id FROM users WHERE course = ?)'
+          ? 'd.student_id IN (SELECT student_id FROM users WHERE course = ?)'
           : '1 = 1';
 
       conditions.push(
-        `(assigned_clerk_id = ?
+        `(d.assigned_clerk_id = ?
           OR (${collegeSql}
-              AND (assigned_clerk_id IS NULL
-                   OR assigned_clerk_id NOT IN
+              AND (d.assigned_clerk_id IS NULL
+                   OR d.assigned_clerk_id NOT IN
                       (SELECT id FROM users WHERE desk_assignment = 'Secretary'))))`
       );
       params.push(user.id);
@@ -373,7 +373,7 @@ async function listDocuments(user, query) {
     }
     // Window 1 sees the entire system queue — no extra condition.
   } else if (user.role === 'admin' && status) {
-    conditions.push('current_status = ?');
+    conditions.push('d.current_status = ?');
     params.push(status);
   }
 

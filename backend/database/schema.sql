@@ -130,6 +130,7 @@ CREATE TABLE IF NOT EXISTS colleges (
   is_walk_in BOOLEAN NOT NULL DEFAULT FALSE,
   requires_original BOOLEAN NOT NULL DEFAULT FALSE,
   registrar_attachment_rule ENUM('none', 'optional', 'required') NOT NULL DEFAULT 'none',
+  is_same_day BOOLEAN NOT NULL DEFAULT FALSE,
   sort_order INT NOT NULL DEFAULT 0,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );

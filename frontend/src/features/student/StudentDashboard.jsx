@@ -208,7 +208,7 @@ export default function StudentDashboard({ user, currentTab, setViewImageUrl }) 
                           <tr key={doc.id} className="hover:bg-gray-50/50 transition-colors">
                             <td className="py-4 pl-4 text-xs font-semibold text-gray-400">{new Date(doc.created_at).toLocaleDateString()} {new Date(doc.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</td>
                             <td className="py-4 px-3">
-                              <div className="text-sm font-bold text-gray-900">{doc.document_type}</div>
+                              <div className="text-sm font-bold text-gray-900">{doc.document_type} {doc.is_same_day ? <span className="ml-2 px-1.5 py-0.5 bg-green-100 text-green-700 text-[9px] uppercase font-black rounded">Same Day Release</span> : null}</div>
                               <div className="text-xs font-mono text-gray-400 mt-0.5">#{doc.tracking_number ? doc.tracking_number.slice(0, 10).toUpperCase() : doc.id}</div>
                             </td>
                             <td className="py-4 px-3">

@@ -1016,7 +1016,7 @@ describe('listDocuments — role scoping', () => {
 
     documentModel.listWithFilters.mockClear();
     await service.listDocuments(ADMIN, { status: 'completed' });
-    expect(documentModel.listWithFilters.mock.calls[0][0]).toContain('current_status = ?');
+    expect(documentModel.listWithFilters.mock.calls[0][0]).toContain('d.current_status = ?');
   });
 
   it('computes pagination from the total', async () => {

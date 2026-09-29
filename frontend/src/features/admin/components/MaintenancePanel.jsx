@@ -81,6 +81,7 @@ export default function MaintenancePanel({ user, currentTab }) {
       is_walk_in: Boolean(form.dt_is_walk_in),
       requires_original: Boolean(form.dt_requires_original),
       registrar_attachment_rule: form.dt_reg_attach || 'none',
+      is_same_day: Boolean(form.dt_is_same_day),
     });
     if (ok) resetForm();
   };
@@ -242,6 +243,11 @@ export default function MaintenancePanel({ user, currentTab }) {
                   <input type="checkbox" className="accent-[#15803d]"
                     checked={Boolean(form.dt_requires_original)} onChange={(e) => set('dt_requires_original', e.target.checked)} />
                   Requires Original Document Surrender
+                </label>
+                <label className="flex items-center gap-2 text-[11px] font-semibold text-gray-700 cursor-pointer">
+                  <input type="checkbox" className="accent-[#15803d]"
+                    checked={Boolean(form.dt_is_same_day)} onChange={(e) => set('dt_is_same_day', e.target.checked)} />
+                  Eligible for Same-Day Release
                 </label>
               </div>
 <button type="submit" disabled={m.saving}

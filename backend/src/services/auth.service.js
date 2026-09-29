@@ -37,29 +37,7 @@ async function login({ employee_id, password }, ipAddress, userAgent) {
     throw forbidden('Your account is pending verification. Please wait for an admin to approve your request.');
   }
 
-  // SEC-01: New Device Login Tracking
-  const deviceFingerprint = crypto.createHash('sha256').update(`${ipAddress}-${userAgent}`).digest('hex');
-  const { pool } = require('../config/db');
-  
-  const [existingSessions] = await pool.query(
-    'SELECT id FROM sessions WHERE user_id = ? AND device_fingerprint = ?',
-    [user.id, deviceFingerprint]
-  );
-
-  if (existingSessions.length === 0) {
-    // Notify user of new login
-    await notifications.createNotification(
-      user.id,
-      'New Device Login',
-      `Your account was just signed in from a new device (${ipAddress}). If this wasn't you, please change your password immediately.`,
-      'security'
-    );
-    // Record new session
-    await pool.query(
-      'INSERT INTO sessions (user_id, device_fingerprint, ip_address, user_agent) VALUES (?, ?, ?, ?)',
-      [user.id, deviceFingerprint, ipAddress, userAgent]
-    );
-  } else {
+   else {
     // Update last_active
     await pool.query('UPDATE sessions SET last_active = CURRENT_TIMESTAMP WHERE id = ?', [existingSessions[0].id]);
   }

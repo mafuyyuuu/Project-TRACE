@@ -106,7 +106,10 @@ export default function NewRequestModal({
                           onChange={() => toggleDocumentType(type.name)}
                           className="w-4 h-4 accent-[#15803d] cursor-pointer"
                         />
-                        <span className="flex-1 text-xs font-bold text-gray-800">{type.name}</span>
+                        <span className="flex-1 text-xs font-bold text-gray-800">
+                          {type.name}
+                          {type.name === 'Diploma' && <span className="ml-1 text-[10px] text-gray-500 font-normal italic">(Reissue Fee)</span>}
+                        </span>
                         <span className="text-xs font-black text-[#15803d]">
                           {isSelected ? formatPeso(itemAmount(type, selection)) : formatPeso(type.base_fee)}
                           {type.fee_rule === 'per_semester_block' && !isSelected && (
@@ -164,16 +167,8 @@ export default function NewRequestModal({
                             </div>
                           )}
 
-                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                            <div className="flex flex-col gap-1.5">
-                              <label className="text-[10px] font-bold text-gray-700 uppercase tracking-widest">Copies</label>
-                              <input
-                                type="number" min="1" required
-                                value={selection.copies}
-                                onChange={(e) => updateSelection(type.name, { copies: e.target.value })}
-                                className="w-full bg-white border border-gray-200 rounded-xl p-2.5 text-xs outline-none focus:ring-2 focus:ring-[#15803d]/20"
-                              />
-                            </div>
+                          <div className="grid grid-cols-1 gap-3">
+                            
                             <div className="flex flex-col gap-1.5">
                               <label className="text-[10px] font-bold text-gray-700 uppercase tracking-widest">Purpose</label>
                               <input
@@ -186,7 +181,7 @@ export default function NewRequestModal({
                             </div>
                           </div>
 
-                          {type.requires_attachment && (
+                          {type.requires_attachment ? (
                             <div className="flex flex-col gap-1.5">
                               <label className="text-[10px] font-bold text-gray-700 uppercase tracking-widest">
                                 {type.attachment_label || 'Supporting Attachment'}
@@ -196,7 +191,7 @@ export default function NewRequestModal({
                               </label>
                               <div className="border-2 border-dashed border-gray-300 rounded-xl p-3 bg-white flex items-center justify-center cursor-pointer hover:bg-gray-50 relative">
                                 {selection.file ? (
-                                  <span className="text-xs font-bold text-[#15803d] truncate max-w-full">
+                                  <span className="text-xs font-bold text-[#15803d] truncate px-4">
                                     ✓ {selection.file.name}
                                   </span>
                                 ) : (
@@ -208,9 +203,15 @@ export default function NewRequestModal({
                                 <input
                                   type="file"
                                   onChange={(e) => updateSelection(type.name, { file: e.target.files[0] })}
-                                  className="absolute inset-0 opacity-0 cursor-pointer"
+                                  className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
                                 />
                               </div>
+                            </div>
+                          ) : (
+                            <div className="flex flex-col gap-1.5">
+                              <label className="text-[10px] font-bold text-gray-700 uppercase tracking-widest">
+                                Required Attachment: <span className="text-gray-500 font-normal">None</span>
+                              </label>
                             </div>
                           )}
                         </div>
@@ -237,7 +238,7 @@ export default function NewRequestModal({
                       <div key={name} className="flex justify-between text-[11px] text-gray-600 font-semibold">
                         <span>
                           {name}
-                          {selections[name].copies > 1 && ` × ${selections[name].copies}`}
+                          
                         </span>
                         <span>{formatPeso(itemAmount(type, selections[name]))}</span>
                       </div>
