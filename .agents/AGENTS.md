@@ -115,7 +115,18 @@ frontend), zero lint errors.
 * **Payment Methods Finished (Phase 20):** Added Admin CRUD for payment methods, updated checkout modal.
 * **UI/UX Revision Pass (Phase 21):** Refined modals, shared components, student view rhythm, fixed UI bugs, implemented alumni gating.
 * **Official Receipt Verification (Phase 22):** Added `SEC_OR_VERIFIED` stage, allowing Finance to capture OR numbers and Secretary to verify physical receipts.
+* **Batch 8b & Schema Expansion (Phase 23):** Built AI auto-fill for registration, implemented `college_id` foreign keys and junction tables for per-college document restrictions, added 5 new configuration flags to `document_types` (e.g. `available_to`, `is_repeatable`), and completed sweeping presentation-layer polish.
 
+---
+
+
+---
+## 📝 Continuous Documentation Rule
+**MANDATORY INSTRUCTION FOR ALL AGENTS:** 
+Every significant change, feature, architectural shift, or bugfix you make MUST be documented in the necessary files so that the project stays on track.
+1. Update `docs/PROGRESS.md` to log the completion of your batch/phase.
+2. Update this file (`.agents/AGENTS.md`) if there are schema changes, credentials, or deep architectural contexts future agents need to know.
+3. Update `docs/SYSTEM_WORKFLOWS.md` or `docs/ENV_SETUP_GUIDE.md` if applicable.
 ---
 
 ## 📍 Integration Next Steps
