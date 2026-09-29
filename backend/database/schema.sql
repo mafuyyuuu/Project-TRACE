@@ -142,6 +142,8 @@ CREATE TABLE IF NOT EXISTS document_types (
   id INT AUTO_INCREMENT PRIMARY KEY,
   name VARCHAR(150) NOT NULL UNIQUE,
   base_fee DECIMAL(10,2) NOT NULL DEFAULT 50.00,
+  rental_fee DECIMAL(10,2) NOT NULL DEFAULT 0.00,
+  special_fee DECIMAL(10,2) NOT NULL DEFAULT 0.00,
   fee_rule ENUM('flat', 'per_semester_block') NOT NULL DEFAULT 'flat',
   requires_attachment BOOLEAN NOT NULL DEFAULT FALSE,
   attachment_label VARCHAR(255) NULL,
