@@ -66,6 +66,7 @@ export default function AdminDashboard({ user, currentTab, setViewImageUrl }) {
   if (currentTab === 'admin-reports') return <ReportsPanel user={user} currentTab={currentTab} />;
   if (currentTab === 'admin-analytics') return <AnalyticsPanel user={user} currentTab={currentTab} />;
   if (currentTab === 'admin-grad-applications') return <GradApplicationReviewPanel user={user} currentTab={currentTab} />;
+  if (currentTab === 'admin-security') return <AdminSecurityPanel />;
 
   return (
     <>
