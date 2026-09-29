@@ -46,6 +46,7 @@ export function navItemsForUser(user) {
       { tab: 'admin-tracker', to: '/dashboard?tab=admin-tracker', label: 'Document Tracker', icon: 'document' },
       { tab: 'admin-users', to: '/dashboard?tab=admin-users', label: 'Registered Users', icon: 'users' },
       { tab: 'admin-logs', to: '/dashboard?tab=admin-logs', label: 'Activity Logs', icon: 'checklist' },
+      { tab: 'admin-security', to: '/dashboard?tab=admin-security', label: 'Security Logs', icon: 'users' },
       { tab: 'admin-reports', to: '/dashboard?tab=admin-reports', label: 'Reports & Export', icon: 'report' },
       { tab: 'admin-analytics', to: '/dashboard?tab=admin-analytics', label: 'Efficiency Analytics', icon: 'bolt' },
       { tab: 'admin-grad-applications', to: '/dashboard?tab=admin-grad-applications', label: 'Graduate Applications', icon: 'cap' },

@@ -324,7 +324,58 @@ function addPasswordHistory(userId, hash, executor = pool) {
   );
 }
 
+
+function logSecurityEvent(userId, eventType, ipAddress = null, userAgent = null, executor = pool) {
+  return executor.query(
+    'INSERT INTO security_logs (user_id, event_type, ip_address, user_agent) VALUES (?, ?, ?, ?)',
+    [userId, eventType, ipAddress, userAgent]
+  );
+}
+
+function getSecurityLogs(userId, executor = pool) {
+  return executor.query(
+    'SELECT event_type, ip_address, user_agent, created_at FROM security_logs WHERE user_id = ? ORDER BY created_at DESC LIMIT 20',
+    [userId]
+  ).then(([rows]) => rows);
+}
+
+
+function getGlobalSecurityLogs(executor = pool) {
+  return executor.query(
+    'SELECT sl.event_type, sl.ip_address, sl.user_agent, sl.created_at, u.full_name, u.student_id, u.role FROM security_logs sl JOIN users u ON sl.user_id = u.id ORDER BY sl.created_at DESC LIMIT 100'
+  ).then(([rows]) => rows);
+}
+
+
+function updateEmailOTP(userId, otp, expires, executor = pool) {
+  return executor.query('UPDATE users SET email_otp = ?, email_otp_expires = ? WHERE id = ?', [otp, expires, userId]);
+}
+
+function clearEmailOTP(userId, executor = pool) {
+  return executor.query('UPDATE users SET email_otp = NULL, email_otp_expires = NULL WHERE id = ?', [userId]);
+}
+
+function requestEmailChange(userId, email, otp, expires, executor = pool) {
+  return executor.query('UPDATE users SET pending_email = ?, email_otp = ?, email_otp_expires = ? WHERE id = ?', [email, otp, expires, userId]);
+}
+
+function commitEmailChange(userId, email, executor = pool) {
+  return executor.query('UPDATE users SET email = ?, pending_email = NULL, email_otp = NULL, email_otp_expires = NULL WHERE id = ?', [email, userId]);
+}
+
+function incrementTokenVersion(userId, executor = pool) {
+  return executor.query('UPDATE users SET token_version = token_version + 1 WHERE id = ?', [userId]);
+}
+
 module.exports = {
+  updateEmailOTP,
+  clearEmailOTP,
+  requestEmailChange,
+  commitEmailChange,
+  incrementTokenVersion,
+  getGlobalSecurityLogs,
+  logSecurityEvent,
+  getSecurityLogs,
   getLoginSecurity,
   incrementFailedLogin,
   lockAccount,

@@ -1,13 +1,17 @@
 const express = require('express');
 const authController = require('../controllers/auth.controller');
-const { authenticate } = require('../middlewares/auth.middleware');
+const { authenticate, requireRole } = require('../middlewares/auth.middleware');
 const { idProofUpload, profilePictureUpload } = require('../middlewares/upload.middleware');
 const { loginLimiter, registerLimiter, passwordResetLimiter } = require('../middlewares/rateLimit.middleware');
 
 const router = express.Router();
 
 router.post('/login', loginLimiter, authController.login);
+router.post('/verify-2fa', loginLimiter, authController.verify2FA);
 router.get('/me', authenticate, authController.getMe);
+router.post('/logout-all', authenticate, authController.logoutAll);
+router.get('/security-logs', authenticate, authController.getSecurityLogs);
+router.get('/global-security-logs', authenticate, requireRole('admin'), authController.getGlobalSecurityLogs);
 router.post('/register', registerLimiter, idProofUpload.single('id_proof'), authController.register);
 
 // Password recovery. Deliberately unauthenticated — the whole point is that the
@@ -23,6 +27,7 @@ router.get('/student/:studentId', authenticate, authController.getStudent);
 
 // Profile & in-app notifications
 router.put('/profile', authenticate, authController.updateProfile);
+router.post('/verify-email-change', authenticate, authController.verifyEmailChange);
 router.put('/profile/picture', authenticate, profilePictureUpload.single('picture'), authController.updateProfilePicture);
 router.get('/notifications', authenticate, authController.getNotifications);
 router.put('/notifications/read', authenticate, authController.markNotificationsRead);

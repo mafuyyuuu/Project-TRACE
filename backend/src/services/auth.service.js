@@ -22,6 +22,7 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const env = require('../config/env');
 const userModel = require('../models/user.model');
+const { pool } = require('../config/db');
 const notificationModel = require('../models/notification.model');
 const passwordResetModel = require('../models/passwordReset.model');
 const aiEngine = require('./aiEngine.service');
@@ -77,6 +78,28 @@ async function login({ employee_id, password }, ipAddress, userAgent) {
     await handleFail();
   }
 
+  
+  const isStaff = ['admin', 'clerk'].includes(user.role);
+  const requires2FA = user.two_factor_enabled || isStaff;
+
+  if (requires2FA) {
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    const expires = new Date(Date.now() + 5 * 60000); // 5 mins
+    await userModel.updateEmailOTP(user.id, otp, expires);
+    
+    const notifications = require('./notification.service');
+    if (notifications.notifyByEmail && user.email) {
+      await notifications.notifyByEmail({
+        email: user.email,
+        title: 'Project TRACE Login Verification',
+        message: `Your login verification code is: ${otp}. It expires in 5 minutes.`
+      });
+    }
+
+    const tempToken = jwt.sign({ id: user.id, pending_2fa: true }, env.JWT_SECRET, { expiresIn: '5m' });
+    return { requires_2fa: true, temp_token: tempToken, email: user.email };
+  }
+
   if (user.role === 'student' && user.verification_status !== 'verified') {
     throw forbidden(`Account is ${user.verification_status}.`);
   }
@@ -84,6 +107,7 @@ async function login({ employee_id, password }, ipAddress, userAgent) {
 
 
 
+  await userModel.logSecurityEvent(user.id, 'LOGIN', ipAddress, userAgent);
   const token = jwt.sign(
     {
       id: user.id,
@@ -91,6 +115,7 @@ async function login({ employee_id, password }, ipAddress, userAgent) {
       full_name: user.full_name,
       desk_assignment: user.desk_assignment,
       course: user.course,
+      token_version: user.token_version || 1,
     },
     env.JWT_SECRET,
     { expiresIn: '24h' }
@@ -255,13 +280,43 @@ async function updateProfile(userId, { phone_number, email, course, password, cu
 
 
   if (phone_number !== undefined) fields.phone_number = phone_number;
-  if (email !== undefined && email !== '') fields.email = email;
+  
+  if (emailChanged) {
+    // Generate 6-digit OTP
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    const expires = new Date(Date.now() + 15 * 60000); // 15 mins
+    
+    await userModel.requestEmailChange(userId, email, otp, expires);
+
+    const nodemailer = require('nodemailer'); // Assumes we use notification.service
+    const notifications = require('./notification.service');
+    
+    // Send OTP to new email
+    if (notifications.notifyByEmail) {
+      await notifications.notifyByEmail({
+        email: email,
+        title: 'Verify Your New Email',
+        message: `Your verification code is: ${otp}. It expires in 15 minutes.`
+      });
+      // Notify old email
+      await notifications.notifyByEmail({
+        email: currentUser.email,
+        title: 'Email Change Requested',
+        message: 'A request to change your email address was initiated. If this was not you, please contact support.'
+      });
+    }
+    
+    await userModel.logSecurityEvent(userId, 'EMAIL_CHANGE_REQUESTED');
+    // We don't update fields.email yet!
+  }
+
   if (course !== undefined) fields.course = course;
   
   if (password) {
     validatePassword(password);
     await checkPasswordHistory(userId, password);
     fields.password_hash = await bcrypt.hash(password, 10);
+    await userModel.logSecurityEvent(userId, 'PASSWORD_CHANGE');
     fields.must_change_password = false;
     await userModel.addPasswordHistory(userId, fields.password_hash);
     
@@ -359,6 +414,90 @@ function hashResetToken(token) {
  * registered. The caller is told "if the account exists, a link has been sent"
  * in every case.
  */
+
+
+
+
+
+async function verify2FA(tempToken, otp, ipAddress, userAgent) {
+  let decoded;
+  try {
+    decoded = jwt.verify(tempToken, env.JWT_SECRET);
+  } catch (err) {
+    throw unauthorized('Invalid or expired 2FA token. Please log in again.');
+  }
+
+  if (!decoded.pending_2fa) {
+    throw badRequest('Invalid token type.');
+  }
+
+  const user = await userModel.findById(decoded.id);
+  if (!user) throw notFound('User not found.');
+
+  if (user.email_otp !== otp) {
+    throw unauthorized('Invalid verification code.');
+  }
+  
+  if (new Date(user.email_otp_expires) < new Date()) {
+    throw badRequest('Verification code expired.');
+  }
+
+  // Clear OTP
+  await userModel.clearEmailOTP(user.id);
+  
+  await userModel.logSecurityEvent(user.id, 'LOGIN', ipAddress, userAgent);
+
+  const token = jwt.sign(
+    {
+      id: user.id,
+      role: user.role,
+      full_name: user.full_name,
+      desk_assignment: user.desk_assignment,
+      course: user.course,
+      token_version: user.token_version || 1,
+    },
+    env.JWT_SECRET,
+    { expiresIn: '24h' }
+  );
+
+  return { message: 'Login successful.', token, user };
+}
+
+async function verifyEmailChange(userId, otp) {
+  const user = await userModel.findById(userId);
+  if (!user) throw notFound('User not found.');
+  if (!user.pending_email || !user.email_otp) {
+    throw badRequest('No email change requested.');
+  }
+  
+  if (user.email_otp !== otp) {
+    throw unauthorized('Invalid verification code.');
+  }
+  
+  if (new Date(user.email_otp_expires) < new Date()) {
+    throw badRequest('Verification code expired.');
+  }
+  
+  await userModel.commitEmailChange(userId, user.pending_email);
+  
+  await userModel.logSecurityEvent(userId, 'EMAIL_CHANGED');
+  return { message: 'Email address updated successfully.' };
+}
+
+async function getGlobalSecurityLogs() {
+  return await userModel.getGlobalSecurityLogs();
+}
+
+async function getSecurityLogs(userId) {
+  return await userModel.getSecurityLogs(userId);
+}
+
+async function logoutAll(userId) {
+  await userModel.incrementTokenVersion(userId);
+  await userModel.logSecurityEvent(userId, 'LOGOUT_ALL');
+  return { message: 'Successfully logged out of all devices.' };
+}
+
 async function requestPasswordReset({ identifier }) {
   if (!identifier || !String(identifier).trim()) {
     throw badRequest('Enter your Student ID / Staff ID or your email address.');
@@ -458,6 +597,11 @@ module.exports = {
   lookupStudent,
   updateProfile,
   updateProfilePicture,
+  verify2FA,
+  verifyEmailChange,
+  getGlobalSecurityLogs,
+  getSecurityLogs,
+  logoutAll,
   requestPasswordReset,
   resetPassword,
   listNotifications,

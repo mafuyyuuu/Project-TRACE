@@ -1,7 +1,8 @@
-const jwt = require('jsonwebtoken');
-const { JWT_SECRET } = require('../config/env');
+const fs = require('fs');
+let file = 'backend/src/middlewares/auth.middleware.js';
+let content = fs.readFileSync(file, 'utf8');
 
-
+const updatedAuth = `
 const { pool } = require('../config/db');
 
 /**
@@ -40,38 +41,19 @@ async function authenticate(req, res, next) {
     return res.status(401).json({ error: 'Invalid or expired token.' });
   }
 }
+`;
 
+content = content.replace(
+  /\/\*\*[\s\S]*?function authenticate\(req, res, next\) \{[\s\S]*?\}\n/,
+  updatedAuth + '\n'
+);
 
-  const token = authHeader.split(' ')[1];
-
-  try {
-    const decoded = jwt.verify(token, JWT_SECRET);
-    req.user = {
-      id: decoded.id,
-      role: decoded.role,
-      full_name: decoded.full_name,
-      desk_assignment: decoded.desk_assignment,
-    };
-    next();
-  } catch (err) {
-    return res.status(401).json({ error: 'Invalid or expired token.' });
-  }
+// Add pool import at top if missing
+if (!content.includes("const { pool } = require('../config/db');")) {
+  content = content.replace(
+    "const { JWT_SECRET } = require('../config/env');",
+    "const { JWT_SECRET } = require('../config/env');\nconst { pool } = require('../config/db');"
+  );
 }
 
-/**
- * Role-based authorization middleware factory.
- * Usage: requireRole('admin', 'clerk')
- */
-function requireRole(...roles) {
-  return (req, res, next) => {
-    if (!req.user) {
-      return res.status(401).json({ error: 'Authentication required.' });
-    }
-    if (!roles.includes(req.user.role)) {
-      return res.status(403).json({ error: 'Insufficient permissions.' });
-    }
-    next();
-  };
-}
-
-module.exports = { authenticate, requireRole };
+fs.writeFileSync(file, content);

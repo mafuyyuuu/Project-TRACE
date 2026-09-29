@@ -131,7 +131,7 @@ export default function ProfileSettingsModal({
               onClick={() => setActiveTab('personal')}
               className={`pb-3 text-xs font-bold uppercase tracking-widest transition-colors relative flex items-center gap-1.5 ${activeTab === 'personal' ? 'text-[#15803d] border-b-2 border-[#15803d]' : 'text-gray-400 hover:text-gray-600'}`}
             >
-              Personal & Security
+              Personal Info
               {missingPersonal && <span className="w-2 h-2 rounded-full bg-red-500 absolute -top-0.5 -right-2"></span>}
             </button>
             <button
@@ -142,10 +142,18 @@ export default function ProfileSettingsModal({
               Educational Background
               {missingEdu && <span className="w-2 h-2 rounded-full bg-red-500 absolute -top-0.5 -right-2"></span>}
             </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab('security')}
+              className={`pb-3 text-xs font-bold uppercase tracking-widest transition-colors relative flex items-center gap-1.5 ${activeTab === 'security' ? 'text-[#15803d] border-b-2 border-[#15803d]' : 'text-gray-400 hover:text-gray-600'}`}
+            >
+              Security
+            </button>
           </div>
         ) : (
            <div className="flex gap-6 border-b border-gray-100 px-2 mt-2">
-             <button type="button" className="pb-3 text-xs font-bold uppercase tracking-widest text-[#15803d] border-b-2 border-[#15803d]">Personal & Security</button>
+             <button type="button" onClick={() => setActiveTab('personal')} className={`pb-3 text-xs font-bold uppercase tracking-widest transition-colors relative flex items-center gap-1.5 ${activeTab === 'personal' ? 'text-[#15803d] border-b-2 border-[#15803d]' : 'text-gray-400 hover:text-gray-600'}`}>Personal Info</button>
+             <button type="button" onClick={() => setActiveTab('security')} className={`pb-3 text-xs font-bold uppercase tracking-widest transition-colors relative flex items-center gap-1.5 ${activeTab === 'security' ? 'text-[#15803d] border-b-2 border-[#15803d]' : 'text-gray-400 hover:text-gray-600'}`}>Security</button>
            </div>
         )}
       </div>
@@ -222,9 +230,15 @@ export default function ProfileSettingsModal({
               )}
 
               
-              <div className="pt-4 border-t border-gray-200 border-dashed">
-                <h4 className="text-sm font-bold text-gray-800 mb-4">Security Settings</h4>
-                <div className="space-y-4">
+            </div>
+          )}
+
+          
+          {activeTab === 'security' && (
+            <div className="space-y-6">
+              <div className="bg-white p-4 border border-gray-200 rounded-2xl">
+                <h3 className="text-sm font-black text-gray-900 mb-4 border-b border-gray-100 pb-2">Change Password</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Current Password</label>
                     <input type="password" value={profileData.current_password} onChange={(e) => setField('current_password', e.target.value)} placeholder="Required to change email or password" className="w-full bg-white border border-gray-200 rounded-xl py-3 px-4 text-sm font-semibold focus:ring-2 focus:ring-[#15803d]/20 outline-none" />
@@ -244,7 +258,52 @@ export default function ProfileSettingsModal({
                   </div>
                 </div>
               </div>
+              <div className="bg-white p-4 border border-gray-200 rounded-2xl">
+                <h3 className="text-sm font-black text-gray-900 mb-4 border-b border-gray-100 pb-2">Session Management</h3>
+                <p className="text-sm text-gray-600 mb-4">Log out of all other active sessions across all devices. You will remain logged in on this device.</p>
+                <button type="button" onClick={async () => {
+                   try {
+                     await api.post('/auth/logout-all');
+                     alert('Logged out of all other devices.');
+                   } catch (e) {
+                     alert('Error logging out of other devices.');
+                   }
+                }} className="bg-red-50 text-red-600 font-bold uppercase tracking-widest text-xs py-2 px-4 rounded-xl hover:bg-red-100 transition-colors border border-red-200">
+                  Logout All Devices
+                </button>
+              </div>
+              <div className="bg-white p-4 border border-gray-200 rounded-2xl">
+                <h3 className="text-sm font-black text-gray-900 mb-4 border-b border-gray-100 pb-2">Recent Security Activity</h3>
+                <div className="text-xs text-gray-500 mb-2">View your recent logins, password changes, and other security events.</div>
+                <div className="flex justify-center my-4">
+                  
+                <div className="mt-4 border border-gray-100 rounded-xl overflow-hidden">
+                  <table className="w-full text-left text-xs">
+                    <thead className="bg-gray-50 text-gray-500 font-bold uppercase tracking-wider">
+                      <tr>
+                        <th className="px-4 py-2">Date</th>
+                        <th className="px-4 py-2">Event</th>
+                        <th className="px-4 py-2">IP</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100">
+                      {securityLogs.length === 0 ? (
+                        <tr><td colSpan="3" className="px-4 py-4 text-center text-gray-500">No recent activity</td></tr>
+                      ) : (
+                        securityLogs.slice(0, 5).map((log, i) => (
+                          <tr key={i} className="hover:bg-gray-50">
+                            <td className="px-4 py-2 text-gray-500">{new Date(log.created_at).toLocaleString()}</td>
+                            <td className="px-4 py-2 font-bold text-gray-700">{log.event_type}</td>
+                            <td className="px-4 py-2 text-gray-500">{log.ip_address || 'Unknown'}</td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
 
+                </div>
+              </div>
             </div>
           )}
 

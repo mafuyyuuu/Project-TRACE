@@ -1,6 +1,13 @@
 /**
  * Login gating, registration behaviour, and the admin-only guards.
  */
+
+vi.mock('../../config/db', () => ({
+  pool: {
+    query: vi.fn().mockResolvedValue([[]]),
+  }
+}));
+
 const fs = require('fs');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
@@ -50,6 +57,16 @@ beforeEach(() => {
   vi.spyOn(userModel, 'getPasswordHistory').mockResolvedValue([]);
   vi.spyOn(userModel, 'addPasswordHistory').mockResolvedValue([]);
 
+  vi.spyOn(userModel, 'logSecurityEvent').mockResolvedValue([]);
+
+  vi.spyOn(userModel, 'updateEmailOTP').mockResolvedValue([]);
+  vi.spyOn(userModel, 'clearEmailOTP').mockResolvedValue([]);
+  vi.spyOn(userModel, 'requestEmailChange').mockResolvedValue([]);
+  vi.spyOn(userModel, 'commitEmailChange').mockResolvedValue([]);
+  vi.spyOn(userModel, 'incrementTokenVersion').mockResolvedValue([]);
+
+
+
   vi.spyOn(notificationModel, 'findByUserId').mockResolvedValue([]);
   vi.spyOn(notificationModel, 'markAllRead').mockResolvedValue([{}]);
   vi.spyOn(aiEngine, 'verifyIdDocument').mockResolvedValue(null);
@@ -82,7 +99,7 @@ describe('login', () => {
     userModel.findActiveByStudentId.mockResolvedValue([
       { ...verifiedStudent(), role: 'clerk', desk_assignment: 'Finance', verification_status: 'pending' },
     ]);
-    await expect(service.login({ employee_id: 'FIN', password: 'Trace2024!' })).resolves.toHaveProperty('token');
+    await expect(service.login({ employee_id: 'FIN', password: 'Trace2024!' })).resolves.toHaveProperty('requires_2fa', true);
   });
 
   it('issues a JWT carrying the role and desk, and never the password hash', async () => {
