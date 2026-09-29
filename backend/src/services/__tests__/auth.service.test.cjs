@@ -198,6 +198,8 @@ describe('admin-only guards', () => {
 });
 
 describe('updateProfile', () => {
+  beforeEach(() => { notificationModel.notifyByEmail = vi.fn(); });
+
   beforeEach(() => {
     userModel.getProfileById.mockResolvedValue([{ email: 'old@plp.edu.ph', student_id: 'STU-1' }]);
     userModel.findActiveByStudentId.mockResolvedValue([{ password_hash: passwordHash }]);

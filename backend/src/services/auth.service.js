@@ -272,7 +272,7 @@ async function updateProfile(userId, { phone_number, email, course, password, cu
     if (userRows[0] && userRows[0].email) {
       const nodemailer = require('nodemailer'); // Assumes we use the same mailer. We have notification.service.js
       const notifications = require('./notification.service');
-      await notifications.notifyByEmail({
+      if (notifications.notifyByEmail) await notifications.notifyByEmail({
         email: userRows[0].email,
         title: 'Password Changed',
         message: 'Your Project TRACE password was recently changed. If this was not you, please contact the administrator immediately.'
