@@ -7,6 +7,7 @@ import ModalShell from '@/components/ModalShell';
  * `manual-course`) are read by `handleFetchStudent` via `getElementById` —
  * keep them stable if this markup ever moves again.
  */
+import { useState } from 'react';
 export default function ManualInputModal({
   open,
   onClose,
@@ -14,6 +15,9 @@ export default function ManualInputModal({
   handleFetchStudent,
   actionLoading,
 }) {
+  const [docType, setDocType] = useState('');
+  const [purpose, setPurpose] = useState('');
+  const isGraduate = purpose === 'Graduation Clearance' || docType === 'Graduate Clearance';
   return (
     <ModalShell open={open} onClose={onClose} title="Manual Input" maxWidth="max-w-3xl">
       <p className="text-sm font-semibold text-gray-500 mb-8 leading-relaxed">
@@ -103,6 +107,8 @@ export default function ManualInputModal({
               <select
                 name="purpose"
                 required
+                value={purpose}
+                onChange={(e) => setPurpose(e.target.value)}
                 className="p-3 bg-gray-50 border border-gray-200 rounded-xl text-xs font-semibold focus:ring-2 focus:ring-[#15803d]/20 outline-none transition-all cursor-pointer"
               >
                 <option value="" disabled selected>Purpose of Request</option>
@@ -127,7 +133,7 @@ export default function ManualInputModal({
         <div className="flex justify-end pt-4">
           <button
             type="submit"
-            disabled={actionLoading}
+            disabled={actionLoading || isGraduate}
             className="px-8 py-3 bg-[#15803d] hover:bg-[#166534] disabled:opacity-75 text-white font-bold rounded-xl text-xs shadow-md transition-all uppercase tracking-wider"
           >
             {actionLoading ? 'Saving...' : 'Submit Request'}

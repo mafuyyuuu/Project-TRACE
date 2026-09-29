@@ -25,6 +25,8 @@ CREATE TABLE IF NOT EXISTS users (
   profile_picture VARCHAR(500),
   verification_status ENUM('pending', 'verified', 'rejected') DEFAULT 'pending',
   course VARCHAR(100),
+  college_id INT NULL,
+  FOREIGN KEY (college_id) REFERENCES colleges(id) ON DELETE SET NULL,
   phone_number VARCHAR(20),
   is_active BOOLEAN DEFAULT TRUE,
   -- Set when an admin creates a staff account with a temporary password;
@@ -35,6 +37,48 @@ CREATE TABLE IF NOT EXISTS users (
 );
 
 -- Documents table: uploaded documents with OCR data
+
+CREATE TABLE IF NOT EXISTS student_profiles (
+  user_id INT PRIMARY KEY,
+  extension_name VARCHAR(20),
+  birth_date DATE,
+  place_of_birth VARCHAR(255),
+  sex ENUM('Male', 'Female'),
+  civil_status ENUM('Single', 'Married', 'Widowed', 'Divorced', 'Separated'),
+  maiden_name VARCHAR(255),
+  home_address VARCHAR(500),
+  last_attendance_year INT,
+  is_transfer_student BOOLEAN DEFAULT FALSE,
+  previous_school VARCHAR(255),
+  elem_school VARCHAR(255),
+  elem_grad_year INT,
+  jhs_school VARCHAR(255),
+  jhs_grad_year INT,
+  shs_school VARCHAR(255),
+  shs_grad_year INT,
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+
+CREATE TABLE IF NOT EXISTS password_history (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  user_id INT NOT NULL,
+  password_hash VARCHAR(255) NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+
+CREATE TABLE IF NOT EXISTS security_logs (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  user_id INT NOT NULL,
+  event_type VARCHAR(50) NOT NULL,
+  ip_address VARCHAR(45) NULL,
+  user_agent TEXT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
 CREATE TABLE IF NOT EXISTS documents (
   id INT AUTO_INCREMENT PRIMARY KEY,
   tracking_number VARCHAR(64) UNIQUE NOT NULL,
@@ -123,6 +167,12 @@ CREATE TABLE IF NOT EXISTS colleges (
   name VARCHAR(150) NOT NULL UNIQUE,
   short_code VARCHAR(20) NULL,
   is_active BOOLEAN NOT NULL DEFAULT TRUE,
+  available_to ENUM('student', 'alumni', 'both') NOT NULL DEFAULT 'both',
+  is_repeatable BOOLEAN NOT NULL DEFAULT TRUE,
+  is_walk_in BOOLEAN NOT NULL DEFAULT FALSE,
+  requires_original BOOLEAN NOT NULL DEFAULT FALSE,
+  registrar_attachment_rule ENUM('none', 'optional', 'required') NOT NULL DEFAULT 'none',
+  is_same_day BOOLEAN NOT NULL DEFAULT FALSE,
   sort_order INT NOT NULL DEFAULT 0,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -134,6 +184,8 @@ CREATE TABLE IF NOT EXISTS document_types (
   id INT AUTO_INCREMENT PRIMARY KEY,
   name VARCHAR(150) NOT NULL UNIQUE,
   base_fee DECIMAL(10,2) NOT NULL DEFAULT 50.00,
+  rental_fee DECIMAL(10,2) NOT NULL DEFAULT 0.00,
+  special_fee DECIMAL(10,2) NOT NULL DEFAULT 0.00,
   fee_rule ENUM('flat', 'per_semester_block') NOT NULL DEFAULT 'flat',
   requires_attachment BOOLEAN NOT NULL DEFAULT FALSE,
   attachment_label VARCHAR(255) NULL,
@@ -141,6 +193,14 @@ CREATE TABLE IF NOT EXISTS document_types (
   is_active BOOLEAN NOT NULL DEFAULT TRUE,
   sort_order INT NOT NULL DEFAULT 0,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS document_type_colleges (
+  document_type_id INT NOT NULL,
+  college_id INT NOT NULL,
+  PRIMARY KEY (document_type_id, college_id),
+  FOREIGN KEY (document_type_id) REFERENCES document_types(id) ON DELETE CASCADE,
+  FOREIGN KEY (college_id) REFERENCES colleges(id) ON DELETE CASCADE
 );
 
 -- Admin-configurable Graduate Application form. Field definitions live in

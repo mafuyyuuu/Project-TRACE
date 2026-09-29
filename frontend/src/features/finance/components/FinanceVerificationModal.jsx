@@ -1,8 +1,10 @@
+import DocumentChat from '@/components/DocumentChat';
 import { useState } from 'react';
 import ModalShell from '@/components/ModalShell';
 import AuthedFilePreview from '@/components/AuthedFilePreview';
 
 export default function FinanceVerificationModal({
+  user,
   setActiveModal,
   selectedDoc,
   setViewImageUrl,
@@ -62,9 +64,41 @@ export default function FinanceVerificationModal({
         <div className="flex justify-between"><span>Document Type</span><span className="font-bold text-gray-950">{selectedDoc.document_type}</span></div>
         <div className="flex justify-between"><span>Tracking ID</span><span className="font-bold text-gray-950 select-text">#{selectedDoc.tracking_number || selectedDoc.id}</span></div>
         <div className="flex justify-between"><span>Date Paid</span><span className="font-bold text-gray-950">{new Date(selectedDoc.updated_at).toLocaleDateString('en-US', {month: 'short', day: 'numeric'})} at {new Date(selectedDoc.updated_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span></div>
-        <div className="flex justify-between"><span>Copies</span><span className="font-bold text-gray-950">{selectedDoc.copies || 1}</span></div>
-        <div className="flex justify-between border-t border-gray-200/50 pt-2"><span>Amount</span><span className="font-bold text-gray-950">P{parseFloat(selectedDoc.amount || 150).toFixed(2)}</span></div>
+        
+        {/* Itemization */}
+        <div className="border-t border-gray-200/50 pt-3 mt-1 space-y-1">
+          {(() => {
+            const typeObj = {
+              name: selectedDoc.document_type,
+              base_fee: selectedDoc.base_fee,
+              rental_fee: selectedDoc.rental_fee,
+              special_fee: selectedDoc.special_fee,
+              fee_rule: selectedDoc.fee_rule
+            };
+            const breakdown = itemBreakdown(typeObj, { copies: selectedDoc.copies });
+            return breakdown.length > 0 ? breakdown.map((item, idx) => (
+              <div key={idx} className="flex justify-between text-[11px] text-gray-600">
+                <span>{item.label}</span>
+                <span className="font-mono">{formatPeso(item.amount)}</span>
+              </div>
+            )) : null;
+          })()}
+        </div>
+        <div className="flex justify-between border-t border-gray-200/50 pt-2">
+          <span>Amount</span>
+          <span className="font-bold text-gray-950">{formatPeso(selectedDoc.amount)}</span>
+        </div>
       </div>
+
+      
+      {new Date().getHours() >= 16 && (
+        <div className="bg-amber-50 border border-amber-200 text-amber-800 text-xs p-3 rounded-lg font-semibold flex items-start gap-2 mb-4">
+          <svg className="w-4 h-4 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+          <p>
+            <strong>4:00 PM Cut-off:</strong> Payments verified after 4 PM will not generate a same-day Official Receipt. Ensure the student is aware.
+          </p>
+        </div>
+      )}
 
       <div className="space-y-4">
         <span className="text-[10px] font-bold text-gray-800 uppercase tracking-widest block">{methodName} Receipt / Proof</span>
@@ -105,12 +139,12 @@ export default function FinanceVerificationModal({
 
         <div className="flex flex-col gap-2">
           <label className="text-[10px] font-bold text-red-600 uppercase tracking-widest flex items-center gap-1">
-            Attach Official POS Receipt <span className="text-red-500">*</span>
+            Attach Official POS Receipt <span className="text-gray-400 font-normal normal-case">(Optional - upload later if deferred)</span>
           </label>
           <input
             type="file"
             accept="image/png, image/jpeg, image/webp, application/pdf"
-            required
+            /* FIN-03: Deferred Upload */
             onChange={(e) => {
               const file = e.target.files[0];
               if (file && file.size > 5 * 1024 * 1024) {
@@ -135,6 +169,10 @@ export default function FinanceVerificationModal({
           rows={2}
           className="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 text-xs font-semibold focus:ring-2 focus:ring-[#15803d]/20 focus:bg-white outline-none transition-all resize-none"
         />
+      </div>
+      <div className="flex flex-col gap-1.5 mt-4 border-t border-gray-100 pt-4">
+        <label className="text-[10px] font-bold text-gray-800 uppercase tracking-widest">Discussion</label>
+        <DocumentChat documentId={selectedDoc.id} user={user} />
       </div>
     </ModalShell>
   );

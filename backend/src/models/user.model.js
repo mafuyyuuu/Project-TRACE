@@ -8,14 +8,14 @@ const { pool } = require('../config/db');
 
 function findActiveByStudentId(studentId, executor = pool) {
   return executor
-    .query('SELECT * FROM users WHERE student_id = ? AND is_active = TRUE', [studentId])
+    .query('SELECT u.*, (SELECT COUNT(*) FROM grad_applications WHERE student_id = u.id) > 0 AS has_grad_application FROM users u WHERE u.student_id = ? AND u.is_active = TRUE', [studentId])
     .then(([rows]) => rows);
 }
 
 function getProfileById(userId, executor = pool) {
   return executor
     .query(
-      'SELECT id, student_id, email, full_name, role, user_type, desk_assignment, is_active, phone_number, course, enrollment_status, study_load, must_change_password, profile_picture, created_at FROM users WHERE id = ?',
+      'SELECT u.id, u.student_id, u.email, u.full_name, u.role, u.user_type, u.desk_assignment, u.is_active, u.phone_number, u.course, u.college_id, u.id_proof_path, u.enrollment_status, u.study_load, u.must_change_password, u.profile_picture, u.created_at, (SELECT COUNT(*) FROM grad_applications WHERE student_id = u.id) > 0 AS has_grad_application FROM users u WHERE u.id = ?',
       [userId]
     )
     .then(([rows]) => rows);
@@ -60,13 +60,13 @@ function setVerificationStatus(userId, newStatus, executor = pool) {
 
 function listAllUsers(executor = pool) {
   return executor
-    .query('SELECT id, student_id, full_name, email, course, role, verification_status, enrollment_status, study_load, is_active, created_at FROM users ORDER BY created_at DESC')
+    .query('SELECT id, student_id, full_name, email, course, college_id, role, verification_status, enrollment_status, study_load, is_active, created_at FROM users ORDER BY created_at DESC')
     .then(([rows]) => rows);
 }
 
 function findStudentBasicInfo(studentId, executor = pool) {
   return executor
-    .query('SELECT student_id, full_name, email, course, user_type FROM users WHERE student_id = ? AND role = "student"', [studentId])
+    .query('SELECT student_id, full_name, email, course, college_id, id_proof_path, user_type FROM users WHERE student_id = ? AND role = "student"', [studentId])
     .then(([rows]) => rows);
 }
 
@@ -230,7 +230,159 @@ function clearMustChangePassword(userId, executor = pool) {
   return executor.query('UPDATE users SET must_change_password = FALSE WHERE id = ?', [userId]);
 }
 
+
+function upsertProfile(userId, profile, executor = pool) {
+  return executor.query(
+    `INSERT INTO student_profiles (
+      user_id, extension_name, birth_date, place_of_birth, sex, civil_status, maiden_name,
+      home_address, last_attendance_year, is_transfer_student, previous_school,
+      elem_school, elem_grad_year, jhs_school, jhs_grad_year, shs_school, shs_grad_year
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ON DUPLICATE KEY UPDATE
+      extension_name = VALUES(extension_name),
+      birth_date = VALUES(birth_date),
+      place_of_birth = VALUES(place_of_birth),
+      sex = VALUES(sex),
+      civil_status = VALUES(civil_status),
+      maiden_name = VALUES(maiden_name),
+      home_address = VALUES(home_address),
+      last_attendance_year = VALUES(last_attendance_year),
+      is_transfer_student = VALUES(is_transfer_student),
+      previous_school = VALUES(previous_school),
+      elem_school = VALUES(elem_school),
+      elem_grad_year = VALUES(elem_grad_year),
+      jhs_school = VALUES(jhs_school),
+      jhs_grad_year = VALUES(jhs_grad_year),
+      shs_school = VALUES(shs_school),
+      shs_grad_year = VALUES(shs_grad_year)`,
+    [
+      userId,
+      profile.extension_name || null,
+      profile.birth_date || null,
+      profile.place_of_birth || null,
+      profile.sex || null,
+      profile.civil_status || null,
+      profile.maiden_name || null,
+      profile.home_address || null,
+      profile.last_attendance_year || null,
+      profile.is_transfer_student ? 1 : 0,
+      profile.previous_school || null,
+      profile.elem_school || null,
+      profile.elem_grad_year || null,
+      profile.jhs_school || null,
+      profile.jhs_grad_year || null,
+      profile.shs_school || null,
+      profile.shs_grad_year || null
+    ]
+  );
+}
+
+
+function getLoginSecurity(identifier, executor = pool) {
+  return executor
+    .query(
+      'SELECT id, failed_login_attempts, locked_until FROM users WHERE student_id = ? OR email = ? LIMIT 1',
+      [identifier, identifier]
+    )
+    .then(([rows]) => rows);
+}
+
+function incrementFailedLogin(userId, executor = pool) {
+  return executor.query(
+    'UPDATE users SET failed_login_attempts = failed_login_attempts + 1 WHERE id = ?',
+    [userId]
+  );
+}
+
+function lockAccount(userId, until, executor = pool) {
+  return executor.query(
+    'UPDATE users SET locked_until = ? WHERE id = ?',
+    [until, userId]
+  );
+}
+
+function resetLoginSecurity(userId, executor = pool) {
+  return executor.query(
+    'UPDATE users SET failed_login_attempts = 0, locked_until = NULL WHERE id = ?',
+    [userId]
+  );
+}
+
+function getPasswordHistory(userId, executor = pool) {
+  return executor
+    .query(
+      'SELECT password_hash FROM password_history WHERE user_id = ? ORDER BY created_at DESC LIMIT 3',
+      [userId]
+    )
+    .then(([rows]) => rows);
+}
+
+function addPasswordHistory(userId, hash, executor = pool) {
+  return executor.query(
+    'INSERT INTO password_history (user_id, password_hash) VALUES (?, ?)',
+    [userId, hash]
+  );
+}
+
+
+function logSecurityEvent(userId, eventType, ipAddress = null, userAgent = null, executor = pool) {
+  return executor.query(
+    'INSERT INTO security_logs (user_id, event_type, ip_address, user_agent) VALUES (?, ?, ?, ?)',
+    [userId, eventType, ipAddress, userAgent]
+  );
+}
+
+function getSecurityLogs(userId, executor = pool) {
+  return executor.query(
+    'SELECT event_type, ip_address, user_agent, created_at FROM security_logs WHERE user_id = ? ORDER BY created_at DESC LIMIT 20',
+    [userId]
+  ).then(([rows]) => rows);
+}
+
+
+function getGlobalSecurityLogs(executor = pool) {
+  return executor.query(
+    'SELECT sl.event_type, sl.ip_address, sl.user_agent, sl.created_at, u.full_name, u.student_id, u.role FROM security_logs sl JOIN users u ON sl.user_id = u.id ORDER BY sl.created_at DESC LIMIT 100'
+  ).then(([rows]) => rows);
+}
+
+
+function updateEmailOTP(userId, otp, expires, executor = pool) {
+  return executor.query('UPDATE users SET email_otp = ?, email_otp_expires = ? WHERE id = ?', [otp, expires, userId]);
+}
+
+function clearEmailOTP(userId, executor = pool) {
+  return executor.query('UPDATE users SET email_otp = NULL, email_otp_expires = NULL WHERE id = ?', [userId]);
+}
+
+function requestEmailChange(userId, email, otp, expires, executor = pool) {
+  return executor.query('UPDATE users SET pending_email = ?, email_otp = ?, email_otp_expires = ? WHERE id = ?', [email, otp, expires, userId]);
+}
+
+function commitEmailChange(userId, email, executor = pool) {
+  return executor.query('UPDATE users SET email = ?, pending_email = NULL, email_otp = NULL, email_otp_expires = NULL WHERE id = ?', [email, userId]);
+}
+
+function incrementTokenVersion(userId, executor = pool) {
+  return executor.query('UPDATE users SET token_version = token_version + 1 WHERE id = ?', [userId]);
+}
+
 module.exports = {
+  updateEmailOTP,
+  clearEmailOTP,
+  requestEmailChange,
+  commitEmailChange,
+  incrementTokenVersion,
+  getGlobalSecurityLogs,
+  logSecurityEvent,
+  getSecurityLogs,
+  getLoginSecurity,
+  incrementFailedLogin,
+  lockAccount,
+  resetLoginSecurity,
+  getPasswordHistory,
+  addPasswordHistory,
+  upsertProfile,
   listStaff,
   findById,
   createStaff,

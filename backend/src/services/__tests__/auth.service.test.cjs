@@ -1,6 +1,13 @@
 /**
  * Login gating, registration behaviour, and the admin-only guards.
  */
+
+vi.mock('../../config/db', () => ({
+  pool: {
+    query: vi.fn().mockResolvedValue([[]]),
+  }
+}));
+
 const fs = require('fs');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
@@ -15,7 +22,7 @@ const statusOf = (promise) => promise.then(() => undefined, (err) => err.status)
 let passwordHash;
 
 beforeAll(async () => {
-  passwordHash = await bcrypt.hash('trace2024', 10);
+  passwordHash = await bcrypt.hash('Trace2024!', 10);
 });
 
 const verifiedStudent = () => ({
@@ -42,12 +49,33 @@ beforeEach(() => {
   vi.spyOn(userModel, 'findStudentBasicInfo').mockResolvedValue([]);
   vi.spyOn(userModel, 'updateProfile').mockResolvedValue(true);
   vi.spyOn(userModel, 'findProfilePictureById').mockResolvedValue([{ profile_picture: null }]);
+
+  vi.spyOn(userModel, 'getLoginSecurity').mockResolvedValue([]);
+  vi.spyOn(userModel, 'incrementFailedLogin').mockResolvedValue([]);
+  vi.spyOn(userModel, 'lockAccount').mockResolvedValue([]);
+  vi.spyOn(userModel, 'resetLoginSecurity').mockResolvedValue([]);
+  vi.spyOn(userModel, 'getPasswordHistory').mockResolvedValue([]);
+  vi.spyOn(userModel, 'addPasswordHistory').mockResolvedValue([]);
+
+  vi.spyOn(userModel, 'logSecurityEvent').mockResolvedValue([]);
+
+  vi.spyOn(userModel, 'updateEmailOTP').mockResolvedValue([]);
+  vi.spyOn(userModel, 'clearEmailOTP').mockResolvedValue([]);
+  vi.spyOn(userModel, 'requestEmailChange').mockResolvedValue([]);
+  vi.spyOn(userModel, 'commitEmailChange').mockResolvedValue([]);
+  vi.spyOn(userModel, 'incrementTokenVersion').mockResolvedValue([]);
+
+
+
   vi.spyOn(notificationModel, 'findByUserId').mockResolvedValue([]);
   vi.spyOn(notificationModel, 'markAllRead').mockResolvedValue([{}]);
   vi.spyOn(aiEngine, 'verifyIdDocument').mockResolvedValue(null);
 });
 
 describe('login', () => {
+  beforeEach(() => {
+    userModel.getLoginSecurity.mockResolvedValue([{ id: 1, failed_login_attempts: 0, locked_until: null }]);
+  });
   it('requires both an ID and a password', async () => {
     expect(await statusOf(service.login({}))).toBe(400);
     expect(await statusOf(service.login({ employee_id: 'X' }))).toBe(400);
@@ -59,24 +87,24 @@ describe('login', () => {
 
   it('401s for a wrong password', async () => {
     userModel.findActiveByStudentId.mockResolvedValue([verifiedStudent()]);
-    expect(await statusOf(service.login({ employee_id: 'STU-001', password: 'wrong' }))).toBe(401);
+    expect(await statusOf(service.login({ employee_id: 'STU-001', password: 'WrongPassword1!' }))).toBe(401);
   });
 
   it.each(['pending', 'rejected'])('blocks a student whose account is %s', async (verification_status) => {
     userModel.findActiveByStudentId.mockResolvedValue([{ ...verifiedStudent(), verification_status }]);
-    expect(await statusOf(service.login({ employee_id: 'STU-001', password: 'trace2024' }))).toBe(403);
+    expect(await statusOf(service.login({ employee_id: 'STU-001', password: 'Trace2024!' }))).toBe(403);
   });
 
   it('lets staff in regardless of verification status', async () => {
     userModel.findActiveByStudentId.mockResolvedValue([
       { ...verifiedStudent(), role: 'clerk', desk_assignment: 'Finance', verification_status: 'pending' },
     ]);
-    await expect(service.login({ employee_id: 'FIN', password: 'trace2024' })).resolves.toHaveProperty('token');
+    await expect(service.login({ employee_id: 'FIN', password: 'Trace2024!' })).resolves.toHaveProperty('requires_2fa', true);
   });
 
   it('issues a JWT carrying the role and desk, and never the password hash', async () => {
     userModel.findActiveByStudentId.mockResolvedValue([verifiedStudent()]);
-    const res = await service.login({ employee_id: 'STU-001', password: 'trace2024' });
+    const res = await service.login({ employee_id: 'STU-001', password: 'Trace2024!' });
 
     const decoded = jwt.verify(res.token, env.JWT_SECRET);
     expect(decoded).toMatchObject({ id: 3, role: 'student', course: 'CCS' });
@@ -86,13 +114,13 @@ describe('login', () => {
 
   it('carries user_type through to the returned user object, so the frontend can tell alumni apart from students', async () => {
     userModel.findActiveByStudentId.mockResolvedValue([{ ...verifiedStudent(), user_type: 'alumni' }]);
-    const res = await service.login({ employee_id: 'STU-001', password: 'trace2024' });
+    const res = await service.login({ employee_id: 'STU-001', password: 'Trace2024!' });
     expect(res.user.user_type).toBe('alumni');
   });
 
   it('rejects a token signed with the wrong secret', async () => {
     userModel.findActiveByStudentId.mockResolvedValue([verifiedStudent()]);
-    const { token } = await service.login({ employee_id: 'STU-001', password: 'trace2024' });
+    const { token } = await service.login({ employee_id: 'STU-001', password: 'Trace2024!' });
     expect(() => jwt.verify(token, 'some-other-secret')).toThrow();
   });
 });
@@ -100,7 +128,7 @@ describe('login', () => {
 describe('register', () => {
   const body = {
     employee_id: 'STU-NEW', full_name: 'New Student',
-    phone_number: '+639', password: 'pw', course: 'CCS',
+    phone_number: '+639', password: 'Trace2024!', course: 'CCS',
   };
   const file = { path: '/tmp/id.jpg', originalname: 'id.jpg', mimetype: 'image/jpeg' };
 
@@ -145,7 +173,7 @@ describe('register', () => {
     await service.register(body, file);
     const stored = userModel.createUser.mock.calls[0][0].password_hash;
     expect(stored).not.toBe('pw');
-    expect(await bcrypt.compare('pw', stored)).toBe(true);
+    expect(await bcrypt.compare('Trace2024!', stored)).toBe(true);
   });
 });
 
@@ -187,13 +215,21 @@ describe('admin-only guards', () => {
 });
 
 describe('updateProfile', () => {
+  beforeEach(() => { notificationModel.notifyByEmail = vi.fn(); });
+
+  beforeEach(() => {
+    userModel.getProfileById.mockResolvedValue([{ email: 'old@plp.edu.ph', student_id: 'STU-1' }]);
+    userModel.findActiveByStudentId.mockResolvedValue([{ password_hash: passwordHash }]);
+    userModel.getPasswordHistory.mockResolvedValue([]);
+    userModel.addPasswordHistory.mockResolvedValue(true);
+  });
   it('rejects an update with no fields', async () => {
     userModel.updateProfile.mockResolvedValue(false);
     expect(await statusOf(service.updateProfile(3, {}))).toBe(400);
   });
 
   it('hashes a new password rather than storing it raw', async () => {
-    await service.updateProfile(3, { password: 'newpw' });
+    await service.updateProfile(3, { password: 'NewPassword2024!', current_password: 'Trace2024!' });
     const fields = userModel.updateProfile.mock.calls[0][1];
     expect(fields.password_hash).toBeDefined();
     expect(fields.password_hash).not.toBe('newpw');

@@ -1,10 +1,28 @@
 const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
+
+function validatePassword(password) {
+  const regex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+  if (!regex.test(password)) {
+    throw badRequest('Password must be at least 8 characters and include uppercase, lowercase, number, and special character.');
+  }
+}
+
+async function checkPasswordHistory(userId, newPassword) {
+  const history = await userModel.getPasswordHistory(userId);
+  for (const row of history) {
+    if (await bcrypt.compare(newPassword, row.password_hash)) {
+      throw badRequest('You cannot reuse any of your last 3 passwords.');
+    }
+  }
+}
+
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const env = require('../config/env');
 const userModel = require('../models/user.model');
+const { pool } = require('../config/db');
 const notificationModel = require('../models/notification.model');
 const passwordResetModel = require('../models/passwordReset.model');
 const aiEngine = require('./aiEngine.service');
@@ -16,27 +34,80 @@ const { badRequest, unauthorized, forbidden, notFound } = require('../utils/AppE
  * Authenticate by student/employee ID + password, returning a 24h JWT.
  * Students must be verified before they can log in; staff bypass that check.
  */
-async function login({ employee_id, password }) {
+
+async function login({ employee_id, password }, ipAddress, userAgent) {
+
+  const secRows = await userModel.getLoginSecurity(employee_id);
+  if (secRows.length > 0) {
+    const sec = secRows[0];
+    if (sec.locked_until && new Date(sec.locked_until) > new Date()) {
+      const minutesLeft = Math.ceil((new Date(sec.locked_until) - new Date()) / 60000);
+      throw badRequest(`Account locked. Try again in ${minutesLeft} minute(s).`);
+    }
+  }
+
   if (!employee_id || !password) {
     throw badRequest('Employee ID and password are required.');
   }
 
   const rows = await userModel.findActiveByStudentId(employee_id);
-  if (rows.length === 0) {
+  
+  const handleFail = async () => {
+    if (secRows.length > 0) {
+      const sec = secRows[0];
+      const attempts = sec.failed_login_attempts + 1;
+      if (attempts >= 5) {
+        const until = new Date(Date.now() + 15 * 60000);
+        await userModel.lockAccount(sec.id, until);
+        throw unauthorized('Account locked for 15 minutes due to too many failed attempts.');
+      } else {
+        await userModel.incrementFailedLogin(sec.id);
+        throw unauthorized(`Invalid ID or password. Attempt ${attempts} of 5.`);
+      }
+    }
     throw unauthorized('Invalid credentials.');
+  };
+
+  if (rows.length === 0) {
+    await handleFail();
   }
 
   const user = rows[0];
-
   const isMatch = await bcrypt.compare(password, user.password_hash);
   if (!isMatch) {
-    throw unauthorized('Invalid credentials.');
+    await handleFail();
+  }
+
+  
+  const isStaff = ['admin', 'clerk'].includes(user.role);
+  const requires2FA = user.two_factor_enabled || isStaff;
+
+  if (requires2FA) {
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    const expires = new Date(Date.now() + 5 * 60000); // 5 mins
+    await userModel.updateEmailOTP(user.id, otp, expires);
+    
+    const notifications = require('./notification.service');
+    if (notifications.notifyByEmail && user.email) {
+      await notifications.notifyByEmail({
+        email: user.email,
+        title: 'Project TRACE Login Verification',
+        message: `Your login verification code is: ${otp}. It expires in 5 minutes.`
+      });
+    }
+
+    const tempToken = jwt.sign({ id: user.id, pending_2fa: true }, env.JWT_SECRET, { expiresIn: '5m' });
+    return { requires_2fa: true, temp_token: tempToken, email: user.email };
   }
 
   if (user.role === 'student' && user.verification_status !== 'verified') {
-    throw forbidden('Your account is pending verification. Please wait for an admin to approve your request.');
+    throw forbidden(`Account is ${user.verification_status}.`);
   }
 
+
+
+
+  await userModel.logSecurityEvent(user.id, 'LOGIN', ipAddress, userAgent);
   const token = jwt.sign(
     {
       id: user.id,
@@ -44,6 +115,7 @@ async function login({ employee_id, password }) {
       full_name: user.full_name,
       desk_assignment: user.desk_assignment,
       course: user.course,
+      token_version: user.token_version || 1,
     },
     env.JWT_SECRET,
     { expiresIn: '24h' }
@@ -60,10 +132,12 @@ async function login({ employee_id, password }) {
       user_type: user.user_type,
       desk_assignment: user.desk_assignment,
       course: user.course,
+      email: user.email || null,
+      phone_number: user.phone_number || null,
       profile_picture: user.profile_picture || null,
-      // Set for staff accounts created with an admin-chosen temporary password.
-      // The client must send the user to a password change before anything else.
+      profile_completed: Boolean(user.profile_completed),
       must_change_password: Boolean(user.must_change_password),
+      has_grad_application: Boolean(user.has_grad_application),
     },
   };
 }
@@ -103,6 +177,7 @@ async function register(body, file) {
     }
   }
 
+  validatePassword(password);
   const password_hash = await bcrypt.hash(password, 10);
   const id_proof_path = file.path;
 
@@ -174,24 +249,113 @@ async function lookupStudent(studentId) {
 }
 
 /** Partial profile update — only the fields actually supplied are written. */
-async function updateProfile(userId, { phone_number, email, course, password }) {
+
+
+
+async function updateProfile(userId, { phone_number, email, course, password, current_password, ...profileFields }) {
   const fields = {};
-  if (phone_number !== undefined) fields.phone_number = phone_number;
-  if (email !== undefined) fields.email = email;
-  if (course !== undefined) fields.course = course;
-  if (password) {
-    fields.password_hash = await bcrypt.hash(password, 10);
-    // Choosing a password satisfies the forced-change requirement.
-    fields.must_change_password = false;
+  
+  const users = await userModel.getProfileById(userId);
+  if (!users || users.length === 0) throw notFound('User not found.');
+  const currentUser = users[0];
+
+  const emailChanged = (email !== undefined && email !== '' && email !== currentUser.email);
+
+  if (emailChanged || password) {
+    if (!current_password) {
+      throw badRequest('Current password is required to change email or password.');
+    }
+    
+    const pwdRows = await userModel.getProfileById(userId);
+    if (!pwdRows || pwdRows.length === 0) throw notFound('User not found.');
+    // getProfileById does not select password_hash. I will use a new method or existing one.
+    // wait, findActiveByStudentId returns the full row including password_hash.
+    const userRow = await userModel.findActiveByStudentId(pwdRows[0].student_id);
+    if (!userRow || userRow.length === 0) throw notFound('User not found.');
+    const match = await bcrypt.compare(current_password, userRow[0].password_hash);
+
+    if (!match) {
+      throw unauthorized('Incorrect current password.');
+    }
   }
 
-  const updated = await userModel.updateProfile(userId, fields);
-  if (!updated) {
+
+  if (phone_number !== undefined) fields.phone_number = phone_number;
+  
+  if (emailChanged) {
+    // Generate 6-digit OTP
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    const expires = new Date(Date.now() + 15 * 60000); // 15 mins
+    
+    await userModel.requestEmailChange(userId, email, otp, expires);
+
+    const nodemailer = require('nodemailer'); // Assumes we use notification.service
+    const notifications = require('./notification.service');
+    
+    // Send OTP to new email
+    if (notifications.notifyByEmail) {
+      await notifications.notifyByEmail({
+        email: email,
+        title: 'Verify Your New Email',
+        message: `Your verification code is: ${otp}. It expires in 15 minutes.`
+      });
+      // Notify old email
+      await notifications.notifyByEmail({
+        email: currentUser.email,
+        title: 'Email Change Requested',
+        message: 'A request to change your email address was initiated. If this was not you, please contact support.'
+      });
+    }
+    
+    await userModel.logSecurityEvent(userId, 'EMAIL_CHANGE_REQUESTED');
+    // We don't update fields.email yet!
+  }
+
+  if (course !== undefined) fields.course = course;
+  
+  if (password) {
+    validatePassword(password);
+    await checkPasswordHistory(userId, password);
+    fields.password_hash = await bcrypt.hash(password, 10);
+    await userModel.logSecurityEvent(userId, 'PASSWORD_CHANGE');
+    fields.must_change_password = false;
+    await userModel.addPasswordHistory(userId, fields.password_hash);
+    
+    // SEC-07 Email notification
+    
+    const userRows = await userModel.getProfileById(userId);
+
+    if (userRows[0] && userRows[0].email) {
+      const nodemailer = require('nodemailer'); // Assumes we use the same mailer. We have notification.service.js
+      const notifications = require('./notification.service');
+      if (notifications.notifyByEmail) await notifications.notifyByEmail({
+        email: userRows[0].email,
+        title: 'Password Changed',
+        message: 'Your Project TRACE password was recently changed. If this was not you, please contact the administrator immediately.'
+      });
+    }
+  }
+
+  if (Object.keys(fields).length > 0) {
+    await userModel.updateProfile(userId, fields);
+  }
+
+  // Handle student profile fields (PROF-01)
+  const profileKeys = ['extension_name', 'birth_date', 'place_of_birth', 'sex', 'civil_status', 'maiden_name', 'home_address', 'last_attendance_year', 'is_transfer_student', 'previous_school', 'elem_school', 'elem_grad_year', 'jhs_school', 'jhs_grad_year', 'shs_school', 'shs_grad_year'];
+  const hasProfileFields = profileKeys.some(key => profileFields[key] !== undefined);
+  
+  if (hasProfileFields) {
+    await userModel.upsertProfile(userId, profileFields);
+  }
+
+  if (Object.keys(fields).length === 0 && !hasProfileFields) {
     throw badRequest('No fields to update.');
   }
 
   return { message: 'Profile updated successfully.' };
 }
+
+
 
 /**
  * Replace the caller's avatar with a freshly uploaded image.
@@ -251,6 +415,90 @@ function hashResetToken(token) {
  * registered. The caller is told "if the account exists, a link has been sent"
  * in every case.
  */
+
+
+
+
+
+async function verify2FA(tempToken, otp, ipAddress, userAgent) {
+  let decoded;
+  try {
+    decoded = jwt.verify(tempToken, env.JWT_SECRET);
+  } catch (err) {
+    throw unauthorized('Invalid or expired 2FA token. Please log in again.');
+  }
+
+  if (!decoded.pending_2fa) {
+    throw badRequest('Invalid token type.');
+  }
+
+  const user = await userModel.findById(decoded.id);
+  if (!user) throw notFound('User not found.');
+
+  if (user.email_otp !== otp) {
+    throw unauthorized('Invalid verification code.');
+  }
+  
+  if (new Date(user.email_otp_expires) < new Date()) {
+    throw badRequest('Verification code expired.');
+  }
+
+  // Clear OTP
+  await userModel.clearEmailOTP(user.id);
+  
+  await userModel.logSecurityEvent(user.id, 'LOGIN', ipAddress, userAgent);
+
+  const token = jwt.sign(
+    {
+      id: user.id,
+      role: user.role,
+      full_name: user.full_name,
+      desk_assignment: user.desk_assignment,
+      course: user.course,
+      token_version: user.token_version || 1,
+    },
+    env.JWT_SECRET,
+    { expiresIn: '24h' }
+  );
+
+  return { message: 'Login successful.', token, user };
+}
+
+async function verifyEmailChange(userId, otp) {
+  const user = await userModel.findById(userId);
+  if (!user) throw notFound('User not found.');
+  if (!user.pending_email || !user.email_otp) {
+    throw badRequest('No email change requested.');
+  }
+  
+  if (user.email_otp !== otp) {
+    throw unauthorized('Invalid verification code.');
+  }
+  
+  if (new Date(user.email_otp_expires) < new Date()) {
+    throw badRequest('Verification code expired.');
+  }
+  
+  await userModel.commitEmailChange(userId, user.pending_email);
+  
+  await userModel.logSecurityEvent(userId, 'EMAIL_CHANGED');
+  return { message: 'Email address updated successfully.' };
+}
+
+async function getGlobalSecurityLogs() {
+  return await userModel.getGlobalSecurityLogs();
+}
+
+async function getSecurityLogs(userId) {
+  return await userModel.getSecurityLogs(userId);
+}
+
+async function logoutAll(userId) {
+  await userModel.incrementTokenVersion(userId);
+  await userModel.logSecurityEvent(userId, 'LOGOUT_ALL');
+  return { message: 'Successfully logged out of all devices.' };
+}
+
 async function requestPasswordReset({ identifier }) {
   if (!identifier || !String(identifier).trim()) {
     throw badRequest('Enter your Student ID / Staff ID or your email address.');
@@ -337,6 +585,15 @@ async function resetPassword({ token, password }) {
   await passwordResetModel.markUsed(reset.id);
   await passwordResetModel.invalidateAllForUser(reset.user_id);
 
+  const uRows = await userModel.findById(reset.user_id);
+  if (uRows.length > 0 && uRows[0].email && notifications.notifyByEmail) {
+    await notifications.notifyByEmail({
+      email: uRows[0].email,
+      title: 'Password Reset Successful',
+      message: 'Your Project TRACE password has been successfully reset. If this was not you, please contact the administrator immediately.'
+    });
+  }
+
   return { message: 'Password updated. You can now sign in with your new password.' };
 }
 
@@ -350,6 +607,11 @@ module.exports = {
   lookupStudent,
   updateProfile,
   updateProfilePicture,
+  verify2FA,
+  verifyEmailChange,
+  getGlobalSecurityLogs,
+  getSecurityLogs,
+  logoutAll,
   requestPasswordReset,
   resetPassword,
   listNotifications,

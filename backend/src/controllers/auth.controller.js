@@ -13,7 +13,7 @@ function fail(res, err, logLabel, fallbackMessage) {
 
 async function login(req, res) {
   try {
-    res.json(await authService.login(req.body));
+    res.json(await authService.login(req.body, req.ip, req.headers['user-agent']));
   } catch (err) {
     fail(res, err, 'Login error', 'Internal server error.');
   }

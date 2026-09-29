@@ -1,10 +1,13 @@
-import { AreaChart, Area, XAxis, Tooltip, ResponsiveContainer } from 'recharts';
+import AdminTemplatesPanel from './components/AdminTemplatesPanel';
+import { useState } from 'react';
+import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import MiniSparkline from '@/components/MiniSparkline';
 import useAdminDashboard from '@/features/admin/useAdminDashboard';
 import { todayLongDate, formatDuration } from '@/utils/formatters';
 import { STATUS } from '@/utils/documentStatus';
 import DashboardAlerts from '@/components/DashboardAlerts';
 import DashboardLoading from '@/components/DashboardLoading';
+import StudentProfileModal from '@/components/StudentProfileModal';
 import MaintenancePanel from '@/features/admin/components/MaintenancePanel';
 import ReportsPanel from '@/features/admin/components/ReportsPanel';
 import AnalyticsPanel from '@/features/admin/components/AnalyticsPanel';
@@ -13,11 +16,14 @@ import GradApplicationReviewPanel from '@/features/graduate/components/GradAppli
 import UserGrid from '@/features/admin/components/UserGrid';
 import UserDetailModal from '@/features/admin/components/UserDetailModal';
 import ConfirmDialog from '@/components/ConfirmDialog';
+import AccountVerificationModal from './components/AccountVerificationModal';
 
 /**
  * Registrar admin: ML forecasts, AI insights, account verification, users, and audit logs.
  */
 export default function AdminDashboard({ user, currentTab, setViewImageUrl }) {
+  const [viewProfileId, setViewProfileId] = useState(null);
+
   const {
     loading,
     success,
@@ -61,6 +67,7 @@ export default function AdminDashboard({ user, currentTab, setViewImageUrl }) {
   if (currentTab === 'admin-reports') return <ReportsPanel user={user} currentTab={currentTab} />;
   if (currentTab === 'admin-analytics') return <AnalyticsPanel user={user} currentTab={currentTab} />;
   if (currentTab === 'admin-grad-applications') return <GradApplicationReviewPanel user={user} currentTab={currentTab} />;
+  if (currentTab === 'admin-security') return <AdminSecurityPanel />;
 
   return (
     <>
@@ -196,6 +203,14 @@ export default function AdminDashboard({ user, currentTab, setViewImageUrl }) {
                               tick={{ fill: '#9ca3af', fontSize: 10, fontWeight: 'bold' }} 
                               dy={10}
                             />
+                            <YAxis 
+                              allowDecimals={false} 
+                              axisLine={false} 
+                              tickLine={false} 
+                              tick={{ fill: '#9ca3af', fontSize: 10, fontWeight: 'bold' }} 
+                              width={30}
+
+                            />
                             <Tooltip 
                               contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
                               itemStyle={{ color: '#15803d', fontWeight: 'bold' }}
@@ -261,14 +276,15 @@ export default function AdminDashboard({ user, currentTab, setViewImageUrl }) {
                     </span>
                   </div>
                   <div className="p-4 sm:p-6">
-                    <div className="max-h-[60vh] overflow-y-auto overflow-x-auto">
+                    <div className="max-h-[calc(100vh-280px)] overflow-y-auto overflow-x-auto">
                       {pendingStudents.length === 0 ? (
                         <div className="text-center py-12 text-gray-400 font-medium">No pending student accounts requiring manual validation.</div>
                       ) : (
-                        <table className="w-full text-left border-collapse">
+                        <table className="w-full text-left border-collapse table-fixed">
                           <thead className="sticky top-0 bg-white z-10">
                             <tr className="text-gray-400 text-[10px] uppercase tracking-widest border-b border-gray-100">
                               <th className="pb-4 font-bold pl-4 font-mono">Student ID</th>
+                              <th className="pb-4 font-bold">Type</th>
                               <th className="pb-4 font-bold">Full Name</th>
                               <th className="pb-4 font-bold">Email</th>
                               <th className="pb-4 font-bold">Proof of Registration</th>
@@ -279,6 +295,7 @@ export default function AdminDashboard({ user, currentTab, setViewImageUrl }) {
                             {pendingStudents.map(student => (
                               <tr key={student.id} className="hover:bg-gray-50/30">
                                 <td className="py-4 pl-4 font-mono text-sm font-semibold text-gray-800">{student.student_id}</td>
+                                <td className="py-4 text-xs font-bold text-gray-500 uppercase tracking-widest">{student.user_type}</td>
                                 <td className="py-4 text-sm font-bold text-gray-900">{student.full_name}</td>
                                 <td className="py-4 text-sm text-gray-600">{student.email || '—'}</td>
                                 <td className="py-4">
@@ -357,11 +374,11 @@ export default function AdminDashboard({ user, currentTab, setViewImageUrl }) {
                     </div>
                   </div>
                   <div className="p-4 sm:p-6">
-                    <div className="max-h-[60vh] overflow-y-auto overflow-x-auto">
+                    <div className="max-h-[calc(100vh-280px)] overflow-y-auto overflow-x-auto">
                       {documents.filter(doc => adminDocFilter === 'All' || doc.document_type === adminDocFilter).length === 0 ? (
                         <div className="text-center py-12 text-gray-400 font-medium">No documents match the current filter.</div>
                       ) : (
-                        <table className="w-full text-left border-collapse">
+                        <table className="w-full text-left border-collapse table-fixed">
                           <thead className="sticky top-0 bg-white z-10">
                             <tr className="text-gray-400 text-[10px] uppercase tracking-widest border-b border-gray-100">
                               <th className="pb-4 font-bold pl-4">Tracking ID</th>
@@ -382,7 +399,7 @@ export default function AdminDashboard({ user, currentTab, setViewImageUrl }) {
                                     #{doc.tracking_number ? doc.tracking_number.slice(0, 10).toUpperCase() : doc.id}
                                   </td>
                                   <td className="py-4 text-sm font-bold text-gray-700">{doc.student_name || doc.student_id || 'Unknown'}</td>
-                                  <td className="py-4 text-xs font-bold text-gray-600">{doc.document_type}</td>
+                                  <td className="py-4 text-xs font-bold text-gray-600">{doc.document_sequence_number || doc.document_type}</td>
                                   <td className="py-4">
                                     <span className={`px-3 py-1 text-[10px] font-black rounded-full uppercase tracking-wider ${
                                       doc.current_status === STATUS.COMPLETED
@@ -487,8 +504,8 @@ export default function AdminDashboard({ user, currentTab, setViewImageUrl }) {
                     <h3 className="font-bold text-gray-900 text-lg">System-Wide Audit Log</h3>
                   </div>
                   <div className="p-4 sm:p-6">
-                    <div className="max-h-[60vh] overflow-y-auto overflow-x-auto">
-                      <table className="w-full text-left border-collapse whitespace-nowrap">
+                    <div className="max-h-[calc(100vh-280px)] overflow-y-auto overflow-x-auto">
+                      <table className="w-full text-left border-collapse table-fixed whitespace-nowrap">
                         <thead className="sticky top-0 bg-white z-10">
                           <tr className="text-xs uppercase tracking-widest text-gray-400 border-b border-gray-100">
                             <th className="pb-4 font-bold pl-4">Timestamp</th>
@@ -529,22 +546,17 @@ export default function AdminDashboard({ user, currentTab, setViewImageUrl }) {
         setForecastFilter={setForecastFilter}
       />
 
-      <ConfirmDialog
-        open={!!studentVerifyToConfirm}
-        title={studentVerifyToConfirm?.action === 'verify' ? 'Verify Student' : 'Reject Registration'}
-        message={
-          studentVerifyToConfirm
-            ? studentVerifyToConfirm.action === 'verify'
-              ? `Verify ${studentVerifyToConfirm.student.full_name}'s account registration?`
-              : `Reject ${studentVerifyToConfirm.student.full_name}'s account registration?`
-            : ''
-        }
-        variant={studentVerifyToConfirm?.action === 'verify' ? 'neutral' : 'destructive'}
-        confirmLabel={studentVerifyToConfirm?.action === 'verify' ? 'Verify Student' : 'Reject'}
-        loadingLabel="Saving…"
-        loading={actionLoading}
-        onConfirm={confirmAdminVerifyStudent}
-        onCancel={cancelAdminVerifyStudent}
+      <AccountVerificationModal
+        studentVerifyToConfirm={studentVerifyToConfirm}
+        cancelAdminVerifyStudent={cancelAdminVerifyStudent}
+        confirmAdminVerifyStudent={confirmAdminVerifyStudent}
+        actionLoading={actionLoading}
+        setViewImageUrl={setViewImageUrl}
+      />
+      <StudentProfileModal
+        open={!!viewProfileId}
+        onClose={() => setViewProfileId(null)}
+        studentId={viewProfileId}
       />
     </>
   );

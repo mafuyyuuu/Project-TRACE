@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import useAuth from '@/hooks/useAuth'
 import plpLogo from '@/assets/plp_logo.png'
+import api from '@/services/api'
 
 export default function LoginPage() {
   const { login, loading, error: authError } = useAuth()
@@ -9,15 +10,48 @@ export default function LoginPage() {
   const [password, setPassword] = useState('')
   const [localError, setLocalError] = useState('')
   const [showPassword, setShowPassword] = useState(false)
+  const navigate = useNavigate()
+
+  // 2FA State
+  const [requires2FA, setRequires2FA] = useState(false)
+  const [tempToken, setTempToken] = useState('')
+  const [otp, setOtp] = useState('')
+  const [maskedEmail, setMaskedEmail] = useState('')
 
   const handleSubmit = async (e) => {
     e.preventDefault()
     setLocalError('')
-    if (!employeeId.trim() || !password.trim()) {
-      setLocalError('Please enter both ID and password.')
-      return
+    if (!requires2FA) {
+      if (!employeeId.trim() || !password.trim()) {
+        setLocalError('Please enter both ID and password.')
+        return
+      }
+      try {
+        const response = await login({ employeeId: employeeId.trim(), password })
+        if (response && response.requires_2fa) {
+          setRequires2FA(true)
+          setTempToken(response.temp_token)
+          // Mask email for UI: "a***@plp.edu.ph"
+          const parts = response.email?.split('@') || ['','']
+          const m = parts[0].length > 1 ? parts[0][0] + '***' : '***'
+          setMaskedEmail(m + '@' + parts[1])
+        }
+      } catch (err) {
+        // useAuth login already sets authError
+      }
+    } else {
+      if (!otp.trim()) {
+        setLocalError('Please enter the OTP.')
+        return
+      }
+      try {
+        const res = await api.post('/auth/verify-2fa', { temp_token: tempToken, otp: otp.trim() })
+        localStorage.setItem('token', res.data.token)
+        window.location.href = '/dashboard'
+      } catch (err) {
+        setLocalError(err.response?.data?.error || 'Invalid OTP.')
+      }
     }
-    await login({ employeeId: employeeId.trim(), password })
   }
 
   const error = localError || authError
@@ -55,7 +89,7 @@ export default function LoginPage() {
       {/* Right Column (Pine Spec) */}
       <div className="md:w-1/2 bg-[#15803d] p-12 md:p-24 flex flex-col justify-center text-white relative">
         <div className="max-w-md w-full mx-auto">
-          <h2 className="text-4xl font-display font-black mb-10 tracking-tight">Login</h2>
+          <h2 className="text-4xl font-display font-black mb-10 tracking-tight">{requires2FA ? 'Verification Required' : 'Login'}</h2>
           
           {error && (
             <div className="fixed bottom-6 right-6 z-50 bg-red-900 text-white px-6 py-4 rounded-2xl shadow-xl flex items-center gap-3 border border-red-700 animate-slide-up">
@@ -65,49 +99,59 @@ export default function LoginPage() {
           )}
 
           <form onSubmit={handleSubmit} className="flex flex-col gap-6">
-            <div className="flex flex-col gap-2">
-              <label className="text-xs font-bold text-white uppercase tracking-wider">STUDENT ID / STAFF ID</label>
-              <input 
-                type="text" 
-                placeholder="e.g. 23-00123 or ADMIN001"
-                value={employeeId} 
-                onChange={(e) => setEmployeeId(e.target.value)} 
-                className="w-full p-4 bg-white/10 border border-white/20 rounded-xl text-sm focus:ring-2 focus:ring-white/50 outline-none text-white focus:bg-white/20 transition-all font-semibold placeholder:text-white/40" 
-                autoFocus 
-              />
-            </div>
+            {!requires2FA ? (
+              <>
+                <div className="flex flex-col gap-2">
+                  <label className="text-xs font-bold text-white uppercase tracking-wider">STUDENT ID / STAFF ID</label>
+                  <input 
+                    type="text" 
+                    placeholder="e.g. 23-00123 or ADMIN001"
+                    value={employeeId} 
+                    onChange={(e) => setEmployeeId(e.target.value)} 
+                    className="w-full p-4 bg-white/10 border border-white/20 rounded-xl text-sm focus:ring-2 focus:ring-white/50 outline-none text-white focus:bg-white/20 transition-all font-semibold placeholder:text-white/40" 
+                    autoFocus 
+                  />
+                </div>
 
-            <div className="flex flex-col gap-2">
-              <label className="text-xs font-bold text-white uppercase tracking-wider">PASSWORD</label>
-              <div className="relative">
+                <div className="flex flex-col gap-2">
+                  <label className="text-xs font-bold text-white uppercase tracking-wider">PASSWORD</label>
+                  <div className="relative">
+                    <input 
+                      type={showPassword ? 'text' : 'password'} 
+                      value={password} 
+                      onChange={(e) => setPassword(e.target.value)} 
+                      className="w-full p-4 pr-12 bg-white/10 border border-white/20 rounded-xl text-sm focus:ring-2 focus:ring-white/50 outline-none text-white focus:bg-white/20 transition-all font-semibold placeholder:text-white/40" 
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute inset-y-0 right-0 pr-4 flex items-center text-white/60 hover:text-white transition-colors"
+                      tabIndex={-1}
+                    >
+                      {showPassword ? 'Hide' : 'Show'}
+                    </button>
+                  </div>
+                  <div className="text-right mt-2">
+                    <Link to="/forgot-password" className="text-sm font-medium text-white/90 hover:text-white hover:underline">Forgot Password?</Link>
+                  </div>
+                </div>
+              </>
+            ) : (
+              <div className="flex flex-col gap-2">
+                <p className="text-sm font-medium text-white/90 mb-4">
+                  For security, we've sent a 6-digit verification code to <strong>{maskedEmail}</strong>.
+                </p>
+                <label className="text-xs font-bold text-white uppercase tracking-wider">VERIFICATION CODE</label>
                 <input 
-                  type={showPassword ? 'text' : 'password'} 
-                  value={password} 
-                  onChange={(e) => setPassword(e.target.value)} 
-                  className="w-full p-4 pr-12 bg-white/10 border border-white/20 rounded-xl text-sm focus:ring-2 focus:ring-white/50 outline-none text-white focus:bg-white/20 transition-all font-semibold placeholder:text-white/40" 
+                  type="text" 
+                  placeholder="Enter 6-digit OTP"
+                  value={otp} 
+                  onChange={(e) => setOtp(e.target.value)} 
+                  className="w-full p-4 bg-white/10 border border-white/20 rounded-xl text-center text-2xl tracking-[0.5em] focus:ring-2 focus:ring-white/50 outline-none text-white focus:bg-white/20 transition-all font-bold placeholder:text-white/40" 
+                  autoFocus 
                 />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute inset-y-0 right-0 pr-4 flex items-center text-white/60 hover:text-white transition-colors"
-                  tabIndex={-1}
-                >
-                  {showPassword ? (
-                    <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M13.875 18.825A10.05 10.05 0 0112 19c-5 0-9.27-3.11-11-7.5a11.72 11.72 0 013.168-4.477M6.343 6.343A9.97 9.97 0 0112 5c5 0 9.27 3.11 11 7.5a11.72 11.72 0 01-4.168 4.477M6.343 6.343L3 3m3.343 3.343l2.829 2.829m4.243 4.243l2.829 2.829M6.343 6.343l11.314 11.314M14.121 14.121A3 3 0 009.879 9.879" />
-                    </svg>
-                  ) : (
-                    <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                    </svg>
-                  )}
-                </button>
               </div>
-              <div className="text-right mt-2">
-                <Link to="/forgot-password" className="text-sm font-medium text-white/90 hover:text-white hover:underline">Forgot Password?</Link>
-              </div>
-            </div>
+            )}
 
             <button 
               type="submit" 
@@ -117,18 +161,29 @@ export default function LoginPage() {
               {loading ? (
                 <>
                   <span className="w-5 h-5 border-4 border-gray-900/30 border-t-gray-900 rounded-full animate-spin"></span> 
-                  <span className="text-xl">SIGNING IN...</span>
+                  <span className="text-xl">PROCESSING...</span>
                 </>
-              ) : 'LOGIN'}
+              ) : (requires2FA ? 'VERIFY & LOGIN' : 'LOGIN')}
             </button>
+            
+            {requires2FA && (
+              <button 
+                type="button" 
+                onClick={() => setRequires2FA(false)}
+                className="mt-2 text-sm text-white/70 hover:text-white hover:underline"
+              >
+                Back to Login
+              </button>
+            )}
           </form>
 
-          <div className="mt-10 text-center text-sm text-white/80 font-medium">
-            Don't have an account? <Link to="/signup" className="text-white font-black hover:underline">Sign up</Link>
-          </div>
+          {!requires2FA && (
+            <div className="mt-10 text-center text-sm text-white/80 font-medium">
+              Don't have an account? <Link to="/signup" className="text-white font-black hover:underline">Sign up</Link>
+            </div>
+          )}
         </div>
       </div>
     </div>
   )
 }
-

@@ -1,0 +1,34 @@
+const pool = require('../config/db');
+
+function insert(documentId, senderId, message, executor = pool) {
+  return executor.query(
+    'INSERT INTO document_messages (document_id, sender_id, message) VALUES (?, ?, ?)',
+    [documentId, senderId, message]
+  );
+}
+
+function findByDocumentId(documentId, executor = pool) {
+  return executor
+    .query(`
+      SELECT m.*, u.full_name as sender_name, u.role as sender_role 
+      FROM document_messages m
+      JOIN users u ON m.sender_id = u.id
+      WHERE m.document_id = ?
+      ORDER BY m.created_at ASC
+    `, [documentId])
+    .then(([rows]) => rows);
+}
+
+function markAsRead(documentId, userId, executor = pool) {
+  // Mark messages as read if the sender is NOT the current user
+  return executor.query(
+    'UPDATE document_messages SET read_at = CURRENT_TIMESTAMP WHERE document_id = ? AND sender_id != ? AND read_at IS NULL',
+    [documentId, userId]
+  );
+}
+
+module.exports = {
+  insert,
+  findByDocumentId,
+  markAsRead,
+};

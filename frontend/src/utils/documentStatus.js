@@ -96,6 +96,10 @@ const STATUS_LABELS = {
   [STATUS.COMPLETED]: 'Completed',
   [LEGACY_STATUS.REJECTED]: 'Rejected',
   [LEGACY_STATUS.APPROVED]: 'Approved',
+  'rejected': 'Rejected',
+  'cancelled': 'Cancelled',
+  'canceled': 'Cancelled',
+
 };
 
 export function getStatusLabel(status) {

@@ -53,6 +53,7 @@ beforeEach(() => {
   vi.spyOn(documentModel, 'markGroupPayable').mockResolvedValue([{ affectedRows: 1 }]);
   vi.spyOn(documentModel, 'updateOrVerification').mockResolvedValue([{ affectedRows: 1 }]);
   vi.spyOn(documentModel, 'sumGroupAmount').mockResolvedValue(0);
+  vi.spyOn(documentModel, 'countByTypeAndStudent').mockResolvedValue(0);
   // Default: this was the last unpriced document, so pricing bills the group.
   vi.spyOn(documentModel, 'countUnpricedInGroup').mockResolvedValue(0);
   vi.spyOn(documentModel, 'findByRequestGroup').mockResolvedValue([]);
@@ -240,7 +241,7 @@ describe('uploadDocument — a student can only file for themselves', () => {
       { document_type: 'Transcript of Records', semesters: 8, copies: 2, amount: '1.00' },
       null
     );
-    expect(documentModel.insert.mock.calls[0][0].amount).toBe(400);
+    expect(documentModel.insert.mock.calls[0][0].amount).toBe(200);
   });
 });
 
@@ -1016,7 +1017,7 @@ describe('listDocuments — role scoping', () => {
 
     documentModel.listWithFilters.mockClear();
     await service.listDocuments(ADMIN, { status: 'completed' });
-    expect(documentModel.listWithFilters.mock.calls[0][0]).toContain('current_status = ?');
+    expect(documentModel.listWithFilters.mock.calls[0][0]).toContain('d.current_status = ?');
   });
 
   it('computes pagination from the total', async () => {

@@ -31,8 +31,7 @@ function size cap.
 
 You'll need:
 
-- **An Oracle Cloud account** — Always Free tier. Requires a card for identity verification; it is
-  not charged.
+- **A Cloud Provider account** — We strongly recommend **Google Cloud ($300 Free Trial)** for its guaranteed capacity, or **Oracle Cloud (Always Free)**.
 - **A GitHub account** with this repo pushed, and a **Vercel account** signed in through it.
 - **A hostname for the backend.** A free [DuckDNS](https://www.duckdns.org) subdomain is fine. This
   is not optional — see Part 4.
@@ -45,31 +44,42 @@ You'll need:
 
 ## Part 1 — Provision the VM
 
+Because of severe "Out of Capacity" issues on Oracle's free tier, **Google Cloud** is the recommended route if you need this deployed quickly for a capstone defense.
+
+### Option A: Google Cloud Platform (Recommended)
+1. Sign up for a [Google Cloud account](https://cloud.google.com/) and activate the $300 Free Trial (valid for 90 days, costs $0.00).
+2. Go to **Compute Engine → VM Instances → Create instance**.
+3. **Region:** `asia-southeast1` (Singapore) or any US region.
+4. **Machine Configuration:** `e2-medium` (2 vCPUs, 4GB RAM). Do not use the micro instance; PyTorch will crash.
+5. **Boot Disk:** Click "Change" -> OS: Ubuntu 22.04 LTS, Size: **30GB to 50GB** standard persistent disk.
+6. **Firewall:** Check both **Allow HTTP traffic** and **Allow HTTPS traffic**.
+7. Click **Create**. Once it's running, click the **SSH** button in the dashboard to open a browser terminal.
+
+### Option B: Oracle Cloud (Always Free)
 1. Sign in to Oracle Cloud → **Compute → Instances → Create instance**.
 2. **Image:** Ubuntu 22.04 or 24.04. **Shape:** `VM.Standard.A1.Flex` (Ampere / ARM).
-3. Allocate **2 OCPU and 12 GB** — the current Always Free ceiling. It was 4/24 until Oracle halved
-   it in June 2026 without announcement, so older guides will tell you otherwise.
+3. Allocate **2 OCPU and 12 GB** — the current Always Free ceiling.
 4. Save the SSH private key it offers. You cannot download it again.
 5. **Networking → add ingress rules** for TCP **80** and **443** on the subnet's security list.
+> **"Out of capacity" is normal on Oracle.** If you hit this, you must either upgrade to Pay-As-You-Go (still free if under limits), try a different Availability Domain, or switch to Google Cloud.
 
-> **"Out of capacity" is normal.** Free ARM instances are in heavy demand. Retry, or pick a less
-> busy region — the region is fixed once your account is created, so choose deliberately.
-
-Then, on the VM:
+### Setup the VM Environment
+Once you are SSH'd into either Google Cloud or Oracle Cloud, run these commands:
 
 ```bash
-ssh -i your-key.pem ubuntu@YOUR_VM_IP
+# If on Oracle, SSH in first: ssh -i your-key.pem ubuntu@YOUR_VM_IP
+# If on Google Cloud, just click the "SSH" button in the browser.
 
 sudo apt update && sudo apt install -y docker.io docker-compose-v2 git
 sudo usermod -aG docker $USER && newgrp docker
 
-# Ubuntu's firewall is separate from Oracle's security list — both must allow traffic.
-sudo iptables -I INPUT -p tcp --dport 80 -j ACCEPT
-sudo iptables -I INPUT -p tcp --dport 443 -j ACCEPT
-sudo netfilter-persistent save
+# If on Oracle, you ALSO need to open Ubuntu's firewall manually:
+# sudo iptables -I INPUT -p tcp --dport 80 -j ACCEPT
+# sudo iptables -I INPUT -p tcp --dport 443 -j ACCEPT
+# sudo netfilter-persistent save
 ```
 
-**Check:** `docker run --rm hello-world` prints a success message, and `uname -m` prints `aarch64`.
+**Check:** `docker run --rm hello-world` prints a success message.
 
 ---
 
