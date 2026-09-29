@@ -56,14 +56,14 @@ Every request, whatever its type and whichever channel it arrived through, follo
 | 4 | `PENDING_STUDENT_PAYMENT` | Student | Printed and priced. The student is told what to pay; Finance is told to expect it. A payment slip is issued for anyone paying at the counter. |
 | 5 | `PENDING_FINANCE_VERIFICATION` | Finance | Payment claimed — either the student uploaded proof online, or Finance logged a counter payment. |
 | 6 | `PAID_PENDING_SEC_RELEASE` | Secretary | Finance confirmed the money. The Secretary still physically holds the printed document. |
-| 7 | `SEC_OR_VERIFIED` | Secretary | The Secretary has checked the Official Receipt Finance attached — present, and the number looks right. A paperwork check, not a second payment decision; `payment_status` is untouched here. |
+| 7 | `SEC_OR_VERIFIED` | Secretary | The Secretary has inspected the physical Official Receipt handed over by Finance, or its uploaded copy, against the recorded OR number. A paperwork check, not a second payment decision; `payment_status` is untouched here. |
 | 8 | `READY_FOR_RELEASE` | Window 1 | The document has physically reached the release desk. |
 | 9 | `COMPLETED` | — | Handed to the student. For a walk-in, against the Official Receipt they present. |
 
-**Rejection at any desk returns the request exactly one step**, with the reason written to the audit
+**Supported desk rejection actions return the request exactly one step**, with the reason written to the audit
 trail. Two deliberate exceptions: Window 1 is the first desk, so returning a request there leaves it
 in the intake queue with a note rather than moving it anywhere; and nothing reverses past
-`PAID_PENDING_SEC_RELEASE`, because undoing a payment is a refund the Registrar handles off-system.
+`PAID_PENDING_SEC_RELEASE`, because undoing a payment is a refund the Registrar handles off-system. Window 1 has no release-stage return-to-Secretary action.
 
 **Students may cancel only through step 2.** Once the Secretary starts processing, paper and toner
 have been spent on a document that cannot be un-printed.
@@ -123,6 +123,19 @@ clear it: it moves to the same verification queue an online payment would.
 > A counter payment leaves no other trace in the system, which is why the **Official Receipt number
 > is required** when logging one and absent from the online path. It is also what the student
 > presents at Window 1 to collect the document.
+
+### Physical OR handoff and deferred digital copy
+
+Finance must record the OR number before approving payment, but does not need to scan or photograph
+it immediately. Hand the physical original to the College Secretary for inspection before handoff
+to Window 1. Finance may later upload its retained second copy from **Transactions & OR Copies**,
+including after release or completion. That upload updates only the existing receipt-copy fields
+for the request group; it does not repeat payment verification, create another receipt record, or
+change pipeline stages.
+
+Secretary's current UI requires the OR number and, without an uploaded copy, explicit physical
+inspection acknowledgment. It uses the existing `verify-or` notes payload. These are frontend
+prerequisites; no new server receipt-validation rule was added in Batch 4.
 
 ### Payment methods
 
@@ -212,8 +225,8 @@ runs whether the file came from the student or the counter.
 
 > The Secretary sets the **price**; Finance confirms the **payment**. Those two authorities are
 > deliberately held apart — it is what makes the money trail auditable. The Secretary's later OR
-> Verification step (below) does not change this: it only checks the paperwork Finance attached is
-> present and correct, and never writes `payment_status` itself.
+> Verification step (below) does not change this: it checks the physical OR or its uploaded copy
+> against the recorded number and never writes `payment_status` itself.
 
 ### 📜 College Secretary (`SEC-CCS001`, `SEC-CON001`, … one per college)
 * **Role:** Academic evaluator, and the desk that does the actual work. Four queues, because a
@@ -232,9 +245,10 @@ runs whether the file came from the student or the counter.
      be defended when a student disputes it.
      Pricing the **last** document in a request bills the whole request: the student is notified,
      Finance is notified, and the payment slip is produced.
-  3. **OR Verification.** Once Finance confirms the money, check that the Official Receipt they
-     attached is present and its number looks right — a paperwork completeness check, not a second
-     money decision. It never sets `payment_status`; only Finance does that.
+  3. **OR Verification.** Once Finance confirms the money, inspect the physical Official Receipt
+     handed over by Finance, or its uploaded copy, against the recorded OR number. With no uploaded
+     copy, explicitly acknowledge physical inspection; the existing verification notes record it.
+     This is a paperwork check and never sets `payment_status`; only Finance does that.
   4. **Final Handoff.** Physically pass the printed document to Window 1 and record it. This is a
      separate step on purpose — it marks a real physical event, and marking it while the document sits
      in a drawer is exactly the drift this pipeline exists to stop.
@@ -250,8 +264,9 @@ runs whether the file came from the student or the counter.
   2. **File a walk-in** — type in a request for a student at the counter. It enters the intake queue
      unpaid exactly like an online submission, so a walk-in cannot skip its own evaluation or its bill.
   3. **Release Queue** — hand the finished document over. The Official Receipt number is shown on the
-     row, with a **View** link to the scanned or uploaded image itself, so the clerk can check it
-     against the paper the student presents — whichever channel the payment came through.
+     row, with a **View** link when Finance has uploaded its retained copy. Otherwise the row says
+     **Digital copy pending upload**. The Secretary has already inspected the OR before handoff;
+     absence of the digital copy does not block release.
      Releasing closes the request and notifies both the student and the Secretary who prepared it.
   4. **Tracking Desk** — every document in the system, at any stage. This is the window a student
      walks up to and asks "where is mine?", which is why it is deliberately **not** filtered down to
