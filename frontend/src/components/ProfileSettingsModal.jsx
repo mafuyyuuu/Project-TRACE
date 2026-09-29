@@ -50,7 +50,7 @@ export default function ProfileSettingsModal({
           form="profile-settings-form"
           className="w-full bg-[#15803d] hover:bg-[#166534] text-white font-bold py-3 px-4 rounded-xl transition-colors disabled:opacity-50"
         >
-          {saving ? 'Saving...' : 'Save Settings'}
+          {saving ? 'Saving...' : 'Save Profile'}
         </button>
       }
     >
@@ -103,7 +103,7 @@ export default function ProfileSettingsModal({
         )}
         {avatarPreviewUrl ? (
           <p className="text-[11px] text-amber-600 font-semibold mt-3">
-            New photo selected — click Save Settings to apply, or close to discard.
+            New photo selected — click Save Profile to apply, or close to discard.
           </p>
         ) : (
           <p className="text-[11px] text-gray-400 mt-3">JPG, PNG or WebP · up to 2 MB</p>

@@ -25,6 +25,8 @@ CREATE TABLE IF NOT EXISTS users (
   profile_picture VARCHAR(500),
   verification_status ENUM('pending', 'verified', 'rejected') DEFAULT 'pending',
   course VARCHAR(100),
+  college_id INT NULL,
+  FOREIGN KEY (college_id) REFERENCES colleges(id) ON DELETE SET NULL,
   phone_number VARCHAR(20),
   is_active BOOLEAN DEFAULT TRUE,
   -- Set when an admin creates a staff account with a temporary password;
@@ -123,6 +125,11 @@ CREATE TABLE IF NOT EXISTS colleges (
   name VARCHAR(150) NOT NULL UNIQUE,
   short_code VARCHAR(20) NULL,
   is_active BOOLEAN NOT NULL DEFAULT TRUE,
+  available_to ENUM('student', 'alumni', 'both') NOT NULL DEFAULT 'both',
+  is_repeatable BOOLEAN NOT NULL DEFAULT TRUE,
+  is_walk_in BOOLEAN NOT NULL DEFAULT FALSE,
+  requires_original BOOLEAN NOT NULL DEFAULT FALSE,
+  registrar_attachment_rule ENUM('none', 'optional', 'required') NOT NULL DEFAULT 'none',
   sort_order INT NOT NULL DEFAULT 0,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -141,6 +148,14 @@ CREATE TABLE IF NOT EXISTS document_types (
   is_active BOOLEAN NOT NULL DEFAULT TRUE,
   sort_order INT NOT NULL DEFAULT 0,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS document_type_colleges (
+  document_type_id INT NOT NULL,
+  college_id INT NOT NULL,
+  PRIMARY KEY (document_type_id, college_id),
+  FOREIGN KEY (document_type_id) REFERENCES document_types(id) ON DELETE CASCADE,
+  FOREIGN KEY (college_id) REFERENCES colleges(id) ON DELETE CASCADE
 );
 
 -- Admin-configurable Graduate Application form. Field definitions live in

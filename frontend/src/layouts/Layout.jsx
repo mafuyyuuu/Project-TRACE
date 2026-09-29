@@ -69,7 +69,8 @@ export default function Layout() {
   const [navLocationKey, setNavLocationKey] = useState(location.key)
   if (navLocationKey !== location.key) {
     setNavLocationKey(location.key)
-    setShowMobileNav(false)
+    setShowMobileNav(false);
+    setShowNotifs(false);
   }
 
   const handleNotifClick = async () => {

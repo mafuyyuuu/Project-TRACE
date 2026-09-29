@@ -97,7 +97,7 @@ describe('ProfileSettingsModal', () => {
   it('shows a local preview of a staged, not-yet-uploaded picture', () => {
     renderModal({ avatarPreviewUrl: 'blob:staged-preview' });
     expect(screen.getByAltText('New profile picture preview')).toHaveAttribute('src', 'blob:staged-preview');
-    expect(screen.getByText(/click save settings to apply/i)).toBeInTheDocument();
+    expect(screen.getByText(/click save profile to apply/i)).toBeInTheDocument();
   });
 
   it('disables the save button while saving', () => {

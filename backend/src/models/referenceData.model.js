@@ -32,7 +32,7 @@ function listDocumentTypes({ includeInactive = false } = {}, executor = pool) {
   return executor
     .query(
       `SELECT id, name, base_fee, fee_rule, requires_attachment,
-              attachment_label, attachment_helper, is_active, sort_order, available_to
+              attachment_label, attachment_helper, is_active, sort_order, available_to, is_repeatable, is_walk_in, requires_original, registrar_attachment_rule
        FROM document_types${where} ORDER BY sort_order, name`
     )
     .then(([rows]) => rows);
@@ -42,7 +42,7 @@ function findDocumentTypeByName(name, executor = pool) {
   return executor
     .query(
       `SELECT id, name, base_fee, fee_rule, requires_attachment,
-              attachment_label, attachment_helper, is_active
+              attachment_label, attachment_helper, is_active, available_to, is_repeatable, is_walk_in, requires_original, registrar_attachment_rule
        FROM document_types WHERE name = ?`,
       [name]
     )
@@ -101,7 +101,7 @@ function createDocumentType(data, executor = pool) {
   return executor.query(
     `INSERT INTO document_types
        (name, base_fee, fee_rule, requires_attachment, attachment_label, attachment_helper, sort_order)
-     VALUES (?, ?, ?, ?, ?, ?, ?)`,
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [name, base_fee, fee_rule, requires_attachment, attachment_label, attachment_helper, sort_order]
   );
 }

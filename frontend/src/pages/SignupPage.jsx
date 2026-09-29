@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import useAuth from '@/hooks/useAuth'
 import { getColleges } from '@/services/referenceService'
+import api from '@/services/api'
 
 export default function SignupPage() {
   const { register, loading } = useAuth()
@@ -12,6 +13,7 @@ export default function SignupPage() {
   const [showPassword, setShowPassword] = useState(false)
   // Colleges are admin-managed reference data rather than a hardcoded list.
   const [colleges, setColleges] = useState([])
+  const [extractingId, setExtractingId] = useState(false)
 
   useEffect(() => {
     let cancelled = false
@@ -167,7 +169,28 @@ export default function SignupPage() {
 
             <div className="flex flex-col gap-1.5">
               <label className="text-sm font-semibold text-gray-800 ml-1">Upload Proof (ID / Diploma) *</label>
-              <input type="file" accept=".pdf,.png,.jpg,.jpeg" onChange={(e) => setFile(e.target.files[0])} className="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-pine-50 file:text-pine-700 hover:file:bg-pine-100 transition-all cursor-pointer" />
+              <input type="file" accept=".pdf,.png,.jpg,.jpeg" onChange={async (e) => {
+                  const selected = e.target.files[0];
+                  setFile(selected);
+                  if (selected) {
+                    setExtractingId(true);
+                    try {
+                      const fd = new FormData();
+                      fd.append('id_proof', selected);
+                      const res = await api.post('/ai/extract-id', fd, { headers: { 'Content-Type': 'multipart/form-data' }});
+                      if (res.data?.success) {
+                        const extractedId = res.data.student_id || res.data.alumni_id;
+                        if (extractedId) {
+                          setFormData(prev => ({ ...prev, employeeId: extractedId }));
+                        }
+                      }
+                    } catch (err) {
+                      console.warn('OCR extraction failed', err);
+                    } finally {
+                      setExtractingId(false);
+                    }
+                  }
+                }} className="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-pine-50 file:text-pine-700 hover:file:bg-pine-100 transition-all cursor-pointer" />
               <p className="text-xs text-gray-400 ml-1 mt-1">Please attach a clear photo of your Student ID or Diploma for verification.</p>
             </div>
 

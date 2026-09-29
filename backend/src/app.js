@@ -10,6 +10,7 @@ const referenceRoutes = require('./routes/referenceData.routes');
 const gradApplicationRoutes = require('./routes/gradApplication.routes');
 const maintenanceRoutes = require('./routes/maintenance.routes');
 const reportRoutes = require('./routes/reports.routes');
+const aiRoutes = require('./routes/ai.routes');
 const errorHandler = require('./middlewares/errorHandler.middleware');
 const env = require('./config/env');
 const { corsOrigin } = require('./config/cors');
@@ -68,6 +69,7 @@ app.use('/api/reference', referenceRoutes);
 app.use('/api/grad-applications', gradApplicationRoutes);
 app.use('/api/maintenance', maintenanceRoutes);
 app.use('/api/reports', reportRoutes);
+app.use('/api/ai', aiRoutes);
 
 // Must be registered last.
 app.use(errorHandler);

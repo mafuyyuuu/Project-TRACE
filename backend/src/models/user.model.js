@@ -15,7 +15,7 @@ function findActiveByStudentId(studentId, executor = pool) {
 function getProfileById(userId, executor = pool) {
   return executor
     .query(
-      'SELECT id, student_id, email, full_name, role, user_type, desk_assignment, is_active, phone_number, course, enrollment_status, study_load, must_change_password, profile_picture, created_at FROM users WHERE id = ?',
+      'SELECT id, student_id, email, full_name, role, user_type, desk_assignment, is_active, phone_number, course, college_id, id_proof_path, enrollment_status, study_load, must_change_password, profile_picture, created_at FROM users WHERE id = ?',
       [userId]
     )
     .then(([rows]) => rows);
@@ -60,13 +60,13 @@ function setVerificationStatus(userId, newStatus, executor = pool) {
 
 function listAllUsers(executor = pool) {
   return executor
-    .query('SELECT id, student_id, full_name, email, course, role, verification_status, enrollment_status, study_load, is_active, created_at FROM users ORDER BY created_at DESC')
+    .query('SELECT id, student_id, full_name, email, course, college_id, role, verification_status, enrollment_status, study_load, is_active, created_at FROM users ORDER BY created_at DESC')
     .then(([rows]) => rows);
 }
 
 function findStudentBasicInfo(studentId, executor = pool) {
   return executor
-    .query('SELECT student_id, full_name, email, course, user_type FROM users WHERE student_id = ? AND role = "student"', [studentId])
+    .query('SELECT student_id, full_name, email, course, college_id, id_proof_path, user_type FROM users WHERE student_id = ? AND role = "student"', [studentId])
     .then(([rows]) => rows);
 }
 

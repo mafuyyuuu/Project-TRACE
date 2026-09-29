@@ -24,8 +24,8 @@ describe('navItemsForUser', () => {
   it.each([
     ['student', STUDENT, ['dashboard', 'request-history', 'payment-history']],
     ['alumnus', ALUMNI, ['dashboard', 'request-history', 'payment-history', 'graduate-application']],
-    ['secretary', SECRETARY, ['dashboard', 'completed-logs', 'grad-applications']],
-    ['window 1', WINDOW1, ['dashboard', 'tracking-desk']],
+    ['secretary', SECRETARY, ['dashboard', 'completed-logs', 'grad-applications', 'reports']],
+    ['window 1', WINDOW1, ['dashboard', 'tracking-desk', 'reports']],
     ['finance', FINANCE, ['dashboard']],
   ])('gives a %s their own tabs', (_label, user, expected) => {
     expect(navItemsForUser(user).map((i) => i.tab)).toEqual(expected);

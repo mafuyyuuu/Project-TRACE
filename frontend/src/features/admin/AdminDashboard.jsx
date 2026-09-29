@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import MiniSparkline from '@/components/MiniSparkline';
 import useAdminDashboard from '@/features/admin/useAdminDashboard';
@@ -5,6 +6,7 @@ import { todayLongDate, formatDuration } from '@/utils/formatters';
 import { STATUS } from '@/utils/documentStatus';
 import DashboardAlerts from '@/components/DashboardAlerts';
 import DashboardLoading from '@/components/DashboardLoading';
+import StudentProfileModal from '@/components/StudentProfileModal';
 import MaintenancePanel from '@/features/admin/components/MaintenancePanel';
 import ReportsPanel from '@/features/admin/components/ReportsPanel';
 import AnalyticsPanel from '@/features/admin/components/AnalyticsPanel';
@@ -13,11 +15,14 @@ import GradApplicationReviewPanel from '@/features/graduate/components/GradAppli
 import UserGrid from '@/features/admin/components/UserGrid';
 import UserDetailModal from '@/features/admin/components/UserDetailModal';
 import ConfirmDialog from '@/components/ConfirmDialog';
+import AccountVerificationModal from './components/AccountVerificationModal';
 
 /**
  * Registrar admin: ML forecasts, AI insights, account verification, users, and audit logs.
  */
 export default function AdminDashboard({ user, currentTab, setViewImageUrl }) {
+  const [viewProfileId, setViewProfileId] = useState(null);
+
   const {
     loading,
     success,
@@ -537,22 +542,17 @@ export default function AdminDashboard({ user, currentTab, setViewImageUrl }) {
         setForecastFilter={setForecastFilter}
       />
 
-      <ConfirmDialog
-        open={!!studentVerifyToConfirm}
-        title={studentVerifyToConfirm?.action === 'verify' ? 'Verify Student' : 'Reject Registration'}
-        message={
-          studentVerifyToConfirm
-            ? studentVerifyToConfirm.action === 'verify'
-              ? `Verify ${studentVerifyToConfirm.student.full_name}'s account registration?`
-              : `Reject ${studentVerifyToConfirm.student.full_name}'s account registration?`
-            : ''
-        }
-        variant={studentVerifyToConfirm?.action === 'verify' ? 'neutral' : 'destructive'}
-        confirmLabel={studentVerifyToConfirm?.action === 'verify' ? 'Verify Student' : 'Reject'}
-        loadingLabel="Saving…"
-        loading={actionLoading}
-        onConfirm={confirmAdminVerifyStudent}
-        onCancel={cancelAdminVerifyStudent}
+      <AccountVerificationModal
+        studentVerifyToConfirm={studentVerifyToConfirm}
+        cancelAdminVerifyStudent={cancelAdminVerifyStudent}
+        confirmAdminVerifyStudent={confirmAdminVerifyStudent}
+        actionLoading={actionLoading}
+        setViewImageUrl={setViewImageUrl}
+      />
+      <StudentProfileModal
+        open={!!viewProfileId}
+        onClose={() => setViewProfileId(null)}
+        studentId={viewProfileId}
       />
     </>
   );

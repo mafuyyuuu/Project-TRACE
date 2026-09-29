@@ -9,6 +9,7 @@ import useFinanceDashboard from '@/features/finance/useFinanceDashboard';
 import { todayLongDate } from '@/utils/formatters';
 import DashboardAlerts from '@/components/DashboardAlerts';
 import DashboardLoading from '@/components/DashboardLoading';
+import StudentProfileModal from '@/components/StudentProfileModal';
 
 /**
  * Finance clerk: the two queues money passes through.
@@ -18,6 +19,8 @@ import DashboardLoading from '@/components/DashboardLoading';
  * only place in the system a document ever becomes PAID.
  */
 export default function FinanceDashboard({ user, setViewImageUrl }) {
+  const [viewProfileId, setViewProfileId] = useState(null);
+
   const {
     loading,
     success,
@@ -117,7 +120,7 @@ export default function FinanceDashboard({ user, setViewImageUrl }) {
                       <tr key={doc.id} className="hover:bg-gray-50/30 group">
                         <td className="py-4 pl-4 font-mono text-xs font-semibold text-gray-500">#{doc.tracking_number ? doc.tracking_number.slice(0, 10).toUpperCase() : doc.id}</td>
                         <td className="py-4">
-                          <div className="text-sm font-bold text-gray-900">{doc.student_name || 'Unknown Student'}</div>
+                          <button onClick={() => setViewProfileId(doc.student_name || 'Unknown Student'.student_id)} className="text-sm font-bold text-[#15803d] hover:underline hover:text-[#166534] text-left">{doc.student_name || 'Unknown Student'}</button>
                           <div className="text-xs font-mono text-gray-400 mt-0.5">{doc.student_id || 'ID Pending'}</div>
                         </td>
                         <td className="py-4 text-xs font-bold text-gray-600">{doc.document_type}</td>
@@ -170,7 +173,7 @@ export default function FinanceDashboard({ user, setViewImageUrl }) {
                       <tr key={doc.id} className="hover:bg-gray-50/30 group">
                         <td className="py-4 pl-4 font-mono text-xs font-semibold text-gray-500">#{doc.tracking_number ? doc.tracking_number.slice(0, 10).toUpperCase() : doc.id}</td>
                         <td className="py-4">
-                          <div className="text-sm font-bold text-gray-900">{doc.student_name || 'Unknown Student'}</div>
+                          <button onClick={() => setViewProfileId(doc.student_name || 'Unknown Student'.student_id)} className="text-sm font-bold text-[#15803d] hover:underline hover:text-[#166534] text-left">{doc.student_name || 'Unknown Student'}</button>
                           <div className="text-xs font-mono text-gray-400 mt-0.5">{doc.student_id || 'ID Pending'}</div>
                         </td>
                         <td className="py-4 text-xs font-bold text-gray-600">{doc.document_type}</td>
@@ -267,6 +270,11 @@ export default function FinanceDashboard({ user, setViewImageUrl }) {
           onCancel={cancelLogWalkIn}
         />
       </div>
+      <StudentProfileModal
+        open={!!viewProfileId}
+        onClose={() => setViewProfileId(null)}
+        studentId={viewProfileId}
+      />
     </>
   );
 }
