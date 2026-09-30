@@ -134,7 +134,7 @@ async function login({ employee_id, password }, ipAddress, userAgent) {
       desk_assignment: user.desk_assignment,
       course: user.course,
       user_type: user.user_type,
-      token_version: user.token_version || 1,
+      token_version: user.token_version ?? 0,
     },
     env.JWT_SECRET,
     { expiresIn: '24h' }
@@ -500,7 +500,7 @@ async function verify2FA(tempToken, otp, ipAddress, userAgent) {
       desk_assignment: user.desk_assignment,
       course: user.course,
       user_type: user.user_type,
-      token_version: user.token_version || 1,
+      token_version: user.token_version ?? 0,
     },
     env.JWT_SECRET,
     { expiresIn: '24h' }

@@ -17,6 +17,8 @@ const notificationModel = require('../../models/notification.model');
 const aiEngine = require('../aiEngine.service');
 const env = require('../../config/env');
 const service = require('../auth.service');
+const { pool } = require('../../config/db');
+const { authenticate } = require('../../middlewares/auth.middleware');
 
 const statusOf = (promise) => promise.then(() => undefined, (err) => err.status);
 
@@ -126,6 +128,47 @@ describe('login', () => {
     userModel.findActiveByStudentId.mockResolvedValue([verifiedStudent()]);
     const { token } = await service.login({ employee_id: 'STU-001', password: 'Trace2024!' });
     expect(() => jwt.verify(token, 'some-other-secret')).toThrow();
+  });
+});
+
+describe.each(['student password', 'staff OTP'])('%s session versions', (flow) => {
+  const issueToken = async (version) => {
+    const user = { ...verifiedStudent(), token_version: version, is_active: 1 };
+    if (flow === 'staff OTP') {
+      const staff = { ...user, role: 'admin', login_otp: '123456', login_otp_expires: new Date(Date.now() + 60000) };
+      vi.spyOn(userModel, 'findById').mockResolvedValue([staff]);
+      userModel.getProfileById.mockResolvedValue([staff]);
+      const challenge = jwt.sign({ id: user.id, pending_2fa: true }, env.JWT_SECRET);
+      return (await service.verify2FA(challenge, '123456')).token;
+    }
+    userModel.findActiveByStudentId.mockResolvedValue([user]);
+    return (await service.login({ employee_id: user.student_id, password: 'Trace2024!' })).token;
+  };
+
+  const checkSession = async (token, storedVersion) => {
+    vi.spyOn(pool, 'query').mockResolvedValue([[{ token_version: storedVersion }]]);
+    const req = { headers: { authorization: `Bearer ${token}` } };
+    const res = { status: vi.fn().mockReturnThis(), json: vi.fn() };
+    const next = vi.fn();
+    await authenticate(req, res, next);
+    return { req, res, next };
+  };
+
+  it.each([0, 4])('authenticates a newly issued token at stored version %s', async (version) => {
+    const token = await issueToken(version);
+    expect(jwt.verify(token, env.JWT_SECRET).token_version).toBe(version);
+    const { req, res, next } = await checkSession(token, version);
+    expect(next).toHaveBeenCalledOnce();
+    expect(req.user.id).toBe(3);
+    expect(res.status).not.toHaveBeenCalled();
+  });
+
+  it('rejects the previously issued token after its stored version is incremented', async () => {
+    const token = await issueToken(0);
+    const { res, next } = await checkSession(token, 1);
+    expect(next).not.toHaveBeenCalled();
+    expect(res.status).toHaveBeenCalledWith(401);
+    expect(res.json).toHaveBeenCalledWith({ error: 'Session expired. Please log in again.' });
   });
 });
 
