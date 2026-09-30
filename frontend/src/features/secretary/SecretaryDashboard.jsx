@@ -3,6 +3,7 @@ import SecretaryEvaluationModal from '@/features/secretary/components/SecretaryE
 import PricingModal from '@/features/secretary/components/PricingModal';
 import PaymentStubModal from '@/features/secretary/components/PaymentStubModal';
 import ConfirmDialog from '@/components/ConfirmDialog';
+import ReceiptVerificationModal from '@/features/secretary/components/ReceiptVerificationModal';
 import QueueTabs from '@/components/QueueTabs';
 import MiniSparkline from '@/components/MiniSparkline';
 import GradApplicationReviewPanel from '@/features/graduate/components/GradApplicationReviewPanel';
@@ -12,6 +13,8 @@ import { formatPeso } from '@/utils/pricing';
 import useSecretaryDashboard from '@/features/secretary/useSecretaryDashboard';
 import DashboardAlerts from '@/components/DashboardAlerts';
 import DashboardLoading from '@/components/DashboardLoading';
+import StudentProfileModal from '@/components/StudentProfileModal';
+import ReportsPanel from '@/features/admin/components/ReportsPanel';
 
 /**
  * College Secretary: the three passes this desk makes over a request.
@@ -21,6 +24,8 @@ import DashboardLoading from '@/components/DashboardLoading';
  * document sitting in one is waiting on something different from the others.
  */
 export default function SecretaryDashboard({ user, currentTab, setViewImageUrl }) {
+  const [viewProfileId, setViewProfileId] = useState(null);
+
   const {
     loading,
     success,
@@ -41,8 +46,6 @@ export default function SecretaryDashboard({ user, currentTab, setViewImageUrl }
     setPriceAmount,
     pricePageCount,
     setPricePageCount,
-    priceNotes,
-    setPriceNotes,
     handlePriceDocument,
     pricingToConfirm,
     confirmPriceDocument,
@@ -61,6 +64,7 @@ export default function SecretaryDashboard({ user, currentTab, setViewImageUrl }
     setEvalStudentName,
     evalDocType,
     setEvalDocType,
+    documentTypes,
     activeModal,
     setActiveModal,
     selectedDoc,
@@ -164,11 +168,11 @@ export default function SecretaryDashboard({ user, currentTab, setViewImageUrl }
                 <p className="text-[11px] text-gray-500 font-medium mt-1">Check the request, then give the student a date to expect it by.</p>
               </div>
               <div className="p-4 sm:p-6">
-                <div className="max-h-[60vh] overflow-y-auto overflow-x-auto">
+                <div className="max-h-[calc(100vh-280px)] overflow-y-auto overflow-x-auto">
                   {evaluationQueue.length === 0 ? (
                     <div className="text-center py-12 text-gray-400 font-medium">Evaluation queue is empty! Beautiful.</div>
                   ) : (
-                    <table className="w-full text-left border-collapse">
+                    <table className="w-full text-left border-collapse table-fixed">
                       <thead className="sticky top-0 bg-white z-10">
                         <tr className="text-gray-400 text-[10px] uppercase tracking-widest border-b border-gray-100">
                           <th className="pb-4 font-bold pl-4">Document Details</th>
@@ -182,10 +186,10 @@ export default function SecretaryDashboard({ user, currentTab, setViewImageUrl }
                         {evaluationQueue.map(doc => (
                           <tr key={doc.id} className="hover:bg-gray-50/30 group">
                             <td className="py-4 pl-4">
-                              <div className="font-bold text-gray-900">{doc.student_name || 'Unresolved Student'}</div>
+                              <button onClick={() => setViewProfileId(doc.student_name || 'Unresolved Student'.student_id)} className="font-bold text-[#15803d] hover:underline hover:text-[#166534] text-left">{doc.student_name || 'Unresolved Student'}</button>
                               <div className="text-xs font-mono text-gray-400 mt-0.5">#{doc.tracking_number ? doc.tracking_number.slice(0, 10).toUpperCase() : doc.id}</div>
                             </td>
-                            <td className="py-4 text-xs font-bold text-gray-600">{doc.document_type || 'Transcript of Records'}</td>
+                            <td className="py-4 text-xs font-bold text-gray-600">{doc.document_sequence_number || doc.document_type || 'Transcript of Records'}</td>
                             <td className="py-4 text-xs text-gray-400">{getRelativeTime(doc.created_at)}</td>
                             <td className="py-4">
                               {/* Nothing here is paid yet — under this pipeline the student is
@@ -227,11 +231,11 @@ export default function SecretaryDashboard({ user, currentTab, setViewImageUrl }
                 <p className="text-[11px] text-gray-500 font-medium mt-1">Print the document, then set what it costs. The request is billed once every document in it is priced.</p>
               </div>
               <div className="p-4 sm:p-6">
-                <div className="max-h-[60vh] overflow-y-auto overflow-x-auto">
+                <div className="max-h-[calc(100vh-280px)] overflow-y-auto overflow-x-auto">
                   {processingQueue.length === 0 ? (
                     <div className="text-center py-12 text-gray-400 font-medium">Nothing being processed right now.</div>
                   ) : (
-                    <table className="w-full text-left border-collapse">
+                    <table className="w-full text-left border-collapse table-fixed">
                       <thead className="sticky top-0 bg-white z-10">
                         <tr className="text-gray-400 text-[10px] uppercase tracking-widest border-b border-gray-100">
                           <th className="pb-4 font-bold pl-4">Document Details</th>
@@ -251,10 +255,10 @@ export default function SecretaryDashboard({ user, currentTab, setViewImageUrl }
                           return (
                             <tr key={doc.id} className="hover:bg-gray-50/30 group">
                               <td className="py-4 pl-4">
-                                <div className="font-bold text-gray-900">{doc.student_name || 'Unresolved Student'}</div>
+                                <button onClick={() => setViewProfileId(doc.student_name || 'Unresolved Student'.student_id)} className="font-bold text-[#15803d] hover:underline hover:text-[#166534] text-left">{doc.student_name || 'Unresolved Student'}</button>
                                 <div className="text-xs font-mono text-gray-400 mt-0.5">#{doc.tracking_number ? doc.tracking_number.slice(0, 10).toUpperCase() : doc.id}</div>
                               </td>
-                              <td className="py-4 text-xs font-bold text-gray-600">{doc.document_type}</td>
+                              <td className="py-4 text-xs font-bold text-gray-600">{doc.document_sequence_number || doc.document_type}</td>
                               <td className="py-4 text-xs font-semibold">
                                 {due
                                   ? <span className={overdue ? 'text-red-600' : 'text-gray-500'}>
@@ -273,7 +277,6 @@ export default function SecretaryDashboard({ user, currentTab, setViewImageUrl }
                                     setSelectedDoc(doc);
                                     setPriceAmount(doc.amount ? String(parseFloat(doc.amount)) : '');
                                     setPricePageCount(doc.page_count ? String(doc.page_count) : '');
-                                    setPriceNotes(doc.pricing_notes || '');
                                     setActiveModal('price');
                                   }}
                                   className="px-4 py-2 bg-gray-900 hover:bg-gray-800 text-white rounded-xl text-xs font-bold shadow-sm transition-all ml-auto block"
@@ -300,11 +303,11 @@ export default function SecretaryDashboard({ user, currentTab, setViewImageUrl }
                 <p className="text-[11px] text-gray-500 font-medium mt-1">Finance has confirmed the payment. Check the Official Receipt is present and the number looks right before handoff.</p>
               </div>
               <div className="p-4 sm:p-6">
-                <div className="max-h-[60vh] overflow-y-auto overflow-x-auto">
+                <div className="max-h-[calc(100vh-280px)] overflow-y-auto overflow-x-auto">
                   {orVerificationQueue.length === 0 ? (
                     <div className="text-center py-12 text-gray-400 font-medium">Nothing waiting on an OR check.</div>
                   ) : (
-                    <table className="w-full text-left border-collapse">
+                    <table className="w-full text-left border-collapse table-fixed">
                       <thead className="sticky top-0 bg-white z-10">
                         <tr className="text-gray-400 text-[10px] uppercase tracking-widest border-b border-gray-100">
                           <th className="pb-4 font-bold pl-4">Document Details</th>
@@ -317,10 +320,10 @@ export default function SecretaryDashboard({ user, currentTab, setViewImageUrl }
                         {orVerificationQueue.map(doc => (
                           <tr key={doc.id} className="hover:bg-gray-50/30 group">
                             <td className="py-4 pl-4">
-                              <div className="font-bold text-gray-900">{doc.student_name || 'Unresolved Student'}</div>
+                              <button onClick={() => setViewProfileId(doc.student_name || 'Unresolved Student'.student_id)} className="font-bold text-[#15803d] hover:underline hover:text-[#166534] text-left">{doc.student_name || 'Unresolved Student'}</button>
                               <div className="text-xs font-mono text-gray-400 mt-0.5">#{doc.tracking_number ? doc.tracking_number.slice(0, 10).toUpperCase() : doc.id}</div>
                             </td>
-                            <td className="py-4 text-xs font-bold text-gray-600">{doc.document_type}</td>
+                            <td className="py-4 text-xs font-bold text-gray-600">{doc.document_sequence_number || doc.document_type}</td>
                             <td className="py-4 text-xs font-mono">
                               <span className="font-bold text-gray-700">{doc.or_number || 'None on file'}</span>
                               {doc.official_receipt_path && (
@@ -359,11 +362,11 @@ export default function SecretaryDashboard({ user, currentTab, setViewImageUrl }
                 <p className="text-[11px] text-gray-500 font-medium mt-1">Paid and signed. Confirm once the printed document is physically at Window 1.</p>
               </div>
               <div className="p-4 sm:p-6">
-                <div className="max-h-[60vh] overflow-y-auto overflow-x-auto">
+                <div className="max-h-[calc(100vh-280px)] overflow-y-auto overflow-x-auto">
                   {handoffQueue.length === 0 ? (
                     <div className="text-center py-12 text-gray-400 font-medium">Nothing waiting to be handed over.</div>
                   ) : (
-                    <table className="w-full text-left border-collapse">
+                    <table className="w-full text-left border-collapse table-fixed">
                       <thead className="sticky top-0 bg-white z-10">
                         <tr className="text-gray-400 text-[10px] uppercase tracking-widest border-b border-gray-100">
                           <th className="pb-4 font-bold pl-4">Document Details</th>
@@ -376,10 +379,10 @@ export default function SecretaryDashboard({ user, currentTab, setViewImageUrl }
                         {handoffQueue.map(doc => (
                           <tr key={doc.id} className="hover:bg-gray-50/30 group">
                             <td className="py-4 pl-4">
-                              <div className="font-bold text-gray-900">{doc.student_name || 'Unresolved Student'}</div>
+                              <button onClick={() => setViewProfileId(doc.student_name || 'Unresolved Student'.student_id)} className="font-bold text-[#15803d] hover:underline hover:text-[#166534] text-left">{doc.student_name || 'Unresolved Student'}</button>
                               <div className="text-xs font-mono text-gray-400 mt-0.5">#{doc.tracking_number ? doc.tracking_number.slice(0, 10).toUpperCase() : doc.id}</div>
                             </td>
-                            <td className="py-4 text-xs font-bold text-gray-600">{doc.document_type}</td>
+                            <td className="py-4 text-xs font-bold text-gray-600">{doc.document_sequence_number || doc.document_type}</td>
                             <td className="py-4 text-xs font-mono">
                               <span className="font-bold text-[#15803d]">{formatPeso(doc.amount)}</span>
                               <span className="text-gray-400 ml-2">{doc.or_number || (doc.payment_channel === 'digital' ? 'online' : '')}</span>
@@ -423,11 +426,11 @@ export default function SecretaryDashboard({ user, currentTab, setViewImageUrl }
                 <h3 className="font-bold text-gray-950 text-sm tracking-wider uppercase">COMPLETED LOGS</h3>
               </div>
               <div className="p-4 sm:p-6">
-                <div className="max-h-[60vh] overflow-y-auto overflow-x-auto">
+                <div className="max-h-[calc(100vh-280px)] overflow-y-auto overflow-x-auto">
                   {clearedQueue.length === 0 ? (
                     <div className="text-center py-12 text-gray-400 font-medium">No completed evaluation logs found.</div>
                   ) : (
-                    <table className="w-full text-left border-collapse">
+                    <table className="w-full text-left border-collapse table-fixed">
                       <thead className="sticky top-0 bg-white z-10">
                         <tr className="text-gray-400 text-[10px] uppercase tracking-widest border-b border-gray-100">
                           <th className="pb-4 font-bold pl-4">Date Approved</th>
@@ -441,10 +444,10 @@ export default function SecretaryDashboard({ user, currentTab, setViewImageUrl }
                           <tr key={doc.id} className="hover:bg-gray-50/30">
                             <td className="py-4 pl-4 text-xs font-semibold text-gray-400">{new Date(doc.updated_at).toLocaleDateString()} {new Date(doc.updated_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</td>
                             <td className="py-4">
-                              <div className="font-bold text-gray-900">{doc.student_name || 'Unknown Student'}</div>
+                              <button onClick={() => setViewProfileId(doc.student_name || 'Unknown Student'.student_id)} className="font-bold text-[#15803d] hover:underline hover:text-[#166534] text-left">{doc.student_name || 'Unknown Student'}</button>
                               <div className="text-xs font-mono text-gray-400 mt-0.5">#{doc.tracking_number ? doc.tracking_number.slice(0, 10).toUpperCase() : doc.id}</div>
                             </td>
-                            <td className="py-4 text-xs font-bold text-gray-600">{doc.document_type}</td>
+                            <td className="py-4 text-xs font-bold text-gray-600">{doc.document_sequence_number || doc.document_type}</td>
                             <td className="py-4">
                               <span className="px-3 py-1 bg-emerald-50 text-[#15803d] text-[10px] font-black rounded-full uppercase tracking-wider">APPROVED</span>
                             </td>
@@ -468,6 +471,7 @@ export default function SecretaryDashboard({ user, currentTab, setViewImageUrl }
         {/* College Secretary Split-Screen Modal */}
         {activeModal === 'evaluate' && selectedDoc && (
           <SecretaryEvaluationModal
+            user={user}
             selectedDoc={selectedDoc}
             setActiveModal={setActiveModal}
             getStatusLabel={getStatusLabel}
@@ -477,6 +481,7 @@ export default function SecretaryDashboard({ user, currentTab, setViewImageUrl }
             setEvalStudentName={setEvalStudentName}
             evalDocType={evalDocType}
             setEvalDocType={setEvalDocType}
+            documentTypes={documentTypes}
             clerkNotes={clerkNotes}
             setClerkNotes={setClerkNotes}
             actionLoading={actionLoading}
@@ -497,8 +502,6 @@ export default function SecretaryDashboard({ user, currentTab, setViewImageUrl }
             setPriceAmount={setPriceAmount}
             pricePageCount={pricePageCount}
             setPricePageCount={setPricePageCount}
-            priceNotes={priceNotes}
-            setPriceNotes={setPriceNotes}
             siblingsUnpriced={
               processingQueue.filter(
                 (d) => d.request_group_id === selectedDoc.request_group_id
@@ -517,23 +520,12 @@ export default function SecretaryDashboard({ user, currentTab, setViewImageUrl }
           />
         )}
 
-        <ConfirmDialog
-          open={!!orVerifyToConfirm}
-          title="Verify Official Receipt"
-          message={
-            orVerifyToConfirm
-              ? [
-                  `Confirm the Official Receipt for ${orVerifyToConfirm.document_type} is present and the number looks right?`,
-                  orVerifyToConfirm.or_number ? `OR on file: ${orVerifyToConfirm.or_number}` : 'No OR number on file.',
-                ]
-              : ''
-          }
-          variant="neutral"
-          confirmLabel="Verify Receipt"
-          loadingLabel="Saving…"
-          loading={actionLoading}
-          onConfirm={confirmVerifyOfficialReceiptAction}
-          onCancel={cancelVerifyOfficialReceiptConfirm}
+        <ReceiptVerificationModal
+          selectedDoc={orVerifyToConfirm}
+          setActiveModal={cancelVerifyOfficialReceiptConfirm}
+          setViewImageUrl={setViewImageUrl}
+          handleSecretaryVerifyReceipt={confirmVerifyOfficialReceiptAction}
+          actionLoading={actionLoading}
         />
 
         <ConfirmDialog
@@ -578,6 +570,11 @@ export default function SecretaryDashboard({ user, currentTab, setViewImageUrl }
           onCancel={cancelPriceDocument}
         />
       </div>
+      <StudentProfileModal
+        open={!!viewProfileId}
+        onClose={() => setViewProfileId(null)}
+        studentId={viewProfileId}
+      />
     </>
   );
 }

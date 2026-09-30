@@ -1,12 +1,15 @@
 const jwt = require('jsonwebtoken');
 const { JWT_SECRET } = require('../config/env');
 
+
+const { pool } = require('../config/db');
+
 /**
  * JWT authentication middleware.
  * Extracts the token from the Authorization header (Bearer scheme),
  * verifies it, and attaches the decoded user payload to req.user.
  */
-function authenticate(req, res, next) {
+async function authenticate(req, res, next) {
   const authHeader = req.headers.authorization;
 
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -17,6 +20,15 @@ function authenticate(req, res, next) {
 
   try {
     const decoded = jwt.verify(token, JWT_SECRET);
+    
+    // SEC-09: Token Version Check for Global Logout
+    if (decoded.token_version !== undefined) {
+      const [rows] = await pool.query('SELECT token_version FROM users WHERE id = ?', [decoded.id]);
+      if (!rows || rows.length === 0 || rows[0].token_version !== decoded.token_version) {
+        return res.status(401).json({ error: 'Session expired. Please log in again.' });
+      }
+    }
+
     req.user = {
       id: decoded.id,
       role: decoded.role,
@@ -28,6 +40,7 @@ function authenticate(req, res, next) {
     return res.status(401).json({ error: 'Invalid or expired token.' });
   }
 }
+
 
 /**
  * Role-based authorization middleware factory.

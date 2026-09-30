@@ -193,3 +193,11 @@ export async function getActivityLogs() {
   const { data } = await api.get('/documents/activity-logs')
   return data
 }
+
+
+export async function uploadDeferredOR(documentId, file) {
+  const formData = new FormData();
+  formData.append('officialReceipt', file);
+  const response = await api.post(`/documents/${documentId}/deferred-or`, formData);
+  return response.data;
+}

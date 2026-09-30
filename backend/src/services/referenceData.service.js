@@ -31,6 +31,7 @@ async function listDocumentTypes({ includeInactive = false } = {}) {
       attachment_label: row.attachment_label,
       attachment_helper: row.attachment_helper,
       is_active: Boolean(row.is_active),
+      available_to: row.available_to || 'ALL',
     })),
   };
 }

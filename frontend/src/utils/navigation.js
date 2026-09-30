@@ -28,6 +28,7 @@ export function navItemsForUser(user) {
       { tab: 'dashboard', to: '/dashboard', label: 'Dashboard', icon: 'dashboard' },
       { tab: 'completed-logs', to: '/dashboard?tab=completed-logs', label: 'Completed Logs', icon: 'checklist' },
       { tab: 'grad-applications', to: '/dashboard?tab=grad-applications', label: 'Graduate Applications', icon: 'cap' },
+      { tab: 'reports', to: '/dashboard?tab=reports', label: 'Reports & Export', icon: 'report' },
     ];
   }
 
@@ -35,6 +36,7 @@ export function navItemsForUser(user) {
     return [
       { tab: 'dashboard', to: '/dashboard', label: 'Workspace Dashboard', icon: 'dashboard' },
       { tab: 'tracking-desk', to: '/dashboard?tab=tracking-desk', label: 'Tracking Desk', icon: 'users' },
+      { tab: 'reports', to: '/dashboard?tab=reports', label: 'Reports & Export', icon: 'report' },
     ];
   }
 
@@ -44,9 +46,11 @@ export function navItemsForUser(user) {
       { tab: 'admin-tracker', to: '/dashboard?tab=admin-tracker', label: 'Document Tracker', icon: 'document' },
       { tab: 'admin-users', to: '/dashboard?tab=admin-users', label: 'Registered Users', icon: 'users' },
       { tab: 'admin-logs', to: '/dashboard?tab=admin-logs', label: 'Activity Logs', icon: 'checklist' },
+      { tab: 'admin-security', to: '/dashboard?tab=admin-security', label: 'Security Logs', icon: 'users' },
       { tab: 'admin-reports', to: '/dashboard?tab=admin-reports', label: 'Reports & Export', icon: 'report' },
       { tab: 'admin-analytics', to: '/dashboard?tab=admin-analytics', label: 'Efficiency Analytics', icon: 'bolt' },
       { tab: 'admin-grad-applications', to: '/dashboard?tab=admin-grad-applications', label: 'Graduate Applications', icon: 'cap' },
+      { tab: 'admin-templates', to: '/dashboard?tab=admin-templates', label: 'Templates', icon: 'document' },
       { tab: 'admin-maintenance', to: '/dashboard?tab=admin-maintenance', label: 'System Maintenance', icon: 'wrench' },
     ];
   }

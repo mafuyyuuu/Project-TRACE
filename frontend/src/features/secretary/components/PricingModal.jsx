@@ -21,8 +21,6 @@ export default function PricingModal({
   setPriceAmount,
   pricePageCount,
   setPricePageCount,
-  priceNotes,
-  setPriceNotes,
   siblingsUnpriced,
 }) {
   if (!selectedDoc) return null;
@@ -59,7 +57,7 @@ export default function PricingModal({
         <div className="flex justify-between"><span>Student</span><span className="font-bold text-gray-950">{selectedDoc.student_name || selectedDoc.student_id}</span></div>
         <div className="flex justify-between"><span>Document</span><span className="font-bold text-gray-950">{selectedDoc.document_type}</span></div>
         <div className="flex justify-between"><span>Tracking ID</span><span className="font-bold text-gray-950 select-text">#{selectedDoc.tracking_number}</span></div>
-        <div className="flex justify-between"><span>Copies</span><span className="font-bold text-gray-950">{selectedDoc.copies || 1}</span></div>
+        
         <div className="flex justify-between border-t border-gray-200/50 pt-2">
           <span>System estimate</span>
           <span className="font-bold text-gray-500">{formatPeso(selectedDoc.amount)}</span>
@@ -103,18 +101,7 @@ export default function PricingModal({
           />
         </label>
 
-        <label className="block">
-          <span className="text-[10px] font-bold text-gray-800 uppercase tracking-widest block mb-2">
-            How the amount was worked out
-          </span>
-          <textarea
-            rows={3}
-            value={priceNotes}
-            onChange={(e) => setPriceNotes(e.target.value)}
-            placeholder="e.g. 8 pages across 2 semester blocks at the standard rate."
-            className="w-full rounded-2xl border border-gray-200 p-3 text-xs focus:outline-none focus:ring-2 focus:ring-[#15803d]/30"
-          />
-        </label>
+        
 
         {siblingsUnpriced > 0 ? (
           <div className="bg-blue-50 border border-blue-100 rounded-2xl p-4">

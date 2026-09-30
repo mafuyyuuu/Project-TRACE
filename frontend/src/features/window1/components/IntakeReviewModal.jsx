@@ -34,13 +34,13 @@ export default function IntakeReviewModal({
       open={!!selectedDoc}
       onClose={() => setActiveModal(null)}
       title="Intake Check"
-      maxWidth="max-w-xl"
+      maxWidth="w-[90vw] sm:w-full max-w-xl"
       footer={
         <div className="flex flex-col sm:flex-row gap-3">
           <button
             onClick={() => handleIntake('return')}
             disabled={actionLoading}
-            className="flex-1 px-5 py-3 rounded-2xl text-xs font-bold border border-gray-200 text-gray-700 hover:bg-gray-50 disabled:opacity-50 transition-colors"
+            className="flex-1 px-5 py-3 rounded-2xl text-xs font-bold border border-red-200 bg-red-50 text-red-600 hover:bg-red-100 disabled:opacity-50 transition-colors"
           >
             Return to Student
           </button>
@@ -75,6 +75,7 @@ export default function IntakeReviewModal({
         actually pays, after the document is printed.
       </p>
 
+      {needsPaper && (
       <div className="space-y-4">
         <span className="text-[10px] font-bold text-gray-800 uppercase tracking-widest block">
           Supporting Document {needsPaper && <span className="text-red-600">· required for this type</span>}
@@ -146,6 +147,7 @@ export default function IntakeReviewModal({
           </div>
         )}
       </div>
+      )}
     </ModalShell>
   );
 }

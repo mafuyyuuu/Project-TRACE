@@ -27,16 +27,11 @@ const LEGACY_FEES = {
 const DEFAULT_FEE = { base_fee: 50.0, fee_rule: 'flat' };
 
 /**
- * Fee for one line item.
- *
- * `flat` fees come straight from `document_types.base_fee` and are fully
- * admin-editable. `per_semester_block` (Transcript of Records) charges the base
- * fee per block of four semesters, which isn't expressible as a single number
- * and so stays here in code.
+ * Fee for one line item (Estimate).
  *
  * @param {{base_fee: number|string, fee_rule: string}} type document-type row
  * @param {number|string} semesters only meaningful for per_semester_block
- * @returns {number} fee for a single copy
+ * @returns {number} estimated fee for the document
  */
 function feeForType(type, semesters) {
   const baseFee = parseFloat(type.base_fee);
@@ -49,45 +44,29 @@ function feeForType(type, semesters) {
 
 /**
  * Single-item pricing, kept for the legacy one-document-per-request path.
- *
- * @param {string} documentType
- * @param {number|string} semesters only meaningful for TOR; defaults to 8
- * @param {number|string} copies defaults to 1
- * @param {{base_fee: number|string, fee_rule: string}} [type] row from the DB;
- *   omit to fall back to the historical hardcoded rates
- * @returns {{ amount: number, copies: number }}
+ * Copies are no longer factored into the price computation.
  */
 function calculateAmount(documentType, semesters, copies, type) {
-  const copiesInt = parseInt(copies) || 1;
   const resolved = type || LEGACY_FEES[documentType] || DEFAULT_FEE;
-  return { amount: feeForType(resolved, semesters) * copiesInt, copies: copiesInt };
+  return { amount: feeForType(resolved, semesters), copies: 1 };
 }
 
 /**
- * Total for a multi-document request, plus the per-item breakdown the caller
- * needs to write one `documents` row per item.
- *
- * @param {Array<{document_type: string, copies?: number|string, semesters?: number|string}>} items
- * @param {Array<{name: string, base_fee: number|string, fee_rule: string}>} types
- *   document-type rows loaded from the database
- * @returns {{ total: number, items: Array<{document_type, copies, semesters, amount}> }}
+ * Total for a multi-document request.
  */
 function calculateGroupAmount(items, types = []) {
   const byName = new Map(types.map((t) => [t.name, t]));
 
   const priced = items.map((item) => {
-    const copiesInt = parseInt(item.copies) || 1;
     const resolved = byName.get(item.document_type) || LEGACY_FEES[item.document_type] || DEFAULT_FEE;
     return {
       document_type: item.document_type,
-      copies: copiesInt,
+      copies: 1, // Copies removed per CN-08
       semesters: parseInt(item.semesters) || null,
-      amount: feeForType(resolved, item.semesters) * copiesInt,
+      amount: feeForType(resolved, item.semesters),
     };
   });
 
-  // Rounded to cents: repeated float addition can otherwise drift
-  // (e.g. 0.1 + 0.2), and this figure is what the student is charged.
   const total = Math.round(priced.reduce((sum, i) => sum + i.amount, 0) * 100) / 100;
 
   return { total, items: priced };

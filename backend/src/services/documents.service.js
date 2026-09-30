@@ -1,5 +1,6 @@
 const { pool } = require('../config/db');
 const documentModel = require('../models/document.model');
+const documentMessageModel = require('../models/documentMessage.model');
 const stepLogModel = require('../models/stepLog.model');
 const userModel = require('../models/user.model');
 const aiEngine = require('./aiEngine.service');
@@ -148,9 +149,19 @@ async function uploadDocument(user, body, files) {
   try {
     await connection.beginTransaction();
 
+    // Determine if the student is an alumni for sequence offset
+    let isAlumni = false;
+    const [targetStudentRows] = await connection.query('SELECT user_type FROM users WHERE student_id = ? LIMIT 1', [student_id]);
+    if (targetStudentRows.length > 0 && targetStudentRows[0].user_type === 'alumni') {
+      isAlumni = true;
+    }
+
     for (const [index, item] of priced.entries()) {
       const trackingNumber = generateTrackingNumber();
       const attachment = fileForItem(fileList, index);
+
+      const previousCount = await documentModel.countByTypeAndStudent(item.document_type, student_id, connection);
+      const sequenceNumberStr = `${item.document_type} – Request No. ${previousCount + (isAlumni ? 2 : 1)}`;
 
       const [docResult] = await documentModel.insert(
         {
@@ -170,6 +181,7 @@ async function uploadDocument(user, body, files) {
           purpose: requested[index].purpose ?? body.purpose ?? null,
           copies: item.copies,
           amount: item.amount,
+          document_sequence_number: sequenceNumberStr,
         },
         connection
       );
@@ -312,7 +324,7 @@ async function listDocuments(user, query) {
   if (user.role === 'student') {
     const rows = await userModel.findStudentIdById(user.id);
     if (rows.length > 0) {
-      conditions.push('student_id = ?');
+      conditions.push('d.student_id = ?');
       params.push(rows[0].student_id);
     } else {
       conditions.push('1 = 0');
@@ -320,18 +332,18 @@ async function listDocuments(user, query) {
   } else if (user.role === 'clerk') {
     const desk = user.desk_assignment;
     if (status) {
-      conditions.push('current_status = ?');
+      conditions.push('d.current_status = ?');
       params.push(status);
     } else if (desk === 'Finance') {
       // Two queues. The first is read-only — Finance can see what a student has
       // been billed for so it can answer a walk-in holding a stub, but only the
       // second is actionable.
-      conditions.push('current_status IN (?, ?)');
+      conditions.push('d.current_status IN (?, ?)');
       params.push(STATUS.PENDING_STUDENT_PAYMENT, STATUS.PENDING_FINANCE_VERIFICATION);
     } else if (desk === 'Secretary') {
       // Four working queues plus the tail, so a secretary can still see what
       // they released rather than having documents vanish at handoff.
-      conditions.push('current_status IN (?, ?, ?, ?, ?, ?)');
+      conditions.push('d.current_status IN (?, ?, ?, ?, ?, ?)');
       params.push(
         STATUS.PENDING_SEC_EVALUATION,
         STATUS.SEC_PROCESSING,
@@ -356,14 +368,14 @@ async function listDocuments(user, query) {
       const secUser = await userModel.findCourseById(user.id);
       const collegeSql =
         secUser.length > 0 && secUser[0].course
-          ? 'student_id IN (SELECT student_id FROM users WHERE course = ?)'
+          ? 'd.student_id IN (SELECT student_id FROM users WHERE course = ?)'
           : '1 = 1';
 
       conditions.push(
-        `(assigned_clerk_id = ?
+        `(d.assigned_clerk_id = ?
           OR (${collegeSql}
-              AND (assigned_clerk_id IS NULL
-                   OR assigned_clerk_id NOT IN
+              AND (d.assigned_clerk_id IS NULL
+                   OR d.assigned_clerk_id NOT IN
                       (SELECT id FROM users WHERE desk_assignment = 'Secretary'))))`
       );
       params.push(user.id);
@@ -373,7 +385,7 @@ async function listDocuments(user, query) {
     }
     // Window 1 sees the entire system queue — no extra condition.
   } else if (user.role === 'admin' && status) {
-    conditions.push('current_status = ?');
+    conditions.push('d.current_status = ?');
     params.push(status);
   }
 
@@ -743,7 +755,11 @@ async function verifyPayment(user, documentId, { action, notes, or_number, or_da
         userId: students[0].id,
         title: action === 'approve' ? 'Payment Verified' : 'Payment Rejected',
         message: action === 'approve'
-          ? `Your payment for ${doc.document_type} has been verified. Your document is being prepared for release at Window 1.`
+          ? officialReceiptPath
+          ? (new Date().getHours() >= 16 
+             ? `Your payment for ${doc.document_type} has been verified. Your digital Official Receipt will be generated and uploaded by tomorrow.`
+             : `Your payment for ${doc.document_type} has been verified. Your digital Official Receipt is now available in your dashboard.`)
+          : `Your payment for ${doc.document_type} has been verified. Your document is being prepared for release at Window 1.`
           : `Your payment for ${doc.document_type} was rejected. Reason: ${notes || 'Invalid receipt or reference number.'}`,
         type: action === 'approve' ? 'success' : 'error',
       });
@@ -1488,7 +1504,117 @@ async function cancelDocument(user, documentId) {
   }
 }
 
+
+/** FIN-03: Deferred OR Upload */
+async function uploadDeferredOR(user, documentId, file) {
+  requireDesk(user, 'Finance', 'Only Finance can upload deferred ORs.');
+  if (!file) throw badRequest('No receipt file provided.');
+  
+  const officialReceiptPath = `/uploads/${file.filename}`;
+  
+  // Find document
+  const doc = await documentModel.findById(documentId);
+  if (!doc) throw notFound('Document not found.');
+  
+  // Only update if it doesn't already have one, or if we allow overwriting.
+  await pool.query(
+    'UPDATE documents SET official_receipt_path = ?, or_uploaded_at = CURRENT_TIMESTAMP WHERE request_group_id = ?',
+    [officialReceiptPath, doc.request_group_id || doc.tracking_number]
+  );
+  
+  // Notify student (FIN-02)
+  const notifications = require('./notification.service');
+  const students = await userModel.findStudentContactByStudentId(doc.student_id);
+  if (students.length > 0) {
+    await notifications.notifyInApp({
+      userId: students[0].id,
+      title: 'Official Receipt Uploaded',
+      message: `Your Official Receipt for request #${doc.tracking_number || doc.id} has been uploaded and is available to view in your dashboard.`,
+      type: 'success',
+    });
+  }
+  
+  return { success: true, official_receipt_path: officialReceiptPath };
+}
+
+async function getMessages(user, documentId) {
+  const docs = await documentModel.findById(documentId);
+  if (docs.length === 0) throw notFound('Document not found.');
+  const doc = docs[0];
+
+  if (user.role === 'student') {
+    const owner = await userModel.findStudentIdById(user.id);
+    if (!owner[0] || doc.student_id !== owner[0].student_id) {
+      throw forbidden('You can only view your own messages.');
+    }
+  }
+
+  await documentMessageModel.markAsRead(documentId, user.id);
+  return await documentMessageModel.findByDocumentId(documentId);
+}
+
+async function sendMessage(user, documentId, { message }) {
+  if (!message || message.trim() === '') {
+    throw badRequest('Message cannot be empty.');
+  }
+
+  const connection = await pool.getConnection();
+  let doc;
+  let inserted;
+
+  try {
+    await connection.beginTransaction();
+
+    const docs = await documentModel.findByIdForUpdate(documentId, connection);
+    if (docs.length === 0) throw notFound('Document not found.');
+    doc = docs[0];
+
+    if (user.role === 'student') {
+      const owner = await userModel.findStudentIdById(user.id, connection);
+      if (!owner[0] || doc.student_id !== owner[0].student_id) {
+        throw forbidden('You can only message about your own requests.');
+      }
+    }
+
+    const [res] = await documentMessageModel.insert(documentId, user.id, message, connection);
+    inserted = res.insertId;
+
+    // We do NOT add a stepLog here because chat messages are separate from the audit trail of status changes.
+
+    await connection.commit();
+  } catch (err) {
+    await connection.rollback();
+    throw err;
+  } finally {
+    connection.release();
+  }
+
+  // Trigger Notification
+  if (user.role === 'student') {
+    // Notify the assigned clerk if any, else notify the relevant desk based on status
+    if (doc.assigned_clerk_id) {
+      await notifyInApp(doc.assigned_clerk_id, {
+        title: 'New Message',
+        message: `Student ${doc.student_name} sent a message regarding ${doc.document_type}.`,
+        link_url: `/dashboard`
+      });
+    }
+  } else {
+    // Staff to student
+    await notifyStudent(doc.student_id, {
+      title: 'New Message from Registrar',
+      message: `${user.full_name} sent a message regarding your ${doc.document_type}.`,
+      link_url: `/dashboard`
+    });
+  }
+
+  return { message: 'Message sent successfully.' };
+}
+
 module.exports = {
+  getMessages,
+  sendMessage,
+  uploadDeferredOR,
   // Re-exported for convenience; the implementations live in utils/pricing.js.
   generateTrackingNumber,
   generateRequestGroupId,

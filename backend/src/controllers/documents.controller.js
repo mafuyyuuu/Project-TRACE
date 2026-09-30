@@ -162,7 +162,31 @@ async function cancel(req, res) {
   }
 }
 
+
+async function uploadDeferredOR(req, res) {
+  res.json(await documentsService.uploadDeferredOR(req.user, req.params.id, req.file));
+}
+
+async function getMessages(req, res) {
+  try {
+    res.json(await documentsService.getMessages(req.user, req.params.id));
+  } catch (err) {
+    fail(res, err, 'Fetch messages error', 'Failed to fetch messages.');
+  }
+}
+
+async function sendMessage(req, res) {
+  try {
+    res.status(201).json(await documentsService.sendMessage(req.user, req.params.id, req.body));
+  } catch (err) {
+    fail(res, err, 'Send message error', 'Failed to send message.');
+  }
+}
+
 module.exports = {
+  getMessages,
+  sendMessage,
+  uploadDeferredOR,
   upload,
   list,
   stats,

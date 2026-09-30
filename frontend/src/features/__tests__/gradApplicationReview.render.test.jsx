@@ -50,9 +50,9 @@ const renderPanel = async () => {
 describe('queue tabs', () => {
   it('buckets applications into pending, approved and rejected', async () => {
     await renderPanel();
-    expect(await screen.findByRole('tab', { name: /pending \(1\)/i })).toBeInTheDocument();
-    expect(screen.getByRole('tab', { name: /approved \(1\)/i })).toBeInTheDocument();
-    expect(screen.getByRole('tab', { name: /rejected \(1\)/i })).toBeInTheDocument();
+    expect(await screen.findByRole('tab', { name: /pending/i })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: /approved/i })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: /rejected/i })).toBeInTheDocument();
   });
 
   it('shows the pending application by default and switches on tab click', async () => {

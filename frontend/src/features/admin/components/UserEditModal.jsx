@@ -180,7 +180,7 @@ export default function UserEditModal({ open, onClose, user, onSave, saving }) {
 
             <div className="pt-2 border-t border-gray-100">
               <Label>Email Address</Label>
-              <input type="email" className={inputClass} value={email} onChange={(e) => setEmail(e.target.value)} />
+              <input type="email" maxLength={100} className={inputClass} value={email} onChange={(e) => setEmail(e.target.value)} />
               <div className="flex items-end gap-3 mt-3">
                 <button type="button" disabled className="px-4 py-2.5 rounded-xl text-xs font-bold border border-gray-200 text-gray-400 bg-gray-100 cursor-not-allowed whitespace-nowrap">
                   Resend

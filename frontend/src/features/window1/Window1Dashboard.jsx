@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import HardwareScannerModal from '@/features/window1/components/HardwareScannerModal';
 import IntakeReviewModal from '@/features/window1/components/IntakeReviewModal';
 import ManualInputModal from '@/features/window1/components/ManualInputModal';
@@ -8,6 +9,8 @@ import { formatFileSize, getWaitTime, todayLongDate } from '@/utils/formatters';
 import useWindow1Dashboard from '@/features/window1/useWindow1Dashboard';
 import DashboardAlerts from '@/components/DashboardAlerts';
 import DashboardLoading from '@/components/DashboardLoading';
+import StudentProfileModal from '@/components/StudentProfileModal';
+import ReportsPanel from '@/features/admin/components/ReportsPanel';
 
 /**
  * Window 1 clerk: the counter at both ends of the pipeline.
@@ -17,6 +20,8 @@ import DashboardLoading from '@/components/DashboardLoading';
  * window a student walks up to and asks "where is mine?".
  */
 export default function Window1Dashboard({ user, currentTab, setViewImageUrl }) {
+  const [viewProfileId, setViewProfileId] = useState(null);
+
   const {
     loading,
     success,
@@ -211,12 +216,12 @@ export default function Window1Dashboard({ user, currentTab, setViewImageUrl }) 
               </div>
 
               <div className="p-4 sm:p-6">
-                <div className="max-h-[60vh] overflow-y-auto overflow-x-auto">
+                <div className="max-h-[calc(100vh-280px)] overflow-y-auto overflow-x-auto">
                   {intakeQueue.length === 0 ? (
                     <div className="text-center py-16 text-gray-400 font-medium">Nothing waiting for intake.</div>
                   ) : (
                     <>
-                      <table className="w-full text-left border-collapse">
+                      <table className="w-full text-left border-collapse table-fixed">
                         <thead className="sticky top-0 bg-white z-10">
                           <tr className="text-gray-400 text-[10px] uppercase tracking-widest border-b border-gray-100">
                             <th className="pb-4 font-bold pl-4">Tracking Hash</th>
@@ -234,7 +239,7 @@ export default function Window1Dashboard({ user, currentTab, setViewImageUrl }) 
                             <tr key={doc.id} className="hover:bg-gray-50/50 group">
                               <td className="py-4 pl-4 font-mono text-xs text-gray-500">#{doc.tracking_number ? doc.tracking_number.slice(0, 10).toUpperCase() : doc.id}</td>
                               <td className="py-4">
-                                <div className="text-sm font-bold text-gray-900">{doc.student_name || 'Name Unresolved'}</div>
+                                <button onClick={() => setViewProfileId(doc.student_name || 'Name Unresolved'.student_id)} className="text-sm font-bold text-[#15803d] hover:underline hover:text-[#166534] text-left">{doc.student_name || 'Name Unresolved'}</button>
                                 <div className="text-xs font-mono text-gray-400 mt-0.5">{doc.student_id || 'ID Pending'}</div>
                               </td>
                               <td className="py-4 text-xs font-bold text-gray-600">{doc.document_type}</td>
@@ -301,12 +306,12 @@ export default function Window1Dashboard({ user, currentTab, setViewImageUrl }) 
               </div>
 
               <div className="p-4 sm:p-6">
-                <div className="max-h-[60vh] overflow-y-auto overflow-x-auto">
+                <div className="max-h-[calc(100vh-280px)] overflow-y-auto overflow-x-auto">
                   {releaseQueue.length === 0 ? (
                     <div className="text-center py-16 text-gray-400 font-medium">No documents waiting for release.</div>
                   ) : (
                     <>
-                      <table className="w-full text-left border-collapse">
+                      <table className="w-full text-left border-collapse table-fixed">
                         <thead className="sticky top-0 bg-white z-10">
                           <tr className="text-gray-400 text-[10px] uppercase tracking-widest border-b border-gray-100">
                             <th className="pb-4 font-bold pl-4">Tracking Hash</th>
@@ -324,7 +329,7 @@ export default function Window1Dashboard({ user, currentTab, setViewImageUrl }) 
                             <tr key={doc.id} className="hover:bg-gray-50/50 group">
                               <td className="py-4 pl-4 font-mono text-xs text-gray-500">#{doc.tracking_number ? doc.tracking_number.slice(0, 10).toUpperCase() : doc.id}</td>
                               <td className="py-4">
-                                <div className="text-sm font-bold text-gray-900">{doc.student_name || 'Name Unresolved'}</div>
+                                <button onClick={() => setViewProfileId(doc.student_name || 'Name Unresolved'.student_id)} className="text-sm font-bold text-[#15803d] hover:underline hover:text-[#166534] text-left">{doc.student_name || 'Name Unresolved'}</button>
                                 <div className="text-xs font-mono text-gray-400 mt-0.5">{doc.student_id || 'ID Pending'}</div>
                               </td>
                               <td className="py-4 text-xs font-bold text-gray-600">{doc.document_type}</td>
@@ -416,8 +421,8 @@ export default function Window1Dashboard({ user, currentTab, setViewImageUrl }) 
                   <div className="text-center py-12 text-gray-400 font-medium">No active document requests.</div>
                 ) : (
                   <>
-                    <div className="max-h-[60vh] overflow-y-auto overflow-x-auto">
-                      <table className="w-full text-left border-collapse min-w-[700px]">
+                    <div className="max-h-[calc(100vh-280px)] overflow-y-auto overflow-x-auto">
+                      <table className="w-full text-left border-collapse table-fixed min-w-[700px]">
                         <thead className="sticky top-0 bg-white z-10">
                           <tr className="text-gray-400 text-[10px] uppercase tracking-widest border-b border-gray-100">
                             <th className="pb-4 font-bold pl-4">Date Requested</th>
@@ -653,6 +658,11 @@ export default function Window1Dashboard({ user, currentTab, setViewImageUrl }) 
         loading={actionLoading}
         onConfirm={confirmIntake}
         onCancel={cancelIntake}
+      />
+      <StudentProfileModal
+        open={!!viewProfileId}
+        onClose={() => setViewProfileId(null)}
+        studentId={viewProfileId}
       />
     </>
   );

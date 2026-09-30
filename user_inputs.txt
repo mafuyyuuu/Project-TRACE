@@ -1,0 +1,1391 @@
+<USER_REQUEST>
+recall the memory and the progress. And what's left to do. Also can you tell me where is our database?
+</USER_REQUEST>
+<ADDITIONAL_METADATA>
+The current local time is: 2026-09-28T17:18:42+08:00.
+</ADDITIONAL_METADATA>
+<USER_SETTINGS_CHANGE>
+The user changed setting `Model Selection` from None to Gemini 3.1 Pro (High). No need to comment on this change if the user doesn't ask about it. If reporting what model you are, please use a human readable name instead of the exact string.
+</USER_SETTINGS_CHANGE>
+<USER_REQUEST>
+i mean where to see the database in our deployed system?
+</USER_REQUEST>
+<ADDITIONAL_METADATA>
+The current local time is: 2026-09-28T17:20:29+08:00.
+</ADDITIONAL_METADATA>
+<USER_REQUEST>
+wait i thought we were done with this? Machine Learning Prep: Run ai-engine/mock_data_gen.py to seed historical log timestamps into the database to train the
+  Prophet forecasting models and Random Forest insights engine. and Window 1 Scanner Bridge: Implement WebTWAIN (or a similar web-scanning library) to allow the "Scan" button in the
+  frontend to trigger physical hardware scanners directly.? We already done deploying the system
+</USER_REQUEST>
+<ADDITIONAL_METADATA>
+The current local time is: 2026-09-28T17:21:59+08:00.
+</ADDITIONAL_METADATA>
+<USER_REQUEST>
+can you update all the .mds? and the html in our docs? Like all of it, then remove every unnecessary md that we dont need now. Also can you add in our algorithm computation about how the system accuracy works and calculated? and what it is for? Like the average confidence score in the admin and other things like that? Also make a separate discussion of it using these tools Recognition Accuracy (%) for Optical Character Recognition (OCR)
+Accuracy and F1-Score for Random Forest
+Mean Absolute Percentage Error (MAPE) for Prophet for the easyocr
+</USER_REQUEST>
+<ADDITIONAL_METADATA>
+The current local time is: 2026-09-28T17:24:47+08:00.
+</ADDITIONAL_METADATA>
+<USER_REQUEST>
+/plan Remember this: ⚠️ Verification Protocol — read this before doing anything
+
+This file mixes three kinds of items, marked explicitly on every one below:
+
+[VERIFIED] — I checked the exact file, read the exact code, and the fix described is grounded in what's actually there as of de1f193. Trust the file path and the diagnosis, but the code may have moved by the time you read this — confirm the line numbers still match before editing.
+[NEEDS INVESTIGATION] — I have a strong, specific lead on where this lives (a function, a file, a pattern) but did not read the exact current implementation closely enough to hand you a line number and a confident fix. Your job on these is to go read the code first, then tell me what you found before writing anything.
+[UNVERIFIED — SPEC ONLY] — this comes straight from the testing notes with no code check at all. Could be a two-line fix or a missing feature. Do not assume either. Find out first.
+
+The rule that overrides everything else in this document: if you cannot locate the file, function, or behavior a [VERIFIED] item describes — because the code moved, because I got it wrong, or because it simply isn't there — stop and tell me. Do not invent a plausible-sounding file path. Do not write code against a guess at what a function probably does. Do not paper over the gap with something that "should" work. Report what you searched for, what you found instead, and wait.
+
+Before writing any code for a batch, in every single batch, without exception:
+
+Restate the batch's tasks in your own words — not a copy-paste of this document, your actual understanding of what changes.
+List every file you plan to touch, with the exact path, and for [VERIFIED] items confirm the line numbers I gave still match what you're seeing.
+Name anything you're uncertain about, anything the notes are ambiguous on, and anything you had to guess at to fill a gap this document left open.
+Stop. Wait for my explicit go-ahead before writing a single line of code. Not "I'll assume 
+<truncated 2357 bytes>
+ for feedback and approval.
+After reading the document, the user should understand the key technical details of your plan, and be able to make an informed decision on whether to approve it.
+This document should be very detailed, including code snippets, diffs, mermaid diagrams, verification strategies, and background information.
+
+**Format**: Use the following format, omitting any irrelevant sections:
+
+## [Goal Description]
+Provide a brief description of the problem, any background context, and what the change accomplishes.
+
+## User Review Required
+Document anything that requires user review or feedback, for example, breaking changes or significant design decisions. Use GitHub alerts (IMPORTANT/WARNING/CAUTION) to highlight critical items.
+
+## Open Questions
+Any clarifying or design questions for the user that will impact the implementation plan. Use GitHub alerts (IMPORTANT/WARNING/CAUTION) to highlight critical items.
+
+## Proposed Changes
+Group files by component (e.g., package, feature area, dependency layer) and order logically (dependencies first). Separate components with horizontal rules for visual clarity.
+
+### [Component Name]
+Summary of what will change in this component with explicit code snippets and diffs. For specific files, Use [NEW] and [DELETE] to demarcate new and deleted files, for example:
+#### [MODIFY] file basename
+#### [NEW] file basename
+#### [DELETE] file basename
+
+## Verification Plan
+Summary of how you will verify that your changes have the desired effects.
+
+### Automated Tests
+Exact commands to run automated tests
+
+### Manual Verification
+Instructions for what the user should manually verify.
+
+# Walkthrough
+Path: <Artifact Directory>/walkthrough.md
+
+**Purpose**: After completing work, summarize what you accomplished. Update an existing walkthrough for related follow-up work rather than creating a new one.
+
+**Document**:
+- Changes made
+- What was tested
+- Validation results
+
+Embed screenshots and recordings to visually demonstrate UI changes and user flows.</PLAN>
+</ADDITIONAL_METADATA>
+<USER_REQUEST>
+/plan BRANCH:     dev — confirmed current as of commit de1f193
+FRONTEND:   React 19, Vite 8, Tailwind CSS 4, react-router-dom 7, recharts, axios
+BACKEND:    Node/Express 5, MySQL2, JWT, multer, nodemailer — presentation layer only, two
+            named exceptions below (device-login notifications, and a workflow question)
+AI ENGINE:  Python (ai-engine/) — separate service, own container, talks to backend over HTTP
+            for anything it needs — do not have it touch the database directly (see the
+            architecture note from earlier in this conversation if you need the reasoning)
+ROLES:      student, alumni (a student with user_type='alumni'), window1, secretary, finance, admin
+PIPELINE:   9 stages, defined once in frontend/src/utils/documentStatus.js (PIPELINE array) and
+            mirrored in backend/src/utils/documentStatus.js — the two must change together if
+            you ever add or reorder a stage. Do not hardcode a step count or step list anywhere
+            else; derive it from PIPELINE, the way LiveTrackingModal.jsx already does.
+TESTS:      Vitest suites under __tests__/ — keep them green  Already shipped since the last round of this document — do not rebuild these, but several have refinements below that build on top of them:
+* Sticky shell (sidebar/navbar fixed, content scrolls independently) — layouts/Layout.jsx
+* Manual input extracted to its own modal — features/window1/components/ManualInputModal.jsx
+* User cards + edit modal — components/UserCard.jsx, features/admin/components/UserGrid.jsx, features/admin/components/UserEditModal.jsx
+* Alumni identity exposed to the frontend, Graduate Application gated correctly, and a shared review panel for Admin + Secretary — pages/DashboardPage.jsx, features/graduate/components/GradApplicationReviewPanel.jsx, features/graduate/useGradApplicationReview.js
+* Profile picture save-gating with local preview and discard — hooks/useProfileSettings.js
+* 7-day forecast expandable modal — landed in the admin 
+<truncated 2309 bytes>
+ for feedback and approval.
+After reading the document, the user should understand the key technical details of your plan, and be able to make an informed decision on whether to approve it.
+This document should be very detailed, including code snippets, diffs, mermaid diagrams, verification strategies, and background information.
+
+**Format**: Use the following format, omitting any irrelevant sections:
+
+## [Goal Description]
+Provide a brief description of the problem, any background context, and what the change accomplishes.
+
+## User Review Required
+Document anything that requires user review or feedback, for example, breaking changes or significant design decisions. Use GitHub alerts (IMPORTANT/WARNING/CAUTION) to highlight critical items.
+
+## Open Questions
+Any clarifying or design questions for the user that will impact the implementation plan. Use GitHub alerts (IMPORTANT/WARNING/CAUTION) to highlight critical items.
+
+## Proposed Changes
+Group files by component (e.g., package, feature area, dependency layer) and order logically (dependencies first). Separate components with horizontal rules for visual clarity.
+
+### [Component Name]
+Summary of what will change in this component with explicit code snippets and diffs. For specific files, Use [NEW] and [DELETE] to demarcate new and deleted files, for example:
+#### [MODIFY] file basename
+#### [NEW] file basename
+#### [DELETE] file basename
+
+## Verification Plan
+Summary of how you will verify that your changes have the desired effects.
+
+### Automated Tests
+Exact commands to run automated tests
+
+### Manual Verification
+Instructions for what the user should manually verify.
+
+# Walkthrough
+Path: <Artifact Directory>/walkthrough.md
+
+**Purpose**: After completing work, summarize what you accomplished. Update an existing walkthrough for related follow-up work rather than creating a new one.
+
+**Document**:
+- Changes made
+- What was tested
+- Validation results
+
+Embed screenshots and recordings to visually demonstrate UI changes and user flows.</PLAN>
+</ADDITIONAL_METADATA>
+<USER_REQUEST>
+/plan B. Standing instructions (include with every batch)
+These are UI/UX revisions from internal user testing. Follow these rules for all of them:
+* Presentation layer only, with two named exceptions. Do not change the database schema, API contracts, routes, or auth logic. SU-01 and SEC-01 in Batch 8 are the sole exceptions — both are called out explicitly where they appear, and both need sign-off before you touch them. If any other fix seems to need a backend change, stop and explain why before writing code, the same way those two were flagged.
+* Before editing, list the files you plan to touch and wait for my confirmation. This is separate from, and in addition to, the per-batch verification protocol above — that protocol covers understanding the batch as a whole; this covers the specific files before you start changing them.
+* Keep the Vitest suites green. Run them before and after. Expected breaks are called out explicitly where they occur (for example SH-02's sidebar test); any other test failure is not expected and needs investigating before you continue, not silently accepting.
+* Reuse existing components and styles. Build a new shared component only when the same pattern appears in two or more places, and only where that's flagged explicitly below.
+* Keep the current color scheme, typography, and information architecture unless an item says otherwise. No visual redesigns beyond what's asked.
+* No refactoring, dependency upgrades, renaming, or "while I was in there" cleanups. If you notice something else that looks wrong while working, note it and move on — don't fix it in the same change.
+* Every interactive element needs a keyboard-accessible equivalent and a visible focus state.
+* When a batch is done, report: files changed, what changed in each, anything you could not do and why, and anything you found during the "restate your understanding" step that turned out to be wrong once you actually looked at the code.
+</USER_REQUEST>
+<ADDITIONAL_METADATA>
+The current local time is: 2026-
+<truncated 1923 bytes>
+ for feedback and approval.
+After reading the document, the user should understand the key technical details of your plan, and be able to make an informed decision on whether to approve it.
+This document should be very detailed, including code snippets, diffs, mermaid diagrams, verification strategies, and background information.
+
+**Format**: Use the following format, omitting any irrelevant sections:
+
+## [Goal Description]
+Provide a brief description of the problem, any background context, and what the change accomplishes.
+
+## User Review Required
+Document anything that requires user review or feedback, for example, breaking changes or significant design decisions. Use GitHub alerts (IMPORTANT/WARNING/CAUTION) to highlight critical items.
+
+## Open Questions
+Any clarifying or design questions for the user that will impact the implementation plan. Use GitHub alerts (IMPORTANT/WARNING/CAUTION) to highlight critical items.
+
+## Proposed Changes
+Group files by component (e.g., package, feature area, dependency layer) and order logically (dependencies first). Separate components with horizontal rules for visual clarity.
+
+### [Component Name]
+Summary of what will change in this component with explicit code snippets and diffs. For specific files, Use [NEW] and [DELETE] to demarcate new and deleted files, for example:
+#### [MODIFY] file basename
+#### [NEW] file basename
+#### [DELETE] file basename
+
+## Verification Plan
+Summary of how you will verify that your changes have the desired effects.
+
+### Automated Tests
+Exact commands to run automated tests
+
+### Manual Verification
+Instructions for what the user should manually verify.
+
+# Walkthrough
+Path: <Artifact Directory>/walkthrough.md
+
+**Purpose**: After completing work, summarize what you accomplished. Update an existing walkthrough for related follow-up work rather than creating a new one.
+
+**Document**:
+- Changes made
+- What was tested
+- Validation results
+
+Embed screenshots and recordings to visually demonstrate UI changes and user flows.</PLAN>
+</ADDITIONAL_METADATA>
+<USER_REQUEST>
+/plan ⚠️ Batches 1–6 below were lost from an earlier version of this file during a rewrite and have been reconstructed from the docket's task data. They cover the original UI/UX pass — shell, shared components, student/window1/secretary/admin screens, and the acceptance baseline. File paths here were confirmed against dev earlier in this project and have not been re-checked against the current commit — treat every item below as [NEEDS RE-VERIFICATION] regardless of its original tag, and confirm the path still matches before trusting it. Batch numbering below is deliberately unchanged — there is no "Batch 7"; that gap is intentional, not a further loss.  Batch 1 — App shell & global behavior
+SH-03 Icon audit [NEEDS RE-VERIFICATION]
+* Where: layouts/Layout.jsx nav, plus inline <svg> elements across the JSX. As of the last check, no icon library was installed — 59 hand-written inline SVGs, including duplicated and mismatched icons (Dashboard, Settings vs System Maintenance).
+* Expected: confirm the situation still matches, then either install a proper icon set and replace all of them, or fix only the wrong/duplicated ones — the smaller option is enough to satisfy the original note. One unique icon per destination either way.
+PL-01 Text selection [NEEDS RE-VERIFICATION]
+* Problem: the whole app shell was selectable — labels, buttons, nav items — not just content meant to be copied.
+* Expected: disable selection on the shell globally, re-enable it explicitly on table cells, tracking numbers, document IDs, names, notes fields, and inputs.
+PL-02 Motion [NEEDS RE-VERIFICATION]
+* Problem: state changes (route transitions, modals opening, tabs switching, data loading) had no transitions — everything appeared and disappeared abruptly.
+* Expected: restrained transitions, 150–250ms, one consistent easing curve, respecting prefers-reduced-motion.
+PL-03 Mobile responsiveness [NEEDS RE-VERIFICATION]
+* Problem: text overlap and broken layouts below desktop widths, worst on Finance and 
+<truncated 2606 bytes>
+ for feedback and approval.
+After reading the document, the user should understand the key technical details of your plan, and be able to make an informed decision on whether to approve it.
+This document should be very detailed, including code snippets, diffs, mermaid diagrams, verification strategies, and background information.
+
+**Format**: Use the following format, omitting any irrelevant sections:
+
+## [Goal Description]
+Provide a brief description of the problem, any background context, and what the change accomplishes.
+
+## User Review Required
+Document anything that requires user review or feedback, for example, breaking changes or significant design decisions. Use GitHub alerts (IMPORTANT/WARNING/CAUTION) to highlight critical items.
+
+## Open Questions
+Any clarifying or design questions for the user that will impact the implementation plan. Use GitHub alerts (IMPORTANT/WARNING/CAUTION) to highlight critical items.
+
+## Proposed Changes
+Group files by component (e.g., package, feature area, dependency layer) and order logically (dependencies first). Separate components with horizontal rules for visual clarity.
+
+### [Component Name]
+Summary of what will change in this component with explicit code snippets and diffs. For specific files, Use [NEW] and [DELETE] to demarcate new and deleted files, for example:
+#### [MODIFY] file basename
+#### [NEW] file basename
+#### [DELETE] file basename
+
+## Verification Plan
+Summary of how you will verify that your changes have the desired effects.
+
+### Automated Tests
+Exact commands to run automated tests
+
+### Manual Verification
+Instructions for what the user should manually verify.
+
+# Walkthrough
+Path: <Artifact Directory>/walkthrough.md
+
+**Purpose**: After completing work, summarize what you accomplished. Update an existing walkthrough for related follow-up work rather than creating a new one.
+
+**Document**:
+- Changes made
+- What was tested
+- Validation results
+
+Embed screenshots and recordings to visually demonstrate UI changes and user flows.</PLAN>
+</ADDITIONAL_METADATA>
+<USER_REQUEST>
+/plan Batch 2 — Shared components
+
+SC-01 Confirmation dialog [NEEDS RE-VERIFICATION]
+
+As of the last check: three native window.confirm dialogs (student cancel, Window 1 release, Secretary handover) with no shared in-app replacement built, plus no confirmation at all on logout. Confirm this is still the actual state — WI-01, WI-05, and WI-07 all depend on this existing before they can be finished.
+Expected: one reusable modal — title, body, neutral/destructive variant, custom button labels, a loading state on confirm, ESC and backdrop-to-cancel, focus trapped inside. Build it on top of SC-06's shell rather than as a one-off.
+
+SC-02 Toast layering [NEEDS RE-VERIFICATION]
+
+Problem: toasts rendered behind the modal overlay (both shared a z-50 layer), so a validation message could fire and be completely invisible while a modal was open. Reproduced originally on Window 1's return-without-receipt flow.
+Expected: toasts render above every overlay, stay visible while a modal is open, never cover a modal's action buttons.
+Blocks FX-05.
+
+SC-06 Shared modal shell with a pinned footer [NEEDS RE-VERIFICATION]
+
+As of the last check: 11 separate modal components, no shared wrapper between any of them, so long modals scrolled their action buttons out of reach along with the content.
+Expected: one shell — scrollable body, footer with buttons pinned to the bottom regardless of scroll position. SC-01 should be built on top of this. Retrofitting the 11 existing modals is WI-05.
+</USER_REQUEST>
+<ADDITIONAL_METADATA>
+The current local time is: 2026-09-29T15:42:15+08:00.
+
+The user has mentioned some items in the form @[ITEM]. Here is extra information about the items that were mentioned by the user, in the order that they appear:
+
+/plan is a [Slash Command]:
+<PLAN>The user is requesting that you think and plan carefully before executing the upcoming task.
+Carefully research the task, make sure that you and the user are aligned on the goals and requirements,
+create a detailed implementation plan artifact, and get 
+<truncated 1451 bytes>
+ for feedback and approval.
+After reading the document, the user should understand the key technical details of your plan, and be able to make an informed decision on whether to approve it.
+This document should be very detailed, including code snippets, diffs, mermaid diagrams, verification strategies, and background information.
+
+**Format**: Use the following format, omitting any irrelevant sections:
+
+## [Goal Description]
+Provide a brief description of the problem, any background context, and what the change accomplishes.
+
+## User Review Required
+Document anything that requires user review or feedback, for example, breaking changes or significant design decisions. Use GitHub alerts (IMPORTANT/WARNING/CAUTION) to highlight critical items.
+
+## Open Questions
+Any clarifying or design questions for the user that will impact the implementation plan. Use GitHub alerts (IMPORTANT/WARNING/CAUTION) to highlight critical items.
+
+## Proposed Changes
+Group files by component (e.g., package, feature area, dependency layer) and order logically (dependencies first). Separate components with horizontal rules for visual clarity.
+
+### [Component Name]
+Summary of what will change in this component with explicit code snippets and diffs. For specific files, Use [NEW] and [DELETE] to demarcate new and deleted files, for example:
+#### [MODIFY] file basename
+#### [NEW] file basename
+#### [DELETE] file basename
+
+## Verification Plan
+Summary of how you will verify that your changes have the desired effects.
+
+### Automated Tests
+Exact commands to run automated tests
+
+### Manual Verification
+Instructions for what the user should manually verify.
+
+# Walkthrough
+Path: <Artifact Directory>/walkthrough.md
+
+**Purpose**: After completing work, summarize what you accomplished. Update an existing walkthrough for related follow-up work rather than creating a new one.
+
+**Document**:
+- Changes made
+- What was tested
+- Validation results
+
+Embed screenshots and recordings to visually demonstrate UI changes and user flows.</PLAN>
+</ADDITIONAL_METADATA>
+<USER_REQUEST>
+/plan Batch 3 — Student view
+
+FX-01 Request progress row spacing [NEEDS RE-VERIFICATION]
+
+Problem: on the Active Requests table, the progress bar, percentage, and status chip ran flush against each other with no breathing room.
+Expected: consistent spacing across timestamp, document name, progress bar, percentage, status, and the Cancel action, on a baseline that holds at narrower widths.
+
+FX-02 Consolidate the payment action [NEEDS RE-VERIFICATION]
+
+Problem: each document ready for payment had its own separate "Pay ₱100.00" button, which testers read as needing to pay one document at a time.
+Expected: one primary button with the total and count ("Pay ₱200.00 (2 documents)"), with the per-document breakdown still listed underneath as line items, not repeated instructional copy per document. If D-02 says partial payment should stay possible, use per-line checkboxes feeding that one total rather than separate buttons.
+</USER_REQUEST>
+<ADDITIONAL_METADATA>
+The current local time is: 2026-09-29T15:43:25+08:00.
+
+The user has mentioned some items in the form @[ITEM]. Here is extra information about the items that were mentioned by the user, in the order that they appear:
+
+/plan is a [Slash Command]:
+<PLAN>The user is requesting that you think and plan carefully before executing the upcoming task.
+Carefully research the task, make sure that you and the user are aligned on the goals and requirements,
+create a detailed implementation plan artifact, and get user approval on the plan before making any code changes (besides artifacts)
+or running any modifying commands.
+
+# Guidelines
+- Establish a shared understanding of the task with the user. If there are any ambiguities, underspecified requirements,
+or implicit assumptions, clarify them with the user before proceeding.
+- Thoroughly research the codebase to establish a solid understanding of the relevant components, systems, dependencies, and architecture.
+As you research, provide verbal updates of your research steps and thought process with the user, 
+<truncated 896 bytes>
+ for feedback and approval.
+After reading the document, the user should understand the key technical details of your plan, and be able to make an informed decision on whether to approve it.
+This document should be very detailed, including code snippets, diffs, mermaid diagrams, verification strategies, and background information.
+
+**Format**: Use the following format, omitting any irrelevant sections:
+
+## [Goal Description]
+Provide a brief description of the problem, any background context, and what the change accomplishes.
+
+## User Review Required
+Document anything that requires user review or feedback, for example, breaking changes or significant design decisions. Use GitHub alerts (IMPORTANT/WARNING/CAUTION) to highlight critical items.
+
+## Open Questions
+Any clarifying or design questions for the user that will impact the implementation plan. Use GitHub alerts (IMPORTANT/WARNING/CAUTION) to highlight critical items.
+
+## Proposed Changes
+Group files by component (e.g., package, feature area, dependency layer) and order logically (dependencies first). Separate components with horizontal rules for visual clarity.
+
+### [Component Name]
+Summary of what will change in this component with explicit code snippets and diffs. For specific files, Use [NEW] and [DELETE] to demarcate new and deleted files, for example:
+#### [MODIFY] file basename
+#### [NEW] file basename
+#### [DELETE] file basename
+
+## Verification Plan
+Summary of how you will verify that your changes have the desired effects.
+
+### Automated Tests
+Exact commands to run automated tests
+
+### Manual Verification
+Instructions for what the user should manually verify.
+
+# Walkthrough
+Path: <Artifact Directory>/walkthrough.md
+
+**Purpose**: After completing work, summarize what you accomplished. Update an existing walkthrough for related follow-up work rather than creating a new one.
+
+**Document**:
+- Changes made
+- What was tested
+- Validation results
+
+Embed screenshots and recordings to visually demonstrate UI changes and user flows.</PLAN>
+</ADDITIONAL_METADATA>
+<USER_REQUEST>
+/plan Batch 4 — Window 1 & Secretary
+
+WI-01 Replace the remaining native confirms, add the logout step [NEEDS RE-VERIFICATION]
+
+Wire SC-01's confirmation dialog into the release action, the handover action, and add a confirmation to logout, which currently has none at all.
+
+FX-05 Window 1: return without a receipt [NEEDS RE-VERIFICATION]
+
+Problem: attempting to return a document with no receipt on file let the action proceed while the validation message was hidden behind the modal (see SC-02).
+Expected: whatever D-03 decided — a hard block with the reason shown, or a visible warning that still allows the action — made consistent and actually visible.
+Needs D-03 and SC-02.
+
+WI-02 Secretary: confirm the tables are actually tabbed [NEEDS RE-VERIFICATION]
+
+A shared QueueTabs component now exists (confirmed present as of the round-3 check) and is used somewhere in Secretary's dashboard — the plain-text badge bug (WI-08 in Batch 8) is proof it's in active use. What's unconfirmed is whether it actually covers all three tables the original note described, or only some of them. Finish the wiring if it's partial.
+
+WI-05 Pin the footer on the existing modals [NEEDS RE-VERIFICATION]
+
+Retrofit all 11 modals under SC-06 to use the shared shell once it exists.
+Needs SC-06.
+
+WI-07 Extend confirmations to the rest of the state-changing buttons [NEEDS RE-VERIFICATION]
+
+Apply SC-01's dialog to whatever D-05 scoped as needing confirmation — approve/reject in Secretary's evaluation modal, approve/return in Window 1's intake modal, and similar actions elsewhere that still fire immediately.
+Needs SC-01 and D-05.
+</USER_REQUEST>
+<ADDITIONAL_METADATA>
+The current local time is: 2026-09-29T15:43:58+08:00.
+
+The user has mentioned some items in the form @[ITEM]. Here is extra information about the items that were mentioned by the user, in the order that they appear:
+
+/plan is a [Slash Command]:
+<PLAN>The user is requesting that you think and plan carefully before executing the upcoming task.
+Carefully research the t
+<truncated 1587 bytes>
+ for feedback and approval.
+After reading the document, the user should understand the key technical details of your plan, and be able to make an informed decision on whether to approve it.
+This document should be very detailed, including code snippets, diffs, mermaid diagrams, verification strategies, and background information.
+
+**Format**: Use the following format, omitting any irrelevant sections:
+
+## [Goal Description]
+Provide a brief description of the problem, any background context, and what the change accomplishes.
+
+## User Review Required
+Document anything that requires user review or feedback, for example, breaking changes or significant design decisions. Use GitHub alerts (IMPORTANT/WARNING/CAUTION) to highlight critical items.
+
+## Open Questions
+Any clarifying or design questions for the user that will impact the implementation plan. Use GitHub alerts (IMPORTANT/WARNING/CAUTION) to highlight critical items.
+
+## Proposed Changes
+Group files by component (e.g., package, feature area, dependency layer) and order logically (dependencies first). Separate components with horizontal rules for visual clarity.
+
+### [Component Name]
+Summary of what will change in this component with explicit code snippets and diffs. For specific files, Use [NEW] and [DELETE] to demarcate new and deleted files, for example:
+#### [MODIFY] file basename
+#### [NEW] file basename
+#### [DELETE] file basename
+
+## Verification Plan
+Summary of how you will verify that your changes have the desired effects.
+
+### Automated Tests
+Exact commands to run automated tests
+
+### Manual Verification
+Instructions for what the user should manually verify.
+
+# Walkthrough
+Path: <Artifact Directory>/walkthrough.md
+
+**Purpose**: After completing work, summarize what you accomplished. Update an existing walkthrough for related follow-up work rather than creating a new one.
+
+**Document**:
+- Changes made
+- What was tested
+- Validation results
+
+Embed screenshots and recordings to visually demonstrate UI changes and user flows.</PLAN>
+</ADDITIONAL_METADATA>
+<USER_REQUEST>
+/plan Batch 5 — Admin & Finance
+
+FX-03 System Throughput card [NEEDS RE-VERIFICATION]
+
+Problem: the metric rendered as a blank dash with "min" and no value, over a tiny, unlabelled sparkline. Distinct from AD-03 in Batch 8, which is the separate 7-Day Volume Forecast chart's scaling bug — don't conflate the two.
+Expected: the real average with its unit, a hover tooltip or axis labels, sized to fill the card, and an explicit empty state ("No completed requests yet") instead of a blank dash.
+
+WI-06 Finance: confirm the queues are actually tabbed [NEEDS RE-VERIFICATION]
+
+Same situation as WI-02 — QueueTabs exists and is shared; confirm it's specifically wired into Finance's dashboard, not only Secretary's, and finish it if not.
+Related to WI-02.
+</USER_REQUEST>
+<ADDITIONAL_METADATA>
+The current local time is: 2026-09-29T15:45:40+08:00.
+
+The user has mentioned some items in the form @[ITEM]. Here is extra information about the items that were mentioned by the user, in the order that they appear:
+
+/plan is a [Slash Command]:
+<PLAN>The user is requesting that you think and plan carefully before executing the upcoming task.
+Carefully research the task, make sure that you and the user are aligned on the goals and requirements,
+create a detailed implementation plan artifact, and get user approval on the plan before making any code changes (besides artifacts)
+or running any modifying commands.
+
+# Guidelines
+- Establish a shared understanding of the task with the user. If there are any ambiguities, underspecified requirements,
+or implicit assumptions, clarify them with the user before proceeding.
+- Thoroughly research the codebase to establish a solid understanding of the relevant components, systems, dependencies, and architecture.
+As you research, provide verbal updates of your research steps and thought process with the user, so they can follow along.
+- Create an implementation plan artifact that outlines your proposed execution strategy.
+Set request_feedback = true and user_facing = true in the Arti
+<truncated 719 bytes>
+ for feedback and approval.
+After reading the document, the user should understand the key technical details of your plan, and be able to make an informed decision on whether to approve it.
+This document should be very detailed, including code snippets, diffs, mermaid diagrams, verification strategies, and background information.
+
+**Format**: Use the following format, omitting any irrelevant sections:
+
+## [Goal Description]
+Provide a brief description of the problem, any background context, and what the change accomplishes.
+
+## User Review Required
+Document anything that requires user review or feedback, for example, breaking changes or significant design decisions. Use GitHub alerts (IMPORTANT/WARNING/CAUTION) to highlight critical items.
+
+## Open Questions
+Any clarifying or design questions for the user that will impact the implementation plan. Use GitHub alerts (IMPORTANT/WARNING/CAUTION) to highlight critical items.
+
+## Proposed Changes
+Group files by component (e.g., package, feature area, dependency layer) and order logically (dependencies first). Separate components with horizontal rules for visual clarity.
+
+### [Component Name]
+Summary of what will change in this component with explicit code snippets and diffs. For specific files, Use [NEW] and [DELETE] to demarcate new and deleted files, for example:
+#### [MODIFY] file basename
+#### [NEW] file basename
+#### [DELETE] file basename
+
+## Verification Plan
+Summary of how you will verify that your changes have the desired effects.
+
+### Automated Tests
+Exact commands to run automated tests
+
+### Manual Verification
+Instructions for what the user should manually verify.
+
+# Walkthrough
+Path: <Artifact Directory>/walkthrough.md
+
+**Purpose**: After completing work, summarize what you accomplished. Update an existing walkthrough for related follow-up work rather than creating a new one.
+
+**Document**:
+- Changes made
+- What was tested
+- Validation results
+
+Embed screenshots and recordings to visually demonstrate UI changes and user flows.</PLAN>
+</ADDITIONAL_METADATA>
+<USER_REQUEST>
+/plan Batch 6 — Verification baseline
+
+VF-01 Run the original acceptance checklist [NEEDS RE-VERIFICATION]
+
+On desktop and a real phone, in all six roles: no window.confirm remaining anywhere, logout confirms, toasts visible above open modals, Secretary and Finance tables tabbed with real badges, student progress row evenly spaced, one payment button with the correct total, throughput card showing a real value, dark mode either fully built or fully absent per D-01 — not half-done.
+
+VF-02 Before/after screenshots [NEEDS RE-VERIFICATION]
+
+Match every screenshot taken before this revision started. Hand the pairs to the group so they can confirm their own original notes were actually addressed.
+</USER_REQUEST>
+<ADDITIONAL_METADATA>
+The current local time is: 2026-09-29T15:46:42+08:00.
+
+The user has mentioned some items in the form @[ITEM]. Here is extra information about the items that were mentioned by the user, in the order that they appear:
+
+/plan is a [Slash Command]:
+<PLAN>The user is requesting that you think and plan carefully before executing the upcoming task.
+Carefully research the task, make sure that you and the user are aligned on the goals and requirements,
+create a detailed implementation plan artifact, and get user approval on the plan before making any code changes (besides artifacts)
+or running any modifying commands.
+
+# Guidelines
+- Establish a shared understanding of the task with the user. If there are any ambiguities, underspecified requirements,
+or implicit assumptions, clarify them with the user before proceeding.
+- Thoroughly research the codebase to establish a solid understanding of the relevant components, systems, dependencies, and architecture.
+As you research, provide verbal updates of your research steps and thought process with the user, so they can follow along.
+- Create an implementation plan artifact that outlines your proposed execution strategy.
+Set request_feedback = true and user_facing = true in the ArtifactMetadata. The user will automatically
+see any new a
+<truncated 664 bytes>
+ for feedback and approval.
+After reading the document, the user should understand the key technical details of your plan, and be able to make an informed decision on whether to approve it.
+This document should be very detailed, including code snippets, diffs, mermaid diagrams, verification strategies, and background information.
+
+**Format**: Use the following format, omitting any irrelevant sections:
+
+## [Goal Description]
+Provide a brief description of the problem, any background context, and what the change accomplishes.
+
+## User Review Required
+Document anything that requires user review or feedback, for example, breaking changes or significant design decisions. Use GitHub alerts (IMPORTANT/WARNING/CAUTION) to highlight critical items.
+
+## Open Questions
+Any clarifying or design questions for the user that will impact the implementation plan. Use GitHub alerts (IMPORTANT/WARNING/CAUTION) to highlight critical items.
+
+## Proposed Changes
+Group files by component (e.g., package, feature area, dependency layer) and order logically (dependencies first). Separate components with horizontal rules for visual clarity.
+
+### [Component Name]
+Summary of what will change in this component with explicit code snippets and diffs. For specific files, Use [NEW] and [DELETE] to demarcate new and deleted files, for example:
+#### [MODIFY] file basename
+#### [NEW] file basename
+#### [DELETE] file basename
+
+## Verification Plan
+Summary of how you will verify that your changes have the desired effects.
+
+### Automated Tests
+Exact commands to run automated tests
+
+### Manual Verification
+Instructions for what the user should manually verify.
+
+# Walkthrough
+Path: <Artifact Directory>/walkthrough.md
+
+**Purpose**: After completing work, summarize what you accomplished. Update an existing walkthrough for related follow-up work rather than creating a new one.
+
+**Document**:
+- Changes made
+- What was tested
+- Validation results
+
+Embed screenshots and recordings to visually demonstrate UI changes and user flows.</PLAN>
+</ADDITIONAL_METADATA>
+<USER_REQUEST>
+/plan Batch 8 — Branding, security, account, mobile (from round 3)
+
+BR-01 TRACE logo and favicon [UNVERIFIED — SPEC ONLY]
+
+A favicon already exists at /favicon.svg — open it and confirm whether it's the TRACE mark or a placeholder/PLP crest before assuming this needs building from scratch.
+Audit every place the PLP seal currently appears alone (login page, sidebar, generated documents/receipts if any) and add the TRACE mark alongside or in place of it, per the notes. List every location before changing any of them.
+
+SEC-01 Notify on login from a new device [NEEDS INVESTIGATION — BACKEND, FLAGGED]
+
+I checked backend/src/services/auth.service.js for any existing session/device tracking — there is none. This is not a UI tweak; it needs a way to recognize "a new device" at all (a sessions table, or at minimum an IP+user-agent fingerprint stored per login), plus a notification trigger when a login doesn't match anything on file.
+This is the second item in this whole project that isn't presentation-layer-only. Flag it and get sign-off the same way SU-01 needed it, before designing the schema change. Bring me options rather than picking one — this has real trade-offs (a sessions table is more correct but bigger; a lighter "last known device" field on the user is cheaper but coarser).
+The notification itself: clickable (navigates to the relevant page), and dismisses automatically on route change or tab switch rather than persisting. That part is presentation-layer once the underlying detection exists.
+
+AC-01 Profile edits revert after logout [NEEDS INVESTIGATION]
+
+Round 3 is specific: phone number and email appear saved immediately, but after logging out and back in, the old values are shown again. This is the same shape of bug as SU-01 was — a write that succeeds but a subsequent read that doesn't reflect it — but I have not confirmed whether the cause is the same (a login query not selecting the updated columns) or something else (the update endpoint not committing, or the frontend re-pop
+<truncated 19717 bytes>
+ for feedback and approval.
+After reading the document, the user should understand the key technical details of your plan, and be able to make an informed decision on whether to approve it.
+This document should be very detailed, including code snippets, diffs, mermaid diagrams, verification strategies, and background information.
+
+**Format**: Use the following format, omitting any irrelevant sections:
+
+## [Goal Description]
+Provide a brief description of the problem, any background context, and what the change accomplishes.
+
+## User Review Required
+Document anything that requires user review or feedback, for example, breaking changes or significant design decisions. Use GitHub alerts (IMPORTANT/WARNING/CAUTION) to highlight critical items.
+
+## Open Questions
+Any clarifying or design questions for the user that will impact the implementation plan. Use GitHub alerts (IMPORTANT/WARNING/CAUTION) to highlight critical items.
+
+## Proposed Changes
+Group files by component (e.g., package, feature area, dependency layer) and order logically (dependencies first). Separate components with horizontal rules for visual clarity.
+
+### [Component Name]
+Summary of what will change in this component with explicit code snippets and diffs. For specific files, Use [NEW] and [DELETE] to demarcate new and deleted files, for example:
+#### [MODIFY] file basename
+#### [NEW] file basename
+#### [DELETE] file basename
+
+## Verification Plan
+Summary of how you will verify that your changes have the desired effects.
+
+### Automated Tests
+Exact commands to run automated tests
+
+### Manual Verification
+Instructions for what the user should manually verify.
+
+# Walkthrough
+Path: <Artifact Directory>/walkthrough.md
+
+**Purpose**: After completing work, summarize what you accomplished. Update an existing walkthrough for related follow-up work rather than creating a new one.
+
+**Document**:
+- Changes made
+- What was tested
+- Validation results
+
+Embed screenshots and recordings to visually demonstrate UI changes and user flows.</PLAN>
+</ADDITIONAL_METADATA>
+<USER_REQUEST>
+/plan For SEC-01, SU-06, ST-02,PL-06. The answers are all the first options.
+</USER_REQUEST>
+<ADDITIONAL_METADATA>
+The current local time is: 2026-09-29T15:55:40+08:00.
+
+The user has mentioned some items in the form @[ITEM]. Here is extra information about the items that were mentioned by the user, in the order that they appear:
+
+/plan is a [Slash Command]:
+<PLAN>The user is requesting that you think and plan carefully before executing the upcoming task.
+Carefully research the task, make sure that you and the user are aligned on the goals and requirements,
+create a detailed implementation plan artifact, and get user approval on the plan before making any code changes (besides artifacts)
+or running any modifying commands.
+
+# Guidelines
+- Establish a shared understanding of the task with the user. If there are any ambiguities, underspecified requirements,
+or implicit assumptions, clarify them with the user before proceeding.
+- Thoroughly research the codebase to establish a solid understanding of the relevant components, systems, dependencies, and architecture.
+As you research, provide verbal updates of your research steps and thought process with the user, so they can follow along.
+- Create an implementation plan artifact that outlines your proposed execution strategy.
+Set request_feedback = true and user_facing = true in the ArtifactMetadata. The user will automatically
+see any new and modified plans you create, so DO NOT re-summarize the plan.
+- Only after the user explicitly approves the plan should you proceed to execution.
+- Verify that your changes have the desired effects e.g. run unit tests, make sure code builds, etc. before claiming that the task is complete.
+- After you've completed your task and verified that your solution works, create a walkthrough artifact to summarize your work.
+
+# Planning Mode Artifacts
+When in planning mode, you should create two special artifacts.
+
+# Implementation Plan
+Path: <Artifact Directory>/<plan_name>.md
+
+**Purpose**: A technical design document to present
+<truncated 37 bytes>
+ for feedback and approval.
+After reading the document, the user should understand the key technical details of your plan, and be able to make an informed decision on whether to approve it.
+This document should be very detailed, including code snippets, diffs, mermaid diagrams, verification strategies, and background information.
+
+**Format**: Use the following format, omitting any irrelevant sections:
+
+## [Goal Description]
+Provide a brief description of the problem, any background context, and what the change accomplishes.
+
+## User Review Required
+Document anything that requires user review or feedback, for example, breaking changes or significant design decisions. Use GitHub alerts (IMPORTANT/WARNING/CAUTION) to highlight critical items.
+
+## Open Questions
+Any clarifying or design questions for the user that will impact the implementation plan. Use GitHub alerts (IMPORTANT/WARNING/CAUTION) to highlight critical items.
+
+## Proposed Changes
+Group files by component (e.g., package, feature area, dependency layer) and order logically (dependencies first). Separate components with horizontal rules for visual clarity.
+
+### [Component Name]
+Summary of what will change in this component with explicit code snippets and diffs. For specific files, Use [NEW] and [DELETE] to demarcate new and deleted files, for example:
+#### [MODIFY] file basename
+#### [NEW] file basename
+#### [DELETE] file basename
+
+## Verification Plan
+Summary of how you will verify that your changes have the desired effects.
+
+### Automated Tests
+Exact commands to run automated tests
+
+### Manual Verification
+Instructions for what the user should manually verify.
+
+# Walkthrough
+Path: <Artifact Directory>/walkthrough.md
+
+**Purpose**: After completing work, summarize what you accomplished. Update an existing walkthrough for related follow-up work rather than creating a new one.
+
+**Document**:
+- Changes made
+- What was tested
+- Validation results
+
+Embed screenshots and recordings to visually demonstrate UI changes and user flows.</PLAN>
+</ADDITIONAL_METADATA>
+<USER_REQUEST>
+[Approved] plan_batch_8.md
+
+</USER_REQUEST>
+<ADDITIONAL_METADATA>
+The current local time is: 2026-09-29T15:59:07+08:00.
+</ADDITIONAL_METADATA>
+<USER_REQUEST>
+Full job description
+The Job:
+You will be building on an AI-powered platform designed for the lending industry — supporting loan professionals, brokers, underwriters, and executives in making loan processes faster, more accurate, and less manual. The platform brings multiple AI tools into one central system, improving visibility, compliance, pricing, and decision-making across the entire loan lifecycle.
+
+The Role:
+We are looking for an AI Engineer who can build reliable, scalable AI systems — from backend infrastructure to LLM pipelines — and take full ownership of what they ship. You will work closely with product and engineering to turn complex requirements into AI-driven features that actually work in the real world.
+
+What You Will Work On:
+Designing and building AI pipelines using LangChain and RAG systems
+Developing and maintaining FastAPI backend services
+Integrating and managing third-party API connections
+Engineering prompts and handling LLM behaviour at production scale
+Collaborating with the team to ship features that are accurate, performant, and production-ready
+
+What We Are Looking For:
+Hands-on experience with LangChain and RAG system design
+Strong backend development skills using FastAPI
+Proven experience with third-party API integrations
+In-depth knowledge of prompt engineering and LLM handling — not just familiarity, but the ability to design, test, and iterate on prompts that perform consistently
+Strong communication skills — you can explain what you built, why it works, and what its limits are
+
+Nice to Have:
+Experience with non-LLM AI products from cloud providers — Google Vertex AI, Azure ML, Google Document AI, Azure Document Intelligence, or similar
+Background in non-LLM machine learning — regression models, classifiers, and similar
+Exposure to regulated or compliance-heavy industries is a plus
+
+You Are the Right Fit If You:
+Take ownership of your work end to end — not just the code, but the outcome
+Can work independently in a remote environment without losing momentum
+Are comfortable with ambiguity and can make good decisions without complete information
+Care about building things that are accurate and reliable — especially in a high-stakes domain like lending
+</USER_REQUEST>
+<ADDITIONAL_METADATA>
+The current local time is: 2026-09-29T17:47:36+08:00.
+</ADDITIONAL_METADATA>
+<USER_REQUEST>
+Batch 8b — Account, admin, and workflow (later additions)
+
+AC-04 Rename the Settings icon's purpose, and Profile's Settings option [UNVERIFIED — SPEC ONLY]
+
+The sidebar Settings icon should be dedicated to personalization/preferences. The Profile section's own "Settings" option should be renamed "Edit Profile" so the two stop looking like duplicates of each other.
+
+AC-05 Color distinction for buttons, text, and important information [UNVERIFIED — SPEC ONLY]
+
+Most buttons and status text currently share the same default styling, especially in tables. Use distinct colors for different action types and for anything that matters (warnings, totals).
+
+SEC-06 Preview documents inline in verification modals [UNVERIFIED — SPEC ONLY]
+
+Every verification modal, across every role, currently only links out to an Attachments column to see the file. Show a preview inside the modal itself.
+
+WI-13 Export/report access for Window 1 and Secretary [VERIFIED — gap confirmed]
+
+Checked: neither role has any export capability today. Give both the export/report capability Admin has via RPT-01/RPT-02.
+
+SEC-17 Auto-dismiss notification pop-ups on navigation or tab switch [UNVERIFIED — SPEC ONLY]
+
+Applies to any notification modal app-wide, not only the device-login one from SEC-01.
+
+SU-09 OCR auto-fill for Student/Alumni ID at sign-up [VERIFIED — gap confirmed]
+
+Where: pages/SignupPage.jsx. Checked: nothing auto-populates sign-up fields from a scanned ID today. Use OCR to fill what it can from the uploaded ID; manual entry as the fallback for anything it can't extract.
+
+SU-10 Alumni ID Number field, OCR-extracted [VERIFIED — gap confirmed]
+
+No such field exists on the alumni sign-up form. Add it, auto-extract via OCR, manual fallback. Related to SU-09.
+
+AC-06 Save uploaded ID documents to the profile [UNVERIFIED — SPEC ONLY]
+
+Registration-time ID uploads aren't surfaced anywhere afterward. Save them to, and make them viewable from, the profile page.
+
+AD-04 Per-document student/alumni/both visibility setting [VERIFIED — gap confirmed]
+
+Where: Admin Document Management, backend reference data. Checked: no available_to or similar field exists anywhere in the backend. This is the configuration side of ST-02, which already filters the student-facing request list by exactly this kind of rule but currently has nothing real to read from — building AD-04 is what makes ST-02 actually work as intended rather than filtering against a hardcoded or incomplete list.
+
+AD-05 Staff can view a student's full profile from a requests list [UNVERIFIED — SPEC ONLY]
+
+Clicking a name in any staff-facing requests list should open that student's complete profile.
+
+AD-06 Per-college document restrictions [NEEDS INVESTIGATION]
+
+A second setting alongside AD-04 — restrict which document types each college's students may request, not just student-vs-alumni. Needs a confirmed link from a student's course/program to a college before this can be designed — colleges exist as reference data (System Maintenance's Colleges tab) but how a user record maps to one hasn't been checked. Confirm that mapping first.
+
+DOC-01 Request-repeatability rules per document type [UNVERIFIED — SPEC ONLY]
+
+Most documents stay requestable multiple times and in varying quantities; Honorable Dismissal is the one confirmed exception.
+
+DOC-02 Walk-in transaction types and their requirements [UNVERIFIED — SPEC ONLY]
+
+CTC, 2nd Copy of COR, 2nd Copy of OGR, and CAV are walk-in transaction types, each requiring the original document plus a photocopy. None of this is currently defined anywhere in the system.
+
+DOC-03 Case-specific additional attachments from the registrar [UNVERIFIED — SPEC ONLY]
+
+A flexible Attachment section the registrar can use to request something extra on a per-case basis — distinct from CN-06's fixed, per-document-type attachment rules.
+</USER_REQUEST>
+<ADDITIONAL_METADATA>
+The current local time is: 2026-09-29T17:48:44+08:00.
+</ADDITIONAL_METADATA>
+<USER_REQUEST>
+/plan where is the artifact for 8b in here?
+</USER_REQUEST>
+<ADDITIONAL_METADATA>
+The current local time is: 2026-09-29T17:53:23+08:00.
+
+The user has mentioned some items in the form @[ITEM]. Here is extra information about the items that were mentioned by the user, in the order that they appear:
+
+/plan is a [Slash Command]:
+<PLAN>The user is requesting that you think and plan carefully before executing the upcoming task.
+Carefully research the task, make sure that you and the user are aligned on the goals and requirements,
+create a detailed implementation plan artifact, and get user approval on the plan before making any code changes (besides artifacts)
+or running any modifying commands.
+
+# Guidelines
+- Establish a shared understanding of the task with the user. If there are any ambiguities, underspecified requirements,
+or implicit assumptions, clarify them with the user before proceeding.
+- Thoroughly research the codebase to establish a solid understanding of the relevant components, systems, dependencies, and architecture.
+As you research, provide verbal updates of your research steps and thought process with the user, so they can follow along.
+- Create an implementation plan artifact that outlines your proposed execution strategy.
+Set request_feedback = true and user_facing = true in the ArtifactMetadata. The user will automatically
+see any new and modified plans you create, so DO NOT re-summarize the plan.
+- Only after the user explicitly approves the plan should you proceed to execution.
+- Verify that your changes have the desired effects e.g. run unit tests, make sure code builds, etc. before claiming that the task is complete.
+- After you've completed your task and verified that your solution works, create a walkthrough artifact to summarize your work.
+
+# Planning Mode Artifacts
+When in planning mode, you should create two special artifacts.
+
+# Implementation Plan
+Path: <Artifact Directory>/<plan_name>.md
+
+**Purpose**: A technical design document to present your implementation plan to the 
+<truncated 4 bytes>
+ for feedback and approval.
+After reading the document, the user should understand the key technical details of your plan, and be able to make an informed decision on whether to approve it.
+This document should be very detailed, including code snippets, diffs, mermaid diagrams, verification strategies, and background information.
+
+**Format**: Use the following format, omitting any irrelevant sections:
+
+## [Goal Description]
+Provide a brief description of the problem, any background context, and what the change accomplishes.
+
+## User Review Required
+Document anything that requires user review or feedback, for example, breaking changes or significant design decisions. Use GitHub alerts (IMPORTANT/WARNING/CAUTION) to highlight critical items.
+
+## Open Questions
+Any clarifying or design questions for the user that will impact the implementation plan. Use GitHub alerts (IMPORTANT/WARNING/CAUTION) to highlight critical items.
+
+## Proposed Changes
+Group files by component (e.g., package, feature area, dependency layer) and order logically (dependencies first). Separate components with horizontal rules for visual clarity.
+
+### [Component Name]
+Summary of what will change in this component with explicit code snippets and diffs. For specific files, Use [NEW] and [DELETE] to demarcate new and deleted files, for example:
+#### [MODIFY] file basename
+#### [NEW] file basename
+#### [DELETE] file basename
+
+## Verification Plan
+Summary of how you will verify that your changes have the desired effects.
+
+### Automated Tests
+Exact commands to run automated tests
+
+### Manual Verification
+Instructions for what the user should manually verify.
+
+# Walkthrough
+Path: <Artifact Directory>/walkthrough.md
+
+**Purpose**: After completing work, summarize what you accomplished. Update an existing walkthrough for related follow-up work rather than creating a new one.
+
+**Document**:
+- Changes made
+- What was tested
+- Validation results
+
+Embed screenshots and recordings to visually demonstrate UI changes and user flows.</PLAN>
+</ADDITIONAL_METADATA>
+<USER_REQUEST>
+[Approved] plan_batch_8b.md
+
+</USER_REQUEST>
+<ADDITIONAL_METADATA>
+The current local time is: 2026-09-29T17:56:07+08:00.
+</ADDITIONAL_METADATA>
+<USER_REQUEST>
+1. yes build a public route. 2. yes expose, but would there be consequences with that? 3. This is not what i am sure about, could you be more informative about this? Because we have already deployed the system currently. But i gave you permission to decide on this one. 4. What do you think is better on this one? you decide. 5. yes.
+</USER_REQUEST>
+<ADDITIONAL_METADATA>
+The current local time is: 2026-09-29T18:20:01+08:00.
+</ADDITIONAL_METADATA>
+<USER_REQUEST>
+continue
+</USER_REQUEST>
+<ADDITIONAL_METADATA>
+The current local time is: 2026-09-29T20:40:28+08:00.
+</ADDITIONAL_METADATA>
+<USER_REQUEST>
+do you still remember your memory? about updating the necessary documents?
+</USER_REQUEST>
+<ADDITIONAL_METADATA>
+The current local time is: 2026-09-29T20:46:24+08:00.
+</ADDITIONAL_METADATA>
+<USER_REQUEST>
+can you also add to your memory that every changes you have made must be documented to the necessary documents they belong? so that we can always keep on track
+</USER_REQUEST>
+<ADDITIONAL_METADATA>
+The current local time is: 2026-09-29T20:48:17+08:00.
+</ADDITIONAL_METADATA>
+<USER_REQUEST>
+⚠️ Verification Protocol — read this before doing anything
+This file mixes three kinds of items, marked explicitly on every one below:
+* [VERIFIED] — I checked the exact file, read the exact code, and the fix described is grounded in what's actually there as of de1f193. Trust the file path and the diagnosis, but the code may have moved by the time you read this — confirm the line numbers still match before editing.
+* [NEEDS INVESTIGATION] — I have a strong, specific lead on where this lives (a function, a file, a pattern) but did not read the exact current implementation closely enough to hand you a line number and a confident fix. Your job on these is to go read the code first, then tell me what you found before writing anything.
+* [UNVERIFIED — SPEC ONLY] — this comes straight from the testing notes with no code check at all. Could be a two-line fix or a missing feature. Do not assume either. Find out first.
+The rule that overrides everything else in this document: if you cannot locate the file, function, or behavior a [VERIFIED] item describes — because the code moved, because I got it wrong, or because it simply isn't there — stop and tell me. Do not invent a plausible-sounding file path. Do not write code against a guess at what a function probably does. Do not paper over the gap with something that "should" work. Report what you searched for, what you found instead, and wait.
+Before writing any code for a batch, in every single batch, without exception:
+1. Restate the batch's tasks in your own words — not a copy-paste of this document, your actual understanding of what changes.
+2. List every file you plan to touch, with the exact path, and for [VERIFIED] items confirm the line numbers I gave still match what you're seeing.
+3. Name anything you're uncertain about, anything the notes are ambiguous on, and anything you had to guess at to fill a gap this document left open.
+4. Stop. Wait for my explicit go-ahead before writing a single line of code. Not "I'll assume that's f
+<truncated 9888 bytes>
+-ins should be redirected to online/QR submission instead of being processed at the counter (their documents take days regardless), and the QR code itself currently points at a Google Form — it should point at the real online request form.
+The four genuinely large builds, each needing its own scoping session before any code:
+* CN-08 — automatic per-page price computation (pages × rate, computed live, replacing the copies-based model; remove the "How the Amount Was Worked Out" breakdown text entirely).
+* CN-09 — per-document-type sequential request numbering ("Diploma – Request No. 2"), where a document already issued at graduation counts as Request No. 1 and staff never enter the number by hand.
+* CN-10 — the biggest single form-redesign item: rename "Certificate of Transcript" to Transcript Credential Set (Honorable Dismissal + Copy of Grades + TOR, with an Exit Clearance attachment for undergraduates), and rebuild TOR, Graduate Clearance, and Honorable Dismissal as genuinely separate forms — TOR drops Semester/s attended, Requesting School, and Requesting Company; Graduate Clearance drops its Purpose and Attachment fields entirely; Honorable Dismissal drops Requesting School and Requesting Company. Three different field sets, not one shared fix.
+* CN-11 — in-app messaging tied to a specific document request. The largest single item across every round of these notes. Needs a real scoping session, not a paragraph here.
+* CN-12 — a document/receipt customization panel (font, size, style, layout) for generated forms and notices. A template engine, not a settings toggle.
+* CN-13 — requester-facing notifications for status changes and delays (received, under verification, ready for payment, ready for release, delayed). Check whether this can share infrastructure with SEC-01 (device-login alerts) and NT-01 (admin verification alerts) before building a third separate notification system.
+</USER_REQUEST>
+<ADDITIONAL_METADATA>
+The current local time is: 2026-09-29T20:51:14+08:00.
+</ADDITIONAL_METADATA>
+<USER_REQUEST>
+/plan CN-01 - yes, CN-03 - yes, CN-14 - yes, then i will upload the qr. CN-14 (Graduate Walk-ins) - yes.
+</USER_REQUEST>
+<ADDITIONAL_METADATA>
+The current local time is: 2026-09-29T20:57:51+08:00.
+
+The user has mentioned some items in the form @[ITEM]. Here is extra information about the items that were mentioned by the user, in the order that they appear:
+
+/plan is a [Slash Command]:
+<PLAN>The user is requesting that you think and plan carefully before executing the upcoming task.
+Carefully research the task, make sure that you and the user are aligned on the goals and requirements,
+create a detailed implementation plan artifact, and get user approval on the plan before making any code changes (besides artifacts)
+or running any modifying commands.
+
+# Guidelines
+- Establish a shared understanding of the task with the user. If there are any ambiguities, underspecified requirements,
+or implicit assumptions, clarify them with the user before proceeding.
+- Thoroughly research the codebase to establish a solid understanding of the relevant components, systems, dependencies, and architecture.
+As you research, provide verbal updates of your research steps and thought process with the user, so they can follow along.
+- Create an implementation plan artifact that outlines your proposed execution strategy.
+Set request_feedback = true and user_facing = true in the ArtifactMetadata. The user will automatically
+see any new and modified plans you create, so DO NOT re-summarize the plan.
+- Only after the user explicitly approves the plan should you proceed to execution.
+- Verify that your changes have the desired effects e.g. run unit tests, make sure code builds, etc. before claiming that the task is complete.
+- After you've completed your task and verified that your solution works, create a walkthrough artifact to summarize your work.
+
+# Planning Mode Artifacts
+When in planning mode, you should create two special artifacts.
+
+# Implementation Plan
+Path: <Artifact Directory>/<plan_name>.md
+
+**Purpose**: A technica
+<truncated 65 bytes>
+ for feedback and approval.
+After reading the document, the user should understand the key technical details of your plan, and be able to make an informed decision on whether to approve it.
+This document should be very detailed, including code snippets, diffs, mermaid diagrams, verification strategies, and background information.
+
+**Format**: Use the following format, omitting any irrelevant sections:
+
+## [Goal Description]
+Provide a brief description of the problem, any background context, and what the change accomplishes.
+
+## User Review Required
+Document anything that requires user review or feedback, for example, breaking changes or significant design decisions. Use GitHub alerts (IMPORTANT/WARNING/CAUTION) to highlight critical items.
+
+## Open Questions
+Any clarifying or design questions for the user that will impact the implementation plan. Use GitHub alerts (IMPORTANT/WARNING/CAUTION) to highlight critical items.
+
+## Proposed Changes
+Group files by component (e.g., package, feature area, dependency layer) and order logically (dependencies first). Separate components with horizontal rules for visual clarity.
+
+### [Component Name]
+Summary of what will change in this component with explicit code snippets and diffs. For specific files, Use [NEW] and [DELETE] to demarcate new and deleted files, for example:
+#### [MODIFY] file basename
+#### [NEW] file basename
+#### [DELETE] file basename
+
+## Verification Plan
+Summary of how you will verify that your changes have the desired effects.
+
+### Automated Tests
+Exact commands to run automated tests
+
+### Manual Verification
+Instructions for what the user should manually verify.
+
+# Walkthrough
+Path: <Artifact Directory>/walkthrough.md
+
+**Purpose**: After completing work, summarize what you accomplished. Update an existing walkthrough for related follow-up work rather than creating a new one.
+
+**Document**:
+- Changes made
+- What was tested
+- Validation results
+
+Embed screenshots and recordings to visually demonstrate UI changes and user flows.</PLAN>
+</ADDITIONAL_METADATA>
+<USER_REQUEST>
+/plan yes
+</USER_REQUEST>
+<ADDITIONAL_METADATA>
+The current local time is: 2026-09-29T20:59:48+08:00.
+
+The user has mentioned some items in the form @[ITEM]. Here is extra information about the items that were mentioned by the user, in the order that they appear:
+
+/plan is a [Slash Command]:
+<PLAN>The user is requesting that you think and plan carefully before executing the upcoming task.
+Carefully research the task, make sure that you and the user are aligned on the goals and requirements,
+create a detailed implementation plan artifact, and get user approval on the plan before making any code changes (besides artifacts)
+or running any modifying commands.
+
+# Guidelines
+- Establish a shared understanding of the task with the user. If there are any ambiguities, underspecified requirements,
+or implicit assumptions, clarify them with the user before proceeding.
+- Thoroughly research the codebase to establish a solid understanding of the relevant components, systems, dependencies, and architecture.
+As you research, provide verbal updates of your research steps and thought process with the user, so they can follow along.
+- Create an implementation plan artifact that outlines your proposed execution strategy.
+Set request_feedback = true and user_facing = true in the ArtifactMetadata. The user will automatically
+see any new and modified plans you create, so DO NOT re-summarize the plan.
+- Only after the user explicitly approves the plan should you proceed to execution.
+- Verify that your changes have the desired effects e.g. run unit tests, make sure code builds, etc. before claiming that the task is complete.
+- After you've completed your task and verified that your solution works, create a walkthrough artifact to summarize your work.
+
+# Planning Mode Artifacts
+When in planning mode, you should create two special artifacts.
+
+# Implementation Plan
+Path: <Artifact Directory>/<plan_name>.md
+
+**Purpose**: A technical design document to present your implementation plan to the user for feedback and approval.
+After reading the document, the user should understand the key technical details of your plan, and be able to make an informed decision on whether to approve it.
+This document should be very detailed, including code snippets, diffs, mermaid diagrams, verification strategies, and background information.
+
+**Format**: Use the following format, omitting any irrelevant sections:
+
+## [Goal Description]
+Provide a brief description of the problem, any background context, and what the change accomplishes.
+
+## User Review Required
+Document anything that requires user review or feedback, for example, breaking changes or significant design decisions. Use GitHub alerts (IMPORTANT/WARNING/CAUTION) to highlight critical items.
+
+## Open Questions
+Any clarifying or design questions for the user that will impact the implementation plan. Use GitHub alerts (IMPORTANT/WARNING/CAUTION) to highlight critical items.
+
+## Proposed Changes
+Group files by component (e.g., package, feature area, dependency layer) and order logically (dependencies first). Separate components with horizontal rules for visual clarity.
+
+### [Component Name]
+Summary of what will change in this component with explicit code snippets and diffs. For specific files, Use [NEW] and [DELETE] to demarcate new and deleted files, for example:
+#### [MODIFY] file basename
+#### [NEW] file basename
+#### [DELETE] file basename
+
+## Verification Plan
+Summary of how you will verify that your changes have the desired effects.
+
+### Automated Tests
+Exact commands to run automated tests
+
+### Manual Verification
+Instructions for what the user should manually verify.
+
+# Walkthrough
+Path: <Artifact Directory>/walkthrough.md
+
+**Purpose**: After completing work, summarize what you accomplished. Update an existing walkthrough for related follow-up work rather than creating a new one.
+
+**Document**:
+- Changes made
+- What was tested
+- Validation results
+
+Embed screenshots and recordings to visually demonstrate UI changes and user flows.</PLAN>
+</ADDITIONAL_METADATA>
+<USER_REQUEST>
+/plan Batch 10 — Finance workflow, Profile Completion, and Security (later additions, genuinely large)
+
+Same caution as Batch 9: these are new features and business-logic builds, not fixes. Don't batch these the way Batch 8's items get batched — each needs its own scoping.
+
+Finance workflow:
+
+CN-15 Detailed fee itemization — by college, item, and document type, including rental or special fees. Check D-10 before building this or CN-08 — itemizing the fee breakdown and hiding "How the Amount Was Worked Out" read as contradictory instructions on their face; the likely resolution is that one is an admin/Finance configuration view and the other is the student-facing checkout, but confirm before writing either.
+FIN-01 Simultaneous OR + document release — Finance routes the verified OR to the Secretary so both reach the student together. Directly related to D-08, the open question about whether OR verification and release are one workflow step or two.
+FIN-02 Automatic digital OR distribution — every student account gets a digital OR copy the moment payment clears, with no manual step.
+FIN-03 Deferred ("Later") OR upload — Finance can defer uploading the OR instead of it being required up front in the payment flow.
+FIN-04 Strict 4:00 PM cut-off — payments processed after 4:00 PM don't get a same-day OR, matching the real-world need to remit funds to City Hall before closing.
+FIN-05 Finance transaction export tab — distinct from WI-13 (Window 1/Secretary export) and from RPT-01/RPT-02 (Admin's Reports & Export) — Finance specifically has no export capability today, confirmed by search.
+
+Profile Completion — a real feature, sized like SU-03 or CN-11, not a form tweak:
+
+PROF-01 The mandatory post-signup profile. Confirmed: none of these fields or the conditional logic between them exist today. Extension Name, Birth Date, Place of Birth, Sex, Home Address, Maiden Name (only if married), a graduation-year or last-attendance-year field depending on alumni/undergraduate status, transfer-stu
+<truncated 5874 bytes>
+ for feedback and approval.
+After reading the document, the user should understand the key technical details of your plan, and be able to make an informed decision on whether to approve it.
+This document should be very detailed, including code snippets, diffs, mermaid diagrams, verification strategies, and background information.
+
+**Format**: Use the following format, omitting any irrelevant sections:
+
+## [Goal Description]
+Provide a brief description of the problem, any background context, and what the change accomplishes.
+
+## User Review Required
+Document anything that requires user review or feedback, for example, breaking changes or significant design decisions. Use GitHub alerts (IMPORTANT/WARNING/CAUTION) to highlight critical items.
+
+## Open Questions
+Any clarifying or design questions for the user that will impact the implementation plan. Use GitHub alerts (IMPORTANT/WARNING/CAUTION) to highlight critical items.
+
+## Proposed Changes
+Group files by component (e.g., package, feature area, dependency layer) and order logically (dependencies first). Separate components with horizontal rules for visual clarity.
+
+### [Component Name]
+Summary of what will change in this component with explicit code snippets and diffs. For specific files, Use [NEW] and [DELETE] to demarcate new and deleted files, for example:
+#### [MODIFY] file basename
+#### [NEW] file basename
+#### [DELETE] file basename
+
+## Verification Plan
+Summary of how you will verify that your changes have the desired effects.
+
+### Automated Tests
+Exact commands to run automated tests
+
+### Manual Verification
+Instructions for what the user should manually verify.
+
+# Walkthrough
+Path: <Artifact Directory>/walkthrough.md
+
+**Purpose**: After completing work, summarize what you accomplished. Update an existing walkthrough for related follow-up work rather than creating a new one.
+
+**Document**:
+- Changes made
+- What was tested
+- Validation results
+
+Embed screenshots and recordings to visually demonstrate UI changes and user flows.</PLAN>
+</ADDITIONAL_METADATA>
+<USER_REQUEST>
+[Approved] plan_batch10_phase1.md
+[Approved] plan_batch9_phase1.md
+
+</USER_REQUEST>
+<ADDITIONAL_METADATA>
+The current local time is: 2026-09-29T21:30:54+08:00.
+</ADDITIONAL_METADATA>
+<USER_REQUEST>
+/plan CN-15 (Detailed Fee Itemization) vs D-10 - both visble to the student and admin/finance. This is after the college sec entered a price right? FIN-01 (Simultaneous OR + Release) - this is real-world, but the receipt must be uploaded later on by the finance. So after the transaction they can still upload the official receipt whenever. FIN-02 (Automatic digital OR) - just notify them that the or was uploaded. FIN-03 (Deferred OR upload) - both.
+</USER_REQUEST>
+<ADDITIONAL_METADATA>
+The current local time is: 2026-09-29T21:37:42+08:00.
+
+The user has mentioned some items in the form @[ITEM]. Here is extra information about the items that were mentioned by the user, in the order that they appear:
+
+/plan is a [Slash Command]:
+<PLAN>The user is requesting that you think and plan carefully before executing the upcoming task.
+Carefully research the task, make sure that you and the user are aligned on the goals and requirements,
+create a detailed implementation plan artifact, and get user approval on the plan before making any code changes (besides artifacts)
+or running any modifying commands.
+
+# Guidelines
+- Establish a shared understanding of the task with the user. If there are any ambiguities, underspecified requirements,
+or implicit assumptions, clarify them with the user before proceeding.
+- Thoroughly research the codebase to establish a solid understanding of the relevant components, systems, dependencies, and architecture.
+As you research, provide verbal updates of your research steps and thought process with the user, so they can follow along.
+- Create an implementation plan artifact that outlines your proposed execution strategy.
+Set request_feedback = true and user_facing = true in the ArtifactMetadata. The user will automatically
+see any new and modified plans you create, so DO NOT re-summarize the plan.
+- Only after the user explicitly approves the plan should you proceed to execution.
+- Verify that your changes have the desired effects e.g. run unit tests, make sure code builds, etc. befo
+<truncated 412 bytes>
+ for feedback and approval.
+After reading the document, the user should understand the key technical details of your plan, and be able to make an informed decision on whether to approve it.
+This document should be very detailed, including code snippets, diffs, mermaid diagrams, verification strategies, and background information.
+
+**Format**: Use the following format, omitting any irrelevant sections:
+
+## [Goal Description]
+Provide a brief description of the problem, any background context, and what the change accomplishes.
+
+## User Review Required
+Document anything that requires user review or feedback, for example, breaking changes or significant design decisions. Use GitHub alerts (IMPORTANT/WARNING/CAUTION) to highlight critical items.
+
+## Open Questions
+Any clarifying or design questions for the user that will impact the implementation plan. Use GitHub alerts (IMPORTANT/WARNING/CAUTION) to highlight critical items.
+
+## Proposed Changes
+Group files by component (e.g., package, feature area, dependency layer) and order logically (dependencies first). Separate components with horizontal rules for visual clarity.
+
+### [Component Name]
+Summary of what will change in this component with explicit code snippets and diffs. For specific files, Use [NEW] and [DELETE] to demarcate new and deleted files, for example:
+#### [MODIFY] file basename
+#### [NEW] file basename
+#### [DELETE] file basename
+
+## Verification Plan
+Summary of how you will verify that your changes have the desired effects.
+
+### Automated Tests
+Exact commands to run automated tests
+
+### Manual Verification
+Instructions for what the user should manually verify.
+
+# Walkthrough
+Path: <Artifact Directory>/walkthrough.md
+
+**Purpose**: After completing work, summarize what you accomplished. Update an existing walkthrough for related follow-up work rather than creating a new one.
+
+**Document**:
+- Changes made
+- What was tested
+- Validation results
+
+Embed screenshots and recordings to visually demonstrate UI changes and user flows.</PLAN>
+</ADDITIONAL_METADATA>
+<USER_REQUEST>
+is the payment stab, could be access by the student, finance and college sec? the finance must see the payment order made by the college sec
+</USER_REQUEST>
+<ADDITIONAL_METADATA>
+The current local time is: 2026-09-29T21:54:52+08:00.
+</ADDITIONAL_METADATA>
+<USER_REQUEST>
+[Approved] plan_batch10_phase2.md
+
+</USER_REQUEST>
+<ADDITIONAL_METADATA>
+The current local time is: 2026-09-29T21:56:56+08:00.
+</ADDITIONAL_METADATA>
+<USER_REQUEST>
+Database Schema (PROF-01) - your choice on what is better for our system. Maiden Name Logic (PROF-01) - yes the first one. Onboarding Tutorial (PROF-05) - the first option. Hard Gate Logic (PROF-04) - second one.
+</USER_REQUEST>
+<ADDITIONAL_METADATA>
+The current local time is: 2026-09-29T21:59:31+08:00.
+</ADDITIONAL_METADATA>
+<USER_REQUEST>
+yes
+</USER_REQUEST>
+<ADDITIONAL_METADATA>
+The current local time is: 2026-09-29T22:09:23+08:00.
+</ADDITIONAL_METADATA>
+<USER_REQUEST>
+[Approved] plan_batch10_phase3.md
+
+</USER_REQUEST>
+<ADDITIONAL_METADATA>
+The current local time is: 2026-09-29T22:11:59+08:00.
+</ADDITIONAL_METADATA>
+<USER_REQUEST>
+1. What do you think is the industry standard for this? Lets follow that. 2. block 3 last passwords 3. yes. 4. yes
+</USER_REQUEST>
+<ADDITIONAL_METADATA>
+The current local time is: 2026-09-29T22:13:44+08:00.
+</ADDITIONAL_METADATA>
+<USER_REQUEST>
+yes
+</USER_REQUEST>
+<ADDITIONAL_METADATA>
+The current local time is: 2026-09-29T22:30:38+08:00.
+</ADDITIONAL_METADATA>
+<USER_REQUEST>
+yes
+</USER_REQUEST>
+<ADDITIONAL_METADATA>
+The current local time is: 2026-09-29T22:50:43+08:00.
+</ADDITIONAL_METADATA>

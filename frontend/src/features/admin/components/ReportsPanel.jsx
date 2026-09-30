@@ -161,6 +161,7 @@ export default function ReportsPanel({ user, currentTab }) {
             <table className="w-full text-left">
               <thead className="bg-gray-50 sticky top-0">
                 <tr className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">
+                  <th className="py-3 px-5">Date</th>
                   <th className="py-3 px-5">Tracking</th>
                   <th className="py-3">Student</th>
                   <th className="py-3">Document</th>
@@ -172,6 +173,7 @@ export default function ReportsPanel({ user, currentTab }) {
               <tbody>
                 {(r.report?.documents || []).map((d) => (
                   <tr key={d.id} className="border-b border-gray-50 hover:bg-gray-50/50">
+                    <td className="py-3 px-5 text-xs text-gray-500">{new Date(d.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}</td>
                     <td className="py-3 px-5 text-[11px] font-mono text-gray-700">{d.tracking_number}</td>
                     <td className="py-3">
                       <div className="text-xs font-bold text-gray-900">{d.student_name || '—'}</div>
@@ -195,7 +197,7 @@ export default function ReportsPanel({ user, currentTab }) {
                 ))}
                 {(r.report?.documents || []).length === 0 && (
                   <tr>
-                    <td colSpan={6} className="py-10 text-center text-xs text-gray-400 font-semibold">
+                    <td colSpan={7} className="py-10 text-center text-xs text-gray-400 font-semibold">
                       No records match these filters.
                     </td>
                   </tr>

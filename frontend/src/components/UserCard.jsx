@@ -1,5 +1,5 @@
 import UserAvatar from '@/components/UserAvatar';
-import { ROLE_LABELS } from '@/utils/userLabels';
+import { getUserLabel } from '@/utils/userLabels';
 
 /** Active/Inactive pill — matches MaintenancePanel's existing status badge colors. */
 function ActiveChip({ active }) {
@@ -54,7 +54,7 @@ export default function UserCard({ user, onClick }) {
       <div className="text-xs text-gray-500 truncate">{user.email || '—'}</div>
       <div className="flex flex-wrap gap-1.5">
         <span className="text-[10px] font-bold px-2.5 py-1 rounded-full border bg-gray-50 text-gray-600 border-gray-200">
-          {ROLE_LABELS[user.role] || user.role}
+          {getUserLabel(user)}
         </span>
         {user.desk_assignment && (
           <span className="text-[10px] font-bold px-2.5 py-1 rounded-full border bg-gray-50 text-gray-600 border-gray-200">

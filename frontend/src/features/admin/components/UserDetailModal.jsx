@@ -1,6 +1,6 @@
 import ModalShell from '@/components/ModalShell';
 import UserAvatar from '@/components/UserAvatar';
-import { ROLE_LABELS } from '@/utils/userLabels';
+import { getUserLabel } from '@/utils/userLabels';
 
 function Field({ label, value }) {
   return (
@@ -76,7 +76,7 @@ export default function UserDetailModal({ open, onClose, user, onEdit, onToggleA
         <p className="text-xs text-gray-500 select-text">{user.email || '—'}</p>
         <div className="flex flex-wrap justify-center gap-1.5 mt-3">
           <span className="text-[10px] font-bold px-2.5 py-1 rounded-full border bg-gray-50 text-gray-600 border-gray-200">
-            {ROLE_LABELS[user.role] || user.role}
+            {getUserLabel(user)}
           </span>
           <span
             className={`text-[10px] font-bold px-2.5 py-1 rounded-full border ${

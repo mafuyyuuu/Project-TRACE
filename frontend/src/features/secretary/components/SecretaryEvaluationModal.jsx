@@ -1,3 +1,4 @@
+import DocumentChat from '@/components/DocumentChat';
 import ModalShell from '@/components/ModalShell';
 import AuthedFilePreview from '@/components/AuthedFilePreview';
 
@@ -13,6 +14,7 @@ function DetailPanel({ selectedDoc, evalStudentId, evalStudentName, evalDocType 
 }
 
 function EvaluationForm({
+  user,
   selectedDoc,
   evalStudentId,
   setEvalStudentId,
@@ -23,6 +25,7 @@ function EvaluationForm({
   estimatedReadyDate,
   setEstimatedReadyDate,
   clerkNotes,
+  documentTypes = [],
   setClerkNotes,
 }) {
   return (
@@ -137,10 +140,16 @@ function EvaluationForm({
             className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl text-xs font-semibold focus:ring-2 focus:ring-[#15803d]/20 outline-none h-24 resize-none"
           />
         </div>
+
+        <div className="flex flex-col gap-1.5 pt-4 border-t border-gray-100">
+          <label className="text-[10px] font-bold text-gray-800 uppercase tracking-widest">Discussion</label>
+          <DocumentChat documentId={selectedDoc.id} user={user} />
+        </div>
       </div>
     </div>
   );
 }
+
 
 function EvaluationActions({ handleSecretaryEvaluate, actionLoading }) {
   return (
@@ -164,6 +173,7 @@ function EvaluationActions({ handleSecretaryEvaluate, actionLoading }) {
 }
 
 export default function SecretaryEvaluationModal({
+  user,
   setActiveModal,
   selectedDoc,
   evalStudentId,
@@ -184,7 +194,7 @@ export default function SecretaryEvaluationModal({
 
   const formProps = {
     selectedDoc, evalStudentId, setEvalStudentId, evalStudentName, setEvalStudentName,
-    evalDocType, setEvalDocType, estimatedReadyDate, setEstimatedReadyDate, clerkNotes, setClerkNotes,
+    evalDocType, setEvalDocType, estimatedReadyDate, setEstimatedReadyDate, clerkNotes, setClerkNotes, user,
   };
 
   // Digital requests have no scan to preview — a single column fits ModalShell's

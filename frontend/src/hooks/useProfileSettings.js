@@ -25,6 +25,23 @@ export default function useProfileSettings(user) {
     phone_number: user?.phone_number || '',
     email: user?.email || '',
     password: '',
+    current_password: '',
+    extension_name: user?.extension_name || '',
+    birth_date: user?.birth_date ? user.birth_date.split('T')[0] : '',
+    place_of_birth: user?.place_of_birth || '',
+    sex: user?.sex || '',
+    civil_status: user?.civil_status || '',
+    maiden_name: user?.maiden_name || '',
+    home_address: user?.home_address || '',
+    last_attendance_year: user?.last_attendance_year || '',
+    is_transfer_student: user?.is_transfer_student || false,
+    previous_school: user?.previous_school || '',
+    elem_school: user?.elem_school || '',
+    elem_grad_year: user?.elem_grad_year || '',
+    jhs_school: user?.jhs_school || '',
+    jhs_grad_year: user?.jhs_grad_year || '',
+    shs_school: user?.shs_school || '',
+    shs_grad_year: user?.shs_grad_year || '',
   });
   const [avatarPath, setAvatarPath] = useState(user?.profile_picture || null);
   const [avatarFile, setAvatarFile] = useState(null);
@@ -78,7 +95,7 @@ export default function useProfileSettings(user) {
     try {
       await updateProfile(profileData);
       patchStoredUser({ phone_number: profileData.phone_number, email: profileData.email });
-      setProfileData((current) => ({ ...current, password: '' }));
+      setProfileData((current) => ({ ...current, password: '', current_password: '' }));
       messages.push('Profile updated successfully.');
     } catch (err) {
       errors.push(readError(err));
