@@ -6,7 +6,7 @@ describe('document policy SQL', () => {
     await model.createDocumentType({ name: 'Test', available_to: 'alumni', is_repeatable: false }, executor);
     const [sql, values] = executor.query.mock.calls[0];
     expect((sql.match(/\?/g) || []).length).toBe(values.length);
-    expect(values).toHaveLength(13);
+    expect(values).toHaveLength(15);
     expect(values[7]).toBe('alumni');
     expect(values[8]).toBe(false);
   });
@@ -25,4 +25,18 @@ describe('document policy SQL', () => {
     await model.setDocumentTypeColleges(7, [1, 4], executor);
     expect(executor.query.mock.calls.at(-1)[1]).toEqual([7, 1, 7, 4]);
   });
+});
+
+it('includes extra rates on reads and preserves zero fees on writes', async () => {
+  const executor = { query: vi.fn().mockResolvedValue([[]]) };
+  await model.listDocumentTypes({}, executor);
+  expect(executor.query.mock.calls[0][0]).toContain('rental_fee, special_fee');
+  await model.updateDocumentType(1, { rental_fee: 0, special_fee: 10 }, executor);
+  expect(executor.query.mock.calls.at(-1)[1].slice(-3)).toEqual([0, 10, 1]);
+});
+it('locks document types in a stable order when capturing rates', async () => {
+  const executor = { query: vi.fn().mockResolvedValue([[]]) };
+  await model.findDocumentTypesByNames(['A', 'B'], executor, true);
+  expect(executor.query.mock.calls[0][0]).toContain('ORDER BY id FOR UPDATE');
+  expect(executor.query.mock.calls[0][1]).toEqual(['A', 'B']);
 });

@@ -1,10 +1,11 @@
+import FeeBreakdown from '@/components/FeeBreakdown';
 import { INPUT_LIMITS } from '@/utils/inputLimits';
 import FileUploadField from '@/components/FileUploadField';
 import DocumentChat from '@/components/DocumentChat';
 import { useState } from 'react';
 import ModalShell from '@/components/ModalShell';
 import AuthedFilePreview from '@/components/AuthedFilePreview';
-import { itemBreakdown, formatPeso } from '@/utils/pricing';
+import { formatPeso } from '@/utils/pricing';
 
 export default function FinanceVerificationModal({
   user,
@@ -69,22 +70,7 @@ export default function FinanceVerificationModal({
         
         {/* Itemization */}
         <div className="border-t border-gray-200/50 dark:border-gray-700/50 pt-3 mt-1 space-y-1">
-          {(() => {
-            const typeObj = {
-              name: selectedDoc.document_type,
-              base_fee: selectedDoc.base_fee,
-              rental_fee: selectedDoc.rental_fee,
-              special_fee: selectedDoc.special_fee,
-              fee_rule: selectedDoc.fee_rule
-            };
-            const breakdown = itemBreakdown(typeObj, { copies: selectedDoc.copies });
-            return breakdown.length > 0 ? breakdown.map((item, idx) => (
-              <div key={idx} className="flex justify-between text-[11px] text-gray-600 dark:text-gray-300">
-                <span>{item.label}</span>
-                <span className="font-mono">{formatPeso(item.amount)}</span>
-              </div>
-            )) : null;
-          })()}
+          <FeeBreakdown breakdown={selectedDoc.fee_breakdown} amount={selectedDoc.amount} />
         </div>
         <div className="flex justify-between border-t border-gray-200/50 dark:border-gray-700/50 pt-2">
           <span>Amount</span>

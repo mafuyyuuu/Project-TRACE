@@ -1,5 +1,7 @@
 const bcrypt = require('bcryptjs');
 const referenceModel = require('../models/referenceData.model');
+const pricingModel = require('../models/pricing.model');
+const { normalizedSchedule, moneyCents } = require('../utils/pricing');
 const userModel = require('../models/user.model');
 const documentPolicy = require('./documentPolicy.service');
 const { pool } = require('../config/db');
@@ -86,7 +88,7 @@ async function setCollegeActive(user, id, isActive) {
 
 async function listDocumentTypes(user) {
   assertAdmin(user);
-  const rows = await referenceModel.listDocumentTypes({ includeInactive: true });
+  const rows = await pricingModel.attachSchedules(await referenceModel.listDocumentTypes({ includeInactive: true }));
   return { document_types: rows.map(row => ({ ...row,
     is_active: documentPolicy.isRetired(row.name) ? false : row.is_active,
     is_retired: documentPolicy.isRetired(row.name),
@@ -115,15 +117,43 @@ async function validateDocumentPolicy(data, name) {
   return { ...data, ...fields };
 }
 
+async function validateFees(data) {
+  const result = { ...data };
+  try {
+    for (const key of ['base_fee', 'rental_fee', 'special_fee']) {
+      if (data[key] !== undefined) result[key] = moneyCents(data[key]) / 100;
+    }
+    if (data.fee_items !== undefined) result.fee_items = normalizedSchedule({ fee_items: data.fee_items }).fee_items;
+    if (data.college_fee_schedules !== undefined) {
+      if (!Array.isArray(data.college_fee_schedules) || data.college_fee_schedules.length > 100) throw new Error('Use at most 100 college overrides.');
+      const seen = new Set();
+      result.college_fee_schedules = [];
+      for (const row of data.college_fee_schedules) {
+        if (!Number.isInteger(row?.college_id) || row.college_id < 1 || seen.has(row.college_id)) throw new Error('Choose a unique college for each override.');
+        seen.add(row.college_id);
+        if (!(await referenceModel.findCollegeById(row.college_id)).length) throw new Error('Unknown college.');
+        if (row.base_fee === undefined || row.fee_rule === undefined) throw new Error('Each college override needs its own rate and fee rule.');
+        result.college_fee_schedules.push(normalizedSchedule(row));
+      }
+    }
+  } catch (err) {
+    if (err.status) throw err;
+    throw badRequest(err.message);
+  }
+  return result;
+}
+
 async function saveDocumentPolicy(data, id = null) {
   // A legacy caller omitting college restrictions keeps the existing junction rows.
-  if (data.allowed_college_ids === undefined) return id === null
+  if (data.allowed_college_ids === undefined && data.fee_items === undefined && data.college_fee_schedules === undefined) return id === null
     ? referenceModel.createDocumentType(data) : referenceModel.updateDocumentType(id, data);
   const connection = await pool.getConnection();
   try {
     await connection.beginTransaction();
     const result = id === null ? await referenceModel.createDocumentType(data, connection) : await referenceModel.updateDocumentType(id, data, connection);
-    await referenceModel.setDocumentTypeColleges(id ?? result[0].insertId, data.allowed_college_ids, connection);
+    const typeId = id ?? result[0].insertId;
+    if (data.allowed_college_ids !== undefined) await referenceModel.setDocumentTypeColleges(typeId, data.allowed_college_ids, connection);
+    if (data.fee_items !== undefined || data.college_fee_schedules !== undefined) await pricingModel.saveSchedules(typeId, data, connection);
     await connection.commit();
     return result;
   } catch (err) { await connection.rollback(); throw err; }
@@ -144,7 +174,7 @@ async function createDocumentType(user, data) {
   const existing = await referenceModel.findDocumentTypeByName(data.name.trim());
   if (existing.length) throw badRequest('A document type with that name already exists.');
 
-  const normalized = await validateDocumentPolicy({ ...data, name: data.name.trim(), base_fee: fee }, data.name.trim());
+  const normalized = await validateDocumentPolicy(await validateFees({ ...data, name: data.name.trim(), base_fee: data.base_fee ?? fee }), data.name.trim());
   const [result] = await saveDocumentPolicy(normalized);
   return { message: 'Document type created.', id: result.insertId };
 }
@@ -176,7 +206,7 @@ async function updateDocumentType(user, id, data) {
     }
   }
 
-  await saveDocumentPolicy(await validateDocumentPolicy(data, data.name || rows[0].name), id);
+  await saveDocumentPolicy(await validateDocumentPolicy(await validateFees(data), data.name || rows[0].name), id);
   return { message: 'Document type updated.' };
 }
 

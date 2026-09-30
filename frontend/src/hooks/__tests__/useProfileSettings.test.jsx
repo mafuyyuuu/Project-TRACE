@@ -20,6 +20,12 @@ const USER = {
 };
 
 beforeEach(() => {
+  getMe.mockReset().mockImplementation(async () => {
+    const saved = updateProfile.mock.calls.at(-1)?.[0] || {};
+    const cached = JSON.parse(localStorage.getItem('trace_user'));
+    return { user: { ...cached, ...saved, email: saved.email === 'new@example.test' ? USER.email : (saved.email || USER.email), password: undefined, current_password: undefined } };
+  });
+  verifyEmailChange.mockReset();
   updateProfile.mockReset();
   uploadProfilePicture.mockReset();
   localStorage.setItem('trace_user', JSON.stringify(USER));
@@ -150,7 +156,8 @@ describe('email verification and persisted contact data', () => {
   it('keeps the current email cached until OTP verification, while saving the phone', async () => {
     updateProfile.mockResolvedValue({ email_verification_required: true, pending_email: 'new@example.test' });
     verifyEmailChange.mockResolvedValue({ message: 'Email verified.' });
-    getMe.mockResolvedValue({ user: { ...USER, email: 'new@example.test', phone_number: '09123456789' } });
+    getMe.mockResolvedValueOnce({ user: { ...USER, pending_email: 'new@example.test', phone_number: '09123456789' } })
+      .mockResolvedValueOnce({ user: { ...USER, email: 'new@example.test', phone_number: '09123456789' } });
     const { result } = renderHook(() => useProfileSettings(USER));
     act(() => { result.current.setField('email', 'new@example.test'); result.current.setField('phone_number', '09123456789'); });
     await act(async () => result.current.saveProfile());
@@ -172,5 +179,40 @@ describe('email verification and persisted contact data', () => {
     expect(result.current.error).toBe('Verification code expired.');
     expect(result.current.pendingEmail).toBe('new@example.test');
     expect(JSON.parse(localStorage.getItem('trace_user')).email).toBe(USER.email);
+  });
+});
+
+describe('saved profile refresh', () => {
+  it('loads saved fields arriving after mount without overriding an edited draft', () => {
+    const { result, rerender } = renderHook(({ user }) => useProfileSettings(user), { initialProps: { user: USER } });
+    rerender({ user: { ...USER, birth_date: '2000-01-01T00:00:00.000Z', elem_school: 'Saved School', is_transfer_student: '0' } });
+    expect(result.current.profileData).toMatchObject({ birth_date: '2000-01-01', elem_school: 'Saved School', is_transfer_student: false });
+    act(() => result.current.setField('home_address', 'My draft'));
+    rerender({ user: { ...USER, home_address: 'Server Address' } });
+    expect(result.current.profileData.home_address).toBe('My draft');
+  });
+  it('publishes authoritative saved education after Save so request gating updates immediately', async () => {
+    updateProfile.mockResolvedValue({});
+    getMe.mockResolvedValue({ user: { ...USER, elem_school: 'Server Normalized', is_transfer_student: 1 } });
+    const event = vi.fn();
+    window.addEventListener('trace-user-updated', event);
+    try {
+      const { result } = renderHook(() => useProfileSettings(USER));
+      act(() => result.current.setField('elem_school', 'Draft'));
+      await act(() => result.current.saveProfile());
+      expect(result.current.profileData.elem_school).toBe('Server Normalized');
+      expect(result.current.profileData.is_transfer_student).toBe(true);
+      expect(JSON.parse(localStorage.getItem('trace_user')).elem_school).toBe('Server Normalized');
+      expect(event.mock.calls.at(-1)[0].detail.elem_school).toBe('Server Normalized');
+    } finally { window.removeEventListener('trace-user-updated', event); }
+  });
+  it('distinguishes a successful write from a failed refresh and does not publish draft education', async () => {
+    updateProfile.mockResolvedValue({});
+    getMe.mockRejectedValue(new Error('offline'));
+    const { result } = renderHook(() => useProfileSettings(USER));
+    act(() => result.current.setField('elem_school', 'Unsynchronized'));
+    await act(async () => expect(await result.current.saveProfile()).toBe(false));
+    expect(result.current.error).toContain('Profile saved, but saved details could not be refreshed');
+    expect(JSON.parse(localStorage.getItem('trace_user')).elem_school).toBeUndefined();
   });
 });

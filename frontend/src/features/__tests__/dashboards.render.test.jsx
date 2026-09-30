@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { STATUS } from '@/utils/documentStatus';
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 
@@ -48,6 +48,8 @@ import FinanceDashboard from '@/features/finance/FinanceDashboard';
 import Window1Dashboard from '@/features/window1/Window1Dashboard';
 import SecretaryDashboard from '@/features/secretary/SecretaryDashboard';
 import AdminDashboard from '@/features/admin/AdminDashboard';
+
+afterEach(() => vi.useRealTimers());
 
 const DOC = {
   id: 1,
@@ -218,7 +220,7 @@ describe('Admin Templates tab', () => {
     const get = vi.spyOn(api, 'get').mockImplementation(async path => ({ data: path === '/templates' ? list : { ...details, content } }));
     await renderDashboard(dashboard());
     expect(await screen.findByDisplayValue(content)).toBeInTheDocument();
-    expect(get).toHaveBeenCalledWith('/templates/payment_slip');
+    expect(get).toHaveBeenCalledWith('/templates/payment_slip', expect.objectContaining({ timeout: 15000 }));
     const preview = screen.getByTitle('Template preview');
     expect(preview.tagName).toBe('IFRAME');
     expect(preview).toHaveAttribute('sandbox', '');
@@ -239,6 +241,40 @@ describe('Admin Templates tab', () => {
     expect(await screen.findByDisplayValue(details.content)).toBeInTheDocument();
     expect(get.mock.calls.filter(([path]) => path === '/templates')).toHaveLength(2);
     expect(put).not.toHaveBeenCalled();
+  });
+
+  it('opens Templates even when document history never finishes loading', async () => {
+    documentsService.getDocuments.mockImplementationOnce(() => new Promise(() => {}));
+    vi.spyOn(api, 'get').mockImplementation(async path => ({ data: path === '/templates' ? list : details }));
+    render(dashboard());
+    expect(await screen.findByDisplayValue(details.content)).toBeInTheDocument();
+    expect(screen.queryByText(/Synchronizing Command Center/i)).not.toBeInTheDocument();
+  });
+
+  it('rejects a malformed catalog rather than crashing or showing a blank tab', async () => {
+    vi.spyOn(api, 'get').mockResolvedValue({ data: {} });
+    render(dashboard());
+    expect(await screen.findByRole('alert')).toHaveTextContent('Could not load templates');
+    expect(screen.getByRole('button', { name: 'Retry loading templates' })).toBeEnabled();
+  });
+
+  it('rejects an empty detail response without enabling a blank save', async () => {
+    vi.spyOn(api, 'get').mockImplementation(async path => ({ data: path === '/templates' ? list : {} }));
+    render(dashboard());
+    expect(await screen.findByRole('alert')).toHaveTextContent('Could not load this template');
+    expect(screen.queryByRole('button', { name: 'Save Template' })).not.toBeInTheDocument();
+  });
+
+  it('ends a stalled catalog load and ignores a response after its deadline', async () => {
+    vi.useFakeTimers();
+    let finish;
+    const get = vi.spyOn(api, 'get').mockImplementation(() => new Promise(resolve => { finish = resolve; }));
+    render(dashboard());
+    await act(async () => vi.advanceTimersByTime(15000));
+    expect(screen.getByRole('alert')).toHaveTextContent('timed out');
+    expect(get.mock.calls[0][1].signal.aborted).toBe(true);
+    await act(async () => finish({ data: list }));
+    expect(screen.getByRole('alert')).toHaveTextContent('timed out');
   });
 
   it('shows an empty catalog without offering a blank template save', async () => {

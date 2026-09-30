@@ -23,7 +23,7 @@ export default function MiniSparkline({ color = '#15803d', trend = 'up', data, u
             <Tooltip
               formatter={(v) => [`${v}${unit ? ` ${unit}` : ''}`, '']}
               labelFormatter={(_, payload) => payload?.[0]?.payload?.label ?? ''}
-              contentStyle={{ borderRadius: '10px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)', fontSize: '11px' }}
+              contentStyle={{ borderRadius: '10px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)', fontSize: '0.6875rem' }}
             />
           )}
           <Line type="monotone" dataKey="v" stroke={color} strokeWidth={3} dot={false} isAnimationActive={false} />

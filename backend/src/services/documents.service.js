@@ -1,4 +1,5 @@
 const { pool } = require('../config/db');
+const { getProfileCompletion } = require('../utils/profileCompletion');
 const documentModel = require('../models/document.model');
 const documentMessageModel = require('../models/documentMessage.model');
 const documentPolicy = require('./documentPolicy.service');
@@ -7,6 +8,8 @@ const userModel = require('../models/user.model');
 const aiEngine = require('./aiEngine.service');
 const n8n = require('./n8n.service');
 const notifications = require('./notification.service');
+const pricingModel = require('../models/pricing.model');
+const { resolveSchedule, calculateBreakdown, normalizedSchedule, positiveQuantity } = require('../utils/pricing');
 const referenceModel = require('../models/referenceData.model');
 const { getProvider } = require('./payment');
 const { badRequest, forbidden, notFound } = require('../utils/AppError');
@@ -70,7 +73,7 @@ function parseRequestedItems(body) {
     {
       document_type: body.document_type,
       copies: body.copies,
-      semesters: body.semesters,
+      semesters: body.semesters, year_started: body.year_started, year_ended: body.year_ended,
       purpose: body.purpose,
     },
   ];
@@ -115,7 +118,19 @@ async function uploadDocument(user, body, files) {
   const fileList = Array.isArray(files) ? files : files ? [files] : [];
 
   const requested = parseRequestedItems(body);
+  if (new Set(requested.map(item => item.document_type)).size !== requested.length) throw badRequest('Select each document type once and use its copies field for multiple copies.');
   for (const item of requested) {
+    const isTOR = ['Transcript of Records', 'Transcript of Records (TOR)'].includes(item.document_type);
+    const hasYears = item.year_started !== undefined || item.year_ended !== undefined;
+    if (isTOR && (hasYears || (user.role === 'student' && item.semesters === undefined))) {
+      const start = Number(item.year_started), end = Number(item.year_ended);
+      const currentYear = new Date(Date.now() + 8 * 60 * 60 * 1000).getUTCFullYear();
+      if (!Number.isInteger(start) || !Number.isInteger(end) || start < 1900 || end < start || end > currentYear) throw badRequest('Enter valid Year Started and Year Ended.');
+      let details;
+      try { details = JSON.parse(item.purpose || '{}'); } catch { details = { purpose: item.purpose }; }
+      if (!details || typeof details !== 'object' || Array.isArray(details)) details = { purpose: item.purpose };
+      item.purpose = JSON.stringify({ ...details, year_started: start, year_ended: end });
+    }
     const copies = Number(item.copies ?? 1);
     if (!Number.isInteger(copies) || copies < 1 || copies > 2147483647) throw badRequest('Copies must be a positive whole number within the supported range.');
   }
@@ -134,14 +149,6 @@ async function uploadDocument(user, body, files) {
     student_name = user.full_name || student_name;
   }
 
-  // Fees are always computed server-side from the admin-managed rates; any
-  // client-supplied amount is ignored.
-  const types = await referenceModel.findDocumentTypesByNames(
-    requested.map((i) => i.document_type)
-  );
-  const { total, items: priced } = calculateGroupAmount(requested, types);
-  if (priced.some(item => !Number.isFinite(item.amount) || item.amount > 99999999.99)) throw badRequest('This quantity exceeds the supported request amount.');
-
   // A walk-in is the same request, typed in by the clerk the student is
   // standing in front of. Only the audit trail records which channel it came
   // through; the row itself is identical.
@@ -151,13 +158,31 @@ async function uploadDocument(user, body, files) {
   const requestGroupId = generateRequestGroupId();
   const connection = await pool.getConnection();
   const created = [];
+  let total = 0;
 
   try {
     await connection.beginTransaction();
 
+    // Lock the authoritative account/profile until intake commits. Client-supplied
+    // completion flags cannot bypass this check, and staff-assisted intake stays available.
+    if (user.role === 'student') {
+      const [profile] = await userModel.getProfileById(user.id, connection, true);
+      if (!profile || profile.role !== 'student') throw forbidden('Your account has no student profile.');
+      const completion = getProfileCompletion(profile);
+      if (!completion.complete) throw forbidden(`Complete your profile before requesting documents. Missing: ${completion.missing.map(item => item.label).join(', ')}.`);
+    }
+
     // Determine if the student is an alumni for sequence offset
     let isAlumni = false;
     const targetStudent = await documentPolicy.resolveStudent(student_id, connection, true);
+    const types = await pricingModel.attachSchedules(await referenceModel.findDocumentTypesByNames(
+      requested.map(item => item.document_type), connection, true), connection);
+    let pricing;
+    try {
+      pricing = calculateGroupAmount(requested, types.map(type => ({ ...type, ...resolveSchedule(type, targetStudent?.college_id) })));
+    } catch (err) { throw badRequest(err.message); }
+    total = pricing.total;
+    const priced = pricing.items;
     if (targetStudent?.user_type === 'alumni') {
       isAlumni = true;
     }
@@ -190,6 +215,7 @@ async function uploadDocument(user, body, files) {
           purpose: requested[index].purpose ?? body.purpose ?? null,
           copies: item.copies,
           amount: item.amount,
+          pricing_snapshot: item.pricing_schedule, fee_breakdown: item.fee_breakdown,
           document_sequence_number: sequenceNumberStr,
         },
         connection
@@ -1079,13 +1105,11 @@ async function acceptForProcessing(user, documentId, body) {
  * The Secretary sets the amount; only Finance can later call it PAID. Keeping
  * those two authorities apart is what makes the money trail auditable.
  */
-async function priceDocument(user, documentId, { amount, page_count, pricing_notes }) {
+async function priceDocument(user, documentId, { page_count, pricing_notes, confirm_current_rates }) {
   requireDesk(user, 'Secretary', 'Only College Secretaries can price documents.');
 
-  const priced = parseFloat(amount);
-  if (!Number.isFinite(priced) || priced <= 0) {
-    throw badRequest('Enter the amount to charge for this document.');
-  }
+  if (pricing_notes !== undefined && (typeof pricing_notes !== 'string' || pricing_notes.length > 1000)) throw badRequest('Pricing note must be at most 1000 characters.');
+  let priced, snapshot, breakdown, pageCount, basis;
 
   const connection = await pool.getConnection();
   let doc;
@@ -1107,6 +1131,25 @@ async function priceDocument(user, documentId, { amount, page_count, pricing_not
       throw badRequest('Only a document being processed can be priced.');
     }
 
+    if (doc.priced_at) throw badRequest('This document already has a confirmed price.');
+    try {
+      snapshot = typeof doc.pricing_snapshot === 'string' ? JSON.parse(doc.pricing_snapshot) : doc.pricing_snapshot;
+      if (!snapshot) {
+        if (confirm_current_rates !== true) throw badRequest('Review and confirm current rates for this older request.');
+        const types = await pricingModel.attachSchedules(await referenceModel.findDocumentTypesByNames([doc.document_type], connection, true), connection);
+        if (!types[0]) throw badRequest('Configure a fee schedule for this document before pricing.');
+        const student = await documentPolicy.resolveStudent(doc.student_id, connection);
+        snapshot = resolveSchedule(types[0], student?.college_id);
+      }
+      snapshot = normalizedSchedule(snapshot);
+      if (snapshot.document_type !== doc.document_type) throw badRequest('The saved fee schedule does not match this document.');
+      pageCount = page_count == null || page_count === '' ? null : positiveQuantity(page_count, 'Pages per copy');
+      breakdown = calculateBreakdown(snapshot, { copies: doc.copies ?? 1, page_count: pageCount }, true);
+      priced = breakdown.total;
+      if (priced <= 0) throw badRequest('Configure a positive charge before billing this document.');
+      basis = `${doc.pricing_snapshot ? 'Saved request rates' : 'Current rates reviewed for legacy request'}: ${breakdown.items.map(item => `${item.label}: ${item.calculation} = ₱${item.amount.toFixed(2)}`).join('; ')}.${pricing_notes ? ` ${pricing_notes.trim()}` : ''}`;
+    } catch (err) { if (err.status) throw err; throw badRequest(err.message); }
+
     groupId = doc.request_group_id || doc.tracking_number;
     // Lock the siblings too: two secretaries pricing the last two documents of
     // one request at the same moment must not both decide they were the last.
@@ -1114,7 +1157,7 @@ async function priceDocument(user, documentId, { amount, page_count, pricing_not
 
     await documentModel.updatePricing(
       documentId,
-      { amount: priced, pageCount: page_count, pricingNotes: pricing_notes, clerkId: user.id },
+      { amount: priced, pageCount, pricingNotes: basis, clerkId: user.id, pricingSnapshot: snapshot, feeBreakdown: breakdown },
       connection
     );
 
@@ -1125,11 +1168,13 @@ async function priceDocument(user, documentId, { amount, page_count, pricing_not
         action_taken: 'priced',
         from_status: STATUS.SEC_PROCESSING,
         to_status: STATUS.SEC_PROCESSING,
-        notes: `Priced at ₱${priced.toFixed(2)}${page_count ? ` for ${page_count} page(s)` : ''} by ${user.full_name}.${pricing_notes ? ` ${pricing_notes}` : ''}`,
+        notes: `Priced at ₱${priced.toFixed(2)} by ${user.full_name}. ${basis}`,
       },
       connection
     );
 
+    Object.assign(doc, { amount: priced, page_count: pageCount, pricing_snapshot: snapshot, pricing_schedule: snapshot, fee_breakdown: breakdown });
+    groupDocs = groupDocs.map(row => Number(row.id) === Number(documentId) ? { ...row, ...doc } : row);
     const unpriced = await documentModel.countUnpricedInGroup(groupId, connection);
     if (unpriced === 0) {
       assertTransition(STATUS.SEC_PROCESSING, STATUS.PENDING_STUDENT_PAYMENT);
@@ -1163,7 +1208,7 @@ async function priceDocument(user, documentId, { amount, page_count, pricing_not
   if (!becamePayable) {
     return {
       message: 'Document priced. The request is billed once every document in it has a price.',
-      billed: false,
+      billed: false, document: doc,
       remaining_unpriced: await documentModel.countUnpricedInGroup(groupId),
     };
   }
@@ -1189,7 +1234,7 @@ async function priceDocument(user, documentId, { amount, page_count, pricing_not
 
   return {
     message: `Request billed at ₱${groupTotal.toFixed(2)}. The student and Finance have been notified.`,
-    billed: true,
+    billed: true, document: doc,
     total_amount: groupTotal,
     documents_covered: groupDocs.length,
   };

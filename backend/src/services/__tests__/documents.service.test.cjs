@@ -12,7 +12,13 @@ const n8n = require('../n8n.service');
 const { STATUS } = require('../../utils/documentStatus');
 const referenceModel = require('../../models/referenceData.model');
 const { pool } = require('../../config/db');
+const pricingModel = require('../../models/pricing.model');
 const service = require('../documents.service');
+
+const COMPLETE = { role: 'student', user_type: 'student', phone_number: '09123456789', email: 'student@example.test',
+  birth_date: '2000-01-01', place_of_birth: 'City', sex: 'Male', civil_status: 'Single', home_address: 'Address',
+  elem_school: 'Elementary', elem_grad_year: 2012, jhs_school: 'Junior High', jhs_grad_year: 2016,
+  shs_school: 'Senior High', shs_grad_year: 2018 };
 
 const STUDENT = { id: 3, role: 'student', full_name: 'Ana Reyes' };
 const FINANCE = { id: 4, role: 'clerk', desk_assignment: 'Finance', full_name: 'Finance Officer' };
@@ -66,6 +72,8 @@ describe('document-policy request enforcement', () => {
 });
 
 beforeEach(() => {
+  vi.spyOn(userModel, 'getProfileById').mockResolvedValue([{ ...COMPLETE, id: 3, student_id: 'STU-001' }]);
+  vi.spyOn(pricingModel, 'attachSchedules').mockImplementation(async types => types);
   vi.spyOn(userModel, 'findStudentForPolicy').mockResolvedValue([{ id: 3, student_id: 'STU-001', user_type: 'student' }]);
   vi.spyOn(referenceModel, 'findDocumentTypeByName').mockImplementation(async name => [{ name, is_active: 1, is_repeatable: 1, available_to: 'both' }]);
   vi.spyOn(documentModel, 'countBlockingRequests').mockResolvedValue(0);
@@ -590,7 +598,8 @@ describe('acceptForProcessing — Secretary desk only', () => {
 describe('priceDocument — the Secretary sets the price, nobody else', () => {
   const doc = {
     id: 5, student_id: 'STU-001', tracking_number: 'TRC-1', request_group_id: 'REQ-G1',
-    document_type: 'Diploma', student_name: 'Ana', current_status: STATUS.SEC_PROCESSING,
+    document_type: 'Diploma', copies: 1, student_name: 'Ana', current_status: STATUS.SEC_PROCESSING,
+    pricing_snapshot: { document_type: 'Diploma', base_fee: 250, fee_rule: 'flat' },
   };
   const body = { amount: 250, page_count: 5, pricing_notes: '5 pages at standard rate' };
 
@@ -607,16 +616,16 @@ describe('priceDocument — the Secretary sets the price, nobody else', () => {
     await service.priceDocument(SECRETARY, 5, body);
     expect(documentModel.updatePricing).toHaveBeenCalledWith(
       5,
-      { amount: 250, pageCount: 5, pricingNotes: '5 pages at standard rate', clerkId: SECRETARY.id },
+      expect.objectContaining({ amount: 250, pageCount: 5, pricingNotes: expect.stringContaining('5 pages at standard rate'), clerkId: SECRETARY.id, feeBreakdown: expect.objectContaining({ total: 250, stage: 'final' }) }),
       connection
     );
   });
 
-  it.each([[0, 'zero'], [-5, 'negative'], ['abc', 'non-numeric'], [undefined, 'missing']])(
-    'refuses a %s amount (%s)',
+  it.each([[0, 'zero'], [-5, 'negative'], ['abc', 'non-numeric'], [1.5, 'fractional']])(
+    'refuses a %s page count (%s)',
     async (amount) => {
       documentModel.findByIdForUpdate.mockResolvedValue([doc]);
-      expect(await statusOf(service.priceDocument(SECRETARY, 5, { ...body, amount }))).toBe(400);
+      expect(await statusOf(service.priceDocument(SECRETARY, 5, { ...body, page_count: amount }))).toBe(400);
       expect(documentModel.updatePricing).not.toHaveBeenCalled();
     }
   );
@@ -1170,5 +1179,108 @@ describe('intake OCR confidence adapter', () => {
     vi.spyOn(aiEngine, 'extractDocument').mockResolvedValue({ success: true, raw_text: 'diploma', extracted_data: { student_id: 'STU-001', form_type: 'Diploma', confidence } });
     await service.uploadDocument(STUDENT, { document_type: 'Diploma' }, { fieldname: 'document', filename: 'proof.png', originalname: 'proof.png', path: '/unused/proof.png' });
     expect(documentModel.updateOcrData).toHaveBeenCalledWith(77, expect.objectContaining({ confidence: confidence ?? null }));
+  });
+});
+
+describe('saved fee schedules and final computation', () => {
+  beforeEach(() => vi.spyOn(documentModel, 'insert').mockResolvedValue([{ insertId: 5 }]));
+  const schedule = { version: 1, document_type: 'Transcript of Records', college_id: 2, source: 'college', base_fee: 100, fee_rule: 'per_semester_block', rental_fee: 20, special_fee: 30, fee_items: [{ label: 'Certification', amount: 10 }] };
+  function stage(extra = {}) {
+    const doc = { id: 5, document_type: 'Transcript of Records', student_id: 'STU-001', request_group_id: 'REQ-1', current_status: STATUS.SEC_PROCESSING, copies: 2, pricing_snapshot: schedule, ...extra };
+    documentModel.findByIdForUpdate.mockResolvedValue([doc]); documentModel.findByRequestGroupForUpdate.mockResolvedValue([doc]);
+    return doc;
+  }
+  it('ignores forged amounts and rates, uses the snapshot, and never clears payment', async () => {
+    stage();
+    await service.priceDocument(SECRETARY, 5, { page_count: 3, amount: 1, base_fee: 1, rental_fee: 0 });
+    expect(documentModel.updatePricing).toHaveBeenCalledWith(5, expect.objectContaining({ amount: 660, pageCount: 3, pricingSnapshot: expect.objectContaining({ base_fee: 100 }), feeBreakdown: expect.objectContaining({ total: 660 }) }), connection);
+    expect(referenceModel.findDocumentTypesByNames).not.toHaveBeenCalled();
+    expect(documentModel.updatePaymentVerificationForGroup).not.toHaveBeenCalled();
+  });
+  it('refuses missing pages for page-based pricing without billing', async () => {
+    stage(); await expect(service.priceDocument(SECRETARY, 5, {})).rejects.toMatchObject({ status: 400 });
+    expect(documentModel.markGroupPayable).not.toHaveBeenCalled(); expect(connection.rollback).toHaveBeenCalledOnce();
+  });
+  it.each([undefined, false, 'true'])('requires explicit legacy rate review (%s)', async confirm_current_rates => {
+    stage({ pricing_snapshot: null });
+    await expect(service.priceDocument(SECRETARY, 5, { page_count: 3, confirm_current_rates })).rejects.toThrow(/Review and confirm/);
+    expect(documentModel.updatePricing).not.toHaveBeenCalled();
+  });
+  it('captures current college rates only after explicit legacy review', async () => {
+    stage({ pricing_snapshot: null });
+    userModel.findStudentForPolicy.mockResolvedValue([{ student_id: 'STU-001', college_id: 2 }]);
+    referenceModel.findDocumentTypesByNames.mockResolvedValue([{ name: 'Transcript of Records', base_fee: 50, fee_rule: 'per_semester_block', college_fee_schedules: [{ college_id: 2, base_fee: 80, fee_rule: 'per_semester_block', fee_items: [] }] }]);
+    await service.priceDocument(SECRETARY, 5, { page_count: 3, confirm_current_rates: true });
+    expect(documentModel.updatePricing).toHaveBeenCalledWith(5, expect.objectContaining({ amount: 480, pricingNotes: expect.stringContaining('Current rates reviewed for legacy request') }), connection);
+  });
+  it('refuses to overwrite a confirmed historical bill', async () => {
+    stage({ priced_at: '2026-01-01' });
+    await expect(service.priceDocument(SECRETARY, 5, { page_count: 3 })).rejects.toThrow(/already has/);
+    expect(documentModel.updatePricing).not.toHaveBeenCalled();
+  });
+  it('rolls back amount, breakdown and billing together on failure', async () => {
+    stage(); documentModel.updatePricing.mockRejectedValue(new Error('write failed'));
+    await expect(service.priceDocument(SECRETARY, 5, { page_count: 3 })).rejects.toThrow('write failed');
+    expect(connection.rollback).toHaveBeenCalledOnce(); expect(connection.commit).not.toHaveBeenCalled();
+    expect(documentModel.markGroupPayable).not.toHaveBeenCalled();
+  });
+  it('stores the authoritative college estimate and snapshot at filing', async () => {
+    userModel.findStudentForPolicy.mockResolvedValue([{ student_id: 'STU-001', college_id: 2, user_type: 'student' }]);
+    referenceModel.findDocumentTypesByNames.mockResolvedValue([{ name: 'Transcript of Records', is_active: 1, is_repeatable: 1, base_fee: 50, fee_rule: 'per_semester_block', college_fee_schedules: [{ college_id: 2, base_fee: 100, fee_rule: 'per_semester_block', rental_fee: 20, special_fee: 0, fee_items: [] }] }]);
+    await service.uploadDocument(STUDENT, { document_type: 'Transcript of Records', semesters: 8, copies: 2, amount: 1, college_id: 999 }, []);
+    expect(referenceModel.findDocumentTypesByNames).toHaveBeenCalledWith(['Transcript of Records'], connection, true);
+    expect(documentModel.insert).toHaveBeenCalledWith(expect.objectContaining({ amount: 420, pricing_snapshot: expect.objectContaining({ college_id: 2, base_fee: 100 }), fee_breakdown: expect.objectContaining({ stage: 'estimate', total: 420 }) }), connection);
+  });
+  it('rejects duplicate type selections so extras cannot be charged twice', async () => {
+    await expect(service.uploadDocument(STUDENT, { items: JSON.stringify([{ document_type: 'Diploma' }, { document_type: 'Diploma' }]) }, [])).rejects.toThrow(/each document type once/);
+    expect(documentModel.insert).not.toHaveBeenCalled();
+  });
+});
+
+describe('TOR study years', () => {
+  beforeEach(() => vi.spyOn(documentModel, 'insert').mockResolvedValue([{ insertId: 5 }]));
+  it('validates and stores years without using them as printed-page counts', async () => {
+    await service.uploadDocument(STUDENT, { document_type: 'Transcript of Records', year_started: '2020', year_ended: '2024', copies: 1 }, []);
+    const data = documentModel.insert.mock.calls[0][0];
+    expect(JSON.parse(data.purpose)).toEqual({ year_started: 2020, year_ended: 2024 });
+    expect(data.pricing_snapshot.fee_rule).toBe('per_semester_block');
+    expect(data.page_count).toBeUndefined();
+  });
+  it.each([['', '2024'], ['2025', '2024'], ['2020.5', '2024'], ['2020', '9999']])('rejects invalid years %s–%s at the server', async (year_started, year_ended) => {
+    await expect(service.uploadDocument(STUDENT, { document_type: 'Transcript of Records', year_started, year_ended }, [])).rejects.toMatchObject({ status: 400 });
+    expect(documentModel.insert).not.toHaveBeenCalled();
+  });
+});
+
+describe('saved student profile gate', () => {
+  it.each([{}, { birth_date: '  ' }, { is_transfer_student: 1, previous_school: '' },
+    { user_type: 'alumni', last_attendance_year: null }, { sex: 'Female', civil_status: 'Married', maiden_name: '' }])
+    ('refuses incomplete saved profile %j before request/log writes', async patch => {
+      const saved = Object.keys(patch).length ? { ...COMPLETE, ...patch } : { role: 'student', email: COMPLETE.email, phone_number: COMPLETE.phone_number };
+      userModel.getProfileById.mockResolvedValue([saved]);
+      const insert = vi.spyOn(documentModel, 'insert');
+      await expect(service.uploadDocument(STUDENT, { document_type: 'Certificate of Transfer', profile_complete: true, ...COMPLETE }, []))
+        .rejects.toMatchObject({ status: 403, message: expect.stringContaining('Complete your profile') });
+      expect(userModel.getProfileById).toHaveBeenCalledWith(STUDENT.id, connection, true);
+      expect(insert).not.toHaveBeenCalled();
+      expect(stepLogModel.insert).not.toHaveBeenCalled();
+      expect(connection.rollback).toHaveBeenCalledOnce();
+      expect(connection.commit).not.toHaveBeenCalled();
+      expect(connection.release).toHaveBeenCalledOnce();
+      expect(notifications.notifyInApp).not.toHaveBeenCalled();
+    });
+  it('refuses a missing saved profile', async () => {
+    userModel.getProfileById.mockResolvedValue([]);
+    await expect(service.uploadDocument(STUDENT, { document_type: 'Certificate of Transfer' }, []))
+      .rejects.toMatchObject({ status: 403 });
+    expect(connection.rollback).toHaveBeenCalledOnce();
+  });
+  it.each([STUDENT, WINDOW1])('allows complete self-service or staff-assisted attachment-free Transfer intake: $role', async user => {
+    if (user.role === 'clerk') userModel.getProfileById.mockResolvedValue([]);
+    vi.spyOn(documentModel, 'insert').mockResolvedValue([{ insertId: 9 }]);
+    await service.uploadDocument(user, { document_type: 'Certificate of Transfer', student_id: 'STU-001', copies: 1 }, []);
+    expect(documentModel.insert).toHaveBeenCalledWith(expect.objectContaining({ file_path: null, original_filename: null }), connection);
+    expect(connection.commit).toHaveBeenCalledOnce();
+    if (user.role === 'clerk') expect(userModel.getProfileById).not.toHaveBeenCalled();
   });
 });

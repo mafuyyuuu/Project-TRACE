@@ -116,8 +116,11 @@ CREATE TABLE IF NOT EXISTS security_logs (
 );
 
 CREATE TABLE IF NOT EXISTS documents (
+  pricing_snapshot JSON NULL,
+  fee_breakdown JSON NULL,
   id INT AUTO_INCREMENT PRIMARY KEY,
   tracking_number VARCHAR(64) UNIQUE NOT NULL,
+  document_sequence_number VARCHAR(255) NULL,
   student_id VARCHAR(50),
   student_name VARCHAR(255),
   document_type VARCHAR(100),
@@ -147,7 +150,7 @@ CREATE TABLE IF NOT EXISTS documents (
   -- The basis for the amount. The Secretary prices from the printed output, so
   -- an amount without these is an unexplainable charge.
   page_count INT,
-  pricing_notes VARCHAR(255),
+  pricing_notes TEXT,
   priced_by_clerk_id INT,
   priced_at DATETIME,
   stub_issued_at DATETIME,
@@ -292,3 +295,19 @@ CREATE TABLE IF NOT EXISTS user_devices (
     UNIQUE KEY uq_user_device (user_id, device_hash),
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
   );
+
+-- Pricing schedules and historical request snapshots (CN-15/CN-08).
+CREATE TABLE IF NOT EXISTS document_fee_schedules (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  document_type_id INT NOT NULL,
+  college_id INT NULL,
+  college_key INT GENERATED ALWAYS AS (IFNULL(college_id, 0)) STORED,
+  base_fee DECIMAL(10,2) NULL,
+  fee_rule ENUM('flat', 'per_semester_block') NULL,
+  rental_fee DECIMAL(10,2) NOT NULL DEFAULT 0,
+  special_fee DECIMAL(10,2) NOT NULL DEFAULT 0,
+  fee_items JSON NOT NULL,
+  UNIQUE KEY fee_schedule_type_college (document_type_id, college_key),
+  FOREIGN KEY (document_type_id) REFERENCES document_types(id),
+  FOREIGN KEY (college_id) REFERENCES colleges(id)
+) ENGINE=InnoDB;

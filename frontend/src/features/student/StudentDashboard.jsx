@@ -1,6 +1,8 @@
+import { getProfileCompletion } from '@/utils/profileCompletion';
+import FeeBreakdown from '@/components/FeeBreakdown';
 import { INPUT_LIMITS } from '@/utils/inputLimits';
 import FileUploadField from '@/components/FileUploadField';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import NewRequestModal from '@/features/student/components/NewRequestModal';
 import LiveTrackingModal from '@/features/student/components/LiveTrackingModal';
 import FloatingSupportChat from '@/features/student/components/FloatingSupportChat';
@@ -93,16 +95,14 @@ export default function StudentDashboard({ user, currentTab, setViewImageUrl }) 
                 </h2>
               </div>
               <div className="flex flex-wrap items-center gap-4">
-                <div className="flex items-center gap-3 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-2xl px-5 py-2.5 shadow-sm">
-                  <span className="text-xs font-semibold text-gray-500 dark:text-gray-400">Today:</span>
+                <div className="flex flex-wrap items-center gap-3 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-2xl px-5 py-2.5 shadow-sm">
+                  <span className="shrink-0 text-xs font-semibold text-gray-500 dark:text-gray-400">Today:</span>
                   <span className="text-xs font-bold text-gray-800 dark:text-gray-100">{todayFormatted}</span>
                   <svg className="w-4 h-4 text-gray-400 dark:text-gray-400 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
                 </div>
                 <button 
                   onClick={() => {
-                    const missing = [];
-                    if (!user.email) missing.push('Email Address');
-                    if (!user.phone_number) missing.push('Phone Number');
+                    const missing = getProfileCompletion(user).missing.map(item => item.label);
                     if (missing.length > 0) {
                       setMissingProfileFields(missing);
                       return;
@@ -197,6 +197,7 @@ export default function StudentDashboard({ user, currentTab, setViewImageUrl }) 
                             <li key={doc.id} className="flex items-baseline justify-between gap-4 text-sm">
                               <span className="min-w-0 font-bold text-gray-900 dark:text-gray-100 break-words select-text">{doc.document_sequence_number || doc.document_type}</span>
                               <span className="shrink-0 font-mono text-xs text-gray-500 dark:text-gray-400 select-text">{formatPeso(doc.amount)}</span>
+                              <FeeBreakdown breakdown={doc.fee_breakdown} amount={doc.amount} />
                             </li>
                           ))}
                         </ul>
@@ -294,16 +295,16 @@ export default function StudentDashboard({ user, currentTab, setViewImageUrl }) 
       {/* INCOMPLETE PROFILE MODAL */}
       {missingProfileFields && (
         <ModalShell open={true} onClose={() => setMissingProfileFields(null)} title="Profile Incomplete" maxWidth="max-w-sm"
-          footer={<button onClick={() => setMissingProfileFields(null)} className="w-full py-3 bg-[#15803d] text-white rounded-xl font-bold text-xs uppercase tracking-wider hover:bg-[#166534] transition-colors">Understood</button>}>
+          footer={<button onClick={() => { setMissingProfileFields(null); window.dispatchEvent(new CustomEvent('open-profile-settings')); }} className="w-full py-3 bg-[#15803d] text-white rounded-xl font-bold text-xs uppercase tracking-wider hover:bg-[#166534] transition-colors">Complete Profile</button>}>
           <div className="flex flex-col items-center gap-4 text-center">
             <div className="w-16 h-16 rounded-full bg-amber-50 dark:bg-amber-950/40 text-amber-500 dark:text-amber-300 flex items-center justify-center mb-2">
               <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
             </div>
             <h3 className="text-lg font-black text-gray-900 dark:text-gray-100">Missing Information</h3>
             <p className="text-sm text-gray-500 dark:text-gray-400">
-              You cannot request documents until you complete your profile. Please open your <strong>Account Settings</strong> and add your {missingProfileFields.join(' and ')}.
+              You cannot request documents until you complete your profile. Please open your <strong>Edit Profile</strong> and add the missing information below.
             </p>
-
+            <ul className="text-sm text-left list-disc pl-5">{missingProfileFields.map(field => <li key={field}>{field}</li>)}</ul>
           </div>
         </ModalShell>
       )}
@@ -325,7 +326,9 @@ export default function StudentDashboard({ user, currentTab, setViewImageUrl }) 
                 <td className="px-3 py-4 break-all">{doc.tracking_number || doc.id}</td>
                 <td className="px-3 py-4 break-words font-bold">{doc.document_type}</td>
                 <td className="px-3 py-4"><span className={`inline-block px-2 py-1 rounded-xl ${getStatusTone(doc.current_status, isAwaitingStudent(doc.current_status) ? 'bg-red-50 dark:bg-red-950/40 text-red-700 dark:text-red-300' : undefined)}`}>{getStatusLabel(doc.current_status)}</span></td>
-                <td className="px-3 py-4">{formatPeso(doc.amount)}</td>
+                <td className="px-3 py-4">{doc.priced_at || doc.payment_status === 'PAID' || [STATUS.PENDING_STUDENT_PAYMENT, STATUS.PENDING_FINANCE_VERIFICATION, STATUS.PAID_PENDING_SEC_RELEASE, STATUS.SEC_OR_VERIFIED, STATUS.READY_FOR_RELEASE, STATUS.COMPLETED].includes(doc.current_status)
+                  ? <details><summary className="cursor-pointer">{formatPeso(doc.amount)}</summary><FeeBreakdown breakdown={doc.fee_breakdown} amount={doc.amount} /></details>
+                  : 'Pending Secretary pricing'}</td>
                 <td className="px-3 py-4">{doc.payment_status || 'PENDING'}</td>
                 <td className="px-3 py-4 break-all">{doc.gcash_reference_no || doc.or_number || '—'}</td>
                 <td className="px-3 py-4">{doc.official_receipt_path ? <button type="button" onClick={() => setViewImageUrl(doc.official_receipt_path)} className="font-bold text-green-700 dark:text-green-300 underline">View Receipt</button> : 'No digital copy'}</td>
@@ -446,9 +449,10 @@ export default function StudentDashboard({ user, currentTab, setViewImageUrl }) 
                   </div>
                   <ul aria-label="Payment breakdown" className="text-xs text-emerald-800/80 dark:text-emerald-300/80 space-y-3">
                     {selectedPaymentDocuments.map(doc => (
-                      <li key={doc.id} className="flex items-baseline justify-between gap-4">
+                      <li key={doc.id} className="space-y-2">
                         <span className="min-w-0 font-bold text-emerald-900 dark:text-emerald-300 break-words select-text">{doc.document_sequence_number || doc.document_type}</span>
                         <span className="shrink-0 font-mono font-semibold select-text">{formatPeso(doc.amount)}</span>
+                        <FeeBreakdown breakdown={doc.fee_breakdown} amount={doc.amount} />
                       </li>
                     ))}
                   </ul>

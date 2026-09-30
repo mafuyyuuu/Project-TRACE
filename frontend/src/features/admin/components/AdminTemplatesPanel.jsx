@@ -22,28 +22,46 @@ export default function AdminTemplatesPanel() {
 
   useEffect(() => {
     let active = true;
+    const controller = new AbortController();
+    const deadline = setTimeout(() => {
+      if (!active) return;
+      active = false;
+      controller.abort();
+      setLoading(false);
+      setLoadError('Template loading timed out. Check your connection and retry.');
+    }, 15000);
     async function fetchTemplates() {
       try {
-        const res = await api.get('/templates');
+        const res = await api.get('/templates', { signal: controller.signal, timeout: 15000 });
+        if (!Array.isArray(res.data) || res.data.some(item => !item || typeof item.template_key !== 'string' || typeof item.name !== 'string')) throw new Error('Invalid template catalog');
         if (!active) return;
         setTemplates(res.data);
         setSelectedKey(current => current || res.data[0]?.template_key || null);
       } catch {
         if (active) setLoadError('Could not load templates. Please try again.');
       } finally {
+        clearTimeout(deadline);
         if (active) setLoading(false);
       }
     }
     fetchTemplates();
-    return () => { active = false; };
+    return () => { active = false; clearTimeout(deadline); controller.abort(); };
   }, [listRetry]);
 
   useEffect(() => {
     if (!selectedKey) return;
     let active = true;
+    const controller = new AbortController();
+    const deadline = setTimeout(() => {
+      if (!active) return;
+      active = false;
+      controller.abort();
+      setTemplateDetails({ key: selectedKey, error: 'Template loading timed out. Check your connection and retry.' });
+    }, 15000);
     async function fetchTemplateDetails() {
       try {
-        const res = await api.get(`/templates/${selectedKey}`);
+        const res = await api.get(`/templates/${selectedKey}`, { signal: controller.signal, timeout: 15000 });
+        if (typeof res.data?.content !== 'string') throw new Error('Invalid template content');
         if (!active) return;
         setFormData({
           content: res.data.content || '',
@@ -54,10 +72,12 @@ export default function AdminTemplatesPanel() {
         setSuccess('');
       } catch {
         if (active) setTemplateDetails({ key: selectedKey, error: 'Could not load this template. Please try again.' });
+      } finally {
+        clearTimeout(deadline);
       }
     }
     fetchTemplateDetails();
-    return () => { active = false; };
+    return () => { active = false; clearTimeout(deadline); controller.abort(); };
   }, [selectedKey, detailRetry]);
 
   // Preview only: no scripts, app-origin access or remote resources. Stored HTML is unchanged.

@@ -44,7 +44,7 @@ export default function SecretaryDashboard({ user, currentTab, setViewImageUrl }
     estimatedReadyDate,
     setEstimatedReadyDate,
     priceAmount,
-    setPriceAmount,
+    priceBreakdown, pricingError, priceNotes, setPriceNotes, confirmCurrentRates, setConfirmCurrentRates,
     pricePageCount,
     setPricePageCount,
     handlePriceDocument,
@@ -277,7 +277,7 @@ export default function SecretaryDashboard({ user, currentTab, setViewImageUrl }
                                 <button
                                   onClick={() => {
                                     setSelectedDoc(doc);
-                                    setPriceAmount(doc.amount ? String(parseFloat(doc.amount)) : '');
+                                    setPriceNotes(''); setConfirmCurrentRates(false);
                                     setPricePageCount(doc.page_count ? String(doc.page_count) : '');
                                     setActiveModal('price');
                                   }}
@@ -501,7 +501,9 @@ export default function SecretaryDashboard({ user, currentTab, setViewImageUrl }
             handlePriceDocument={handlePriceDocument}
             actionLoading={actionLoading}
             priceAmount={priceAmount}
-            setPriceAmount={setPriceAmount}
+            priceBreakdown={priceBreakdown} pricingError={pricingError}
+            priceNotes={priceNotes} setPriceNotes={setPriceNotes}
+            confirmCurrentRates={confirmCurrentRates} setConfirmCurrentRates={setConfirmCurrentRates}
             pricePageCount={pricePageCount}
             setPricePageCount={setPricePageCount}
             siblingsUnpriced={

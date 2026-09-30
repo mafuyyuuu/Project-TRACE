@@ -87,20 +87,20 @@ export default function AnalyticsPanel({ user, currentTab }) {
               <p className="text-xs text-gray-400 dark:text-gray-400 py-10 text-center">Not enough history yet.</p>
             ) : (
               <>
-                <div className="h-56">
+                <div className="overflow-x-auto"><div className="h-56" style={{ minWidth: `${Math.max(20, a.turnaround_by_desk.length * 8)}rem` }}>
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={a.turnaround_by_desk.map((d) => ({ name: d.label, hours: d.avg_hours }))}>
-                      <XAxis dataKey="name" tick={{ fontSize: 9 }} interval={0} angle={-15} textAnchor="end" height={60} />
-                      <YAxis tick={{ fontSize: 10 }} unit="h" />
+                      <XAxis dataKey="name" tick={{ fontSize: '0.5625rem' }} interval={0} angle={-15} textAnchor="end" height={60} />
+                      <YAxis tick={{ fontSize: '0.625rem' }} unit="h" />
                       <Tooltip formatter={(v) => [`${v} hours`, 'Average wait']} />
                       <Bar isAnimationActive={false} dataKey="hours" fill="#15803d" radius={[6, 6, 0, 0]} />
                     </BarChart>
                   </ResponsiveContainer>
-                </div>
+                </div></div>
 
                 <div className="mt-4 space-y-2 max-h-40 overflow-y-auto">
                   {a.turnaround_by_desk.map((d) => (
-                    <div key={d.stage} className="flex items-center justify-between text-[11px] border-b border-gray-50 dark:border-gray-700 pb-2">
+                    <div key={d.stage} className="flex flex-wrap gap-2 items-center justify-between text-[11px] border-b border-gray-50 dark:border-gray-700 pb-2">
                       <span className="font-semibold text-gray-700 dark:text-gray-300">{d.label}</span>
                       <span className="text-gray-500 dark:text-gray-400">
                         {formatDuration(d.avg_minutes)}
@@ -123,7 +123,7 @@ export default function AnalyticsPanel({ user, currentTab }) {
             {a.throughput.length === 0 ? (
               <p className="text-xs text-gray-400 dark:text-gray-400 py-10 text-center">No completed documents in this period.</p>
             ) : (
-              <div className="h-56">
+              <div className="overflow-x-auto"><div className="h-56 min-w-[20rem]">
                 <ResponsiveContainer width="100%" height="100%">
                   <AreaChart data={a.throughput}>
                     <defs>
@@ -132,13 +132,13 @@ export default function AnalyticsPanel({ user, currentTab }) {
                         <stop offset="100%" stopColor="#15803d" stopOpacity={0} />
                       </linearGradient>
                     </defs>
-                    <XAxis dataKey="date" tick={{ fontSize: 9 }} />
-                    <YAxis tick={{ fontSize: 10 }} allowDecimals={false} />
+                    <XAxis dataKey="date" tick={{ fontSize: '0.5625rem' }} />
+                    <YAxis tick={{ fontSize: '0.625rem' }} allowDecimals={false} />
                     <Tooltip formatter={(v) => [v, 'Released']} />
                     <Area isAnimationActive={false} type="monotone" dataKey="completed" stroke="#15803d" strokeWidth={2} fill="url(#throughputFill)" />
                   </AreaChart>
                 </ResponsiveContainer>
-              </div>
+              </div></div>
             )}
           </div>
         </div>
@@ -153,7 +153,7 @@ export default function AnalyticsPanel({ user, currentTab }) {
             </p>
           </div>
 
-          <div className="max-h-80 overflow-y-auto">
+          <div className="max-h-80 overflow-auto">
             <table className="w-full text-left">
               <thead className="bg-gray-50 dark:bg-gray-800 sticky top-0">
                 <tr className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest">

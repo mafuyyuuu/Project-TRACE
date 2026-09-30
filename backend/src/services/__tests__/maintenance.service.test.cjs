@@ -8,6 +8,7 @@
 const bcrypt = require('bcryptjs');
 const referenceModel = require('../../models/referenceData.model');
 const userModel = require('../../models/user.model');
+const pricingModel = require('../../models/pricing.model');
 const service = require('../maintenance.service');
 const { pool } = require('../../config/db');
 
@@ -52,6 +53,7 @@ describe('document policy transaction', () => {
 });
 
 beforeEach(() => {
+  vi.spyOn(pricingModel, 'attachSchedules').mockImplementation(async types => types);
   vi.spyOn(referenceModel, 'listColleges').mockResolvedValue([]);
   vi.spyOn(referenceModel, 'findCollegeByName').mockResolvedValue([]);
   vi.spyOn(referenceModel, 'findCollegeById').mockResolvedValue([{ id: 1, name: 'CCS' }]);
@@ -385,5 +387,47 @@ describe('account editing — approved profile fields only', () => {
   it.each([{ full_name: '' }, { email: 'bad-email' }, { phone_number: '1'.repeat(21) }, { course: 'a'.repeat(101) }, { college_id: -1 }, { role: 'admin' }])('rejects invalid or unsupported edits (%o)', async fields => {
     expect(await statusOf(service.updateAccount(ADMIN, 5, fields))).toBe(400);
     expect(userModel.updateProfile).not.toHaveBeenCalled();
+  });
+});
+
+describe('fee schedule settings', () => {
+  let connection;
+  beforeEach(() => {
+    connection = { beginTransaction: vi.fn(), commit: vi.fn(), rollback: vi.fn(), release: vi.fn() };
+    vi.spyOn(pool, 'getConnection').mockResolvedValue(connection);
+    vi.spyOn(pricingModel, 'saveSchedules').mockResolvedValue(undefined);
+  });
+  const settings = { rental_fee: '20.00', special_fee: 10, fee_items: [{ label: 'Certification', amount: 5 }],
+    college_fee_schedules: [{ college_id: 1, base_fee: 80, fee_rule: 'flat', rental_fee: 0, special_fee: 0, fee_items: [] }] };
+  it('saves base settings and complete college schedules in one transaction', async () => {
+    await service.updateDocumentType(ADMIN, 1, settings);
+    expect(referenceModel.updateDocumentType).toHaveBeenCalledWith(1, expect.objectContaining({ rental_fee: 20 }), connection);
+    expect(pricingModel.saveSchedules).toHaveBeenCalledWith(1, expect.objectContaining({ college_fee_schedules: [expect.objectContaining({ base_fee: 80, college_id: 1 })] }), connection);
+    expect(connection.commit).toHaveBeenCalledOnce();
+  });
+  it('rolls back the entire save when an override fails', async () => {
+    pricingModel.saveSchedules.mockRejectedValue(new Error('override failed'));
+    await expect(service.updateDocumentType(ADMIN, 1, settings)).rejects.toThrow('override failed');
+    expect(connection.rollback).toHaveBeenCalledOnce(); expect(connection.commit).not.toHaveBeenCalled();
+  });
+  it.each([CLERK, STUDENT])('rejects non-Admin rate changes', async user => {
+    await expect(service.updateDocumentType(user, 1, settings)).rejects.toMatchObject({ status: 403 });
+    expect(pricingModel.saveSchedules).not.toHaveBeenCalled();
+  });
+  it.each([
+    { rental_fee: -1 }, { special_fee: '1.001' }, { fee_items: [{ label: '', amount: 1 }] },
+    { college_fee_schedules: [{ college_id: 1, base_fee: 80 }] },
+    { college_fee_schedules: [settings.college_fee_schedules[0], settings.college_fee_schedules[0]] },
+  ])('rejects malformed settings before opening a write transaction: %j', async data => {
+    await expect(service.updateDocumentType(ADMIN, 1, data)).rejects.toMatchObject({ status: 400 });
+    expect(pool.getConnection).not.toHaveBeenCalled();
+  });
+});
+
+
+describe('fee input precision on creation', () => {
+  it.each(['1e2', '', '0.001'])('rejects invalid raw base fee %s instead of coercing it', async base_fee => {
+    await expect(service.createDocumentType(ADMIN, { name: 'New Document', base_fee })).rejects.toMatchObject({ status: 400 });
+    expect(referenceModel.createDocumentType).not.toHaveBeenCalled();
   });
 });

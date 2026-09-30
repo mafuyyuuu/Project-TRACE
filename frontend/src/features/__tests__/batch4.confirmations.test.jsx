@@ -39,13 +39,14 @@ describe('Desk and student submission gates', () => {
   it.each([false, true])('finishes confirmed pricing without crashing (billed=%s)', async (billed) => {
     documents.priceDocument.mockResolvedValue({ billed, message: 'Priced.' });
     const { result } = renderHook(() => useSecretaryDashboard(USER));
-    act(() => result.current.setPriceAmount('100'));
+    core.selectedDoc = { ...DOC, pricing_schedule: { base_fee: 100, fee_rule: 'flat' } };
+    act(() => result.current.setPricePageCount('1'));
     act(() => result.current.handlePriceDocument());
     expect(documents.priceDocument).not.toHaveBeenCalled();
     await act(() => result.current.confirmPriceDocument());
-    expect(documents.priceDocument).toHaveBeenCalledExactlyOnceWith(DOC.id, { amount: 100, page_count: null });
+    expect(documents.priceDocument).toHaveBeenCalledExactlyOnceWith(DOC.id, { page_count: 1, pricing_notes: '', confirm_current_rates: false });
     expect(result.current.pricingToConfirm).toBe(false);
-    expect(result.current.priceAmount).toBe('');
+    expect(result.current.pricePageCount).toBe('');
     expect(core.setActiveModal).toHaveBeenCalledWith(billed ? 'payment-stub' : null);
   });
   it('waits for release confirmation and leaves the ready document untouched on cancel', async () => {
@@ -133,7 +134,7 @@ describe('Desk and student submission gates', () => {
     const file = new File(['id'], 'proof.png', { type: 'image/png' });
     await waitFor(() => expect(result.current.documentTypesLoading).toBe(false));
     act(() => result.current.toggleDocumentType('Transcript of Records'));
-    act(() => result.current.updateSelection('Transcript of Records', { purpose: 'Employment', file }));
+    act(() => result.current.updateSelection('Transcript of Records', { purpose: 'Employment', file, year_started: '2020', year_ended: '2024' }));
     await act(() => result.current.handleStudentSubmitRequest({ preventDefault: vi.fn() }));
     expect(documents.uploadDocument).not.toHaveBeenCalled();
     act(() => result.current.cancelStudentSubmission());
@@ -142,7 +143,7 @@ describe('Desk and student submission gates', () => {
     await act(() => result.current.confirmStudentSubmission());
     const payload = documents.uploadDocument.mock.calls[0][0];
     expect(payload.get('document_0').name).toBe('proof.png');
-    expect(JSON.parse(payload.get('items'))[0].purpose).toBe(JSON.stringify({ purpose: 'Employment', semesters: 8 }));
+    expect(JSON.parse(payload.get('items'))[0].purpose).toBe(JSON.stringify({ purpose: 'Employment', year_started: 2020, year_ended: 2024 }));
     expect(result.current.selections).toEqual({});
   });
 

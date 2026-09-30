@@ -1,3 +1,4 @@
+import FeeScheduleEditor from './FeeScheduleEditor';
 import { INPUT_LIMITS } from '@/utils/inputLimits';
 import { useState } from 'react';
 import useMaintenance from '@/features/admin/useMaintenance';
@@ -76,6 +77,8 @@ export default function MaintenancePanel({ user, currentTab }) {
     setSaveToConfirm({ method: editingTypeId ? 'updateDocumentType' : 'createDocumentType', id: editingTypeId, label: 'Document Type', payload: {
       name: form.dt_name,
       base_fee: form.dt_fee,
+      rental_fee: form.dt_rental_fee ?? 0, special_fee: form.dt_special_fee ?? 0,
+      fee_items: form.dt_fee_items || [], college_fee_schedules: form.dt_fee_schedules || [],
       fee_rule: form.dt_rule || 'flat',
       requires_attachment: Boolean(form.dt_attach),
       attachment_label: form.dt_attach ? form.dt_label : null,
@@ -208,10 +211,14 @@ export default function MaintenancePanel({ user, currentTab }) {
 
               <select className={`${inputClass} cursor-pointer`} value={form.dt_rule || 'flat'}
                 onChange={(e) => set('dt_rule', e.target.value)}>
-                <option value="flat">Flat fee</option>
-                <option value="per_semester_block">Per 4-semester block</option>
+                <option value="flat">Flat fee per copy</option>
+                <option value="per_semester_block">Per printed page per copy</option>
               </select>
 
+              <FeeScheduleEditor colleges={m.colleges} value={{ rental_fee: form.dt_rental_fee ?? 0, special_fee: form.dt_special_fee ?? 0,
+                fee_items: form.dt_fee_items || [], college_fee_schedules: form.dt_fee_schedules || [] }}
+                onChange={value => setForm(previous => ({ ...previous, dt_rental_fee: value.rental_fee, dt_special_fee: value.special_fee,
+                  dt_fee_items: value.fee_items, dt_fee_schedules: value.college_fee_schedules }))} />
               <label className="flex items-center gap-2 text-xs font-semibold text-gray-700 dark:text-gray-300 cursor-pointer">
                 <input type="checkbox" className="accent-[#15803d]"
                   checked={Boolean(form.dt_attach)} onChange={(e) => set('dt_attach', e.target.checked)} />
@@ -300,9 +307,10 @@ export default function MaintenancePanel({ user, currentTab }) {
                           {!d.is_active && Number(d.base_fee) === 0 && <span className="block text-[10px] text-amber-700 dark:text-amber-300">Draft: configure fee before activation</span>}</td>
                         <td className="py-3 text-xs text-gray-600 dark:text-gray-300">
                           ₱{Number(d.base_fee).toFixed(2)}
+                          <span className="block text-[10px]">{(d.college_fee_schedules || []).length} college overrides · {(d.fee_items || []).length} named fees · Rental ₱{Number(d.rental_fee || 0).toFixed(2)} · Special ₱{Number(d.special_fee || 0).toFixed(2)}</span>
                           {d.name === 'Diploma' && <span className="text-[10px] text-gray-500 dark:text-gray-400 block">Reissue Fee · Secretary sets final amount</span>}
                           {d.fee_rule === 'per_semester_block' && (
-                            <span className="text-[9px] text-gray-400 dark:text-gray-400 block">per 4 sems</span>
+                            <span className="text-[9px] text-gray-400 dark:text-gray-400 block">per page per copy</span>
                           )}
                         </td>
                         <td className="py-3 text-xs text-gray-600 dark:text-gray-300">{d.requires_attachment ? 'Required' : '—'}</td>
@@ -312,6 +320,7 @@ export default function MaintenancePanel({ user, currentTab }) {
                           <button type="button" disabled={d.is_retired} onClick={() => {
                             setEditingTypeId(d.id);
                             setForm({ dt_name: d.name, dt_fee: d.base_fee, dt_rule: d.fee_rule,
+                              dt_rental_fee: d.rental_fee ?? 0, dt_special_fee: d.special_fee ?? 0, dt_fee_items: d.fee_items || [], dt_fee_schedules: d.college_fee_schedules || [],
                               dt_attach: Boolean(d.requires_attachment), dt_label: d.attachment_label,
                               dt_available_to: d.available_to || 'both', dt_is_repeatable: Boolean(d.is_repeatable),
                               dt_is_walk_in: Boolean(d.is_walk_in), dt_requires_original: Boolean(d.requires_original),

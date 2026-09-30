@@ -44,6 +44,21 @@ beforeEach(() => {
 });
 
 describe('ProfileSettingsModal', () => {
+  it('uses the avatar camera as the sole photo picker and stages without saving', () => {
+    const onSave = vi.fn();
+    const onAvatarChange = vi.fn();
+    renderModal({ onSave, onAvatarChange });
+    const input = screen.getByLabelText('Profile picture');
+    const openPicker = vi.spyOn(input, 'click');
+    fireEvent.click(screen.getByRole('button', { name: 'Change profile picture' }));
+    expect(openPicker).toHaveBeenCalledOnce();
+    expect(input).not.toBeVisible();
+    expect(screen.queryByRole('region', { name: 'Profile picture' })).not.toBeInTheDocument();
+    const file = new File(['x'], 'avatar.png', { type: 'image/png' });
+    fireEvent.change(input, { target: { files: [file] } });
+    expect(onAvatarChange).toHaveBeenCalledWith(file);
+    expect(onSave).not.toHaveBeenCalled();
+  });
   it('keeps Preferences dedicated to appearance rather than profile editing', () => {
     const toggle = vi.fn();
     renderModal({ initialTab: 'appearance', onToggleTheme: toggle });

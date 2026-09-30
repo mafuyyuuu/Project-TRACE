@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, within, act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 
@@ -35,6 +35,7 @@ const STUDENT = {
 const logoutSpy = vi.fn();
 
 import Layout from '@/layouts/Layout';
+import { TEXT_SIZE_KEY, applyTextSize } from '@/utils/textSize';
 
 const renderLayout = () =>
   render(
@@ -47,9 +48,24 @@ beforeEach(() => {
   vi.clearAllMocks();
   document.documentElement.classList.remove('dark');
   localStorage.removeItem('trace_theme');
+  localStorage.removeItem(TEXT_SIZE_KEY);
+  applyTextSize(100);
 });
 
 describe('Layout', () => {
+  it('applies text size through Preferences, preserves the account and restores it on reopening', () => {
+    localStorage.setItem('trace_token', 'existing-token');
+    renderLayout();
+    fireEvent.click(screen.getByRole('button', { name: 'Preferences' }));
+    const size = screen.getByRole('combobox', { name: 'Text size' });
+    fireEvent.change(size, { target: { value: '200' } });
+    expect(document.documentElement.style.fontSize).toBe('200%');
+    expect(localStorage.getItem(TEXT_SIZE_KEY)).toBe('200');
+    expect(localStorage.getItem('trace_token')).toBe('existing-token');
+    fireEvent.keyDown(document, { key: 'Escape' });
+    fireEvent.click(screen.getByRole('button', { name: 'Preferences' }));
+    expect(screen.getByRole('combobox', { name: 'Text size' })).toHaveValue('200');
+  });
   it('applies and saves the theme without resetting account data', () => {
     localStorage.setItem('trace_token', 'existing-token');
     renderLayout();
@@ -152,4 +168,12 @@ describe('Layout', () => {
     await waitFor(() => expect(screen.getByText('Edit Profile')).toBeInTheDocument());
     expect(screen.getByText('Ana Reyes')).toBeInTheDocument();
   });
+});
+
+it('opens Edit Profile directly from the incomplete-request action', () => {
+  renderLayout();
+  act(() => window.dispatchEvent(new CustomEvent('open-profile-settings')));
+  expect(screen.getByRole('dialog', { name: 'Edit Profile' })).toBeInTheDocument();
+  expect(screen.getByText(/Still needed:/)).toHaveTextContent('Birth Date');
+  expect(screen.getByText('Personal Info')).toBeInTheDocument();
 });

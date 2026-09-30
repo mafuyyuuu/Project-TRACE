@@ -4,14 +4,14 @@ export default function HelpPage({ user }) {
   const entries = [
     ['How do confirmations work?', 'Login and OTP verification submit directly without a confirmation dialog. A processing indicator appears while either request runs; errors appear in the form. Resend OTP becomes available after a 60-second countdown; use the newest emailed code. A small Loading… indicator shows shared API activity across pages. Other saves and submissions still require confirmation. Cancel keeps your draft. A failed action displays feedback so you can correct it and retry.'],
     ['How do I change my email?', 'Open your avatar → Edit Profile. Enter the new email and current password, save, then verify the six-digit code. Your existing email stays active until verification succeeds.'],
-    ['How do I change appearance?', 'Open Preferences in the sidebar or mobile menu to choose light or dark mode. Your browser remembers the preference.'],
+    ['How do I change appearance and text size?', 'Open Preferences in the sidebar or mobile menu. Choose light or dark mode and a text size from 100% to 200%. Changes apply across TRACE immediately and are remembered on this browser. Printed documents keep their original formatting.'],
     ['When do notification popups close?', 'Acknowledge with OK, Escape or the backdrop. Feedback also closes on navigation, internal queue-tab changes or leaving the browser tab; drafts and pending decisions are kept.'],
     ['What does a new-browser alert mean?', 'TRACE recognized a browser that has not previously signed in to your account. Open Security to review activity. If you do not recognize the login, contact the Registrar immediately.'],
   ];
   if (user?.role === 'student') entries.unshift(
     ['Are Good Moral certificates available?', 'Good Moral certificates are no longer available for new requests. Earlier requests and their records remain accessible.'],
     ['What is the Diploma reissue fee?', 'The default is ₱250. Admin may configure a different fee, and the Secretary sets the final amount before payment.'],
-    ['How do I request and track documents?', 'Choose New Request, select the available document types and complete their fields. Confirm submission. Use Live Track to see the current processing stage; History includes request and payment records.'],
+    ['How do I request and track documents?', 'Choose New Request. If your saved profile is incomplete, use Complete Profile in the missing-field popup, fill the required fields and confirm Save. Select the available document types and complete their fields. TOR asks Year Started/Year Ended. Filing shows rates only; the final pricing breakdown appears on your dashboard. Confirm submission. Use Live Track to see the current processing stage; History includes request and payment records.'],
     ['When do I pay?', 'The Secretary sets the price after preparing the document. Use the single payment action for the request’s total, or present your payment slip at Finance.'],
     ['How do uploads work?', 'Picking a file creates a local preview. Upload happens when you confirm Save or Submit. Already submitted supporting files cannot be replaced through a general student replacement action.'],
     ['How do I read my ID and view the saved proof?', 'During signup, select your account type and proof, then choose Read ID. Review the extracted fields and enter missing details manually. OCR does not submit registration. Your saved registration proof appears read-only in Edit Profile.'],
@@ -45,11 +45,11 @@ export default function HelpPage({ user }) {
     ['How do I review pending registrations?', 'Use Account Verification → Review, inspect the proof, choose Verify or Reject, then confirm the decision. Pending registrations also appear in the notification bell.'],
     ['How do I export records?', 'Open Reports & Export, apply filters, select an export option, then choose Export. The document export follows the current filters.'],
   );
-  return <section className="space-y-5 max-w-3xl">
+  return <section className="w-full min-w-0 space-y-5 pb-6" aria-label="User Manual / FAQ">
     <h1 className="text-2xl sm:text-3xl font-display font-black">User Manual / FAQ</h1>
     <p className="text-sm text-gray-600 dark:text-gray-300">Guidance for your TRACE account. Contact the PLP Registrar for unresolved record or account concerns.</p>
-    {entries.map(([question, answer]) => <details key={question} className="p-4 rounded-2xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700">
-      <summary className="cursor-pointer font-bold text-sm">{question}</summary><p className="mt-3 text-sm leading-relaxed text-gray-600 dark:text-gray-300 select-text">{answer}</p>
+    {entries.map(([question, answer]) => <details key={question} className="w-full min-w-0 p-4 rounded-2xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 [overflow-wrap:anywhere]">
+      <summary className="cursor-pointer font-bold text-sm whitespace-normal">{question}</summary><p className="mt-3 text-sm leading-relaxed text-gray-600 dark:text-gray-300 select-text whitespace-normal">{answer}</p>
     </details>)}
   </section>;
 }

@@ -1,4 +1,6 @@
 const referenceModel = require('../models/referenceData.model');
+const pricingModel = require('../models/pricing.model');
+const { resolveSchedule } = require('../utils/pricing');
 const userModel = require('../models/user.model');
 const policy = require('./documentPolicy.service');
 
@@ -22,7 +24,7 @@ async function listColleges({ includeInactive = false } = {}) {
  * rather than the strings/0-1 ints MySQL returns.
  */
 async function listDocumentTypes({ includeInactive = false, user } = {}) {
-  const rows = await referenceModel.listDocumentTypes({ includeInactive });
+  const rows = await pricingModel.attachSchedules(await referenceModel.listDocumentTypes({ includeInactive }));
   let student = null;
   if (user?.role === 'student') {
     const [owner] = await userModel.findStudentIdById(user.id);
@@ -32,8 +34,7 @@ async function listDocumentTypes({ includeInactive = false, user } = {}) {
     document_types: await Promise.all(rows.filter(row => !policy.isRetired(row.name)).map(async (row) => ({
       id: row.id,
       name: row.name,
-      base_fee: parseFloat(row.base_fee),
-      fee_rule: row.fee_rule,
+      ...resolveSchedule(row, student?.college_id),
       requires_attachment: Boolean(row.requires_attachment),
       attachment_label: row.attachment_label,
       attachment_helper: row.attachment_helper,

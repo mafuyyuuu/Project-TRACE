@@ -1,10 +1,12 @@
+import FeeBreakdown from '@/components/FeeBreakdown';
+import { INPUT_LIMITS } from '@/utils/inputLimits';
 import ModalShell from '@/components/ModalShell';
 import { formatPeso } from '@/utils/pricing';
 
 /**
  * The Secretary prices a printed document.
  *
- * The amount is entered *after* printing, because that is when the page count
+ * The amount is calculated *after* printing, because that is when the page count
  * is known — which is the whole reason this pipeline collects money at the end
  * rather than the start.
  *
@@ -18,7 +20,7 @@ export default function PricingModal({
   handlePriceDocument,
   actionLoading,
   priceAmount,
-  setPriceAmount,
+  priceBreakdown, pricingError, priceNotes, setPriceNotes, confirmCurrentRates, setConfirmCurrentRates,
   pricePageCount,
   setPricePageCount,
   siblingsUnpriced,
@@ -41,7 +43,7 @@ export default function PricingModal({
           </button>
           <button
             onClick={handlePriceDocument}
-            disabled={actionLoading}
+            disabled={actionLoading || !priceBreakdown || Number(priceAmount) <= 0 || (selectedDoc.pricing_requires_review && !confirmCurrentRates)}
             className="flex-1 px-5 py-3 rounded-2xl text-xs font-bold bg-[#15803d] hover:bg-[#166534] text-white shadow-sm disabled:opacity-50 transition-colors"
           >
             {actionLoading ? 'Saving…' : siblingsUnpriced > 0 ? 'Save Price' : 'Save & Bill Student'}
@@ -59,15 +61,14 @@ export default function PricingModal({
         <div className="flex flex-wrap justify-between gap-x-3 gap-y-1"><span>Tracking ID</span><span className="font-bold text-gray-950 dark:text-gray-100 select-text">#{selectedDoc.tracking_number}</span></div>
         
         <div className="flex justify-between border-t border-gray-200/50 dark:border-gray-700/50 pt-2">
-          <span>System estimate</span>
-          <span className="font-bold text-gray-500 dark:text-gray-400">{formatPeso(selectedDoc.amount)}</span>
+          <span>Base rate</span>
+          <span className="font-bold text-gray-500 dark:text-gray-400">{formatPeso(selectedDoc.pricing_schedule?.base_fee)}{selectedDoc.pricing_schedule?.fee_rule === 'per_semester_block' ? ' per printed page per copy' : ' per copy'}</span>
         </div>
       </div>
 
-      {/* The estimate is a starting point from the fee table, not the charge. */}
+      {/* Only actual printed pages determine the page-based charge. */}
       <p className="text-[11px] text-gray-500 dark:text-gray-400 -mt-3 mb-6 leading-relaxed">
-        The estimate comes from the standard fee table. Override it with what this document
-        actually costs under your office's policy.
+        Admin configures the rates. Enter the actual pages per copy; the server calculates the charge. Extra fees apply once per document type in this request.
       </p>
 
       <div className="space-y-5">
@@ -82,7 +83,7 @@ export default function PricingModal({
               min="1"
               step="0.01"
               value={priceAmount}
-              onChange={(e) => setPriceAmount(e.target.value)}
+              readOnly aria-label="Calculated amount to charge"
               placeholder="0.00"
               className="w-full rounded-2xl border border-gray-200 dark:border-gray-700 pl-9 pr-4 py-3 text-sm font-bold focus:outline-none focus:ring-2 focus:ring-[#15803d]/30"
             />
@@ -90,7 +91,7 @@ export default function PricingModal({
         </label>
 
         <label className="block">
-          <span className="text-[10px] font-bold text-gray-800 dark:text-gray-100 uppercase tracking-widest block mb-2">Pages printed</span>
+          <span className="text-[10px] font-bold text-gray-800 dark:text-gray-100 uppercase tracking-widest block mb-2">Pages printed per copy</span>
           <input
             type="number"
             min="1"
@@ -103,6 +104,13 @@ export default function PricingModal({
 
         
 
+        {pricingError && <p role="status" className="text-xs text-amber-800 dark:text-amber-300">{pricingError}</p>}
+        {priceBreakdown && <FeeBreakdown breakdown={priceBreakdown} />}
+        <label className="block text-xs">Pricing note (optional)<textarea className="w-full rounded-xl border p-3 bg-white dark:bg-gray-800" maxLength={Math.min(INPUT_LIMITS.notes, 1000)} value={priceNotes || ''} onChange={event => setPriceNotes(event.target.value)} /></label>
+        {selectedDoc.pricing_requires_review && <label className="flex gap-2 text-xs text-amber-800 dark:text-amber-300">
+          <input type="checkbox" checked={confirmCurrentRates} onChange={event => setConfirmCurrentRates(event.target.checked)} />
+          This older request has no saved fee schedule. I reviewed the current rates shown above.
+        </label>}
         {siblingsUnpriced > 0 ? (
           <div className="bg-blue-50 dark:bg-blue-950/40 border border-blue-100 dark:border-blue-800 rounded-2xl p-4">
             <p className="text-[11px] text-blue-900 dark:text-blue-300 leading-relaxed">

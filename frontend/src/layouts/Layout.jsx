@@ -1,4 +1,4 @@
-import { INPUT_LIMITS } from '@/utils/inputLimits';
+import { readTextSize, saveTextSize } from '@/utils/textSize';
 import { useState, useEffect, useRef } from 'react'
 import { Outlet, useLocation, useNavigate } from 'react-router-dom'
 import useAuth from '@/hooks/useAuth'
@@ -11,7 +11,6 @@ import ProfileSettingsModal from '@/components/ProfileSettingsModal'
 import ConfirmDialog from '@/components/ConfirmDialog'
 import UserAvatar from '@/components/UserAvatar'
 import plpLogo from '@/assets/plp_logo.png'
-import OnboardingTutorial from '@/features/student/components/OnboardingTutorial'
 
 export default function Layout() {
   const { user, logout } = useAuth()
@@ -26,10 +25,11 @@ export default function Layout() {
   useNotificationDismissal(() => setShowNotifs(false));
   const [showSettings, setShowSettings] = useState(() => query.get('settings') === 'security')
   const [showMobileNav, setShowMobileNav] = useState(false)
-  const [showTutorial, setShowTutorial] = useState(user?.role === 'student' && !localStorage.getItem('trace_tutorial_seen'))
   const [confirmingLogout, setConfirmingLogout] = useState(false)
   const [loggingOut, setLoggingOut] = useState(false)
   const [darkMode, setDarkMode] = useState(() => document.documentElement.classList.contains('dark'))
+  const [textSize, setTextSize] = useState(readTextSize)
+  const changeTextSize = value => setTextSize(saveTextSize(value))
   const contentRef = useRef(null)
   const drawerRef = useRef(null)
 
@@ -180,8 +180,8 @@ export default function Layout() {
   return (
     <div className="h-dvh overflow-hidden bg-gray-50 dark:bg-gray-800 flex flex-col p-3 sm:p-4 md:p-6 gap-4 sm:gap-6 font-body text-gray-800 dark:text-gray-100">
       {/* Header */}
-      <header className="bg-white dark:bg-gray-900 rounded-full shadow-sm px-4 sm:px-6 py-3 flex items-center justify-between shrink-0 border border-gray-100 dark:border-gray-700">
-        <div className="flex items-center gap-2 sm:gap-3">
+      <header className="bg-white dark:bg-gray-900 rounded-3xl sm:rounded-full shadow-sm px-4 sm:px-6 py-3 flex flex-wrap gap-2 items-center justify-between shrink-0 border border-gray-100 dark:border-gray-700">
+        <div className="flex min-w-0 items-center gap-2 sm:gap-3">
           <button
             onClick={() => setShowMobileNav(true)}
             aria-label="Open navigation menu"
@@ -195,16 +195,7 @@ export default function Layout() {
           <span className="font-display font-black text-[#15803d] dark:text-green-300 text-base sm:text-lg tracking-widest uppercase">TRACE</span>
         </div>
 
-        <div className="flex-1 max-w-xl mx-8 hidden sm:block">
-          <div className="relative">
-            <span className="absolute inset-y-0 left-0 pl-4 flex items-center text-gray-400 dark:text-gray-400">
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
-            </span>
-            <input maxLength={INPUT_LIMITS.shortText} type="text" placeholder="Search" className="w-full bg-gray-50 dark:bg-gray-800 border-none rounded-full py-2.5 pl-11 pr-4 text-xs font-semibold focus:ring-2 focus:ring-[#15803d]/20 outline-none transition-all" />
-          </div>
-        </div>
-
-        <div className="flex items-center gap-2 sm:gap-4">
+        <div className="flex shrink-0 ml-auto items-center gap-2 sm:gap-4">
           <button
             type="button"
             onClick={toggleTheme}
@@ -312,7 +303,7 @@ export default function Layout() {
         )}
 
         {/* Main Content Area */}
-        <main ref={contentRef} className="flex-1 min-w-0 h-full overflow-y-auto">
+        <main ref={contentRef} className="trace-content flex-1 min-w-0 h-full overflow-y-auto">
           <Outlet />
         </main>
       </div>
@@ -321,6 +312,7 @@ export default function Layout() {
         <ProfileSettingsModal
           user={user}
           initialTab={settingsTab} darkMode={darkMode} onToggleTheme={toggleTheme}
+          textSize={textSize} onTextSizeChange={changeTextSize}
           pendingEmail={settings.pendingEmail} emailOtp={settings.emailOtp}
           onEmailOtpChange={settings.setEmailOtp} onVerifyEmail={settings.confirmEmail}
           onClose={closeSettings}

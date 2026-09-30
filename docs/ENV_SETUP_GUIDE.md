@@ -846,3 +846,34 @@ This adds policy columns to `document_types`, creates `document_type_colleges`, 
 Deploy the backend/schema and frontend together, and rebuild the separate AI-engine container for `/ocr/identity` and its parser. Imports do not execute the 8b migration, and the API does not migrate on startup. Admin must review fees and activate the counter drafts; zero is a placeholder, not an approved charge. The photocopy policy remains pending.
 
 Before live acceptance, verify new alumni login identifiers and saved college IDs, exact-only legacy backfill, forged/cross-college/counter-only requests, simultaneous Honorable Dismissal attempts, cancellation retry, protected profile/proof access, and rollback on a failed college-restriction write against MySQL. Test genuine ID/diploma images against the engine, including timeout/manual fallback and temporary-file cleanup. PDF upload acceptance does not guarantee OCR extraction. Synthetic browser/API and mocked tests do not establish live database/OCR acceptance, and desktop emulation does not replace a physical phone.
+
+
+## Batch 10 Fee Schedule Deployment and Acceptance
+
+These changes are local until the approved revision is committed, reviewed and pulled into the server checkout. Keep a verified database/uploads backup. Schedule a maintenance window so writers cannot change rates or requests during the upgrade. From the server repository root, run each command separately and stop on failure:
+
+```sh
+docker compose stop backend ai-engine n8n
+docker compose build backend
+docker compose run --rm --no-deps -T backend node database/migrate_fee_schedules.js
+docker compose up -d --no-deps backend ai-engine n8n
+curl -fsS http://localhost:3300/api/health
+```
+
+Use the service names in this repository's Compose file. The rebuilt backend image contains the explicit migration. Do not import the full schema or reseed. The script adds missing rental/special columns (default zero), request snapshot/breakdown JSON columns, TEXT pricing notes, a nullable `documents.document_sequence_number` (VARCHAR(255)), and the fee-schedule table. The sequence column fixes the confirmed Certificate of Transfer insert error; existing columns and rows are preserved, with no invented sequence backfill. It preserves existing rates, users, profiles and billed amounts. It does not repair unrelated missing tables. The previously approved `migrate_student_profiles.js` must already have been applied: profile reads and the request gate join that table. MySQL DDL auto-commits; stop on error, diagnose, then rerun the idempotent script. An already existing incompatible schedule table needs manual review. No startup migration, new dependency or environment variable is introduced.
+
+Deploy the matching frontend with its existing HTTPS `VITE_API_URL` and exact API CORS origin configuration. The Vercel CLI is not installed locally; installing `npm i -g vercel` is strongly recommended for deployment/env/log tooling. No server migration or Vercel deployment was performed in this scope.
+
+Use synthetic authorized accounts for acceptance:
+
+1. Admin saves a default page rate, Rental/Special Fee and a named item, then a complete college override. Reload and verify both schedules persisted. A clerk cannot change rates.
+2. Student filing shows rates only, including TOR per-page rate; no estimate total. TOR requires Year Started/Year Ended, with invalid or reversed years blocked.
+3. File two copies of a three-page TOR at ₱100/page with Rental ₱20, Special ₱30 and Certification ₱10. Secretary enters three pages per copy. The final bill is ₱660: ₱600 base + ₱60 extras, each extra once.
+4. Change the Admin rate after filing. That pending request still prices from its saved schedule. A later request uses the new rate. Confirm a college override (including zero extras) replaces the default.
+5. Price each document in a multi-document request. It becomes payable only after the last one. Check dashboard, checkout, Finance review and the printed payment slip show the same saved breakdown/total. Verify payment separately through Finance.
+6. An already billed historical record keeps its amount without an invented breakdown. An older unpriced request shows current rates and cannot be priced until Secretary explicitly reviews them.
+7. An incomplete student sees the missing-field popup at New Request and can open Edit Profile directly. An API submission also returns 403 before request/log writes. Save a complete profile, reload, and verify progress and eligibility agree. Check History succeeds and a complete student can file Certificate of Transfer without an attachment when its rule says none.
+8. Check Preferences at every size, on a narrow and desktop viewport: header wrapping, profile scroll/Save, expanded FAQ answers, table horizontal scroll and chart labels. Reset to 100% and check printing stays unchanged.
+9. Check migration and API logs without posting credentials or real student records. A health response confirms connectivity only; it does not establish real SQL transaction, printed-slip or role-flow acceptance.
+
+The pricing/payment authority split is retained. FIN-01–FIN-05, authenticator enrollment and general Window 1 support remain separate pending scopes. Text-size preferences, FAQ/photo UI and the approved profile-completion repair are implemented locally; live acceptance still requires the matching frontend/backend and explicit migrations.
