@@ -1,6 +1,15 @@
 /** Run explicitly after reviewing the Batch 8 schema; never runs at API startup. */
 const { pool } = require('../src/config/db');
 async function migrate(executor = pool) {
+  await executor.query(`CREATE TABLE IF NOT EXISTS security_logs (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    event_type VARCHAR(50) NOT NULL,
+    ip_address VARCHAR(45) NULL,
+    user_agent TEXT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+  )`);
   await executor.query(`CREATE TABLE IF NOT EXISTS user_devices (
     id INT AUTO_INCREMENT PRIMARY KEY,
     user_id INT NOT NULL,

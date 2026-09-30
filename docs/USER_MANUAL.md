@@ -30,7 +30,8 @@ Before you can do anything, you need to "log in." This is like unlocking the fro
 3. **Look at the Login Screen:** You will see a white box in the middle of your screen asking for your information.
 4. **Enter your ID:** Click inside the top text box that says **"STUDENT ID / STAFF ID"**. Type your specific ID number exactly as written below.
 5. **Enter your Password:** Click inside the second text box that says **"Password"**. Type the word **`trace2024`** (all lowercase letters, no spaces). 
-6. **Sign in:** Choose **Login**, then confirm **Sign In**. Staff with email verification enabled enter the emailed six-digit code and confirm **Verify**. Authentication completes after that verification.
+6. **Sign in:** Choose **Login** to submit directly. Staff enter the emailed six-digit code and choose **Verify & Login**; no extra confirmation dialog appears. Both steps show **Processing...** while working and prevent duplicate submissions. Errors appear in the form so you can correct them and retry. Staff need a real, accessible email inbox to receive the code; authentication completes after verification.
+7. **Request another code:** If the email has not arrived or the code expired, wait for the 60-second countdown, then choose **Resend OTP**. Use the newest emailed code; a successful resend clears the code you previously typed. Check inline errors if sending fails.
 
 ### Important Login Credentials to Use:
 *(Note: The password for all of these accounts is exactly **`trace2024`**)*
@@ -214,6 +215,8 @@ Take your time, read the buttons before you click them, and thank you for doing 
 
 ## Confirmations and Feedback
 
+- **Sign-in exception:** Login and login-OTP verification submit directly. Their processing indicator and disabled controls show when a request is pending. The staff OTP requirement remains enabled.
+- **Loading feedback:** a small **Loading…** indicator appears at the top while shared API requests run, including file previews and OCR. It stays until all pending requests finish, fail or cancel, and allows continued navigation. Specific actions also retain their own processing controls. Reduced-motion preferences suppress spinner animation.
 - **Confirm a save or submission:** all saves and submissions now require confirmation, including document requests, payments, walk-in entries, Graduate applications, chat messages, account forms, profile/password changes, and Admin saves. Read the in-app confirmation, then choose its action button or Cancel. Cancel keeps your draft and attachments. Escape, the close button, and the backdrop also cancel. While an action is processing, its controls and dismissal are disabled.
 - **Logout from the mobile menu:** Escape cancels the logout confirmation and returns focus to Logout in the still-open menu. Press Escape again to close the menu.
 - **Acknowledge a message:** dashboard success and error messages appear in a matching dialog above any open form. They close when you choose **OK**, press Escape, click the backdrop, navigate, switch an internal queue tab, or leave the browser tab. Dismissing the message keeps the underlying form and its draft open and returns keyboard focus there.

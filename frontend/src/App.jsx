@@ -6,6 +6,18 @@ import ForgotPasswordPage from '@/pages/ForgotPasswordPage'
 import ResetPasswordPage from '@/pages/ResetPasswordPage'
 import DashboardPage from '@/pages/DashboardPage'
 import Layout from '@/layouts/Layout'
+import DashboardLoading from '@/components/DashboardLoading'
+import useApiActivity from '@/hooks/useApiActivity'
+
+function ApiLoadingIndicator() {
+  const pendingRequests = useApiActivity()
+  if (pendingRequests === 0) return null
+  return (
+    <div className="pointer-events-none fixed top-2 left-1/2 -translate-x-1/2 z-[120] max-w-[calc(100vw-2rem)] rounded-full border border-pine-200 dark:border-pine-700 bg-white/95 dark:bg-gray-900/95 px-3 py-2 text-pine-700 dark:text-pine-200 shadow-sm">
+      <DashboardLoading compact label="Loading…" />
+    </div>
+  )
+}
 
 function ProtectedRoute({ children }) {
   const token = localStorage.getItem('trace_token')
@@ -25,6 +37,7 @@ function App() {
   return (
     <BrowserRouter>
       <NavigationNotifications />
+      <ApiLoadingIndicator />
       <Routes>
         <Route path="/" element={<LoginPage />} />
         <Route path="/signup" element={<SignupPage />} />

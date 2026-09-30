@@ -1,5 +1,5 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import LoginPage from '@/pages/LoginPage';
@@ -19,10 +19,13 @@ vi.mock('@/services/api', () => ({ default: { post: vi.fn() } }));
 
 beforeEach(() => {
   vi.clearAllMocks();
+  auth.loading = false;
+  auth.error = '';
   auth.login.mockResolvedValue(undefined);
   auth.register.mockResolvedValue({ message: 'Registration received.' });
   api.post.mockResolvedValue({ data: { success: false } });
 });
+afterEach(() => vi.useRealTimers());
 const renderPage = (page, path = '/') => render(<MemoryRouter initialEntries={[path]}>{page}</MemoryRouter>);
 
 describe('Account submission confirmations', () => {
@@ -44,7 +47,7 @@ describe('Account submission confirmations', () => {
     fireEvent.change(container.querySelector('select'), { target: { value: 'student' } });
     expect(screen.getByPlaceholderText('e.g. 23-00123')).toHaveValue('');
   });
-  it('cancels sign-in without losing credentials and submits once after confirmation', async () => {
+  it('submits sign-in directly without a confirmation dialog', async () => {
     const user = userEvent.setup();
     const { container } = renderPage(<LoginPage />);
     const id = screen.getByPlaceholderText(/23-00123/);
@@ -52,21 +55,127 @@ describe('Account submission confirmations', () => {
     await user.type(id, 'STU-001');
     await user.type(password, 'password123');
     await user.click(screen.getByRole('button', { name: 'LOGIN' }));
-    expect(auth.login).not.toHaveBeenCalled();
-    await user.keyboard('{Escape}');
-    expect(id).toHaveValue('STU-001');
-    expect(password).toHaveValue('password123');
-    await user.click(screen.getByRole('button', { name: 'LOGIN' }));
-    await user.click(screen.getByRole('button', { name: 'Sign In' }));
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
     await waitFor(() => expect(auth.login).toHaveBeenCalledExactlyOnceWith({ employeeId: 'STU-001', password: 'password123' }));
   });
 
-  it('does not open a sign-in confirmation with missing credentials', async () => {
+  it('shows missing credentials inline without sending a login request', async () => {
     const user = userEvent.setup();
     renderPage(<LoginPage />);
     await user.click(screen.getByRole('button', { name: 'LOGIN' }));
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
     expect(auth.login).not.toHaveBeenCalled();
+    expect(screen.getByRole('alert')).toHaveTextContent('Please enter both ID and password.');
+  });
+
+  it('supports Enter to sign in and retains credentials after an inline error', async () => {
+    const user = userEvent.setup();
+    auth.login.mockRejectedValueOnce({ response: { data: { error: 'Invalid credentials.' } } });
+    const { container } = renderPage(<LoginPage />);
+    await user.type(screen.getByPlaceholderText(/23-00123/), 'ADMIN001');
+    await user.type(container.querySelector('input[type=password]'), 'password123{Enter}');
+    expect(await screen.findByRole('alert')).toHaveTextContent('Invalid credentials.');
+    expect(auth.login).toHaveBeenCalledOnce();
+    expect(screen.getByPlaceholderText(/23-00123/)).toHaveValue('ADMIN001');
+    expect(container.querySelector('input[type=password]')).toHaveValue('password123');
+    expect(screen.getByRole('button', { name: 'LOGIN' })).toBeEnabled();
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  });
+
+  it('announces pending login and rejects duplicate submissions before rerender', async () => {
+    let finishLogin;
+    auth.login.mockReturnValueOnce(new Promise(resolve => { finishLogin = resolve; }));
+    const { container } = renderPage(<LoginPage />);
+    fireEvent.change(screen.getByPlaceholderText(/23-00123/), { target: { value: 'ADMIN001' } });
+    fireEvent.change(container.querySelector('input[type=password]'), { target: { value: 'password123' } });
+    const form = container.querySelector('form');
+    act(() => { fireEvent.submit(form); fireEvent.submit(form); });
+    expect(auth.login).toHaveBeenCalledOnce();
+    expect(screen.getByRole('status')).toHaveTextContent('PROCESSING...');
+    expect(screen.getByRole('button', { name: /PROCESSING/ })).toBeDisabled();
+    expect(form).toHaveAttribute('aria-busy', 'true');
+    await act(async () => { finishLogin(undefined); });
+    expect(screen.queryByRole('status')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'LOGIN' })).toBeEnabled();
+  });
+
+  it('keeps required OTP, submits it directly, and allows retry after verification failure', async () => {
+    const user = userEvent.setup();
+    auth.login.mockResolvedValueOnce({ requires_2fa: true, temp_token: 'challenge-token', email: 'staff@example.test' });
+    const { container } = renderPage(<LoginPage />);
+    await user.type(screen.getByPlaceholderText(/23-00123/), 'ADMIN001');
+    await user.type(container.querySelector('input[type=password]'), 'password123');
+    await user.click(screen.getByRole('button', { name: 'LOGIN' }));
+    const otp = await screen.findByPlaceholderText('Enter 6-digit OTP');
+    await user.click(screen.getByRole('button', { name: 'VERIFY & LOGIN' }));
+    expect(screen.getByRole('alert')).toHaveTextContent('Please enter the OTP.');
+    expect(api.post).not.toHaveBeenCalled();
+    let failVerification;
+    api.post.mockReturnValueOnce(new Promise((resolve, reject) => { failVerification = reject; }));
+    await user.type(otp, '123456');
+    act(() => { fireEvent.submit(container.querySelector('form')); fireEvent.submit(container.querySelector('form')); });
+    expect(api.post).toHaveBeenCalledExactlyOnceWith('/auth/verify-2fa', { temp_token: 'challenge-token', otp: '123456' });
+    expect(screen.getByRole('status')).toHaveTextContent('PROCESSING...');
+    expect(screen.getByRole('button', { name: 'Back to Login' })).toBeDisabled();
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    await act(async () => { failVerification({ response: { data: { error: 'Invalid OTP.' } } }); });
+    expect(screen.getByRole('alert')).toHaveTextContent('Invalid OTP.');
+    expect(otp).toHaveValue('123456');
+    api.post.mockRejectedValueOnce({ response: { data: { error: 'Code expired.' } } });
+    await user.click(screen.getByRole('button', { name: 'VERIFY & LOGIN' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent('Code expired.');
+    expect(api.post).toHaveBeenCalledTimes(2);
+    expect(screen.getByRole('button', { name: 'VERIFY & LOGIN' })).toBeEnabled();
+  });
+
+  it('resends after the cooldown, prevents duplicate sends, and verifies with the fresh challenge', async () => {
+    vi.useFakeTimers();
+    auth.login.mockResolvedValueOnce({ requires_2fa: true, temp_token: 'old-challenge', email: 'staff@example.test' });
+    const { container } = renderPage(<LoginPage />);
+    fireEvent.change(screen.getByPlaceholderText(/23-00123/), { target: { value: 'ADMIN001' } });
+    fireEvent.change(container.querySelector('input[type=password]'), { target: { value: 'password123' } });
+    await act(async () => { fireEvent.submit(container.querySelector('form')); });
+    expect(screen.getByRole('button', { name: 'Resend OTP (60s)' })).toBeDisabled();
+    fireEvent.change(screen.getByPlaceholderText('Enter 6-digit OTP'), { target: { value: '123456' } });
+    await act(async () => { await vi.advanceTimersByTimeAsync(60000); });
+    const resend = screen.getByRole('button', { name: 'Resend OTP' });
+    expect(resend).toBeEnabled();
+    let finishResend;
+    auth.login.mockReturnValueOnce(new Promise(resolve => { finishResend = resolve; }));
+    act(() => { fireEvent.click(resend); fireEvent.click(resend); });
+    expect(auth.login).toHaveBeenCalledTimes(2);
+    expect(auth.login).toHaveBeenLastCalledWith({ employeeId: 'ADMIN001', password: 'password123' });
+    expect(screen.getByRole('button', { name: 'Sending code…' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: /PROCESSING/ })).toBeDisabled();
+    await act(async () => { finishResend({ requires_2fa: true, temp_token: 'new-challenge', email: 'staff@example.test' }); });
+    expect(screen.getByPlaceholderText('Enter 6-digit OTP')).toHaveValue('');
+    expect(screen.getByRole('status')).toHaveTextContent('Use the latest code');
+    expect(screen.getByRole('button', { name: 'Resend OTP (60s)' })).toBeDisabled();
+    api.post.mockRejectedValueOnce({ response: { data: { error: 'Invalid OTP.' } } });
+    fireEvent.change(screen.getByPlaceholderText('Enter 6-digit OTP'), { target: { value: '654321' } });
+    await act(async () => { fireEvent.submit(container.querySelector('form')); });
+    expect(api.post).toHaveBeenCalledExactlyOnceWith('/auth/verify-2fa', { temp_token: 'new-challenge', otp: '654321' });
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  });
+
+  it('shows a failed resend inline without replacing the challenge or claiming success', async () => {
+    vi.useFakeTimers();
+    auth.login.mockResolvedValueOnce({ requires_2fa: true, temp_token: 'existing-challenge', email: 'staff@example.test' });
+    const { container } = renderPage(<LoginPage />);
+    fireEvent.change(screen.getByPlaceholderText(/23-00123/), { target: { value: 'ADMIN001' } });
+    fireEvent.change(container.querySelector('input[type=password]'), { target: { value: 'password123' } });
+    await act(async () => { fireEvent.submit(container.querySelector('form')); });
+    fireEvent.change(screen.getByPlaceholderText('Enter 6-digit OTP'), { target: { value: '123456' } });
+    await act(async () => { await vi.advanceTimersByTimeAsync(60000); });
+    auth.login.mockImplementationOnce(async () => { auth.error = 'Unable to send email.'; return undefined; });
+    await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'Resend OTP' })); });
+    expect(screen.getByRole('alert')).toHaveTextContent('Unable to send email.');
+    expect(screen.queryByText(/A new code has been requested/)).not.toBeInTheDocument();
+    expect(screen.getByPlaceholderText('Enter 6-digit OTP')).toHaveValue('123456');
+    expect(screen.getByRole('button', { name: 'VERIFY & LOGIN' })).toBeEnabled();
+    api.post.mockRejectedValueOnce({ response: { data: { error: 'Code expired.' } } });
+    await act(async () => { fireEvent.submit(container.querySelector('form')); });
+    expect(api.post).toHaveBeenCalledExactlyOnceWith('/auth/verify-2fa', { temp_token: 'existing-challenge', otp: '123456' });
   });
 
   it('preserves the registration proof and fields when confirmation is cancelled', async () => {
