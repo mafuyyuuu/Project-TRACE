@@ -27,7 +27,7 @@ const inputClass =
   'w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-2.5 text-xs font-semibold outline-none focus:ring-2 focus:ring-[#15803d]/20 focus:bg-white dark:focus:bg-gray-900 transition-all';
 
 /** Active/Inactive pill — "deleted" entries are deactivated, never removed. */
-function StatusBadge({ active }) {
+function StatusBadge({ active, retired = false }) {
   return (
     <span
       className={`text-[10px] font-bold px-2.5 py-1 rounded-full border ${
@@ -36,7 +36,7 @@ function StatusBadge({ active }) {
           : 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 border-gray-200 dark:border-gray-700'
       }`}
     >
-      {active ? 'Active' : 'Inactive'}
+      {retired ? 'Retired' : active ? 'Active' : 'Inactive'}
     </span>
   );
 }
@@ -300,13 +300,16 @@ export default function MaintenancePanel({ user, currentTab }) {
                           {!d.is_active && Number(d.base_fee) === 0 && <span className="block text-[10px] text-amber-700 dark:text-amber-300">Draft: configure fee before activation</span>}</td>
                         <td className="py-3 text-xs text-gray-600 dark:text-gray-300">
                           ₱{Number(d.base_fee).toFixed(2)}
+                          {d.name === 'Diploma' && <span className="text-[10px] text-gray-500 dark:text-gray-400 block">Reissue Fee · Secretary sets final amount</span>}
                           {d.fee_rule === 'per_semester_block' && (
                             <span className="text-[9px] text-gray-400 dark:text-gray-400 block">per 4 sems</span>
                           )}
                         </td>
                         <td className="py-3 text-xs text-gray-600 dark:text-gray-300">{d.requires_attachment ? 'Required' : '—'}</td>
-                        <td className="py-3"><StatusBadge active={d.is_active} /></td>
-                        <td className="py-3 pr-5 text-right"><button type="button" onClick={() => {
+                        <td className="py-3"><StatusBadge active={d.is_active} retired={d.is_retired} /></td>
+                        <td className="py-3 pr-5 text-right">
+                          {d.is_retired && <span className="block text-xs text-gray-500 dark:text-gray-400 mb-2">Unavailable for new requests; history retained.</span>}
+                          <button type="button" disabled={d.is_retired} onClick={() => {
                             setEditingTypeId(d.id);
                             setForm({ dt_name: d.name, dt_fee: d.base_fee, dt_rule: d.fee_rule,
                               dt_attach: Boolean(d.requires_attachment), dt_label: d.attachment_label,
@@ -314,13 +317,13 @@ export default function MaintenancePanel({ user, currentTab }) {
                               dt_is_walk_in: Boolean(d.is_walk_in), dt_requires_original: Boolean(d.requires_original),
                               dt_is_same_day: Boolean(d.is_same_day), dt_reg_attach: d.registrar_attachment_rule,
                               dt_college_ids: d.allowed_college_ids || [] });
-                          }} className="mr-2 text-xs font-bold text-blue-700 dark:text-blue-300 hover:underline focus-visible:ring-2 focus-visible:ring-blue-500">Edit</button>
+                          }} className="mr-2 text-xs font-bold text-blue-700 dark:text-blue-300 hover:underline disabled:opacity-40 focus-visible:ring-2 focus-visible:ring-blue-500">Edit</button>
                           <button
                             onClick={() => m.handleToggleDocumentTypeActive(d)}
-                            disabled={m.saving}
+                            disabled={m.saving || d.is_retired}
                             className={`text-[10px] font-bold px-3 py-1.5 rounded-lg border disabled:opacity-40 focus-visible:ring-2 focus-visible:ring-blue-500 ${d.is_active ? 'border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 hover:bg-red-50 dark:hover:bg-red-950/40' : 'border-green-200 dark:border-green-800 text-green-700 dark:text-green-300 hover:bg-green-50 dark:hover:bg-green-950/40'}`}
                           >
-                            {d.is_active ? 'Deactivate' : 'Restore'}
+                            {d.is_retired ? 'Retired' : d.is_active ? 'Deactivate' : 'Restore'}
                           </button>
                         </td>
                       </tr>

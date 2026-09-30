@@ -9,6 +9,8 @@ export default function HelpPage({ user }) {
     ['What does a new-browser alert mean?', 'TRACE recognized a browser that has not previously signed in to your account. Open Security to review activity. If you do not recognize the login, contact the Registrar immediately.'],
   ];
   if (user?.role === 'student') entries.unshift(
+    ['Are Good Moral certificates available?', 'Good Moral certificates are no longer available for new requests. Earlier requests and their records remain accessible.'],
+    ['What is the Diploma reissue fee?', 'The default is ₱250. Admin may configure a different fee, and the Secretary sets the final amount before payment.'],
     ['How do I request and track documents?', 'Choose New Request, select the available document types and complete their fields. Confirm submission. Use Live Track to see the current processing stage; History includes request and payment records.'],
     ['When do I pay?', 'The Secretary sets the price after preparing the document. Use the single payment action for the request’s total, or present your payment slip at Finance.'],
     ['How do uploads work?', 'Picking a file creates a local preview. Upload happens when you confirm Save or Submit. Already submitted supporting files cannot be replaced through a general student replacement action.'],
@@ -37,6 +39,7 @@ export default function HelpPage({ user }) {
     ['Can I upload the retained receipt later?', 'Yes. Give the physical Official Receipt to the College Secretary and upload the retained copy through the authorized deferred-OR action later.'],
   );
   if (user?.role === 'admin') entries.unshift(
+    ['Can I restore Good Moral or change the Diploma fee?', 'Good Moral types are retired and cannot be restored or edited. Historical requests remain on record. Diploma starts with a ₱250 reissue default; its configured fee remains editable and the Secretary sets the final amount.'],
     ['How do I set document availability and fees?', 'In System Maintenance → Document Types, choose Edit, set the fee, student/alumni/both audience and allowed colleges, then Save Changes and confirm. No selected colleges means all. Review unknown college assignments in Accounts. Counter types CTC, 2nd Copy of COR, 2nd Copy of OGR and CAV start as inactive fee drafts; review fees and requirements before activating.'],
     ['Where do I manage accounts?', 'Open System Maintenance → Accounts. Review account details and edit the supported fields. IDs remain read-only. Staff deactivation and temporary-password controls retain their existing permissions.'],
     ['How do I review pending registrations?', 'Use Account Verification → Review, inspect the proof, choose Verify or Reject, then confirm the decision. Pending registrations also appear in the notification bell.'],

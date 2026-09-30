@@ -190,6 +190,42 @@ describe('document types', () => {
   });
 });
 
+describe('registrar catalog retirement and Diploma defaults', () => {
+  it.each(['Certificate of Good Moral', 'Certificate of Good Moral Character', '  good moral certificate  '])('rejects creation or restoration of %s', async name => {
+    referenceModel.findDocumentTypeById.mockResolvedValue([{ id: 1, name }]);
+    await expect(service.createDocumentType(ADMIN, { name, base_fee: 50 })).rejects.toThrow(/no longer available/);
+    await expect(service.setDocumentTypeActive(ADMIN, 1, true)).rejects.toThrow(/no longer available/);
+    expect(referenceModel.createDocumentType).not.toHaveBeenCalled();
+    expect(referenceModel.setDocumentTypeActive).not.toHaveBeenCalled();
+  });
+
+  it('prevents renaming a retired type or turning another type into it', async () => {
+    referenceModel.findDocumentTypeById.mockResolvedValue([{ id: 1, name: 'Certificate of Good Moral' }]);
+    await expect(service.updateDocumentType(ADMIN, 1, { name: 'Replacement' })).rejects.toThrow(/no longer available/);
+    referenceModel.findDocumentTypeById.mockResolvedValue([{ id: 1, name: 'Diploma' }]);
+    await expect(service.updateDocumentType(ADMIN, 1, { name: 'Good Moral Certificate' })).rejects.toThrow(/no longer available/);
+    expect(referenceModel.updateDocumentType).not.toHaveBeenCalled();
+  });
+
+  it('marks retired types inactive for Admin without removing the historical catalog entry', async () => {
+    referenceModel.listDocumentTypes.mockResolvedValue([{ id: 1, name: 'Certificate of Good Moral', is_active: 1 },
+      { id: 2, name: 'Diploma', is_active: 1, base_fee: 325 }]);
+    const { document_types } = await service.listDocumentTypes(ADMIN);
+    expect(document_types[0]).toMatchObject({ id: 1, is_active: false, is_retired: true });
+    expect(document_types[1]).toMatchObject({ base_fee: 325, is_active: 1, is_retired: false });
+  });
+
+  it('defaults a new Diploma to 250 and retains explicit Admin fees', async () => {
+    await service.createDocumentType(ADMIN, { name: 'Diploma' });
+    expect(referenceModel.createDocumentType).toHaveBeenLastCalledWith(expect.objectContaining({ base_fee: 250 }));
+    await service.createDocumentType(ADMIN, { name: 'Diploma', base_fee: 325 });
+    expect(referenceModel.createDocumentType).toHaveBeenLastCalledWith(expect.objectContaining({ base_fee: 325 }));
+    referenceModel.findDocumentTypeById.mockResolvedValue([{ id: 1, name: 'Diploma' }]);
+    await service.updateDocumentType(ADMIN, 1, { base_fee: 50 });
+    expect(referenceModel.updateDocumentType).toHaveBeenLastCalledWith(1, expect.objectContaining({ base_fee: 50 }));
+  });
+});
+
 describe('payment methods', () => {
   it('creates one, lowercasing and trimming the code', async () => {
     await service.createPaymentMethod(ADMIN, { code: '  Card  ', name: 'Credit / Debit Card' });

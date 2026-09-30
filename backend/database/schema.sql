@@ -5,6 +5,12 @@
 CREATE DATABASE IF NOT EXISTS trace_db;
 USE trace_db;
 
+-- One-time data changes are recorded so reruns preserve later Admin edits.
+CREATE TABLE IF NOT EXISTS schema_migrations (
+  migration_key VARCHAR(100) PRIMARY KEY,
+  applied_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB;
+
 CREATE TABLE IF NOT EXISTS colleges (
   id INT AUTO_INCREMENT PRIMARY KEY,
   name VARCHAR(150) NOT NULL UNIQUE,

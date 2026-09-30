@@ -6,6 +6,10 @@ const { badRequest } = require('../utils/AppError');
 
 const enabled = value => value === true || Number(value) === 1;
 const repeatable = type => type.name !== 'Honorable Dismissal' && type.is_repeatable !== false && Number(type.is_repeatable) !== 0;
+const RETIRED_DOCUMENT_NAMES = ['Certificate of Good Moral', 'Certificate of Good Moral Character', 'Good Moral Certificate'];
+const retiredNames = new Set(RETIRED_DOCUMENT_NAMES.map(name => name.toLowerCase()));
+const isRetired = name => retiredNames.has(String(name || '').trim().replace(/\s+/g, ' ').toLowerCase());
+const RETIREMENT_REASON = 'Good Moral certificates are no longer available for new requests. Existing requests remain on record.';
 
 async function resolveStudent(studentId, executor = pool, lock = false) {
   if (!studentId) return null;
@@ -21,6 +25,7 @@ async function resolveStudent(studentId, executor = pool, lock = false) {
 
 async function eligibility(type, student, { counter = false, excludeId = null, executor = pool, allowUnidentified = false } = {}) {
   if (!type) return 'Unknown document type.';
+  if (excludeId === null && isRetired(type.name)) return RETIREMENT_REASON;
   if (excludeId === null && (type.is_active === false || type.is_active === 0)) return 'This document type is inactive.';
   if (enabled(type.is_walk_in) && !counter) return 'Request this document at Window 1.';
   // A raw counter scan is staged for human identity review, never SEC_PROCESSING.
@@ -43,6 +48,7 @@ async function assertAllowed(type, student, options = {}) {
 }
 
 async function assertDocument(doc, { studentId = doc.student_id, documentType = doc.document_type, executor = pool, allowUnidentified = false } = {}) {
+  if (isRetired(documentType) && documentType !== doc.document_type) throw badRequest(RETIREMENT_REASON);
   const [type] = await referenceModel.findDocumentTypeByName(documentType, executor);
   if (!type) throw badRequest('Unknown document type.');
   const student = await resolveStudent(studentId, executor, true);
@@ -50,4 +56,4 @@ async function assertDocument(doc, { studentId = doc.student_id, documentType = 
   return type;
 }
 
-module.exports = { enabled, repeatable, resolveStudent, eligibility, assertAllowed, assertDocument };
+module.exports = { enabled, repeatable, isRetired, RETIRED_DOCUMENT_NAMES, RETIREMENT_REASON, resolveStudent, eligibility, assertAllowed, assertDocument };

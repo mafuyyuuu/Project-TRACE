@@ -2,6 +2,7 @@ const users = require('../../models/user.model');
 const refs = require('../../models/referenceData.model');
 const documents = require('../../models/document.model');
 const policy = require('../documentPolicy.service');
+const referenceService = require('../referenceData.service');
 const student = { student_id: 'STU1', user_type: 'student', college_id: 2 };
 const type = { name: 'Test', available_to: 'both', is_active: 1, is_repeatable: 1 };
 
@@ -54,4 +55,30 @@ it('excludes only terminal legacy rejection and the request being evaluated from
   expect(values).toContain('REJECTED');
   expect(values).toContain(9);
   expect(values).not.toContain('PENDING_W1_INTAKE');
+});
+
+it.each([...policy.RETIRED_DOCUMENT_NAMES, '  certificate  OF good moral  '])('blocks new online, counter, and unidentified scan requests for %s even before migration', async name => {
+  const retired = { ...type, name };
+  await expect(policy.assertAllowed(retired, student)).rejects.toThrow(/no longer available/);
+  await expect(policy.assertAllowed(retired, student, { counter: true })).rejects.toThrow(/no longer available/);
+  await expect(policy.assertAllowed(retired, null, { counter: true, allowUnidentified: true })).rejects.toThrow(/no longer available/);
+});
+
+it('permits an existing retired request to continue, but forbids changing another request to a retired type', async () => {
+  const oldType = { ...type, name: 'Certificate of Good Moral', is_active: 0 };
+  vi.spyOn(refs, 'findDocumentTypeByName').mockResolvedValue([oldType]);
+  const doc = { id: 9, student_id: 'STU1', document_type: oldType.name, copies: 1 };
+  await expect(policy.assertDocument(doc)).resolves.toEqual(oldType);
+  await expect(policy.assertDocument({ ...doc, document_type: 'Diploma' }, { documentType: oldType.name }))
+    .rejects.toThrow(/no longer available/);
+});
+
+it('removes retired aliases from reference options while retaining configured fees', async () => {
+  vi.spyOn(refs, 'listDocumentTypes').mockResolvedValue([
+    ...policy.RETIRED_DOCUMENT_NAMES.map(name => ({ ...type, name, base_fee: '50.00' })),
+    { ...type, name: 'Diploma', base_fee: '325.00' },
+  ]);
+  const result = await referenceService.listDocumentTypes();
+  expect(result.document_types.map(row => row.name)).toEqual(['Diploma']);
+  expect(result.document_types[0].base_fee).toBe(325);
 });

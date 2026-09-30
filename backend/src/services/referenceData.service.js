@@ -29,7 +29,7 @@ async function listDocumentTypes({ includeInactive = false, user } = {}) {
     student = await policy.resolveStudent(owner?.student_id);
   }
   return {
-    document_types: await Promise.all(rows.map(async (row) => ({
+    document_types: await Promise.all(rows.filter(row => !policy.isRetired(row.name)).map(async (row) => ({
       id: row.id,
       name: row.name,
       base_fee: parseFloat(row.base_fee),

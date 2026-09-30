@@ -244,3 +244,10 @@ Take your time, read the buttons before you click them, and thank you for doing 
 - **Walk-in fee drafts:** CTC, 2nd Copy of COR, 2nd Copy of OGR, and CAV are inserted as inactive zero-fee placeholders. Admin must review fees and activate them. They do not require original-document inspection. The photocopy requirement is awaiting a decision.
 - **Action colors:** green indicates primary/approval actions and totals, blue indicates profile links/editing/reading, red indicates destructive actions/errors, and amber indicates warnings or eligibility restrictions. Labels and confirmations remain explicit.
 - **Extra case attachments:** requests through Window 1/Secretary messaging and a processing hold belong to a later communication batch. No new case-attachment submission or hold is implemented here.
+
+## Registrar Consultation — Good Moral and Diploma Fees
+
+- **Good Moral:** this document is no longer available for new requests, including counter requests. Earlier requests remain on record and can finish processing. Admin can see retired catalog entries but cannot edit or restore them. Secretary cannot change another document to Good Moral on either Approve or Return; an unchanged historical Good Moral request may still be approved or returned.
+- **Diploma:** the reissue fee defaults to **₱250**. Admin may set a different configured fee in **System Maintenance → Document Types**. The Secretary sets and confirms the final charge before payment; the displayed filing amount is an estimate.
+- **Existing charges:** this change does not reprice requests already filed. The deployment migration changes only a Diploma catalog fee still at the old ₱50 default, once; other configured fees and later Admin changes remain intact.
+- **Remaining consultation work:** Program/Course, online-submission QR, removal of Copies, new attachment/form rules and per-page pricing are separate phases. Continue using the current forms until those phases are released.

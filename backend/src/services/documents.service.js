@@ -1012,6 +1012,11 @@ async function acceptForProcessing(user, documentId, body) {
 
     // Rejecting sends it back one desk, to the counter that accepted the
     // paperwork in the first place.
+    // Return saves corrected fields too, so retirement must be checked on
+    // both decisions. An unchanged historical type remains processable.
+    if (document_type && document_type !== doc.document_type && documentPolicy.isRetired(document_type)) {
+      throw badRequest(documentPolicy.RETIREMENT_REASON);
+    }
     const newStatus = action === 'approve' ? STATUS.SEC_PROCESSING : STATUS.PENDING_W1_INTAKE;
     assertTransition(doc.current_status, newStatus);
     if (action === 'approve') await documentPolicy.assertDocument(doc, {

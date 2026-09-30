@@ -178,8 +178,8 @@ runs whether the file came from the student or the counter.
   Accounting, Dean) and flags anything it cannot confirm for the intake clerk.
 
 ### D. Certificate of Good Moral Character
-* **Requirement:** A valid Student ID photo.
-* **AI Workflow:** OCR reads the student ID to confirm it matches the requesting student's record.
+* **Retired for new requests (CN-03):** Good Moral no longer appears in online or counter document options. The API rejects new requests and Admin cannot recreate, rename or restore retired entries. Historical catalog entries and existing requests remain available; existing requests may finish processing.
+* **Historical requirement:** A valid Student ID photo. Historical OCR reads the ID to confirm it matches the requesting student's record.
 
 ### E. Official Receipts (Finance, not a document type)
 * **Where:** The Finance walk-in logging form, not the student pipeline.
@@ -322,3 +322,13 @@ A raw attached counter scan may be staged without an identifier for human review
 Signup OCR is explicitly requested, temporary, bounded, and advisory. It fills only empty fields, discards results after file/account-type changes, and falls back to manual entry. It neither creates an account nor approves it. Saved registration proofs are surfaced through the existing protected file endpoint. Full-profile lookup is limited to Admin and the Window 1, Secretary, and Finance desks and never returns authentication secrets. Verification previews already existed in the account, intake, Secretary, Finance, and OR dialogs; those implementations are reused.
 
 Acknowledgment feedback and bell popups dismiss on SPA navigation or leaving the browser tab. Queue/maintenance/security tab changes dismiss their feedback. Draft forms and pending confirmations remain intact. Preferences contains only local appearance; Edit Profile retains personal, educational, and security functions. Window 1 and Secretary reuse Admin's report/export UI with existing server permissions.
+
+## Registrar Consultation — CN-03/CN-04
+
+Good Moral is retired from request options and blocked by the server for new online/counter submissions, including unidentified scans. The policy recognizes the three existing repository names and normalizes case/whitespace. An existing Good Moral request can still advance; changing another request into Good Moral cannot bypass retirement. Secretary Approve and Return both reject that type change before saving, logging or sending notifications; unchanged historical Good Moral types may still be approved or returned. Admin sees the historical type as retired and cannot create, edit, rename or restore it. Historical records, OCR classifications and status filters are retained.
+
+Diploma uses an editable **₱250 reissue default**. This remains a filing estimate; Secretary pricing still determines the final amount. `migrate_cn03_cn04.js` changes a catalog Diploma fee of ₱50 to ₱250 once, without changing existing request amounts or other configured fees. Its completion marker and catalog updates commit together in an InnoDB transaction. Failure rolls them back; subsequent runs leave later fee edits intact. The full migration's seed also preserves existing Diploma fees.
+
+From the repository root, deploy the data changes with `node backend/database/migrate_cn03_cn04.js` using the configured database. The main migration invokes the same guarded change. Do not run the older `migrate_b9.js` for this scope: its name mismatches and attachment changes have not been reconciled. The development verification uses mocked models/connections; no live migration was applied.
+
+Program/Course and online-submission QR recommendations are agreed but not implemented in this phase. Form separation, attachments, quantities, per-page pricing, numbering, messaging/attachment holds, delays and templates each retain their own approval/verification scope. See `PROGRESS.md` for the code findings that supersede the earlier Batch 9 completion claims.

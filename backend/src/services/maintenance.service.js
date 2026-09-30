@@ -1,6 +1,7 @@
 const bcrypt = require('bcryptjs');
 const referenceModel = require('../models/referenceData.model');
 const userModel = require('../models/user.model');
+const documentPolicy = require('./documentPolicy.service');
 const { pool } = require('../config/db');
 const { PROVIDERS } = require('./payment');
 const { badRequest, forbidden, notFound } = require('../utils/AppError');
@@ -86,7 +87,11 @@ async function setCollegeActive(user, id, isActive) {
 async function listDocumentTypes(user) {
   assertAdmin(user);
   const rows = await referenceModel.listDocumentTypes({ includeInactive: true });
-  return { document_types: rows.map(row => ({ ...row, is_repeatable: row.name === 'Honorable Dismissal' ? false : row.is_repeatable })) };
+  return { document_types: rows.map(row => ({ ...row,
+    is_active: documentPolicy.isRetired(row.name) ? false : row.is_active,
+    is_retired: documentPolicy.isRetired(row.name),
+    is_repeatable: row.name === 'Honorable Dismissal' ? false : row.is_repeatable,
+  })) };
 }
 
 async function validateDocumentPolicy(data, name) {
@@ -128,8 +133,9 @@ async function saveDocumentPolicy(data, id = null) {
 async function createDocumentType(user, data) {
   assertAdmin(user);
   if (!data.name || !data.name.trim()) throw badRequest('Document type name is required.');
+  if (documentPolicy.isRetired(data.name)) throw badRequest(documentPolicy.RETIREMENT_REASON);
 
-  const fee = data.base_fee === undefined ? 50 : Number(data.base_fee);
+  const fee = data.base_fee === undefined ? (data.name.trim() === 'Diploma' ? 250 : 50) : Number(data.base_fee);
   if (!Number.isFinite(fee) || fee < 0) throw badRequest('Base fee must be a non-negative number.');
   if (data.fee_rule && !['flat', 'per_semester_block'].includes(data.fee_rule)) {
     throw badRequest("Fee rule must be 'flat' or 'per_semester_block'.");
@@ -147,6 +153,10 @@ async function updateDocumentType(user, id, data) {
   assertAdmin(user);
   const rows = await referenceModel.findDocumentTypeById(id);
   if (!rows.length) throw notFound('Document type not found.');
+
+  if (documentPolicy.isRetired(rows[0].name) || documentPolicy.isRetired(data.name)) {
+    throw badRequest(documentPolicy.RETIREMENT_REASON);
+  }
 
   if (data.base_fee !== undefined) {
     const fee = Number(data.base_fee);
@@ -174,6 +184,7 @@ async function setDocumentTypeActive(user, id, isActive) {
   assertAdmin(user);
   const rows = await referenceModel.findDocumentTypeById(id);
   if (!rows.length) throw notFound('Document type not found.');
+  if (isActive && documentPolicy.isRetired(rows[0].name)) throw badRequest(documentPolicy.RETIREMENT_REASON);
 
   await referenceModel.setDocumentTypeActive(id, Boolean(isActive));
   const affectedDocuments = await referenceModel.countDocumentsUsingType(rows[0].name);

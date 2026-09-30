@@ -2,13 +2,11 @@
 
 ## Current Status
 - **Batch 1 to 8**: Previously marked complete in the historical docket. The reconstructed batches are being re-verified; see the current review below.
-- **Batch 9 Phase 1 (Core Routing & Split-Screen)**: Complete.
-- **Batch 9 Phase 2 (Registrar Consultation - Pricing/Sequence)**: Complete.
-- **Batch 9 Phase 3 (Messaging & Templates)**: IN PROGRESS (Just Completed)
+- **Batch 9 registrar consultation**: CN-03/CN-04 implementation and automated checks complete; live migration remains unapplied. Other consultation items remain pending. The earlier completion claims below are historical and superseded by the 2026-09-30 verification.
 - **Batch 10 Phase 1 & 2 (Audit Trail & Rate Limiting)**: Complete.
 - **Batch 10 Phase 3 (Security & Account Protection)**: Complete.
 
-## Completed In Batch 9 Phase 3
+## Historical Batch 9 Phase 3 Claims — Not Acceptance Evidence
 - **CN-11 (In-App Messaging):**
   - Added `document_messages` table and implemented full backend CRUD via `documentMessage.model.js` and `documents.controller/service`.
   - Created `DocumentChat.jsx` frontend component.
@@ -21,8 +19,71 @@
   - Integrated notification hooks directly into `sendMessage` (Student replies notify the assigned clerk, Staff replies notify the Student).
   - Validated that test expectations are met.
 
-## Next Steps
-- Begin Final Phase of the remaining tasks, or deploy and test.
+## Batch 9 Consultation Verification — 2026-09-30
+
+Baseline: clean `dev` at `f15d5be`, **527 backend / 342 frontend tests passing**. The user approved the exact CN-03/CN-04 file scope and its backend/migration exceptions, then approved the additional Secretary service/test files to close the Return bypass. No live database migration or deployment was performed.
+
+### Approved CN-03/CN-04 implementation
+
+- Good Moral is retired for new online requests, identified counter requests, and unidentified counter scans. All three names found in the repository are recognized: `Certificate of Good Moral`, `Certificate of Good Moral Character`, and `Good Moral Certificate`. Case and whitespace variations are blocked by the policy. Reference options omit these types even before the database migration runs.
+- Admin retains the historical catalog entry with a **Retired** label and explanation. Creation, editing/renaming, and restoration are rejected server-side; the existing retired request can still continue through its workflow. Changing another request into a retired type is rejected.
+- Diploma defaults to **₱250**, explicitly described as a reissue fee. Admin can change the configured fee; Secretary still sets the final charge. Previously priced requests are untouched.
+- The fresh seed no longer inserts Good Moral and preserves existing Diploma fees on reruns. The dedicated data migration changes only an existing Diploma fee of ₱50 and deactivates the known retired names. It records `cn03_cn04_catalog_v1` in `schema_migrations` in the same transaction. A failure rolls back both marker and updates; subsequent runs preserve later Admin edits, including a fee changed back to ₱50.
+
+Apply the dedicated migration from the repository root when deploying this phase:
+
+```sh
+node backend/database/migrate_cn03_cn04.js
+```
+
+The configured database must be available. The migration is import-safe and fails with a nonzero exit status. Any pre-migration Diploma fee of ₱50 is treated as the old default; there is no historical marker distinguishing a custom ₱50 fee. Other configured amounts are preserved. Do not use the old `migrate_b9.js` for this phase: it targets inconsistent catalog names and also changes unapproved attachment rules.
+
+### Files changed
+
+| File | Change |
+| --- | --- |
+| `backend/database/schema.sql` | Defines the data-migration completion ledger. |
+| `backend/database/migration.js` | Updates fresh defaults, protects Diploma fees on rerun, invokes the dedicated migration. |
+| `backend/database/migrate_cn03_cn04.js` | New atomic, recorded catalog migration. |
+| `backend/src/services/documentPolicy.service.js` | Central retirement rules; new-request blocking and historical-request compatibility. |
+| `backend/src/services/documents.service.js` | Guards corrected types on both Secretary Approve and Return. |
+| `backend/src/services/maintenance.service.js` | Retired Admin metadata and mutation guards; editable Diploma default. |
+| `backend/src/services/referenceData.service.js` | Removes retired types from request options. |
+| `frontend/src/features/admin/components/MaintenancePanel.jsx` | Retirement explanation/disabled controls and Diploma fee label. |
+| `backend/database/__tests__/migrate_cn03_cn04.test.cjs` | Migration failure/retry, rerun, fee preservation, import and seed checks. |
+| `backend/src/services/__tests__/documentPolicy.service.test.cjs` | Retirement aliases, intake bypass prevention, history and reference checks. |
+| `backend/src/services/__tests__/documents.service.test.cjs` | New-request refusal before writes; both Secretary decisions reject type changes but permit unchanged historical types. |
+| `backend/src/services/__tests__/maintenance.service.test.cjs` | Admin mutation guards and editable defaults. |
+| `frontend/src/features/__tests__/batch9.catalog.test.jsx` | Retired actions, keyboard editing, confirmed saves, configured fee display, FAQ checks. |
+| `frontend/src/pages/HelpPage.jsx` | Student/Admin guidance aligned with this phase. |
+| `docs/PROGRESS.md`, `docs/USER_MANUAL.md`, `docs/SYSTEM_WORKFLOWS.md` | Findings, user instructions, deployment requirements and historical workflow distinctions. |
+
+### Remaining consultation findings and decisions
+
+These are source findings, not successful live end-to-end acceptance. No additional repairs were bundled into CN-03/CN-04.
+
+| Item | Current finding / remaining scope |
+| --- | --- |
+| CN-01 | Order of Payment fallback already shows Program/Course, but request reads lack it and signup stores college in `users.course`. Template placeholders lack Course. User wants both slip and OR covered and approves a separate Program/Course field. Finance currently writes a physical OR and uploads its copy; no electronic OR generator was found. Exact implementation scope remains pending. |
+| CN-02 | Student form still exposes Copies. Removing it supersedes Batch 8b's quantity decision; preserve historical quantities. |
+| CN-05 | Names are unchanged; Student ID has no format validation. Signup's backend password rule currently requires eight characters, uppercase, lowercase, digit and a restricted symbol set. Capitalization style, retained minimum length and Alumni ID handling need explicit scoping. |
+| CN-06/CN-10 | Reference attachment labels and conditional fields exist, but the full per-type forms do not. Transcript and Clearance names differ across migrations/catalog/helpers. Current-student versus alumni is the approved meaning of undergraduate versus graduate. Canonical types, linked-set behavior and field matrix still need agreement. |
+| CN-07 | `is_same_day` exists and Admin can configure it, but reference shaping omits it and request reads lack it. Eligibility/cutoff rules need agreement. |
+| CN-08 | Amount and page count are independently entered; final pricing accepts the entered amount, without pages × rate. Scope authoritative computation, rate settings and historical amounts together. |
+| CN-09 | Numbering counts surviving requests and adds an alumni offset for all types. Cancellation deletes records, permitting reuse. Original issuance is not tracked per type; the slip does not show the sequence. |
+| CN-11 | Message model incorrectly imports the DB pool object. `sendMessage` calls an undefined notification function for assigned-clerk replies; the legacy link payload is incompatible with the notification helper. Threads lack full role wiring, attachment/hold behavior and live refresh. Deferred DOC-03 depends on this project. |
+| CN-12 | Template model also imports the pool incorrectly. Admin imports but does not render its editor. Only the payment slip consumes templates; email notices are disconnected. Scope safe template data/HTML and printable behavior separately. |
+| CN-13 | Existing notification infrastructure already covers several status changes. No dedicated delay detection/SLA rules were found. Reuse the existing system rather than create another. |
+| CN-14 | No Google Form destination found. `frontend/public/qr-walkin.png` is empty and unused. The slip QR encodes a tracking number for Finance. User approves a separate submission QR based on the deployed TRACE origin, preserving the tracking QR; alumni counter redirection and login continuation remain to scope. |
+
+### Validation
+
+- **554 backend / 347 frontend tests passed** for this phase; baseline was 527 / 342. The final backend run includes the ten additional pipeline regressions after the approved Secretary file addition. Frontend source is unchanged since its passing full-suite/build/lint checkpoint. The added checks cover catalog retirement, confirmed keyboard editing, request options, migration rollback/retry and preservation of custom fees.
+- **Production frontend build passed**, with the existing large-chunk warning. ESLint passed for the changed Admin panel, FAQ and new frontend test. `git diff --check` passed. Frontend tests emitted the existing Node local-storage warning.
+- Tests use mocked models/connections; they do not establish successful execution against a live MySQL database. No physical-device acceptance or migration was performed.
+- **Additional verified gap resolved with user-approved file additions:** `acceptForProcessing()` previously checked policy only on Approve, while Return also saved corrected `document_type`. A request could be changed to Good Moral on Return and later treated as historical. Both decisions now reject such changes before evaluation/log writes or notifications; unchanged historical Good Moral requests still proceed. The additional source/tests are listed above. Focused pipeline/policy checks passed (175 tests), followed by the passing full backend suite reported above. No other implementation assumptions changed; the first new checks exposed test-selector/fixture mistakes, which were corrected before completion.
+
+Remaining Program/Course, receipt, submission QR, form, pricing, sequence, messaging, notification and template work is not marked complete by this phase.
 
 ## Batch 1 Re-verification — 2026-09-30
 

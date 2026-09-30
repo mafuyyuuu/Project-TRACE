@@ -37,6 +37,15 @@ function fakeConnection(docRow) {
 let connection;
 
 describe('document-policy request enforcement', () => {
+  it.each([['student', STUDENT], ['counter', WINDOW1]])('blocks a new Good Moral %s request before writing documents or logs', async (_channel, user) => {
+    const insert = vi.spyOn(documentModel, 'insert').mockResolvedValue([{ insertId: 9 }]);
+    await expect(service.uploadDocument(user, { document_type: 'Certificate of Good Moral', student_id: 'STU-001' }, []))
+      .rejects.toThrow(/no longer available/);
+    expect(insert).not.toHaveBeenCalled();
+    expect(stepLogModel.insert).not.toHaveBeenCalled();
+    expect(connection.rollback).toHaveBeenCalledOnce();
+    expect(connection.commit).not.toHaveBeenCalled();
+  });
   it('rejects a forged audience selection at the server before any document write', async () => {
     referenceModel.findDocumentTypesByNames.mockResolvedValue([{ name: 'Diploma', is_active: 1, available_to: 'alumni', base_fee: 50, fee_rule: 'flat' }]);
     await expect(service.uploadDocument(STUDENT, { document_type: 'Diploma', copies: 1 }, [])).rejects.toMatchObject({ status: 400 });
@@ -527,6 +536,31 @@ describe('acceptForProcessing — Secretary desk only', () => {
     expect(documentModel.updateEvaluation).toHaveBeenCalledWith(
       5, STATUS.PENDING_W1_INTAKE, 'STU-001', 'Ana', 'Diploma', null, connection
     );
+  });
+
+  it.each(['approve', 'reject'].flatMap(action =>
+    ['Certificate of Good Moral', 'Certificate of Good Moral Character', '  good moral certificate  '].map(name => [action, name])
+  ))('blocks a type change to retired Good Moral on %s (%s)', async (action, name) => {
+    documentModel.findByIdForUpdate.mockResolvedValue([{ ...doc, document_type: 'Diploma' }]);
+    await expect(service.acceptForProcessing(SECRETARY, 5, {
+      ...body, action, notes: 'Needs correction', document_type: name,
+    })).rejects.toThrow(/no longer available/);
+    expect(documentModel.updateEvaluation).not.toHaveBeenCalled();
+    expect(stepLogModel.insert).not.toHaveBeenCalled();
+    expect(connection.rollback).toHaveBeenCalledOnce();
+    expect(connection.commit).not.toHaveBeenCalled();
+    expect(notifications.dispatchStudentAlert).not.toHaveBeenCalled();
+  });
+
+  it.each(['approve', 'reject'])('permits %s of an unchanged historical Good Moral request', async action => {
+    const name = 'Certificate of Good Moral';
+    documentModel.findByIdForUpdate.mockResolvedValue([{ ...doc, document_type: name, copies: 1 }]);
+    referenceModel.findDocumentTypeByName.mockResolvedValue([{ name, is_active: 0, available_to: 'both', is_repeatable: 1 }]);
+    await service.acceptForProcessing(SECRETARY, 5, { ...body, action, notes: 'Historical request', document_type: name });
+    expect(documentModel.updateEvaluation).toHaveBeenCalledWith(5,
+      action === 'approve' ? STATUS.SEC_PROCESSING : STATUS.PENDING_W1_INTAKE,
+      'STU-001', 'Ana', name, action === 'approve' ? '2026-09-05' : null, connection);
+    expect(connection.commit).toHaveBeenCalledOnce();
   });
 
   it('will not reject without saying why', async () => {
