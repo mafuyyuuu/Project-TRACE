@@ -4,7 +4,7 @@
  * The tabs each role can reach. `tab` is matched against the `?tab=` query,
  * with 'dashboard' as the default when none is present.
  */
-export function navItemsForUser(user) {
+function roleNavItems(user) {
   const isWindow1 =
     user?.role === 'clerk' &&
     (user?.desk_assignment === 'Window 1' || user?.desk_assignment === 'Receiving Desk');
@@ -12,8 +12,7 @@ export function navItemsForUser(user) {
   if (user?.role === 'student') {
     const items = [
       { tab: 'dashboard', to: '/dashboard', label: 'Dashboard', icon: 'dashboard' },
-      { tab: 'request-history', to: '/dashboard?tab=request-history', label: 'Request History', icon: 'document' },
-      { tab: 'payment-history', to: '/dashboard?tab=payment-history', label: 'Payment History', icon: 'card' },
+      { tab: 'history', to: '/dashboard?tab=history', label: 'History', icon: 'document' },
     ];
     // Only an alumnus can file the Graduate Application — a regular student
     // never sees the tab at all, not even to navigate to it directly.
@@ -44,7 +43,6 @@ export function navItemsForUser(user) {
     return [
       { tab: 'dashboard', to: '/dashboard', label: 'Dashboard', icon: 'dashboard' },
       { tab: 'admin-tracker', to: '/dashboard?tab=admin-tracker', label: 'Document Tracker', icon: 'document' },
-      { tab: 'admin-users', to: '/dashboard?tab=admin-users', label: 'Registered Users', icon: 'users' },
       { tab: 'admin-logs', to: '/dashboard?tab=admin-logs', label: 'Activity Logs', icon: 'checklist' },
       { tab: 'admin-security', to: '/dashboard?tab=admin-security', label: 'Security Logs', icon: 'shield' },
       { tab: 'admin-reports', to: '/dashboard?tab=admin-reports', label: 'Reports & Export', icon: 'report' },
@@ -61,4 +59,9 @@ export function navItemsForUser(user) {
   }
 
   return [];
+}
+
+export function navItemsForUser(user) {
+  const items = roleNavItems(user);
+  return user?.role ? [...items, { tab: 'help', to: '/dashboard?tab=help', label: 'Help / FAQ', icon: 'book' }] : items;
 }

@@ -1,3 +1,4 @@
+import { INPUT_LIMITS } from '@/utils/inputLimits';
 import ModalShell from '@/components/ModalShell';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import QueueTabs from '@/components/QueueTabs';
@@ -202,7 +203,7 @@ export default function GradApplicationReviewPanel({ user, currentTab }) {
               <label className="text-[10px] font-bold text-gray-800 dark:text-gray-100 uppercase tracking-widest">
                 Notes <span className="text-gray-400 dark:text-gray-400 normal-case font-semibold">· required to reject</span>
               </label>
-              <textarea
+              <textarea maxLength={INPUT_LIMITS.notes}
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
                 rows={2}

@@ -27,6 +27,7 @@ const notificationModel = require('../models/notification.model');
 const passwordResetModel = require('../models/passwordReset.model');
 const aiEngine = require('./aiEngine.service');
 const notifications = require('./notification.service');
+const sendAuthEmail = ({ email, title, message }) => notifications.sendEmail(email, title, message);
 const { UPLOAD_DIR } = require('../middlewares/upload.middleware');
 const { badRequest, unauthorized, forbidden, notFound } = require('../utils/AppError');
 
@@ -34,6 +35,22 @@ const { badRequest, unauthorized, forbidden, notFound } = require('../utils/AppE
  * Authenticate by student/employee ID + password, returning a 24h JWT.
  * Students must be verified before they can log in; staff bypass that check.
  */
+
+/** Separate login and email-change challenges; reject invalid/null expiries. */
+function otpExpired(value) {
+  const expires = new Date(value).getTime();
+  return !value || !Number.isFinite(expires) || expires <= Date.now();
+}
+
+function publicUser(user) {
+  const fields = ['id', 'student_id', 'full_name', 'role', 'user_type', 'desk_assignment',
+    'course', 'college_id', 'email', 'phone_number', 'profile_picture', 'verification_status'];
+  const result = Object.fromEntries(fields.map(key => [key, user[key] ?? null]));
+  for (const key of ['profile_completed', 'must_change_password', 'has_grad_application']) {
+    result[key] = Boolean(user[key]);
+  }
+  return result;
+}
 
 async function login({ employee_id, password }, ipAddress, userAgent) {
 
@@ -83,13 +100,13 @@ async function login({ employee_id, password }, ipAddress, userAgent) {
   const requires2FA = user.two_factor_enabled || isStaff;
 
   if (requires2FA) {
-    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    const otp = crypto.randomInt(100000, 1000000).toString();
     const expires = new Date(Date.now() + 5 * 60000); // 5 mins
     await userModel.updateEmailOTP(user.id, otp, expires);
     
     const notifications = require('./notification.service');
-    if (notifications.notifyByEmail && user.email) {
-      await notifications.notifyByEmail({
+    if (sendAuthEmail && user.email) {
+      await sendAuthEmail({
         email: user.email,
         title: 'Project TRACE Login Verification',
         message: `Your login verification code is: ${otp}. It expires in 5 minutes.`
@@ -125,22 +142,7 @@ async function login({ employee_id, password }, ipAddress, userAgent) {
   return {
     message: 'Login successful.',
     token,
-    user: {
-      id: user.id,
-      student_id: user.student_id,
-      full_name: user.full_name,
-      role: user.role,
-      user_type: user.user_type,
-      desk_assignment: user.desk_assignment,
-      course: user.course,
-      user_type: user.user_type,
-      email: user.email || null,
-      phone_number: user.phone_number || null,
-      profile_picture: user.profile_picture || null,
-      profile_completed: Boolean(user.profile_completed),
-      must_change_password: Boolean(user.must_change_password),
-      has_grad_application: Boolean(user.has_grad_application),
-    },
+    user: publicUser(user),
   };
 }
 
@@ -192,7 +194,7 @@ async function register(body, file) {
     console.log(`⚠️ AI could not auto-verify user ${employee_id}: ${aiResult.reason}`);
   }
 
-  await userModel.createUser({
+  const [created] = await userModel.createUser({
     student_id: employee_id,
     full_name,
     email,
@@ -205,9 +207,30 @@ async function register(body, file) {
     verification_status,
   });
 
-  return verification_status === 'verified'
-    ? { message: 'Registration successful. Your account was automatically verified by AI!' }
-    : { message: 'Registration successful. AI could not automatically verify your ID. Please wait for administrator verification.' };
+  if (verification_status === 'pending') {
+    try {
+      const admins = await userModel.findActiveAdmins();
+      await notifications.notifyInAppBulk(admins, {
+        title: 'Account awaiting verification', message: `${full_name} has submitted an account for review.`,
+        type: 'info', actionUrl: `/dashboard?reviewAccount=${created.insertId}`,
+      });
+    } catch (err) { console.warn('Registration notification unavailable:', err.message); }
+  }
+  const allowedReasons = new Set([
+    'No text could be extracted from the image.',
+    'School name and Student ID found, but College did not match.',
+    'School name and College found, but Student ID did not match.',
+    'Student ID and College matched, but School name not found.',
+    'Could not verify all required fields (School name, Student ID, College).',
+  ]);
+  return {
+    verification_status,
+    verification_reason: verification_status === 'verified' ? null
+      : allowedReasons.has(aiResult?.reason) ? aiResult.reason : 'Automatic verification was unavailable or inconclusive. An administrator will review your proof.',
+    message: verification_status === 'verified'
+      ? 'Registration successful. Your account was automatically verified by AI!'
+      : 'Registration successful. Please wait for administrator verification.',
+  };
 }
 
 async function listPendingStudents(requestingUser) {
@@ -286,23 +309,23 @@ async function updateProfile(userId, { phone_number, email, course, password, cu
   
   if (emailChanged) {
     // Generate 6-digit OTP
-    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    const otp = crypto.randomInt(100000, 1000000).toString();
     const expires = new Date(Date.now() + 15 * 60000); // 15 mins
     
-    await userModel.requestEmailChange(userId, email, otp, expires);
+    await userModel.requestEmailChange(userId, email, `E:${otp}`, expires);
 
     const nodemailer = require('nodemailer'); // Assumes we use notification.service
     const notifications = require('./notification.service');
     
     // Send OTP to new email
-    if (notifications.notifyByEmail) {
-      await notifications.notifyByEmail({
+    if (sendAuthEmail) {
+      await sendAuthEmail({
         email: email,
         title: 'Verify Your New Email',
         message: `Your verification code is: ${otp}. It expires in 15 minutes.`
       });
       // Notify old email
-      await notifications.notifyByEmail({
+      await sendAuthEmail({
         email: currentUser.email,
         title: 'Email Change Requested',
         message: 'A request to change your email address was initiated. If this was not you, please contact support.'
@@ -330,7 +353,7 @@ async function updateProfile(userId, { phone_number, email, course, password, cu
     if (userRows[0] && userRows[0].email) {
       const nodemailer = require('nodemailer'); // Assumes we use the same mailer. We have notification.service.js
       const notifications = require('./notification.service');
-      if (notifications.notifyByEmail) await notifications.notifyByEmail({
+      if (sendAuthEmail) await sendAuthEmail({
         email: userRows[0].email,
         title: 'Password Changed',
         message: 'Your Project TRACE password was recently changed. If this was not you, please contact the administrator immediately.'
@@ -350,11 +373,11 @@ async function updateProfile(userId, { phone_number, email, course, password, cu
     await userModel.upsertProfile(userId, profileFields);
   }
 
-  if (Object.keys(fields).length === 0 && !hasProfileFields) {
+  if (Object.keys(fields).length === 0 && !hasProfileFields && !emailChanged) {
     throw badRequest('No fields to update.');
   }
 
-  return { message: 'Profile updated successfully.' };
+  return { message: emailChanged ? 'Profile saved. Verify the code sent to your new email.' : 'Profile updated successfully.', email_verification_required: emailChanged, pending_email: emailChanged ? email : null };
 }
 
 
@@ -434,17 +457,20 @@ async function verify2FA(tempToken, otp, ipAddress, userAgent) {
     throw badRequest('Invalid token type.');
   }
 
-  const user = await userModel.findById(decoded.id);
-  if (!user) throw notFound('User not found.');
+  const [user] = await userModel.findById(decoded.id);
+  if (!user || user.is_active === false || user.is_active === 0) throw notFound('User not found.');
 
-  if (user.email_otp !== otp) {
+  if (user.login_otp !== otp) {
     throw unauthorized('Invalid verification code.');
   }
   
-  if (new Date(user.email_otp_expires) < new Date()) {
+  if (otpExpired(user.login_otp_expires)) {
     throw badRequest('Verification code expired.');
   }
 
+  if (user.role === 'student' && user.verification_status !== 'verified') {
+    throw forbidden(`Account is ${user.verification_status}.`);
+  }
   // Clear OTP
   await userModel.clearEmailOTP(user.id);
   
@@ -464,21 +490,22 @@ async function verify2FA(tempToken, otp, ipAddress, userAgent) {
     { expiresIn: '24h' }
   );
 
-  return { message: 'Login successful.', token, user };
+  const fresh = await userModel.getProfileById(user.id);
+  return { message: 'Login successful.', token, user: publicUser(fresh[0] || user) };
 }
 
 async function verifyEmailChange(userId, otp) {
-  const user = await userModel.findById(userId);
+  const [user] = await userModel.findById(userId);
   if (!user) throw notFound('User not found.');
   if (!user.pending_email || !user.email_otp) {
     throw badRequest('No email change requested.');
   }
   
-  if (user.email_otp !== otp) {
+  if (user.email_otp !== `E:${otp}`) {
     throw unauthorized('Invalid verification code.');
   }
   
-  if (new Date(user.email_otp_expires) < new Date()) {
+  if (otpExpired(user.email_otp_expires)) {
     throw badRequest('Verification code expired.');
   }
   
@@ -589,8 +616,8 @@ async function resetPassword({ token, password }) {
   await passwordResetModel.invalidateAllForUser(reset.user_id);
 
   const uRows = await userModel.findById(reset.user_id);
-  if (uRows.length > 0 && uRows[0].email && notifications.notifyByEmail) {
-    await notifications.notifyByEmail({
+  if (uRows.length > 0 && uRows[0].email && sendAuthEmail) {
+    await sendAuthEmail({
       email: uRows[0].email,
       title: 'Password Reset Successful',
       message: 'Your Project TRACE password has been successfully reset. If this was not you, please contact the administrator immediately.'

@@ -33,6 +33,32 @@ beforeEach(() => {
 });
 
 describe('Physical OR now, digital copy later', () => {
+  it('keeps a counter receipt local until Read Receipt, and saves only after confirmation', async () => {
+    const user = userEvent.setup();
+    documents.getDocuments.mockResolvedValue({ documents: [{ ...DOC, current_status: STATUS.PENDING_STUDENT_PAYMENT }] });
+    documents.scanReceipt.mockResolvedValue({ success: true, message: 'Receipt read.', extracted_data: { or_number: 'OR-SCAN', confidence: 95 } });
+    documents.logWalkInPayment.mockResolvedValue({ documents_covered: 1 });
+    render(<FinanceDashboard user={FINANCE} setViewImageUrl={vi.fn()} />);
+    await user.click(await screen.findByRole('button', { name: 'Log Counter Payment' }));
+    const file = new File(['copy'], 'counter.png', { type: 'image/png' });
+    await user.upload(screen.getByLabelText('Official Receipt copy · optional', { selector: 'input' }), file);
+    expect(documents.scanReceipt).not.toHaveBeenCalled();
+    expect(documents.logWalkInPayment).not.toHaveBeenCalled();
+    await user.click(screen.getByRole('button', { name: 'Read Receipt' }));
+    await waitFor(() => expect(documents.scanReceipt).toHaveBeenCalledOnce());
+    expect(documents.scanReceipt.mock.calls[0][0].get('receipt')).toBe(file);
+    await user.click(await screen.findByRole('button', { name: 'OK' }));
+    await user.click(screen.getByRole('button', { name: 'Record Payment' }));
+    expect(documents.logWalkInPayment).not.toHaveBeenCalled();
+    await user.click(within(screen.getByRole('dialog', { name: 'Record Payment' })).getByRole('button', { name: 'Cancel' }));
+    expect(screen.getByText(/Selected: counter.png/)).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Record Payment' }));
+    await user.click(within(screen.getByRole('dialog', { name: 'Record Payment' })).getByRole('button', { name: 'Record Payment' }));
+    await waitFor(() => expect(documents.logWalkInPayment).toHaveBeenCalledOnce());
+    expect(documents.logWalkInPayment.mock.calls[0][1].get('officialReceipt')).toBe(file);
+    expect(documents.logWalkInPayment.mock.calls[0][1].get('or_number')).toBe('OR-SCAN');
+  });
+
   it('verifies with an OR number and no uploaded copy, only after confirmation', async () => {
     const user = userEvent.setup();
     render(<FinanceDashboard user={FINANCE} setViewImageUrl={vi.fn()} />);
@@ -76,7 +102,7 @@ describe('Physical OR now, digital copy later', () => {
     fireEvent.submit(submit.form);
     await user.click(within(screen.getByRole('dialog', { name: 'Upload Official Receipt Copy' })).getByRole('button', { name: 'Cancel' }));
     expect(documents.uploadDeferredOR).not.toHaveBeenCalled();
-    expect(screen.getByLabelText('Official POS Receipt').files[0]).toBe(file);
+    expect(screen.getByText(/Selected: or-copy.png/)).toBeInTheDocument();
     fireEvent.submit(submit.form);
     await user.click(screen.getByRole('button', { name: 'Confirm Upload' }));
     await waitFor(() => expect(documents.uploadDeferredOR).toHaveBeenCalledExactlyOnceWith(DOC.id, file));
@@ -97,7 +123,7 @@ describe('Physical OR now, digital copy later', () => {
     expect(await screen.findByRole('dialog', { name: 'Attention Needed' })).toHaveTextContent('Upload unavailable.');
     await user.click(screen.getByRole('button', { name: 'OK' }));
     expect(screen.getByRole('dialog', { name: 'Upload Official Receipt Copy' })).toBeInTheDocument();
-    expect(screen.getByLabelText('Official POS Receipt').files[0].name).toBe('or.png');
+    expect(screen.getByText(/Selected: or.png/)).toBeInTheDocument();
   });
 
   it('requires explicit physical inspection when Secretary has no digital copy', async () => {

@@ -8,6 +8,8 @@ import ModalShell from '@/components/ModalShell';
  */
 export default function ConfirmDialog({
   open,
+  children,
+  maxWidth = 'max-w-md',
   title,
   message,
   variant = 'neutral',
@@ -27,7 +29,7 @@ export default function ConfirmDialog({
       open={open}
       onClose={onCancel}
       title={title}
-      maxWidth="max-w-md"
+      maxWidth={maxWidth}
       closeOnBackdrop={!loading}
       closeOnEsc={!loading}
       showCloseButton={!loading}
@@ -67,6 +69,7 @@ export default function ConfirmDialog({
           {line}
         </p>
         ))}
+        {children}
       </div>
     </ModalShell>
   );

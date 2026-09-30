@@ -2,24 +2,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import useDashboardCore from '@/hooks/useDashboardCore';
 import { uploadDocument, submitPayment, cancelDocument } from '@/services/documentsService';
 import { getDocumentTypes, getPaymentMethods } from '@/services/referenceService';
-import { STATUS, isCancellable } from '@/utils/documentStatus';
-
-/**
- * Progress-bar target for the live tracking modal, by pipeline stage.
- *
- * Eight stages now, and payment sits near the end rather than at the start:
- * a student who has been asked to pay is most of the way there.
- */
-const TRACKER_TARGETS = {
-  [STATUS.PENDING_W1_INTAKE]: 0,
-  [STATUS.PENDING_SEC_EVALUATION]: 15,
-  [STATUS.SEC_PROCESSING]: 35,
-  [STATUS.PENDING_STUDENT_PAYMENT]: 55,
-  [STATUS.PENDING_FINANCE_VERIFICATION]: 70,
-  [STATUS.PAID_PENDING_SEC_RELEASE]: 85,
-  [STATUS.SEC_OR_VERIFIED]: 90,
-  [STATUS.READY_FOR_RELEASE]: 95,
-};
+import { STATUS, PIPELINE, isCancellable } from '@/utils/documentStatus';
 
 /**
  * Student portal: request submission, checkout, cancellation, and the live
@@ -155,7 +138,8 @@ export default function useStudentDashboard(user) {
   useEffect(() => {
     if (activeModal !== 'tracking' || !selectedDoc) return undefined;
     const timer = setTimeout(() => {
-      setTrackerProgress(TRACKER_TARGETS[selectedDoc.current_status] ?? 100);
+      const index = PIPELINE.indexOf(selectedDoc.current_status);
+      setTrackerProgress(index < 0 ? 0 : index / Math.max(1, PIPELINE.length - 1) * 100);
     }, 50);
     return () => clearTimeout(timer);
   }, [activeModal, selectedDoc]);

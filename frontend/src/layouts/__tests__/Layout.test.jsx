@@ -125,7 +125,7 @@ describe('Layout', () => {
     fireEvent.click(screen.getByLabelText('Open navigation menu'));
 
     await waitFor(() => expect(screen.getByLabelText('Close navigation menu')).toBeInTheDocument());
-    expect(screen.getByText('Request History')).toBeInTheDocument();
+    expect(screen.getByText('History')).toBeInTheDocument();
   });
 
   it('closes the drawer from its own close control', async () => {
@@ -140,9 +140,9 @@ describe('Layout', () => {
   it('closes the drawer once a destination is chosen', async () => {
     renderLayout();
     fireEvent.click(screen.getByLabelText('Open navigation menu'));
-    await waitFor(() => expect(screen.getByText('Payment History')).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText('Help / FAQ')).toBeInTheDocument());
 
-    fireEvent.click(screen.getByText('Payment History'));
+    fireEvent.click(screen.getByText('Help / FAQ'));
     await waitFor(() => expect(screen.queryByLabelText('Close navigation menu')).not.toBeInTheDocument());
   });
 

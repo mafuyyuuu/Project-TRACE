@@ -1,3 +1,5 @@
+import { INPUT_LIMITS } from '@/utils/inputLimits';
+import FileUploadField from '@/components/FileUploadField';
 import { useState, useEffect } from 'react';
 import NewRequestModal from '@/features/student/components/NewRequestModal';
 import LiveTrackingModal from '@/features/student/components/LiveTrackingModal';
@@ -11,9 +13,10 @@ import {
   getAttachmentHelper,
   getAttachmentLabel,
   getProgressVal,
+  getStatusTone,
   getStatusLabel,
-  isAwaitingStudent,
   isCancellable,
+  isAwaitingStudent,
   requiresAttachment,
 } from '@/utils/documentStatus';
 import { formatPeso } from '@/utils/pricing';
@@ -26,8 +29,10 @@ import DashboardLoading from '@/components/DashboardLoading';
  * Student portal: request KPIs, history, GCash checkout, and live tracking.
  */
 export default function StudentDashboard({ user, currentTab, setViewImageUrl }) {
+  const [historyView, setHistoryView] = useState({ tab: currentTab, filter: currentTab === 'payment-history' ? 'payments' : 'all' });
+  const historyFilter = historyView.tab === currentTab ? historyView.filter : currentTab === 'payment-history' ? 'payments' : 'all';
   const [missingProfileFields, setMissingProfileFields] = useState(null);
-  const [docFilter, setDocFilter] = useState('ALL');
+  const docFilter = 'ALL';
   const {
     loading,
     success,
@@ -248,7 +253,7 @@ export default function StudentDashboard({ user, currentTab, setViewImageUrl }) 
                               </div>
                             </td>
                             <td className="py-4 px-4 align-middle">
-                              <span className={`inline-flex max-w-48 px-3 py-1 rounded-full text-[10px] leading-relaxed font-black uppercase tracking-wider ${doc.current_status === STATUS.COMPLETED || doc.current_status === 'APPROVED' ? 'bg-emerald-50 dark:bg-emerald-950/40 text-[#15803d] dark:text-green-300' : doc.current_status === 'REJECTED' ? 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 line-through' : isAwaitingStudent(doc.current_status) ? 'bg-red-50 dark:bg-red-950/40 text-red-700 dark:text-red-300' : 'bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300'}`}>
+                              <span className={`inline-flex max-w-48 px-3 py-1 rounded-full text-[10px] leading-relaxed font-black uppercase tracking-wider ${getStatusTone(doc.current_status, isAwaitingStudent(doc.current_status) ? 'bg-red-50 dark:bg-red-950/40 text-red-700 dark:text-red-300' : undefined)}}`}>
                                 {getStatusLabel(doc.current_status)}
                               </span>
                             </td>
@@ -307,139 +312,28 @@ export default function StudentDashboard({ user, currentTab, setViewImageUrl }) 
         )}
 
         {/* 1.2. STUDENT PORTAL - REQUEST HISTORY */}
-        {currentTab === 'request-history' && (
-          <>
-            {/* Header */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
-              <div>
-                <h2 className="text-2xl sm:text-3xl font-display font-black text-gray-900 dark:text-gray-100 tracking-tight">
-                  Request History
-                </h2>
-              </div>
-            </div>
-
-            {/* History Table */}
-            <div className="bg-white dark:bg-gray-900 rounded-3xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
-              <div className="p-4 sm:p-6 border-b border-gray-100 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800/50 flex justify-between items-center">
-                <h3 className="font-bold text-gray-900 dark:text-gray-100 text-lg">Your request history</h3>
-                <select value={docFilter} onChange={(e) => setDocFilter(e.target.value)} className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 dark:bg-emerald-950/40 text-[#15803d] dark:text-green-300 border border-emerald-100 dark:border-emerald-800 rounded-xl text-xs font-bold hover:bg-emerald-100 dark:hover:bg-emerald-950/40 transition-all outline-none">
-                  <option value="ALL">All Documents</option>
-                  <option value="ACTIVE">Active Documents</option>
-                  <option value="COMPLETED">Completed</option>
-                </select>
-              </div>
-              <div className="p-4 sm:p-6">
-                <div className="max-h-[calc(100vh-280px)] overflow-y-auto overflow-x-auto">
-                  {documents.length === 0 ? (
-                    <div className="text-center py-12 text-gray-400 dark:text-gray-400 font-medium">No request history found.</div>
-                  ) : (
-                    <table className="w-full text-left border-collapse table-fixed min-w-[560px]">
-                      <thead className="sticky top-0 bg-white dark:bg-gray-900 z-10">
-                        <tr className="text-gray-400 dark:text-gray-400 text-[10px] uppercase tracking-widest border-b border-gray-100 dark:border-gray-700">
-                          <th className="pb-4 font-bold pl-4 min-w-[160px]">Docuement</th>
-                          <th className="pb-4 font-bold min-w-[110px]">Date Requested</th>
-                          <th className="pb-4 font-bold min-w-[110px]">Tracking ID</th>
-                          <th className="pb-4 font-bold min-w-[110px]">Status</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-gray-50 dark:divide-gray-700">
-                        {documents.map(doc => (
-                          <tr key={doc.id} className="hover:bg-gray-50/50 dark:hover:bg-gray-800/50 transition-colors">
-                            <td className="py-4 pl-4 text-sm font-bold text-gray-900 dark:text-gray-100">{doc.document_sequence_number || doc.document_type}</td>
-                            <td className="py-4 text-xs font-semibold text-gray-400 dark:text-gray-400">{new Date(doc.created_at).toLocaleDateString()} {new Date(doc.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</td>
-                            <td className="py-4 font-mono text-xs text-gray-800 dark:text-gray-100 font-bold">#{doc.tracking_number ? doc.tracking_number.slice(0, 10).toUpperCase() : doc.id}</td>
-                            <td className="py-4">
-                              <span className="px-3 py-1 bg-emerald-50 dark:bg-emerald-950/40 text-[#15803d] dark:text-green-300 text-[10px] font-black rounded-full uppercase tracking-wider">
-                                {doc.current_status === STATUS.COMPLETED ? 'Released' : 'Processing'}
-                              </span>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  )}
-              
-                </div>
-              </div>
-            </div>
-          </>
-        )}
-
-        {/* 1.3. STUDENT PORTAL - PAYMENT HISTORY */}
-        {currentTab === 'payment-history' && (
-          <>
-            {/* Header */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
-              <div>
-                <h2 className="text-2xl sm:text-3xl font-display font-black text-gray-900 dark:text-gray-100 tracking-tight">
-                  Payment History
-                </h2>
-              </div>
-            </div>
-
-            {/* Payment Card Table */}
-            <div className="bg-white dark:bg-gray-900 rounded-3xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
-              <div className="p-4 sm:p-6 border-b border-gray-100 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800/50 flex justify-between items-center">
-                <h3 className="font-bold text-gray-900 dark:text-gray-100 text-lg">Manage your digital transactions.</h3>
-                <button className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 dark:bg-emerald-950/40 text-[#15803d] dark:text-green-300 border border-emerald-100 dark:border-emerald-800 rounded-xl text-xs font-bold hover:bg-emerald-100 dark:hover:bg-emerald-950/40 transition-all">
-                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"/></svg>
-                  Filters
-                </button>
-              </div>
-              <div className="p-4 sm:p-6">
-                <div className="max-h-[calc(100vh-280px)] overflow-y-auto overflow-x-auto">
-                  {documents.filter(d => d.payment_status === 'PAID' || d.gcash_reference_no).length === 0 ? (
-                    <div className="text-center py-12 text-gray-400 dark:text-gray-400 font-medium">No transaction payments detected.</div>
-                  ) : (
-                    <table className="w-full text-left border-collapse table-fixed min-w-[620px]">
-                      <thead className="sticky top-0 bg-white dark:bg-gray-900 z-10">
-                        <tr className="text-gray-400 dark:text-gray-400 text-[10px] uppercase tracking-widest border-b border-gray-100 dark:border-gray-700">
-                          <th className="pb-4 font-bold pl-4 min-w-[90px]">Date</th>
-                          <th className="pb-4 font-bold min-w-[130px]">Reference Number</th>
-                          <th className="pb-4 font-bold min-w-[140px]">Document</th>
-                          <th className="pb-4 font-bold min-w-[90px]">Amount</th>
-                          <th className="pb-4 font-bold min-w-[100px]">Status</th>
-                          <th className="pb-4 font-bold text-right pr-4 min-w-[70px]">Receipt</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-gray-50 dark:divide-gray-700">
-                        {documents.filter(d => d.payment_status === 'PAID' || d.gcash_reference_no).map(doc => (
-                          <tr key={doc.id} className="hover:bg-gray-50/50 dark:hover:bg-gray-800/50 transition-colors">
-                            <td className="py-4 pl-4 text-xs font-semibold text-gray-400 dark:text-gray-400">{new Date(doc.updated_at).toLocaleDateString()} {new Date(doc.updated_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</td>
-                            <td className="py-4 font-mono text-xs text-gray-800 dark:text-gray-100 font-black">{doc.gcash_reference_no ? doc.gcash_reference_no.slice(0, 8).toUpperCase() : '—'}</td>
-                            <td className="py-4 text-sm font-bold text-gray-700 dark:text-gray-300">{doc.document_sequence_number || doc.document_type}</td>
-                            <td className="py-4 text-xs font-bold text-gray-800 dark:text-gray-100 font-mono">P {parseFloat(doc.amount || 150).toFixed(2)}</td>
-                            <td className="py-4">
-                              {doc.payment_status === 'PAID' ? (
-                                <span className="px-3 py-1 bg-emerald-50 dark:bg-emerald-950/40 text-[#15803d] dark:text-green-300 text-[10px] font-black rounded-full uppercase tracking-wider">PAID</span>
-                              ) : (
-                                <span className="px-3 py-1 bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-300 text-[10px] font-black rounded-full uppercase tracking-wider">VERIFYING</span>
-                              )}
-                            </td>
-                            <td className="py-4 text-right pr-4">
-                              {doc.official_receipt_path ? (
-                                <button 
-                                  onClick={() => setViewImageUrl(doc.official_receipt_path)}
-                                  className="p-2 text-[#15803d] dark:text-green-300 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 rounded-xl transition-colors"
-                                  title="View Official Finance Receipt"
-                                >
-                                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-                                </button>
-                              ) : (
-                                <span className="text-[10px] text-gray-400 dark:text-gray-400 font-bold uppercase tracking-widest">Pending</span>
-                              )}
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  )}
-              
-                </div>
-              </div>
-            </div>
-          </>
-        )}
+        {['request-history', 'payment-history', 'history'].includes(currentTab) && <section className="space-y-5">
+          <h2 className="text-2xl sm:text-3xl font-display font-black">History</h2>
+          <div className="flex flex-wrap gap-3" aria-label="History filters">
+            {['all', 'payments'].map(filter => <button key={filter} type="button" aria-pressed={historyFilter === filter} onClick={() => setHistoryView({ tab: currentTab, filter })} className={`px-4 py-2 rounded-xl text-sm font-bold ${historyFilter === filter ? 'bg-[#15803d] text-white' : 'bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700'}`}>{filter === 'all' ? 'All Requests' : 'Payments'}</button>)}
+          </div>
+          <div className="bg-white dark:bg-gray-900 rounded-3xl border border-gray-200 dark:border-gray-700 p-4 overflow-x-auto max-h-[60vh]">
+            <table className="w-full table-fixed min-w-[980px] text-left text-xs">
+              <thead className="sticky top-0 bg-white dark:bg-gray-900 z-10"><tr>{['Requested', 'Tracking', 'Document', 'Request Status', 'Amount', 'Payment Status', 'Payment Reference', 'Receipt'].map(label => <th key={label} className="px-3 py-3">{label}</th>)}</tr></thead>
+              <tbody>{documents.filter(doc => historyFilter === 'all' || doc.payment_status === 'PAID' || doc.gcash_reference_no).map(doc => <tr key={doc.id} className="border-t border-gray-100 dark:border-gray-700">
+                <td className="px-3 py-4">{new Date(doc.created_at).toLocaleDateString()}</td>
+                <td className="px-3 py-4 break-all">{doc.tracking_number || doc.id}</td>
+                <td className="px-3 py-4 break-words font-bold">{doc.document_type}</td>
+                <td className="px-3 py-4"><span className={`inline-block px-2 py-1 rounded-xl ${getStatusTone(doc.current_status, isAwaitingStudent(doc.current_status) ? 'bg-red-50 dark:bg-red-950/40 text-red-700 dark:text-red-300' : undefined)}`}>{getStatusLabel(doc.current_status)}</span></td>
+                <td className="px-3 py-4">{formatPeso(doc.amount)}</td>
+                <td className="px-3 py-4">{doc.payment_status || 'PENDING'}</td>
+                <td className="px-3 py-4 break-all">{doc.gcash_reference_no || doc.or_number || '—'}</td>
+                <td className="px-3 py-4">{doc.official_receipt_path ? <button type="button" onClick={() => setViewImageUrl(doc.official_receipt_path)} className="font-bold text-green-700 dark:text-green-300 underline">View Receipt</button> : 'No digital copy'}</td>
+              </tr>)}</tbody>
+            </table>
+            {documents.filter(doc => historyFilter === 'all' || doc.payment_status === 'PAID' || doc.gcash_reference_no).length === 0 && <p className="p-6 text-sm text-gray-500 dark:text-gray-400">No records match this filter.</p>}
+          </div>
+        </section>}
 
         {/* 1.4. NEW REQUEST MODAL */}
         {activeModal === 'new-request' && (
@@ -566,7 +460,7 @@ export default function StudentDashboard({ user, currentTab, setViewImageUrl }) 
                       <label className="text-[10px] font-bold text-gray-800 dark:text-gray-100 uppercase tracking-widest">
                         {selectedPaymentMethod?.reference_label || 'Reference Number'}
                       </label>
-                      <input
+                      <input maxLength={INPUT_LIMITS.shortText}
                         type="text"
                         required
                         placeholder="e.g. 5001 0293 8472"
@@ -579,19 +473,7 @@ export default function StudentDashboard({ user, currentTab, setViewImageUrl }) 
                   {selectedPaymentMethod?.requires_proof !== false && (
                     <div className="flex flex-col gap-1.5">
                       <label className="text-[10px] font-bold text-gray-800 dark:text-gray-100 uppercase tracking-widest">Upload Receipt</label>
-                      <div className="relative">
-                        <input
-                          type="file"
-                          required
-                          accept="image/*"
-                          onChange={(e) => setPaymentFile(e.target.files[0])}
-                          className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
-                        />
-                        <div className="p-3 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-xs font-semibold text-gray-500 dark:text-gray-400 flex justify-between items-center pointer-events-none">
-                          <span className="truncate">{paymentFile ? paymentFile.name : 'Upload your receipt...'}</span>
-                          <svg className="w-4 h-4 text-[#15803d] dark:text-green-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
-                        </div>
-                      </div>
+                      <FileUploadField label="Payment proof" file={paymentFile} onChange={setPaymentFile} accept="image/*" />
                     </div>
                   )}
                 </div>

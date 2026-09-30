@@ -1,3 +1,4 @@
+import { getMe } from '@/services/authService';
 import { useState, useEffect, useCallback } from 'react';
 import {
   getFormFields,
@@ -90,6 +91,14 @@ export default function useGraduateApplication(user) {
         setAnswersToConfirm(null);
         const mine = await getMyApplications();
         setApplications(mine.applications || []);
+        try {
+          const { user: fresh } = await getMe();
+          localStorage.setItem('trace_user', JSON.stringify(fresh));
+          window.dispatchEvent(new CustomEvent('trace-user-updated', { detail: fresh }));
+        } catch {
+          // The application is already saved; a failed refresh is not a failed submission.
+          setSuccess(`${res.message || 'Application submitted.'} Refresh the page to update dashboard access.`);
+        }
       } catch (err) {
         setError(err.response?.data?.error || 'Failed to submit application.');
       } finally {

@@ -199,6 +199,31 @@ async function createStaff(user, data) {
   };
 }
 
+async function updateAccount(user, id, data) {
+  assertAdmin(user);
+  const [account] = await userModel.findById(id);
+  if (!account) throw notFound('Account not found.');
+  if (data.student_id !== undefined || data.employee_id !== undefined) throw badRequest('Account identifiers are read-only.');
+  const fields = {};
+  for (const [key, max] of Object.entries({ full_name: 255, email: 255, phone_number: 20, course: 100 })) {
+    if (data[key] === undefined) continue;
+    if (typeof data[key] !== 'string' || data[key].length > max) throw badRequest(`Invalid ${key}. Maximum ${max} characters.`);
+    fields[key] = data[key].trim();
+  }
+  if (fields.full_name === '') throw badRequest('Full name cannot be empty.');
+  if (fields.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(fields.email)) throw badRequest('Enter a valid email address.');
+  if (data.college_id !== undefined) {
+    if (data.college_id !== null && data.college_id !== '') {
+      const idValue = Number(data.college_id);
+      if (!Number.isInteger(idValue) || idValue < 1 || !(await referenceModel.findCollegeById(idValue)).length) throw badRequest('Choose a valid college.');
+      fields.college_id = idValue;
+    } else fields.college_id = null;
+  }
+  if (!Object.keys(fields).length) throw badRequest('No fields to update.');
+  await userModel.updateProfile(id, fields);
+  return { message: 'Account updated.' };
+}
+
 async function updateStaff(user, id, data) {
   assertAdmin(user);
 
@@ -332,6 +357,7 @@ async function setPaymentMethodActive(user, id, isActive) {
 }
 
 module.exports = {
+  updateAccount,
   VALID_DESKS,
   VALID_ROLES,
   listColleges, createCollege, updateCollege, setCollegeActive,

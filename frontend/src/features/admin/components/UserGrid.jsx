@@ -1,3 +1,4 @@
+import { INPUT_LIMITS } from '@/utils/inputLimits';
 import UserCard from '@/components/UserCard';
 
 const selectClass =
@@ -26,7 +27,7 @@ export default function UserGrid({
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row flex-wrap gap-3 sm:items-center">
-        <input
+        <input maxLength={INPUT_LIMITS.shortText}
           type="text"
           placeholder="Search by name or email…"
           value={searchValue}

@@ -1,3 +1,4 @@
+import { INPUT_LIMITS } from '@/utils/inputLimits';
 import { useState } from 'react';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import { updateProfile } from '@/services/authService';
@@ -91,7 +92,7 @@ export default function ForcePasswordChange({ user, onChanged, onLogout }) {
             <label htmlFor="new-password" className="text-[10px] font-bold text-gray-700 dark:text-gray-300 uppercase tracking-widest">
               New Password
             </label>
-            <input
+            <input maxLength={INPUT_LIMITS.password}
               id="new-password" type="password" className={inputClass} required
               minLength={MIN_LENGTH} autoComplete="new-password"
               value={password} onChange={(e) => setPassword(e.target.value)}
@@ -103,7 +104,7 @@ export default function ForcePasswordChange({ user, onChanged, onLogout }) {
             <label htmlFor="confirm-password" className="text-[10px] font-bold text-gray-700 dark:text-gray-300 uppercase tracking-widest">
               Confirm Password
             </label>
-            <input
+            <input maxLength={INPUT_LIMITS.password}
               id="confirm-password" type="password" className={inputClass} required
               autoComplete="new-password"
               value={confirm} onChange={(e) => setConfirm(e.target.value)}

@@ -38,7 +38,7 @@ export default function FinanceDashboard({ user, setViewImageUrl }) {
     setClerkNotes,
     orNumber, setOrNumber,
     orDate, setOrDate,
-    orFile,
+    orFile, setOrFile,
     scanning,
     scanConfidence,
     handleScanReceipt,
@@ -314,6 +314,7 @@ export default function FinanceDashboard({ user, setViewImageUrl }) {
             orDate={orDate}
             setOrDate={setOrDate}
             orFile={orFile}
+            setOrFile={setOrFile}
             clerkNotes={clerkNotes}
             setClerkNotes={setClerkNotes}
           />

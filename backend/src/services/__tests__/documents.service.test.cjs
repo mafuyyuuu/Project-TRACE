@@ -1103,3 +1103,13 @@ describe('getActivityLogs — admin only', () => {
     expect(await statusOf(service.getActivityLogs(user))).toBe(403);
   });
 });
+
+describe('intake OCR confidence adapter', () => {
+  it.each([0, 87.25, undefined])('preserves the engine confidence %s without inventing a score', async confidence => {
+    vi.spyOn(documentModel, 'insert').mockResolvedValue([{ insertId: 77 }]);
+    vi.spyOn(documentModel, 'updateOcrData').mockResolvedValue([{}]);
+    vi.spyOn(aiEngine, 'extractDocument').mockResolvedValue({ success: true, raw_text: 'diploma', extracted_data: { student_id: 'STU-001', form_type: 'Diploma', confidence } });
+    await service.uploadDocument(STUDENT, { document_type: 'Diploma' }, { fieldname: 'document', filename: 'proof.png', originalname: 'proof.png', path: '/unused/proof.png' });
+    expect(documentModel.updateOcrData).toHaveBeenCalledWith(77, expect.objectContaining({ confidence: confidence ?? null }));
+  });
+});

@@ -1,3 +1,4 @@
+import { INPUT_LIMITS } from '@/utils/inputLimits';
 import ConfirmDialog from '@/components/ConfirmDialog'
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
@@ -54,7 +55,7 @@ export default function ForgotPasswordPage() {
           <label htmlFor="identifier" className="block text-sm font-bold mb-2 uppercase tracking-wide">
             Student ID / Staff ID or Email
           </label>
-          <input
+          <input maxLength={INPUT_LIMITS.email}
             id="identifier"
             type="text"
             autoComplete="username"

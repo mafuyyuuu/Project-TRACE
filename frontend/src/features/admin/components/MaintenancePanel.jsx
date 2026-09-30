@@ -1,3 +1,4 @@
+import { INPUT_LIMITS } from '@/utils/inputLimits';
 import { useState } from 'react';
 import useMaintenance from '@/features/admin/useMaintenance';
 import DashboardLoading from '@/components/DashboardLoading';
@@ -16,7 +17,7 @@ const TOGGLE_KIND_LABELS = {
   paymentMethod: 'Payment Method',
 };
 const SECTIONS = [
-  { key: 'staff', label: 'Staff' },
+  { key: 'staff', label: 'Accounts' },
   { key: 'documentTypes', label: 'Document Types' },
   { key: 'colleges', label: 'Colleges' },
   { key: 'paymentMethods', label: 'Payment Methods' },
@@ -60,7 +61,7 @@ export default function MaintenancePanel({ user, currentTab }) {
   const set = (key, value) => setForm((f) => ({ ...f, [key]: value }));
   const resetForm = () => setForm({});
 
-  const filteredStaff = m.staff.filter((s) => {
+  const filteredStaff = (m.accounts || m.staff).filter((s) => {
     const q = staffSearch.toLowerCase();
     const matchesSearch =
       !q || s.full_name?.toLowerCase().includes(q) || s.student_id?.toLowerCase().includes(q) || s.email?.toLowerCase().includes(q);
@@ -119,7 +120,7 @@ export default function MaintenancePanel({ user, currentTab }) {
             System <span className="text-[#15803d] dark:text-green-300">Maintenance</span>
           </h2>
           <p className="text-xs text-gray-400 dark:text-gray-400 mt-1 font-semibold">
-            Manage staff accounts, document types, colleges and payment methods. Deactivating hides an
+            Manage accounts, document types, colleges and payment methods. Deactivating hides an
             entry from new requests without affecting existing records.
           </p>
         </div>
@@ -136,7 +137,7 @@ export default function MaintenancePanel({ user, currentTab }) {
                   : 'text-gray-400 dark:text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'
               }`}
             >
-              {s.label} ({m[s.key].length})
+              {s.label} ({(s.key === 'staff' ? m.accounts : m[s.key]).length})
             </button>
           ))}
         </div>
@@ -153,6 +154,7 @@ export default function MaintenancePanel({ user, currentTab }) {
               onRoleFilterChange={setStaffRoleFilter}
               roleOptions={[
                 { value: 'All', label: 'All Roles' },
+                { value: 'student', label: 'Student / Alumni' },
                 { value: 'clerk', label: 'Clerk' },
                 { value: 'admin', label: 'Administrator' },
               ]}
@@ -169,10 +171,12 @@ export default function MaintenancePanel({ user, currentTab }) {
               viewerId={user.id}
               saving={m.saving}
               onEdit={() => m.setEditingUser(m.selectedUser)}
-              onToggleActive={() => m.handleToggleActive(m.selectedUser)}
+              onToggleActive={m.selectedUser?.role === 'student' ? undefined : () => m.handleToggleActive(m.selectedUser)}
             />
 
             <UserEditModal
+              key={m.editingUser?.id || 'none'}
+              colleges={m.colleges}
               open={!!m.editingUser}
               onClose={() => m.setEditingUser(null)}
               user={m.editingUser}
@@ -195,7 +199,7 @@ export default function MaintenancePanel({ user, currentTab }) {
             <form onSubmit={submitDocType} className="bg-white dark:bg-gray-900 rounded-3xl p-6 shadow-sm border border-gray-200 dark:border-gray-700 space-y-3 h-fit">
               <h3 className="text-sm font-bold text-gray-900 dark:text-gray-100 mb-2">Add Document Type</h3>
 
-              <input className={inputClass} placeholder="Name *" required
+              <input maxLength={INPUT_LIMITS.referenceName} className={inputClass} placeholder="Name *" required
                 value={form.dt_name || ''} onChange={(e) => set('dt_name', e.target.value)} />
               <input className={inputClass} type="number" min="0" step="0.01" placeholder="Base fee (₱)"
                 value={form.dt_fee ?? ''} onChange={(e) => set('dt_fee', e.target.value)} />
@@ -213,7 +217,7 @@ export default function MaintenancePanel({ user, currentTab }) {
               </label>
 
               {form.dt_attach && (
-                <input className={inputClass} placeholder="Attachment label"
+                <input maxLength={INPUT_LIMITS.shortText} className={inputClass} placeholder="Attachment label"
                   value={form.dt_label || ''} onChange={(e) => set('dt_label', e.target.value)} />
               )}
 
@@ -313,9 +317,9 @@ export default function MaintenancePanel({ user, currentTab }) {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <form onSubmit={submitCollege} className="bg-white dark:bg-gray-900 rounded-3xl p-6 shadow-sm border border-gray-200 dark:border-gray-700 space-y-3 h-fit">
               <h3 className="text-sm font-bold text-gray-900 dark:text-gray-100 mb-2">Add College</h3>
-              <input className={inputClass} placeholder="College name *" required
+              <input maxLength={INPUT_LIMITS.referenceName} className={inputClass} placeholder="College name *" required
                 value={form.c_name || ''} onChange={(e) => set('c_name', e.target.value)} />
-              <input className={inputClass} placeholder="Short code (e.g. CCS)"
+              <input maxLength={INPUT_LIMITS.shortCode} className={inputClass} placeholder="Short code (e.g. CCS)"
                 value={form.c_code || ''} onChange={(e) => set('c_code', e.target.value)} />
               <button type="submit" disabled={m.saving}
                 className="w-full py-3 bg-[#15803d] hover:bg-[#166534] disabled:opacity-60 text-white rounded-xl text-xs font-bold uppercase tracking-wider transition-all">
@@ -368,15 +372,15 @@ export default function MaintenancePanel({ user, currentTab }) {
               <h3 className="text-sm font-bold text-gray-900 dark:text-gray-100 mb-2">Add Payment Method</h3>
 
               <div>
-                <input className={`${inputClass} font-mono`} placeholder="Code * (e.g. paymaya)" required
+                <input maxLength={INPUT_LIMITS.shortCode} className={`${inputClass} font-mono`} placeholder="Code * (e.g. paymaya)" required
                   value={form.pm_code || ''} onChange={(e) => set('pm_code', e.target.value)} />
                 <p className="text-[10px] text-gray-400 dark:text-gray-400 mt-1.5">
                   Lowercase, letters/numbers/underscores only. Cannot be changed later.
                 </p>
               </div>
-              <input className={inputClass} placeholder="Display name *" required
+              <input maxLength={INPUT_LIMITS.referenceName} className={inputClass} placeholder="Display name *" required
                 value={form.pm_name || ''} onChange={(e) => set('pm_name', e.target.value)} />
-              <textarea className={`${inputClass} min-h-20`} placeholder="Instructions shown to the student"
+              <textarea maxLength={INPUT_LIMITS.notes} className={`${inputClass} min-h-20`} placeholder="Instructions shown to the student"
                 value={form.pm_instructions || ''} onChange={(e) => set('pm_instructions', e.target.value)} />
 
               <label className="flex items-center gap-2 text-xs font-semibold text-gray-700 dark:text-gray-300 cursor-pointer">
@@ -386,7 +390,7 @@ export default function MaintenancePanel({ user, currentTab }) {
                 Requires a reference number
               </label>
               {form.pm_requires_reference !== false && (
-                <input className={inputClass} placeholder="Reference field label (e.g. Approval Code)"
+                <input maxLength={INPUT_LIMITS.referenceName} className={inputClass} placeholder="Reference field label (e.g. Approval Code)"
                   value={form.pm_reference_label || ''} onChange={(e) => set('pm_reference_label', e.target.value)} />
               )}
 

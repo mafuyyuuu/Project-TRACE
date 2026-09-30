@@ -30,7 +30,7 @@ Before you can do anything, you need to "log in." This is like unlocking the fro
 3. **Look at the Login Screen:** You will see a white box in the middle of your screen asking for your information.
 4. **Enter your ID:** Click inside the top text box that says **"STUDENT ID / STAFF ID"**. Type your specific ID number exactly as written below.
 5. **Enter your Password:** Click inside the second text box that says **"Password"**. Type the word **`trace2024`** (all lowercase letters, no spaces). 
-6. **Click Login:** Look just below the password box. You will see a large button labeled **"Login"**. Move your mouse arrow over it and click the left mouse button once.
+6. **Sign in:** Choose **Login**, then confirm **Sign In**. Staff with email verification enabled enter the emailed six-digit code and confirm **Verify**. Authentication completes after that verification.
 
 ### Important Login Credentials to Use:
 *(Note: The password for all of these accounts is exactly **`trace2024`**)*
@@ -86,7 +86,7 @@ The Active Requests table shows progress and status for each document. Use **Liv
 As the Window 1 Clerk (`WINDOW1001`), you are the front door. You check requests when they first arrive, and you hand the printed papers to the students at the very end.
 
 ### Looking at Your Dashboard Tabs
-When you log in, look near the top left area of your screen, just under the main title. You will see three words you can click on: **Intake**, **Release**, and **Tracking Desk**. These are your "Tabs". Think of them as different folders of work.
+The dashboard has an upload card beside one workspace with **Intake** and **Release** queue tabs. On narrow screens these stack vertically. **Tracking Desk** remains a separate sidebar destination.
 
 ### Task 1: The Intake Queue (Checking New Requests)
 1. In the dashboard's **Intake Queue**, choose **Check** beside the request.
@@ -152,7 +152,7 @@ The queue tabs are **Awaiting Payment**, **Verification Queue**, and **Transacti
 3. Click on their name. You will see exactly how much money they owe.
 4. Take their money, and write them a paper Official Receipt (OR) from your receipt book.
 5. Look at the computer screen. Click the button that says **"Log Counter Payment"**.
-6. A box will appear. Click the first space and type the **OR Number** from the paper receipt you just wrote. Click the next space and type the amount of money they handed you.
+6. Enter the **OR Number**, receipt date, and any notes. The billed total and document breakdown are shown for checking. A retained receipt copy is optional: selecting it stays local; choose **Read Receipt** only if you want OCR assistance, then check the extracted values.
 7. Choose the form's save action, review the confirmation, then confirm. Logging a payment still requires Finance verification.
 
 ### Task 2: Verification Queue (For Online Payments like GCash)
@@ -186,13 +186,13 @@ The **System Throughput** card shows the average processing duration for complet
 
 ### Task 2: System Maintenance (Adding new staff or changing prices)
 1. Look at the very left edge of your screen. There is a dark menu bar running from top to bottom. Click on the words **"System Maintenance"**.
-2. **To Add or Remove Staff:** Click **"Manage Staff Accounts"**. Here you will see a list of everyone who works in the office. You can click a button to add a new person, type their name and ID, and give them a password. If someone retires, you can click the button next to their name to deactivate their account.
+2. **Accounts:** Open **System Maintenance → Accounts** for students, alumni, and staff. Open a card, choose **Edit User**, review the supported name, email, phone, college, and program fields, then confirm Save. IDs are read-only. **Add User**, temporary-password changes, and activation controls retain their staff-only permissions.
 3. **To Change Prices:** Click **"Manage Document Types"**. You will see a list of all documents (like Diplomas). If the school decides to raise the price of a Diploma, click on "Diploma", delete the old price, type the new price, and click Save. 
 4. **Payment Settings:** Click **"Manage Payment Methods"**. If the school's bank account number changes, you click here, erase the old account number, type the new one, and click save. This updates what the students see when they pay.
 
 ### Task 3: Reports & Analytics (Printing Records)
 1. Look at the left menu bar again. Click on **"Reports"**.
-2. If you need a spreadsheet of all the documents finished this month, click the button that says **"Export CSV"**. A file will download to your computer that you can open in Microsoft Excel.
+2. Apply the report filters, select **Document Report CSV** or a student export category from **Export options**, then choose **Export**. Document CSV uses the current filters. The on-screen dates use Philippine time and amounts use pesos.
 3. Click on the **"Efficiency Analytics"** tab at the top. Here, the computer tells you how fast your staff is working. It will literally say things like "Average time for Intake: 2 hours." If you see a number that is way too slow (like 14 days), you know you need to talk to that department to see why they are struggling.
 
 ---
@@ -218,3 +218,16 @@ Take your time, read the buttons before you click them, and thank you for doing 
 - **Logout from the mobile menu:** Escape cancels the logout confirmation and returns focus to Logout in the still-open menu. Press Escape again to close the menu.
 - **Acknowledge a message:** dashboard success and error messages appear in a matching dialog above any open form. They remain until you choose **OK**, press Escape, or click the backdrop. Dismissing the message keeps the underlying form and its draft open and returns keyboard focus there.
 - **Account Settings → Security:** the existing **Logout All Devices** action now reports its result in this feedback dialog. Profile-save and field-validation messages still appear within their forms.
+
+
+## Account, History, and Help Updates
+
+- **Registration:** select a Student ID or Diploma proof locally, complete the fields, then confirm **Submit Registration**. The button shows progress while the request runs. Success stays open until you close it; pending verification shows a safe reason and awaits administrator review. **Back to Login** remains available.
+- **First alumni login:** complete and confirm the configured Graduate Application before using the other dashboard destinations. Submission unlocks access after the profile refresh; if that refresh is unavailable, the saved application remains successful and the message asks you to refresh the page. Administrative approval is a separate review step.
+- **Profile email changes:** open the avatar's Account Settings, enter your current password under Security, save and confirm the new address, then enter and confirm the emailed code. The current address stays active until verification succeeds. Phone changes save through the normal confirmed profile action.
+- **Appearance:** the sidebar Settings action opens appearance preferences. The avatar still opens Profile Settings. Your saved light/dark preference persists.
+- **New-browser alerts:** the notification bell links to Security settings. Clearing the recognition cookie, using another browser profile, or blocking cross-site cookies can trigger another alert. A bell popup closes when you navigate or change tabs.
+- **History:** students use one **History** destination with **All Requests** and **Payments** filters. Existing request/payment-history links still open that table. On phones the tracker follows three columns in alternating row directions.
+- **Upload feedback:** selected filenames, local previews, and validation errors appear in the form. Selection does not submit a file. Save/Submit and its confirmation upload it; Cancel preserves the draft. Stored files can be previewed/downloaded, with replacement available only in existing authorized flows.
+- **Account Verification:** administrators choose **Review**, inspect the proof and Applicant Type, then choose **Verify** or **Reject** and confirm. Pending registrations also appear in the bell.
+- **Help / FAQ:** open this sidebar destination for your role's guidance. Use Enter or Space on a question to expand its answer. Contact the Registrar for unresolved account or record concerns.

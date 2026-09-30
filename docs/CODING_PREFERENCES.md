@@ -190,3 +190,14 @@ utils/         # Backend helper functions (AppError)
 - **OCR never records a payment on its own.** `/ocr/receipt` fills the walk-in form's fields; the
   clerk confirms them before saving. A misread amount here is a money error, which is precisely where
   a human check earns its cost.
+
+
+## Batch 8 Presentation and Account Conventions
+
+- Use `utils/inputLimits.js` for text-entry limits. Do not truncate stored values or apply new-password caps to login/current-password inputs. Numeric/date controls keep type/range validation rather than `maxLength`.
+- Approved limits: names/schools/birthplaces/emails/short answers/references 255; IDs 50; phones 20; program 100; college/document-type/payment-method names 150; suffix/short codes 20; OR number 100; notes/chat/long answers 2000; home address 500; new passwords 64; OTP 6; templates 100000. Payment-method reference labels use 150 to respect their existing SQL column. Existing shared schema/business validation remains authoritative.
+- `FileUploadField` owns local object URLs and revokes them on replacement/unmount. Parent hooks own drafts, uploads, confirmations, and authorized replacement. Selection must never automatically save or run OCR; Finance explicitly chooses Read Receipt. Frontend general file allowance is 10 MB, Finance's existing receipt-review/walk-in allowance 5 MB, avatar 2 MB. Signup's existing server uploader has no size guard; the new 10 MB check is client-side there, not new server enforcement.
+- Measure existing paginated table rows with `useViewportPagination`; preserve the first-row position and use the largest observed height to prevent resize/page oscillation. Do not add pagination to currently unpaginated queues/card grids. Keep stable table columns when record content changes between pages.
+- Derive tracker nodes/order from `PIPELINE`. Its mobile layout uses three columns with alternating directions, desktop uses the full pipeline width, and SVG connectors measure actual node centers. Numeric layout styles carry computed geometry; they do not create a second theme. No pipeline vocabulary/order change occurred in this batch.
+- Derive shared closed-status treatments with `getStatusTone`/`isLegacyClosed`, format display dates with `formatDateTime`, and reuse `formatPeso` from pricing instead of duplicating currency logic. Forecast views share `forecastCeiling` from the unfiltered data; filters do not rescale the same forecast.
+- User Manual/FAQ copy is maintained in `docs/USER_MANUAL.md` and the role-aware `HelpPage`. Update both when changing those workflows.

@@ -8,14 +8,14 @@ const { pool } = require('../config/db');
 
 function findActiveByStudentId(studentId, executor = pool) {
   return executor
-    .query('SELECT u.*, (SELECT COUNT(*) FROM grad_applications WHERE student_id = u.id) > 0 AS has_grad_application FROM users u WHERE u.student_id = ? AND u.is_active = TRUE', [studentId])
+    .query('SELECT u.*, (SELECT COUNT(*) FROM grad_applications WHERE student_id = u.student_id) > 0 AS has_grad_application FROM users u WHERE u.student_id = ? AND u.is_active = TRUE', [studentId])
     .then(([rows]) => rows);
 }
 
 function getProfileById(userId, executor = pool) {
   return executor
     .query(
-      'SELECT u.id, u.student_id, u.email, u.full_name, u.role, u.user_type, u.desk_assignment, u.is_active, u.phone_number, u.course, u.college_id, u.id_proof_path, u.enrollment_status, u.study_load, u.must_change_password, u.profile_picture, u.created_at, (SELECT COUNT(*) FROM grad_applications WHERE student_id = u.id) > 0 AS has_grad_application FROM users u WHERE u.id = ?',
+      'SELECT u.id, u.student_id, u.email, u.pending_email, u.full_name, u.role, u.user_type, u.desk_assignment, u.is_active, u.phone_number, u.course, u.college_id, u.id_proof_path, u.enrollment_status, u.study_load, u.must_change_password, u.profile_picture, u.created_at, (SELECT COUNT(*) FROM grad_applications WHERE student_id = u.student_id) > 0 AS has_grad_application FROM users u WHERE u.id = ?',
       [userId]
     )
     .then(([rows]) => rows);
@@ -60,7 +60,7 @@ function setVerificationStatus(userId, newStatus, executor = pool) {
 
 function listAllUsers(executor = pool) {
   return executor
-    .query('SELECT id, student_id, full_name, email, course, college_id, role, verification_status, enrollment_status, study_load, is_active, created_at FROM users ORDER BY created_at DESC')
+    .query('SELECT id, student_id, full_name, email, phone_number, user_type, desk_assignment, course, college_id, role, verification_status, enrollment_status, study_load, is_active, created_at FROM users ORDER BY created_at DESC')
     .then(([rows]) => rows);
 }
 
@@ -184,7 +184,7 @@ function listStaff({ includeInactive = true } = {}, executor = pool) {
   const activeClause = includeInactive ? '' : ' AND is_active = TRUE';
   return executor
     .query(
-      `SELECT id, student_id, full_name, email, role, desk_assignment, course,
+      `SELECT id, student_id, full_name, email, phone_number, user_type, college_id, role, desk_assignment, course,
               is_active, must_change_password, created_at
        FROM users WHERE role IN ('clerk', 'admin')${activeClause}
        ORDER BY role, desk_assignment, full_name`
@@ -348,11 +348,11 @@ function getGlobalSecurityLogs(executor = pool) {
 
 
 function updateEmailOTP(userId, otp, expires, executor = pool) {
-  return executor.query('UPDATE users SET email_otp = ?, email_otp_expires = ? WHERE id = ?', [otp, expires, userId]);
+  return executor.query('UPDATE users SET login_otp = ?, login_otp_expires = ? WHERE id = ?', [otp, expires, userId]);
 }
 
 function clearEmailOTP(userId, executor = pool) {
-  return executor.query('UPDATE users SET email_otp = NULL, email_otp_expires = NULL WHERE id = ?', [userId]);
+  return executor.query('UPDATE users SET login_otp = NULL, login_otp_expires = NULL WHERE id = ?', [userId]);
 }
 
 function requestEmailChange(userId, email, otp, expires, executor = pool) {
@@ -367,7 +367,12 @@ function incrementTokenVersion(userId, executor = pool) {
   return executor.query('UPDATE users SET token_version = token_version + 1 WHERE id = ?', [userId]);
 }
 
+function findActiveAdmins(executor = pool) {
+  return executor.query('SELECT id FROM users WHERE role = "admin" AND is_active = TRUE').then(([rows]) => rows);
+}
+
 module.exports = {
+  findActiveAdmins,
   updateEmailOTP,
   clearEmailOTP,
   requestEmailChange,

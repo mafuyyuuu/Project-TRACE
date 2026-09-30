@@ -298,3 +298,18 @@ caller never had to prove they control.
 - `GET /api/documents/stats`: Returns KPI metrics (backlogs, processed today, avg time).
 - `GET /api/documents/stats/forecast`: Proxies to Flask AI engine to retrieve the 7-day volume forecast using Prophet.
 - `GET /api/documents/stats/insights`: Proxies to Flask AI engine to retrieve Random Forest heuristics and alert recommendations.
+
+
+## Batch 8 Backend/API Repairs
+
+- Run the explicit migration described in `ENV_SETUP_GUIDE.md` before deploying the notification/model changes. `user_devices` has a unique `(user_id, device_hash)` and timestamps/IP/user-agent metadata; only the SHA-256 cookie hash is stored. `notifications.action_url` is nullable. The migration also reconciles the existing lockout/token-version/pending-email/2FA columns missing from repository DDL and adds separate login OTP code/expiry. No migration runs automatically at API startup.
+- Login and `/api/auth/verify-2fa` recognize browsers only after a full token/user response. The existing OTP, email-change, security-log, and logout-all routes now have their missing controller adapters. Login and OTP share a whitelist public user DTO; password hashes/OTP secrets do not enter that response. Invalid, expired, or inactive-account OTP attempts cannot trigger recognition. Login codes use login_otp/login_otp_expires; pending-email codes use E:<six digits> in email_otp. Codes cannot cross the two flows and OTP generation uses crypto.randomInt.
+- `PUT /api/maintenance/users/:id` is admin-only, accepting `full_name`, `email`, `phone_number`, `course`, and `college_id`. IDs are rejected and privilege fields are not written. Staff password/activation actions remain on their existing endpoints.
+- `/api/auth/profile` adds `email_verification_required` and `pending_email` feedback. `/api/auth/verify-email-change` commits the existing pending address after code validation; `/api/auth/me` exposes pending-email state for recovery after refresh. Phone/email reads remain fresh database queries.
+- Registration adds `verification_status` and allowlisted `verification_reason` feedback. Pending accounts notify active administrators with `/dashboard?reviewAccount=<id>`. Notification failure does not undo creation.
+- In-app notifications persist/emit `action_url` and their inserted ID. The frontend supports internal dashboard actions, closes the bell on navigation, and uses the existing notification list rather than creating a second notification system.
+- Notification emails now contain escaped TRACE-branded HTML with inline table styling and retain plain text. Existing SMTP configuration is reused.
+- AI HTTP calls abort after 15 seconds, including stalled JSON bodies, and keep null/fallback semantics on errors. Intake OCR stores `extracted_data.confidence`, preserving zero and fractional scores; absent confidence is null instead of a fabricated percentage.
+- Graduate-completion subqueries join `grad_applications.student_id` to `users.student_id`, not the numeric user key. No new completion flag/schema is needed.
+
+Device alerts are browser recognition, not device attestation or new JWT session invalidation. Delivery, the unique-key behavior against live MySQL, and real OCR performance need integration verification after deployment. Schema/auth/API work above was explicitly approved for Batch 8; other presentation changes retain existing contracts.

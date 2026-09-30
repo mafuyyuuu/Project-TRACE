@@ -1,3 +1,4 @@
+import FileUploadField from '@/components/FileUploadField';
 import { useState } from 'react';
 import ModalShell from '@/components/ModalShell';
 import ConfirmDialog from '@/components/ConfirmDialog';
@@ -39,14 +40,7 @@ export default function DeferredOrUploadModal({
           <label htmlFor="deferred-or-file" className="text-[10px] font-bold text-gray-800 dark:text-gray-100 uppercase tracking-widest">
             Official POS Receipt
           </label>
-          <input
-            id="deferred-or-file"
-            type="file"
-            accept="image/png, image/jpeg, image/webp, application/pdf"
-            required
-            onChange={(e) => setOrFile(e.target.files[0])}
-            className="p-2 border border-gray-200 dark:border-gray-700 rounded-xl w-full text-xs"
-          />
+          <FileUploadField id="deferred-or-file" label="Official Receipt scan" file={orFile} path={selectedDoc?.official_receipt_path} onChange={setOrFile} disabled={actionLoading} />
         </div>
 
       </form>

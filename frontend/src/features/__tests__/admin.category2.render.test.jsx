@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { STATUS } from '@/utils/documentStatus';
-import { render, screen, waitFor, within } from '@testing-library/react';
+import { render, renderHook, act, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
 /**
@@ -10,6 +10,16 @@ import userEvent from '@testing-library/user-event';
  * "deactivate" is not a delete, that exports respect the on-screen filters, and
  * that staff figures are presented as workload rather than a ranking.
  */
+
+vi.mock('@/services/authService', () => ({ getUsers: vi.fn(), getPendingStudents: vi.fn(), verifyStudent: vi.fn() }));
+import { getUsers, getPendingStudents, verifyStudent } from '@/services/authService';
+vi.mock('@/services/documentsService', () => ({
+  getDocuments: vi.fn().mockResolvedValue({ documents: [] }),
+  getDashboardStats: vi.fn().mockResolvedValue({}),
+  getForecast: vi.fn().mockResolvedValue({ forecast: [] }),
+  getInsights: vi.fn().mockResolvedValue({ insights: [] }),
+  getActivityLogs: vi.fn().mockResolvedValue({ logs: [] }),
+}));
 
 vi.mock('@/services/maintenanceService', () => ({
   getStaff: vi.fn(), createStaff: vi.fn(), updateStaff: vi.fn(), setStaffActive: vi.fn(),
@@ -28,6 +38,8 @@ import * as reportsService from '@/services/reportsService';
 import MaintenancePanel from '@/features/admin/components/MaintenancePanel';
 import ReportsPanel from '@/features/admin/components/ReportsPanel';
 import AnalyticsPanel from '@/features/admin/components/AnalyticsPanel';
+import AccountVerificationModal from '@/features/admin/components/AccountVerificationModal';
+import useAdminDashboard from '@/features/admin/useAdminDashboard';
 
 const ADMIN = { id: 7, role: 'admin', full_name: 'Registrar Admin' };
 
@@ -77,6 +89,8 @@ const ANALYTICS = {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  getUsers.mockResolvedValue({ users: STAFF });
+  getPendingStudents.mockResolvedValue({ pending_students: [{ id: 22, full_name: 'Alumni Applicant', student_id: 'ALU-22' }] });
   maintenanceService.getStaff.mockResolvedValue({ staff: STAFF });
   maintenanceService.getDocumentTypes.mockResolvedValue({ document_types: DOC_TYPES });
   maintenanceService.getColleges.mockResolvedValue({ colleges: COLLEGES });
@@ -97,6 +111,39 @@ beforeEach(() => {
 
 const settle = async () =>
   waitFor(() => expect(screen.queryByText(/Synchronizing Command Center/i)).not.toBeInTheDocument());
+
+describe('Registration review', () => {
+  it('opens a notification after SPA navigation and permits reopening it without submitting a decision', async () => {
+    const { result, rerender } = renderHook(({ id, navigation }) => useAdminDashboard(ADMIN, 'dashboard', id, navigation), {
+      initialProps: { id: null, navigation: null },
+    });
+    await waitFor(() => expect(result.current.pendingStudents).toHaveLength(1));
+    expect(result.current.studentVerifyToConfirm).toBeNull();
+    rerender({ id: '22', navigation: 'first-click' });
+    await waitFor(() => expect(result.current.studentVerifyToConfirm?.student.id).toBe(22));
+    act(() => result.current.cancelAdminVerifyStudent());
+    expect(result.current.studentVerifyToConfirm).toBeNull();
+    rerender({ id: '22', navigation: 'second-click' });
+    await waitFor(() => expect(result.current.studentVerifyToConfirm?.student.id).toBe(22));
+    expect(verifyStudent).not.toHaveBeenCalled();
+  });
+
+  it.each(['verify', 'reject'])('requires a separate confirmation before %s and supports cancellation', async (decision) => {
+    const user = userEvent.setup();
+    const confirm = vi.fn();
+    render(<AccountVerificationModal studentVerifyToConfirm={{ student: { id: 22, full_name: 'Alumni Applicant', student_id: 'ALU-22' }, action: 'review' }}
+      cancelAdminVerifyStudent={vi.fn()} confirmAdminVerifyStudent={confirm} actionLoading={false} setViewImageUrl={vi.fn()} />);
+    const label = decision === 'verify' ? 'Verify' : 'Reject';
+    await user.click(screen.getByRole('button', { name: label, exact: true }));
+    expect(confirm).not.toHaveBeenCalled();
+    await user.keyboard('{Escape}');
+    expect(screen.getByRole('dialog', { name: 'Review Registration' })).toBeInTheDocument();
+    expect(confirm).not.toHaveBeenCalled();
+    await user.click(screen.getByRole('button', { name: label, exact: true }));
+    await user.click(within(screen.getByRole('dialog', { name: `${label} Account` })).getByRole('button', { name: `${label} Account` }));
+    expect(confirm).toHaveBeenCalledExactlyOnceWith(decision);
+  });
+});
 
 describe('MaintenancePanel', () => {
   const renderPanel = async () => {
@@ -315,16 +362,17 @@ describe('ReportsPanel', () => {
 
   it('offers all four student export categories', async () => {
     await renderPanel();
-    expect(await screen.findByText('Active Students')).toBeInTheDocument();
-    expect(screen.getByText('Graduates / Alumni')).toBeInTheDocument();
-    expect(screen.getByText('Others')).toBeInTheDocument();
-    expect(screen.getByText('All Students')).toBeInTheDocument();
+    expect(await screen.findByText('Active Students (CSV)')).toBeInTheDocument();
+    expect(screen.getByText('Graduates / Alumni (CSV)')).toBeInTheDocument();
+    expect(screen.getByText('Others (CSV)')).toBeInTheDocument();
+    expect(screen.getByText('All Students (CSV)')).toBeInTheDocument();
   });
 
   it('exports the selected student category', async () => {
     const user = userEvent.setup();
     await renderPanel();
-    await user.click(await screen.findByText('Graduates / Alumni'));
+    await user.selectOptions(screen.getByRole('combobox', { name: 'Export options' }), 'alumni');
+    await user.click(screen.getByRole('button', { name: 'Export' }));
     await waitFor(() => expect(reportsService.exportStudentsCsv).toHaveBeenCalledWith('alumni'));
   });
 
@@ -333,7 +381,7 @@ describe('ReportsPanel', () => {
     await renderPanel();
 
     await user.selectOptions(await screen.findByDisplayValue('All statuses'), STATUS.COMPLETED);
-    await user.click(screen.getByRole('button', { name: /export these records/i }));
+    await user.click(screen.getByRole('button', { name: 'Export' }));
 
     await waitFor(() =>
       expect(reportsService.exportDocumentsCsv).toHaveBeenCalledWith(

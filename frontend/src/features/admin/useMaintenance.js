@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { getUsers } from '@/services/authService';
 import * as maintenanceService from '@/services/maintenanceService';
 
 /**
@@ -9,6 +10,7 @@ import * as maintenanceService from '@/services/maintenanceService';
  * tables without three sets of handlers.
  */
 export default function useMaintenance(user, currentTab) {
+  const [accounts, setAccounts] = useState([]);
   const [staff, setStaff] = useState([]);
   const [documentTypes, setDocumentTypes] = useState([]);
   const [colleges, setColleges] = useState([]);
@@ -29,21 +31,23 @@ export default function useMaintenance(user, currentTab) {
   // { kind: 'staff'|'documentType'|'college'|'paymentMethod', id, label, active }
   const [activeToggleToConfirm, setActiveToggleToConfirm] = useState(null);
 
-  const isActive = user?.role === 'admin' && currentTab === 'admin-maintenance';
+  const isActive = user?.role === 'admin' && ['admin-maintenance', 'admin-users'].includes(currentTab);
 
   const load = useCallback(async () => {
     try {
-      const [s, d, c, p] = await Promise.allSettled([
+      const [s, d, c, p, a] = await Promise.allSettled([
         maintenanceService.getStaff(),
         maintenanceService.getDocumentTypes(),
         maintenanceService.getColleges(),
         maintenanceService.getPaymentMethods(),
+        getUsers(),
       ]);
+      if (a.status === 'fulfilled') setAccounts(a.value.users || []);
       if (s.status === 'fulfilled') setStaff(s.value.staff || []);
       if (d.status === 'fulfilled') setDocumentTypes(d.value.document_types || []);
       if (c.status === 'fulfilled') setColleges(c.value.colleges || []);
       if (p.status === 'fulfilled') setPaymentMethods(p.value.payment_methods || []);
-      if ([s, d, c, p].some((r) => r.status === 'rejected')) {
+      if ([s, d, c, p, a].some((r) => r.status === 'rejected')) {
         setError('Some maintenance data could not be loaded.');
       }
     } finally {
@@ -157,15 +161,17 @@ export default function useMaintenance(user, currentTab) {
 
   const handleSaveEdit = useCallback(
     async (id, payload) => {
-      const ok = await updateStaff(id, payload);
+      const { password, ...profile } = payload;
+      const ok = Object.keys(profile).length ? await run(() => maintenanceService.updateAccount(id, profile), 'Failed to update account.') : true;
+      if (ok && password && !(await updateStaff(id, { password }))) return false;
       if (ok) setEditingUser(null);
       return ok;
     },
-    [updateStaff]
+    [updateStaff, run]
   );
 
   return {
-    staff, documentTypes, colleges, paymentMethods,
+    accounts, staff, documentTypes, colleges, paymentMethods,
     loading, saving, error, success,
     dismissNotification,
     reload: load,

@@ -1,3 +1,5 @@
+import { INPUT_LIMITS } from '@/utils/inputLimits';
+import FileUploadField from '@/components/FileUploadField';
 import DocumentChat from '@/components/DocumentChat';
 import { useState } from 'react';
 import ModalShell from '@/components/ModalShell';
@@ -9,7 +11,6 @@ export default function FinanceVerificationModal({
   setActiveModal,
   selectedDoc,
   setViewImageUrl,
-  triggerNotification,
   handleFinanceVerify,
   actionLoading,
   clerkNotes,
@@ -126,7 +127,7 @@ export default function FinanceVerificationModal({
           <label htmlFor="finance-verify-or-number" className="text-[10px] font-bold text-red-600 dark:text-red-300 uppercase tracking-widest flex items-center gap-1">
             Official Receipt Number <span className="text-red-500 dark:text-red-300">*</span>
           </label>
-          <input
+          <input maxLength={INPUT_LIMITS.receiptNumber}
             id="finance-verify-or-number"
             type="text"
             value={orNumber}
@@ -140,28 +141,13 @@ export default function FinanceVerificationModal({
           <label className="text-[10px] font-bold text-red-600 dark:text-red-300 uppercase tracking-widest flex items-center gap-1">
             Attach Official POS Receipt <span className="text-gray-400 dark:text-gray-400 font-normal normal-case">(Optional - upload later if deferred)</span>
           </label>
-          <input
-            type="file"
-            accept="image/png, image/jpeg, image/webp, application/pdf"
-            /* FIN-03: Deferred Upload */
-            onChange={(e) => {
-              const file = e.target.files[0];
-              if (file && file.size > 5 * 1024 * 1024) {
-                triggerNotification('File size exceeds 5MB limit.', 'error');
-                e.target.value = '';
-                setFinanceReceiptFile(null);
-                return;
-              }
-              setFinanceReceiptFile(file);
-            }}
-            className="w-full bg-red-50/50 dark:bg-red-950/50 border border-red-100 dark:border-red-800 rounded-xl p-3 text-xs font-bold text-red-600 dark:text-red-300 file:mr-4 file:py-1.5 file:px-4 file:rounded-full file:border-0 file:text-[10px] file:font-bold file:bg-red-600 dark:file:bg-red-600 file:text-white hover:file:bg-red-700 dark:hover:file:bg-red-700 cursor-pointer transition-colors"
-          />
+          <FileUploadField label="Official Receipt copy (optional)" file={financeReceiptFile} path={selectedDoc.official_receipt_path} onChange={setFinanceReceiptFile} maxBytes={5 * 1024 * 1024} />
         </div>
       </div>
 
       <div className="flex flex-col gap-1.5 mt-4">
         <label className="text-[10px] font-bold text-gray-800 dark:text-gray-100 uppercase tracking-widest">Clerk Notes / Remarks</label>
-        <textarea
+        <textarea maxLength={INPUT_LIMITS.notes}
           value={clerkNotes}
           onChange={(e) => setClerkNotes(e.target.value)}
           placeholder="Add notes (required for rejection)..."

@@ -1,3 +1,5 @@
+import { INPUT_LIMITS } from '@/utils/inputLimits';
+import FileUploadField from '@/components/FileUploadField';
 import ModalShell from '@/components/ModalShell';
 import AuthedFilePreview from '@/components/AuthedFilePreview';
 import { requiresAttachment, getAttachmentHelper } from '@/utils/documentStatus';
@@ -98,22 +100,7 @@ export default function IntakeReviewModal({
           )}
         </div>
 
-        <label className="block">
-          <span className="text-[10px] font-bold text-gray-800 dark:text-gray-100 uppercase tracking-widest block mb-2">
-            {selectedDoc.file_path ? 'Replace with a counter scan' : 'Scan at the counter'}
-          </span>
-          <input
-            type="file"
-            accept="image/*,application/pdf"
-            onChange={(e) => setIntakeFile(e.target.files?.[0] || null)}
-            className="block w-full text-xs text-gray-600 dark:text-gray-300 file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-gray-100 dark:file:bg-gray-800 file:text-gray-700 dark:file:text-gray-300 hover:file:bg-gray-200 dark:hover:file:bg-gray-800"
-          />
-          {intakeFile && (
-            <span className="text-[11px] text-[#15803d] dark:text-green-300 font-semibold mt-2 block">
-              Ready to attach: {intakeFile.name}
-            </span>
-          )}
-        </label>
+        <FileUploadField label={selectedDoc.file_path ? 'Replace with a counter scan' : 'Scan at the counter'} file={intakeFile} path={selectedDoc.file_path} onChange={setIntakeFile} />
 
         {selectedDoc.ocr_confidence_score != null && (
           <div className="bg-blue-50 dark:bg-blue-950/40 border border-blue-100 dark:border-blue-800 rounded-2xl p-4">
@@ -132,7 +119,7 @@ export default function IntakeReviewModal({
           <span className="text-[10px] font-bold text-gray-800 dark:text-gray-100 uppercase tracking-widest block mb-2">
             Notes <span className="text-gray-400 dark:text-gray-400 normal-case font-semibold">· required when returning</span>
           </span>
-          <textarea
+          <textarea maxLength={INPUT_LIMITS.notes}
             rows={3}
             value={intakeNotes}
             onChange={(e) => setIntakeNotes(e.target.value)}

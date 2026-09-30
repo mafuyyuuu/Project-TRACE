@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { updateProfile, uploadProfilePicture } from '@/services/authService';
+import { updateProfile, uploadProfilePicture, verifyEmailChange, getMe } from '@/services/authService';
 
 const STORED_USER_KEY = 'trace_user';
 
@@ -46,6 +46,8 @@ export default function useProfileSettings(user) {
   const [avatarPath, setAvatarPath] = useState(user?.profile_picture || null);
   const [avatarFile, setAvatarFile] = useState(null);
   const [avatarPreviewUrl, setAvatarPreviewUrl] = useState(null);
+  const [pendingEmail, setPendingEmail] = useState(user?.pending_email || '');
+  const [emailOtp, setEmailOtp] = useState('');
   const [saving, setSaving] = useState(false);
   const [success, setSuccess] = useState('');
   const [error, setError] = useState('');
@@ -56,6 +58,7 @@ export default function useProfileSettings(user) {
       const stored = localStorage.getItem(STORED_USER_KEY);
       if (!stored) return;
       localStorage.setItem(STORED_USER_KEY, JSON.stringify({ ...JSON.parse(stored), ...patch }));
+      window.dispatchEvent(new CustomEvent('trace-user-updated', { detail: patch }));
     } catch {
       // A corrupt or unavailable localStorage must not break the save.
     }
@@ -93,10 +96,11 @@ export default function useProfileSettings(user) {
     }
 
     try {
-      await updateProfile(profileData);
-      patchStoredUser({ phone_number: profileData.phone_number, email: profileData.email });
+      const result = await updateProfile(profileData);
+      patchStoredUser({ phone_number: profileData.phone_number, ...(result?.email_verification_required ? {} : { email: profileData.email }) });
+      if (result?.email_verification_required) setPendingEmail(result.pending_email || profileData.email);
       setProfileData((current) => ({ ...current, password: '', current_password: '' }));
-      messages.push('Profile updated successfully.');
+      messages.push(pendingEmail || profileData.email !== user?.email ? 'Profile saved. If an email change was requested, verify the code sent to the new address.' : 'Profile updated successfully.');
     } catch (err) {
       errors.push(readError(err));
     }
@@ -130,7 +134,21 @@ export default function useProfileSettings(user) {
     setError('');
   };
 
+  const confirmEmail = async () => {
+    setSaving(true); setError(''); setSuccess('');
+    try {
+      await verifyEmailChange(emailOtp);
+      const { user: fresh } = await getMe();
+      patchStoredUser(fresh);
+      setProfileData(current => ({ ...current, email: fresh.email }));
+      setPendingEmail(''); setEmailOtp(''); setSuccess('Email verified and updated.');
+      return true;
+    } catch (err) { setError(readError(err)); return false; }
+    finally { setSaving(false); }
+  };
+
   return {
+    pendingEmail, emailOtp, setEmailOtp, confirmEmail, avatarFile,
     profileData,
     setField,
     avatarPath,

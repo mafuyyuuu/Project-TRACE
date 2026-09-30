@@ -120,7 +120,6 @@ export default function useFinanceDashboard(user) {
   const handleScanReceipt = useCallback(
     async (file) => {
       if (!file) return;
-      setOrFile(file);
       setScanning(true);
       setScanConfidence(null);
 
@@ -200,7 +199,7 @@ export default function useFinanceDashboard(user) {
     clerkNotes, setClerkNotes,
     orNumber, setOrNumber,
     orDate, setOrDate,
-    orFile, setOrFile,
+    orFile, setOrFile: (file) => { setOrFile(file); setScanConfidence(null); },
     scanning,
     scanConfidence,
     handleFinanceVerify,

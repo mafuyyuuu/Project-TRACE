@@ -83,7 +83,13 @@ const setPaymentMethodActive = handler(
   { logLabel: 'Toggle payment method error', fallback: 'Failed to update payment method status.' }
 );
 
+async function updateAccount(req, res) {
+  try { res.json(await maintenanceService.updateAccount(req.user, req.params.id, req.body)); }
+  catch (err) { res.status(err.status || 500).json({ error: err.status ? err.message : 'Could not update account.' }); }
+}
+
 module.exports = {
+  updateAccount,
   listColleges, createCollege, updateCollege, setCollegeActive,
   listDocumentTypes, createDocumentType, updateDocumentType, setDocumentTypeActive,
   listStaff, createStaff, updateStaff, setStaffActive,

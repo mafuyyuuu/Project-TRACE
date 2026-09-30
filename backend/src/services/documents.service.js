@@ -279,7 +279,7 @@ async function runOcrPass(user, { documentId, trackingNumber, item, attachment }
   await documentModel.updateOcrData(documentId, {
     raw_text: ocrData.raw_text,
     extracted_data_json: JSON.stringify(ocrData.extracted_data),
-    confidence: ocrData.confidence || (aiVerified ? 92.5 : 45.0),
+    confidence: Number.isFinite(ocrData.extracted_data.confidence) ? ocrData.extracted_data.confidence : null,
     student_id: ocrData.extracted_data.student_id,
     form_type: ocrData.extracted_data.form_type,
   });

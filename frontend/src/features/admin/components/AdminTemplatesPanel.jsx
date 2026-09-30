@@ -1,3 +1,4 @@
+import { INPUT_LIMITS } from '@/utils/inputLimits';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import { useState, useEffect } from 'react';
 import api from '@/services/api';
@@ -149,7 +150,7 @@ export default function AdminTemplatesPanel() {
             <div className="flex-1 min-w-0 p-4 bg-gray-50 dark:bg-gray-800 flex flex-col lg:flex-row gap-4">
               <div className="flex-1 flex flex-col">
                 <label className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest block mb-2">HTML Template (Use {'{{VARIABLE_NAME}}'})</label>
-                <textarea
+                <textarea maxLength={INPUT_LIMITS.template}
                   value={formData.content}
                   onChange={e => setFormData({...formData, content: e.target.value})}
                   className="flex-1 w-full font-mono text-xs p-4 bg-gray-900 dark:bg-gray-800 text-green-400 dark:text-green-300 rounded-xl outline-none focus:ring-2 focus:ring-[#15803d] resize-none"

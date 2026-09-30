@@ -1,3 +1,4 @@
+import { INPUT_LIMITS } from '@/utils/inputLimits';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import useGraduateApplication from '@/features/graduate/useGraduateApplication';
 import DashboardLoading from '@/components/DashboardLoading';
@@ -48,7 +49,7 @@ function DynamicField({ field, value, onChange }) {
       </label>
 
       {field.field_type === 'textarea' ? (
-        <textarea {...shared} rows={3} />
+        <textarea maxLength={INPUT_LIMITS.notes} {...shared} rows={3} />
       ) : field.field_type === 'select' ? (
         <select {...shared} className={`${shared.className} cursor-pointer`}>
           <option value="">Select...</option>
@@ -57,7 +58,7 @@ function DynamicField({ field, value, onChange }) {
           ))}
         </select>
       ) : (
-        <input
+        <input maxLength={['number', 'date'].includes(field.field_type) ? undefined : field.field_type === 'email' ? INPUT_LIMITS.email : field.field_type === 'tel' ? INPUT_LIMITS.phone : INPUT_LIMITS.shortText}
           {...shared}
           type={
             field.field_type === 'number' ? 'number'

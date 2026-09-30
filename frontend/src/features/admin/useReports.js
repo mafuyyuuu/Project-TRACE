@@ -1,3 +1,4 @@
+import useViewportPagination from '@/hooks/useViewportPagination';
 import { useState, useEffect, useCallback } from 'react';
 import {
   getDocumentReport,
@@ -38,6 +39,8 @@ export default function useReports(user, currentTab) {
 
   const isActive = user?.role === 'admin' && (currentTab === 'admin-reports' || currentTab === 'admin-analytics');
 
+  const pagination = useViewportPagination({ page, setPage, total: report?.total || 0, fallback: 25, enabled: isActive });
+
   /** Strip blanks so an untouched filter isn't sent as an empty string. */
   const activeFilters = Object.fromEntries(Object.entries(filters).filter(([, v]) => v !== ''));
 
@@ -45,7 +48,7 @@ export default function useReports(user, currentTab) {
     async (nextPage = page, nextFilters = activeFilters) => {
       try {
         const [r, a] = await Promise.allSettled([
-          getDocumentReport({ ...nextFilters, page: nextPage, limit: 25 }),
+          getDocumentReport({ ...nextFilters, page: nextPage, limit: pagination.pageSize }),
           getAnalytics(nextFilters),
         ]);
 
@@ -59,7 +62,7 @@ export default function useReports(user, currentTab) {
     },
     // activeFilters is derived from `filters`, which is the real dependency.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [page, filters]
+    [page, filters, pagination.pageSize]
   );
 
   useEffect(() => {
@@ -127,6 +130,7 @@ export default function useReports(user, currentTab) {
   }, [filters]);
 
   return {
+    tableRef: pagination.containerRef,
     filters, updateFilter, applyFilters, resetFilters,
     report, analytics, page, goToPage,
     loading, exporting, error, success,

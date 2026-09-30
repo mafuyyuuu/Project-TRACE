@@ -65,7 +65,7 @@ describe('Account submission confirmations', () => {
     await user.click(screen.getByRole('button', { name: 'Create Account' }));
     expect(auth.register).not.toHaveBeenCalled();
     await user.keyboard('{Escape}');
-    expect(picker.files[0]).toBe(proof);
+    expect(screen.getByText(/Selected: id.png/)).toBeInTheDocument();
     expect(inputs[0]).toHaveValue('STU-001');
     await user.click(screen.getByRole('button', { name: 'Create Account' }));
     await user.click(screen.getByRole('button', { name: 'Submit Registration' }));

@@ -1,9 +1,11 @@
+import { INPUT_LIMITS } from '@/utils/inputLimits';
 import ConfirmDialog from '@/components/ConfirmDialog'
 import { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import useAuth from '@/hooks/useAuth'
 import { getColleges } from '@/services/referenceService'
-import api from '@/services/api'
+import ModalShell from '@/components/ModalShell'
+import FileUploadField from '@/components/FileUploadField'
 
 export default function SignupPage() {
   const { register, loading } = useAuth()
@@ -15,7 +17,6 @@ export default function SignupPage() {
   const [showPassword, setShowPassword] = useState(false)
   // Colleges are admin-managed reference data rather than a hardcoded list.
   const [colleges, setColleges] = useState([])
-  const [extractingId, setExtractingId] = useState(false)
 
   useEffect(() => {
     let cancelled = false
@@ -63,8 +64,7 @@ export default function SignupPage() {
     try {
       const result = await register(registrationToConfirm)
       setRegistrationToConfirm(null)
-      setSuccess(result.message || 'Registration successful. Please wait for admin verification.')
-      setTimeout(() => navigate('/'), 3000)
+      setSuccess([result.message || 'Registration successful. Please wait for admin verification.', result.verification_reason].filter(Boolean).join(' '))
     } catch (err) {
       setLocalError(err.response?.data?.error || err.response?.data?.message || 'Registration failed.')
     }
@@ -98,11 +98,9 @@ export default function SignupPage() {
         </div>
 
         {success ? (
-          <div className="text-center py-8">
-            <div className="w-16 h-16 bg-pine-50 text-pine-600 rounded-full flex items-center justify-center mx-auto mb-6"><svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg></div>
-            <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-2">Registration Complete</h2>
-            <p className="text-gray-500 dark:text-gray-400">{success}</p>
-          </div>
+          <ModalShell open title="Registration Complete" onClose={() => navigate('/')} footer={<button type="button" onClick={() => navigate('/')} className="w-full py-3 bg-[#15803d] text-white rounded-xl font-bold">Close and Go to Login</button>}>
+            <p className="text-sm leading-relaxed">{success}</p>
+          </ModalShell>
         ) : (
           <form onSubmit={handleSubmit} className="flex flex-col gap-5">
             {localError && (
@@ -134,28 +132,28 @@ export default function SignupPage() {
 
             <div className="flex flex-col gap-1.5">
               <label className="text-sm font-semibold text-gray-800 dark:text-gray-100 ml-1">Student ID *</label>
-              <input type="text" placeholder="e.g. 23-00123" value={formData.employeeId} onChange={(e) => setFormData({...formData, employeeId: e.target.value})} className="w-full p-3.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm focus:ring-2 focus:ring-pine-500 focus:bg-white dark:focus:bg-gray-900 outline-none transition-all" />
+              <input maxLength={INPUT_LIMITS.id} type="text" placeholder="e.g. 23-00123" value={formData.employeeId} onChange={(e) => setFormData({...formData, employeeId: e.target.value})} className="w-full p-3.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm focus:ring-2 focus:ring-pine-500 focus:bg-white dark:focus:bg-gray-900 outline-none transition-all" />
             </div>
 
             <div className="flex flex-col gap-1.5">
               <label className="text-sm font-semibold text-gray-800 dark:text-gray-100 ml-1">Full Name *</label>
-              <input type="text" placeholder="Juan Dela Cruz" value={formData.fullName} onChange={(e) => setFormData({...formData, fullName: e.target.value})} className="w-full p-3.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm focus:ring-2 focus:ring-pine-500 focus:bg-white dark:focus:bg-gray-900 outline-none transition-all" />
+              <input maxLength={INPUT_LIMITS.name} type="text" placeholder="Juan Dela Cruz" value={formData.fullName} onChange={(e) => setFormData({...formData, fullName: e.target.value})} className="w-full p-3.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm focus:ring-2 focus:ring-pine-500 focus:bg-white dark:focus:bg-gray-900 outline-none transition-all" />
             </div>
 
             <div className="flex flex-col gap-1.5">
               <label className="text-sm font-semibold text-gray-800 dark:text-gray-100 ml-1">Email Address</label>
-              <input type="email" maxLength={100} placeholder="juan@plp.edu.ph" value={formData.email} onChange={(e) => setFormData({...formData, email: e.target.value})} className="w-full p-3.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm focus:ring-2 focus:ring-pine-500 focus:bg-white dark:focus:bg-gray-900 outline-none transition-all" />
+              <input type="email" maxLength={INPUT_LIMITS.email} placeholder="juan@plp.edu.ph" value={formData.email} onChange={(e) => setFormData({...formData, email: e.target.value})} className="w-full p-3.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm focus:ring-2 focus:ring-pine-500 focus:bg-white dark:focus:bg-gray-900 outline-none transition-all" />
             </div>
 
             <div className="flex flex-col gap-1.5">
               <label className="text-sm font-semibold text-gray-800 dark:text-gray-100 ml-1">Phone Number *</label>
-              <input type="tel" maxLength={20} placeholder="09123456789" value={formData.phoneNumber} onChange={(e) => setFormData({...formData, phoneNumber: e.target.value})} className="w-full p-3.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm focus:ring-2 focus:ring-pine-500 focus:bg-white dark:focus:bg-gray-900 outline-none transition-all" />
+              <input type="tel" maxLength={INPUT_LIMITS.phone} placeholder="09123456789" value={formData.phoneNumber} onChange={(e) => setFormData({...formData, phoneNumber: e.target.value})} className="w-full p-3.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm focus:ring-2 focus:ring-pine-500 focus:bg-white dark:focus:bg-gray-900 outline-none transition-all" />
             </div>
 
             <div className="flex flex-col gap-1.5">
               <label className="text-sm font-semibold text-gray-800 dark:text-gray-100 ml-1">Password *</label>
               <div className="relative">
-                <input type={showPassword ? 'text' : 'password'} placeholder="Create a password" value={formData.password} onChange={(e) => setFormData({...formData, password: e.target.value})} className="w-full p-3.5 pr-12 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm focus:ring-2 focus:ring-pine-500 focus:bg-white dark:focus:bg-gray-900 outline-none transition-all" />
+                <input maxLength={INPUT_LIMITS.password} type={showPassword ? 'text' : 'password'} placeholder="Create a password" value={formData.password} onChange={(e) => setFormData({...formData, password: e.target.value})} className="w-full p-3.5 pr-12 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm focus:ring-2 focus:ring-pine-500 focus:bg-white dark:focus:bg-gray-900 outline-none transition-all" />
                 <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-400 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 transition-colors" tabIndex={-1}>
                   {showPassword ? (
                     <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M13.875 18.825A10.05 10.05 0 0112 19c-5 0-9.27-3.11-11-7.5a11.72 11.72 0 013.168-4.477M6.343 6.343A9.97 9.97 0 0112 5c5 0 9.27 3.11 11 7.5a11.72 11.72 0 01-4.168 4.477M6.343 6.343L3 3m3.343 3.343l2.829 2.829m4.243 4.243l2.829 2.829M6.343 6.343l11.314 11.314M14.121 14.121A3 3 0 009.879 9.879" /></svg>
@@ -169,7 +167,7 @@ export default function SignupPage() {
             <div className="flex flex-col gap-1.5">
               <label className="text-sm font-semibold text-gray-800 dark:text-gray-100 ml-1">Confirm Password *</label>
               <div className="relative">
-                <input type={showConfirm ? 'text' : 'password'} placeholder="Confirm your password" value={formData.confirmPassword} onChange={(e) => setFormData({...formData, confirmPassword: e.target.value})} className="w-full p-3.5 pr-12 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm focus:ring-2 focus:ring-pine-500 focus:bg-white dark:focus:bg-gray-900 outline-none transition-all" />
+                <input maxLength={INPUT_LIMITS.password} type={showConfirm ? 'text' : 'password'} placeholder="Confirm your password" value={formData.confirmPassword} onChange={(e) => setFormData({...formData, confirmPassword: e.target.value})} className="w-full p-3.5 pr-12 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm focus:ring-2 focus:ring-pine-500 focus:bg-white dark:focus:bg-gray-900 outline-none transition-all" />
                 <button type="button" onClick={() => setShowConfirm(!showConfirm)} className="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-400 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 transition-colors" tabIndex={-1}>
                   {showConfirm ? (
                     <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M13.875 18.825A10.05 10.05 0 0112 19c-5 0-9.27-3.11-11-7.5a11.72 11.72 0 013.168-4.477M6.343 6.343A9.97 9.97 0 0112 5c5 0 9.27 3.11 11 7.5a11.72 11.72 0 01-4.168 4.477M6.343 6.343L3 3m3.343 3.343l2.829 2.829m4.243 4.243l2.829 2.829M6.343 6.343l11.314 11.314M14.121 14.121A3 3 0 009.879 9.879" /></svg>
@@ -182,28 +180,7 @@ export default function SignupPage() {
 
             <div className="flex flex-col gap-1.5">
               <label className="text-sm font-semibold text-gray-800 dark:text-gray-100 ml-1">Upload Proof (ID / Diploma) *</label>
-              <input type="file" accept=".pdf,.png,.jpg,.jpeg" onChange={async (e) => {
-                  const selected = e.target.files[0];
-                  setFile(selected);
-                  if (selected) {
-                    setExtractingId(true);
-                    try {
-                      const fd = new FormData();
-                      fd.append('id_proof', selected);
-                      const res = await api.post('/ai/extract-id', fd, { headers: { 'Content-Type': 'multipart/form-data' }});
-                      if (res.data?.success) {
-                        const extractedId = res.data.student_id || res.data.alumni_id;
-                        if (extractedId) {
-                          setFormData(prev => ({ ...prev, employeeId: extractedId }));
-                        }
-                      }
-                    } catch (err) {
-                      console.warn('OCR extraction failed', err);
-                    } finally {
-                      setExtractingId(false);
-                    }
-                  }
-                }} className="w-full p-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-pine-50 file:text-pine-700 hover:file:bg-pine-100 transition-all cursor-pointer" />
+              <FileUploadField label="Proof of ID / Diploma" file={file} onChange={setFile} accept=".pdf,.png,.jpg,.jpeg" disabled={loading} />
               <p className="text-xs text-gray-400 dark:text-gray-400 ml-1 mt-1">Please attach a clear photo of your Student ID or Diploma for verification.</p>
             </div>
 
@@ -214,7 +191,6 @@ export default function SignupPage() {
         )}
 
         <div className="mt-8 text-center">
-          <p className="text-sm text-gray-600 dark:text-gray-300 mb-4">Already have an account? <Link to="/" className="text-pine-600 font-bold hover:underline">Log in</Link></p>
         </div>
       </div>
     </div>

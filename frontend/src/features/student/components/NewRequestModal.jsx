@@ -1,3 +1,5 @@
+import { INPUT_LIMITS } from '@/utils/inputLimits';
+import FileUploadField from '@/components/FileUploadField';
 import ModalShell from '@/components/ModalShell';
 import { itemAmount, groupTotal, formatPeso } from '@/utils/pricing';
 
@@ -143,7 +145,7 @@ export default function NewRequestModal({
                               <label className="text-[10px] font-bold text-gray-700 dark:text-gray-300 uppercase tracking-widest">
                                 Requesting School / Company
                               </label>
-                              <input
+                              <input maxLength={INPUT_LIMITS.name}
                                 type="text" required
                                 value={selection.requestingSchool}
                                 onChange={(e) => updateSelection(type.name, { requestingSchool: e.target.value })}
@@ -158,7 +160,7 @@ export default function NewRequestModal({
                               <label className="text-[10px] font-bold text-gray-700 dark:text-gray-300 uppercase tracking-widest">
                                 Year Graduated / Last Attended
                               </label>
-                              <input
+                              <input maxLength={INPUT_LIMITS.shortText}
                                 type="text" required
                                 value={selection.yearGraduated}
                                 onChange={(e) => updateSelection(type.name, { yearGraduated: e.target.value })}
@@ -171,7 +173,7 @@ export default function NewRequestModal({
                             <div className="grid grid-cols-1 gap-3">
                               <div className="flex flex-col gap-1.5">
                                 <label className="text-[10px] font-bold text-gray-700 dark:text-gray-300 uppercase tracking-widest">Purpose</label>
-                              <input
+                              <input maxLength={INPUT_LIMITS.shortText}
                                 type="text" required
                                 value={selection.purpose}
                                 onChange={(e) => updateSelection(type.name, { purpose: e.target.value })}
@@ -189,23 +191,7 @@ export default function NewRequestModal({
                                   · upload now, or bring it to Window 1
                                 </span>
                               </label>
-                              <div className="border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-xl p-3 bg-white dark:bg-gray-900 flex items-center justify-center cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 relative">
-                                {selection.file ? (
-                                  <span className="text-xs font-bold text-[#15803d] dark:text-green-300 truncate px-4">
-                                    ✓ {selection.file.name}
-                                  </span>
-                                ) : (
-                                  <span className="text-xs font-bold text-gray-600 dark:text-gray-300">
-                                    <span className="text-[#15803d] dark:text-green-300">Click here</span> to upload{' '}
-                                    {type.attachment_helper || 'the supporting file'}
-                                  </span>
-                                )}
-                                <input
-                                  type="file"
-                                  onChange={(e) => updateSelection(type.name, { file: e.target.files[0] })}
-                                  className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
-                                />
-                              </div>
+                              <FileUploadField label={type.attachment_label || 'Supporting Attachment'} file={selection.file} onChange={file => updateSelection(type.name, { file })} />
                             </div>
                           ) : (
                             <div className="flex flex-col gap-1.5">

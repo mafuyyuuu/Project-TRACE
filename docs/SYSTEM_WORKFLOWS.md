@@ -278,7 +278,7 @@ runs whether the file came from the student or the counter.
   1. Does not handle individual documents.
   2. Monitors the **AI Insights Panel** (Random Forest) for queue bottlenecks (e.g., "Warning: Secretary queue is backing up").
   3. Uses **Predictive Analytics** (Prophet ML) to forecast 7-day document volume, allowing the admin to schedule more clerks on predicted busy days.
-  4. Manages the global **Registered Users** table, manually verifying or rejecting the accounts
+  4. Manages **System Maintenance → Accounts** and the separate **Account Verification** review queue, verifying or rejecting the accounts
      that failed automatic AI verification at registration (section 0a), and administering staff
      accounts, document types and colleges.
   5. Monitors the global **Activity Logs** (`step_logs` audit trail) to maintain total system accountability across all desks.
@@ -290,3 +290,20 @@ runs whether the file came from the student or the counter.
 **See also:** `docs/ENV_SETUP_GUIDE.md` for configuration · `docs/BACKEND_GUIDE.md` for the endpoints
 behind each step · `docs/ALGORITHM_COMPUTATION.md` for how the OCR, forecast and classifier actually
 compute.
+
+
+## Batch 8 Account and Presentation Flow
+
+Registration proof selection is local until the existing confirmed registration submission. Each AI HTTP call has a 15-second timeout covering connection and response-body parsing. Unavailable/inconclusive identity verification retains the existing pending/manual-review fallback. The signup response exposes only approved verification-reason copy; internal engine exception details are not sent to the applicant. Active administrators receive a bell entry linking to that applicant's Review dialog.
+
+Login OTP uses its own code/expiry; email-change codes carry a purpose marker, so old shared codes cannot verify a new address. Staff OTP sign-in completes before a browser-recognition record or alert is created. Successful logins compare a hashed random recognition cookie against that user's `user_devices` records; a newly seen browser, including the first successful login, generates in-app and email notices. IP/user-agent metadata describes the login and does not decide identity. Recognition is not a JWT session or a revocation mechanism. Cookie loss/privacy blocking means the browser may be recognized as new again.
+
+Phone changes persist normally. An email change is staged in the pending-email/OTP fields, separate from login OTP; the previous address stays active until a valid, unexpired code commits it. The frontend fetches the fresh profile after that commit and refreshes its cache. Student/alumni identity and graduate-completion reads use the student identifier in `grad_applications`; alumni dashboard access unlocks after a submission exists, independently of review approval. A failed post-save profile refresh preserves submission success and asks for a page refresh rather than reporting the saved application as failed. This is a frontend onboarding gate, not new authorization on every API endpoint.
+
+Admin account edits are restricted to full name, email, phone, course/program, and a valid college reference. IDs, roles, verification, and activation are not editable through the new profile endpoint. Existing staff activation/password permissions are unchanged. Registered Users navigation merges into Maintenance's Accounts section; old tab URLs remain compatible.
+
+Window 1 shares an Intake/Release workspace beside the upload card. Intake notes and confirmation remain required for return; release shows attachment information alongside request details. Finance hands the physical OR to Secretary and may upload its retained copy later. Receipt selection is local, OCR runs on **Read Receipt**, and recording still requires confirmation. No new return-to-Secretary route or digital-attachment release prerequisite was introduced.
+
+Students share one History table with request/payment filters. Reports retain API pagination and filter-aware machine-readable CSV; only on-screen timestamps/amounts are formatted. Existing paginated Window 1 queues/tracking, Admin tracker, and Reports use measured viewport row capacities. Finance and Secretary queues and account card grids do not gain pagination. The forecast card/modal share one zero-based scale with headroom, calculated from the unfiltered seven-day data.
+
+The pipeline order/vocabulary is unchanged. Mobile tracker nodes derive from `PIPELINE`; desktop remains horizontal. Legacy APPROVED/REJECTED records stay outside the active pipeline with zero active progress; rejection has a red status treatment. Help/FAQ reflects the user manual, and Settings appearance is distinct from avatar Profile Settings.

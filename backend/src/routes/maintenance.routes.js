@@ -20,6 +20,9 @@ router.post('/document-types', maintenanceController.createDocumentType);
 router.put('/document-types/:id', maintenanceController.updateDocumentType);
 router.patch('/document-types/:id/active', maintenanceController.setDocumentTypeActive);
 
+// Approved profile-only admin editing for every account type.
+router.put('/users/:id', maintenanceController.updateAccount);
+
 // Staff
 router.get('/staff', maintenanceController.listStaff);
 router.post('/staff', maintenanceController.createStaff);

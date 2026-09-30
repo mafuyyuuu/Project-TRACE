@@ -1,3 +1,4 @@
+import { INPUT_LIMITS } from '@/utils/inputLimits';
 import ModalShell from '@/components/ModalShell';
 
 /**
@@ -41,7 +42,7 @@ export default function ManualInputModal({
             <div className="flex flex-col gap-2">
               <label className="text-[10px] font-bold text-gray-800 dark:text-gray-100 uppercase tracking-widest">Student ID</label>
               <div className="flex gap-2">
-                <input
+                <input maxLength={INPUT_LIMITS.id}
                   type="text"
                   name="studentId"
                   id="manual-student-id"
@@ -61,7 +62,7 @@ export default function ManualInputModal({
 
             <div className="flex flex-col gap-2">
               <label className="text-[10px] font-bold text-gray-800 dark:text-gray-100 uppercase tracking-widest">Full Name</label>
-              <input
+              <input maxLength={INPUT_LIMITS.name}
                 type="text"
                 name="fullName"
                 id="manual-full-name"
@@ -130,7 +131,7 @@ export default function ManualInputModal({
 
           <div className="flex flex-col gap-2 mt-6">
             <label className="text-[10px] font-bold text-gray-800 dark:text-gray-100 uppercase tracking-widest">Clerk Remarks / Notes (Optional)</label>
-            <textarea
+            <textarea maxLength={INPUT_LIMITS.notes}
               name="remarks"
               placeholder="Enter remarks..."
               className="p-4 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-xs font-semibold focus:ring-2 focus:ring-[#15803d]/20 outline-none transition-all h-28 resize-none"

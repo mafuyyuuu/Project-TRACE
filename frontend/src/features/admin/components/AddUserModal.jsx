@@ -1,3 +1,4 @@
+import { INPUT_LIMITS } from '@/utils/inputLimits';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import { useState } from 'react';
 import ModalShell from '@/components/ModalShell';
@@ -64,11 +65,11 @@ export default function AddUserModal({ open, onClose, onCreate, saving }) {
           if (await onCreate(accountToConfirm)) { setAccountToConfirm(null); onClose(); }
         }} />
       <form id="add-user-form" onSubmit={handleSubmit} className="space-y-3">
-        <input className={inputClass} placeholder="Employee ID *" required
+        <input maxLength={INPUT_LIMITS.id} className={inputClass} placeholder="Employee ID *" required
           value={form.employee_id || ''} onChange={(e) => set('employee_id', e.target.value)} />
-        <input className={inputClass} placeholder="Full Name *" required
+        <input maxLength={INPUT_LIMITS.name} className={inputClass} placeholder="Full Name *" required
           value={form.full_name || ''} onChange={(e) => set('full_name', e.target.value)} />
-        <input className={inputClass} type="email" placeholder="Email"
+        <input maxLength={INPUT_LIMITS.email} className={inputClass} type="email" placeholder="Email"
           value={form.email || ''} onChange={(e) => set('email', e.target.value)} />
 
         <select className={`${inputClass} cursor-pointer`} value={form.role || 'clerk'}
@@ -83,7 +84,7 @@ export default function AddUserModal({ open, onClose, onCreate, saving }) {
         </select>
 
         <div>
-          <input className={inputClass} type="password" placeholder="Temporary password *" required minLength={8}
+          <input maxLength={INPUT_LIMITS.password} className={inputClass} type="password" placeholder="Temporary password *" required minLength={8}
             value={form.password || ''} onChange={(e) => set('password', e.target.value)} />
           <p className="text-[10px] text-gray-400 dark:text-gray-400 mt-1.5 leading-relaxed">
             At least 8 characters. The user must replace it at first login, so it is never a

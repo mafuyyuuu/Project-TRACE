@@ -1,5 +1,6 @@
+import { INPUT_LIMITS } from '@/utils/inputLimits';
 import { useState, useEffect, useRef } from 'react'
-import { Outlet, useLocation } from 'react-router-dom'
+import { Outlet, useLocation, useNavigate } from 'react-router-dom'
 import useAuth from '@/hooks/useAuth'
 import useProfileSettings from '@/hooks/useProfileSettings'
 import { getNotifications, markNotificationsRead } from '@/services/authService'
@@ -14,12 +15,14 @@ import OnboardingTutorial from '@/features/student/components/OnboardingTutorial
 export default function Layout() {
   const { user, logout } = useAuth()
   const location = useLocation()
+  const navigate = useNavigate()
+  const [settingsTab, setSettingsTab] = useState(() => new URLSearchParams(location.search).get('settings') === 'security' ? 'security' : 'personal')
   const query = new URLSearchParams(location.search)
   const tab = query.get('tab') || 'dashboard'
 
   const [notifications, setNotifications] = useState([])
   const [showNotifs, setShowNotifs] = useState(false)
-  const [showSettings, setShowSettings] = useState(false)
+  const [showSettings, setShowSettings] = useState(() => query.get('settings') === 'security')
   const [showMobileNav, setShowMobileNav] = useState(false)
   const [showTutorial, setShowTutorial] = useState(user?.role === 'student' && !localStorage.getItem('trace_tutorial_seen'))
   const [confirmingLogout, setConfirmingLogout] = useState(false)
@@ -124,6 +127,7 @@ export default function Layout() {
     setNavLocationKey(location.key)
     setShowMobileNav(false);
     setShowNotifs(false);
+    if (query.get('settings') === 'security') { setSettingsTab('security'); setShowSettings(true); }
   }
 
   const handleNotifClick = async () => {
@@ -140,7 +144,8 @@ export default function Layout() {
 
   const unreadCount = (notifications || []).filter(n => !n?.is_read).length
 
-  const openSettings = () => {
+  const openSettings = (section = 'personal') => {
+    setSettingsTab(typeof section === 'string' ? section : 'personal')
     settings.resetFeedback()
     setShowSettings(true)
   }
@@ -153,9 +158,11 @@ export default function Layout() {
     return () => window.removeEventListener('open-profile-settings', handleOpenSettings);
   }, []);
 
+
   const closeSettings = () => {
     settings.discardAvatarChange()
     setShowSettings(false)
+    if (query.has('settings')) { query.delete('settings'); navigate({ pathname: location.pathname, search: query.toString() }, { replace: true }); }
   }
 
   const handleConfirmLogout = async () => {
@@ -191,7 +198,7 @@ export default function Layout() {
             <span className="absolute inset-y-0 left-0 pl-4 flex items-center text-gray-400 dark:text-gray-400">
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
             </span>
-            <input type="text" placeholder="Search" className="w-full bg-gray-50 dark:bg-gray-800 border-none rounded-full py-2.5 pl-11 pr-4 text-xs font-semibold focus:ring-2 focus:ring-[#15803d]/20 outline-none transition-all" />
+            <input maxLength={INPUT_LIMITS.shortText} type="text" placeholder="Search" className="w-full bg-gray-50 dark:bg-gray-800 border-none rounded-full py-2.5 pl-11 pr-4 text-xs font-semibold focus:ring-2 focus:ring-[#15803d]/20 outline-none transition-all" />
           </div>
         </div>
 
@@ -228,6 +235,7 @@ export default function Layout() {
                   ) : (
                     notifications.map(n => (
                       <button type="button" key={n.id} onClick={() => {
+                          if (typeof n.action_url === 'string' && n.action_url.startsWith('/dashboard') && !n.action_url.startsWith('//')) { navigate(n.action_url); setShowNotifs(false); return; }
                           const match = n.message.match(/TRC-[A-Z0-9]+/i) || n.message.match(/#([0-9]+)/);
                           if (match) window.dispatchEvent(new CustomEvent('trace-open-doc', { detail: match[0].replace('#', '') }));
                           setShowNotifs(false);
@@ -264,7 +272,7 @@ export default function Layout() {
           <SidebarNav
             user={user}
             tab={tab}
-            onOpenSettings={openSettings}
+            onOpenSettings={() => openSettings('appearance')}
             onLogout={() => setConfirmingLogout(true)}
           />
         </aside>
@@ -294,7 +302,7 @@ export default function Layout() {
                 tab={tab}
                 showLabels
                 onNavigate={() => setShowMobileNav(false)}
-                onOpenSettings={openSettings}
+                onOpenSettings={() => openSettings('appearance')}
                 onLogout={() => setConfirmingLogout(true)}
               />
             </aside>
@@ -310,11 +318,15 @@ export default function Layout() {
       {showSettings && (
         <ProfileSettingsModal
           user={user}
+          initialTab={settingsTab} darkMode={darkMode} onToggleTheme={toggleTheme}
+          pendingEmail={settings.pendingEmail} emailOtp={settings.emailOtp}
+          onEmailOtpChange={settings.setEmailOtp} onVerifyEmail={settings.confirmEmail}
           onClose={closeSettings}
           profileData={settings.profileData}
           setField={settings.setField}
           avatarPath={settings.avatarPath}
           avatarPreviewUrl={settings.avatarPreviewUrl}
+          avatarFile={settings.avatarFile}
           saving={settings.saving}
           success={settings.success}
           error={settings.error}

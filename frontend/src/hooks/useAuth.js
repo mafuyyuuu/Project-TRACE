@@ -40,19 +40,28 @@ export function useAuth() {
     }
   }, []);
 
+  useEffect(() => {
+    const sync = (event) => setUser(current => ({ ...current, ...event.detail }));
+    window.addEventListener('trace-user-updated', sync);
+    return () => window.removeEventListener('trace-user-updated', sync);
+  }, []);
+
   const login = async (credentials) => {
     setLoading(true);
     setError('');
     try {
       const data = await apiLogin(credentials);
+      if (data.requires_2fa) return data;
       localStorage.setItem('trace_token', data.token);
       if (data.user) {
         localStorage.setItem('trace_user', JSON.stringify(data.user));
         setUser(data.user);
       }
       navigate('/dashboard');
+      return data;
     } catch (err) {
       setError(err.response?.data?.message || err.response?.data?.error || 'Authentication failed. Please try again.');
+      return undefined;
     } finally {
       setLoading(false);
     }
@@ -92,7 +101,14 @@ export function useAuth() {
     });
   };
 
-  return { user, loading, error, login, logout, register, updateCachedUser };
+  const refreshUser = async () => {
+    const { user: fresh } = await getMe();
+    localStorage.setItem('trace_user', JSON.stringify(fresh));
+    window.dispatchEvent(new CustomEvent('trace-user-updated', { detail: fresh }));
+    return fresh;
+  };
+
+  return { user, loading, error, login, logout, register, updateCachedUser, refreshUser };
 }
 
 export default useAuth;

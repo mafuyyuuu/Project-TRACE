@@ -1,3 +1,6 @@
+import FileUploadField from '@/components/FileUploadField';
+import QueueTabs from '@/components/QueueTabs';
+import AuthedFilePreview from '@/components/AuthedFilePreview';
 import { useState } from 'react';
 import HardwareScannerModal from '@/features/window1/components/HardwareScannerModal';
 import IntakeReviewModal from '@/features/window1/components/IntakeReviewModal';
@@ -5,8 +8,8 @@ import ManualInputModal from '@/features/window1/components/ManualInputModal';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import ModalShell from '@/components/ModalShell';
 import MiniSparkline from '@/components/MiniSparkline';
-import { STATUS, getProgressVal, getStatusLabel, requiresAttachment } from '@/utils/documentStatus';
-import { formatFileSize, getWaitTime, todayLongDate } from '@/utils/formatters';
+import { getProgressVal, getStatusLabel, getStatusTone, requiresAttachment } from '@/utils/documentStatus';
+import { getWaitTime, todayLongDate } from '@/utils/formatters';
 import useWindow1Dashboard from '@/features/window1/useWindow1Dashboard';
 import DashboardAlerts from '@/components/DashboardAlerts';
 import DashboardLoading from '@/components/DashboardLoading';
@@ -21,6 +24,7 @@ import ReportsPanel from '@/features/admin/components/ReportsPanel';
  * window a student walks up to and asks "where is mine?".
  */
 export default function Window1Dashboard({ user, currentTab, setViewImageUrl }) {
+  const [queueTab, setQueueTab] = useState('intake');
   const [viewProfileId, setViewProfileId] = useState(null);
 
   const {
@@ -55,7 +59,6 @@ export default function Window1Dashboard({ user, currentTab, setViewImageUrl }) 
     scanFile,
     setScanFile,
     scanProgress,
-    fileInputRef,
     loadDashboardData,
     handleWindow1Release,
     releaseToConfirm,
@@ -70,7 +73,8 @@ export default function Window1Dashboard({ user, currentTab, setViewImageUrl }) 
     w1ProgressPage,
     setW1ProgressPage,
     itemsPerPage,
-  } = useWindow1Dashboard(user);
+    intakePagination, releasePagination, progressPagination,
+  } = useWindow1Dashboard(user, currentTab, queueTab);
 
   const todayFormatted = todayLongDate();
 
@@ -146,8 +150,9 @@ export default function Window1Dashboard({ user, currentTab, setViewImageUrl }) 
             </div>
 
             {/* Upload Document Dropzone */}
-            <div className="bg-white dark:bg-gray-900 p-6 md:p-8 rounded-3xl shadow-sm border border-gray-200 dark:border-gray-700 flex flex-col justify-between mt-8">
-              <div className="flex justify-between items-start gap-4">
+            <div className="grid grid-cols-1 lg:grid-cols-[320px_minmax(0,1fr)] gap-6 mt-8 items-start">
+              <aside className="min-w-0">            <div className="bg-white dark:bg-gray-900 p-4 rounded-3xl shadow-sm border border-gray-200 dark:border-gray-700 flex flex-col justify-between">
+              <div className="flex flex-col items-start gap-3">
                 <div>
                   <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100">UPLOAD DOCUMENT</h3>
                   <p className="text-xs text-gray-400 dark:text-gray-400 mt-1">Upload physical papers to extract data via AI Engine.</p>
@@ -161,55 +166,15 @@ export default function Window1Dashboard({ user, currentTab, setViewImageUrl }) 
                 </button>
               </div>
 
-              <div className="flex-1 mt-6 border-2 border-dashed border-[#15803d]/40 rounded-3xl p-8 bg-gray-50/50 dark:bg-gray-800/50 flex flex-col items-center justify-center relative min-h-[250px]">
-                <span className="text-xs font-bold text-gray-900 dark:text-gray-100 mb-6 flex items-center gap-1">
-                  <span className="text-[#15803d] dark:text-green-300">AI OCR Engine Ready</span>
-                </span>
-
-                <div className="flex items-center justify-center w-full">
-                  <button 
-                    onClick={() => fileInputRef.current?.click()} 
-                    className="flex flex-col items-center gap-3 group focus:outline-none"
-                  >
-                    <div className="w-20 h-20 bg-[#15803d] text-white rounded-3xl flex items-center justify-center shadow-lg hover:bg-[#166534] transition-all transform group-hover:scale-105 border-4 border-emerald-200 dark:border-emerald-800">
-                      <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
-                      </svg>
-                    </div>
-                    <div className="text-center">
-                      <span className="text-sm font-black text-gray-900 dark:text-gray-100 block">UPLOAD FILE</span>
-                      <span className="text-[10px] text-gray-500 dark:text-gray-400 font-bold uppercase tracking-widest">Select image from your computer</span>
-                    </div>
-                  </button>
-                </div>
-
-                <span className="text-[10px] text-gray-400 dark:text-gray-400 mt-6 absolute bottom-4">System will automatically route uploaded document to AI Engine</span>
-                <input 
-                  type="file" 
-                  accept="image/*"
-                  capture="environment"
-                  id="mobile-camera-input"
-                  onChange={(e) => {
-                    if (e.target.files?.[0]) {
-                      simulateHardwareScan(e.target.files[0]);
-                    }
-                  }}
-                  className="hidden"
-                />
-                <input 
-                  type="file" 
-                  ref={fileInputRef}
-                  onChange={(e) => {
-                    if (e.target.files?.[0]) {
-                      simulateHardwareScan(e.target.files[0]);
-                    }
-                  }}
-                  className="hidden"
-                />
+              <div className="mt-4">
+                <FileUploadField label="Scan or upload a document" file={scanFile} onChange={simulateHardwareScan} disabled={actionLoading} />
               </div>
             </div>
-            {/* Intake queue — the first human look at every request, online or walk-in */}
-            <div className="bg-white dark:bg-gray-900 rounded-3xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden mt-8">
+              </aside>
+              <section className="min-w-0">
+                <QueueTabs tabs={[{ key: 'intake', label: 'Intake', count: intakeQueue.length }, { key: 'release', label: 'Release', count: releaseQueue.length }]} activeKey={queueTab} onChange={setQueueTab} />
+                {queueTab === 'intake' && <>            {/* Intake queue — the first human look at every request, online or walk-in */}
+            <div className="bg-white dark:bg-gray-900 rounded-3xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
               <div className="p-4 sm:p-6 border-b border-gray-100 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800/50 flex flex-col sm:flex-row justify-between sm:items-center gap-4">
                 <div>
                   <h3 className="font-bold text-gray-900 dark:text-gray-100 text-lg uppercase tracking-wider">INTAKE QUEUE</h3>
@@ -221,7 +186,7 @@ export default function Window1Dashboard({ user, currentTab, setViewImageUrl }) 
               </div>
 
               <div className="p-4 sm:p-6">
-                <div className="max-h-[calc(100vh-280px)] overflow-y-auto overflow-x-auto">
+                <div ref={intakePagination?.containerRef} className="max-h-[calc(100vh-280px)] overflow-y-auto overflow-x-auto">
                   {intakeQueue.length === 0 ? (
                     <div className="text-center py-16 text-gray-400 dark:text-gray-400 font-medium">Nothing waiting for intake.</div>
                   ) : (
@@ -297,8 +262,9 @@ export default function Window1Dashboard({ user, currentTab, setViewImageUrl }) 
               </div>
             </div>
 
-            {/* Active release queue card */}
-            <div className="bg-white dark:bg-gray-900 rounded-3xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden mt-8">
+</>}
+                {queueTab === 'release' && <>            {/* Active release queue card */}
+            <div className="bg-white dark:bg-gray-900 rounded-3xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
               <div className="p-4 sm:p-6 border-b border-gray-100 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800/50 flex flex-col sm:flex-row justify-between sm:items-center gap-4">
                 <div>
                   <h3 className="font-bold text-gray-900 dark:text-gray-100 text-lg uppercase tracking-wider">RELEASE DESK</h3>
@@ -311,7 +277,7 @@ export default function Window1Dashboard({ user, currentTab, setViewImageUrl }) 
               </div>
 
               <div className="p-4 sm:p-6">
-                <div className="max-h-[calc(100vh-280px)] overflow-y-auto overflow-x-auto">
+                <div ref={releasePagination?.containerRef} className="max-h-[calc(100vh-280px)] overflow-y-auto overflow-x-auto">
                   {releaseQueue.length === 0 ? (
                     <div className="text-center py-16 text-gray-400 dark:text-gray-400 font-medium">No documents waiting for release.</div>
                   ) : (
@@ -329,7 +295,7 @@ export default function Window1Dashboard({ user, currentTab, setViewImageUrl }) 
                         </thead>
                         <tbody className="divide-y divide-gray-50 dark:divide-gray-700">
                           {releaseQueue
-                            .slice((w1ReleasePage - 1) * itemsPerPage, w1ReleasePage * itemsPerPage)
+                            .slice((w1ReleasePage - 1) * (releasePagination?.pageSize || itemsPerPage), w1ReleasePage * (releasePagination?.pageSize || itemsPerPage))
                             .map(doc => (
                             <tr key={doc.id} className="hover:bg-gray-50/50 dark:hover:bg-gray-800/50 group">
                               <td className="py-4 pl-4 font-mono text-xs text-gray-500 dark:text-gray-400">#{doc.tracking_number ? doc.tracking_number.slice(0, 10).toUpperCase() : doc.id}</td>
@@ -368,20 +334,20 @@ export default function Window1Dashboard({ user, currentTab, setViewImageUrl }) 
                         </tbody>
                       </table>
 
-                      {releaseQueue.length > itemsPerPage && (
+                      {releaseQueue.length > (releasePagination?.pageSize || itemsPerPage) && (
                         <div className="flex justify-between items-center mt-6 border-t border-gray-100 dark:border-gray-700 pt-4">
                           <button 
-                            disabled={w1ReleasePage === 1} 
+                            disabled={w1ReleasePage === 1}
                             onClick={() => setW1ReleasePage(p => p - 1)}
                             className="px-4 py-2 text-xs font-bold text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-800 rounded-xl disabled:opacity-50 transition-colors"
                           >
                             Previous
                           </button>
                           <span className="text-xs font-bold text-gray-500 dark:text-gray-400">
-                            Page {w1ReleasePage} of {Math.ceil(releaseQueue.length / itemsPerPage)}
+                            Page {w1ReleasePage} of {Math.ceil(releaseQueue.length / (releasePagination?.pageSize || itemsPerPage))}
                           </span>
                           <button 
-                            disabled={w1ReleasePage >= Math.ceil(releaseQueue.length / itemsPerPage)} 
+                            disabled={w1ReleasePage >= Math.ceil(releaseQueue.length / (releasePagination?.pageSize || itemsPerPage))}
                             onClick={() => setW1ReleasePage(p => p + 1)}
                             className="px-4 py-2 text-xs font-bold text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-800 rounded-xl disabled:opacity-50 transition-colors"
                           >
@@ -394,6 +360,8 @@ export default function Window1Dashboard({ user, currentTab, setViewImageUrl }) 
               
                 </div>
               </div>
+            </div></>}
+              </section>
             </div>
           </>
         )}
@@ -427,7 +395,7 @@ export default function Window1Dashboard({ user, currentTab, setViewImageUrl }) 
                   <div className="text-center py-12 text-gray-400 dark:text-gray-400 font-medium">No active document requests.</div>
                 ) : (
                   <>
-                    <div className="max-h-[calc(100vh-280px)] overflow-y-auto overflow-x-auto">
+                    <div ref={progressPagination?.containerRef} className="max-h-[calc(100vh-280px)] overflow-y-auto overflow-x-auto">
                       <table className="w-full text-left border-collapse table-fixed min-w-[700px]">
                         <thead className="sticky top-0 bg-white dark:bg-gray-900 z-10">
                           <tr className="text-gray-400 dark:text-gray-400 text-[10px] uppercase tracking-widest border-b border-gray-100 dark:border-gray-700">
@@ -438,7 +406,7 @@ export default function Window1Dashboard({ user, currentTab, setViewImageUrl }) 
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-50 dark:divide-gray-700">
-                          {documents.slice((w1ProgressPage - 1) * itemsPerPage, w1ProgressPage * itemsPerPage).map(doc => (
+                          {documents.slice((w1ProgressPage - 1) * (progressPagination?.pageSize || itemsPerPage), w1ProgressPage * (progressPagination?.pageSize || itemsPerPage)).map(doc => (
                             <tr key={doc.id} className="hover:bg-gray-50/50 dark:hover:bg-gray-800/50 transition-colors">
                               <td className="py-4 pl-4 text-xs font-semibold text-gray-400 dark:text-gray-400">{new Date(doc.created_at).toLocaleDateString()}</td>
                               <td className="py-4">
@@ -454,7 +422,7 @@ export default function Window1Dashboard({ user, currentTab, setViewImageUrl }) 
                                 </div>
                               </td>
                               <td className="py-4">
-                                <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${doc.current_status === STATUS.COMPLETED ? 'bg-emerald-50 dark:bg-emerald-950/40 text-[#15803d] dark:text-green-300' : 'bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300'}`}>
+                                <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${getStatusTone(doc.current_status)}`}>
                                   {getStatusLabel(doc.current_status)}
                                 </span>
                               </td>
@@ -464,20 +432,20 @@ export default function Window1Dashboard({ user, currentTab, setViewImageUrl }) 
                       </table>
                     </div>
 
-                    {documents.length > itemsPerPage && (
+                    {documents.length > (progressPagination?.pageSize || itemsPerPage) && (
                       <div className="flex justify-between items-center mt-6 border-t border-gray-100 dark:border-gray-700 pt-4">
                         <button 
-                          disabled={w1ProgressPage === 1} 
+                          disabled={w1ProgressPage === 1}
                           onClick={() => setW1ProgressPage(p => p - 1)}
                           className="px-4 py-2 text-xs font-bold text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-800 rounded-xl disabled:opacity-50 transition-colors"
                         >
                           Previous
                         </button>
                         <span className="text-xs font-bold text-gray-500 dark:text-gray-400">
-                          Page {w1ProgressPage} of {Math.ceil(documents.length / itemsPerPage)}
+                          Page {w1ProgressPage} of {Math.ceil(documents.length / (progressPagination?.pageSize || itemsPerPage))}
                         </span>
                         <button 
-                          disabled={w1ProgressPage >= Math.ceil(documents.length / itemsPerPage)} 
+                          disabled={w1ProgressPage >= Math.ceil(documents.length / (progressPagination?.pageSize || itemsPerPage))}
                           onClick={() => setW1ProgressPage(p => p + 1)}
                           className="px-4 py-2 text-xs font-bold text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-800 rounded-xl disabled:opacity-50 transition-colors"
                         >
@@ -557,14 +525,7 @@ export default function Window1Dashboard({ user, currentTab, setViewImageUrl }) 
                 </select>
               </div>
 
-              {/* Scanned Image Preview Container */}
-              <div className="min-h-56 bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl overflow-hidden mb-6 flex items-center justify-center shadow-inner relative">
-                <div className="text-center p-6 bg-white/60 dark:bg-gray-900/60 backdrop-blur-sm rounded-2xl shadow-sm border border-gray-200/50 dark:border-gray-700/50">
-                  <svg className="w-8 h-8 text-gray-400 dark:text-gray-400 block mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M6.827 6.175A2.31 2.31 0 015.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 00-1.134-.175 2.31 2.31 0 01-1.64-1.055l-.822-1.316a2.192 2.192 0 00-1.736-1.039 48.774 48.774 0 00-5.232 0 2.192 2.192 0 00-1.736 1.039l-.821 1.316z" /><path strokeLinecap="round" strokeLinejoin="round" d="M16.5 12.75a4.5 4.5 0 11-9 0 4.5 4.5 0 019 0z" /></svg>
-                  <span className="text-xs font-bold text-gray-800 dark:text-gray-100 block truncate max-w-xs">{scanFile.name}</span>
-                  <span className="text-[10px] text-gray-400 dark:text-gray-400 font-mono mt-0.5 block">{formatFileSize(scanFile.size)}</span>
-                </div>
-              </div>
+              <FileUploadField label="Selected document" file={scanFile} onChange={setScanFile} disabled={actionLoading} />
 
           </ModalShell>
         )}
@@ -606,24 +567,20 @@ export default function Window1Dashboard({ user, currentTab, setViewImageUrl }) 
       <ConfirmDialog
         open={!!releaseToConfirm}
         title="Release Document"
-        message={
-          releaseToConfirm
-            ? [
-                `Release ${releaseToConfirm.document_type} to ${releaseToConfirm.student_name || releaseToConfirm.student_id}?`,
-                releaseToConfirm.or_number ? `Official Receipt on file: ${releaseToConfirm.or_number}` : null,
-                releaseToConfirm.official_receipt_path ? (
-                  <button
-                    key="view-receipt"
-                    type="button"
-                    onClick={() => setViewImageUrl(releaseToConfirm.official_receipt_path)}
-                    className="text-[#15803d] dark:text-green-300 font-bold hover:underline"
-                  >
-                    View Official Receipt
-                  </button>
-                ) : null,
-              ]
-            : ''
-        }
+        message="Confirm the request information before releasing the document."
+        maxWidth="max-w-4xl"
+        children={releaseToConfirm && <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mt-5">
+          <div className="min-h-56 rounded-xl border border-gray-200 dark:border-gray-700 p-3">
+            <h4 className="text-sm font-bold mb-3">{releaseToConfirm.official_receipt_path ? 'Official Receipt copy' : 'Supporting attachment'}</h4>
+            {releaseToConfirm.official_receipt_path || releaseToConfirm.file_path ? <AuthedFilePreview path={releaseToConfirm.official_receipt_path || releaseToConfirm.file_path} alt="Release supporting record" iframeTitle="Release supporting record" className="w-full max-h-80 object-contain" /> : <p className="text-sm text-gray-500 dark:text-gray-400">No digital copy on file. The Secretary’s physical receipt check remains valid.</p>}
+          </div>
+          <dl className="text-sm space-y-3 select-text">
+            <div><dt className="font-bold">Document</dt><dd>{releaseToConfirm.document_type}</dd></div>
+            <div><dt className="font-bold">Applicant</dt><dd>{releaseToConfirm.student_name || releaseToConfirm.student_id}</dd></div>
+            <div><dt className="font-bold">Tracking number</dt><dd className="break-all">{releaseToConfirm.tracking_number}</dd></div>
+            <div><dt className="font-bold">Official Receipt number</dt><dd>{releaseToConfirm.or_number || 'Recorded physical receipt'}</dd></div>
+          </dl>
+        </div>}
         variant="neutral"
         confirmLabel="Release"
         loadingLabel="Releasing…"

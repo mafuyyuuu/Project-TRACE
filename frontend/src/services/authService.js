@@ -114,3 +114,12 @@ export async function resetPassword({ token, password }) {
   const { data } = await api.post('/auth/reset-password', { token, password })
   return data
 }
+
+export async function verify2FA(payload) {
+  const { data } = await api.post('/auth/verify-2fa', payload)
+  return data
+}
+export async function verifyEmailChange(otp) {
+  const { data } = await api.post('/auth/verify-email-change', { otp })
+  return data
+}

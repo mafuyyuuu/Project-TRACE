@@ -6,6 +6,7 @@ export const ROLE_LABELS = {
 };
 
 export const USER_TYPE_LABELS = {
+  student: 'Student',
   undergraduate: 'Undergraduate',
   irregular: 'Irregular',
   alumni: 'Alumni',

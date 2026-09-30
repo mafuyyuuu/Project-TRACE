@@ -1,9 +1,10 @@
+import { INPUT_LIMITS } from '@/utils/inputLimits';
 import ConfirmDialog from '@/components/ConfirmDialog'
 import { useState, useEffect } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 import useAuth from '@/hooks/useAuth'
-import plpLogo from '@/assets/plp_logo.png'
-import api from '@/services/api'
+import AuthShell from '@/components/AuthShell'
+import { verify2FA } from '@/services/authService'
 
 export default function LoginPage() {
   const { login, loading, error: authError } = useAuth()
@@ -11,7 +12,6 @@ export default function LoginPage() {
   const [password, setPassword] = useState('')
   const [localError, setLocalError] = useState('')
   const [showPassword, setShowPassword] = useState(false)
-  const navigate = useNavigate()
 
   // 2FA State
   const [requires2FA, setRequires2FA] = useState(false)
@@ -62,8 +62,9 @@ export default function LoginPage() {
         return
       }
       try {
-        const res = await api.post('/auth/verify-2fa', { temp_token: submissionToConfirm.tempToken, otp: submissionToConfirm.otp })
-        localStorage.setItem('token', res.data.token)
+        const data = await verify2FA({ temp_token: submissionToConfirm.tempToken, otp: submissionToConfirm.otp })
+        localStorage.setItem('trace_token', data.token)
+        localStorage.setItem('trace_user', JSON.stringify(data.user))
         window.location.href = '/dashboard'
       } catch (err) {
         setLocalError(err.response?.data?.error || 'Invalid OTP.')
@@ -82,50 +83,17 @@ export default function LoginPage() {
   }, [error])
 
   return (
-    <div className="min-h-screen flex flex-col md:flex-row font-body relative overflow-hidden bg-white dark:bg-gray-900">
+    <AuthShell title={requires2FA ? 'Verification Required' : 'Login'}>
       <ConfirmDialog open={!!submissionToConfirm} title={requires2FA ? 'Confirm Verification' : 'Confirm Sign In'}
         message={['Submit your sign-in details?', error ? <span role="alert">{error}</span> : null]}
         confirmLabel={requires2FA ? 'Verify' : 'Sign In'} loading={loading || confirming}
         onConfirm={confirmSubmission} onCancel={() => setSubmissionToConfirm(null)} />
-      {/* Left Column (Light Spec) */}
-      <div className="md:w-1/2 bg-[#f8f9fa] dark:bg-gray-900 p-12 md:p-24 flex flex-col justify-between shrink-0">
-        <div>
-          <img src={plpLogo} alt="PLP Logo" className="w-16 h-16 rounded-full object-cover shadow-md" />
-        </div>
-
-        <div className="my-auto py-12 md:py-0">
-          <span className="text-2xl font-black text-gray-900 dark:text-gray-100 block mb-2 tracking-tight">Welcome to</span>
-          <h1 className="text-7xl md:text-[10rem] font-display font-black text-[#15803d] dark:text-green-300 tracking-tighter leading-none mb-4">TRACE</h1>
-          <h2 className="text-2xl md:text-3xl font-display font-black text-[#15803d] dark:text-green-300 leading-tight max-w-md">
-            An AI-Assisted Registrar Document Workflow System
-          </h2>
-        </div>
-
-        <div>
-          <p className="text-sm font-bold text-gray-900 dark:text-gray-100 max-w-sm leading-relaxed">
-            Empowering the PLP community with transparent document requests and intelligent, data-driven administrative processing.
-          </p>
-        </div>
-      </div>
-
-      {/* Right Column (Pine Spec) */}
-      <div className="md:w-1/2 bg-[#15803d] p-12 md:p-24 flex flex-col justify-center text-white relative">
-        <div className="max-w-md w-full mx-auto">
-          <h2 className="text-4xl font-display font-black mb-10 tracking-tight">{requires2FA ? 'Verification Required' : 'Login'}</h2>
-
-          {error && (
-            <div className="fixed bottom-6 right-6 z-50 bg-red-900 dark:bg-red-900 text-white px-6 py-4 rounded-2xl shadow-xl flex items-center gap-3 border border-red-700 dark:border-red-800 animate-slide-up">
-              <div className="w-8 h-8 rounded-full bg-red-500/20 dark:bg-red-500/20 text-red-400 dark:text-red-300 flex items-center justify-center shrink-0"><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" /></svg></div>
-              <span className="font-semibold text-sm">{error}</span>
-            </div>
-          )}
-
           <form onSubmit={handleSubmit} className="flex flex-col gap-6">
             {!requires2FA ? (
               <>
                 <div className="flex flex-col gap-2">
                   <label className="text-xs font-bold text-white uppercase tracking-wider">STUDENT ID / STAFF ID</label>
-                  <input 
+                  <input maxLength={INPUT_LIMITS.id}
                     type="text" 
                     placeholder="e.g. 23-00123 or ADMIN001"
                     value={employeeId} 
@@ -164,11 +132,11 @@ export default function LoginPage() {
                   For security, we've sent a 6-digit verification code to <strong>{maskedEmail}</strong>.
                 </p>
                 <label className="text-xs font-bold text-white uppercase tracking-wider">VERIFICATION CODE</label>
-                <input 
+                <input maxLength={INPUT_LIMITS.otp} inputMode="numeric"
                   type="text" 
                   placeholder="Enter 6-digit OTP"
                   value={otp} 
-                  onChange={(e) => setOtp(e.target.value)} 
+                  onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))}
                   className="w-full p-4 bg-white/10 dark:bg-gray-900/10 border border-white/20 rounded-xl text-center text-2xl tracking-[0.5em] focus:ring-2 focus:ring-white/50 outline-none text-white focus:bg-white/20 dark:focus:bg-gray-900/20 transition-all font-bold placeholder:text-white/40"
                   autoFocus 
                 />
@@ -204,8 +172,6 @@ export default function LoginPage() {
               Don't have an account? <Link to="/signup" className="text-white font-black hover:underline">Sign up</Link>
             </div>
           )}
-        </div>
-      </div>
-    </div>
+    </AuthShell>
   )
 }

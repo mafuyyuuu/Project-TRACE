@@ -135,6 +135,25 @@ async function renderDashboard(ui) {
   return utils;
 }
 
+describe('Student merged history', () => {
+  it('uses the legacy URL filter during navigation and keeps one table', async () => {
+    const props = { user: USERS.student, setViewImageUrl: vi.fn() };
+    const view = await renderDashboard(<StudentDashboard {...props} currentTab="history" />);
+    expect(screen.getByRole('button', { name: 'All Requests' })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getAllByRole('table')).toHaveLength(1);
+    expect(screen.getByText('TRC-INTK')).toBeInTheDocument();
+    view.rerender(<StudentDashboard {...props} currentTab="payment-history" />);
+    expect(screen.getByRole('button', { name: 'Payments', exact: true })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.queryByText('TRC-INTK')).not.toBeInTheDocument();
+    expect(screen.getByText('TRC-DONE')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'All Requests' }));
+    expect(screen.getByText('TRC-INTK')).toBeInTheDocument();
+    view.rerender(<StudentDashboard {...props} currentTab="request-history" />);
+    expect(screen.getByRole('button', { name: 'All Requests' })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getAllByRole('table')).toHaveLength(1);
+  });
+});
+
 /** The tracking id a queue row shows, so a queue can be identified by content. */
 const idFor = (status) => `#TRC-${CODE[status]}`;
 
@@ -144,6 +163,8 @@ describe('Window 1 — intake at the front, release at the back', () => {
       <Window1Dashboard user={USERS.window1} currentTab="dashboard" setViewImageUrl={vi.fn()} />
     );
     expect(await screen.findByText(/INTAKE QUEUE/i)).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: /Release/ })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('tab', { name: /Release/ }));
     expect(screen.getByText(/RELEASE DESK/i)).toBeInTheDocument();
   });
 
@@ -152,7 +173,10 @@ describe('Window 1 — intake at the front, release at the back', () => {
       <Window1Dashboard user={USERS.window1} currentTab="dashboard" setViewImageUrl={vi.fn()} />
     );
     expect(await screen.findByText(idFor(STATUS.PENDING_W1_INTAKE))).toBeInTheDocument();
+    expect(screen.queryByText(idFor(STATUS.READY_FOR_RELEASE))).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('tab', { name: /Release/ }));
     expect(screen.getByText(idFor(STATUS.READY_FOR_RELEASE))).toBeInTheDocument();
+    expect(screen.queryByText(idFor(STATUS.PENDING_W1_INTAKE))).not.toBeInTheDocument();
     // Work belonging to another desk must not appear in either queue.
     expect(screen.queryByText(idFor(STATUS.SEC_PROCESSING))).not.toBeInTheDocument();
     expect(screen.queryByText(idFor(STATUS.PENDING_FINANCE_VERIFICATION))).not.toBeInTheDocument();
@@ -162,6 +186,7 @@ describe('Window 1 — intake at the front, release at the back', () => {
     await renderDashboard(
       <Window1Dashboard user={USERS.window1} currentTab="dashboard" setViewImageUrl={vi.fn()} />
     );
+    fireEvent.click(await screen.findByRole('tab', { name: /Release/ }));
     expect(await screen.findByText('OR-2026-0100')).toBeInTheDocument();
   });
 

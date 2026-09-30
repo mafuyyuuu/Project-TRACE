@@ -40,6 +40,7 @@ const verifiedStudent = () => ({
 beforeEach(() => {
   vi.spyOn(userModel, 'findActiveByStudentId').mockResolvedValue([]);
   vi.spyOn(userModel, 'findExistingByStudentId').mockResolvedValue([]);
+  vi.spyOn(userModel, 'findActiveAdmins').mockResolvedValue([]);
   vi.spyOn(userModel, 'createUser').mockResolvedValue([{ insertId: 1 }]);
   vi.spyOn(userModel, 'deleteById').mockResolvedValue([{ affectedRows: 1 }]);
   vi.spyOn(userModel, 'setVerificationStatus').mockResolvedValue([{ affectedRows: 1 }]);
@@ -274,5 +275,64 @@ describe('updateProfilePicture', () => {
     const unlink = vi.spyOn(fs, 'unlinkSync').mockImplementation(() => {});
     await service.updateProfilePicture(3, { filename: 'avatar-first.png' });
     expect(unlink).not.toHaveBeenCalled();
+  });
+});
+
+
+describe('Batch 8 OTP completion', () => {
+  it('returns public user fields after staff OTP and never caches secrets', async () => {
+    const user = { ...verifiedStudent(), role: 'clerk', is_active: 1, login_otp: '123456', login_otp_expires: new Date(Date.now() + 60000) };
+    vi.spyOn(userModel, 'findById').mockResolvedValue([user]);
+    userModel.getProfileById.mockResolvedValue([{ ...user, has_grad_application: 1 }]);
+    const token = jwt.sign({ id: 3, pending_2fa: true }, env.JWT_SECRET);
+    const result = await service.verify2FA(token, '123456');
+    expect(result.user.has_grad_application).toBe(true);
+    expect(result.user).not.toHaveProperty('password_hash');
+    expect(result.user).not.toHaveProperty('email_otp');
+    expect(result.user).not.toHaveProperty('login_otp');
+  });
+  it('commits email only after a valid code', async () => {
+    vi.spyOn(userModel, 'findById').mockResolvedValue([{ id: 3, pending_email: 'new@example.com', email_otp: 'E:123456', email_otp_expires: new Date(Date.now() + 60000) }]);
+    expect(await statusOf(service.verifyEmailChange(3, '999999'))).toBe(401);
+    expect(userModel.commitEmailChange).not.toHaveBeenCalled();
+    await service.verifyEmailChange(3, '123456');
+    expect(userModel.commitEmailChange).toHaveBeenCalledWith(3, 'new@example.com');
+  });
+  it('rejects expired OTPs and inactive users', async () => {
+    vi.spyOn(userModel, 'findById').mockResolvedValue([{ ...verifiedStudent(), is_active: 0 }]);
+    const token = jwt.sign({ id: 3, pending_2fa: true }, env.JWT_SECRET);
+    expect(await statusOf(service.verify2FA(token, '123456'))).toBe(404);
+  });
+});
+
+describe('purpose-bound OTP challenges', () => {
+  it('stages email changes with a marked code and leaves the current address untouched', async () => {
+    userModel.getProfileById.mockResolvedValue([{ id: 3, student_id: 'STU-001', email: 'old@example.test' }]);
+    userModel.findActiveByStudentId.mockResolvedValue([verifiedStudent()]);
+    const result = await service.updateProfile(3, { email: 'new@example.test', current_password: 'Trace2024!' });
+    expect(result).toMatchObject({ email_verification_required: true, pending_email: 'new@example.test' });
+    expect(userModel.requestEmailChange.mock.calls[0]).toEqual([3, 'new@example.test', expect.stringMatching(/^E:\d{6}$/), expect.any(Date)]);
+    expect(userModel.commitEmailChange).not.toHaveBeenCalled();
+  });
+  it('a login code cannot commit a pending email, even when its value matches', async () => {
+    vi.spyOn(userModel, 'findById').mockResolvedValue([{ id: 3, pending_email: 'new@example.test', login_otp: '123456', login_otp_expires: new Date(Date.now() + 60000), email_otp: 'E:654321', email_otp_expires: new Date(Date.now() + 60000) }]);
+    expect(await statusOf(service.verifyEmailChange(3, '123456'))).toBe(401);
+    expect(userModel.commitEmailChange).not.toHaveBeenCalled();
+  });
+  it('a legacy shared OTP is not accepted as proof of a new email address', async () => {
+    vi.spyOn(userModel, 'findById').mockResolvedValue([{ id: 3, pending_email: 'new@example.test', email_otp: '123456', email_otp_expires: new Date(Date.now() + 60000) }]);
+    expect(await statusOf(service.verifyEmailChange(3, '123456'))).toBe(401);
+    expect(userModel.commitEmailChange).not.toHaveBeenCalled();
+  });
+  it('an email-change code cannot finish staff login', async () => {
+    vi.spyOn(userModel, 'findById').mockResolvedValue([{ ...verifiedStudent(), role: 'clerk', is_active: 1, email_otp: 'E:123456', email_otp_expires: new Date(Date.now() + 60000), login_otp: '654321', login_otp_expires: new Date(Date.now() + 60000) }]);
+    const token = jwt.sign({ id: 3, pending_2fa: true }, env.JWT_SECRET);
+    expect(await statusOf(service.verify2FA(token, '123456'))).toBe(401);
+    expect(userModel.clearEmailOTP).not.toHaveBeenCalled();
+  });
+  it.each([null, 'invalid', new Date(Date.now() - 60000)])('rejects missing, invalid, and expired login expiry (%s)', async expires => {
+    vi.spyOn(userModel, 'findById').mockResolvedValue([{ ...verifiedStudent(), role: 'clerk', is_active: 1, login_otp: '123456', login_otp_expires: expires }]);
+    const token = jwt.sign({ id: 3, pending_2fa: true }, env.JWT_SECRET);
+    expect(await statusOf(service.verify2FA(token, '123456'))).toBe(400);
   });
 });

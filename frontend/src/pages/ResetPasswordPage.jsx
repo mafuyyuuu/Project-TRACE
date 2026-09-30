@@ -1,3 +1,4 @@
+import { INPUT_LIMITS } from '@/utils/inputLimits';
 import ConfirmDialog from '@/components/ConfirmDialog'
 import { useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
@@ -65,7 +66,7 @@ export default function ResetPasswordPage() {
           <label htmlFor="password" className="block text-sm font-bold mb-2 uppercase tracking-wide">
             New Password
           </label>
-          <input
+          <input maxLength={INPUT_LIMITS.password}
             id="password"
             type="password"
             autoComplete="new-password"
@@ -80,7 +81,7 @@ export default function ResetPasswordPage() {
           >
             Confirm New Password
           </label>
-          <input
+          <input maxLength={INPUT_LIMITS.password}
             id="confirmPassword"
             type="password"
             autoComplete="new-password"

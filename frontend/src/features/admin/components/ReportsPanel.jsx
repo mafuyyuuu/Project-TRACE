@@ -1,7 +1,10 @@
+import { INPUT_LIMITS } from '@/utils/inputLimits';
+import { useState } from 'react';
+import { formatDateTime } from '@/utils/formatters';
 import useReports from '@/features/admin/useReports';
 import DashboardLoading from '@/components/DashboardLoading';
 import DashboardAlerts from '@/components/DashboardAlerts';
-import { getStatusLabel, PIPELINE, LEGACY_STATUS } from '@/utils/documentStatus';
+import { getStatusLabel, getStatusTone, PIPELINE, LEGACY_STATUS } from '@/utils/documentStatus';
 import { formatPeso } from '@/utils/pricing';
 
 // The live pipeline, plus the terminals only pre-refactor records can hold —
@@ -42,7 +45,8 @@ function StatCard({ label, value, tone = 'default' }) {
  * at.
  */
 export default function ReportsPanel({ user, currentTab }) {
-  const r = useReports(user, currentTab);
+  const { tableRef, ...r } = useReports(user, currentTab);
+  const [exportOption, setExportOption] = useState('documents');
 
   if (r.loading) return <DashboardLoading />;
 
@@ -86,7 +90,7 @@ export default function ReportsPanel({ user, currentTab }) {
             </div>
             <div className="flex flex-col gap-1.5">
               <label className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest">Document Type</label>
-              <input className={inputClass} placeholder="e.g. Diploma" value={r.filters.documentType}
+              <input maxLength={INPUT_LIMITS.referenceName} className={inputClass} placeholder="e.g. Diploma" value={r.filters.documentType}
                 onChange={(e) => r.updateFilter('documentType', e.target.value)} />
             </div>
             <div className="flex flex-col gap-1.5">
@@ -109,10 +113,7 @@ export default function ReportsPanel({ user, currentTab }) {
               className="px-6 py-2.5 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 rounded-xl text-xs font-bold hover:bg-gray-50 dark:hover:bg-gray-800">
               Reset
             </button>
-            <button onClick={r.downloadDocuments} disabled={r.exporting === 'documents'}
-              className="px-6 py-2.5 border border-[#15803d] text-[#15803d] dark:text-green-300 rounded-xl text-xs font-bold hover:bg-emerald-50 dark:hover:bg-emerald-950/40 disabled:opacity-50 ml-auto">
-              {r.exporting === 'documents' ? 'Exporting...' : 'Export These Records (CSV)'}
-            </button>
+
           </div>
         </div>
 
@@ -127,23 +128,14 @@ export default function ReportsPanel({ user, currentTab }) {
           </div>
         )}
 
-        {/* Student export by category */}
-        <div className="bg-white dark:bg-gray-900 rounded-3xl p-6 shadow-sm border border-gray-200 dark:border-gray-700">
-          <h3 className="text-sm font-bold text-gray-900 dark:text-gray-100">Export Student Records</h3>
-          <p className="text-[10px] text-gray-400 dark:text-gray-400 mt-1 mb-4">
-            Downloads a CSV of student details with their request counts.
-          </p>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-            {EXPORT_CATEGORIES.map((c) => (
-              <button key={c.key} onClick={() => r.downloadStudents(c.key)} disabled={Boolean(r.exporting)}
-                className="text-left border border-gray-200 dark:border-gray-700 rounded-2xl p-4 hover:border-[#15803d] hover:bg-emerald-50/40 dark:hover:bg-emerald-950/40 transition-all disabled:opacity-50">
-                <span className="text-xs font-bold text-gray-900 dark:text-gray-100 block">
-                  {r.exporting === c.key ? 'Exporting...' : c.label}
-                </span>
-                <span className="text-[10px] text-gray-400 dark:text-gray-400">{c.hint}</span>
-              </button>
-            ))}
-          </div>
+        <div className="bg-white dark:bg-gray-900 rounded-3xl p-6 border border-gray-200 dark:border-gray-700 flex flex-col sm:flex-row gap-3">
+          <label className="flex-1 text-sm font-bold">Export options
+            <select value={exportOption} onChange={e => setExportOption(e.target.value)} className={inputClass} disabled={Boolean(r.exporting)}>
+              <option value="documents">Filtered document records (CSV)</option>
+              {EXPORT_CATEGORIES.map(c => <option key={c.key} value={c.key}>{c.label} (CSV)</option>)}
+            </select>
+          </label>
+          <button type="button" disabled={Boolean(r.exporting)} onClick={() => exportOption === 'documents' ? r.downloadDocuments() : r.downloadStudents(exportOption)} className="px-5 py-3 rounded-xl bg-[#15803d] text-white font-bold disabled:opacity-50">{r.exporting ? 'Exporting…' : 'Export'}</button>
         </div>
 
         {/* Filtered records */}
@@ -157,11 +149,13 @@ export default function ReportsPanel({ user, currentTab }) {
             )}
           </div>
 
-          <div className="max-h-[30rem] overflow-y-auto">
-            <table className="w-full text-left">
+          <div ref={tableRef} className="max-h-[60vh] overflow-y-auto overflow-x-auto">
+            <table className="w-full text-left table-fixed min-w-[1120px]">
+              <colgroup>{[180,180,160,180,160,120,90,100].map((width, index) => <col key={index} style={{ width }} />)}</colgroup>
               <thead className="bg-gray-50 dark:bg-gray-800 sticky top-0">
                 <tr className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest">
-                  <th className="py-3 px-5">Date</th>
+                  <th className="py-3 px-5">Requested On</th>
+                  <th className="py-3 px-3">Last Updated</th>
                   <th className="py-3 px-5">Tracking</th>
                   <th className="py-3">Student</th>
                   <th className="py-3">Document</th>
@@ -173,14 +167,15 @@ export default function ReportsPanel({ user, currentTab }) {
               <tbody>
                 {(r.report?.documents || []).map((d) => (
                   <tr key={d.id} className="border-b border-gray-50 dark:border-gray-700 hover:bg-gray-50/50 dark:hover:bg-gray-800/50">
-                    <td className="py-3 px-5 text-xs text-gray-500 dark:text-gray-400">{new Date(d.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}</td>
-                    <td className="py-3 px-5 text-[11px] font-mono text-gray-700 dark:text-gray-300">{d.tracking_number}</td>
+                    <td className="py-3 px-5 text-xs text-gray-500 dark:text-gray-400">{formatDateTime(d.created_at)}</td>
+                    <td className="py-3 px-3 text-xs text-gray-500 dark:text-gray-400">{formatDateTime(d.updated_at)}</td>
+                    <td className="py-3 px-5 break-all text-[11px] font-mono text-gray-700 dark:text-gray-300">{d.tracking_number}</td>
                     <td className="py-3">
                       <div className="text-xs font-bold text-gray-900 dark:text-gray-100 select-text break-words">{d.student_name || '—'}</div>
                       <div className="text-[10px] text-gray-400 dark:text-gray-400 font-mono select-text break-words">{d.student_id || '—'}</div>
                     </td>
-                    <td className="py-3 text-xs text-gray-600 dark:text-gray-300">{d.document_type || '—'}</td>
-                    <td className="py-3 text-xs text-gray-600 dark:text-gray-300">{getStatusLabel(d.current_status)}</td>
+                    <td className="py-3 pr-2 break-words text-xs text-gray-600 dark:text-gray-300">{d.document_type || '—'}</td>
+                    <td className="py-3 pr-2 break-words text-xs"><span className={getStatusTone(d.current_status, 'text-gray-600 dark:text-gray-300')}>{getStatusLabel(d.current_status)}</span></td>
                     <td className="py-3">
                       <span className={`text-[10px] font-bold px-2 py-1 rounded-full ${
                         d.payment_status === 'PAID'
@@ -197,7 +192,7 @@ export default function ReportsPanel({ user, currentTab }) {
                 ))}
                 {(r.report?.documents || []).length === 0 && (
                   <tr>
-                    <td colSpan={7} className="py-10 text-center text-xs text-gray-400 dark:text-gray-400 font-semibold">
+                    <td colSpan={8} className="py-10 text-center text-xs text-gray-400 dark:text-gray-400 font-semibold">
                       No records match these filters.
                     </td>
                   </tr>

@@ -1,3 +1,5 @@
+import { INPUT_LIMITS } from '@/utils/inputLimits';
+import FileUploadField from '@/components/FileUploadField';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import { useRef, useState, useMemo, useEffect } from 'react';
 import ModalShell from '@/components/ModalShell';
@@ -12,15 +14,20 @@ export default function ProfileSettingsModal({
   setField,
   avatarPath,
   avatarPreviewUrl,
+  avatarFile,
   saving,
   success,
   error,
   onSave,
   onAvatarChange,
+  initialTab = 'personal',
+  darkMode = false,
+  onToggleTheme,
+  pendingEmail = '', emailOtp = '', onEmailOtpChange, onVerifyEmail,
 }) {
   const fileInputRef = useRef(null);
 
-  const [activeTab, setActiveTab] = useState('personal');
+  const [activeTab, setActiveTab] = useState(initialTab);
   const [confirmation, setConfirmation] = useState(null);
   const [loggingOut, setLoggingOut] = useState(false);
   const [securityLogs, setSecurityLogs] = useState([]);
@@ -79,6 +86,10 @@ export default function ProfileSettingsModal({
   }, [profileData, isStudent]);
 
   const confirmAction = async () => {
+    if (confirmation === 'email') {
+      if (await onVerifyEmail()) setConfirmation(null);
+      return;
+    }
     if (confirmation === 'profile') {
       if (await onSave()) setConfirmation(null);
       return;
@@ -107,7 +118,7 @@ export default function ProfileSettingsModal({
         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"/></svg>
       }
       closeButtonAriaLabel="Close settings"
-      footer={
+      footer={activeTab !== 'appearance' && (
         <button
           disabled={saving}
           type="submit"
@@ -116,21 +127,32 @@ export default function ProfileSettingsModal({
         >
           {saving ? 'Saving...' : 'Save Profile'}
         </button>
-      }
+      )}
     >
       <ConfirmDialog open={!!confirmation}
-        title={confirmation === 'profile' ? 'Confirm Profile Save' : 'Log Out Other Devices'}
-        message={confirmation === 'profile'
+        title={confirmation === 'email' ? 'Verify New Email' : confirmation === 'profile' ? 'Confirm Profile Save' : 'Log Out Other Devices'}
+        message={confirmation === 'email' ? ['Confirm this verification code to update your email address.', error ? <span role="alert">{error}</span> : null] : confirmation === 'profile'
           ? ['Save your profile changes and selected picture?', error ? <span role="alert">{error}</span> : null]
           : 'Log out of all other active sessions?'}
-        confirmLabel={confirmation === 'profile' ? 'Save Profile' : 'Log Out Other Devices'}
-        variant={confirmation === 'profile' ? 'neutral' : 'destructive'}
+        confirmLabel={confirmation === 'email' ? 'Verify Email' : confirmation === 'profile' ? 'Save Profile' : 'Log Out Other Devices'}
+        variant={confirmation === 'session' ? 'destructive' : 'neutral'}
         loading={saving || loggingOut} onConfirm={confirmAction} onCancel={() => setConfirmation(null)} />
       <DashboardAlerts
         success={sessionFeedback.success}
         error={sessionFeedback.error}
         onDismiss={() => setSessionFeedback({ success: '', error: '' })}
       />
+      {pendingEmail && <section className="mb-4 p-4 rounded-xl border border-amber-200 dark:border-amber-800" aria-label="Email verification">
+        <p className="text-sm mb-3">Verify the code sent to <span className="select-text break-all">{pendingEmail}</span>. Your current email stays active until verification.</p>
+        <label className="block text-sm">Verification code
+          <input value={emailOtp} onChange={e => onEmailOtpChange?.(e.target.value.replace(/\D/g, ''))} inputMode="numeric" maxLength={INPUT_LIMITS.otp} className="w-full rounded-xl border p-3 dark:bg-gray-900" />
+        </label>
+        <button type="button" disabled={saving || emailOtp.length !== 6} onClick={() => setConfirmation('email')} className="mt-3 px-4 py-2 rounded-xl bg-[#15803d] text-white disabled:opacity-50">Verify Email</button>
+      </section>}
+      {activeTab === 'appearance' && <section className="p-4 mb-4" aria-label="Appearance">
+        <h3 className="font-bold mb-2">Appearance</h3>
+        <button type="button" aria-pressed={darkMode} onClick={onToggleTheme} className="px-4 py-3 rounded-xl border border-gray-300 dark:border-gray-600">{darkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode'}</button>
+      </section>}
       <div className="bg-white dark:bg-gray-900 px-6 pt-4 pb-0 flex flex-col border-b border-gray-100 dark:border-gray-700">
         <div className="flex items-start gap-4 pb-6">
           <div className="relative shrink-0">
@@ -148,7 +170,6 @@ export default function ProfileSettingsModal({
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
             </button>
-            <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={(e) => { onAvatarChange(e.target.files?.[0]); e.target.value = ''; }} />
           </div>
           <div className="flex flex-col flex-1 min-w-0 pt-1">
             <h3 className="text-xl font-display font-black text-gray-900 dark:text-gray-100 leading-tight select-text break-words">{user?.full_name || '—'}</h3>
@@ -168,6 +189,7 @@ export default function ProfileSettingsModal({
           </div>
         </div>
         
+        <FileUploadField label="Profile picture" inputRef={fileInputRef} file={avatarFile} path={avatarPath} onChange={onAvatarChange} accept="image/jpeg,image/png,image/webp" maxBytes={2 * 1024 * 1024} disabled={saving} />
         {/* Tabs */}
         {isStudent ? (
           <div className="flex flex-wrap gap-3 sm:gap-6 border-b border-gray-100 dark:border-gray-700 px-2 mt-2">
@@ -213,11 +235,11 @@ export default function ProfileSettingsModal({
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">Phone Number <span className="text-red-500 dark:text-red-300">*</span></label>
-                  <input type="text" value={profileData.phone_number} onChange={(e) => setField('phone_number', e.target.value)} required className="w-full bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl py-3 px-4 text-sm font-semibold focus:ring-2 focus:ring-[#15803d]/20 outline-none" />
+                  <input maxLength={INPUT_LIMITS.phone} type="text" value={profileData.phone_number} onChange={(e) => setField('phone_number', e.target.value)} required className="w-full bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl py-3 px-4 text-sm font-semibold focus:ring-2 focus:ring-[#15803d]/20 outline-none" />
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">Email Address <span className="text-red-500 dark:text-red-300">*</span></label>
-                  <input type="email" value={profileData.email} onChange={(e) => setField('email', e.target.value)} required className="w-full bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl py-3 px-4 text-sm font-semibold focus:ring-2 focus:ring-[#15803d]/20 outline-none" />
+                  <input maxLength={INPUT_LIMITS.email} type="email" value={profileData.email} onChange={(e) => setField('email', e.target.value)} required className="w-full bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl py-3 px-4 text-sm font-semibold focus:ring-2 focus:ring-[#15803d]/20 outline-none" />
                 </div>
               </div>
 
@@ -230,7 +252,7 @@ export default function ProfileSettingsModal({
                     </div>
                     <div>
                       <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">Place of Birth <span className="text-red-500 dark:text-red-300">*</span></label>
-                      <input type="text" value={profileData.place_of_birth} onChange={(e) => setField('place_of_birth', e.target.value)} required className="w-full bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl py-3 px-4 text-sm font-semibold focus:ring-2 focus:ring-[#15803d]/20 outline-none" />
+                      <input maxLength={INPUT_LIMITS.name} type="text" value={profileData.place_of_birth} onChange={(e) => setField('place_of_birth', e.target.value)} required className="w-full bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl py-3 px-4 text-sm font-semibold focus:ring-2 focus:ring-[#15803d]/20 outline-none" />
                     </div>
                   </div>
 
@@ -256,20 +278,20 @@ export default function ProfileSettingsModal({
                     </div>
                     <div>
                       <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">Extension Name</label>
-                      <input type="text" placeholder="Jr., III, etc." value={profileData.extension_name} onChange={(e) => setField('extension_name', e.target.value)} className="w-full bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl py-3 px-4 text-sm font-semibold focus:ring-2 focus:ring-[#15803d]/20 outline-none" />
+                      <input maxLength={INPUT_LIMITS.shortCode} type="text" placeholder="Jr., III, etc." value={profileData.extension_name} onChange={(e) => setField('extension_name', e.target.value)} className="w-full bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl py-3 px-4 text-sm font-semibold focus:ring-2 focus:ring-[#15803d]/20 outline-none" />
                     </div>
                   </div>
 
                   {profileData.sex === 'Female' && profileData.civil_status === 'Married' && (
                     <div>
                       <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">Maiden Name <span className="text-red-500 dark:text-red-300">*</span></label>
-                      <input type="text" value={profileData.maiden_name} onChange={(e) => setField('maiden_name', e.target.value)} required className="w-full bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl py-3 px-4 text-sm font-semibold focus:ring-2 focus:ring-[#15803d]/20 outline-none" />
+                      <input maxLength={INPUT_LIMITS.name} type="text" value={profileData.maiden_name} onChange={(e) => setField('maiden_name', e.target.value)} required className="w-full bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl py-3 px-4 text-sm font-semibold focus:ring-2 focus:ring-[#15803d]/20 outline-none" />
                     </div>
                   )}
 
                   <div>
                     <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">Home Address <span className="text-red-500 dark:text-red-300">*</span></label>
-                    <textarea value={profileData.home_address} onChange={(e) => setField('home_address', e.target.value)} required rows="2" className="w-full bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl py-3 px-4 text-sm font-semibold focus:ring-2 focus:ring-[#15803d]/20 outline-none resize-none"></textarea>
+                    <textarea maxLength={INPUT_LIMITS.address} value={profileData.home_address} onChange={(e) => setField('home_address', e.target.value)} required rows="2" className="w-full bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl py-3 px-4 text-sm font-semibold focus:ring-2 focus:ring-[#15803d]/20 outline-none resize-none"></textarea>
                   </div>
                 </>
               )}
@@ -290,7 +312,7 @@ export default function ProfileSettingsModal({
                   </div>
                   <div>
                     <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">New Password</label>
-                    <input type="password" value={profileData.password} onChange={(e) => setField('password', e.target.value)} placeholder="Leave blank to keep current password" className="w-full bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl py-3 px-4 text-sm font-semibold focus:ring-2 focus:ring-[#15803d]/20 outline-none" />
+                    <input maxLength={INPUT_LIMITS.password} type="password" value={profileData.password} onChange={(e) => setField('password', e.target.value)} placeholder="Leave blank to keep current password" className="w-full bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl py-3 px-4 text-sm font-semibold focus:ring-2 focus:ring-[#15803d]/20 outline-none" />
                     
                     {profileData.password && (
                       <div className="mt-2 text-[10px] font-bold uppercase tracking-widest grid grid-cols-2 gap-1">
@@ -367,7 +389,7 @@ export default function ProfileSettingsModal({
               {profileData.is_transfer_student && (
                 <div>
                   <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">Previous School <span className="text-red-500 dark:text-red-300">*</span></label>
-                  <input type="text" value={profileData.previous_school} onChange={(e) => setField('previous_school', e.target.value)} required className="w-full bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl py-3 px-4 text-sm font-semibold focus:ring-2 focus:ring-[#15803d]/20 outline-none" />
+                  <input maxLength={INPUT_LIMITS.name} type="text" value={profileData.previous_school} onChange={(e) => setField('previous_school', e.target.value)} required className="w-full bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl py-3 px-4 text-sm font-semibold focus:ring-2 focus:ring-[#15803d]/20 outline-none" />
                 </div>
               )}
 
@@ -375,7 +397,7 @@ export default function ProfileSettingsModal({
                 <h4 className="text-xs font-bold text-gray-800 dark:text-gray-100 uppercase tracking-widest border-b border-gray-200 dark:border-gray-700 pb-2">Elementary</h4>
                 <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
                   <div className="sm:col-span-3">
-                    <input type="text" placeholder="School Name" required value={profileData.elem_school} onChange={(e) => setField('elem_school', e.target.value)} className="w-full bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl py-3 px-4 text-sm font-semibold focus:ring-2 focus:ring-[#15803d]/20 outline-none" />
+                    <input maxLength={INPUT_LIMITS.name} type="text" placeholder="School Name" required value={profileData.elem_school} onChange={(e) => setField('elem_school', e.target.value)} className="w-full bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl py-3 px-4 text-sm font-semibold focus:ring-2 focus:ring-[#15803d]/20 outline-none" />
                   </div>
                   <div>
                     <input type="number" placeholder="Year" required value={profileData.elem_grad_year} onChange={(e) => setField('elem_grad_year', e.target.value)} className="w-full bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl py-3 px-4 text-sm font-semibold focus:ring-2 focus:ring-[#15803d]/20 outline-none" />
@@ -385,7 +407,7 @@ export default function ProfileSettingsModal({
                 <h4 className="text-xs font-bold text-gray-800 dark:text-gray-100 uppercase tracking-widest border-b border-gray-200 dark:border-gray-700 pb-2 pt-2">Junior High School</h4>
                 <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
                   <div className="sm:col-span-3">
-                    <input type="text" placeholder="School Name" required value={profileData.jhs_school} onChange={(e) => setField('jhs_school', e.target.value)} className="w-full bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl py-3 px-4 text-sm font-semibold focus:ring-2 focus:ring-[#15803d]/20 outline-none" />
+                    <input maxLength={INPUT_LIMITS.name} type="text" placeholder="School Name" required value={profileData.jhs_school} onChange={(e) => setField('jhs_school', e.target.value)} className="w-full bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl py-3 px-4 text-sm font-semibold focus:ring-2 focus:ring-[#15803d]/20 outline-none" />
                   </div>
                   <div>
                     <input type="number" placeholder="Year" required value={profileData.jhs_grad_year} onChange={(e) => setField('jhs_grad_year', e.target.value)} className="w-full bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl py-3 px-4 text-sm font-semibold focus:ring-2 focus:ring-[#15803d]/20 outline-none" />
@@ -395,7 +417,7 @@ export default function ProfileSettingsModal({
                 <h4 className="text-xs font-bold text-gray-800 dark:text-gray-100 uppercase tracking-widest border-b border-gray-200 dark:border-gray-700 pb-2 pt-2">Senior High School</h4>
                 <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
                   <div className="sm:col-span-3">
-                    <input type="text" placeholder="School Name" required value={profileData.shs_school} onChange={(e) => setField('shs_school', e.target.value)} className="w-full bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl py-3 px-4 text-sm font-semibold focus:ring-2 focus:ring-[#15803d]/20 outline-none" />
+                    <input maxLength={INPUT_LIMITS.name} type="text" placeholder="School Name" required value={profileData.shs_school} onChange={(e) => setField('shs_school', e.target.value)} className="w-full bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl py-3 px-4 text-sm font-semibold focus:ring-2 focus:ring-[#15803d]/20 outline-none" />
                   </div>
                   <div>
                     <input type="number" placeholder="Year" required value={profileData.shs_grad_year} onChange={(e) => setField('shs_grad_year', e.target.value)} className="w-full bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl py-3 px-4 text-sm font-semibold focus:ring-2 focus:ring-[#15803d]/20 outline-none" />

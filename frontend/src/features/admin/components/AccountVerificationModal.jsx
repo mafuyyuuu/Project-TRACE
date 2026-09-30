@@ -1,3 +1,5 @@
+import { useState } from 'react';
+import ConfirmDialog from '@/components/ConfirmDialog';
 import ModalShell from '@/components/ModalShell';
 import AuthedFilePreview from '@/components/AuthedFilePreview';
 
@@ -8,15 +10,16 @@ export default function AccountVerificationModal({
   actionLoading,
   setViewImageUrl
 }) {
+  const [decision, setDecision] = useState(null);
   if (!studentVerifyToConfirm) return null;
-  const { student, action } = studentVerifyToConfirm;
+  const { student } = studentVerifyToConfirm;
 
   return (
     <ModalShell
       open={!!studentVerifyToConfirm}
       onClose={cancelAdminVerifyStudent}
       bare
-      title={action === 'verify' ? 'Verify Student' : 'Reject Registration'}
+      title="Review Registration"
       panelClassName="bg-white dark:bg-gray-900 rounded-3xl shadow-2xl w-full max-w-5xl h-[85vh] z-10 border border-gray-100 dark:border-gray-700 relative animate-slide-up flex flex-col lg:flex-row overflow-hidden"
       closeButtonClassName="absolute top-4 right-4 w-8 h-8 rounded-full flex items-center justify-center text-gray-400 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 z-20"
     >
@@ -45,12 +48,10 @@ export default function AccountVerificationModal({
       <div className="lg:w-1/2 flex flex-col overflow-hidden">
         <div className="flex-1 overflow-y-auto p-6 sm:p-8">
           <h3 className="text-xl font-black text-gray-900 dark:text-gray-100">
-            {action === 'verify' ? 'Verify Registration' : 'Reject Registration'}
+            Review Registration
           </h3>
           <p className="text-xs text-gray-400 dark:text-gray-400 mt-1 font-semibold pb-5 mb-6 border-b border-gray-100 dark:border-gray-700">
-            {action === 'verify' 
-              ? `Confirm the ID matches the student details below to activate the account.`
-              : `Reject this registration due to an invalid or mismatched ID proof.`}
+            Check the identity proof and account details, then choose a decision.
           </p>
 
           <div className="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl p-5 mb-6 font-mono text-[11px] text-gray-600 dark:text-gray-300 space-y-2">
@@ -68,17 +69,14 @@ export default function AccountVerificationModal({
           >
             Cancel
           </button>
-          <button
-            onClick={confirmAdminVerifyStudent}
-            disabled={actionLoading}
-            className={`w-2/3 py-3 rounded-xl font-bold text-xs shadow-md transition-all text-center uppercase tracking-wider text-white disabled:opacity-50 ${
-              action === 'verify' ? 'bg-[#15803d] hover:bg-[#166534]' : 'bg-red-600 dark:bg-red-600 hover:bg-red-700 dark:hover:bg-red-700'
-            }`}
-          >
-            {action === 'verify' ? 'Verify Account' : 'Reject Account'}
-          </button>
+          <button onClick={() => setDecision('reject')} disabled={actionLoading} className="flex-1 py-3 rounded-xl border border-red-300 text-red-700 dark:text-red-300 text-xs font-bold">Reject</button>
+          <button onClick={() => setDecision('verify')} disabled={actionLoading} className="flex-1 py-3 rounded-xl bg-[#15803d] text-white text-xs font-bold">Verify</button>
         </div>
       </div>
+      <ConfirmDialog open={!!decision} title={decision === 'verify' ? 'Verify Account' : 'Reject Account'}
+        message={`${decision === 'verify' ? 'Verify' : 'Reject'} ${student.full_name}'s registration?`}
+        variant={decision === 'reject' ? 'destructive' : 'neutral'} confirmLabel={decision === 'verify' ? 'Verify Account' : 'Reject Account'}
+        loading={actionLoading} onCancel={() => setDecision(null)} onConfirm={() => confirmAdminVerifyStudent(decision)} />
     </ModalShell>
   );
 }

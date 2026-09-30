@@ -1,10 +1,12 @@
+import { forecastCeiling } from '@/utils/forecastScale';
+import { USER_TYPE_LABELS } from '@/utils/userLabels';
 import AdminTemplatesPanel from './components/AdminTemplatesPanel';
 import { useState } from 'react';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import MiniSparkline from '@/components/MiniSparkline';
 import useAdminDashboard from '@/features/admin/useAdminDashboard';
 import { todayLongDate, formatDuration } from '@/utils/formatters';
-import { STATUS } from '@/utils/documentStatus';
+import { getStatusTone, getStatusLabel } from '@/utils/documentStatus';
 import DashboardAlerts from '@/components/DashboardAlerts';
 import DashboardLoading from '@/components/DashboardLoading';
 import StudentProfileModal from '@/components/StudentProfileModal';
@@ -21,7 +23,7 @@ import AccountVerificationModal from './components/AccountVerificationModal';
 /**
  * Registrar admin: ML forecasts, AI insights, account verification, users, and audit logs.
  */
-export default function AdminDashboard({ user, currentTab, setViewImageUrl }) {
+export default function AdminDashboard({ user, currentTab, setViewImageUrl, reviewAccountId, reviewNavigationKey }) {
   const [viewProfileId, setViewProfileId] = useState(null);
 
   const {
@@ -45,6 +47,7 @@ export default function AdminDashboard({ user, currentTab, setViewImageUrl }) {
     adminDocPage,
     setAdminDocPage,
     itemsPerPage,
+    tableRef,
     adminDocFilter,
     setAdminDocFilter,
     forecastFilter,
@@ -57,14 +60,14 @@ export default function AdminDashboard({ user, currentTab, setViewImageUrl }) {
     selectedUser,
     setSelectedUser,
     adminLogs,
-  } = useAdminDashboard(user, currentTab);
+  } = useAdminDashboard(user, currentTab, reviewAccountId, reviewNavigationKey);
 
   const todayFormatted = todayLongDate();
 
   if (loading) return <DashboardLoading />;
 
   // These three own their data via their own hooks and replace the default view.
-  if (currentTab === 'admin-maintenance') return <MaintenancePanel user={user} currentTab={currentTab} />;
+  if (['admin-maintenance', 'admin-users'].includes(currentTab)) return <MaintenancePanel user={user} currentTab={currentTab} />;
   if (currentTab === 'admin-reports') return <ReportsPanel user={user} currentTab={currentTab} />;
   if (currentTab === 'admin-analytics') return <AnalyticsPanel user={user} currentTab={currentTab} />;
   if (currentTab === 'admin-grad-applications') return <GradApplicationReviewPanel user={user} currentTab={currentTab} />;
@@ -207,7 +210,7 @@ export default function AdminDashboard({ user, currentTab, setViewImageUrl }) {
                               tick={{ fill: '#9ca3af', fontSize: 10, fontWeight: 'bold' }} 
                               dy={10}
                             />
-                            <YAxis 
+                            <YAxis domain={[0, forecastCeiling(forecastData)]}
                               allowDecimals={false} 
                               axisLine={false} 
                               tickLine={false} 
@@ -274,7 +277,7 @@ export default function AdminDashboard({ user, currentTab, setViewImageUrl }) {
                 {/* Student Account Verification dashboard */}
                 <div className="bg-white dark:bg-gray-900 rounded-3xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
                   <div className="p-4 sm:p-6 border-b border-gray-100 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800/50 flex justify-between items-center">
-                    <h3 className="font-bold text-gray-900 dark:text-gray-100 text-lg">Student Accounts Manual Verification Queue</h3>
+                    <h3 className="font-bold text-gray-900 dark:text-gray-100 text-lg">Account Verification</h3>
                     <span className="bg-amber-100 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-wider">
                       {pendingStudents.length} Account Verification Requests
                     </span>
@@ -288,7 +291,7 @@ export default function AdminDashboard({ user, currentTab, setViewImageUrl }) {
                           <thead className="sticky top-0 bg-white dark:bg-gray-900 z-10">
                             <tr className="text-gray-400 dark:text-gray-400 text-[10px] uppercase tracking-widest border-b border-gray-100 dark:border-gray-700">
                               <th className="pb-4 font-bold pl-4 font-mono">Student ID</th>
-                              <th className="pb-4 font-bold">Type</th>
+                              <th className="pb-4 font-bold">Applicant Type</th>
                               <th className="pb-4 font-bold">Full Name</th>
                               <th className="pb-4 font-bold">Email</th>
                               <th className="pb-4 font-bold">Proof of Registration</th>
@@ -299,7 +302,7 @@ export default function AdminDashboard({ user, currentTab, setViewImageUrl }) {
                             {pendingStudents.map(student => (
                               <tr key={student.id} className="hover:bg-gray-50/30 dark:hover:bg-gray-800/30">
                                 <td className="py-4 pl-4 font-mono text-sm font-semibold text-gray-800 dark:text-gray-100">{student.student_id}</td>
-                                <td className="py-4 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest">{student.user_type}</td>
+                                <td className="py-4 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest">{USER_TYPE_LABELS[student.user_type] || 'Student'}</td>
                                 <td className="py-4 text-sm font-bold text-gray-900 dark:text-gray-100">{student.full_name}</td>
                                 <td className="py-4 text-sm text-gray-600 dark:text-gray-300">{student.email || '—'}</td>
                                 <td className="py-4">
@@ -315,24 +318,7 @@ export default function AdminDashboard({ user, currentTab, setViewImageUrl }) {
                                   )}
                                 </td>
                                 <td className="py-4">
-                                  <div className="flex items-center justify-center gap-2">
-                                    <button
-                                      onClick={() => handleAdminVerifyStudent(student, 'reject')}
-                                      disabled={actionLoading}
-                                      className="px-3 py-1.5 bg-white dark:bg-gray-900 border border-red-200 dark:border-red-800 text-red-500 dark:text-red-300 rounded-xl text-xs font-bold hover:bg-red-50 dark:hover:bg-red-950/40 flex items-center gap-1.5"
-                                    >
-                                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M6 18L18 6M6 6l12 12"/></svg>
-                                      Reject
-                                    </button>
-                                    <button
-                                      onClick={() => handleAdminVerifyStudent(student, 'verify')}
-                                      disabled={actionLoading}
-                                      className="px-3 py-1.5 bg-emerald-600 dark:bg-emerald-600 hover:bg-emerald-700 dark:hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-sm flex items-center gap-1.5"
-                                    >
-                                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                                      Verify Student
-                                    </button>
-                                  </div>
+                                  <button onClick={() => handleAdminVerifyStudent(student, 'review')} disabled={actionLoading} className="px-4 py-2 bg-[#15803d] text-white rounded-xl text-xs font-bold">Review</button>
                                 </td>
                               </tr>
                             ))}
@@ -378,7 +364,7 @@ export default function AdminDashboard({ user, currentTab, setViewImageUrl }) {
                     </div>
                   </div>
                   <div className="p-4 sm:p-6">
-                    <div className="max-h-[calc(100vh-280px)] overflow-y-auto overflow-x-auto">
+                    <div ref={tableRef} className="max-h-[calc(100vh-280px)] overflow-y-auto overflow-x-auto">
                       {documents.filter(doc => adminDocFilter === 'All' || doc.document_type === adminDocFilter).length === 0 ? (
                         <div className="text-center py-12 text-gray-400 dark:text-gray-400 font-medium">No documents match the current filter.</div>
                       ) : (
@@ -406,13 +392,9 @@ export default function AdminDashboard({ user, currentTab, setViewImageUrl }) {
                                   <td className="py-4 text-xs font-bold text-gray-600 dark:text-gray-300">{doc.document_sequence_number || doc.document_type}</td>
                                   <td className="py-4">
                                     <span className={`px-3 py-1 text-[10px] font-black rounded-full uppercase tracking-wider ${
-                                      doc.current_status === STATUS.COMPLETED
-                                        ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-300'
-                                        : doc.current_status === 'rejected'
-                                        ? 'bg-red-50 dark:bg-red-950/40 text-red-600 dark:text-red-300'
-                                        : 'bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-300'
+                                      getStatusTone(doc.current_status, 'bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-300')
                                     }`}>
-                                      {doc.current_status.replace('_', ' ')}
+                                      {getStatusLabel(doc.current_status)}
                                     </span>
                                   </td>
                                   <td className="py-4 text-xs font-semibold text-gray-400 dark:text-gray-400">
@@ -550,7 +532,7 @@ export default function AdminDashboard({ user, currentTab, setViewImageUrl }) {
         setForecastFilter={setForecastFilter}
       />
 
-      <AccountVerificationModal
+      <AccountVerificationModal key={studentVerifyToConfirm?.student?.id || 'none'}
         studentVerifyToConfirm={studentVerifyToConfirm}
         cancelAdminVerifyStudent={cancelAdminVerifyStudent}
         confirmAdminVerifyStudent={confirmAdminVerifyStudent}

@@ -1,23 +1,6 @@
+import { useEffect, useRef, useState } from 'react';
 import ModalShell from '@/components/ModalShell';
-import { STATUS, PIPELINE } from '@/utils/documentStatus';
-
-/**
- * The tracker's dots, one per pipeline stage.
- *
- * Short labels because eight of them share one row on a phone; the full
- * explanation is in the panel underneath.
- */
-const TRACKER_NODES = [
-  { step: 1, label: 'Filed', key: STATUS.PENDING_W1_INTAKE },
-  { step: 2, label: 'Intake', key: STATUS.PENDING_SEC_EVALUATION },
-  { step: 3, label: 'Processing', key: STATUS.SEC_PROCESSING },
-  { step: 4, label: 'Payment', key: STATUS.PENDING_STUDENT_PAYMENT },
-  { step: 5, label: 'Verifying', key: STATUS.PENDING_FINANCE_VERIFICATION },
-  { step: 6, label: 'Paid', key: STATUS.PAID_PENDING_SEC_RELEASE },
-  { step: 7, label: 'OR Check', key: STATUS.SEC_OR_VERIFIED },
-  { step: 8, label: 'Window 1', key: STATUS.READY_FOR_RELEASE },
-  { step: 9, label: 'Released', key: STATUS.COMPLETED },
-];
+import { STATUS, PIPELINE, getStageLabel, getStatusTone, isLegacyClosed } from '@/utils/documentStatus';
 
 /** What is actually happening, in words the student can act on. */
 const STAGE_MESSAGE = {
@@ -32,151 +15,73 @@ const STAGE_MESSAGE = {
   [STATUS.COMPLETED]: 'This request is complete. The document has been released.',
 };
 
-export default function LiveTrackingModal({
-  user,
-  selectedDoc,
-  setActiveModal,
-  trackerProgress,
-  getStatusLabel
-}) {
+export default function LiveTrackingModal({ selectedDoc, setActiveModal, getStatusLabel }) {
+  const mapRef = useRef(null);
+  const dotRefs = useRef([]);
+  const [columns, setColumns] = useState(() => window.matchMedia?.('(min-width: 768px)').matches ? PIPELINE.length : 3);
+  const [points, setPoints] = useState([]);
+  useEffect(() => {
+    const media = window.matchMedia?.('(min-width: 768px)');
+    const change = () => setColumns(media?.matches ? PIPELINE.length : 3);
+    media?.addEventListener?.('change', change);
+    return () => media?.removeEventListener?.('change', change);
+  }, []);
+  useEffect(() => {
+    const element = mapRef.current;
+    if (!element) return undefined;
+    let frame;
+    const measure = () => {
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(() => {
+        const box = element.getBoundingClientRect();
+        setPoints(dotRefs.current.slice(0, PIPELINE.length).map(dot => {
+          const rect = dot.getBoundingClientRect();
+          return { x: rect.left + rect.width / 2 - box.left, y: rect.top + rect.height / 2 - box.top };
+        }));
+      });
+    };
+    const observer = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(measure);
+    observer?.observe(element); window.addEventListener('resize', measure); measure();
+    return () => { observer?.disconnect(); window.removeEventListener('resize', measure); cancelAnimationFrame(frame); };
+  }, [columns, selectedDoc?.id, selectedDoc?.current_status]);
   if (!selectedDoc) return null;
-
-  // Node width and the connecting bar's position are both derived from the
-  // real stage count rather than hardcoded, so a future stage added to
-  // TRACKER_NODES can't silently reintroduce the 5-vs-8 crowding this fixes.
-  const nodeCount = TRACKER_NODES.length;
-  const nodeWidthPercent = 100 / nodeCount;
-  const edgeOffsetPercent = (0.5 / nodeCount) * 100;
-  const barSpanPercent = 100 - edgeOffsetPercent * 2;
-
-  return (
-    <ModalShell
-      open={!!selectedDoc}
-      onClose={() => setActiveModal(null)}
-      maxWidth="max-w-2xl"
-      title={
-        <div className="flex flex-wrap justify-between items-center gap-2">
-          <span className="min-w-0 break-words pr-4">{selectedDoc.document_type || 'Transcript of Records (TOR)'}</span>
-          <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider shrink-0 ${selectedDoc.current_status === STATUS.COMPLETED ? 'bg-emerald-50 dark:bg-emerald-950/40 text-[#15803d] dark:text-green-300' : 'bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300'}`}>
-            {getStatusLabel(selectedDoc.current_status)}
-          </span>
-        </div>
-      }
-    >
-      {/* Gray detail panel */}
-      <div className="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl p-5 mb-4 font-mono text-[11px] text-gray-600 dark:text-gray-300 space-y-2">
-        <div className="flex flex-wrap justify-between gap-x-3 gap-y-1"><span>Tracking ID</span><span className="font-bold text-gray-950 dark:text-gray-100 select-text">#{selectedDoc.tracking_number || selectedDoc.id}</span></div>
-        <div className="flex flex-wrap justify-between gap-x-3 gap-y-1"><span>Date Requested</span><span className="font-bold text-gray-950 dark:text-gray-100">{new Date(selectedDoc.created_at).toLocaleDateString('en-US', {month: 'long', day: 'numeric', year: 'numeric'})} at {new Date(selectedDoc.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span></div>
-        <div className="flex flex-wrap justify-between gap-x-3 gap-y-1"><span>Copies</span><span className="font-bold text-gray-950 dark:text-gray-100">{selectedDoc.copies || 1}</span></div>
-        <div className="flex justify-between border-t border-gray-200/50 dark:border-gray-700/50 pt-2"><span>Amount</span><span className="font-bold text-gray-950 dark:text-gray-100">P{parseFloat(selectedDoc.amount || 150).toFixed(2)}</span></div>
-      </div>
-
-      {/* Horizontal Map Visualizer */}
-      <div className="px-4 py-6 flex flex-col justify-center w-full bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm">
-
-        <div className="w-full overflow-x-auto pb-4 -mx-6 px-6 sm:mx-0 sm:px-0 sm:overflow-visible">
-          <div className="relative w-full min-w-[700px] flex items-center justify-between mb-20 mt-2">
-          {/* Background Progress Bar */}
-          <div
-            className="absolute top-1/2 -translate-y-1/2 h-1.5 bg-gray-100 dark:bg-gray-800 rounded-full z-0"
-            style={{ left: `${edgeOffsetPercent}%`, right: `${edgeOffsetPercent}%` }}
-          ></div>
-
-          {/* Active Progress Bar */}
-          <div className="absolute top-1/2 -translate-y-1/2 h-1.5 bg-[#15803d] rounded-full z-0 transition-all duration-200 ease-[cubic-bezier(0.2,0,0,1)] overflow-hidden"
-            style={{ left: `${edgeOffsetPercent}%`, width: `${trackerProgress * (barSpanPercent / 100)}%` }}
-          >
-            <div className="w-full h-full animate-water-flow"></div>
-          </div>
-
-          {/* Nodes */}
-          {TRACKER_NODES.map((node, index) => {
-            // Derived from the shared pipeline rather than a second copy of
-            // it, so a change to the workflow cannot leave the student's
-            // tracker describing a process the office no longer follows.
-            const rawIndex = PIPELINE.indexOf(selectedDoc.current_status);
-            const currentIndex = rawIndex === -1 ? 0 : rawIndex;
-
-            const isReleased = selectedDoc.current_status === STATUS.COMPLETED;
-            const isCompleted = index < currentIndex || (index === TRACKER_NODES.length - 1 && isReleased);
-            const isActive = index === currentIndex && !isReleased;
-
-            let exactTime = null;
-            if (selectedDoc.step_logs && selectedDoc.step_logs.length > 0) {
-              if (index === 0) {
-                exactTime = new Date(selectedDoc.created_at);
-              } else {
-                const log = selectedDoc.step_logs.find(l => l.to_status === node.key);
-                if (log && log.timestamp_completed) {
-                  exactTime = new Date(log.timestamp_completed);
-                } else if (log && log.timestamp_started) {
-                  exactTime = new Date(log.timestamp_started);
-                }
-              }
-            } else {
-              // fallback to document creation/updated dates if no step logs
-              if (index === 0) exactTime = new Date(selectedDoc.created_at);
-              else if (isCompleted) exactTime = new Date(selectedDoc.updated_at);
-            }
-
-            return (
-              <div key={node.step} className="relative z-10 flex flex-col items-center" style={{ width: `${nodeWidthPercent}%` }}>
-                {/* Pulsing ring for active step */}
-                {isActive && (
-                  <span className="absolute top-0 w-8 h-8 bg-blue-400/50 dark:bg-blue-400/50 rounded-full animate-ping"></span>
-                )}
-
-                <div className={`relative z-10 w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs border-2 transition-all duration-200
-                  ${isCompleted ? 'bg-[#15803d] border-[#15803d] text-white scale-110 shadow-md' :
-                    isActive ? 'bg-blue-600 dark:bg-blue-600 border-blue-600 dark:border-blue-800 text-white scale-125 shadow-[0_0_15px_rgba(37,99,235,0.4)]' :
-                    'bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700 text-gray-400 dark:text-gray-400 shadow-sm'}`}>
-                  {isCompleted ? (
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7"/></svg>
-                  ) : isActive ? (
-                    <svg className="w-4 h-4 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
-                  ) : (
-                    node.step
-                  )}
-                </div>
-
-                <div className={`absolute top-10 text-[10px] font-black uppercase tracking-wider text-center w-full  px-0.5
-                  ${isCompleted ? 'text-gray-900 dark:text-gray-100' : isActive ? 'text-blue-600 dark:text-blue-300' : 'text-gray-400 dark:text-gray-400'}`}>
-                  <div>{node.label}</div>
-                  {isActive && <div className="text-[7px] animate-pulse mt-0.5 tracking-widest text-blue-400 dark:text-blue-300">In Progress</div>}
-
-                  {(isCompleted || isActive) && exactTime && (
-                    <div className="mt-1 text-[8px] font-bold text-gray-500 dark:text-gray-400 lowercase tracking-normal flex flex-col items-center">
-                      <span>{exactTime.toLocaleDateString('en-US', { month: 'short', day: 'numeric'})}</span>
-                      <span>{exactTime.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
-                    </div>
-                  )}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-
-        {/* Context Panel */}
-        <div className="mt-4 bg-emerald-50/50 dark:bg-emerald-950/50 border border-emerald-100 dark:border-emerald-800 rounded-2xl p-5 text-center">
-          <p className="text-xs font-semibold text-emerald-800 dark:text-emerald-300 leading-relaxed">
-            {STAGE_MESSAGE[selectedDoc.current_status] || 'Your request is being processed.'}
-            {selectedDoc.estimated_ready_date && [STATUS.PENDING_SEC_EVALUATION, STATUS.SEC_PROCESSING].includes(selectedDoc.current_status) && (
-              <span className="block mt-2 font-bold">
-                Expected ready by {new Date(selectedDoc.estimated_ready_date).toLocaleDateString()}.
-              </span>
-            )}
-          </p>
-        </div>
-
-        {/* Chat Panel */}
-        <div className="mt-6 border-t border-gray-100 dark:border-gray-700 pt-6">
-          <div className="flex items-center justify-between mb-3">
-             <label className="text-[10px] font-bold text-gray-800 dark:text-gray-100 uppercase tracking-widest">Document Discussion</label>
-          </div>
-          
-        </div>
-      </div>
-      </div>
-    </ModalShell>
-  );
+  const closed = isLegacyClosed(selectedDoc.current_status);
+  const currentIndex = PIPELINE.indexOf(selectedDoc.current_status);
+  const released = selectedDoc.current_status === STATUS.COMPLETED;
+  return <ModalShell open onClose={() => setActiveModal(null)} maxWidth="max-w-5xl" title={
+    <div className="flex flex-wrap items-center gap-3 pr-6">
+      <span className="break-words">{selectedDoc.document_type}</span>
+      <span className={`px-3 py-1 rounded-full text-xs ${getStatusTone(selectedDoc.current_status)}`}>{getStatusLabel(selectedDoc.current_status)}</span>
+    </div>
+  }>
+    <dl className="mb-5 p-4 rounded-2xl bg-gray-50 dark:bg-gray-800 text-sm space-y-2">
+      <div><dt className="font-bold">Tracking ID</dt><dd className="select-text break-all">{selectedDoc.tracking_number || selectedDoc.id}</dd></div>
+      <div><dt className="font-bold">Requested</dt><dd>{new Date(selectedDoc.created_at).toLocaleString()}</dd></div>
+    </dl>
+    {closed ? <p className="p-4 rounded-xl bg-gray-50 dark:bg-gray-800">This is a closed legacy record. It is outside the current processing pipeline.</p> : <div ref={mapRef} className="relative">
+      <svg aria-hidden="true" className="absolute inset-0 w-full h-full pointer-events-none overflow-visible">
+        {points.slice(0, -1).map((point, index) => {
+          const next = points[index + 1];
+          return <line key={PIPELINE[index]} data-tracker-connector={index} x1={point.x} y1={point.y} x2={next.x} y2={next.y} strokeWidth="4" className={index < currentIndex || released ? 'stroke-green-600 dark:stroke-green-400' : 'stroke-gray-200 dark:stroke-gray-700'} />;
+        })}
+      </svg>
+      <ol aria-label="Request processing stages" className="relative grid gap-x-2 gap-y-6" style={{ gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))` }}>
+        {PIPELINE.map((status, index) => {
+          const row = Math.floor(index / columns), offset = index % columns;
+          const col = row % 2 ? columns - offset : offset + 1;
+          const done = index < currentIndex || released;
+          const active = index === currentIndex && !released;
+          const log = selectedDoc.step_logs?.find(entry => entry.to_status === status);
+          const timestamp = log?.timestamp_completed || log?.timestamp_started || (index === 0 ? selectedDoc.created_at : null);
+          return <li key={status} aria-current={active ? 'step' : undefined} className="min-w-0 min-h-28 flex flex-col items-center text-center" style={{ gridRow: row + 1, gridColumn: col }}>
+            <span ref={node => { dotRefs.current[index] = node; }} data-tracker-node={status} className={`z-10 w-9 h-9 rounded-full border-2 flex items-center justify-center text-xs font-bold transition-colors duration-200 ${done ? 'bg-green-700 border-green-700 text-white' : active ? 'bg-blue-600 border-blue-600 text-white' : 'bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-600'}`}>{done ? '✓' : index + 1}</span>
+            <span className="mt-2 text-xs font-bold leading-snug">{getStageLabel(status)}</span>
+            {active && <span className="text-[10px] text-blue-700 dark:text-blue-300">In progress</span>}
+            {timestamp && (done || active) && <time className="mt-1 text-[10px] text-gray-500 dark:text-gray-400">{new Date(timestamp).toLocaleDateString()}</time>}
+          </li>;
+        })}
+      </ol>
+    </div>}
+    <p className={`mt-5 p-4 rounded-2xl text-sm ${closed ? getStatusTone(selectedDoc.current_status) : 'bg-green-50 dark:bg-green-950/40 text-green-800 dark:text-green-300'}`}>{closed ? getStatusLabel(selectedDoc.current_status) : STAGE_MESSAGE[selectedDoc.current_status] || 'Status information is unavailable.'}</p>
+  </ModalShell>;
 }

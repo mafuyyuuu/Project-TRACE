@@ -17,6 +17,16 @@ function buildFormData(file, fieldName = 'document') {
   return form;
 }
 
+async function requestJson(url, options) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 15000);
+  try {
+    const response = await fetch(url, { ...options, signal: controller.signal });
+    if (!response.ok) throw new Error(`AI engine returned HTTP ${response.status}`);
+    return await response.json();
+  } finally { clearTimeout(timer); }
+}
+
 /**
  * 3-point registration verification (school name + student ID + course).
  * Returns { verified, reason } or null when the engine is unreachable.
@@ -27,18 +37,7 @@ async function verifyIdDocument(file, { studentId, course }) {
     form.append('student_id', studentId);
     if (course) form.append('course', course);
 
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 15000);
-
-    const res = await fetch(`${env.AI_ENGINE_URL}/ocr/verify`, {
-      method: 'POST',
-      body: form,
-      signal: controller.signal
-    });
-    clearTimeout(timeoutId);
-
-    if (!res.ok) return null;
-    return await res.json();
+    return await requestJson(`${env.AI_ENGINE_URL}/ocr/verify`, { method: 'POST', body: form });
   } catch (err) {
     if (err.name === 'AbortError') {
       console.warn('⚠️ AI verification timed out after 15s');
@@ -58,9 +57,7 @@ async function extractDocument(file, { trackingNumber }) {
     const form = buildFormData(file);
     form.append('tracking_number', trackingNumber);
 
-    const res = await fetch(`${env.AI_ENGINE_URL}/ocr/extract`, { method: 'POST', body: form });
-    if (!res.ok) return null;
-    return await res.json();
+    return await requestJson(`${env.AI_ENGINE_URL}/ocr/extract`, { method: 'POST', body: form });
   } catch (err) {
     console.warn(`⚠️ OCR engine unavailable or failed for ${trackingNumber}:`, err.message);
     return null;
@@ -78,9 +75,7 @@ async function extractDocument(file, { trackingNumber }) {
 async function extractReceipt(file) {
   try {
     const form = buildFormData(file, 'receipt');
-    const res = await fetch(`${env.AI_ENGINE_URL}/ocr/receipt`, { method: 'POST', body: form });
-    if (!res.ok) return null;
-    return await res.json();
+    return await requestJson(`${env.AI_ENGINE_URL}/ocr/receipt`, { method: 'POST', body: form });
   } catch (err) {
     console.warn('⚠️ Receipt OCR unavailable:', err.message);
     return null;
@@ -90,9 +85,7 @@ async function extractReceipt(file) {
 /** Prophet 7-day volume forecast. Returns null when unavailable (caller falls back). */
 async function getForecast() {
   try {
-    const res = await fetch(`${env.AI_ENGINE_URL}/forecast`, { method: 'GET' });
-    if (!res.ok) return null;
-    return await res.json();
+    return await requestJson(`${env.AI_ENGINE_URL}/forecast`, { method: 'GET' });
   } catch (err) {
     console.error(`AI forecast fetch failed at ${env.AI_ENGINE_URL}/forecast:`, err.message);
     return null;
@@ -102,9 +95,7 @@ async function getForecast() {
 /** Random Forest prescriptive insights. Returns null when unavailable. */
 async function getInsights() {
   try {
-    const res = await fetch(`${env.AI_ENGINE_URL}/ai/recommend`, { method: 'GET' });
-    if (!res.ok) return null;
-    return await res.json();
+    return await requestJson(`${env.AI_ENGINE_URL}/ai/recommend`, { method: 'GET' });
   } catch (err) {
     console.error(`AI insights fetch failed at ${env.AI_ENGINE_URL}/ai/recommend:`, err.message);
     return null;

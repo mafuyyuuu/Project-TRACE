@@ -295,3 +295,25 @@ describe('staff accounts', () => {
     await expect(service.setStaffActive(ADMIN, 7, true)).resolves.toBeTruthy();
   });
 });
+
+describe('account editing — approved profile fields only', () => {
+  beforeEach(() => { vi.spyOn(userModel, 'updateProfile').mockResolvedValue([{ affectedRows: 1 }]); });
+  it.each([CLERK, STUDENT])('rejects a non-admin before querying the account', async user => {
+    expect(await statusOf(service.updateAccount(user, 5, { full_name: 'Changed' }))).toBe(403);
+    expect(userModel.findById).not.toHaveBeenCalled();
+    expect(userModel.updateProfile).not.toHaveBeenCalled();
+  });
+  it.each(['student_id', 'employee_id'])('keeps %s immutable', async key => {
+    expect(await statusOf(service.updateAccount(ADMIN, 5, { [key]: 'OTHER', full_name: 'Changed' }))).toBe(400);
+    expect(userModel.updateProfile).not.toHaveBeenCalled();
+  });
+  it('updates an alumni profile without accepting privilege or verification changes', async () => {
+    userModel.findById.mockResolvedValue([{ id: 5, role: 'student', user_type: 'alumni' }]);
+    await service.updateAccount(ADMIN, 5, { full_name: '  Ana Reyes ', email: 'ana@example.test', phone_number: '09123456789', course: 'BS IT', college_id: '1', role: 'admin', verification_status: 'verified', is_active: true });
+    expect(userModel.updateProfile).toHaveBeenCalledExactlyOnceWith(5, { full_name: 'Ana Reyes', email: 'ana@example.test', phone_number: '09123456789', course: 'BS IT', college_id: 1 });
+  });
+  it.each([{ full_name: '' }, { email: 'bad-email' }, { phone_number: '1'.repeat(21) }, { course: 'a'.repeat(101) }, { college_id: -1 }, { role: 'admin' }])('rejects invalid or unsupported edits (%o)', async fields => {
+    expect(await statusOf(service.updateAccount(ADMIN, 5, fields))).toBe(400);
+    expect(userModel.updateProfile).not.toHaveBeenCalled();
+  });
+});

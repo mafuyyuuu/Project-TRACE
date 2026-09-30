@@ -29,6 +29,16 @@ CREATE TABLE IF NOT EXISTS users (
   FOREIGN KEY (college_id) REFERENCES colleges(id) ON DELETE SET NULL,
   phone_number VARCHAR(20),
   is_active BOOLEAN DEFAULT TRUE,
+  failed_login_attempts INT NOT NULL DEFAULT 0,
+  locked_until TIMESTAMP NULL DEFAULT NULL,
+  token_version INT NOT NULL DEFAULT 0,
+  two_factor_enabled BOOLEAN NOT NULL DEFAULT FALSE,
+  pending_email VARCHAR(255) NULL,
+  -- Email-change codes use E:<six digits>; older shared codes are not trusted.
+  email_otp VARCHAR(10) NULL,
+  email_otp_expires TIMESTAMP NULL DEFAULT NULL,
+  login_otp VARCHAR(6) NULL,
+  login_otp_expires TIMESTAMP NULL DEFAULT NULL,
   -- Set when an admin creates a staff account with a temporary password;
   -- the user must choose their own before doing anything else.
   must_change_password BOOLEAN NOT NULL DEFAULT FALSE,
@@ -133,6 +143,7 @@ CREATE TABLE IF NOT EXISTS notifications (
   title VARCHAR(255) NOT NULL,
   message TEXT NOT NULL,
   type VARCHAR(50) DEFAULT 'info',
+  action_url VARCHAR(255) NULL,
   is_read BOOLEAN DEFAULT FALSE,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
@@ -249,3 +260,16 @@ CREATE INDEX idx_step_logs_started ON step_logs (timestamp_started);
 CREATE INDEX idx_step_logs_action ON step_logs (action_taken);
 CREATE INDEX idx_documents_status ON documents (current_status);
 CREATE INDEX idx_documents_created ON documents (created_at);
+
+-- Batch 8: browser recognition (not JWT sessions)
+CREATE TABLE IF NOT EXISTS user_devices (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    device_hash CHAR(64) NOT NULL,
+    ip_address VARCHAR(45) NULL,
+    user_agent VARCHAR(500) NULL,
+    first_seen_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    last_seen_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY uq_user_device (user_id, device_hash),
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+  );

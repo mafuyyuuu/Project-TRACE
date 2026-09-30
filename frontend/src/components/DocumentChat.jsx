@@ -1,3 +1,4 @@
+import { INPUT_LIMITS } from '@/utils/inputLimits';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import { useState, useEffect, useRef } from 'react';
 import api from '@/services/api';
@@ -112,7 +113,7 @@ export default function DocumentChat({ documentId, user }) {
       </div>
       
       <form onSubmit={handleSend} className="p-3 bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700 flex gap-2">
-        <input
+        <input maxLength={INPUT_LIMITS.notes}
           type="text"
           value={input}
           onChange={e => setInput(e.target.value)}

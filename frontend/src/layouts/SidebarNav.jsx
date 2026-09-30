@@ -19,6 +19,7 @@ import { navItemsForUser } from '@/utils/navigation';
 
 // Each icon is a path set rather than a component so the list below stays readable.
 const ICONS = {
+  book: <><path strokeWidth="2" strokeLinejoin="round" d="M12 6c-3-2-6-2-9-1v14c3-1 6-1 9 1 3-2 6-2 9-1V5c-3-1-6-1-9 1Z"/><path strokeWidth="2" d="M12 6v14"/></>,
   shield: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 3 3 7v5c0 5 9 9 9 9s9-4 9-9V7l-9-4Zm-4 9 3 3 5-6" />,
   template: <><rect x="3" y="3" width="18" height="18" rx="2" strokeWidth="2" /><path strokeLinecap="round" strokeWidth="2" d="M3 8h18M8 8v13M12 12h5M12 16h5" /></>,
   dashboard: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="m2.25 12 8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25"/>,

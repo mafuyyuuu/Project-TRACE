@@ -12,14 +12,15 @@ export default function AuthShell({ title, subtitle, children, footer }) {
       {/* Left Column (Light Spec) */}
       <div className="md:w-1/2 bg-[#f8f9fa] dark:bg-gray-900 p-4 sm:p-8 lg:p-12 xl:p-24 flex flex-col justify-between shrink-0">
         <div>
-          <Link to="/">
+          <Link to="/" className="inline-flex items-center gap-3" aria-label="TRACE — PLP Registrar">
             <img src={plpLogo} alt="PLP Logo" className="w-16 h-16 rounded-full object-cover shadow-md" />
+            <span className="text-xl font-display font-black text-[#15803d] dark:text-green-300 tracking-widest">TRACE</span>
           </Link>
         </div>
 
         <div className="my-auto py-12 md:py-0">
           <span className="text-2xl font-black text-gray-900 dark:text-gray-100 block mb-2 tracking-tight">Welcome to</span>
-          <h1 className="text-6xl sm:text-7xl md:text-6xl lg:text-8xl xl:text-[10rem] font-display font-black text-[#15803d] dark:text-green-300 tracking-tighter leading-none mb-4">TRACE</h1>
+          <h1 className="text-[clamp(3rem,8vw,8rem)] md:text-[clamp(3rem,6vw,8rem)] font-display font-black text-[#15803d] dark:text-green-300 tracking-tighter leading-none mb-4">TRACE</h1>
           <h2 className="text-xl sm:text-2xl md:text-3xl font-display font-black text-[#15803d] dark:text-green-300 leading-tight max-w-md">
             An AI-Assisted Registrar Document Workflow System
           </h2>

@@ -1,3 +1,4 @@
+import { INPUT_LIMITS } from '@/utils/inputLimits';
 import DocumentChat from '@/components/DocumentChat';
 import ModalShell from '@/components/ModalShell';
 import AuthedFilePreview from '@/components/AuthedFilePreview';
@@ -42,7 +43,7 @@ function EvaluationForm({
               <span className="text-[10px] font-bold text-gray-400 dark:text-gray-400 block mt-0.5">Extraction successful. Please verify</span>
             </div>
           </div>
-          <span className="text-2xl font-black text-[#15803d] dark:text-green-300 font-mono">{selectedDoc.ocr_confidence_score ? `${parseFloat(selectedDoc.ocr_confidence_score).toFixed(1)}%` : 'N/A'}</span>
+          <span className="text-2xl font-black text-[#15803d] dark:text-green-300 font-mono">{selectedDoc.ocr_confidence_score !== null && selectedDoc.ocr_confidence_score !== undefined && selectedDoc.ocr_confidence_score !== '' ? `${parseFloat(selectedDoc.ocr_confidence_score).toFixed(1)}%` : 'Unavailable'}</span>
         </div>
       )}
 
@@ -80,7 +81,7 @@ function EvaluationForm({
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="flex flex-col gap-1.5">
             <label className="text-[10px] font-bold text-gray-800 dark:text-gray-100 uppercase tracking-widest">Student ID</label>
-            <input
+            <input maxLength={INPUT_LIMITS.id}
               type="text"
               value={evalStudentId}
               onChange={(e) => setEvalStudentId(e.target.value)}
@@ -94,18 +95,15 @@ function EvaluationForm({
               onChange={(e) => setEvalDocType(e.target.value)}
               className="w-full p-3 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-xs font-semibold focus:ring-2 focus:ring-[#15803d]/20 outline-none cursor-pointer"
             >
-              <option value="Transcript of Records">Transcript of Records (TOR)</option>
-              <option value="Graduation Clearance">Graduation Clearance</option>
-              <option value="Certificate of Good Moral">Certificate of Good Moral</option>
-              <option value="Honorable Dismissal">Honorable Dismissal</option>
-              <option value="Diploma">Diploma</option>
+              {!documentTypes.some(type => type.name === evalDocType) && <option value={evalDocType}>{evalDocType}</option>}
+              {documentTypes.map(type => <option key={type.id || type.name} value={type.name}>{type.name}</option>)}
             </select>
           </div>
         </div>
 
         <div className="flex flex-col gap-1.5">
           <label className="text-[10px] font-bold text-gray-800 dark:text-gray-100 uppercase tracking-widest">Student Name</label>
-          <input
+          <input maxLength={INPUT_LIMITS.name}
             type="text"
             value={evalStudentName}
             onChange={(e) => setEvalStudentName(e.target.value)}
@@ -133,7 +131,7 @@ function EvaluationForm({
 
         <div className="flex flex-col gap-1.5">
           <label className="text-[10px] font-bold text-gray-800 dark:text-gray-100 uppercase tracking-widest">Secretary Notes</label>
-          <textarea
+          <textarea maxLength={INPUT_LIMITS.notes}
             value={clerkNotes}
             onChange={(e) => setClerkNotes(e.target.value)}
             placeholder="Add any remarks...."

@@ -23,7 +23,7 @@ export default function UserDetailModal({ open, onClose, user, onEdit, onToggleA
 
   const isStudent = user.role === 'student';
   const isSelf = user.id === viewerId;
-  const mutationDisabled = isStudent || !onEdit;
+  const mutationDisabled = !onEdit;
   const dateJoined = user.created_at
     ? new Date(user.created_at).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
     : null;
@@ -48,7 +48,7 @@ export default function UserDetailModal({ open, onClose, user, onEdit, onToggleA
             <button
               type="button"
               onClick={onToggleActive}
-              disabled={mutationDisabled || isSelf || saving}
+              disabled={isStudent || !onToggleActive || isSelf || saving}
               title={isSelf ? 'You cannot deactivate your own account' : ''}
               className="flex-1 px-5 py-3 rounded-2xl text-xs font-bold border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors disabled:opacity-50"
             >
@@ -91,7 +91,8 @@ export default function UserDetailModal({ open, onClose, user, onEdit, onToggleA
       </div>
 
       <div className="pt-4 space-y-0.5">
-        <Field label="Department" value="—" />
+        <Field label="College / Department" value={user.college || user.college_name || user.college_id} />
+        <Field label="Program" value={user.course} />
         <Field label="Position" value="—" />
         <Field label="Appointment" value="—" />
         <Field label="UID" value={user.student_id} />
