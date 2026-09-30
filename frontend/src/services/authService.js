@@ -4,13 +4,14 @@ import api from '@/services/api'
 
 /**
  * Authenticate a user with employee credentials.
- * @param {{ employeeId: string, password: string }} credentials
+ * @param {{ employeeId: string, password: string, sharedComputer?: boolean }} credentials
  * @returns {Promise<{ token: string, user: object }>}
  */
 export async function login(credentials) {
   const { data } = await api.post('/auth/login', {
     employee_id: credentials.employeeId,
     password: credentials.password,
+    shared_computer: credentials.sharedComputer !== false,
   })
   return data
 }

@@ -3,8 +3,7 @@
 ## Current Status
 - **Batch 1 to 8**: Previously marked complete in the historical docket. The reconstructed batches are being re-verified; see the current review below.
 - **Batch 9 registrar consultation**: CN-03/CN-04 implementation and automated checks complete; the user reported successful live migration and healthy backend/database/AI services. Application acceptance and frontend promotion remain pending. Other consultation items remain pending. The earlier completion claims below are historical and superseded by the 2026-09-30 verification.
-- **Batch 10 Phase 1 & 2 (Audit Trail & Rate Limiting)**: Complete.
-- **Batch 10 Phase 3 (Security & Account Protection)**: Complete.
+- **Batch 10**: Each feature requires its own current-code review and approved file scope. Admin Templates recovery and the approved clerk browser-trust addition are implemented locally; deployment acceptance, Finance, Profile Completion and remaining Security work are pending. Earlier audit/rate-limit/security completion claims are historical, not current acceptance evidence.
 
 ## Historical Batch 9 Phase 3 Claims — Not Acceptance Evidence
 - **CN-11 (In-App Messaging):**
@@ -422,6 +421,70 @@ The user subsequently reported completed login; supplied backend/Caddy logs show
 - **Repeated OTP explanation:** `auth.service.js` requires 2FA when `two_factor_enabled || isStaff`; Admin and clerk logins always request a fresh code, including after logout. Recognition cookies control first/new-browser notices and do not bypass OTP. No authentication-policy change was requested or implemented.
 
 Validation: baseline **573 backend / 361 frontend** tests passed. Final **577 backend tests / 25 files** and **362 frontend tests / 41 files** pass, as do the frontend production build, migration/test syntax checks and `git diff --check`. Targeted frontend ESLint decreases from three errors to two: the missing-panel reference is resolved; pre-existing unused `AdminTemplatesPanel` and `ConfirmDialog` imports remain. The edited regression test has no lint diagnostics. Existing build-size and Node local-storage warnings remain. Mocked migration checks do not establish live MySQL acceptance. No commit, push, deployment, migration execution or production promotion was performed by this repair.
+
+## Batch 10: Admin Templates Recovery — 2026-09-30
+
+The user reported that the preceding Admin Security/profile-table repair now works. Baseline for this scope was clean `dev` at `acd4136`, with **577 backend / 362 frontend** tests passing. The user approved exactly the seven files below, including the narrow backend pool-import exception. No Finance, profile-completion, authentication-policy, database migration or deployment changes are included.
+
+| File | Change |
+| --- | --- |
+| `frontend/src/features/admin/AdminDashboard.jsx` | Add the missing `admin-templates` render branch using the existing panel. |
+| `frontend/src/features/admin/components/AdminTemplatesPanel.jsx` | Load-error/retry/empty states, selection-safe details, and isolated HTML preview; confirmed save retained. |
+| `frontend/src/features/__tests__/dashboards.render.test.jsx` | Actual-tab regression checks for load, preview isolation, wrapper-style injection, list/detail retry, empty catalog and stale-selection save protection. Mock the existing analytics service so tab tests do not make unrelated network requests. |
+| `backend/src/models/template.model.js` | Destructure the configured pool; existing SQL/bindings unchanged. |
+| `backend/src/models/__tests__/template.model.test.cjs` | New real-model/mocked-pool list/read/update/error regressions. |
+| `docs/BACKEND_GUIDE.md` | Template contract, preview limits and paired rollout/live acceptance. |
+| `docs/PROGRESS.md` | Findings, approval, validation and separate remaining Batch 10 scopes. |
+
+The frontend regression reproduced the empty tab before wiring. All four new model regressions initially failed with `pool.query is not a function`, confirming the import defect. The panel now loads the existing catalog/details, surfaces failures with Retry, offers no blank save for an empty/missing detail, and ignores stale responses when selection changes. The existing cancellation/confirmed-save regression remains green. The preview replaces direct app-DOM HTML injection with an empty-sandbox iframe and restrictive CSP, retaining sample substitutions and supported fonts/sizes. Stored template HTML and other consumers are unchanged; this is not a whole template-engine security acceptance claim. [MDN's iframe reference](https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/iframe) documents the sandbox restrictions used.
+
+### Agreed decisions for later scopes
+
+- **CN-15/CN-08/D-10:** students see itemized charges and calculations as well as the total. This supersedes hiding “How the Amount Was Worked Out.” College/document/item/rental/special fee rules and historical-price preservation still need their own design and file scope.
+- **FIN-01–FIN-04/D-08:** payment clearance sends an acknowledgment immediately. If OR issuance/upload is deferred, send the actual digital OR when issued and route it to Secretary for release. The same-day cut-off starts at exactly **4:00 PM Asia/Manila**. A payment acknowledgment must not be labeled an official receipt. Each workflow item requires separate scoping; the code has a deferred-upload path that needs verification, not an assumption that nothing exists.
+- **SEC-11 clerk trust:** Admin OTP every login; clerks may trust a personal browser for today after successful OTP; shared computers require OTP each login. Password changes/resets and logout-all revoke trust. Existing browser-recognition cookies only control alerts and cannot be reused as proof of MFA. The separately approved authentication implementation is recorded below; live cookie acceptance remains pending.
+- **SEC-16:** accept any email domain; verify with a time-limited, single-use one-click link, offer resend, gate requests/sensitive features, and reverify email changes. No PLP domain restriction. Existing ID/document approval is distinct from email verification.
+- **PROF-01–PROF-05 and SEC-07–SEC-16:** current code already contains personal/educational fields, conditional profile progress, password change/reset, OTP/email-change routes, audit logs and a Security settings tab. Docket claims that none exist are stale. Each item needs current behavior/gap verification, backend enforcement and its own approved plan before implementation. Bcrypt remains unchanged.
+
+Live template table/default records, MySQL persistence, physical-device behavior and browser sandbox enforcement remain deployment/acceptance checks. No missing-table migration or seeding was inferred from the frontend's empty tab. WebSocket upgrade and AI timeout findings from the previous repair remain open. No commit, push or deployment was performed.
+
+Validation: **581 backend tests / 26 files** and **368 frontend tests / 41 files** pass, along with the frontend production build, backend model/test syntax checks and `git diff --check`. The existing template cancellation/confirmed-save test passes. The edited Templates panel and dashboard regression file pass ESLint; targeted diagnostics fall from **4 errors / 1 warning** to **1 error / 0 warnings**, with only the pre-existing unused `ConfirmDialog` import in `AdminDashboard.jsx` remaining. The build-size and Node local-storage warnings persist. Tests use synthetic API data and a mocked database pool; they do not prove live persistence or browser sandbox enforcement.
+
+## Batch 10: Clerk Browser Trust — 2026-09-30
+
+The user approved the 18 exact files, including the new trust storage/migration and narrowly scoped backend authentication changes. During implementation they separately approved one additional test file, `backend/src/services/__tests__/batch8.auth-boundary.test.cjs`, because its HTTP mock lacked cookie clearing and its OTP call asserted the previous signature. The approved scope is now **19 files**. The preceding seven-file Templates changes were preserved uncommitted; the current trust baseline was **581 backend / 368 frontend** passing tests. No agents were delegated.
+
+| Approved file | Change |
+| --- | --- |
+| `backend/src/controllers/auth.controller.js` | Forward actual cookies and boolean consent; set an HttpOnly trust cookie without exposing its value in JSON; clear it for shared mode and successful credential/global-logout actions. |
+| `backend/src/services/auth.service.js` | Personal-mode clerk trust after password validation; signed challenge eligibility/version; OTP-only grant; atomic credential update/version revocation/OTP clearing. |
+| `backend/src/services/trustedBrowser.service.js` | New random proof/hash, strict clerk eligibility, Manila midnight expiry, matching cookie settings, fail-closed lookup and version-checked grant transaction. |
+| `backend/src/models/trustedBrowser.model.js` | New parameterized proof lookup/insert and account-row lock. Lookup checks ownership, current clerk role/activation, version and expiry. |
+| `backend/database/schema.sql` | Add the canonical hash-only proof table for new databases. |
+| `backend/database/migrate_trusted_browsers.js` | New explicit/import-safe conditional table creation for existing installations. |
+| `backend/database/__tests__/migrate_trusted_browsers.test.cjs` | Canonical DDL, safe reruns, failures and no queries on import. |
+| `backend/src/services/__tests__/auth.service.test.cjs` | Admin/shared/personal/optional-student MFA policy, bad-password/code guards, consent, versions and atomic password-change revocation. |
+| `backend/src/services/__tests__/passwordReset.service.test.cjs` | Reset/revocation transaction, rollback and locked-link recheck. |
+| `backend/src/services/__tests__/trustedBrowser.service.test.cjs` | New expiry/cookie/hash/role/version/storage-failure and real SQL regression checks. |
+| `backend/src/controllers/__tests__/trustedBrowser.controller.test.cjs` | New secret-isolation/cookie/revocation checks and real-controller/service flow with mocked storage. |
+| `backend/src/services/__tests__/batch8.auth-boundary.test.cjs` | Separately approved response-mock and argument update; original full-auth recognition/security assertions retained. |
+| `frontend/src/pages/LoginPage.jsx` | Shared mode by default; eligible clerk opt-in during OTP; retain duplicate protection, inline errors, keyboard submission and 60-second resend. |
+| `frontend/src/services/authService.js` | Serialize shared mode with strict false as the sole personal-mode value. |
+| `frontend/src/pages/__tests__/submission.confirmations.test.jsx` | Default/shared/Admin eligibility, personal clerk consent and resend-mode/consent behavior. |
+| `frontend/src/services/__tests__/authService.test.js` | New serialization/default-mode/OTP payload checks. |
+| `docs/BACKEND_GUIDE.md` | Contracts, version revocation, migration and limits. |
+| `docs/ENV_SETUP_GUIDE.md` | Explicit rollout steps and live acceptance checks. |
+| `docs/PROGRESS.md` | Scope approvals, evidence and remaining work. |
+
+Admin still verifies every login. A clerk must explicitly select personal mode at each login and opt into trust after successful OTP; shared mode ignores/clears any earlier proof. New `trace_mfa_trust` values are random, separate from `trace_device`, and stored only as SHA-256 hashes plus user/version/UTC epoch expiry. They expire at the next **midnight Asia/Manila**, not 24 hours after issuance. Missing/invalid/blocked/expired/revoked cookies or unavailable storage require OTP. No raw proof appears in JSON or trust error logs. Grant failure leaves a valid OTP login without browser trust.
+
+Password changes/resets increment the existing version and clear login OTPs in the same transaction as the password write. Password-change concurrency checks compare the verified hash again under lock; reset links are rechecked/consumed under that lock. Rollback prevents successful credential writes without revocation. Logout-all already increments the same version. Old proofs and pending challenges cannot be upgraded to the new version. This also expires existing JWTs, including the current session: sign in again afterward. Existing pending tokens without version binding require a fresh login after deployment. Trust expiry affects the next login, not an existing authenticated session.
+
+The new service regressions first failed because the approved new implementation modules did not exist, then passed. An initial auth test-fixture error was corrected by spying on the actual CommonJS pool's `getConnection`; the Vitest ESM factory was not the imported CommonJS object. A new frontend test initially lacked explicit Vitest imports for ESLint; imports were corrected without changing source behavior. The complete controller/service flow test exercises password → OTP → trust cookie → later personal password login → shared/expired/revoked fallback, using synthetic accounts and mocked SQL storage.
+
+Validation: **640 backend tests / 29 files** and **378 frontend tests / 42 files** pass. The frontend production build, targeted Login/auth-service/test ESLint, backend syntax checks and `git diff --check` pass. Existing large-bundle and Node local-storage warnings remain. No live database or SMTP was exercised, no real account/session was changed, and no actual cross-site cookie persistence or physical-phone behavior was verified. Automated fixtures do not establish live MySQL locking/commit behavior. The explicit migration and acceptance runbook have not been executed on the server. No commit, push, deployment or production promotion was performed.
+
+This is the approved clerk-trust addition only. The site cannot identify a physically shared device; user selection is required. Browser third-party-cookie policies can still block persistence despite credentialed CORS ([MDN](https://developer.mozilla.org/en-US/docs/Web/HTTP/Guides/CORS#requests_with_credentials)). No new environment variables/dependencies, automatic session redesign, authenticator/back-up codes, other SEC-07–SEC-16 acceptance, Finance or Profile Completion implementation is included. Remaining security gaps (including comprehensive active-account/session/realtime revocation, reset-flow requirements and credential-safe audit logging) require their own current-code scope. Batch 10 fee-calculation visibility, acknowledgment versus OR, 4:00 PM cutoff and any-domain verification-link decisions above remain unchanged and unimplemented.
 
 ## Batch 1 Re-verification — 2026-09-30
 

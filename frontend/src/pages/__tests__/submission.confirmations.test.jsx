@@ -56,7 +56,7 @@ describe('Account submission confirmations', () => {
     await user.type(password, 'password123');
     await user.click(screen.getByRole('button', { name: 'LOGIN' }));
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
-    await waitFor(() => expect(auth.login).toHaveBeenCalledExactlyOnceWith({ employeeId: 'STU-001', password: 'password123' }));
+    await waitFor(() => expect(auth.login).toHaveBeenCalledExactlyOnceWith({ employeeId: 'STU-001', password: 'password123', sharedComputer: true }));
   });
 
   it('shows missing credentials inline without sending a login request', async () => {
@@ -144,7 +144,7 @@ describe('Account submission confirmations', () => {
     auth.login.mockReturnValueOnce(new Promise(resolve => { finishResend = resolve; }));
     act(() => { fireEvent.click(resend); fireEvent.click(resend); });
     expect(auth.login).toHaveBeenCalledTimes(2);
-    expect(auth.login).toHaveBeenLastCalledWith({ employeeId: 'ADMIN001', password: 'password123' });
+    expect(auth.login).toHaveBeenLastCalledWith({ employeeId: 'ADMIN001', password: 'password123', sharedComputer: true });
     expect(screen.getByRole('button', { name: 'Sending code…' })).toBeDisabled();
     expect(screen.getByRole('button', { name: /PROCESSING/ })).toBeDisabled();
     await act(async () => { finishResend({ requires_2fa: true, temp_token: 'new-challenge', email: 'staff@example.test' }); });
@@ -176,6 +176,55 @@ describe('Account submission confirmations', () => {
     api.post.mockRejectedValueOnce({ response: { data: { error: 'Code expired.' } } });
     await act(async () => { fireEvent.submit(container.querySelector('form')); });
     expect(api.post).toHaveBeenCalledExactlyOnceWith('/auth/verify-2fa', { temp_token: 'existing-challenge', otp: '123456' });
+  });
+
+  it('defaults to shared mode with no browser-trust option for an Admin challenge', async () => {
+    const user = userEvent.setup();
+    auth.login.mockResolvedValueOnce({ requires_2fa: true, temp_token: 'challenge', can_trust_browser: false });
+    const { container } = renderPage(<LoginPage />);
+    expect(screen.getByRole('checkbox', { name: 'This is a shared computer' })).toBeChecked();
+    await user.type(screen.getByPlaceholderText(/23-00123/), 'ADMIN001');
+    await user.type(container.querySelector('input[type=password]'), 'password123');
+    await user.click(screen.getByRole('button', { name: 'LOGIN' }));
+    await screen.findByPlaceholderText('Enter 6-digit OTP');
+    expect(screen.queryByRole('checkbox', { name: 'Trust this browser for today' })).not.toBeInTheDocument();
+    expect(auth.login).toHaveBeenCalledWith({ employeeId: 'ADMIN001', password: 'password123', sharedComputer: true });
+  });
+
+  it.each([false, true])('sends clerk trust only after personal mode and explicit opt-in (%s)', async optIn => {
+    const user = userEvent.setup();
+    auth.login.mockResolvedValueOnce({ requires_2fa: true, temp_token: 'personal-challenge', can_trust_browser: true });
+    const { container } = renderPage(<LoginPage />);
+    await user.click(screen.getByRole('checkbox', { name: 'This is a shared computer' }));
+    await user.type(screen.getByPlaceholderText(/23-00123/), 'CLERK001');
+    await user.type(container.querySelector('input[type=password]'), 'password123');
+    await user.click(screen.getByRole('button', { name: 'LOGIN' }));
+    const choice = await screen.findByRole('checkbox', { name: 'Trust this browser for today' });
+    expect(choice).not.toBeChecked();
+    expect(screen.getByText(/until midnight Manila time/)).toBeInTheDocument();
+    expect(auth.login).toHaveBeenCalledWith({ employeeId: 'CLERK001', password: 'password123', sharedComputer: false });
+    if (optIn) await user.click(choice);
+    await user.type(screen.getByPlaceholderText('Enter 6-digit OTP'), '123456');
+    api.post.mockRejectedValueOnce({ response: { data: { error: 'Synthetic rejection' } } });
+    await user.click(screen.getByRole('button', { name: 'VERIFY & LOGIN' }));
+    expect(api.post).toHaveBeenCalledWith('/auth/verify-2fa', { temp_token: 'personal-challenge', otp: '123456', ...(optIn ? { trust_browser: true } : {}) });
+  });
+
+  it('resets consent on a fresh OTP and preserves personal mode when resending', async () => {
+    vi.useFakeTimers();
+    auth.login.mockResolvedValue({ requires_2fa: true, temp_token: 'personal-challenge', can_trust_browser: true });
+    const { container } = renderPage(<LoginPage />);
+    fireEvent.click(screen.getByRole('checkbox', { name: 'This is a shared computer' }));
+    fireEvent.change(screen.getByPlaceholderText(/23-00123/), { target: { value: 'CLERK001' } });
+    fireEvent.change(container.querySelector('input[type=password]'), { target: { value: 'password123' } });
+    await act(async () => { fireEvent.submit(container.querySelector('form')); });
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Trust this browser for today' }));
+    expect(screen.getByRole('checkbox', { name: 'Trust this browser for today' })).toBeChecked();
+    await act(async () => { await vi.advanceTimersByTimeAsync(60000); });
+    await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'Resend OTP' })); });
+    expect(auth.login).toHaveBeenLastCalledWith({ employeeId: 'CLERK001', password: 'password123', sharedComputer: false });
+    expect(screen.getByRole('checkbox', { name: 'Trust this browser for today' })).not.toBeChecked();
+    expect(screen.getByRole('button', { name: 'Resend OTP (60s)' })).toBeDisabled();
   });
 
   it('preserves the registration proof and fields when confirmation is cancelled', async () => {

@@ -789,6 +789,33 @@ The image rebuild includes the new migration script. Keep the verified database/
 
 Deploy the corresponding frontend import repair, then verify Admin Security Logs loads and an authorized student lookup succeeds. Check backend logs for missing-table errors. A health response checks connectivity only and does not establish profile lookup success. New Vercel deployment URLs still require the exact origin configuration below; production promotion remains separate.
 
+### Batch 10: Clerk browser-trust deployment
+
+After committing and pulling the approved revision into the server checkout, run these commands from its root, one at a time, stopping on failure:
+
+```sh
+docker compose build backend
+docker compose run --rm --no-deps -T backend node database/migrate_trusted_browsers.js
+docker compose up -d --no-deps backend
+curl -fsS http://localhost:3300/api/health
+```
+
+Keep the already verified database/uploads backup. This standalone migration creates only `trusted_browsers` with `CREATE TABLE IF NOT EXISTS`; existing users/profile records remain intact. The table references the existing `users(id)` and version column already covered by Batch 8. Do not reimport the full schema, reseed or restore for this change. No migration runs at API startup; without the new table, clerk trust falls back to OTP. Existing incompatible table definitions need investigation rather than automatic alteration. These commands have not been executed on the server in this scope.
+
+Deploy the matching frontend. No new environment variables are required: keep `VITE_API_URL` pointed at the HTTPS API and preserve the exact test origin in the root server `.env`'s `FRONTEND_URL`. If that allowlist changes, validate with `docker compose config --quiet` and recreate backend with `docker compose up -d --no-deps --force-recreate backend`. Obtain a fresh login/OTP after rollout: older pending tokens lack the newly required account-version binding. The Vercel CLI is not installed locally; installing it with `npm i -g vercel` is strongly recommended for `vercel env pull`, `vercel deploy` and `vercel logs`. No deployment or production promotion was performed here.
+
+Live acceptance, using authorized test accounts and without sharing credentials/cookie values:
+
+1. Admin receives OTP every login, including when personal mode is selected.
+2. A clerk in default shared mode always receives OTP and cannot choose browser trust. Shared mode also ignores and clears an earlier personal-browser cookie.
+3. A clerk selects personal mode by unchecking “This is a shared computer”, completes OTP and opts into “Trust this browser for today”. Confirm `trace_mfa_trust` is HttpOnly, host-only, scoped to `/api/auth` and expires at midnight Manila time. The raw value must not appear in JSON or logs.
+4. Ordinary logout, followed by another correct-password login with **personal mode selected again**, skips clerk OTP before expiry. An incorrect password never authenticates. Omitting personal mode intentionally forces OTP.
+5. Missing/cleared/blocked cookie or midnight expiry requires OTP. If privacy rules block cross-site cookies, complete OTP normally; do not disable browser privacy controls. Server expiry uses epoch milliseconds and does not depend on a browser clock.
+6. Password change, password reset and logout-all revoke the old proof and older pending OTP challenges. Existing JWT sessions also expire, including the current one; sign in again. Repeat attempts with old proof/challenge must fail or require OTP. Confirm transaction failures leave credentials unchanged.
+7. Student/alumni optional 2FA is unchanged. Confirm existing new-browser notification recognition still works after full authentication and does not grant MFA trust.
+
+Mocked automated tests and a successful health response do not establish real cookie, SMTP or transaction acceptance. The existing `/api` CORS/credential configuration is required; third-party cookie policies still apply regardless ([MDN](https://developer.mozilla.org/en-US/docs/Web/HTTP/Guides/CORS#requests_with_credentials)). No automatic physical-device detection, session redesign, or other Batch 10 feature is included.
+
 ### New staged URL: API origin and protected manifest
 
 Each new Vercel deployment hostname is a different origin. Append only the intended test origin to the server root `.env`'s comma-separated `FRONTEND_URL`, preserving existing production/staging entries and omitting trailing slashes. Run `docker compose config --quiet`, then `docker compose up -d --no-deps --force-recreate backend` to load the environment. A plain restart retains the previous Compose environment. Recheck preflight headers for the exact URL: HTTP 204 without a matching `Access-Control-Allow-Origin` still blocks login before password validation. Keep production-domain promotion pending until the matching frontend/backend pass.

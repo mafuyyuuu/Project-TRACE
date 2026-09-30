@@ -11,6 +11,9 @@ export default function LoginPage() {
   const [password, setPassword] = useState('')
   const [localError, setLocalError] = useState('')
   const [showPassword, setShowPassword] = useState(false)
+  const [sharedComputer, setSharedComputer] = useState(true)
+  const [canTrustBrowser, setCanTrustBrowser] = useState(false)
+  const [trustBrowser, setTrustBrowser] = useState(false)
 
   // 2FA State
   const [requires2FA, setRequires2FA] = useState(false)
@@ -34,6 +37,8 @@ export default function LoginPage() {
     setRequires2FA(true)
     setTempToken(response.temp_token)
     setOtp('')
+    setCanTrustBrowser(response.can_trust_browser === true)
+    setTrustBrowser(false)
     const parts = response.email?.split('@') || ['', '']
     const masked = parts[0].length > 1 ? parts[0][0] + '***' : '***'
     setMaskedEmail(masked + '@' + parts[1])
@@ -65,12 +70,13 @@ export default function LoginPage() {
     setSubmitting(true)
     try {
       if (!requires2FA) {
-        const response = await login({ employeeId: employeeId.trim(), password })
+        const response = await login({ employeeId: employeeId.trim(), password, sharedComputer })
         if (response && response.requires_2fa) {
           showOtpChallenge(response)
         }
       } else {
-        const data = await verify2FA({ temp_token: tempToken, otp: otp.trim() })
+        const data = await verify2FA({ temp_token: tempToken, otp: otp.trim(),
+          ...(canTrustBrowser && trustBrowser ? { trust_browser: true } : {}) })
         localStorage.setItem('trace_token', data.token)
         localStorage.setItem('trace_user', JSON.stringify(data.user))
         window.location.href = '/dashboard'
@@ -92,7 +98,7 @@ export default function LoginPage() {
     setResendNotice('')
     startResendCooldown()
     try {
-      const response = await login({ employeeId: employeeId.trim(), password })
+      const response = await login({ employeeId: employeeId.trim(), password, sharedComputer })
       if (response?.requires_2fa) {
         showOtpChallenge(response)
         setResendNotice('A new code has been requested. Use the latest code from your email.')
@@ -158,6 +164,15 @@ export default function LoginPage() {
                     <Link to="/forgot-password" className="text-sm font-medium text-white/90 hover:text-white hover:underline">Forgot Password?</Link>
                   </div>
                 </div>
+                <div className="flex flex-col gap-2 text-sm text-white/90">
+                  <label className="flex items-center gap-3 cursor-pointer">
+                    <input type="checkbox" checked={sharedComputer} disabled={busy}
+                      onChange={e => setSharedComputer(e.target.checked)}
+                      className="h-4 w-4 accent-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white" />
+                    This is a shared computer
+                  </label>
+                  <p>Keep this selected on school or shared devices. On your personal computer, uncheck it to enable clerk browser trust. Admins verify every login.</p>
+                </div>
               </>
             ) : (
               <div className="flex flex-col gap-2">
@@ -174,6 +189,17 @@ export default function LoginPage() {
                   className="w-full p-4 bg-white/10 dark:bg-gray-900/10 border border-white/20 rounded-xl text-center text-2xl tracking-[0.5em] focus:ring-2 focus:ring-white/50 outline-none text-white focus:bg-white/20 dark:focus:bg-gray-900/20 transition-all font-bold placeholder:text-white/40"
                   autoFocus 
                 />
+                {canTrustBrowser && (
+                  <div className="mt-3 flex flex-col gap-2 text-sm text-white/90">
+                    <label className="flex items-center gap-3 cursor-pointer">
+                      <input type="checkbox" checked={trustBrowser} disabled={busy}
+                        onChange={e => setTrustBrowser(e.target.checked)}
+                        className="h-4 w-4 accent-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white" />
+                      Trust this browser for today
+                    </label>
+                    <p>For your personal computer only. After verification, clerk logins can skip OTP until midnight Manila time. Your password is still required. Browser privacy settings may require OTP again.</p>
+                  </div>
+                )}
               </div>
             )}
 

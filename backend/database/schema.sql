@@ -61,6 +61,17 @@ CREATE TABLE IF NOT EXISTS users (
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
 
+-- Clerk MFA proofs contain only random-token hashes and UTC epoch expiry.
+CREATE TABLE IF NOT EXISTS trusted_browsers (
+  token_hash CHAR(64) PRIMARY KEY,
+  user_id INT NOT NULL,
+  token_version INT NOT NULL,
+  expires_at_ms BIGINT NOT NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  INDEX trusted_browsers_user_expiry (user_id, expires_at_ms),
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
 -- Documents table: uploaded documents with OCR data
 
 CREATE TABLE IF NOT EXISTS student_profiles (

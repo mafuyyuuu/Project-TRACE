@@ -8,6 +8,9 @@ const userModel = require('../../models/user.model');
 const passwordResetModel = require('../../models/passwordReset.model');
 const notifications = require('../notification.service');
 const service = require('../auth.service');
+const { pool } = require('../../config/db');
+const trustedBrowserModel = require('../../models/trustedBrowser.model');
+let connection;
 
 const statusOf = (promise) => promise.then(() => undefined, (err) => err.status);
 
@@ -19,6 +22,11 @@ const account = () => ({
 });
 
 beforeEach(() => {
+  connection = { beginTransaction: vi.fn(), commit: vi.fn(), rollback: vi.fn(), release: vi.fn() };
+  vi.spyOn(pool, 'getConnection').mockResolvedValue(connection);
+  vi.spyOn(trustedBrowserModel, 'lockAccount').mockResolvedValue({ id: 7, is_active: 1, token_version: 0 });
+  vi.spyOn(userModel, 'incrementTokenVersion').mockResolvedValue([{}]);
+  vi.spyOn(userModel, 'clearEmailOTP').mockResolvedValue([{}]);
   vi.spyOn(userModel, 'findActiveByStudentIdOrEmail').mockResolvedValue([]);
   vi.spyOn(userModel, 'updateProfile').mockResolvedValue(true);
   vi.spyOn(userModel, 'findById').mockResolvedValue([{ id: 12, email: 'student@example.com' }]);
@@ -129,7 +137,28 @@ describe('resetPassword', () => {
     passwordResetModel.findUsableByTokenHash.mockResolvedValue(usable());
     await service.resetPassword({ token: 'abc', password: 'newpassword1' });
 
-    expect(passwordResetModel.markUsed).toHaveBeenCalledWith(12);
-    expect(passwordResetModel.invalidateAllForUser).toHaveBeenCalledWith(7);
+    expect(passwordResetModel.markUsed).toHaveBeenCalledWith(12, connection);
+    expect(passwordResetModel.invalidateAllForUser).toHaveBeenCalledWith(7, connection);
+    expect(userModel.incrementTokenVersion).toHaveBeenCalledWith(7, connection);
+    expect(userModel.clearEmailOTP).toHaveBeenCalledWith(7, connection);
+    expect(connection.commit).toHaveBeenCalledOnce();
+  });
+
+  it('rolls back password, link consumption and revocation together on failure', async () => {
+    passwordResetModel.findUsableByTokenHash.mockResolvedValue(usable());
+    userModel.incrementTokenVersion.mockRejectedValue(new Error('write denied'));
+    await expect(service.resetPassword({ token: 'abc', password: 'newpassword1' })).rejects.toThrow('write denied');
+    expect(connection.commit).not.toHaveBeenCalled();
+    expect(connection.rollback).toHaveBeenCalledOnce();
+    expect(connection.release).toHaveBeenCalledOnce();
+    expect(notifications.sendEmail).not.toHaveBeenCalled();
+  });
+
+  it('rechecks a link after the account lock and rejects concurrent consumption', async () => {
+    passwordResetModel.findUsableByTokenHash.mockResolvedValueOnce(usable()).mockResolvedValueOnce([]);
+    expect(await statusOf(service.resetPassword({ token: 'abc', password: 'newpassword1' }))).toBe(400);
+    expect(userModel.updateProfile).not.toHaveBeenCalled();
+    expect(userModel.incrementTokenVersion).not.toHaveBeenCalled();
+    expect(connection.rollback).toHaveBeenCalledOnce();
   });
 });

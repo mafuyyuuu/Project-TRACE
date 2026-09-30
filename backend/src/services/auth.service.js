@@ -26,6 +26,8 @@ const referenceModel = require('../models/referenceData.model');
 const { pool } = require('../config/db');
 const notificationModel = require('../models/notification.model');
 const passwordResetModel = require('../models/passwordReset.model');
+const trustedBrowser = require('./trustedBrowser.service');
+const trustedBrowserModel = require('../models/trustedBrowser.model');
 const aiEngine = require('./aiEngine.service');
 const notifications = require('./notification.service');
 const sendAuthEmail = ({ email, title, message }) => notifications.sendEmail(email, title, message);
@@ -53,7 +55,7 @@ function publicUser(user) {
   return result;
 }
 
-async function login({ employee_id, password }, ipAddress, userAgent) {
+async function login({ employee_id, password, shared_computer = true }, ipAddress, userAgent, cookieHeader = '') {
 
   const secRows = await userModel.getLoginSecurity(employee_id);
   if (secRows.length > 0) {
@@ -91,6 +93,7 @@ async function login({ employee_id, password }, ipAddress, userAgent) {
   }
 
   const user = rows[0];
+  if (user.is_active === false || user.is_active === 0) throw unauthorized('Invalid credentials.');
   const isMatch = await bcrypt.compare(password, user.password_hash);
   if (!isMatch) {
     await handleFail();
@@ -98,7 +101,9 @@ async function login({ employee_id, password }, ipAddress, userAgent) {
 
   
   const isStaff = ['admin', 'clerk'].includes(user.role);
-  const requires2FA = user.two_factor_enabled || isStaff;
+  const trusted = user.role === 'clerk' && shared_computer === false
+    && await trustedBrowser.isTrusted(user, cookieHeader, shared_computer);
+  const requires2FA = (user.two_factor_enabled || isStaff) && !trusted;
 
   if (requires2FA) {
     const otp = crypto.randomInt(100000, 1000000).toString();
@@ -114,8 +119,10 @@ async function login({ employee_id, password }, ipAddress, userAgent) {
       });
     }
 
-    const tempToken = jwt.sign({ id: user.id, pending_2fa: true }, env.JWT_SECRET, { expiresIn: '5m' });
-    return { requires_2fa: true, temp_token: tempToken, email: user.email };
+    const canTrustBrowser = user.role === 'clerk' && shared_computer === false;
+    const tempToken = jwt.sign({ id: user.id, pending_2fa: true,
+      token_version: user.token_version ?? 0, can_trust_browser: canTrustBrowser }, env.JWT_SECRET, { expiresIn: '5m' });
+    return { requires_2fa: true, temp_token: tempToken, email: user.email, can_trust_browser: canTrustBrowser };
   }
 
   if (user.role === 'student' && user.verification_status !== 'verified') {
@@ -295,6 +302,7 @@ async function lookupStudent(studentId, requestingUser) {
 
 async function updateProfile(userId, { phone_number, email, course, password, current_password, ...profileFields }) {
   const fields = {};
+  let verifiedPasswordHash;
   
   const users = await userModel.getProfileById(userId);
   if (!users || users.length === 0) throw notFound('User not found.');
@@ -318,6 +326,7 @@ async function updateProfile(userId, { phone_number, email, course, password, cu
     if (!match) {
       throw unauthorized('Incorrect current password.');
     }
+    verifiedPasswordHash = userRow[0].password_hash;
   }
 
 
@@ -358,9 +367,12 @@ async function updateProfile(userId, { phone_number, email, course, password, cu
     validatePassword(password);
     await checkPasswordHistory(userId, password);
     fields.password_hash = await bcrypt.hash(password, 10);
-    await userModel.logSecurityEvent(userId, 'PASSWORD_CHANGE');
     fields.must_change_password = false;
-    await userModel.addPasswordHistory(userId, fields.password_hash);
+    await writeCredentialsAndRevoke(userId, async connection => {
+      await userModel.updateProfile(userId, fields, connection);
+      await userModel.addPasswordHistory(userId, fields.password_hash, connection);
+      await userModel.logSecurityEvent(userId, 'PASSWORD_CHANGE', null, null, connection);
+    }, verifiedPasswordHash);
     
     // SEC-07 Email notification
     
@@ -377,7 +389,7 @@ async function updateProfile(userId, { phone_number, email, course, password, cu
     }
   }
 
-  if (Object.keys(fields).length > 0) {
+  if (Object.keys(fields).length > 0 && !password) {
     await userModel.updateProfile(userId, fields);
   }
 
@@ -461,7 +473,7 @@ function hashResetToken(token) {
 
 
 
-async function verify2FA(tempToken, otp, ipAddress, userAgent) {
+async function verify2FA(tempToken, otp, ipAddress, userAgent, trustBrowser = false) {
   let decoded;
   try {
     decoded = jwt.verify(tempToken, env.JWT_SECRET);
@@ -475,6 +487,9 @@ async function verify2FA(tempToken, otp, ipAddress, userAgent) {
 
   const [user] = await userModel.findById(decoded.id);
   if (!user || user.is_active === false || user.is_active === 0) throw notFound('User not found.');
+  if (!Number.isInteger(decoded.token_version) || decoded.token_version !== (user.token_version ?? 0)) {
+    throw unauthorized('Login verification has expired. Please log in again.');
+  }
 
   if (user.login_otp !== otp) {
     throw unauthorized('Invalid verification code.');
@@ -507,7 +522,12 @@ async function verify2FA(tempToken, otp, ipAddress, userAgent) {
   );
 
   const fresh = await userModel.getProfileById(user.id);
-  return { message: 'Login successful.', token, user: publicUser(fresh[0] || user) };
+  const result = { message: 'Login successful.', token, user: publicUser(fresh[0] || user) };
+  if (user.role === 'clerk' && decoded.can_trust_browser === true && trustBrowser === true) {
+    const browserTrust = await trustedBrowser.issue(user.id, decoded.token_version);
+    if (browserTrust) result.browserTrust = browserTrust; // Controller consumes; never include in JSON.
+  }
+  return result;
 }
 
 async function verifyEmailChange(userId, otp) {
@@ -623,13 +643,17 @@ async function resetPassword({ token, password }) {
   const reset = rows[0];
   const password_hash = await bcrypt.hash(password, 10);
 
-  await userModel.updateProfile(reset.user_id, {
-    password_hash,
-    // Choosing a password satisfies any pending forced-change requirement.
-    must_change_password: false,
+  await writeCredentialsAndRevoke(reset.user_id, async connection => {
+    // Recheck after locking the account: concurrent resets cannot consume the
+    // same link or carry a credential update past a version revocation.
+    const usable = await passwordResetModel.findUsableByTokenHash(hashResetToken(String(token)), connection);
+    if (!usable.some(row => row.id === reset.id && row.user_id === reset.user_id)) {
+      throw badRequest('This reset link is invalid or has expired. Please request a new one.');
+    }
+    await userModel.updateProfile(reset.user_id, { password_hash, must_change_password: false }, connection);
+    await passwordResetModel.markUsed(reset.id, connection);
+    await passwordResetModel.invalidateAllForUser(reset.user_id, connection);
   });
-  await passwordResetModel.markUsed(reset.id);
-  await passwordResetModel.invalidateAllForUser(reset.user_id);
 
   const uRows = await userModel.findById(reset.user_id);
   if (uRows.length > 0 && uRows[0].email && sendAuthEmail) {
@@ -641,6 +665,29 @@ async function resetPassword({ token, password }) {
   }
 
   return { message: 'Password updated. You can now sign in with your new password.' };
+}
+
+// Password writes and revocation commit together. This uses the existing
+// account version; no trust table is needed to revoke old browser proofs.
+async function writeCredentialsAndRevoke(userId, write, expectedPasswordHash) {
+  const connection = await pool.getConnection();
+  try {
+    await connection.beginTransaction();
+    const account = await trustedBrowserModel.lockAccount(userId, connection);
+    if (!account || account.is_active === false || account.is_active === 0) throw notFound('User not found.');
+    if (expectedPasswordHash && account.password_hash !== expectedPasswordHash) {
+      throw unauthorized('Password changed. Please log in again.');
+    }
+    await write(connection);
+    await userModel.incrementTokenVersion(userId, connection);
+    await userModel.clearEmailOTP(userId, connection);
+    await connection.commit();
+  } catch (err) {
+    await connection.rollback();
+    throw err;
+  } finally {
+    connection.release();
+  }
 }
 
 module.exports = {
