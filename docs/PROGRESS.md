@@ -394,3 +394,165 @@ Batch 4's camera, forced-2FA response, and malformed request-group concerns rema
 - Browser harness assumptions were corrected without product edits: desktop Logout is an icon button identified by its title, the handoff label is **Handed to Window 1**, synthetic stats must include the existing Secretary KPI fields, and native Enter activation needs the carriage-return text event. The initial incomplete Enter event failed theme checks; the complete native event passes in every role and persists after reload.
 - Temporary evidence: `/private/tmp/trace-batch6-browser-results.json`, `trace-batch6-extra-results.json`, before/after frontend/backend JSON test reports, `trace-batch6-lint.json`, and current `trace-batch6-*.png` captures. A review gallery and ZIP are at `/private/tmp/trace-batch6-review/index.html` and `/private/tmp/trace-batch6-review.zip`. These contain synthetic screenshots/current results, not original before images.
 - Only `docs/PROGRESS.md` changed in the repository. No commit or push was performed. VF-01 requires resolution of the recorded defects and real-device/live-flow acceptance; VF-02 cannot be completed without the originals.
+
+
+## Batch 8 Implementation — 2026-09-30
+
+Baseline: clean `dev`, commit `803e73c`. The user approved implementation after re-verification and decision review, including narrowly scoped backend/API/auth dependencies. Later explicit approvals added `AccountVerificationModal.jsx`, Finance's hook/dashboard, and reconciliation of missing repository auth DDL plus independent login/email-change OTP slots. No dependencies were upgraded, pipeline stages reordered, live records changed, migration applied, commit made, or push performed. Existing `AGENTS.md` remains unchanged.
+
+### Re-verification and outcome
+
+| Item | Actual finding and result |
+| --- | --- |
+| BR-01 | Opened the existing SVG: it was the Vite mark. Replaced it with the approved green TRACE T. Seal inventory: shared `AuthShell` (Signup/Forgot/Reset), old standalone Login, and dashboard `Layout` header. Layout already paired its seal with TRACE. Login now reuses AuthShell, which pairs the PLP crest with TRACE. No standalone seal asset was found in generated payment slips or document/email templates; existing document branding was retained. |
+| SEC-01 | No browser recognition existed, but notifications already did. Added per-user hashed recognition-cookie records and first/new-browser bell/email alerts only after complete password/OTP authentication. Notification links open Security settings. Cookie clearing or privacy blocking can trigger another alert; this is browser recognition, not device attestation or a sessions redesign. Live cookie/SMTP acceptance remains pending. |
+| AC-01 | Phone persistence was not reproduced as broken: both write and fresh login/profile reads contain the field. Email intentionally remained pending, but its existing OTP routes lacked controller adapters and the UI falsely treated it as committed. Completed the OTP save/verify/cache flow; the current email stays active until verification, then a fresh profile read updates all hook consumers. |
+| AC-02 | The account editor lacked contact/college/program support and student editing; some displayed fields were unsupported by its save endpoint. Added supported fields for student/alumni/staff and an approved admin-only profile endpoint. IDs remain immutable; staff password/activation permissions remain unchanged. |
+| AC-03 | Added the approved central field limits throughout editable text inputs. Existing saved values are not truncated; login/current passwords remain unrestricted. Payment-method reference labels use their actual 150-character SQL limit. Numeric/date controls retain validation. The exact policy is in `CODING_PREFERENCES.md`. |
+| PL-05 | `frontend/index.html:6` still has the accessible viewport. Existing global mobile CSS already makes inputs/textareas 16px below 768px. Browser audits passed; did not disable pinch zoom or change the viewport. Actual iOS Safari remains untested. |
+| PL-06 / FX-09 | Historical line-number/implementation assumptions had moved. The tracker still duplicated the stage list despite the shared pipeline. Its original completed line reached the final center after animation; an early animated sample misleadingly showed a shortfall. Rebuilt positioning from PIPELINE: three alternating columns on mobile, one row on desktop, measured center-to-center SVG connections. No separate node count/order list. |
+| FX-10 | Both legacy statuses fell through to active-looking progress. Added explicit zero progress, closed-record tracker treatment, green Approved/red Rejected presentation shared across student, Window 1, admin, and reports. Backend status vocabulary already includes both; no pipeline or backend transition change was required. |
+| FX-11 | Reproduced content-driven Reports column movement on page 2 (up to about 161px at desktop width); Window 1's fixed columns did not reproduce it. Reports now has a stable eight-column layout that accommodates the new Last Updated field. Final page-two geometry remains stable. |
+| PL-07 | Existing pagination inventory: Window 1 intake/release/tracking, admin document tracker, and Reports. Applied one measured ResizeObserver/RAF hook to these tables, preserving the first-row position and using the largest observed row height. Secretary/Finance queues and user grids remain unpaginated. Capacity uses a conservative viewport/main-height budget; wide tables retain internal scrolling. |
+| WI-08 | Stale diagnosis: QueueTabs line 24 is keyboard navigation, and nonzero circular badges were already implemented below it. Existing zero hiding, active/inactive contrast, and shared Secretary/Finance usage were verified. No duplicate badge change. |
+| WI-09 | FETCH was fully inside ManualInputModal at 320/375/768/1280px. No clipping repair was invented; this file only received approved input limits. |
+| WI-10 | requiresAttachment was already wired into IntakeReviewModal; upload is hidden for types that do not require it. Retained the condition while adopting the shared upload field. |
+| WI-11 | Release was a text confirmation, while AI review already had proof/info panes. Extended the existing shared confirmation to accept a preview pane and request details. Uses available OR/supporting attachment; explicit empty state preserves the physical-OR workflow. No new attachment/release API. |
+| WI-12 | Replaced the stacked intake/release queue presentation with one shared tab group beside a 320px desktop upload card; stacks on narrow screens. Counts and selected queue preserve existing ownership/workflow. |
+| SEC-02 | Reproduced Certification shown as TOR: a hardcoded select omitted the document's actual type. The select now uses the reference options and retains the current historical value if absent from them. |
+| SEC-03 / SEC-04 | Already implemented: ReceiptVerificationModal contains inline payment details/proof plus physical receipt acknowledgment, and Pricing uses shared confirmation. No replacement modal or duplicate finalization step. Finance can still upload its retained OR copy later. |
+| FX-12 | AI returns confidence under extracted_data; the backend read the wrong top-level field and substituted zero. Corrected the approved adapter, preserving finite zero/fractional values and null for unavailable data. Review display now distinguishes zero from unavailable. Live OCR accuracy is unaccepted. |
+| RPT-01 / RPT-02 | Added readable Philippine-time full timestamps in the existing formatters module, reused pricing's existing formatPeso, and wired Requested/Updated/Amount columns. Combined export categories into one labeled select and Export button; existing filters/endpoints retained. CSV content contracts were not changed. |
+| AD-01 / AD-02 | Merged Registered Users into Maintenance → Accounts; retained its old URL as an alias. Verification queue now identifies Applicant Type and opens one Review modal; Verify/Reject each stage shared confirmation. No account decision is sent when opening/cancelling review. |
+| NT-01 | Existing bell/realtime/email plumbing was reusable. Pending registrations now notify active admins with an internal matching-account review link. Notification failures do not roll back registration; repeat SPA clicks can reopen a cancelled review. Bell popups close on navigation/tab change. |
+| FX-13 | Already exact: auth messages say 15 minutes on lockout and the remaining rounded minutes afterward. No duration-copy repair. |
+| PL-08 | Reproduced oversized Login text in the desktop split at intermediate widths (about 492px text inside a 192px pane at 768px). Shared responsive AuthShell and clamped type now fit narrow/intermediate layouts; vertical scrolling is retained. |
+| SU-04 / SU-07 | Signup's supplied lines 56/181 were stale after earlier confirmation work. Loading already existed; the success redirect timer still needed removal. Success is explicitly closable, redundant bottom login copy removed, safe automatic-verification reasons exposed. The single Back to Login link was already visible/hittable in tested viewports and remains so; no second link. |
+| SU-06 | Gate already existed. Completion subqueries compared the application student identifier with users.id instead of users.student_id. Corrected both login/restore reads and refreshed cached completion after confirmed submission. Completion is derived from the existing application, without a new boolean/schema. |
+| SU-08 | Found unbounded AI fetches and an existing manual-verification fallback. Added a 15-second connection/body deadline with the existing null/fallback behavior. Controlled stalled-fetch/body tests pass; a genuine alumni signup with a diploma was not attempted, so the reported production cause and final live behavior remain unverified. |
+| SEC-05 | Found the existing nodemailer builder in notification.service.js. Added escaped TRACE-branded, inline-styled table HTML and preserved plain text/SMTP configuration. No mail was sent during this session. |
+| ST-01 | Consolidated student request/payment history into one table with All Requests/Payments controls, retaining legacy URLs and their filter behavior during SPA navigation. |
+| AD-03 | Forecast's Y-axis used automatic scaling. Card/modal now share zero baseline and a ceiling from the unfiltered forecast maximum plus 20%, rounded to 5 with minimum 5. Filters do not move the scale. Throughput duration KPI remains separate. |
+| SET-01 | Sidebar Settings opened the same profile modal. It now opens Appearance; avatar opens Profile; security notifications open Security. Existing theme persistence is reused. |
+| SC-07 | Upload inventory: signup proof, student request/payment proof, Window 1 document/intake scan, Finance walk-in/review/deferred OR, and profile avatar. One shared field gives local filename/preview/type/size errors and authenticated stored-file preview/download. Replacement remains limited to existing API authority. Finance OCR runs only on Read Receipt. General frontend limit 10MB, Finance walk-in/review 5MB, avatar 2MB. Signup's server uploader still lacks a size guard; this is documented, not silently claimed fixed. |
+| ST-02 | Stale gap: NewRequest already filters the data-driven available_to values for students/alumni. Synthetic student-only/alumni-only/both options verified. No hardcoded role lists or schema change; live reference mapping still needs the group's audit. |
+| SC-08 | Added role-aware Help / FAQ using native keyboard-accessible disclosure controls and existing user-manual workflows; available to all six roles after existing onboarding gates. |
+
+### Auth dependency discovered during implementation
+
+- Existing auth code referenced failed-login/lockout/token-version/pending-email/OTP columns missing from repository schema/migrations. The approved **read-only metadata query** found those original columns already present in the configured database. No account values were queried or changed; the DDL omission affects fresh/reproducible installations, not proof that the configured database lacked them.
+- Explicitly approved migration reconciles those columns idempotently and adds independent `login_otp`/`login_otp_expires`; email changes retain `email_otp`/expiry and use `E:<six digits>` to reject legacy shared challenges. Code generation uses cryptographic randomness. Null/invalid/expired challenges fail. Login generation/clearing cannot overwrite a pending email code.
+- Apply `node backend/database/migrate_batch8.js` only during the reviewed rollout in `ENV_SETUP_GUIDE.md`; it has **not been run here**. Old login/email challenges require a fresh login or a new email-change request after rollout. JWT sessions/routes remain on the existing system.
+
+### Validation and remaining acceptance
+
+- Baseline: **448 backend tests** and **298 frontend tests**, all passing. Final: **492 backend tests** and **321 frontend tests**, all passing. Auth boundary/expiry/slot isolation, migration duplicate handling, OCR timeouts/confidence, admin whitelist/ownership permissions, local-file staging, profile email caching, viewport pagination, legacy History navigation, review confirmations, and repeat notification navigation have regression coverage.
+- Production frontend build and `git diff --check` pass. ESLint retains **17 pre-existing errors and 3 warnings**, down from 21/3; saved-baseline comparison finds **no new diagnostics**. The existing large-bundle/local-storage warnings remain. This is not a clean-lint claim.
+- Headless Brave on macOS/M1, intercepted synthetic API responses: **95 passing observations**, including repeated Reports geometry observations. All six roles at 320/1280px in light/dark themes; tracker at 320/375/768/1280px; auth screens at those widths with 600px height. No tested dashboard/modal horizontal overflow or runtime exception. Mobile inputs measured 16px; snake connectors reach final-node centers within 1px; page-two Reports columns stay stable; History, Accounts, Help, registration review, and Security notification destinations render.
+- Temporary JSON evidence: `/private/tmp/trace-batch8-before-backend.json`, `trace-batch8-before-frontend.json`, `trace-batch8-back-final.json`, `trace-batch8-front-final.json`, `trace-batch8-lint-final.json`, `trace-batch8-browser-after.json`. These are machine-local artifacts, not committed test fixtures.
+- Current synthetic screenshots: `/private/tmp/trace-batch8-tracker-light-320.png`, `trace-batch8-tracker-light-1280.png`, dark equivalents, `trace-batch8-login-320.png`, `trace-batch8-signup-320.png`, and `trace-batch8-reports-page2.png`. The earlier favicon capture shows the Vite mark. Original before screenshots remain unavailable; no matched historical pairs are claimed.
+- Unexpected intermediate failures were investigated: OCR regression files needed the existing multer fieldname; cleared native file inputs required tests to inspect the staged filename/payload; viewport fake-timer cleanup needed unmount before restoring globals; the Finance receipt label query matched both its region and input and was narrowed to the input. The full frontend run also exposed a post-save graduate profile-refresh failure being reported as a failed submission; the approved hook now retains success with refresh guidance, covered for successful and failed refreshes. A review caught accidental AI-helper recursion; it was corrected to fetch plus bounded response parsing, and targeted/full tests pass. Early animated connector sampling was corrected by waiting for completion.
+- **Still pending:** physical phone/Safari/PWA behavior; live migration and MySQL device uniqueness; real first/known/new-browser cookie persistence; SMTP/bell delivery; actual alumni diploma signup/OCR confidence; live graduate-completion state; group-approved reference document mapping; genuine reporting/payment/upload integration. Synthetic browser checks and mocked model tests do not establish production acceptance.
+- **Separate existing findings preserved:** Admin Security references an unimported AdminSecurityPanel; Templates navigation has no render branch and retains existing hook lint; non-admin Reports hooks remain admin-only; student Print Payment Slip lacks its render branch; mock camera/scanner lacks a real reachable File capture; extended student_profiles fields are not selected by profile reads; PWA icon assets are missing; malformed request-group concerns remain from earlier batches. These were not absorbed into Batch 8 without a scope decision.
+
+### Exact changed-file manifest
+
+Every path below is relative to the repository root. Shared text-field changes listed as input limits are intentionally limited to the approved AC-03 policy.
+
+| Exact path | Change |
+| --- | --- |
+| `backend/database/migrate_batch8.js` | Explicit idempotent deployment migration; no automatic execution or record rewrites. |
+| `backend/database/schema.sql` | Add reproducible auth columns, separate login OTP slots, recognition-device table, notification action URL. |
+| `backend/src/controllers/auth.controller.js` | Complete existing auth route adapters and recognize browsers only after full authentication. |
+| `backend/src/controllers/maintenance.controller.js` | Adapter for approved admin account-profile editing. |
+| `backend/src/models/notification.model.js` | Persist nullable notification action URLs. |
+| `backend/src/models/user.model.js` | Correct completion joins, expose supported account/pending-email data, isolate login OTP writes, locate active admins. |
+| `backend/src/models/userDevice.model.js` | Unique hashed per-user browser records and last-seen updates. |
+| `backend/src/routes/maintenance.routes.js` | Admin-only account-profile update endpoint. |
+| `backend/src/services/__tests__/aiEngine.service.test.cjs` | Timeout, stalled body, error and fallback cases. |
+| `backend/src/services/__tests__/auth.service.test.cjs` | Regressions for safe/complete OTP login, email commitment, purpose isolation and expiry. |
+| `backend/src/services/__tests__/batch8.auth-boundary.test.cjs` | Full-auth-only recognition, completion joins, unique-device SQL, OTP SQL isolation and safe migration failures. |
+| `backend/src/services/__tests__/deviceLogin.service.test.cjs` | Known/new/malformed cookie, failure and HTTP/HTTPS cookie behavior. |
+| `backend/src/services/__tests__/documents.service.test.cjs` | Nested zero/fractional/missing confidence regressions. |
+| `backend/src/services/__tests__/maintenance.service.test.cjs` | Admin authority, immutable identifiers, supported-field validation and privilege exclusion. |
+| `backend/src/services/__tests__/notification.service.test.cjs` | TRACE/plain-text email and HTML escaping regression. |
+| `backend/src/services/aiEngine.service.js` | Bound fetch/body parsing to 15 seconds with existing best-effort fallback. |
+| `backend/src/services/auth.service.js` | Safe public login DTO, OTP/controller dependencies, email verification, pending-registration notices/reasons, isolated purpose-bound OTPs. |
+| `backend/src/services/deviceLogin.service.js` | Recognition cookie/hash, metadata, first/new-browser bell/email alerts, fail-soft notification behavior. |
+| `backend/src/services/documents.service.js` | Read actual nested finite OCR confidence, preserve zero/fractions and null absence. |
+| `backend/src/services/maintenance.service.js` | Validate admin-only supported profile fields and immutable IDs; preserve staff permissions. |
+| `backend/src/services/notification.service.js` | Action URL/realtime ID propagation and escaped TRACE-branded HTML emails. |
+| `docs/BACKEND_GUIDE.md` | Approved API/DTO, notifications, auth/migration/OCR dependencies and limits. |
+| `docs/CODING_PREFERENCES.md` | Input/upload/pagination/status/forecast/FAQ maintenance conventions. |
+| `docs/ENV_SETUP_GUIDE.md` | Explicit unapplied migration, paired rollout, fresh OTP and live cookie/mail/OCR acceptance. |
+| `docs/PROGRESS.md` | Per-item re-verification, exact manifest, approvals, evidence, corrections and pending acceptance. |
+| `docs/SYSTEM_WORKFLOWS.md` | Merged Accounts and current auth, recognition, alumni, history, upload and help workflows. |
+| `docs/USER_MANUAL.md` | User-facing registration, account, desk, export, upload, notification, History and Help instructions. |
+| `frontend/public/favicon.svg` | Replace Vite favicon with approved green TRACE T. |
+| `frontend/src/components/AuthShell.jsx` | TRACE with PLP crest and responsive clamped heading. |
+| `frontend/src/components/ConfirmDialog.jsx` | Allow release proof/info content while reusing existing confirmation shell. |
+| `frontend/src/components/DocumentChat.jsx` | Apply approved AC-03 text limits; existing workflow retained. |
+| `frontend/src/components/FileUploadField.jsx` | Shared controlled local/stored file feedback, validation, previews/download and object-URL cleanup. |
+| `frontend/src/components/ForcePasswordChange.jsx` | Apply approved AC-03 text limits; existing workflow retained. |
+| `frontend/src/components/ProfileSettingsModal.jsx` | Appearance entry, pending-email code confirmation, shared avatar upload feedback and field limits. |
+| `frontend/src/components/__tests__/FileUploadField.test.jsx` | Local replacement/cleanup, size/type failure and stored-file read-only feedback regressions. |
+| `frontend/src/features/__tests__/admin.category2.render.test.jsx` | Merged Accounts/exports expectations; decision confirmation and repeated SPA notification review regressions. |
+| `frontend/src/features/__tests__/finance.deferred-or.test.jsx` | Controlled staged uploads; explicit OCR and confirmed counter-payment payload regression. |
+| `frontend/src/features/__tests__/pipeline.queues.render.test.jsx` | One Window 1 queue at a time; legacy History route/filter regression. |
+| `frontend/src/features/admin/AdminDashboard.jsx` | Maintenance alias, applicant review/type, shared forecast scale, stable tracker columns/status treatment. |
+| `frontend/src/features/admin/components/AccountVerificationModal.jsx` | One review pane with Verify/Reject decisions and nested shared confirmation. |
+| `frontend/src/features/admin/components/AddUserModal.jsx` | Apply approved AC-03 text limits; existing workflow retained. |
+| `frontend/src/features/admin/components/AdminTemplatesPanel.jsx` | Apply approved AC-03 text limits; existing workflow retained. |
+| `frontend/src/features/admin/components/ForecastModal.jsx` | Use shared padded forecast ceiling. |
+| `frontend/src/features/admin/components/MaintenancePanel.jsx` | Merge all account cards into Maintenance Accounts. |
+| `frontend/src/features/admin/components/ReportsPanel.jsx` | Readable timestamps/pesos, stable columns, consolidated export control and measured pagination. |
+| `frontend/src/features/admin/components/UserDetailModal.jsx` | Supported college/program/contact details and student editing; staff-only activation retained. |
+| `frontend/src/features/admin/components/UserEditModal.jsx` | Supported fields for all account identities, read-only IDs, existing staff password authority and limits. |
+| `frontend/src/features/admin/components/UserGrid.jsx` | Allow account editing for student/alumni without granting activation. |
+| `frontend/src/features/admin/useAdminDashboard.js` | Notification-driven review/reopen and measured tracker pagination. |
+| `frontend/src/features/admin/useMaintenance.js` | Load accounts and route supported profile edits/password changes through their approved endpoints. |
+| `frontend/src/features/admin/useReports.js` | Measured report page size using existing report contract. |
+| `frontend/src/features/finance/FinanceDashboard.jsx` | Wire the existing controlled receipt setter into the walk-in form. |
+| `frontend/src/features/finance/components/DeferredOrUploadModal.jsx` | Shared staged upload feedback; preserve deferred OR workflow. |
+| `frontend/src/features/finance/components/FinanceVerificationModal.jsx` | Shared optional receipt-copy feedback and existing confirmed verification. |
+| `frontend/src/features/finance/components/WalkInPaymentModal.jsx` | Local receipt selection and explicit Read Receipt control, limits and 5MB validation. |
+| `frontend/src/features/finance/useFinanceDashboard.js` | Expose local receipt selection independently of OCR and reset its confidence. |
+| `frontend/src/features/graduate/GraduateApplication.jsx` | Apply approved AC-03 text limits; existing workflow retained. |
+| `frontend/src/features/graduate/components/GradApplicationReviewPanel.jsx` | Apply approved AC-03 text limits; existing workflow retained. |
+| `frontend/src/features/graduate/useGraduateApplication.js` | Refresh/announce completion after confirmed successful submission; retain saved success if profile refresh fails. |
+| `frontend/src/features/secretary/components/SecretaryEvaluationModal.jsx` | Reference-driven actual document type, valid zero confidence/unavailable display and limits. |
+| `frontend/src/features/student/StudentDashboard.jsx` | Unified History/legacy route filters, shared local payment upload and legacy status treatment. |
+| `frontend/src/features/student/components/LiveTrackingModal.jsx` | PIPELINE-derived mobile snake/desktop nodes, measured connectors and closed legacy records. |
+| `frontend/src/features/student/components/NewRequestModal.jsx` | Shared local attachment feedback and input limits; existing role filtering preserved. |
+| `frontend/src/features/student/useStudentDashboard.js` | Derive tracker stage progress from PIPELINE rather than a duplicate list. |
+| `frontend/src/features/window1/Window1Dashboard.jsx` | 320px upload card, shared Intake/Release tabs, measured tables, release preview/info and local upload feedback. |
+| `frontend/src/features/window1/components/IntakeReviewModal.jsx` | Shared required-only upload field, real confidence display and limits. |
+| `frontend/src/features/window1/components/ManualInputModal.jsx` | Apply approved AC-03 text limits; existing workflow retained. |
+| `frontend/src/features/window1/useWindow1Dashboard.js` | Measure existing intake/release/tracking pagination with active-table guards. |
+| `frontend/src/hooks/__tests__/useAuth.batch8.test.jsx` | Challenge is not an authenticated session; fresh profile cache and graduate post-save refresh/failure regressions. |
+| `frontend/src/hooks/__tests__/useProfileSettings.test.jsx` | Pending email not committed optimistically; verified fresh email persists in cache. |
+| `frontend/src/hooks/__tests__/useViewportPagination.test.jsx` | Resize capacity/first-row preservation and disabled-table cleanup. |
+| `frontend/src/hooks/useAuth.js` | Return incomplete OTP challenge without caching; synchronize updated cached users. |
+| `frontend/src/hooks/useProfileSettings.js` | Stage avatar, keep pending email separate, verify then refresh persistent profile/cache. |
+| `frontend/src/hooks/useViewportPagination.js` | Measured conservative row capacity, stable first-row position, observer/RAF cleanup. |
+| `frontend/src/layouts/Layout.jsx` | Separate profile/appearance/security entries and internal notification navigation with popup dismissal. |
+| `frontend/src/layouts/SidebarNav.jsx` | Help book icon using existing icon mechanism. |
+| `frontend/src/layouts/__tests__/Layout.test.jsx` | Appearance-entry expectations preserving drawer/logout keyboard regressions. |
+| `frontend/src/layouts/__tests__/SidebarNav.test.jsx` | Merged History/Accounts/Help navigation expectations. |
+| `frontend/src/pages/DashboardPage.jsx` | Role Help routing and notification review navigation inputs; existing alumni gate retained. |
+| `frontend/src/pages/ForgotPasswordPage.jsx` | Apply approved AC-03 text limits; existing workflow retained. |
+| `frontend/src/pages/HelpPage.jsx` | Role-aware accessible manual/FAQ disclosures. |
+| `frontend/src/pages/LoginPage.jsx` | Responsive shared auth shell, complete OTP response/caching and exact code-length control. |
+| `frontend/src/pages/ResetPasswordPage.jsx` | Apply approved AC-03 text limits; existing workflow retained. |
+| `frontend/src/pages/SignupPage.jsx` | Local proof feedback, explicit success close, safe verification reason and removal of redirect/redundant login copy. |
+| `frontend/src/pages/__tests__/submission.confirmations.test.jsx` | Assert controlled signup proof remains staged after cancelling confirmation. |
+| `frontend/src/services/api.js` | Send recognition-cookie credentials; invalid OTP codes do not trigger global logout redirect. |
+| `frontend/src/services/authService.js` | Existing OTP/email verification client adapters. |
+| `frontend/src/services/maintenanceService.js` | Approved account-profile edit client adapter. |
+| `frontend/src/utils/__tests__/batch8.presentation.test.js` | Forecast/timestamp/legacy-status/input-policy regressions. |
+| `frontend/src/utils/documentStatus.js` | Explicit legacy progress, shared closed-status/tone helpers; pipeline unchanged. |
+| `frontend/src/utils/forecastScale.js` | Shared forecast ceiling with headroom/minimum scale. |
+| `frontend/src/utils/formatters.js` | Readable full Philippine-time timestamp helper. |
+| `frontend/src/utils/inputLimits.js` | Approved central text-field limit policy. |
+| `frontend/src/utils/navigation.js` | Merged History/Accounts navigation and shared Help destination. |
+| `frontend/src/utils/userLabels.js` | Human applicant-type labels for student/alumni. |
