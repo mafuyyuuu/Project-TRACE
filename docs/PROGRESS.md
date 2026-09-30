@@ -556,3 +556,127 @@ Every path below is relative to the repository root. Shared text-field changes l
 | `frontend/src/utils/inputLimits.js` | Approved central text-field limit policy. |
 | `frontend/src/utils/navigation.js` | Merged History/Accounts navigation and shared Help destination. |
 | `frontend/src/utils/userLabels.js` | Human applicant-type labels for student/alumni. |
+
+
+## Batch 8b — Account, Admin, and Workflow (2026-09-30)
+
+Implemented against `dev` at `e420246` after the approved exact-file plan and narrowly scoped backend exceptions. Root `AGENTS.md` already exists and remains unchanged. No commit, push, deployment, real account creation, or database migration was performed.
+
+### Re-verification and resulting behavior
+
+| Item | Finding and outcome |
+| --- | --- |
+| AC-04 | Appearance already existed but shared profile layout. Preferences is now appearance-only; avatar opens Edit Profile. |
+| AC-05 | Existing status tones remain; edit/profile/OCR links use blue, primary/approval/totals green, destructive/error red, warnings amber. Labels/focus/confirmations remain. |
+| SEC-06 | Inline protected previews already exist in account, intake, Secretary evaluation, Finance payment and OR verification. Reused rather than rebuilding; graduate review has form answers, not an attachment schema. |
+| WI-13 | Role navigation and backend report/export permissions already existed. Shared ReportsPanel/useReports now render/load for Window 1 and Secretary. |
+| SEC-17 | Shared feedback/bell dismiss on navigation or hidden browser tab; queue/maintenance/security keys dismiss internal-tab feedback. Draft/decision modals are retained. |
+| SU-09/SU-10 | An unsafe unused extract-id endpoint already existed. Replaced its internals with bounded temporary OCR, explicit Read ID, structured identity parsing and blank-only autofill. New alumni use Alumni ID; existing login IDs remain unchanged. |
+| AC-06 | Registration proof was already saved. Surface it through existing authenticated preview/download in Edit Profile and staff profile. No replacement permission added. |
+| AD-04 | Policy columns existed in UI/model expectations, but schema placed them on colleges and INSERT bindings were wrong. Repair DDL, migration/model/save; configure student/alumni/both and enforce server-side. |
+| AD-05 | Partial name/profile links existed. Add full projection and authorized staff boundary, then links across tracker, queues, transactions, reports and graduate applications. |
+| AD-06 | Users already had college_id support, but signup did not save it. Validate/store selected college; byte-exact legacy backfill only; unknown mappings get an Admin-review warning. Configure allowed-college junction rows and enforce target student's college. |
+| DOC-01 | Repeat rules were incomplete and backend silently forced copies=1. Enforce single active/completed HD with a target-user lock; permit cancellation/legacy-rejection retry. Restore quantities and estimated pricing for repeatable types. |
+| DOC-02 | Four absent counter types added as inactive zero-fee drafts, with original inspection disabled. Fees remain Admin-editable. Photocopy requirement awaits user decision; no guessed enforcement. |
+| DOC-03 | Existing chat is text-only. User placed case attachment requests/student messaging uploads/processing hold in later communication batches. Deferred; no invented attachment route or pipeline stage. |
+
+### Corrections, approvals and limits
+
+The original notes understated existing report navigation/permissions, identity-proof storage, inline verification previews and policy UI. These were extended, not rebuilt. The schema's college-owned policy columns, malformed document-type insert, omitted signup college write, and backend quantity collapse were confirmed implementation gaps. Existing Secretary Reject returns to Intake; it is **not** terminal cancellation/rejection for repeat policy. Raw attached counter scans can be staged for human review without an ID; restricted requests cannot pass Secretary evaluation without eligible identity.
+
+Additional explicit approvals cover backend policy/OCR/profile exceptions; `backend/vitest.config.mjs` to discover migration tests; backend pricing/helper tests; and `frontend/src/features/__tests__/modal.footers.test.jsx` to supply configured document options while retaining keyboard/native validation checks. Additional exact-file approval covers HelpPage and CODING_PREFERENCES to synchronize FAQ labels, policy guidance, signup server guards and feedback dismissal.
+
+Unrelated findings left unchanged: current lint failures include undefined `AdminSecurityPanel`, unused imports/tutorial state and existing hook diagnostics. ProfileSettingsModal's legacy isStudent predicate also classifies staff with user_type=student as needing student educational fields. Manual-entry's hardcoded program dropdown may not match a fetched legacy college-name course. Existing AI forecasting still imports/queries MySQL; identity OCR adds no DB access. These require separate scope.
+
+### Verification evidence
+
+- Baseline: backend **492**, frontend **321** tests passed before edits.
+- After: backend **527**, frontend **342** tests passed. Parser **4/4** passed via `ai-engine/.venv/bin/python -m unittest discover -s ai-engine -p test_identity_parser.py`. Frontend production/PWA build passed; existing bundle-size warning remains.
+- Lint: **12 errors / 3 warnings**, all diagnostic messages present in the previous Batch 8 report (**17 / 3**); no new lint diagnostics. This is not a clean lint claim.
+- Regressions cover authorization/projection, temporary cleanup/type/size guard/timeout, exact college mapping, SQL bindings/idempotency/error propagation, transactional policy rollback, target-user lock, forged policies/quantities, stale responses, confirmed policy payloads, role reports, local OCR, notification dismissal and draft preservation.
+- Brave: **72/72 synthetic API checks**, light/dark at 320 and 1280 px, all six roles' profile/preferences; both desks' reports/full profiles; Admin confirmed policy saves; route feedback dismissal; new-alumni OCR. Screenshot inspection confirmed readable/pinned modal layout. Fixtures, not live MySQL or real OCR. Harness selector mistakes and an incomplete report-summary fixture were corrected; application code was not changed to accommodate them.
+- Temporary artifacts: `/private/tmp/trace-batch8b-browser.json`, `trace-batch8b-*-final.json`, `trace-batch8b-lint.json`; screenshots `trace-batch8b-admin-policy.png`, `trace-batch8b-secretary-profile-{light,dark}.png`, `trace-batch8b-alumni-ocr-{light,dark}.png`. Existing Batch 8 signup screenshot can be compared, but original pre-revision screenshots remain unavailable.
+- Pending acceptance: live migration/FKs/atomic writes/concurrent repeat attempts, real OCR/registration/protected proof delivery, and physical phone. PDF upload can fall back to manual input because current OCR decoding may not support it. DOC-02 photocopy decision and DOC-03 future messaging are not complete acceptance.
+
+### Files changed
+
+| Exact path | Change |
+| --- | --- |
+| `ai-engine/app.py` | Expose temporary-upload identity OCR over HTTP; add WebP to existing extensions. |
+| `ai-engine/identity_parser.py` | Conservative labeled Student/Alumni ID, name and college extraction. |
+| `ai-engine/ocr_engine.py` | Parse identity fields with manual fallback; no database access added. |
+| `ai-engine/test_identity_parser.py` | Four pure parser regressions. |
+| `backend/database/__tests__/migrate_8b.test.cjs` | Regression coverage for the policy, security, confirmed payload or current UI behavior in this file. |
+| `backend/database/migrate_8b.js` | Explicit, import-safe policy/junction/FK reconciliation, exact backfill and inactive drafts. |
+| `backend/database/migration.js` | Invoke the idempotent 8b migration from the existing manual migration command. |
+| `backend/database/schema.sql` | Create colleges before user FK; place policy columns on document types. |
+| `backend/src/controllers/ai.controller.js` | Controller adapter for signup identity OCR. |
+| `backend/src/controllers/auth.controller.js` | Pass the authenticated caller to the full-profile service. |
+| `backend/src/controllers/referenceData.controller.js` | Pass the caller for student-specific reference eligibility. |
+| `backend/src/middlewares/rateLimit.middleware.js` | Limit public signup OCR to 20 requests/hour/IP. |
+| `backend/src/middlewares/upload.middleware.js` | 10 MB/type guards for signup proof and temporary OCR; random temp filenames. |
+| `backend/src/models/__tests__/referenceData.model.test.cjs` | Regression coverage for the policy, security, confirmed payload or current UI behavior in this file. |
+| `backend/src/models/document.model.js` | Count blocking prior requests, excluding terminal rejection and current record. |
+| `backend/src/models/referenceData.model.js` | Correct policy SQL bindings; persist and read allowed-college junction rows. |
+| `backend/src/models/user.model.js` | Save college ID; explicit full-profile projection, policy user lock and college-aware routing reads. |
+| `backend/src/routes/ai.routes.js` | Reuse existing extract-id route with bounded uploads, rate limit and controller. |
+| `backend/src/routes/auth.routes.js` | Add staff-role middleware on student-profile lookup. |
+| `backend/src/services/__tests__/aiEngine.service.test.cjs` | Regression coverage for the policy, security, confirmed payload or current UI behavior in this file. |
+| `backend/src/services/__tests__/auth.service.test.cjs` | Regression coverage for the policy, security, confirmed payload or current UI behavior in this file. |
+| `backend/src/services/__tests__/documentPolicy.service.test.cjs` | Regression coverage for the policy, security, confirmed payload or current UI behavior in this file. |
+| `backend/src/services/__tests__/documents.service.test.cjs` | Regression coverage for the policy, security, confirmed payload or current UI behavior in this file. |
+| `backend/src/services/__tests__/maintenance.service.test.cjs` | Regression coverage for the policy, security, confirmed payload or current UI behavior in this file. |
+| `backend/src/services/__tests__/signupOcr.service.test.cjs` | Regression coverage for the policy, security, confirmed payload or current UI behavior in this file. |
+| `backend/src/services/aiEngine.service.js` | Bounded structured identity endpoint adapter with null fallback. |
+| `backend/src/services/auth.service.js` | New-alumni login identifier/college persistence and desk-authorized full-profile read. |
+| `backend/src/services/documentPolicy.service.js` | Shared target-applicant/college/counter/repeat policy, quantity guard and user lock. |
+| `backend/src/services/documents.service.js` | Validate/preserve quantities, enforce policy during filing and approval, prefer college routing IDs. |
+| `backend/src/services/maintenance.service.js` | Validate policy inputs and save settings/restrictions atomically; protect HD exception. |
+| `backend/src/services/referenceData.service.js` | Expose normalized policy flags and student eligibility reasons. |
+| `backend/src/services/signupOcr.service.js` | Allowlisted bounded extraction, exact college mapping and finally cleanup. |
+| `backend/src/utils/__tests__/pricing.test.cjs` | Regression coverage for the policy, security, confirmed payload or current UI behavior in this file. |
+| `backend/src/utils/pricing.js` | Preserve copies and multiply estimates to match the frontend. |
+| `backend/vitest.config.mjs` | Discover database migration regression tests alongside source tests. |
+| `docs/BACKEND_GUIDE.md` | Policy/OCR/profile contracts and security/rollback behavior. |
+| `docs/ENV_SETUP_GUIDE.md` | Explicit unapplied migration and paired backend/frontend/AI rollout checks. |
+| `docs/SYSTEM_WORKFLOWS.md` | Server policy/lock/retry rules, identity routing, staff access and deferred attachments. |
+| `docs/USER_MANUAL.md` | Current account, OCR, reports/profile, policy, quantity and notification instructions. |
+| `frontend/src/App.jsx` | Announce SPA navigation to notification-dismissal subscribers. |
+| `frontend/src/components/DashboardAlerts.jsx` | Dismiss feedback on navigation/browser/internal tab changes. |
+| `frontend/src/components/ProfileSettingsModal.jsx` | Separate Preferences from Edit Profile; expose stored proof read-only. |
+| `frontend/src/components/StudentProfileModal.jsx` | Render full saved profile with loading/error states via shared hook. |
+| `frontend/src/components/__tests__/DashboardAlerts.test.jsx` | Regression coverage for the policy, security, confirmed payload or current UI behavior in this file. |
+| `frontend/src/components/__tests__/ProfileSettingsModal.test.jsx` | Regression coverage for the policy, security, confirmed payload or current UI behavior in this file. |
+| `frontend/src/features/__tests__/admin.category2.render.test.jsx` | Regression coverage for the policy, security, confirmed payload or current UI behavior in this file. |
+| `frontend/src/features/__tests__/batch8b.workflow.test.jsx` | Regression coverage for the policy, security, confirmed payload or current UI behavior in this file. |
+| `frontend/src/features/__tests__/modal.footers.test.jsx` | Regression coverage for the policy, security, confirmed payload or current UI behavior in this file. |
+| `frontend/src/features/admin/AdminDashboard.jsx` | Open full profile from tracker names. |
+| `frontend/src/features/admin/components/MaintenancePanel.jsx` | Edit fees/policies/colleges with confirmation, draft warning and action colors. |
+| `frontend/src/features/admin/components/ReportsPanel.jsx` | Open full profile from report names. |
+| `frontend/src/features/admin/components/UserDetailModal.jsx` | Complete personal/educational fields, proof, college warning and read-only staff view. |
+| `frontend/src/features/admin/useReports.js` | Enable existing reports for Window 1 and Secretary. |
+| `frontend/src/features/finance/FinanceDashboard.jsx` | Profile links including transactions; queue-tab feedback dismissal. |
+| `frontend/src/features/graduate/components/GradApplicationReviewPanel.jsx` | Applicant profile links and review-tab feedback dismissal. |
+| `frontend/src/features/secretary/SecretaryDashboard.jsx` | Render shared reports, profile links and queue-tab dismissal. |
+| `frontend/src/features/student/components/NewRequestModal.jsx` | Audience/counter filtering, visible blocked reasons and quantity controls. |
+| `frontend/src/features/student/useStudentDashboard.js` | Refresh eligibility after filing/cancellation; close saved confirmation before the read to prevent duplicate submission. |
+| `frontend/src/features/window1/Window1Dashboard.jsx` | Render shared reports and configured counter types; profile links and tab dismissal. |
+| `frontend/src/features/window1/components/IntakeReviewModal.jsx` | Use reference attachment requirement; wait for rule loading. |
+| `frontend/src/features/window1/components/ManualInputModal.jsx` | Configured counter document options and controlled selection. |
+| `frontend/src/features/window1/useWindow1Dashboard.js` | Fetch configured document rules for counter filing/intake. |
+| `frontend/src/hooks/__tests__/useNotificationDismissal.test.jsx` | Regression coverage for the policy, security, confirmed payload or current UI behavior in this file. |
+| `frontend/src/hooks/__tests__/useSignupOcr.test.jsx` | Regression coverage for the policy, security, confirmed payload or current UI behavior in this file. |
+| `frontend/src/hooks/__tests__/useStudentProfile.test.jsx` | Regression coverage for the policy, security, confirmed payload or current UI behavior in this file. |
+| `frontend/src/hooks/useNotificationDismissal.js` | Shared navigation/visibility/key dismissal with listener cleanup. |
+| `frontend/src/hooks/useSignupOcr.js` | Abort/discard stale extraction and expose manual fallback. |
+| `frontend/src/hooks/useStudentProfile.js` | Abort stale person lookups and expose full-profile loading/errors. |
+| `frontend/src/layouts/Layout.jsx` | Edit Profile avatar label/personal entry and bell auto-dismissal. |
+| `frontend/src/layouts/SidebarNav.jsx` | Rename appearance destination to Preferences. |
+| `frontend/src/layouts/__tests__/Layout.test.jsx` | Regression coverage for the policy, security, confirmed payload or current UI behavior in this file. |
+| `frontend/src/layouts/__tests__/SidebarNav.test.jsx` | Regression coverage for the policy, security, confirmed payload or current UI behavior in this file. |
+| `frontend/src/pages/LoginPage.jsx` | Include Alumni ID in login identifier label. |
+| `frontend/src/pages/SignupPage.jsx` | Explicit advisory OCR, blank-only autofill, new-alumni ID, college ID and role-change reset. |
+| `frontend/src/pages/__tests__/submission.confirmations.test.jsx` | Regression coverage for the policy, security, confirmed payload or current UI behavior in this file. |
+| `frontend/src/services/authService.js` | Encode profile identifiers, support cancellation and signup OCR service call. |
+| `frontend/src/pages/HelpPage.jsx` | Synchronize Preferences/Edit Profile, OCR/IDs, reports, profile and document-policy guidance. |
+| `docs/CODING_PREFERENCES.md` | Current server upload guard, feedback dismissal, identity/profile and policy conventions. |
