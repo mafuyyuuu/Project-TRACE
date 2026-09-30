@@ -322,3 +322,38 @@ The initial idea of blocking release whenever the digital attachment was missing
 - `AdminSecurityPanel` exists but is not imported in `AdminDashboard`; its route still errors. `AdminTemplatesPanel` is imported but not rendered for the Templates tab. The latter's component save behavior is tested directly; tab wiring remains outside this approved scope.
 - Malformed/missing request-group IDs retain the Batch 3 investigation finding. No migration or live data repair was performed.
 - Batch 5 and Batch 6 each still require their own current-code/file-plan approval gate. The 7-Day Volume Forecast scaling item belongs to Batch 8 and was not changed here.
+
+
+## Batch 5 Re-verification — 2026-09-30
+
+Baseline: clean `dev`, commit `6ccd951`. The user approved the exact six-file plan with **continue** before edits. This batch is presentation-only: no backend, API, schema, route, auth, dependency, pipeline, Finance source, or shared-component changes.
+
+### Findings and result
+
+| Item | Current-code finding | Result |
+| --- | --- | --- |
+| FX-03 | `AdminDashboard.jsx:94–116` already displayed the reporting analytics `end_to_end.avg_minutes` through `formatDuration` and an explicit empty-state message. `useAdminDashboard.js:63–86` already fetched this data independently through the existing reporting endpoint. The historical blank dash diagnosis was stale. The chart still competed with the metric in a row, and passing `[]` to `MiniSparkline` drew its decorative fallback. | Retained the real average/unit and empty message. Moved the measured chart below the metric at full content width and 96px height, labeled **Daily completed documents**, and rendered it only with completed requests and a nonempty daily series. The existing tooltip shows dates and document counts through mouse/keyboard interaction. Kept caption within the card at narrow widths. |
+| WI-06 | `FinanceDashboard.jsx:86–93` already exposed Awaiting Payment, Verification Queue, and Transactions & OR Copies through `QueueTabs`, including the Batch 4 deferred-upload queue. All relevant table branches were wired. | No duplicate Finance implementation. Strengthened tests for real count badges, one selected table, keyboard switching, and correct paid-stage membership through completion. |
+
+System Throughput remains a duration KPI; the chart measures daily completed-document counts. These labels distinguish the two. The 7-Day Volume Forecast and Batch 8 scaling issue were not changed. The metric's numeric production accuracy is not asserted from synthetic fixtures.
+
+### Files changed
+
+| Exact path | Change |
+| --- | --- |
+| `frontend/src/features/admin/AdminDashboard.jsx` | Accessible card region, full-width measured chart/label, suppression of empty decorative trend, wrapping caption. |
+| `frontend/src/features/__tests__/admin.throughput.test.jsx` | Four integration regressions using the real Admin hook, formatter and chart: reporting average instead of dashboard-stats fallback, keyboard date/count tooltip, explicit empty state with no chart, and sub-minute average without a daily series. Only API responses and jsdom chart dimensions are mocked. |
+| `frontend/src/features/__tests__/pipeline.queues.render.test.jsx` | Finance badge counts and keyboard selection/membership checks, preserving existing queue tests. |
+| `docs/CODING_PREFERENCES.md` | Measured versus decorative chart rules and tooltip accessibility convention. |
+| `docs/USER_MANUAL.md` | Explain average duration, daily completion counts, tooltip controls and empty state. |
+| `docs/PROGRESS.md` | Record corrected diagnosis, six-file scope, tests, browser evidence and remaining acceptance limits. |
+
+### Validation and remaining work
+
+- Before edits: **293 frontend tests / 29 files**, **448 backend tests / 15 files**, all passing.
+- After edits: **298 frontend tests / 30 files**, **448 backend tests / 15 files**, all passing. Production build and `git diff --check` pass.
+- ESLint retains **21 existing errors and 3 warnings**. Saved-baseline comparison shows no new diagnostic. Existing local-storage and build-size warnings remain.
+- Headless Brave on macOS/M1 with synthetic API responses: **48 checks**, **320/375/768/1280 × 900 px**, both themes. Chart fills its card content width at 96px height, real average reads **45 min** for the fixture, and measured date/count tooltips work through hover and Left/Right arrows with visible keyboard focus. Empty completions show the message and no chart. Finance badges remain present and keyboard switching selects one correct queue table. No tested card/dashboard overflow or runtime exception.
+- Initial browser assertions expected a tooltip immediately on programmatic SVG focus. Actual Brave reveals it through Arrow-key interaction; checking the required keyboard equivalent resolved that harness assumption without changing the shared component.
+- Current synthetic screenshots: `/private/tmp/trace-batch5-admin-light.png`, `trace-batch5-admin-dark.png`, `trace-batch5-empty-light.png`, `trace-batch5-empty-dark.png`. These are not original before/after acceptance pairs.
+- Live reporting values, physical-phone acceptance, and original before-screenshot matching remain for Batch 6. Batch 4's documented out-of-scope findings remain. `AGENTS.md` was unchanged, and no commit or push was performed by this batch.

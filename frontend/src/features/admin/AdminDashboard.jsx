@@ -91,29 +91,32 @@ export default function AdminDashboard({ user, currentTab, setViewImageUrl }) {
 
                 {/* Metrics Overview Row */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  <div className="bg-white dark:bg-gray-900 rounded-3xl p-6 shadow-sm border border-gray-200 dark:border-gray-700 flex flex-col justify-between min-h-44">
-                    <div className="flex justify-between items-start gap-3">
-                      <div>
-                        <span className="text-[10px] font-bold text-gray-400 dark:text-gray-400 uppercase tracking-widest block">System Throughput</span>
-                        {analyticsSummary?.end_to_end?.completed_count > 0 ? (
-                          <span className="text-2xl sm:text-3xl font-display font-black text-gray-900 dark:text-gray-100 mt-2 block">
-                            {formatDuration(analyticsSummary.end_to_end.avg_minutes)}
-                          </span>
-                        ) : (
-                          <span className="text-sm font-bold text-gray-400 dark:text-gray-400 mt-2 block">No completed requests yet</span>
-                        )}
-                      </div>
-                      <MiniSparkline
-                        data={(analyticsSummary?.throughput || []).map((t) => ({ v: t.completed, label: t.date }))}
-                        unit="docs"
-                        className="flex-1 h-16 min-w-[80px]"
-                      />
+                  <section aria-label="System throughput" className="bg-white dark:bg-gray-900 rounded-3xl p-6 shadow-sm border border-gray-200 dark:border-gray-700 flex flex-col justify-between min-h-44">
+                    <div>
+                      <span className="text-[10px] font-bold text-gray-400 dark:text-gray-400 uppercase tracking-widest block">System Throughput</span>
+                      {analyticsSummary?.end_to_end?.completed_count > 0 ? (
+                        <span className="text-2xl sm:text-3xl font-display font-black text-gray-900 dark:text-gray-100 mt-2 block">
+                          {formatDuration(analyticsSummary.end_to_end.avg_minutes)}
+                        </span>
+                      ) : (
+                        <span className="text-sm font-bold text-gray-400 dark:text-gray-400 mt-2 block">No completed requests yet</span>
+                      )}
                     </div>
-                    <div className="bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-100 dark:border-emerald-800 rounded-full px-3 py-1 text-[10px] font-bold text-[#15803d] dark:text-green-300 w-fit flex items-center gap-1.5 mt-2">
-                      <span className="w-1.5 h-1.5 bg-[#15803d] rounded-full"></span>
+                    {analyticsSummary?.end_to_end?.completed_count > 0 && analyticsSummary?.throughput?.length > 0 && (
+                      <div className="mt-4">
+                        <p className="text-[10px] font-bold text-gray-500 dark:text-gray-400 mb-2">Daily completed documents</p>
+                        <MiniSparkline
+                          data={(analyticsSummary?.throughput || []).map((t) => ({ v: t.completed, label: t.date }))}
+                          unit="docs"
+                          className="w-full h-24"
+                        />
+                      </div>
+                    )}
+                    <div className="bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-100 dark:border-emerald-800 rounded-full px-3 py-1 text-[10px] font-bold text-[#15803d] dark:text-green-300 w-fit max-w-full flex items-center gap-1.5 mt-2">
+                      <span className="w-1.5 h-1.5 shrink-0 bg-[#15803d] rounded-full"></span>
                       Average document processing time across all completed requests
                     </div>
-                  </div>
+                  </section>
 
                   <div className="bg-white dark:bg-gray-900 rounded-3xl p-6 shadow-sm border border-gray-200 dark:border-gray-700 flex flex-col justify-between min-h-44">
                     <div className="flex justify-between items-start">

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor, fireEvent } from '@testing-library/react';
+import { render, screen, waitFor, fireEvent, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { STATUS } from '@/utils/documentStatus';
 
@@ -245,13 +245,38 @@ describe('Secretary — four passes over the same request', () => {
 });
 
 describe('Finance — awaiting payment, then verification', () => {
-  // Batch 5 / WI-06: the two queues became tabs, one table visible at a time
-  // instead of stacked cards, so "showing" a queue means selecting its tab
-  // first — same treatment as the Secretary dashboard's four queues.
-  it('shows both money queue tabs', async () => {
+  // Queue tables are selected independently; the deferred-copy queue also
+  // retains paid documents after Secretary verification and release.
+  it('shows all three queues with real count badges', async () => {
     await renderDashboard(<FinanceDashboard user={USERS.finance} setViewImageUrl={vi.fn()} />);
-    expect(await screen.findByRole('tab', { name: /awaiting payment/i })).toBeInTheDocument();
-    expect(screen.getByRole('tab', { name: /verification queue/i })).toBeInTheDocument();
+    const awaiting = await screen.findByRole('tab', { name: /awaiting payment/i });
+    const verification = screen.getByRole('tab', { name: /verification queue/i });
+    const transactions = screen.getByRole('tab', { name: /transactions & or copies/i });
+    expect(within(awaiting).getByText('1')).toHaveClass('rounded-full');
+    expect(within(verification).getByText('1')).toHaveClass('rounded-full');
+    expect(within(transactions).getByText('4')).toHaveClass('rounded-full');
+    expect(screen.getAllByRole('table')).toHaveLength(1);
+  });
+
+  it('selects paid transactions with the keyboard and keeps earlier queues out of that table', async () => {
+    const user = userEvent.setup();
+    await renderDashboard(<FinanceDashboard user={USERS.finance} setViewImageUrl={vi.fn()} />);
+    const awaiting = screen.getByRole('tab', { name: /awaiting payment/i });
+    awaiting.focus();
+    await user.keyboard('{End}');
+    const transactions = screen.getByRole('tab', { name: /transactions & or copies/i });
+    expect(transactions).toHaveFocus();
+    expect(transactions).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getAllByRole('table')).toHaveLength(1);
+    for (const status of [STATUS.PAID_PENDING_SEC_RELEASE, STATUS.SEC_OR_VERIFIED, STATUS.READY_FOR_RELEASE, STATUS.COMPLETED]) {
+      expect(screen.getByText(idFor(status))).toBeInTheDocument();
+    }
+    expect(screen.queryByText(idFor(STATUS.PENDING_STUDENT_PAYMENT))).not.toBeInTheDocument();
+    expect(screen.queryByText(idFor(STATUS.PENDING_FINANCE_VERIFICATION))).not.toBeInTheDocument();
+    await user.keyboard('{Home}');
+    expect(awaiting).toHaveFocus();
+    expect(screen.getByText(idFor(STATUS.PENDING_STUDENT_PAYMENT))).toBeInTheDocument();
+    expect(screen.queryByText(idFor(STATUS.COMPLETED))).not.toBeInTheDocument();
   });
 
   it('keeps billed and claimed payments apart', async () => {

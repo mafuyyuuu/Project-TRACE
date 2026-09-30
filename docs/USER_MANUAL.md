@@ -178,6 +178,8 @@ The queue tabs are **Awaiting Payment**, **Verification Queue**, and **Transacti
 As the Registrar Admin (`ADMIN001`), you are the boss of the system. You don't process the papers yourself; you watch the system to make sure it runs smoothly.
 
 ### Task 1: Watching the Dashboard
+The **System Throughput** card shows the average processing duration for completed requests, with its unit. Its **Daily completed documents** chart shows counts, not processing time. Hover over a point, or focus the chart with Tab and use Left/Right arrows, to read the date and document count. If there are no completed requests, the card says **No completed requests yet** and shows no illustrative completion curve.
+
 1. Log in. Your main screen is your command center.
 2. **AI Insights:** Look at the middle of the screen. The computer will put warning messages here. For example, if it says "Window 1 is backed up," that means you should probably send someone to help Window 1 because they have too much work.
 3. **Volume Forecast:** Look at the chart (the graph with lines). The computer looks at past data to guess how busy the office will be next week. If the line goes up very high on Tuesday, you know to schedule extra staff on Tuesday.
