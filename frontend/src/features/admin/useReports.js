@@ -37,7 +37,8 @@ export default function useReports(user, currentTab) {
     setError('');
   }, []);
 
-  const isActive = user?.role === 'admin' && (currentTab === 'admin-reports' || currentTab === 'admin-analytics');
+  const isActive = (user?.role === 'admin' && ['admin-reports', 'admin-analytics'].includes(currentTab)) ||
+    (user?.role === 'clerk' && ['Window 1', 'Secretary'].includes(user.desk_assignment) && currentTab === 'reports');
 
   const pagination = useViewportPagination({ page, setPage, total: report?.total || 0, fallback: 25, enabled: isActive });
 

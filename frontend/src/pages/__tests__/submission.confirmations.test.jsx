@@ -26,6 +26,24 @@ beforeEach(() => {
 const renderPage = (page, path = '/') => render(<MemoryRouter initialEntries={[path]}>{page}</MemoryRouter>);
 
 describe('Account submission confirmations', () => {
+  it('fills new alumni identity from OCR only on request, preserving manually entered names', async () => {
+    const user = userEvent.setup();
+    const { container } = renderPage(<SignupPage />);
+    await screen.findByRole('option', { name: 'Engineering' });
+    fireEvent.change(container.querySelector('select'), { target: { value: 'alumni' } });
+    const name = screen.getByPlaceholderText('Juan Dela Cruz');
+    await user.type(name, 'Manual Name');
+    await user.upload(container.querySelector('input[type=file]'), new File(['proof'], 'id.png', { type: 'image/png' }));
+    expect(api.post).not.toHaveBeenCalled();
+    api.post.mockResolvedValueOnce({ data: { success: true, alumni_id: 'ALU1234567', student_id: 'STU1234567', full_name: 'OCR Name', college_id: 1 } });
+    await user.click(screen.getByRole('button', { name: 'Read ID' }));
+    await waitFor(() => expect(screen.getByPlaceholderText('Enter your Alumni ID')).toHaveValue('ALU1234567'));
+    expect(name).toHaveValue('Manual Name');
+    expect(container.querySelectorAll('select')[1]).toHaveValue('Engineering');
+    expect(auth.register).not.toHaveBeenCalled();
+    fireEvent.change(container.querySelector('select'), { target: { value: 'student' } });
+    expect(screen.getByPlaceholderText('e.g. 23-00123')).toHaveValue('');
+  });
   it('cancels sign-in without losing credentials and submits once after confirmation', async () => {
     const user = userEvent.setup();
     const { container } = renderPage(<LoginPage />);
@@ -73,6 +91,7 @@ describe('Account submission confirmations', () => {
     const payload = auth.register.mock.calls[0][0];
     expect(payload.get('employee_id')).toBe('STU-001');
     expect(payload.get('course')).toBe('Engineering');
+    expect(payload.get('college_id')).toBe('1');
     expect(payload.get('id_proof').name).toBe('id.png');
   });
 

@@ -12,6 +12,7 @@ const fs = require('fs');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const userModel = require('../../models/user.model');
+const referenceModel = require('../../models/referenceData.model');
 const notificationModel = require('../../models/notification.model');
 const aiEngine = require('../aiEngine.service');
 const env = require('../../config/env');
@@ -38,6 +39,8 @@ const verifiedStudent = () => ({
 });
 
 beforeEach(() => {
+  vi.spyOn(referenceModel, 'findCollegeByName').mockResolvedValue([]);
+  vi.spyOn(referenceModel, 'findCollegeById').mockResolvedValue([{ id: 2, name: 'College A', is_active: 1 }]);
   vi.spyOn(userModel, 'findActiveByStudentId').mockResolvedValue([]);
   vi.spyOn(userModel, 'findExistingByStudentId').mockResolvedValue([]);
   vi.spyOn(userModel, 'findActiveAdmins').mockResolvedValue([]);
@@ -334,5 +337,32 @@ describe('purpose-bound OTP challenges', () => {
     vi.spyOn(userModel, 'findById').mockResolvedValue([{ ...verifiedStudent(), role: 'clerk', is_active: 1, login_otp: '123456', login_otp_expires: expires }]);
     const token = jwt.sign({ id: 3, pending_2fa: true }, env.JWT_SECRET);
     expect(await statusOf(service.verify2FA(token, '123456'))).toBe(400);
+  });
+});
+
+describe('Batch 8b identity and staff profile boundary', () => {
+  it('projects personal/educational fields explicitly without authentication secrets', async () => {
+    userModel.findStudentBasicInfo.mockRestore();
+    const executor = { query: vi.fn().mockResolvedValue([[]]) };
+    await userModel.findStudentBasicInfo('STU1', executor);
+    const [sql, values] = executor.query.mock.calls[0];
+    expect(sql).toContain('p.home_address');
+    expect(sql).toContain('p.shs_school');
+    expect(sql).toContain('u.id_proof_path');
+    expect(sql).not.toMatch(/SELECT\s+\*|password|otp|token_version|failed_login/i);
+    expect(values).toEqual(['STU1']);
+  });
+  it('stores the submitted Alumni ID and explicit college without rewriting existing identifiers', async () => {
+    await service.register({ employee_id: 'ALU1234567', user_type: 'alumni', full_name: 'Ana Reyes', phone_number: '09123456789', password: 'Trace2024!', college_id: '2' }, { path: '/proof.png' });
+    expect(userModel.createUser).toHaveBeenCalledWith(expect.objectContaining({ student_id: 'ALU1234567', user_type: 'alumni', college_id: 2, course: 'College A' }));
+  });
+  it('rejects student and unknown desk access before querying another profile', async () => {
+    await expect(service.lookupStudent('STU1', { role: 'student' })).rejects.toMatchObject({ status: 403 });
+    await expect(service.lookupStudent('STU1', { role: 'clerk', desk_assignment: 'Unknown' })).rejects.toMatchObject({ status: 403 });
+    expect(userModel.findStudentBasicInfo).not.toHaveBeenCalled();
+  });
+  it.each(['Window 1', 'Secretary', 'Finance'])('allows the %s desk to read a saved profile', async desk => {
+    userModel.findStudentBasicInfo.mockResolvedValue([{ role: 'student', phone_number: '0912', home_address: 'Saved address' }]);
+    expect(await service.lookupStudent('STU1', { role: 'clerk', desk_assignment: desk })).toMatchObject({ student: { home_address: 'Saved address' } });
   });
 });

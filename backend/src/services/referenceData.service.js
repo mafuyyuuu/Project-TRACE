@@ -1,4 +1,6 @@
 const referenceModel = require('../models/referenceData.model');
+const userModel = require('../models/user.model');
+const policy = require('./documentPolicy.service');
 
 /**
  * Admin-managed reference data — colleges and document types.
@@ -19,10 +21,15 @@ async function listColleges({ includeInactive = false } = {}) {
  * Document types, shaped for the request form: numeric fees and real booleans
  * rather than the strings/0-1 ints MySQL returns.
  */
-async function listDocumentTypes({ includeInactive = false } = {}) {
+async function listDocumentTypes({ includeInactive = false, user } = {}) {
   const rows = await referenceModel.listDocumentTypes({ includeInactive });
+  let student = null;
+  if (user?.role === 'student') {
+    const [owner] = await userModel.findStudentIdById(user.id);
+    student = await policy.resolveStudent(owner?.student_id);
+  }
   return {
-    document_types: rows.map((row) => ({
+    document_types: await Promise.all(rows.map(async (row) => ({
       id: row.id,
       name: row.name,
       base_fee: parseFloat(row.base_fee),
@@ -31,8 +38,13 @@ async function listDocumentTypes({ includeInactive = false } = {}) {
       attachment_label: row.attachment_label,
       attachment_helper: row.attachment_helper,
       is_active: Boolean(row.is_active),
-      available_to: row.available_to || 'ALL',
-    })),
+      available_to: row.available_to || 'both',
+      is_repeatable: policy.repeatable(row),
+      is_walk_in: policy.enabled(row.is_walk_in),
+      requires_original: policy.enabled(row.requires_original),
+      allowed_college_ids: row.allowed_college_ids || [],
+      unavailable_reason: user?.role === 'student' ? await policy.eligibility(row, student) : null,
+    }))),
   };
 }
 

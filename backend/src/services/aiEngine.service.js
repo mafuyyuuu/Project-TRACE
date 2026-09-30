@@ -83,6 +83,14 @@ async function extractReceipt(file) {
 }
 
 /** Prophet 7-day volume forecast. Returns null when unavailable (caller falls back). */
+async function extractIdentity(file) {
+  try {
+    return await requestJson(`${env.AI_ENGINE_URL}/ocr/identity`, { method: 'POST', body: buildFormData(file) });
+  } catch {
+    return null;
+  }
+}
+
 async function getForecast() {
   try {
     return await requestJson(`${env.AI_ENGINE_URL}/forecast`, { method: 'GET' });
@@ -102,4 +110,4 @@ async function getInsights() {
   }
 }
 
-module.exports = { verifyIdDocument, extractDocument, extractReceipt, getForecast, getInsights };
+module.exports = { verifyIdDocument, extractDocument, extractReceipt, extractIdentity, getForecast, getInsights };

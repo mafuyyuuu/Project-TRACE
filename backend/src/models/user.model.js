@@ -34,12 +34,12 @@ function deleteById(userId, executor = pool) {
 function createUser(data, executor = pool) {
   const {
     student_id, full_name, email, phone_number, password_hash,
-    role = 'student', user_type, course, id_proof_path, verification_status,
+    role = 'student', user_type, course, college_id, id_proof_path, verification_status,
   } = data;
   return executor.query(
-    `INSERT INTO users (student_id, full_name, email, phone_number, password_hash, role, user_type, course, id_proof_path, verification_status)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    [student_id, full_name, email || null, phone_number, password_hash, role, user_type || 'student', course || null, id_proof_path, verification_status]
+    `INSERT INTO users (student_id, full_name, email, phone_number, password_hash, role, user_type, course, college_id, id_proof_path, verification_status)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [student_id, full_name, email || null, phone_number, password_hash, role, user_type || 'student', course || null, college_id || null, id_proof_path, verification_status]
   );
 }
 
@@ -66,7 +66,15 @@ function listAllUsers(executor = pool) {
 
 function findStudentBasicInfo(studentId, executor = pool) {
   return executor
-    .query('SELECT student_id, full_name, email, course, college_id, id_proof_path, user_type FROM users WHERE student_id = ? AND role = "student"', [studentId])
+    .query(`SELECT u.id, u.student_id, u.full_name, u.email, u.phone_number, u.course, u.college_id,
+      u.id_proof_path, u.user_type, u.role, u.is_active, u.profile_picture, u.created_at,
+      u.enrollment_status, u.study_load, c.name AS college_name,
+      p.extension_name, p.birth_date, p.place_of_birth, p.sex, p.civil_status, p.maiden_name,
+      p.home_address, p.last_attendance_year, p.is_transfer_student, p.previous_school,
+      p.elem_school, p.elem_grad_year, p.jhs_school, p.jhs_grad_year, p.shs_school, p.shs_grad_year
+      FROM users u LEFT JOIN colleges c ON c.id = u.college_id
+      LEFT JOIN student_profiles p ON p.user_id = u.id
+      WHERE u.student_id = ? AND u.role = 'student'`, [studentId])
     .then(([rows]) => rows);
 }
 
@@ -109,7 +117,7 @@ function findStudentIdById(userId, executor = pool) {
 
 function findCourseById(userId, executor = pool) {
   return executor
-    .query('SELECT course FROM users WHERE id = ?', [userId])
+    .query('SELECT COALESCE(c.name, u.course) AS course, u.college_id FROM users u LEFT JOIN colleges c ON c.id = u.college_id WHERE u.id = ?', [userId])
     .then(([rows]) => rows);
 }
 
@@ -123,8 +131,8 @@ function findSecretaryClerks(course, executor = pool) {
   let query = 'SELECT id FROM users WHERE role = "clerk" AND desk_assignment = "Secretary"';
   const params = [];
   if (course) {
-    query += ' AND course = ?';
-    params.push(course);
+    query += ' AND (college_id = (SELECT id FROM colleges WHERE name = ?) OR (college_id IS NULL AND course = ?))';
+    params.push(course, course);
   }
   return executor.query(query, params).then(([rows]) => rows);
 }
@@ -153,7 +161,7 @@ function findClerkByEmployeeId(employeeId, executor = pool) {
 
 function findStudentCourseByStudentId(studentId, executor = pool) {
   return executor
-    .query('SELECT course FROM users WHERE student_id = ?', [studentId])
+    .query('SELECT course, college_id FROM users WHERE student_id = ?', [studentId])
     .then(([rows]) => rows);
 }
 
@@ -194,6 +202,12 @@ function listStaff({ includeInactive = true } = {}, executor = pool) {
 
 function findById(userId, executor = pool) {
   return executor.query('SELECT * FROM users WHERE id = ?', [userId]).then(([rows]) => rows);
+}
+
+/** Serialize request-policy checks for the same student, including concurrent submissions. */
+function findStudentForPolicy(studentId, executor = pool, lock = false) {
+  return executor.query(`SELECT id, student_id, user_type, course, college_id FROM users
+    WHERE student_id = ? AND role = 'student'${lock ? ' FOR UPDATE' : ''}`, [studentId]).then(([rows]) => rows);
 }
 
 /**
@@ -372,6 +386,7 @@ function findActiveAdmins(executor = pool) {
 }
 
 module.exports = {
+  findStudentForPolicy,
   findActiveAdmins,
   updateEmailOTP,
   clearEmailOTP,

@@ -10,7 +10,8 @@ describe('Window 1 form actions after footer migration', () => {
     const user = userEvent.setup();
     const submit = vi.fn((e) => e.preventDefault());
     render(<ManualInputModal open onClose={vi.fn()} handleManualInputSubmit={submit}
-      handleFetchStudent={vi.fn()} actionLoading={false} />);
+      handleFetchStudent={vi.fn()} actionLoading={false}
+      documentTypes={[{ id: 1, name: 'Transcript of Records' }]} />);
     const button = screen.getByRole('button', { name: 'Submit Request' });
     await user.click(button);
     expect(submit).not.toHaveBeenCalled();

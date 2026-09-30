@@ -9,6 +9,7 @@ const bcrypt = require('bcryptjs');
 const referenceModel = require('../../models/referenceData.model');
 const userModel = require('../../models/user.model');
 const service = require('../maintenance.service');
+const { pool } = require('../../config/db');
 
 const ADMIN = { id: 7, role: 'admin' };
 const CLERK = { id: 4, role: 'clerk', desk_assignment: 'Finance' };
@@ -16,6 +17,39 @@ const STUDENT = { id: 3, role: 'student' };
 
 const statusOf = (p) => p.then(() => undefined, (e) => e.status);
 const messageOf = (p) => p.then(() => '', (e) => e.message);
+
+describe('document policy transaction', () => {
+  it('saves audience and college restrictions together only after Admin authorization', async () => {
+    const connection = { beginTransaction: vi.fn(), commit: vi.fn(), rollback: vi.fn(), release: vi.fn() };
+    vi.spyOn(pool, 'getConnection').mockResolvedValue(connection);
+    vi.spyOn(referenceModel, 'setDocumentTypeColleges').mockResolvedValue([]);
+    await service.updateDocumentType(ADMIN, 1, { available_to: 'alumni', is_repeatable: false, allowed_college_ids: [1, 1] });
+    expect(referenceModel.updateDocumentType).toHaveBeenCalledWith(1,
+      expect.objectContaining({ available_to: 'alumni', is_repeatable: false, allowed_college_ids: [1] }), connection);
+    expect(referenceModel.setDocumentTypeColleges).toHaveBeenCalledWith(1, [1], connection);
+    expect(connection.commit).toHaveBeenCalledOnce();
+    expect(connection.release).toHaveBeenCalledOnce();
+    expect(await statusOf(service.updateDocumentType(STUDENT, 1, { available_to: 'both' }))).toBe(403);
+  });
+
+  it('rolls back the settings when saving the college restrictions fails', async () => {
+    const connection = { beginTransaction: vi.fn(), commit: vi.fn(), rollback: vi.fn(), release: vi.fn() };
+    vi.spyOn(pool, 'getConnection').mockResolvedValue(connection);
+    vi.spyOn(referenceModel, 'setDocumentTypeColleges').mockRejectedValue(new Error('junction failure'));
+    await expect(service.updateDocumentType(ADMIN, 1, { allowed_college_ids: [1] })).rejects.toThrow('junction failure');
+    expect(connection.commit).not.toHaveBeenCalled();
+    expect(connection.rollback).toHaveBeenCalledOnce();
+    expect(connection.release).toHaveBeenCalledOnce();
+  });
+
+  it('rejects guessed college IDs and enforces the Honorable Dismissal exception', async () => {
+    referenceModel.findCollegeById.mockResolvedValue([]);
+    expect(await statusOf(service.updateDocumentType(ADMIN, 1, { allowed_college_ids: [999] }))).toBe(400);
+    referenceModel.findDocumentTypeById.mockResolvedValue([{ id: 1, name: 'Honorable Dismissal' }]);
+    await service.updateDocumentType(ADMIN, 1, { is_repeatable: true });
+    expect(referenceModel.updateDocumentType).toHaveBeenCalledWith(1, expect.objectContaining({ is_repeatable: false }));
+  });
+});
 
 beforeEach(() => {
   vi.spyOn(referenceModel, 'listColleges').mockResolvedValue([]);

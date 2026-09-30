@@ -5,6 +5,15 @@
 CREATE DATABASE IF NOT EXISTS trace_db;
 USE trace_db;
 
+CREATE TABLE IF NOT EXISTS colleges (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  name VARCHAR(150) NOT NULL UNIQUE,
+  short_code VARCHAR(20) NULL,
+  is_active BOOLEAN NOT NULL DEFAULT TRUE,
+  sort_order INT NOT NULL DEFAULT 0,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
 -- Users table: students, clerks, and admins
 CREATE TABLE IF NOT EXISTS users (
   id INT AUTO_INCREMENT PRIMARY KEY,
@@ -173,20 +182,7 @@ CREATE TABLE IF NOT EXISTS step_logs (
 ALTER TABLE documents ADD COLUMN request_group_id VARCHAR(64) NULL AFTER tracking_number;
 CREATE INDEX idx_documents_request_group ON documents (request_group_id);
 
-CREATE TABLE IF NOT EXISTS colleges (
-  id INT AUTO_INCREMENT PRIMARY KEY,
-  name VARCHAR(150) NOT NULL UNIQUE,
-  short_code VARCHAR(20) NULL,
-  is_active BOOLEAN NOT NULL DEFAULT TRUE,
-  available_to ENUM('student', 'alumni', 'both') NOT NULL DEFAULT 'both',
-  is_repeatable BOOLEAN NOT NULL DEFAULT TRUE,
-  is_walk_in BOOLEAN NOT NULL DEFAULT FALSE,
-  requires_original BOOLEAN NOT NULL DEFAULT FALSE,
-  registrar_attachment_rule ENUM('none', 'optional', 'required') NOT NULL DEFAULT 'none',
-  is_same_day BOOLEAN NOT NULL DEFAULT FALSE,
-  sort_order INT NOT NULL DEFAULT 0,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
+
 
 -- fee_rule selects the calculation in backend/src/utils/pricing.js. Flat fees
 -- are admin-editable; per_semester_block (TOR) is not a single number, so its
@@ -202,6 +198,12 @@ CREATE TABLE IF NOT EXISTS document_types (
   attachment_label VARCHAR(255) NULL,
   attachment_helper VARCHAR(255) NULL,
   is_active BOOLEAN NOT NULL DEFAULT TRUE,
+  available_to ENUM('student', 'alumni', 'both') NOT NULL DEFAULT 'both',
+  is_repeatable BOOLEAN NOT NULL DEFAULT TRUE,
+  is_walk_in BOOLEAN NOT NULL DEFAULT FALSE,
+  requires_original BOOLEAN NOT NULL DEFAULT FALSE,
+  registrar_attachment_rule ENUM('none', 'optional', 'required') NOT NULL DEFAULT 'none',
+  is_same_day BOOLEAN NOT NULL DEFAULT FALSE,
   sort_order INT NOT NULL DEFAULT 0,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );

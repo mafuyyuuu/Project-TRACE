@@ -1,5 +1,6 @@
 import { INPUT_LIMITS } from '@/utils/inputLimits';
 import { useState } from 'react';
+import StudentProfileModal from '@/components/StudentProfileModal';
 import { formatDateTime } from '@/utils/formatters';
 import useReports from '@/features/admin/useReports';
 import DashboardLoading from '@/components/DashboardLoading';
@@ -47,6 +48,7 @@ function StatCard({ label, value, tone = 'default' }) {
 export default function ReportsPanel({ user, currentTab }) {
   const { tableRef, ...r } = useReports(user, currentTab);
   const [exportOption, setExportOption] = useState('documents');
+  const [viewProfileId, setViewProfileId] = useState(null);
 
   if (r.loading) return <DashboardLoading />;
 
@@ -54,6 +56,7 @@ export default function ReportsPanel({ user, currentTab }) {
 
   return (
     <>
+      <StudentProfileModal open={!!viewProfileId} studentId={viewProfileId} onClose={() => setViewProfileId(null)} />
       <DashboardAlerts success={r.success} error={r.error} onDismiss={r.dismissNotification} />
 
       <div className="space-y-6 animate-fade-in">
@@ -171,7 +174,7 @@ export default function ReportsPanel({ user, currentTab }) {
                     <td className="py-3 px-3 text-xs text-gray-500 dark:text-gray-400">{formatDateTime(d.updated_at)}</td>
                     <td className="py-3 px-5 break-all text-[11px] font-mono text-gray-700 dark:text-gray-300">{d.tracking_number}</td>
                     <td className="py-3">
-                      <div className="text-xs font-bold text-gray-900 dark:text-gray-100 select-text break-words">{d.student_name || '—'}</div>
+                      <button type="button" disabled={!d.student_id} onClick={() => setViewProfileId(d.student_id)} className="text-xs font-bold text-blue-700 dark:text-blue-300 hover:underline select-text break-words text-left focus-visible:ring-2 focus-visible:ring-blue-500">{d.student_name || '—'}</button>
                       <div className="text-[10px] text-gray-400 dark:text-gray-400 font-mono select-text break-words">{d.student_id || '—'}</div>
                     </td>
                     <td className="py-3 pr-2 break-words text-xs text-gray-600 dark:text-gray-300">{d.document_type || '—'}</td>

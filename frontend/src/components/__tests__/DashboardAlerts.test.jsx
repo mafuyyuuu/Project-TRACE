@@ -5,6 +5,17 @@ import DashboardAlerts from '@/components/DashboardAlerts';
 import ModalShell from '@/components/ModalShell';
 
 describe('DashboardAlerts', () => {
+  it('dismisses on navigation while preserving the underlying draft', () => {
+    function Form() {
+      const [message, setMessage] = useState('Saved');
+      return <><ModalShell open title="Draft" onClose={vi.fn()}><input aria-label="Draft note" defaultValue="Keep me" /></ModalShell>
+        <DashboardAlerts success={message} onDismiss={() => setMessage('')} /></>;
+    }
+    render(<Form />);
+    fireEvent(window, new Event('trace:notification-navigation'));
+    expect(screen.queryByRole('dialog', { name: 'Success' })).not.toBeInTheDocument();
+    expect(screen.getByLabelText('Draft note')).toHaveValue('Keep me');
+  });
   it('announces feedback outside the app stacking context while a modal stays open', () => {
     const { container } = render(
       <div className="relative z-0">

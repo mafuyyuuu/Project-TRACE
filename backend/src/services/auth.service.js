@@ -22,6 +22,7 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const env = require('../config/env');
 const userModel = require('../models/user.model');
+const referenceModel = require('../models/referenceData.model');
 const { pool } = require('../config/db');
 const notificationModel = require('../models/notification.model');
 const passwordResetModel = require('../models/passwordReset.model');
@@ -163,10 +164,22 @@ async function getCurrentUser(userId) {
  * *rejected* student ID is deleted first so the student can re-register.
  */
 async function register(body, file) {
-  const { employee_id, full_name, email, phone_number, password, user_type, course } = body;
+  const { employee_id, full_name, email, phone_number, password, user_type, course, college_id } = body;
+  if (user_type && !['student', 'alumni'].includes(user_type)) throw badRequest('Invalid applicant type.');
+  let collegeId = null;
+  let collegeName = course;
+  if (college_id !== undefined) {
+    if (!Number.isInteger(Number(college_id)) || Number(college_id) < 1) throw badRequest('Choose a valid college.');
+    const [college] = await referenceModel.findCollegeById(Number(college_id));
+    if (!college || !college.is_active) throw badRequest('Choose an active college.');
+    collegeId = college.id; collegeName = college.name;
+  } else if (course) {
+    const colleges = await referenceModel.findCollegeByName(course);
+    collegeId = colleges.find(college => college.name === course)?.id || null;
+  }
 
   if (!employee_id || !full_name || !password || !phone_number) {
-    throw badRequest('Student ID, Name, Phone Number, and Password are required.');
+    throw badRequest('Student / Alumni ID, Name, Phone Number, and Password are required.');
   }
   if (!file) {
     throw badRequest('Proof of ID/Diploma is required for verification.');
@@ -177,7 +190,7 @@ async function register(body, file) {
     if (existing[0].verification_status === 'rejected') {
       await userModel.deleteById(existing[0].id);
     } else {
-      throw badRequest('Student ID is already registered.');
+      throw badRequest('This ID is already registered.');
     }
   }
 
@@ -186,7 +199,7 @@ async function register(body, file) {
   const id_proof_path = file.path;
 
   let verification_status = 'pending';
-  const aiResult = await aiEngine.verifyIdDocument(file, { studentId: employee_id, course });
+  const aiResult = await aiEngine.verifyIdDocument(file, { studentId: employee_id, course: collegeName });
   if (aiResult && aiResult.verified) {
     verification_status = 'verified';
     console.log(`✅ AI Auto-Verified user ${employee_id}: ${aiResult.reason}`);
@@ -202,7 +215,8 @@ async function register(body, file) {
     password_hash,
     role: 'student',
     user_type,
-    course,
+    course: collegeName,
+    college_id: collegeId,
     id_proof_path,
     verification_status,
   });
@@ -265,7 +279,9 @@ async function listAllUsers(requestingUser) {
   return { users: await userModel.listAllUsers() };
 }
 
-async function lookupStudent(studentId) {
+async function lookupStudent(studentId, requestingUser) {
+  const staff = requestingUser?.role === 'admin' || (requestingUser?.role === 'clerk' && ['Window 1', 'Secretary', 'Finance'].includes(requestingUser.desk_assignment));
+  if (!staff) throw forbidden('Only authorized staff may view student profiles.');
   const rows = await userModel.findStudentBasicInfo(studentId);
   if (rows.length === 0) {
     throw notFound('Student not found.');

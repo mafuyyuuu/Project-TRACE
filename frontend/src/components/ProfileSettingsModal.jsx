@@ -85,6 +85,19 @@ export default function ProfileSettingsModal({
     };
   }, [profileData, isStudent]);
 
+  if (activeTab === 'appearance') return (
+    <ModalShell open onClose={onClose} title="Preferences" maxWidth="max-w-xl">
+      <section className="space-y-4" aria-label="Appearance">
+        <h3 className="font-bold">Appearance</h3>
+        <p className="text-sm text-gray-600 dark:text-gray-300">Choose how TRACE looks on this device.</p>
+        <button type="button" aria-pressed={darkMode} onClick={onToggleTheme}
+          className="px-4 py-3 rounded-xl border border-gray-300 dark:border-gray-600 focus-visible:ring-2 focus-visible:ring-green-600">
+          {darkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+        </button>
+      </section>
+    </ModalShell>
+  );
+
   const confirmAction = async () => {
     if (confirmation === 'email') {
       if (await onVerifyEmail()) setConfirmation(null);
@@ -110,14 +123,14 @@ export default function ProfileSettingsModal({
     <ModalShell
       open
       onClose={onClose}
-      title="Account Settings"
+      title="Edit Profile"
       maxWidth="max-w-xl"
       backdropClassName="absolute inset-0 bg-black/40 backdrop-blur-sm transition-opacity duration-200"
       panelClassName="bg-gray-50 dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-xl max-h-[calc(100dvh-2rem)] z-10 relative animate-slide-up flex flex-col overflow-hidden"
       closeButtonIcon={
         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"/></svg>
       }
-      closeButtonAriaLabel="Close settings"
+      closeButtonAriaLabel="Close profile"
       footer={activeTab !== 'appearance' && (
         <button
           disabled={saving}
@@ -138,6 +151,7 @@ export default function ProfileSettingsModal({
         variant={confirmation === 'session' ? 'destructive' : 'neutral'}
         loading={saving || loggingOut} onConfirm={confirmAction} onCancel={() => setConfirmation(null)} />
       <DashboardAlerts
+        dismissalKey={activeTab}
         success={sessionFeedback.success}
         error={sessionFeedback.error}
         onDismiss={() => setSessionFeedback({ success: '', error: '' })}
@@ -148,10 +162,6 @@ export default function ProfileSettingsModal({
           <input value={emailOtp} onChange={e => onEmailOtpChange?.(e.target.value.replace(/\D/g, ''))} inputMode="numeric" maxLength={INPUT_LIMITS.otp} className="w-full rounded-xl border p-3 dark:bg-gray-900" />
         </label>
         <button type="button" disabled={saving || emailOtp.length !== 6} onClick={() => setConfirmation('email')} className="mt-3 px-4 py-2 rounded-xl bg-[#15803d] text-white disabled:opacity-50">Verify Email</button>
-      </section>}
-      {activeTab === 'appearance' && <section className="p-4 mb-4" aria-label="Appearance">
-        <h3 className="font-bold mb-2">Appearance</h3>
-        <button type="button" aria-pressed={darkMode} onClick={onToggleTheme} className="px-4 py-3 rounded-xl border border-gray-300 dark:border-gray-600">{darkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode'}</button>
       </section>}
       <div className="bg-white dark:bg-gray-900 px-6 pt-4 pb-0 flex flex-col border-b border-gray-100 dark:border-gray-700">
         <div className="flex items-start gap-4 pb-6">
@@ -190,6 +200,7 @@ export default function ProfileSettingsModal({
         </div>
         
         <FileUploadField label="Profile picture" inputRef={fileInputRef} file={avatarFile} path={avatarPath} onChange={onAvatarChange} accept="image/jpeg,image/png,image/webp" maxBytes={2 * 1024 * 1024} disabled={saving} />
+        {user?.role === 'student' && <FileUploadField label={user.user_type === 'alumni' ? 'Registration identity / diploma proof' : 'Registration ID proof'} path={user.id_proof_path} allowReplace={false} />}
         {/* Tabs */}
         {isStudent ? (
           <div className="flex flex-wrap gap-3 sm:gap-6 border-b border-gray-100 dark:border-gray-700 px-2 mt-2">

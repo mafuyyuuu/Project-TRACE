@@ -6,6 +6,8 @@ import useAuth from '@/hooks/useAuth'
 import { getColleges } from '@/services/referenceService'
 import ModalShell from '@/components/ModalShell'
 import FileUploadField from '@/components/FileUploadField'
+import useSignupOcr from '@/hooks/useSignupOcr'
+import useNotificationDismissal from '@/hooks/useNotificationDismissal'
 
 export default function SignupPage() {
   const { register, loading } = useAuth()
@@ -17,6 +19,13 @@ export default function SignupPage() {
   const [showPassword, setShowPassword] = useState(false)
   // Colleges are admin-managed reference data rather than a hardcoded list.
   const [colleges, setColleges] = useState([])
+  useNotificationDismissal(() => setSuccess(''));
+  const ocr = useSignupOcr(file, formData.userType, result => setFormData(current => ({
+    ...current,
+    employeeId: current.employeeId || (current.userType === 'alumni' ? result.alumni_id : result.student_id) || '',
+    fullName: current.fullName || result.full_name || '',
+    college: current.college || colleges.find(college => college.id === result.college_id)?.name || '',
+  })));
 
   useEffect(() => {
     let cancelled = false
@@ -53,6 +62,8 @@ export default function SignupPage() {
       form.append('password', formData.password);
       form.append('user_type', formData.userType);
       form.append('course', formData.college);
+      const college = colleges.find(college => college.name === formData.college);
+      if (college) form.append('college_id', String(college.id));
       form.append('id_proof', file);
 
     setRegistrationToConfirm(form)
@@ -112,7 +123,7 @@ export default function SignupPage() {
 
             <div className="flex flex-col gap-1.5">
               <label className="text-sm font-semibold text-gray-800 dark:text-gray-100 ml-1">Account Type *</label>
-              <select value={formData.userType} onChange={(e) => setFormData({...formData, userType: e.target.value})} className="w-full p-3.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm focus:ring-2 focus:ring-pine-500 focus:bg-white dark:focus:bg-gray-900 outline-none transition-all appearance-none cursor-pointer">
+              <select value={formData.userType} onChange={(e) => setFormData({...formData, userType: e.target.value, employeeId: ''})} className="w-full p-3.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm focus:ring-2 focus:ring-pine-500 focus:bg-white dark:focus:bg-gray-900 outline-none transition-all appearance-none cursor-pointer">
                 <option value="student">Current Student</option>
                 <option value="alumni">Alumni</option>
               </select>
@@ -131,8 +142,8 @@ export default function SignupPage() {
             </div>
 
             <div className="flex flex-col gap-1.5">
-              <label className="text-sm font-semibold text-gray-800 dark:text-gray-100 ml-1">Student ID *</label>
-              <input maxLength={INPUT_LIMITS.id} type="text" placeholder="e.g. 23-00123" value={formData.employeeId} onChange={(e) => setFormData({...formData, employeeId: e.target.value})} className="w-full p-3.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm focus:ring-2 focus:ring-pine-500 focus:bg-white dark:focus:bg-gray-900 outline-none transition-all" />
+              <label className="text-sm font-semibold text-gray-800 dark:text-gray-100 ml-1">{formData.userType === 'alumni' ? 'Alumni ID *' : 'Student ID *'}</label>
+              <input maxLength={INPUT_LIMITS.id} type="text" placeholder={formData.userType === 'alumni' ? 'Enter your Alumni ID' : 'e.g. 23-00123'} value={formData.employeeId} onChange={(e) => setFormData({...formData, employeeId: e.target.value})} className="w-full p-3.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm focus:ring-2 focus:ring-pine-500 focus:bg-white dark:focus:bg-gray-900 outline-none transition-all" />
             </div>
 
             <div className="flex flex-col gap-1.5">
@@ -181,10 +192,15 @@ export default function SignupPage() {
             <div className="flex flex-col gap-1.5">
               <label className="text-sm font-semibold text-gray-800 dark:text-gray-100 ml-1">Upload Proof (ID / Diploma) *</label>
               <FileUploadField label="Proof of ID / Diploma" file={file} onChange={setFile} accept=".pdf,.png,.jpg,.jpeg" disabled={loading} />
+              <button type="button" onClick={ocr.readId} disabled={!file || ocr.reading || loading}
+                className="self-start px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold disabled:opacity-50 focus-visible:ring-2 focus-visible:ring-blue-500">
+                {ocr.reading ? 'Reading ID…' : 'Read ID'}
+              </button>
+              {ocr.message && <p role="status" className="text-sm text-blue-800 dark:text-blue-300 select-text">{ocr.message}</p>}
               <p className="text-xs text-gray-400 dark:text-gray-400 ml-1 mt-1">Please attach a clear photo of your Student ID or Diploma for verification.</p>
             </div>
 
-            <button type="submit" disabled={loading} className="mt-4 w-full py-4 bg-pine-600 hover:bg-pine-700 disabled:opacity-70 text-white rounded-full font-bold transition-all shadow-sm flex items-center justify-center gap-2">
+            <button type="submit" disabled={loading || ocr.reading} className="mt-4 w-full py-4 bg-pine-600 hover:bg-pine-700 disabled:opacity-70 text-white rounded-full font-bold transition-all shadow-sm flex items-center justify-center gap-2">
               {loading ? 'Creating...' : 'Create Account'}
             </button>
           </form>

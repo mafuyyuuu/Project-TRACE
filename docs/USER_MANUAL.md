@@ -187,7 +187,7 @@ The **System Throughput** card shows the average processing duration for complet
 ### Task 2: System Maintenance (Adding new staff or changing prices)
 1. Look at the very left edge of your screen. There is a dark menu bar running from top to bottom. Click on the words **"System Maintenance"**.
 2. **Accounts:** Open **System Maintenance → Accounts** for students, alumni, and staff. Open a card, choose **Edit User**, review the supported name, email, phone, college, and program fields, then confirm Save. IDs are read-only. **Add User**, temporary-password changes, and activation controls retain their staff-only permissions.
-3. **To Change Prices:** Click **"Manage Document Types"**. You will see a list of all documents (like Diplomas). If the school decides to raise the price of a Diploma, click on "Diploma", delete the old price, type the new price, and click Save. 
+3. **To Change Prices:** Open **Document Types**, choose **Edit** on a row, change its fee or rules, then **Save Changes → Save** in the confirmation. Cancel keeps the draft.
 4. **Payment Settings:** Click **"Manage Payment Methods"**. If the school's bank account number changes, you click here, erase the old account number, type the new one, and click save. This updates what the students see when they pay.
 
 ### Task 3: Reports & Analytics (Printing Records)
@@ -216,18 +216,31 @@ Take your time, read the buttons before you click them, and thank you for doing 
 
 - **Confirm a save or submission:** all saves and submissions now require confirmation, including document requests, payments, walk-in entries, Graduate applications, chat messages, account forms, profile/password changes, and Admin saves. Read the in-app confirmation, then choose its action button or Cancel. Cancel keeps your draft and attachments. Escape, the close button, and the backdrop also cancel. While an action is processing, its controls and dismissal are disabled.
 - **Logout from the mobile menu:** Escape cancels the logout confirmation and returns focus to Logout in the still-open menu. Press Escape again to close the menu.
-- **Acknowledge a message:** dashboard success and error messages appear in a matching dialog above any open form. They remain until you choose **OK**, press Escape, or click the backdrop. Dismissing the message keeps the underlying form and its draft open and returns keyboard focus there.
-- **Account Settings → Security:** the existing **Logout All Devices** action now reports its result in this feedback dialog. Profile-save and field-validation messages still appear within their forms.
+- **Acknowledge a message:** dashboard success and error messages appear in a matching dialog above any open form. They close when you choose **OK**, press Escape, click the backdrop, navigate, switch an internal queue tab, or leave the browser tab. Dismissing the message keeps the underlying form and its draft open and returns keyboard focus there.
+- **Edit Profile → Security:** the existing **Logout All Devices** action now reports its result in this feedback dialog. Profile-save and field-validation messages still appear within their forms.
 
 
 ## Account, History, and Help Updates
 
-- **Registration:** select a Student ID or Diploma proof locally, complete the fields, then confirm **Submit Registration**. The button shows progress while the request runs. Success stays open until you close it; pending verification shows a safe reason and awaits administrator review. **Back to Login** remains available.
+- **Registration:** select a Student ID or Diploma proof locally, complete the fields, then confirm **Submit Registration**. The button shows progress while the request runs. Success can be closed explicitly and also dismisses on navigation or leaving the browser tab; pending verification shows a safe reason and awaits administrator review. **Back to Login** remains available.
 - **First alumni login:** complete and confirm the configured Graduate Application before using the other dashboard destinations. Submission unlocks access after the profile refresh; if that refresh is unavailable, the saved application remains successful and the message asks you to refresh the page. Administrative approval is a separate review step.
-- **Profile email changes:** open the avatar's Account Settings, enter your current password under Security, save and confirm the new address, then enter and confirm the emailed code. The current address stays active until verification succeeds. Phone changes save through the normal confirmed profile action.
-- **Appearance:** the sidebar Settings action opens appearance preferences. The avatar still opens Profile Settings. Your saved light/dark preference persists.
+- **Profile email changes:** open the avatar's Edit Profile, enter your current password under Security, save and confirm the new address, then enter and confirm the emailed code. The current address stays active until verification succeeds. Phone changes save through the normal confirmed profile action.
+- **Appearance:** the sidebar **Preferences** action opens appearance only. The avatar opens **Edit Profile**, with personal, educational, and security tabs. Your saved light/dark preference persists.
 - **New-browser alerts:** the notification bell links to Security settings. Clearing the recognition cookie, using another browser profile, or blocking cross-site cookies can trigger another alert. A bell popup closes when you navigate or change tabs.
 - **History:** students use one **History** destination with **All Requests** and **Payments** filters. Existing request/payment-history links still open that table. On phones the tracker follows three columns in alternating row directions.
 - **Upload feedback:** selected filenames, local previews, and validation errors appear in the form. Selection does not submit a file. Save/Submit and its confirmation upload it; Cancel preserves the draft. Stored files can be previewed/downloaded, with replacement available only in existing authorized flows.
 - **Account Verification:** administrators choose **Review**, inspect the proof and Applicant Type, then choose **Verify** or **Reject** and confirm. Pending registrations also appear in the bell.
 - **Help / FAQ:** open this sidebar destination for your role's guidance. Use Enter or Space on a question to expand its answer. Contact the Registrar for unresolved account or record concerns.
+
+
+## Batch 8b Account and Document Rules
+
+- **Read an ID during signup:** select your account type and proof, then choose **Read ID**. Review the extracted ID, name, and college. Typed values are preserved; missing or unreadable fields remain manual. Changing account type clears the ID field. New alumni enter an **Alumni ID** and use it to sign in; existing alumni keep their existing login identifier. Reading a file does not submit registration.
+- **Saved identity proof:** **Edit Profile** shows the registration ID/diploma filename and an authenticated preview/download. This is read-only; it does not add a replacement permission.
+- **Staff profile access:** choose a student's name in a staff request/report list to view their personal and educational details. Unresolved names without an identifier cannot open a profile.
+- **Window 1 and Secretary reports:** open **Reports & Export**, filter the records, choose an export category, then **Export**. These roles reuse the existing reporting permissions and filters.
+- **Document policies:** Admin's **Document Types** editor controls student/alumni/both visibility and allowed colleges. Selecting no colleges permits all. Unknown college assignments require Admin review for restricted types. Counter-only types are unavailable in online requests.
+- **Copies and repeats:** repeatable documents allow quantities. Honorable Dismissal allows one copy, and an active or completed request blocks another. Cancellation or a terminal legacy rejection permits retry. Secretary's Return/Reject action sends the same request back to Intake; it does not end it. The amount shown when filing is an estimate; Secretary sets the final charge.
+- **Walk-in fee drafts:** CTC, 2nd Copy of COR, 2nd Copy of OGR, and CAV are inserted as inactive zero-fee placeholders. Admin must review fees and activate them. They do not require original-document inspection. The photocopy requirement is awaiting a decision.
+- **Action colors:** green indicates primary/approval actions and totals, blue indicates profile links/editing/reading, red indicates destructive actions/errors, and amber indicates warnings or eligibility restrictions. Labels and confirmations remain explicit.
+- **Extra case attachments:** requests through Window 1/Secretary messaging and a processing hold belong to a later communication batch. No new case-attachment submission or hold is implemented here.

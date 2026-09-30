@@ -64,7 +64,7 @@ async function getUsers(req, res) {
 
 async function getStudent(req, res) {
   try {
-    res.json(await authService.lookupStudent(req.params.studentId));
+    res.json(await authService.lookupStudent(req.params.studentId, req.user));
   } catch (err) {
     fail(res, err, 'Student lookup error', 'Failed to look up student.');
   }

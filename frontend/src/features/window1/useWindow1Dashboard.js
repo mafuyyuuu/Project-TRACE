@@ -1,4 +1,5 @@
-import { useState, useRef, useCallback, useMemo } from 'react';
+import { useState, useRef, useCallback, useMemo, useEffect } from 'react';
+import { getDocumentTypes } from '@/services/referenceService';
 import useViewportPagination from '@/hooks/useViewportPagination';
 import useDashboardCore from '@/hooks/useDashboardCore';
 import { uploadDocument, intakeDocument, releaseDocument } from '@/services/documentsService';
@@ -23,6 +24,15 @@ export default function useWindow1Dashboard(user, currentTab = 'dashboard', queu
   const { documents, runAction, triggerNotification, setActiveModal, selectedDoc } = core;
 
   const [scanDocType, setScanDocType] = useState('Transcript of Records');
+  const [documentTypes, setDocumentTypes] = useState([]);
+  const [documentTypesLoading, setDocumentTypesLoading] = useState(true);
+  useEffect(() => {
+    let current = true;
+    getDocumentTypes().then(data => { if (current) setDocumentTypes(data.document_types || []); })
+      .catch(() => { if (current) triggerNotification('Document rules could not be loaded. Refresh before filing a request.', 'error'); })
+      .finally(() => { if (current) setDocumentTypesLoading(false); });
+    return () => { current = false; };
+  }, [triggerNotification]);
   const [scanFile, setScanFile] = useState(null);
   const [scanProgress, setScanProgress] = useState(0);
   const [intakeNotes, setIntakeNotes] = useState('');
@@ -232,6 +242,7 @@ export default function useWindow1Dashboard(user, currentTab = 'dashboard', queu
   );
 
   return {
+    documentTypes, documentTypesLoading,
     ...core,
     submissionToConfirm,
     confirmWindow1Submission,

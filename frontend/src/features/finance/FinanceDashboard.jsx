@@ -66,7 +66,7 @@ export default function FinanceDashboard({ user, setViewImageUrl }) {
 
   return (
     <>
-      <DashboardAlerts success={success} error={error} onDismiss={dismissNotification} />
+      <DashboardAlerts success={success} error={error} onDismiss={dismissNotification} dismissalKey={activeQueueTab} />
       <div className="space-y-8 animate-fade-in">
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
@@ -126,7 +126,7 @@ export default function FinanceDashboard({ user, setViewImageUrl }) {
                       <tr key={doc.id} className="hover:bg-gray-50/30 dark:hover:bg-gray-800/30 group">
                         <td className="py-4 pl-4 font-mono text-xs font-semibold text-gray-500 dark:text-gray-400">#{doc.tracking_number ? doc.tracking_number.slice(0, 10).toUpperCase() : doc.id}</td>
                         <td className="py-4">
-                          <button onClick={() => setViewProfileId(doc.student_id)} className="text-sm font-bold text-[#15803d] dark:text-green-300 hover:underline hover:text-[#166534] text-left">{doc.student_name || 'Unknown Student'}</button>
+                          <button type="button" disabled={!doc.student_id} onClick={() => setViewProfileId(doc.student_id)} className="text-sm font-bold text-blue-700 dark:text-blue-300 hover:underline text-left focus-visible:ring-2 focus-visible:ring-blue-500">{doc.student_name || 'Unknown Student'}</button>
                           <div className="text-xs font-mono text-gray-400 dark:text-gray-400 mt-0.5 select-text break-words">{doc.student_id || 'ID Pending'}</div>
                         </td>
                         <td className="py-4 text-xs font-bold text-gray-600 dark:text-gray-300">{doc.document_type}</td>
@@ -186,7 +186,7 @@ export default function FinanceDashboard({ user, setViewImageUrl }) {
                       <tr key={doc.id} className="hover:bg-gray-50/30 dark:hover:bg-gray-800/30 group">
                         <td className="py-4 pl-4 font-mono text-xs font-semibold text-gray-500 dark:text-gray-400">#{doc.tracking_number ? doc.tracking_number.slice(0, 10).toUpperCase() : doc.id}</td>
                         <td className="py-4">
-                          <button onClick={() => setViewProfileId(doc.student_id)} className="text-sm font-bold text-[#15803d] dark:text-green-300 hover:underline hover:text-[#166534] text-left">{doc.student_name || 'Unknown Student'}</button>
+                          <button type="button" disabled={!doc.student_id} onClick={() => setViewProfileId(doc.student_id)} className="text-sm font-bold text-blue-700 dark:text-blue-300 hover:underline text-left focus-visible:ring-2 focus-visible:ring-blue-500">{doc.student_name || 'Unknown Student'}</button>
                           <div className="text-xs font-mono text-gray-400 dark:text-gray-400 mt-0.5 select-text break-words">{doc.student_id || 'ID Pending'}</div>
                         </td>
                         <td className="py-4 text-xs font-bold text-gray-600 dark:text-gray-300">{doc.document_type}</td>
@@ -253,7 +253,7 @@ export default function FinanceDashboard({ user, setViewImageUrl }) {
                   {transactionsQueue.map(doc => (
                     <tr key={doc.id} className="hover:bg-gray-50/30 dark:hover:bg-gray-800/30 group">
                       <td className="py-4 pl-4 font-mono text-xs font-semibold text-gray-500 dark:text-gray-400">#{doc.tracking_number ? doc.tracking_number.slice(0, 10).toUpperCase() : doc.id}</td>
-                      <td className="py-4 text-sm font-bold text-gray-700 dark:text-gray-300">{doc.student_name}</td>
+                      <td className="py-4 text-sm font-bold"><button type="button" disabled={!doc.student_id} onClick={() => setViewProfileId(doc.student_id)} className="text-blue-700 dark:text-blue-300 hover:underline text-left break-words focus-visible:ring-2 focus-visible:ring-blue-500 disabled:text-gray-500">{doc.student_name}</button></td>
                       <td className="py-4 text-xs font-semibold text-gray-500 dark:text-gray-400">{new Date(doc.updated_at).toLocaleDateString()}</td>
                       <td className="py-4 text-xs font-bold text-gray-800 dark:text-gray-100 font-mono">{formatPeso(doc.amount)}</td>
                       <td className="py-4 text-xs font-semibold">

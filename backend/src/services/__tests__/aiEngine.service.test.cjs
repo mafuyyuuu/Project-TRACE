@@ -30,3 +30,16 @@ it('preserves registration fallback when verification is unavailable', async () 
   vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('offline')));
   expect(await service.verifyIdDocument({ path: '/unused/proof', mimetype: 'image/png', originalname: 'proof.png' }, { studentId: 'STU-1', course: 'Engineering' })).toBeNull();
 });
+
+it('uses the structured identity endpoint with a bounded call and manual fallback', async () => {
+  vi.useFakeTimers();
+  vi.spyOn(fs, 'readFileSync').mockReturnValue(Buffer.from('proof'));
+  const fetchMock = vi.fn((_url, { signal }) => new Promise((_resolve, reject) =>
+    signal.addEventListener('abort', () => reject(new DOMException('Timeout', 'AbortError')))));
+  vi.stubGlobal('fetch', fetchMock);
+  const pending = service.extractIdentity({ path: '/unused/proof', mimetype: 'image/png', originalname: 'proof.png' });
+  expect(fetchMock.mock.calls[0][0]).toMatch(/\/ocr\/identity$/);
+  await vi.advanceTimersByTimeAsync(15000);
+  expect(await pending).toBeNull();
+  expect(vi.getTimerCount()).toBe(0);
+});

@@ -101,12 +101,34 @@ beforeEach(() => {
   maintenanceService.createPaymentMethod.mockResolvedValue({ message: 'Payment method created.' });
   maintenanceService.createCollege.mockResolvedValue({ message: 'College created.' });
   maintenanceService.createDocumentType.mockResolvedValue({ message: 'Document type created.' });
+  maintenanceService.updateDocumentType.mockResolvedValue({ message: 'Document type updated.' });
   maintenanceService.setPaymentMethodActive.mockResolvedValue({ message: 'Payment method deactivated.' });
 
   reportsService.getDocumentReport.mockResolvedValue(REPORT);
   reportsService.getAnalytics.mockResolvedValue(ANALYTICS);
   reportsService.exportStudentsCsv.mockResolvedValue('students-active-2026-08-24.csv');
   reportsService.exportDocumentsCsv.mockResolvedValue('documents-report-2026-08-24.csv');
+});
+
+it('edits audience, fees and college restrictions only after a confirmed save', async () => {
+  const user = userEvent.setup();
+  render(<MaintenancePanel user={ADMIN} currentTab="admin-maintenance" />);
+  await screen.findByText('System');
+  await user.click(screen.getByRole('button', { name: /Document Types/ }));
+  const row = screen.getByText('Transcript of Records').closest('tr');
+  await user.click(within(row).getByRole('button', { name: 'Edit' }));
+  await user.selectOptions(screen.getByRole('option', { name: 'Alumni Only' }).parentElement, 'alumni');
+  await user.click(screen.getByRole('checkbox', { name: 'College of Computer Studies' }));
+  await user.clear(screen.getByPlaceholderText('Base fee (₱)'));
+  await user.type(screen.getByPlaceholderText('Base fee (₱)'), '75');
+  await user.click(screen.getByRole('button', { name: 'Save Changes' }));
+  expect(maintenanceService.updateDocumentType).not.toHaveBeenCalled();
+  await user.keyboard('{Escape}');
+  expect(screen.getByPlaceholderText('Base fee (₱)')).toHaveValue(75);
+  await user.click(screen.getByRole('button', { name: 'Save Changes' }));
+  await user.click(within(screen.getByRole('dialog', { name: 'Confirm Document Type' })).getByRole('button', { name: 'Save' }));
+  await waitFor(() => expect(maintenanceService.updateDocumentType).toHaveBeenCalledWith(1,
+    expect.objectContaining({ available_to: 'alumni', allowed_college_ids: [1], base_fee: '75' })));
 });
 
 const settle = async () =>

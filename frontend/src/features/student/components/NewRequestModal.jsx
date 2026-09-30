@@ -25,7 +25,7 @@ export default function NewRequestModal({
   actionLoading,
 }) {
   const selectedNames = Object.keys(selections);
-  const availableTypes = documentTypes.filter(t => t.available_to === 'both' || t.available_to === user.user_type);
+  const availableTypes = documentTypes.filter(t => !t.is_walk_in && ((t.available_to || 'both') === 'both' || t.available_to === (user.user_type || 'student')));
   const total = groupTotal(documentTypes, selections);
 
   /** TOR asks for semesters; a couple of types ask where the document is going. */
@@ -53,7 +53,7 @@ export default function NewRequestModal({
           <button
             type="submit"
             form="new-request-form"
-            disabled={actionLoading || selectedNames.length === 0}
+            disabled={actionLoading || documentTypesLoading || selectedNames.length === 0 || selectedNames.some(name => !availableTypes.some(type => type.name === name && !type.unavailable_reason))}
             className="px-8 py-3 bg-[#15803d] hover:bg-[#166534] disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-xl text-xs font-bold shadow-md transition-all uppercase tracking-wider"
           >
             {actionLoading ? 'Submitting...' : 'Next'}
@@ -105,6 +105,7 @@ export default function NewRequestModal({
                       <label className="flex items-center gap-3 p-4 cursor-pointer">
                         <input
                           type="checkbox"
+                          disabled={Boolean(type.unavailable_reason)}
                           checked={isSelected}
                           onChange={() => toggleDocumentType(type.name)}
                           className="w-4 h-4 accent-[#15803d] cursor-pointer"
@@ -120,9 +121,16 @@ export default function NewRequestModal({
                           )}
                         </span>
                       </label>
+                      {type.unavailable_reason && <p className="px-4 pb-3 text-xs text-amber-800 dark:text-amber-300">{type.unavailable_reason}</p>}
 
                       {isSelected && (
                         <div className="px-4 pb-4 pt-1 space-y-3 border-t border-emerald-100/70 dark:border-emerald-800/70">
+                          <label className="flex flex-col gap-1.5 text-xs font-semibold">
+                            Copies
+                            <input type="number" min="1" max={type.is_repeatable === false || type.name === 'Honorable Dismissal' ? 1 : 2147483647} step="1" required
+                              value={selection.copies} onChange={e => updateSelection(type.name, { copies: e.target.value })}
+                              className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-2.5" />
+                          </label>
                           {needsSemesters(type) && (
                             <div className="flex flex-col gap-1.5">
                               <label className="text-[10px] font-bold text-gray-700 dark:text-gray-300 uppercase tracking-widest">

@@ -148,8 +148,8 @@ describe('Layout', () => {
 
   it('opens the profile card from the header avatar', async () => {
     renderLayout();
-    fireEvent.click(screen.getByLabelText('Account settings'));
-    await waitFor(() => expect(screen.getByText('Account Settings')).toBeInTheDocument());
+    fireEvent.click(screen.getByLabelText('Edit Profile'));
+    await waitFor(() => expect(screen.getByText('Edit Profile')).toBeInTheDocument());
     expect(screen.getByText('Ana Reyes')).toBeInTheDocument();
   });
 });

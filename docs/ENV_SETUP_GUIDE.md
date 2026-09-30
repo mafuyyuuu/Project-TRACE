@@ -752,3 +752,18 @@ Brave/Safari privacy controls can block cross-site cookies even with those attri
 Older shared OTP challenges are not accepted by the separated flows. Sign in again for a fresh login code; for a pending email change, save the desired address again with the current password to request a fresh email code. The read-only database metadata check found the original auth columns in the configured database, despite their absence from repository DDL; separate login OTP columns still require migration.
 
 The AI timeout is 15 seconds per request, covering response parsing. Test a genuine alumni Diploma registration against the configured engine before calling SU-08 accepted; this session tested controlled timeout/fallback cases without creating live accounts or uploading real proofs.
+
+
+## Batch 8b Migration and Acceptance
+
+No new environment variables or dependencies are required. Review the migration and back up the intended database/uploads before rollout. Apply existing base migrations first, then run explicitly from the repository root:
+
+```sh
+node backend/database/migrate_8b.js
+```
+
+This adds policy columns to `document_types`, creates `document_type_colleges`, reconciles `users.college_id`/its foreign key, backfills only byte-exact college-name matches, enforces Honorable Dismissal's nonrepeat flag, and inserts four missing counter types as **inactive, zero-fee drafts**. Existing type records/fees/activation are preserved. Unmatched college assignments remain null for Admin review. Legacy policy columns previously placed on `colleges` are not dropped. Fresh schema imports now create colleges before users. DDL may commit independently in MySQL; errors other than a duplicate column propagate, and the migration can be rerun after resolving them. No migration was applied during implementation.
+
+Deploy the backend/schema and frontend together, and rebuild the separate AI-engine container for `/ocr/identity` and its parser. Imports do not execute the 8b migration, and the API does not migrate on startup. Admin must review fees and activate the counter drafts; zero is a placeholder, not an approved charge. The photocopy policy remains pending.
+
+Before live acceptance, verify new alumni login identifiers and saved college IDs, exact-only legacy backfill, forged/cross-college/counter-only requests, simultaneous Honorable Dismissal attempts, cancellation retry, protected profile/proof access, and rollback on a failed college-restriction write against MySQL. Test genuine ID/diploma images against the engine, including timeout/manual fallback and temporary-file cleanup. PDF upload acceptance does not guarantee OCR extraction. Synthetic browser/API and mocked tests do not establish live database/OCR acceptance, and desktop emulation does not replace a physical phone.

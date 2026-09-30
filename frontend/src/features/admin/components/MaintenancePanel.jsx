@@ -51,6 +51,7 @@ export default function MaintenancePanel({ user, currentTab }) {
   const m = useMaintenance(user, currentTab);
   const [section, setSection] = useState('staff');
   const [form, setForm] = useState({});
+  const [editingTypeId, setEditingTypeId] = useState(null);
   const [saveToConfirm, setSaveToConfirm] = useState(null);
   const [staffSearch, setStaffSearch] = useState('');
   const [staffRoleFilter, setStaffRoleFilter] = useState('All');
@@ -59,7 +60,7 @@ export default function MaintenancePanel({ user, currentTab }) {
   if (m.loading) return <DashboardLoading />;
 
   const set = (key, value) => setForm((f) => ({ ...f, [key]: value }));
-  const resetForm = () => setForm({});
+  const resetForm = () => { setForm({}); setEditingTypeId(null); };
 
   const filteredStaff = (m.accounts || m.staff).filter((s) => {
     const q = staffSearch.toLowerCase();
@@ -72,14 +73,15 @@ export default function MaintenancePanel({ user, currentTab }) {
 
   const submitDocType = async (e) => {
     e.preventDefault();
-    setSaveToConfirm({ method: 'createDocumentType', label: 'Document Type', payload: {
+    setSaveToConfirm({ method: editingTypeId ? 'updateDocumentType' : 'createDocumentType', id: editingTypeId, label: 'Document Type', payload: {
       name: form.dt_name,
       base_fee: form.dt_fee,
       fee_rule: form.dt_rule || 'flat',
       requires_attachment: Boolean(form.dt_attach),
       attachment_label: form.dt_attach ? form.dt_label : null,
       available_to: form.dt_available_to || 'both',
-      is_repeatable: form.dt_is_repeatable !== false,
+      is_repeatable: form.dt_name === 'Honorable Dismissal' ? false : form.dt_is_repeatable !== false,
+      allowed_college_ids: form.dt_college_ids || [],
       is_walk_in: Boolean(form.dt_is_walk_in),
       requires_original: Boolean(form.dt_requires_original),
       registrar_attachment_rule: form.dt_reg_attach || 'none',
@@ -107,12 +109,12 @@ export default function MaintenancePanel({ user, currentTab }) {
   return (
     <>
       <ConfirmDialog open={!!saveToConfirm} title={`Confirm ${saveToConfirm?.label || 'Save'}`}
-        message={`Create this ${saveToConfirm?.label?.toLowerCase() || 'record'}?`} confirmLabel="Save"
+        message={`${saveToConfirm?.id ? 'Update' : 'Create'} this ${saveToConfirm?.label?.toLowerCase() || 'record'}?`} confirmLabel="Save"
         loading={m.saving} onCancel={() => setSaveToConfirm(null)}
         onConfirm={async () => {
-          if (await m[saveToConfirm.method](saveToConfirm.payload)) { resetForm(); setSaveToConfirm(null); }
+          if (await m[saveToConfirm.method](...(saveToConfirm.id ? [saveToConfirm.id, saveToConfirm.payload] : [saveToConfirm.payload]))) { resetForm(); setSaveToConfirm(null); }
         }} />
-      <DashboardAlerts success={m.success} error={m.error} onDismiss={m.dismissNotification} />
+      <DashboardAlerts success={m.success} error={m.error} onDismiss={m.dismissNotification} dismissalKey={section} />
 
       <div className="space-y-6 animate-fade-in">
         <div>
@@ -197,7 +199,7 @@ export default function MaintenancePanel({ user, currentTab }) {
         {section === 'documentTypes' && (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <form onSubmit={submitDocType} className="bg-white dark:bg-gray-900 rounded-3xl p-6 shadow-sm border border-gray-200 dark:border-gray-700 space-y-3 h-fit">
-              <h3 className="text-sm font-bold text-gray-900 dark:text-gray-100 mb-2">Add Document Type</h3>
+              <h3 className="text-sm font-bold text-gray-900 dark:text-gray-100 mb-2">{editingTypeId ? 'Edit Document Type' : 'Add Document Type'}</h3>
 
               <input maxLength={INPUT_LIMITS.referenceName} className={inputClass} placeholder="Name *" required
                 value={form.dt_name || ''} onChange={(e) => set('dt_name', e.target.value)} />
@@ -236,16 +238,24 @@ export default function MaintenancePanel({ user, currentTab }) {
                 <option value="required">Required Registrar Attachment</option>
               </select>
 
+              <fieldset className="space-y-2 border border-gray-200 dark:border-gray-700 rounded-xl p-3">
+                <legend className="text-xs font-bold px-1">Allowed colleges</legend>
+                <p className="text-xs text-gray-500 dark:text-gray-400">No selection allows every college.</p>
+                {m.colleges.map(college => <label key={college.id} className="flex items-center gap-2 text-xs">
+                  <input type="checkbox" checked={(form.dt_college_ids || []).includes(college.id)} onChange={e => set('dt_college_ids', e.target.checked ? [...(form.dt_college_ids || []), college.id] : (form.dt_college_ids || []).filter(id => id !== college.id))} />
+                  {college.name}
+                </label>)}
+              </fieldset>
               <div className="space-y-2 py-2">
                 <label className="flex items-center gap-2 text-[11px] font-semibold text-gray-700 dark:text-gray-300 cursor-pointer">
                   <input type="checkbox" className="accent-[#15803d]"
-                    checked={form.dt_is_repeatable !== false} onChange={(e) => set('dt_is_repeatable', e.target.checked)} />
+                    disabled={form.dt_name === 'Honorable Dismissal'} checked={form.dt_name !== 'Honorable Dismissal' && form.dt_is_repeatable !== false} onChange={(e) => set('dt_is_repeatable', e.target.checked)} />
                   Is Repeatable (can request multiple)
                 </label>
                 <label className="flex items-center gap-2 text-[11px] font-semibold text-gray-700 dark:text-gray-300 cursor-pointer">
                   <input type="checkbox" className="accent-[#15803d]"
                     checked={Boolean(form.dt_is_walk_in)} onChange={(e) => set('dt_is_walk_in', e.target.checked)} />
-                  Supports Walk-in Requests
+                  Counter-only request type
                 </label>
                 <label className="flex items-center gap-2 text-[11px] font-semibold text-gray-700 dark:text-gray-300 cursor-pointer">
                   <input type="checkbox" className="accent-[#15803d]"
@@ -260,8 +270,9 @@ export default function MaintenancePanel({ user, currentTab }) {
               </div>
 <button type="submit" disabled={m.saving}
                 className="w-full py-3 bg-[#15803d] hover:bg-[#166534] disabled:opacity-60 text-white rounded-xl text-xs font-bold uppercase tracking-wider transition-all">
-                {m.saving ? 'Saving...' : 'Create Type'}
+                {m.saving ? 'Saving...' : editingTypeId ? 'Save Changes' : 'Create Type'}
               </button>
+              {editingTypeId && <button type="button" onClick={resetForm} className="w-full py-2 text-gray-600 dark:text-gray-300 focus-visible:ring-2 focus-visible:ring-green-600">Cancel Edit</button>}
             </form>
 
             <div className="lg:col-span-2 bg-white dark:bg-gray-900 rounded-3xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
@@ -285,7 +296,8 @@ export default function MaintenancePanel({ user, currentTab }) {
                   <tbody>
                     {m.documentTypes.map((d) => (
                       <tr key={d.id} className="border-b border-gray-50 dark:border-gray-700 hover:bg-gray-50/50 dark:hover:bg-gray-800/50">
-                        <td className="py-3 px-5 text-xs font-bold text-gray-900 dark:text-gray-100">{d.name}</td>
+                        <td className="py-3 px-5 text-xs font-bold text-gray-900 dark:text-gray-100">{d.name}<span className="block text-[10px] text-blue-700 dark:text-blue-300">{d.available_to || 'both'} · {d.is_repeatable ? 'Repeatable' : 'One active/completed request'}{d.is_walk_in ? ' · Counter only' : ''}</span>
+                          {!d.is_active && Number(d.base_fee) === 0 && <span className="block text-[10px] text-amber-700 dark:text-amber-300">Draft: configure fee before activation</span>}</td>
                         <td className="py-3 text-xs text-gray-600 dark:text-gray-300">
                           ₱{Number(d.base_fee).toFixed(2)}
                           {d.fee_rule === 'per_semester_block' && (
@@ -294,11 +306,19 @@ export default function MaintenancePanel({ user, currentTab }) {
                         </td>
                         <td className="py-3 text-xs text-gray-600 dark:text-gray-300">{d.requires_attachment ? 'Required' : '—'}</td>
                         <td className="py-3"><StatusBadge active={d.is_active} /></td>
-                        <td className="py-3 pr-5 text-right">
+                        <td className="py-3 pr-5 text-right"><button type="button" onClick={() => {
+                            setEditingTypeId(d.id);
+                            setForm({ dt_name: d.name, dt_fee: d.base_fee, dt_rule: d.fee_rule,
+                              dt_attach: Boolean(d.requires_attachment), dt_label: d.attachment_label,
+                              dt_available_to: d.available_to || 'both', dt_is_repeatable: Boolean(d.is_repeatable),
+                              dt_is_walk_in: Boolean(d.is_walk_in), dt_requires_original: Boolean(d.requires_original),
+                              dt_is_same_day: Boolean(d.is_same_day), dt_reg_attach: d.registrar_attachment_rule,
+                              dt_college_ids: d.allowed_college_ids || [] });
+                          }} className="mr-2 text-xs font-bold text-blue-700 dark:text-blue-300 hover:underline focus-visible:ring-2 focus-visible:ring-blue-500">Edit</button>
                           <button
                             onClick={() => m.handleToggleDocumentTypeActive(d)}
                             disabled={m.saving}
-                            className="text-[10px] font-bold px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-800 disabled:opacity-40"
+                            className={`text-[10px] font-bold px-3 py-1.5 rounded-lg border disabled:opacity-40 focus-visible:ring-2 focus-visible:ring-blue-500 ${d.is_active ? 'border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 hover:bg-red-50 dark:hover:bg-red-950/40' : 'border-green-200 dark:border-green-800 text-green-700 dark:text-green-300 hover:bg-green-50 dark:hover:bg-green-950/40'}`}
                           >
                             {d.is_active ? 'Deactivate' : 'Restore'}
                           </button>

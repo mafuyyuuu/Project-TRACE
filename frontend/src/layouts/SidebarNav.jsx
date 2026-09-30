@@ -96,11 +96,11 @@ export default function SidebarNav({
             onOpenSettings();
             onNavigate();
           }}
-          title="Settings"
+          title="Preferences"
           className={actionClass(false)}
         >
           <Icon name="cog" className="w-6 h-6 shrink-0" />
-          {showLabels && <span>Settings</span>}
+          {showLabels && <span>Preferences</span>}
         </button>
         <button onClick={onLogout} title="Logout" className={actionClass(true)}>
           <Icon name="logout" className="w-6 h-6 shrink-0" />

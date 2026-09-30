@@ -19,7 +19,7 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 from dotenv import load_dotenv
 
-from ocr_engine import process_document, verify_id_document, process_receipt
+from ocr_engine import process_document, verify_id_document, process_receipt, process_identity
 import pandas as pd
 from prophet import Prophet
 import mysql.connector
@@ -47,7 +47,7 @@ CORS(app, origins=[
 ])
 
 # Allowed file extensions for document uploads
-ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'bmp', 'tiff', 'pdf'}
+ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'webp', 'gif', 'bmp', 'tiff', 'pdf'}
 
 # ---------------------------------------------------------------------------
 # Logging
@@ -228,6 +228,23 @@ def ai_recommend():
     except Exception as e:
         logger.error(f"Insights error: {str(e)}")
         return jsonify({'error': str(e)}), 500
+
+
+@app.route('/ocr/identity', methods=['POST'])
+def ocr_identity():
+    file = request.files.get('document')
+    if not file or not allowed_file(file.filename):
+        return jsonify({'success': False, 'error': 'Choose a supported ID image.'}), 400
+    temp_path = None
+    try:
+        _, ext = os.path.splitext(file.filename)
+        fd, temp_path = tempfile.mkstemp(suffix=ext)
+        os.close(fd)
+        file.save(temp_path)
+        return jsonify(process_identity(temp_path))
+    finally:
+        if temp_path and os.path.exists(temp_path):
+            os.remove(temp_path)
 
 
 @app.route('/ocr/extract', methods=['POST'])

@@ -712,6 +712,7 @@ async function migrate() {
       ('email_notice', 'Standard Email Notice')
     `);
 
+    await require('./migrate_8b').migrate(pool);
     console.log('✅ Database migration completed successfully.');
     process.exit(0);
   } catch (err) {

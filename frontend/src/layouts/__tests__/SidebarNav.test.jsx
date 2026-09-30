@@ -93,7 +93,7 @@ describe('SidebarNav', () => {
     const onOpenSettings = vi.fn();
     const onNavigate = vi.fn();
     renderNav({ user: STUDENT, showLabels: true, onOpenSettings, onNavigate });
-    fireEvent.click(screen.getByText('Settings'));
+    fireEvent.click(screen.getByText('Preferences'));
     expect(onOpenSettings).toHaveBeenCalled();
     expect(onNavigate).toHaveBeenCalled();
   });

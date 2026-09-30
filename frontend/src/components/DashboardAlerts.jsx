@@ -1,5 +1,6 @@
 import { useId, useRef } from 'react';
 import ModalShell from '@/components/ModalShell';
+import useNotificationDismissal from '@/hooks/useNotificationDismissal';
 
 /**
  * Acknowledgment dialog for dashboard feedback. Each feature owns the
@@ -7,7 +8,8 @@ import ModalShell from '@/components/ModalShell';
  * A separate shell layer keeps it above the form or confirmation that caused
  * it, and dismissing it returns focus to that still-open dialog.
  */
-export default function DashboardAlerts({ success, error, onDismiss }) {
+export default function DashboardAlerts({ success, error, onDismiss, dismissalKey }) {
+  useNotificationDismissal(onDismiss, dismissalKey);
   const acknowledgeRef = useRef(null);
   const descriptionId = useId();
 

@@ -36,7 +36,30 @@ function fakeConnection(docRow) {
 
 let connection;
 
+describe('document-policy request enforcement', () => {
+  it('rejects a forged audience selection at the server before any document write', async () => {
+    referenceModel.findDocumentTypesByNames.mockResolvedValue([{ name: 'Diploma', is_active: 1, available_to: 'alumni', base_fee: 50, fee_rule: 'flat' }]);
+    await expect(service.uploadDocument(STUDENT, { document_type: 'Diploma', copies: 1 }, [])).rejects.toMatchObject({ status: 400 });
+    expect(userModel.findStudentForPolicy).toHaveBeenCalledWith('STU-001', connection, true);
+    expect(connection.rollback).toHaveBeenCalledOnce();
+    expect(connection.commit).not.toHaveBeenCalled();
+  });
+
+  it.each([0, -1, 1.5, 2147483648])('rejects an invalid copy quantity %s', async copies => {
+    await expect(service.uploadDocument(STUDENT, { document_type: 'Diploma', copies }, [])).rejects.toMatchObject({ status: 400 });
+    expect(pool.getConnection).not.toHaveBeenCalled();
+  });
+
+  it('rejects a multi-copy Honorable Dismissal even when no prior request exists', async () => {
+    await expect(service.uploadDocument(STUDENT, { document_type: 'Honorable Dismissal', copies: 2 }, [])).rejects.toThrow(/one copy/);
+    expect(connection.rollback).toHaveBeenCalledOnce();
+  });
+});
+
 beforeEach(() => {
+  vi.spyOn(userModel, 'findStudentForPolicy').mockResolvedValue([{ id: 3, student_id: 'STU-001', user_type: 'student' }]);
+  vi.spyOn(referenceModel, 'findDocumentTypeByName').mockImplementation(async name => [{ name, is_active: 1, is_repeatable: 1, available_to: 'both' }]);
+  vi.spyOn(documentModel, 'countBlockingRequests').mockResolvedValue(0);
   connection = fakeConnection();
   vi.spyOn(pool, 'getConnection').mockImplementation(async () => connection);
 
@@ -58,7 +81,9 @@ beforeEach(() => {
   vi.spyOn(documentModel, 'countUnpricedInGroup').mockResolvedValue(0);
   vi.spyOn(documentModel, 'findByRequestGroup').mockResolvedValue([]);
   vi.spyOn(documentModel, 'findByRequestGroupForUpdate').mockResolvedValue([]);
-  vi.spyOn(referenceModel, 'findDocumentTypesByNames').mockResolvedValue([]);
+  vi.spyOn(referenceModel, 'findDocumentTypesByNames').mockImplementation(async names => names.map(name => ({ name, is_active: 1, available_to: 'both', is_repeatable: 1,
+    base_fee: ['Transcript of Records', 'Honorable Dismissal'].includes(name) ? 100 : 50,
+    fee_rule: name === 'Transcript of Records' ? 'per_semester_block' : 'flat' })));
   // Payment methods are reference data; GCash is the default the student sees.
   vi.spyOn(referenceModel, 'findPaymentMethodByCode').mockResolvedValue([
     { id: 1, code: 'gcash', name: 'GCash', provider: 'manual', is_active: 1,
@@ -241,7 +266,7 @@ describe('uploadDocument — a student can only file for themselves', () => {
       { document_type: 'Transcript of Records', semesters: 8, copies: 2, amount: '1.00' },
       null
     );
-    expect(documentModel.insert.mock.calls[0][0].amount).toBe(200);
+    expect(documentModel.insert.mock.calls[0][0].amount).toBe(400);
   });
 });
 
@@ -827,8 +852,8 @@ describe('intakeDocument — Window 1 checks the paperwork', () => {
 
   it('only asks n8n for a desk once a human has cleared the paperwork', async () => {
     documentModel.findByIdForUpdate.mockResolvedValue([filed]);
-    userModel.findStudentCourseByStudentId.mockResolvedValue([{ course: 'BS Computer Science' }]);
-    referenceModel.findCollegeByName = vi.fn().mockResolvedValue([{ short_code: 'CCS' }]);
+    userModel.findStudentCourseByStudentId.mockResolvedValue([{ course: 'College of Computer Studies' }]);
+    referenceModel.findCollegeByName = vi.fn().mockResolvedValue([{ name: 'College of Computer Studies', short_code: 'CCS' }]);
 
     await service.intakeDocument(WINDOW1, 5, { action: 'approve' }, null);
     expect(n8n.triggerDocumentRouting).toHaveBeenCalledWith(

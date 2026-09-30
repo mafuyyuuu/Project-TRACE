@@ -3,6 +3,7 @@ import { useState, useEffect, useRef } from 'react'
 import { Outlet, useLocation, useNavigate } from 'react-router-dom'
 import useAuth from '@/hooks/useAuth'
 import useProfileSettings from '@/hooks/useProfileSettings'
+import useNotificationDismissal from '@/hooks/useNotificationDismissal'
 import { getNotifications, markNotificationsRead } from '@/services/authService'
 import { onNotification, disconnectRealtime } from '@/services/realtimeService'
 import SidebarNav from '@/layouts/SidebarNav'
@@ -22,6 +23,7 @@ export default function Layout() {
 
   const [notifications, setNotifications] = useState([])
   const [showNotifs, setShowNotifs] = useState(false)
+  useNotificationDismissal(() => setShowNotifs(false));
   const [showSettings, setShowSettings] = useState(() => query.get('settings') === 'security')
   const [showMobileNav, setShowMobileNav] = useState(false)
   const [showTutorial, setShowTutorial] = useState(user?.role === 'student' && !localStorage.getItem('trace_tutorial_seen'))
@@ -153,7 +155,7 @@ export default function Layout() {
   // A picked-but-unsaved picture must not survive closing without Save.
 
   useEffect(() => {
-    const handleOpenSettings = () => setShowSettings(true);
+    const handleOpenSettings = () => { setSettingsTab('personal'); setShowSettings(true); };
     window.addEventListener('open-profile-settings', handleOpenSettings);
     return () => window.removeEventListener('open-profile-settings', handleOpenSettings);
   }, []);
@@ -253,7 +255,7 @@ export default function Layout() {
           <button
             id="tutorial-profile"
             onClick={openSettings}
-            aria-label="Account settings"
+            aria-label="Edit Profile"
             className="w-10 h-10 rounded-full overflow-hidden border-2 border-white dark:border-gray-800 shadow-sm shrink-0 bg-gray-100 dark:bg-gray-800"
           >
             <UserAvatar

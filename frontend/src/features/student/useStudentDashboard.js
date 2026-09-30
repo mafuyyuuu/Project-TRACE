@@ -242,10 +242,18 @@ export default function useStudentDashboard(user) {
       }
     );
     if (ok) {
-      if (staged.kind === 'request') setSelections({});
-      else { setPaymentRef(''); setPaymentFile(null); }
+      // The write is complete before eligibility reloads. Close its confirmation
+      // now so a slow reference read cannot offer the same submission again.
       setActiveModal(null);
       setSubmissionToConfirm(null);
+      if (staged.kind === 'request') {
+        setSelections({});
+        setDocumentTypesLoading(true);
+        try { setDocumentTypes((await getDocumentTypes()).document_types || []); }
+        catch { setDocumentTypes([]); }
+        finally { setDocumentTypesLoading(false); }
+      }
+      else { setPaymentRef(''); setPaymentFile(null); }
     }
   }, [submissionToConfirm, runAction, setActiveModal]);
 
@@ -269,6 +277,10 @@ export default function useStudentDashboard(user) {
     });
     if (ok) {
       setCancelRequestIdToConfirm(null);
+      setDocumentTypesLoading(true);
+      try { setDocumentTypes((await getDocumentTypes()).document_types || []); }
+      catch { setDocumentTypes([]); }
+      finally { setDocumentTypesLoading(false); }
       if (cancelBackToForm) setActiveModal('new-request');
       setCancelBackToForm(false);
     }

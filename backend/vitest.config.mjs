@@ -10,7 +10,7 @@ export default defineConfig({
     // test shares Node's require cache with it — which is what lets
     // `vi.spyOn(model, 'fn')` actually intercept the call the service makes.
     // An ESM test would get a separate module instance and hit the real DB.
-    include: ['src/**/__tests__/**/*.test.cjs'],
+    include: ['src/**/__tests__/**/*.test.cjs', 'database/__tests__/**/*.test.cjs'],
     globals: true,
     restoreMocks: true,
   },

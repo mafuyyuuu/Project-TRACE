@@ -92,7 +92,7 @@ export default function LoginPage() {
             {!requires2FA ? (
               <>
                 <div className="flex flex-col gap-2">
-                  <label className="text-xs font-bold text-white uppercase tracking-wider">STUDENT ID / STAFF ID</label>
+                  <label className="text-xs font-bold text-white uppercase tracking-wider">STUDENT / ALUMNI / STAFF ID</label>
                   <input maxLength={INPUT_LIMITS.id}
                     type="text" 
                     placeholder="e.g. 23-00123 or ADMIN001"

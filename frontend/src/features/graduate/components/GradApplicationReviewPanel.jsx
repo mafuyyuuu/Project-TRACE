@@ -5,8 +5,10 @@ import QueueTabs from '@/components/QueueTabs';
 import DashboardAlerts from '@/components/DashboardAlerts';
 import DashboardLoading from '@/components/DashboardLoading';
 import useGradApplicationReview from '@/features/graduate/useGradApplicationReview';
+import { useState } from 'react';
+import StudentProfileModal from '@/components/StudentProfileModal';
 
-function ApplicationsTable({ applications, onReview, emptyMessage }) {
+function ApplicationsTable({ applications, onReview, onProfile, emptyMessage }) {
   if (applications.length === 0) {
     return <div className="text-center py-12 text-gray-400 dark:text-gray-400 font-medium">{emptyMessage}</div>;
   }
@@ -25,7 +27,8 @@ function ApplicationsTable({ applications, onReview, emptyMessage }) {
         {applications.map((a) => (
           <tr key={a.id} className="hover:bg-gray-50/30 dark:hover:bg-gray-800/30 group">
             <td className="py-4 pl-4">
-              <div className="font-bold text-gray-900 dark:text-gray-100 select-text break-words">{a.full_name || 'Unknown'}</div>
+              <button type="button" disabled={!a.student_id} onClick={() => onProfile(a.student_id)}
+                className="font-bold text-blue-700 dark:text-blue-300 hover:underline select-text break-words text-left focus-visible:ring-2 focus-visible:ring-blue-500 disabled:text-gray-500">{a.full_name || 'Unknown'}</button>
               <div className="text-xs font-mono text-gray-400 dark:text-gray-400 mt-0.5 select-text break-words">{a.student_id}</div>
             </td>
             <td className="py-4 text-xs font-bold text-gray-600 dark:text-gray-300">{a.course || '—'}</td>
@@ -65,6 +68,7 @@ function ApplicationsTable({ applications, onReview, emptyMessage }) {
  * `MaintenancePanel`.
  */
 export default function GradApplicationReviewPanel({ user, currentTab }) {
+  const [viewProfileId, setViewProfileId] = useState(null);
   const {
     loading,
     error,
@@ -105,7 +109,8 @@ export default function GradApplicationReviewPanel({ user, currentTab }) {
 
   return (
     <div className="space-y-8 animate-fade-in">
-      <DashboardAlerts success={success} error={error} onDismiss={dismissNotification} />
+      <StudentProfileModal open={!!viewProfileId} studentId={viewProfileId} onClose={() => setViewProfileId(null)} />
+      <DashboardAlerts success={success} error={error} onDismiss={dismissNotification} dismissalKey={activeQueueTab} />
       <div>
         <h2 className="text-2xl sm:text-3xl font-display font-black text-gray-900 dark:text-gray-100 tracking-tight">
           Graduate <span className="text-[#15803d] dark:text-green-300">Applications</span>
@@ -131,6 +136,7 @@ export default function GradApplicationReviewPanel({ user, currentTab }) {
             <ApplicationsTable
               applications={queues[activeQueueTab]}
               onReview={openReview}
+              onProfile={setViewProfileId}
               emptyMessage={emptyMessages[activeQueueTab]}
             />
           </div>

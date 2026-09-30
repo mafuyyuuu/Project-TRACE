@@ -15,6 +15,7 @@ export default function ManualInputModal({
   handleManualInputSubmit,
   handleFetchStudent,
   actionLoading,
+  documentTypes = [], documentTypesLoading = false,
 }) {
   const [docType, setDocType] = useState('');
   const [purpose, setPurpose] = useState('');
@@ -23,7 +24,7 @@ export default function ManualInputModal({
     <ModalShell open={open} onClose={onClose} title="Manual Input" maxWidth="max-w-3xl" footer={<div className="flex justify-end pt-4">
           <button
             type="submit" form="manual-input-form"
-            disabled={actionLoading || isGraduate}
+            disabled={actionLoading || isGraduate || documentTypesLoading || !documentTypes.length}
             className="px-8 py-3 bg-[#15803d] hover:bg-[#166534] disabled:opacity-75 text-white font-bold rounded-xl text-xs shadow-md transition-all uppercase tracking-wider"
           >
             {actionLoading ? 'Saving...' : 'Submit Request'}
@@ -100,14 +101,12 @@ export default function ManualInputModal({
               <label className="text-[10px] font-bold text-gray-800 dark:text-gray-100 uppercase tracking-widest">Requested Document</label>
               <select
                 name="docType"
+                value={docType} onChange={e => setDocType(e.target.value)}
                 required
                 className="p-3 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-xs font-semibold focus:ring-2 focus:ring-[#15803d]/20 outline-none transition-all cursor-pointer"
               >
-                <option value="" disabled selected>Document Type</option>
-                <option>Transcript of Records</option>
-                <option>Clearance</option>
-                <option>Certification</option>
-                <option>Diploma</option>
+                <option value="" disabled>Document Type</option>
+                {documentTypes.map(type => <option key={type.id || type.name} value={type.name}>{type.name}</option>)}
               </select>
             </div>
 

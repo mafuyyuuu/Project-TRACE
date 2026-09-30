@@ -44,6 +44,22 @@ beforeEach(() => {
 });
 
 describe('ProfileSettingsModal', () => {
+  it('keeps Preferences dedicated to appearance rather than profile editing', () => {
+    const toggle = vi.fn();
+    renderModal({ initialTab: 'appearance', onToggleTheme: toggle });
+    expect(screen.getByRole('dialog', { name: 'Preferences' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Save Profile' })).not.toBeInTheDocument();
+    expect(screen.queryByDisplayValue('ana@plp.edu.ph')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Switch to Dark Mode' }));
+    expect(toggle).toHaveBeenCalledOnce();
+  });
+
+  it('surfaces the saved registration proof without a replacement control', () => {
+    renderModal({ user: { ...STUDENT, user_type: 'alumni', id_proof_path: '/uploads/id.png' } });
+    const proof = screen.getByRole('region', { name: 'Registration identity / diploma proof' });
+    expect(proof).toHaveTextContent('Uploaded: id.png');
+    expect(proof.querySelector('input[type=file]')).toBeNull();
+  });
   it('keeps Settings open on confirmation cancellation and saves only after confirmation', async () => {
     const onSave = vi.fn().mockResolvedValue(true);
     renderModal({ onSave, user: CLERK });
@@ -123,7 +139,7 @@ describe('ProfileSettingsModal', () => {
   it('closes on the close control', () => {
     const onClose = vi.fn();
     renderModal({ onClose });
-    fireEvent.click(screen.getByLabelText('Close settings'));
+    fireEvent.click(screen.getByLabelText('Close profile'));
     expect(onClose).toHaveBeenCalled();
   });
 
@@ -152,7 +168,7 @@ describe('ProfileSettingsModal', () => {
     expect(screen.getByRole('button', { name: 'OK' })).toHaveFocus();
     fireEvent.click(screen.getByRole('button', { name: 'OK' }));
     expect(screen.queryByRole('dialog', { name: title })).not.toBeInTheDocument();
-    expect(screen.getByRole('dialog', { name: 'Account Settings' })).toBeInTheDocument();
+    expect(screen.getByRole('dialog', { name: 'Edit Profile' })).toBeInTheDocument();
     if (outcome === 'error') {
       expect(screen.getByRole('dialog', { name: 'Log Out Other Devices' })).toBeInTheDocument();
       fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));

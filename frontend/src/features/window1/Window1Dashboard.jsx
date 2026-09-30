@@ -53,6 +53,7 @@ export default function Window1Dashboard({ user, currentTab, setViewImageUrl }) 
     w1IntakePage,
     setW1IntakePage,
     scanDocType,
+    documentTypes = [], documentTypesLoading,
     setScanDocType,
     activeModal,
     setActiveModal,
@@ -79,10 +80,11 @@ export default function Window1Dashboard({ user, currentTab, setViewImageUrl }) 
   const todayFormatted = todayLongDate();
 
   if (loading) return <DashboardLoading />;
+  if (currentTab === 'reports') return <ReportsPanel user={user} currentTab={currentTab} />;
 
   return (
     <>
-      <DashboardAlerts success={success} error={error} onDismiss={dismissNotification} />
+      <DashboardAlerts success={success} error={error} onDismiss={dismissNotification} dismissalKey={`${currentTab}:${queueTab}`} />
       <div className="space-y-8 animate-fade-in">
         {/* 3.1. WORKSPACE DASHBOARD VIEW */}
         {currentTab === 'dashboard' && (
@@ -209,7 +211,7 @@ export default function Window1Dashboard({ user, currentTab, setViewImageUrl }) 
                             <tr key={doc.id} className="hover:bg-gray-50/50 dark:hover:bg-gray-800/50 group">
                               <td className="py-4 pl-4 font-mono text-xs text-gray-500 dark:text-gray-400">#{doc.tracking_number ? doc.tracking_number.slice(0, 10).toUpperCase() : doc.id}</td>
                               <td className="py-4">
-                                <button onClick={() => setViewProfileId(doc.student_id)} className="text-sm font-bold text-[#15803d] dark:text-green-300 hover:underline hover:text-[#166534] text-left">{doc.student_name || 'Name Unresolved'}</button>
+                                <button type="button" disabled={!doc.student_id} onClick={() => setViewProfileId(doc.student_id)} className="text-sm font-bold text-blue-700 dark:text-blue-300 hover:underline text-left focus-visible:ring-2 focus-visible:ring-blue-500">{doc.student_name || 'Name Unresolved'}</button>
                                 <div className="text-xs font-mono text-gray-400 dark:text-gray-400 mt-0.5 select-text break-words">{doc.student_id || 'ID Pending'}</div>
                               </td>
                               <td className="py-4 text-xs font-bold text-gray-600 dark:text-gray-300">{doc.document_type}</td>
@@ -300,7 +302,7 @@ export default function Window1Dashboard({ user, currentTab, setViewImageUrl }) 
                             <tr key={doc.id} className="hover:bg-gray-50/50 dark:hover:bg-gray-800/50 group">
                               <td className="py-4 pl-4 font-mono text-xs text-gray-500 dark:text-gray-400">#{doc.tracking_number ? doc.tracking_number.slice(0, 10).toUpperCase() : doc.id}</td>
                               <td className="py-4">
-                                <button onClick={() => setViewProfileId(doc.student_id)} className="text-sm font-bold text-[#15803d] dark:text-green-300 hover:underline hover:text-[#166534] text-left">{doc.student_name || 'Name Unresolved'}</button>
+                                <button type="button" disabled={!doc.student_id} onClick={() => setViewProfileId(doc.student_id)} className="text-sm font-bold text-blue-700 dark:text-blue-300 hover:underline text-left focus-visible:ring-2 focus-visible:ring-blue-500">{doc.student_name || 'Name Unresolved'}</button>
                                 <div className="text-xs font-mono text-gray-400 dark:text-gray-400 mt-0.5 select-text break-words">{doc.student_id || 'ID Pending'}</div>
                               </td>
                               <td className="py-4 text-xs font-bold text-gray-600 dark:text-gray-300">{doc.document_type}</td>
@@ -505,7 +507,7 @@ export default function Window1Dashboard({ user, currentTab, setViewImageUrl }) 
                   onClick={() => {
                     handleWindow1ScanUpload(scanDocType);
                   }}
-                  disabled={actionLoading}
+                  disabled={actionLoading || documentTypesLoading || !documentTypes.some(type => type.name === scanDocType)}
                   className="px-8 py-3.5 bg-[#15803d] hover:bg-[#166534] disabled:opacity-75 text-white font-bold rounded-xl text-xs shadow-md transition-all uppercase tracking-wider w-full text-center"
                 >
                   {actionLoading ? 'Uploading...' : 'Create Request'}
@@ -518,10 +520,8 @@ export default function Window1Dashboard({ user, currentTab, setViewImageUrl }) 
                   onChange={(e) => setScanDocType(e.target.value)}
                   className="p-3 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-xs font-semibold focus:ring-2 focus:ring-[#15803d]/20 outline-none cursor-pointer"
                 >
-                  <option>Transcript of Records</option>
-                  <option>Clearance</option>
-                  <option>Certification</option>
-                  <option>Diploma</option>
+                  <option value="">Choose a document type</option>
+                  {documentTypes.map(type => <option key={type.id || type.name} value={type.name}>{type.name}</option>)}
                 </select>
               </div>
 
@@ -539,6 +539,7 @@ export default function Window1Dashboard({ user, currentTab, setViewImageUrl }) 
 
       {activeModal === 'intake-review' && selectedDoc && (
         <IntakeReviewModal
+          documentTypes={documentTypes} documentTypesLoading={documentTypesLoading}
           selectedDoc={selectedDoc}
           setActiveModal={setActiveModal}
           setViewImageUrl={setViewImageUrl}
@@ -552,6 +553,7 @@ export default function Window1Dashboard({ user, currentTab, setViewImageUrl }) 
       )}
 
       <ManualInputModal
+        documentTypes={documentTypes} documentTypesLoading={documentTypesLoading}
         open={activeModal === 'manual-input'}
         onClose={() => setActiveModal(null)}
         handleManualInputSubmit={handleManualInputSubmit}

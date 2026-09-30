@@ -22,14 +22,16 @@ export default function IntakeReviewModal({
   setIntakeNotes,
   intakeFile,
   setIntakeFile,
+  documentTypes = [], documentTypesLoading = false,
 }) {
   if (!selectedDoc) return null;
 
-  const needsPaper = requiresAttachment(selectedDoc.document_type);
+  const policy = documentTypes.find(type => type.name === selectedDoc.document_type);
+  const needsPaper = policy ? Boolean(policy.requires_attachment) : requiresAttachment(selectedDoc.document_type);
   const hasAttachment = Boolean(selectedDoc.file_path) || Boolean(intakeFile);
   // The requirement is real, but it is satisfied here rather than at submission:
   // a walk-in student files at the counter with paper in hand and no upload.
-  const missingRequired = needsPaper && !hasAttachment;
+  const missingRequired = documentTypesLoading || (needsPaper && !hasAttachment);
 
   return (
     <ModalShell

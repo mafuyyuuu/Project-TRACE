@@ -1,6 +1,7 @@
 const bcrypt = require('bcryptjs');
 const referenceModel = require('../models/referenceData.model');
 const userModel = require('../models/user.model');
+const { pool } = require('../config/db');
 const { PROVIDERS } = require('./payment');
 const { badRequest, forbidden, notFound } = require('../utils/AppError');
 
@@ -84,7 +85,44 @@ async function setCollegeActive(user, id, isActive) {
 
 async function listDocumentTypes(user) {
   assertAdmin(user);
-  return { document_types: await referenceModel.listDocumentTypes({ includeInactive: true }) };
+  const rows = await referenceModel.listDocumentTypes({ includeInactive: true });
+  return { document_types: rows.map(row => ({ ...row, is_repeatable: row.name === 'Honorable Dismissal' ? false : row.is_repeatable })) };
+}
+
+async function validateDocumentPolicy(data, name) {
+  if (data.available_to !== undefined && !['student', 'alumni', 'both'].includes(data.available_to)) throw badRequest('Choose student, alumni, or both.');
+  if (data.registrar_attachment_rule !== undefined && !['none', 'optional', 'required'].includes(data.registrar_attachment_rule)) throw badRequest('Invalid attachment rule.');
+  const fields = {};
+  for (const key of ['is_repeatable', 'is_walk_in', 'requires_original', 'is_same_day', 'requires_attachment']) {
+    if (data[key] !== undefined) {
+      if (![true, false, 0, 1].includes(data[key])) throw badRequest(`Invalid ${key} value.`);
+      fields[key] = Boolean(data[key]);
+    }
+  }
+  if (name === 'Honorable Dismissal') fields.is_repeatable = false;
+  if (data.allowed_college_ids !== undefined) {
+    if (!Array.isArray(data.allowed_college_ids) || data.allowed_college_ids.some(id => !Number.isInteger(id) || id < 1)) throw badRequest('Choose valid colleges.');
+    fields.allowed_college_ids = [...new Set(data.allowed_college_ids)];
+    for (const id of fields.allowed_college_ids) {
+      if (!(await referenceModel.findCollegeById(id)).length) throw badRequest('Unknown college.');
+    }
+  }
+  return { ...data, ...fields };
+}
+
+async function saveDocumentPolicy(data, id = null) {
+  // A legacy caller omitting college restrictions keeps the existing junction rows.
+  if (data.allowed_college_ids === undefined) return id === null
+    ? referenceModel.createDocumentType(data) : referenceModel.updateDocumentType(id, data);
+  const connection = await pool.getConnection();
+  try {
+    await connection.beginTransaction();
+    const result = id === null ? await referenceModel.createDocumentType(data, connection) : await referenceModel.updateDocumentType(id, data, connection);
+    await referenceModel.setDocumentTypeColleges(id ?? result[0].insertId, data.allowed_college_ids, connection);
+    await connection.commit();
+    return result;
+  } catch (err) { await connection.rollback(); throw err; }
+  finally { connection.release(); }
 }
 
 async function createDocumentType(user, data) {
@@ -92,7 +130,7 @@ async function createDocumentType(user, data) {
   if (!data.name || !data.name.trim()) throw badRequest('Document type name is required.');
 
   const fee = data.base_fee === undefined ? 50 : Number(data.base_fee);
-  if (Number.isNaN(fee) || fee < 0) throw badRequest('Base fee must be a non-negative number.');
+  if (!Number.isFinite(fee) || fee < 0) throw badRequest('Base fee must be a non-negative number.');
   if (data.fee_rule && !['flat', 'per_semester_block'].includes(data.fee_rule)) {
     throw badRequest("Fee rule must be 'flat' or 'per_semester_block'.");
   }
@@ -100,7 +138,8 @@ async function createDocumentType(user, data) {
   const existing = await referenceModel.findDocumentTypeByName(data.name.trim());
   if (existing.length) throw badRequest('A document type with that name already exists.');
 
-  const [result] = await referenceModel.createDocumentType({ ...data, name: data.name.trim(), base_fee: fee });
+  const normalized = await validateDocumentPolicy({ ...data, name: data.name.trim(), base_fee: fee }, data.name.trim());
+  const [result] = await saveDocumentPolicy(normalized);
   return { message: 'Document type created.', id: result.insertId };
 }
 
@@ -111,7 +150,7 @@ async function updateDocumentType(user, id, data) {
 
   if (data.base_fee !== undefined) {
     const fee = Number(data.base_fee);
-    if (Number.isNaN(fee) || fee < 0) throw badRequest('Base fee must be a non-negative number.');
+    if (!Number.isFinite(fee) || fee < 0) throw badRequest('Base fee must be a non-negative number.');
   }
   if (data.fee_rule && !['flat', 'per_semester_block'].includes(data.fee_rule)) {
     throw badRequest("Fee rule must be 'flat' or 'per_semester_block'.");
@@ -127,7 +166,7 @@ async function updateDocumentType(user, id, data) {
     }
   }
 
-  await referenceModel.updateDocumentType(id, data);
+  await saveDocumentPolicy(await validateDocumentPolicy(data, data.name || rows[0].name), id);
   return { message: 'Document type updated.' };
 }
 
