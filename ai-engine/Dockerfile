@@ -34,7 +34,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY --from=builder /install/deps /usr/local
 
 WORKDIR /app
-COPY app.py ocr_engine.py ./
+COPY app.py ocr_engine.py identity_parser.py ./
 
 # Bake the EasyOCR detection + recognition models into the image. They are
 # ~100 MB and ocr_engine.py builds the Reader at import time, so without this
