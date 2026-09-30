@@ -85,6 +85,213 @@ These are source findings, not successful live end-to-end acceptance. No additio
 
 Remaining Program/Course, receipt, submission QR, form, pricing, sequence, messaging, notification and template work is not marked complete by this phase.
 
+### SSH rollout runbook — database and uploads backup through migration
+
+These are instructions for an existing Docker Compose installation using this repository's bundled MySQL. They have not been executed on the server. Keep the same SSH session/project directory throughout; run one block at a time and stop on errors. Use the deployed branch that contains the approved code (migration files committed at `cad5adb` on local `dev`); do not switch production branches blindly. Schedule downtime because the app's writers will be stopped until verification. Batch 10 begins only after rollout confirmation and its own verification/file approval; unfinished Batch 9 items remain pending.
+
+**0. Stage the Vercel frontend before pushing to `main`.** The user confirmed that `main` pushes automatically update the live frontend. First open the Vercel project: **Settings → Environments → Production → Branch Tracking**, and disable **Auto-assign Custom Production Domains**. Then merge/push the approved code to `main`. Vercel can build a staged production deployment while the current production domain continues serving the previous frontend. Record the staged deployment's commit and URL; do not promote it yet. Follow Vercel's [staged production deployment instructions](https://vercel.com/docs/deployments/promoting-a-deployment#staging-and-promoting-a-production-deployment).
+
+This controls frontend promotion only. It does not back up or migrate the server database. No server auto-deployment workflow was found in this repository; any separately configured cloud deployment trigger must also be accounted for before pushing. If the update was already pushed, check which Vercel deployment is **Current** before proceeding. No Vercel setting or deployment has been changed by the agent.
+
+**1. Locate the existing deployment.** Replace `/path/to/project-trace` with the server's actual checkout. Do not create a second deployment directory/project with different volumes.
+
+```sh
+cd /path/to/project-trace
+pwd
+git branch --show-current
+git status --short
+docker compose ps
+docker compose config --quiet
+```
+
+If Git shows local edits, resolve them before pulling; do not discard them. If the Docker commands fail or service names differ, stop and adapt the instructions first. Do not paste `.env` or a full expanded Compose configuration into chat.
+
+**2. Verify the actual database target before backing up.** These commands expose only non-secret connection metadata:
+
+```sh
+docker compose exec -T backend node -e 'const e=require("./src/config/env"); console.log(JSON.stringify({host:e.DB_HOST,port:e.DB_PORT,database:e.DB_NAME,tls:e.DB_SSL},null,2));'
+docker compose exec -T mysql sh -c 'printf "Bundled database: %s\n" "$MYSQL_DATABASE"'
+```
+
+Continue with this runbook only if the backend host is `mysql`, its port is `3306`, and the database name matches the bundled container's name. An external/managed database needs its own backup procedure: stop here and identify it rather than dump the unused local container.
+
+**3. Create a private backup directory outside Git and record the old code revision.**
+
+```sh
+umask 077
+TRACE_BACKUP_DIR="$HOME/trace-backups/$(date +%Y%m%d-%H%M%S)"
+mkdir -p "$TRACE_BACKUP_DIR"
+git rev-parse HEAD > "$TRACE_BACKUP_DIR/deployed-commit.txt"
+docker compose ps -aq | xargs docker container inspect --format '{{.Name}} image_id={{.Image}} image_ref={{.Config.Image}} status={{.State.Status}}' > "$TRACE_BACKUP_DIR/container-images.txt"
+if [ -f .env ]; then cp .env "$TRACE_BACKUP_DIR/server.env"; fi
+printf 'Backup directory: %s\n' "$TRACE_BACKUP_DIR"
+```
+
+Keep this path. Reconnecting clears the shell variable, so set it to the saved path before continuing. The backups contain personal data and possibly credentials; keep them private and out of Git/chat.
+
+**Server checkpoint:** The user confirmed `/home/jhervinjimenez03/Project-TRACE` is on `main`, the five Compose services are running, and backend/MySQL both target `mysql:3306/trace_db`. `docker compose images` failed because Docker could not resolve the backend's recorded image ID (`sha256:08f1c5ab203baee9de626b8eacd2f6e6b9ffb2ca926976bcd0a819307ca78c02`). Follow-up inventory confirms the available `project-trace-backend:latest` is a different image (`sha256:8252df9a1ef8487f9f64b7e5f721d6c64c8fe8a7fe7f888f60e465f3af62995c`). The cause of the old image's absence and the newer image's compatibility are unknown. This does not establish database corruption. The user recorded container metadata and configuration under `/home/jhervinjimenez03/trace-backups/20260930-104712`; that directory does not yet contain a confirmed fresh database/upload backup. An existing local `alpine:latest` image allows a read-only upload backup without running the newer backend. Do not recreate or remove the old backend container while establishing recovery options. The user also has untracked `trace_db_backup.sql` and `uploads_backup.tar.gz` in the checkout; preserve them privately outside Git, without treating them as verified current backups. No writer stop, migration or rollout has been reported at this checkpoint.
+
+Before stopping writers, check free space and the actual backend uploads mount:
+
+```sh
+df -h "$TRACE_BACKUP_DIR"
+TRACE_BACKEND_CONTAINER=$(docker compose ps -aq backend)
+docker container inspect --format '{{range .Mounts}}{{println .Type .Destination}}{{end}}' "$TRACE_BACKEND_CONTAINER"
+```
+
+Require a `volume /app/uploads` entry and enough space for the backups. The helper below assumes a named uploads volume, as configured in this repository, and the already available local Alpine image. If these differ, stop and adapt first. Keep the same shell variables throughout.
+
+The next server output confirmed `volume /app/uploads` and **7.2 GB free** on the 38 GB root filesystem (82% used). Follow-up size checks reported **35 MB uploads / 31 MB database directory**, so available space is ample for these backups. These are source-directory sizes, not completed backup sizes or proof of sufficient space for later image builds; the database's on-disk size is only a rough estimate of SQL dump size. The read-only checks used were:
+
+```sh
+docker compose exec -T backend du -sh /app/uploads
+docker compose exec -T mysql du -sh /var/lib/mysql/trace_db
+```
+
+At that preflight checkpoint, writer stop and fresh backup completion had not yet been reported. The subsequent step-5 checkpoint below records their completion. No image pruning or other cleanup is authorized by these checkpoints.
+
+**4. Pause the app's writers, leaving MySQL running.** Ensure no other tool/operator is changing this database during the backup/migration window.
+
+```sh
+docker compose stop backend ai-engine n8n
+```
+
+The app is temporarily unavailable. Use `stop`, never `docker compose down -v`, which removes data volumes.
+
+**5. Back up the database and uploads.** Run each block and require its success message before proceeding:
+
+```sh
+docker compose exec -T mysql sh -c 'MYSQL_PWD="$MYSQL_ROOT_PASSWORD" exec mysqldump --user=root --single-transaction --routines --events --triggers --no-tablespaces --set-gtid-purged=OFF --databases "$MYSQL_DATABASE"' > "$TRACE_BACKUP_DIR/database.sql" &&
+test -s "$TRACE_BACKUP_DIR/database.sql" &&
+grep -q '^-- Dump completed' "$TRACE_BACKUP_DIR/database.sql" &&
+echo 'Database dump completed successfully.'
+```
+
+```sh
+docker run --rm --pull=never --network=none --volumes-from "${TRACE_BACKEND_CONTAINER}:ro" alpine:latest tar -czf - -C /app/uploads . > "$TRACE_BACKUP_DIR/uploads.tar.gz" &&
+tar -tzf "$TRACE_BACKUP_DIR/uploads.tar.gz" > /dev/null &&
+echo 'Uploads archive is readable.'
+```
+
+```sh
+ls -lh "$TRACE_BACKUP_DIR"
+```
+
+The SQL completion marker and readable archive are basic integrity checks, not proof of a successful test restore. The database stores upload paths, not the file bytes. The dump uses MySQL's [single-transaction backup options](https://dev.mysql.com/doc/refman/8.0/en/mysqldump.html); the archive uses the backend container's existing uploads volume through Docker's [read-only inherited volume mount](https://docs.docker.com/reference/cli/docker/container/run/#mount-volumes-from-container---volumes-from). It does not pull an image or start the backend application.
+
+**Backup completion checkpoint:** The user reported successful stops for backend, AI-engine and n8n, `Database dump completed successfully.`, and `Uploads archive is readable.` The backup directory contains a **6.4 MB SQL dump**, **34 MB uploads archive**, container inventory, old Git revision and copied server configuration, with private file permissions. The backups passed the completion-marker/archive checks; no restore has been tested. Off-server copy, migration and deployment are still pending, and the app's writers remain stopped.
+
+**6. Copy the backup off the server and verify the transfer.** First create relative-path checksums in the original SSH terminal. The subshell leaves the project working directory unchanged:
+
+```sh
+(cd "$TRACE_BACKUP_DIR" && sha256sum database.sql uploads.tar.gz > SHA256SUMS)
+```
+
+In a separate local terminal, substitute the usual SSH identity/server and the printed path; use the same SSH key options as the normal connection when needed:
+
+```sh
+mkdir -p "$HOME/trace-backups"
+scp -r YOUR_USER@YOUR_SERVER:/exact/printed/backup/path "$HOME/trace-backups/"
+```
+
+For the user's current backup, the local directory is `$HOME/trace-backups/20260930-104712`. On the Mac, check the transfer:
+
+```sh
+cd "$HOME/trace-backups/20260930-104712"
+shasum -a 256 -c SHA256SUMS
+```
+
+Require `database.sql: OK` and `uploads.tar.gz: OK`. Checksums verify copied bytes, not database-restoration behavior. Return to the original SSH terminal after the copy and checks succeed. Do not publish backup contents or `server.env`. If the current SSH connection uses a cloud-provider command rather than ordinary SSH, adapt the transfer to that existing authentication method instead of guessing a server address/key.
+
+**Transfer checkpoint / browser fallback:** The Mac reached the VM's SSH server but ordinary `scp` failed with `Permission denied (publickey)`. The VM did not accept the offered key for the requested account; the exact key/account configuration has not been inspected. The server backups are unaffected, and an off-server copy is not yet confirmed. Google Cloud browser SSH uses its own connection credentials; accepting a host key on the Mac does not authorize the Mac's login key. Use the existing browser SSH connection's download button, as described in Google's [file transfer instructions](https://docs.cloud.google.com/compute/docs/instances/transfer-files#transfer_files_using_ssh-in-browser), to avoid changing SSH access during this rollout.
+
+In the VM's browser SSH terminal, package the confirmed folder and a checksum manifest into one private archive outside the checkout:
+
+```sh
+umask 077
+(cd "$HOME/trace-backups/20260930-104712" && sha256sum database.sql uploads.tar.gz > SHA256SUMS)
+tar -czf "$HOME/trace-backups/trace-backup-20260930-104712.tar.gz" -C "$HOME/trace-backups" 20260930-104712
+```
+
+Stop on either command's failure. Click the browser SSH window's download icon, enter `trace-backups/trace-backup-20260930-104712.tar.gz` relative to the user's home directory, and download. On the Mac, after confirming the file's actual download location/name:
+
+```sh
+mkdir -p "$HOME/trace-backups"
+chmod 600 "$HOME/Downloads/trace-backup-20260930-104712.tar.gz"
+tar -xzf "$HOME/Downloads/trace-backup-20260930-104712.tar.gz" -C "$HOME/trace-backups"
+cd "$HOME/trace-backups/20260930-104712"
+shasum -a 256 -c SHA256SUMS
+```
+
+Require both `OK` results before continuing. The user subsequently reported successful Mac extraction and **`database.sql: OK` / `uploads.tar.gz: OK`**, confirming that both copied backup files match their server checksums. The off-server backup checkpoint is complete; a database restore has not been tested. Do not weaken SSH authentication or change firewall rules to solve a public-key rejection. No migration/restart has been reported, so the app writers remain stopped. Vercel automatic-domain-assignment status and the `dev` → `main` merge have not yet been confirmed; verify these before pulling/rebuilding the production checkout.
+
+**7. Update the existing deployed branch and build the migration/runtime images.**
+
+**Release gate checkpoint:** The user confirmed both that Vercel's automatic production-domain assignment is disabled and that the approved `dev` changes have been merged into `main`. Off-server backup checksums have passed. Subsequent server output shows **`8688001`**, merge PR #21, on `main`/`origin/main`, with `cad5adb` in its recent history and all three incremental migration files present. Staged Vercel build readiness, runtime builds and migrations remain unverified. Do not promote the frontend yet.
+
+```sh
+git pull --ff-only
+git log -1 --oneline
+ls backend/database/migrate_batch8.js backend/database/migrate_8b.js backend/database/migrate_cn03_cn04.js
+docker compose config --quiet
+git diff --name-only "$(cat "$TRACE_BACKUP_DIR/deployed-commit.txt")" HEAD -- ai-engine
+docker compose build backend
+df -h .
+```
+
+Confirm every command succeeds and the branch contains the approved implementation. A missing file means the rollout source is not ready. The AI-engine Dockerfile installs sizable Python dependencies and OCR models; inspect the diff and remaining disk space before rebuilding it. If the AI-engine diff lists changes, build its approved source with `docker compose build ai-engine` once resources are adequate. If the diff is empty, the existing recorded AI image can be retained. Failure to resolve the backed-up revision is an error, not an empty diff. Do not restart the app while a required build/migration is incomplete. No build completion has been reported at this checkpoint.
+
+**Shell-variable recovery checkpoint:** Updated Compose validation passed, but the AI-engine comparison failed twice with `cat: /deployed-commit.txt: No such file or directory` and `fatal: bad revision ''`. This confirms that `TRACE_BACKUP_DIR` was empty in that shell; it does not show that the saved backup was deleted or that the AI engine is unchanged. Restore `TRACE_BACKUP_DIR="$HOME/trace-backups/20260930-104712"`, verify the saved revision file, then retry the comparison. No build/migration completion has been reported.
+
+**AI image packaging finding:** Restoring the variable succeeded; the backed-up server revision is `778447c914d5497ac400fe043d9ec4e1c442ad99`. The comparison lists changed `ai-engine/app.py`, `identity_parser.py`, `ocr_engine.py` and `test_identity_parser.py`, confirming an AI image rebuild is required. Inspection of the local approved source found `ocr_engine.py:27` imports `identity_parser`, while `ai-engine/Dockerfile:37` copies only `app.py` and `ocr_engine.py`. `app.py:22` imports the OCR module during startup; without packaging the parser, the rebuilt container will fail to start with a missing-module error. The build-time model-download command imports EasyOCR alone, so a successful build would not detect this omission. The proposed correction is to include `identity_parser.py` in that existing COPY instruction and validate the existing parser tests plus the rebuilt image's import. This additional Dockerfile is outside the previously approved file scope; no code change has been made and implementation awaits explicit per-file approval. The server's Dockerfile line should also be checked before rollout. No backend/AI build, migration or restart completion has been reported at this checkpoint.
+
+**Approved packaging repair:** The user approved adding `ai-engine/Dockerfile` and then confirmed the server's COPY instruction matches the diagnosed omission. The local Dockerfile now copies `app.py`, `ocr_engine.py` **and `identity_parser.py`**. Only that line and this previously approved progress document changed. No dependencies, application logic or other files were changed; no remaining discrepancy was found between the diagnosed local/server instruction. `ai-engine/.dockerignore` does not exclude the parser. Before and after the fix, **554 backend tests, 347 frontend tests and all four existing Python parser tests passed**. The Python command was `.venv/bin/python -m unittest -v test_identity_parser.py` from `ai-engine/`. Frontend emitted the existing local-storage warning. `git diff --check` passed. No local Docker image build or server import check was performed; successful source tests do not establish container startup.
+
+Commit/push the two approved files on `dev`, merge that repair into `main` while Vercel automatic promotion remains disabled, then pull again on the server. Verify the COPY line includes the parser before rebuilding backend and AI-engine. After the AI image builds, require this startup-import smoke check to succeed before migration/restart:
+
+```sh
+docker compose run --rm --no-deps -T ai-engine python -c 'import identity_parser; import app; print("AI startup imports OK.")'
+```
+
+This imports the real image's Flask/OCR dependencies without starting its HTTP server; it may take time while OCR models load. Stop and investigate an import/resource error. The corrective commit/merge, image builds and smoke check remain pending at this checkpoint; Vercel is still staged and the app writers are stopped.
+
+**8. Apply incremental migrations in order.** Run each command separately and require successful completion before the next:
+
+```sh
+docker compose run --rm --no-deps -T backend node database/migrate_batch8.js
+```
+
+Expect `Batch 8 migration complete.` It adds browser recognition, auth/OTP columns and notification links.
+
+```sh
+docker compose run --rm --no-deps -T backend node database/migrate_8b.js
+```
+
+Expect `Batch 8b migration complete.` It adds college/document policies and inactive counter fee drafts.
+
+```sh
+docker compose run --rm --no-deps -T backend node database/migrate_cn03_cn04.js
+```
+
+Expect `CN-03/CN-04 applied.` or `CN-03/CN-04 already applied.` It retires known Good Moral names and changes an existing Diploma fee of 50 to 250 once, preserving other fees and historical request charges. The temporary containers use the rebuilt backend image and the same Compose database configuration, without starting the API.
+
+These scripts require the existing base schema. Do not run `migrate_b9.js`, re-import `schema.sql`/`seed.sql`, or run the broad `migration.js` as a shortcut: the former has unreconciled attachment/name changes and the latter reseeds other fees. On failure, keep the writers stopped and investigate the exact error. The first two migrations contain DDL that may already have committed, so do not assume a failed script changed nothing or perform a blind restore.
+
+**9. Restart and check the deployment.**
+
+```sh
+docker compose up -d --no-deps backend ai-engine n8n
+docker compose ps
+docker compose logs --tail=60 backend
+curl -fsS http://localhost:3300/api/health
+```
+
+Expect a successful database health response. Allow a short startup period, then investigate persistent errors. Check the AI-engine logs if needed. Existing Caddy/MySQL are left running; these commands do not promote the staged Vercel frontend.
+
+**10. Perform live application checks before Batch 10.** Verify student/staff login (including staff OTP), no Good Moral option in New Request, retired Admin controls for historical Good Moral types, the Diploma reissue label/configured fee, preserved historical records/uploads, and document-policy settings. Diploma should be 250 only if it previously used the 50 default; a custom fee should remain. Share migration completion messages, health output and any errors, never passwords or backup contents. Successful migrations do not establish all remaining OCR/notification/payment acceptance.
+
+First check the staged production frontend against the updated backend. If login fails only on the staged URL, inspect existing origin/cookie configuration before assuming the migration failed. Once the matching frontend/backend revision passes, open Vercel **Deployments**, select **… → Promote** for that exact ready staged build, and confirm. Recheck the production domain after promotion. Leave automatic domain assignment disabled for future controlled rollouts, or deliberately re-enable it once this rollout is complete. This guide does not claim that the prior frontend is compatible with every backend change while it remains live.
+
 ## Batch 1 Re-verification — 2026-09-30
 
 Baseline: `dev`, commit `42b18cd`. The user approved the file plan before editing, approved dark mode through D-01, and later approved `MiniSparkline.jsx` and the feedback integration test. This is a presentation-only pass; no backend, schema, route, auth, or pipeline-definition changes were made by this batch.
