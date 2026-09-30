@@ -2,22 +2,40 @@ import { useEffect, useId, useRef } from 'react';
 import { createPortal } from 'react-dom';
 
 const FOCUSABLE_SELECTOR =
-  'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])';
+  'a[href], button, textarea, input:not([type="hidden"]), select, [tabindex], [contenteditable="true"]';
+
+// Only the most recently opened shell handles focus and dismissal: a
+// confirmation can sit above a form, and a receipt viewer above either one.
+const modalStack = [];
+
+function getTopmostPanel() {
+  return modalStack.findLast((panel) => panel.dataset.modalLayer === 'feedback') || modalStack.at(-1);
+}
+
+function getFocusableElements(panel) {
+  return [...panel.querySelectorAll(FOCUSABLE_SELECTOR)].filter((element) => {
+    if (element.matches(':disabled') || element.tabIndex < 0 || element.closest('[hidden], [inert]')) return false;
+    for (let current = element; current && current !== panel; current = current.parentElement) {
+      const style = window.getComputedStyle(current);
+      if (style.display === 'none' || style.visibility === 'hidden') return false;
+    }
+    return true;
+  });
+}
 
 /**
  * Shared modal chrome: portal + backdrop + panel, split into a scrollable
  * body and a footer pinned to the bottom regardless of body scroll position.
  *
- * Every existing modal hand-rolls this same shell with the footer as the
- * last scrolling child, which is why long forms lose their action buttons
- * off-screen. New modals should build on this instead of repeating that.
+ * Pass actions through `footer` so only the body scrolls. Override props
+ * support lightboxes and split-column forms without duplicating the shell.
  */
 const DEFAULT_BACKDROP_CLASS_NAME =
-  'absolute inset-0 bg-gray-900/60 backdrop-blur-md transition-opacity duration-200';
+  'absolute inset-0 bg-gray-900/60 dark:bg-gray-800/60 backdrop-blur-md transition-opacity duration-200';
 const DEFAULT_CLOSE_BUTTON_CLASS_NAME =
-  'absolute top-4 right-4 z-10 w-8 h-8 rounded-full flex items-center justify-center text-gray-400 hover:bg-gray-100';
+  'absolute top-4 right-4 z-10 w-8 h-8 rounded-full flex items-center justify-center text-gray-400 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800';
 const DEFAULT_FOOTER_CLASS_NAME =
-  'shrink-0 px-6 sm:px-8 py-6 sm:py-8 pt-6 border-t border-gray-100';
+  'shrink-0 px-6 sm:px-8 py-6 sm:py-8 pt-6 border-t border-gray-100 dark:border-gray-700';
 
 export default function ModalShell({
   open,
@@ -30,6 +48,9 @@ export default function ModalShell({
   closeOnBackdrop = true,
   closeOnEsc = true,
   initialFocusRef,
+  descriptionId,
+  busy = false,
+  layer = 'modal',
   backdropClassName,
   panelClassName,
   closeButtonClassName,
@@ -41,43 +62,57 @@ export default function ModalShell({
 }) {
   const titleId = useId();
   const panelRef = useRef(null);
-  const previouslyFocusedRef = useRef(null);
 
   useEffect(() => {
     if (!open) return undefined;
-    previouslyFocusedRef.current = document.activeElement;
+    const previouslyFocused = document.activeElement;
+    const panel = panelRef.current;
+    modalStack.push(panel);
 
     const focusTarget =
       initialFocusRef?.current ||
-      panelRef.current?.querySelector(FOCUSABLE_SELECTOR) ||
-      panelRef.current;
-    focusTarget?.focus();
+      getFocusableElements(panel)[0] ||
+      panel;
+    if (getTopmostPanel() === panel) focusTarget?.focus();
 
     return () => {
-      previouslyFocusedRef.current?.focus?.();
+      const wasTopmost = getTopmostPanel() === panel;
+      modalStack.splice(modalStack.indexOf(panel), 1);
+      if (!wasTopmost) return;
+
+      const remainingPanel = getTopmostPanel();
+      if (previouslyFocused?.isConnected && (!remainingPanel || remainingPanel.contains(previouslyFocused))) {
+        previouslyFocused.focus?.();
+      } else if (remainingPanel) {
+        (getFocusableElements(remainingPanel)[0] || remainingPanel).focus();
+      }
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open]);
+  }, [open, initialFocusRef]);
 
   useEffect(() => {
     if (!open) return undefined;
+    const panel = panelRef.current;
 
     const handleKeyDown = (e) => {
+      if (getTopmostPanel() !== panel) return;
       if (e.key === 'Escape') {
+        e.preventDefault();
+        e.stopImmediatePropagation();
         if (closeOnEsc) onClose();
         return;
       }
       if (e.key !== 'Tab') return;
 
-      const focusable = panelRef.current?.querySelectorAll(FOCUSABLE_SELECTOR);
-      if (!focusable || focusable.length === 0) {
+      const focusable = getFocusableElements(panel);
+      if (focusable.length === 0) {
         e.preventDefault();
+        panel.focus();
         return;
       }
 
       const first = focusable[0];
       const last = focusable[focusable.length - 1];
-      const isInside = panelRef.current.contains(document.activeElement);
+      const isInside = focusable.includes(document.activeElement);
 
       if (e.shiftKey) {
         if (document.activeElement === first || !isInside) {
@@ -90,20 +125,29 @@ export default function ModalShell({
       }
     };
 
+    const handleFocusIn = (e) => {
+      if (getTopmostPanel() !== panel || panel.contains(e.target)) return;
+      (getFocusableElements(panel)[0] || panel).focus();
+    };
+
     document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
+    document.addEventListener('focusin', handleFocusIn);
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+      document.removeEventListener('focusin', handleFocusIn);
+    };
   }, [open, closeOnEsc, onClose]);
 
   if (!open) return null;
 
   const resolvedPanelClassName =
     panelClassName ??
-    `bg-white rounded-3xl shadow-2xl w-full ${maxWidth} max-h-[calc(100dvh-2rem)] z-10 border border-gray-100 relative animate-slide-up flex flex-col overflow-hidden`;
+    `bg-white dark:bg-gray-900 rounded-3xl shadow-2xl w-full ${maxWidth} max-h-[calc(100dvh-2rem)] z-10 border border-gray-100 dark:border-gray-700 relative animate-slide-up flex flex-col overflow-hidden`;
   const resolvedBodyClassName =
-    bodyClassName ?? `flex-1 overflow-y-auto px-6 sm:px-8 pb-6 sm:pb-8 ${title ? 'pt-2' : 'pt-6 sm:pt-8'}`;
+    bodyClassName ?? `min-h-0 flex-1 overflow-y-auto overscroll-contain px-6 sm:px-8 pb-6 sm:pb-8 ${title ? 'pt-2' : 'pt-6 sm:pt-8'}`;
 
   return createPortal(
-    <div className="fixed inset-0 z-[100] flex items-start sm:items-center justify-center p-4 overflow-y-auto">
+    <div className={`trace-modal-overlay fixed inset-0 ${layer === 'feedback' ? 'z-[110]' : 'z-[100]'} flex items-start sm:items-center justify-center p-4 overflow-y-auto animate-fade-in`}>
       <div
         className={backdropClassName ?? DEFAULT_BACKDROP_CLASS_NAME}
         onClick={() => closeOnBackdrop && onClose()}
@@ -111,8 +155,11 @@ export default function ModalShell({
       />
       <div
         ref={panelRef}
+        data-modal-layer={layer}
         role="dialog"
         aria-modal="true"
+        aria-describedby={descriptionId}
+        aria-busy={busy || undefined}
         aria-labelledby={!bare && title ? titleId : undefined}
         aria-label={bare && typeof title === 'string' ? title : undefined}
         tabIndex={-1}
@@ -135,7 +182,7 @@ export default function ModalShell({
           <>
             {title && (
               <div className="shrink-0 px-6 sm:px-8 pt-6 sm:pt-8 pb-2 pr-14">
-                <h3 id={titleId} className="text-xl font-black text-gray-900">
+                <h3 id={titleId} className="text-lg sm:text-xl font-black text-gray-900 dark:text-gray-100 break-words">
                   {title}
                 </h3>
               </div>

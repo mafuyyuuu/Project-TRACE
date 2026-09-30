@@ -36,7 +36,39 @@ function fakeConnection(docRow) {
 
 let connection;
 
+describe('document-policy request enforcement', () => {
+  it.each([['student', STUDENT], ['counter', WINDOW1]])('blocks a new Good Moral %s request before writing documents or logs', async (_channel, user) => {
+    const insert = vi.spyOn(documentModel, 'insert').mockResolvedValue([{ insertId: 9 }]);
+    await expect(service.uploadDocument(user, { document_type: 'Certificate of Good Moral', student_id: 'STU-001' }, []))
+      .rejects.toThrow(/no longer available/);
+    expect(insert).not.toHaveBeenCalled();
+    expect(stepLogModel.insert).not.toHaveBeenCalled();
+    expect(connection.rollback).toHaveBeenCalledOnce();
+    expect(connection.commit).not.toHaveBeenCalled();
+  });
+  it('rejects a forged audience selection at the server before any document write', async () => {
+    referenceModel.findDocumentTypesByNames.mockResolvedValue([{ name: 'Diploma', is_active: 1, available_to: 'alumni', base_fee: 50, fee_rule: 'flat' }]);
+    await expect(service.uploadDocument(STUDENT, { document_type: 'Diploma', copies: 1 }, [])).rejects.toMatchObject({ status: 400 });
+    expect(userModel.findStudentForPolicy).toHaveBeenCalledWith('STU-001', connection, true);
+    expect(connection.rollback).toHaveBeenCalledOnce();
+    expect(connection.commit).not.toHaveBeenCalled();
+  });
+
+  it.each([0, -1, 1.5, 2147483648])('rejects an invalid copy quantity %s', async copies => {
+    await expect(service.uploadDocument(STUDENT, { document_type: 'Diploma', copies }, [])).rejects.toMatchObject({ status: 400 });
+    expect(pool.getConnection).not.toHaveBeenCalled();
+  });
+
+  it('rejects a multi-copy Honorable Dismissal even when no prior request exists', async () => {
+    await expect(service.uploadDocument(STUDENT, { document_type: 'Honorable Dismissal', copies: 2 }, [])).rejects.toThrow(/one copy/);
+    expect(connection.rollback).toHaveBeenCalledOnce();
+  });
+});
+
 beforeEach(() => {
+  vi.spyOn(userModel, 'findStudentForPolicy').mockResolvedValue([{ id: 3, student_id: 'STU-001', user_type: 'student' }]);
+  vi.spyOn(referenceModel, 'findDocumentTypeByName').mockImplementation(async name => [{ name, is_active: 1, is_repeatable: 1, available_to: 'both' }]);
+  vi.spyOn(documentModel, 'countBlockingRequests').mockResolvedValue(0);
   connection = fakeConnection();
   vi.spyOn(pool, 'getConnection').mockImplementation(async () => connection);
 
@@ -58,7 +90,9 @@ beforeEach(() => {
   vi.spyOn(documentModel, 'countUnpricedInGroup').mockResolvedValue(0);
   vi.spyOn(documentModel, 'findByRequestGroup').mockResolvedValue([]);
   vi.spyOn(documentModel, 'findByRequestGroupForUpdate').mockResolvedValue([]);
-  vi.spyOn(referenceModel, 'findDocumentTypesByNames').mockResolvedValue([]);
+  vi.spyOn(referenceModel, 'findDocumentTypesByNames').mockImplementation(async names => names.map(name => ({ name, is_active: 1, available_to: 'both', is_repeatable: 1,
+    base_fee: ['Transcript of Records', 'Honorable Dismissal'].includes(name) ? 100 : 50,
+    fee_rule: name === 'Transcript of Records' ? 'per_semester_block' : 'flat' })));
   // Payment methods are reference data; GCash is the default the student sees.
   vi.spyOn(referenceModel, 'findPaymentMethodByCode').mockResolvedValue([
     { id: 1, code: 'gcash', name: 'GCash', provider: 'manual', is_active: 1,
@@ -241,7 +275,7 @@ describe('uploadDocument — a student can only file for themselves', () => {
       { document_type: 'Transcript of Records', semesters: 8, copies: 2, amount: '1.00' },
       null
     );
-    expect(documentModel.insert.mock.calls[0][0].amount).toBe(200);
+    expect(documentModel.insert.mock.calls[0][0].amount).toBe(400);
   });
 });
 
@@ -502,6 +536,31 @@ describe('acceptForProcessing — Secretary desk only', () => {
     expect(documentModel.updateEvaluation).toHaveBeenCalledWith(
       5, STATUS.PENDING_W1_INTAKE, 'STU-001', 'Ana', 'Diploma', null, connection
     );
+  });
+
+  it.each(['approve', 'reject'].flatMap(action =>
+    ['Certificate of Good Moral', 'Certificate of Good Moral Character', '  good moral certificate  '].map(name => [action, name])
+  ))('blocks a type change to retired Good Moral on %s (%s)', async (action, name) => {
+    documentModel.findByIdForUpdate.mockResolvedValue([{ ...doc, document_type: 'Diploma' }]);
+    await expect(service.acceptForProcessing(SECRETARY, 5, {
+      ...body, action, notes: 'Needs correction', document_type: name,
+    })).rejects.toThrow(/no longer available/);
+    expect(documentModel.updateEvaluation).not.toHaveBeenCalled();
+    expect(stepLogModel.insert).not.toHaveBeenCalled();
+    expect(connection.rollback).toHaveBeenCalledOnce();
+    expect(connection.commit).not.toHaveBeenCalled();
+    expect(notifications.dispatchStudentAlert).not.toHaveBeenCalled();
+  });
+
+  it.each(['approve', 'reject'])('permits %s of an unchanged historical Good Moral request', async action => {
+    const name = 'Certificate of Good Moral';
+    documentModel.findByIdForUpdate.mockResolvedValue([{ ...doc, document_type: name, copies: 1 }]);
+    referenceModel.findDocumentTypeByName.mockResolvedValue([{ name, is_active: 0, available_to: 'both', is_repeatable: 1 }]);
+    await service.acceptForProcessing(SECRETARY, 5, { ...body, action, notes: 'Historical request', document_type: name });
+    expect(documentModel.updateEvaluation).toHaveBeenCalledWith(5,
+      action === 'approve' ? STATUS.SEC_PROCESSING : STATUS.PENDING_W1_INTAKE,
+      'STU-001', 'Ana', name, action === 'approve' ? '2026-09-05' : null, connection);
+    expect(connection.commit).toHaveBeenCalledOnce();
   });
 
   it('will not reject without saying why', async () => {
@@ -827,8 +886,8 @@ describe('intakeDocument — Window 1 checks the paperwork', () => {
 
   it('only asks n8n for a desk once a human has cleared the paperwork', async () => {
     documentModel.findByIdForUpdate.mockResolvedValue([filed]);
-    userModel.findStudentCourseByStudentId.mockResolvedValue([{ course: 'BS Computer Science' }]);
-    referenceModel.findCollegeByName = vi.fn().mockResolvedValue([{ short_code: 'CCS' }]);
+    userModel.findStudentCourseByStudentId.mockResolvedValue([{ course: 'College of Computer Studies' }]);
+    referenceModel.findCollegeByName = vi.fn().mockResolvedValue([{ name: 'College of Computer Studies', short_code: 'CCS' }]);
 
     await service.intakeDocument(WINDOW1, 5, { action: 'approve' }, null);
     expect(n8n.triggerDocumentRouting).toHaveBeenCalledWith(
@@ -862,6 +921,47 @@ describe('intakeDocument — Window 1 checks the paperwork', () => {
 
   it('rejects an unknown action', async () => {
     expect(await statusOf(service.intakeDocument(WINDOW1, 5, { action: 'maybe' }, null))).toBe(400);
+  });
+});
+
+describe('uploadDeferredOR — Finance uploads its retained copy later', () => {
+  it.each([STATUS.PAID_PENDING_SEC_RELEASE, STATUS.SEC_OR_VERIFIED, STATUS.READY_FOR_RELEASE, STATUS.COMPLETED])(
+    'attaches the copy to the request group at %s without changing payment or stage', async (stage) => {
+      const doc = { id: 5, request_group_id: 'REQ-G1', student_id: 'STU-001', current_status: stage, payment_status: 'PAID' };
+      documentModel.findById.mockResolvedValue([doc]);
+      const query = vi.spyOn(pool, 'query').mockResolvedValue([{ affectedRows: 2 }]);
+      userModel.findStudentContactByStudentId.mockResolvedValue([{ id: 3 }]);
+      expect(await service.uploadDeferredOR(FINANCE, 5, RECEIPT)).toEqual({
+        success: true, official_receipt_path: '/uploads/receipt.png',
+      });
+      expect(query).toHaveBeenCalledWith(
+        'UPDATE documents SET official_receipt_path = ?, or_uploaded_at = CURRENT_TIMESTAMP WHERE request_group_id = ?',
+        ['/uploads/receipt.png', 'REQ-G1']
+      );
+      expect(doc.current_status).toBe(stage);
+      expect(doc.payment_status).toBe('PAID');
+      expect(documentModel.updateStatus).not.toHaveBeenCalled();
+      expect(documentModel.updatePaymentVerificationForGroup).not.toHaveBeenCalled();
+      expect(stepLogModel.insert).not.toHaveBeenCalled();
+      expect(notifications.notifyInApp).toHaveBeenCalledWith(expect.objectContaining({ userId: 3 }));
+    }
+  );
+
+  it('rejects a missing document before writing or notifying', async () => {
+    const query = vi.spyOn(pool, 'query');
+    expect(await statusOf(service.uploadDeferredOR(FINANCE, 999, RECEIPT))).toBe(404);
+    expect(query).not.toHaveBeenCalled();
+    expect(notifications.notifyInApp).not.toHaveBeenCalled();
+  });
+
+  it('requires a file', async () => {
+    expect(await statusOf(service.uploadDeferredOR(FINANCE, 5, null))).toBe(400);
+    expect(documentModel.findById).not.toHaveBeenCalled();
+  });
+
+  it.each([STUDENT, SECRETARY, WINDOW1, ADMIN])('preserves Finance-only authorization for $role/$desk_assignment', async (user) => {
+    expect(await statusOf(service.uploadDeferredOR(user, 5, RECEIPT))).toBe(403);
+    expect(documentModel.findById).not.toHaveBeenCalled();
   });
 });
 
@@ -1060,5 +1160,15 @@ describe('AI-engine fallbacks', () => {
 describe('getActivityLogs — admin only', () => {
   it.each([['a student', STUDENT], ['Finance', FINANCE]])('rejects %s', async (_label, user) => {
     expect(await statusOf(service.getActivityLogs(user))).toBe(403);
+  });
+});
+
+describe('intake OCR confidence adapter', () => {
+  it.each([0, 87.25, undefined])('preserves the engine confidence %s without inventing a score', async confidence => {
+    vi.spyOn(documentModel, 'insert').mockResolvedValue([{ insertId: 77 }]);
+    vi.spyOn(documentModel, 'updateOcrData').mockResolvedValue([{}]);
+    vi.spyOn(aiEngine, 'extractDocument').mockResolvedValue({ success: true, raw_text: 'diploma', extracted_data: { student_id: 'STU-001', form_type: 'Diploma', confidence } });
+    await service.uploadDocument(STUDENT, { document_type: 'Diploma' }, { fieldname: 'document', filename: 'proof.png', originalname: 'proof.png', path: '/unused/proof.png' });
+    expect(documentModel.updateOcrData).toHaveBeenCalledWith(77, expect.objectContaining({ confidence: confidence ?? null }));
   });
 });

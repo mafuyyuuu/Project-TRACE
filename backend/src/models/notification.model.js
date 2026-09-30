@@ -2,10 +2,10 @@ const { pool } = require('../config/db');
 
 /** Raw SQL for the in-app `notifications` table (bell icon). */
 
-function create({ user_id, title, message, type }, executor = pool) {
+function create({ user_id, title, message, type, action_url = null }, executor = pool) {
   return executor.query(
-    'INSERT INTO notifications (user_id, title, message, type) VALUES (?, ?, ?, ?)',
-    [user_id, title, message, type]
+    'INSERT INTO notifications (user_id, title, message, type, action_url) VALUES (?, ?, ?, ?, ?)',
+    [user_id, title, message, type, action_url]
   );
 }
 

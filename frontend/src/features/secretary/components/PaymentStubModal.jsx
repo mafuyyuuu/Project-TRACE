@@ -22,7 +22,7 @@ export default function PaymentStubModal({ selectedDoc, groupDocs, setActiveModa
 
 useEffect(() => {
     let mounted = true;
-    api.get('/api/templates/payment_slip').then(res => {
+    api.get('/templates/payment_slip').then(res => {
       if (mounted) setTemplate(res.data);
     }).catch(() => {});
     return () => { mounted = false; };
@@ -78,7 +78,7 @@ const items = groupDocs?.length ? groupDocs : [selectedDoc];
             Close
           </button>
           <button
-            onClick={() => window.print()}
+            type="button" onClick={() => setTimeout(() => window.print(), 100)}
             className="flex-1 px-5 py-3 rounded-2xl text-xs font-bold bg-gray-900 hover:bg-gray-800 text-white shadow-sm transition-colors"
           >
             Print Slip
@@ -118,10 +118,10 @@ const items = groupDocs?.length ? groupDocs : [selectedDoc];
 
       {/* Who it belongs to */}
       <div className="py-4 space-y-1.5 text-[11px] font-mono text-gray-600 border-b border-dashed border-gray-300">
-        <div className="flex justify-between"><span>Student</span><span className="font-bold text-gray-900">{selectedDoc.student_name || '—'}</span></div>
-        <div className="flex justify-between"><span>Student ID</span><span className="font-bold text-gray-900">{selectedDoc.student_id || '—'}</span></div>
-        <div className="flex justify-between"><span>Program/Course</span><span className="font-bold text-gray-900">{selectedDoc.course || '—'}</span></div>
-        <div className="flex justify-between"><span>Date issued</span><span className="font-bold text-gray-900">{todayLongDate()}</span></div>
+        <div className="flex flex-wrap justify-between gap-x-3 gap-y-1"><span>Student</span><span className="font-bold text-gray-900 select-text break-words">{selectedDoc.student_name || '—'}</span></div>
+        <div className="flex flex-wrap justify-between gap-x-3 gap-y-1"><span>Student ID</span><span className="font-bold text-gray-900">{selectedDoc.student_id || '—'}</span></div>
+        <div className="flex flex-wrap justify-between gap-x-3 gap-y-1"><span>Program/Course</span><span className="font-bold text-gray-900">{selectedDoc.course || '—'}</span></div>
+        <div className="flex flex-wrap justify-between gap-x-3 gap-y-1"><span>Date issued</span><span className="font-bold text-gray-900">{todayLongDate()}</span></div>
       </div>
 
       {/* What is being charged. Every document in the request, because the

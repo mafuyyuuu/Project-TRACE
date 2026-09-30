@@ -1,10 +1,10 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import useViewportPagination from '@/hooks/useViewportPagination';
+import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import useDashboardCore from '@/hooks/useDashboardCore';
 import { getForecast, getInsights, getActivityLogs } from '@/services/documentsService';
 import { getPendingStudents, verifyStudent, getUsers } from '@/services/authService';
 import { getAnalytics } from '@/services/reportsService';
 
-const ITEMS_PER_PAGE = 10;
 
 /**
  * Registrar admin: ML forecasting, AI queue insights, manual account
@@ -16,10 +16,11 @@ const ITEMS_PER_PAGE = 10;
  * @param {Object} user authenticated user
  * @param {string} currentTab active sidebar tab — drives the lazy tab fetches
  */
-export default function useAdminDashboard(user, currentTab) {
+export default function useAdminDashboard(user, currentTab, reviewAccountId, reviewNavigationKey) {
   const core = useDashboardCore(user);
   const { runAction, loadDashboardData } = core;
 
+  const reviewedNotification = useRef(null);
   const [forecastData, setForecastData] = useState([]);
   const [aiInsights, setAiInsights] = useState([]);
   const [pendingStudents, setPendingStudents] = useState([]);
@@ -75,14 +76,23 @@ export default function useAdminDashboard(user, currentTab) {
     if (insights.status === 'fulfilled') setAiInsights(insights.value.insights || []);
     else console.warn('Insights unavailable');
 
-    if (pending.status === 'fulfilled') setPendingStudents(pending.value.pending_students || []);
+    if (pending.status === 'fulfilled') {
+      const applicants = pending.value.pending_students || [];
+      setPendingStudents(applicants);
+      const id = reviewAccountId;
+      const reviewKey = `${reviewNavigationKey}:${id}`;
+      const applicant = applicants.find(item => String(item.id) === id);
+      if (applicant && reviewedNotification.current !== reviewKey) {
+        reviewedNotification.current = reviewKey; setStudentVerifyToConfirm({ student: applicant, action: 'review' });
+      }
+    }
     else console.warn('Pending students unavailable');
 
     // Powers the System Throughput KPI card's real value, empty state and
     // sparkline trend — same endpoint the Efficiency Analytics tab already uses.
     if (analytics.status === 'fulfilled') setAnalyticsSummary(analytics.value);
     else console.warn('Analytics summary unavailable');
-  }, []);
+  }, [reviewAccountId, reviewNavigationKey]);
 
   useEffect(() => {
     // The fetch is async: every setState inside runs after an await, on a
@@ -112,9 +122,11 @@ export default function useAdminDashboard(user, currentTab) {
     setStudentVerifyToConfirm({ student, action });
   }, []);
 
-  const confirmAdminVerifyStudent = useCallback(async () => {
+  const confirmAdminVerifyStudent = useCallback(async (decision) => {
     if (!studentVerifyToConfirm) return;
-    const { student, action } = studentVerifyToConfirm;
+    const { student } = studentVerifyToConfirm;
+    const action = decision || studentVerifyToConfirm.action;
+    if (!['verify', 'reject'].includes(action)) return;
 
     const ok = await runAction(() => verifyStudent(student.id, action), {
       successMessage: `Student account registration successfully ${
@@ -133,13 +145,17 @@ export default function useAdminDashboard(user, currentTab) {
     setStudentVerifyToConfirm(null);
   }, []);
 
+  const pagination = useViewportPagination({ page: adminDocPage, setPage: setAdminDocPage,
+    total: core.documents.filter(doc => adminDocFilter === 'All' || doc.document_type === adminDocFilter).length,
+    enabled: currentTab === 'admin-tracker' });
+
   return {
     ...core,
     forecastData,
     aiInsights,
     pendingStudents,
     analyticsSummary,
-    adminDocPage, setAdminDocPage,
+    adminDocPage: pagination.page, setAdminDocPage,
     adminDocFilter, setAdminDocFilter,
     forecastFilter, setForecastFilter,
     adminUsers, adminUsersFilter, setAdminUsersFilter,
@@ -147,7 +163,8 @@ export default function useAdminDashboard(user, currentTab) {
     filteredAdminUsers,
     selectedUser, setSelectedUser,
     adminLogs,
-    itemsPerPage: ITEMS_PER_PAGE,
+    itemsPerPage: pagination.pageSize,
+    tableRef: pagination.containerRef,
     handleAdminVerifyStudent,
     studentVerifyToConfirm,
     confirmAdminVerifyStudent,

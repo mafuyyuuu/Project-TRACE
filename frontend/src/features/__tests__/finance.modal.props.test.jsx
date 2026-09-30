@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor, fireEvent } from '@testing-library/react';
+import { render, screen, waitFor, fireEvent, act } from '@testing-library/react';
 
 /**
  * Regression: FinanceVerificationModal destructures `triggerNotification` and
@@ -80,16 +80,29 @@ describe('FinanceDashboard → FinanceVerificationModal', () => {
     expect(typeof received.triggerNotification).toBe('function');
   });
 
-  it('shows the size limit inline instead of throwing', async () => {
+  it('shows the size limit in a dismissible feedback dialog and preserves the receipt form', async () => {
     render(<FinanceDashboard user={USER} setViewImageUrl={() => {}} />);
 
     fireEvent.click(await screen.findByRole('tab', { name: /verification queue/i }));
     fireEvent.click(await screen.findByRole('button', { name: /review/i }));
 
     const trigger = await screen.findByText('oversized-file');
-    // Before the fix this threw "triggerNotification is not a function".
-    expect(() => fireEvent.click(trigger)).not.toThrow();
-
-    expect(await screen.findByText(/File size exceeds 5MB limit/i)).toBeInTheDocument();
+    trigger.focus();
+    vi.useFakeTimers();
+    try {
+      // Start fake timers before triggering feedback to catch an expiry timer.
+      // Before the fix this threw "triggerNotification is not a function".
+      expect(() => fireEvent.click(trigger)).not.toThrow();
+      expect(screen.getByText(/File size exceeds 5MB limit/i)).toBeInTheDocument();
+      expect(screen.getByRole('dialog', { name: 'Attention Needed' })).toBeInTheDocument();
+      act(() => vi.advanceTimersByTime(30000));
+      expect(screen.getByRole('dialog', { name: 'Attention Needed' })).toBeInTheDocument();
+    } finally {
+      vi.useRealTimers();
+    }
+    fireEvent.click(screen.getByRole('button', { name: 'OK' }));
+    expect(screen.queryByRole('dialog', { name: 'Attention Needed' })).not.toBeInTheDocument();
+    expect(trigger).toBeInTheDocument();
+    expect(trigger).toHaveFocus();
   });
 });

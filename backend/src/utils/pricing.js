@@ -44,11 +44,17 @@ function feeForType(type, semesters) {
 
 /**
  * Single-item pricing, kept for the legacy one-document-per-request path.
- * Copies are no longer factored into the price computation.
+ * Requested copies multiply the per-copy estimate; the Secretary sets the final price.
  */
 function calculateAmount(documentType, semesters, copies, type) {
   const resolved = type || LEGACY_FEES[documentType] || DEFAULT_FEE;
-  return { amount: feeForType(resolved, semesters), copies: 1 };
+  const quantity = positiveCopies(copies);
+  return { amount: feeForType(resolved, semesters) * quantity, copies: quantity };
+}
+
+function positiveCopies(value) {
+  const number = Number(value);
+  return Number.isSafeInteger(number) && number > 0 ? number : 1;
 }
 
 /**
@@ -61,9 +67,9 @@ function calculateGroupAmount(items, types = []) {
     const resolved = byName.get(item.document_type) || LEGACY_FEES[item.document_type] || DEFAULT_FEE;
     return {
       document_type: item.document_type,
-      copies: 1, // Copies removed per CN-08
+      copies: positiveCopies(item.copies),
       semesters: parseInt(item.semesters) || null,
-      amount: feeForType(resolved, item.semesters),
+      amount: feeForType(resolved, item.semesters) * positiveCopies(item.copies),
     };
   });
 

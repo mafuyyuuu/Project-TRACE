@@ -1,10 +1,11 @@
-import { useState, useRef, useCallback, useMemo } from 'react';
+import { useState, useRef, useCallback, useMemo, useEffect } from 'react';
+import { getDocumentTypes } from '@/services/referenceService';
+import useViewportPagination from '@/hooks/useViewportPagination';
 import useDashboardCore from '@/hooks/useDashboardCore';
 import { uploadDocument, intakeDocument, releaseDocument } from '@/services/documentsService';
 import { lookupStudent } from '@/services/authService';
 import { STATUS } from '@/utils/documentStatus';
 
-const ITEMS_PER_PAGE = 10;
 
 /**
  * Window 1 clerk: the counter at both ends of the pipeline.
@@ -18,11 +19,20 @@ const ITEMS_PER_PAGE = 10;
  * document?" about anything in the system. The two working queues are carved
  * out of that list here.
  */
-export default function useWindow1Dashboard(user) {
+export default function useWindow1Dashboard(user, currentTab = 'dashboard', queueTab = 'intake') {
   const core = useDashboardCore(user);
   const { documents, runAction, triggerNotification, setActiveModal, selectedDoc } = core;
 
   const [scanDocType, setScanDocType] = useState('Transcript of Records');
+  const [documentTypes, setDocumentTypes] = useState([]);
+  const [documentTypesLoading, setDocumentTypesLoading] = useState(true);
+  useEffect(() => {
+    let current = true;
+    getDocumentTypes().then(data => { if (current) setDocumentTypes(data.document_types || []); })
+      .catch(() => { if (current) triggerNotification('Document rules could not be loaded. Refresh before filing a request.', 'error'); })
+      .finally(() => { if (current) setDocumentTypesLoading(false); });
+    return () => { current = false; };
+  }, [triggerNotification]);
   const [scanFile, setScanFile] = useState(null);
   const [scanProgress, setScanProgress] = useState(0);
   const [intakeNotes, setIntakeNotes] = useState('');
@@ -34,6 +44,7 @@ export default function useWindow1Dashboard(user) {
 
   // The intake action ('approve' | 'return') staged for confirmation, or null.
   const [intakeActionToConfirm, setIntakeActionToConfirm] = useState(null);
+  const [submissionToConfirm, setSubmissionToConfirm] = useState(null);
 
   // Table pagination lives here rather than in the page component.
   const [w1IntakePage, setW1IntakePage] = useState(1);
@@ -48,6 +59,10 @@ export default function useWindow1Dashboard(user) {
     () => documents.filter((d) => d.current_status === STATUS.READY_FOR_RELEASE),
     [documents]
   );
+
+  const intakePagination = useViewportPagination({ page: w1IntakePage, setPage: setW1IntakePage, total: intakeQueue.length, enabled: currentTab === 'dashboard' && queueTab === 'intake' });
+  const releasePagination = useViewportPagination({ page: w1ReleasePage, setPage: setW1ReleasePage, total: releaseQueue.length, enabled: currentTab === 'dashboard' && queueTab === 'release' });
+  const progressPagination = useViewportPagination({ page: w1ProgressPage, setPage: setW1ProgressPage, total: documents.length, enabled: currentTab === 'tracking-desk' });
 
   /**
    * Clear a request through to the Secretary, or send it back to the student.
@@ -157,17 +172,9 @@ export default function useWindow1Dashboard(user) {
       formData.append('student_name', '');
       formData.append('document_type', docType || '');
 
-      const ok = await runAction(() => uploadDocument(formData), {
-        successMessage: (r) => `Scan filed. Tracking: ${r.tracking_number}`,
-        errorMessage: 'Scan upload failed.',
-      });
-
-      if (ok) {
-        setScanFile(null);
-        if (fileInputRef.current) fileInputRef.current.value = '';
-      }
+      setSubmissionToConfirm({ kind: 'scan', payload: formData, documentType: docType });
     },
-    [scanFile, runAction]
+    [scanFile]
   );
 
   /**
@@ -188,15 +195,28 @@ export default function useWindow1Dashboard(user) {
       formData.append('student_name', form.fullName.value);
       formData.append('document_type', form.docType.value);
 
-      const ok = await runAction(() => uploadDocument(formData), {
-        successMessage: (r) => `Walk-in request filed. Tracking: ${r.tracking_number}`,
-        errorMessage: 'Walk-in intake failed.',
-      });
-
-      if (ok) form.reset();
+      setSubmissionToConfirm({ kind: 'manual', payload: formData, form, documentType: form.docType.value, studentName: form.fullName.value });
     },
-    [runAction]
+    []
   );
+
+  const confirmWindow1Submission = useCallback(async () => {
+    if (!submissionToConfirm) return;
+    const staged = submissionToConfirm;
+    const ok = await runAction(() => uploadDocument(staged.payload), {
+      successMessage: (r) => `${staged.kind === 'scan' ? 'Scan' : 'Walk-in request'} filed. Tracking: ${r.tracking_number}`,
+      errorMessage: staged.kind === 'scan' ? 'Scan upload failed.' : 'Walk-in intake failed.',
+    });
+    if (ok) {
+      if (staged.kind === 'manual') staged.form.reset();
+      else {
+        setScanFile(null);
+        if (fileInputRef.current) fileInputRef.current.value = '';
+      }
+      setActiveModal(null);
+      setSubmissionToConfirm(null);
+    }
+  }, [submissionToConfirm, runAction, setActiveModal]);
 
   /** Autofills the walk-in form from an existing student record. */
   const handleFetchStudent = useCallback(
@@ -222,7 +242,11 @@ export default function useWindow1Dashboard(user) {
   );
 
   return {
+    documentTypes, documentTypesLoading,
     ...core,
+    submissionToConfirm,
+    confirmWindow1Submission,
+    cancelWindow1Submission: () => setSubmissionToConfirm(null),
     intakeQueue,
     releaseQueue,
     scanDocType, setScanDocType,
@@ -231,10 +255,11 @@ export default function useWindow1Dashboard(user) {
     intakeNotes, setIntakeNotes,
     intakeFile, setIntakeFile,
     fileInputRef,
-    w1IntakePage, setW1IntakePage,
-    w1ReleasePage, setW1ReleasePage,
-    w1ProgressPage, setW1ProgressPage,
-    itemsPerPage: ITEMS_PER_PAGE,
+    w1IntakePage: intakePagination.page, setW1IntakePage,
+    w1ReleasePage: releasePagination.page, setW1ReleasePage,
+    w1ProgressPage: progressPagination.page, setW1ProgressPage,
+    itemsPerPage: intakePagination.pageSize,
+    intakePagination, releasePagination, progressPagination,
     handleIntake,
     intakeActionToConfirm,
     confirmIntake,

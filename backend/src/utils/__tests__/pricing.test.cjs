@@ -91,6 +91,9 @@ describe('calculateAmount with a database-supplied type', () => {
 });
 
 describe('calculateGroupAmount', () => {
+  it('preserves quantity and multiplies a flat estimate by the number of copies', () => {
+    expect(calculateGroupAmount([{ document_type: 'Diploma', copies: 3 }], TYPES)).toMatchObject({ total: 150, items: [{ copies: 3, amount: 150 }] });
+  });
   it('sums a mixed group of flat and per-semester documents', () => {
     // TOR 8 semesters = 200, Diploma = 50
     const { total } = calculateGroupAmount(

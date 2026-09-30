@@ -2,24 +2,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import useDashboardCore from '@/hooks/useDashboardCore';
 import { uploadDocument, submitPayment, cancelDocument } from '@/services/documentsService';
 import { getDocumentTypes, getPaymentMethods } from '@/services/referenceService';
-import { STATUS, isCancellable } from '@/utils/documentStatus';
-
-/**
- * Progress-bar target for the live tracking modal, by pipeline stage.
- *
- * Eight stages now, and payment sits near the end rather than at the start:
- * a student who has been asked to pay is most of the way there.
- */
-const TRACKER_TARGETS = {
-  [STATUS.PENDING_W1_INTAKE]: 0,
-  [STATUS.PENDING_SEC_EVALUATION]: 15,
-  [STATUS.SEC_PROCESSING]: 35,
-  [STATUS.PENDING_STUDENT_PAYMENT]: 55,
-  [STATUS.PENDING_FINANCE_VERIFICATION]: 70,
-  [STATUS.PAID_PENDING_SEC_RELEASE]: 85,
-  [STATUS.SEC_OR_VERIFIED]: 90,
-  [STATUS.READY_FOR_RELEASE]: 95,
-};
+import { STATUS, PIPELINE, isCancellable } from '@/utils/documentStatus';
 
 /**
  * Student portal: request submission, checkout, cancellation, and the live
@@ -53,6 +36,8 @@ export default function useStudentDashboard(user) {
 
   // The request id staged for a cancel confirmation, or null when the dialog is closed.
   const [cancelRequestIdToConfirm, setCancelRequestIdToConfirm] = useState(null);
+  const [cancelBackToForm, setCancelBackToForm] = useState(false);
+  const [submissionToConfirm, setSubmissionToConfirm] = useState(null);
 
   /**
    * Requests that are waiting on the student rather than on a desk.
@@ -153,7 +138,8 @@ export default function useStudentDashboard(user) {
   useEffect(() => {
     if (activeModal !== 'tracking' || !selectedDoc) return undefined;
     const timer = setTimeout(() => {
-      setTrackerProgress(TRACKER_TARGETS[selectedDoc.current_status] ?? 100);
+      const index = PIPELINE.indexOf(selectedDoc.current_status);
+      setTrackerProgress(index < 0 ? 0 : index / Math.max(1, PIPELINE.length - 1) * 100);
     }, 50);
     return () => clearTimeout(timer);
   }, [activeModal, selectedDoc]);
@@ -210,30 +196,9 @@ export default function useStudentDashboard(user) {
         if (file) formData.append(`document_${index}`, file);
       });
 
-      let created = null;
-      const ok = await runAction(
-        async () => {
-          created = await uploadDocument(formData);
-          return created;
-        },
-        {
-          successMessage: (r) =>
-            r.documents?.length > 1
-              ? `${r.documents.length} documents requested. Tracking ID: ${r.tracking_number}. You will be told the amount once they are ready.`
-              : `Request submitted! Tracking ID: ${r.tracking_number}. You will be told the amount once it is ready.`,
-          errorMessage: 'Upload failed.',
-        }
-      );
-
-      if (ok && created) {
-        setSelections({});
-        // No checkout here. Nothing is payable until the College Secretary has
-        // printed the documents and priced them, which is the whole point of
-        // this pipeline — a price quoted at submission would be a guess.
-        setActiveModal(null);
-      }
+      setSubmissionToConfirm({ kind: 'request', payload: formData, count: names.length });
     },
-    [selections, user, runAction, triggerNotification, setActiveModal]
+    [selections, user, triggerNotification]
   );
 
   const handleStudentSubmitPayment = useCallback(
@@ -259,58 +224,78 @@ export default function useStudentDashboard(user) {
       formData.append('gcash_reference_no', paymentRef);
       formData.append('payment_method', selectedMethod);
 
-      const methodName = method?.name || 'Payment';
-
-      const ok = await runAction(() => submitPayment(selectedDoc.id, formData), {
-        successMessage: `${methodName} receipt submitted. Pending Finance verification!`,
-        errorMessage: 'Payment submission failed.',
-      });
-
-      if (ok) {
-        setActiveModal(null);
-        setPaymentRef('');
-        setPaymentFile(null);
-      }
+      setSubmissionToConfirm({ kind: 'payment', id: selectedDoc.id, payload: formData, methodName: method?.name || 'Payment', total: groupTotalFor(selectedDoc) });
     },
-    [paymentRef, paymentFile, selectedMethod, paymentMethods, selectedDoc, runAction, triggerNotification, setActiveModal]
+    [paymentRef, paymentFile, selectedMethod, paymentMethods, selectedDoc, triggerNotification, groupTotalFor]
   );
+
+  const confirmStudentSubmission = useCallback(async () => {
+    if (!submissionToConfirm) return;
+    const staged = submissionToConfirm;
+    const ok = await runAction(
+      () => staged.kind === 'request' ? uploadDocument(staged.payload) : submitPayment(staged.id, staged.payload),
+      {
+        successMessage: staged.kind === 'request'
+          ? (r) => `${staged.count} document${staged.count === 1 ? '' : 's'} requested. Tracking ID: ${r.tracking_number}. You will be told the amount once they are ready.`
+          : `${staged.methodName} receipt submitted. Pending Finance verification!`,
+        errorMessage: staged.kind === 'request' ? 'Upload failed.' : 'Payment submission failed.',
+      }
+    );
+    if (ok) {
+      // The write is complete before eligibility reloads. Close its confirmation
+      // now so a slow reference read cannot offer the same submission again.
+      setActiveModal(null);
+      setSubmissionToConfirm(null);
+      if (staged.kind === 'request') {
+        setSelections({});
+        setDocumentTypesLoading(true);
+        try { setDocumentTypes((await getDocumentTypes()).document_types || []); }
+        catch { setDocumentTypes([]); }
+        finally { setDocumentTypesLoading(false); }
+      }
+      else { setPaymentRef(''); setPaymentFile(null); }
+    }
+  }, [submissionToConfirm, runAction, setActiveModal]);
 
   /**
    * `isBackAction` is the "go back and change my request" path: the draft is
-   * discarded silently and the new-request modal reopens.
+   * cancelled after confirmation and the new-request modal reopens.
    */
   const handleStudentCancelRequest = useCallback(
     async (id, isBackAction = false) => {
-      if (!isBackAction) {
-        setCancelRequestIdToConfirm(id);
-        return;
-      }
-
-      const ok = await runAction(() => cancelDocument(id), {
-        successMessage: null,
-        errorMessage: 'Failed to cancel request.',
-      });
-
-      if (ok) setActiveModal('new-request');
+      setCancelRequestIdToConfirm(id);
+      setCancelBackToForm(isBackAction);
     },
-    [runAction, setActiveModal]
+    []
   );
 
   const confirmStudentCancelRequest = useCallback(async () => {
     if (!cancelRequestIdToConfirm) return;
     const ok = await runAction(() => cancelDocument(cancelRequestIdToConfirm), {
-      successMessage: 'Request cancelled successfully.',
+      successMessage: cancelBackToForm ? null : 'Request cancelled successfully.',
       errorMessage: 'Failed to cancel request.',
     });
-    if (ok) setCancelRequestIdToConfirm(null);
-  }, [cancelRequestIdToConfirm, runAction]);
+    if (ok) {
+      setCancelRequestIdToConfirm(null);
+      setDocumentTypesLoading(true);
+      try { setDocumentTypes((await getDocumentTypes()).document_types || []); }
+      catch { setDocumentTypes([]); }
+      finally { setDocumentTypesLoading(false); }
+      if (cancelBackToForm) setActiveModal('new-request');
+      setCancelBackToForm(false);
+    }
+  }, [cancelRequestIdToConfirm, cancelBackToForm, runAction, setActiveModal]);
 
   const cancelStudentCancelConfirm = useCallback(() => {
     setCancelRequestIdToConfirm(null);
+    setCancelBackToForm(false);
   }, []);
 
   return {
     ...core,
+    submissionToConfirm,
+    confirmStudentSubmission,
+    cancelStudentSubmission: () => setSubmissionToConfirm(null),
     billableGroups,
     groupTotalFor,
     isCancellable,

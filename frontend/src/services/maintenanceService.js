@@ -80,3 +80,8 @@ export async function setStaffActive(id, isActive) {
   const { data } = await api.patch(`/maintenance/staff/${id}/active`, { is_active: isActive })
   return data
 }
+
+export async function updateAccount(id, payload) {
+  const { data } = await api.put(`/maintenance/users/${id}`, payload);
+  return data;
+}

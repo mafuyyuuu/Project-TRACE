@@ -22,7 +22,7 @@ async function getColleges(req, res) {
 
 async function getDocumentTypes(req, res) {
   try {
-    res.json(await referenceService.listDocumentTypes({ includeInactive: wantsInactive(req) }));
+    res.json(await referenceService.listDocumentTypes({ includeInactive: wantsInactive(req), user: req.user }));
   } catch (err) {
     fail(res, err, 'List document types error', 'Failed to fetch document types.');
   }

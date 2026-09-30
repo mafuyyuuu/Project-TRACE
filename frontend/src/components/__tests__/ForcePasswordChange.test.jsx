@@ -66,6 +66,8 @@ describe('ForcePasswordChange', () => {
     await user.type(screen.getByLabelText('New Password'), 'a-good-password');
     await user.type(screen.getByLabelText('Confirm Password'), 'a-good-password');
     await user.click(screen.getByRole('button', { name: /set password/i }));
+    expect(updateProfile).not.toHaveBeenCalled();
+    await user.click(screen.getByRole('button', { name: 'Change Password' }));
 
     await waitFor(() => expect(updateProfile).toHaveBeenCalledWith({ password: 'a-good-password' }));
     expect(onChanged).toHaveBeenCalled();
@@ -78,14 +80,28 @@ describe('ForcePasswordChange', () => {
     await user.type(screen.getByLabelText('New Password'), 'a-good-password');
     await user.type(screen.getByLabelText('Confirm Password'), 'a-good-password');
     await user.click(screen.getByRole('button', { name: /set password/i }));
+    expect(updateProfile).not.toHaveBeenCalled();
+    await user.click(screen.getByRole('button', { name: 'Change Password' }));
 
-    expect(await screen.findByText(/Password too weak/)).toBeInTheDocument();
+    await waitFor(() => expect(screen.getByRole('dialog', { name: 'Confirm Password Change' })).toHaveTextContent('Password too weak.'));
     expect(onChanged).not.toHaveBeenCalled();
   });
 
-  it('lets the user sign out instead', async () => {
+  it('confirms before signing out instead', async () => {
     const { user, onLogout } = setup();
     await user.click(screen.getByRole('button', { name: /sign out instead/i }));
+    expect(onLogout).not.toHaveBeenCalled();
+    expect(screen.getByRole('dialog', { name: 'Log Out' })).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Log Out' }));
     expect(onLogout).toHaveBeenCalled();
+  });
+
+  it('can cancel signing out and continue choosing a password', async () => {
+    const { user, onLogout } = setup();
+    await user.click(screen.getByRole('button', { name: /sign out instead/i }));
+    await user.click(screen.getByRole('button', { name: 'Stay Signed In' }));
+    expect(onLogout).not.toHaveBeenCalled();
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(screen.getByLabelText('New Password')).toBeInTheDocument();
   });
 });

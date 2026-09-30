@@ -5,6 +5,21 @@
 CREATE DATABASE IF NOT EXISTS trace_db;
 USE trace_db;
 
+-- One-time data changes are recorded so reruns preserve later Admin edits.
+CREATE TABLE IF NOT EXISTS schema_migrations (
+  migration_key VARCHAR(100) PRIMARY KEY,
+  applied_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS colleges (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  name VARCHAR(150) NOT NULL UNIQUE,
+  short_code VARCHAR(20) NULL,
+  is_active BOOLEAN NOT NULL DEFAULT TRUE,
+  sort_order INT NOT NULL DEFAULT 0,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
 -- Users table: students, clerks, and admins
 CREATE TABLE IF NOT EXISTS users (
   id INT AUTO_INCREMENT PRIMARY KEY,
@@ -29,6 +44,16 @@ CREATE TABLE IF NOT EXISTS users (
   FOREIGN KEY (college_id) REFERENCES colleges(id) ON DELETE SET NULL,
   phone_number VARCHAR(20),
   is_active BOOLEAN DEFAULT TRUE,
+  failed_login_attempts INT NOT NULL DEFAULT 0,
+  locked_until TIMESTAMP NULL DEFAULT NULL,
+  token_version INT NOT NULL DEFAULT 0,
+  two_factor_enabled BOOLEAN NOT NULL DEFAULT FALSE,
+  pending_email VARCHAR(255) NULL,
+  -- Email-change codes use E:<six digits>; older shared codes are not trusted.
+  email_otp VARCHAR(10) NULL,
+  email_otp_expires TIMESTAMP NULL DEFAULT NULL,
+  login_otp VARCHAR(6) NULL,
+  login_otp_expires TIMESTAMP NULL DEFAULT NULL,
   -- Set when an admin creates a staff account with a temporary password;
   -- the user must choose their own before doing anything else.
   must_change_password BOOLEAN NOT NULL DEFAULT FALSE,
@@ -133,6 +158,7 @@ CREATE TABLE IF NOT EXISTS notifications (
   title VARCHAR(255) NOT NULL,
   message TEXT NOT NULL,
   type VARCHAR(50) DEFAULT 'info',
+  action_url VARCHAR(255) NULL,
   is_read BOOLEAN DEFAULT FALSE,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
@@ -162,20 +188,7 @@ CREATE TABLE IF NOT EXISTS step_logs (
 ALTER TABLE documents ADD COLUMN request_group_id VARCHAR(64) NULL AFTER tracking_number;
 CREATE INDEX idx_documents_request_group ON documents (request_group_id);
 
-CREATE TABLE IF NOT EXISTS colleges (
-  id INT AUTO_INCREMENT PRIMARY KEY,
-  name VARCHAR(150) NOT NULL UNIQUE,
-  short_code VARCHAR(20) NULL,
-  is_active BOOLEAN NOT NULL DEFAULT TRUE,
-  available_to ENUM('student', 'alumni', 'both') NOT NULL DEFAULT 'both',
-  is_repeatable BOOLEAN NOT NULL DEFAULT TRUE,
-  is_walk_in BOOLEAN NOT NULL DEFAULT FALSE,
-  requires_original BOOLEAN NOT NULL DEFAULT FALSE,
-  registrar_attachment_rule ENUM('none', 'optional', 'required') NOT NULL DEFAULT 'none',
-  is_same_day BOOLEAN NOT NULL DEFAULT FALSE,
-  sort_order INT NOT NULL DEFAULT 0,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
+
 
 -- fee_rule selects the calculation in backend/src/utils/pricing.js. Flat fees
 -- are admin-editable; per_semester_block (TOR) is not a single number, so its
@@ -191,6 +204,12 @@ CREATE TABLE IF NOT EXISTS document_types (
   attachment_label VARCHAR(255) NULL,
   attachment_helper VARCHAR(255) NULL,
   is_active BOOLEAN NOT NULL DEFAULT TRUE,
+  available_to ENUM('student', 'alumni', 'both') NOT NULL DEFAULT 'both',
+  is_repeatable BOOLEAN NOT NULL DEFAULT TRUE,
+  is_walk_in BOOLEAN NOT NULL DEFAULT FALSE,
+  requires_original BOOLEAN NOT NULL DEFAULT FALSE,
+  registrar_attachment_rule ENUM('none', 'optional', 'required') NOT NULL DEFAULT 'none',
+  is_same_day BOOLEAN NOT NULL DEFAULT FALSE,
   sort_order INT NOT NULL DEFAULT 0,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -249,3 +268,16 @@ CREATE INDEX idx_step_logs_started ON step_logs (timestamp_started);
 CREATE INDEX idx_step_logs_action ON step_logs (action_taken);
 CREATE INDEX idx_documents_status ON documents (current_status);
 CREATE INDEX idx_documents_created ON documents (created_at);
+
+-- Batch 8: browser recognition (not JWT sessions)
+CREATE TABLE IF NOT EXISTS user_devices (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    device_hash CHAR(64) NOT NULL,
+    ip_address VARCHAR(45) NULL,
+    user_agent VARCHAR(500) NULL,
+    first_seen_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    last_seen_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY uq_user_device (user_id, device_hash),
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+  );

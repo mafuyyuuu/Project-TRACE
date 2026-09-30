@@ -1,4 +1,5 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom'
+import { useEffect } from 'react'
 import LoginPage from '@/pages/LoginPage'
 import SignupPage from '@/pages/SignupPage'
 import ForgotPasswordPage from '@/pages/ForgotPasswordPage'
@@ -12,9 +13,18 @@ function ProtectedRoute({ children }) {
   return children
 }
 
+function NavigationNotifications() {
+  const location = useLocation();
+  useEffect(() => {
+    window.dispatchEvent(new Event('trace:notification-navigation'));
+  }, [location.key]);
+  return null;
+}
+
 function App() {
   return (
     <BrowserRouter>
+      <NavigationNotifications />
       <Routes>
         <Route path="/" element={<LoginPage />} />
         <Route path="/signup" element={<SignupPage />} />
@@ -31,4 +41,3 @@ function App() {
 }
 
 export default App
-

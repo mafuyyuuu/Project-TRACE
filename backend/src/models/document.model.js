@@ -30,6 +30,14 @@ function countByTypeAndStudent(documentType, studentId, executor = pool) {
   return executor.query('SELECT COUNT(*) as count FROM documents WHERE document_type = ? AND student_id = ?', [documentType, studentId]).then(([rows]) => rows[0].count);
 }
 
+function countBlockingRequests(documentType, studentId, excludeId = null, executor = pool) {
+  const { LEGACY_STATUS } = require('../utils/documentStatus');
+  return executor.query(`SELECT COUNT(*) AS count FROM documents
+    WHERE document_type = ? AND student_id = ? AND COALESCE(current_status, '') <> ?
+    AND (? IS NULL OR id <> ?)`, [documentType, studentId, LEGACY_STATUS.REJECTED, excludeId, excludeId])
+    .then(([rows]) => Number(rows[0].count));
+}
+
 function findById(documentId, executor = pool) {
   return executor
     .query('SELECT * FROM documents WHERE id = ?', [documentId])
@@ -403,6 +411,7 @@ function updateOrVerification(documentId, clerkId, executor = pool) {
 }
 
 module.exports = {
+  countBlockingRequests,
   insert,
   countByTypeAndStudent,
   updateAttachment,

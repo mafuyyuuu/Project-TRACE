@@ -19,6 +19,9 @@ import { navItemsForUser } from '@/utils/navigation';
 
 // Each icon is a path set rather than a component so the list below stays readable.
 const ICONS = {
+  book: <><path strokeWidth="2" strokeLinejoin="round" d="M12 6c-3-2-6-2-9-1v14c3-1 6-1 9 1 3-2 6-2 9-1V5c-3-1-6-1-9 1Z"/><path strokeWidth="2" d="M12 6v14"/></>,
+  shield: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 3 3 7v5c0 5 9 9 9 9s9-4 9-9V7l-9-4Zm-4 9 3 3 5-6" />,
+  template: <><rect x="3" y="3" width="18" height="18" rx="2" strokeWidth="2" /><path strokeLinecap="round" strokeWidth="2" d="M3 8h18M8 8v13M12 12h5M12 16h5" /></>,
   dashboard: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="m2.25 12 8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25"/>,
   document: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>,
   card: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/>,
@@ -34,7 +37,7 @@ const ICONS = {
 
 function Icon({ name, className }) {
   return (
-    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <svg aria-hidden="true" className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
       {ICONS[name]}
     </svg>
   );
@@ -53,19 +56,19 @@ export default function SidebarNav({
   const linkClass = (isActive) =>
     showLabels
       ? `flex items-center gap-3 w-full rounded-2xl px-4 py-3 text-sm font-bold transition-all ${
-          isActive ? 'bg-[#15803d] text-white shadow-md' : 'text-gray-500 hover:bg-gray-50 hover:text-gray-800'
+          isActive ? 'bg-[#15803d] text-white shadow-md' : 'text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-gray-800 dark:hover:text-gray-100'
         }`
       : `w-12 h-12 rounded-2xl flex items-center justify-center transition-all ${
-          isActive ? 'bg-[#15803d] text-white shadow-md' : 'text-gray-400 hover:bg-gray-50 hover:text-gray-600'
+          isActive ? 'bg-[#15803d] text-white shadow-md' : 'text-gray-400 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-gray-600 dark:hover:text-gray-300'
         }`;
 
   const actionClass = (danger) =>
     showLabels
-      ? `flex items-center gap-3 w-full rounded-2xl px-4 py-3 text-sm font-bold text-gray-500 transition-colors ${
-          danger ? 'hover:bg-red-50 hover:text-red-500' : 'hover:bg-gray-50 hover:text-gray-800'
+      ? `flex items-center gap-3 w-full rounded-2xl px-4 py-3 text-sm font-bold text-gray-500 dark:text-gray-400 transition-colors ${
+          danger ? 'hover:bg-red-50 dark:hover:bg-red-950/40 hover:text-red-500 dark:hover:text-red-300' : 'hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-gray-800 dark:hover:text-gray-100'
         }`
-      : `w-12 h-12 rounded-full flex items-center justify-center text-gray-400 transition-colors ${
-          danger ? 'hover:bg-red-50 hover:text-red-500' : 'hover:bg-gray-50 hover:text-gray-600'
+      : `w-12 h-12 rounded-full flex items-center justify-center text-gray-400 dark:text-gray-400 transition-colors ${
+          danger ? 'hover:bg-red-50 dark:hover:bg-red-950/40 hover:text-red-500 dark:hover:text-red-300' : 'hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-gray-600 dark:hover:text-gray-300'
         }`;
 
   return (
@@ -77,6 +80,8 @@ export default function SidebarNav({
             to={item.to}
             onClick={onNavigate}
             title={item.label}
+            aria-label={item.label}
+            aria-current={tab === item.tab ? 'page' : undefined}
             className={linkClass(tab === item.tab)}
           >
             <Icon name={item.icon} className="w-6 h-6 shrink-0" />
@@ -85,17 +90,17 @@ export default function SidebarNav({
         ))}
       </nav>
 
-      <div className={showLabels ? 'flex flex-col gap-2 mt-6 pt-6 border-t border-gray-100' : 'flex flex-col gap-4'}>
+      <div className={showLabels ? 'flex flex-col gap-2 mt-6 pt-6 border-t border-gray-100 dark:border-gray-700' : 'flex flex-col gap-4'}>
         <button
           onClick={() => {
             onOpenSettings();
             onNavigate();
           }}
-          title="Settings"
+          title="Preferences"
           className={actionClass(false)}
         >
           <Icon name="cog" className="w-6 h-6 shrink-0" />
-          {showLabels && <span>Settings</span>}
+          {showLabels && <span>Preferences</span>}
         </button>
         <button onClick={onLogout} title="Logout" className={actionClass(true)}>
           <Icon name="logout" className="w-6 h-6 shrink-0" />

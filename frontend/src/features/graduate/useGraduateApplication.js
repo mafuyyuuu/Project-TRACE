@@ -1,3 +1,4 @@
+import { getMe } from '@/services/authService';
 import { useState, useEffect, useCallback } from 'react';
 import {
   getFormFields,
@@ -20,6 +21,7 @@ export default function useGraduateApplication(user) {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [answersToConfirm, setAnswersToConfirm] = useState(null);
 
   const load = useCallback(async () => {
     try {
@@ -46,6 +48,11 @@ export default function useGraduateApplication(user) {
     setAnswers((current) => ({ ...current, [fieldKey]: value }));
   }, []);
 
+  const dismissNotification = useCallback(() => {
+    setError('');
+    setSuccess('');
+  }, []);
+
   /**
    * Client-side required check purely for fast feedback — the server validates
    * against the same definitions and is the authority.
@@ -69,23 +76,40 @@ export default function useGraduateApplication(user) {
         return;
       }
 
+      setAnswersToConfirm({ ...answers });
+    },
+    [answers, missingRequired]
+  );
+
+  const confirmSubmission = useCallback(async () => {
+    if (!answersToConfirm) return;
       setSubmitting(true);
       try {
-        const res = await submitApplication(answers);
+        const res = await submitApplication(answersToConfirm);
         setSuccess(res.message || 'Application submitted.');
         setAnswers({});
+        setAnswersToConfirm(null);
         const mine = await getMyApplications();
         setApplications(mine.applications || []);
+        try {
+          const { user: fresh } = await getMe();
+          localStorage.setItem('trace_user', JSON.stringify(fresh));
+          window.dispatchEvent(new CustomEvent('trace-user-updated', { detail: fresh }));
+        } catch {
+          // The application is already saved; a failed refresh is not a failed submission.
+          setSuccess(`${res.message || 'Application submitted.'} Refresh the page to update dashboard access.`);
+        }
       } catch (err) {
         setError(err.response?.data?.error || 'Failed to submit application.');
       } finally {
         setSubmitting(false);
       }
-    },
-    [answers, missingRequired]
-  );
+  }, [answersToConfirm]);
 
   return {
+    answersToConfirm,
+    confirmSubmission,
+    cancelSubmission: () => setAnswersToConfirm(null),
     fields,
     answers,
     applications,
@@ -93,6 +117,7 @@ export default function useGraduateApplication(user) {
     submitting,
     error,
     success,
+    dismissNotification,
     updateAnswer,
     handleSubmit,
     reload: load,

@@ -48,7 +48,21 @@ const profilePictureStorage = multer.diskStorage({
   },
 });
 
-const idProofUpload = multer({ storage: idProofStorage });
+const proofOptions = {
+  limits: { fileSize: 10 * 1024 * 1024 },
+  fileFilter: (req, file, cb) => {
+    const extensions = ['.jpg', '.jpeg', '.png', '.webp', '.gif', '.bmp', '.tiff', '.pdf'];
+    const valid = extensions.includes(path.extname(file.originalname).toLowerCase()) &&
+      (file.mimetype.startsWith('image/') || file.mimetype === 'application/pdf');
+    cb(valid ? null : badRequest('ID proof must be an image or PDF, at most 10 MB.'), valid);
+  },
+};
+const idProofUpload = multer({ storage: idProofStorage, ...proofOptions });
+const temporaryIdStorage = multer.diskStorage({
+  destination: (req, file, cb) => cb(null, UPLOAD_DIR),
+  filename: (req, file, cb) => cb(null, 'ocr-temp-' + crypto.randomBytes(16).toString('hex') + path.extname(file.originalname).toLowerCase()),
+});
+const signupOcrUpload = multer({ storage: temporaryIdStorage, ...proofOptions });
 
 const documentUpload = multer({
   storage: documentStorage,
@@ -88,4 +102,4 @@ const profilePictureUpload = multer({
   },
 });
 
-module.exports = { idProofUpload, documentUpload, profilePictureUpload, UPLOAD_DIR };
+module.exports = { idProofUpload, signupOcrUpload, documentUpload, profilePictureUpload, UPLOAD_DIR };

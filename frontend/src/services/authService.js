@@ -90,8 +90,8 @@ export async function getUsers() {
  * Look up a student by student ID.
  * @param {string} studentId
  */
-export async function lookupStudent(studentId) {
-  const { data } = await api.get(`/auth/student/${studentId}`)
+export async function lookupStudent(studentId, options = {}) {
+  const { data } = await api.get(`/auth/student/${encodeURIComponent(studentId)}`, options)
   return data
 }
 
@@ -112,5 +112,21 @@ export async function forgotPassword(identifier) {
  */
 export async function resetPassword({ token, password }) {
   const { data } = await api.post('/auth/reset-password', { token, password })
+  return data
+}
+
+export async function verify2FA(payload) {
+  const { data } = await api.post('/auth/verify-2fa', payload)
+  return data
+}
+
+export async function extractSignupId(file, options = {}) {
+  const form = new FormData();
+  form.append('id_proof', file);
+  const { data } = await api.post('/ai/extract-id', form, options);
+  return data;
+}
+export async function verifyEmailChange(otp) {
+  const { data } = await api.post('/auth/verify-email-change', { otp })
   return data
 }

@@ -61,6 +61,8 @@ export function isCancellable(status) {
 }
 
 const PROGRESS = {
+  [LEGACY_STATUS.REJECTED]: 0,
+  [LEGACY_STATUS.APPROVED]: 0,
   [STATUS.PENDING_W1_INTAKE]: 10,
   [STATUS.PENDING_SEC_EVALUATION]: 25,
   [STATUS.SEC_PROCESSING]: 40,
@@ -147,4 +149,14 @@ export function getAttachmentHelper(type) {
   if (type === 'Graduation Clearance') return 'signed clearance form';
   if (type === 'Certificate of Good Moral') return 'student ID photo';
   return 'optional files';
+}
+
+/** Legacy records are closed, not an active stage of the current pipeline. */
+export function isLegacyClosed(status) {
+  return Object.values(LEGACY_STATUS).includes(status);
+}
+export function getStatusTone(status, fallback = 'bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300') {
+  if (status === LEGACY_STATUS.REJECTED || status === 'rejected') return 'bg-red-50 dark:bg-red-950/40 text-red-700 dark:text-red-300';
+  if (status === STATUS.COMPLETED || status === LEGACY_STATUS.APPROVED) return 'bg-emerald-50 dark:bg-emerald-950/40 text-green-700 dark:text-green-300';
+  return fallback;
 }

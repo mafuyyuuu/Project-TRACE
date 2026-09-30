@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor, fireEvent } from '@testing-library/react';
+import { render, screen, waitFor, fireEvent, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { STATUS } from '@/utils/documentStatus';
 
@@ -30,6 +30,7 @@ vi.mock('@/services/documentsService', () => ({
   scanReceipt: vi.fn(),
   logWalkInPayment: vi.fn(),
   releaseDocument: vi.fn(),
+  uploadDeferredOR: vi.fn(),
   cancelDocument: vi.fn(),
 }));
 
@@ -134,6 +135,25 @@ async function renderDashboard(ui) {
   return utils;
 }
 
+describe('Student merged history', () => {
+  it('uses the legacy URL filter during navigation and keeps one table', async () => {
+    const props = { user: USERS.student, setViewImageUrl: vi.fn() };
+    const view = await renderDashboard(<StudentDashboard {...props} currentTab="history" />);
+    expect(screen.getByRole('button', { name: 'All Requests' })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getAllByRole('table')).toHaveLength(1);
+    expect(screen.getByText('TRC-INTK')).toBeInTheDocument();
+    view.rerender(<StudentDashboard {...props} currentTab="payment-history" />);
+    expect(screen.getByRole('button', { name: 'Payments', exact: true })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.queryByText('TRC-INTK')).not.toBeInTheDocument();
+    expect(screen.getByText('TRC-DONE')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'All Requests' }));
+    expect(screen.getByText('TRC-INTK')).toBeInTheDocument();
+    view.rerender(<StudentDashboard {...props} currentTab="request-history" />);
+    expect(screen.getByRole('button', { name: 'All Requests' })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getAllByRole('table')).toHaveLength(1);
+  });
+});
+
 /** The tracking id a queue row shows, so a queue can be identified by content. */
 const idFor = (status) => `#TRC-${CODE[status]}`;
 
@@ -143,6 +163,8 @@ describe('Window 1 — intake at the front, release at the back', () => {
       <Window1Dashboard user={USERS.window1} currentTab="dashboard" setViewImageUrl={vi.fn()} />
     );
     expect(await screen.findByText(/INTAKE QUEUE/i)).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: /Release/ })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('tab', { name: /Release/ }));
     expect(screen.getByText(/RELEASE DESK/i)).toBeInTheDocument();
   });
 
@@ -151,7 +173,10 @@ describe('Window 1 — intake at the front, release at the back', () => {
       <Window1Dashboard user={USERS.window1} currentTab="dashboard" setViewImageUrl={vi.fn()} />
     );
     expect(await screen.findByText(idFor(STATUS.PENDING_W1_INTAKE))).toBeInTheDocument();
+    expect(screen.queryByText(idFor(STATUS.READY_FOR_RELEASE))).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('tab', { name: /Release/ }));
     expect(screen.getByText(idFor(STATUS.READY_FOR_RELEASE))).toBeInTheDocument();
+    expect(screen.queryByText(idFor(STATUS.PENDING_W1_INTAKE))).not.toBeInTheDocument();
     // Work belonging to another desk must not appear in either queue.
     expect(screen.queryByText(idFor(STATUS.SEC_PROCESSING))).not.toBeInTheDocument();
     expect(screen.queryByText(idFor(STATUS.PENDING_FINANCE_VERIFICATION))).not.toBeInTheDocument();
@@ -161,6 +186,7 @@ describe('Window 1 — intake at the front, release at the back', () => {
     await renderDashboard(
       <Window1Dashboard user={USERS.window1} currentTab="dashboard" setViewImageUrl={vi.fn()} />
     );
+    fireEvent.click(await screen.findByRole('tab', { name: /Release/ }));
     expect(await screen.findByText('OR-2026-0100')).toBeInTheDocument();
   });
 
@@ -244,13 +270,38 @@ describe('Secretary — four passes over the same request', () => {
 });
 
 describe('Finance — awaiting payment, then verification', () => {
-  // Batch 5 / WI-06: the two queues became tabs, one table visible at a time
-  // instead of stacked cards, so "showing" a queue means selecting its tab
-  // first — same treatment as the Secretary dashboard's four queues.
-  it('shows both money queue tabs', async () => {
+  // Queue tables are selected independently; the deferred-copy queue also
+  // retains paid documents after Secretary verification and release.
+  it('shows all three queues with real count badges', async () => {
     await renderDashboard(<FinanceDashboard user={USERS.finance} setViewImageUrl={vi.fn()} />);
-    expect(await screen.findByRole('tab', { name: /awaiting payment/i })).toBeInTheDocument();
-    expect(screen.getByRole('tab', { name: /verification queue/i })).toBeInTheDocument();
+    const awaiting = await screen.findByRole('tab', { name: /awaiting payment/i });
+    const verification = screen.getByRole('tab', { name: /verification queue/i });
+    const transactions = screen.getByRole('tab', { name: /transactions & or copies/i });
+    expect(within(awaiting).getByText('1')).toHaveClass('rounded-full');
+    expect(within(verification).getByText('1')).toHaveClass('rounded-full');
+    expect(within(transactions).getByText('4')).toHaveClass('rounded-full');
+    expect(screen.getAllByRole('table')).toHaveLength(1);
+  });
+
+  it('selects paid transactions with the keyboard and keeps earlier queues out of that table', async () => {
+    const user = userEvent.setup();
+    await renderDashboard(<FinanceDashboard user={USERS.finance} setViewImageUrl={vi.fn()} />);
+    const awaiting = screen.getByRole('tab', { name: /awaiting payment/i });
+    awaiting.focus();
+    await user.keyboard('{End}');
+    const transactions = screen.getByRole('tab', { name: /transactions & or copies/i });
+    expect(transactions).toHaveFocus();
+    expect(transactions).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getAllByRole('table')).toHaveLength(1);
+    for (const status of [STATUS.PAID_PENDING_SEC_RELEASE, STATUS.SEC_OR_VERIFIED, STATUS.READY_FOR_RELEASE, STATUS.COMPLETED]) {
+      expect(screen.getByText(idFor(status))).toBeInTheDocument();
+    }
+    expect(screen.queryByText(idFor(STATUS.PENDING_STUDENT_PAYMENT))).not.toBeInTheDocument();
+    expect(screen.queryByText(idFor(STATUS.PENDING_FINANCE_VERIFICATION))).not.toBeInTheDocument();
+    await user.keyboard('{Home}');
+    expect(awaiting).toHaveFocus();
+    expect(screen.getByText(idFor(STATUS.PENDING_STUDENT_PAYMENT))).toBeInTheDocument();
+    expect(screen.queryByText(idFor(STATUS.COMPLETED))).not.toBeInTheDocument();
   });
 
   it('keeps billed and claimed payments apart', async () => {
@@ -284,11 +335,12 @@ describe('Student — asked for money only once there is an amount', () => {
     expect(await screen.findByText(/Action Required — Payment/i)).toBeInTheDocument();
   });
 
-  it('offers to pay the amount the Secretary set', async () => {
+  it('offers one grouped payment action for the amount the Secretary set', async () => {
     await renderDashboard(
       <StudentDashboard user={USERS.student} currentTab="dashboard" setViewImageUrl={vi.fn()} />
     );
-    expect((await screen.findAllByRole('button', { name: /pay ₱250\.00/i })).length).toBeGreaterThan(0);
+    expect(await screen.findByRole('button', { name: 'Pay ₱250.00 (1 document)' })).toBeInTheDocument();
+    expect(screen.getAllByRole('button', { name: /^pay /i })).toHaveLength(1);
   });
 
   it('never offers to pay for a request that has not been priced', async () => {
@@ -319,7 +371,7 @@ describe('Student — asked for money only once there is an amount', () => {
     await renderDashboard(
       <StudentDashboard user={USERS.student} currentTab="dashboard" setViewImageUrl={vi.fn()} />
     );
-    const [payButton] = await screen.findAllByRole('button', { name: /pay ₱250\.00/i });
+    const payButton = await screen.findByRole('button', { name: 'Pay ₱250.00 (1 document)' });
     await user.click(payButton);
 
     expect(await screen.findByAltText('GCash QR Code')).toBeInTheDocument();
@@ -332,7 +384,7 @@ describe('Student — asked for money only once there is an amount', () => {
     await renderDashboard(
       <StudentDashboard user={USERS.student} currentTab="dashboard" setViewImageUrl={vi.fn()} />
     );
-    const [payButton] = await screen.findAllByRole('button', { name: /pay ₱250\.00/i });
+    const payButton = await screen.findByRole('button', { name: 'Pay ₱250.00 (1 document)' });
     await user.click(payButton);
     await user.click(await screen.findByRole('button', { name: 'Credit / Debit Card' }));
 
@@ -347,7 +399,7 @@ describe('Student — asked for money only once there is an amount', () => {
     await renderDashboard(
       <StudentDashboard user={USERS.student} currentTab="dashboard" setViewImageUrl={vi.fn()} />
     );
-    const [payButton] = await screen.findAllByRole('button', { name: /pay ₱250\.00/i });
+    const payButton = await screen.findByRole('button', { name: 'Pay ₱250.00 (1 document)' });
     await user.click(payButton);
     await user.click(await screen.findByRole('button', { name: 'Credit / Debit Card' }));
 
@@ -362,8 +414,10 @@ describe('Student — asked for money only once there is an amount', () => {
     // so a real button click gets silently vetoed by native constraint
     // validation here. Submitting the form directly exercises the same
     // `onSubmit` handler without that jsdom-only false negative.
-    fireEvent.submit(screen.getByRole('button', { name: /submit payment/i }).closest('form'));
+    fireEvent.submit(screen.getByRole('button', { name: /submit payment/i }).form);
 
+    expect(documentsService.submitPayment).not.toHaveBeenCalled();
+    await user.click(screen.getByRole('button', { name: 'Confirm Payment' }));
     await waitFor(() => expect(documentsService.submitPayment).toHaveBeenCalled());
     const [, formData] = documentsService.submitPayment.mock.calls[0];
     expect(formData.get('payment_method')).toBe('card');

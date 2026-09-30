@@ -34,6 +34,7 @@ async function authenticate(req, res, next) {
       role: decoded.role,
       full_name: decoded.full_name,
       desk_assignment: decoded.desk_assignment,
+      user_type: decoded.user_type,
     };
     next();
   } catch (err) {

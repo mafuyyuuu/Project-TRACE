@@ -8,14 +8,14 @@ const { pool } = require('../config/db');
 
 function findActiveByStudentId(studentId, executor = pool) {
   return executor
-    .query('SELECT u.*, (SELECT COUNT(*) FROM grad_applications WHERE student_id = u.id) > 0 AS has_grad_application FROM users u WHERE u.student_id = ? AND u.is_active = TRUE', [studentId])
+    .query('SELECT u.*, (SELECT COUNT(*) FROM grad_applications WHERE student_id = u.student_id) > 0 AS has_grad_application FROM users u WHERE u.student_id = ? AND u.is_active = TRUE', [studentId])
     .then(([rows]) => rows);
 }
 
 function getProfileById(userId, executor = pool) {
   return executor
     .query(
-      'SELECT u.id, u.student_id, u.email, u.full_name, u.role, u.user_type, u.desk_assignment, u.is_active, u.phone_number, u.course, u.college_id, u.id_proof_path, u.enrollment_status, u.study_load, u.must_change_password, u.profile_picture, u.created_at, (SELECT COUNT(*) FROM grad_applications WHERE student_id = u.id) > 0 AS has_grad_application FROM users u WHERE u.id = ?',
+      'SELECT u.id, u.student_id, u.email, u.pending_email, u.full_name, u.role, u.user_type, u.desk_assignment, u.is_active, u.phone_number, u.course, u.college_id, u.id_proof_path, u.enrollment_status, u.study_load, u.must_change_password, u.profile_picture, u.created_at, (SELECT COUNT(*) FROM grad_applications WHERE student_id = u.student_id) > 0 AS has_grad_application FROM users u WHERE u.id = ?',
       [userId]
     )
     .then(([rows]) => rows);
@@ -34,12 +34,12 @@ function deleteById(userId, executor = pool) {
 function createUser(data, executor = pool) {
   const {
     student_id, full_name, email, phone_number, password_hash,
-    role = 'student', user_type, course, id_proof_path, verification_status,
+    role = 'student', user_type, course, college_id, id_proof_path, verification_status,
   } = data;
   return executor.query(
-    `INSERT INTO users (student_id, full_name, email, phone_number, password_hash, role, user_type, course, id_proof_path, verification_status)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    [student_id, full_name, email || null, phone_number, password_hash, role, user_type || 'student', course || null, id_proof_path, verification_status]
+    `INSERT INTO users (student_id, full_name, email, phone_number, password_hash, role, user_type, course, college_id, id_proof_path, verification_status)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [student_id, full_name, email || null, phone_number, password_hash, role, user_type || 'student', course || null, college_id || null, id_proof_path, verification_status]
   );
 }
 
@@ -60,13 +60,21 @@ function setVerificationStatus(userId, newStatus, executor = pool) {
 
 function listAllUsers(executor = pool) {
   return executor
-    .query('SELECT id, student_id, full_name, email, course, college_id, role, verification_status, enrollment_status, study_load, is_active, created_at FROM users ORDER BY created_at DESC')
+    .query('SELECT id, student_id, full_name, email, phone_number, user_type, desk_assignment, course, college_id, role, verification_status, enrollment_status, study_load, is_active, created_at FROM users ORDER BY created_at DESC')
     .then(([rows]) => rows);
 }
 
 function findStudentBasicInfo(studentId, executor = pool) {
   return executor
-    .query('SELECT student_id, full_name, email, course, college_id, id_proof_path, user_type FROM users WHERE student_id = ? AND role = "student"', [studentId])
+    .query(`SELECT u.id, u.student_id, u.full_name, u.email, u.phone_number, u.course, u.college_id,
+      u.id_proof_path, u.user_type, u.role, u.is_active, u.profile_picture, u.created_at,
+      u.enrollment_status, u.study_load, c.name AS college_name,
+      p.extension_name, p.birth_date, p.place_of_birth, p.sex, p.civil_status, p.maiden_name,
+      p.home_address, p.last_attendance_year, p.is_transfer_student, p.previous_school,
+      p.elem_school, p.elem_grad_year, p.jhs_school, p.jhs_grad_year, p.shs_school, p.shs_grad_year
+      FROM users u LEFT JOIN colleges c ON c.id = u.college_id
+      LEFT JOIN student_profiles p ON p.user_id = u.id
+      WHERE u.student_id = ? AND u.role = 'student'`, [studentId])
     .then(([rows]) => rows);
 }
 
@@ -109,7 +117,7 @@ function findStudentIdById(userId, executor = pool) {
 
 function findCourseById(userId, executor = pool) {
   return executor
-    .query('SELECT course FROM users WHERE id = ?', [userId])
+    .query('SELECT COALESCE(c.name, u.course) AS course, u.college_id FROM users u LEFT JOIN colleges c ON c.id = u.college_id WHERE u.id = ?', [userId])
     .then(([rows]) => rows);
 }
 
@@ -123,8 +131,8 @@ function findSecretaryClerks(course, executor = pool) {
   let query = 'SELECT id FROM users WHERE role = "clerk" AND desk_assignment = "Secretary"';
   const params = [];
   if (course) {
-    query += ' AND course = ?';
-    params.push(course);
+    query += ' AND (college_id = (SELECT id FROM colleges WHERE name = ?) OR (college_id IS NULL AND course = ?))';
+    params.push(course, course);
   }
   return executor.query(query, params).then(([rows]) => rows);
 }
@@ -153,7 +161,7 @@ function findClerkByEmployeeId(employeeId, executor = pool) {
 
 function findStudentCourseByStudentId(studentId, executor = pool) {
   return executor
-    .query('SELECT course FROM users WHERE student_id = ?', [studentId])
+    .query('SELECT course, college_id FROM users WHERE student_id = ?', [studentId])
     .then(([rows]) => rows);
 }
 
@@ -184,7 +192,7 @@ function listStaff({ includeInactive = true } = {}, executor = pool) {
   const activeClause = includeInactive ? '' : ' AND is_active = TRUE';
   return executor
     .query(
-      `SELECT id, student_id, full_name, email, role, desk_assignment, course,
+      `SELECT id, student_id, full_name, email, phone_number, user_type, college_id, role, desk_assignment, course,
               is_active, must_change_password, created_at
        FROM users WHERE role IN ('clerk', 'admin')${activeClause}
        ORDER BY role, desk_assignment, full_name`
@@ -194,6 +202,12 @@ function listStaff({ includeInactive = true } = {}, executor = pool) {
 
 function findById(userId, executor = pool) {
   return executor.query('SELECT * FROM users WHERE id = ?', [userId]).then(([rows]) => rows);
+}
+
+/** Serialize request-policy checks for the same student, including concurrent submissions. */
+function findStudentForPolicy(studentId, executor = pool, lock = false) {
+  return executor.query(`SELECT id, student_id, user_type, course, college_id FROM users
+    WHERE student_id = ? AND role = 'student'${lock ? ' FOR UPDATE' : ''}`, [studentId]).then(([rows]) => rows);
 }
 
 /**
@@ -348,11 +362,11 @@ function getGlobalSecurityLogs(executor = pool) {
 
 
 function updateEmailOTP(userId, otp, expires, executor = pool) {
-  return executor.query('UPDATE users SET email_otp = ?, email_otp_expires = ? WHERE id = ?', [otp, expires, userId]);
+  return executor.query('UPDATE users SET login_otp = ?, login_otp_expires = ? WHERE id = ?', [otp, expires, userId]);
 }
 
 function clearEmailOTP(userId, executor = pool) {
-  return executor.query('UPDATE users SET email_otp = NULL, email_otp_expires = NULL WHERE id = ?', [userId]);
+  return executor.query('UPDATE users SET login_otp = NULL, login_otp_expires = NULL WHERE id = ?', [userId]);
 }
 
 function requestEmailChange(userId, email, otp, expires, executor = pool) {
@@ -367,7 +381,13 @@ function incrementTokenVersion(userId, executor = pool) {
   return executor.query('UPDATE users SET token_version = token_version + 1 WHERE id = ?', [userId]);
 }
 
+function findActiveAdmins(executor = pool) {
+  return executor.query('SELECT id FROM users WHERE role = "admin" AND is_active = TRUE').then(([rows]) => rows);
+}
+
 module.exports = {
+  findStudentForPolicy,
+  findActiveAdmins,
   updateEmailOTP,
   clearEmailOTP,
   requestEmailChange,

@@ -23,7 +23,7 @@ router.post('/reset-password', passwordResetLimiter, authController.resetPasswor
 router.get('/pending-students', authenticate, authController.getPendingStudents);
 router.post('/verify-student/:id', authenticate, authController.verifyStudent);
 router.get('/users', authenticate, authController.getUsers);
-router.get('/student/:studentId', authenticate, authController.getStudent);
+router.get('/student/:studentId', authenticate, requireRole('admin', 'clerk'), authController.getStudent);
 
 // Profile & in-app notifications
 router.put('/profile', authenticate, authController.updateProfile);

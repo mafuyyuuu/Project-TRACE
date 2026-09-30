@@ -1,6 +1,7 @@
 const { pool } = require('../config/db');
 const documentModel = require('../models/document.model');
 const documentMessageModel = require('../models/documentMessage.model');
+const documentPolicy = require('./documentPolicy.service');
 const stepLogModel = require('../models/stepLog.model');
 const userModel = require('../models/user.model');
 const aiEngine = require('./aiEngine.service');
@@ -114,6 +115,10 @@ async function uploadDocument(user, body, files) {
   const fileList = Array.isArray(files) ? files : files ? [files] : [];
 
   const requested = parseRequestedItems(body);
+  for (const item of requested) {
+    const copies = Number(item.copies ?? 1);
+    if (!Number.isInteger(copies) || copies < 1 || copies > 2147483647) throw badRequest('Copies must be a positive whole number within the supported range.');
+  }
   let { student_id, student_name } = body;
 
   // A student's request is always filed against their own record. Trusting the
@@ -135,6 +140,7 @@ async function uploadDocument(user, body, files) {
     requested.map((i) => i.document_type)
   );
   const { total, items: priced } = calculateGroupAmount(requested, types);
+  if (priced.some(item => !Number.isFinite(item.amount) || item.amount > 99999999.99)) throw badRequest('This quantity exceeds the supported request amount.');
 
   // A walk-in is the same request, typed in by the clerk the student is
   // standing in front of. Only the audit trail records which channel it came
@@ -151,14 +157,17 @@ async function uploadDocument(user, body, files) {
 
     // Determine if the student is an alumni for sequence offset
     let isAlumni = false;
-    const [targetStudentRows] = await connection.query('SELECT user_type FROM users WHERE student_id = ? LIMIT 1', [student_id]);
-    if (targetStudentRows.length > 0 && targetStudentRows[0].user_type === 'alumni') {
+    const targetStudent = await documentPolicy.resolveStudent(student_id, connection, true);
+    if (targetStudent?.user_type === 'alumni') {
       isAlumni = true;
     }
 
     for (const [index, item] of priced.entries()) {
+      const type = types.find(type => type.name === item.document_type);
       const trackingNumber = generateTrackingNumber();
       const attachment = fileForItem(fileList, index);
+      await documentPolicy.assertAllowed(type, targetStudent, { counter: isWalkIn, copies: requested[index].copies ?? 1, executor: connection,
+        allowUnidentified: isWalkIn && !student_id && Boolean(attachment) });
 
       const previousCount = await documentModel.countByTypeAndStudent(item.document_type, student_id, connection);
       const sequenceNumberStr = `${item.document_type} – Request No. ${previousCount + (isAlumni ? 2 : 1)}`;
@@ -279,7 +288,7 @@ async function runOcrPass(user, { documentId, trackingNumber, item, attachment }
   await documentModel.updateOcrData(documentId, {
     raw_text: ocrData.raw_text,
     extracted_data_json: JSON.stringify(ocrData.extracted_data),
-    confidence: ocrData.confidence || (aiVerified ? 92.5 : 45.0),
+    confidence: Number.isFinite(ocrData.extracted_data.confidence) ? ocrData.extracted_data.confidence : null,
     student_id: ocrData.extracted_data.student_id,
     form_type: ocrData.extracted_data.form_type,
   });
@@ -366,7 +375,10 @@ async function listDocuments(user, query) {
       // TOR/Diploma to Window 1 at intake — honouring that would delete those
       // documents from the secretary queue they still have to pass through.
       const secUser = await userModel.findCourseById(user.id);
-      const collegeSql =
+      const secretaryCollegeId = secUser[0]?.college_id;
+      const collegeSql = secretaryCollegeId
+        ? 'd.student_id IN (SELECT student_id FROM users WHERE college_id = ? OR (college_id IS NULL AND course = ?))'
+        :
         secUser.length > 0 && secUser[0].course
           ? 'd.student_id IN (SELECT student_id FROM users WHERE course = ?)'
           : '1 = 1';
@@ -379,6 +391,7 @@ async function listDocuments(user, query) {
                       (SELECT id FROM users WHERE desk_assignment = 'Secretary'))))`
       );
       params.push(user.id);
+      if (secretaryCollegeId) params.push(secretaryCollegeId);
       if (collegeSql !== '1 = 1') {
         params.push(secUser[0].course);
       }
@@ -793,10 +806,15 @@ async function verifyPayment(user, documentId, { action, notes, or_number, or_da
 async function resolveCollege(studentId) {
   try {
     const courseRows = await userModel.findStudentCourseByStudentId(studentId);
+    if (courseRows[0]?.college_id) {
+      const [college] = await referenceModel.findCollegeById(courseRows[0].college_id);
+      if (college) return { course: college.name, collegeCode: college.short_code || null };
+    }
     const course = courseRows[0]?.course || null;
     if (!course) return { course: null, collegeCode: null };
     const collegeRows = await referenceModel.findCollegeByName(course);
-    return { course, collegeCode: collegeRows[0]?.short_code || null };
+    const exact = collegeRows.find(college => college.name === course);
+    return { course: exact?.name || null, collegeCode: exact?.short_code || null };
   } catch (err) {
     console.warn('⚠️ Could not resolve college for routing:', err.message);
     return { course: null, collegeCode: null };
@@ -869,6 +887,10 @@ async function intakeDocument(user, documentId, { action, notes }, file) {
     }
 
     if (action === 'approve') {
+      const type = await documentPolicy.assertDocument(doc, { executor: connection, allowUnidentified: true });
+      if (documentPolicy.enabled(type.requires_attachment) && !doc.file_path && !file) {
+        throw badRequest('Attach the required supporting document before approving intake.');
+      }
       assertTransition(doc.current_status, STATUS.PENDING_SEC_EVALUATION);
       await documentModel.updateStatus(documentId, STATUS.PENDING_SEC_EVALUATION, connection);
     } else if (!notes) {
@@ -990,8 +1012,16 @@ async function acceptForProcessing(user, documentId, body) {
 
     // Rejecting sends it back one desk, to the counter that accepted the
     // paperwork in the first place.
+    // Return saves corrected fields too, so retirement must be checked on
+    // both decisions. An unchanged historical type remains processable.
+    if (document_type && document_type !== doc.document_type && documentPolicy.isRetired(document_type)) {
+      throw badRequest(documentPolicy.RETIREMENT_REASON);
+    }
     const newStatus = action === 'approve' ? STATUS.SEC_PROCESSING : STATUS.PENDING_W1_INTAKE;
     assertTransition(doc.current_status, newStatus);
+    if (action === 'approve') await documentPolicy.assertDocument(doc, {
+      studentId: student_id || doc.student_id, documentType: document_type || doc.document_type, executor: connection,
+    });
 
     await documentModel.updateEvaluation(
       documentId, newStatus, student_id, student_name, document_type,
@@ -1513,7 +1543,7 @@ async function uploadDeferredOR(user, documentId, file) {
   const officialReceiptPath = `/uploads/${file.filename}`;
   
   // Find document
-  const doc = await documentModel.findById(documentId);
+  const [doc] = await documentModel.findById(documentId);
   if (!doc) throw notFound('Document not found.');
   
   // Only update if it doesn't already have one, or if we allow overwriting.

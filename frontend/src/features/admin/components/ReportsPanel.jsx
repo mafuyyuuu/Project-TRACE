@@ -1,7 +1,11 @@
+import { INPUT_LIMITS } from '@/utils/inputLimits';
+import { useState } from 'react';
+import StudentProfileModal from '@/components/StudentProfileModal';
+import { formatDateTime } from '@/utils/formatters';
 import useReports from '@/features/admin/useReports';
 import DashboardLoading from '@/components/DashboardLoading';
 import DashboardAlerts from '@/components/DashboardAlerts';
-import { getStatusLabel, PIPELINE, LEGACY_STATUS } from '@/utils/documentStatus';
+import { getStatusLabel, getStatusTone, PIPELINE, LEGACY_STATUS } from '@/utils/documentStatus';
 import { formatPeso } from '@/utils/pricing';
 
 // The live pipeline, plus the terminals only pre-refactor records can hold —
@@ -17,18 +21,18 @@ const EXPORT_CATEGORIES = [
 ];
 
 const inputClass =
-  'w-full bg-gray-50 border border-gray-200 rounded-xl p-2.5 text-xs font-semibold outline-none focus:ring-2 focus:ring-[#15803d]/20 focus:bg-white transition-all';
+  'w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-2.5 text-xs font-semibold outline-none focus:ring-2 focus:ring-[#15803d]/20 focus:bg-white dark:focus:bg-gray-900 transition-all';
 
 function StatCard({ label, value, tone = 'default' }) {
   const tones = {
-    default: 'text-gray-900',
-    good: 'text-[#15803d]',
-    warn: 'text-amber-600',
-    bad: 'text-red-600',
+    default: 'text-gray-900 dark:text-gray-100',
+    good: 'text-[#15803d] dark:text-green-300',
+    warn: 'text-amber-600 dark:text-amber-300',
+    bad: 'text-red-600 dark:text-red-300',
   };
   return (
-    <div className="bg-white rounded-2xl p-4 border border-gray-200 shadow-sm">
-      <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block">{label}</span>
+    <div className="bg-white dark:bg-gray-900 rounded-2xl p-4 border border-gray-200 dark:border-gray-700 shadow-sm">
+      <span className="text-[10px] font-bold text-gray-400 dark:text-gray-400 uppercase tracking-widest block">{label}</span>
       <span className={`text-2xl font-display font-black mt-1 block ${tones[tone]}`}>{value}</span>
     </div>
   );
@@ -42,7 +46,9 @@ function StatCard({ label, value, tone = 'default' }) {
  * at.
  */
 export default function ReportsPanel({ user, currentTab }) {
-  const r = useReports(user, currentTab);
+  const { tableRef, ...r } = useReports(user, currentTab);
+  const [exportOption, setExportOption] = useState('documents');
+  const [viewProfileId, setViewProfileId] = useState(null);
 
   if (r.loading) return <DashboardLoading />;
 
@@ -50,34 +56,35 @@ export default function ReportsPanel({ user, currentTab }) {
 
   return (
     <>
-      <DashboardAlerts success={r.success} error={r.error} />
+      <StudentProfileModal open={!!viewProfileId} studentId={viewProfileId} onClose={() => setViewProfileId(null)} />
+      <DashboardAlerts success={r.success} error={r.error} onDismiss={r.dismissNotification} />
 
       <div className="space-y-6 animate-fade-in">
         <div>
-          <h2 className="text-2xl sm:text-3xl font-display font-black text-gray-900 tracking-tight">
-            Reports & <span className="text-[#15803d]">Export</span>
+          <h2 className="text-2xl sm:text-3xl font-display font-black text-gray-900 dark:text-gray-100 tracking-tight">
+            Reports & <span className="text-[#15803d] dark:text-green-300">Export</span>
           </h2>
-          <p className="text-xs text-gray-400 mt-1 font-semibold">
+          <p className="text-xs text-gray-400 dark:text-gray-400 mt-1 font-semibold">
             Filter records, review the totals, and export to CSV.
           </p>
         </div>
 
         {/* Filters */}
-        <div className="bg-white rounded-3xl p-6 shadow-sm border border-gray-200">
-          <h3 className="text-sm font-bold text-gray-900 mb-4">Filters</h3>
+        <div className="bg-white dark:bg-gray-900 rounded-3xl p-6 shadow-sm border border-gray-200 dark:border-gray-700">
+          <h3 className="text-sm font-bold text-gray-900 dark:text-gray-100 mb-4">Filters</h3>
           <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-3">
             <div className="flex flex-col gap-1.5">
-              <label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">From</label>
+              <label className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest">From</label>
               <input type="date" className={inputClass} value={r.filters.dateFrom}
                 onChange={(e) => r.updateFilter('dateFrom', e.target.value)} />
             </div>
             <div className="flex flex-col gap-1.5">
-              <label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">To</label>
+              <label className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest">To</label>
               <input type="date" className={inputClass} value={r.filters.dateTo}
                 onChange={(e) => r.updateFilter('dateTo', e.target.value)} />
             </div>
             <div className="flex flex-col gap-1.5">
-              <label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Status</label>
+              <label className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest">Status</label>
               <select className={`${inputClass} cursor-pointer`} value={r.filters.status}
                 onChange={(e) => r.updateFilter('status', e.target.value)}>
                 <option value="">All statuses</option>
@@ -85,12 +92,12 @@ export default function ReportsPanel({ user, currentTab }) {
               </select>
             </div>
             <div className="flex flex-col gap-1.5">
-              <label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Document Type</label>
-              <input className={inputClass} placeholder="e.g. Diploma" value={r.filters.documentType}
+              <label className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest">Document Type</label>
+              <input maxLength={INPUT_LIMITS.referenceName} className={inputClass} placeholder="e.g. Diploma" value={r.filters.documentType}
                 onChange={(e) => r.updateFilter('documentType', e.target.value)} />
             </div>
             <div className="flex flex-col gap-1.5">
-              <label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Payment</label>
+              <label className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest">Payment</label>
               <select className={`${inputClass} cursor-pointer`} value={r.filters.paymentStatus}
                 onChange={(e) => r.updateFilter('paymentStatus', e.target.value)}>
                 <option value="">Any</option>
@@ -100,19 +107,16 @@ export default function ReportsPanel({ user, currentTab }) {
             </div>
           </div>
 
-          <div className="flex flex-wrap gap-3 mt-4 pt-4 border-t border-gray-100">
+          <div className="flex flex-wrap gap-3 mt-4 pt-4 border-t border-gray-100 dark:border-gray-700">
             <button onClick={r.applyFilters}
               className="px-6 py-2.5 bg-[#15803d] hover:bg-[#166534] text-white rounded-xl text-xs font-bold uppercase tracking-wider">
               Apply Filters
             </button>
             <button onClick={r.resetFilters}
-              className="px-6 py-2.5 border border-gray-200 text-gray-700 rounded-xl text-xs font-bold hover:bg-gray-50">
+              className="px-6 py-2.5 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 rounded-xl text-xs font-bold hover:bg-gray-50 dark:hover:bg-gray-800">
               Reset
             </button>
-            <button onClick={r.downloadDocuments} disabled={r.exporting === 'documents'}
-              className="px-6 py-2.5 border border-[#15803d] text-[#15803d] rounded-xl text-xs font-bold hover:bg-emerald-50 disabled:opacity-50 ml-auto">
-              {r.exporting === 'documents' ? 'Exporting...' : 'Export These Records (CSV)'}
-            </button>
+
           </div>
         </div>
 
@@ -127,41 +131,34 @@ export default function ReportsPanel({ user, currentTab }) {
           </div>
         )}
 
-        {/* Student export by category */}
-        <div className="bg-white rounded-3xl p-6 shadow-sm border border-gray-200">
-          <h3 className="text-sm font-bold text-gray-900">Export Student Records</h3>
-          <p className="text-[10px] text-gray-400 mt-1 mb-4">
-            Downloads a CSV of student details with their request counts.
-          </p>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-            {EXPORT_CATEGORIES.map((c) => (
-              <button key={c.key} onClick={() => r.downloadStudents(c.key)} disabled={Boolean(r.exporting)}
-                className="text-left border border-gray-200 rounded-2xl p-4 hover:border-[#15803d] hover:bg-emerald-50/40 transition-all disabled:opacity-50">
-                <span className="text-xs font-bold text-gray-900 block">
-                  {r.exporting === c.key ? 'Exporting...' : c.label}
-                </span>
-                <span className="text-[10px] text-gray-400">{c.hint}</span>
-              </button>
-            ))}
-          </div>
+        <div className="bg-white dark:bg-gray-900 rounded-3xl p-6 border border-gray-200 dark:border-gray-700 flex flex-col sm:flex-row gap-3">
+          <label className="flex-1 text-sm font-bold">Export options
+            <select value={exportOption} onChange={e => setExportOption(e.target.value)} className={inputClass} disabled={Boolean(r.exporting)}>
+              <option value="documents">Filtered document records (CSV)</option>
+              {EXPORT_CATEGORIES.map(c => <option key={c.key} value={c.key}>{c.label} (CSV)</option>)}
+            </select>
+          </label>
+          <button type="button" disabled={Boolean(r.exporting)} onClick={() => exportOption === 'documents' ? r.downloadDocuments() : r.downloadStudents(exportOption)} className="px-5 py-3 rounded-xl bg-[#15803d] text-white font-bold disabled:opacity-50">{r.exporting ? 'Exporting…' : 'Export'}</button>
         </div>
 
         {/* Filtered records */}
-        <div className="bg-white rounded-3xl shadow-sm border border-gray-200 overflow-hidden">
-          <div className="p-5 border-b border-gray-100 flex items-center justify-between">
-            <h3 className="text-sm font-bold text-gray-900">Records</h3>
+        <div className="bg-white dark:bg-gray-900 rounded-3xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+          <div className="p-5 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between">
+            <h3 className="text-sm font-bold text-gray-900 dark:text-gray-100">Records</h3>
             {r.report && (
-              <span className="text-[10px] font-bold text-gray-400">
+              <span className="text-[10px] font-bold text-gray-400 dark:text-gray-400">
                 Page {r.report.page} of {r.report.totalPages || 1}
               </span>
             )}
           </div>
 
-          <div className="max-h-[30rem] overflow-y-auto">
-            <table className="w-full text-left">
-              <thead className="bg-gray-50 sticky top-0">
-                <tr className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">
-                  <th className="py-3 px-5">Date</th>
+          <div ref={tableRef} className="max-h-[60vh] overflow-y-auto overflow-x-auto">
+            <table className="w-full text-left table-fixed min-w-[1120px]">
+              <colgroup>{[180,180,160,180,160,120,90,100].map((width, index) => <col key={index} style={{ width }} />)}</colgroup>
+              <thead className="bg-gray-50 dark:bg-gray-800 sticky top-0">
+                <tr className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest">
+                  <th className="py-3 px-5">Requested On</th>
+                  <th className="py-3 px-3">Last Updated</th>
                   <th className="py-3 px-5">Tracking</th>
                   <th className="py-3">Student</th>
                   <th className="py-3">Document</th>
@@ -172,32 +169,33 @@ export default function ReportsPanel({ user, currentTab }) {
               </thead>
               <tbody>
                 {(r.report?.documents || []).map((d) => (
-                  <tr key={d.id} className="border-b border-gray-50 hover:bg-gray-50/50">
-                    <td className="py-3 px-5 text-xs text-gray-500">{new Date(d.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}</td>
-                    <td className="py-3 px-5 text-[11px] font-mono text-gray-700">{d.tracking_number}</td>
+                  <tr key={d.id} className="border-b border-gray-50 dark:border-gray-700 hover:bg-gray-50/50 dark:hover:bg-gray-800/50">
+                    <td className="py-3 px-5 text-xs text-gray-500 dark:text-gray-400">{formatDateTime(d.created_at)}</td>
+                    <td className="py-3 px-3 text-xs text-gray-500 dark:text-gray-400">{formatDateTime(d.updated_at)}</td>
+                    <td className="py-3 px-5 break-all text-[11px] font-mono text-gray-700 dark:text-gray-300">{d.tracking_number}</td>
                     <td className="py-3">
-                      <div className="text-xs font-bold text-gray-900">{d.student_name || '—'}</div>
-                      <div className="text-[10px] text-gray-400 font-mono">{d.student_id || '—'}</div>
+                      <button type="button" disabled={!d.student_id} onClick={() => setViewProfileId(d.student_id)} className="text-xs font-bold text-blue-700 dark:text-blue-300 hover:underline select-text break-words text-left focus-visible:ring-2 focus-visible:ring-blue-500">{d.student_name || '—'}</button>
+                      <div className="text-[10px] text-gray-400 dark:text-gray-400 font-mono select-text break-words">{d.student_id || '—'}</div>
                     </td>
-                    <td className="py-3 text-xs text-gray-600">{d.document_type || '—'}</td>
-                    <td className="py-3 text-xs text-gray-600">{getStatusLabel(d.current_status)}</td>
+                    <td className="py-3 pr-2 break-words text-xs text-gray-600 dark:text-gray-300">{d.document_type || '—'}</td>
+                    <td className="py-3 pr-2 break-words text-xs"><span className={getStatusTone(d.current_status, 'text-gray-600 dark:text-gray-300')}>{getStatusLabel(d.current_status)}</span></td>
                     <td className="py-3">
                       <span className={`text-[10px] font-bold px-2 py-1 rounded-full ${
                         d.payment_status === 'PAID'
-                          ? 'bg-emerald-50 text-[#15803d]'
-                          : 'bg-amber-50 text-amber-700'
+                          ? 'bg-emerald-50 dark:bg-emerald-950/40 text-[#15803d] dark:text-green-300'
+                          : 'bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300'
                       }`}>
                         {d.payment_status}
                       </span>
                     </td>
-                    <td className="py-3 pr-5 text-right text-xs font-bold text-gray-900">
+                    <td className="py-3 pr-5 text-right text-xs font-bold text-gray-900 dark:text-gray-100">
                       {formatPeso(d.amount)}
                     </td>
                   </tr>
                 ))}
                 {(r.report?.documents || []).length === 0 && (
                   <tr>
-                    <td colSpan={7} className="py-10 text-center text-xs text-gray-400 font-semibold">
+                    <td colSpan={8} className="py-10 text-center text-xs text-gray-400 dark:text-gray-400 font-semibold">
                       No records match these filters.
                     </td>
                   </tr>
@@ -207,13 +205,13 @@ export default function ReportsPanel({ user, currentTab }) {
           </div>
 
           {r.report && r.report.totalPages > 1 && (
-            <div className="p-4 border-t border-gray-100 flex justify-center gap-2">
+            <div className="p-4 border-t border-gray-100 dark:border-gray-700 flex justify-center gap-2">
               <button onClick={() => r.goToPage(r.page - 1)} disabled={r.page <= 1}
-                className="px-4 py-2 text-xs font-bold border border-gray-200 rounded-lg disabled:opacity-40 hover:bg-gray-50">
+                className="px-4 py-2 text-xs font-bold border border-gray-200 dark:border-gray-700 rounded-lg disabled:opacity-40 hover:bg-gray-50 dark:hover:bg-gray-800">
                 Previous
               </button>
               <button onClick={() => r.goToPage(r.page + 1)} disabled={r.page >= r.report.totalPages}
-                className="px-4 py-2 text-xs font-bold border border-gray-200 rounded-lg disabled:opacity-40 hover:bg-gray-50">
+                className="px-4 py-2 text-xs font-bold border border-gray-200 dark:border-gray-700 rounded-lg disabled:opacity-40 hover:bg-gray-50 dark:hover:bg-gray-800">
                 Next
               </button>
             </div>

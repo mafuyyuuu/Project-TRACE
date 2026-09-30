@@ -1,5 +1,6 @@
+import HelpPage from '@/pages/HelpPage';
 import { useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useLocation } from 'react-router-dom';
 import useAuth from '@/hooks/useAuth';
 import ImageViewerModal from '@/components/ImageViewerModal';
 import ForcePasswordChange from '@/components/ForcePasswordChange';
@@ -22,6 +23,7 @@ import GraduateApplication from '@/features/graduate/GraduateApplication';
 export default function DashboardPage() {
   const { user, logout, updateCachedUser } = useAuth();
   const [searchParams] = useSearchParams();
+  const location = useLocation();
   const currentTab = searchParams.get('tab') || 'dashboard';
 
   const [viewImageUrl, setViewImageUrl] = useState(null);
@@ -38,7 +40,7 @@ export default function DashboardPage() {
   // An account created with an admin-set temporary password cannot use the
   // system until it has its own. This replaces the dashboard rather than
   // overlaying it, so there is nothing to dismiss.
-  if (user?.user_type === 'alumni' && !user?.has_grad_application) {
+  if (isAlumni && !user?.has_grad_application) {
     return <GraduateApplication user={user} />;
   }
 
@@ -52,6 +54,8 @@ export default function DashboardPage() {
     );
   }
 
+  if (currentTab === 'help') return <HelpPage user={user} />;
+
   return (
     <div className="space-y-8 animate-fade-in relative pb-16">
       {/* Graduates/alumni fill in the Registrar's application from its own tab.
@@ -62,7 +66,7 @@ export default function DashboardPage() {
       {isFinance && <FinanceDashboard {...props} />}
       {isWindow1 && <Window1Dashboard {...props} />}
       {isSecretary && <SecretaryDashboard {...props} />}
-      {isAdmin && <AdminDashboard {...props} />}
+      {isAdmin && <AdminDashboard {...props} reviewAccountId={searchParams.get('reviewAccount')} reviewNavigationKey={searchParams.has('reviewAccount') ? location.key : null} />}
 
       {/* GLOBAL IMAGE VIEWER MODAL */}
       <ImageViewerModal viewImageUrl={viewImageUrl} setViewImageUrl={setViewImageUrl} />

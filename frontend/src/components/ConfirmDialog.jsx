@@ -1,4 +1,4 @@
-import { useRef } from 'react';
+import { useId, useRef } from 'react';
 import ModalShell from '@/components/ModalShell';
 
 /**
@@ -8,6 +8,8 @@ import ModalShell from '@/components/ModalShell';
  */
 export default function ConfirmDialog({
   open,
+  children,
+  maxWidth = 'max-w-md',
   title,
   message,
   variant = 'neutral',
@@ -19,6 +21,7 @@ export default function ConfirmDialog({
   onCancel,
 }) {
   const cancelButtonRef = useRef(null);
+  const descriptionId = useId();
   const lines = Array.isArray(message) ? message.filter(Boolean) : [message];
 
   return (
@@ -26,11 +29,13 @@ export default function ConfirmDialog({
       open={open}
       onClose={onCancel}
       title={title}
-      maxWidth="max-w-md"
+      maxWidth={maxWidth}
       closeOnBackdrop={!loading}
       closeOnEsc={!loading}
       showCloseButton={!loading}
       initialFocusRef={cancelButtonRef}
+      descriptionId={descriptionId}
+      busy={loading}
       footer={
         <div className="flex flex-col sm:flex-row gap-3">
           <button
@@ -38,7 +43,7 @@ export default function ConfirmDialog({
             ref={cancelButtonRef}
             onClick={onCancel}
             disabled={loading}
-            className="flex-1 px-5 py-3 rounded-2xl text-xs font-bold border border-gray-200 text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-50"
+            className="flex-1 px-5 py-3 rounded-2xl text-xs font-bold border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors disabled:opacity-50"
           >
             {cancelLabel}
           </button>
@@ -47,7 +52,7 @@ export default function ConfirmDialog({
             onClick={onConfirm}
             disabled={loading}
             className={`flex-1 px-5 py-3 rounded-2xl text-xs font-bold text-white shadow-sm disabled:opacity-50 transition-colors ${
-              variant === 'destructive' ? 'bg-red-600 hover:bg-red-700' : 'bg-[#15803d] hover:bg-[#166534]'
+              variant === 'destructive' ? 'bg-red-600 dark:bg-red-600 hover:bg-red-700 dark:hover:bg-red-700' : 'bg-[#15803d] hover:bg-[#166534]'
             }`}
           >
             {loading ? loadingLabel : confirmLabel}
@@ -55,14 +60,17 @@ export default function ConfirmDialog({
         </div>
       }
     >
-      {lines.map((line, i) => (
+      <div id={descriptionId}>
+        {lines.map((line, i) => (
         <p
           key={i}
-          className={i === 0 ? 'text-sm text-gray-600 leading-relaxed' : 'text-xs text-gray-500 font-medium mt-2 leading-relaxed'}
+          className={i === 0 ? 'text-sm text-gray-600 dark:text-gray-300 leading-relaxed' : 'text-xs text-gray-500 dark:text-gray-400 font-medium mt-2 leading-relaxed'}
         >
           {line}
         </p>
-      ))}
+        ))}
+        {children}
+      </div>
     </ModalShell>
   );
 }

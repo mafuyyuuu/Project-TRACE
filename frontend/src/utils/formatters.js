@@ -41,3 +41,11 @@ export function formatDuration(minutes) {
   if (hours < 24) return `${hours.toFixed(1)} hrs`;
   return `${(hours / 24).toFixed(1)} days`;
 }
+
+/** Registrar timestamps use Philippine time regardless of the viewer's device zone. */
+export function formatDateTime(value) {
+  if (!value) return '—';
+  const date = new Date(value);
+  if (!Number.isFinite(date.getTime())) return '—';
+  return new Intl.DateTimeFormat('en-PH', { timeZone: 'Asia/Manila', year: 'numeric', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }).format(date);
+}

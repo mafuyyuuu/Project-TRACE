@@ -1,4 +1,5 @@
 const authService = require('../services/auth.service');
+const deviceLogin = require('../services/deviceLogin.service');
 
 /**
  * Thin HTTP layer for /api/auth. Each handler unpacks the request, calls the
@@ -13,7 +14,9 @@ function fail(res, err, logLabel, fallbackMessage) {
 
 async function login(req, res) {
   try {
-    res.json(await authService.login(req.body, req.ip, req.headers['user-agent']));
+    const result = await authService.login(req.body, req.ip, req.headers['user-agent']);
+    await setDeviceCookie(req, res, result);
+    res.json(result);
   } catch (err) {
     fail(res, err, 'Login error', 'Internal server error.');
   }
@@ -61,7 +64,7 @@ async function getUsers(req, res) {
 
 async function getStudent(req, res) {
   try {
-    res.json(await authService.lookupStudent(req.params.studentId));
+    res.json(await authService.lookupStudent(req.params.studentId, req.user));
   } catch (err) {
     fail(res, err, 'Student lookup error', 'Failed to look up student.');
   }
@@ -115,7 +118,38 @@ async function resetPassword(req, res) {
   }
 }
 
+async function setDeviceCookie(req, res, result) {
+  if (!result.token || !result.user) return;
+  const value = await deviceLogin.recordLogin(result.user, req.headers.cookie, req.ip, req.headers['user-agent']);
+  if (value) res.cookie(deviceLogin.COOKIE_NAME, value, deviceLogin.COOKIE_OPTIONS);
+}
+
+async function verify2FA(req, res) {
+  try {
+    const result = await authService.verify2FA(req.body.temp_token, req.body.otp, req.ip, req.headers['user-agent']);
+    await setDeviceCookie(req, res, result);
+    res.json(result);
+  } catch (err) { fail(res, err, 'OTP login error', 'Could not verify login.'); }
+}
+async function verifyEmailChange(req, res) {
+  try { res.json(await authService.verifyEmailChange(req.user.id, req.body.otp)); }
+  catch (err) { fail(res, err, 'Email verification error', 'Could not verify email.'); }
+}
+async function getSecurityLogs(req, res) {
+  try { res.json(await authService.getSecurityLogs(req.user.id)); }
+  catch (err) { fail(res, err, 'Security logs error', 'Could not load security logs.'); }
+}
+async function getGlobalSecurityLogs(req, res) {
+  try { res.json(await authService.getGlobalSecurityLogs()); }
+  catch (err) { fail(res, err, 'Global security logs error', 'Could not load security logs.'); }
+}
+async function logoutAll(req, res) {
+  try { res.json(await authService.logoutAll(req.user.id)); }
+  catch (err) { fail(res, err, 'Global logout error', 'Could not close sessions.'); }
+}
+
 module.exports = {
+  verify2FA, verifyEmailChange, getSecurityLogs, getGlobalSecurityLogs, logoutAll,
   login,
   getMe,
   register,

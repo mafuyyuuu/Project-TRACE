@@ -731,3 +731,39 @@ docker compose exec mysql mysql -uroot -p"$DB_PASSWORD" trace_db \
 **See also:** [`DEPLOYMENT_GUIDE.md`](DEPLOYMENT_GUIDE.md) for the deployment steps in order ·
 [`../README.md`](../README.md) for local setup and test accounts ·
 [`BACKEND_GUIDE.md`](BACKEND_GUIDE.md) for endpoints and schema.
+
+
+## Batch 8 Migration and Recognition-Cookie Acceptance
+
+No new environment variables are required. Existing `FRONTEND_URL`, SMTP values, database configuration, and `AI_ENGINE_URL` remain authoritative.
+
+Before rolling out the Batch 8 backend, back up the target database and review `backend/database/migrate_batch8.js`. With existing migrations already applied and the intended database configured, run from the repository root:
+
+```sh
+node backend/database/migrate_batch8.js
+```
+
+The script creates `user_devices`, adds nullable `notifications.action_url`, reconciles auth columns (lockout, token version, pending email, and OTP/2FA fields), and adds separate login OTP code/expiry. Reruns tolerate existing tables/columns without overwriting their types or updating user records. It is explicit, not an API startup action. It has **not been run by this implementation session**. Apply it during a controlled backend rollout, then deploy the corresponding backend/frontend together, then verify a complete login, a second login from the same browser, and a login from a separate browser/profile. Expect first/new-browser notices, no repeated known-browser notice, and an internal Security link. Confirm pending signup notices open the matching admin review; verify SMTP delivery separately from bell delivery.
+
+Axios includes credentials while JWT authentication remains in its existing header. The HttpOnly recognition cookie is scoped to `/api/auth` for one year. HTTPS frontend configuration uses `Secure` plus `SameSite=None`; local HTTP uses `SameSite=Lax`. The existing CORS allowlist must include the exact frontend origin and credential support remains enabled. HTTPS API access is required for Secure cookies.
+
+Brave/Safari privacy controls can block cross-site cookies even with those attributes. Prefer a same-site frontend/API domain arrangement or a same-origin `/api` proxy when persistent recognition is required; confirm the cookie is set and sent in the actual browser. A cleared/blocked cookie can generate repeat new-browser notices. Do not disable browser privacy settings or treat this cookie as authentication. No browser/device integration acceptance is claimed from mocked service tests.
+
+Older shared OTP challenges are not accepted by the separated flows. Sign in again for a fresh login code; for a pending email change, save the desired address again with the current password to request a fresh email code. The read-only database metadata check found the original auth columns in the configured database, despite their absence from repository DDL; separate login OTP columns still require migration.
+
+The AI timeout is 15 seconds per request, covering response parsing. Test a genuine alumni Diploma registration against the configured engine before calling SU-08 accepted; this session tested controlled timeout/fallback cases without creating live accounts or uploading real proofs.
+
+
+## Batch 8b Migration and Acceptance
+
+No new environment variables or dependencies are required. Review the migration and back up the intended database/uploads before rollout. Apply existing base migrations first, then run explicitly from the repository root:
+
+```sh
+node backend/database/migrate_8b.js
+```
+
+This adds policy columns to `document_types`, creates `document_type_colleges`, reconciles `users.college_id`/its foreign key, backfills only byte-exact college-name matches, enforces Honorable Dismissal's nonrepeat flag, and inserts four missing counter types as **inactive, zero-fee drafts**. Existing type records/fees/activation are preserved. Unmatched college assignments remain null for Admin review. Legacy policy columns previously placed on `colleges` are not dropped. Fresh schema imports now create colleges before users. DDL may commit independently in MySQL; errors other than a duplicate column propagate, and the migration can be rerun after resolving them. No migration was applied during implementation.
+
+Deploy the backend/schema and frontend together, and rebuild the separate AI-engine container for `/ocr/identity` and its parser. Imports do not execute the 8b migration, and the API does not migrate on startup. Admin must review fees and activate the counter drafts; zero is a placeholder, not an approved charge. The photocopy policy remains pending.
+
+Before live acceptance, verify new alumni login identifiers and saved college IDs, exact-only legacy backfill, forged/cross-college/counter-only requests, simultaneous Honorable Dismissal attempts, cancellation retry, protected profile/proof access, and rollback on a failed college-restriction write against MySQL. Test genuine ID/diploma images against the engine, including timeout/manual fallback and temporary-file cleanup. PDF upload acceptance does not guarantee OCR extraction. Synthetic browser/API and mocked tests do not establish live database/OCR acceptance, and desktop emulation does not replace a physical phone.

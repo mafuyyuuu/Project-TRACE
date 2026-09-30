@@ -4,9 +4,10 @@ import { renderHook, act, waitFor } from '@testing-library/react';
 vi.mock('@/services/authService', () => ({
   updateProfile: vi.fn(),
   uploadProfilePicture: vi.fn(),
+  verifyEmailChange: vi.fn(), getMe: vi.fn(),
 }));
 
-import { updateProfile, uploadProfilePicture } from '@/services/authService';
+import { updateProfile, uploadProfilePicture, verifyEmailChange, getMe } from '@/services/authService';
 import useProfileSettings from '@/hooks/useProfileSettings';
 
 const USER = {
@@ -39,7 +40,9 @@ describe('useProfileSettings', () => {
     updateProfile.mockResolvedValue({ message: 'ok' });
     const { result } = renderHook(() => useProfileSettings(USER));
 
-    await act(async () => result.current.saveProfile());
+    let saved;
+    await act(async () => { saved = await result.current.saveProfile(); });
+    expect(saved).toBe(true);
 
     await waitFor(() => expect(result.current.success).toBe('Profile updated successfully.'));
     expect(result.current.error).toBe('');
@@ -49,7 +52,9 @@ describe('useProfileSettings', () => {
     updateProfile.mockRejectedValue({ response: { data: { error: 'Email already in use.' } } });
     const { result } = renderHook(() => useProfileSettings(USER));
 
-    await act(async () => result.current.saveProfile());
+    let saved;
+    await act(async () => { saved = await result.current.saveProfile(); });
+    expect(saved).toBe(false);
 
     await waitFor(() => expect(result.current.error).toBe('Email already in use.'));
     expect(result.current.success).toBe('');
@@ -137,5 +142,35 @@ describe('useProfileSettings', () => {
 
     act(() => result.current.resetFeedback());
     expect(result.current.success).toBe('');
+  });
+});
+
+
+describe('email verification and persisted contact data', () => {
+  it('keeps the current email cached until OTP verification, while saving the phone', async () => {
+    updateProfile.mockResolvedValue({ email_verification_required: true, pending_email: 'new@example.test' });
+    verifyEmailChange.mockResolvedValue({ message: 'Email verified.' });
+    getMe.mockResolvedValue({ user: { ...USER, email: 'new@example.test', phone_number: '09123456789' } });
+    const { result } = renderHook(() => useProfileSettings(USER));
+    act(() => { result.current.setField('email', 'new@example.test'); result.current.setField('phone_number', '09123456789'); });
+    await act(async () => result.current.saveProfile());
+    expect(JSON.parse(localStorage.getItem('trace_user'))).toMatchObject({ email: USER.email, phone_number: '09123456789' });
+    expect(result.current.pendingEmail).toBe('new@example.test');
+    act(() => result.current.setEmailOtp('123456'));
+    await act(async () => result.current.confirmEmail());
+    expect(verifyEmailChange).toHaveBeenCalledWith('123456');
+    expect(JSON.parse(localStorage.getItem('trace_user')).email).toBe('new@example.test');
+    expect(result.current.pendingEmail).toBe('');
+  });
+  it('preserves the pending address and current cached email when verification fails', async () => {
+    updateProfile.mockResolvedValue({ email_verification_required: true, pending_email: 'new@example.test' });
+    verifyEmailChange.mockRejectedValue({ response: { data: { error: 'Verification code expired.' } } });
+    const { result } = renderHook(() => useProfileSettings(USER));
+    act(() => result.current.setField('email', 'new@example.test'));
+    await act(async () => result.current.saveProfile());
+    await act(async () => result.current.confirmEmail());
+    expect(result.current.error).toBe('Verification code expired.');
+    expect(result.current.pendingEmail).toBe('new@example.test');
+    expect(JSON.parse(localStorage.getItem('trace_user')).email).toBe(USER.email);
   });
 });
