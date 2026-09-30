@@ -37,6 +37,7 @@ vi.mock('@/services/authService', () => ({
 
 import * as documentsService from '@/services/documentsService';
 import * as authService from '@/services/authService';
+import api from '@/services/api';
 
 import StudentDashboard from '@/features/student/StudentDashboard';
 import FinanceDashboard from '@/features/finance/FinanceDashboard';
@@ -171,6 +172,16 @@ describe('role isolation', () => {
       <AdminDashboard user={USERS.admin} currentTab="admin-logs" setViewImageUrl={vi.fn()} />
     );
     await waitFor(() => expect(documentsService.getActivityLogs).toHaveBeenCalled());
+  });
+
+  it('opening the Security tab renders the existing panel and loads its logs', async () => {
+    const get = vi.spyOn(api, 'get').mockResolvedValue({ data: [] });
+    await renderDashboard(
+      <AdminDashboard user={USERS.admin} currentTab="admin-security" setViewImageUrl={vi.fn()} />
+    );
+    expect(await screen.findByRole('heading', { name: 'Global Security Audit Log' })).toBeInTheDocument();
+    expect(await screen.findByText('No security logs found')).toBeInTheDocument();
+    expect(get).toHaveBeenCalledWith('/auth/global-security-logs');
   });
 });
 
