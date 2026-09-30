@@ -2,7 +2,7 @@
 export default function HelpPage({ user }) {
   const desk = user?.desk_assignment;
   const entries = [
-    ['How do confirmations work?', 'Review the confirmation before saving or submitting. Cancel keeps your draft. A failed action displays feedback so you can correct it and retry.'],
+    ['How do confirmations work?', 'Login and OTP verification submit directly without a confirmation dialog. A processing indicator appears while either request runs; errors appear in the form. Resend OTP becomes available after a 60-second countdown; use the newest emailed code. A small Loading… indicator shows shared API activity across pages. Other saves and submissions still require confirmation. Cancel keeps your draft. A failed action displays feedback so you can correct it and retry.'],
     ['How do I change my email?', 'Open your avatar → Edit Profile. Enter the new email and current password, save, then verify the six-digit code. Your existing email stays active until verification succeeds.'],
     ['How do I change appearance?', 'Open Preferences in the sidebar or mobile menu to choose light or dark mode. Your browser remembers the preference.'],
     ['When do notification popups close?', 'Acknowledge with OK, Escape or the backdrop. Feedback also closes on navigation, internal queue-tab changes or leaving the browser tab; drafts and pending decisions are kept.'],

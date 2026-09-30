@@ -743,7 +743,24 @@ Before rolling out the Batch 8 backend, back up the target database and review `
 node backend/database/migrate_batch8.js
 ```
 
-The script creates `user_devices`, adds nullable `notifications.action_url`, reconciles auth columns (lockout, token version, pending email, and OTP/2FA fields), and adds separate login OTP code/expiry. Reruns tolerate existing tables/columns without overwriting their types or updating user records. It is explicit, not an API startup action. It has **not been run by this implementation session**. Apply it during a controlled backend rollout, then deploy the corresponding backend/frontend together, then verify a complete login, a second login from the same browser, and a login from a separate browser/profile. Expect first/new-browser notices, no repeated known-browser notice, and an internal Security link. Confirm pending signup notices open the matching admin review; verify SMTP delivery separately from bell delivery.
+The script creates `security_logs` and `user_devices`, adds nullable `notifications.action_url`, reconciles auth columns (lockout, token version, pending email, and OTP/2FA fields), and adds separate login OTP code/expiry. Reruns tolerate existing tables/columns without overwriting their types or updating user records. It is explicit, not an API startup action. It has **not been run by this implementation session**. Apply it during a controlled backend rollout, then deploy the corresponding backend/frontend together, then verify a complete login, a second login from the same browser, and a login from a separate browser/profile. Expect first/new-browser notices, no repeated known-browser notice, and an internal Security link. Confirm pending signup notices open the matching admin review; verify SMTP delivery separately from bell delivery.
+
+### Existing installation: missing login audit table
+
+The original Batch 8 migration omitted `security_logs`, although the base schema defines it. Live staff OTP verification accepted a code, cleared it, then returned 500 when the audit insert found the table missing. Retrying that consumed code returned 401. This repair adds the existing schema definition to the explicit migration; it does not disable OTP or reset accounts.
+
+After the repaired revision is merged and pulled into the server checkout, run these commands from its repository root, one at a time. Stop if any command fails:
+
+```sh
+docker compose build backend
+docker compose run --rm --no-deps -T backend node database/migrate_batch8.js
+docker compose up -d --no-deps backend
+curl -fsS http://localhost:3300/api/health
+```
+
+The rebuild is necessary: the one-off migration reads the database scripts copied into the image, not the host checkout. Keep the verified database/uploads backup. Do not import `schema.sql`, reseed, or restore the database for this repair. The added `CREATE TABLE IF NOT EXISTS` leaves existing tables and audit rows intact; unexpected database errors still stop migration. Existing column types are not reconciled by a rerun.
+
+After migration completes, sign in again to request a fresh OTP, or use **Resend OTP** after its countdown once the updated frontend is deployed. Use the latest email. Verify completed sign-in and check backend logs; a healthy `/api/health` response alone does not prove login tables are complete. Promotion remains separate from applying this repair.
 
 Axios includes credentials while JWT authentication remains in its existing header. The HttpOnly recognition cookie is scoped to `/api/auth` for one year. HTTPS frontend configuration uses `Secure` plus `SameSite=None`; local HTTP uses `SameSite=Lax`. The existing CORS allowlist must include the exact frontend origin and credential support remains enabled. HTTPS API access is required for Secure cookies.
 

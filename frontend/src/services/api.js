@@ -18,6 +18,37 @@ const api = axios.create({
   },
 })
 
+const activityKey = Symbol('traceApiActivity')
+const pendingRequests = new Set()
+const activityListeners = new Set()
+
+export const getPendingApiRequests = () => pendingRequests.size
+
+export function subscribeApiActivity(listener) {
+  activityListeners.add(listener)
+  return () => activityListeners.delete(listener)
+}
+
+function notifyActivity() {
+  activityListeners.forEach(listener => listener())
+}
+
+function trackActivity(config) {
+  const finish = () => {
+    if (!pendingRequests.delete(finish)) return
+    config.signal?.removeEventListener('abort', finish)
+    config.cancelToken?.unsubscribe(finish)
+    delete config[activityKey]
+    notifyActivity()
+  }
+  config[activityKey] = finish
+  pendingRequests.add(finish)
+  notifyActivity()
+  config.signal?.addEventListener('abort', finish, { once: true })
+  config.cancelToken?.subscribe(finish)
+  if (config.signal?.aborted) finish()
+}
+
 // ── Request Interceptor: attach Bearer token ──────────────
 api.interceptors.request.use(
   (config) => {
@@ -25,6 +56,7 @@ api.interceptors.request.use(
     if (token) {
       config.headers.Authorization = `Bearer ${token}`
     }
+    trackActivity(config)
     return config
   },
   (error) => Promise.reject(error)
@@ -32,8 +64,12 @@ api.interceptors.request.use(
 
 // ── Response Interceptor: handle 401 ──────────────────────
 api.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    response.config?.[activityKey]?.()
+    return response
+  },
   (error) => {
+    error.config?.[activityKey]?.()
     if (error.response?.status === 401 && !['/auth/login', '/auth/verify-2fa', '/auth/verify-email-change'].some(path => error.config?.url?.includes(path))) {
       localStorage.removeItem('trace_token')
       localStorage.removeItem('trace_user')

@@ -67,3 +67,21 @@ it('Batch 8 migration propagates unexpected database errors', async () => {
   const executor = { query: vi.fn().mockRejectedValue(Object.assign(new Error('Denied'), { code: 'ER_ACCESS_DENIED_ERROR' })) };
   await expect(migrate(executor)).rejects.toMatchObject({ code: 'ER_ACCESS_DENIED_ERROR' });
 });
+it('Batch 8 upgrades create the canonical login audit table on every safe rerun', async () => {
+  const { readFileSync } = require('node:fs');
+  const { resolve } = require('node:path');
+  const { migrate } = require('../../../database/migrate_batch8');
+  const schema = readFileSync(resolve(__dirname, '../../../database/schema.sql'), 'utf8');
+  const canonical = schema.match(/CREATE TABLE IF NOT EXISTS security_logs \([\s\S]*?\);/)[0];
+  const normalize = sql => sql.replace(/\s+/g, ' ').trim().replace(/;$/, '');
+  const executor = { query: vi.fn(async sql => {
+    if (sql.startsWith('ALTER')) throw Object.assign(new Error('Duplicate'), { code: 'ER_DUP_FIELDNAME' });
+    return [{}];
+  }) };
+  await migrate(executor);
+  await migrate(executor);
+  const auditCreates = executor.query.mock.calls.filter(([sql]) => sql.startsWith('CREATE TABLE IF NOT EXISTS security_logs'));
+  expect(auditCreates).toHaveLength(2);
+  for (const [sql] of auditCreates) expect(normalize(sql)).toBe(normalize(canonical));
+  expect(executor.query.mock.calls.every(([sql]) => !/^\s*(?:DROP|TRUNCATE|DELETE|UPDATE|INSERT)\b/i.test(sql))).toBe(true);
+});
