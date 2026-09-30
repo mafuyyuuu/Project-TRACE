@@ -9,4 +9,9 @@
       "destination": "/index.html"
     }
   ]
+  "git": {
+    "deploymentEnabled": {
+      "dev": false
+    }
+  }
 }
