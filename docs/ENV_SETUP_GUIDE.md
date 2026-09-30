@@ -762,6 +762,26 @@ The rebuild is necessary: the one-off migration reads the database scripts copie
 
 After migration completes, sign in again to request a fresh OTP, or use **Resend OTP** after its countdown once the updated frontend is deployed. Use the latest email. Verify completed sign-in and check backend logs; a healthy `/api/health` response alone does not prove login tables are complete. Promotion remains separate from applying this repair.
 
+### Login returns to the sign-in page after OTP
+
+The previous token issuer converted stored `token_version = 0` to `1`; the authentication middleware correctly rejected the mismatch on the next request. The repair preserves zero in both password and OTP login tokens. No additional migration or account-version update is needed for this correction. After the repaired commit reaches the server checkout, rebuild and recreate backend:
+
+```sh
+docker compose build backend
+docker compose up -d --no-deps backend
+curl -fsS http://localhost:3300/api/health
+```
+
+Request a fresh login/code after deployment. Confirm that `/api/auth/verify-2fa` succeeds, `/api/auth/me` returns 200 and the dashboard remains open. Do not bypass OTP or disable middleware revocation checks. If the audit-table repair has not been applied, apply its explicit migration above first.
+
+### New staged URL: API origin and protected manifest
+
+Each new Vercel deployment hostname is a different origin. Append only the intended test origin to the server root `.env`'s comma-separated `FRONTEND_URL`, preserving existing production/staging entries and omitting trailing slashes. Run `docker compose config --quiet`, then `docker compose up -d --no-deps --force-recreate backend` to load the environment. A plain restart retains the previous Compose environment. Recheck preflight headers for the exact URL: HTTP 204 without a matching `Access-Control-Allow-Origin` still blocks login before password validation. Keep production-domain promotion pending until the matching frontend/backend pass.
+
+The manifest uses the existing `frontend/public/favicon.svg`, declared as `image/svg+xml` with scalable `sizes: any`, and the build includes that asset. Missing PNG references have been removed. `VitePWA.useCredentials: true` generates `crossorigin="use-credentials"` on the manifest link so its request carries the browser's Vercel session on protected deployments. Verify the new deployment's manifest and icon rather than reusing an earlier deployment URL; old artifacts may continue to reference missing icons. Vercel SSO redirects while fetching the manifest are a separate protection/credential boundary from the API allowlist. Do not disable deployment protection to hide that error. Physical-device installation and protected-deployment acceptance remain required.
+
+For authenticated inspection of protected deployments, install the Vercel CLI with `npm i -g vercel`; use `vercel whoami` to check your identity, then `vercel curl <exact-deployment-url>`. Authenticate if the CLI reports no user. Do not paste session tokens or bypass secrets into source or logs. This CLI installation is recommended for deployment diagnostics; it is not required for the backend SSH repair.
+
 Axios includes credentials while JWT authentication remains in its existing header. The HttpOnly recognition cookie is scoped to `/api/auth` for one year. HTTPS frontend configuration uses `Secure` plus `SameSite=None`; local HTTP uses `SameSite=Lax`. The existing CORS allowlist must include the exact frontend origin and credential support remains enabled. HTTPS API access is required for Secure cookies.
 
 Brave/Safari privacy controls can block cross-site cookies even with those attributes. Prefer a same-site frontend/API domain arrangement or a same-origin `/api` proxy when persistent recognition is required; confirm the cookie is set and sent in the actual browser. A cleared/blocked cookie can generate repeat new-browser notices. Do not disable browser privacy settings or treat this cookie as authentication. No browser/device integration acceptance is claimed from mocked service tests.

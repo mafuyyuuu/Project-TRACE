@@ -374,6 +374,29 @@ Before-edit frontend baseline: **347 tests passing**; backend baseline: **566 pa
 | `docs/BACKEND_GUIDE.md` | Record migration coverage, failure cause and fresh-OTP recovery. |
 | `docs/PROGRESS.md` | Record approval, investigation, changes, validation and outstanding live checks. |
 
+## Post-OTP Session and Manifest Repair — 2026-09-30
+
+The user reports OTP verification completing but returning to Login, plus missing Resend OTP and PWA icon errors. Baseline is clean `dev` at `6f1eaa2`: **567 backend tests / 24 files** and **361 frontend tests / 41 files** pass. The user approved six exact files before editing, then separately approved the manifest credential option within the same Vite file. No agents were delegated, dependency changes made, or live credentials requested.
+
+Re-verification confirms both JWT issuers at `backend/src/services/auth.service.js:137,503` used `user.token_version || 1`, while schema and migration default the stored version to zero. Middleware at `backend/src/middlewares/auth.middleware.js:25–29` correctly requires equality. A read-only local probe through the actual OTP service and middleware, with all database operations replaced by fixtures, produced **stored 0 → issued 1 → authenticated request 401**. This establishes the code defect; the requested read-only live ADMIN001 version check remains pending. Six new service-to-middleware cases cover password and staff-OTP issuance at zero/nonzero versions and rejection after increment. Before the fix, four cases failed as expected: zero issuance mismatched, and that incorrectly issued token became accepted after a stored increment to one. After preserving zero with `?? 0`, all 57 auth-file tests pass. Middleware and global-logout behavior remain unchanged; no account-version update or new migration is required for this correction.
+
+The user confirms testing the earlier immutable deployment URL explains the missing Resend control, and supplies the newer `https://project-trace-r3ri78di8-fuyuu.vercel.app/`. The older URL is protected by Vercel authentication, so direct inspection did not reveal its bundle/commit. The new deployment's exact commit and rendered OTP controls remain unverified. The user also reports manifest SSO redirects and login preflight failure on the newer origin. An unauthenticated, read-only API preflight confirms **HTTP 204 without Access-Control-Allow-Origin** for that origin. Root server `.env` instructions append this exact origin while preserving existing entries, then validate Compose and recreate only backend. Successful live reconfiguration remains pending; API CORS was not broadened in code.
+
+The approved PWA repair reuses the existing TRACE SVG instead of nonexistent 192/512 PNGs and includes only the existing favicon asset. The later approved `useCredentials: true` option is verified in the installed plugin's declarations/implementation; it generates a credentialed manifest link for protected deployments. These repairs address separate missing-file and manifest-session boundaries; the current frontend does not gain or remove Vercel protection rules. SVG manifest format follows the [Web Application Manifest specification](https://www.w3.org/TR/appmanifest/). Protected-manifest and physical PWA installation acceptance remain pending.
+
+| Approved changed file | Change |
+| --- | --- |
+| `backend/src/services/auth.service.js` | Preserve stored zero in password/OTP token issuance. |
+| `backend/src/services/__tests__/auth.service.test.cjs` | Exercise issued tokens through middleware; check valid versions and incremented-version rejection. |
+| `frontend/vite.config.js` | Use existing TRACE SVG and credentialed manifest link; remove missing asset references. |
+| `docs/BACKEND_GUIDE.md` | Document session-version cause, retained revocation checks and code-only recovery. |
+| `docs/ENV_SETUP_GUIDE.md` | Provide backend rebuild/fresh-login, staged-origin and protected-manifest guidance. |
+| `docs/PROGRESS.md` | Record approval, reproduction, later findings and outstanding live verification. |
+
+The original report combined authentication, manifest and deployment-version symptoms. Later investigation separated them: the API allowlist blocks the newest origin before password validation; the existing backend version mismatch blocks authenticated requests after OTP; the PWA PNGs are absent; and Vercel SSO requires credentialed manifest requests. Source repair does not substitute for the live `.env` update. No files outside the approved scope were edited. Commit/push/merge, server rollout, fresh completed login, latest Resend display and production promotion remain pending user execution.
+
+Final local checks pass: **573 backend tests / 24 files**, **361 frontend tests / 41 files**, Vite-config ESLint, frontend production build and `git diff --check`. The built manifest names only the existing TRACE SVG; its file is present, the generated manifest link has `crossorigin="use-credentials"`, and the service worker precaches that icon. The existing large-bundle and Node local-storage warnings remain. These checks establish code/build behavior, not successful protected-deployment login or live CORS reconfiguration. No source was committed, pushed or deployed by this session.
+
 ## Batch 1 Re-verification — 2026-09-30
 
 Baseline: `dev`, commit `42b18cd`. The user approved the file plan before editing, approved dark mode through D-01, and later approved `MiniSparkline.jsx` and the feedback integration test. This is a presentation-only pass; no backend, schema, route, auth, or pipeline-definition changes were made by this batch.
