@@ -1,5 +1,9 @@
 const templateModel = require('../models/template.model');
-const { fail } = require('../utils/response');
+
+function fail(res, err, logLabel, fallbackMessage) {
+  console.error(`${logLabel}:`, err);
+  res.status(err.status || 500).json({ error: err.status ? err.message : fallbackMessage });
+}
 
 async function list(req, res) {
   try {

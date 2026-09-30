@@ -2,7 +2,7 @@
 
 ## Current Status
 - **Batch 1 to 8**: Previously marked complete in the historical docket. The reconstructed batches are being re-verified; see the current review below.
-- **Batch 9 registrar consultation**: CN-03/CN-04 implementation and automated checks complete; live migration remains unapplied. Other consultation items remain pending. The earlier completion claims below are historical and superseded by the 2026-09-30 verification.
+- **Batch 9 registrar consultation**: CN-03/CN-04 implementation and automated checks complete; the user reported successful live migration. Runtime health, application acceptance and frontend promotion remain pending. Other consultation items remain pending. The earlier completion claims below are historical and superseded by the 2026-09-30 verification.
 - **Batch 10 Phase 1 & 2 (Audit Trail & Rate Limiting)**: Complete.
 - **Batch 10 Phase 3 (Security & Account Protection)**: Complete.
 
@@ -267,6 +267,8 @@ Before/after checks passed: **554 backend / 347 frontend / four Python parser te
 
 **8. Apply incremental migrations in order.** Run each command separately and require successful completion before the next:
 
+**AI image verification checkpoint:** The user ran the corrected image's real import check successfully: `AI startup imports OK.`, **torch `2.8.0+cpu`**, **torchvision `0.23.0+cpu`**, **`CUDA: None`**. The new parser and Flask/OCR modules imported successfully. EasyOCR's CPU notice and the optional Plotly warning did not prevent the check from completing; no dependency additions were made for those notices. Root filesystem free space is **5.2 GB** (87% used). This verifies CPU packaging/imports, not live OCR accuracy, forecasting, or HTTP health. The backend build is already successful. The next authorized actions are the three incremental migrations, one at a time. No migration/restart or production frontend promotion has yet been reported; app writers remain stopped.
+
 ```sh
 docker compose run --rm --no-deps -T backend node database/migrate_batch8.js
 ```
@@ -289,14 +291,33 @@ These scripts require the existing base schema. Do not run `migrate_b9.js`, re-i
 
 **9. Restart and check the deployment.**
 
+**Live migration checkpoint:** The user ran the rebuilt backend's three incremental scripts in order and reported **`Batch 8 migration complete.`**, **`Batch 8b migration complete.`**, and **`CN-03/CN-04 applied.`**. This is successful execution against the configured server database, not mocked-test evidence. No restore, broad reseed or old `migrate_b9.js` execution was reported. Runtime restart/health, application acceptance and Vercel promotion are the remaining rollout steps; unfinished Batch 9 features remain out of scope.
+
 ```sh
 docker compose up -d --no-deps backend ai-engine n8n
 docker compose ps
 docker compose logs --tail=60 backend
 curl -fsS http://localhost:3300/api/health
+curl -fsS http://localhost:5005/health
 ```
 
 Expect a successful database health response. Allow a short startup period, then investigate persistent errors. Check the AI-engine logs if needed. Existing Caddy/MySQL are left running; these commands do not promote the staged Vercel frontend.
+
+**Runtime checkpoint / backend startup blocker:** At server merge revision **`77ef912`**, the user restarted the services. AI-engine is healthy and its HTTP health endpoint returns success; MySQL remains healthy and n8n is running. The backend is in a restart loop, and port 3300 refuses connections. Logs identify `MODULE_NOT_FOUND` for `../utils/response`, required by `backend/src/controllers/templates.controller.js:2` before Express can start. Repository searches found no response helper at that path; existing controllers define their small `fail()` helper locally. A read-only audit resolving all literal relative CommonJS imports under `backend/src` found a second missing import at `backend/src/routes/templates.routes.js:4`: `../middlewares/auth`. The actual middleware is `auth.middleware.js`, exporting `authenticate` and `requireRole`; it does not export `authorize`, which the template route also calls at line 8.
+
+Proposed narrowly scoped repair, awaiting the user's per-file gate: replace the missing response import with the existing local-controller error pattern; wire the existing authentication/`requireRole('admin')` exports into template routes; add startup/error/authorization regressions. Exact files: `backend/src/controllers/templates.controller.js`, `backend/src/routes/templates.routes.js`, new `backend/src/controllers/__tests__/templates.controller.test.cjs`, and this already approved progress document. No edits to auth middleware, schema, route URLs or template model are proposed. `template.model.js` separately imports the DB wrapper instead of its `pool` export, an already recorded CN-12 query issue; it is not needed to resolve module loading and is not bundled into this startup repair. No code repair has been made yet. The three completed migrations remain applied; do not rerun/reseed/restore the database as a response to this missing-module crash. Keep Vercel staged until backend health and application acceptance pass.
+
+**Approved backend startup repair:** The user approved the four-file scope. `templates.controller.js` now defines the same local `fail()` pattern as other controllers; private server errors receive generic response text while explicit application statuses/messages are retained. `templates.routes.js` uses `auth.middleware`'s actual `authenticate`/`requireRole` exports and keeps template writes admin-only. The new CJS test file loads the full Express app without SQL calls and runs actual registered route middleware without opening a port. Its **12 regressions** cover missing/invalid authentication, forbidden student/clerk updates, permitted Admin updates, retained authenticated reads and 404 behavior, and safe errors for all three handlers. The startup regression was run before the source fix and reproduced the exact `../utils/response` failure. No additional discrepancy emerged during implementation; the separately diagnosed model query issue stays deferred.
+
+Before the change, **554 backend / 347 frontend tests passed**. Afterward, **566 backend / 347 frontend tests passed**; the 12 new tests also passed in isolation. The literal relative CommonJS import audit now reports **zero unresolved imports**, and `git diff --check` passed. Frontend retained the existing local-storage warning. This validates imports and mocked request handling, not a live template/database operation. Only the four approved files changed; no middleware implementation, schema, dependencies, route URLs or model was modified.
+
+Commit/push these four files to `dev`, merge the repair into `main` with automatic Vercel promotion disabled, then pull and rebuild **only the backend**. Before restarting it, require this rebuilt-image import check to pass:
+
+```sh
+docker compose run --rm --no-deps -T backend node -e "require('./src/app'); require('./src/config/db').pool.end().then(() => console.log('Backend startup imports OK.'))"
+```
+
+Then start/recreate just the backend with `docker compose up -d --no-deps backend` and check `/api/health` and container status. The healthy AI service can remain running. Existing successful migrations do not need repeating for this source-only repair. Commit/merge/pull, rebuilt-image check and live backend health remain pending; no production frontend promotion has been reported.
 
 **10. Perform live application checks before Batch 10.** Verify student/staff login (including staff OTP), no Good Moral option in New Request, retired Admin controls for historical Good Moral types, the Diploma reissue label/configured fee, preserved historical records/uploads, and document-policy settings. Diploma should be 250 only if it previously used the 50 default; a custom fee should remain. Share migration completion messages, health output and any errors, never passwords or backup contents. Successful migrations do not establish all remaining OCR/notification/payment acceptance.
 
