@@ -316,6 +316,8 @@ caller never had to prove they control.
 
 Device alerts are browser recognition, not device attestation or new JWT session invalidation. Delivery, the unique-key behavior against live MySQL, and real OCR performance need integration verification after deployment. Schema/auth/API work above was explicitly approved for Batch 8; other presentation changes retain existing contracts.
 
+Admin and clerk accounts require a fresh email OTP on every login (`two_factor_enabled || isStaff`), including login after logout. The account toggle does not remove the staff requirement. Browser recognition suppresses repeat new-browser alerts when its cookie persists; it does not skip OTP. Changing that policy requires a separately scoped authentication change.
+
 
 ## Batch 8b Policy and Signup OCR Contracts
 
@@ -326,6 +328,7 @@ Device alerts are browser recognition, not device attestation or new JWT session
 - Identity OCR returns `{ success, student_id, alumni_id, full_name, college_id, message }`, with bounded nullable values and an exact active-college match. It no longer exposes raw OCR text. Timeout/unreadable proof returns a manual-entry result. The lightweight parser recognizes labeled IDs/names/colleges and existing conservative ID patterns; it does not verify identity. Current PDF decoding may fail and fall back to manual input. No database access is added to the AI engine.
 - Registration accepts validated `college_id` and preserves the college-name `course` fallback used by routing. New alumni use their supplied Alumni ID in the existing `student_id` login key; no legacy identifier migration occurs. Exact matching is used for college backfill; unknown program-to-college mappings are left for Admin.
 - `GET /api/auth/student/:studentId` is restricted to Admin or clerk desks Window 1, Secretary, and Finance. Its explicit projection includes saved contact, college, personal/educational fields and registration proof path, excluding passwords, OTPs and lockout/session secrets. Protected file retrieval retains existing authorization.
+- **Missing profile-table recovery:** live lookup logs confirmed `ER_NO_SUCH_TABLE` for `student_profiles`. Run the explicit standalone `database/migrate_student_profiles.js` from the rebuilt backend image using the commands in `ENV_SETUP_GUIDE.md`. It creates the canonical base-schema table conditionally, preserving users and existing profile records. No profile data is invented, no permission/projection changes are made, and no migration runs at API startup. A user without a saved profile row has null joined profile fields. Regression tests compare the DDL against the base schema, restrict reruns to conditional creation, propagate failures and prohibit database queries on import. Live MySQL/lookup acceptance remains a deployment check.
 - Window 1 and Secretary reuse the existing reports/export endpoints and permissions. No reporting route or pipeline vocabulary changes are required.
 
 The four new counter types are inactive zero-fee drafts and require no original inspection. Photocopy enforcement awaits a policy answer. Fixed per-type registrar-attachment settings remain distinct from DOC-03's future case requests, messaging uploads, and processing hold. No new attachment endpoint/state is added for that deferred item.

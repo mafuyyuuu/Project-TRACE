@@ -1,6 +1,7 @@
 import { forecastCeiling } from '@/utils/forecastScale';
 import { USER_TYPE_LABELS } from '@/utils/userLabels';
 import AdminTemplatesPanel from './components/AdminTemplatesPanel';
+import AdminSecurityPanel from './components/AdminSecurityPanel';
 import { useState } from 'react';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import MiniSparkline from '@/components/MiniSparkline';

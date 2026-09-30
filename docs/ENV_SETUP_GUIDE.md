@@ -774,6 +774,21 @@ curl -fsS http://localhost:3300/api/health
 
 Request a fresh login/code after deployment. Confirm that `/api/auth/verify-2fa` succeeds, `/api/auth/me` returns 200 and the dashboard remains open. Do not bypass OTP or disable middleware revocation checks. If the audit-table repair has not been applied, apply its explicit migration above first.
 
+### Existing installation: missing student profile table
+
+Admin student lookup returned 500 because the live database lacks `student_profiles`. The lookup joins that table to read the existing personal/education fields. Its definition is present in `schema.sql`, but earlier upgrade migrations did not create it. Apply the standalone repair after the approved revision is merged and pulled into the server checkout. Run from its repository root, one command at a time; stop on any failure:
+
+```sh
+docker compose build backend
+docker compose run --rm --no-deps -T backend node database/migrate_student_profiles.js
+docker compose up -d --no-deps backend
+curl -fsS http://localhost:3300/api/health
+```
+
+The image rebuild includes the new migration script. Keep the verified database/uploads backup. The script uses only `CREATE TABLE IF NOT EXISTS`, matching the base schema and its `users(id)` foreign key. It preserves existing users and any existing profile table/records; it does not reconcile an existing table's columns or fabricate/backfill personal data. Existing users without a profile row return null for joined profile fields. Unexpected database errors propagate; no migration runs on import or API startup. Do not import the full schema, reseed or restore for this repair.
+
+Deploy the corresponding frontend import repair, then verify Admin Security Logs loads and an authorized student lookup succeeds. Check backend logs for missing-table errors. A health response checks connectivity only and does not establish profile lookup success. New Vercel deployment URLs still require the exact origin configuration below; production promotion remains separate.
+
 ### New staged URL: API origin and protected manifest
 
 Each new Vercel deployment hostname is a different origin. Append only the intended test origin to the server root `.env`'s comma-separated `FRONTEND_URL`, preserving existing production/staging entries and omitting trailing slashes. Run `docker compose config --quiet`, then `docker compose up -d --no-deps --force-recreate backend` to load the environment. A plain restart retains the previous Compose environment. Recheck preflight headers for the exact URL: HTTP 204 without a matching `Access-Control-Allow-Origin` still blocks login before password validation. Keep production-domain promotion pending until the matching frontend/backend pass.
