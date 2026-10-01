@@ -1,22 +1,22 @@
-import { vi, it, expect, beforeEach } from 'vitest';
-import { render, screen, fireEvent, act } from '@testing-library/react';
+import { vi, it, expect } from 'vitest';
+import { render, screen, fireEvent } from '@testing-library/react';
 import EmailVerificationNotice from '@/components/EmailVerificationNotice';
-import { resendVerification } from '@/services/emailVerificationService';
-vi.mock('@/services/emailVerificationService', () => ({ resendVerification: vi.fn() }));
-beforeEach(() => vi.clearAllMocks());
-it('stays absent after verified proof is saved', () => {
-  render(<EmailVerificationNotice user={{ email_verified_at: '2026-10-01', email: 'synthetic@example.test' }} />);
+const user = { email_verified_at: '2026-10-01', email: 'synthetic@example.test' };
+it('labels only the saved verified address as Verified', () => {
+  const { rerender } = render(<EmailVerificationNotice user={user} email={user.email} />);
+  expect(screen.getByText('Verified')).toBeInTheDocument();
   expect(screen.queryByRole('button')).not.toBeInTheDocument();
+  rerender(<EmailVerificationNotice user={user} email="new@example.test" />);
+  expect(screen.queryByText('Verified')).not.toBeInTheDocument();
+  expect(screen.getByRole('button', { name: 'Verify' })).toBeEnabled();
 });
-it('guards duplicate sends and reports real delivery failure', async () => {
-  let resolve;
-  resendVerification.mockReturnValue(new Promise(done => { resolve = done; }));
-  render(<EmailVerificationNotice user={{ email_verified_at: null, email: 'synthetic@example.test' }} />);
-  const send = screen.getByRole('button', { name: /Resend Link/ });
-  fireEvent.click(send); fireEvent.click(send);
-  expect(resendVerification).toHaveBeenCalledOnce();
-  expect(send).toBeDisabled();
-  await act(async () => resolve({ email_sent: false, message: 'Delivery failed. Retry in 60 seconds.' }));
+it('keeps the action beside its field and exposes delivery failure and pending state', () => {
+  const verify = vi.fn();
+  const { rerender } = render(<EmailVerificationNotice user={user} email="new@example.test" onVerify={verify}><input aria-label="Email" /></EmailVerificationNotice>);
+  fireEvent.click(screen.getByRole('button', { name: 'Verify' }));
+  expect(verify).toHaveBeenCalledOnce();
+  rerender(<EmailVerificationNotice user={user} email="new@example.test" sending pendingEmail="new@example.test" error="Delivery failed. Retry in 60 seconds." />);
+  expect(screen.getByRole('button', { name: 'Sending…' })).toBeDisabled();
   expect(screen.getByRole('alert')).toHaveTextContent('Retry in 60 seconds');
-  expect(send).not.toBeDisabled();
+  expect(screen.getByText(/Your current address stays active/)).toBeInTheDocument();
 });

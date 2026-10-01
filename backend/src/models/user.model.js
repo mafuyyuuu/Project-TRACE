@@ -42,19 +42,19 @@ function deleteById(userId, executor = pool) {
 function createUser(data, executor = pool) {
   const {
     student_id, full_name, email, phone_number, password_hash,
-    role = 'student', user_type, course, program, college_id, id_proof_path, verification_status,
+    role = 'student', user_type, course, program, college_id, id_proof_path, verification_status, verification_reason,
   } = data;
   return executor.query(
-    `INSERT INTO users (student_id, full_name, email, phone_number, password_hash, role, user_type, course, program, college_id, id_proof_path, verification_status)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    [student_id, full_name, email || null, phone_number, password_hash, role, user_type || 'student', course || null, program || null, college_id || null, id_proof_path, verification_status]
+    `INSERT INTO users (student_id, full_name, email, phone_number, password_hash, role, user_type, course, program, college_id, id_proof_path, verification_status, verification_reason)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [student_id, full_name, email || null, phone_number, password_hash, role, user_type || 'student', course || null, program || null, college_id || null, id_proof_path, verification_status, verification_reason || null]
   );
 }
 
 function listPendingStudents(executor = pool) {
   return executor
     .query(
-      'SELECT id, student_id, email, full_name, role, user_type, id_proof_path, verification_status, created_at FROM users WHERE role = "student" AND verification_status = "pending"'
+      'SELECT id, student_id, email, full_name, role, user_type, id_proof_path, verification_status, verification_reason, created_at FROM users WHERE role = "student" AND verification_status = "pending"'
     )
     .then(([rows]) => rows);
 }
@@ -68,7 +68,7 @@ function setVerificationStatus(userId, newStatus, executor = pool) {
 
 function listAllUsers(executor = pool) {
   return executor
-    .query('SELECT id, student_id, full_name, email, phone_number, user_type, desk_assignment, course, program, college_id, role, verification_status, enrollment_status, study_load, is_active, created_at FROM users ORDER BY created_at DESC')
+    .query('SELECT id, student_id, full_name, email, phone_number, user_type, desk_assignment, course, program, college_id, role, verification_status, verification_reason, enrollment_status, study_load, is_active, profile_picture, id_proof_path, created_at FROM users ORDER BY created_at DESC')
     .then(([rows]) => rows);
 }
 

@@ -921,13 +921,14 @@ For a single ordered walkthrough covering source preparation, a fresh database/u
 
 These source changes must be reviewed/merged and pulled into the server checkout before their new migration files exist there. Rebuild the image from that checkout. Configure the existing `MFA_ENCRYPTION_KEY`, stable `JWT_SECRET`, Gmail SMTP settings and `FRONTEND_URL` first; the first configured frontend origin is used for email-link destinations and must be the intended HTTPS site. The key is a separate 32-byte random secret: generate with `openssl rand -hex 32`, save only in the server root `.env`/secure backup, never a `VITE_` variable. Do not rotate an existing key with enrolled authenticators.
 
-Keep a verified database/uploads backup and pause writers during rollout, including AI/n8n jobs that can write to the database. Stop on the first failed command. Base schema/security/password-reset/history tables, Batch 8/8b, student profiles, trusted browsers and catalog migrations remain prerequisites. Do not import the complete schema into production, reseed, remove volumes, or run `migration_phase3.js` (a code-generation helper) as a repair.
+Keep a verified database/uploads backup and pause writers during rollout, including AI/n8n jobs that can write to the database. Stop on the first failed command. Base schema/security/password-reset tables, Batch 8/8b, student profiles, trusted browsers and catalog migrations remain prerequisites. Password history now has its own explicit preserving migration after the Oct 1 rollout exposed its absence. Do not import the complete schema into production, reseed, remove volumes, or run `migration_phase3.js` (a code-generation helper) as a repair.
 
 Run commands individually from the SSH repository root after pulling the reviewed revision:
 
 ```bash
 docker compose stop backend ai-engine n8n
 docker compose build backend
+docker compose run --rm --no-deps -T backend node database/migrate_password_history.js
 docker compose run --rm --no-deps -T backend node database/migrate_fee_schedules.js
 docker compose run --rm --no-deps -T backend node database/migrate_authenticator.js
 docker compose run --rm --no-deps -T backend node database/migrate_sessions.js
@@ -941,6 +942,7 @@ docker compose run --rm --no-deps -T backend node database/migrate_email_verific
 docker compose run --rm --no-deps -T backend node database/migrate_support_messages.js
 docker compose run --rm --no-deps -T backend node database/migrate_request_sequences.js
 docker compose run --rm --no-deps -T backend node database/migrate_staff_authenticator_setup.js
+docker compose run --rm --no-deps -T backend node database/migrate_verification_reason.js
 docker compose run --rm --no-deps -T backend node database/check_schema.js
 docker compose up -d --no-deps backend ai-engine n8n
 docker compose ps
@@ -957,12 +959,15 @@ Confirmed server failures map to these scripts:
 | Missing `document_messages` at the inbox | `migrate_document_messages.js`. |
 | Missing `system_templates` | `migrate_templates.js`; creates only missing catalog keys without overwriting saved layouts. |
 | Missing `request_attachment_uploads` when reading a proof/avatar | `migrate_request_attachments.js`; file authorization consults case-attachment ownership first. |
+| Missing `password_history` at the schema check | `migrate_password_history.js`; creates only the canonical table and preserves current accounts/hashes. |
 
 Check one-line `docker compose ps`; entering `docker` and `compose ps` on separate lines runs different commands. A browser stack trace alone cannot establish a SQL or WebSocket cause. After repair, reproduce once and inspect backend/Caddy logs with a short time window. Successful polling does not prove WebSocket upgrade. Never paste tokens, OTPs, setup/recovery codes, keys or personal records into logs/shared reports.
 
 Additional live acceptance:
 
 - Existing and new students verify email by a single-use link, separate from ID approval. Signup accepts any email domain. A new alumni account remains restricted to its graduate form and necessary recovery/logout until submission. Incomplete/unverified students cannot submit through the API; General support remains available for email help after the alumni form gate.
+- Open Edit Profile → Personal Info and use Verify beside Email Address. Verify sends only the link; unsaved phone/education/photo drafts remain local. Changed addresses require the current password and confirmation; pending emails never replace the active address until verified. Test resend cooldown, failed delivery, invalid addresses and saved verification state after refresh. The dashboard banner is removed; login factors remain separate.
+- Maintenance account cards/detail use authenticated photo/proof retrieval. New pending registrations show a fixed OCR review reason; older records show that no reason was recorded. Whitespace/dash normalization does not relax student-ID boundaries or the school/college requirement; pending is not counterfeit detection or automatic rejection. Rebuild ai-engine as well as backend for this change.
 - Test changed phone persistence; password requirements/history; old reset-link invalidation after credential changes; concurrent reset/link use; real owner notices; pending email retaining the old address, followed by verification, session invalidation and old/new-address notices.
 - Admin opens an active clerk account in Accounts, confirms their Admin password and issues a private ten-minute initial setup code after identity checking. On `/staff-setup`, the clerk supplies their own ID/password and that code, scans the QR/manual key and confirms an app code. No dashboard session exists before confirmation. Save recovery codes. Test expired/replaced/used codes and five failed attempts; an already-enrolled factor cannot be replaced with a setup code. Email-free staff use app/recovery codes on later login. Already-enrolled lost-factor recovery still needs an institutional identity-recovery process.
 - The initial login form has no shared-computer checkbox. Only a clerk factor challenge offers unchecked personal-browser trust; consent saves a preference only after a server-confirmed grant. Admin always verifies; students receive no new first/new-browser email-OTP policy. Clerk Security can forget the preference, making the next login clear trust/use shared verification. Test midnight expiry and actual cross-site cookie behavior.
@@ -971,3 +976,50 @@ Additional live acceptance:
 - Test Admin saved layouts in the payment slip and an actual email. Allowed markup/variables preserve the tracking QR and safe clickable verification/reset links. Check 100–200% text and mobile widths with populated data, and perform the original physical-phone tracker/input/Back-to-Login checks.
 
 This round adds `sanitize-html` to backend dependencies; the rebuilt image installs the lockfile. Local mocked tests/build are not acceptance of live MySQL concurrency, SMTP, genuine app enrollment, uploaded records, physical phones or payment-provider behavior.
+
+### Profile/Maintenance/OCR follow-up after the successful Oct 1 rollout
+
+After review/merge/pull, take fresh database/uploads/configuration backups using MIGRATION_ROLLOUT.md. Keep writers stopped while changing the schema. This follow-up needs only the new reason column on the server that already passed the original rollout (password_history is already present there):
+
+```bash
+docker compose stop backend ai-engine n8n
+docker compose build backend ai-engine
+docker compose run --rm --no-deps -T backend node database/migrate_verification_reason.js
+docker compose run --rm --no-deps -T backend node database/check_schema.js
+```
+
+Stop on any failure. Only after both builds and the schema check succeed:
+
+```bash
+docker compose up -d --no-deps backend ai-engine n8n
+docker compose ps
+docker compose exec -T backend curl -fsS http://localhost:3300/api/health
+curl -fsS https://trace-plp-api.duckdns.org/api/health
+```
+
+Keep Caddy/MySQL and existing volumes intact. Verify settled AI health and the matching frontend deployment. Test a fresh registration for its stored review reason, a genuine readable ID and an inconclusive image, then an Admin review. Existing pending accounts retain unknown historical reasons; this migration does not infer or reclassify them. Inspect conversation input on the dashboard and floating support panel, including narrow screens and enlarged text. No full schema import, reseeding or repeat of the prior data migrations is needed.
+
+### Targeted password-history repair for the already-built Oct 1 image
+
+The user ran all 18 original rollout scripts successfully, but the schema check reports absent password-history fields. The new standalone migration requires another source merge/pull/build; the same canonical CREATE statement can be applied now against the previously verified bundled MySQL, while writers remain stopped and the fresh database/uploads backups are retained:
+
+```bash
+docker compose exec -T mysql sh -c 'MYSQL_PWD="$MYSQL_ROOT_PASSWORD" exec mysql --user=root "$MYSQL_DATABASE"' <<'SQL'
+CREATE TABLE IF NOT EXISTS password_history (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  user_id INT NOT NULL,
+  password_hash VARCHAR(255) NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB;
+SHOW COLUMNS FROM password_history;
+SQL
+```
+
+This creates only that table when absent. It leaves any existing table/history unchanged; an incompatible existing definition still needs inspection. No user password hash is modified or history invented. Require the displayed `id`, `user_id`, `password_hash` and `created_at` columns, then rerun:
+
+```bash
+docker compose run --rm --no-deps -T backend node database/check_schema.js
+```
+
+Require the passing schema message before following the runtime restart/health instructions above. Do not rerun the whole migration list or import the full schema for this gap. The agent has not executed this SQL on the server.
