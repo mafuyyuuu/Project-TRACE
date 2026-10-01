@@ -52,6 +52,8 @@ export default function ModalShell({
   busy = false,
   layer = 'modal',
   backdropClassName,
+  backdropStyle,
+  panelStyle,
   panelClassName,
   closeButtonClassName,
   closeButtonIcon = '✕',
@@ -150,6 +152,7 @@ export default function ModalShell({
     <div className={`trace-modal-overlay fixed inset-0 ${layer === 'feedback' ? 'z-[110]' : 'z-[100]'} flex items-start sm:items-center justify-center p-4 overflow-y-auto animate-fade-in`}>
       <div
         className={backdropClassName ?? DEFAULT_BACKDROP_CLASS_NAME}
+        style={backdropStyle}
         onClick={() => closeOnBackdrop && onClose()}
         aria-hidden="true"
       />
@@ -164,6 +167,7 @@ export default function ModalShell({
         aria-label={bare && typeof title === 'string' ? title : undefined}
         tabIndex={-1}
         className={resolvedPanelClassName}
+        style={panelStyle}
       >
         {showCloseButton && (
           <button

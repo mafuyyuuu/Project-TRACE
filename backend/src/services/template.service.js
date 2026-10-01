@@ -21,16 +21,26 @@ function clean(content, links = false) {
       'white-space': [/^(?:normal|pre-wrap)$/],
       padding: [/^\d{1,2}px(?: \d{1,2}px){0,3}$/],
       margin: [/^\d{1,2}px(?: \d{1,2}px){0,3}$/],
+    }, a: {
+      display: [/^inline-block$/],
+      'border-radius': [/^\d{1,2}px$/],
+      'text-decoration': [/^(?:none|underline)$/],
     } },
   });
 }
 function escape(value) { return String(value ?? '').replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[char]); }
-function emailText(value) {
-  return String(value ?? '').split(/(https?:\/\/[^\s<>"']+)/g).map((part, index) => index % 2 ? `<a href="${escape(part)}">${escape(part)}</a>` : escape(part)).join('');
+function emailText(value, action) {
+  return String(value ?? '').split(/(https?:\/\/[^\s<>"']+)/g).map((part, index) => {
+    if (!(index % 2)) return escape(part);
+    if (part === action?.url && typeof action.label === 'string' && action.label.trim()) {
+      return `<a href="${escape(part)}" style="display:inline-block;background-color:#15803d;color:#ffffff;font-weight:bold;padding:12px 24px;border-radius:8px;text-decoration:none">${escape(action.label)}</a>`;
+    }
+    return `<a href="${escape(part)}">${escape(part)}</a>`;
+  }).join('');
 }
-function render(content, values, email = false) {
+function render(content, values, email = false, action) {
   // Sanitize after substitution as well: variables cannot create active attributes.
-  return clean(content.replace(/{{([A-Z_]+)}}/g, (_match, key) => email && key === 'MESSAGE' ? emailText(values[key]) : escape(values[key])), email);
+  return clean(content.replace(/{{([A-Z_]+)}}/g, (_match, key) => email && key === 'MESSAGE' ? emailText(values[key], action) : escape(values[key])), email);
 }
 async function get(key) {
   const row = await model.findByKey(key);

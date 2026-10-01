@@ -943,6 +943,7 @@ docker compose run --rm --no-deps -T backend node database/migrate_support_messa
 docker compose run --rm --no-deps -T backend node database/migrate_request_sequences.js
 docker compose run --rm --no-deps -T backend node database/migrate_staff_authenticator_setup.js
 docker compose run --rm --no-deps -T backend node database/migrate_verification_reason.js
+docker compose run --rm --no-deps -T backend node database/migrate_onboarding_guides.js
 docker compose run --rm --no-deps -T backend node database/check_schema.js
 docker compose up -d --no-deps backend ai-engine n8n
 docker compose ps
@@ -985,6 +986,7 @@ After review/merge/pull, take fresh database/uploads/configuration backups using
 docker compose stop backend ai-engine n8n
 docker compose build backend ai-engine
 docker compose run --rm --no-deps -T backend node database/migrate_verification_reason.js
+docker compose run --rm --no-deps -T backend node database/migrate_onboarding_guides.js
 docker compose run --rm --no-deps -T backend node database/check_schema.js
 ```
 

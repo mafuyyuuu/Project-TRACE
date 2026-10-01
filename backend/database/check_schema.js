@@ -7,6 +7,7 @@ const requirements = [
   ['users', ['email_verified_at'], 'migrate_email_verification.js'],
   ['users', ['program'], 'migrate_program.js'],
   ['users', ['verification_reason'], 'migrate_verification_reason.js'],
+  ['onboarding_guides', ['user_id', 'shown_at'], 'migrate_onboarding_guides.js'],
   ['security_logs', ['user_id', 'event_type', 'created_at'], 'migrate_batch8.js'],
   ['student_profiles', ['user_id', 'birth_date', 'home_address', 'shs_grad_year'], 'migrate_student_profiles.js'],
   ['trusted_browsers', ['user_id', 'token_hash', 'token_version'], 'migrate_trusted_browsers.js'],

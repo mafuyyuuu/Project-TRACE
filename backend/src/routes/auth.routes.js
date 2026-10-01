@@ -14,6 +14,7 @@ router.post('/staff-authenticator/confirm', loginLimiter, staffSetup.confirm);
 router.post('/login', loginLimiter, authController.login);
 router.post('/verify-2fa', loginLimiter, authController.verify2FA);
 router.get('/me', authenticate, authController.getMe);
+router.post('/onboarding/start', authenticate, requireRole('student'), require('../controllers/onboarding.controller').start);
 router.get('/authenticator', authenticate, authenticatorController.status);
 router.post('/authenticator/setup', authenticate, loginLimiter, authenticatorController.begin);
 router.post('/authenticator/confirm', authenticate, loginLimiter, authenticatorController.confirm);
