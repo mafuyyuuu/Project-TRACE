@@ -1,14 +1,15 @@
 import { INPUT_LIMITS } from '@/utils/inputLimits';
+import { isHonorableDismissal } from '@/utils/documentPolicy';
 import FileUploadField from '@/components/FileUploadField';
 import ModalShell from '@/components/ModalShell';
-import { itemAmount, groupTotal, formatPeso } from '@/utils/pricing';
+import { formatPeso } from '@/utils/pricing';
 
 /**
  * Multi-document request form.
  *
  * A student ticks any number of document types; the whole
  * selection once. Each ticked type expands to its own fields (copies,
- * semesters, attachment), because fees and requirements differ per type.
+ * study years, attachment), because fees and requirements differ per type.
  *
  * The list, fees and attachment rules all come from `document_types`, so the
  * Registrar can add or reprice a document without a code change.
@@ -26,10 +27,8 @@ export default function NewRequestModal({
 }) {
   const selectedNames = Object.keys(selections);
   const availableTypes = documentTypes.filter(t => !t.is_walk_in && ((t.available_to || 'both') === 'both' || t.available_to === (user.user_type || 'student')));
-  const total = groupTotal(documentTypes, selections);
 
-  /** TOR asks for semesters; a couple of types ask where the document is going. */
-  const needsSemesters = (type) => type.fee_rule === 'per_semester_block';
+  const needsStudyYears = name => ['Transcript of Records', 'Transcript of Records (TOR)'].includes(name);
   const needsRequestingSchool = (name) =>
     name === 'Transcript of Records' || name === 'Honorable Dismissal';
   const needsYearGraduated = (name) =>
@@ -115,10 +114,8 @@ export default function NewRequestModal({
                           {type.name === 'Diploma' && <span className="ml-1 text-[10px] text-gray-500 dark:text-gray-400 font-normal italic">(Reissue Fee)</span>}
                         </span>
                         <span className="text-xs font-black text-[#15803d] dark:text-green-300">
-                          {isSelected ? formatPeso(itemAmount(type, selection)) : formatPeso(type.base_fee)}
-                          {type.fee_rule === 'per_semester_block' && !isSelected && (
-                            <span className="text-[9px] text-gray-400 dark:text-gray-400 font-semibold"> /4 sems</span>
-                          )}
+                          {formatPeso(type.base_fee)}
+                          <span className="text-[9px] text-gray-400 dark:text-gray-400 font-semibold">{type.fee_rule === 'per_semester_block' ? ' per printed page' : ' per copy'}</span>
                         </span>
                       </label>
                       {type.unavailable_reason && <p className="px-4 pb-3 text-xs text-amber-800 dark:text-amber-300">{type.unavailable_reason}</p>}
@@ -127,26 +124,17 @@ export default function NewRequestModal({
                         <div className="px-4 pb-4 pt-1 space-y-3 border-t border-emerald-100/70 dark:border-emerald-800/70">
                           <label className="flex flex-col gap-1.5 text-xs font-semibold">
                             Copies
-                            <input type="number" min="1" max={type.is_repeatable === false || type.name === 'Honorable Dismissal' ? 1 : 2147483647} step="1" required
+                            <input type="number" min="1" max={isHonorableDismissal(type.name) ? 1 : 2147483647} step="1" required
                               value={selection.copies} onChange={e => updateSelection(type.name, { copies: e.target.value })}
                               className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-2.5" />
                           </label>
-                          {needsSemesters(type) && (
-                            <div className="flex flex-col gap-1.5">
-                              <label className="text-[10px] font-bold text-gray-700 dark:text-gray-300 uppercase tracking-widest">
-                                Semesters attended
-                              </label>
-                              <input
-                                type="number" min="1" required
-                                value={selection.semesters}
-                                onChange={(e) => updateSelection(type.name, { semesters: e.target.value })}
-                                className="w-full bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-2.5 text-xs outline-none focus:ring-2 focus:ring-[#15803d]/20"
-                              />
-                              <p className="text-[10px] text-gray-400 dark:text-gray-400">
-                                4 semesters = 1 page ({formatPeso(type.base_fee)}/page)
-                              </p>
-                            </div>
-                          )}
+                          {needsStudyYears(type.name) && <div className="grid grid-cols-2 gap-3">
+                            {[['year_started', 'Year Started'], ['year_ended', 'Year Ended']].map(([key, label]) => <label key={key} className="text-xs font-semibold">
+                              {label}<input type="number" required min="1900" max={new Date().getFullYear()} step="1" value={selection[key] || ''}
+                                onChange={event => updateSelection(type.name, { [key]: event.target.value })}
+                                className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-2.5" />
+                            </label>)}
+                          </div>}
 
                           {needsRequestingSchool(type.name) && (
                             <div className="flex flex-col gap-1.5">
@@ -217,43 +205,10 @@ export default function NewRequestModal({
             )}
           </div>
 
-          {/* Running total for the whole request */}
-          <div className="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl p-4">
-            {selectedNames.length === 0 ? (
-              <p className="text-xs text-gray-400 dark:text-gray-400 text-center font-semibold">
-                Select at least one document to see an estimate.
-              </p>
-            ) : (
-              <>
-                <div className="space-y-1.5 pb-3 border-b border-gray-200 dark:border-gray-700">
-                  {selectedNames.map((name) => {
-                    const type = documentTypes.find((t) => t.name === name);
-                    return (
-                      <div key={name} className="flex justify-between text-[11px] text-gray-600 dark:text-gray-300 font-semibold">
-                        <span>
-                          {name}
-                          
-                        </span>
-                        <span>{formatPeso(itemAmount(type, selections[name]))}</span>
-                      </div>
-                    );
-                  })}
-                </div>
-                <div className="flex justify-between items-center pt-3">
-                  <span className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest">
-                    Estimate ({selectedNames.length} document{selectedNames.length > 1 ? 's' : ''})
-                  </span>
-                  <span className="text-lg font-black text-[#15803d] dark:text-green-300">{formatPeso(total)}</span>
-                </div>
-              </>
-            )}
-          </div>
-
-          <div className="bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-100 dark:border-emerald-800 p-4 rounded-xl text-xs leading-relaxed text-[#15803d] dark:text-green-300 font-bold flex items-center gap-2">
-            <span className="w-2 h-2 bg-[#15803d] rounded-full shrink-0"></span>
-            An estimate from the standard fee table, not a bill. The College Secretary sets the
-            final amount after printing, and one payment then covers the whole request.
-          </div>
+          <p className="rounded-xl bg-emerald-50 dark:bg-emerald-950/40 p-4 text-xs text-green-800 dark:text-green-300">
+            Rates are for your information. After printing, the Secretary confirms the final charge.
+            The full pricing breakdown and request total will appear on your dashboard before payment.
+          </p>
       </form>
     </ModalShell>
   );

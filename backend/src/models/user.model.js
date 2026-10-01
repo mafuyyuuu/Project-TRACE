@@ -12,10 +12,18 @@ function findActiveByStudentId(studentId, executor = pool) {
     .then(([rows]) => rows);
 }
 
-function getProfileById(userId, executor = pool) {
+function getProfileById(userId, executor = pool, lock = false) {
   return executor
     .query(
-      'SELECT u.id, u.student_id, u.email, u.pending_email, u.full_name, u.role, u.user_type, u.desk_assignment, u.is_active, u.phone_number, u.course, u.college_id, u.id_proof_path, u.enrollment_status, u.study_load, u.must_change_password, u.profile_picture, u.created_at, (SELECT COUNT(*) FROM grad_applications WHERE student_id = u.student_id) > 0 AS has_grad_application FROM users u WHERE u.id = ?',
+      `SELECT u.id, u.student_id, u.email, u.pending_email, u.full_name, u.role, u.user_type,
+        u.desk_assignment, u.is_active, u.phone_number, u.course, u.college_id, u.id_proof_path,
+        u.enrollment_status, u.study_load, u.must_change_password, u.profile_picture, u.created_at,
+        p.extension_name, p.birth_date, p.place_of_birth, p.sex, p.civil_status, p.maiden_name,
+        p.home_address, p.last_attendance_year, p.is_transfer_student, p.previous_school,
+        p.elem_school, p.elem_grad_year, p.jhs_school, p.jhs_grad_year, p.shs_school, p.shs_grad_year,
+        (SELECT COUNT(*) FROM grad_applications WHERE student_id = u.student_id) > 0 AS has_grad_application
+       FROM users u LEFT JOIN student_profiles p ON p.user_id = u.id
+       WHERE u.id = ?${lock ? ' FOR UPDATE' : ''}`,
       [userId]
     )
     .then(([rows]) => rows);
@@ -236,7 +244,7 @@ function updateStaff(userId, fields, executor = pool) {
 }
 
 function setUserActive(userId, isActive, executor = pool) {
-  return executor.query('UPDATE users SET is_active = ? WHERE id = ?', [isActive, userId]);
+  return executor.query('UPDATE users SET is_active = ?, token_version = token_version + 1 WHERE id = ?', [isActive, userId]);
 }
 
 /** Clears the forced-change flag once the user has chosen their own password. */

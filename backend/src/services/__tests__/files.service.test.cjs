@@ -5,6 +5,7 @@
  */
 const documentModel = require('../../models/document.model');
 const userModel = require('../../models/user.model');
+const attachments = require('../../models/requestAttachment.model');
 const { getFilePathForUser, resolveSafePath } = require('../files.service');
 
 const STAFF = { id: 1, role: 'clerk', desk_assignment: 'Finance' };
@@ -19,6 +20,7 @@ const STUDENT = { id: 3, role: 'student' };
 const statusOf = (promise) => promise.then(() => undefined, (err) => err.status);
 
 beforeEach(() => {
+  vi.spyOn(attachments, 'fileOwner').mockResolvedValue(undefined);
   vi.spyOn(documentModel, 'findByAttachedFilename').mockResolvedValue([]);
   vi.spyOn(userModel, 'findStudentIdById').mockResolvedValue([{ student_id: 'STU-001' }]);
   vi.spyOn(userModel, 'findByIdProofFilename').mockResolvedValue([]);
@@ -52,6 +54,18 @@ describe('resolveSafePath — path traversal defence', () => {
 });
 
 describe('file authorization', () => {
+  it('allows a student their case attachment and denies another student', async () => {
+    attachments.fileOwner.mockResolvedValue({ id: 11, student_id: 'STU-001' });
+    expect(await statusOf(getFilePathForUser(STUDENT, 'case.pdf'))).toBe(404);
+    attachments.fileOwner.mockResolvedValue({ id: 11, student_id: 'STU-999' });
+    expect(await statusOf(getFilePathForUser(STUDENT, 'case.pdf'))).toBe(403);
+  });
+  it('restricts Secretary attachment files to their saved college', async () => {
+    attachments.fileOwner.mockResolvedValue({ id: 11, student_id: 'STU-001' });
+    vi.spyOn(userModel, 'findCourseById').mockResolvedValue([{ college_id: 1 }]);
+    vi.spyOn(userModel, 'findStudentCourseByStudentId').mockResolvedValue([{ college_id: 2 }]);
+    expect(await statusOf(getFilePathForUser({ id: 5, role: 'clerk', desk_assignment: 'Secretary' }, 'case.pdf'))).toBe(403);
+  });
   it('lets a clerk read any file', async () => {
     expect(await statusOf(getFilePathForUser(STAFF, 'someone-elses.jpg'))).not.toBe(403);
   });

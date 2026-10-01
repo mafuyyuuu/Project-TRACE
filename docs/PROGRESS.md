@@ -3,8 +3,7 @@
 ## Current Status
 - **Batch 1 to 8**: Previously marked complete in the historical docket. The reconstructed batches are being re-verified; see the current review below.
 - **Batch 9 registrar consultation**: CN-03/CN-04 implementation and automated checks complete; the user reported successful live migration and healthy backend/database/AI services. Application acceptance and frontend promotion remain pending. Other consultation items remain pending. The earlier completion claims below are historical and superseded by the 2026-09-30 verification.
-- **Batch 10 Phase 1 & 2 (Audit Trail & Rate Limiting)**: Complete.
-- **Batch 10 Phase 3 (Security & Account Protection)**: Complete.
+- **Batch 10**: Each feature requires its own current-code review and approved file scope. Admin Templates recovery, clerk browser trust, CN-15/CN-08/D-10 fee schedules, FAQ/photo/text-size UI and the approved profile-completion repair are implemented locally. Deployment acceptance, remaining Finance, onboarding and Security work are pending. Earlier audit/rate-limit/security completion claims are historical, not current acceptance evidence.
 
 ## Historical Batch 9 Phase 3 Claims — Not Acceptance Evidence
 - **CN-11 (In-App Messaging):**
@@ -422,6 +421,70 @@ The user subsequently reported completed login; supplied backend/Caddy logs show
 - **Repeated OTP explanation:** `auth.service.js` requires 2FA when `two_factor_enabled || isStaff`; Admin and clerk logins always request a fresh code, including after logout. Recognition cookies control first/new-browser notices and do not bypass OTP. No authentication-policy change was requested or implemented.
 
 Validation: baseline **573 backend / 361 frontend** tests passed. Final **577 backend tests / 25 files** and **362 frontend tests / 41 files** pass, as do the frontend production build, migration/test syntax checks and `git diff --check`. Targeted frontend ESLint decreases from three errors to two: the missing-panel reference is resolved; pre-existing unused `AdminTemplatesPanel` and `ConfirmDialog` imports remain. The edited regression test has no lint diagnostics. Existing build-size and Node local-storage warnings remain. Mocked migration checks do not establish live MySQL acceptance. No commit, push, deployment, migration execution or production promotion was performed by this repair.
+
+## Batch 10: Admin Templates Recovery — 2026-09-30
+
+The user reported that the preceding Admin Security/profile-table repair now works. Baseline for this scope was clean `dev` at `acd4136`, with **577 backend / 362 frontend** tests passing. The user approved exactly the seven files below, including the narrow backend pool-import exception. No Finance, profile-completion, authentication-policy, database migration or deployment changes are included.
+
+| File | Change |
+| --- | --- |
+| `frontend/src/features/admin/AdminDashboard.jsx` | Add the missing `admin-templates` render branch using the existing panel. |
+| `frontend/src/features/admin/components/AdminTemplatesPanel.jsx` | Load-error/retry/empty states, selection-safe details, and isolated HTML preview; confirmed save retained. |
+| `frontend/src/features/__tests__/dashboards.render.test.jsx` | Actual-tab regression checks for load, preview isolation, wrapper-style injection, list/detail retry, empty catalog and stale-selection save protection. Mock the existing analytics service so tab tests do not make unrelated network requests. |
+| `backend/src/models/template.model.js` | Destructure the configured pool; existing SQL/bindings unchanged. |
+| `backend/src/models/__tests__/template.model.test.cjs` | New real-model/mocked-pool list/read/update/error regressions. |
+| `docs/BACKEND_GUIDE.md` | Template contract, preview limits and paired rollout/live acceptance. |
+| `docs/PROGRESS.md` | Findings, approval, validation and separate remaining Batch 10 scopes. |
+
+The frontend regression reproduced the empty tab before wiring. All four new model regressions initially failed with `pool.query is not a function`, confirming the import defect. The panel now loads the existing catalog/details, surfaces failures with Retry, offers no blank save for an empty/missing detail, and ignores stale responses when selection changes. The existing cancellation/confirmed-save regression remains green. The preview replaces direct app-DOM HTML injection with an empty-sandbox iframe and restrictive CSP, retaining sample substitutions and supported fonts/sizes. Stored template HTML and other consumers are unchanged; this is not a whole template-engine security acceptance claim. [MDN's iframe reference](https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/iframe) documents the sandbox restrictions used.
+
+### Agreed decisions for later scopes
+
+- **CN-15/CN-08/D-10:** students see itemized charges and calculations as well as the total. This supersedes hiding “How the Amount Was Worked Out.” College/document/item/rental/special fee rules and historical-price preservation still need their own design and file scope.
+- **FIN-01–FIN-04/D-08:** payment clearance sends an acknowledgment immediately. If OR issuance/upload is deferred, send the actual digital OR when issued and route it to Secretary for release. The same-day cut-off starts at exactly **4:00 PM Asia/Manila**. A payment acknowledgment must not be labeled an official receipt. Each workflow item requires separate scoping; the code has a deferred-upload path that needs verification, not an assumption that nothing exists.
+- **SEC-11 clerk trust:** Admin OTP every login; clerks may trust a personal browser for today after successful OTP; shared computers require OTP each login. Password changes/resets and logout-all revoke trust. Existing browser-recognition cookies only control alerts and cannot be reused as proof of MFA. The separately approved authentication implementation is recorded below; live cookie acceptance remains pending.
+- **SEC-16:** accept any email domain; verify with a time-limited, single-use one-click link, offer resend, gate requests/sensitive features, and reverify email changes. No PLP domain restriction. Existing ID/document approval is distinct from email verification.
+- **PROF-01–PROF-05 and SEC-07–SEC-16:** current code already contains personal/educational fields, conditional profile progress, password change/reset, OTP/email-change routes, audit logs and a Security settings tab. Docket claims that none exist are stale. Each item needs current behavior/gap verification, backend enforcement and its own approved plan before implementation. Bcrypt remains unchanged.
+
+Live template table/default records, MySQL persistence, physical-device behavior and browser sandbox enforcement remain deployment/acceptance checks. No missing-table migration or seeding was inferred from the frontend's empty tab. WebSocket upgrade and AI timeout findings from the previous repair remain open. No commit, push or deployment was performed.
+
+Validation: **581 backend tests / 26 files** and **368 frontend tests / 41 files** pass, along with the frontend production build, backend model/test syntax checks and `git diff --check`. The existing template cancellation/confirmed-save test passes. The edited Templates panel and dashboard regression file pass ESLint; targeted diagnostics fall from **4 errors / 1 warning** to **1 error / 0 warnings**, with only the pre-existing unused `ConfirmDialog` import in `AdminDashboard.jsx` remaining. The build-size and Node local-storage warnings persist. Tests use synthetic API data and a mocked database pool; they do not prove live persistence or browser sandbox enforcement.
+
+## Batch 10: Clerk Browser Trust — 2026-09-30
+
+The user approved the 18 exact files, including the new trust storage/migration and narrowly scoped backend authentication changes. During implementation they separately approved one additional test file, `backend/src/services/__tests__/batch8.auth-boundary.test.cjs`, because its HTTP mock lacked cookie clearing and its OTP call asserted the previous signature. The approved scope is now **19 files**. The preceding seven-file Templates changes were preserved uncommitted; the current trust baseline was **581 backend / 368 frontend** passing tests. No agents were delegated.
+
+| Approved file | Change |
+| --- | --- |
+| `backend/src/controllers/auth.controller.js` | Forward actual cookies and boolean consent; set an HttpOnly trust cookie without exposing its value in JSON; clear it for shared mode and successful credential/global-logout actions. |
+| `backend/src/services/auth.service.js` | Personal-mode clerk trust after password validation; signed challenge eligibility/version; OTP-only grant; atomic credential update/version revocation/OTP clearing. |
+| `backend/src/services/trustedBrowser.service.js` | New random proof/hash, strict clerk eligibility, Manila midnight expiry, matching cookie settings, fail-closed lookup and version-checked grant transaction. |
+| `backend/src/models/trustedBrowser.model.js` | New parameterized proof lookup/insert and account-row lock. Lookup checks ownership, current clerk role/activation, version and expiry. |
+| `backend/database/schema.sql` | Add the canonical hash-only proof table for new databases. |
+| `backend/database/migrate_trusted_browsers.js` | New explicit/import-safe conditional table creation for existing installations. |
+| `backend/database/__tests__/migrate_trusted_browsers.test.cjs` | Canonical DDL, safe reruns, failures and no queries on import. |
+| `backend/src/services/__tests__/auth.service.test.cjs` | Admin/shared/personal/optional-student MFA policy, bad-password/code guards, consent, versions and atomic password-change revocation. |
+| `backend/src/services/__tests__/passwordReset.service.test.cjs` | Reset/revocation transaction, rollback and locked-link recheck. |
+| `backend/src/services/__tests__/trustedBrowser.service.test.cjs` | New expiry/cookie/hash/role/version/storage-failure and real SQL regression checks. |
+| `backend/src/controllers/__tests__/trustedBrowser.controller.test.cjs` | New secret-isolation/cookie/revocation checks and real-controller/service flow with mocked storage. |
+| `backend/src/services/__tests__/batch8.auth-boundary.test.cjs` | Separately approved response-mock and argument update; original full-auth recognition/security assertions retained. |
+| `frontend/src/pages/LoginPage.jsx` | Shared mode by default; eligible clerk opt-in during OTP; retain duplicate protection, inline errors, keyboard submission and 60-second resend. |
+| `frontend/src/services/authService.js` | Serialize shared mode with strict false as the sole personal-mode value. |
+| `frontend/src/pages/__tests__/submission.confirmations.test.jsx` | Default/shared/Admin eligibility, personal clerk consent and resend-mode/consent behavior. |
+| `frontend/src/services/__tests__/authService.test.js` | New serialization/default-mode/OTP payload checks. |
+| `docs/BACKEND_GUIDE.md` | Contracts, version revocation, migration and limits. |
+| `docs/ENV_SETUP_GUIDE.md` | Explicit rollout steps and live acceptance checks. |
+| `docs/PROGRESS.md` | Scope approvals, evidence and remaining work. |
+
+Admin still verifies every login. A clerk must explicitly select personal mode at each login and opt into trust after successful OTP; shared mode ignores/clears any earlier proof. New `trace_mfa_trust` values are random, separate from `trace_device`, and stored only as SHA-256 hashes plus user/version/UTC epoch expiry. They expire at the next **midnight Asia/Manila**, not 24 hours after issuance. Missing/invalid/blocked/expired/revoked cookies or unavailable storage require OTP. No raw proof appears in JSON or trust error logs. Grant failure leaves a valid OTP login without browser trust.
+
+Password changes/resets increment the existing version and clear login OTPs in the same transaction as the password write. Password-change concurrency checks compare the verified hash again under lock; reset links are rechecked/consumed under that lock. Rollback prevents successful credential writes without revocation. Logout-all already increments the same version. Old proofs and pending challenges cannot be upgraded to the new version. This also expires existing JWTs, including the current session: sign in again afterward. Existing pending tokens without version binding require a fresh login after deployment. Trust expiry affects the next login, not an existing authenticated session.
+
+The new service regressions first failed because the approved new implementation modules did not exist, then passed. An initial auth test-fixture error was corrected by spying on the actual CommonJS pool's `getConnection`; the Vitest ESM factory was not the imported CommonJS object. A new frontend test initially lacked explicit Vitest imports for ESLint; imports were corrected without changing source behavior. The complete controller/service flow test exercises password → OTP → trust cookie → later personal password login → shared/expired/revoked fallback, using synthetic accounts and mocked SQL storage.
+
+Validation: **640 backend tests / 29 files** and **378 frontend tests / 42 files** pass. The frontend production build, targeted Login/auth-service/test ESLint, backend syntax checks and `git diff --check` pass. Existing large-bundle and Node local-storage warnings remain. No live database or SMTP was exercised, no real account/session was changed, and no actual cross-site cookie persistence or physical-phone behavior was verified. Automated fixtures do not establish live MySQL locking/commit behavior. The explicit migration and acceptance runbook have not been executed on the server. No commit, push, deployment or production promotion was performed.
+
+This is the approved clerk-trust addition only. The site cannot identify a physically shared device; user selection is required. Browser third-party-cookie policies can still block persistence despite credentialed CORS ([MDN](https://developer.mozilla.org/en-US/docs/Web/HTTP/Guides/CORS#requests_with_credentials)). No new environment variables/dependencies, automatic session redesign, authenticator/back-up codes, other SEC-07–SEC-16 acceptance, Finance or Profile Completion implementation is included. Remaining security gaps (including comprehensive active-account/session/realtime revocation, reset-flow requirements and credential-safe audit logging) require their own current-code scope. Batch 10 fee-calculation visibility, acknowledgment versus OR, 4:00 PM cutoff and any-domain verification-link decisions above remain unchanged and unimplemented.
 
 ## Batch 1 Re-verification — 2026-09-30
 
@@ -1079,3 +1142,259 @@ Unrelated findings left unchanged: current lint failures include undefined `Admi
 | `frontend/src/services/authService.js` | Encode profile identifiers, support cancellation and signup OCR service call. |
 | `frontend/src/pages/HelpPage.jsx` | Synchronize Preferences/Edit Profile, OCR/IDs, reports, profile and document-policy guidance. |
 | `docs/CODING_PREFERENCES.md` | Current server upload guard, feedback dismissal, identity/profile and policy conventions. |
+
+
+## Batch 10: CN-15/CN-08/D-10 Fee Schedules — 2026-10-01
+
+### Approved decisions and resulting behavior
+
+The user approved the 35-file pricing scope, added the TOR student hook (36), then approved the existing Batch 8b workflow regression test (37) after changing the filing display to rates only. Admin configures default rates, complete college overrides and named items; Secretary enters actual printed pages per copy; Finance verifies payment. Rental/Special/named fees apply once per document type per request, not per copy. Students see the full calculation after final pricing, while the filing form shows informational rates only.
+
+TOR now asks Year Started/Year Ended, with whole-year/order validation and purpose JSON storage. Study years never infer printed pages. The old semester interface remains accepted for older callers/records. Page-based final pricing uses pages per copy × copies × rate; flat pricing uses copies × rate. A three-page, two-copy TOR at ₱100 with ₱20 rental, ₱30 special and ₱10 certification bills ₱660.
+
+Filing saves a trusted-college rate snapshot in its transaction. Final pricing ignores client amounts/rates and saves calculation, actual pages, basis and clerk atomically. Historical billed totals remain untouched; missing historical calculations are clearly identified rather than reconstructed. Older unpriced records require Secretary review of current rates. Multi-document billing still waits for every document and only Finance clears payment. The dashboard, checkout, Finance review and payment slip use the saved final breakdown. Admin rate changes affect later requests.
+
+### Validation and deployment limits
+
+Baseline: 640 backend tests (29 files), 378 frontend tests (42 files). Final verification is recorded below after the last checks. New tests cover migration retries/preservation, SQL bindings/atomic snapshots, complete overrides, exact monetary arithmetic and quantity bounds, trusted ownership/rates, role restrictions, grouped billing, TOR validation, rate-only filing, confirmations and saved bill rendering. Targeted lint and production build are also required before handoff. No live MySQL migration, SMTP test, real browser/payment acceptance, commit, push or deployment occurred. Follow the explicit fee migration and acceptance checklist in ENV_SETUP_GUIDE.md; do not reimport the schema or reseed production.
+
+### Newly reported follow-ups — status after subsequent approvals
+
+- FAQ: subsequently approved and repaired to use the available width with natural expanded-answer height; synthetic local browser checks recorded below.
+- Profile photo: subsequently approved and consolidated to the camera picker, retaining validation, preview and confirmed saving.
+- Security: the settings tab contains password/activity/session controls but no two-factor setup. Login checks a two_factor_enabled flag and emails codes. No authenticator enrollment, QR setup or recovery-code implementation exists. Earlier claims that the feature was available in Settings were incorrect. Student OTP is not first-login-only: enabled accounts receive a code every login, while disabled accounts do not get new-browser OTP. Clerk trust remains clerk-only; Admin always requires OTP.
+- Accessibility: subsequently approved and implemented locally, including legacy pixel text/chart conversion and the responsiveness repair below. Live role/device acceptance remains pending.
+- Window 1 messaging: FloatingSupportChat is mounted inside the student's main dashboard branch and returns null without a document. It opens one document conversation, not a general support thread or desk inbox. DocumentChat loads messages on mount/document change and after sending; incoming messages do not refresh automatically. No Window 1 DocumentChat render was found (Secretary evaluation embeds it). General pre-request messaging, a bubble across student tabs, Window 1 inbox/unread indicators and incoming updates require a dedicated scope and authorization tests. Attachments/processing holds stay deferred.
+
+### Exact approved 37-file manifest
+
+- `backend/database/__tests__/migrate_fee_schedules.test.cjs`
+- `backend/database/migrate_fee_schedules.js`
+- `backend/database/schema.sql`
+- `backend/src/models/__tests__/document.model.test.cjs`
+- `backend/src/models/__tests__/pricing.model.test.cjs`
+- `backend/src/models/__tests__/referenceData.model.test.cjs`
+- `backend/src/models/document.model.js`
+- `backend/src/models/pricing.model.js`
+- `backend/src/models/referenceData.model.js`
+- `backend/src/services/__tests__/documents.service.test.cjs`
+- `backend/src/services/__tests__/maintenance.service.test.cjs`
+- `backend/src/services/__tests__/referenceData.service.test.cjs`
+- `backend/src/services/documents.service.js`
+- `backend/src/services/maintenance.service.js`
+- `backend/src/services/referenceData.service.js`
+- `backend/src/utils/__tests__/pricing.test.cjs`
+- `backend/src/utils/pricing.js`
+- `docs/BACKEND_GUIDE.md`
+- `docs/CODING_PREFERENCES.md`
+- `docs/ENV_SETUP_GUIDE.md`
+- `docs/PROGRESS.md`
+- `frontend/src/components/FeeBreakdown.jsx`
+- `frontend/src/features/__tests__/batch10.pricing.test.jsx`
+- `frontend/src/features/__tests__/batch4.confirmations.test.jsx`
+- `frontend/src/features/__tests__/batch8b.workflow.test.jsx`
+- `frontend/src/features/admin/components/FeeScheduleEditor.jsx`
+- `frontend/src/features/admin/components/MaintenancePanel.jsx`
+- `frontend/src/features/finance/components/FinanceVerificationModal.jsx`
+- `frontend/src/features/secretary/SecretaryDashboard.jsx`
+- `frontend/src/features/secretary/components/PaymentStubModal.jsx`
+- `frontend/src/features/secretary/components/PricingModal.jsx`
+- `frontend/src/features/secretary/useSecretaryDashboard.js`
+- `frontend/src/features/student/StudentDashboard.jsx`
+- `frontend/src/features/student/components/NewRequestModal.jsx`
+- `frontend/src/features/student/useStudentDashboard.js`
+- `frontend/src/utils/__tests__/pricing.test.js`
+- `frontend/src/utils/pricing.js`
+
+## Batch 10: Approved FAQ, Photo, Text Size and Profile Repair — 2026-10-01
+
+### Result and diagnosis
+
+Preferences persists 100%, 125%, 150% or 200% text in the browser and applies it before rendering. FAQ answers now use the full content width. The profile camera is the sole photo picker, preserving staged preview, validation and confirmed saving. Enlarging the root font originally inflated Tailwind spacing and kept desktop grids/header groups in narrow available space. The repair stabilizes spacing, wraps header/profile groups, stacks grids using content/dialog container widths, and retains horizontal scrolling for tables and dense charts. Profile content has one scroll area with a reachable Save footer. Print root size remains 100%.
+
+The request gate previously used incomplete account projections and inconsistent completeness checks. Profile reads now join safe saved fields; frontend/backend helpers agree on required and conditional fields. New Request shows missing fields with a direct Edit Profile action, and student API filing checks saved completeness under the transaction before writes. A successful profile save refreshes authoritative account data; stale reads do not publish draft education into the completion cache. Staff-assisted intake is preserved.
+
+The supplied server logs independently confirmed `d.student_id` without a table alias in document history and a missing `document_sequence_number` during Transfer insertion. Count/list now alias `documents d`; the approved explicit fee migration adds the missing nullable sequence column without rewriting historical data. Null file fields in the failing Transfer query confirmed that its reported 500 was SQL, not an attachment rule. No live migration or deployment has occurred.
+
+### Approved 18-file UI manifest
+
+- `frontend/src/pages/HelpPage.jsx`
+- `frontend/src/components/ProfileSettingsModal.jsx`
+- `frontend/src/components/FileUploadField.jsx`
+- `frontend/src/layouts/Layout.jsx`
+- `frontend/src/main.jsx`
+- `frontend/src/index.css`
+- `frontend/src/utils/textSize.js`
+- `frontend/src/components/MiniSparkline.jsx`
+- `frontend/src/features/admin/components/AnalyticsPanel.jsx`
+- `frontend/src/features/admin/components/ForecastModal.jsx`
+- `frontend/src/features/admin/AdminDashboard.jsx`
+- `frontend/src/components/__tests__/ProfileSettingsModal.test.jsx`
+- `frontend/src/components/__tests__/FileUploadField.test.jsx`
+- `frontend/src/layouts/__tests__/Layout.test.jsx`
+- `frontend/src/features/__tests__/batch10.accessibility.test.jsx`
+- `docs/USER_MANUAL.md`
+- `docs/CODING_PREFERENCES.md`
+- `docs/PROGRESS.md`
+
+### Approved profile repair additions and shared files
+
+Eight additional files: `backend/src/models/user.model.js`, `backend/src/models/__tests__/user.model.test.cjs`, `backend/src/utils/profileCompletion.js`, `backend/src/utils/__tests__/profileCompletion.test.cjs`, `frontend/src/utils/profileCompletion.js`, `frontend/src/utils/__tests__/profileCompletion.test.js`, `frontend/src/hooks/useProfileSettings.js`, `frontend/src/hooks/__tests__/useProfileSettings.test.jsx`.
+
+Ten already approved files are reused: backend documents service/test; frontend StudentDashboard, ProfileSettingsModal/test, Layout/test and Batch 10 pricing test; CODING_PREFERENCES and PROGRESS. Existing approved ENV_SETUP_GUIDE/BACKEND_GUIDE document rollout and SQL behavior.
+
+### Verification and limits
+
+Regression coverage includes safe profile SQL projection/locking, completion conditions and boolean normalization, forged completion flags, rollback without document/activity writes, attachment-free Transfer, authoritative profile refresh, missing-field popup/direct navigation, camera validation, persistent sizes and expandable FAQ answers for all roles. Synthetic local browser inspection reproduced then repaired header overlap and verified 320-pixel/200% profile and FAQ reflow, education scrolling and reachable Save, plus desktop 1280-pixel/200% FAQ wrapping. Desktop 150% request tables and existing document-support chat remain readable. Admin analytics at desktop/mobile 200% stacks cards and contains chart overflow; its workload table uses readable unbroken headings and a local scroller. It uses synthetic API responses and does not establish real SQL, SMTP, payment, Socket.IO or physical-device acceptance. Real backend/DB rollout and role-flow checks remain in ENV_SETUP_GUIDE. Authenticator setup, general Window 1 messaging and remaining Finance/security features are still pending.
+
+Final automated checks: **739 backend tests / 35 files** and **442 frontend tests / 45 files** pass. Production frontend build, ESLint on all changed/new frontend JS/JSX, syntax checks on 20 changed/new backend JS/CJS files, matching frontend/backend profile helper cores and `git diff --check` pass. Repository-wide lint remains blocked by the existing unused React import in `AdminSecurityPanel.jsx` and reports the existing `updateRect` dependency warning in `OnboardingTutorial.jsx`; neither file is in this approved repair. No live migration, deployment, commit or push was performed.
+
+## Acceptance checklist follow-up findings — 2026-10-01
+
+Read-only findings before additional product repairs: Admin Templates' local render branch exists, but the shared document loader returns before that branch while history remains pending. Template list/detail requests have no deadline. Student names open the shared profile dialog across desks; its hook sends an unbounded lookup. A successful response without `student` sets no error, and the modal's `!user` branch continues to say Loading. The user reports the dialog opens but remains loading everywhere. This confirms the reported symptom and source failure modes, not the deployed HTTP/SQL cause; the exact deployed URL/request result is not yet supplied. Proposed repair uses bounded requests, explicit invalid-response/error states and retry, retaining stale-response cancellation and staff authorization.
+
+Other checklist findings: staff deactivation calls guarded `notifications.notifyByEmail`, but notification.service exports `sendEmail` and no `notifyByEmail`; owner email is silently skipped. Password change/reset use the exported sendEmail adapter. Deactivation changes only is_active; current JWT middleware checks token_version, not active state. Signup currently renders its own SIGN UP/PLP heading without TRACE, despite an earlier docket claim that it reused AuthShell. Graduation gating precedes dashboard tabs, but Layout still exposes account/settings and no universal graduation-submission API gate was found. Shared axios has no general timeout; signup's AI deadline does not bound the whole registration request. These items are findings, not repairs or live acceptance passes.
+
+The user explicitly requested removal of the shared header search bar on every screen; Layout's unused header input and its sole INPUT_LIMITS import were removed. Queue/report/account filters remain. Authenticator enrollment and recovery codes are absent and remain unimplemented; existing email OTP is not authenticator setup.
+
+
+### Approved follow-up repairs and messaging findings
+
+The user approved the three-file student-profile loading repair (useStudentProfile, its existing tests and StudentProfileModal) and the two-file direct-message-send exception (DocumentChat and its existing tests). Profile lookup now has a 15-second deadline, cancels stale responses, rejects missing profile data and offers Retry. Send/Enter submits directly; a synchronous guard blocks pending duplicates, failures keep the draft, and a failed post-send refresh cannot restore an accepted message. The message exception is recorded in CODING_PREFERENCES.
+
+Within the earlier approved Templates scope, independent Admin panels now render before the core history loading gate. Template list/detail loads are bounded, cancelled when superseded, validate responses and offer retry without enabling a blank save after a failure. These local repairs do not identify or deploy a fix for an unknown live HTTP/SQL failure.
+
+Read-only messaging findings before a broader repair: documentMessage.model imports the DB wrapper instead of its pool export; sendMessage calls undefined notifyInApp for an assigned-clerk notification and never notifies Window 1 when no clerk is assigned. Existing notifyStudent drops link_url, so notifications do not open a conversation. Window1Dashboard has no message view; FloatingSupportChat appears only in the main student dashboard and selects one request. Conversation reads have no incoming refresh or explicit loading error. The single read_at column represents a shared read state, not individual clerk read receipts. Repair must enforce student ownership and recognized staff desk access and must not turn notification failures after a committed insert into a false failed send. General pre-request conversations, attachments and processing holds are separate additions to the existing request threads.
+
+Authenticator requirement confirmed by the user: enrollment must appear in the shared Profile Settings → Security for every account type (student, Admin, Window 1, Finance, College Secretary), with authenticator-app QR enrollment and recovery codes. This remains unimplemented; email login OTP is not authenticator enrollment. A visible nonfunctional toggle is not an acceptable completion.
+
+
+### Acceptance checklist requested for this round
+
+“Local verified” means source/automated or synthetic browser evidence, not production sign-off. Physical phone checks and real SQL/mail/session behavior stay open until performed on the deployed build. Findings precede new repair code in the sections above.
+
+| Acceptance item | Current evidence and remaining check |
+| --- | --- |
+| TRACE branding everywhere, including favicon | Partial: TRACE favicon/login/shell exist. Signup still says SIGN UP/PLP without TRACE; remaining notes locations need audit. |
+| First-login alumni graduation form; no other access until submitted | Partial: dashboard graduation gate exists. Settings remain reachable and no universal API gate was found; strict blocking and new-account production flow remain open. |
+| Back to Login visible and clickable on originally reported viewport | Local verified again in Brave at 320 × 600, including actual click returning to Login. Earlier synthetic checks cover 375/768/1280. Original phone/browser was not supplied, so that exact environment is pending. |
+| Alumni signup bounded; visible actionable failure; no silent hang | Partial: loading/errors and AI deadline exist. Entire registration HTTP request is unbounded; real signup timing/timeout remains pending. |
+| SEC-01 only after explicit design/sign-off | Historical docket records an approved implementation scope. No new SEC-01 code is included here; original design sign-off must be confirmed from its prior record before any extension. |
+| Phone/email edits survive logout and login | Local profile persistence/refresh regressions pass; email remains pending until its verification code succeeds. Actual deployed SQL write, logout/login and email delivery still need verification. |
+| Account edit shows every listed field by account type | Current role forms/projected fields covered locally. Complete original notes field matrix and real-role review remain to reconcile. |
+| Mobile inputs avoid zoom; viewport meta untouched | Source has 16px minimum input text and no viewport change. Physical iOS/Android focus/zoom check pending. |
+| Nine-step tracker, snake, no mid-word splits on real phone | Local nine-step/measured line implementation and prior synthetic layout checks exist. Real phone and enlarged-font tracker acceptance remain pending. |
+| Progress line reaches final node | Prior synthetic geometry check reported approximately 1px node/line alignment. Physical device acceptance pending. |
+| REJECTED/APPROVED distinct from active statuses | Local status helper/presentation regressions pass; historical rejected/approved states use distinct treatments. |
+| Circular queue badges, zero hidden, readable in both tab states on Secretary/Finance | Shared QueueTabs condition/style exists and desk queue tests pass. Both themes, multi-digit counts and physical/enlarged-text visual acceptance remain pending. |
+| Seven-day forecast Y-axis scales for low/high data side by side | Scale regression checks max 10 → ceiling 15 and max 100 → 120; card/modal use shared domain. Actual side-by-side rendered chart review remains pending. |
+| Reports dates readable and amounts formatted with ₱ | Local formatting/source/role report checks exist. Live populated export/dates and currency review pending. |
+| Registered Users and System Maintenance one screen | Local implemented: admin-users routes to MaintenancePanel; combined Accounts management exists. Live build check pending. |
+| Applicant Type visible in Admin verification | Local implemented and covered by Admin review/presentation checks. Live table check pending. |
+| AD-04/AD-06 settings actually change student/alumnus ST-02 options | Server policy/forged-request rejection and frontend option regressions exist. Real Admin save → student/alumnus session acceptance pending. |
+| Incomplete profile cannot file; exact missing fields shown | Local verified: saved-data frontend/API guard tests, missing-field popup and direct Edit Profile action. Paired deployed code/schema and bypass check pending. |
+| Password change/reset/deactivation notify owner | Partial: password change/reset use sendEmail adapter. Deactivation references nonexistent notifyByEmail and skips notification. SMTP delivery and deactivation repair remain pending. |
+| Every NEEDS INVESTIGATION item has a written finding before code | Findings recorded for items investigated this round and prior scopes. Entire original flagged-item list is not available as one checklist; exhaustive sign-off remains pending. |
+| Vitest suites green | Backend 739 tests/35 files passed at round start. Final frontend run and build results are recorded below after follow-up changes. |
+
+### Remaining batch work (current, not historical completion claims)
+
+- Earlier batches: complete the deployed acceptance and physical-device checks above, including genuine sessions, mail, OCR, protected records, reports and payment/provider integration. Existing malformed request-group and printed-slip findings remain separate. DOC-02 photocopy policy and DOC-03 attachment/processing-hold additions remain deferred.
+- Batch 9: CN-01 Program/Course on payment slip/OR; reconcile CN-02 removal of Copies with the later approved quantity/pricing behavior; CN-05 identity/name conventions; CN-06/CN-10 canonical document forms and linked sets; CN-07 same-day eligibility; CN-09 durable numbering/original issuance; CN-11 full messaging; CN-12 email-template consumption; CN-13 delay/SLA notifications; CN-14 submission QR/alumni continuation. Good Moral retirement and Diploma defaults have reported live migration success; remaining application acceptance still applies.
+- Batch 10: FIN-01–FIN-05 receipt/acknowledgment workflow, distribution, deferral, 4:00 PM Manila cutoff and dedicated Finance export; PROF-05 onboarding; remaining SEC-07–SEC-16 account/session/email hardening and authenticator enrollment/recovery codes. Existing implementations are partial, not blanket completion of those security items. Approved pricing/profile/FAQ/photo/text-size work is local and requires paired backend/frontend rollout and the explicit fee migration.
+- Current additions: three-file profile loading repair and direct Send/Enter are implemented locally; broader Window 1 messaging scope awaits approval. Authenticator setup must be in Security for all account types, per the user's latest requirement. General support before a request is a distinct conversation design from the existing document chat.
+
+Follow-up verification: **455 frontend tests / 45 files pass** after the final conversation-switch/account-loading guards and wrong-student/missing-ID profile regressions. Frontend production build, ESLint on the ten follow-up JS/JSX files and git diff --check pass. Backend was unchanged in this follow-up; its latest round-start run remains **739 tests / 35 files passing**. Build retains the existing large-chunk warning. Native Brave at 320 × 600 with 200% text shows the Admin Templates heading, malformed-catalog error and usable Retry; actual Retry was clicked using the local synthetic fixture. This confirms accessible failure behavior, not a successful production catalog/SQL fetch. The original physical-phone acceptance remains pending. No live migration, deployment, commit or push was performed.
+
+### Authenticator design for approval — all account types
+
+Current-code finding before implementation: no authenticator table, QR enrollment, TOTP verification or recovery-code flow exists. Login sends email codes based on the existing two_factor_enabled/staff policy. Shared ProfileSettingsModal already exposes Security to every account type, so one working enrollment panel there can serve students/alumni, Admin, Window 1, Finance and College Secretary. authenticate currently does not reject pending_2fa tokens; a temporary password-only challenge must never authorize account/settings APIs. This boundary repair is required by the proposed authenticator integration, rather than postponed behind a cosmetic settings toggle.
+
+The user approved this 36-file authenticator scope and the 23-file two-way messaging scope on 2026-10-01, and authorized completing the remaining batches. Implementation and verification are in progress. Previously unresolved business decisions will be documented and clarified without inventing institution policies.
+
+Approved behavior; implementation in progress:
+
+- Security → Two-factor authentication shows server-confirmed status and a Set up authenticator app action for every account type. Re-enter the current password, scan a locally generated QR or use a manual setup key, then enter the app's six-digit code. Enrollment expires after ten minutes and only becomes enabled after successful code verification. Closing the panel discards displayed secrets; pending setup never replaces an active factor.
+- After activation, show ten random single-use recovery codes once, with accessible copy/download and a saved-codes acknowledgment. Store only their hashes. They can verify login or authorize factor changes when the phone is lost; regeneration invalidates all previous codes. If both the app and codes are lost, the UI directs the person to an identity-verified operator recovery process; no insecure email-only bypass or automatic reset is introduced.
+- Preserve the approved login frequency: Admin verifies every login; clerks can retain explicit personal-browser trust until Manila midnight, while shared devices, new browsers, expired or revoked trust require verification. Students/alumni opt into authenticator verification on every login; unenrolled students do not acquire a new first-login/new-browser OTP policy in this scope. For an enrolled account, use its app or a recovery code when verification is required. Email OTP remains the existing method for unenrolled mandatory-staff accounts, not an enrolled factor fallback. Disabling the app does not disable mandatory staff login verification.
+- Setup, disable and recovery-code regeneration require current-password verification; enrolled-factor changes additionally require the app or one recovery code. Confirm sensitive changes, notify the registered email after success, and write credential-free security events. Revoke previous session versions, browser trust and pending challenges on factor changes. Provide a freshly authenticated replacement session for the current browser only after successful verification; pending enrollment does not revoke existing sessions.
+- Use six-digit RFC 6238 codes with 30-second steps and a bounded one-step clock tolerance. Encrypt both pending and active secrets with AES-256-GCM under a dedicated MFA_ENCRYPTION_KEY (32 random bytes, no default, separate from JWT_SECRET). Bind encrypted records to the account; never log, persist in browser storage or return an active secret. Reuse the installed frontend qrcode package and Node crypto; no external MFA/QR service is required. Missing or invalid encryption configuration fails closed for authenticator operations, with deployment instructions rather than an email downgrade.
+- Use transactional account locks for activation, factor changes, challenge consumption, replay prevention and recovery-code consumption. Bind a five-minute login challenge to user, method and session version; persist its nonce hash and enforce a failed-attempt cap, expiry and single-use consumption. Reuse the existing login limiter on sensitive endpoints. Keep authenticated-session access distinct from temporary OTP challenges and reject inactive/revoked accounts.
+- Migration is explicit/idempotent and preserves users and existing email-OTP/trust records. Apply schema/key configuration before deploying the paired API/frontend. Tests cover published TOTP vectors, wrong/replayed/expired codes, concurrent single-use recovery, OTP-token API denial, session revocation, all account roles, failed/cancelled enrollment, login method selection, pending duplicate guards and responsive 200% text. Actual phone scan, SMTP, database concurrency and deployed cross-site trust acceptance remain separate live checks.
+
+The TOTP timing/replay design follows [RFC 6238](https://www.rfc-editor.org/rfc/rfc6238); factor-change reauthentication and recovery choices follow [OWASP MFA guidance](https://cheatsheetseries.owasp.org/cheatsheets/Multifactor_Authentication_Cheat_Sheet.html). This scope does not claim the rest of SEC-07–SEC-16 is complete.
+
+Proposed exact 36-file scope:
+
+1. `backend/database/schema.sql`
+2. `backend/database/migrate_authenticator.js`
+3. `backend/database/__tests__/migrate_authenticator.test.cjs`
+4. `backend/.env.example`
+5. `.env.example`
+6. `docker-compose.yml`
+7. `backend/src/config/env.js`
+8. `backend/src/utils/authenticator.js`
+9. `backend/src/utils/__tests__/authenticator.test.cjs`
+10. `backend/src/models/authenticator.model.js`
+11. `backend/src/models/__tests__/authenticator.model.test.cjs`
+12. `backend/src/services/authenticator.service.js`
+13. `backend/src/services/__tests__/authenticator.service.test.cjs`
+14. `backend/src/services/auth.service.js`
+15. `backend/src/services/__tests__/auth.service.test.cjs`
+16. `backend/src/services/__tests__/batch8.auth-boundary.test.cjs`
+17. `backend/src/controllers/auth.controller.js`
+18. `backend/src/controllers/__tests__/trustedBrowser.controller.test.cjs`
+19. `backend/src/controllers/authenticator.controller.js`
+20. `backend/src/controllers/__tests__/authenticator.controller.test.cjs`
+21. `backend/src/routes/auth.routes.js`
+22. `backend/src/middlewares/auth.middleware.js`
+23. `backend/src/middlewares/__tests__/auth.middleware.test.cjs`
+24. `frontend/src/services/authenticatorService.js`
+25. `frontend/src/services/__tests__/authenticatorService.test.js`
+26. `frontend/src/hooks/useAuthenticator.js`
+27. `frontend/src/hooks/__tests__/useAuthenticator.test.jsx`
+28. `frontend/src/components/AuthenticatorSettings.jsx`
+29. `frontend/src/components/__tests__/AuthenticatorSettings.test.jsx`
+30. `frontend/src/components/ProfileSettingsModal.jsx`
+31. `frontend/src/components/__tests__/ProfileSettingsModal.test.jsx`
+32. `frontend/src/pages/LoginPage.jsx`
+33. `frontend/src/pages/__tests__/submission.confirmations.test.jsx`
+34. `docs/PROGRESS.md`
+35. `docs/ENV_SETUP_GUIDE.md`
+36. `docs/USER_MANUAL.md`
+
+
+### Approved messaging implementation and security integration — 2026-10-01
+
+The broad finish-all approval covers the previously reviewed request-thread inbox (student and Window 1), bounded conversation reads, reply refresh, desk unread counts, and notification routing. Source findings above precede these repairs. The model now uses the actual pool and bounded reads; student ownership and Secretary college assignments are enforced before reads/writes. Student messages notify active Window 1/Receiving Desk accounts even without document assignment; staff replies notify the owning student. Notification failures cannot fail a committed send. Existing read_at is a shared desk acknowledgment, not an individual staff receipt. General pre-request support is still a separate conversation requirement.
+
+Additional integration finding before security edits: Socket.IO currently verifies only JWT signature, without rejecting pending_2fa challenges or checking account activity/session version, and connected sockets have no expiration/revocation check. This violates the new REST boundary and must be repaired under the finish-all authorization before authenticator/session changes are complete. The earlier Templates controller integration test also required a full-session token and an active-account fixture; this test-only extension preserves its authorization assertions.
+
+
+### Session, account and email follow-up scope
+
+Before edits: logout removes browser storage only; logout-all invalidates the current session while its UI claims the current browser remains signed in. Password-reset mail failure logs a usable reset link. Deactivation references an undeclared notifications binding and a nonexistent adapter, so a committed deactivation may return an error and omit owner email. Email changes use codes rather than the requested verification links; signup has no email confirmation gate. Broad approval covers explicit session/email migrations, hashed revocation and verification tokens, API/realtime enforcement, proper owner notices, and shared account/onboarding UI with regression tests. No production database or email delivery is claimed from local tests.
+
+### Finance continuation: finding and clarified design (2026-10-01)
+
+Before changes: Finance's export button only reports a simulated export; its Transactions queue derives from an API that excludes paid documents. Payment verification requires an OR number, uses the host's local hour for cutoff copy, and promises tomorrow despite no scheduling or working-day policy. Deferred upload references a missing or_uploaded_at column, writes outside a transaction and can overwrite an existing receipt even for an unpaid request. Secretary OR checks have UI-only prerequisites.
+
+Approved continuation: server records payment-clearance time and separates its immediate acknowledgment from actual OR issuance/digital copy. Exactly 4:00 PM Asia/Manila is after cutoff for new same-day OR issuance. A later eligible day is a lower bound, not a promised deadline. Show elapsed waiting time for cleared payments without an issued OR, and separate digital-copy-pending from issuance-pending. Preserve historical dates and already recorded physical ORs; require a real number/date when issuing later and retain physical-inspection acknowledgment for an OR without a digital copy. Finance gets a real paginated paid-transaction/export view. Same-day document eligibility, required form/linked sets and delay-alert thresholds remain ON HOLD at the user's request pending institutional policy. No invented weekend/holiday calendar or automatic overdue alert.
+
+### Registrar policy clarification received 2026-10-01
+
+The office confirms all documents may be requested repeatedly in varying quantities except Honorable Dismissal. This supersedes configurable non-repeatable flags for other types. Walk-in same-day eligible types are CTC, 2nd Copy of COR, 2nd Copy of OGR and CAV, conditional on presenting the original and a photocopy. It does not authorize skipping evaluation, pricing, payment, OR checks or physical handoff. Existing inactive counter drafts remain inactive until Admin approves rates. Before implementation, Manual Input had no quantity/original/photocopy fields and its hook omitted purpose; is_same_day was displayed from a document property never written. Add an explicit conditional eligibility snapshot for new counter requests, not a same-day promise on all requests.
+
+Attachments vary by case: Registrar must be able to request named pertinent documents on a specific request, students upload against those requirements, and authorized staff inspect the protected uploads. Do not impose a universal fixed attachment list. Attachment requests do not automatically suspend or change the existing pipeline; delay-alert threshold remains unresolved. Record requester/uploader/reviewer and timestamps, enforce ownership/college access and never overwrite another requirement's upload.
+
+Browser finding before the final messaging repair: the synthetic Window 1 conversation remained in initial Loading. React StrictMode cancels the first mount read, but useDocumentChat cleanup leaves the cancelled controller in read.current; the second mount skips its initial read until polling. Clear that cancelled controller during cleanup and cover the StrictMode remount. This is a source/lifecycle finding, not a live API diagnosis.
+
+### Registrar continuation — final local verification, 2026-10-01
+
+The Registrar clarification is implemented locally: repeat requests/quantities for non-Honorable-Dismissal types; a conditional same-day snapshot for the four confirmed counter types after both original and photocopy checks; and per-request named attachment requirements, protected uploads, acceptance and reasoned resubmission. The canonical Honorable Dismissal type retains its existing one-copy/no-second-active-or-completed-request rule. No additional document aliases or linked document sets have been identified by the office; no restriction on Certificate of Transfer has been invented. No stage bypass, automatic attachment processing hold or delay deadline was introduced.
+
+Authenticator enrollment/recovery, server session revocation, request conversations, and FIN-01–FIN-05 are also implemented locally in this continuation, superseding older pending-scope entries. Edit Profile → Security displays Two-factor authentication for all roles. Window 1, Student, Admin and Secretary have Messages & Attachments; existing desk chat authorization remains enforced. A final counter-payment check found duplicate disabled props that left its receipt picker active under Later; the picker and OCR now disable together, with regression coverage proving retained receipt drafts are omitted from deferred submissions.
+
+Final validation: **877 backend tests / 52 files** and **492 frontend tests / 53 files pass**. Frontend ESLint, production build and git diff --check pass; the build retains its large-chunk warning. Synthetic native-Brave inspection at desktop/200% text confirmed immediately loaded Window 1 messages after the StrictMode repair, wrapped attachment instructions and reachable upload controls, and the shared Security authenticator setup action. These observations do not establish physical-phone, real MySQL transaction/concurrency, SMTP delivery, genuine authenticator enrollment or deployed cross-site cookie acceptance.
+
+Explicit migration/key/paired-rollout instructions are in ENV_SETUP_GUIDE.md. No migration, deployment, commit or push was performed. Remaining work includes signup email verification by link and the request/sensitive-action gate (SEC-16), email-change link conversion (SEC-10), the rest of the password/account hardening acceptance, fixed institutional forms/linked sets, numbering/original-issuance and QR/alumni continuation, and live acceptance. General support before a document request is not implemented by the request-thread inbox. SEC-01 still requires the agreed design/sign-off. Automatic delay alerts remain on hold until the Registrar supplies a threshold; no OR deadline or holiday calendar has been invented.

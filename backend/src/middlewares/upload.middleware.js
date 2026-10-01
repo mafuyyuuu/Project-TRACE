@@ -102,4 +102,16 @@ const profilePictureUpload = multer({
   },
 });
 
-module.exports = { idProofUpload, signupOcrUpload, documentUpload, profilePictureUpload, UPLOAD_DIR };
+const pertinentUpload = multer({
+  storage: documentStorage,
+  limits: { fileSize: 10 * 1024 * 1024, files: 1 },
+  fileFilter: (req, file, cb) => {
+    const types = {
+      '.jpg': ['image/jpeg'], '.jpeg': ['image/jpeg'], '.png': ['image/png'],
+      '.pdf': ['application/pdf'],
+    };
+    const allowed = types[path.extname(file.originalname).toLowerCase()]?.includes(file.mimetype);
+    cb(allowed ? null : badRequest('Choose a JPG, PNG or PDF document, at most 10 MB.'), Boolean(allowed));
+  },
+});
+module.exports = { idProofUpload, signupOcrUpload, documentUpload, pertinentUpload, profilePictureUpload, UPLOAD_DIR };

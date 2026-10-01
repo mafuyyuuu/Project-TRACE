@@ -5,6 +5,8 @@ import FinanceDashboard from '@/features/finance/FinanceDashboard';
 import ReceiptVerificationModal from '@/features/secretary/components/ReceiptVerificationModal';
 import useSecretaryDashboard from '@/features/secretary/useSecretaryDashboard';
 import * as documents from '@/services/documentsService';
+import { getFinanceTransactions } from '@/services/financeService';
+vi.mock('@/services/financeService', () => ({ getFinanceTransactions: vi.fn(), exportFinanceTransactions: vi.fn() }));
 import { STATUS } from '@/utils/documentStatus';
 
 vi.mock('@/components/DocumentChat', () => ({ default: () => null }));
@@ -25,6 +27,7 @@ const DOC = { id: 11, request_group_id: 'REQ-G1', tracking_number: 'TRC-11', stu
 
 beforeEach(() => {
   vi.clearAllMocks();
+  getFinanceTransactions.mockResolvedValue({ transactions: [{ ...DOC, payment_status: 'PAID', current_status: STATUS.COMPLETED }], total: 1, amount: 100 });
   documents.getDocuments.mockResolvedValue({ documents: [DOC] });
   documents.getDashboardStats.mockResolvedValue({});
   documents.verifyPayment.mockResolvedValue({ message: 'Verified.' });
@@ -33,6 +36,27 @@ beforeEach(() => {
 });
 
 describe('Physical OR now, digital copy later', () => {
+  it('disables receipt selection and OCR when counter issuance is deferred and omits a retained receipt draft', async () => {
+    const user = userEvent.setup();
+    documents.getDocuments.mockResolvedValue({ documents: [{ ...DOC, current_status: STATUS.PENDING_STUDENT_PAYMENT }] });
+    documents.logWalkInPayment.mockResolvedValue({ documents_covered: 1 });
+    render(<FinanceDashboard user={FINANCE} setViewImageUrl={vi.fn()} />);
+    await user.click(await screen.findByRole('button', { name: 'Log Counter Payment' }));
+    const picker = screen.getByLabelText('Official Receipt copy · optional', { selector: 'input' });
+    await user.upload(picker, new File(['copy'], 'counter.png', { type: 'image/png' }));
+    await user.click(screen.getByRole('checkbox', { name: /Later/ }));
+    expect(picker).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Read Receipt' })).toBeDisabled();
+    await user.click(screen.getByRole('button', { name: 'Record Payment' }));
+    await user.click(within(screen.getByRole('dialog', { name: 'Record Payment' })).getByRole('button', { name: 'Record Payment' }));
+    await waitFor(() => expect(documents.logWalkInPayment).toHaveBeenCalledOnce());
+    const body = documents.logWalkInPayment.mock.calls[0][1];
+    expect(body.get('defer_or')).toBe('true');
+    expect(body.has('officialReceipt')).toBe(false);
+    expect(body.has('or_number')).toBe(false);
+    expect(documents.scanReceipt).not.toHaveBeenCalled();
+  });
+
   it('keeps a counter receipt local until Read Receipt, and saves only after confirmation', async () => {
     const user = userEvent.setup();
     documents.getDocuments.mockResolvedValue({ documents: [{ ...DOC, current_status: STATUS.PENDING_STUDENT_PAYMENT }] });
@@ -93,8 +117,8 @@ describe('Physical OR now, digital copy later', () => {
     render(<FinanceDashboard user={FINANCE} setViewImageUrl={vi.fn()} />);
     await user.click(await screen.findByRole('tab', { name: /Transactions & OR Copies/ }));
     expect(screen.getByRole('tab', { name: /Transactions & OR Copies/ })).toHaveTextContent('1');
-    expect(screen.getByText('Digital copy pending upload')).toBeInTheDocument();
-    await user.click(screen.getByRole('button', { name: 'Upload OR' }));
+    expect(screen.getByText('Issued; digital copy pending')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Upload OR copy' }));
     const file = new File(['copy'], 'or-copy.png', { type: 'image/png' });
     await user.upload(screen.getByLabelText('Official POS Receipt'), file);
     const submit = screen.getByRole('button', { name: 'Upload Receipt' });
@@ -105,7 +129,7 @@ describe('Physical OR now, digital copy later', () => {
     expect(screen.getByText(/Selected: or-copy.png/)).toBeInTheDocument();
     fireEvent.submit(submit.form);
     await user.click(screen.getByRole('button', { name: 'Confirm Upload' }));
-    await waitFor(() => expect(documents.uploadDeferredOR).toHaveBeenCalledExactlyOnceWith(DOC.id, file));
+    await waitFor(() => expect(documents.uploadDeferredOR).toHaveBeenCalledExactlyOnceWith(DOC.id, file, expect.objectContaining({ orNumber: 'OR-101', orDate: '' })));
     expect(documents.verifyPayment).not.toHaveBeenCalled();
     expect(completed.current_status).toBe(STATUS.COMPLETED);
   });
@@ -116,7 +140,7 @@ describe('Physical OR now, digital copy later', () => {
     documents.uploadDeferredOR.mockRejectedValue({ response: { data: { error: 'Upload unavailable.' } } });
     render(<FinanceDashboard user={FINANCE} setViewImageUrl={vi.fn()} />);
     await user.click(await screen.findByRole('tab', { name: /Transactions & OR Copies/ }));
-    await user.click(screen.getByRole('button', { name: 'Upload OR' }));
+    await user.click(screen.getByRole('button', { name: 'Upload OR copy' }));
     await user.upload(screen.getByLabelText('Official POS Receipt'), new File(['copy'], 'or.png', { type: 'image/png' }));
     fireEvent.submit(screen.getByRole('button', { name: 'Upload Receipt' }).form);
     await user.click(screen.getByRole('button', { name: 'Confirm Upload' }));
@@ -154,7 +178,23 @@ describe('Physical OR now, digital copy later', () => {
     expect(documents.verifyOfficialReceipt).not.toHaveBeenCalled();
     await act(() => result.current.confirmVerifyOfficialReceiptAction('confirm', { physicalReceiptChecked: true }));
     expect(documents.verifyOfficialReceipt).toHaveBeenCalledExactlyOnceWith(DOC.id, {
-      notes: 'Physical Official Receipt OR-101 inspected by Secretary. Finance may upload its retained copy later.',
+      notes: 'Physical Official Receipt OR-101 inspected by Secretary. Finance may upload its retained copy later.', physical_receipt_checked: true,
     });
   });
+});
+
+it('lets Finance choose Later and sends a payment acknowledgment decision without OR metadata', async () => {
+  const user = userEvent.setup();
+  documents.getDocuments.mockResolvedValue({ documents: [{ ...DOC, or_number: null }] });
+  render(<FinanceDashboard user={FINANCE} setViewImageUrl={vi.fn()} />);
+  await user.click(await screen.findByRole('tab', { name: /Verification Queue/ }));
+  await user.click(screen.getByRole('button', { name: 'Review' }));
+  await user.click(screen.getByRole('checkbox', { name: /Later/ }));
+  await user.click(screen.getByRole('button', { name: 'Verify Payment' }));
+  expect(documents.verifyPayment).not.toHaveBeenCalled();
+  await user.click(within(screen.getByRole('dialog', { name: 'Verify Payment' })).getByRole('button', { name: 'Verify Payment' }));
+  await waitFor(() => expect(documents.verifyPayment).toHaveBeenCalledOnce());
+  const body = documents.verifyPayment.mock.calls[0][1];
+  expect(body.get('defer_or')).toBe('true');
+  expect(body.has('or_number')).toBe(false); expect(body.has('officialReceipt')).toBe(false);
 });

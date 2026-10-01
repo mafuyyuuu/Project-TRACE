@@ -1,9 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { render, screen, waitFor, within } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import DocumentChat from '@/components/DocumentChat';
 import api from '@/services/api';
 
+vi.mock('@/services/realtimeService', () => ({ onNotification: vi.fn(() => () => {}) }));
 vi.mock('@/services/api', () => ({ default: { get: vi.fn(), post: vi.fn() } }));
 beforeEach(() => {
   vi.clearAllMocks();
@@ -11,35 +12,90 @@ beforeEach(() => {
   api.post.mockResolvedValue({ data: {} });
   Element.prototype.scrollIntoView = vi.fn();
 });
+const chat = () => <DocumentChat documentId={11} user={{ id: 3, full_name: 'Ana Reyes' }} />;
 
-describe('Document message confirmation', () => {
-  it('preserves an unsent message on Escape and sends the reviewed text once on confirmation', async () => {
+describe('Direct document messages', () => {
+  it.each(['Enter', 'Send'])('submits immediately using %s without confirmation', async method => {
     const user = userEvent.setup();
-    render(<DocumentChat documentId={11} user={{ id: 3, full_name: 'Ana Reyes' }} />);
-    const input = await screen.findByPlaceholderText('Type a message...');
+    render(chat());
+    const input = await screen.findByRole('textbox', { name: 'Message' });
     await user.type(input, 'Please check the receipt.');
-    await user.keyboard('{Enter}');
-    expect(api.post).not.toHaveBeenCalled();
-    await user.keyboard('{Escape}');
-    expect(input).toHaveValue('Please check the receipt.');
-    input.focus();
-    await user.keyboard('{Enter}');
-    await user.click(screen.getByRole('button', { name: 'Send Message' }));
-    await waitFor(() => expect(api.post).toHaveBeenCalledExactlyOnceWith('/documents/11/messages', { message: 'Please check the receipt.' }));
+    if (method === 'Enter') await user.keyboard('{Enter}');
+    else await user.click(screen.getByRole('button', { name: 'Send message' }));
+    await waitFor(() => expect(api.post).toHaveBeenCalledExactlyOnceWith('/documents/11/messages', { message: 'Please check the receipt.' }, { timeout: 15000 }));
     expect(input).toHaveValue('');
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
 
-  it('keeps the failed message available for correction or retry', async () => {
-    const user = userEvent.setup();
-    api.post.mockRejectedValue({ response: { data: { error: 'Messaging unavailable.' } } });
-    const log = vi.spyOn(console, 'error').mockImplementation(() => {});
-    render(<DocumentChat documentId={11} user={{ id: 3, full_name: 'Ana Reyes' }} />);
-    const input = await screen.findByPlaceholderText('Type a message...');
-    await user.type(input, 'My draft{Enter}');
-    await user.click(screen.getByRole('button', { name: 'Send Message' }));
-    expect(await screen.findByRole('alert')).toHaveTextContent('Messaging unavailable.');
-    await user.click(within(screen.getByRole('dialog', { name: 'Confirm Message' })).getByRole('button', { name: 'Cancel' }));
+  it('blocks duplicate submits while pending and retains the draft until accepted', async () => {
+    let finish;
+    api.post.mockImplementation(() => new Promise(resolve => { finish = resolve; }));
+    render(chat());
+    const input = await screen.findByRole('textbox', { name: 'Message' });
+    fireEvent.change(input, { target: { value: 'My draft' } });
+    const form = input.closest('form');
+    fireEvent.submit(form);
+    fireEvent.submit(form);
+    expect(api.post).toHaveBeenCalledTimes(1);
     expect(input).toHaveValue('My draft');
-    log.mockRestore();
+    expect(input).toBeDisabled();
+    await act(async () => finish({ data: {} }));
+    expect(input).toHaveValue('');
+    expect(input).toBeEnabled();
+  });
+
+  it('keeps a failed message for correction or retry and shows the error inline', async () => {
+    const user = userEvent.setup();
+    api.post.mockRejectedValueOnce({ response: { data: { error: 'Messaging unavailable.' } } });
+    render(chat());
+    const input = await screen.findByRole('textbox', { name: 'Message' });
+    await user.type(input, 'My draft{Enter}');
+    expect(await screen.findByRole('alert')).toHaveTextContent('Messaging unavailable.');
+    expect(input).toHaveValue('My draft');
+    expect(input).toBeEnabled();
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Send message' }));
+    await waitFor(() => expect(input).toHaveValue(''));
+    expect(api.post).toHaveBeenCalledTimes(2);
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+  });
+
+  it('does not restore an accepted message when refreshing the conversation fails', async () => {
+    const user = userEvent.setup();
+    api.get.mockResolvedValueOnce({ data: [] }).mockRejectedValueOnce(new Error('refresh failed'));
+    render(chat());
+    const input = await screen.findByRole('textbox', { name: 'Message' });
+    await user.type(input, 'Accepted message{Enter}');
+    expect(await screen.findByRole('status')).toHaveTextContent('Message sent.');
+    expect(screen.getByText('Accepted message')).toBeInTheDocument();
+    expect(input).toHaveValue('');
+    expect(screen.getByRole('button', { name: 'Send message' })).toBeDisabled();
+    expect(api.post).toHaveBeenCalledTimes(1);
+    expect(screen.getByRole('alert')).toHaveTextContent('Could not load replies.');
+    expect(screen.getByRole('button', { name: 'Retry conversation' })).toBeEnabled();
+  });
+
+  it('does not move a pending send or its draft into another request', async () => {
+    let finish;
+    api.post.mockImplementationOnce(() => new Promise(resolve => { finish = resolve; }));
+    const user = userEvent.setup();
+    const { rerender } = render(chat());
+    await user.type(await screen.findByRole('textbox', { name: 'Message' }), 'First request{Enter}');
+    rerender(<DocumentChat documentId={12} user={{ id: 3, full_name: 'Ana Reyes' }} />);
+    const nextInput = await screen.findByRole('textbox', { name: 'Message' });
+    expect(nextInput).toHaveValue('');
+    await user.type(nextInput, 'New draft');
+    await act(async () => finish({ data: {} }));
+    expect(nextInput).toHaveValue('New draft');
+    expect(nextInput).toBeEnabled();
+    expect(screen.queryByText('First request')).not.toBeInTheDocument();
+    expect(api.post).toHaveBeenCalledExactlyOnceWith('/documents/11/messages', { message: 'First request' }, { timeout: 15000 });
+  });
+
+  it('does not fetch or offer sending before the account is available', () => {
+    render(<DocumentChat documentId={11} />);
+    expect(api.get).not.toHaveBeenCalled();
+    expect(api.post).not.toHaveBeenCalled();
+    expect(screen.queryByRole('textbox', { name: 'Message' })).not.toBeInTheDocument();
   });
 });

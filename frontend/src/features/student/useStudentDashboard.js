@@ -122,7 +122,7 @@ export default function useStudentDashboard(user) {
       }
       return {
         ...current,
-        [name]: { copies: 1, semesters: 8, purpose: '', requestingSchool: '', yearGraduated: '', file: null },
+        [name]: { copies: 1, year_started: '', year_ended: '', purpose: '', requestingSchool: '', yearGraduated: '', file: null },
       };
     });
   }, []);
@@ -156,7 +156,7 @@ export default function useStudentDashboard(user) {
   /**
    * Submit every selected document as one request.
    *
-   * The items go up as a JSON array with each document's own copies/semesters,
+   * The items go up as a JSON array with each document's own copies and study years,
    * and any per-item attachment is sent as `document_<index>` so the server can
    * match files to items. The server re-prices everything — the total shown in
    * the modal is only a preview.
@@ -171,6 +171,16 @@ export default function useStudentDashboard(user) {
         return;
       }
 
+      for (const name of names) {
+        if (!['Transcript of Records', 'Transcript of Records (TOR)'].includes(name)) continue;
+        const start = Number(selections[name].year_started), end = Number(selections[name].year_ended);
+        const currentYear = new Date().getFullYear();
+        if (!Number.isInteger(start) || !Number.isInteger(end) || start < 1900 || end < start || end > currentYear) {
+          triggerNotification('Enter valid Year Started and Year Ended; the end year must not precede the start year or be in the future.', 'error');
+          return;
+        }
+      }
+
       const items = names.map((name) => {
         const selection = selections[name];
         // The dynamic per-document fields ride along as a JSON blob in `purpose`.
@@ -178,12 +188,13 @@ export default function useStudentDashboard(user) {
         if (selection.purpose) extra.purpose = selection.purpose;
         if (selection.requestingSchool) extra.requesting_school = selection.requestingSchool;
         if (selection.yearGraduated) extra.year_graduated = selection.yearGraduated;
-        if (selection.semesters) extra.semesters = selection.semesters;
+        if (selection.year_started) extra.year_started = Number(selection.year_started);
+        if (selection.year_ended) extra.year_ended = Number(selection.year_ended);
 
         return {
           document_type: name,
           copies: selection.copies,
-          semesters: selection.semesters,
+          year_started: selection.year_started || undefined, year_ended: selection.year_ended || undefined,
           purpose: JSON.stringify(extra),
         };
       });

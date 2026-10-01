@@ -8,7 +8,11 @@ const draft = { content: '<p>Updated</p>', font_family: 'Arial', font_size: 12 }
 
 beforeEach(() => {
   vi.spyOn(console, 'error').mockImplementation(() => {});
-  vi.spyOn(pool, 'query').mockRejectedValue(new Error('Unexpected database access'));
+  vi.spyOn(pool, 'query').mockImplementation(async sql => {
+    if (sql.startsWith('SELECT token_hash FROM session_revocations')) return [[]];
+    if (sql === 'SELECT token_version, is_active FROM users WHERE id = ?') return [[{ token_version: 0, is_active: 1 }]];
+    throw new Error('Unexpected database access');
+  });
   vi.spyOn(templateModel, 'list').mockResolvedValue([template]);
   vi.spyOn(templateModel, 'findByKey').mockResolvedValue(template);
   vi.spyOn(templateModel, 'update').mockResolvedValue();
@@ -37,7 +41,7 @@ function requestRoute(method, path, token) {
 }
 
 function tokenFor(role) {
-  return jwt.sign({ id: 12, role }, JWT_SECRET, { expiresIn: '5m' });
+  return jwt.sign({ id: 12, role, token_version: 0 }, JWT_SECRET, { expiresIn: '5m' });
 }
 
 it('imports the complete Express app without missing modules or database queries', () => {

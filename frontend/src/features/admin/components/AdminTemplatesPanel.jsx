@@ -13,45 +13,89 @@ export default function AdminTemplatesPanel() {
   const [success, setSuccess] = useState('');
   const [templateToConfirm, setTemplateToConfirm] = useState(null);
   const [saveError, setSaveError] = useState('');
+  const [loadError, setLoadError] = useState('');
+  const [listRetry, setListRetry] = useState(0);
+  const [detailRetry, setDetailRetry] = useState(0);
+  const [templateDetails, setTemplateDetails] = useState(null);
+  const detailsLoading = selectedKey && templateDetails?.key !== selectedKey;
+  const detailError = templateDetails?.key === selectedKey ? templateDetails.error : '';
 
   useEffect(() => {
-    fetchTemplates();
-  }, []);
-
-  useEffect(() => {
-    if (selectedKey) {
-      fetchTemplateDetails(selectedKey);
-    }
-  }, [selectedKey]);
-
-  const fetchTemplates = async () => {
-    try {
-      const res = await api.get('/templates');
-      setTemplates(res.data);
-      if (res.data.length > 0 && !selectedKey) setSelectedKey(res.data[0].template_key);
-    } catch (err) {
-      console.error(err);
-    } finally {
+    let active = true;
+    const controller = new AbortController();
+    const deadline = setTimeout(() => {
+      if (!active) return;
+      active = false;
+      controller.abort();
       setLoading(false);
+      setLoadError('Template loading timed out. Check your connection and retry.');
+    }, 15000);
+    async function fetchTemplates() {
+      try {
+        const res = await api.get('/templates', { signal: controller.signal, timeout: 15000 });
+        if (!Array.isArray(res.data) || res.data.some(item => !item || typeof item.template_key !== 'string' || typeof item.name !== 'string')) throw new Error('Invalid template catalog');
+        if (!active) return;
+        setTemplates(res.data);
+        setSelectedKey(current => current || res.data[0]?.template_key || null);
+      } catch {
+        if (active) setLoadError('Could not load templates. Please try again.');
+      } finally {
+        clearTimeout(deadline);
+        if (active) setLoading(false);
+      }
     }
-  };
+    fetchTemplates();
+    return () => { active = false; clearTimeout(deadline); controller.abort(); };
+  }, [listRetry]);
 
-  const fetchTemplateDetails = async (key) => {
-    try {
-      const res = await api.get(`/templates/${key}`);
-      setFormData({
-        content: res.data.content || '',
-        font_family: res.data.font_family || 'sans-serif',
-        font_size: res.data.font_size || '12px'
-      });
-      setSuccess('');
-    } catch (err) {
-      console.error(err);
+  useEffect(() => {
+    if (!selectedKey) return;
+    let active = true;
+    const controller = new AbortController();
+    const deadline = setTimeout(() => {
+      if (!active) return;
+      active = false;
+      controller.abort();
+      setTemplateDetails({ key: selectedKey, error: 'Template loading timed out. Check your connection and retry.' });
+    }, 15000);
+    async function fetchTemplateDetails() {
+      try {
+        const res = await api.get(`/templates/${selectedKey}`, { signal: controller.signal, timeout: 15000 });
+        if (typeof res.data?.content !== 'string') throw new Error('Invalid template content');
+        if (!active) return;
+        setFormData({
+          content: res.data.content || '',
+          font_family: res.data.font_family || 'sans-serif',
+          font_size: res.data.font_size || '12px'
+        });
+        setTemplateDetails({ key: selectedKey });
+        setSuccess('');
+      } catch {
+        if (active) setTemplateDetails({ key: selectedKey, error: 'Could not load this template. Please try again.' });
+      } finally {
+        clearTimeout(deadline);
+      }
     }
-  };
+    fetchTemplateDetails();
+    return () => { active = false; clearTimeout(deadline); controller.abort(); };
+  }, [selectedKey, detailRetry]);
+
+  // Preview only: no scripts, app-origin access or remote resources. Stored HTML is unchanged.
+  const previewFont = ['sans-serif', 'serif', 'monospace', 'Arial, Helvetica, sans-serif', "'Times New Roman', Times, serif"].includes(formData.font_family)
+    ? formData.font_family : 'sans-serif';
+  const previewSize = ['10px', '11px', '12px', '14px', '16px'].includes(formData.font_size)
+    ? formData.font_size : '12px';
+  const previewContent = formData.content
+    .replace(/{{STUDENT_NAME}}/g, 'Juan Dela Cruz')
+    .replace(/{{STUDENT_ID}}/g, 'STU-2024-001')
+    .replace(/{{DOCUMENT_TYPE}}/g, 'Transcript of Records')
+    .replace(/{{OR_NUMBER}}/g, 'OR-998877')
+    .replace(/{{AMOUNT}}/g, 'P150.00');
+  const previewDocument = `<!doctype html><html><head><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src data:; base-uri 'none'; form-action 'none'"><style>body{margin:0;padding:24px;color:#111827;background:white;font-family:${previewFont};font-size:${previewSize};overflow-wrap:anywhere}</style></head><body>${previewContent}</body></html>`;
 
   const handleSave = async (e) => {
     e.preventDefault();
+    if (!selectedKey || detailsLoading || detailError || saving) return;
     setSaveError('');
     setTemplateToConfirm({ key: selectedKey, payload: { ...formData } });
   };
@@ -73,7 +117,17 @@ export default function AdminTemplatesPanel() {
     }
   };
 
-  if (loading) return <div className="p-8 text-center text-gray-500 dark:text-gray-400">Loading templates...</div>;
+  if (loading) return <div role="status" className="p-8 text-center text-gray-500 dark:text-gray-400">Loading templates...</div>;
+  if (loadError) return (
+    <div className="space-y-4 rounded-3xl bg-white dark:bg-gray-900 p-8">
+      <h3 className="font-bold text-gray-900 dark:text-gray-100">System Templates</h3>
+      <p role="alert" className="text-sm text-red-600 dark:text-red-300">{loadError}</p>
+      <button type="button" onClick={() => { setLoading(true); setLoadError(''); setListRetry(value => value + 1); }}
+        className="rounded-xl bg-[#15803d] px-4 py-2 text-sm font-bold text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#15803d]">
+        Retry loading templates
+      </button>
+    </div>
+  );
 
   return (
     <div className="bg-white dark:bg-gray-900 rounded-3xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden flex flex-col md:flex-row min-h-[600px]">
@@ -90,8 +144,10 @@ export default function AdminTemplatesPanel() {
           {templates.map(t => (
             <li key={t.template_key}>
               <button
+                type="button"
+                disabled={saving}
                 onClick={() => setSelectedKey(t.template_key)}
-                className={`w-full text-left px-4 py-3 text-sm font-semibold transition-colors ${selectedKey === t.template_key ? 'bg-white dark:bg-gray-900 text-[#15803d] dark:text-green-300 border-l-4 border-[#15803d]' : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 border-l-4 border-transparent'}`}
+                className={`w-full text-left px-4 py-3 text-sm font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[#15803d] disabled:opacity-50 ${selectedKey === t.template_key ? 'bg-white dark:bg-gray-900 text-[#15803d] dark:text-green-300 border-l-4 border-[#15803d]' : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 border-l-4 border-transparent'}`}
               >
                 {t.name}
               </button>
@@ -101,8 +157,18 @@ export default function AdminTemplatesPanel() {
       </div>
 
       {/* Editor */}
-      <div className="flex-1 flex flex-col">
-        {selectedKey ? (
+      <div className="min-w-0 flex-1 flex flex-col">
+        {detailsLoading ? (
+          <div role="status" className="p-8 text-center text-gray-500 dark:text-gray-400">Loading template...</div>
+        ) : detailError ? (
+          <div className="space-y-4 p-8">
+            <p role="alert" className="text-sm text-red-600 dark:text-red-300">{detailError}</p>
+            <button type="button" onClick={() => { setTemplateDetails(null); setDetailRetry(value => value + 1); }}
+              className="rounded-xl bg-[#15803d] px-4 py-2 text-sm font-bold text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#15803d]">
+              Retry loading template
+            </button>
+          </div>
+        ) : selectedKey ? (
           <form onSubmit={handleSave} className="flex-1 flex flex-col h-full">
             <div className="p-4 border-b border-gray-200 dark:border-gray-700 flex flex-wrap gap-4 items-center justify-between bg-white dark:bg-gray-900">
               <div className="flex gap-4 items-center">
@@ -149,8 +215,8 @@ export default function AdminTemplatesPanel() {
             
             <div className="flex-1 min-w-0 p-4 bg-gray-50 dark:bg-gray-800 flex flex-col lg:flex-row gap-4">
               <div className="flex-1 flex flex-col">
-                <label className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest block mb-2">HTML Template (Use {'{{VARIABLE_NAME}}'})</label>
-                <textarea maxLength={INPUT_LIMITS.template}
+                <label htmlFor="admin-template-content" className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest block mb-2">HTML Template (Use {'{{VARIABLE_NAME}}'})</label>
+                <textarea id="admin-template-content" maxLength={INPUT_LIMITS.template}
                   value={formData.content}
                   onChange={e => setFormData({...formData, content: e.target.value})}
                   className="flex-1 w-full font-mono text-xs p-4 bg-gray-900 dark:bg-gray-800 text-green-400 dark:text-green-300 rounded-xl outline-none focus:ring-2 focus:ring-[#15803d] resize-none"
@@ -160,23 +226,18 @@ export default function AdminTemplatesPanel() {
               
               <div className="w-full lg:w-1/3 flex flex-col">
                 <label className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest block mb-2">Live Preview (Mock Data)</label>
-                <div 
-                  className="flex-1 w-full bg-white text-gray-900 border border-gray-200 rounded-xl p-6 shadow-inner overflow-auto [color-scheme:light]"
-                  style={{ fontFamily: formData.font_family, fontSize: formData.font_size }}
-                  dangerouslySetInnerHTML={{
-                    __html: formData.content
-                      .replace(/{{STUDENT_NAME}}/g, 'Juan Dela Cruz')
-                      .replace(/{{STUDENT_ID}}/g, 'STU-2024-001')
-                      .replace(/{{DOCUMENT_TYPE}}/g, 'Transcript of Records')
-                      .replace(/{{OR_NUMBER}}/g, 'OR-998877')
-                      .replace(/{{AMOUNT}}/g, 'P150.00')
-                  }}
+                <iframe
+                  title="Template preview"
+                  sandbox=""
+                  referrerPolicy="no-referrer"
+                  srcDoc={previewDocument}
+                  className="min-h-80 flex-1 w-full bg-white text-gray-900 border border-gray-200 rounded-xl shadow-inner [color-scheme:light]"
                 />
               </div>
             </div>
           </form>
         ) : (
-          <div className="flex-1 flex items-center justify-center text-gray-400 dark:text-gray-400 font-semibold">Select a template to edit</div>
+          <div className="flex-1 flex items-center justify-center p-8 text-gray-400 dark:text-gray-400 font-semibold">No templates are configured.</div>
         )}
       </div>
     </div>

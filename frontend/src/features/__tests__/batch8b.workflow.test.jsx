@@ -59,7 +59,8 @@ describe('Batch 8b request policies and staff access', () => {
   it('keeps FAQ labels and desk reporting guidance aligned with the manual', () => {
     render(<HelpPage user={{ role: 'clerk', desk_assignment: 'Secretary' }} />);
     expect(screen.getByText(/Open Preferences in the sidebar/)).toBeInTheDocument();
-    expect(screen.getByText(/Open your avatar → Edit Profile/)).toBeInTheDocument();
+    expect(screen.getByText(/Enter the new email and current password/)).toBeInTheDocument();
+    expect(screen.getByText(/Where is authenticator two-factor setup/)).toBeInTheDocument();
     expect(screen.getByText('How do I export records?')).toBeInTheDocument();
     expect(screen.getByText('How do I view a student’s full profile?')).toBeInTheDocument();
   });
@@ -81,10 +82,11 @@ describe('Batch 8b request policies and staff access', () => {
     expect(screen.getByRole('spinbutton', { name: 'Copies' })).toHaveAttribute('max', '1');
   });
 
-  it('allows quantities for repeatable documents and includes copies in the estimate', () => {
+  it('allows repeatable copies and shows the rate without an estimated total', () => {
     render(request({ selections: { Enrollment: { copies: 3 } } }));
     expect(screen.getByRole('spinbutton', { name: 'Copies' })).toHaveValue(3);
-    expect(screen.getAllByText('₱150.00').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('₱50.00').length).toBeGreaterThan(0);
+    expect(screen.queryByText('₱150.00')).not.toBeInTheDocument();
   });
 
   it('uses configured counter types in the manual-entry modal', () => {
@@ -107,6 +109,6 @@ describe('Batch 8b request policies and staff access', () => {
     expect(dialog).toHaveTextContent('Sample Address');
     expect(dialog).toHaveTextContent('Sample Elementary');
     expect(within(dialog).queryByRole('button', { name: /Edit|Deactivate|Restore/ })).not.toBeInTheDocument();
-    expect(lookupStudent).toHaveBeenCalledWith('ALU1234567', { signal: expect.any(AbortSignal) });
+    expect(lookupStudent).toHaveBeenCalledWith('ALU1234567', { signal: expect.any(AbortSignal), timeout: 15000 });
   });
 });

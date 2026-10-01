@@ -1,0 +1,56 @@
+import { act, renderHook, waitFor } from '@testing-library/react';
+import { beforeEach, expect, it, vi } from 'vitest';
+import useRequestAttachments from '@/hooks/useRequestAttachments';
+import * as service from '@/services/requestAttachmentsService';
+vi.mock('@/services/requestAttachmentsService', () => ({ getAttachmentRequirements: vi.fn(), saveAttachmentAction: vi.fn() }));
+beforeEach(() => { vi.clearAllMocks(); service.getAttachmentRequirements.mockResolvedValue([]); });
+it('loads an empty case and offers retry after a read failure', async () => {
+  service.getAttachmentRequirements.mockRejectedValueOnce(new Error('Offline'));
+  const { result } = renderHook(() => useRequestAttachments(11));
+  await waitFor(() => expect(result.current.loading).toBe(false));
+  expect(result.current.error).toContain('Try again');
+  await act(async () => result.current.refresh());
+  expect(result.current.error).toBe(''); expect(result.current.rows).toEqual([]);
+});
+it('requires confirmation and blocks duplicate pending saves', async () => {
+  let complete;
+  service.saveAttachmentAction.mockReturnValue(new Promise(resolve => { complete = resolve; }));
+  const { result } = renderHook(() => useRequestAttachments(11));
+  await waitFor(() => expect(result.current.loading).toBe(false));
+  act(() => result.current.stage({ kind: 'request', label: 'Record', instructions: 'Scan both sides.' }));
+  expect(service.saveAttachmentAction).not.toHaveBeenCalled();
+  let pending;
+  act(() => { pending = result.current.confirm(); });
+  await act(async () => result.current.confirm());
+  expect(service.saveAttachmentAction).toHaveBeenCalledOnce();
+  await act(async () => { complete({}); await pending; });
+  expect(result.current.staged).toBeNull(); expect(result.current.success).toContain('saved');
+});
+it('preserves the file draft on failure but never restages an accepted upload after a refresh failure', async () => {
+  const { result } = renderHook(() => useRequestAttachments(11));
+  await waitFor(() => expect(result.current.loading).toBe(false));
+  const action = { kind: 'upload', id: 9, file: new File(['test'], 'case.pdf', { type: 'application/pdf' }) };
+  act(() => result.current.stage(action));
+  service.saveAttachmentAction.mockRejectedValueOnce(new Error('Offline'));
+  await act(async () => result.current.confirm());
+  expect(result.current.staged).toEqual(action);
+  service.saveAttachmentAction.mockResolvedValueOnce({});
+  service.getAttachmentRequirements.mockRejectedValueOnce(new Error('Read failed'));
+  await act(async () => result.current.confirm());
+  expect(result.current.staged).toBeNull(); expect(result.current.success).toContain('saved');
+  expect(result.current.error).toContain('load');
+});
+it('does not leak a stale read or save result into another request', async () => {
+  let oldRead, oldSave;
+  service.getAttachmentRequirements.mockReturnValueOnce(new Promise(resolve => { oldRead = resolve; }));
+  service.saveAttachmentAction.mockReturnValueOnce(new Promise(resolve => { oldSave = resolve; }));
+  const { result, rerender } = renderHook(({ id }) => useRequestAttachments(id), { initialProps: { id: 11 } });
+  await waitFor(() => expect(service.getAttachmentRequirements).toHaveBeenCalledOnce());
+  act(() => result.current.stage({ kind: 'review', id: 9, action: 'accept' }));
+  let pending; act(() => { pending = result.current.confirm(); });
+  rerender({ id: 12 });
+  await waitFor(() => expect(result.current.loading).toBe(false));
+  await act(async () => { oldRead([{ id: 9, label: 'Old', status: 'requested' }]); oldSave({}); await pending; });
+  expect(result.current.rows).toEqual([]); expect(result.current.staged).toBeNull(); expect(result.current.success).toBe('');
+  expect(result.current.saving).toBe(false);
+});

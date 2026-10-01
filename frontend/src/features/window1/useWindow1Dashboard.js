@@ -194,6 +194,10 @@ export default function useWindow1Dashboard(user, currentTab = 'dashboard', queu
       formData.append('student_id', studentId);
       formData.append('student_name', form.fullName.value);
       formData.append('document_type', form.docType.value);
+      formData.append('copies', form.copies?.value || '1');
+      formData.append('purpose', form.purpose?.value || '');
+      formData.append('original_seen', String(Boolean(form.originalSeen?.checked)));
+      formData.append('photocopy_seen', String(Boolean(form.photocopySeen?.checked)));
 
       setSubmissionToConfirm({ kind: 'manual', payload: formData, form, documentType: form.docType.value, studentName: form.fullName.value });
     },

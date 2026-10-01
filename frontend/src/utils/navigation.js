@@ -13,6 +13,7 @@ function roleNavItems(user) {
     const items = [
       { tab: 'dashboard', to: '/dashboard', label: 'Dashboard', icon: 'dashboard' },
       { tab: 'history', to: '/dashboard?tab=history', label: 'History', icon: 'document' },
+      { tab: 'messages', to: '/dashboard?tab=messages', label: 'Messages & Attachments', icon: 'message' },
     ];
     // Only an alumnus can file the Graduate Application — a regular student
     // never sees the tab at all, not even to navigate to it directly.
@@ -26,6 +27,7 @@ function roleNavItems(user) {
     return [
       { tab: 'dashboard', to: '/dashboard', label: 'Dashboard', icon: 'dashboard' },
       { tab: 'completed-logs', to: '/dashboard?tab=completed-logs', label: 'Completed Logs', icon: 'checklist' },
+      { tab: 'messages', to: '/dashboard?tab=messages', label: 'Messages & Attachments', icon: 'message' },
       { tab: 'grad-applications', to: '/dashboard?tab=grad-applications', label: 'Graduate Applications', icon: 'cap' },
       { tab: 'reports', to: '/dashboard?tab=reports', label: 'Reports & Export', icon: 'report' },
     ];
@@ -35,6 +37,7 @@ function roleNavItems(user) {
     return [
       { tab: 'dashboard', to: '/dashboard', label: 'Workspace Dashboard', icon: 'dashboard' },
       { tab: 'tracking-desk', to: '/dashboard?tab=tracking-desk', label: 'Tracking Desk', icon: 'users' },
+      { tab: 'messages', to: '/dashboard?tab=messages', label: 'Messages & Attachments', icon: 'message' },
       { tab: 'reports', to: '/dashboard?tab=reports', label: 'Reports & Export', icon: 'report' },
     ];
   }
@@ -43,6 +46,7 @@ function roleNavItems(user) {
     return [
       { tab: 'dashboard', to: '/dashboard', label: 'Dashboard', icon: 'dashboard' },
       { tab: 'admin-tracker', to: '/dashboard?tab=admin-tracker', label: 'Document Tracker', icon: 'document' },
+      { tab: 'messages', to: '/dashboard?tab=messages', label: 'Messages & Attachments', icon: 'message' },
       { tab: 'admin-logs', to: '/dashboard?tab=admin-logs', label: 'Activity Logs', icon: 'checklist' },
       { tab: 'admin-security', to: '/dashboard?tab=admin-security', label: 'Security Logs', icon: 'shield' },
       { tab: 'admin-reports', to: '/dashboard?tab=admin-reports', label: 'Reports & Export', icon: 'report' },
@@ -53,7 +57,13 @@ function roleNavItems(user) {
     ];
   }
 
-  // Finance clerk, and any other desk, gets the dashboard alone.
+  if (user?.role === 'clerk' && user?.desk_assignment === 'Finance') {
+    return [
+      { tab: 'dashboard', to: '/dashboard', label: 'Dashboard', icon: 'dashboard' },
+      { tab: 'reports', to: '/dashboard?tab=reports', label: 'Transactions & Export', icon: 'report' },
+    ];
+  }
+  // Other desks get the dashboard alone.
   if (user?.role === 'clerk') {
     return [{ tab: 'dashboard', to: '/dashboard', label: 'Dashboard', icon: 'dashboard' }];
   }

@@ -1,6 +1,10 @@
 const bcrypt = require('bcryptjs');
 const referenceModel = require('../models/referenceData.model');
+const pricingModel = require('../models/pricing.model');
+const { normalizedSchedule, moneyCents } = require('../utils/pricing');
 const userModel = require('../models/user.model');
+const notifications = require('./notification.service');
+const accountLock = require('../models/trustedBrowser.model');
 const documentPolicy = require('./documentPolicy.service');
 const { pool } = require('../config/db');
 const { PROVIDERS } = require('./payment');
@@ -86,11 +90,12 @@ async function setCollegeActive(user, id, isActive) {
 
 async function listDocumentTypes(user) {
   assertAdmin(user);
-  const rows = await referenceModel.listDocumentTypes({ includeInactive: true });
+  const rows = await pricingModel.attachSchedules(await referenceModel.listDocumentTypes({ includeInactive: true }));
   return { document_types: rows.map(row => ({ ...row,
     is_active: documentPolicy.isRetired(row.name) ? false : row.is_active,
     is_retired: documentPolicy.isRetired(row.name),
-    is_repeatable: row.name === 'Honorable Dismissal' ? false : row.is_repeatable,
+    is_repeatable: documentPolicy.repeatable(row),
+    is_same_day: documentPolicy.sameDayWalkIn(row.name),
   })) };
 }
 
@@ -104,7 +109,9 @@ async function validateDocumentPolicy(data, name) {
       fields[key] = Boolean(data[key]);
     }
   }
-  if (name === 'Honorable Dismissal') fields.is_repeatable = false;
+  fields.is_repeatable = documentPolicy.repeatable({ name });
+  fields.is_same_day = documentPolicy.sameDayWalkIn(name);
+  if (fields.is_same_day) { fields.is_walk_in = true; fields.requires_original = true; }
   if (data.allowed_college_ids !== undefined) {
     if (!Array.isArray(data.allowed_college_ids) || data.allowed_college_ids.some(id => !Number.isInteger(id) || id < 1)) throw badRequest('Choose valid colleges.');
     fields.allowed_college_ids = [...new Set(data.allowed_college_ids)];
@@ -115,15 +122,43 @@ async function validateDocumentPolicy(data, name) {
   return { ...data, ...fields };
 }
 
+async function validateFees(data) {
+  const result = { ...data };
+  try {
+    for (const key of ['base_fee', 'rental_fee', 'special_fee']) {
+      if (data[key] !== undefined) result[key] = moneyCents(data[key]) / 100;
+    }
+    if (data.fee_items !== undefined) result.fee_items = normalizedSchedule({ fee_items: data.fee_items }).fee_items;
+    if (data.college_fee_schedules !== undefined) {
+      if (!Array.isArray(data.college_fee_schedules) || data.college_fee_schedules.length > 100) throw new Error('Use at most 100 college overrides.');
+      const seen = new Set();
+      result.college_fee_schedules = [];
+      for (const row of data.college_fee_schedules) {
+        if (!Number.isInteger(row?.college_id) || row.college_id < 1 || seen.has(row.college_id)) throw new Error('Choose a unique college for each override.');
+        seen.add(row.college_id);
+        if (!(await referenceModel.findCollegeById(row.college_id)).length) throw new Error('Unknown college.');
+        if (row.base_fee === undefined || row.fee_rule === undefined) throw new Error('Each college override needs its own rate and fee rule.');
+        result.college_fee_schedules.push(normalizedSchedule(row));
+      }
+    }
+  } catch (err) {
+    if (err.status) throw err;
+    throw badRequest(err.message);
+  }
+  return result;
+}
+
 async function saveDocumentPolicy(data, id = null) {
   // A legacy caller omitting college restrictions keeps the existing junction rows.
-  if (data.allowed_college_ids === undefined) return id === null
+  if (data.allowed_college_ids === undefined && data.fee_items === undefined && data.college_fee_schedules === undefined) return id === null
     ? referenceModel.createDocumentType(data) : referenceModel.updateDocumentType(id, data);
   const connection = await pool.getConnection();
   try {
     await connection.beginTransaction();
     const result = id === null ? await referenceModel.createDocumentType(data, connection) : await referenceModel.updateDocumentType(id, data, connection);
-    await referenceModel.setDocumentTypeColleges(id ?? result[0].insertId, data.allowed_college_ids, connection);
+    const typeId = id ?? result[0].insertId;
+    if (data.allowed_college_ids !== undefined) await referenceModel.setDocumentTypeColleges(typeId, data.allowed_college_ids, connection);
+    if (data.fee_items !== undefined || data.college_fee_schedules !== undefined) await pricingModel.saveSchedules(typeId, data, connection);
     await connection.commit();
     return result;
   } catch (err) { await connection.rollback(); throw err; }
@@ -144,7 +179,7 @@ async function createDocumentType(user, data) {
   const existing = await referenceModel.findDocumentTypeByName(data.name.trim());
   if (existing.length) throw badRequest('A document type with that name already exists.');
 
-  const normalized = await validateDocumentPolicy({ ...data, name: data.name.trim(), base_fee: fee }, data.name.trim());
+  const normalized = await validateDocumentPolicy(await validateFees({ ...data, name: data.name.trim(), base_fee: data.base_fee ?? fee }), data.name.trim());
   const [result] = await saveDocumentPolicy(normalized);
   return { message: 'Document type created.', id: result.insertId };
 }
@@ -176,7 +211,7 @@ async function updateDocumentType(user, id, data) {
     }
   }
 
-  await saveDocumentPolicy(await validateDocumentPolicy(data, data.name || rows[0].name), id);
+  await saveDocumentPolicy(await validateDocumentPolicy(await validateFees(data), data.name || rows[0].name), id);
   return { message: 'Document type updated.' };
 }
 
@@ -312,7 +347,20 @@ async function updateStaff(user, id, data) {
 
   if (Object.keys(fields).length === 0) throw badRequest('No fields to update.');
 
-  await userModel.updateStaff(id, fields);
+  if (Number(id) === Number(user.id) && fields.role && fields.role !== 'admin') throw badRequest('You cannot remove your own Admin role.');
+  const connection = await pool.getConnection();
+  try {
+    await connection.beginTransaction();
+    const locked = await accountLock.lockAccount(id, connection);
+    if (!locked || !VALID_ROLES.includes(locked.role)) throw notFound('Staff account not found.');
+    await userModel.updateStaff(id, fields, connection);
+    await userModel.incrementTokenVersion(id, connection);
+    await userModel.clearEmailOTP(id, connection);
+    await userModel.logSecurityEvent(user.id, `ACCOUNT_UPDATED:${id}`, null, null, connection);
+    await connection.commit();
+  } catch (error) { await connection.rollback(); throw error; }
+  finally { connection.release(); }
+  require('../realtime').disconnectUser(id);
   return { message: 'Staff account updated.' };
 }
 
@@ -322,26 +370,26 @@ async function updateStaff(user, id, data) {
  */
 async function setStaffActive(user, id, isActive) {
   assertAdmin(user);
-
-  const rows = await userModel.findById(id);
-  if (!rows.length || !VALID_ROLES.includes(rows[0].role)) throw notFound('Staff account not found.');
-
-  // Guard against an admin locking themselves out of the system.
-  if (!isActive && Number(id) === Number(user.id)) {
-    throw badRequest('You cannot deactivate your own account.');
-  }
-
-  await userModel.setUserActive(id, Boolean(isActive));
-
-  if (!isActive && rows[0].email) {
-    if (notifications.notifyByEmail) {
-      await notifications.notifyByEmail({
-        email: rows[0].email,
-        title: 'Account Deactivated',
-        message: 'Your Project TRACE staff account has been deactivated. Please contact an administrator if you believe this is a mistake.'
-      });
-    }
-  }
+  if (typeof isActive !== 'boolean') throw badRequest('Choose activate or deactivate.');
+  if (!isActive && Number(id) === Number(user.id)) throw badRequest('You cannot deactivate your own account.');
+  const connection = await pool.getConnection();
+  let account;
+  try {
+    await connection.beginTransaction();
+    account = await accountLock.lockAccount(id, connection);
+    if (!account || !VALID_ROLES.includes(account.role)) throw notFound('Staff account not found.');
+    await userModel.setUserActive(id, isActive, connection);
+    await userModel.clearEmailOTP(id, connection);
+    await userModel.logSecurityEvent(user.id, `${isActive ? 'ACCOUNT_REACTIVATED' : 'ACCOUNT_DEACTIVATED'}:${id}`, null, null, connection);
+    await connection.commit();
+  } catch (error) { await connection.rollback(); throw error; }
+  finally { connection.release(); }
+  require('../realtime').disconnectUser(id);
+  try {
+    const [owner] = await userModel.findById(id);
+    if (owner?.email) await notifications.sendEmail(owner.email, isActive ? 'Account Reactivated' : 'Account Deactivated',
+      `Your TRACE staff account was ${isActive ? 'reactivated' : 'deactivated'} by an administrator. If you did not expect this, contact the registrar administrator.`);
+  } catch { console.warn('Account status notification unavailable.'); }
   return { message: isActive ? 'Staff account reactivated.' : 'Staff account deactivated.' };
 }
 

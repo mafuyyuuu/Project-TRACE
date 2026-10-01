@@ -1,5 +1,6 @@
 const authService = require('../services/auth.service');
 const deviceLogin = require('../services/deviceLogin.service');
+const trustedBrowser = require('../services/trustedBrowser.service');
 
 /**
  * Thin HTTP layer for /api/auth. Each handler unpacks the request, calls the
@@ -14,7 +15,8 @@ function fail(res, err, logLabel, fallbackMessage) {
 
 async function login(req, res) {
   try {
-    const result = await authService.login(req.body, req.ip, req.headers['user-agent']);
+    const result = await authService.login(req.body, req.ip, req.headers['user-agent'], req.headers.cookie);
+    if (req.body.shared_computer !== false) clearTrustCookie(res);
     await setDeviceCookie(req, res, result);
     res.json(result);
   } catch (err) {
@@ -72,7 +74,9 @@ async function getStudent(req, res) {
 
 async function updateProfile(req, res) {
   try {
-    res.json(await authService.updateProfile(req.user.id, req.body));
+    const result = await authService.updateProfile(req.user.id, req.body);
+    if (req.body.password) clearTrustCookie(res);
+    res.json(result);
   } catch (err) {
     fail(res, err, 'Update profile error', 'Failed to update profile.');
   }
@@ -112,7 +116,9 @@ async function forgotPassword(req, res) {
 
 async function resetPassword(req, res) {
   try {
-    res.json(await authService.resetPassword(req.body));
+    const result = await authService.resetPassword(req.body);
+    clearTrustCookie(res);
+    res.json(result);
   } catch (err) {
     fail(res, err, 'Reset password error', 'Failed to reset password.');
   }
@@ -126,7 +132,14 @@ async function setDeviceCookie(req, res, result) {
 
 async function verify2FA(req, res) {
   try {
-    const result = await authService.verify2FA(req.body.temp_token, req.body.otp, req.ip, req.headers['user-agent']);
+    const { browserTrust, ...result } = await authService.verify2FA(req.body.temp_token, req.body.otp,
+      req.ip, req.headers['user-agent'], req.body.trust_browser === true, req.body.recovery_code);
+    if (browserTrust) {
+      res.cookie(trustedBrowser.COOKIE_NAME, browserTrust.value, {
+        ...trustedBrowser.COOKIE_OPTIONS, expires: new Date(browserTrust.expiresAt),
+      });
+      result.browser_trusted_until = new Date(browserTrust.expiresAt).toISOString();
+    }
     await setDeviceCookie(req, res, result);
     res.json(result);
   } catch (err) { fail(res, err, 'OTP login error', 'Could not verify login.'); }
@@ -144,12 +157,25 @@ async function getGlobalSecurityLogs(req, res) {
   catch (err) { fail(res, err, 'Global security logs error', 'Could not load security logs.'); }
 }
 async function logoutAll(req, res) {
-  try { res.json(await authService.logoutAll(req.user.id)); }
+  try {
+    const result = await authService.logoutAll(req.user.id, req.body?.preserve_current === true, req.user.token_version);
+    clearTrustCookie(res);
+    res.json(result);
+  }
   catch (err) { fail(res, err, 'Global logout error', 'Could not close sessions.'); }
 }
 
+async function logout(req, res) {
+  try { const result = await authService.logout(req.user); res.json(result); }
+  catch (err) { fail(res, err, 'Logout error', 'Could not end this session.'); }
+}
+
+function clearTrustCookie(res) {
+  res.clearCookie(trustedBrowser.COOKIE_NAME, trustedBrowser.COOKIE_OPTIONS);
+}
+
 module.exports = {
-  verify2FA, verifyEmailChange, getSecurityLogs, getGlobalSecurityLogs, logoutAll,
+  logout, verify2FA, verifyEmailChange, getSecurityLogs, getGlobalSecurityLogs, logoutAll,
   login,
   getMe,
   register,

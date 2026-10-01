@@ -36,7 +36,7 @@ export default function ForecastModal({ open, onClose, forecastData, forecastFil
       </div>
 
       {chartData.length > 0 ? (
-        <div className="h-80">
+        <div className="overflow-x-auto"><div className="h-80 min-w-[20rem]">
           <ResponsiveContainer width="100%" height="100%">
             <AreaChart data={chartData} margin={{ top: 20, right: 15, left: 15, bottom: 0 }}>
               <defs>
@@ -45,8 +45,8 @@ export default function ForecastModal({ open, onClose, forecastData, forecastFil
                   <stop offset="95%" stopColor="#15803d" stopOpacity={0} />
                 </linearGradient>
               </defs>
-              <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{ fill: '#9ca3af', fontSize: 10, fontWeight: 'bold' }} dy={10} />
-              <YAxis axisLine={false} tickLine={false} tick={{ fill: '#9ca3af', fontSize: 10, fontWeight: 'bold' }} allowDecimals={false} domain={[0, forecastCeiling(forecastData)]} />
+              <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{ fill: '#9ca3af', fontSize: '0.625rem', fontWeight: 'bold' }} dy={10} />
+              <YAxis axisLine={false} tickLine={false} tick={{ fill: '#9ca3af', fontSize: '0.625rem', fontWeight: 'bold' }} allowDecimals={false} domain={[0, forecastCeiling(forecastData)]} />
               <Tooltip
                 contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
                 itemStyle={{ color: 'var(--trace-chart-accent)', fontWeight: 'bold' }}
@@ -64,7 +64,7 @@ export default function ForecastModal({ open, onClose, forecastData, forecastFil
               />
             </AreaChart>
           </ResponsiveContainer>
-        </div>
+        </div></div>
       ) : (
         <div className="h-80 flex items-center justify-center text-gray-400 dark:text-gray-400 font-medium text-xs">Loading forecast data...</div>
       )}

@@ -104,7 +104,7 @@ export default function SignupPage() {
 
       <div className="bg-white dark:bg-gray-900 rounded-[2.5rem] p-10 sm:p-12 shadow-sm border border-gray-100 dark:border-gray-700 max-w-md w-full relative z-10">
         <div className="text-center mb-10">
-          <h1 className="text-2xl font-display font-black text-gray-900 dark:text-gray-100 tracking-widest mb-2 uppercase">SIGN UP</h1>
+          <h1 className="text-2xl font-display font-black text-gray-900 dark:text-gray-100 tracking-widest mb-2 uppercase">TRACE Sign Up</h1>
           <p className="text-sm font-semibold text-gray-500 dark:text-gray-400 mb-1">PLP Registrar's Office</p>
         </div>
 

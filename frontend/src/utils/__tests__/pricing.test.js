@@ -109,3 +109,33 @@ describe('formatPeso', () => {
     expect(formatPeso('abc')).toBe('₱0.00');
   });
 });
+
+import { calculateBreakdown, resolveSchedule } from '@/utils/pricing';
+describe('complete fee calculations', () => {
+  const type = { name: 'TOR', base_fee: 100, fee_rule: 'per_semester_block', rental_fee: 20, special_fee: 30, fee_items: [{ label: 'Certification', amount: 10 }] };
+  it('shows estimated pages, actual pages and once-only extras consistently', () => {
+    expect(itemAmount(type, { semesters: 8, copies: 2 })).toBe(460);
+    const bill = calculateBreakdown(type, { page_count: 3, copies: 2 }, true);
+    expect(bill.total).toBe(660); expect(bill.items.map(item => item.amount)).toEqual([600, 20, 30, 10]);
+  });
+  it('uses a complete college override and defaults otherwise', () => {
+    const configured = { ...type, college_fee_schedules: [{ college_id: 2, base_fee: 80, fee_rule: 'flat', fee_items: [] }] };
+    expect(itemAmount(resolveSchedule(configured, 2), { copies: 2 })).toBe(160);
+    expect(resolveSchedule(configured, 3).source).toBe('default');
+  });
+  it('does not infer a final page count from estimated semesters', () => {
+    expect(() => calculateBreakdown(type, { semesters: 8, copies: 2 }, true)).toThrow(/Pages/);
+  });
+});
+
+
+describe('pricing quantity boundaries', () => {
+  it('rejects unsafe multiplied page quantities even when the base rate is zero', () => {
+    expect(() => calculateBreakdown({ base_fee: 0, fee_rule: 'per_semester_block', rental_fee: 10 },
+      { copies: 2147483647, page_count: 2147483647 }, true)).toThrow(/quantity/);
+  });
+  it('validates supplied page metadata even for a flat charge', () => {
+    expect(() => calculateBreakdown({ base_fee: 50, fee_rule: 'flat' }, { page_count: 1.5 }, true)).toThrow(/Pages/);
+    expect(calculateBreakdown({ base_fee: 50, fee_rule: 'flat' }, { page_count: 3, copies: 2 }, true).total).toBe(100);
+  });
+});

@@ -45,6 +45,8 @@ vi.mock('@/services/referenceService', () => ({
   getPaymentMethods: vi.fn(),
 }));
 
+import { getFinanceTransactions } from '@/services/financeService';
+vi.mock('@/services/financeService', () => ({ getFinanceTransactions: vi.fn(), exportFinanceTransactions: vi.fn() }));
 import * as documentsService from '@/services/documentsService';
 import * as referenceService from '@/services/referenceService';
 import Window1Dashboard from '@/features/window1/Window1Dashboard';
@@ -120,6 +122,7 @@ const USERS = {
 };
 
 beforeEach(() => {
+  getFinanceTransactions.mockResolvedValue({ transactions: ALL_STAGES.filter(row => row.payment_status === 'PAID'), total: 4, amount: 800 });
   vi.clearAllMocks();
   documentsService.getDocuments.mockResolvedValue({ documents: ALL_STAGES, total: 8, totalPages: 1 });
   documentsService.getDashboardStats.mockResolvedValue({});

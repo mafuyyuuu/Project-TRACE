@@ -1,3 +1,4 @@
+import { INPUT_LIMITS } from '@/utils/inputLimits';
 import FileUploadField from '@/components/FileUploadField';
 import { useState } from 'react';
 import ModalShell from '@/components/ModalShell';
@@ -11,11 +12,14 @@ export default function DeferredOrUploadModal({
 }) {
   const [orFile, setOrFile] = useState(null);
   const [fileToConfirm, setFileToConfirm] = useState(null);
+  const [orNumber, setOrNumber] = useState(selectedDoc.or_number || '');
+  const [orDate, setOrDate] = useState('');
 
   const handleSubmit = (e) => {
     e.preventDefault();
     if (!orFile) return;
-    setFileToConfirm(orFile);
+    if (!selectedDoc.or_number && (!orNumber.trim() || !orDate)) return;
+    setFileToConfirm({ file: orFile, orNumber: orNumber.trim(), orDate });
   };
 
   return (
@@ -36,6 +40,12 @@ export default function DeferredOrUploadModal({
           Upload the Official Receipt for Tracking ID <span className="font-mono font-bold">#{selectedDoc.tracking_number || selectedDoc.id}</span>.
         </p>
 
+        {!selectedDoc.or_number && <>
+          <p className="text-sm">Issue the actual OR, upload its copy, and send it to Secretary for release with the document.</p>
+          {selectedDoc.or_earliest_issue_date && <p className="text-sm">Earliest eligible issue date: {selectedDoc.or_earliest_issue_date}. This is not a promised deadline.</p>}
+          <label className="block text-sm font-semibold">OR number<input required maxLength={INPUT_LIMITS.receiptNumber} value={orNumber} onChange={e => setOrNumber(e.target.value)} className="block w-full border rounded-xl p-3 bg-transparent" /></label>
+          <label className="block text-sm font-semibold">Actual issue date (Manila)<input required type="date" value={orDate} onChange={e => setOrDate(e.target.value)} className="block w-full border rounded-xl p-3 bg-transparent" /></label>
+        </>}
         <div className="flex flex-col gap-2">
           <label htmlFor="deferred-or-file" className="text-[10px] font-bold text-gray-800 dark:text-gray-100 uppercase tracking-widest">
             Official POS Receipt
@@ -46,11 +56,11 @@ export default function DeferredOrUploadModal({
       </form>
     </ModalShell>
     <ConfirmDialog open={!!fileToConfirm} title="Upload Official Receipt Copy"
-      message={fileToConfirm ? `Upload ${fileToConfirm.name} for ${selectedDoc.or_number || selectedDoc.tracking_number || selectedDoc.id}? This preserves the payment and document stage.` : ''}
+      message={fileToConfirm ? `Upload ${fileToConfirm.file.name} for ${selectedDoc.or_number || selectedDoc.tracking_number || selectedDoc.id}? This preserves the payment and document stage.` : ''}
       confirmLabel="Confirm Upload" loadingLabel="Uploading…" loading={actionLoading}
       onCancel={() => setFileToConfirm(null)}
       onConfirm={async () => {
-        if (await handleDeferredUpload(selectedDoc, fileToConfirm)) setFileToConfirm(null);
+        if (await handleDeferredUpload(selectedDoc, fileToConfirm.file, fileToConfirm)) setFileToConfirm(null);
       }} />
     </>
   );

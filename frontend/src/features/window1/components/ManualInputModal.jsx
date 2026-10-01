@@ -1,3 +1,4 @@
+import { isHonorableDismissal, isSameDayWalkInType } from '@/utils/documentPolicy';
 import { INPUT_LIMITS } from '@/utils/inputLimits';
 import ModalShell from '@/components/ModalShell';
 
@@ -110,6 +111,15 @@ export default function ManualInputModal({
               </select>
             </div>
 
+            <label className="flex flex-col gap-2 text-sm font-bold">Copies
+              <input name="copies" type="number" required min="1" max={isHonorableDismissal(docType) ? 1 : 2147483647} step="1" defaultValue="1" className="p-3 border rounded-xl bg-transparent" />
+            </label>
+            {isSameDayWalkInType(docType) && <fieldset className="space-y-3 text-sm md:col-span-2">
+              <legend className="font-bold">Walk-in same-day eligibility</legend>
+              <p>Eligible only when the requester presents both the original document and its photocopy. Otherwise file for normal evaluation; no same-day promise.</p>
+              <label className="flex items-start gap-3"><input name="originalSeen" type="checkbox" className="mt-1 shrink-0" />Original document presented and checked</label>
+              <label className="flex items-start gap-3"><input name="photocopySeen" type="checkbox" className="mt-1 shrink-0" />Photocopy presented and checked</label>
+            </fieldset>}
             <div className="flex flex-col gap-2">
               <label className="text-[10px] font-bold text-gray-800 dark:text-gray-100 uppercase tracking-widest">Purpose of Request</label>
               <select

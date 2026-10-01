@@ -164,14 +164,25 @@ async function cancel(req, res) {
 
 
 async function uploadDeferredOR(req, res) {
-  res.json(await documentsService.uploadDeferredOR(req.user, req.params.id, req.file));
+  try { res.json(await documentsService.uploadDeferredOR(req.user, req.params.id, req.file, req.body)); }
+  catch (err) { fail(res, err, 'OR upload error', 'Could not publish the Official Receipt.'); }
 }
 
 async function getMessages(req, res) {
   try {
+    res.setHeader('Cache-Control', 'no-store');
     res.json(await documentsService.getMessages(req.user, req.params.id));
   } catch (err) {
     fail(res, err, 'Fetch messages error', 'Failed to fetch messages.');
+  }
+}
+
+async function messageThreads(req, res) {
+  try {
+    res.setHeader('Cache-Control', 'no-store');
+    res.json(await documentsService.messageThreads(req.user, req.query));
+  } catch (err) {
+    fail(res, err, 'Fetch message threads error', 'Failed to fetch conversations.');
   }
 }
 
@@ -184,6 +195,7 @@ async function sendMessage(req, res) {
 }
 
 module.exports = {
+  messageThreads,
   getMessages,
   sendMessage,
   uploadDeferredOR,

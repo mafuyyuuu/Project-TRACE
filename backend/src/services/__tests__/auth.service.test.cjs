@@ -5,6 +5,7 @@
 vi.mock('../../config/db', () => ({
   pool: {
     query: vi.fn().mockResolvedValue([[]]),
+    getConnection: vi.fn(),
   }
 }));
 
@@ -19,6 +20,10 @@ const env = require('../../config/env');
 const service = require('../auth.service');
 const { pool } = require('../../config/db');
 const { authenticate } = require('../../middlewares/auth.middleware');
+const trustedBrowser = require('../trustedBrowser.service');
+const trustedBrowserModel = require('../../models/trustedBrowser.model');
+const authenticator = require('../authenticator.service');
+let credentialConnection;
 
 const statusOf = (promise) => promise.then(() => undefined, (err) => err.status);
 
@@ -41,6 +46,12 @@ const verifiedStudent = () => ({
 });
 
 beforeEach(() => {
+  vi.spyOn(authenticator, 'isEnabled').mockResolvedValue(false);
+  credentialConnection = { beginTransaction: vi.fn(), commit: vi.fn(), rollback: vi.fn(), release: vi.fn() };
+  vi.spyOn(pool, 'getConnection').mockResolvedValue(credentialConnection);
+  vi.spyOn(trustedBrowserModel, 'lockAccount').mockImplementation(async () => ({ id: 3, is_active: 1, token_version: 0, password_hash: passwordHash }));
+  vi.spyOn(trustedBrowser, 'isTrusted').mockResolvedValue(false);
+  vi.spyOn(trustedBrowser, 'issue').mockResolvedValue(null);
   vi.spyOn(referenceModel, 'findCollegeByName').mockResolvedValue([]);
   vi.spyOn(referenceModel, 'findCollegeById').mockResolvedValue([{ id: 2, name: 'College A', is_active: 1 }]);
   vi.spyOn(userModel, 'findActiveByStudentId').mockResolvedValue([]);
@@ -79,6 +90,22 @@ beforeEach(() => {
 });
 
 describe('login', () => {
+  it('uses the enrolled app instead of sending an email code', async () => {
+    const user = { ...verifiedStudent(), is_active: 1, token_version: 0 };
+    userModel.findActiveByStudentId.mockResolvedValue([user]);
+    authenticator.isEnabled.mockResolvedValue(true);
+    vi.spyOn(authenticator, 'challenge').mockResolvedValue({ requires_2fa: true, mfa_method: 'authenticator' });
+    expect(await service.login({ employee_id: 'STU-001', password: 'Trace2024!' })).toHaveProperty('mfa_method', 'authenticator');
+    expect(userModel.updateEmailOTP).not.toHaveBeenCalled();
+  });
+  it('never lets an old email challenge bypass a newly enrolled authenticator', async () => {
+    const user = { ...verifiedStudent(), is_active: 1, token_version: 0, login_otp: '123456', login_otp_expires: new Date(Date.now() + 60000) };
+    vi.spyOn(userModel, 'findById').mockResolvedValue([user]);
+    authenticator.isEnabled.mockResolvedValue(true);
+    const token = jwt.sign({ id: 3, pending_2fa: true, token_version: 0 }, env.JWT_SECRET);
+    await expect(service.verify2FA(token, '123456')).rejects.toThrow('method changed');
+    expect(userModel.clearEmailOTP).not.toHaveBeenCalled();
+  });
   beforeEach(() => {
     userModel.getLoginSecurity.mockResolvedValue([{ id: 1, failed_login_attempts: 0, locked_until: null }]);
   });
@@ -138,7 +165,7 @@ describe.each(['student password', 'staff OTP'])('%s session versions', (flow) =
       const staff = { ...user, role: 'admin', login_otp: '123456', login_otp_expires: new Date(Date.now() + 60000) };
       vi.spyOn(userModel, 'findById').mockResolvedValue([staff]);
       userModel.getProfileById.mockResolvedValue([staff]);
-      const challenge = jwt.sign({ id: user.id, pending_2fa: true }, env.JWT_SECRET);
+      const challenge = jwt.sign({ id: user.id, pending_2fa: true, token_version: version }, env.JWT_SECRET);
       return (await service.verify2FA(challenge, '123456')).token;
     }
     userModel.findActiveByStudentId.mockResolvedValue([user]);
@@ -146,7 +173,7 @@ describe.each(['student password', 'staff OTP'])('%s session versions', (flow) =
   };
 
   const checkSession = async (token, storedVersion) => {
-    vi.spyOn(pool, 'query').mockResolvedValue([[{ token_version: storedVersion }]]);
+    vi.spyOn(pool, 'query').mockImplementation(async sql => sql.startsWith('SELECT token_hash') ? [[]] : [[{ token_version: storedVersion, is_active: 1 }]]);
     const req = { headers: { authorization: `Bearer ${token}` } };
     const res = { status: vi.fn().mockReturnThis(), json: vi.fn() };
     const next = vi.fn();
@@ -169,6 +196,141 @@ describe.each(['student password', 'staff OTP'])('%s session versions', (flow) =
     expect(next).not.toHaveBeenCalled();
     expect(res.status).toHaveBeenCalledWith(401);
     expect(res.json).toHaveBeenCalledWith({ error: 'Session expired. Please log in again.' });
+  });
+});
+
+describe('clerk MFA browser policy', () => {
+  const credentials = { employee_id: 'STAFF001', password: 'Trace2024!' };
+  const clerk = () => ({ ...verifiedStudent(), role: 'clerk', is_active: 1, token_version: 0 });
+  const otpUser = () => ({ ...clerk(), login_otp: '123456', login_otp_expires: new Date(Date.now() + 60000) });
+  const challenge = (claims = {}) => jwt.sign({ id: 3, pending_2fa: true, token_version: 0, ...claims }, env.JWT_SECRET);
+
+  it('requires Admin OTP even with personal mode, opt-in and an existing browser cookie', async () => {
+    userModel.findActiveByStudentId.mockResolvedValue([{ ...clerk(), role: 'admin' }]);
+    trustedBrowser.isTrusted.mockResolvedValue(true);
+    const result = await service.login({ ...credentials, shared_computer: false }, null, null, 'trace_mfa_trust=synthetic');
+    expect(result).toMatchObject({ requires_2fa: true, can_trust_browser: false });
+    expect(trustedBrowser.isTrusted).not.toHaveBeenCalled();
+    const decoded = jwt.verify(result.temp_token, env.JWT_SECRET);
+    expect(decoded).toMatchObject({ token_version: 0, can_trust_browser: false });
+    vi.spyOn(userModel, 'findById').mockResolvedValue([{ ...otpUser(), role: 'admin' }]);
+    await service.verify2FA(result.temp_token, '123456', null, null, true);
+    expect(trustedBrowser.issue).not.toHaveBeenCalled();
+  });
+
+  it.each([undefined, true, 'false', 0])('requires clerk OTP in default/shared mode %s even with a cookie', async shared_computer => {
+    userModel.findActiveByStudentId.mockResolvedValue([clerk()]);
+    trustedBrowser.isTrusted.mockResolvedValue(true);
+    const result = await service.login({ ...credentials, shared_computer });
+    expect(result).toMatchObject({ requires_2fa: true, can_trust_browser: false });
+    expect(trustedBrowser.isTrusted).not.toHaveBeenCalled();
+  });
+
+  it('skips only clerk OTP after valid password and explicit personal mode', async () => {
+    userModel.findActiveByStudentId.mockResolvedValue([clerk()]);
+    trustedBrowser.isTrusted.mockResolvedValue(true);
+    const result = await service.login({ ...credentials, shared_computer: false }, '127.0.0.1', 'Test', 'cookie-header');
+    expect(result.token).toBeDefined();
+    expect(jwt.verify(result.token, env.JWT_SECRET).token_version).toBe(0);
+    expect(trustedBrowser.isTrusted).toHaveBeenCalledWith(clerk(), 'cookie-header', false);
+    expect(userModel.updateEmailOTP).not.toHaveBeenCalled();
+  });
+
+  it('a trusted cookie cannot replace the password check', async () => {
+    userModel.findActiveByStudentId.mockResolvedValue([clerk()]);
+    trustedBrowser.isTrusted.mockResolvedValue(true);
+    expect(await statusOf(service.login({ ...credentials, password: 'wrong', shared_computer: false }))).toBe(401);
+    expect(trustedBrowser.isTrusted).not.toHaveBeenCalled();
+  });
+
+  it.each([false, undefined, 'true'])('does not grant trust without a boolean OTP opt-in (%s)', async choice => {
+    vi.spyOn(userModel, 'findById').mockResolvedValue([otpUser()]);
+    await service.verify2FA(challenge({ can_trust_browser: true }), '123456', null, null, choice);
+    expect(trustedBrowser.issue).not.toHaveBeenCalled();
+  });
+
+  it('rejects attempts to turn a shared challenge into a trusted login', async () => {
+    vi.spyOn(userModel, 'findById').mockResolvedValue([otpUser()]);
+    await service.verify2FA(challenge({ can_trust_browser: false }), '123456', null, null, true);
+    expect(trustedBrowser.issue).not.toHaveBeenCalled();
+  });
+
+  it('grants trust only after valid OTP in signed personal mode', async () => {
+    vi.spyOn(userModel, 'findById').mockResolvedValue([otpUser()]);
+    trustedBrowser.issue.mockResolvedValue({ value: 'synthetic-cookie', expiresAt: 1000 });
+    const result = await service.verify2FA(challenge({ can_trust_browser: true }), '123456', null, null, true);
+    expect(trustedBrowser.issue).toHaveBeenCalledExactlyOnceWith(3, 0);
+    expect(userModel.clearEmailOTP.mock.invocationCallOrder[0]).toBeLessThan(trustedBrowser.issue.mock.invocationCallOrder[0]);
+    expect(result.user).not.toHaveProperty('browserTrust');
+    expect(result.browserTrust).toEqual({ value: 'synthetic-cookie', expiresAt: 1000 });
+  });
+
+  it.each([undefined, 0])('rejects legacy or revoked pending challenges (%s)', async version => {
+    vi.spyOn(userModel, 'findById').mockResolvedValue([{ ...otpUser(), token_version: 1 }]);
+    const claims = { id: 3, pending_2fa: true, can_trust_browser: true };
+    if (version !== undefined) claims.token_version = version;
+    expect(await statusOf(service.verify2FA(jwt.sign(claims, env.JWT_SECRET), '123456', null, null, true))).toBe(401);
+    expect(userModel.clearEmailOTP).not.toHaveBeenCalled();
+    expect(trustedBrowser.issue).not.toHaveBeenCalled();
+  });
+
+  it('does not issue a browser proof on invalid OTP', async () => {
+    vi.spyOn(userModel, 'findById').mockResolvedValue([otpUser()]);
+    expect(await statusOf(service.verify2FA(challenge({ can_trust_browser: true }), '999999', null, null, true))).toBe(401);
+    expect(trustedBrowser.issue).not.toHaveBeenCalled();
+  });
+
+  it('keeps student optional 2FA regardless of browser mode or cookies', async () => {
+    userModel.findActiveByStudentId.mockResolvedValue([{ ...verifiedStudent(), two_factor_enabled: true }]);
+    trustedBrowser.isTrusted.mockResolvedValue(true);
+    expect(await service.login({ ...credentials, shared_computer: false })).toMatchObject({ requires_2fa: true, can_trust_browser: false });
+    expect(trustedBrowser.isTrusted).not.toHaveBeenCalled();
+  });
+});
+
+describe('credential changes revoke MFA trust and pending challenges', () => {
+  const change = () => service.updateProfile(3, { password: 'NewPassword2024!', current_password: 'Trace2024!' });
+  beforeEach(() => {
+    userModel.getProfileById.mockResolvedValue([{ email: null, student_id: 'STU-001' }]);
+    userModel.findActiveByStudentId.mockResolvedValue([verifiedStudent()]);
+  });
+
+  it('commits the password, history, account version and OTP clearing together', async () => {
+    await change();
+    expect(userModel.updateProfile).toHaveBeenCalledWith(3, expect.objectContaining({ password_hash: expect.any(String) }), credentialConnection);
+    expect(userModel.incrementTokenVersion).toHaveBeenCalledWith(3, credentialConnection);
+    expect(userModel.clearEmailOTP).toHaveBeenCalledWith(3, credentialConnection);
+    expect(userModel.addPasswordHistory).toHaveBeenCalledWith(3, expect.any(String), credentialConnection);
+    expect(credentialConnection.commit).toHaveBeenCalledOnce();
+  });
+
+  it('rolls back a credential change when revocation fails', async () => {
+    userModel.incrementTokenVersion.mockRejectedValue(new Error('version write failed'));
+    await expect(change()).rejects.toThrow('version write failed');
+    expect(credentialConnection.commit).not.toHaveBeenCalled();
+    expect(credentialConnection.rollback).toHaveBeenCalledOnce();
+    expect(credentialConnection.release).toHaveBeenCalledOnce();
+  });
+
+  it('rejects a password changed concurrently after current-password verification', async () => {
+    trustedBrowserModel.lockAccount.mockResolvedValue({ id: 3, is_active: 1, password_hash: 'different-hash' });
+    expect(await statusOf(change())).toBe(401);
+    expect(userModel.updateProfile).not.toHaveBeenCalled();
+    expect(userModel.incrementTokenVersion).not.toHaveBeenCalled();
+  });
+
+  it('never revokes trust when the current password is incorrect', async () => {
+    expect(await statusOf(service.updateProfile(3, { password: 'NewPassword2024!', current_password: 'wrong' }))).toBe(401);
+    expect(userModel.incrementTokenVersion).not.toHaveBeenCalled();
+    expect(pool.getConnection).not.toHaveBeenCalled();
+  });
+
+  it('logout-all revokes a pending OTP challenge through the same account version', async () => {
+    const pending = jwt.sign({ id: 3, pending_2fa: true, token_version: 0 }, env.JWT_SECRET);
+    await service.logoutAll(3);
+    expect(userModel.incrementTokenVersion).toHaveBeenCalledWith(3);
+    vi.spyOn(userModel, 'findById').mockResolvedValue([{ ...verifiedStudent(), token_version: 1, login_otp: '123456', login_otp_expires: new Date(Date.now() + 60000) }]);
+    expect(await statusOf(service.verify2FA(pending, '123456'))).toBe(401);
   });
 });
 
@@ -330,7 +492,7 @@ describe('Batch 8 OTP completion', () => {
     const user = { ...verifiedStudent(), role: 'clerk', is_active: 1, login_otp: '123456', login_otp_expires: new Date(Date.now() + 60000) };
     vi.spyOn(userModel, 'findById').mockResolvedValue([user]);
     userModel.getProfileById.mockResolvedValue([{ ...user, has_grad_application: 1 }]);
-    const token = jwt.sign({ id: 3, pending_2fa: true }, env.JWT_SECRET);
+    const token = jwt.sign({ id: 3, pending_2fa: true, token_version: 0 }, env.JWT_SECRET);
     const result = await service.verify2FA(token, '123456');
     expect(result.user.has_grad_application).toBe(true);
     expect(result.user).not.toHaveProperty('password_hash');
@@ -346,7 +508,7 @@ describe('Batch 8 OTP completion', () => {
   });
   it('rejects expired OTPs and inactive users', async () => {
     vi.spyOn(userModel, 'findById').mockResolvedValue([{ ...verifiedStudent(), is_active: 0 }]);
-    const token = jwt.sign({ id: 3, pending_2fa: true }, env.JWT_SECRET);
+    const token = jwt.sign({ id: 3, pending_2fa: true, token_version: 0 }, env.JWT_SECRET);
     expect(await statusOf(service.verify2FA(token, '123456'))).toBe(404);
   });
 });
@@ -372,13 +534,13 @@ describe('purpose-bound OTP challenges', () => {
   });
   it('an email-change code cannot finish staff login', async () => {
     vi.spyOn(userModel, 'findById').mockResolvedValue([{ ...verifiedStudent(), role: 'clerk', is_active: 1, email_otp: 'E:123456', email_otp_expires: new Date(Date.now() + 60000), login_otp: '654321', login_otp_expires: new Date(Date.now() + 60000) }]);
-    const token = jwt.sign({ id: 3, pending_2fa: true }, env.JWT_SECRET);
+    const token = jwt.sign({ id: 3, pending_2fa: true, token_version: 0 }, env.JWT_SECRET);
     expect(await statusOf(service.verify2FA(token, '123456'))).toBe(401);
     expect(userModel.clearEmailOTP).not.toHaveBeenCalled();
   });
   it.each([null, 'invalid', new Date(Date.now() - 60000)])('rejects missing, invalid, and expired login expiry (%s)', async expires => {
     vi.spyOn(userModel, 'findById').mockResolvedValue([{ ...verifiedStudent(), role: 'clerk', is_active: 1, login_otp: '123456', login_otp_expires: expires }]);
-    const token = jwt.sign({ id: 3, pending_2fa: true }, env.JWT_SECRET);
+    const token = jwt.sign({ id: 3, pending_2fa: true, token_version: 0 }, env.JWT_SECRET);
     expect(await statusOf(service.verify2FA(token, '123456'))).toBe(400);
   });
 });
@@ -407,5 +569,36 @@ describe('Batch 8b identity and staff profile boundary', () => {
   it.each(['Window 1', 'Secretary', 'Finance'])('allows the %s desk to read a saved profile', async desk => {
     userModel.findStudentBasicInfo.mockResolvedValue([{ role: 'student', phone_number: '0912', home_address: 'Saved address' }]);
     expect(await service.lookupStudent('STU1', { role: 'clerk', desk_assignment: desk })).toMatchObject({ student: { home_address: 'Saved address' } });
+  });
+});
+
+describe('server-side logout', () => {
+  it('revokes only the current token and commits its audit before reporting success', async () => {
+    const sessions = require('../../models/session.model');
+    vi.spyOn(sessions, 'revoke').mockResolvedValue([{}]);
+    await expect(service.logout({ id: 3, session_hash: 'a'.repeat(64), expires_at: 1800000000 })).resolves.toMatchObject({ message: 'Session ended.' });
+    expect(sessions.revoke).toHaveBeenCalledWith(3, 'a'.repeat(64), 1800000000, credentialConnection);
+    expect(userModel.incrementTokenVersion).not.toHaveBeenCalled();
+    expect(credentialConnection.commit).toHaveBeenCalledOnce();
+    expect(userModel.logSecurityEvent).toHaveBeenCalledWith(3, 'LOGOUT', null, null, credentialConnection);
+  });
+  it('rolls back a failed logout audit so it cannot return a false success', async () => {
+    const sessions = require('../../models/session.model');
+    vi.spyOn(sessions, 'revoke').mockResolvedValue([{}]);
+    userModel.logSecurityEvent.mockRejectedValue(new Error('Audit failed'));
+    await expect(service.logout({ id: 3, session_hash: 'a'.repeat(64), expires_at: 1800000000 })).rejects.toThrow('Audit failed');
+    expect(credentialConnection.rollback).toHaveBeenCalledOnce();
+    expect(credentialConnection.commit).not.toHaveBeenCalled();
+  });
+  it('logs out other devices while replacing the current session with the new version', async () => {
+    userModel.getProfileById.mockResolvedValue([{ ...verifiedStudent(), is_active: 1 }]);
+    const result = await service.logoutAll(3, true, 0);
+    expect(jwt.verify(result.token, env.JWT_SECRET).token_version).toBe(1);
+    expect(userModel.incrementTokenVersion).toHaveBeenCalledWith(3, credentialConnection);
+    expect(credentialConnection.commit).toHaveBeenCalledOnce();
+  });
+  it('does not let an old session obtain a replacement after revocation', async () => {
+    await expect(service.logoutAll(3, true, 4)).rejects.toMatchObject({ status: 401 });
+    expect(userModel.incrementTokenVersion).not.toHaveBeenCalled();
   });
 });

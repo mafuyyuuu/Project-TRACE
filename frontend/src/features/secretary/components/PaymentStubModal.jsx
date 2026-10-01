@@ -1,3 +1,4 @@
+import FeeBreakdown from '@/components/FeeBreakdown';
 import api from '@/services/api';
 import { useEffect, useState } from 'react';
 import ModalShell from '@/components/ModalShell';
@@ -153,6 +154,10 @@ const items = groupDocs?.length ? groupDocs : [selectedDoc];
       </p>
         </>
       )}
+      <div className="space-y-4 py-4">{items.map(doc => <div key={doc.id}>
+        <h4 className="text-xs font-bold">{doc.document_type}</h4>
+        <FeeBreakdown breakdown={doc.fee_breakdown} amount={doc.amount} />
+      </div>)}</div>
     </ModalShell>
   );
 }

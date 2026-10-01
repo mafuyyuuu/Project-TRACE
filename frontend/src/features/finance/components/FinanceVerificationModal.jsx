@@ -1,10 +1,11 @@
+import FeeBreakdown from '@/components/FeeBreakdown';
 import { INPUT_LIMITS } from '@/utils/inputLimits';
 import FileUploadField from '@/components/FileUploadField';
 import DocumentChat from '@/components/DocumentChat';
 import { useState } from 'react';
 import ModalShell from '@/components/ModalShell';
 import AuthedFilePreview from '@/components/AuthedFilePreview';
-import { itemBreakdown, formatPeso } from '@/utils/pricing';
+import { formatPeso } from '@/utils/pricing';
 
 export default function FinanceVerificationModal({
   user,
@@ -21,10 +22,12 @@ export default function FinanceVerificationModal({
   // Walk-in documents already carry an OR number from logWalkInPayment; a
   // digital payment has none until Finance types it in here.
   const [orNumber, setOrNumber] = useState(selectedDoc?.or_number || '');
+  const [orDate, setOrDate] = useState('');
+  const [deferred, setDeferred] = useState(false);
 
   if (!selectedDoc) return null;
 
-  const canVerify = Boolean(orNumber.trim());
+  const canVerify = deferred || Boolean(orNumber.trim());
   // documents.payment_method defaults to 'gcash' for rows predating the
   // column — matching document.model.js's own default.
   const method = paymentMethods.find((m) => m.code === (selectedDoc.payment_method || 'gcash'));
@@ -47,7 +50,7 @@ export default function FinanceVerificationModal({
             Reject Payment
           </button>
           <button
-            onClick={() => handleFinanceVerify('approve', financeReceiptFile, orNumber.trim())}
+            onClick={() => handleFinanceVerify('approve', deferred ? null : financeReceiptFile, deferred ? '' : orNumber.trim(), { deferred, orDate: deferred ? '' : orDate })}
             disabled={actionLoading || !canVerify}
             className={`w-full sm:w-1/2 py-3 rounded-xl font-bold text-xs shadow-md transition-all text-center uppercase tracking-wider ${
               !canVerify ? 'bg-gray-300 dark:bg-gray-700 text-gray-500 dark:text-gray-400 cursor-not-allowed' : 'bg-[#15803d] hover:bg-[#166534] text-white'
@@ -69,22 +72,7 @@ export default function FinanceVerificationModal({
         
         {/* Itemization */}
         <div className="border-t border-gray-200/50 dark:border-gray-700/50 pt-3 mt-1 space-y-1">
-          {(() => {
-            const typeObj = {
-              name: selectedDoc.document_type,
-              base_fee: selectedDoc.base_fee,
-              rental_fee: selectedDoc.rental_fee,
-              special_fee: selectedDoc.special_fee,
-              fee_rule: selectedDoc.fee_rule
-            };
-            const breakdown = itemBreakdown(typeObj, { copies: selectedDoc.copies });
-            return breakdown.length > 0 ? breakdown.map((item, idx) => (
-              <div key={idx} className="flex justify-between text-[11px] text-gray-600 dark:text-gray-300">
-                <span>{item.label}</span>
-                <span className="font-mono">{formatPeso(item.amount)}</span>
-              </div>
-            )) : null;
-          })()}
+          <FeeBreakdown breakdown={selectedDoc.fee_breakdown} amount={selectedDoc.amount} />
         </div>
         <div className="flex justify-between border-t border-gray-200/50 dark:border-gray-700/50 pt-2">
           <span>Amount</span>
@@ -96,7 +84,7 @@ export default function FinanceVerificationModal({
         <div className="bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 text-amber-800 dark:text-amber-300 text-xs p-3 rounded-lg font-semibold flex items-start gap-2 mb-4">
           <svg className="w-4 h-4 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
           <p>
-            Give the physical Official Receipt to the College Secretary. Finance can upload its retained copy later; the digital copy does not delay verification or release.
+            Clear payment now and acknowledge it to the student. Choose Later if the OR has not been issued. At or after 4:00 PM Manila time, new same-day OR issuance is deferred. Secretary waits for the issued OR and releases it together with the document.
           </p>
         </div>
 
@@ -123,6 +111,11 @@ export default function FinanceVerificationModal({
           {referenceLabel}: <span className="font-mono text-gray-600 dark:text-gray-300 font-bold">{selectedDoc.gcash_reference_no || 'None'}</span>
         </div>
 
+        {!selectedDoc.or_number && <label className="flex items-start gap-3 text-sm font-semibold">
+          <input type="checkbox" checked={deferred} onChange={e => setDeferred(e.target.checked)} className="mt-1 shrink-0" />
+          Later — clear payment now; issue the Official Receipt later
+        </label>}
+        {!deferred && <>
         <div className="flex flex-col gap-2">
           <label htmlFor="finance-verify-or-number" className="text-[10px] font-bold text-red-600 dark:text-red-300 uppercase tracking-widest flex items-center gap-1">
             Official Receipt Number <span className="text-red-500 dark:text-red-300">*</span>
@@ -130,6 +123,7 @@ export default function FinanceVerificationModal({
           <input maxLength={INPUT_LIMITS.receiptNumber}
             id="finance-verify-or-number"
             type="text"
+            disabled={Boolean(selectedDoc.or_number)}
             value={orNumber}
             onChange={(e) => setOrNumber(e.target.value)}
             placeholder="e.g. OR-2026-00123"
@@ -137,12 +131,17 @@ export default function FinanceVerificationModal({
           />
         </div>
 
+        {!selectedDoc.or_number && <label className="block text-sm font-semibold">OR issue date (Manila)
+          <input type="date" value={orDate} onChange={e => setOrDate(e.target.value)} className="block w-full border rounded-xl p-3 bg-transparent" />
+          <span className="text-xs font-normal">Blank uses today’s Manila date; server enforces the 4:00 PM cut-off.</span>
+        </label>}
         <div className="flex flex-col gap-2">
           <label className="text-[10px] font-bold text-red-600 dark:text-red-300 uppercase tracking-widest flex items-center gap-1">
             Attach Official POS Receipt <span className="text-gray-400 dark:text-gray-400 font-normal normal-case">(Optional - upload later if deferred)</span>
           </label>
           <FileUploadField label="Official Receipt copy (optional)" file={financeReceiptFile} path={selectedDoc.official_receipt_path} onChange={setFinanceReceiptFile} maxBytes={5 * 1024 * 1024} />
         </div>
+        </>}
       </div>
 
       <div className="flex flex-col gap-1.5 mt-4">

@@ -1,4 +1,5 @@
 const { pool } = require('../config/db');
+const { getProfileCompletion } = require('../utils/profileCompletion');
 const documentModel = require('../models/document.model');
 const documentMessageModel = require('../models/documentMessage.model');
 const documentPolicy = require('./documentPolicy.service');
@@ -7,6 +8,8 @@ const userModel = require('../models/user.model');
 const aiEngine = require('./aiEngine.service');
 const n8n = require('./n8n.service');
 const notifications = require('./notification.service');
+const pricingModel = require('../models/pricing.model');
+const { resolveSchedule, calculateBreakdown, normalizedSchedule, positiveQuantity } = require('../utils/pricing');
 const referenceModel = require('../models/referenceData.model');
 const { getProvider } = require('./payment');
 const { badRequest, forbidden, notFound } = require('../utils/AppError');
@@ -70,7 +73,7 @@ function parseRequestedItems(body) {
     {
       document_type: body.document_type,
       copies: body.copies,
-      semesters: body.semesters,
+      semesters: body.semesters, year_started: body.year_started, year_ended: body.year_ended,
       purpose: body.purpose,
     },
   ];
@@ -115,7 +118,19 @@ async function uploadDocument(user, body, files) {
   const fileList = Array.isArray(files) ? files : files ? [files] : [];
 
   const requested = parseRequestedItems(body);
+  if (new Set(requested.map(item => item.document_type)).size !== requested.length) throw badRequest('Select each document type once and use its copies field for multiple copies.');
   for (const item of requested) {
+    const isTOR = ['Transcript of Records', 'Transcript of Records (TOR)'].includes(item.document_type);
+    const hasYears = item.year_started !== undefined || item.year_ended !== undefined;
+    if (isTOR && (hasYears || (user.role === 'student' && item.semesters === undefined))) {
+      const start = Number(item.year_started), end = Number(item.year_ended);
+      const currentYear = new Date(Date.now() + 8 * 60 * 60 * 1000).getUTCFullYear();
+      if (!Number.isInteger(start) || !Number.isInteger(end) || start < 1900 || end < start || end > currentYear) throw badRequest('Enter valid Year Started and Year Ended.');
+      let details;
+      try { details = JSON.parse(item.purpose || '{}'); } catch { details = { purpose: item.purpose }; }
+      if (!details || typeof details !== 'object' || Array.isArray(details)) details = { purpose: item.purpose };
+      item.purpose = JSON.stringify({ ...details, year_started: start, year_ended: end });
+    }
     const copies = Number(item.copies ?? 1);
     if (!Number.isInteger(copies) || copies < 1 || copies > 2147483647) throw badRequest('Copies must be a positive whole number within the supported range.');
   }
@@ -134,30 +149,40 @@ async function uploadDocument(user, body, files) {
     student_name = user.full_name || student_name;
   }
 
-  // Fees are always computed server-side from the admin-managed rates; any
-  // client-supplied amount is ignored.
-  const types = await referenceModel.findDocumentTypesByNames(
-    requested.map((i) => i.document_type)
-  );
-  const { total, items: priced } = calculateGroupAmount(requested, types);
-  if (priced.some(item => !Number.isFinite(item.amount) || item.amount > 99999999.99)) throw badRequest('This quantity exceeds the supported request amount.');
-
   // A walk-in is the same request, typed in by the clerk the student is
   // standing in front of. Only the audit trail records which channel it came
   // through; the row itself is identical.
-  const isWalkIn = user.role === 'clerk' && user.desk_assignment === 'Window 1';
+  const isWalkIn = user.role === 'clerk' && ['Window 1', 'Receiving Desk'].includes(user.desk_assignment);
   const logAction = isWalkIn ? 'walk_in_filed' : 'submitted';
 
   const requestGroupId = generateRequestGroupId();
   const connection = await pool.getConnection();
   const created = [];
+  let total = 0;
 
   try {
     await connection.beginTransaction();
 
+    // Lock the authoritative account/profile until intake commits. Client-supplied
+    // completion flags cannot bypass this check, and staff-assisted intake stays available.
+    if (user.role === 'student') {
+      const [profile] = await userModel.getProfileById(user.id, connection, true);
+      if (!profile || profile.role !== 'student') throw forbidden('Your account has no student profile.');
+      const completion = getProfileCompletion(profile);
+      if (!completion.complete) throw forbidden(`Complete your profile before requesting documents. Missing: ${completion.missing.map(item => item.label).join(', ')}.`);
+    }
+
     // Determine if the student is an alumni for sequence offset
     let isAlumni = false;
     const targetStudent = await documentPolicy.resolveStudent(student_id, connection, true);
+    const types = await pricingModel.attachSchedules(await referenceModel.findDocumentTypesByNames(
+      requested.map(item => item.document_type), connection, true), connection);
+    let pricing;
+    try {
+      pricing = calculateGroupAmount(requested, types.map(type => ({ ...type, ...resolveSchedule(type, targetStudent?.college_id) })));
+    } catch (err) { throw badRequest(err.message); }
+    total = pricing.total;
+    const priced = pricing.items;
     if (targetStudent?.user_type === 'alumni') {
       isAlumni = true;
     }
@@ -187,10 +212,12 @@ async function uploadDocument(user, body, files) {
           file_path: attachment ? attachment.path : null,
           original_filename: attachment ? attachment.originalname : null,
           checkout_url: `https://pm.link/mock/${trackingNumber}`,
-          purpose: requested[index].purpose ?? body.purpose ?? null,
+          purpose: isWalkIn && documentPolicy.sameDayWalkIn(item.document_type) ? JSON.stringify({ purpose: requested[index].purpose ?? body.purpose ?? null, original_seen: body.original_seen === 'true', photocopy_seen: body.photocopy_seen === 'true' }) : requested[index].purpose ?? body.purpose ?? null,
           copies: item.copies,
           amount: item.amount,
+          pricing_snapshot: item.pricing_schedule, fee_breakdown: item.fee_breakdown,
           document_sequence_number: sequenceNumberStr,
+          is_same_day: isWalkIn && documentPolicy.sameDayWalkIn(item.document_type) && body.original_seen === 'true' && body.photocopy_seen === 'true',
         },
         connection
       );
@@ -692,18 +719,19 @@ async function submitPayment(user, documentId, { gcash_reference_no, payment_met
  * a walk-in already has one from the counter and the clerk just confirms it,
  * but a digital payment had none recorded anywhere until now.
  */
-async function verifyPayment(user, documentId, { action, notes, or_number, or_date }, file) {
+async function verifyPayment(user, documentId, { action, notes, or_number, or_date, defer_or }, file) {
   if (user.role !== 'clerk' || user.desk_assignment !== 'Finance') {
     throw forbidden('Only Finance Clerks can verify payments.');
   }
   if (!['approve', 'reject'].includes(action)) {
     throw badRequest('Invalid action. Must be approve or reject.');
   }
-  if (action === 'approve' && !or_number) {
-    throw badRequest('Enter the Official Receipt number.');
-  }
-
-  const officialReceiptPath = file ? `/uploads/${file.filename}` : null;
+  const deferred = defer_or === true || defer_or === 'true';
+  const { receiptWindow, validReceiptDate } = require('../utils/receiptTiming');
+  const clearedAt = new Date();
+  const timing = receiptWindow(clearedAt);
+  if (deferred && (file || or_number || or_date)) throw badRequest('Clear the OR details when choosing Later.');
+  const officialReceiptPath = action === 'approve' && file ? `/uploads/${file.filename}` : null;
   const connection = await pool.getConnection();
   let doc;
   let clearedCount = 0;
@@ -717,6 +745,12 @@ async function verifyPayment(user, documentId, { action, notes, or_number, or_da
     }
 
     doc = docs[0];
+    if (action === 'approve') {
+      if (!deferred && !or_number && !doc.or_number) throw badRequest('Enter the Official Receipt number or choose Later.');
+      if (!doc.or_number && !deferred && timing.afterCutoff) throw badRequest('The 4:00 PM Manila cut-off has passed. Choose Later for OR issuance.');
+      if (or_date && (!validReceiptDate(or_date) || or_date !== timing.today) && !doc.or_number) throw badRequest('A new OR must use today’s Manila issue date.');
+      if (doc.or_number && or_number && doc.or_number !== String(or_number).trim()) throw badRequest('The recorded OR number cannot be changed during payment clearance.');
+    }
     const newStatus = action === 'approve' ? STATUS.PAID_PENDING_SEC_RELEASE : STATUS.PENDING_STUDENT_PAYMENT;
     const paymentStatus = action === 'approve' ? 'PAID' : 'UNPAID';
     assertTransition(doc.current_status, newStatus);
@@ -725,17 +759,21 @@ async function verifyPayment(user, documentId, { action, notes, or_number, or_da
     // document in the group. Each row then routes independently from here.
     const groupId = doc.request_group_id || doc.tracking_number;
     const groupDocs = await documentModel.findByRequestGroupForUpdate(groupId, connection);
+    if (groupDocs.some(row => row.current_status !== STATUS.PENDING_FINANCE_VERIFICATION || row.payment_status === 'PAID')) throw badRequest('All documents in the request must be awaiting payment verification.');
 
     const [result] = await documentModel.updatePaymentVerificationForGroup(
       groupId, newStatus, paymentStatus,
       {
         officialReceiptPath,
-        orNumber: action === 'approve' ? or_number : null,
-        orDate: action === 'approve' ? (or_date || null) : null,
+        orNumber: action === 'approve' && !deferred ? (or_number?.trim() || doc.or_number || null) : null,
+        orDate: action === 'approve' && !deferred ? (or_date || (doc.or_number ? null : timing.today)) : null,
+        clearedAt: action === 'approve' ? clearedAt : null,
+        earliestDate: action === 'approve' && !doc.or_number ? timing.earliestDate : null,
       },
       connection
     );
     clearedCount = result.affectedRows;
+    if (!clearedCount) throw badRequest('This payment has already been processed.');
 
     for (const groupDoc of groupDocs) {
       if (groupDoc.current_status !== STATUS.PENDING_FINANCE_VERIFICATION) continue;
@@ -760,34 +798,24 @@ async function verifyPayment(user, documentId, { action, notes, or_number, or_da
     connection.release();
   }
 
-  // Notify the student of the outcome, and the Secretary when it clears.
-  if (doc.student_id) {
-    const students = await userModel.findStudentContactByStudentId(doc.student_id);
-    if (students.length > 0) {
-      await notifications.notifyInApp({
-        userId: students[0].id,
-        title: action === 'approve' ? 'Payment Verified' : 'Payment Rejected',
-        message: action === 'approve'
-          ? officialReceiptPath
-          ? (new Date().getHours() >= 16 
-             ? `Your payment for ${doc.document_type} has been verified. Your digital Official Receipt will be generated and uploaded by tomorrow.`
-             : `Your payment for ${doc.document_type} has been verified. Your digital Official Receipt is now available in your dashboard.`)
-          : `Your payment for ${doc.document_type} has been verified. Your document is being prepared for release at Window 1.`
-          : `Your payment for ${doc.document_type} was rejected. Reason: ${notes || 'Invalid receipt or reference number.'}`,
-        type: action === 'approve' ? 'success' : 'error',
-      });
-    }
-  }
-
+  // Notification failures cannot turn a committed payment into a failed save.
+  await notifyStudent(doc.student_id, {
+    title: action === 'approve' ? 'Payment acknowledged' : 'Payment Rejected',
+    message: action === 'approve'
+      ? `Your payment for ${doc.document_type} has cleared. This is a payment acknowledgment, not an Official Receipt. ${deferred && !doc.or_number ? 'OR issuance is pending; Finance will notify you when it is issued.' : officialReceiptPath ? 'Your digital OR copy is available in your dashboard.' : 'Your recorded physical OR will accompany the document; its digital copy is pending.'}`
+      : `Your payment was rejected. Reason: ${notes || 'Invalid receipt or reference number.'}`,
+    type: action === 'approve' ? 'success' : 'error', alsoSmsAndEmail: true,
+  });
   if (action === 'approve') {
-    const studentInfo = await userModel.findStudentCourseByStudentId(doc.student_id);
-    const studentCollege = studentInfo.length > 0 ? studentInfo[0].course : null;
-    const secretaryClerks = await userModel.findSecretaryClerks(studentCollege);
-    await notifications.notifyInAppBulk(secretaryClerks, {
-      title: 'Payment Verified — Check the Receipt',
-      message: `Payment cleared for ${doc.document_type} (${doc.tracking_number}). Verify the Official Receipt, then hand the printed document to Window 1.`,
-      type: 'success',
-    });
+    try {
+      const rows = await userModel.findStudentCourseByStudentId(doc.student_id);
+      const clerks = await userModel.findSecretaryClerks(rows[0]?.course || null);
+      await notifications.notifyInAppBulk(clerks, {
+        title: deferred && !doc.or_number ? 'Payment cleared — OR pending' : 'Payment cleared — check the OR',
+        message: deferred && !doc.or_number ? `Payment cleared for ${doc.tracking_number}. Wait for Finance to issue the OR before verification and handoff.` : `Payment cleared for ${doc.tracking_number}. Inspect the issued OR, then hand both the OR and printed document to Window 1.`,
+        type: 'success',
+      });
+    } catch { console.warn('Payment cleared; Secretary notification could not be delivered.'); }
   }
 
   return {
@@ -1079,13 +1107,11 @@ async function acceptForProcessing(user, documentId, body) {
  * The Secretary sets the amount; only Finance can later call it PAID. Keeping
  * those two authorities apart is what makes the money trail auditable.
  */
-async function priceDocument(user, documentId, { amount, page_count, pricing_notes }) {
+async function priceDocument(user, documentId, { page_count, pricing_notes, confirm_current_rates }) {
   requireDesk(user, 'Secretary', 'Only College Secretaries can price documents.');
 
-  const priced = parseFloat(amount);
-  if (!Number.isFinite(priced) || priced <= 0) {
-    throw badRequest('Enter the amount to charge for this document.');
-  }
+  if (pricing_notes !== undefined && (typeof pricing_notes !== 'string' || pricing_notes.length > 1000)) throw badRequest('Pricing note must be at most 1000 characters.');
+  let priced, snapshot, breakdown, pageCount, basis;
 
   const connection = await pool.getConnection();
   let doc;
@@ -1107,6 +1133,25 @@ async function priceDocument(user, documentId, { amount, page_count, pricing_not
       throw badRequest('Only a document being processed can be priced.');
     }
 
+    if (doc.priced_at) throw badRequest('This document already has a confirmed price.');
+    try {
+      snapshot = typeof doc.pricing_snapshot === 'string' ? JSON.parse(doc.pricing_snapshot) : doc.pricing_snapshot;
+      if (!snapshot) {
+        if (confirm_current_rates !== true) throw badRequest('Review and confirm current rates for this older request.');
+        const types = await pricingModel.attachSchedules(await referenceModel.findDocumentTypesByNames([doc.document_type], connection, true), connection);
+        if (!types[0]) throw badRequest('Configure a fee schedule for this document before pricing.');
+        const student = await documentPolicy.resolveStudent(doc.student_id, connection);
+        snapshot = resolveSchedule(types[0], student?.college_id);
+      }
+      snapshot = normalizedSchedule(snapshot);
+      if (snapshot.document_type !== doc.document_type) throw badRequest('The saved fee schedule does not match this document.');
+      pageCount = page_count == null || page_count === '' ? null : positiveQuantity(page_count, 'Pages per copy');
+      breakdown = calculateBreakdown(snapshot, { copies: doc.copies ?? 1, page_count: pageCount }, true);
+      priced = breakdown.total;
+      if (priced <= 0) throw badRequest('Configure a positive charge before billing this document.');
+      basis = `${doc.pricing_snapshot ? 'Saved request rates' : 'Current rates reviewed for legacy request'}: ${breakdown.items.map(item => `${item.label}: ${item.calculation} = ₱${item.amount.toFixed(2)}`).join('; ')}.${pricing_notes ? ` ${pricing_notes.trim()}` : ''}`;
+    } catch (err) { if (err.status) throw err; throw badRequest(err.message); }
+
     groupId = doc.request_group_id || doc.tracking_number;
     // Lock the siblings too: two secretaries pricing the last two documents of
     // one request at the same moment must not both decide they were the last.
@@ -1114,7 +1159,7 @@ async function priceDocument(user, documentId, { amount, page_count, pricing_not
 
     await documentModel.updatePricing(
       documentId,
-      { amount: priced, pageCount: page_count, pricingNotes: pricing_notes, clerkId: user.id },
+      { amount: priced, pageCount, pricingNotes: basis, clerkId: user.id, pricingSnapshot: snapshot, feeBreakdown: breakdown },
       connection
     );
 
@@ -1125,11 +1170,13 @@ async function priceDocument(user, documentId, { amount, page_count, pricing_not
         action_taken: 'priced',
         from_status: STATUS.SEC_PROCESSING,
         to_status: STATUS.SEC_PROCESSING,
-        notes: `Priced at ₱${priced.toFixed(2)}${page_count ? ` for ${page_count} page(s)` : ''} by ${user.full_name}.${pricing_notes ? ` ${pricing_notes}` : ''}`,
+        notes: `Priced at ₱${priced.toFixed(2)} by ${user.full_name}. ${basis}`,
       },
       connection
     );
 
+    Object.assign(doc, { amount: priced, page_count: pageCount, pricing_snapshot: snapshot, pricing_schedule: snapshot, fee_breakdown: breakdown });
+    groupDocs = groupDocs.map(row => Number(row.id) === Number(documentId) ? { ...row, ...doc } : row);
     const unpriced = await documentModel.countUnpricedInGroup(groupId, connection);
     if (unpriced === 0) {
       assertTransition(STATUS.SEC_PROCESSING, STATUS.PENDING_STUDENT_PAYMENT);
@@ -1163,7 +1210,7 @@ async function priceDocument(user, documentId, { amount, page_count, pricing_not
   if (!becamePayable) {
     return {
       message: 'Document priced. The request is billed once every document in it has a price.',
-      billed: false,
+      billed: false, document: doc,
       remaining_unpriced: await documentModel.countUnpricedInGroup(groupId),
     };
   }
@@ -1189,7 +1236,7 @@ async function priceDocument(user, documentId, { amount, page_count, pricing_not
 
   return {
     message: `Request billed at ₱${groupTotal.toFixed(2)}. The student and Finance have been notified.`,
-    billed: true,
+    billed: true, document: doc,
     total_amount: groupTotal,
     documents_covered: groupDocs.length,
   };
@@ -1210,7 +1257,7 @@ async function priceDocument(user, documentId, { amount, page_count, pricing_not
  * problem, fixed by Finance re-approving with the correct number — not a
  * pipeline transition.
  */
-async function verifyOfficialReceipt(user, documentId, { notes } = {}) {
+async function verifyOfficialReceipt(user, documentId, { notes, physical_receipt_checked } = {}) {
   requireDesk(user, 'Secretary', 'Only College Secretaries can verify the Official Receipt.');
 
   const connection = await pool.getConnection();
@@ -1226,6 +1273,8 @@ async function verifyOfficialReceipt(user, documentId, { notes } = {}) {
     doc = docs[0];
 
     assertTransition(doc.current_status, STATUS.SEC_OR_VERIFIED);
+    if (doc.payment_status !== 'PAID' || !doc.or_number?.trim()) throw badRequest('Wait for Finance to clear payment and issue the OR.');
+    if (!doc.official_receipt_path && physical_receipt_checked !== true) throw badRequest('Inspect the physical Official Receipt and confirm that inspection.');
     await documentModel.updateOrVerification(documentId, user.id, connection);
 
     await stepLogModel.insert(
@@ -1364,60 +1413,40 @@ async function scanReceipt(user, file) {
  * This only *records* the payment. Verification is still a separate act, so a
  * walk-in and a digital payment are held to the same standard.
  */
-async function logWalkInPayment(user, documentId, { or_number, or_date, notes }, file) {
+async function logWalkInPayment(user, documentId, { or_number, or_date, notes, defer_or }, file) {
   requireDesk(user, 'Finance', 'Only Finance Clerks can log counter payments.');
-  if (!or_number) {
-    throw badRequest('Enter the Official Receipt number.');
-  }
-
-  const docs = await documentModel.findById(documentId);
-  if (docs.length === 0) {
-    throw notFound('Document request not found.');
-  }
-  const doc = docs[0];
-
-  if (doc.current_status !== STATUS.PENDING_STUDENT_PAYMENT) {
-    throw badRequest('This request is not awaiting payment.');
-  }
-
-  // One receipt settles the whole request, exactly as a digital payment does.
-  const groupId = doc.request_group_id || doc.tracking_number;
-  const [result] = await documentModel.updateWalkInPaymentForGroup(
-    groupId,
-    {
-      orNumber: or_number,
-      orDate: or_date,
-      clerkId: user.id,
-      receiptPath: file ? `/uploads/${file.filename}` : null,
-    }
-  );
-
-  if (result.affectedRows === 0) {
-    throw notFound('Document request not found.');
-  }
-
-  const groupDocs = await documentModel.findByRequestGroup(groupId);
-  for (const groupDoc of groupDocs) {
-    await stepLogModel.insert({
-      document_id: groupDoc.id,
-      clerk_id: user.id,
-      action_taken: 'walk_in_payment_logged',
-      from_status: STATUS.PENDING_STUDENT_PAYMENT,
-      to_status: STATUS.PENDING_FINANCE_VERIFICATION,
-      notes: notes || `Counter payment logged by ${user.full_name}. OR ${or_number}.`,
-    });
-  }
-
-  await notifyStudent(doc.student_id, {
-    title: 'Payment Recorded',
-    message: `Your counter payment for ${doc.document_type} (OR ${or_number}) has been recorded and is being verified.`,
-    type: 'info',
-  });
-
-  return {
-    message: 'Counter payment logged. Verify it to release the document.',
-    documents_covered: result.affectedRows,
-  };
+  const deferred = defer_or === true || defer_or === 'true';
+  const { receiptWindow, validReceiptDate } = require('../utils/receiptTiming');
+  const timing = receiptWindow();
+  if (!deferred && !or_number?.trim()) throw badRequest('Enter the Official Receipt number or choose Later.');
+  if (deferred && (or_number || or_date || file)) throw badRequest('Clear the OR details when choosing Later.');
+  if (!deferred && timing.afterCutoff) throw badRequest('The 4:00 PM Manila cut-off has passed. Choose Later for OR issuance.');
+  if (!deferred && or_date && (!validReceiptDate(or_date) || or_date !== timing.today)) throw badRequest('A new counter OR must use today’s Manila issue date.');
+  const connection = await pool.getConnection();
+  let doc, covered;
+  try {
+    await connection.beginTransaction();
+    [doc] = await documentModel.findByIdForUpdate(documentId, connection);
+    if (!doc) throw notFound('Document request not found.');
+    if (doc.current_status !== STATUS.PENDING_STUDENT_PAYMENT) throw badRequest('This request is not awaiting payment.');
+    const groupId = doc.request_group_id || doc.tracking_number;
+    const group = await documentModel.findByRequestGroupForUpdate(groupId, connection);
+    if (group.some(row => row.current_status !== STATUS.PENDING_STUDENT_PAYMENT || row.payment_status === 'PAID')) throw badRequest('All documents in the request must be awaiting payment.');
+    const [result] = await documentModel.updateWalkInPaymentForGroup(groupId, {
+      orNumber: deferred ? null : or_number.trim(), orDate: deferred ? null : (or_date || timing.today),
+      clerkId: user.id, receiptPath: file ? `/uploads/${file.filename}` : null,
+    }, connection);
+    covered = result.affectedRows;
+    if (!covered) throw badRequest('This counter payment has already been recorded.');
+    for (const item of group) await stepLogModel.insert({ document_id: item.id, clerk_id: user.id,
+      action_taken: 'walk_in_payment_logged', from_status: STATUS.PENDING_STUDENT_PAYMENT,
+      to_status: STATUS.PENDING_FINANCE_VERIFICATION, notes: notes || (deferred ? 'Counter payment recorded; OR issuance later.' : `Counter payment recorded against OR ${or_number}.`),
+    }, connection);
+    await connection.commit();
+  } catch (error) { await connection.rollback(); throw error; }
+  finally { connection.release(); }
+  await notifyStudent(doc.student_id, { title: 'Payment Recorded', message: `Your counter payment for ${doc.document_type} has been recorded and is being verified. ${deferred ? 'OR issuance is pending.' : `OR ${or_number} recorded.`}`, type: 'info' });
+  return { message: 'Counter payment logged. Verify it to clear the payment.', documents_covered: covered };
 }
 
 /**
@@ -1535,113 +1564,146 @@ async function cancelDocument(user, documentId) {
 }
 
 
-/** FIN-03: Deferred OR Upload */
-async function uploadDeferredOR(user, documentId, file) {
+/** Later issuance and immutable digital-copy publication for a cleared payment. */
+async function uploadDeferredOR(user, documentId, file, { or_number, or_date } = {}) {
   requireDesk(user, 'Finance', 'Only Finance can upload deferred ORs.');
-  if (!file) throw badRequest('No receipt file provided.');
-  
-  const officialReceiptPath = `/uploads/${file.filename}`;
-  
-  // Find document
-  const [doc] = await documentModel.findById(documentId);
-  if (!doc) throw notFound('Document not found.');
-  
-  // Only update if it doesn't already have one, or if we allow overwriting.
-  await pool.query(
-    'UPDATE documents SET official_receipt_path = ?, or_uploaded_at = CURRENT_TIMESTAMP WHERE request_group_id = ?',
-    [officialReceiptPath, doc.request_group_id || doc.tracking_number]
-  );
-  
-  // Notify student (FIN-02)
-  const notifications = require('./notification.service');
-  const students = await userModel.findStudentContactByStudentId(doc.student_id);
-  if (students.length > 0) {
-    await notifications.notifyInApp({
-      userId: students[0].id,
-      title: 'Official Receipt Uploaded',
-      message: `Your Official Receipt for request #${doc.tracking_number || doc.id} has been uploaded and is available to view in your dashboard.`,
-      type: 'success',
-    });
+  if (!file) throw badRequest('Attach the actual Official Receipt copy.');
+  const { receiptWindow, validReceiptDate } = require('../utils/receiptTiming');
+  const timing = receiptWindow();
+  const connection = await pool.getConnection();
+  let doc;
+  const path = `/uploads/${file.filename}`;
+  try {
+    await connection.beginTransaction();
+    [doc] = await documentModel.findByIdForUpdate(documentId, connection);
+    if (!doc) throw notFound('Document not found.');
+    const groupId = doc.request_group_id || doc.tracking_number;
+    const group = await documentModel.findByRequestGroupForUpdate(groupId, connection);
+    if (doc.payment_status !== 'PAID' || group.some(row => row.payment_status !== 'PAID')) throw badRequest('Finance must clear this payment before issuing its OR.');
+    if (doc.official_receipt_path || group.some(row => row.official_receipt_path)) throw badRequest('An OR copy is already published. It cannot be replaced here.');
+    let number = doc.or_number, date = doc.or_date;
+    if (number && or_number && number !== String(or_number).trim()) throw badRequest('Keep the recorded OR number.');
+    if (!number) {
+      number = typeof or_number === 'string' ? or_number.trim() : '';
+      date = or_date;
+      if (!number || number.length > 100 || !validReceiptDate(date)) throw badRequest('Enter the actual OR number and issue date.');
+      const earliest = doc.or_earliest_issue_date ? (doc.or_earliest_issue_date instanceof Date ? receiptWindow(doc.or_earliest_issue_date).today : String(doc.or_earliest_issue_date).slice(0, 10)) : null;
+      if (date > timing.today || (earliest && date < earliest)) throw badRequest('OR date must be on or after its earliest eligible issue date and cannot be in the future.');
+    }
+    if (group.some(row => row.or_number && row.or_number !== number)) throw badRequest('The request has inconsistent OR records. Ask Admin to investigate.');
+    const [published] = await documentModel.publishOfficialReceipt(groupId, { path, number, date }, connection);
+    if (published.affectedRows !== (group.length || 1)) throw badRequest('The OR record changed. Refresh before retrying.');
+    await stepLogModel.insert({ document_id: doc.id, clerk_id: user.id, action_taken: 'official_receipt_published', from_status: doc.current_status, to_status: doc.current_status, notes: `OR ${number} issued; digital copy published.` }, connection);
+    await connection.commit();
+  } catch (error) { await connection.rollback(); throw error; }
+  finally { connection.release(); }
+  await notifyStudent(doc.student_id, { title: 'Official Receipt available', message: `Your digital OR copy for ${doc.tracking_number} is available in your dashboard. The issued OR will accompany your document at release.`, type: 'success', alsoSmsAndEmail: true });
+  try {
+    const rows = await userModel.findStudentCourseByStudentId(doc.student_id);
+    await notifications.notifyInAppBulk(await userModel.findSecretaryClerks(rows[0]?.course || null), { title: 'Official Receipt issued', message: `OR for ${doc.tracking_number} is ready for inspection and release with the document.`, type: 'info' });
+  } catch { console.warn('OR published; Secretary notification could not be delivered.'); }
+  return { success: true, official_receipt_path: path };
+}
+
+function messageDesk(user) {
+  if (user.role === 'student') return 'student';
+  if (user.role === 'admin') return 'admin';
+  if (user.role === 'clerk' && ['Window 1', 'Receiving Desk', 'Finance', 'Secretary'].includes(user.desk_assignment)) return user.desk_assignment;
+  throw forbidden('This account cannot access request messages.');
+}
+
+async function messageScope(user, executor = pool) {
+  const desk = messageDesk(user);
+  if (desk === 'student') return { conditions: ['student.id = ?'], params: [user.id], side: 'student' };
+  if (desk === 'Secretary') {
+    const [account] = await userModel.findCourseById(user.id, executor);
+    if (account?.college_id) return { conditions: ['(student.college_id = ? OR (student.college_id IS NULL AND student.course = ?))'], params: [account.college_id, account.course], side: 'staff' };
+    if (account?.course) return { conditions: ['student.course = ?'], params: [account.course], side: 'staff' };
+    throw forbidden('A college assignment is required to access student messages.');
   }
-  
-  return { success: true, official_receipt_path: officialReceiptPath };
+  return { conditions: [], params: [], side: 'staff' };
+}
+
+async function authorizeMessage(user, doc, executor = pool) {
+  const desk = messageDesk(user);
+  if (desk === 'student') {
+    const [owner] = await userModel.findStudentIdById(user.id, executor);
+    if (!owner || doc.student_id !== owner.student_id) throw forbidden('You can only message about your own requests.');
+  } else if (desk === 'Secretary') {
+    const [account] = await userModel.findCourseById(user.id, executor);
+    const [student] = await userModel.findStudentCourseByStudentId(doc.student_id, executor);
+    const matches = account?.college_id
+      ? Number(account.college_id) === Number(student?.college_id) || (!student?.college_id && account.course && account.course === student?.course)
+      : account?.course && account.course === student?.course;
+    if (!matches) throw forbidden('You can only access messages for your college.');
+  }
+  return desk;
+}
+
+async function messageThreads(user, query = {}) {
+  const page = Math.max(1, Math.min(100000, Number.parseInt(query.page, 10) || 1));
+  const limit = Math.max(1, Math.min(50, Number.parseInt(query.limit, 10) || 20));
+  const scope = await messageScope(user);
+  const [threads, total] = await Promise.all([
+    documentMessageModel.threadList(scope.conditions, scope.params, page, limit, scope.side),
+    documentMessageModel.countThreads(scope.conditions, scope.params),
+  ]);
+  return { threads, total, page, limit };
 }
 
 async function getMessages(user, documentId) {
-  const docs = await documentModel.findById(documentId);
-  if (docs.length === 0) throw notFound('Document not found.');
-  const doc = docs[0];
-
-  if (user.role === 'student') {
-    const owner = await userModel.findStudentIdById(user.id);
-    if (!owner[0] || doc.student_id !== owner[0].student_id) {
-      throw forbidden('You can only view your own messages.');
-    }
+  const [doc] = await documentModel.findById(documentId);
+  if (!doc) throw notFound('Document not found.');
+  const desk = await authorizeMessage(user, doc);
+  if (desk === 'student' || ['Window 1', 'Receiving Desk'].includes(desk)) {
+    await documentMessageModel.markAsRead(documentId, desk === 'student' ? 'student' : 'staff');
   }
-
-  await documentMessageModel.markAsRead(documentId, user.id);
-  return await documentMessageModel.findByDocumentId(documentId);
+  return documentMessageModel.findByDocumentId(documentId);
 }
 
-async function sendMessage(user, documentId, { message }) {
-  if (!message || message.trim() === '') {
-    throw badRequest('Message cannot be empty.');
+async function sendMessage(user, documentId, body = {}) {
+  messageDesk(user);
+  if (typeof body.message !== 'string' || !body.message.trim() || body.message.trim().length > 2000) {
+    throw badRequest('Enter a message of 1 to 2000 characters.');
   }
-
+  const message = body.message.trim();
   const connection = await pool.getConnection();
   let doc;
   let inserted;
-
   try {
     await connection.beginTransaction();
-
-    const docs = await documentModel.findByIdForUpdate(documentId, connection);
-    if (docs.length === 0) throw notFound('Document not found.');
-    doc = docs[0];
-
-    if (user.role === 'student') {
-      const owner = await userModel.findStudentIdById(user.id, connection);
-      if (!owner[0] || doc.student_id !== owner[0].student_id) {
-        throw forbidden('You can only message about your own requests.');
-      }
-    }
-
+    [doc] = await documentModel.findByIdForUpdate(documentId, connection);
+    if (!doc) throw notFound('Document not found.');
+    await authorizeMessage(user, doc, connection);
     const [res] = await documentMessageModel.insert(documentId, user.id, message, connection);
     inserted = res.insertId;
-
-    // We do NOT add a stepLog here because chat messages are separate from the audit trail of status changes.
-
     await connection.commit();
   } catch (err) {
     await connection.rollback();
     throw err;
-  } finally {
-    connection.release();
-  }
+  } finally { connection.release(); }
 
-  // Trigger Notification
-  if (user.role === 'student') {
-    // Notify the assigned clerk if any, else notify the relevant desk based on status
-    if (doc.assigned_clerk_id) {
-      await notifyInApp(doc.assigned_clerk_id, {
-        title: 'New Message',
-        message: `Student ${doc.student_name} sent a message regarding ${doc.document_type}.`,
-        link_url: `/dashboard`
-      });
-    }
-  } else {
-    // Staff to student
-    await notifyStudent(doc.student_id, {
-      title: 'New Message from Registrar',
-      message: `${user.full_name} sent a message regarding your ${doc.document_type}.`,
-      link_url: `/dashboard`
+  // A committed message is accepted even if notification delivery is unavailable.
+  try {
+    const recipients = user.role === 'student'
+      ? await documentMessageModel.window1Recipients()
+      : await userModel.findStudentContactByStudentId(doc.student_id);
+    await notifications.notifyInAppBulk(recipients, {
+      title: user.role === 'student' ? 'New student message' : 'New message from the registrar',
+      message: `A new message is available for ${doc.tracking_number || doc.id}.`,
+      type: 'info', actionUrl: `/dashboard?tab=messages&document=${doc.id}`,
     });
-  }
-
-  return { message: 'Message sent successfully.' };
+  } catch { console.warn('Message notification unavailable; message saved.'); }
+  return { message: 'Message sent successfully.', sent: {
+    id: inserted, document_id: Number(documentId), sender_id: user.id,
+    sender_name: user.full_name || 'Registrar', sender_role: user.role, message,
+    created_at: new Date().toISOString(), read_at: null,
+  } };
 }
 
 module.exports = {
+  authorizeMessage,
+  messageThreads,
   getMessages,
   sendMessage,
   uploadDeferredOR,

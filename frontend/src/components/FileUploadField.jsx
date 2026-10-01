@@ -3,20 +3,20 @@ import useAuthedFile from '@/hooks/useAuthedFile';
 import { formatFileSize } from '@/utils/formatters';
 
 /** Local drafts upload only through the parent form's confirmed Save/Submit. */
-export default function FileUploadField({ label = 'Attachment', file, path, onChange, accept = 'image/*,application/pdf', maxBytes = 10 * 1024 * 1024, disabled = false, inputRef, id, allowReplace = true }) {
+export default function FileUploadField({ label = 'Attachment', file, path, onChange, accept = 'image/*,application/pdf', maxBytes = 10 * 1024 * 1024, disabled = false, inputRef, id, allowReplace = true, pickerOnly = false }) {
   const generatedId = useId();
   const inputId = id || generatedId;
   const [local, setLocal] = useState({ file: null, url: null });
   const [error, setError] = useState('');
-  const stored = useAuthedFile(file ? null : path);
+  const stored = useAuthedFile(pickerOnly || file ? null : path);
   useEffect(() => {
-    if (!(file instanceof Blob)) return undefined;
+    if (pickerOnly || !(file instanceof Blob)) return undefined;
     const url = URL.createObjectURL(file);
     // Object URLs are external resources with explicit cleanup.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setLocal({ file, url });
     return () => URL.revokeObjectURL(url);
-  }, [file]);
+  }, [file, pickerOnly]);
   const url = file ? local.file === file ? local.url : null : stored.url;
   const filename = file?.name || String(path || '').split(/[\\/]/).pop();
   const pdf = file?.type === 'application/pdf' || /\.pdf$/i.test(filename || '');
@@ -30,6 +30,12 @@ export default function FileUploadField({ label = 'Attachment', file, path, onCh
     if (picked.size > maxBytes) { setError(`File exceeds the ${formatFileSize(maxBytes)} limit.`); return; }
     setError(''); onChange?.(picked);
   };
+  // The avatar camera supplies the visible trigger and preview for this mode.
+  if (pickerOnly) return <>
+    {allowReplace && onChange && <input id={inputId} ref={inputRef} type="file" aria-label={label} hidden accept={accept} disabled={disabled} onChange={select} />}
+    {file && <p role="status" className="mb-3 text-sm break-words">New picture selected. Save Profile to upload it.</p>}
+    {error && <p role="alert" className="mb-3 text-sm text-red-700 dark:text-red-300">{error}</p>}
+  </>;
   return <section className="min-w-0 space-y-2 rounded-xl border border-gray-200 dark:border-gray-700 p-3" aria-label={label}>
     {allowReplace && onChange ? <label htmlFor={inputId} className="block text-xs font-bold">{label}
       <input id={inputId} ref={inputRef} type="file" accept={accept} disabled={disabled} onChange={select} className="block w-full mt-2 text-sm file:mr-2 file:px-3 file:py-2 file:rounded-xl file:border-0 file:bg-green-50 file:text-green-800 disabled:opacity-50" />

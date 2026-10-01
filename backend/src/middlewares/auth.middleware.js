@@ -3,6 +3,7 @@ const { JWT_SECRET } = require('../config/env');
 
 
 const { pool } = require('../config/db');
+const sessions = require('../models/session.model');
 
 /**
  * JWT authentication middleware.
@@ -20,21 +21,29 @@ async function authenticate(req, res, next) {
 
   try {
     const decoded = jwt.verify(token, JWT_SECRET);
+    if (decoded.pending_2fa || !Number.isInteger(decoded.id) || !Number.isInteger(decoded.token_version)
+      || !['student', 'admin', 'clerk'].includes(decoded.role) || !Number.isInteger(decoded.exp)) {
+      return res.status(401).json({ error: 'Complete login verification before accessing TRACE.' });
+    }
     
     // SEC-09: Token Version Check for Global Logout
     if (decoded.token_version !== undefined) {
-      const [rows] = await pool.query('SELECT token_version FROM users WHERE id = ?', [decoded.id]);
-      if (!rows || rows.length === 0 || rows[0].token_version !== decoded.token_version) {
+      const [rows] = await pool.query('SELECT token_version, is_active FROM users WHERE id = ?', [decoded.id]);
+      if (!rows || rows.length === 0 || !rows[0].is_active || rows[0].token_version !== decoded.token_version) {
         return res.status(401).json({ error: 'Session expired. Please log in again.' });
       }
     }
 
+    const sessionHash = sessions.hashToken(token);
+    if (await sessions.revoked(sessionHash)) return res.status(401).json({ error: 'Session ended. Please log in again.' });
     req.user = {
+      session_hash: sessionHash, expires_at: decoded.exp,
       id: decoded.id,
       role: decoded.role,
       full_name: decoded.full_name,
       desk_assignment: decoded.desk_assignment,
       user_type: decoded.user_type,
+      token_version: decoded.token_version,
     };
     next();
   } catch (err) {

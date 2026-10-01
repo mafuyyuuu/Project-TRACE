@@ -26,11 +26,11 @@ describe('navItemsForUser', () => {
     expect(new Set(icons).size).toBe(icons.length);
   });
   it.each([
-    ['student', STUDENT, ['dashboard', 'history', 'help']],
-    ['alumnus', ALUMNI, ['dashboard', 'history', 'graduate-application', 'help']],
-    ['secretary', SECRETARY, ['dashboard', 'completed-logs', 'grad-applications', 'reports', 'help']],
-    ['window 1', WINDOW1, ['dashboard', 'tracking-desk', 'reports', 'help']],
-    ['finance', FINANCE, ['dashboard', 'help']],
+    ['student', STUDENT, ['dashboard', 'history', 'messages', 'help']],
+    ['alumnus', ALUMNI, ['dashboard', 'history', 'messages', 'graduate-application', 'help']],
+    ['secretary', SECRETARY, ['dashboard', 'completed-logs', 'messages', 'grad-applications', 'reports', 'help']],
+    ['window 1', WINDOW1, ['dashboard', 'tracking-desk', 'messages', 'reports', 'help']],
+    ['finance', FINANCE, ['dashboard', 'reports', 'help']],
   ])('gives a %s their own tabs', (_label, user, expected) => {
     expect(navItemsForUser(user).map((i) => i.tab)).toEqual(expected);
   });
@@ -44,6 +44,7 @@ describe('navItemsForUser', () => {
     expect(navItemsForUser(ADMIN).map((i) => i.tab)).toEqual([
       'dashboard',
       'admin-tracker',
+      'messages',
       'admin-logs',
       'admin-security',
       'admin-reports',

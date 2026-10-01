@@ -7,7 +7,7 @@ const USER = { id: 3, role: 'clerk', email: 'staff@example.test' };
 const req = { body: { temp_token: 'challenge', otp: '123456' }, headers: { cookie: 'trace_device=' + 'a'.repeat(64), 'user-agent': 'Test' }, ip: '127.0.0.1' };
 let res;
 beforeEach(() => {
-  res = { cookie: vi.fn(), json: vi.fn(), status: vi.fn().mockReturnThis() };
+  res = { cookie: vi.fn(), clearCookie: vi.fn(), json: vi.fn(), status: vi.fn().mockReturnThis() };
   vi.spyOn(devices, 'recordLogin').mockResolvedValue('b'.repeat(64));
 });
 it('does not recognize a browser during the password-only OTP challenge', async () => {
@@ -19,7 +19,7 @@ it('does not recognize a browser during the password-only OTP challenge', async 
 it('recognizes a browser only after OTP verification supplies a full authenticated user', async () => {
   vi.spyOn(auth, 'verify2FA').mockResolvedValue({ token: 'authenticated', user: USER });
   await controller.verify2FA(req, res);
-  expect(auth.verify2FA).toHaveBeenCalledWith('challenge', '123456', req.ip, 'Test');
+  expect(auth.verify2FA).toHaveBeenCalledWith('challenge', '123456', req.ip, 'Test', false, undefined);
   expect(devices.recordLogin).toHaveBeenCalledWith(USER, req.headers.cookie, req.ip, 'Test');
   expect(res.cookie).toHaveBeenCalledWith(devices.COOKIE_NAME, 'b'.repeat(64), devices.COOKIE_OPTIONS);
 });

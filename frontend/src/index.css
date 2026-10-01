@@ -129,6 +129,48 @@ input, textarea, select {
 /* Prevent iOS input zoom without altering viewport meta tag */
 @media screen and (max-width: 767px) {
   input, select, textarea {
-    font-size: 16px !important;
+    font-size: max(16px, 1rem) !important;
   }
+}
+
+
+/* Legacy small-text utilities follow the browser's root text-size preference.
+   Rem-based text scales while layout spacing stays stable; keep paper output stable. */
+@media screen {
+  :root[data-trace-text-size] [class~="text-[9px]"] { font-size: 0.5625rem; }
+  :root[data-trace-text-size] [class~="text-[10px]"] { font-size: 0.625rem; }
+  :root[data-trace-text-size] [class~="text-[11px]"] { font-size: 0.6875rem; }
+}
+@media print {
+  html { font-size: 100% !important; }
+}
+
+/* Text enlargement is independent of icon sizes, card padding and sidebar widths.
+   This is Tailwind's shared spacing token; type remains rem-based. */
+@media screen {
+  :root[data-trace-text-size] { --spacing: 4px; }
+  .trace-content { container: trace-content / inline-size; }
+  [data-modal-layer] { container: trace-dialog / inline-size; }
+  :root[data-trace-text-size]:not([data-trace-text-size="100"]) :is(.trace-content, [data-modal-layer]) {
+    overflow-wrap: anywhere;
+  }
+  :root[data-trace-text-size]:not([data-trace-text-size="100"]) :is(.trace-content, [data-modal-layer]) table {
+    overflow-wrap: normal;
+  }
+  :root[data-trace-text-size]:not([data-trace-text-size="100"]) :is(.trace-content, [data-modal-layer]) th {
+    white-space: nowrap;
+  }
+}
+/* Breakpoints based on the available reading width, including enlarged text.
+   Tables retain their own horizontal scroller; only responsive card/form grids
+   reflow. Reset spans so a formerly multi-column field cannot create a new track. */
+@container trace-content (max-width: 48rem) {
+  :root[data-trace-text-size]:not([data-trace-text-size="100"]) .trace-content .grid:is([class*="sm:grid-cols-"], [class*="md:grid-cols-"], [class*="lg:grid-cols-"], [class*="xl:grid-cols-"]) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  :root[data-trace-text-size]:not([data-trace-text-size="100"]) .trace-content .grid > [class*="col-span-"] { grid-column: auto; }
+}
+@container trace-dialog (max-width: 36rem) {
+  :root[data-trace-text-size]:not([data-trace-text-size="100"]) [data-modal-layer] .grid:is([class*="sm:grid-cols-"], [class*="md:grid-cols-"], [class*="lg:grid-cols-"]) { grid-template-columns: minmax(0, 1fr); }
+  :root[data-trace-text-size]:not([data-trace-text-size="100"]) [data-modal-layer] .grid > [class*="col-span-"] { grid-column: auto; }
 }

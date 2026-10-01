@@ -25,7 +25,8 @@ export default function OnboardingTutorial({ onComplete }) {
   const [currentStep, setCurrentStep] = useState(0);
   const [targetRect, setTargetRect] = useState(null);
 
-  const updateRect = () => {
+  useEffect(() => {
+    const updateRect = () => {
     const el = document.getElementById(TUTORIAL_STEPS[currentStep]?.target);
     if (el) {
       const rect = el.getBoundingClientRect();
@@ -40,7 +41,6 @@ export default function OnboardingTutorial({ onComplete }) {
     }
   };
 
-  useEffect(() => {
     // Wait for DOM to settle
     const timer = setTimeout(updateRect, 300);
     window.addEventListener('resize', updateRect);

@@ -1,11 +1,16 @@
 import { INPUT_LIMITS } from '@/utils/inputLimits';
 import FileUploadField from '@/components/FileUploadField';
 import ConfirmDialog from '@/components/ConfirmDialog';
-import { useRef, useState, useMemo, useEffect } from 'react';
+import { useRef, useState, useMemo } from 'react';
 import ModalShell from '@/components/ModalShell';
 import DashboardAlerts from '@/components/DashboardAlerts';
-import api from '@/services/api';
+import { endOtherSessions } from '@/services/authService';
+import { disconnectRealtime } from '@/services/realtimeService';
 import UserAvatar from '@/components/UserAvatar';
+import { TEXT_SIZES } from '@/utils/textSize';
+import { getProfileCompletion } from '@/utils/profileCompletion';
+import AuthenticatorSettings from '@/components/AuthenticatorSettings';
+import useSecurityLogs from '@/hooks/useSecurityLogs';
 
 export default function ProfileSettingsModal({
   user,
@@ -23,6 +28,7 @@ export default function ProfileSettingsModal({
   initialTab = 'personal',
   darkMode = false,
   onToggleTheme,
+  textSize = 100, onTextSizeChange,
   pendingEmail = '', emailOtp = '', onEmailOtpChange, onVerifyEmail,
 }) {
   const fileInputRef = useRef(null);
@@ -30,14 +36,9 @@ export default function ProfileSettingsModal({
   const [activeTab, setActiveTab] = useState(initialTab);
   const [confirmation, setConfirmation] = useState(null);
   const [loggingOut, setLoggingOut] = useState(false);
-  const [securityLogs, setSecurityLogs] = useState([]);
+  const securityLogs = useSecurityLogs(activeTab === 'security', user?.id);
   const [sessionFeedback, setSessionFeedback] = useState({ success: '', error: '' });
   
-  useEffect(() => {
-    if (activeTab === 'security') {
-      api.get('/auth/security-logs').then(res => setSecurityLogs(res.data)).catch(console.error);
-    }
-  }, [activeTab]);
 
   const roleLabel =
     user?.role === 'admin'
@@ -46,44 +47,10 @@ export default function ProfileSettingsModal({
         ? `${user?.desk_assignment || 'Staff'} Clerk`
         : 'Student';
         
-  const isStudent = user?.role === 'student' || user?.user_type === 'alumni' || user?.user_type === 'student';
-
-  // PROF-02, PROF-03: Progress Calculation
-  const { progress, missingPersonal, missingEdu } = useMemo(() => {
-    if (!isStudent) return { progress: 100, missingPersonal: false, missingEdu: false };
-    
-    const requiredPersonal = ['phone_number', 'email', 'birth_date', 'place_of_birth', 'sex', 'civil_status', 'home_address'];
-    if (profileData.sex === 'Female' && profileData.civil_status === 'Married') {
-      requiredPersonal.push('maiden_name');
-    }
-    
-    const requiredEdu = ['elem_school', 'elem_grad_year', 'jhs_school', 'jhs_grad_year', 'shs_school', 'shs_grad_year'];
-    if (user?.user_type === 'alumni') requiredEdu.push('last_attendance_year');
-    if (profileData.is_transfer_student) {
-      requiredEdu.push('previous_school');
-    }
-    
-    let filled = 0;
-    let missingP = false;
-    let missingE = false;
-    
-    requiredPersonal.forEach(f => {
-      if (profileData[f] && String(profileData[f]).trim() !== '') filled++;
-      else missingP = true;
-    });
-    
-    requiredEdu.forEach(f => {
-      if (profileData[f] && String(profileData[f]).trim() !== '') filled++;
-      else missingE = true;
-    });
-    
-    const total = requiredPersonal.length + requiredEdu.length;
-    return {
-      progress: Math.round((filled / total) * 100),
-      missingPersonal: missingP,
-      missingEdu: missingE
-    };
-  }, [profileData, isStudent]);
+  const isStudent = user?.role === 'student';
+  const { progress, missingPersonal, missingEdu, missing } = useMemo(
+    () => getProfileCompletion({ ...user, ...profileData }), [user, profileData],
+  );
 
   if (activeTab === 'appearance') return (
     <ModalShell open onClose={onClose} title="Preferences" maxWidth="max-w-xl">
@@ -94,6 +61,13 @@ export default function ProfileSettingsModal({
           className="px-4 py-3 rounded-xl border border-gray-300 dark:border-gray-600 focus-visible:ring-2 focus-visible:ring-green-600">
           {darkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
         </button>
+        <label className="block font-semibold">Text size
+          <select value={textSize} onChange={event => onTextSizeChange?.(event.target.value)}
+            className="mt-2 w-full rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 p-3">
+            {TEXT_SIZES.map(size => <option key={size} value={size}>{size}%{size === 100 ? ' (Default)' : ''}</option>)}
+          </select>
+        </label>
+        <p className="text-sm text-gray-600 dark:text-gray-300">Applies across TRACE on this browser, including menus, forms, tables and chat. Saved automatically. Printed documents keep their original formatting.</p>
       </section>
     </ModalShell>
   );
@@ -109,7 +83,11 @@ export default function ProfileSettingsModal({
     }
     setLoggingOut(true);
     try {
-      await api.post('/auth/logout-all');
+      const result = await endOtherSessions();
+      localStorage.setItem('trace_token', result.token);
+      localStorage.setItem('trace_user', JSON.stringify(result.user));
+      disconnectRealtime();
+      window.dispatchEvent(new CustomEvent('trace-user-updated', { detail: result.user }));
       setSessionFeedback({ success: 'Logged out of all other devices.', error: '' });
       setConfirmation(null);
     } catch {
@@ -125,6 +103,7 @@ export default function ProfileSettingsModal({
       onClose={onClose}
       title="Edit Profile"
       maxWidth="max-w-xl"
+      bodyClassName="min-h-0 flex-1 overflow-y-auto overscroll-contain pb-4"
       backdropClassName="absolute inset-0 bg-black/40 backdrop-blur-sm transition-opacity duration-200"
       panelClassName="bg-gray-50 dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-xl max-h-[calc(100dvh-2rem)] z-10 relative animate-slide-up flex flex-col overflow-hidden"
       closeButtonIcon={
@@ -163,8 +142,8 @@ export default function ProfileSettingsModal({
         </label>
         <button type="button" disabled={saving || emailOtp.length !== 6} onClick={() => setConfirmation('email')} className="mt-3 px-4 py-2 rounded-xl bg-[#15803d] text-white disabled:opacity-50">Verify Email</button>
       </section>}
-      <div className="bg-white dark:bg-gray-900 px-6 pt-4 pb-0 flex flex-col border-b border-gray-100 dark:border-gray-700">
-        <div className="flex items-start gap-4 pb-6">
+      <div className="trace-profile-header bg-white dark:bg-gray-900 px-6 pt-4 pb-0 flex flex-col border-b border-gray-100 dark:border-gray-700">
+        <div className="flex flex-wrap items-start gap-4 pb-6">
           <div className="relative shrink-0">
             {avatarPreviewUrl ? (
               <img src={avatarPreviewUrl} alt="New profile picture preview" className="w-20 h-20 rounded-full object-cover border-4 border-white dark:border-gray-800 shadow-md bg-gray-100 dark:bg-gray-800" />
@@ -181,13 +160,13 @@ export default function ProfileSettingsModal({
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
             </button>
           </div>
-          <div className="flex flex-col flex-1 min-w-0 pt-1">
+          <div className="flex flex-col flex-1 basis-48 min-w-0 pt-1">
             <h3 className="text-xl font-display font-black text-gray-900 dark:text-gray-100 leading-tight select-text break-words">{user?.full_name || '—'}</h3>
             <p className="text-xs font-bold text-[#15803d] dark:text-green-300 uppercase tracking-wider mt-0.5">{roleLabel} {user?.student_id && `· ${user.student_id}`}</p>
             
             {isStudent && (
               <div className="mt-3 w-full max-w-xs">
-                <div className="flex justify-between text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest mb-1.5">
+                <div className="flex flex-wrap gap-2 justify-between text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest mb-1.5">
                   <span>Profile Completion</span>
                   <span className={progress === 100 ? "text-[#15803d] dark:text-green-300" : "text-amber-600 dark:text-amber-300"}>{progress}%</span>
                 </div>
@@ -199,7 +178,7 @@ export default function ProfileSettingsModal({
           </div>
         </div>
         
-        <FileUploadField label="Profile picture" inputRef={fileInputRef} file={avatarFile} path={avatarPath} onChange={onAvatarChange} accept="image/jpeg,image/png,image/webp" maxBytes={2 * 1024 * 1024} disabled={saving} />
+        <FileUploadField pickerOnly label="Profile picture" inputRef={fileInputRef} file={avatarFile} onChange={onAvatarChange} accept="image/jpeg,image/png,image/webp" maxBytes={2 * 1024 * 1024} disabled={saving} />
         {user?.role === 'student' && <FileUploadField label={user.user_type === 'alumni' ? 'Registration identity / diploma proof' : 'Registration ID proof'} path={user.id_proof_path} allowReplace={false} />}
         {/* Tabs */}
         {isStudent ? (
@@ -236,10 +215,13 @@ export default function ProfileSettingsModal({
         )}
       </div>
 
-      <div className="p-6 overflow-y-auto max-h-[50vh]">
+      <div className="p-6">
         {success && <div className="mb-6 rounded-xl bg-green-50 dark:bg-green-950/40 border border-green-100 dark:border-green-800 px-4 py-3 text-sm font-semibold text-green-800 dark:text-green-300">{success}</div>}
         {error && <div className="mb-6 rounded-xl bg-red-50 dark:bg-red-950/40 border border-red-100 dark:border-red-800 px-4 py-3 text-sm font-semibold text-red-700 dark:text-red-300">{error}</div>}
 
+        {isStudent && missing.length > 0 && <p role="status" className="px-6 pt-3 text-sm text-amber-800 dark:text-amber-200">
+          Still needed: {missing.map(item => item.label).join(', ')}.
+        </p>}
         <form id="profile-settings-form" onSubmit={(e) => { e.preventDefault(); setConfirmation('profile'); }} className="space-y-6">
           {activeTab === 'personal' && (
             <div className="space-y-6">
@@ -314,6 +296,7 @@ export default function ProfileSettingsModal({
           
           {activeTab === 'security' && (
             <div className="space-y-6">
+              <AuthenticatorSettings user={user} />
               <div className="bg-white dark:bg-gray-900 p-4 border border-gray-200 dark:border-gray-700 rounded-2xl">
                 <h3 className="text-sm font-black text-gray-900 dark:text-gray-100 mb-4 border-b border-gray-100 dark:border-gray-700 pb-2">Change Password</h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

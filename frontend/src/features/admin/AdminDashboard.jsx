@@ -2,6 +2,7 @@ import { forecastCeiling } from '@/utils/forecastScale';
 import { USER_TYPE_LABELS } from '@/utils/userLabels';
 import AdminTemplatesPanel from './components/AdminTemplatesPanel';
 import AdminSecurityPanel from './components/AdminSecurityPanel';
+import RequestMessagesPanel from '@/components/RequestMessagesPanel';
 import { useState } from 'react';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import MiniSparkline from '@/components/MiniSparkline';
@@ -18,7 +19,6 @@ import ForecastModal from '@/features/admin/components/ForecastModal';
 import GradApplicationReviewPanel from '@/features/graduate/components/GradApplicationReviewPanel';
 import UserGrid from '@/features/admin/components/UserGrid';
 import UserDetailModal from '@/features/admin/components/UserDetailModal';
-import ConfirmDialog from '@/components/ConfirmDialog';
 import AccountVerificationModal from './components/AccountVerificationModal';
 
 /**
@@ -65,14 +65,16 @@ export default function AdminDashboard({ user, currentTab, setViewImageUrl, revi
 
   const todayFormatted = todayLongDate();
 
-  if (loading) return <DashboardLoading />;
-
   // These three own their data via their own hooks and replace the default view.
   if (['admin-maintenance', 'admin-users'].includes(currentTab)) return <MaintenancePanel user={user} currentTab={currentTab} />;
   if (currentTab === 'admin-reports') return <ReportsPanel user={user} currentTab={currentTab} />;
   if (currentTab === 'admin-analytics') return <AnalyticsPanel user={user} currentTab={currentTab} />;
   if (currentTab === 'admin-grad-applications') return <GradApplicationReviewPanel user={user} currentTab={currentTab} />;
   if (currentTab === 'admin-security') return <AdminSecurityPanel />;
+  if (currentTab === 'admin-templates') return <AdminTemplatesPanel />;
+  if (currentTab === 'messages') return <RequestMessagesPanel user={user} initialDocumentId={new URLSearchParams(window.location.search).get('document')} />;
+
+  if (loading) return <DashboardLoading />;
 
   return (
     <>
@@ -182,9 +184,9 @@ export default function AdminDashboard({ user, currentTab, setViewImageUrl, revi
                       </div>
                     </div>
                     {/* Dynamic Recharts line graph */}
-                    <div className="flex-1 mt-6 relative h-64 flex flex-col justify-end">
+                    <div className="flex-1 mt-6 relative h-64 overflow-x-auto">
                       {forecastData && forecastData.length > 0 ? (
-                        <ResponsiveContainer width="100%" height="100%">
+                        <div className="h-64 min-w-[20rem]"><ResponsiveContainer width="100%" height="100%">
                           <AreaChart
                             data={forecastData.slice(-5).map(f => {
                               let multiplier = 1;
@@ -204,37 +206,37 @@ export default function AdminDashboard({ user, currentTab, setViewImageUrl, revi
                                 <stop offset="95%" stopColor="#15803d" stopOpacity={0}/>
                               </linearGradient>
                             </defs>
-                            <XAxis 
-                              dataKey="day" 
-                              axisLine={false} 
-                              tickLine={false} 
-                              tick={{ fill: '#9ca3af', fontSize: 10, fontWeight: 'bold' }} 
+                            <XAxis
+                              dataKey="day"
+                              axisLine={false}
+                              tickLine={false}
+                              tick={{ fill: '#9ca3af', fontSize: '0.625rem', fontWeight: 'bold' }}
                               dy={10}
                             />
                             <YAxis domain={[0, forecastCeiling(forecastData)]}
-                              allowDecimals={false} 
-                              axisLine={false} 
-                              tickLine={false} 
-                              tick={{ fill: '#9ca3af', fontSize: 10, fontWeight: 'bold' }} 
+                              allowDecimals={false}
+                              axisLine={false}
+                              tickLine={false}
+                              tick={{ fill: '#9ca3af', fontSize: '0.625rem', fontWeight: 'bold' }}
                               width={30}
 
                             />
-                            <Tooltip 
+                            <Tooltip
                               contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
                               itemStyle={{ color: 'var(--trace-chart-accent)', fontWeight: 'bold' }}
                               labelStyle={{ color: 'var(--trace-chart-text)', fontWeight: 'bold', marginBottom: '4px' }}
                             />
-                            <Area 
-                              type="monotone" 
-                              dataKey="volume" 
+                            <Area
+                              type="monotone"
+                              dataKey="volume"
                               stroke="var(--trace-chart-line)"
                               strokeWidth={2.5}
-                              fillOpacity={1} 
-                              fill="url(#colorVolume)" 
+                              fillOpacity={1}
+                              fill="url(#colorVolume)"
                               activeDot={{ r: 6, fill: '#15803d', stroke: '#fff', strokeWidth: 2 }}
                             />
                           </AreaChart>
-                        </ResponsiveContainer>
+                        </ResponsiveContainer></div>
                       ) : (
                         <div className="flex-1 flex items-center justify-center text-gray-400 dark:text-gray-400 font-medium text-xs">Loading forecast data...</div>
                       )}
@@ -308,7 +310,7 @@ export default function AdminDashboard({ user, currentTab, setViewImageUrl, revi
                                 <td className="py-4 text-sm text-gray-600 dark:text-gray-300">{student.email || '—'}</td>
                                 <td className="py-4">
                                   {student.id_proof_path ? (
-                                    <button 
+                                    <button
                                       onClick={() => setViewImageUrl(student.id_proof_path)}
                                       className="text-xs text-indigo-600 dark:text-indigo-300 font-bold hover:underline flex items-center gap-1"
                                     >
@@ -349,7 +351,7 @@ export default function AdminDashboard({ user, currentTab, setViewImageUrl, revi
                     <h3 className="font-bold text-gray-900 dark:text-gray-100 text-lg">System-Wide Document Tracker</h3>
                     <div className="flex items-center gap-2">
                       <span className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest">Filter:</span>
-                      <select 
+                      <select
                         value={adminDocFilter}
                         onChange={(e) => setAdminDocFilter(e.target.value)}
                         className="px-3 py-1.5 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl text-xs font-bold text-gray-700 dark:text-gray-300 focus:outline-none focus:border-[#15803d]"
@@ -403,7 +405,7 @@ export default function AdminDashboard({ user, currentTab, setViewImageUrl, revi
                                   </td>
                                   <td className="py-4 text-right pr-4">
                                     {doc.file_path ? (
-                                      <button 
+                                      <button
                                         onClick={() => setViewImageUrl(doc.file_path)}
                                         className="p-2 text-[#15803d] dark:text-green-300 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 rounded-xl transition-colors inline-flex items-center gap-1 text-xs font-bold"
                                         title="View Attached File"
@@ -430,14 +432,14 @@ export default function AdminDashboard({ user, currentTab, setViewImageUrl, revi
                         Showing Page {adminDocPage} of {Math.ceil(documents.filter(doc => adminDocFilter === 'All' || doc.document_type === adminDocFilter).length / itemsPerPage)}
                       </span>
                       <div className="flex gap-2">
-                        <button 
+                        <button
                           onClick={() => setAdminDocPage(p => Math.max(1, p - 1))}
                           disabled={adminDocPage === 1}
                           className="px-3 py-1.5 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl text-xs font-bold text-gray-600 dark:text-gray-300 disabled:opacity-50 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
                         >
                           Previous
                         </button>
-                        <button 
+                        <button
                           onClick={() => setAdminDocPage(p => Math.min(Math.ceil(documents.filter(doc => adminDocFilter === 'All' || doc.document_type === adminDocFilter).length / itemsPerPage), p + 1))}
                           disabled={adminDocPage === Math.ceil(documents.filter(doc => adminDocFilter === 'All' || doc.document_type === adminDocFilter).length / itemsPerPage)}
                           className="px-3 py-1.5 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl text-xs font-bold text-gray-600 dark:text-gray-300 disabled:opacity-50 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"

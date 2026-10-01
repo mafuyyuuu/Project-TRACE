@@ -1,3 +1,4 @@
+import { calculateBreakdown } from '@/utils/pricing';
 import { useState, useCallback, useMemo, useEffect } from 'react';
 import { getDocumentTypes } from '@/services/referenceService';
 import useDashboardCore from '@/hooks/useDashboardCore';
@@ -39,25 +40,20 @@ export default function useSecretaryDashboard(user) {
 
 
   // Pricing inputs, filled in once the document is printed and countable.
-  const [priceAmount, setPriceAmount] = useState('');
+  const [priceNotes, setPriceNotes] = useState('');
+  const [confirmCurrentRates, setConfirmCurrentRates] = useState(false);
   const [pricePageCount, setPricePageCount] = useState('');
 
   // The document staged for a handoff confirmation, or null when the dialog is closed.
   const [handoffToConfirm, setHandoffToConfirm] = useState(null);
 
-  // Automatically calculate price based on pages typed (CN-08)
-  useEffect(() => {
-    if (core.activeModal === 'price' && selectedDoc && pricePageCount) {
-      const pages = parseInt(pricePageCount, 10) || 0;
-      const base = parseFloat(selectedDoc.base_fee) || 0;
-      if (pages > 0 && base > 0) {
-        setPriceAmount((pages * base).toFixed(2));
-      } else {
-        setPriceAmount('');
-      }
-    }
-  }, [pricePageCount, selectedDoc, core.activeModal]);
-
+  let priceBreakdown = null;
+  let pricingError = '';
+  if (selectedDoc?.pricing_schedule) {
+    try { priceBreakdown = calculateBreakdown(selectedDoc.pricing_schedule, { copies: selectedDoc.copies ?? 1, page_count: pricePageCount }, true); }
+    catch (err) { pricingError = err.message; }
+  } else pricingError = 'A fee schedule is unavailable. Ask Admin to configure it, then refresh.';
+  const priceAmount = priceBreakdown ? priceBreakdown.total.toFixed(2) : '';
 
   // The document staged for an OR-verification confirmation, or null when closed.
   const [orVerifyToConfirm, setOrVerifyToConfirm] = useState(null);
@@ -159,23 +155,21 @@ export default function useSecretaryDashboard(user) {
 
     const amount = parseFloat(priceAmount);
     if (!Number.isFinite(amount) || amount <= 0) {
-      triggerNotification('Enter the amount to charge.', 'error');
+      triggerNotification(pricingError || 'Configure a positive charge before billing.', 'error');
       return;
     }
+    if (selectedDoc.pricing_requires_review && !confirmCurrentRates) { triggerNotification('Review and confirm current rates for this older request.', 'error'); return; }
     setPricingToConfirm(true);
-  }, [selectedDoc, priceAmount, triggerNotification]);
+  }, [selectedDoc, priceAmount, pricingError, confirmCurrentRates, triggerNotification]);
 
   const confirmPriceDocument = useCallback(async () => {
     if (!selectedDoc) return;
-    const amount = parseFloat(priceAmount);
-
     let billedResult = null;
     const ok = await runAction(
       async () => {
         billedResult = await priceDocument(selectedDoc.id, {
-          amount,
-          page_count: pricePageCount ? parseInt(pricePageCount, 10) : null,
-          
+          page_count: pricePageCount ? Number(pricePageCount) : null,
+          pricing_notes: priceNotes, confirm_current_rates: confirmCurrentRates,
         });
         return billedResult;
       },
@@ -186,14 +180,15 @@ export default function useSecretaryDashboard(user) {
     );
 
     if (ok) {
-      setPriceAmount('');
+      if (billedResult?.document) core.setSelectedDoc(billedResult.document);
+      setPriceNotes(''); setConfirmCurrentRates(false);
       setPricePageCount('');
       setPricingToConfirm(false);
       // When the whole request just became payable, go straight to the slip the
       // student needs to carry to Finance. Otherwise close and pick up the next.
       setActiveModal(billedResult?.billed ? 'payment-stub' : null);
     }
-  }, [selectedDoc, priceAmount, pricePageCount, runAction, setActiveModal]);
+  }, [selectedDoc, pricePageCount, priceNotes, confirmCurrentRates, runAction, setActiveModal, core]);
 
   const cancelPriceDocument = useCallback(() => {
     setPricingToConfirm(false);
@@ -218,7 +213,7 @@ export default function useSecretaryDashboard(user) {
     const notes = physicalReceiptChecked
       ? `Physical Official Receipt ${orVerifyToConfirm.or_number} inspected by ${user.full_name}. Finance may upload its retained copy later.`
       : `Uploaded Official Receipt ${orVerifyToConfirm.or_number} inspected by ${user.full_name}.`;
-    const ok = await runAction(() => verifyOfficialReceipt(orVerifyToConfirm.id, { notes }), {
+    const ok = await runAction(() => verifyOfficialReceipt(orVerifyToConfirm.id, { notes, physical_receipt_checked: physicalReceiptChecked }), {
       successMessage: 'Official Receipt verified. Ready for handoff to Window 1.',
       errorMessage: 'Could not verify the Official Receipt.',
     });
@@ -262,7 +257,8 @@ export default function useSecretaryDashboard(user) {
     documentTypes,
 
     estimatedReadyDate, setEstimatedReadyDate,
-    priceAmount, setPriceAmount,
+    priceAmount, priceBreakdown, pricingError,
+    priceNotes, setPriceNotes, confirmCurrentRates, setConfirmCurrentRates,
     pricePageCount, setPricePageCount,
     
     handleSecretaryEvaluate,

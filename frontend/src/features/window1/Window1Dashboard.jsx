@@ -1,3 +1,4 @@
+import RequestMessagesPanel from '@/components/RequestMessagesPanel';
 import FileUploadField from '@/components/FileUploadField';
 import QueueTabs from '@/components/QueueTabs';
 import AuthedFilePreview from '@/components/AuthedFilePreview';
@@ -79,6 +80,7 @@ export default function Window1Dashboard({ user, currentTab, setViewImageUrl }) 
 
   const todayFormatted = todayLongDate();
 
+  if (currentTab === 'messages') return <RequestMessagesPanel user={user} initialDocumentId={new URLSearchParams(window.location.search).get('document')} />;
   if (loading) return <DashboardLoading />;
   if (currentTab === 'reports') return <ReportsPanel user={user} currentTab={currentTab} />;
 
