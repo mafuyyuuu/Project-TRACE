@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { getRequestMessages, sendRequestMessage, getMessageThreads } from '@/services/documentMessagesService';
 import { onNotification } from '@/services/realtimeService';
+import { getSupportMessages, sendSupportMessage, getSupportThreads } from '@/services/supportMessagesService';
 
 function useRefresh(load) {
   useEffect(() => {
@@ -13,7 +14,7 @@ function useRefresh(load) {
   }, [load]);
 }
 
-export default function useDocumentChat(documentId, user) {
+export default function useDocumentChat(documentId, user, kind = 'request') {
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(true);
   const [input, setInput] = useState('');
@@ -32,7 +33,7 @@ export default function useDocumentChat(documentId, user) {
     const owner = lifetime.current;
     read.current = controller;
     try {
-      const rows = await getRequestMessages(documentId, controller.signal);
+      const rows = await (kind === 'support' ? getSupportMessages : getRequestMessages)(documentId, controller.signal);
       if (lifetime.current !== owner || controller.signal.aborted) return;
       const ids = new Set(rows.map(row => String(row.id)));
       accepted.current = accepted.current.filter(row => !ids.has(String(row.id)));
@@ -44,7 +45,7 @@ export default function useDocumentChat(documentId, user) {
       if (read.current === controller) read.current = null;
       if (lifetime.current === owner && !controller.signal.aborted) setLoading(false);
     }
-  }, [documentId]);
+  }, [documentId, kind]);
   useEffect(() => {
     lifetime.current = {};
     void load();
@@ -58,7 +59,7 @@ export default function useDocumentChat(documentId, user) {
     const owner = lifetime.current;
     sendPending.current = true; setSending(true); setSendError('');
     try {
-      const sent = await sendRequestMessage(documentId, text);
+      const sent = await (kind === 'support' ? sendSupportMessage : sendRequestMessage)(documentId, text);
       if (lifetime.current === owner) {
         const message = sent || { id: `accepted-${Date.now()}`, sender_id: user.id, sender_name: user.full_name || 'You', message: text, created_at: new Date().toISOString() };
         accepted.current.push(message);
@@ -78,10 +79,10 @@ export default function useDocumentChat(documentId, user) {
   return { messages, loading, input, setInput, sending, send, error, sendError, notice, retry: () => load(true) };
 }
 
-export function useMessageThreads(userId, page) {
+export function useMessageThreads(userId, page, kind = 'request') {
   const [result, setResult] = useState({ threads: [], total: 0 });
   const [loadedKey, setLoadedKey] = useState(null);
-  const requestKey = `${userId}:${page}`;
+  const requestKey = `${kind}:${userId}:${page}`;
   const [error, setError] = useState('');
   const current = useRef(null);
   const read = useRef(null);
@@ -91,7 +92,7 @@ export function useMessageThreads(userId, page) {
     const controller = new AbortController();
     read.current = controller;
     try {
-      const data = await getMessageThreads(page, controller.signal);
+      const data = await (kind === 'support' ? getSupportThreads : getMessageThreads)(page, controller.signal);
       if (current.current === owner && !controller.signal.aborted) { setResult(data); setError(''); }
     } catch (err) {
       if (current.current === owner && !controller.signal.aborted) setError(err.response?.data?.error || 'Could not load conversations. Try again.');
@@ -99,7 +100,7 @@ export function useMessageThreads(userId, page) {
       if (read.current === controller) read.current = null;
       if (current.current === owner && !controller.signal.aborted) setLoadedKey(requestKey);
     }
-  }, [page, requestKey]);
+  }, [page, requestKey, kind]);
   useEffect(() => { const owner = {}; current.current = owner; queueMicrotask(() => { if (current.current === owner) void load(); }); return () => { current.current = null; read.current?.abort(); read.current = null; }; }, [load]);
   useRefresh(load);
   return { ...result, threads: loadedKey === requestKey ? result.threads : [], loading: loadedKey !== requestKey, error, retry: load };

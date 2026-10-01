@@ -43,10 +43,33 @@ const renderModal = (overrides = {}) => render(<ProfileSettingsModal {...basePro
 
 beforeEach(() => {
   vi.clearAllMocks();
+  localStorage.clear();
   getAuthenticator.mockResolvedValue({ enabled: false, available: true });
 });
 
 describe('ProfileSettingsModal', () => {
+  it('lets only clerks forget personal-browser preference after confirmation', async () => {
+    localStorage.setItem('trace_clerk_browser_until', String(Date.now() + 60000));
+    renderModal({ user: CLERK, initialTab: 'security' });
+    fireEvent.click(screen.getByRole('button', { name: 'Use shared-computer verification' }));
+    expect(localStorage.getItem('trace_clerk_browser_until')).not.toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Use Shared Verification' }));
+    await waitFor(() => expect(localStorage.getItem('trace_clerk_browser_until')).toBeNull());
+    expect(screen.getByText(/Shared-computer verification is the default/)).toBeInTheDocument();
+    expect(api.post).not.toHaveBeenCalled();
+  });
+  it.each([STUDENT, { ...CLERK, role: 'admin' }])('does not offer clerk browser settings to $role', user => {
+    renderModal({ user, initialTab: 'security' });
+    expect(screen.queryByRole('region', { name: 'Clerk browser verification' })).not.toBeInTheDocument();
+  });
+  it('shows and hides both password fields in Security without saving', () => {
+    renderModal({ initialTab: 'security', profileData: { ...baseProps.profileData, current_password: 'current', password: 'Newpassword1!' } });
+    expect(screen.getByLabelText('Current Password')).toHaveAttribute('type', 'password');
+    fireEvent.click(screen.getByRole('button', { name: 'Show passwords' }));
+    expect(screen.getByLabelText('Current Password')).toHaveAttribute('type', 'text');
+    expect(screen.getByLabelText('New Password')).toHaveAttribute('type', 'text');
+    expect(baseProps.onSave).not.toHaveBeenCalled();
+  });
   it.each([
     { ...STUDENT, user_type: 'student' }, { ...STUDENT, user_type: 'alumni' },
     { ...CLERK, role: 'admin' }, { ...CLERK, desk_assignment: 'Window 1' },

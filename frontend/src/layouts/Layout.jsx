@@ -11,9 +11,12 @@ import ProfileSettingsModal from '@/components/ProfileSettingsModal'
 import ConfirmDialog from '@/components/ConfirmDialog'
 import UserAvatar from '@/components/UserAvatar'
 import plpLogo from '@/assets/plp_logo.png'
+import GraduateApplication from '@/features/graduate/GraduateApplication'
+import EmailVerificationNotice from '@/components/EmailVerificationNotice'
 
 export default function Layout() {
   const { user, logout } = useAuth()
+  const graduateRequired = user?.role === 'student' && user.user_type === 'alumni' && !user.has_grad_application
   const location = useLocation()
   const navigate = useNavigate()
   const [settingsTab, setSettingsTab] = useState(() => new URLSearchParams(location.search).get('settings') === 'security' ? 'security' : 'personal')
@@ -95,16 +98,16 @@ export default function Layout() {
   }
 
   useEffect(() => {
-    if (user) {
+    if (user && !graduateRequired) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       loadNotifs()
     }
-  }, [user])
+  }, [user, graduateRequired])
 
   // Live push: a new notification appears in the bell within milliseconds
   // instead of waiting for the next page load.
   useEffect(() => {
-    if (!user) return undefined
+    if (!user || graduateRequired) return undefined
 
     const unsubscribe = onNotification((incoming) => {
       setNotifications((current) => [
@@ -114,7 +117,7 @@ export default function Layout() {
     })
 
     return unsubscribe
-  }, [user])
+  }, [user, graduateRequired])
 
   // Drop the socket on logout so the next account doesn't inherit it.
   useEffect(() => {
@@ -179,6 +182,16 @@ export default function Layout() {
       setLoggingOut(false)
     }
   }
+
+  if (graduateRequired) return (
+    <main className="min-h-dvh bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 p-4 sm:p-8 space-y-5">
+      <header className="flex flex-wrap gap-4 items-center justify-between"><strong className="text-xl">TRACE</strong>
+        <button type="button" onClick={() => setConfirmingLogout(true)} className="border rounded-xl px-4 py-2">Log Out</button></header>
+      <p className="text-sm">Submit your graduate application to unlock TRACE. You can complete email verification afterward.</p>
+      <GraduateApplication user={user} />
+      <ConfirmDialog open={confirmingLogout} title="Log Out" message={logoutError || 'End this session?'} confirmLabel="Log Out" loading={loggingOut} onConfirm={handleConfirmLogout} onCancel={() => setConfirmingLogout(false)} />
+    </main>
+  );
 
   return (
     <div className="h-dvh overflow-hidden bg-gray-50 dark:bg-gray-800 flex flex-col p-3 sm:p-4 md:p-6 gap-4 sm:gap-6 font-body text-gray-800 dark:text-gray-100">
@@ -307,6 +320,7 @@ export default function Layout() {
 
         {/* Main Content Area */}
         <main ref={contentRef} className="trace-content flex-1 min-w-0 h-full overflow-y-auto">
+          <EmailVerificationNotice user={user} />
           <Outlet />
         </main>
       </div>
@@ -316,8 +330,7 @@ export default function Layout() {
           user={user}
           initialTab={settingsTab} darkMode={darkMode} onToggleTheme={toggleTheme}
           textSize={textSize} onTextSizeChange={changeTextSize}
-          pendingEmail={settings.pendingEmail} emailOtp={settings.emailOtp}
-          onEmailOtpChange={settings.setEmailOtp} onVerifyEmail={settings.confirmEmail}
+          pendingEmail={settings.pendingEmail}
           onClose={closeSettings}
           profileData={settings.profileData}
           setField={settings.setField}

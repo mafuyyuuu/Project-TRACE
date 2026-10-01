@@ -15,6 +15,9 @@ function activate(userId, counter, executor = pool) {
   return executor.query(`UPDATE authenticator_credentials SET active_secret = pending_secret, pending_secret = NULL,
     pending_expires_ms = NULL, pending_version = NULL, last_counter = ?, failed_attempts = 0, locked_until_ms = NULL WHERE user_id = ?`, [counter, userId]);
 }
+function clearPending(userId, executor = pool) {
+  return executor.query('UPDATE authenticator_credentials SET pending_secret = NULL, pending_expires_ms = NULL, pending_version = NULL WHERE user_id = ?', [userId]);
+}
 function disable(userId, executor = pool) {
   return executor.query('DELETE FROM authenticator_credentials WHERE user_id = ?', [userId]);
 }
@@ -53,4 +56,4 @@ function updateChallenge(hash, attempts, consumed, executor = pool) {
 function revokeChallenges(userId, executor = pool) {
   return executor.query('DELETE FROM authenticator_challenges WHERE user_id = ?', [userId]);
 }
-module.exports = { find, lockAccount, savePending, activate, disable, acceptCounter, failure, clearFailures, replaceCodes, consumeCode, countCodes, createChallenge, findChallenge, updateChallenge, revokeChallenges };
+module.exports = { find, lockAccount, savePending, activate, clearPending, disable, acceptCounter, failure, clearFailures, replaceCodes, consumeCode, countCodes, createChallenge, findChallenge, updateChallenge, revokeChallenges };

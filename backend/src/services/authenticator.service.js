@@ -155,9 +155,10 @@ async function verifyChallenge(decoded, body) {
       return failed(account.id, row, connection);
     }
     await model.updateChallenge(hash, pending.attempts, true, connection);
+    await users.resetLoginSecurity(account.id, connection);
     await users.logSecurityEvent(account.id, body.recovery_code ? 'LOGIN_RECOVERY_CODE' : 'LOGIN_AUTHENTICATOR', null, null, connection);
     const [profile] = await users.getProfileById(account.id, connection);
     return { ...account, ...profile, token_version: account.token_version };
   }, decoded.token_version);
 }
-module.exports = { status, isEnabled, begin, confirm, change, challenge, verifyChallenge };
+module.exports = { status, isEnabled, begin, confirm, change, challenge, verifyChallenge, refreshedSession, notifyChanged };

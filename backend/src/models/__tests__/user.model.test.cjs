@@ -11,3 +11,10 @@ it.each([false, true])('reads saved personal/education fields and optionally loc
   expect(sql.endsWith(' FOR UPDATE')).toBe(lock);
   expect(params).toEqual([3]);
 });
+it('checks three distinct prior hashes without counting repeated current-password history rows', async () => {
+  const executor = { query: vi.fn().mockResolvedValue([[]]) };
+  await model.getPasswordHistory(3, executor, 'current-hash');
+  const [sql, params] = executor.query.mock.calls[0];
+  expect(sql).toContain('password_hash <> ?'); expect(sql).toContain('GROUP BY password_hash');
+  expect(sql).toContain('LIMIT 3'); expect(params).toEqual([3, 'current-hash']);
+});

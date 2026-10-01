@@ -1,7 +1,7 @@
 import { INPUT_LIMITS } from '@/utils/inputLimits';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import { useState, useEffect } from 'react';
-import api from '@/services/api';
+import { getTemplates, getTemplate, saveTemplate } from '@/services/templateService';
 
 export default function AdminTemplatesPanel() {
   const [templates, setTemplates] = useState([]);
@@ -32,7 +32,7 @@ export default function AdminTemplatesPanel() {
     }, 15000);
     async function fetchTemplates() {
       try {
-        const res = await api.get('/templates', { signal: controller.signal, timeout: 15000 });
+        const res = await getTemplates({ signal: controller.signal, timeout: 15000 });
         if (!Array.isArray(res.data) || res.data.some(item => !item || typeof item.template_key !== 'string' || typeof item.name !== 'string')) throw new Error('Invalid template catalog');
         if (!active) return;
         setTemplates(res.data);
@@ -60,7 +60,7 @@ export default function AdminTemplatesPanel() {
     }, 15000);
     async function fetchTemplateDetails() {
       try {
-        const res = await api.get(`/templates/${selectedKey}`, { signal: controller.signal, timeout: 15000 });
+        const res = await getTemplate(selectedKey, { signal: controller.signal, timeout: 15000 });
         if (typeof res.data?.content !== 'string') throw new Error('Invalid template content');
         if (!active) return;
         setFormData({
@@ -91,7 +91,11 @@ export default function AdminTemplatesPanel() {
     .replace(/{{DOCUMENT_TYPE}}/g, 'Transcript of Records')
     .replace(/{{OR_NUMBER}}/g, 'OR-998877')
     .replace(/{{AMOUNT}}/g, 'P150.00');
-  const previewDocument = `<!doctype html><html><head><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src data:; base-uri 'none'; form-action 'none'"><style>body{margin:0;padding:24px;color:#111827;background:white;font-family:${previewFont};font-size:${previewSize};overflow-wrap:anywhere}</style></head><body>${previewContent}</body></html>`;
+  const previewWithContext = previewContent.replace(/{{PROGRAM_COURSE}}/g, 'BS Information Technology')
+    .replace(/{{REQUEST_SEQUENCE}}/g, 'Transcript of Records – Request No. 3')
+    .replace(/{{TRACKING_NUMBER}}/g, 'TRC-SYNTHETIC').replace(/{{DATE_ISSUED}}/g, 'Oct 1, 2026')
+    .replace(/{{SUBJECT}}/g, 'Verify your TRACE email').replace(/{{MESSAGE}}/g, 'Synthetic notice: open the verification link in your actual email.');
+  const previewDocument = `<!doctype html><html><head><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src data:; base-uri 'none'; form-action 'none'"><style>body{margin:0;padding:24px;color:#111827;background:white;font-family:${previewFont};font-size:${previewSize};overflow-wrap:anywhere}</style></head><body>${previewWithContext}</body></html>`;
 
   const handleSave = async (e) => {
     e.preventDefault();
@@ -106,7 +110,7 @@ export default function AdminTemplatesPanel() {
     setSaving(true);
     setSuccess('');
     try {
-      await api.put(`/templates/${templateToConfirm.key}`, templateToConfirm.payload);
+      await saveTemplate(templateToConfirm.key, templateToConfirm.payload);
       setSuccess('Template saved successfully!');
       setTemplateToConfirm(null);
     } catch (err) {
@@ -171,7 +175,7 @@ export default function AdminTemplatesPanel() {
         ) : selectedKey ? (
           <form onSubmit={handleSave} className="flex-1 flex flex-col h-full">
             <div className="p-4 border-b border-gray-200 dark:border-gray-700 flex flex-wrap gap-4 items-center justify-between bg-white dark:bg-gray-900">
-              <div className="flex gap-4 items-center">
+              <div className="flex flex-wrap gap-4 items-center min-w-0">
                 <div>
                   <label className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest block mb-1">Font Family</label>
                   <select
@@ -201,7 +205,7 @@ export default function AdminTemplatesPanel() {
                   </select>
                 </div>
               </div>
-              <div className="flex items-center gap-3">
+              <div className="flex flex-wrap items-center gap-3">
                 {success && <span className="text-xs font-bold text-[#15803d] dark:text-green-300 animate-fade-in">{success}</span>}
                 <button
                   type="submit"
@@ -216,6 +220,7 @@ export default function AdminTemplatesPanel() {
             <div className="flex-1 min-w-0 p-4 bg-gray-50 dark:bg-gray-800 flex flex-col lg:flex-row gap-4">
               <div className="flex-1 flex flex-col">
                 <label htmlFor="admin-template-content" className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest block mb-2">HTML Template (Use {'{{VARIABLE_NAME}}'})</label>
+                <p className="text-xs mb-2 break-words">{selectedKey === 'email_notice' ? 'Email variables: {{SUBJECT}}, {{MESSAGE}}. MESSAGE is required for verification links and account notices.' : 'Slip variables: {{STUDENT_NAME}}, {{STUDENT_ID}}, {{DOCUMENT_TYPE}}, {{TRACKING_NUMBER}}, {{AMOUNT}}, {{PROGRAM_COURSE}}, {{REQUEST_SEQUENCE}}, {{DATE_ISSUED}}. OR_NUMBER is a legacy alias for the tracking number.'} Basic text, tables and supported inline styles are saved; scripts, forms, remote images and active content are removed. Clear the body to use the default.</p>
                 <textarea id="admin-template-content" maxLength={INPUT_LIMITS.template}
                   value={formData.content}
                   onChange={e => setFormData({...formData, content: e.target.value})}

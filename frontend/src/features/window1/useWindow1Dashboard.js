@@ -36,6 +36,9 @@ export default function useWindow1Dashboard(user, currentTab = 'dashboard', queu
   const [scanFile, setScanFile] = useState(null);
   const [scanProgress, setScanProgress] = useState(0);
   const [intakeNotes, setIntakeNotes] = useState('');
+  const [originalChoice, setOriginalChoice] = useState(null);
+  const originalIssued = originalChoice?.documentId === selectedDoc?.id && originalChoice?.value === true;
+  const setOriginalIssued = useCallback(value => setOriginalChoice({ documentId: selectedDoc?.id, value }), [selectedDoc?.id]);
   const [intakeFile, setIntakeFile] = useState(null);
   const fileInputRef = useRef(null);
 
@@ -76,13 +79,17 @@ export default function useWindow1Dashboard(user, currentTab = 'dashboard', queu
   const handleIntake = useCallback(
     (action) => {
       if (!selectedDoc) return;
+      if (action === 'approve' && originalIssued && !intakeNotes.trim()) {
+        triggerNotification('Record how you confirmed prior original issuance in Notes.', 'error');
+        return;
+      }
       if (action === 'return' && !intakeNotes.trim()) {
         triggerNotification('Say what the student needs to correct.', 'error');
         return;
       }
       setIntakeActionToConfirm(action);
     },
-    [selectedDoc, intakeNotes, triggerNotification]
+    [selectedDoc, intakeNotes, originalIssued, triggerNotification]
   );
 
   const confirmIntake = useCallback(async () => {
@@ -92,6 +99,7 @@ export default function useWindow1Dashboard(user, currentTab = 'dashboard', queu
     const formData = new FormData();
     formData.append('action', action);
     formData.append('notes', intakeNotes);
+    if (action === 'approve' && originalIssued) formData.append('original_issued', 'true');
     if (intakeFile) formData.append('document', intakeFile);
 
     const ok = await runAction(() => intakeDocument(selectedDoc.id, formData), {
@@ -105,10 +113,11 @@ export default function useWindow1Dashboard(user, currentTab = 'dashboard', queu
     if (ok) {
       setActiveModal(null);
       setIntakeNotes('');
+      setOriginalChoice(null);
       setIntakeFile(null);
       setIntakeActionToConfirm(null);
     }
-  }, [intakeActionToConfirm, selectedDoc, intakeNotes, intakeFile, runAction, setActiveModal]);
+  }, [intakeActionToConfirm, selectedDoc, intakeNotes, intakeFile, originalIssued, runAction, setActiveModal]);
 
   const cancelIntake = useCallback(() => {
     setIntakeActionToConfirm(null);
@@ -257,6 +266,7 @@ export default function useWindow1Dashboard(user, currentTab = 'dashboard', queu
     scanFile, setScanFile,
     scanProgress,
     intakeNotes, setIntakeNotes,
+    originalIssued, setOriginalIssued,
     intakeFile, setIntakeFile,
     fileInputRef,
     w1IntakePage: intakePagination.page, setW1IntakePage,

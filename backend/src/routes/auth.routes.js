@@ -6,6 +6,10 @@ const { idProofUpload, profilePictureUpload } = require('../middlewares/upload.m
 const { loginLimiter, registerLimiter, passwordResetLimiter } = require('../middlewares/rateLimit.middleware');
 
 const router = express.Router();
+const staffSetup = require('../controllers/staffAuthenticatorSetup.controller');
+router.post('/staff-authenticator/:id/issue', authenticate, requireRole('admin'), loginLimiter, staffSetup.issue);
+router.post('/staff-authenticator/start', loginLimiter, staffSetup.start);
+router.post('/staff-authenticator/confirm', loginLimiter, staffSetup.confirm);
 
 router.post('/login', loginLimiter, authController.login);
 router.post('/verify-2fa', loginLimiter, authController.verify2FA);
@@ -20,6 +24,9 @@ router.post('/logout-all', authenticate, authController.logoutAll);
 router.get('/security-logs', authenticate, authController.getSecurityLogs);
 router.get('/global-security-logs', authenticate, requireRole('admin'), authController.getGlobalSecurityLogs);
 router.post('/register', registerLimiter, idProofUpload.single('id_proof'), authController.register);
+const emailVerification = require('../controllers/emailVerification.controller');
+router.post('/email-verification/resend', authenticate, passwordResetLimiter, emailVerification.resend);
+router.post('/email-verification/confirm', passwordResetLimiter, emailVerification.confirm);
 
 // Password recovery. Deliberately unauthenticated — the whole point is that the
 // caller cannot log in. Both are throttled; see rateLimit.middleware.js.

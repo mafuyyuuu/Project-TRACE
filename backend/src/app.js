@@ -72,6 +72,7 @@ app.use('/api/maintenance', maintenanceRoutes);
 app.use('/api/reports', reportRoutes);
 app.use('/api/ai', aiRoutes);
 app.use('/api/templates', templateRoutes);
+app.use('/api/support', require('./routes/support.routes'));
 
 // Must be registered last.
 app.use(errorHandler);

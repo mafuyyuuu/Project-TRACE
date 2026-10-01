@@ -168,7 +168,7 @@ function escapeHtml(value) {
 }
 
 function emailHtml(subject, text) {
-  return `<html><body style="margin:0;background:#f3f4f6;font-family:Arial,sans-serif;color:#1f2937"><table role="presentation" width="100%" cellpadding="24"><tr><td><table role="presentation" width="100%" cellpadding="24" style="max-width:600px;margin:auto;background:#fff;border-radius:16px"><tr><td style="background:#15803d;color:#fff;font-size:28px;font-weight:bold">TRACE</td></tr><tr><td><h1 style="font-size:20px">${escapeHtml(subject)}</h1><p style="font-size:16px;line-height:1.6;white-space:pre-wrap">${escapeHtml(text)}</p><p style="color:#6b7280;font-size:12px">PLP Registrar · Project TRACE</p></td></tr></table></td></tr></table></body></html>`;
+  return `<html><body style="margin:0;background:#f3f4f6;font-family:Arial,sans-serif;color:#1f2937"><table role="presentation" width="100%" cellpadding="24"><tr><td><table role="presentation" width="100%" cellpadding="24" style="max-width:600px;margin:auto;background:#fff;border-radius:16px"><tr><td style="background:#15803d;color:#fff;font-size:28px;font-weight:bold">TRACE</td></tr><tr><td><h1 style="font-size:20px">${escapeHtml(subject)}</h1><p style="font-size:16px;line-height:1.6;white-space:pre-wrap">${require('./template.service').emailText(text)}</p><p style="color:#6b7280;font-size:12px">PLP Registrar · Project TRACE</p></td></tr></table></td></tr></table></body></html>`;
 }
 
 async function sendEmail(to, subject, text) {
@@ -184,12 +184,21 @@ async function sendEmail(to, subject, text) {
   }
 
   try {
+    let html = emailHtml(subject, text);
+    // A missing template/table must not stop security or payment delivery.
+    try {
+      const templates = require('./template.service');
+      const template = await templates.get('email_notice');
+      if (template?.content?.trim() && template.content.includes('{{MESSAGE}}')) {
+        html = `<html><body style="font-family:${template.font_family};font-size:${template.font_size}"><h1>TRACE</h1>${templates.render(template.content, { SUBJECT: subject, MESSAGE: text }, true)}<p>PLP Registrar · Project TRACE</p></body></html>`;
+      }
+    } catch { /* Retain the branded default when template configuration is unavailable. */ }
     await transporter.sendMail({
       from: `"TRACE Registrar" <${env.SMTP_FROM || env.SMTP_USER}>`,
       to,
       subject: 'TRACE: ' + subject,
       text,
-      html: emailHtml(subject, text),
+      html,
     });
     console.log(`✅ [Email] Email dispatched to ${to}`);
     return { ok: true };

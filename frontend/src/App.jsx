@@ -4,6 +4,8 @@ import LoginPage from '@/pages/LoginPage'
 import SignupPage from '@/pages/SignupPage'
 import ForgotPasswordPage from '@/pages/ForgotPasswordPage'
 import ResetPasswordPage from '@/pages/ResetPasswordPage'
+import VerifyEmailPage from '@/pages/VerifyEmailPage'
+import StaffAuthenticatorSetupPage from '@/pages/StaffAuthenticatorSetupPage'
 import DashboardPage from '@/pages/DashboardPage'
 import Layout from '@/layouts/Layout'
 import DashboardLoading from '@/components/DashboardLoading'
@@ -44,6 +46,8 @@ function App() {
         {/* Public by necessity: a user who needs these cannot log in. */}
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />
         <Route path="/reset-password" element={<ResetPasswordPage />} />
+        <Route path="/verify-email" element={<VerifyEmailPage />} />
+        <Route path="/staff-setup" element={<StaffAuthenticatorSetupPage />} />
         <Route path="/dashboard" element={<ProtectedRoute><Layout /></ProtectedRoute>}>
           <Route index element={<DashboardPage />} />
         </Route>

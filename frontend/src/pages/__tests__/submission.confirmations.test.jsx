@@ -19,6 +19,7 @@ vi.mock('@/services/api', () => ({ default: { post: vi.fn() } }));
 
 beforeEach(() => {
   vi.clearAllMocks();
+  localStorage.clear();
   auth.loading = false;
   auth.error = '';
   auth.login.mockResolvedValue(undefined);
@@ -29,6 +30,26 @@ afterEach(() => vi.useRealTimers());
 const renderPage = (page, path = '/') => render(<MemoryRouter initialEntries={[path]}>{page}</MemoryRouter>);
 
 describe('Account submission confirmations', () => {
+  it('offers staff setup only after the server identifies a clerk needing enrollment', async () => {
+    auth.login.mockResolvedValueOnce({ requires_authenticator_setup: true });
+    const { container } = renderPage(<LoginPage />);
+    expect(screen.queryByText(/open staff authenticator setup/)).not.toBeInTheDocument();
+    fireEvent.change(screen.getByPlaceholderText(/23-00123/), { target: { value: 'FINANCE001' } });
+    fireEvent.change(container.querySelector('input[type=password]'), { target: { value: 'staff-password' } });
+    fireEvent.submit(container.querySelector('form'));
+    expect(await screen.findByRole('link', { name: 'open staff authenticator setup' })).toHaveAttribute('href', '/staff-setup');
+    expect(screen.queryByRole('checkbox')).not.toBeInTheDocument();
+    expect(localStorage.getItem('trace_token')).toBeNull();
+  });
+  it('uses an unexpired server-granted preference on a later password login without a public checkbox', async () => {
+    localStorage.setItem('trace_clerk_browser_until', String(Date.now() + 60000));
+    const { container } = renderPage(<LoginPage />);
+    fireEvent.change(screen.getByPlaceholderText(/23-00123/), { target: { value: 'FINANCE001' } });
+    fireEvent.change(container.querySelector('input[type=password]'), { target: { value: 'staff-password' } });
+    fireEvent.submit(container.querySelector('form'));
+    await waitFor(() => expect(auth.login).toHaveBeenCalledWith({ employeeId: 'FINANCE001', password: 'staff-password', sharedComputer: false }));
+    expect(screen.queryByRole('checkbox')).not.toBeInTheDocument();
+  });
   it('fills new alumni identity from OCR only on request, preserving manually entered names', async () => {
     const user = userEvent.setup();
     const { container } = renderPage(<SignupPage />);
@@ -201,27 +222,26 @@ describe('Account submission confirmations', () => {
     const user = userEvent.setup();
     auth.login.mockResolvedValueOnce({ requires_2fa: true, temp_token: 'challenge', can_trust_browser: false });
     const { container } = renderPage(<LoginPage />);
-    expect(screen.getByRole('checkbox', { name: 'This is a shared computer' })).toBeChecked();
+    expect(screen.queryByRole('checkbox')).not.toBeInTheDocument();
     await user.type(screen.getByPlaceholderText(/23-00123/), 'ADMIN001');
     await user.type(container.querySelector('input[type=password]'), 'password123');
     await user.click(screen.getByRole('button', { name: 'LOGIN' }));
     await screen.findByPlaceholderText('Enter 6-digit OTP');
-    expect(screen.queryByRole('checkbox', { name: 'Trust this browser for today' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('checkbox', { name: 'This is my personal browser — trust it for today' })).not.toBeInTheDocument();
     expect(auth.login).toHaveBeenCalledWith({ employeeId: 'ADMIN001', password: 'password123', sharedComputer: true });
   });
 
-  it.each([false, true])('sends clerk trust only after personal mode and explicit opt-in (%s)', async optIn => {
+  it.each([false, true])('offers clerk trust only during verification with explicit opt-in (%s)', async optIn => {
     const user = userEvent.setup();
     auth.login.mockResolvedValueOnce({ requires_2fa: true, temp_token: 'personal-challenge', can_trust_browser: true });
     const { container } = renderPage(<LoginPage />);
-    await user.click(screen.getByRole('checkbox', { name: 'This is a shared computer' }));
     await user.type(screen.getByPlaceholderText(/23-00123/), 'CLERK001');
     await user.type(container.querySelector('input[type=password]'), 'password123');
     await user.click(screen.getByRole('button', { name: 'LOGIN' }));
-    const choice = await screen.findByRole('checkbox', { name: 'Trust this browser for today' });
+    const choice = await screen.findByRole('checkbox', { name: 'This is my personal browser — trust it for today' });
     expect(choice).not.toBeChecked();
     expect(screen.getByText(/until midnight Manila time/)).toBeInTheDocument();
-    expect(auth.login).toHaveBeenCalledWith({ employeeId: 'CLERK001', password: 'password123', sharedComputer: false });
+    expect(auth.login).toHaveBeenCalledWith({ employeeId: 'CLERK001', password: 'password123', sharedComputer: true });
     if (optIn) await user.click(choice);
     await user.type(screen.getByPlaceholderText('Enter 6-digit OTP'), '123456');
     api.post.mockRejectedValueOnce({ response: { data: { error: 'Synthetic rejection' } } });
@@ -229,20 +249,19 @@ describe('Account submission confirmations', () => {
     expect(api.post).toHaveBeenCalledWith('/auth/verify-2fa', { temp_token: 'personal-challenge', otp: '123456', ...(optIn ? { trust_browser: true } : {}) });
   });
 
-  it('resets consent on a fresh OTP and preserves personal mode when resending', async () => {
+  it('resets consent on a fresh OTP without saving unverified browser preference', async () => {
     vi.useFakeTimers();
     auth.login.mockResolvedValue({ requires_2fa: true, temp_token: 'personal-challenge', can_trust_browser: true });
     const { container } = renderPage(<LoginPage />);
-    fireEvent.click(screen.getByRole('checkbox', { name: 'This is a shared computer' }));
     fireEvent.change(screen.getByPlaceholderText(/23-00123/), { target: { value: 'CLERK001' } });
     fireEvent.change(container.querySelector('input[type=password]'), { target: { value: 'password123' } });
     await act(async () => { fireEvent.submit(container.querySelector('form')); });
-    fireEvent.click(screen.getByRole('checkbox', { name: 'Trust this browser for today' }));
-    expect(screen.getByRole('checkbox', { name: 'Trust this browser for today' })).toBeChecked();
+    fireEvent.click(screen.getByRole('checkbox', { name: 'This is my personal browser — trust it for today' }));
+    expect(screen.getByRole('checkbox', { name: 'This is my personal browser — trust it for today' })).toBeChecked();
     await act(async () => { await vi.advanceTimersByTimeAsync(60000); });
     await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'Resend OTP' })); });
-    expect(auth.login).toHaveBeenLastCalledWith({ employeeId: 'CLERK001', password: 'password123', sharedComputer: false });
-    expect(screen.getByRole('checkbox', { name: 'Trust this browser for today' })).not.toBeChecked();
+    expect(auth.login).toHaveBeenLastCalledWith({ employeeId: 'CLERK001', password: 'password123', sharedComputer: true });
+    expect(screen.getByRole('checkbox', { name: 'This is my personal browser — trust it for today' })).not.toBeChecked();
     expect(screen.getByRole('button', { name: 'Resend OTP (60s)' })).toBeDisabled();
   });
 
@@ -252,7 +271,7 @@ describe('Account submission confirmations', () => {
     await screen.findByRole('option', { name: 'Engineering' });
     fireEvent.change(container.querySelectorAll('select')[1], { target: { value: 'Engineering' } });
     const inputs = container.querySelectorAll('input');
-    const values = ['STU-001', 'Ana Reyes', 'ana@example.test', '09171234567', 'password123', 'password123'];
+    const values = ['STU-001', 'BS Engineering', 'Ana Reyes', 'ana@example.test', '09171234567', 'Password123!', 'Password123!'];
     values.forEach((value, index) => fireEvent.change(inputs[index], { target: { value } }));
     const proof = new File(['proof'], 'id.png', { type: 'image/png' });
     const picker = container.querySelector('input[type=file]');
@@ -269,6 +288,7 @@ describe('Account submission confirmations', () => {
     expect(payload.get('employee_id')).toBe('STU-001');
     expect(payload.get('course')).toBe('Engineering');
     expect(payload.get('college_id')).toBe('1');
+    expect(payload.get('program')).toBe('BS Engineering');
     expect(payload.get('id_proof').name).toBe('id.png');
   });
 
@@ -291,18 +311,18 @@ describe('Account submission confirmations', () => {
     renderPage(<ResetPasswordPage />, '/reset-password?token=test-token');
     const password = screen.getByLabelText('New Password');
     const repeat = screen.getByLabelText('Confirm New Password');
-    await user.type(password, 'password123');
+    await user.type(password, 'Password123!');
     await user.type(repeat, 'wrong-password');
     await user.click(screen.getByRole('button', { name: 'Set New Password' }));
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
     expect(reset.submitNewPassword).not.toHaveBeenCalled();
     await user.clear(repeat);
-    await user.type(repeat, 'password123');
+    await user.type(repeat, 'Password123!');
     await user.click(screen.getByRole('button', { name: 'Set New Password' }));
     await user.click(within(screen.getByRole('dialog', { name: 'Confirm Password Reset' })).getByRole('button', { name: 'Cancel' }));
-    expect(password).toHaveValue('password123');
+    expect(password).toHaveValue('Password123!');
     await user.click(screen.getByRole('button', { name: 'Set New Password' }));
     await user.click(screen.getByRole('button', { name: 'Reset Password' }));
-    expect(reset.submitNewPassword).toHaveBeenCalledExactlyOnceWith('test-token', 'password123', 'password123');
+    expect(reset.submitNewPassword).toHaveBeenCalledExactlyOnceWith('test-token', 'Password123!', 'Password123!');
   });
 });

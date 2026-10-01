@@ -23,7 +23,7 @@ beforeEach(() => {
   vi.spyOn(model, 'findChallenge').mockImplementation(async () => challenge);
   vi.spyOn(users, 'getProfileById').mockImplementation(async () => [account]);
   vi.spyOn(users, 'findById').mockImplementation(async () => [account]);
-  for (const key of ['incrementTokenVersion', 'clearEmailOTP', 'logSecurityEvent']) vi.spyOn(users, key).mockResolvedValue([]);
+  for (const key of ['incrementTokenVersion', 'clearEmailOTP', 'logSecurityEvent', 'resetLoginSecurity']) vi.spyOn(users, key).mockResolvedValue([]);
   vi.spyOn(notifications, 'sendEmail').mockResolvedValue({ ok: true });
 });
 const user = { id: 3, token_version: 2 };

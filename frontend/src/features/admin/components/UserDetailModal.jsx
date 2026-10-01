@@ -2,6 +2,7 @@ import ModalShell from '@/components/ModalShell';
 import UserAvatar from '@/components/UserAvatar';
 import FileUploadField from '@/components/FileUploadField';
 import { getUserLabel } from '@/utils/userLabels';
+import StaffAuthenticatorSetup from '@/features/admin/components/StaffAuthenticatorSetup';
 
 function Field({ label, value }) {
   return (
@@ -89,11 +90,13 @@ export default function UserDetailModal({ open, onClose, user, onEdit, onToggleA
       <div className="pt-4 space-y-0.5">
         <Field label="College / Department" value={user.college || user.college_name || user.college_id} />
         {user.role === 'student' && !user.college_id && <p className="text-xs text-amber-800 dark:text-amber-300">College assignment needs Admin review before requesting college-restricted documents.</p>}
-        <Field label="Program" value={user.course} />
+        <Field label="College" value={user.college_name || user.course} />
+        {isStudent && <Field label="Program/Course" value={user.program} />}
         <Field label={isStudent ? user.user_type === 'alumni' ? 'Alumni ID' : 'Student ID' : 'Staff ID'} value={user.student_id} />
         <Field label="Date Joined" value={dateJoined} />
         <Field label="Email" value={user.email} />
         <Field label="Contact Number" value={user.phone_number} />
+        {user.role === 'clerk' && Boolean(user.is_active) && viewerId && <StaffAuthenticatorSetup key={user.id} user={user} />}
         {isStudent && <>
           <Field label="Extension Name" value={user.extension_name} />
           <Field label="Birth Date" value={user.birth_date ? new Date(user.birth_date).toLocaleDateString('en-PH') : null} />

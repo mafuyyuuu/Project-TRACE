@@ -4,7 +4,7 @@ import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 
 vi.mock('@/hooks/useAuth', () => ({
-  default: () => ({ user: STUDENT, logout: logoutSpy }),
+  default: () => ({ user: currentUser, logout: logoutSpy }),
 }));
 
 vi.mock('@/services/authService', () => ({
@@ -33,6 +33,8 @@ const STUDENT = {
 };
 
 const logoutSpy = vi.fn();
+let currentUser = STUDENT;
+vi.mock('@/features/graduate/GraduateApplication', () => ({ default: () => <section aria-label="Graduate application">Graduate application form</section> }));
 
 import Layout from '@/layouts/Layout';
 import { TEXT_SIZE_KEY, applyTextSize } from '@/utils/textSize';
@@ -45,6 +47,7 @@ const renderLayout = () =>
   );
 
 beforeEach(() => {
+  currentUser = STUDENT;
   vi.clearAllMocks();
   document.documentElement.classList.remove('dark');
   localStorage.removeItem('trace_theme');
@@ -53,6 +56,17 @@ beforeEach(() => {
 });
 
 describe('Layout', () => {
+  it('routes new alumni to the graduation form with no shared navigation or profile bypass', () => {
+    currentUser = { ...STUDENT, user_type: 'alumni', has_grad_application: false, email_verified_at: null };
+    renderLayout();
+    expect(screen.getByRole('region', { name: 'Graduate application' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Preferences' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Edit Profile' })).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Open navigation menu')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Log Out' })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Log Out' }));
+    expect(screen.getByRole('dialog', { name: 'Log Out' })).toBeInTheDocument();
+  });
   it('applies text size through Preferences, preserves the account and restores it on reopening', () => {
     localStorage.setItem('trace_token', 'existing-token');
     renderLayout();

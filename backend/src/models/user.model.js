@@ -15,8 +15,8 @@ function findActiveByStudentId(studentId, executor = pool) {
 function getProfileById(userId, executor = pool, lock = false) {
   return executor
     .query(
-      `SELECT u.id, u.student_id, u.email, u.pending_email, u.full_name, u.role, u.user_type,
-        u.desk_assignment, u.is_active, u.phone_number, u.course, u.college_id, u.id_proof_path,
+      `SELECT u.id, u.student_id, u.email, u.email_verified_at, u.pending_email, u.token_version, u.full_name, u.role, u.user_type,
+        u.desk_assignment, u.is_active, u.phone_number, u.course, u.program, u.college_id, u.id_proof_path,
         u.enrollment_status, u.study_load, u.must_change_password, u.profile_picture, u.created_at,
         p.extension_name, p.birth_date, p.place_of_birth, p.sex, p.civil_status, p.maiden_name,
         p.home_address, p.last_attendance_year, p.is_transfer_student, p.previous_school,
@@ -42,12 +42,12 @@ function deleteById(userId, executor = pool) {
 function createUser(data, executor = pool) {
   const {
     student_id, full_name, email, phone_number, password_hash,
-    role = 'student', user_type, course, college_id, id_proof_path, verification_status,
+    role = 'student', user_type, course, program, college_id, id_proof_path, verification_status,
   } = data;
   return executor.query(
-    `INSERT INTO users (student_id, full_name, email, phone_number, password_hash, role, user_type, course, college_id, id_proof_path, verification_status)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    [student_id, full_name, email || null, phone_number, password_hash, role, user_type || 'student', course || null, college_id || null, id_proof_path, verification_status]
+    `INSERT INTO users (student_id, full_name, email, phone_number, password_hash, role, user_type, course, program, college_id, id_proof_path, verification_status)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [student_id, full_name, email || null, phone_number, password_hash, role, user_type || 'student', course || null, program || null, college_id || null, id_proof_path, verification_status]
   );
 }
 
@@ -68,13 +68,13 @@ function setVerificationStatus(userId, newStatus, executor = pool) {
 
 function listAllUsers(executor = pool) {
   return executor
-    .query('SELECT id, student_id, full_name, email, phone_number, user_type, desk_assignment, course, college_id, role, verification_status, enrollment_status, study_load, is_active, created_at FROM users ORDER BY created_at DESC')
+    .query('SELECT id, student_id, full_name, email, phone_number, user_type, desk_assignment, course, program, college_id, role, verification_status, enrollment_status, study_load, is_active, created_at FROM users ORDER BY created_at DESC')
     .then(([rows]) => rows);
 }
 
 function findStudentBasicInfo(studentId, executor = pool) {
   return executor
-    .query(`SELECT u.id, u.student_id, u.full_name, u.email, u.phone_number, u.course, u.college_id,
+    .query(`SELECT u.id, u.student_id, u.full_name, u.email, u.phone_number, u.course, u.program, u.college_id,
       u.id_proof_path, u.user_type, u.role, u.is_active, u.profile_picture, u.created_at,
       u.enrollment_status, u.study_load, c.name AS college_name,
       p.extension_name, p.birth_date, p.place_of_birth, p.sex, p.civil_status, p.maiden_name,
@@ -330,11 +330,11 @@ function resetLoginSecurity(userId, executor = pool) {
   );
 }
 
-function getPasswordHistory(userId, executor = pool) {
+function getPasswordHistory(userId, executor = pool, currentHash = '') {
   return executor
     .query(
-      'SELECT password_hash FROM password_history WHERE user_id = ? ORDER BY created_at DESC LIMIT 3',
-      [userId]
+    'SELECT password_hash, MAX(id) AS latest_id FROM password_history WHERE user_id = ? AND password_hash <> ? GROUP BY password_hash ORDER BY latest_id DESC LIMIT 3',
+    [userId, currentHash]
     )
     .then(([rows]) => rows);
 }

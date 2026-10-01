@@ -16,6 +16,7 @@ import DashboardAlerts from '@/components/DashboardAlerts';
 import DashboardLoading from '@/components/DashboardLoading';
 import StudentProfileModal from '@/components/StudentProfileModal';
 import ReportsPanel from '@/features/admin/components/ReportsPanel';
+import SubmissionQrPanel from '@/features/window1/components/SubmissionQrPanel';
 
 /**
  * Window 1 clerk: the counter at both ends of the pipeline.
@@ -41,6 +42,7 @@ export default function Window1Dashboard({ user, currentTab, setViewImageUrl }) 
     selectedDoc,
     setSelectedDoc,
     intakeNotes,
+    originalIssued, setOriginalIssued,
     setIntakeNotes,
     intakeFile,
     setIntakeFile,
@@ -106,6 +108,7 @@ export default function Window1Dashboard({ user, currentTab, setViewImageUrl }) 
             </div>
 
             {/* Top KPIs Row */}
+            <SubmissionQrPanel />
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <div className="bg-white dark:bg-gray-900 rounded-3xl p-6 shadow-sm border border-gray-200 dark:border-gray-700 flex flex-col justify-between min-h-44">
                 <div className="flex justify-between items-start">
@@ -548,6 +551,7 @@ export default function Window1Dashboard({ user, currentTab, setViewImageUrl }) 
           handleIntake={handleIntake}
           actionLoading={actionLoading}
           intakeNotes={intakeNotes}
+          originalIssued={originalIssued} setOriginalIssued={setOriginalIssued}
           setIntakeNotes={setIntakeNotes}
           intakeFile={intakeFile}
           setIntakeFile={setIntakeFile}
@@ -599,7 +603,7 @@ export default function Window1Dashboard({ user, currentTab, setViewImageUrl }) 
         message={
           selectedDoc
             ? intakeActionToConfirm === 'approve'
-              ? `Route ${selectedDoc.document_type} to the College Secretary?`
+              ? `Route ${selectedDoc.document_type} to the College Secretary?${originalIssued ? ' This also records your confirmation that an original was previously issued, with your notes.' : ''}`
               : `Return ${selectedDoc.document_type} to the student with your notes?`
             : ''
         }

@@ -8,10 +8,11 @@ import ModalShell from '@/components/ModalShell'
 import FileUploadField from '@/components/FileUploadField'
 import useSignupOcr from '@/hooks/useSignupOcr'
 import useNotificationDismissal from '@/hooks/useNotificationDismissal'
+import { PASSWORD_REQUIREMENTS, validNewPassword } from '@/utils/passwordPolicy'
 
 export default function SignupPage() {
   const { register, loading } = useAuth()
-  const [formData, setFormData] = useState({ employeeId: '', fullName: '', email: '', phoneNumber: '', password: '', confirmPassword: '', userType: 'student', college: '' })
+  const [formData, setFormData] = useState({ employeeId: '', fullName: '', email: '', phoneNumber: '', password: '', confirmPassword: '', userType: new URLSearchParams(window.location.search).get('applicant') === 'alumni' ? 'alumni' : 'student', college: '' })
   const [file, setFile] = useState(null)
   const [localError, setLocalError] = useState('')
   const [success, setSuccess] = useState('')
@@ -41,7 +42,7 @@ export default function SignupPage() {
     e.preventDefault()
     setLocalError('')
     setSuccess('')
-    if (!formData.employeeId.trim() || !formData.fullName.trim() || !formData.password.trim() || !formData.phoneNumber.trim() || !formData.college) {
+    if (!formData.employeeId.trim() || !formData.fullName.trim() || !formData.email.trim() || !formData.password.trim() || !formData.phoneNumber.trim() || !formData.college) {
       setLocalError('Please fill out all required fields.')
       return
     }
@@ -49,6 +50,7 @@ export default function SignupPage() {
       setLocalError('Passwords do not match.')
       return
     }
+    if (!validNewPassword(formData.password)) { setLocalError(PASSWORD_REQUIREMENTS); return }
     if (!file) {
       setLocalError('Please upload your proof of ID or Diploma.')
       return
@@ -62,6 +64,7 @@ export default function SignupPage() {
       form.append('password', formData.password);
       form.append('user_type', formData.userType);
       form.append('course', formData.college);
+      form.append('program', formData.program || '');
       const college = colleges.find(college => college.name === formData.college);
       if (college) form.append('college_id', String(college.id));
       form.append('id_proof', file);
@@ -77,16 +80,12 @@ export default function SignupPage() {
       setRegistrationToConfirm(null)
       setSuccess([result.message || 'Registration successful. Please wait for admin verification.', result.verification_reason].filter(Boolean).join(' '))
     } catch (err) {
-      setLocalError(err.response?.data?.error || err.response?.data?.message || 'Registration failed.')
+      setLocalError(err.response?.data?.error || err.response?.data?.message ||
+        (err.code === 'ECONNABORTED' || err.code === 'ETIMEDOUT'
+          ? 'Registration took too long to respond. Your account may already be saved. Check Login or contact the Registrar before trying again.'
+          : 'Registration failed. Check your connection and try again, or contact the Registrar.'))
     }
   }
-
-  useEffect(() => {
-    if (localError) {
-      const timer = setTimeout(() => setLocalError(''), 4000)
-      return () => clearTimeout(timer)
-    }
-  }, [localError])
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-800 flex items-center justify-center p-4 font-body relative overflow-hidden">
@@ -146,13 +145,17 @@ export default function SignupPage() {
               <input maxLength={INPUT_LIMITS.id} type="text" placeholder={formData.userType === 'alumni' ? 'Enter your Alumni ID' : 'e.g. 23-00123'} value={formData.employeeId} onChange={(e) => setFormData({...formData, employeeId: e.target.value})} className="w-full p-3.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm focus:ring-2 focus:ring-pine-500 focus:bg-white dark:focus:bg-gray-900 outline-none transition-all" />
             </div>
 
+            <label className="block text-sm font-semibold">Program/Course
+              <input maxLength={150} value={formData.program || ''} onChange={event => setFormData({ ...formData, program: event.target.value })} placeholder="e.g. BS Information Technology" className="mt-2 w-full p-3.5 rounded-xl border bg-gray-50 dark:bg-gray-800" />
+            </label>
+
             <div className="flex flex-col gap-1.5">
               <label className="text-sm font-semibold text-gray-800 dark:text-gray-100 ml-1">Full Name *</label>
               <input maxLength={INPUT_LIMITS.name} type="text" placeholder="Juan Dela Cruz" value={formData.fullName} onChange={(e) => setFormData({...formData, fullName: e.target.value})} className="w-full p-3.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm focus:ring-2 focus:ring-pine-500 focus:bg-white dark:focus:bg-gray-900 outline-none transition-all" />
             </div>
 
             <div className="flex flex-col gap-1.5">
-              <label className="text-sm font-semibold text-gray-800 dark:text-gray-100 ml-1">Email Address</label>
+              <label className="text-sm font-semibold text-gray-800 dark:text-gray-100 ml-1">Email Address *</label>
               <input type="email" maxLength={INPUT_LIMITS.email} placeholder="juan@plp.edu.ph" value={formData.email} onChange={(e) => setFormData({...formData, email: e.target.value})} className="w-full p-3.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm focus:ring-2 focus:ring-pine-500 focus:bg-white dark:focus:bg-gray-900 outline-none transition-all" />
             </div>
 
@@ -165,7 +168,7 @@ export default function SignupPage() {
               <label className="text-sm font-semibold text-gray-800 dark:text-gray-100 ml-1">Password *</label>
               <div className="relative">
                 <input maxLength={INPUT_LIMITS.password} type={showPassword ? 'text' : 'password'} placeholder="Create a password" value={formData.password} onChange={(e) => setFormData({...formData, password: e.target.value})} className="w-full p-3.5 pr-12 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm focus:ring-2 focus:ring-pine-500 focus:bg-white dark:focus:bg-gray-900 outline-none transition-all" />
-                <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-400 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 transition-colors" tabIndex={-1}>
+                <button type="button" aria-label={showPassword ? 'Hide password' : 'Show password'} onClick={() => setShowPassword(!showPassword)} className="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-400 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 transition-colors">
                   {showPassword ? (
                     <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M13.875 18.825A10.05 10.05 0 0112 19c-5 0-9.27-3.11-11-7.5a11.72 11.72 0 013.168-4.477M6.343 6.343A9.97 9.97 0 0112 5c5 0 9.27 3.11 11 7.5a11.72 11.72 0 01-4.168 4.477M6.343 6.343L3 3m3.343 3.343l2.829 2.829m4.243 4.243l2.829 2.829M6.343 6.343l11.314 11.314M14.121 14.121A3 3 0 009.879 9.879" /></svg>
                   ) : (
@@ -179,7 +182,7 @@ export default function SignupPage() {
               <label className="text-sm font-semibold text-gray-800 dark:text-gray-100 ml-1">Confirm Password *</label>
               <div className="relative">
                 <input maxLength={INPUT_LIMITS.password} type={showConfirm ? 'text' : 'password'} placeholder="Confirm your password" value={formData.confirmPassword} onChange={(e) => setFormData({...formData, confirmPassword: e.target.value})} className="w-full p-3.5 pr-12 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm focus:ring-2 focus:ring-pine-500 focus:bg-white dark:focus:bg-gray-900 outline-none transition-all" />
-                <button type="button" onClick={() => setShowConfirm(!showConfirm)} className="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-400 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 transition-colors" tabIndex={-1}>
+                <button type="button" aria-label={showConfirm ? 'Hide confirmation password' : 'Show confirmation password'} onClick={() => setShowConfirm(!showConfirm)} className="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-400 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 transition-colors">
                   {showConfirm ? (
                     <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M13.875 18.825A10.05 10.05 0 0112 19c-5 0-9.27-3.11-11-7.5a11.72 11.72 0 013.168-4.477M6.343 6.343A9.97 9.97 0 0112 5c5 0 9.27 3.11 11 7.5a11.72 11.72 0 01-4.168 4.477M6.343 6.343L3 3m3.343 3.343l2.829 2.829m4.243 4.243l2.829 2.829M6.343 6.343l11.314 11.314M14.121 14.121A3 3 0 009.879 9.879" /></svg>
                   ) : (

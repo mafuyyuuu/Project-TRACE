@@ -4,13 +4,14 @@ const path = require('path');
 
 function validatePassword(password) {
   const regex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
-  if (!regex.test(password)) {
-    throw badRequest('Password must be at least 8 characters and include uppercase, lowercase, number, and special character.');
+  if (typeof password !== 'string' || Buffer.byteLength(password, 'utf8') > 64 || !regex.test(password)) {
+    throw badRequest('Password must be 8–64 characters and include uppercase, lowercase, number, and a special character (@$!%*?&).');
   }
 }
 
-async function checkPasswordHistory(userId, newPassword) {
-  const history = await userModel.getPasswordHistory(userId);
+async function checkPasswordHistory(userId, newPassword, executor = pool, currentHash) {
+  if (currentHash && await bcrypt.compare(newPassword, currentHash)) throw badRequest('Choose a password different from your current password.');
+  const history = await userModel.getPasswordHistory(userId, executor, currentHash);
   for (const row of history) {
     if (await bcrypt.compare(newPassword, row.password_hash)) {
       throw badRequest('You cannot reuse any of your last 3 passwords.');
@@ -29,9 +30,13 @@ const passwordResetModel = require('../models/passwordReset.model');
 const trustedBrowser = require('./trustedBrowser.service');
 const trustedBrowserModel = require('../models/trustedBrowser.model');
 const authenticator = require('./authenticator.service');
+const emailVerification = require('./emailVerification.service');
 const aiEngine = require('./aiEngine.service');
 const notifications = require('./notification.service');
-const sendAuthEmail = ({ email, title, message }) => notifications.sendEmail(email, title, message);
+const sendAuthEmail = async ({ email, title, message }) => {
+  try { return await notifications.sendEmail(email, title, message); }
+  catch { return { ok: false }; }
+};
 const { UPLOAD_DIR } = require('../middlewares/upload.middleware');
 const { badRequest, unauthorized, forbidden, notFound } = require('../utils/AppError');
 
@@ -48,7 +53,7 @@ function otpExpired(value) {
 
 function publicUser(user) {
   const fields = ['id', 'student_id', 'full_name', 'role', 'user_type', 'desk_assignment',
-    'course', 'college_id', 'email', 'phone_number', 'profile_picture', 'verification_status'];
+    'course', 'program', 'college_id', 'email', 'email_verified_at', 'phone_number', 'profile_picture', 'verification_status'];
   const result = Object.fromEntries(fields.map(key => [key, user[key] ?? null]));
   for (const key of ['profile_completed', 'must_change_password', 'has_grad_application']) {
     result[key] = Boolean(user[key]);
@@ -86,6 +91,7 @@ async function login({ employee_id, password, shared_computer = true }, ipAddres
   const handleFail = async () => {
     if (secRows.length > 0) {
       const sec = secRows[0];
+      await userModel.logSecurityEvent(sec.id, 'LOGIN_FAILED', ipAddress, userAgent);
       const attempts = sec.failed_login_attempts + 1;
       if (attempts >= 5) {
         const until = new Date(Date.now() + 15 * 60000);
@@ -118,7 +124,8 @@ async function login({ employee_id, password, shared_computer = true }, ipAddres
   const requires2FA = (appEnabled || user.two_factor_enabled || isStaff) && !trusted;
 
   if (requires2FA) {
-    if (appEnabled) return authenticator.challenge(user, user.role === 'clerk' && shared_computer === false);
+    if (appEnabled) return authenticator.challenge(user, user.role === 'clerk');
+    if (user.role === 'clerk' && !user.email?.trim()) return { requires_authenticator_setup: true };
     const otp = crypto.randomInt(100000, 1000000).toString();
     const expires = new Date(Date.now() + 5 * 60000); // 5 mins
     await userModel.updateEmailOTP(user.id, otp, expires);
@@ -132,7 +139,7 @@ async function login({ employee_id, password, shared_computer = true }, ipAddres
       });
     }
 
-    const canTrustBrowser = user.role === 'clerk' && shared_computer === false;
+    const canTrustBrowser = user.role === 'clerk';
     const tempToken = jwt.sign({ id: user.id, pending_2fa: true,
       token_version: user.token_version ?? 0, can_trust_browser: canTrustBrowser }, env.JWT_SECRET, { expiresIn: '5m' });
     return { requires_2fa: true, temp_token: tempToken, email: user.email, can_trust_browser: canTrustBrowser };
@@ -145,6 +152,7 @@ async function login({ employee_id, password, shared_computer = true }, ipAddres
 
 
 
+  await userModel.resetLoginSecurity(user.id);
   await userModel.logSecurityEvent(user.id, 'LOGIN', ipAddress, userAgent);
   const token = jwt.sign(
     {
@@ -185,6 +193,8 @@ async function getCurrentUser(userId) {
  */
 async function register(body, file) {
   const { employee_id, full_name, email, phone_number, password, user_type, course, college_id } = body;
+  const program = readProgram(body.program);
+  const registeredEmail = emailVerification.emailAddress(email);
   if (user_type && !['student', 'alumni'].includes(user_type)) throw badRequest('Invalid applicant type.');
   let collegeId = null;
   let collegeName = course;
@@ -230,16 +240,21 @@ async function register(body, file) {
   const [created] = await userModel.createUser({
     student_id: employee_id,
     full_name,
-    email,
+    email: registeredEmail,
     phone_number,
     password_hash,
     role: 'student',
     user_type,
     course: collegeName,
+    program,
     college_id: collegeId,
     id_proof_path,
     verification_status,
   });
+
+  let emailResult;
+  try { emailResult = await emailVerification.issue(created.insertId); }
+  catch { emailResult = { email_sent: false }; }
 
   if (verification_status === 'pending') {
     try {
@@ -258,12 +273,15 @@ async function register(body, file) {
     'Could not verify all required fields (School name, Student ID, College).',
   ]);
   return {
+    email_verification_required: true, email_sent: emailResult.email_sent,
     verification_status,
     verification_reason: verification_status === 'verified' ? null
       : allowedReasons.has(aiResult?.reason) ? aiResult.reason : 'Automatic verification was unavailable or inconclusive. An administrator will review your proof.',
-    message: verification_status === 'verified'
+    message: (verification_status === 'verified'
       ? 'Registration successful. Your account was automatically verified by AI!'
-      : 'Registration successful. Please wait for administrator verification.',
+      : 'Registration successful. Please wait for administrator verification.')
+      + (emailResult.email_sent ? ' Open the email verification link in your inbox before requesting documents.'
+        : ' The email verification link could not be delivered. After account approval, sign in and use Verify Email to resend, or contact the Registrar.'),
   };
 }
 
@@ -313,15 +331,22 @@ async function lookupStudent(studentId, requestingUser) {
 
 
 
-async function updateProfile(userId, { phone_number, email, course, password, current_password, ...profileFields }) {
+function readProgram(value) {
+  if (value === undefined || value === null || value === '') return null;
+  if (typeof value !== 'string' || value.trim().length > 150) throw badRequest('Program/Course must be text of at most 150 characters.');
+  return value.trim() || null;
+}
+async function updateProfile(userId, { phone_number, email, course, program, password, current_password, ...profileFields }) {
   const fields = {};
   let verifiedPasswordHash;
+  let changedSession;
   
   const users = await userModel.getProfileById(userId);
   if (!users || users.length === 0) throw notFound('User not found.');
   const currentUser = users[0];
 
   const emailChanged = (email !== undefined && email !== '' && email !== currentUser.email);
+  if (emailChanged && password) throw badRequest('Change your password and email separately so each verification can finish.');
 
   if (emailChanged || password) {
     if (!current_password) {
@@ -337,7 +362,7 @@ async function updateProfile(userId, { phone_number, email, course, password, cu
     const match = await bcrypt.compare(current_password, userRow[0].password_hash);
 
     if (!match) {
-      throw unauthorized('Incorrect current password.');
+      throw badRequest('Incorrect current password.');
     }
     verifiedPasswordHash = userRow[0].password_hash;
   }
@@ -345,59 +370,35 @@ async function updateProfile(userId, { phone_number, email, course, password, cu
 
   if (phone_number !== undefined) fields.phone_number = phone_number;
   
-  if (emailChanged) {
-    // Generate 6-digit OTP
-    const otp = crypto.randomInt(100000, 1000000).toString();
-    const expires = new Date(Date.now() + 15 * 60000); // 15 mins
-    
-    await userModel.requestEmailChange(userId, email, `E:${otp}`, expires);
-
-    const nodemailer = require('nodemailer'); // Assumes we use notification.service
-    const notifications = require('./notification.service');
-    
-    // Send OTP to new email
-    if (sendAuthEmail) {
-      await sendAuthEmail({
-        email: email,
-        title: 'Verify Your New Email',
-        message: `Your verification code is: ${otp}. It expires in 15 minutes.`
-      });
-      // Notify old email
-      await sendAuthEmail({
-        email: currentUser.email,
-        title: 'Email Change Requested',
-        message: 'A request to change your email address was initiated. If this was not you, please contact support.'
-      });
-    }
-    
-    await userModel.logSecurityEvent(userId, 'EMAIL_CHANGE_REQUESTED');
-    // We don't update fields.email yet!
-  }
+  let emailResult;
+  if (emailChanged) emailResult = await emailVerification.issue(userId, { email, current_password });
 
   if (course !== undefined) fields.course = course;
+  if (program !== undefined) fields.program = readProgram(program);
   
   if (password) {
     validatePassword(password);
-    await checkPasswordHistory(userId, password);
+    if (await bcrypt.compare(password, verifiedPasswordHash)) throw badRequest('Choose a password different from your current password.');
     fields.password_hash = await bcrypt.hash(password, 10);
     fields.must_change_password = false;
-    await writeCredentialsAndRevoke(userId, async connection => {
+    const changedAccount = await writeCredentialsAndRevoke(userId, async connection => {
+      await checkPasswordHistory(userId, password, connection, verifiedPasswordHash);
+      await userModel.addPasswordHistory(userId, verifiedPasswordHash, connection);
       await userModel.updateProfile(userId, fields, connection);
       await userModel.addPasswordHistory(userId, fields.password_hash, connection);
       await userModel.logSecurityEvent(userId, 'PASSWORD_CHANGE', null, null, connection);
     }, verifiedPasswordHash);
+    changedSession = createSession(changedAccount);
     
     // SEC-07 Email notification
     
     const userRows = await userModel.getProfileById(userId);
 
     if (userRows[0] && userRows[0].email) {
-      const nodemailer = require('nodemailer'); // Assumes we use the same mailer. We have notification.service.js
-      const notifications = require('./notification.service');
       if (sendAuthEmail) await sendAuthEmail({
         email: userRows[0].email,
         title: 'Password Changed',
-        message: 'Your Project TRACE password was recently changed. If this was not you, please contact the administrator immediately.'
+        message: `Your TRACE password changed and all previous sessions ended. If this was not you, secure your account at ${emailVerification.frontendUrl()}/forgot-password and contact the Registrar immediately.`
       });
     }
   }
@@ -418,7 +419,7 @@ async function updateProfile(userId, { phone_number, email, course, password, cu
     throw badRequest('No fields to update.');
   }
 
-  return { message: emailChanged ? 'Profile saved. Verify the code sent to your new email.' : 'Profile updated successfully.', email_verification_required: emailChanged, pending_email: emailChanged ? email : null };
+  return { ...changedSession, ...emailResult, message: emailChanged ? `Profile saved. ${emailResult.message}` : password ? 'Password changed. Other devices were logged out. This browser remains signed in.' : 'Profile updated successfully.', password_changed: Boolean(password), email_verification_required: emailChanged, pending_email: emailChanged ? emailResult.pending_email : null };
 }
 
 
@@ -532,6 +533,7 @@ async function verify2FA(tempToken, otp, ipAddress, userAgent, trustBrowser = fa
   // Clear OTP
   await userModel.clearEmailOTP(user.id);
   
+  await userModel.resetLoginSecurity(user.id);
   await userModel.logSecurityEvent(user.id, 'LOGIN', ipAddress, userAgent);
 
   const token = jwt.sign(
@@ -557,25 +559,8 @@ async function verify2FA(tempToken, otp, ipAddress, userAgent, trustBrowser = fa
   return result;
 }
 
-async function verifyEmailChange(userId, otp) {
-  const [user] = await userModel.findById(userId);
-  if (!user) throw notFound('User not found.');
-  if (!user.pending_email || !user.email_otp) {
-    throw badRequest('No email change requested.');
-  }
-  
-  if (user.email_otp !== `E:${otp}`) {
-    throw unauthorized('Invalid verification code.');
-  }
-  
-  if (otpExpired(user.email_otp_expires)) {
-    throw badRequest('Verification code expired.');
-  }
-  
-  await userModel.commitEmailChange(userId, user.pending_email);
-  
-  await userModel.logSecurityEvent(userId, 'EMAIL_CHANGED');
-  return { message: 'Email address updated successfully.' };
+async function verifyEmailChange() {
+  throw badRequest('Email verification now uses a link. Save your new email with your current password to receive it.');
 }
 
 async function getGlobalSecurityLogs() {
@@ -637,33 +622,36 @@ async function requestPasswordReset({ identifier }) {
   const rows = await userModel.findActiveByStudentIdOrEmail(String(identifier).trim());
   if (rows.length === 0) return generic;
 
-  const user = rows[0];
+  let user = rows[0];
 
   // No email on file means there is nowhere to send the link. Silently stop:
   // saying so out loud would leak that the account exists.
   if (!user.email) return generic;
 
-  // Only the newest link should work, so retire any earlier outstanding ones.
-  await passwordResetModel.invalidateAllForUser(user.id);
-
   const token = crypto.randomBytes(32).toString('hex');
-  await passwordResetModel.create({
-    user_id: user.id,
-    token_hash: hashResetToken(token),
-    expires_at: new Date(Date.now() + RESET_TOKEN_TTL_MS),
-  });
+  const connection = await pool.getConnection();
+  try {
+    await connection.beginTransaction();
+    user = await trustedBrowserModel.lockAccount(user.id, connection);
+    if (!user?.is_active || !user.email) { await connection.commit(); return generic; }
+    // Serialize issuance against password changes, resets and other resends.
+    await passwordResetModel.invalidateAllForUser(user.id, connection);
+    await passwordResetModel.create({ user_id: user.id, token_hash: hashResetToken(token), expires_at: new Date(Date.now() + RESET_TOKEN_TTL_MS) }, connection);
+    await connection.commit();
+  } catch (error) { await connection.rollback(); throw error; }
+  finally { connection.release(); }
 
   const base = (env.FRONTEND_URL.split(',')[0] || '').trim() || 'http://localhost:5273';
-  const link = `${base.replace(/\/$/, '')}/reset-password?token=${token}`;
+  const link = `${base.replace(/\/$/, '')}/reset-password#token=${token}`;
 
-  const sent = await notifications.sendEmail(
-    user.email,
-    'Password reset request',
-    `Hi ${user.full_name ? user.full_name.split(',')[0] : 'there'},\n\n` +
+  const sent = await sendAuthEmail({
+    email: user.email,
+    title: 'Password reset request',
+    message: `Hi ${user.full_name ? user.full_name.split(',')[0] : 'there'},\n\n` +
       `A password reset was requested for ${user.student_id}. Open the link below within the hour to choose a new password:\n\n` +
       `${link}\n\n` +
       `If you did not request this, you can ignore this email — your password will not change.`
-  );
+  });
 
   if (!sent.ok) console.warn('[Password reset] Email not delivered. Check SMTP configuration.');
 
@@ -681,9 +669,7 @@ async function resetPassword({ token, password }) {
   if (!token || !password) {
     throw badRequest('A reset token and a new password are required.');
   }
-  if (String(password).length < 8) {
-    throw badRequest('Password must be at least 8 characters.');
-  }
+  validatePassword(password);
 
   const rows = await passwordResetModel.findUsableByTokenHash(hashResetToken(String(token)));
   if (rows.length === 0) {
@@ -700,6 +686,12 @@ async function resetPassword({ token, password }) {
     if (!usable.some(row => row.id === reset.id && row.user_id === reset.user_id)) {
       throw badRequest('This reset link is invalid or has expired. Please request a new one.');
     }
+    const [account] = await userModel.findById(reset.user_id, connection);
+    if (!account?.is_active) throw badRequest('Account is unavailable.');
+    await checkPasswordHistory(reset.user_id, password, connection, account.password_hash);
+    await userModel.addPasswordHistory(reset.user_id, account.password_hash, connection);
+    await userModel.addPasswordHistory(reset.user_id, password_hash, connection);
+    await userModel.logSecurityEvent(reset.user_id, 'PASSWORD_RESET', null, null, connection);
     await userModel.updateProfile(reset.user_id, { password_hash, must_change_password: false }, connection);
     await passwordResetModel.markUsed(reset.id, connection);
     await passwordResetModel.invalidateAllForUser(reset.user_id, connection);
@@ -710,7 +702,7 @@ async function resetPassword({ token, password }) {
     await sendAuthEmail({
       email: uRows[0].email,
       title: 'Password Reset Successful',
-      message: 'Your Project TRACE password has been successfully reset. If this was not you, please contact the administrator immediately.'
+      message: `Your TRACE password was reset and all previous sessions ended. If this was not you, secure your account at ${emailVerification.frontendUrl()}/forgot-password and contact the Registrar immediately.`
     });
   }
 
@@ -721,6 +713,7 @@ async function resetPassword({ token, password }) {
 // account version; no trust table is needed to revoke old browser proofs.
 async function writeCredentialsAndRevoke(userId, write, expectedPasswordHash) {
   const connection = await pool.getConnection();
+  let changedAccount;
   try {
     await connection.beginTransaction();
     const account = await trustedBrowserModel.lockAccount(userId, connection);
@@ -731,6 +724,9 @@ async function writeCredentialsAndRevoke(userId, write, expectedPasswordHash) {
     await write(connection);
     await userModel.incrementTokenVersion(userId, connection);
     await userModel.clearEmailOTP(userId, connection);
+    await passwordResetModel.invalidateAllForUser(userId, connection);
+    const [profile] = await userModel.getProfileById(userId, connection);
+    changedAccount = { ...account, ...profile, token_version: (account.token_version ?? 0) + 1 };
     await connection.commit();
   } catch (err) {
     await connection.rollback();
@@ -739,6 +735,7 @@ async function writeCredentialsAndRevoke(userId, write, expectedPasswordHash) {
     connection.release();
   }
   require('../realtime').disconnectUser(userId);
+  return changedAccount;
 }
 
 module.exports = {

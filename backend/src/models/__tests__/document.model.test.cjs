@@ -6,7 +6,7 @@ it('declares the document alias in both paginated student history queries', asyn
   await expect(model.listWithFilters(conditions, params, 10, 20, executor)).resolves.toEqual([]);
   await expect(model.countWithFilters(conditions, params, executor)).resolves.toBe(0);
   expect(executor.query.mock.calls[0]).toEqual([
-    'SELECT d.* FROM documents d WHERE d.student_id = ? AND d.current_status = ? ORDER BY d.created_at DESC LIMIT ? OFFSET ?',
+    "SELECT d.*, student.program FROM documents d LEFT JOIN users student ON student.student_id = d.student_id AND student.role = 'student' WHERE d.student_id = ? AND d.current_status = ? ORDER BY d.created_at DESC LIMIT ? OFFSET ?",
     [...params, 10, 20],
   ]);
   expect(executor.query.mock.calls[1]).toEqual([

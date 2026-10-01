@@ -1,6 +1,7 @@
 const { pool } = require('../config/db');
 const { getProfileCompletion } = require('../utils/profileCompletion');
 const documentModel = require('../models/document.model');
+const requestSequences = require('../models/requestSequence.model');
 const documentMessageModel = require('../models/documentMessage.model');
 const documentPolicy = require('./documentPolicy.service');
 const stepLogModel = require('../models/stepLog.model');
@@ -168,12 +169,12 @@ async function uploadDocument(user, body, files) {
     if (user.role === 'student') {
       const [profile] = await userModel.getProfileById(user.id, connection, true);
       if (!profile || profile.role !== 'student') throw forbidden('Your account has no student profile.');
+      if (profile.email_verified_at === null) throw forbidden('Verify your email using the link in your inbox before requesting documents.');
+      if (profile.user_type === 'alumni' && !profile.has_grad_application) throw forbidden('Submit your graduate application before requesting documents.');
       const completion = getProfileCompletion(profile);
       if (!completion.complete) throw forbidden(`Complete your profile before requesting documents. Missing: ${completion.missing.map(item => item.label).join(', ')}.`);
     }
 
-    // Determine if the student is an alumni for sequence offset
-    let isAlumni = false;
     const targetStudent = await documentPolicy.resolveStudent(student_id, connection, true);
     const types = await pricingModel.attachSchedules(await referenceModel.findDocumentTypesByNames(
       requested.map(item => item.document_type), connection, true), connection);
@@ -183,9 +184,6 @@ async function uploadDocument(user, body, files) {
     } catch (err) { throw badRequest(err.message); }
     total = pricing.total;
     const priced = pricing.items;
-    if (targetStudent?.user_type === 'alumni') {
-      isAlumni = true;
-    }
 
     for (const [index, item] of priced.entries()) {
       const type = types.find(type => type.name === item.document_type);
@@ -194,8 +192,7 @@ async function uploadDocument(user, body, files) {
       await documentPolicy.assertAllowed(type, targetStudent, { counter: isWalkIn, copies: requested[index].copies ?? 1, executor: connection,
         allowUnidentified: isWalkIn && !student_id && Boolean(attachment) });
 
-      const previousCount = await documentModel.countByTypeAndStudent(item.document_type, student_id, connection);
-      const sequenceNumberStr = `${item.document_type} – Request No. ${previousCount + (isAlumni ? 2 : 1)}`;
+      const sequenceNumberStr = await requestSequences.allocate(student_id, item.document_type, connection);
 
       const [docResult] = await documentModel.insert(
         {
@@ -892,7 +889,7 @@ function requireDesk(user, desk, message) {
  * secretary is only chosen once a human has confirmed there is something real
  * to route.
  */
-async function intakeDocument(user, documentId, { action, notes }, file) {
+async function intakeDocument(user, documentId, { action, notes, original_issued }, file) {
   requireDesk(user, 'Window 1', 'Only Window 1 Clerks can process intake.');
   if (!['approve', 'return'].includes(action)) {
     throw badRequest('Invalid action. Must be approve or return.');
@@ -918,6 +915,15 @@ async function intakeDocument(user, documentId, { action, notes }, file) {
       const type = await documentPolicy.assertDocument(doc, { executor: connection, allowUnidentified: true });
       if (documentPolicy.enabled(type.requires_attachment) && !doc.file_path && !file) {
         throw badRequest('Attach the required supporting document before approving intake.');
+      }
+      if (original_issued === 'true' || original_issued === true) {
+        if (!doc.student_id || typeof notes !== 'string' || !notes.trim() || notes.trim().length > 2000) throw badRequest('Identify the student and add a note confirming previous original issuance.');
+        const recorded = await requestSequences.recordOriginal(doc.student_id, doc.document_type, user.id, notes.trim(), connection);
+        if (recorded && (!doc.document_sequence_number || /Request No[.] 1$/.test(doc.document_sequence_number))) {
+          await requestSequences.setDocumentSequence(documentId, await requestSequences.allocate(doc.student_id, doc.document_type, connection), connection);
+        }
+      } else if (!doc.document_sequence_number && doc.student_id) {
+        await requestSequences.setDocumentSequence(documentId, await requestSequences.allocate(doc.student_id, doc.document_type, connection), connection);
       }
       assertTransition(doc.current_status, STATUS.PENDING_SEC_EVALUATION);
       await documentModel.updateStatus(documentId, STATUS.PENDING_SEC_EVALUATION, connection);
@@ -1056,6 +1062,10 @@ async function acceptForProcessing(user, documentId, body) {
       action === 'approve' ? estimated_ready_date : null,
       connection
     );
+    const correctedStudent = student_id || doc.student_id, correctedType = document_type || doc.document_type;
+    if (correctedStudent && (!doc.document_sequence_number || correctedStudent !== doc.student_id || correctedType !== doc.document_type)) {
+      await requestSequences.setDocumentSequence(documentId, await requestSequences.allocate(correctedStudent, correctedType, connection), connection);
+    }
 
     await stepLogModel.insert(
       {

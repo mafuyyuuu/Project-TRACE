@@ -30,7 +30,7 @@ async function transactions(user, query = {}, exporting = false) {
   if (!exporting) return { transactions: rows, total: Number(totals.total), amount: Number(totals.amount), page, limit: 25, server_now: new Date().toISOString() };
   const date = value => value ? new Intl.DateTimeFormat('en-PH', { timeZone: 'Asia/Manila', dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value)) : 'Historical date not recorded';
   const output = rows.map(row => ({ ...row, payment_cleared_at: date(row.payment_cleared_at), amount: `₱${Number(row.amount).toFixed(2)}`, receipt_status: !row.or_number ? 'Issuance pending' : !row.official_receipt_path ? 'Issued; digital copy pending' : 'Digital OR available' }));
-  const columns = [['request_group_id', 'Request'], ['student_id', 'Student ID'], ['student_name', 'Student'], ['document_type', 'Documents'], ['documents_covered', 'Document count'], ['payment_cleared_at', 'Payment cleared (Manila)'], ['amount', 'Paid amount'], ['or_number', 'OR number'], ['or_date', 'OR date'], ['receipt_status', 'OR status']].map(([key, label]) => ({ key, label }));
+  const columns = [['request_group_id', 'Request'], ['student_id', 'Student ID'], ['student_name', 'Student'], ['program', 'Program/Course'], ['document_type', 'Documents'], ['documents_covered', 'Document count'], ['payment_cleared_at', 'Payment cleared (Manila)'], ['amount', 'Paid amount'], ['or_number', 'OR number'], ['or_date', 'OR date'], ['receipt_status', 'OR status']].map(([key, label]) => ({ key, label }));
   return { filename: csvFilename('finance-transactions'), csv: toCsv(columns, output) };
 }
 module.exports = { transactions, filters };

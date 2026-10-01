@@ -31,3 +31,7 @@ it('returns only room identity for a fully authenticated session', async () => {
   expect(result).toMatchObject({ id: 3, role: 'student' });
   expect(result).not.toHaveProperty('full_name');
 });
+it.each([{ role: 'clerk', must_change_password: 1 }, { role: 'student', user_type: 'alumni', has_grad_application: 0 }])('denies notification sockets while onboarding is mandatory', async account => {
+  pool.query.mockResolvedValue([[{ token_version: 2, is_active: 1, ...account }]]);
+  await expect(authenticateToken(token({ role: account.role }))).rejects.toThrow('Complete account onboarding');
+});
