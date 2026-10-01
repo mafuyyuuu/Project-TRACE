@@ -2,6 +2,12 @@
 
 ## Current Status — 2026-10-01
 
+### Tutorial documentation revision — 2026-10-01
+
+Reorganized USER_MANUAL.md into numbered tasks for registration/login, the once-per-account floating tour, Profile email links, requests/payment/tracking, messaging, Security, appearance and each staff desk. Removed production instructions to use shared demo credentials and superseded email-code, manual-price and attachment-policy statements. Added common problems and explicit distinctions between email verification, login factors and ID review. MIGRATION_ROLLOUT.md now starts with an existing-server follow-up path, verified-backup prerequisites, two preserving migrations, expected results, restart/frontend order and live feature checks. Deployment/configuration guides link to that path; HelpPage's email, authenticator-control labels and tour wording follow the manual. No runtime workflow, database, email dispatch or production deployment is changed by this documentation round.
+
+Validation: the two relevant FAQ/workflow Vitest suites pass (14 tests); frontend lint and `git diff --check` pass. Manual/rollout local links and heading anchors were checked; all 16 rollout shell blocks pass Bash and Zsh syntax checks. The shell blocks were parsed only, not executed. No full application retest or live deployment was needed for documentation and FAQ copy changes.
+
 The user's broad “finish everything” authorization supersedes the historical per-file approval checkpoints below. Current implementation and rollout instructions take precedence over older pending/completion statements; local verification is not deployed acceptance.
 
 ### Verification email button finding — 2026-10-01
