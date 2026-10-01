@@ -3,13 +3,14 @@ import { updateProfile, uploadProfilePicture, getMe } from '@/services/authServi
 
 import { isTransferStudent } from '@/utils/profileCompletion';
 import { disconnectRealtime } from '@/services/realtimeService';
+import useEmailVerification from '@/hooks/useEmailVerification';
 
 const STORED_USER_KEY = 'trace_user';
 
 function formFromUser(user) {
   return {
     phone_number: user?.phone_number || '',
-    email: user?.email || '',
+    email: user?.pending_email || user?.email || '',
     program: user?.program || '',
     password: '',
     current_password: '',
@@ -52,6 +53,7 @@ function formFromUser(user) {
  */
 export default function useProfileSettings(user) {
   const savingRef = useRef(false);
+  const verification = useEmailVerification();
   const [profileData, setProfileData] = useState(() => formFromUser(user));
   const [dirty, setDirty] = useState(false);
   const [sourceUser, setSourceUser] = useState(user);
@@ -67,6 +69,7 @@ export default function useProfileSettings(user) {
   // overwriting a draft the user has already started editing.
   if (sourceUser !== user) {
     setSourceUser(user);
+    setPendingEmail(user?.pending_email || '');
     if (!dirty) setProfileData(formFromUser(user));
   }
 
@@ -82,12 +85,31 @@ export default function useProfileSettings(user) {
   };
 
   const setField = (field, value) => {
+    if (field === 'email') verification.reset();
     setDirty(true);
     setProfileData((current) => ({ ...current, [field]: value }));
   };
 
   const readError = (err) =>
     err?.response?.data?.error || err?.response?.data?.message || err?.message || 'Something went wrong.';
+
+  // Send only the email action; phone, education, password and picture drafts stay local.
+  const verifyEmail = async (draft = profileData) => {
+    if (savingRef.current) return false;
+    savingRef.current = true;
+    try {
+      const email = (draft.email || '').trim().toLowerCase();
+      const changed = email !== (user?.email || '').trim().toLowerCase();
+      const result = await verification.send(changed ? { email, current_password: draft.current_password } : {});
+      if (!result) return false;
+      if (changed && result.pending_email) {
+        setPendingEmail(result.pending_email);
+        patchStoredUser({ pending_email: result.pending_email });
+        setProfileData(current => ({ ...current, current_password: '' }));
+      }
+      return result.email_sent !== false;
+    } finally { savingRef.current = false; }
+  };
 
   const saveProfile = async (e) => {
     if (e) e.preventDefault();
@@ -116,13 +138,17 @@ export default function useProfileSettings(user) {
     }
 
     try {
-      const result = await updateProfile(profileData);
+      // An already-pending address was submitted by Verify; don't issue another
+      // link (or claim the address changed) when saving unrelated profile fields.
+      const payload = pendingEmail && profileData.email.trim().toLowerCase() === pendingEmail.toLowerCase()
+        ? { ...profileData, email: user?.email || '' } : profileData;
+      const result = await updateProfile(payload);
       if (result?.token && result?.user) {
         localStorage.setItem('trace_token', result.token);
         disconnectRealtime();
         patchStoredUser(result.user);
       }
-      patchStoredUser({ phone_number: profileData.phone_number, ...(result?.email_verification_required ? {} : { email: profileData.email }) });
+      patchStoredUser({ phone_number: payload.phone_number, ...(result?.email_verification_required ? {} : { email: payload.email }) });
       if (result?.email_verification_required) setPendingEmail(result.pending_email || profileData.email);
       setProfileData((current) => ({ ...current, password: '', current_password: '' }));
       if (!profileData.password || result?.token) {
@@ -131,6 +157,7 @@ export default function useProfileSettings(user) {
           if (!fresh) throw new Error('Profile refresh returned no account.');
           setDirty(false);
           setProfileData(formFromUser(fresh));
+          setPendingEmail(fresh.pending_email || (result?.email_verification_required ? result.pending_email : '') || '');
           patchStoredUser(fresh);
         } catch {
           // The write succeeded. Do not claim it failed or publish unsaved draft fields.
@@ -169,12 +196,14 @@ export default function useProfileSettings(user) {
 
   /** Drop any stale banner when the modal is reopened. */
   const resetFeedback = () => {
+    verification.reset();
     setSuccess('');
     setError('');
   };
 
 
   return {
+    verifyEmail, verifyingEmail: verification.sending, verificationMessage: verification.message, verificationError: verification.error,
     pendingEmail, avatarFile,
     profileData,
     setField,

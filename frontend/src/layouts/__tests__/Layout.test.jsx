@@ -56,6 +56,14 @@ beforeEach(() => {
 });
 
 describe('Layout', () => {
+  it('places email verification in Edit Profile instead of the dashboard banner', () => {
+    currentUser = { ...STUDENT, email_verified_at: null };
+    renderLayout();
+    expect(screen.queryByRole('region', { name: 'Verify email' })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Edit Profile' }));
+    expect(screen.getByRole('button', { name: 'Verify' })).toBeInTheDocument();
+    expect(screen.getByLabelText(/Email Address/)).toHaveValue(STUDENT.email);
+  });
   it('routes new alumni to the graduation form with no shared navigation or profile bypass', () => {
     currentUser = { ...STUDENT, user_type: 'alumni', has_grad_application: false, email_verified_at: null };
     renderLayout();

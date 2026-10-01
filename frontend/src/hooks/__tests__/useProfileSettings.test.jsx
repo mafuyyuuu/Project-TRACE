@@ -9,6 +9,8 @@ vi.mock('@/services/authService', () => ({
 
 import { updateProfile, uploadProfilePicture, verifyEmailChange, getMe } from '@/services/authService';
 import useProfileSettings from '@/hooks/useProfileSettings';
+import { resendVerification } from '@/services/emailVerificationService';
+vi.mock('@/services/emailVerificationService', () => ({ resendVerification: vi.fn() }));
 
 const USER = {
   id: 3,
@@ -20,6 +22,7 @@ const USER = {
 };
 
 beforeEach(() => {
+  resendVerification.mockReset();
   getMe.mockReset().mockImplementation(async () => {
     const saved = updateProfile.mock.calls.at(-1)?.[0] || {};
     const cached = JSON.parse(localStorage.getItem('trace_user'));
@@ -32,6 +35,55 @@ beforeEach(() => {
 });
 
 describe('useProfileSettings', () => {
+  it('sends the current email link without saving other drafts and blocks duplicate sends/saves', async () => {
+    let resolve;
+    resendVerification.mockReturnValue(new Promise(done => { resolve = done; }));
+    const { result } = renderHook(() => useProfileSettings(USER));
+    act(() => { result.current.setField('phone_number', 'unsaved'); result.current.changeAvatar(new File(['x'], 'draft.png')); });
+    let first;
+    act(() => { first = result.current.verifyEmail(); });
+    await act(async () => {
+      expect(await result.current.verifyEmail()).toBe(false);
+      expect(await result.current.saveProfile()).toBe(false);
+    });
+    expect(resendVerification).toHaveBeenCalledExactlyOnceWith({});
+    expect(result.current.verifyingEmail).toBe(true);
+    await act(async () => { resolve({ email_sent: true, message: 'Link sent.' }); await first; });
+    expect(result.current.verificationMessage).toBe('Link sent.');
+    expect(result.current.profileData.phone_number).toBe('unsaved');
+    expect(result.current.avatarFile).not.toBeNull();
+    expect(updateProfile).not.toHaveBeenCalled();
+    expect(uploadProfilePicture).not.toHaveBeenCalled();
+  });
+  it('stages a changed address until link confirmation, even after mail delivery fails', async () => {
+    resendVerification.mockResolvedValue({ pending_email: 'new@example.test', email_sent: false, message: 'Delivery failed.' });
+    const { result } = renderHook(() => useProfileSettings(USER));
+    act(() => { result.current.setField('email', 'NEW@example.test'); result.current.setField('current_password', 'synthetic'); });
+    await act(async () => expect(await result.current.verifyEmail()).toBe(false));
+    expect(resendVerification).toHaveBeenCalledWith({ email: 'new@example.test', current_password: 'synthetic' });
+    expect(result.current.verificationError).toBe('Delivery failed.');
+    expect(result.current.pendingEmail).toBe('new@example.test');
+    expect(JSON.parse(localStorage.getItem('trace_user'))).toMatchObject({ email: USER.email, pending_email: 'new@example.test' });
+    expect(result.current.profileData.current_password).toBe('');
+    expect(updateProfile).not.toHaveBeenCalled();
+  });
+  it('reopens a pending address and clears its notice when the server confirms verification', () => {
+    const { result, rerender } = renderHook(({ user }) => useProfileSettings(user), { initialProps: { user: { ...USER, pending_email: 'new@example.test' } } });
+    expect(result.current.profileData.email).toBe('new@example.test');
+    rerender({ user: { ...USER, email: 'new@example.test', pending_email: null, email_verified_at: '2026-10-01' } });
+    expect(result.current.pendingEmail).toBe('');
+    expect(result.current.profileData.email).toBe('new@example.test');
+  });
+  it('does not resend a pending change or publish an unverified email during Profile Save', async () => {
+    const user = { ...USER, pending_email: 'new@example.test' };
+    updateProfile.mockResolvedValue({});
+    getMe.mockResolvedValue({ user });
+    const { result } = renderHook(() => useProfileSettings(user));
+    await act(() => result.current.saveProfile());
+    expect(updateProfile).toHaveBeenCalledWith(expect.objectContaining({ email: USER.email }));
+    expect(JSON.parse(localStorage.getItem('trace_user')).email).toBe(USER.email);
+    expect(resendVerification).not.toHaveBeenCalled();
+  });
   it('seeds the form from the signed-in account', () => {
     const { result } = renderHook(() => useProfileSettings(USER));
     expect(result.current.profileData).toMatchObject({

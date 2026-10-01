@@ -12,7 +12,6 @@ import ConfirmDialog from '@/components/ConfirmDialog'
 import UserAvatar from '@/components/UserAvatar'
 import plpLogo from '@/assets/plp_logo.png'
 import GraduateApplication from '@/features/graduate/GraduateApplication'
-import EmailVerificationNotice from '@/components/EmailVerificationNotice'
 
 export default function Layout() {
   const { user, logout } = useAuth()
@@ -320,7 +319,6 @@ export default function Layout() {
 
         {/* Main Content Area */}
         <main ref={contentRef} className="trace-content flex-1 min-w-0 h-full overflow-y-auto">
-          <EmailVerificationNotice user={user} />
           <Outlet />
         </main>
       </div>
@@ -331,13 +329,17 @@ export default function Layout() {
           initialTab={settingsTab} darkMode={darkMode} onToggleTheme={toggleTheme}
           textSize={textSize} onTextSizeChange={changeTextSize}
           pendingEmail={settings.pendingEmail}
+          onVerifyEmail={settings.verifyEmail}
+          verifyingEmail={settings.verifyingEmail}
+          verificationMessage={settings.verificationMessage}
+          verificationError={settings.verificationError}
           onClose={closeSettings}
           profileData={settings.profileData}
           setField={settings.setField}
           avatarPath={settings.avatarPath}
           avatarPreviewUrl={settings.avatarPreviewUrl}
           avatarFile={settings.avatarFile}
-          saving={settings.saving}
+          saving={settings.saving || settings.verifyingEmail}
           success={settings.success}
           error={settings.error}
           onSave={settings.saveProfile}

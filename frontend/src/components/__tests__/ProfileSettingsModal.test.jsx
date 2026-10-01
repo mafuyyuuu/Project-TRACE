@@ -48,6 +48,35 @@ beforeEach(() => {
 });
 
 describe('ProfileSettingsModal', () => {
+  it.each([STUDENT, CLERK, { ...CLERK, role: 'admin' }])('offers link verification beside the profile email for $role without saving other fields', async account => {
+    const onVerifyEmail = vi.fn().mockResolvedValue(true);
+    renderModal({ user: { ...account, email: baseProps.profileData.email, email_verified_at: null }, onVerifyEmail });
+    expect(screen.getByLabelText(/Email Address/)).toHaveValue(baseProps.profileData.email);
+    fireEvent.click(screen.getByRole('button', { name: 'Verify' }));
+    await waitFor(() => expect(onVerifyEmail).toHaveBeenCalledWith({ email: baseProps.profileData.email, current_password: undefined }));
+    expect(baseProps.onSave).not.toHaveBeenCalled();
+    expect(screen.queryByRole('dialog', { name: 'Verify Email Address' })).not.toBeInTheDocument();
+  });
+  it('requires the password and confirms only the changed email before sending its link', async () => {
+    const onVerifyEmail = vi.fn().mockResolvedValue(true);
+    const { rerender } = renderModal({ user: { ...STUDENT, email: 'old@example.test', email_verified_at: '2026-10-01' }, onVerifyEmail });
+    expect(screen.getByRole('button', { name: 'Verify' })).toBeDisabled();
+    rerender(<ProfileSettingsModal {...baseProps} user={{ ...STUDENT, email: 'old@example.test' }} onVerifyEmail={onVerifyEmail}
+      profileData={{ ...baseProps.profileData, current_password: 'synthetic' }} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Verify' }));
+    const confirm = screen.getByRole('dialog', { name: 'Verify Email Address' });
+    expect(confirm).toHaveTextContent(baseProps.profileData.email);
+    expect(onVerifyEmail).not.toHaveBeenCalled();
+    fireEvent.click(within(confirm).getByRole('button', { name: 'Send Verification Link' }));
+    await waitFor(() => expect(onVerifyEmail).toHaveBeenCalledExactlyOnceWith({ email: baseProps.profileData.email, current_password: 'synthetic' }));
+    expect(baseProps.onSave).not.toHaveBeenCalled();
+  });
+  it('does not send a link for an invalid address', () => {
+    const onVerifyEmail = vi.fn();
+    renderModal({ user: { ...STUDENT, email: 'bad' }, profileData: { ...baseProps.profileData, email: 'bad' }, onVerifyEmail });
+    fireEvent.click(screen.getByRole('button', { name: 'Verify' }));
+    expect(onVerifyEmail).not.toHaveBeenCalled();
+  });
   it('lets only clerks forget personal-browser preference after confirmation', async () => {
     localStorage.setItem('trace_clerk_browser_until', String(Date.now() + 60000));
     renderModal({ user: CLERK, initialTab: 'security' });

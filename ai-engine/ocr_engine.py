@@ -25,6 +25,7 @@ import easyocr
 import cv2
 import numpy as np
 from identity_parser import parse_identity_data
+from registration_verification import verify_registration_text
 
 logger = logging.getLogger(__name__)
 
@@ -428,43 +429,11 @@ def process_document(filepath):
 
 def verify_id_document(filepath, expected_student_id, expected_course=""):
     """
-    Verify if an uploaded image is a valid PLP Student ID or Diploma.
-    Looks for the institution name, the student's ID number, and optionally the course/college.
+    Match readable school/ID/college text for automatic registration checks.
+    An inconclusive result needs manual review; it does not establish authenticity.
     """
     try:
-        raw_text = extract_text(filepath)
-        if not raw_text:
-            return {'verified': False, 'reason': 'No text could be extracted from the image.'}
-        
-        raw_text_lower = raw_text.lower()
-        
-        # Check for school name
-        has_school_name = 'pamantasan ng lungsod ng pasig' in raw_text_lower or 'plp' in raw_text_lower
-        
-        # Check for student ID
-        has_student_id = False
-        if expected_student_id and expected_student_id.lower() in raw_text_lower:
-            has_student_id = True
-            
-        # Check for course
-        has_course = True
-        if expected_course:
-            # We will check if the course name is present.
-            # Simplify the search by removing common prefixes like "College of " if needed, 
-            # but usually the full name is present on the ID.
-            if expected_course.lower() not in raw_text_lower:
-                has_course = False
-            
-        if has_school_name and has_student_id and has_course:
-            return {'verified': True, 'reason': 'School name, Student ID, and College matched.'}
-        elif has_school_name and has_student_id and not has_course:
-            return {'verified': False, 'reason': 'School name and Student ID found, but College did not match.'}
-        elif has_school_name and has_course and not has_student_id:
-            return {'verified': False, 'reason': 'School name and College found, but Student ID did not match.'}
-        elif has_student_id and has_course and not has_school_name:
-            return {'verified': False, 'reason': 'Student ID and College matched, but School name not found.'}
-        else:
-            return {'verified': False, 'reason': 'Could not verify all required fields (School name, Student ID, College).'}
+        return verify_registration_text(extract_text(filepath), expected_student_id, expected_course)
 
     except Exception as e:
         logger.error("Verification failed for %s: %s", filepath, str(e))

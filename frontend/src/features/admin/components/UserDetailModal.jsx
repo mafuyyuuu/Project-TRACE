@@ -3,6 +3,7 @@ import UserAvatar from '@/components/UserAvatar';
 import FileUploadField from '@/components/FileUploadField';
 import { getUserLabel } from '@/utils/userLabels';
 import StaffAuthenticatorSetup from '@/features/admin/components/StaffAuthenticatorSetup';
+import RegistrationReviewNotice from '@/components/RegistrationReviewNotice';
 
 function Field({ label, value }) {
   return (
@@ -88,6 +89,7 @@ export default function UserDetailModal({ open, onClose, user, onEdit, onToggleA
       </div>
 
       <div className="pt-4 space-y-0.5">
+        <RegistrationReviewNotice user={user} />
         <Field label="College / Department" value={user.college || user.college_name || user.college_id} />
         {user.role === 'student' && !user.college_id && <p className="text-xs text-amber-800 dark:text-amber-300">College assignment needs Admin review before requesting college-restricted documents.</p>}
         <Field label="College" value={user.college_name || user.course} />

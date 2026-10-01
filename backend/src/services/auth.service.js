@@ -32,6 +32,7 @@ const trustedBrowserModel = require('../models/trustedBrowser.model');
 const authenticator = require('./authenticator.service');
 const emailVerification = require('./emailVerification.service');
 const aiEngine = require('./aiEngine.service');
+const { registrationVerification } = require('../utils/registrationVerification');
 const notifications = require('./notification.service');
 const sendAuthEmail = async ({ email, title, message }) => {
   try { return await notifications.sendEmail(email, title, message); }
@@ -228,14 +229,8 @@ async function register(body, file) {
   const password_hash = await bcrypt.hash(password, 10);
   const id_proof_path = file.path;
 
-  let verification_status = 'pending';
   const aiResult = await aiEngine.verifyIdDocument(file, { studentId: employee_id, course: collegeName });
-  if (aiResult && aiResult.verified) {
-    verification_status = 'verified';
-    console.log(`✅ AI Auto-Verified user ${employee_id}: ${aiResult.reason}`);
-  } else if (aiResult) {
-    console.log(`⚠️ AI could not auto-verify user ${employee_id}: ${aiResult.reason}`);
-  }
+  const { verification_status, verification_reason } = registrationVerification(aiResult);
 
   const [created] = await userModel.createUser({
     student_id: employee_id,
@@ -250,6 +245,7 @@ async function register(body, file) {
     college_id: collegeId,
     id_proof_path,
     verification_status,
+    verification_reason,
   });
 
   let emailResult;
@@ -265,18 +261,10 @@ async function register(body, file) {
       });
     } catch (err) { console.warn('Registration notification unavailable:', err.message); }
   }
-  const allowedReasons = new Set([
-    'No text could be extracted from the image.',
-    'School name and Student ID found, but College did not match.',
-    'School name and College found, but Student ID did not match.',
-    'Student ID and College matched, but School name not found.',
-    'Could not verify all required fields (School name, Student ID, College).',
-  ]);
   return {
     email_verification_required: true, email_sent: emailResult.email_sent,
     verification_status,
-    verification_reason: verification_status === 'verified' ? null
-      : allowedReasons.has(aiResult?.reason) ? aiResult.reason : 'Automatic verification was unavailable or inconclusive. An administrator will review your proof.',
+    verification_reason,
     message: (verification_status === 'verified'
       ? 'Registration successful. Your account was automatically verified by AI!'
       : 'Registration successful. Please wait for administrator verification.')

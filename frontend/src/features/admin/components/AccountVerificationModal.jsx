@@ -2,6 +2,7 @@ import { useState } from 'react';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import ModalShell from '@/components/ModalShell';
 import AuthedFilePreview from '@/components/AuthedFilePreview';
+import RegistrationReviewNotice from '@/components/RegistrationReviewNotice';
 
 export default function AccountVerificationModal({
   studentVerifyToConfirm,
@@ -60,6 +61,7 @@ export default function AccountVerificationModal({
             <div className="flex flex-wrap justify-between gap-x-3 gap-y-1"><span>Course/Program</span><span className="font-bold text-gray-950 dark:text-gray-100">{student.course || '—'}</span></div>
             <div className="flex flex-wrap justify-between gap-x-3 gap-y-1"><span>Email</span><span className="font-bold text-gray-950 dark:text-gray-100 select-text break-words">{student.email || '—'}</span></div>
           </div>
+          <RegistrationReviewNotice user={student} />
         </div>
 
         <div className="shrink-0 px-6 sm:px-8 py-6 border-t border-gray-100 dark:border-gray-700 flex items-center gap-3">
