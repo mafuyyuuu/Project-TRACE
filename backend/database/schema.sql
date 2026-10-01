@@ -25,6 +25,8 @@ CREATE TABLE IF NOT EXISTS users (
   id INT AUTO_INCREMENT PRIMARY KEY,
   student_id VARCHAR(50) UNIQUE,
   email VARCHAR(255),
+  email_verified_at DATETIME NULL,
+  program VARCHAR(150) NULL,
   password_hash VARCHAR(255) NOT NULL,
   full_name VARCHAR(255) NOT NULL,
   role ENUM('student', 'clerk', 'admin') NOT NULL DEFAULT 'student',
@@ -376,3 +378,59 @@ CREATE TABLE IF NOT EXISTS request_attachment_uploads (
     FOREIGN KEY (requirement_id) REFERENCES request_attachment_requirements(id) ON DELETE CASCADE,
     FOREIGN KEY (uploaded_by) REFERENCES users(id), INDEX (requirement_id)
   ) ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS email_verifications (
+  id INT AUTO_INCREMENT PRIMARY KEY, user_id INT NOT NULL,
+  kind ENUM('signup','change') NOT NULL, email VARCHAR(255) NOT NULL,
+  token_hash CHAR(64) NOT NULL UNIQUE, token_version INT NOT NULL,
+  expires_at DATETIME NOT NULL, used_at DATETIME NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  INDEX email_links_user (user_id, kind, created_at),
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+
+CREATE TABLE IF NOT EXISTS support_messages (
+  id INT AUTO_INCREMENT PRIMARY KEY, student_user_id INT NOT NULL, sender_id INT NOT NULL,
+  message VARCHAR(2000) NOT NULL, read_at TIMESTAMP NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  INDEX support_conversation (student_user_id, id),
+  FOREIGN KEY (student_user_id) REFERENCES users(id) ON DELETE CASCADE,
+  FOREIGN KEY (sender_id) REFERENCES users(id)
+) ENGINE=InnoDB;
+
+
+-- Durable numbering; committed numbers survive request cancellation.
+CREATE TABLE IF NOT EXISTS document_request_counters (
+  student_id VARCHAR(50) NOT NULL, document_type VARCHAR(255) NOT NULL,
+  last_number INT UNSIGNED NOT NULL DEFAULT 0, original_issued BOOLEAN NOT NULL DEFAULT FALSE,
+  original_recorded_by INT NULL, original_recorded_at DATETIME NULL, original_notes VARCHAR(2000) NULL,
+  PRIMARY KEY (student_id, document_type)
+) ENGINE=InnoDB;
+
+-- Configurable bodies; an empty body uses the branded default.
+CREATE TABLE IF NOT EXISTS system_templates (
+  id INT AUTO_INCREMENT PRIMARY KEY, template_key VARCHAR(50) NOT NULL UNIQUE,
+  name VARCHAR(100) NOT NULL, content LONGTEXT NULL,
+  font_family VARCHAR(100) DEFAULT 'sans-serif', font_size VARCHAR(20) DEFAULT '12px',
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB;
+INSERT IGNORE INTO system_templates (template_key, name) VALUES
+  ('payment_slip', 'Order of Payment (Slip)'), ('email_notice', 'Standard Email Notice');
+
+CREATE TABLE IF NOT EXISTS staff_authenticator_setup (
+  user_id INT PRIMARY KEY, code_hash CHAR(64) NOT NULL, issued_by INT NOT NULL,
+  token_version INT NOT NULL, expires_at_ms BIGINT NOT NULL,
+  attempts INT NOT NULL DEFAULT 0, consumed BOOLEAN NOT NULL DEFAULT FALSE,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+  FOREIGN KEY (issued_by) REFERENCES users(id)
+) ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS document_messages (
+  id INT AUTO_INCREMENT PRIMARY KEY, document_id INT NOT NULL, sender_id INT NOT NULL,
+  message TEXT NOT NULL, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, read_at TIMESTAMP NULL,
+  INDEX idx_document_messages_doc (document_id),
+  FOREIGN KEY (document_id) REFERENCES documents(id) ON DELETE CASCADE,
+  FOREIGN KEY (sender_id) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB;

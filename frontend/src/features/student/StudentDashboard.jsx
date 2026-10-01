@@ -7,6 +7,7 @@ import { useState } from 'react';
 import NewRequestModal from '@/features/student/components/NewRequestModal';
 import LiveTrackingModal from '@/features/student/components/LiveTrackingModal';
 import FloatingSupportChat from '@/features/student/components/FloatingSupportChat';
+import OnboardingTutorial from '@/features/student/components/OnboardingTutorial';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import MiniSparkline from '@/components/MiniSparkline';
 import ModalShell from '@/components/ModalShell';
@@ -35,6 +36,7 @@ export default function StudentDashboard({ user, currentTab, setViewImageUrl }) 
   const [historyView, setHistoryView] = useState({ tab: currentTab, filter: currentTab === 'payment-history' ? 'payments' : 'all' });
   const historyFilter = historyView.tab === currentTab ? historyView.filter : currentTab === 'payment-history' ? 'payments' : 'all';
   const [missingProfileFields, setMissingProfileFields] = useState(null);
+  const [showGuide, setShowGuide] = useState(false);
   const docFilter = 'ALL';
   const {
     loading,
@@ -85,6 +87,7 @@ export default function StudentDashboard({ user, currentTab, setViewImageUrl }) 
   return (
     <>
       <FloatingSupportChat user={user} />
+      {showGuide && <OnboardingTutorial onComplete={() => setShowGuide(false)} />}
       <DashboardAlerts success={success} error={error} onDismiss={dismissNotification} />
       <div className="space-y-8 animate-fade-in">
         {/* 1.1. STUDENT PORTAL - WORKSPACE DASHBOARD */}
@@ -98,6 +101,7 @@ export default function StudentDashboard({ user, currentTab, setViewImageUrl }) 
                 </h2>
               </div>
               <div className="flex flex-wrap items-center gap-4">
+                <button type="button" onClick={() => setShowGuide(true)} className="border rounded-full px-5 py-2.5 text-sm font-bold bg-white dark:bg-gray-900">Quick guide</button>
                 <div className="flex flex-wrap items-center gap-3 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-2xl px-5 py-2.5 shadow-sm">
                   <span className="shrink-0 text-xs font-semibold text-gray-500 dark:text-gray-400">Today:</span>
                   <span className="text-xs font-bold text-gray-800 dark:text-gray-100">{todayFormatted}</span>

@@ -43,7 +43,7 @@ describe('useProfileSettings', () => {
   });
 
   it('reports a successful save inline instead of through alert()', async () => {
-    updateProfile.mockResolvedValue({ message: 'ok' });
+    updateProfile.mockResolvedValue({ message: 'Profile updated successfully.' });
     const { result } = renderHook(() => useProfileSettings(USER));
 
     let saved;
@@ -69,7 +69,7 @@ describe('useProfileSettings', () => {
   // The password box is a write-only field; leaving the typed value behind
   // would re-submit it on the next save.
   it('clears the password box after a successful save', async () => {
-    updateProfile.mockResolvedValue({ message: 'ok' });
+    updateProfile.mockResolvedValue({ message: 'Profile updated successfully.' });
     const { result } = renderHook(() => useProfileSettings(USER));
 
     act(() => result.current.setField('password', 'newpw'));
@@ -89,7 +89,7 @@ describe('useProfileSettings', () => {
   });
 
   it('uploads the staged avatar and adopts it on save', async () => {
-    updateProfile.mockResolvedValue({ message: 'ok' });
+    updateProfile.mockResolvedValue({ message: 'Profile updated successfully.' });
     uploadProfilePicture.mockResolvedValue({ profile_picture: 'avatar-new.png' });
     const { result } = renderHook(() => useProfileSettings(USER));
 
@@ -103,7 +103,7 @@ describe('useProfileSettings', () => {
   });
 
   it('reports a rejected upload, keeps the previous avatar, and keeps the staged file for a retry', async () => {
-    updateProfile.mockResolvedValue({ message: 'ok' });
+    updateProfile.mockResolvedValue({ message: 'Profile updated successfully.' });
     uploadProfilePicture.mockRejectedValue({
       response: { data: { error: 'Profile pictures must be a JPG, PNG, or WebP image.' } },
     });
@@ -128,7 +128,7 @@ describe('useProfileSettings', () => {
   });
 
   it('discards a staged avatar without ever uploading it', async () => {
-    updateProfile.mockResolvedValue({ message: 'ok' });
+    updateProfile.mockResolvedValue({ message: 'Profile updated successfully.' });
     const { result } = renderHook(() => useProfileSettings(USER));
 
     act(() => result.current.changeAvatar(new File(['x'], 'me.png')));
@@ -140,7 +140,7 @@ describe('useProfileSettings', () => {
   });
 
   it('clears a stale banner when the modal is reopened', async () => {
-    updateProfile.mockResolvedValue({ message: 'ok' });
+    updateProfile.mockResolvedValue({ message: 'Profile updated successfully.' });
     const { result } = renderHook(() => useProfileSettings(USER));
 
     await act(async () => result.current.saveProfile());
@@ -153,7 +153,7 @@ describe('useProfileSettings', () => {
 
 
 describe('email verification and persisted contact data', () => {
-  it('keeps the current email cached until OTP verification, while saving the phone', async () => {
+  it('keeps the current email cached until link verification, while saving the phone', async () => {
     updateProfile.mockResolvedValue({ email_verification_required: true, pending_email: 'new@example.test' });
     verifyEmailChange.mockResolvedValue({ message: 'Email verified.' });
     getMe.mockResolvedValueOnce({ user: { ...USER, pending_email: 'new@example.test', phone_number: '09123456789' } })
@@ -163,20 +163,16 @@ describe('email verification and persisted contact data', () => {
     await act(async () => result.current.saveProfile());
     expect(JSON.parse(localStorage.getItem('trace_user'))).toMatchObject({ email: USER.email, phone_number: '09123456789' });
     expect(result.current.pendingEmail).toBe('new@example.test');
-    act(() => result.current.setEmailOtp('123456'));
-    await act(async () => result.current.confirmEmail());
-    expect(verifyEmailChange).toHaveBeenCalledWith('123456');
-    expect(JSON.parse(localStorage.getItem('trace_user')).email).toBe('new@example.test');
-    expect(result.current.pendingEmail).toBe('');
+    expect(result.current.success).toContain('verification link');
   });
-  it('preserves the pending address and current cached email when verification fails', async () => {
+  it('preserves the pending address and current cached email while waiting for the link', async () => {
     updateProfile.mockResolvedValue({ email_verification_required: true, pending_email: 'new@example.test' });
     verifyEmailChange.mockRejectedValue({ response: { data: { error: 'Verification code expired.' } } });
     const { result } = renderHook(() => useProfileSettings(USER));
     act(() => result.current.setField('email', 'new@example.test'));
     await act(async () => result.current.saveProfile());
-    await act(async () => result.current.confirmEmail());
-    expect(result.current.error).toBe('Verification code expired.');
+    expect(result.current.confirmEmail).toBeUndefined();
+    expect(verifyEmailChange).not.toHaveBeenCalled();
     expect(result.current.pendingEmail).toBe('new@example.test');
     expect(JSON.parse(localStorage.getItem('trace_user')).email).toBe(USER.email);
   });

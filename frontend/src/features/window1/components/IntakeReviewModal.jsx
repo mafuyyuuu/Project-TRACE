@@ -20,6 +20,7 @@ export default function IntakeReviewModal({
   actionLoading,
   intakeNotes,
   setIntakeNotes,
+  originalIssued = false, setOriginalIssued,
   intakeFile,
   setIntakeFile,
   documentTypes = [], documentTypesLoading = false,
@@ -117,9 +118,19 @@ export default function IntakeReviewModal({
       </div>
       )}
 
+      {selectedDoc.student_id && setOriginalIssued && (
+        <div className="my-5 rounded-2xl border border-gray-200 dark:border-gray-700 p-4 space-y-2">
+          <label className="flex items-start gap-3 text-xs font-semibold">
+            <input type="checkbox" checked={originalIssued} disabled={actionLoading} onChange={event => setOriginalIssued(event.target.checked)} className="mt-1 shrink-0" />
+            I confirmed an original of this document was previously issued to this student.
+          </label>
+          <p className="text-xs text-gray-500 dark:text-gray-400">Record your evidence in Notes. This records issuance history for request numbering; presenting an original for a walk-in is a separate check.</p>
+        </div>
+      )}
+
         <label className="block">
           <span className="text-[10px] font-bold text-gray-800 dark:text-gray-100 uppercase tracking-widest block mb-2">
-            Notes <span className="text-gray-400 dark:text-gray-400 normal-case font-semibold">· required when returning</span>
+            Notes <span className="text-gray-400 dark:text-gray-400 normal-case font-semibold">· required when returning or confirming prior original issuance</span>
           </span>
           <textarea maxLength={INPUT_LIMITS.notes}
             rows={3}

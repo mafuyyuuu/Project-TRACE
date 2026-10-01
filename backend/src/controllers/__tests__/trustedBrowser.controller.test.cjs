@@ -93,6 +93,7 @@ it('runs password → OTP → HttpOnly trust → password login → expiry/revoc
   vi.spyOn(users, 'findActiveByStudentId').mockImplementation(async () => [{ ...account }]);
   vi.spyOn(users, 'findById').mockImplementation(async () => [{ ...account }]);
   vi.spyOn(users, 'getProfileById').mockImplementation(async () => [{ ...account }]);
+  vi.spyOn(users, 'resetLoginSecurity').mockResolvedValue([{}]);
   vi.spyOn(users, 'logSecurityEvent').mockResolvedValue([{}]);
   vi.spyOn(users, 'updateEmailOTP').mockImplementation(async (_id, otp, expires) => {
     account.login_otp = otp; account.login_otp_expires = expires;
@@ -130,7 +131,7 @@ it('runs password → OTP → HttpOnly trust → password login → expiry/revoc
   req.body.shared_computer = true;
   res.json.mockClear();
   await controller.login(req, res);
-  expect(res.json.mock.calls[0][0]).toMatchObject({ requires_2fa: true, can_trust_browser: false });
+  expect(res.json.mock.calls[0][0]).toMatchObject({ requires_2fa: true, can_trust_browser: true });
 
   req.body.shared_computer = false;
   proof.expiresAt = Date.now();

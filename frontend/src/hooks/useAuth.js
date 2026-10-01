@@ -52,7 +52,7 @@ export function useAuth() {
     setError('');
     try {
       const data = await apiLogin(credentials);
-      if (data.requires_2fa) return data;
+      if (data.requires_2fa || data.requires_authenticator_setup) return data;
       localStorage.setItem('trace_token', data.token);
       if (data.user) {
         localStorage.setItem('trace_user', JSON.stringify(data.user));

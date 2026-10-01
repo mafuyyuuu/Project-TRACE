@@ -1,0 +1,60 @@
+import { vi, it, expect, beforeEach } from 'vitest';
+import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
+import FloatingSupportChat from '@/features/student/components/FloatingSupportChat';
+import RequestMessagesPanel from '@/components/RequestMessagesPanel';
+import { getSupportMessages, sendSupportMessage, getSupportThreads } from '@/services/supportMessagesService';
+import { getMessageThreads } from '@/services/documentMessagesService';
+vi.mock('@/services/supportMessagesService', () => ({ getSupportMessages: vi.fn(), sendSupportMessage: vi.fn(), getSupportThreads: vi.fn() }));
+vi.mock('@/services/documentMessagesService', () => ({ getMessageThreads: vi.fn(), getRequestMessages: vi.fn(), sendRequestMessage: vi.fn() }));
+vi.mock('@/services/realtimeService', () => ({ onNotification: vi.fn(() => () => {}) }));
+const student = { id: 3, role: 'student', full_name: 'Synthetic student' };
+const desk = { id: 7, role: 'clerk', desk_assignment: 'Window 1' };
+beforeEach(() => {
+  Element.prototype.scrollIntoView = vi.fn();
+  vi.clearAllMocks(); window.history.replaceState(null, '', '/dashboard?tab=messages');
+  getSupportMessages.mockResolvedValue([]);
+  getSupportThreads.mockResolvedValue({ threads: [{ id: 3, full_name: 'Synthetic student', student_id: 'SYN-3', unread_count: 1 }], total: 1 });
+  getMessageThreads.mockResolvedValue({ threads: [], total: 0 });
+});
+it('opens general support from the floating bubble without requiring a document request', async () => {
+  render(<FloatingSupportChat user={student} />);
+  fireEvent.click(screen.getByRole('button', { name: 'Open registrar support' }));
+  expect(await screen.findByText(/a document request is not required/)).toBeInTheDocument();
+  expect(screen.getByRole('region', { name: 'General support conversation' })).toBeInTheDocument();
+  expect(getMessageThreads).not.toHaveBeenCalled();
+  fireEvent.change(screen.getByLabelText('Message'), { target: { value: 'How do I verify email?' } });
+  sendSupportMessage.mockResolvedValue({ id: 8, sender_id: 3, message: 'How do I verify email?' });
+  getSupportMessages.mockResolvedValue([{ id: 8, sender_id: 3, message: 'How do I verify email?' }, { id: 9, sender_id: 7, sender_name: 'Window 1', message: 'Use Verify Email.' }]);
+  fireEvent.click(screen.getByRole('button', { name: 'Send message' }));
+  expect(await screen.findByText('Use Verify Email.')).toBeInTheDocument();
+  expect(sendSupportMessage).toHaveBeenCalledExactlyOnceWith('3', 'How do I verify email?');
+});
+it('lets Window 1 select a support conversation and send a reply', async () => {
+  render(<RequestMessagesPanel user={desk} initialView="support" />);
+  await screen.findByRole('option', { name: /Synthetic student.*unread/ });
+  fireEvent.change(screen.getByLabelText('Student support conversation'), { target: { value: '3' } });
+  await screen.findByText(/a document request is not required/);
+  sendSupportMessage.mockResolvedValue({ id: 8, sender_id: 7, message: 'We can help.' });
+  fireEvent.change(screen.getByLabelText('Message'), { target: { value: 'We can help.' } });
+  fireEvent.click(screen.getByRole('button', { name: 'Send message' }));
+  await waitFor(() => expect(sendSupportMessage).toHaveBeenCalledExactlyOnceWith('3', 'We can help.'));
+});
+it('keeps a failed draft and guards duplicate sends while pending', async () => {
+  render(<RequestMessagesPanel user={student} initialView="support" />);
+  await screen.findByText(/a document request is not required/);
+  let reject;
+  sendSupportMessage.mockReturnValue(new Promise((_resolve, fail) => { reject = fail; }));
+  fireEvent.change(screen.getByLabelText('Message'), { target: { value: 'Help please' } });
+  const send = screen.getByRole('button', { name: 'Send message' });
+  fireEvent.click(send); fireEvent.click(send);
+  expect(sendSupportMessage).toHaveBeenCalledOnce(); expect(send).toBeDisabled();
+  await act(async () => reject(new Error('unavailable')));
+  expect(screen.getByLabelText('Message')).toHaveValue('Help please');
+  expect(screen.getByRole('alert')).toHaveTextContent('Could not confirm sending');
+});
+it('does not expose general support to Finance or Secretary', async () => {
+  render(<RequestMessagesPanel user={{ ...desk, desk_assignment: 'Secretary' }} />);
+  await screen.findByText(/No request conversations yet/);
+  expect(screen.queryByRole('button', { name: 'General support' })).not.toBeInTheDocument();
+  expect(getSupportThreads).not.toHaveBeenCalled();
+});

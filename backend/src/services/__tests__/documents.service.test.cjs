@@ -13,6 +13,7 @@ const { STATUS } = require('../../utils/documentStatus');
 const referenceModel = require('../../models/referenceData.model');
 const { pool } = require('../../config/db');
 const pricingModel = require('../../models/pricing.model');
+const requestSequences = require('../../models/requestSequence.model');
 const service = require('../documents.service');
 
 const COMPLETE = { role: 'student', user_type: 'student', phone_number: '09123456789', email: 'student@example.test',
@@ -106,7 +107,9 @@ beforeEach(() => {
   vi.spyOn(documentModel, 'markGroupPayable').mockResolvedValue([{ affectedRows: 1 }]);
   vi.spyOn(documentModel, 'updateOrVerification').mockResolvedValue([{ affectedRows: 1 }]);
   vi.spyOn(documentModel, 'sumGroupAmount').mockResolvedValue(0);
-  vi.spyOn(documentModel, 'countByTypeAndStudent').mockResolvedValue(0);
+  vi.spyOn(requestSequences, 'allocate').mockImplementation(async (_studentId, type) => `${type} – Request No. 1`);
+  vi.spyOn(requestSequences, 'recordOriginal').mockResolvedValue(true);
+  vi.spyOn(requestSequences, 'setDocumentSequence').mockResolvedValue([{ affectedRows: 1 }]);
   // Default: this was the last unpriced document, so pricing bills the group.
   vi.spyOn(documentModel, 'countUnpricedInGroup').mockResolvedValue(0);
   vi.spyOn(documentModel, 'findByRequestGroup').mockResolvedValue([]);
@@ -906,6 +909,30 @@ describe('intakeDocument — Window 1 checks the paperwork', () => {
     expect(documentModel.updateStatus).toHaveBeenCalledWith(5, STATUS.PENDING_SEC_EVALUATION, connection);
   });
 
+  it('requires issuance evidence before recording an original or routing', async () => {
+    documentModel.findByIdForUpdate.mockResolvedValue([filed]);
+    expect(await statusOf(service.intakeDocument(WINDOW1, 5, { action: 'approve', original_issued: 'true' }, null))).toBe(400);
+    expect(requestSequences.recordOriginal).not.toHaveBeenCalled();
+    expect(documentModel.updateStatus).not.toHaveBeenCalled();
+    expect(connection.rollback).toHaveBeenCalledOnce();
+  });
+
+  it('records an explicitly confirmed original and allocates the reissue inside the same transaction', async () => {
+    documentModel.findByIdForUpdate.mockResolvedValue([{ ...filed, document_sequence_number: 'Diploma – Request No. 1' }]);
+    requestSequences.allocate.mockResolvedValue('Diploma – Request No. 2');
+    await service.intakeDocument(WINDOW1, 5, { action: 'approve', original_issued: true, notes: 'Checked issuance register.' }, null);
+    expect(requestSequences.recordOriginal).toHaveBeenCalledWith('STU-001', 'Diploma', WINDOW1.id, 'Checked issuance register.', connection);
+    expect(requestSequences.setDocumentSequence).toHaveBeenCalledWith(5, 'Diploma – Request No. 2', connection);
+    expect(connection.commit).toHaveBeenCalledOnce();
+  });
+
+  it('preserves an already numbered request when no new original is confirmed', async () => {
+    documentModel.findByIdForUpdate.mockResolvedValue([{ ...filed, document_sequence_number: 'Diploma – Request No. 8' }]);
+    await service.intakeDocument(WINDOW1, 5, { action: 'approve' }, null);
+    expect(requestSequences.allocate).not.toHaveBeenCalled();
+    expect(requestSequences.setDocumentSequence).not.toHaveBeenCalled();
+  });
+
   it('only asks n8n for a desk once a human has cleared the paperwork', async () => {
     documentModel.findByIdForUpdate.mockResolvedValue([filed]);
     userModel.findStudentCourseByStudentId.mockResolvedValue([{ course: 'College of Computer Studies' }]);
@@ -1265,7 +1292,7 @@ describe('TOR study years', () => {
 
 describe('saved student profile gate', () => {
   it.each([{}, { birth_date: '  ' }, { is_transfer_student: 1, previous_school: '' },
-    { user_type: 'alumni', last_attendance_year: null }, { sex: 'Female', civil_status: 'Married', maiden_name: '' }])
+    { user_type: 'alumni', has_grad_application: true, last_attendance_year: null }, { sex: 'Female', civil_status: 'Married', maiden_name: '' }])
     ('refuses incomplete saved profile %j before request/log writes', async patch => {
       const saved = Object.keys(patch).length ? { ...COMPLETE, ...patch } : { role: 'student', email: COMPLETE.email, phone_number: COMPLETE.phone_number };
       userModel.getProfileById.mockResolvedValue([saved]);

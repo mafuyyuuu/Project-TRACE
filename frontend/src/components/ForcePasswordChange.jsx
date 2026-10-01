@@ -1,7 +1,8 @@
 import { INPUT_LIMITS } from '@/utils/inputLimits';
 import { useState } from 'react';
 import ConfirmDialog from '@/components/ConfirmDialog';
-import { updateProfile } from '@/services/authService';
+import useForcePasswordChange from '@/hooks/useForcePasswordChange';
+import { PASSWORD_REQUIREMENTS, validNewPassword } from '@/utils/passwordPolicy';
 
 const MIN_LENGTH = 8;
 
@@ -16,9 +17,11 @@ const MIN_LENGTH = 8;
  */
 export default function ForcePasswordChange({ user, onChanged, onLogout }) {
   const [password, setPassword] = useState('');
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [confirm, setConfirm] = useState('');
   const [error, setError] = useState('');
-  const [saving, setSaving] = useState(false);
+  const { save, saving, error: saveError } = useForcePasswordChange(onChanged);
   const [confirmingLogout, setConfirmingLogout] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
   const [logoutError, setLogoutError] = useState('');
@@ -41,8 +44,9 @@ export default function ForcePasswordChange({ user, onChanged, onLogout }) {
     e.preventDefault();
     setError('');
 
-    if (password.length < MIN_LENGTH) {
-      setError(`Password must be at least ${MIN_LENGTH} characters.`);
+    if (!currentPassword) { setError('Enter your current temporary password.'); return; }
+    if (!validNewPassword(password)) {
+      setError(PASSWORD_REQUIREMENTS);
       return;
     }
     if (password !== confirm) {
@@ -50,21 +54,12 @@ export default function ForcePasswordChange({ user, onChanged, onLogout }) {
       return;
     }
 
-    setPasswordToConfirm(password);
+    setPasswordToConfirm({ password, current_password: currentPassword });
   };
 
   const confirmPasswordChange = async () => {
     if (!passwordToConfirm) return;
-    setSaving(true);
-    try {
-      await updateProfile({ password: passwordToConfirm });
-      setPasswordToConfirm(null);
-      onChanged();
-    } catch (err) {
-      setError(err.response?.data?.error || 'Could not update your password. Please try again.');
-    } finally {
-      setSaving(false);
-    }
+    if (await save(passwordToConfirm)) setPasswordToConfirm(null);
   };
 
   const inputClass =
@@ -88,16 +83,19 @@ export default function ForcePasswordChange({ user, onChanged, onLogout }) {
         </p>
 
         <form onSubmit={submit} className="space-y-4 mt-6">
+          <label className="block text-sm font-semibold">Current temporary password
+            <input type={showPassword ? 'text' : 'password'} autoComplete="current-password" value={currentPassword} onChange={event => setCurrentPassword(event.target.value)} className={inputClass} required />
+          </label>
           <div className="flex flex-col gap-1.5">
             <label htmlFor="new-password" className="text-[10px] font-bold text-gray-700 dark:text-gray-300 uppercase tracking-widest">
               New Password
             </label>
             <input maxLength={INPUT_LIMITS.password}
-              id="new-password" type="password" className={inputClass} required
+              id="new-password" type={showPassword ? 'text' : 'password'} className={inputClass} required
               minLength={MIN_LENGTH} autoComplete="new-password"
               value={password} onChange={(e) => setPassword(e.target.value)}
             />
-            <p className="text-[10px] text-gray-400 dark:text-gray-400">At least {MIN_LENGTH} characters.</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400">At least {MIN_LENGTH} characters. Include uppercase, lowercase, a number and @$!%*?&. Other devices will be logged out.</p>
           </div>
 
           <div className="flex flex-col gap-1.5">
@@ -105,15 +103,16 @@ export default function ForcePasswordChange({ user, onChanged, onLogout }) {
               Confirm Password
             </label>
             <input maxLength={INPUT_LIMITS.password}
-              id="confirm-password" type="password" className={inputClass} required
+              id="confirm-password" type={showPassword ? 'text' : 'password'} className={inputClass} required
               autoComplete="new-password"
               value={confirm} onChange={(e) => setConfirm(e.target.value)}
             />
           </div>
+          <button type="button" aria-pressed={showPassword} onClick={() => setShowPassword(value => !value)} className="border rounded-xl px-3 py-2 text-sm">{showPassword ? 'Hide passwords' : 'Show passwords'}</button>
 
-          {error && (
+          {(error || saveError) && (
             <p className="text-xs font-semibold text-red-600 dark:text-red-300 bg-red-50 dark:bg-red-950/40 border border-red-100 dark:border-red-800 rounded-xl p-3">
-              {error}
+              {error || saveError}
             </p>
           )}
 
@@ -133,7 +132,7 @@ export default function ForcePasswordChange({ user, onChanged, onLogout }) {
         </form>
       </div>
       <ConfirmDialog open={passwordToConfirm !== null} title="Confirm Password Change"
-        message={['Save your new password?', error ? <span role="alert">{error}</span> : null]}
+        message={['Save your new password and log out other devices?', error || saveError ? <span role="alert">{error || saveError}</span> : null]}
         confirmLabel="Change Password" loading={saving} onConfirm={confirmPasswordChange}
         onCancel={() => setPasswordToConfirm(null)} />
       <ConfirmDialog

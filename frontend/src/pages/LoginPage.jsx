@@ -4,14 +4,16 @@ import { Link } from 'react-router-dom'
 import useAuth from '@/hooks/useAuth'
 import AuthShell from '@/components/AuthShell'
 import { verify2FA } from '@/services/authService'
+import { hasClerkBrowserPreference, rememberClerkBrowserPreference } from '@/utils/clerkBrowserPreference'
 
 export default function LoginPage() {
   const { login, loading, error: authError } = useAuth()
   const [employeeId, setEmployeeId] = useState('')
   const [password, setPassword] = useState('')
   const [localError, setLocalError] = useState('')
+  const [needsStaffSetup, setNeedsStaffSetup] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
-  const [sharedComputer, setSharedComputer] = useState(true)
+  const sharedComputer = !hasClerkBrowserPreference()
   const [canTrustBrowser, setCanTrustBrowser] = useState(false)
   const [trustBrowser, setTrustBrowser] = useState(false)
 
@@ -74,13 +76,16 @@ export default function LoginPage() {
     setSubmitting(true)
     try {
       if (!requires2FA) {
+        setNeedsStaffSetup(false)
         const response = await login({ employeeId: employeeId.trim(), password, sharedComputer })
+        if (response?.requires_authenticator_setup) setNeedsStaffSetup(true)
         if (response && response.requires_2fa) {
           showOtpChallenge(response)
         }
       } else {
         const data = await verify2FA({ temp_token: tempToken, ...(useRecoveryCode ? { recovery_code: otp.trim() } : { otp: otp.trim() }),
           ...(canTrustBrowser && trustBrowser ? { trust_browser: true } : {}) })
+        rememberClerkBrowserPreference(data, canTrustBrowser && trustBrowser)
         localStorage.setItem('trace_token', data.token)
         localStorage.setItem('trace_user', JSON.stringify(data.user))
         window.location.href = '/dashboard'
@@ -129,6 +134,7 @@ export default function LoginPage() {
     <AuthShell title={requires2FA ? 'Verification Required' : 'Login'}>
           <form onSubmit={handleSubmit} aria-busy={busy} className="flex flex-col gap-6">
             {error && <p role="alert" className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-800 dark:border-red-800 dark:bg-red-950 dark:text-red-200">{error}</p>}
+            {needsStaffSetup && <p role="status" className="text-sm">This staff account needs an authenticator. Ask Admin for a private setup code, then <Link to="/staff-setup" className="font-bold underline">open staff authenticator setup</Link>.</p>}
             {resendNotice && <p role="status" className="text-sm font-medium text-white/90">{resendNotice}</p>}
             {!requires2FA ? (
               <>
@@ -168,15 +174,6 @@ export default function LoginPage() {
                     <Link to="/forgot-password" className="text-sm font-medium text-white/90 hover:text-white hover:underline">Forgot Password?</Link>
                   </div>
                 </div>
-                <div className="flex flex-col gap-2 text-sm text-white/90">
-                  <label className="flex items-center gap-3 cursor-pointer">
-                    <input type="checkbox" checked={sharedComputer} disabled={busy}
-                      onChange={e => setSharedComputer(e.target.checked)}
-                      className="h-4 w-4 accent-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white" />
-                    This is a shared computer
-                  </label>
-                  <p>Keep this selected on school or shared devices. On your personal computer, uncheck it to enable clerk browser trust. Admins verify every login.</p>
-                </div>
               </>
             ) : (
               <div className="flex flex-col gap-2">
@@ -199,9 +196,9 @@ export default function LoginPage() {
                       <input type="checkbox" checked={trustBrowser} disabled={busy}
                         onChange={e => setTrustBrowser(e.target.checked)}
                         className="h-4 w-4 accent-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white" />
-                      Trust this browser for today
+                      This is my personal browser — trust it for today
                     </label>
-                    <p>For your personal computer only. After verification, clerk logins can skip OTP until midnight Manila time. Your password is still required. Browser privacy settings may require OTP again.</p>
+                    <p>Leave unchecked on school or shared computers. After verification, clerk logins can skip OTP until midnight Manila time. Your password is still required. Change this preference in Profile → Security. Browser privacy settings may require OTP again.</p>
                   </div>
                 )}
               </div>
@@ -249,7 +246,7 @@ export default function LoginPage() {
 
           {!requires2FA && (
             <div className="mt-10 text-center text-sm text-white/80 font-medium">
-              Don't have an account? <Link to="/signup" className="text-white font-black hover:underline">Sign up</Link>
+              Don't have an account? <Link to={new URLSearchParams(window.location.search).get('applicant') === 'alumni' ? '/signup?applicant=alumni' : '/signup'} className="text-white font-black hover:underline">Sign up</Link>
             </div>
           )}
     </AuthShell>

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import QRCode from 'qrcode';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import useAuthenticator from '@/hooks/useAuthenticator';
+import { downloadRecoveryCodes } from '@/utils/downloadRecoveryCodes';
 
 const inputClass = 'mt-2 w-full rounded-xl border border-gray-300 bg-white p-3 text-sm dark:border-gray-600 dark:bg-gray-900';
 const buttonClass = 'rounded-xl bg-[#15803d] px-4 py-3 text-sm font-bold text-white disabled:opacity-50';
@@ -33,9 +34,7 @@ export default function AuthenticatorSettings({ user }) {
     if (password && code) setConfirmation({ action, payload: payload() });
   }
   function downloadCodes() {
-    const url = URL.createObjectURL(new Blob([`TRACE single-use recovery codes\nKeep these private and offline.\n\n${auth.codes.join('\n')}\n`], { type: 'text/plain' }));
-    const link = document.createElement('a'); link.href = url; link.download = 'trace-recovery-codes.txt'; link.click();
-    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    downloadRecoveryCodes(auth.codes);
   }
   return <section aria-labelledby="authenticator-heading" onKeyDown={event => { if (event.key === 'Enter' && event.target.tagName === 'INPUT') event.preventDefault(); }} className="space-y-4 rounded-2xl border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-900">
     <h3 id="authenticator-heading" className="text-sm font-black">Two-factor authentication</h3>

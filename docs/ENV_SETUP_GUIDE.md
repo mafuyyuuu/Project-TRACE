@@ -913,4 +913,61 @@ Acceptance on the deployed system:
 - Finance Transactions & Export shows cleared payments once per request group, correct totals, receipt states and elapsed issuance wait. Check populated CSV filters, dates, peso amounts and spreadsheet-formula escaping. Historic unknown clearance times remain clearly unknown.
 - Check 320/375/768/desktop widths, both themes and 100–200% text preferences with populated messages, attachments, Finance tables and authenticator settings. Synthetic browser/mocked tests do not establish real SQL concurrency, mail, cookies or physical-phone acceptance.
 
-The institution has not supplied the delay-notification threshold or an OR service deadline/holiday calendar. Automatic overdue alerts remain on hold. Signup email-verification links, email-change link conversion and the remaining security/document items are not claimed complete by these rollout steps.
+The institution has not supplied the delay-notification threshold or an OR service deadline/holiday calendar. Automatic overdue alerts remain on hold. The final continuation below adds signup/email-change links and other reviewed account/document changes to these rollout steps.
+
+## Final continuation: existing-server rollout and missing-table repair
+
+For a single ordered walkthrough covering source preparation, a fresh database/uploads backup, configuration, all incremental prerequisites, stop-on-failure migrations, schema check and live verification, use [MIGRATION_ROLLOUT.md](MIGRATION_ROLLOUT.md). The commands below remain the continuation-only list after its prerequisites are satisfied.
+
+These source changes must be reviewed/merged and pulled into the server checkout before their new migration files exist there. Rebuild the image from that checkout. Configure the existing `MFA_ENCRYPTION_KEY`, stable `JWT_SECRET`, Gmail SMTP settings and `FRONTEND_URL` first; the first configured frontend origin is used for email-link destinations and must be the intended HTTPS site. The key is a separate 32-byte random secret: generate with `openssl rand -hex 32`, save only in the server root `.env`/secure backup, never a `VITE_` variable. Do not rotate an existing key with enrolled authenticators.
+
+Keep a verified database/uploads backup and pause writers during rollout, including AI/n8n jobs that can write to the database. Stop on the first failed command. Base schema/security/password-reset/history tables, Batch 8/8b, student profiles, trusted browsers and catalog migrations remain prerequisites. Do not import the complete schema into production, reseed, remove volumes, or run `migration_phase3.js` (a code-generation helper) as a repair.
+
+Run commands individually from the SSH repository root after pulling the reviewed revision:
+
+```bash
+docker compose stop backend ai-engine n8n
+docker compose build backend
+docker compose run --rm --no-deps -T backend node database/migrate_fee_schedules.js
+docker compose run --rm --no-deps -T backend node database/migrate_authenticator.js
+docker compose run --rm --no-deps -T backend node database/migrate_sessions.js
+docker compose run --rm --no-deps -T backend node database/migrate_finance_receipts.js
+docker compose run --rm --no-deps -T backend node database/migrate_registrar_policy.js
+docker compose run --rm --no-deps -T backend node database/migrate_request_attachments.js
+docker compose run --rm --no-deps -T backend node database/migrate_document_messages.js
+docker compose run --rm --no-deps -T backend node database/migrate_templates.js
+docker compose run --rm --no-deps -T backend node database/migrate_program.js
+docker compose run --rm --no-deps -T backend node database/migrate_email_verification.js
+docker compose run --rm --no-deps -T backend node database/migrate_support_messages.js
+docker compose run --rm --no-deps -T backend node database/migrate_request_sequences.js
+docker compose run --rm --no-deps -T backend node database/migrate_staff_authenticator_setup.js
+docker compose run --rm --no-deps -T backend node database/check_schema.js
+docker compose up -d --no-deps backend ai-engine n8n
+docker compose ps
+```
+
+Do not resume writers until the presence check passes. That check reads metadata and identifies the responsible scripts; it does not validate types, constraints, rates, data or live transactions. Existing incompatible table definitions need review rather than destructive replacement. These scripts preserve records/rates/layouts, but MySQL DDL may auto-commit; investigate a failure before rerunning. They are never automatic API startup migrations. Pair the matching frontend deployment with the backend/schema update.
+
+Confirmed server failures map to these scripts:
+
+| Error | Explicit repair |
+| --- | --- |
+| Missing `authenticator_credentials` at login | `migrate_authenticator.js`; the user subsequently reported login working. |
+| Missing `document_fee_schedules`, `document_types.rental_fee` or sequence column | `migrate_fee_schedules.js`. |
+| Missing `document_messages` at the inbox | `migrate_document_messages.js`. |
+| Missing `system_templates` | `migrate_templates.js`; creates only missing catalog keys without overwriting saved layouts. |
+| Missing `request_attachment_uploads` when reading a proof/avatar | `migrate_request_attachments.js`; file authorization consults case-attachment ownership first. |
+
+Check one-line `docker compose ps`; entering `docker` and `compose ps` on separate lines runs different commands. A browser stack trace alone cannot establish a SQL or WebSocket cause. After repair, reproduce once and inspect backend/Caddy logs with a short time window. Successful polling does not prove WebSocket upgrade. Never paste tokens, OTPs, setup/recovery codes, keys or personal records into logs/shared reports.
+
+Additional live acceptance:
+
+- Existing and new students verify email by a single-use link, separate from ID approval. Signup accepts any email domain. A new alumni account remains restricted to its graduate form and necessary recovery/logout until submission. Incomplete/unverified students cannot submit through the API; General support remains available for email help after the alumni form gate.
+- Test changed phone persistence; password requirements/history; old reset-link invalidation after credential changes; concurrent reset/link use; real owner notices; pending email retaining the old address, followed by verification, session invalidation and old/new-address notices.
+- Admin opens an active clerk account in Accounts, confirms their Admin password and issues a private ten-minute initial setup code after identity checking. On `/staff-setup`, the clerk supplies their own ID/password and that code, scans the QR/manual key and confirms an app code. No dashboard session exists before confirmation. Save recovery codes. Test expired/replaced/used codes and five failed attempts; an already-enrolled factor cannot be replaced with a setup code. Email-free staff use app/recovery codes on later login. Already-enrolled lost-factor recovery still needs an institutional identity-recovery process.
+- The initial login form has no shared-computer checkbox. Only a clerk factor challenge offers unchecked personal-browser trust; consent saves a preference only after a server-confirmed grant. Admin always verifies; students receive no new first/new-browser email-OTP policy. Clerk Security can forget the preference, making the next login clear trust/use shared verification. Test midnight expiry and actual cross-site cookie behavior.
+- General support works with no request, with private student ownership and Window 1 replies. Case attachments remain separately authorized. Program/Course is distinct from College on signup/profile/slips/Finance review/export; old missing values remain unknown. Submission QR points to the current TRACE origin with the chosen applicant type.
+- Verify numbering under concurrent requests, cancellation and identity/type corrections. Existing labels are preserved; original issuance requires Window 1's explicit evidence note. Deleted history cannot be reconstructed. Rates and final historical calculations remain intact.
+- Test Admin saved layouts in the payment slip and an actual email. Allowed markup/variables preserve the tracking QR and safe clickable verification/reset links. Check 100–200% text and mobile widths with populated data, and perform the original physical-phone tracker/input/Back-to-Login checks.
+
+This round adds `sanitize-html` to backend dependencies; the rebuilt image installs the lockfile. Local mocked tests/build are not acceptance of live MySQL concurrency, SMTP, genuine app enrollment, uploaded records, physical phones or payment-provider behavior.

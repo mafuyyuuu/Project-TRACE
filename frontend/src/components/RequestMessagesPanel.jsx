@@ -3,8 +3,21 @@ import { useMessageThreads } from '@/hooks/useDocumentChat';
 import DocumentChat from '@/components/DocumentChat';
 import RequestAttachments from '@/components/RequestAttachments';
 import { getStatusLabel } from '@/utils/documentStatus';
+import GeneralSupportPanel from '@/components/GeneralSupportPanel';
 
-export default function RequestMessagesPanel({ user, initialDocumentId }) {
+export default function RequestMessagesPanel({ user, initialDocumentId, initialView = 'request' }) {
+  const supportId = new URLSearchParams(window.location.search).get('support');
+  const [view, setView] = useState(supportId ? 'support' : initialView);
+  const canSupport = ['student', 'admin'].includes(user.role) || (user.role === 'clerk' && ['Window 1', 'Receiving Desk'].includes(user.desk_assignment));
+  return <div className="space-y-4 min-w-0">
+    {canSupport && <div className="flex flex-wrap gap-3" aria-label="Conversation type">
+      <button type="button" aria-pressed={view === 'request'} onClick={() => setView('request')} className="border rounded-xl px-3 py-2 font-bold">Request conversations</button>
+      <button type="button" aria-pressed={view === 'support'} onClick={() => setView('support')} className="border rounded-xl px-3 py-2 font-bold">General support</button>
+    </div>}
+    {canSupport && view === 'support' ? <GeneralSupportPanel key={user.id} user={user} initialStudentId={supportId} /> : <RequestConversationPanel user={user} initialDocumentId={initialDocumentId} />}
+  </div>;
+}
+function RequestConversationPanel({ user, initialDocumentId }) {
   const [page, setPage] = useState(1);
   const [selected, setSelected] = useState(initialDocumentId || '');
   const inbox = useMessageThreads(user.id, page);

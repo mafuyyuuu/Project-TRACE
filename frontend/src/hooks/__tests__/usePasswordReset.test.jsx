@@ -56,7 +56,7 @@ describe('requestLink', () => {
 describe('submitNewPassword', () => {
   it('refuses a missing token without calling the API', async () => {
     const { result } = renderHook(() => usePasswordReset());
-    await act(async () => result.current.submitNewPassword('', 'newpassword1', 'newpassword1'));
+    await act(async () => result.current.submitNewPassword('', 'Newpassword1!', 'Newpassword1!'));
 
     expect(resetPassword).not.toHaveBeenCalled();
     await waitFor(() => expect(result.current.error).toMatch(/missing its token/i));
@@ -72,7 +72,7 @@ describe('submitNewPassword', () => {
 
   it('requires the two passwords to match', async () => {
     const { result } = renderHook(() => usePasswordReset());
-    await act(async () => result.current.submitNewPassword('tok', 'newpassword1', 'newpassword2'));
+    await act(async () => result.current.submitNewPassword('tok', 'Newpassword1!', 'Newpassword2!'));
 
     expect(resetPassword).not.toHaveBeenCalled();
     await waitFor(() => expect(result.current.error).toMatch(/do not match/i));
@@ -82,9 +82,9 @@ describe('submitNewPassword', () => {
     resetPassword.mockResolvedValue({ message: 'Password updated.' });
     const { result } = renderHook(() => usePasswordReset());
 
-    await act(async () => result.current.submitNewPassword('tok', 'newpassword1', 'newpassword1'));
+    await act(async () => result.current.submitNewPassword('tok', 'Newpassword1!', 'Newpassword1!'));
 
-    expect(resetPassword).toHaveBeenCalledWith({ token: 'tok', password: 'newpassword1' });
+    expect(resetPassword).toHaveBeenCalledWith({ token: 'tok', password: 'Newpassword1!' });
     await waitFor(() => expect(result.current.done).toBe(true));
   });
 });

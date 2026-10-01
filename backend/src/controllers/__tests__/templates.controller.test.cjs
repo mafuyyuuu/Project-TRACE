@@ -3,14 +3,14 @@ const templateModel = require('../../models/template.model');
 const { pool } = require('../../config/db');
 const { JWT_SECRET } = require('../../config/env');
 
-const template = { template_key: 'payment_slip', content: '<p>Slip</p>' };
+const template = { template_key: 'payment_slip', content: '<p>Slip</p>', font_family: 'sans-serif', font_size: '12px' };
 const draft = { content: '<p>Updated</p>', font_family: 'Arial', font_size: 12 };
 
 beforeEach(() => {
   vi.spyOn(console, 'error').mockImplementation(() => {});
   vi.spyOn(pool, 'query').mockImplementation(async sql => {
     if (sql.startsWith('SELECT token_hash FROM session_revocations')) return [[]];
-    if (sql === 'SELECT token_version, is_active FROM users WHERE id = ?') return [[{ token_version: 0, is_active: 1 }]];
+    if (sql.startsWith('SELECT token_version, is_active')) return [[{ token_version: 0, is_active: 1 }]];
     throw new Error('Unexpected database access');
   });
   vi.spyOn(templateModel, 'list').mockResolvedValue([template]);
@@ -80,7 +80,7 @@ it('allows an authenticated admin to update with the existing payload and respon
     body: { message: 'Template updated successfully.' },
   });
   expect(templateModel.update).toHaveBeenCalledWith(
-    'payment_slip', draft.content, draft.font_family, draft.font_size
+    'payment_slip', draft.content, draft.font_family, '12px'
   );
 });
 

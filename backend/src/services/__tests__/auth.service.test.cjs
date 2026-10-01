@@ -23,6 +23,8 @@ const { authenticate } = require('../../middlewares/auth.middleware');
 const trustedBrowser = require('../trustedBrowser.service');
 const trustedBrowserModel = require('../../models/trustedBrowser.model');
 const authenticator = require('../authenticator.service');
+const emailVerification = require('../emailVerification.service');
+const passwordResetModel = require('../../models/passwordReset.model');
 let credentialConnection;
 
 const statusOf = (promise) => promise.then(() => undefined, (err) => err.status);
@@ -46,6 +48,8 @@ const verifiedStudent = () => ({
 });
 
 beforeEach(() => {
+  vi.spyOn(passwordResetModel, 'invalidateAllForUser').mockResolvedValue([{}]);
+  vi.spyOn(emailVerification, 'issue').mockResolvedValue({ email_sent: true, message: 'Link sent.', pending_email: 'new@example.test', email_verification_required: true });
   vi.spyOn(authenticator, 'isEnabled').mockResolvedValue(false);
   credentialConnection = { beginTransaction: vi.fn(), commit: vi.fn(), rollback: vi.fn(), release: vi.fn() };
   vi.spyOn(pool, 'getConnection').mockResolvedValue(credentialConnection);
@@ -130,7 +134,7 @@ describe('login', () => {
 
   it('lets staff in regardless of verification status', async () => {
     userModel.findActiveByStudentId.mockResolvedValue([
-      { ...verifiedStudent(), role: 'clerk', desk_assignment: 'Finance', verification_status: 'pending' },
+      { ...verifiedStudent(), role: 'clerk', email: 'synthetic@example.test', desk_assignment: 'Finance', verification_status: 'pending' },
     ]);
     await expect(service.login({ employee_id: 'FIN', password: 'Trace2024!' })).resolves.toHaveProperty('requires_2fa', true);
   });
@@ -201,9 +205,17 @@ describe.each(['student password', 'staff OTP'])('%s session versions', (flow) =
 
 describe('clerk MFA browser policy', () => {
   const credentials = { employee_id: 'STAFF001', password: 'Trace2024!' };
-  const clerk = () => ({ ...verifiedStudent(), role: 'clerk', is_active: 1, token_version: 0 });
+  const clerk = () => ({ ...verifiedStudent(), email: 'synthetic@example.test', role: 'clerk', is_active: 1, token_version: 0 });
   const otpUser = () => ({ ...clerk(), login_otp: '123456', login_otp_expires: new Date(Date.now() + 60000) });
   const challenge = (claims = {}) => jwt.sign({ id: 3, pending_2fa: true, token_version: 0, ...claims }, env.JWT_SECRET);
+
+  it('directs an unenrolled clerk with no email to Admin-assisted setup without granting a session or undeliverable OTP', async () => {
+    userModel.findActiveByStudentId.mockResolvedValue([{ ...clerk(), email: null }]);
+    const result = await service.login(credentials);
+    expect(result).toEqual({ requires_authenticator_setup: true });
+    expect(userModel.updateEmailOTP).not.toHaveBeenCalled();
+    expect(trustedBrowser.issue).not.toHaveBeenCalled();
+  });
 
   it('requires Admin OTP even with personal mode, opt-in and an existing browser cookie', async () => {
     userModel.findActiveByStudentId.mockResolvedValue([{ ...clerk(), role: 'admin' }]);
@@ -222,7 +234,7 @@ describe('clerk MFA browser policy', () => {
     userModel.findActiveByStudentId.mockResolvedValue([clerk()]);
     trustedBrowser.isTrusted.mockResolvedValue(true);
     const result = await service.login({ ...credentials, shared_computer });
-    expect(result).toMatchObject({ requires_2fa: true, can_trust_browser: false });
+    expect(result).toMatchObject({ requires_2fa: true, can_trust_browser: true });
     expect(trustedBrowser.isTrusted).not.toHaveBeenCalled();
   });
 
@@ -320,7 +332,7 @@ describe('credential changes revoke MFA trust and pending challenges', () => {
   });
 
   it('never revokes trust when the current password is incorrect', async () => {
-    expect(await statusOf(service.updateProfile(3, { password: 'NewPassword2024!', current_password: 'wrong' }))).toBe(401);
+    expect(await statusOf(service.updateProfile(3, { password: 'NewPassword2024!', current_password: 'wrong' }))).toBe(400);
     expect(userModel.incrementTokenVersion).not.toHaveBeenCalled();
     expect(pool.getConnection).not.toHaveBeenCalled();
   });
@@ -336,10 +348,19 @@ describe('credential changes revoke MFA trust and pending challenges', () => {
 
 describe('register', () => {
   const body = {
-    employee_id: 'STU-NEW', full_name: 'New Student',
+    employee_id: 'STU-NEW', full_name: 'New Student', email: 'new@example.test',
     phone_number: '+639', password: 'Trace2024!', course: 'CCS',
   };
   const file = { path: '/tmp/id.jpg', originalname: 'id.jpg', mimetype: 'image/jpeg' };
+
+  it('stores the separate program without replacing college assignment', async () => {
+    await service.register({ ...body, program: ' BS Information Technology ' }, file);
+    expect(userModel.createUser).toHaveBeenCalledWith(expect.objectContaining({ program: 'BS Information Technology', course: 'CCS' }));
+  });
+  it('rejects an oversized program before account creation', async () => {
+    await expect(service.register({ ...body, program: 'x'.repeat(151) }, file)).rejects.toMatchObject({ status: 400 });
+    expect(userModel.createUser).not.toHaveBeenCalled();
+  });
 
   it('requires the mandatory fields and an ID proof', async () => {
     expect(await statusOf(service.register({}, file))).toBe(400);
@@ -499,12 +520,12 @@ describe('Batch 8 OTP completion', () => {
     expect(result.user).not.toHaveProperty('email_otp');
     expect(result.user).not.toHaveProperty('login_otp');
   });
-  it('commits email only after a valid code', async () => {
+  it('rejects obsolete email codes after moving verification to links', async () => {
     vi.spyOn(userModel, 'findById').mockResolvedValue([{ id: 3, pending_email: 'new@example.com', email_otp: 'E:123456', email_otp_expires: new Date(Date.now() + 60000) }]);
-    expect(await statusOf(service.verifyEmailChange(3, '999999'))).toBe(401);
+    expect(await statusOf(service.verifyEmailChange(3, '999999'))).toBe(400);
     expect(userModel.commitEmailChange).not.toHaveBeenCalled();
-    await service.verifyEmailChange(3, '123456');
-    expect(userModel.commitEmailChange).toHaveBeenCalledWith(3, 'new@example.com');
+    expect(await statusOf(service.verifyEmailChange(3, '123456'))).toBe(400);
+    expect(userModel.commitEmailChange).not.toHaveBeenCalled();
   });
   it('rejects expired OTPs and inactive users', async () => {
     vi.spyOn(userModel, 'findById').mockResolvedValue([{ ...verifiedStudent(), is_active: 0 }]);
@@ -514,22 +535,23 @@ describe('Batch 8 OTP completion', () => {
 });
 
 describe('purpose-bound OTP challenges', () => {
-  it('stages email changes with a marked code and leaves the current address untouched', async () => {
+  it('stages email changes with a link and leaves the current address untouched', async () => {
     userModel.getProfileById.mockResolvedValue([{ id: 3, student_id: 'STU-001', email: 'old@example.test' }]);
     userModel.findActiveByStudentId.mockResolvedValue([verifiedStudent()]);
     const result = await service.updateProfile(3, { email: 'new@example.test', current_password: 'Trace2024!' });
     expect(result).toMatchObject({ email_verification_required: true, pending_email: 'new@example.test' });
-    expect(userModel.requestEmailChange.mock.calls[0]).toEqual([3, 'new@example.test', expect.stringMatching(/^E:\d{6}$/), expect.any(Date)]);
+    expect(emailVerification.issue).toHaveBeenCalledWith(3, { email: 'new@example.test', current_password: 'Trace2024!' });
+    expect(userModel.requestEmailChange).not.toHaveBeenCalled();
     expect(userModel.commitEmailChange).not.toHaveBeenCalled();
   });
   it('a login code cannot commit a pending email, even when its value matches', async () => {
     vi.spyOn(userModel, 'findById').mockResolvedValue([{ id: 3, pending_email: 'new@example.test', login_otp: '123456', login_otp_expires: new Date(Date.now() + 60000), email_otp: 'E:654321', email_otp_expires: new Date(Date.now() + 60000) }]);
-    expect(await statusOf(service.verifyEmailChange(3, '123456'))).toBe(401);
+    expect(await statusOf(service.verifyEmailChange(3, '123456'))).toBe(400);
     expect(userModel.commitEmailChange).not.toHaveBeenCalled();
   });
   it('a legacy shared OTP is not accepted as proof of a new email address', async () => {
     vi.spyOn(userModel, 'findById').mockResolvedValue([{ id: 3, pending_email: 'new@example.test', email_otp: '123456', email_otp_expires: new Date(Date.now() + 60000) }]);
-    expect(await statusOf(service.verifyEmailChange(3, '123456'))).toBe(401);
+    expect(await statusOf(service.verifyEmailChange(3, '123456'))).toBe(400);
     expect(userModel.commitEmailChange).not.toHaveBeenCalled();
   });
   it('an email-change code cannot finish staff login', async () => {
@@ -558,7 +580,7 @@ describe('Batch 8b identity and staff profile boundary', () => {
     expect(values).toEqual(['STU1']);
   });
   it('stores the submitted Alumni ID and explicit college without rewriting existing identifiers', async () => {
-    await service.register({ employee_id: 'ALU1234567', user_type: 'alumni', full_name: 'Ana Reyes', phone_number: '09123456789', password: 'Trace2024!', college_id: '2' }, { path: '/proof.png' });
+    await service.register({ employee_id: 'ALU1234567', email: 'alumni@example.test', user_type: 'alumni', full_name: 'Ana Reyes', phone_number: '09123456789', password: 'Trace2024!', college_id: '2' }, { path: '/proof.png' });
     expect(userModel.createUser).toHaveBeenCalledWith(expect.objectContaining({ student_id: 'ALU1234567', user_type: 'alumni', college_id: 2, course: 'College A' }));
   });
   it('rejects student and unknown desk access before querying another profile', async () => {

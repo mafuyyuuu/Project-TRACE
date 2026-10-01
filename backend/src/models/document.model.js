@@ -72,7 +72,7 @@ function findByTrackingNumber(trackingNumber, executor = pool) {
  * both always filter identically.
  */
 function listWithFilters(conditions, params, limit, offset, executor = pool) {
-  let query = 'SELECT d.* FROM documents d';
+  let query = "SELECT d.*, student.program FROM documents d LEFT JOIN users student ON student.student_id = d.student_id AND student.role = 'student'";
   if (conditions.length > 0) query += ' WHERE ' + conditions.join(' AND ');
   query += ' ORDER BY d.created_at DESC LIMIT ? OFFSET ?';
   return executor.query(query, [...params, limit, offset]).then(([rows]) => pricingModel.enrichDocuments(shapePricing(rows), executor));

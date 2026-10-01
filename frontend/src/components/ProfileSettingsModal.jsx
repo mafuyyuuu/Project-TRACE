@@ -11,6 +11,7 @@ import { TEXT_SIZES } from '@/utils/textSize';
 import { getProfileCompletion } from '@/utils/profileCompletion';
 import AuthenticatorSettings from '@/components/AuthenticatorSettings';
 import useSecurityLogs from '@/hooks/useSecurityLogs';
+import { hasClerkBrowserPreference, forgetClerkBrowserPreference } from '@/utils/clerkBrowserPreference';
 
 export default function ProfileSettingsModal({
   user,
@@ -29,13 +30,15 @@ export default function ProfileSettingsModal({
   darkMode = false,
   onToggleTheme,
   textSize = 100, onTextSizeChange,
-  pendingEmail = '', emailOtp = '', onEmailOtpChange, onVerifyEmail,
+  pendingEmail = '',
 }) {
   const fileInputRef = useRef(null);
 
   const [activeTab, setActiveTab] = useState(initialTab);
   const [confirmation, setConfirmation] = useState(null);
   const [loggingOut, setLoggingOut] = useState(false);
+  const [showPasswords, setShowPasswords] = useState(false);
+  const [personalBrowser, setPersonalBrowser] = useState(hasClerkBrowserPreference);
   const securityLogs = useSecurityLogs(activeTab === 'security', user?.id);
   const [sessionFeedback, setSessionFeedback] = useState({ success: '', error: '' });
   
@@ -73,8 +76,11 @@ export default function ProfileSettingsModal({
   );
 
   const confirmAction = async () => {
-    if (confirmation === 'email') {
-      if (await onVerifyEmail()) setConfirmation(null);
+    if (confirmation === 'browser') {
+      forgetClerkBrowserPreference();
+      setPersonalBrowser(false);
+      setConfirmation(null);
+      setSessionFeedback({ success: 'Shared-computer verification restored for the next login.', error: '' });
       return;
     }
     if (confirmation === 'profile') {
@@ -122,12 +128,12 @@ export default function ProfileSettingsModal({
       )}
     >
       <ConfirmDialog open={!!confirmation}
-        title={confirmation === 'email' ? 'Verify New Email' : confirmation === 'profile' ? 'Confirm Profile Save' : 'Log Out Other Devices'}
-        message={confirmation === 'email' ? ['Confirm this verification code to update your email address.', error ? <span role="alert">{error}</span> : null] : confirmation === 'profile'
+        title={confirmation === 'profile' ? 'Confirm Profile Save' : confirmation === 'browser' ? 'Use Shared-Computer Verification' : 'Log Out Other Devices'}
+        message={confirmation === 'profile'
           ? ['Save your profile changes and selected picture?', error ? <span role="alert">{error}</span> : null]
-          : 'Log out of all other active sessions?'}
-        confirmLabel={confirmation === 'email' ? 'Verify Email' : confirmation === 'profile' ? 'Save Profile' : 'Log Out Other Devices'}
-        variant={confirmation === 'session' ? 'destructive' : 'neutral'}
+          : confirmation === 'browser' ? 'Forget the personal-browser preference here? Your next login will require verification. This keeps your current session open.' : 'Log out of all other active sessions?'}
+        confirmLabel={confirmation === 'profile' ? 'Save Profile' : confirmation === 'browser' ? 'Use Shared Verification' : 'Log Out Other Devices'}
+        variant={confirmation === 'sessions' ? 'destructive' : 'neutral'}
         loading={saving || loggingOut} onConfirm={confirmAction} onCancel={() => setConfirmation(null)} />
       <DashboardAlerts
         dismissalKey={activeTab}
@@ -136,11 +142,7 @@ export default function ProfileSettingsModal({
         onDismiss={() => setSessionFeedback({ success: '', error: '' })}
       />
       {pendingEmail && <section className="mb-4 p-4 rounded-xl border border-amber-200 dark:border-amber-800" aria-label="Email verification">
-        <p className="text-sm mb-3">Verify the code sent to <span className="select-text break-all">{pendingEmail}</span>. Your current email stays active until verification.</p>
-        <label className="block text-sm">Verification code
-          <input value={emailOtp} onChange={e => onEmailOtpChange?.(e.target.value.replace(/\D/g, ''))} inputMode="numeric" maxLength={INPUT_LIMITS.otp} className="w-full rounded-xl border p-3 dark:bg-gray-900" />
-        </label>
-        <button type="button" disabled={saving || emailOtp.length !== 6} onClick={() => setConfirmation('email')} className="mt-3 px-4 py-2 rounded-xl bg-[#15803d] text-white disabled:opacity-50">Verify Email</button>
+        <p className="text-sm">Open the verification link sent to <span className="select-text break-all">{pendingEmail}</span>. Your current email stays active until verification. If it expires, save the new email with your current password again to resend.</p>
       </section>}
       <div className="trace-profile-header bg-white dark:bg-gray-900 px-6 pt-4 pb-0 flex flex-col border-b border-gray-100 dark:border-gray-700">
         <div className="flex flex-wrap items-start gap-4 pb-6">
@@ -233,11 +235,18 @@ export default function ProfileSettingsModal({
                 <div>
                   <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">Email Address <span className="text-red-500 dark:text-red-300">*</span></label>
                   <input maxLength={INPUT_LIMITS.email} type="email" value={profileData.email} onChange={(e) => setField('email', e.target.value)} required className="w-full bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl py-3 px-4 text-sm font-semibold focus:ring-2 focus:ring-[#15803d]/20 outline-none" />
+                  {profileData.email !== user?.email && <label className="block text-sm mt-3">Current password to change email
+                    <input type={showPasswords ? 'text' : 'password'} autoComplete="current-password" value={profileData.current_password || ''} onChange={e => setField('current_password', e.target.value)} className="mt-2 w-full border rounded-xl p-3 bg-white dark:bg-gray-900" />
+                  </label>}
                 </div>
               </div>
 
               {isStudent && (
                 <>
+                  <label className="block text-sm font-bold">Program/Course
+                    <input maxLength={150} value={profileData.program || ''} onChange={event => setField('program', event.target.value)} placeholder="e.g. BS Information Technology" className="mt-2 w-full rounded-xl border p-3 bg-white dark:bg-gray-900" />
+                    <span className="block text-xs font-normal mt-1">Your degree or program, separate from your college. Used on the payment slip and by Finance when preparing the OR.</span>
+                  </label>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">Birth Date <span className="text-red-500 dark:text-red-300">*</span></label>
@@ -297,27 +306,35 @@ export default function ProfileSettingsModal({
           {activeTab === 'security' && (
             <div className="space-y-6">
               <AuthenticatorSettings user={user} />
+              {user?.role === 'clerk' && <section aria-label="Clerk browser verification" className="bg-white dark:bg-gray-900 p-4 border border-gray-200 dark:border-gray-700 rounded-2xl space-y-3">
+                <h3 className="font-bold">Browser verification</h3>
+                <p className="text-sm">{personalBrowser ? 'Personal-browser preference is saved until midnight Manila time.' : 'Shared-computer verification is the default. Verify each login; choose personal-browser trust during verification only on your own device.'}</p>
+                {personalBrowser && <button type="button" onClick={() => setConfirmation('browser')} className="border rounded-xl px-3 py-2 text-sm">Use shared-computer verification</button>}
+              </section>}
               <div className="bg-white dark:bg-gray-900 p-4 border border-gray-200 dark:border-gray-700 rounded-2xl">
                 <h3 className="text-sm font-black text-gray-900 dark:text-gray-100 mb-4 border-b border-gray-100 dark:border-gray-700 pb-2">Change Password</h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">Current Password</label>
-                    <input type="password" value={profileData.current_password} onChange={(e) => setField('current_password', e.target.value)} placeholder="Required to change email or password" className="w-full bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl py-3 px-4 text-sm font-semibold focus:ring-2 focus:ring-[#15803d]/20 outline-none" />
+                    <input aria-label="Current Password" autoComplete="current-password" type={showPasswords ? 'text' : 'password'} value={profileData.current_password || ''} onChange={(e) => setField('current_password', e.target.value)} placeholder="Required to change email or password" className="w-full bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl py-3 px-4 text-sm font-semibold focus:ring-2 focus:ring-[#15803d]/20 outline-none" />
                   </div>
                   <div>
                     <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">New Password</label>
-                    <input maxLength={INPUT_LIMITS.password} type="password" value={profileData.password} onChange={(e) => setField('password', e.target.value)} placeholder="Leave blank to keep current password" className="w-full bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl py-3 px-4 text-sm font-semibold focus:ring-2 focus:ring-[#15803d]/20 outline-none" />
+                    <input aria-label="New Password" autoComplete="new-password" maxLength={INPUT_LIMITS.password} type={showPasswords ? 'text' : 'password'} value={profileData.password} onChange={(e) => setField('password', e.target.value)} placeholder="Leave blank to keep current password" className="w-full bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl py-3 px-4 text-sm font-semibold focus:ring-2 focus:ring-[#15803d]/20 outline-none" />
                     
                     {profileData.password && (
                       <div className="mt-2 text-[10px] font-bold uppercase tracking-widest grid grid-cols-2 gap-1">
                         <span className={profileData.password.length >= 8 ? 'text-green-600 dark:text-green-300' : 'text-gray-400 dark:text-gray-400'}>{profileData.password.length >= 8 ? '✓' : '○'} 8+ Characters</span>
                         <span className={/[A-Z]/.test(profileData.password) ? 'text-green-600 dark:text-green-300' : 'text-gray-400 dark:text-gray-400'}>{/[A-Z]/.test(profileData.password) ? '✓' : '○'} 1 Uppercase</span>
+                        <span className={/[a-z]/.test(profileData.password) ? 'text-green-600 dark:text-green-300' : 'text-gray-400 dark:text-gray-400'}>{/[a-z]/.test(profileData.password) ? '✓' : '○'} 1 Lowercase</span>
                         <span className={/\d/.test(profileData.password) ? 'text-green-600 dark:text-green-300' : 'text-gray-400 dark:text-gray-400'}>{/\d/.test(profileData.password) ? '✓' : '○'} 1 Number</span>
                         <span className={/[@$!%*?&]/.test(profileData.password) ? 'text-green-600 dark:text-green-300' : 'text-gray-400 dark:text-gray-400'}>{/[@$!%*?&]/.test(profileData.password) ? '✓' : '○'} 1 Special Char</span>
                       </div>
                     )}
                   </div>
                 </div>
+                <button type="button" aria-pressed={showPasswords} onClick={() => setShowPasswords(value => !value)} className="mt-3 border rounded-xl px-3 py-2 text-sm">{showPasswords ? 'Hide passwords' : 'Show passwords'}</button>
+                <p className="text-sm mt-3">Choose 8–64 characters with uppercase, lowercase, a number and @$!%*?&. You cannot reuse your current or last three passwords. Changing your password logs out other devices and keeps this browser signed in.</p>
               </div>
               <div className="bg-white dark:bg-gray-900 p-4 border border-gray-200 dark:border-gray-700 rounded-2xl">
                 <h3 className="text-sm font-black text-gray-900 dark:text-gray-100 mb-4 border-b border-gray-100 dark:border-gray-700 pb-2">Session Management</h3>

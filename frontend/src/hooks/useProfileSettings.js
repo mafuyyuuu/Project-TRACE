@@ -1,7 +1,8 @@
-import { useState } from 'react';
-import { updateProfile, uploadProfilePicture, verifyEmailChange, getMe } from '@/services/authService';
+import { useRef, useState } from 'react';
+import { updateProfile, uploadProfilePicture, getMe } from '@/services/authService';
 
 import { isTransferStudent } from '@/utils/profileCompletion';
+import { disconnectRealtime } from '@/services/realtimeService';
 
 const STORED_USER_KEY = 'trace_user';
 
@@ -9,6 +10,7 @@ function formFromUser(user) {
   return {
     phone_number: user?.phone_number || '',
     email: user?.email || '',
+    program: user?.program || '',
     password: '',
     current_password: '',
     extension_name: user?.extension_name || '',
@@ -49,6 +51,7 @@ function formFromUser(user) {
  * `discardAvatarChange` drops the stage without ever having called the server.
  */
 export default function useProfileSettings(user) {
+  const savingRef = useRef(false);
   const [profileData, setProfileData] = useState(() => formFromUser(user));
   const [dirty, setDirty] = useState(false);
   const [sourceUser, setSourceUser] = useState(user);
@@ -56,7 +59,6 @@ export default function useProfileSettings(user) {
   const [avatarFile, setAvatarFile] = useState(null);
   const [avatarPreviewUrl, setAvatarPreviewUrl] = useState(null);
   const [pendingEmail, setPendingEmail] = useState(user?.pending_email || '');
-  const [emailOtp, setEmailOtp] = useState('');
   const [saving, setSaving] = useState(false);
   const [success, setSuccess] = useState('');
   const [error, setError] = useState('');
@@ -89,6 +91,8 @@ export default function useProfileSettings(user) {
 
   const saveProfile = async (e) => {
     if (e) e.preventDefault();
+    if (savingRef.current) return false;
+    savingRef.current = true;
     setSaving(true);
     setSuccess('');
     setError('');
@@ -113,10 +117,15 @@ export default function useProfileSettings(user) {
 
     try {
       const result = await updateProfile(profileData);
+      if (result?.token && result?.user) {
+        localStorage.setItem('trace_token', result.token);
+        disconnectRealtime();
+        patchStoredUser(result.user);
+      }
       patchStoredUser({ phone_number: profileData.phone_number, ...(result?.email_verification_required ? {} : { email: profileData.email }) });
       if (result?.email_verification_required) setPendingEmail(result.pending_email || profileData.email);
       setProfileData((current) => ({ ...current, password: '', current_password: '' }));
-      if (!profileData.password) {
+      if (!profileData.password || result?.token) {
         try {
           const { user: fresh } = await getMe();
           if (!fresh) throw new Error('Profile refresh returned no account.');
@@ -128,7 +137,8 @@ export default function useProfileSettings(user) {
           errors.push('Profile saved, but saved details could not be refreshed. Reopen TRACE before requesting documents.');
         }
       }
-      messages.push(pendingEmail || profileData.email !== user?.email ? 'Profile saved. If an email change was requested, verify the code sent to the new address.' : 'Profile updated successfully.');
+      messages.push(result?.message || (pendingEmail || profileData.email !== user?.email ? 'Profile saved. If an email change was requested, open the verification link sent to the new address.' : 'Profile updated successfully.'));
+      if (result?.email_sent === false) errors.push('Profile saved, but the verification link could not be delivered. Retry in 60 seconds or contact the Registrar.');
     } catch (err) {
       errors.push(readError(err));
     }
@@ -136,6 +146,7 @@ export default function useProfileSettings(user) {
     if (messages.length) setSuccess(messages.join(' '));
     if (errors.length) setError(errors.join(' '));
     setSaving(false);
+    savingRef.current = false;
     return errors.length === 0;
   };
 
@@ -162,21 +173,9 @@ export default function useProfileSettings(user) {
     setError('');
   };
 
-  const confirmEmail = async () => {
-    setSaving(true); setError(''); setSuccess('');
-    try {
-      await verifyEmailChange(emailOtp);
-      const { user: fresh } = await getMe();
-      patchStoredUser(fresh);
-      setProfileData(current => ({ ...current, email: fresh.email }));
-      setPendingEmail(''); setEmailOtp(''); setSuccess('Email verified and updated.');
-      return true;
-    } catch (err) { setError(readError(err)); return false; }
-    finally { setSaving(false); }
-  };
 
   return {
-    pendingEmail, emailOtp, setEmailOtp, confirmEmail, avatarFile,
+    pendingEmail, avatarFile,
     profileData,
     setField,
     avatarPath,

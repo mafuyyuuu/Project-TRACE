@@ -1,9 +1,10 @@
 import { INPUT_LIMITS } from '@/utils/inputLimits';
 import ConfirmDialog from '@/components/ConfirmDialog'
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import AuthShell from '@/components/AuthShell'
 import usePasswordReset from '@/hooks/usePasswordReset'
+import { PASSWORD_REQUIREMENTS, validNewPassword } from '@/utils/passwordPolicy'
 
 /**
  * Step 2 of recovery: choose a new password using the single-use token carried
@@ -11,9 +12,11 @@ import usePasswordReset from '@/hooks/usePasswordReset'
  */
 export default function ResetPasswordPage() {
   const [searchParams] = useSearchParams()
-  const token = searchParams.get('token') || ''
+  const token = useRef(searchParams.get('token') || new URLSearchParams(window.location.hash.slice(1)).get('token') || '').current
+  useEffect(() => { window.history.replaceState(null, '', window.location.pathname) }, [])
 
   const [password, setPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
   const [confirmPassword, setConfirmPassword] = useState('')
   const [passwordToConfirm, setPasswordToConfirm] = useState(null)
   const [localError, setLocalError] = useState('')
@@ -23,8 +26,8 @@ export default function ResetPasswordPage() {
     e.preventDefault()
     setLocalError('')
     if (!token) { setLocalError('This reset link is missing its token. Please request a new one.'); return }
-    if (password.length < 8) { setLocalError('Password must be at least 8 characters.'); return }
     if (password !== confirmPassword) { setLocalError('The two passwords do not match.'); return }
+    if (!validNewPassword(password)) { setLocalError(PASSWORD_REQUIREMENTS); return }
     setPasswordToConfirm({ token, password, confirmPassword })
   }
 
@@ -36,7 +39,7 @@ export default function ResetPasswordPage() {
   return (
     <AuthShell
       title="Choose a new password"
-      subtitle="Pick a password of at least 8 characters. This link works only once."
+      subtitle={`${PASSWORD_REQUIREMENTS} This link works only once.`}
       footer={
         <Link to="/" className="text-sm font-medium text-white/90 hover:text-white hover:underline">
           Back to Login
@@ -68,7 +71,7 @@ export default function ResetPasswordPage() {
           </label>
           <input maxLength={INPUT_LIMITS.password}
             id="password"
-            type="password"
+            type={showPassword ? 'text' : 'password'}
             autoComplete="new-password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
@@ -83,12 +86,13 @@ export default function ResetPasswordPage() {
           </label>
           <input maxLength={INPUT_LIMITS.password}
             id="confirmPassword"
-            type="password"
+            type={showPassword ? 'text' : 'password'}
             autoComplete="new-password"
             value={confirmPassword}
             onChange={(e) => setConfirmPassword(e.target.value)}
             className={field}
           />
+          <button type="button" aria-pressed={showPassword} onClick={() => setShowPassword(value => !value)} className="mt-4 border rounded-xl px-3 py-2">{showPassword ? 'Hide passwords' : 'Show passwords'}</button>
 
           <button
             type="submit"

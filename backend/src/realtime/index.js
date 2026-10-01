@@ -25,8 +25,13 @@ async function authenticateToken(token) {
   const decoded = jwt.verify(token, env.JWT_SECRET);
   if (decoded.pending_2fa || !Number.isInteger(decoded.id) || !Number.isInteger(decoded.token_version)
     || !['student', 'admin', 'clerk'].includes(decoded.role) || !Number.isInteger(decoded.exp)) throw new Error('Invalid session');
-  const [rows] = await pool.query('SELECT token_version, is_active FROM users WHERE id = ?', [decoded.id]);
+  const [rows] = await pool.query(`SELECT token_version, is_active, role, must_change_password, user_type,
+    EXISTS(SELECT 1 FROM grad_applications g WHERE g.student_id = users.student_id) AS has_grad_application
+    FROM users WHERE id = ?`, [decoded.id]);
   if (!rows[0]?.is_active || rows[0].token_version !== decoded.token_version) throw new Error('Revoked session');
+  const account = rows[0];
+  if ((account.role && account.role !== decoded.role) || account.must_change_password
+    || (account.role === 'student' && account.user_type === 'alumni' && !Number(account.has_grad_application))) throw new Error('Complete account onboarding');
   if (await sessions.revoked(sessions.hashToken(token))) throw new Error('Ended session');
   return { id: decoded.id, role: decoded.role, desk_assignment: decoded.desk_assignment, exp: decoded.exp };
 }

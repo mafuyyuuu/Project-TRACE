@@ -97,6 +97,24 @@ describe('Desk and student submission gates', () => {
     expect(documents.uploadDocument.mock.calls[0][0].get('student_id')).toBe('STU-001');
   });
 
+  it('requires notes and confirmation for prior original issuance, without carrying the choice to another request', async () => {
+    const { result, rerender } = renderHook(() => useWindow1Dashboard(USER));
+    act(() => result.current.setOriginalIssued(true));
+    act(() => result.current.handleIntake('approve'));
+    expect(result.current.intakeActionToConfirm).toBeNull();
+    act(() => result.current.setIntakeNotes('Checked issuance register.'));
+    act(() => result.current.handleIntake('approve'));
+    expect(documents.intakeDocument).not.toHaveBeenCalled();
+    act(() => result.current.cancelIntake());
+    expect(result.current.originalIssued).toBe(true);
+    core.selectedDoc = { ...DOC, id: 12 };
+    rerender();
+    expect(result.current.originalIssued).toBe(false);
+    act(() => result.current.handleIntake('approve'));
+    await act(() => result.current.confirmIntake());
+    expect(documents.intakeDocument.mock.calls[0][1].has('original_issued')).toBe(false);
+  });
+
   it('keeps the scanned File until a confirmed upload succeeds', async () => {
     const { result } = renderHook(() => useWindow1Dashboard(USER));
     const file = new File(['scan'], 'request.png', { type: 'image/png' });
