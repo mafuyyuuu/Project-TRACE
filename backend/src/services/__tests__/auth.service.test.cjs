@@ -24,6 +24,7 @@ const trustedBrowser = require('../trustedBrowser.service');
 const trustedBrowserModel = require('../../models/trustedBrowser.model');
 const authenticator = require('../authenticator.service');
 const emailVerification = require('../emailVerification.service');
+const onboarding = require('../../models/onboarding.model');
 const passwordResetModel = require('../../models/passwordReset.model');
 let credentialConnection;
 
@@ -48,6 +49,7 @@ const verifiedStudent = () => ({
 });
 
 beforeEach(() => {
+  vi.spyOn(onboarding, 'enroll').mockResolvedValue([{}]);
   vi.spyOn(passwordResetModel, 'invalidateAllForUser').mockResolvedValue([{}]);
   vi.spyOn(emailVerification, 'issue').mockResolvedValue({ email_sent: true, message: 'Link sent.', pending_email: 'new@example.test', email_verification_required: true });
   vi.spyOn(authenticator, 'isEnabled').mockResolvedValue(false);
@@ -377,6 +379,7 @@ describe('register', () => {
     await service.register(body, file);
     expect(userModel.deleteById).toHaveBeenCalledWith(12);
     expect(userModel.createUser).toHaveBeenCalled();
+    expect(onboarding.enroll).toHaveBeenCalledExactlyOnceWith(1);
   });
 
   it('auto-verifies when the AI confirms the ID', async () => {

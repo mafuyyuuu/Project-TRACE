@@ -27,6 +27,7 @@ beforeEach(async () => {
 it('stores a hash and only puts the random single-use capability in the email fragment', async () => {
   const result = await service.issue(3);
   const token = notifications.sendEmail.mock.calls[0][2].match(/#token=([a-f0-9]{64})/)[1];
+  expect(notifications.sendEmail.mock.calls[0][3]).toEqual({ action: { url: expect.stringContaining(`/verify-email#token=${token}`), label: 'Verify Email' } });
   expect(model.create).toHaveBeenCalledWith(3, 'signup', account.email, crypto.createHash('sha256').update(token).digest('hex'), 2, connection);
   expect(JSON.stringify(result)).not.toContain(token);
   expect(connection.commit).toHaveBeenCalledOnce();
@@ -37,6 +38,10 @@ it('requires the current password before staging the new email', async () => {
 });
 it('preserves the old email until verification and clears legacy email codes', async () => {
   await service.issue(3, { email: 'NEW@example.test', current_password: 'Trace2024!' });
+  const [destination, , text, options] = notifications.sendEmail.mock.calls[0];
+  expect(destination).toBe('new@example.test');
+  expect(options.action.label).toBe('Verify Email');
+  expect(text).toContain(options.action.url);
   expect(users.updateProfile).toHaveBeenCalledWith(3, { pending_email: 'new@example.test', email_otp: null, email_otp_expires: null }, connection);
   expect(model.commitVerification).not.toHaveBeenCalled();
   expect(notifications.sendEmail).toHaveBeenCalledTimes(2);

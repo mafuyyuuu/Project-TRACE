@@ -943,6 +943,7 @@ docker compose run --rm --no-deps -T backend node database/migrate_support_messa
 docker compose run --rm --no-deps -T backend node database/migrate_request_sequences.js
 docker compose run --rm --no-deps -T backend node database/migrate_staff_authenticator_setup.js
 docker compose run --rm --no-deps -T backend node database/migrate_verification_reason.js
+docker compose run --rm --no-deps -T backend node database/migrate_onboarding_guides.js
 docker compose run --rm --no-deps -T backend node database/check_schema.js
 docker compose up -d --no-deps backend ai-engine n8n
 docker compose ps
@@ -977,27 +978,19 @@ Additional live acceptance:
 
 This round adds `sanitize-html` to backend dependencies; the rebuilt image installs the lockfile. Local mocked tests/build are not acceptance of live MySQL concurrency, SMTP, genuine app enrollment, uploaded records, physical phones or payment-provider behavior.
 
-### Profile/Maintenance/OCR follow-up after the successful Oct 1 rollout
+### Deploy the Profile, OCR, email-button and tutorial follow-up
 
-After review/merge/pull, take fresh database/uploads/configuration backups using MIGRATION_ROLLOUT.md. Keep writers stopped while changing the schema. This follow-up needs only the new reason column on the server that already passed the original rollout (password_history is already present there):
+Use the [short update walkthrough in MIGRATION_ROLLOUT.md](MIGRATION_ROLLOUT.md#update-the-email-button-and-guided-tour) if the earlier rollout passed the schema check. It puts the commands in order and explains what success looks like:
 
-```bash
-docker compose stop backend ai-engine n8n
-docker compose build backend ai-engine
-docker compose run --rm --no-deps -T backend node database/migrate_verification_reason.js
-docker compose run --rm --no-deps -T backend node database/check_schema.js
-```
+1. Review/merge the source and verify fresh database/uploads/configuration backups before pulling.
+2. Keep writers stopped, pull the intended revision and rebuild backend plus AI for the OCR follow-up.
+3. Apply `migrate_verification_reason.js` and `migrate_onboarding_guides.js`; require a passing schema check.
+4. Restart the matching runtime, verify health and deploy the matching frontend.
+5. Test the email button, Profile/Maintenance images, request message input, OCR reasons and a fresh account's tutorial.
 
-Stop on any failure. Only after both builds and the schema check succeed:
+Keep the existing MFA key, Caddy/MySQL and volumes intact. No full schema import, reseeding or repetition of older data migrations is needed solely for these follow-ups. Existing pending accounts retain unknown historical OCR reasons; existing accounts can open the tour manually with **?**. The tour's automatic offer is for accounts created on the updated backend.
 
-```bash
-docker compose up -d --no-deps backend ai-engine n8n
-docker compose ps
-docker compose exec -T backend curl -fsS http://localhost:3300/api/health
-curl -fsS https://trace-plp-api.duckdns.org/api/health
-```
-
-Keep Caddy/MySQL and existing volumes intact. Verify settled AI health and the matching frontend deployment. Test a fresh registration for its stored review reason, a genuine readable ID and an inconclusive image, then an Admin review. Existing pending accounts retain unknown historical reasons; this migration does not infer or reclassify them. Inspect conversation input on the dashboard and floating support panel, including narrow screens and enlarged text. No full schema import, reseeding or repeat of the prior data migrations is needed.
+For the visible controls and user steps, see [USER_MANUAL.md](USER_MANUAL.md). Email ownership uses the **Verify Email** button/link; login OTP/authenticator verification remains a separate flow.
 
 ### Targeted password-history repair for the already-built Oct 1 image
 

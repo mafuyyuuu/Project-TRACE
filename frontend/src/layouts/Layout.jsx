@@ -12,15 +12,18 @@ import ConfirmDialog from '@/components/ConfirmDialog'
 import UserAvatar from '@/components/UserAvatar'
 import plpLogo from '@/assets/plp_logo.png'
 import GraduateApplication from '@/features/graduate/GraduateApplication'
+import OnboardingTutorial from '@/features/student/components/OnboardingTutorial'
+import useQuickGuide from '@/hooks/useQuickGuide'
 
 export default function Layout() {
-  const { user, logout } = useAuth()
+  const { user, logout, loading: authLoading } = useAuth()
   const graduateRequired = user?.role === 'student' && user.user_type === 'alumni' && !user.has_grad_application
   const location = useLocation()
   const navigate = useNavigate()
   const [settingsTab, setSettingsTab] = useState(() => new URLSearchParams(location.search).get('settings') === 'security' ? 'security' : 'personal')
   const query = new URLSearchParams(location.search)
   const tab = query.get('tab') || 'dashboard'
+  const guide = useQuickGuide(user?.id, user?.role === 'student' && !authLoading && !graduateRequired && !user?.must_change_password && tab === 'dashboard')
 
   const [notifications, setNotifications] = useState([])
   const [showNotifs, setShowNotifs] = useState(false)
@@ -170,6 +173,20 @@ export default function Layout() {
     if (query.has('settings')) { query.delete('settings'); navigate({ pathname: location.pathname, search: query.toString() }, { replace: true }); }
   }
 
+  const prepareGuide = (area) => {
+    setShowNotifs(false)
+    setShowMobileNav(false)
+    window.dispatchEvent(new Event('trace-close-support'))
+    if (area === 'email' || area === 'security') openSettings(area === 'email' ? 'personal' : 'security')
+    else closeSettings()
+  }
+
+  const closeGuide = () => {
+    guide.close()
+    closeSettings()
+    window.dispatchEvent(new Event('trace-close-support'))
+  }
+
   const handleConfirmLogout = async () => {
     setLoggingOut(true)
     try {
@@ -211,6 +228,9 @@ export default function Layout() {
         </div>
 
         <div className="flex shrink-0 ml-auto items-center gap-2 sm:gap-4">
+          {user?.role === 'student' && !user?.must_change_password && <button id="tutorial-guide" type="button" aria-label="Open quick guide" title="Quick guide" onClick={() => { navigate('/dashboard'); guide.show(); }} className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800 focus-visible:outline-2 focus-visible:outline-green-700">
+            <svg aria-hidden="true" className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><circle cx="12" cy="12" r="9" /><path d="M9.5 9a2.5 2.5 0 0 1 5 .3c0 1.7-2.5 1.8-2.5 3.7M12 16h.01" /></svg>
+          </button>}
           <button
             type="button"
             onClick={toggleTheme}
@@ -226,7 +246,7 @@ export default function Layout() {
             </svg>
           </button>
           <div className="relative">
-            <button onClick={handleNotifClick} aria-label="Notifications" className="w-10 h-10 rounded-full flex items-center justify-center text-gray-400 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-600 dark:hover:text-gray-300 transition-colors relative">
+            <button id="tutorial-notifications" onClick={handleNotifClick} aria-label="Notifications" className="w-10 h-10 rounded-full flex items-center justify-center text-gray-400 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-600 dark:hover:text-gray-300 transition-colors relative">
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
               {unreadCount > 0 && (
                 <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 dark:bg-red-500 rounded-full"></span>
@@ -322,6 +342,11 @@ export default function Layout() {
           <Outlet />
         </main>
       </div>
+
+      {guide.open && <OnboardingTutorial onComplete={closeGuide} onPrepare={prepareGuide} onAction={area => {
+        if (area === 'profile') openSettings('personal')
+        else window.dispatchEvent(new Event('trace-open-support'))
+      }} />}
 
       {showSettings && (
         <ProfileSettingsModal

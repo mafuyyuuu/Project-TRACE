@@ -1,14 +1,92 @@
-# Existing-server migration rollout — 2026-10-01
+# TRACE production update guide
 
-Use this runbook for the existing `~/Project-TRACE` deployment with bundled MySQL (`mysql:3306/trace_db`) and its named uploads volume. These commands have not been run by the agent. Keep the same SSH terminal throughout. Run each numbered step separately and stop on any failure. This replaces scattered historical rollout checkpoints; it does not establish deployed acceptance.
+Use this guide to update the existing `~/Project-TRACE` server with bundled MySQL (`mysql:3306/trace_db`) and its uploads volume. Run server commands in SSH, from the project folder. Keep the same terminal open, copy each command exactly and stop if any command fails. Long commands may wrap visually; do not insert a newline inside them.
 
-## What remains
+## Choose the right update path
 
-The reviewed Batch 9/10 implementation is local. It still needs commit/merge/pull, image build, database migrations, matching frontend deployment and live testing. Latest local validation is 983 backend and 524 frontend tests passing, plus frontend lint/build.
+- **Your earlier rollout already passed the schema check:** use [Update the email button and guided tour](#update-the-email-button-and-guided-tour). This includes the prior Profile/Maintenance/OCR follow-up.
+- **Earlier migrations are missing or their status is unknown:** use the complete numbered walkthrough below. Review the failed schema output before deciding which repairs are needed.
+- **A new, empty installation:** use [DEPLOYMENT_GUIDE.md](DEPLOYMENT_GUIDE.md). This guide is for an existing database.
+
+The user reported a successful earlier schema check and API health checks on October 1. Those results cover that earlier deployment. The new reason-column and guided-tour migrations still need applying if they have not been deployed. Local tests pass, but real email delivery, phone layouts and live workflows must be checked after updating.
+
+## Update the email button and guided tour
+
+This path adds a **Verify Email** button in HTML mail, inline Profile verification, Maintenance proof/photo display, the request-chat input repair, OCR review reasons and the first-login guided tour. Email buttons themselves need no new table; the automatic tour does.
+
+### A. Prepare and back up
+
+1. Review and merge the intended changes into `main` on your development machine. Coordinate Vercel's frontend promotion so it uses the matching backend.
+2. In SSH, run the inspection commands in [Step 1](#1-prepare-source-and-inspect-the-existing-deployment). A blank `git status --short` means the checkout is clean. If files are listed, resolve them before pulling.
+3. Follow [Step 2](#2-record-recovery-information-and-create-a-fresh-backup) to back up the current database, uploads, configuration and deployed revision. That step stops backend, AI and n8n; keep them stopped during the update.
+4. Copy the backup off the server and verify its checksums before continuing. Retain the existing MFA key.
+
+**Expected result:** fresh backups are verified, MySQL remains running and database writers are stopped.
+
+### B. Pull and build
+
+From `~/Project-TRACE` in the same SSH terminal, run one command at a time:
+
+```bash
+git pull --ff-only
+git status --short
+git log -1 --oneline
+docker compose config --quiet
+docker compose build backend ai-engine
+docker compose run --rm --no-deps -T ai-engine python -c 'import identity_parser; import app; print("AI startup imports OK.")'
+```
+
+**Expected result:** the intended revision is present, Git status is blank, configuration succeeds, both images build and the AI import check passes. Rebuilding AI here includes the prior OCR follow-up; the tour itself does not change AI.
+
+### C. Apply only the follow-up migrations
+
+```bash
+docker compose run --rm --no-deps -T backend node database/migrate_verification_reason.js
+docker compose run --rm --no-deps -T backend node database/migrate_onboarding_guides.js
+docker compose run --rm --no-deps -T backend node database/check_schema.js
+```
+
+**Expected result:** both migration completion messages, followed by **Schema presence check passed.** These migrations preserve existing reasons and tour display records. If another missing table/column is reported, keep writers stopped and inspect that specific error; do not import the full schema or repeat old data migrations as a shortcut.
+
+### D. Restart and deploy the matching frontend
+
+Only after the preceding checks pass:
+
+```bash
+docker compose up -d --no-deps backend ai-engine n8n
+docker compose --profile tls up -d --no-deps caddy
+docker compose ps
+docker compose exec -T backend curl -fsS http://localhost:3300/api/health
+curl -fsS https://trace-plp-api.duckdns.org/api/health
+```
+
+**Expected result:** backend and AI settle to healthy; both health responses show `status: ok` and `database: ok`. Then promote the matching Vercel frontend and refresh TRACE. Health checks prove API/database connectivity; complete the feature checks below too.
+
+Vercel's Git-connected deployment can be used. For deployment, environment and log commands from your development machine, install the CLI with `npm i -g vercel`.
+
+### E. Test the visible changes
+
+| Check | Expected result |
+| --- | --- |
+| Register and sign in with a fresh test account | After required onboarding, the tour highlights controls and blurs the background. Complete any Admin review needed before login. |
+| Finish/skip the tour, sign out and sign in again | The tour does not open automatically again. Another browser does not reset the account's marker. |
+| Select the header **?** | The tour can be replayed manually, including on older accounts. |
+| Send a verification link from Profile | The received HTML email shows **Verify Email**; its button opens the verification page. Plain-text readers show the link. |
+| Open Maintenance and a request conversation | Stored proof/photo previews load; selecting a request reveals **Message to Window 1** and sending works. |
+| Review a fresh pending registration | A stored review reason appears when the automatic check is inconclusive. Older reasons may remain unknown. |
+| Use a real phone with enlarged text | Tour instructions scroll and Back/Next stay reachable; profile, chat and tables remain usable. |
+
+Use [USER_MANUAL.md](USER_MANUAL.md) for the click-by-click user tutorial. Existing accounts are not automatically enrolled in the tour; use a fresh account to test the first-login offer.
+
+## Remaining acceptance and policy decisions
 
 Policy-dependent work remains: canonical fixed/linked forms and Honorable-Dismissal-related aliases; name/ID conventions; whether case attachments hold processing; delayed-request notification threshold; OR service deadline/working-day calendar; identity-verified recovery for an already-enrolled lost authenticator; SEC-01 extensions after design/sign-off. The Registrar's confirmed repeat quantities, conditional walk-in same-day eligibility and case-specific attachment rules are implemented. Finance publishes an uploaded physical OR copy; an electronic OR generator is not implemented.
 
 Live acceptance still includes real phone/text-size/tracker checks, email delivery, genuine authenticator enrollment, browser trust cookies, SQL concurrency, uploads, OCR/forecasting and payment-provider behavior. The WebSocket upgrade error needs separate verification after database repairs.
+
+## Complete migration walkthrough
+
+Use Steps 1–6 for the full existing-server rollout. The shorter path above is for an already migrated server receiving the follow-up changes.
 
 ## 1. Prepare source and inspect the existing deployment
 
@@ -145,7 +223,8 @@ trace_migrate_rollout() {
     migrate_support_messages.js \
     migrate_request_sequences.js \
     migrate_staff_authenticator_setup.js \
-    migrate_verification_reason.js
+    migrate_verification_reason.js \
+    migrate_onboarding_guides.js
   do
     printf '\nApplying %s\n' "$TRACE_MIGRATION_FILE"
     if ! docker compose run --rm --no-deps -T backend node "database/$TRACE_MIGRATION_FILE"; then
@@ -160,7 +239,7 @@ trace_migrate_rollout
 
 Require **`Schema presence check passed.`** The check reads `information_schema`; it validates selected critical table/column presence, not every definition, index, constraint, rate, data row or live transaction. If it lists a named migration, investigate that script's output. Password history now has its own explicit migration, added after the user's first 18-script run exposed that base-table gap. If the check says `base schema`, such as missing `password_resets`, `grad_applications` or core users fields, keep writers stopped and share the non-secret check output for a targeted preserving repair. Do not import the full schema or reseed to fill the gap.
 
-The profile/Maintenance/OCR follow-up adds `migrate_verification_reason.js` (20 scripts in the complete list). For a server that already passed the earlier rollout, only this new reason-column migration is required; do not rerun the data migrations solely for this follow-up. Build both backend and ai-engine now: OCR imports a new pure text-matching module included in the AI Dockerfile. Historical OCR reasons remain unknown. Deploy the matching frontend after the migration/check/runtime update. Inspect real image outcomes separately; normalization tests do not prove document authenticity or actual OCR accuracy.
+The profile/Maintenance/OCR follow-up adds `migrate_verification_reason.js`. The guided-tour follow-up adds `migrate_onboarding_guides.js` (21 scripts in the complete list). For a server that already passed the earlier rollout, apply only these new migrations that have not been applied; do not rerun data migrations solely for these follow-ups. Build both backend and ai-engine if deploying the OCR changes: OCR imports a new pure text-matching module included in the AI Dockerfile. The email-button/tour changes require a backend rebuild and matching frontend; they add no AI changes. Historical OCR reasons remain unknown. The guide migration creates an empty table and preserves existing display state; only accounts registered on the updated backend receive an automatic tour. Existing accounts can replay using the question mark. Deploy the matching frontend after migration/check/runtime update. Inspect real image outcomes separately; normalization tests do not prove document authenticity or actual OCR accuracy.
 
 MySQL DDL can commit before a later command fails. Do not assume a failed script changed nothing; inspect the error before rerunning or restoring. A rollback may require coordinated restoration of database, uploads, configuration and matching code, not just a Git checkout.
 
@@ -191,3 +270,20 @@ docker compose logs --since=3m --tail=100 backend caddy
 ```
 
 Share only the relevant error and stack trace; omit passwords, tokens, codes, keys and personal details. Expected repairs from the latest logs are fee schedules/rental fields, `document_messages`, `system_templates` and `request_attachment_uploads`; all are covered above.
+
+## Common rollout problems
+
+| Message or situation | Next step |
+| --- | --- |
+| `compose: command not found` after entering `docker` | Run the complete `docker compose ps` command on one line. |
+| `git status --short` lists files | Review them before pulling. `??` means untracked files, not committed changes. Move private backups to your backup directory; do not commit them. |
+| `cannot stat` or `No such file or directory` | Run `pwd` and check the source path. Backups originally in `~/Project-TRACE` are not in `~` just because you changed folders. |
+| Container inspect requires an argument | Set `TRACE_BACKEND_CONTAINER` as shown in Step 2. Keep a space between the quoted format and the container argument. |
+| A backup variable is empty after reconnecting | Re-enter the recorded backup path and container variable. Do not create a different path and assume it contains the earlier backup. |
+| `mysqldump` reports an unknown option | Copy the full dump command exactly. For example, `--single-transaction` must not contain a space or inserted newline. Check the dump again after rerunning. |
+| `chmod` says Operation not permitted | Inspect the file owner. Keep backups in the private directory and have the owner/administrator correct permissions; do not make the directory public. |
+| MFA key format check fails | Check the root server `.env` privately and copy the validation expression exactly. It requires 64 hexadecimal characters. Preserve an existing enrollment key. |
+| Schema check reports missing fields | Keep writers stopped, identify the named migration and inspect its result. Share only the non-secret error; do not import `schema.sql` into production. |
+| Health passes but a feature returns 500 | Reproduce the specific action once and inspect recent backend/Caddy logs. A healthy database connection does not verify every table or feature. |
+
+Record the deployed commit, applied migrations and live checks after the rollout. Keep the verified backup until the updated site has passed acceptance.

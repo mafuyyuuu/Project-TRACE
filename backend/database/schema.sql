@@ -65,6 +65,12 @@ CREATE TABLE IF NOT EXISTS users (
 );
 
 -- Clerk MFA proofs contain only random-token hashes and UTC epoch expiry.
+CREATE TABLE IF NOT EXISTS onboarding_guides (
+  user_id INT PRIMARY KEY,
+  shown_at TIMESTAMP NULL DEFAULT NULL,
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
 CREATE TABLE IF NOT EXISTS trusted_browsers (
   token_hash CHAR(64) PRIMARY KEY,
   user_id INT NOT NULL,

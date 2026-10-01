@@ -3,6 +3,8 @@
 How to take TRACE from a laptop to a live URL. Follow the parts in order; each one ends with a check
 you can run before moving on.
 
+**Already using the production server?** Follow [MIGRATION_ROLLOUT.md](MIGRATION_ROLLOUT.md) instead. Its short update path covers the verification email button, Profile/chat/OCR repairs and first-login tour, with backups, exact commands and expected results. This guide covers initial setup. User-facing tutorials are in [USER_MANUAL.md](USER_MANUAL.md).
+
 **Time:** roughly 2–3 hours, most of it waiting on the Oracle VM to be approved and on the AI engine
 image to build.
 

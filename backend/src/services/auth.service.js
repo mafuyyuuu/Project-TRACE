@@ -31,6 +31,7 @@ const trustedBrowser = require('./trustedBrowser.service');
 const trustedBrowserModel = require('../models/trustedBrowser.model');
 const authenticator = require('./authenticator.service');
 const emailVerification = require('./emailVerification.service');
+const onboarding = require('../models/onboarding.model');
 const aiEngine = require('./aiEngine.service');
 const { registrationVerification } = require('../utils/registrationVerification');
 const notifications = require('./notification.service');
@@ -248,6 +249,7 @@ async function register(body, file) {
     verification_reason,
   });
 
+  await onboarding.enroll(created.insertId);
   let emailResult;
   try { emailResult = await emailVerification.issue(created.insertId); }
   catch { emailResult = { email_sent: false }; }
