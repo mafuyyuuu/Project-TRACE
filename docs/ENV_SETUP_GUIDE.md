@@ -877,3 +877,40 @@ Use synthetic authorized accounts for acceptance:
 9. Check migration and API logs without posting credentials or real student records. A health response confirms connectivity only; it does not establish real SQL transaction, printed-slip or role-flow acceptance.
 
 The pricing/payment authority split is retained. FIN-01–FIN-05, authenticator enrollment and general Window 1 support remain separate pending scopes. Text-size preferences, FAQ/photo UI and the approved profile-completion repair are implemented locally; live acceptance still requires the matching frontend/backend and explicit migrations.
+
+## Batch 10 Authenticator, Sessions, Finance and Registrar Policy Rollout
+
+This continuation implements these features locally. Earlier “pending scope” statements above are historical. Deploy the matching frontend and backend together. No live migration or deployment was performed during implementation.
+
+Review the scripts, retain the verified database/uploads backup, and apply the existing base, Batch 8b, student-profile, trusted-browser, OTP separation and fee-schedule migrations first. Existing installations must use the explicit migrations; do not reimport schema.sql or reseed. Build the updated backend image before running the following, one command at a time, stopping on any failure:
+
+```bash
+docker compose build backend
+docker compose run --rm --no-deps -T backend node database/migrate_authenticator.js
+docker compose run --rm --no-deps -T backend node database/migrate_sessions.js
+docker compose run --rm --no-deps -T backend node database/migrate_finance_receipts.js
+docker compose run --rm --no-deps -T backend node database/migrate_registrar_policy.js
+docker compose run --rm --no-deps -T backend node database/migrate_request_attachments.js
+```
+
+Configure `MFA_ENCRYPTION_KEY` in the server root `.env` as a dedicated random 32-byte key encoded in 64 hexadecimal characters. Keep it out of source, browser variables, logs and shared screenshots. Store its backup securely: changing or losing it prevents decryption of enrolled authenticators. Do not reuse JWT_SECRET. Compose passes it only to the backend. Setup remains unavailable until configured; the Security panel must show the reason/retry rather than silently omit the option. Once configured and migrations finish, recreate the backend:
+
+```bash
+docker compose up -d --no-deps backend
+```
+
+The new tables use CREATE TABLE IF NOT EXISTS. Receipt columns are nullable; old timestamps remain unknown rather than fabricated. Registrar migration adds a false-by-default request eligibility flag, reconciles reference repeat rules and the four walk-in types, and does not activate inactive fee drafts. Admin must approve their rates before activation. Attachment records preserve each upload and its requester, uploader and reviewer. DDL can auto-commit independently; investigate errors or incompatible existing definitions before rerunning.
+
+Acceptance on the deployed system:
+
+- Every role can open Edit Profile → Security → Authenticator App. Test QR/manual enrollment, confirmation, one-time recovery-code display/download, app login and single-use recovery. Replayed/expired/pending challenges cannot access REST or Socket.IO, and email OTP cannot bypass an enrolled app.
+- Admin challenges each login. Clerk personal-browser trust expires at Manila midnight; a new/shared browser challenges. Enrolled students use app/recovery codes at login. Unenrolled students do not gain a new first-login email OTP requirement from this change.
+- Logout revokes this session on the server; a copied old token and its socket stop working. Logout other devices rotates the current session while invalidating other sessions. Staff deactivation stops REST/socket access and sends the owner notice; confirm real SMTP delivery separately.
+- Student messages appear in Window 1's inbox even before a clerk is assigned. Replies return to the owning student. Check notifications, unread counts, polling, stale-tab cancellation, failed sends preserving drafts and successful sends followed by failed refreshes without duplicate drafts.
+- Registrar requests a named attachment from Messages & Attachments; the student confirms a JPG/PNG/PDF upload (10 MB maximum). Review Accept or Request resubmission with notes. Verify other students and Secretaries from another college cannot read or upload the file, and an attachment action does not change the request stage.
+- Non-Honorable-Dismissal requests allow repeats and varying quantities; Honorable Dismissal retains one copy and no second active/completed request. CTC, 2nd Copy of COR, 2nd Copy of OGR and CAV receive a same-day eligibility marker only after the counter clerk checks both original and photocopy. No stage bypass or automatic deadline is implied.
+- At exactly 4:00 PM Manila, Finance must choose Later for a new same-day OR. Payment clearance immediately acknowledges payment; actual OR publication separately sends the digital-copy availability notice and routes to Secretary. On a later eligible day, use the actual number/date and preserve existing numbers. Secretary must inspect an issued OR or explicitly acknowledge physical inspection before handoff.
+- Finance Transactions & Export shows cleared payments once per request group, correct totals, receipt states and elapsed issuance wait. Check populated CSV filters, dates, peso amounts and spreadsheet-formula escaping. Historic unknown clearance times remain clearly unknown.
+- Check 320/375/768/desktop widths, both themes and 100–200% text preferences with populated messages, attachments, Finance tables and authenticator settings. Synthetic browser/mocked tests do not establish real SQL concurrency, mail, cookies or physical-phone acceptance.
+
+The institution has not supplied the delay-notification threshold or an OR service deadline/holiday calendar. Automatic overdue alerts remain on hold. Signup email-verification links, email-change link conversion and the remaining security/document items are not claimed complete by these rollout steps.

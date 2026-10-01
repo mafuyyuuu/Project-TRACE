@@ -84,12 +84,13 @@ describe('requestPasswordReset', () => {
     expect(passwordResetModel.create).not.toHaveBeenCalled();
   });
 
-  it('still succeeds when email is unconfigured, logging the link instead', async () => {
+  it('returns the generic response when mail fails without logging a usable link', async () => {
     notifications.sendEmail.mockResolvedValue({ ok: false, skipped: true, reason: 'not configured' });
     userModel.findActiveByStudentIdOrEmail.mockResolvedValue([account()]);
 
     await expect(service.requestPasswordReset({ identifier: 'STU2024001' })).resolves.toBeTruthy();
     expect(console.warn).toHaveBeenCalled();
+    expect(JSON.stringify(console.warn.mock.calls)).not.toContain('/reset-password?token=');
   });
 });
 

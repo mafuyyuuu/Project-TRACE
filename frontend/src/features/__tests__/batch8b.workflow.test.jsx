@@ -59,7 +59,8 @@ describe('Batch 8b request policies and staff access', () => {
   it('keeps FAQ labels and desk reporting guidance aligned with the manual', () => {
     render(<HelpPage user={{ role: 'clerk', desk_assignment: 'Secretary' }} />);
     expect(screen.getByText(/Open Preferences in the sidebar/)).toBeInTheDocument();
-    expect(screen.getByText(/Open your avatar → Edit Profile/)).toBeInTheDocument();
+    expect(screen.getByText(/Enter the new email and current password/)).toBeInTheDocument();
+    expect(screen.getByText(/Where is authenticator two-factor setup/)).toBeInTheDocument();
     expect(screen.getByText('How do I export records?')).toBeInTheDocument();
     expect(screen.getByText('How do I view a student’s full profile?')).toBeInTheDocument();
   });

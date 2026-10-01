@@ -34,7 +34,7 @@ it('sets trust only from the verified service result and never exposes the secre
   req.body = { temp_token: 'challenge', otp: '123456', trust_browser: true };
   vi.spyOn(auth, 'verify2FA').mockResolvedValue({ token: 'session', user, browserTrust: { value: secret, expiresAt } });
   await controller.verify2FA(req, res);
-  expect(auth.verify2FA).toHaveBeenCalledWith('challenge', '123456', req.ip, 'Test', true);
+  expect(auth.verify2FA).toHaveBeenCalledWith('challenge', '123456', req.ip, 'Test', true, undefined);
   expect(res.cookie).toHaveBeenCalledWith(trust.COOKIE_NAME, secret, {
     ...trust.COOKIE_OPTIONS, httpOnly: true, expires: new Date(expiresAt),
   });
@@ -76,6 +76,7 @@ it.each(['resetPassword', 'logoutAll', 'updateProfile'])('does not claim revocat
 });
 
 it('runs password → OTP → HttpOnly trust → password login → expiry/revocation through real controllers and services', async () => {
+  vi.spyOn(require('../../services/authenticator.service'), 'isEnabled').mockResolvedValue(false);
   const bcrypt = require('bcryptjs');
   const crypto = require('crypto');
   const { pool } = require('../../config/db');

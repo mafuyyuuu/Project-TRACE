@@ -28,6 +28,7 @@ const notificationModel = require('../models/notification.model');
 const passwordResetModel = require('../models/passwordReset.model');
 const trustedBrowser = require('./trustedBrowser.service');
 const trustedBrowserModel = require('../models/trustedBrowser.model');
+const authenticator = require('./authenticator.service');
 const aiEngine = require('./aiEngine.service');
 const notifications = require('./notification.service');
 const sendAuthEmail = ({ email, title, message }) => notifications.sendEmail(email, title, message);
@@ -53,6 +54,16 @@ function publicUser(user) {
     result[key] = Boolean(user[key]);
   }
   return result;
+}
+
+function createSession(user) {
+  return {
+    message: 'Login successful.',
+    token: jwt.sign({ id: user.id, role: user.role, full_name: user.full_name,
+      desk_assignment: user.desk_assignment, course: user.course, user_type: user.user_type,
+      token_version: user.token_version ?? 0 }, env.JWT_SECRET, { expiresIn: '24h' }),
+    user: publicUser(user),
+  };
 }
 
 async function login({ employee_id, password, shared_computer = true }, ipAddress, userAgent, cookieHeader = '') {
@@ -103,9 +114,11 @@ async function login({ employee_id, password, shared_computer = true }, ipAddres
   const isStaff = ['admin', 'clerk'].includes(user.role);
   const trusted = user.role === 'clerk' && shared_computer === false
     && await trustedBrowser.isTrusted(user, cookieHeader, shared_computer);
-  const requires2FA = (user.two_factor_enabled || isStaff) && !trusted;
+  const appEnabled = await authenticator.isEnabled(user.id);
+  const requires2FA = (appEnabled || user.two_factor_enabled || isStaff) && !trusted;
 
   if (requires2FA) {
+    if (appEnabled) return authenticator.challenge(user, user.role === 'clerk' && shared_computer === false);
     const otp = crypto.randomInt(100000, 1000000).toString();
     const expires = new Date(Date.now() + 5 * 60000); // 5 mins
     await userModel.updateEmailOTP(user.id, otp, expires);
@@ -473,7 +486,7 @@ function hashResetToken(token) {
 
 
 
-async function verify2FA(tempToken, otp, ipAddress, userAgent, trustBrowser = false) {
+async function verify2FA(tempToken, otp, ipAddress, userAgent, trustBrowser = false, recoveryCode) {
   let decoded;
   try {
     decoded = jwt.verify(tempToken, env.JWT_SECRET);
@@ -484,12 +497,26 @@ async function verify2FA(tempToken, otp, ipAddress, userAgent, trustBrowser = fa
   if (!decoded.pending_2fa) {
     throw badRequest('Invalid token type.');
   }
+  if (!Number.isInteger(decoded.id) || !Number.isInteger(decoded.token_version)) {
+    throw unauthorized('Login verification has expired. Please log in again.');
+  }
+
+  if (decoded.mfa_method === 'authenticator') {
+    const user = await authenticator.verifyChallenge(decoded, { code: otp, recovery_code: recoveryCode });
+    const result = createSession(user);
+    if (user.role === 'clerk' && decoded.can_trust_browser === true && trustBrowser === true) {
+      const proof = await trustedBrowser.issue(user.id, decoded.token_version);
+      if (proof) result.browserTrust = proof;
+    }
+    return result;
+  }
 
   const [user] = await userModel.findById(decoded.id);
   if (!user || user.is_active === false || user.is_active === 0) throw notFound('User not found.');
   if (!Number.isInteger(decoded.token_version) || decoded.token_version !== (user.token_version ?? 0)) {
     throw unauthorized('Login verification has expired. Please log in again.');
   }
+  if (await authenticator.isEnabled(user.id)) throw unauthorized('Verification method changed. Please log in again.');
 
   if (user.login_otp !== otp) {
     throw unauthorized('Invalid verification code.');
@@ -559,10 +586,42 @@ async function getSecurityLogs(userId) {
   return await userModel.getSecurityLogs(userId);
 }
 
-async function logoutAll(userId) {
-  await userModel.incrementTokenVersion(userId);
-  await userModel.logSecurityEvent(userId, 'LOGOUT_ALL');
-  return { message: 'Successfully logged out of all devices.' };
+async function logout(user) {
+  if (!/^[a-f0-9]{64}$/.test(user.session_hash || '') || !Number.isInteger(user.expires_at)) throw unauthorized('Invalid session.');
+  const connection = await pool.getConnection();
+  try {
+    await connection.beginTransaction();
+    await require('../models/session.model').revoke(user.id, user.session_hash, user.expires_at, connection);
+    await userModel.logSecurityEvent(user.id, 'LOGOUT', null, null, connection);
+    await connection.commit();
+  } catch (error) { await connection.rollback(); throw error; }
+  finally { connection.release(); }
+  require('../realtime').disconnectSession(user.session_hash);
+  return { message: 'Session ended.' };
+}
+async function logoutAll(userId, preserveCurrent = false, expectedVersion) {
+  if (!preserveCurrent) {
+    await userModel.incrementTokenVersion(userId);
+    require('../realtime').disconnectUser(userId);
+    await userModel.logSecurityEvent(userId, 'LOGOUT_ALL');
+    return { message: 'Successfully logged out of all devices.' };
+  }
+  const connection = await pool.getConnection();
+  let result;
+  try {
+    await connection.beginTransaction();
+    const account = await trustedBrowserModel.lockAccount(userId, connection);
+    if (!account?.is_active || account.token_version !== expectedVersion) throw unauthorized('Session expired.');
+    await userModel.incrementTokenVersion(userId, connection);
+    await userModel.clearEmailOTP(userId, connection);
+    await userModel.logSecurityEvent(userId, 'LOGOUT_OTHER_DEVICES', null, null, connection);
+    const [profile] = await userModel.getProfileById(userId, connection);
+    result = { ...createSession({ ...profile, token_version: account.token_version + 1 }), message: 'Other sessions ended.' };
+    await connection.commit();
+  } catch (error) { await connection.rollback(); throw error; }
+  finally { connection.release(); }
+  require('../realtime').disconnectUser(userId);
+  return result;
 }
 
 async function requestPasswordReset({ identifier }) {
@@ -606,16 +665,7 @@ async function requestPasswordReset({ identifier }) {
       `If you did not request this, you can ignore this email — your password will not change.`
   );
 
-  // Email is optional configuration (see notification.service.js). Without it
-  // the flow would be untestable, so surface the link on the server console
-  // rather than failing silently — matching how every other channel here
-  // reports being unconfigured instead of erroring opaquely.
-  if (!sent.ok) {
-    console.warn(
-      `⚠️  [Password reset] Email not delivered (${sent.reason}).\n` +
-        `   Reset link for ${user.student_id}: ${link}`
-    );
-  }
+  if (!sent.ok) console.warn('[Password reset] Email not delivered. Check SMTP configuration.');
 
   return generic;
 }
@@ -688,9 +738,11 @@ async function writeCredentialsAndRevoke(userId, write, expectedPasswordHash) {
   } finally {
     connection.release();
   }
+  require('../realtime').disconnectUser(userId);
 }
 
 module.exports = {
+  createSession,
   login,
   getCurrentUser,
   register,
@@ -704,6 +756,7 @@ module.exports = {
   verifyEmailChange,
   getGlobalSecurityLogs,
   getSecurityLogs,
+  logout,
   logoutAll,
   requestPasswordReset,
   resetPassword,

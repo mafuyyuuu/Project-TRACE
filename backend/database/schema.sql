@@ -135,7 +135,11 @@ CREATE TABLE IF NOT EXISTS documents (
   assigned_clerk_id INT,
   file_path VARCHAR(500),
   receipt_image_path VARCHAR(500),
+  is_same_day BOOLEAN NOT NULL DEFAULT FALSE,
   official_receipt_path VARCHAR(500),
+  payment_cleared_at TIMESTAMP NULL,
+  or_earliest_issue_date DATE NULL,
+  or_uploaded_at TIMESTAMP NULL,
   -- Official Receipt issued by Finance. For a walk-in this is the only proof
   -- of payment that exists, and it is what the student shows at Window 1.
   or_number VARCHAR(100),
@@ -311,3 +315,64 @@ CREATE TABLE IF NOT EXISTS document_fee_schedules (
   FOREIGN KEY (document_type_id) REFERENCES document_types(id),
   FOREIGN KEY (college_id) REFERENCES colleges(id)
 ) ENGINE=InnoDB;
+
+-- Authenticator enrollment, recovery and login challenges
+CREATE TABLE IF NOT EXISTS authenticator_credentials (
+    user_id INT PRIMARY KEY,
+    active_secret TEXT NULL,
+    pending_secret TEXT NULL,
+    pending_expires_ms BIGINT NULL,
+    pending_version INT NULL,
+    last_counter BIGINT NOT NULL DEFAULT -1,
+    failed_attempts INT NOT NULL DEFAULT 0,
+    locked_until_ms BIGINT NULL,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+  ) ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS authenticator_recovery_codes (
+    code_hash CHAR(64) PRIMARY KEY,
+    user_id INT NOT NULL,
+    used_at TIMESTAMP NULL,
+    INDEX authenticator_recovery_user (user_id),
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+  ) ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS authenticator_challenges (
+    nonce_hash CHAR(64) PRIMARY KEY,
+    user_id INT NOT NULL,
+    token_version INT NOT NULL,
+    method VARCHAR(20) NOT NULL,
+    expires_at_ms BIGINT NOT NULL,
+    attempts INT NOT NULL DEFAULT 0,
+    consumed BOOLEAN NOT NULL DEFAULT FALSE,
+    INDEX authenticator_challenge_user (user_id, expires_at_ms),
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+  ) ENGINE=InnoDB;
+
+
+CREATE TABLE IF NOT EXISTS session_revocations (
+  token_hash CHAR(64) PRIMARY KEY,
+  user_id INT NOT NULL,
+  expires_at TIMESTAMP NOT NULL,
+  INDEX session_revocation_expiry (expires_at),
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+
+-- Case-specific pertinent documents requested by Registrar
+CREATE TABLE IF NOT EXISTS request_attachment_requirements (
+    id INT AUTO_INCREMENT PRIMARY KEY, document_id INT NOT NULL, label VARCHAR(255) NOT NULL,
+    instructions VARCHAR(2000) NOT NULL, status ENUM('requested','uploaded','accepted') NOT NULL DEFAULT 'requested',
+    requested_by INT NOT NULL, reviewed_by INT NULL, review_notes VARCHAR(2000) NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, reviewed_at TIMESTAMP NULL,
+    FOREIGN KEY (document_id) REFERENCES documents(id) ON DELETE CASCADE,
+    FOREIGN KEY (requested_by) REFERENCES users(id), FOREIGN KEY (reviewed_by) REFERENCES users(id), INDEX (document_id)
+  ) ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS request_attachment_uploads (
+    id INT AUTO_INCREMENT PRIMARY KEY, requirement_id INT NOT NULL, uploaded_by INT NOT NULL,
+    file_path VARCHAR(500) NOT NULL, original_filename VARCHAR(255) NOT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (requirement_id) REFERENCES request_attachment_requirements(id) ON DELETE CASCADE,
+    FOREIGN KEY (uploaded_by) REFERENCES users(id), INDEX (requirement_id)
+  ) ENGINE=InnoDB;

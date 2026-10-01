@@ -244,7 +244,7 @@ function updateStaff(userId, fields, executor = pool) {
 }
 
 function setUserActive(userId, isActive, executor = pool) {
-  return executor.query('UPDATE users SET is_active = ? WHERE id = ?', [isActive, userId]);
+  return executor.query('UPDATE users SET is_active = ?, token_version = token_version + 1 WHERE id = ?', [isActive, userId]);
 }
 
 /** Clears the forced-change flag once the user has chosen their own password. */

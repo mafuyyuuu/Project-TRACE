@@ -1,3 +1,4 @@
+import RequestMessagesPanel from '@/components/RequestMessagesPanel';
 import { getProfileCompletion } from '@/utils/profileCompletion';
 import FeeBreakdown from '@/components/FeeBreakdown';
 import { INPUT_LIMITS } from '@/utils/inputLimits';
@@ -78,10 +79,12 @@ export default function StudentDashboard({ user, currentTab, setViewImageUrl }) 
     ? documents.filter((doc) => doc.request_group_id === selectedDoc.request_group_id)
     : [];
 
+  if (currentTab === 'messages') return <RequestMessagesPanel user={user} initialDocumentId={new URLSearchParams(window.location.search).get('document')} />;
   if (loading) return <DashboardLoading />;
 
   return (
     <>
+      <FloatingSupportChat user={user} />
       <DashboardAlerts success={success} error={error} onDismiss={dismissNotification} />
       <div className="space-y-8 animate-fade-in">
         {/* 1.1. STUDENT PORTAL - WORKSPACE DASHBOARD */}
@@ -241,7 +244,7 @@ export default function StudentDashboard({ user, currentTab, setViewImageUrl }) 
                             <td className="py-4 px-4 align-middle">
                               <div className="max-w-xs space-y-1.5 break-words">
                                 <div className="text-sm font-bold text-gray-900 dark:text-gray-100">{doc.document_sequence_number || doc.document_type}</div>
-                                {doc.is_same_day ? <span className="inline-block px-1.5 py-0.5 bg-green-100 dark:bg-green-950/40 text-green-700 dark:text-green-300 text-[9px] uppercase font-black rounded">Same Day Release</span> : null}
+                                {doc.is_same_day ? <span className="inline-block px-1.5 py-0.5 bg-green-100 dark:bg-green-950/40 text-green-700 dark:text-green-300 text-[9px] uppercase font-black rounded">Walk-in same-day eligible</span> : null}
                                 <div className="text-xs font-mono text-gray-400 dark:text-gray-400">#{doc.tracking_number ? doc.tracking_number.slice(0, 10).toUpperCase() : doc.id}</div>
                               </div>
                             </td>
@@ -290,7 +293,7 @@ export default function StudentDashboard({ user, currentTab, setViewImageUrl }) 
               </div>
             </div>
       
-      <FloatingSupportChat documents={documents} user={user} />
+
 
       {/* INCOMPLETE PROFILE MODAL */}
       {missingProfileFields && (

@@ -214,7 +214,7 @@ utils/         # Backend helper functions (AppError)
 - Registration proofs already persist; surface them through existing protected preview/download. Full-profile lookup selects safe fields and requires an authorized staff desk. Do not add generic upload replacement rights.
 - Document policies belong to `document_types` and `document_type_colleges`. Save settings/junction rows atomically, enforce against the target student on the server, and lock the user during repeat checks. Exact college matches only; unknown mappings require Admin review.
 - Honorable Dismissal stays one copy and one active/completed request. Cancellation/terminal legacy rejection permits retry; a Secretary return to Intake stays active. Repeatable quantities multiply the base charge; filing displays rates only, and Secretary enters actual pages for the server-calculated final amount.
-- Counter fee drafts remain inactive until Admin reviews fees and activates. DOC-02 photocopy policy is pending. DOC-03 messaging attachments/processing holds are deferred; do not invent that workflow or add pipeline stages here.
+- Counter fee drafts remain inactive until Admin reviews fees and activates. Registrar clarification (2026-10-01): the four same-day walk-in types require original and photocopy presentation. Case-specific attachment requirements now live on request conversations; do not impose a universal list or add automatic holds/pipeline stages without a further policy.
 
 
 ## Batch 10 Fee Schedule Conventions

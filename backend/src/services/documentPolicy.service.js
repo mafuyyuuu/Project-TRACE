@@ -5,7 +5,10 @@ const { pool } = require('../config/db');
 const { badRequest } = require('../utils/AppError');
 
 const enabled = value => value === true || Number(value) === 1;
-const repeatable = type => type.name !== 'Honorable Dismissal' && type.is_repeatable !== false && Number(type.is_repeatable) !== 0;
+const normalizeName = value => String(value || '').trim().replace(/\s+/g, ' ').toLowerCase();
+const repeatable = type => normalizeName(type.name) !== 'honorable dismissal';
+const sameDayWalkInTypes = ['CTC', '2nd Copy of COR', '2nd Copy of OGR', 'CAV'];
+const sameDayWalkIn = name => sameDayWalkInTypes.some(type => normalizeName(type) === normalizeName(name));
 const RETIRED_DOCUMENT_NAMES = ['Certificate of Good Moral', 'Certificate of Good Moral Character', 'Good Moral Certificate'];
 const retiredNames = new Set(RETIRED_DOCUMENT_NAMES.map(name => name.toLowerCase()));
 const isRetired = name => retiredNames.has(String(name || '').trim().replace(/\s+/g, ' ').toLowerCase());
@@ -56,4 +59,4 @@ async function assertDocument(doc, { studentId = doc.student_id, documentType = 
   return type;
 }
 
-module.exports = { enabled, repeatable, isRetired, RETIRED_DOCUMENT_NAMES, RETIREMENT_REASON, resolveStudent, eligibility, assertAllowed, assertDocument };
+module.exports = { sameDayWalkIn, sameDayWalkInTypes, enabled, repeatable, isRetired, RETIRED_DOCUMENT_NAMES, RETIREMENT_REASON, resolveStudent, eligibility, assertAllowed, assertDocument };

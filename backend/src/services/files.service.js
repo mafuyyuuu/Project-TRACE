@@ -37,6 +37,11 @@ function resolveSafePath(requested) {
  * own request, their own registration ID proof, and their own avatar.
  */
 async function assertCanRead(user, filename) {
+  const attachment = await require('../models/requestAttachment.model').fileOwner(filename);
+  if (attachment) {
+    await require('./documents.service').authorizeMessage(user, attachment);
+    return;
+  }
   if (user.role === 'clerk' || user.role === 'admin') return;
 
   // Cheapest check first, and it needs no student_id: an avatar is readable

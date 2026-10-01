@@ -11,6 +11,17 @@ beforeEach(() => {
   vi.spyOn(users, 'findStudentForPolicy').mockResolvedValue([student]);
   vi.spyOn(refs, 'findCollegeByName').mockResolvedValue([]);
 });
+it('allows repeated requests and varying quantities for every non-dismissal type despite an old flag', async () => {
+  documents.countBlockingRequests.mockResolvedValue(10);
+  await expect(policy.assertAllowed({ ...type, name: 'Diploma', is_repeatable: 0 }, student, { copies: 7 })).resolves.toBeUndefined();
+  expect(documents.countBlockingRequests).not.toHaveBeenCalled();
+});
+it.each(['CTC', '2nd Copy of COR', '2nd Copy of OGR', 'CAV', ' 2nd  copy OF cor '])('recognizes Registrar same-day walk-in type %s', name => {
+  expect(policy.sameDayWalkIn(name)).toBe(true);
+});
+it.each(['TOR', 'Diploma', 'Certificate of Transfer', 'Honorable Dismissal'])('does not promise same-day handling for %s', name => {
+  expect(policy.sameDayWalkIn(name)).toBe(false);
+});
 it('checks the target applicant and college, not the staff member filing the request', async () => {
   expect(await policy.eligibility({ ...type, available_to: 'alumni' }, student, { counter: true })).toMatch(/applicant/);
   expect(await policy.eligibility({ ...type, allowed_college_ids: [3] }, student)).toMatch(/college/);

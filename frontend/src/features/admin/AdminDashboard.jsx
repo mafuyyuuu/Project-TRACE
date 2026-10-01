@@ -2,6 +2,7 @@ import { forecastCeiling } from '@/utils/forecastScale';
 import { USER_TYPE_LABELS } from '@/utils/userLabels';
 import AdminTemplatesPanel from './components/AdminTemplatesPanel';
 import AdminSecurityPanel from './components/AdminSecurityPanel';
+import RequestMessagesPanel from '@/components/RequestMessagesPanel';
 import { useState } from 'react';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import MiniSparkline from '@/components/MiniSparkline';
@@ -71,6 +72,7 @@ export default function AdminDashboard({ user, currentTab, setViewImageUrl, revi
   if (currentTab === 'admin-grad-applications') return <GradApplicationReviewPanel user={user} currentTab={currentTab} />;
   if (currentTab === 'admin-security') return <AdminSecurityPanel />;
   if (currentTab === 'admin-templates') return <AdminTemplatesPanel />;
+  if (currentTab === 'messages') return <RequestMessagesPanel user={user} initialDocumentId={new URLSearchParams(window.location.search).get('document')} />;
 
   if (loading) return <DashboardLoading />;
 

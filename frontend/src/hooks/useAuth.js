@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
+import { disconnectRealtime } from '@/services/realtimeService';
 import { useNavigate } from 'react-router-dom';
-import { getMe, login as apiLogin, register as apiRegister } from '@/services/authService';
+import { getMe, login as apiLogin, register as apiRegister, endSession } from '@/services/authService';
 
 /**
  * Global authentication state: the current user, plus login/logout/register.
@@ -67,11 +68,20 @@ export function useAuth() {
     }
   };
 
-  const logout = () => {
-    localStorage.removeItem('trace_token');
-    localStorage.removeItem('trace_user');
-    setUser(null);
-    navigate('/');
+  const logout = async () => {
+    setLoading(true);
+    try {
+      await endSession();
+      disconnectRealtime();
+      localStorage.removeItem('trace_token');
+      localStorage.removeItem('trace_user');
+      setUser(null);
+      navigate('/');
+      return true;
+    } catch {
+      setError('Could not confirm logout. Retry while connected to end this session.');
+      return false;
+    } finally { setLoading(false); }
   };
 
   const register = async (credentials) => {

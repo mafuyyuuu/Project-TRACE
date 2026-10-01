@@ -7,9 +7,8 @@ import { formatPeso } from '@/utils/pricing';
  * Logging a payment a student made at the counter.
  *
  * A walk-in pays cash against the slip the Secretary printed, so nothing about
- * it reaches the system on its own — the Official Receipt is the only record
- * that the money changed hands. That is why the OR number is required here and
- * absent from the online path.
+ * it reaches the system on its own. Finance records the payment and can defer
+ * issuing its Official Receipt; verification remains a separate step.
  *
  * The scan is an aid, never an authority: OCR fills the fields, the clerk
  * confirms them, and only then is anything recorded. A misread amount here
@@ -25,6 +24,7 @@ export default function WalkInPaymentModal({
   actionLoading,
   scanning,
   scanConfidence,
+  counterDeferred = false, setCounterDeferred,
   orNumber,
   setOrNumber,
   orDate,
@@ -68,6 +68,10 @@ export default function WalkInPaymentModal({
         Record a payment the student made at the cashier.
       </p>
 
+      <label className="flex items-start gap-3 text-sm mb-4">
+        <input type="checkbox" checked={counterDeferred} disabled={scanning || actionLoading} onChange={e => setCounterDeferred?.(e.target.checked)} className="mt-1 shrink-0" />
+        Later — record the counter payment with OR issuance pending. Required for new ORs at or after 4:00 PM Manila time.
+      </label>
       <div className="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl p-5 mb-6 font-mono text-[11px] text-gray-600 dark:text-gray-300 space-y-2">
         <div className="flex flex-wrap justify-between gap-x-3 gap-y-1"><span>Student</span><span className="font-bold text-gray-950 dark:text-gray-100 select-text break-words">{selectedDoc.student_name || selectedDoc.student_id}</span></div>
         <div className="flex flex-wrap justify-between gap-x-3 gap-y-1"><span>Tracking ID</span><span className="font-bold text-gray-950 dark:text-gray-100 select-text">#{selectedDoc.tracking_number}</span></div>
@@ -84,8 +88,8 @@ export default function WalkInPaymentModal({
       </div>
 
       <div className="space-y-5">
-        <FileUploadField label="Official Receipt copy · optional" file={orFile} onChange={setOrFile} disabled={scanning || actionLoading} maxBytes={5 * 1024 * 1024} />
-        <button type="button" onClick={() => handleScanReceipt(orFile)} disabled={!orFile || scanning || actionLoading}
+        <FileUploadField label="Official Receipt copy · optional" file={orFile} onChange={setOrFile} disabled={counterDeferred || scanning || actionLoading} maxBytes={5 * 1024 * 1024} />
+        <button type="button" onClick={() => handleScanReceipt(orFile)} disabled={counterDeferred || !orFile || scanning || actionLoading}
           className="px-4 py-2 rounded-xl border border-gray-200 dark:border-gray-700 text-sm font-bold disabled:opacity-50">
           {scanning ? 'Reading receipt…' : 'Read Receipt'}
         </button>
@@ -106,7 +110,7 @@ export default function WalkInPaymentModal({
           </span>
           <input maxLength={INPUT_LIMITS.receiptNumber}
             type="text"
-            value={orNumber}
+            disabled={counterDeferred} value={orNumber}
             onChange={(e) => setOrNumber(e.target.value)}
             placeholder="e.g. 2026-0042"
             className="w-full rounded-2xl border border-gray-200 dark:border-gray-700 px-4 py-3 text-sm font-mono font-bold focus:outline-none focus:ring-2 focus:ring-[#15803d]/30"
@@ -117,7 +121,7 @@ export default function WalkInPaymentModal({
           <span className="text-[10px] font-bold text-gray-800 dark:text-gray-100 uppercase tracking-widest block mb-2">Receipt date</span>
           <input
             type="date"
-            value={orDate}
+            disabled={counterDeferred} value={orDate}
             onChange={(e) => setOrDate(e.target.value)}
             className="w-full rounded-2xl border border-gray-200 dark:border-gray-700 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#15803d]/30"
           />

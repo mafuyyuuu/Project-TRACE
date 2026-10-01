@@ -49,6 +49,8 @@ if (JWT_SECRET === COMPROMISED_JWT_SECRET) {
 }
 
 module.exports = {
+  // Separate from JWT signing; authenticator operations fail closed without it.
+  MFA_ENCRYPTION_KEY: process.env.MFA_ENCRYPTION_KEY || '',
   JWT_SECRET,
   WEBHOOK_SECRET,
   DB_HOST: process.env.DB_HOST || 'localhost',

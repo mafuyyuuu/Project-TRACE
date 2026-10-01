@@ -19,7 +19,7 @@ it('does not recognize a browser during the password-only OTP challenge', async 
 it('recognizes a browser only after OTP verification supplies a full authenticated user', async () => {
   vi.spyOn(auth, 'verify2FA').mockResolvedValue({ token: 'authenticated', user: USER });
   await controller.verify2FA(req, res);
-  expect(auth.verify2FA).toHaveBeenCalledWith('challenge', '123456', req.ip, 'Test', false);
+  expect(auth.verify2FA).toHaveBeenCalledWith('challenge', '123456', req.ip, 'Test', false, undefined);
   expect(devices.recordLogin).toHaveBeenCalledWith(USER, req.headers.cookie, req.ip, 'Test');
   expect(res.cookie).toHaveBeenCalledWith(devices.COOKIE_NAME, 'b'.repeat(64), devices.COOKIE_OPTIONS);
 });

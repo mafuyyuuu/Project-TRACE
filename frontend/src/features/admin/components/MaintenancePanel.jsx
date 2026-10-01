@@ -1,4 +1,5 @@
 import FeeScheduleEditor from './FeeScheduleEditor';
+import { isHonorableDismissal, isSameDayWalkInType } from '@/utils/documentPolicy';
 import { INPUT_LIMITS } from '@/utils/inputLimits';
 import { useState } from 'react';
 import useMaintenance from '@/features/admin/useMaintenance';
@@ -83,12 +84,12 @@ export default function MaintenancePanel({ user, currentTab }) {
       requires_attachment: Boolean(form.dt_attach),
       attachment_label: form.dt_attach ? form.dt_label : null,
       available_to: form.dt_available_to || 'both',
-      is_repeatable: form.dt_name === 'Honorable Dismissal' ? false : form.dt_is_repeatable !== false,
+      is_repeatable: !isHonorableDismissal(form.dt_name),
       allowed_college_ids: form.dt_college_ids || [],
-      is_walk_in: Boolean(form.dt_is_walk_in),
-      requires_original: Boolean(form.dt_requires_original),
+      is_walk_in: isSameDayWalkInType(form.dt_name) || Boolean(form.dt_is_walk_in),
+      requires_original: isSameDayWalkInType(form.dt_name) || Boolean(form.dt_requires_original),
       registrar_attachment_rule: form.dt_reg_attach || 'none',
-      is_same_day: Boolean(form.dt_is_same_day),
+      is_same_day: isSameDayWalkInType(form.dt_name),
     } });
   };
 
@@ -256,23 +257,23 @@ export default function MaintenancePanel({ user, currentTab }) {
               <div className="space-y-2 py-2">
                 <label className="flex items-center gap-2 text-[11px] font-semibold text-gray-700 dark:text-gray-300 cursor-pointer">
                   <input type="checkbox" className="accent-[#15803d]"
-                    disabled={form.dt_name === 'Honorable Dismissal'} checked={form.dt_name !== 'Honorable Dismissal' && form.dt_is_repeatable !== false} onChange={(e) => set('dt_is_repeatable', e.target.checked)} />
-                  Is Repeatable (can request multiple)
+                    disabled checked={!isHonorableDismissal(form.dt_name)} />
+                  Repeat requests and quantities (Registrar policy)
                 </label>
                 <label className="flex items-center gap-2 text-[11px] font-semibold text-gray-700 dark:text-gray-300 cursor-pointer">
                   <input type="checkbox" className="accent-[#15803d]"
-                    checked={Boolean(form.dt_is_walk_in)} onChange={(e) => set('dt_is_walk_in', e.target.checked)} />
+                    disabled={isSameDayWalkInType(form.dt_name)} checked={isSameDayWalkInType(form.dt_name) || Boolean(form.dt_is_walk_in)} onChange={(e) => set('dt_is_walk_in', e.target.checked)} />
                   Counter-only request type
                 </label>
                 <label className="flex items-center gap-2 text-[11px] font-semibold text-gray-700 dark:text-gray-300 cursor-pointer">
                   <input type="checkbox" className="accent-[#15803d]"
-                    checked={Boolean(form.dt_requires_original)} onChange={(e) => set('dt_requires_original', e.target.checked)} />
-                  Requires Original Document Surrender
+                    disabled={isSameDayWalkInType(form.dt_name)} checked={isSameDayWalkInType(form.dt_name) || Boolean(form.dt_requires_original)} onChange={(e) => set('dt_requires_original', e.target.checked)} />
+                  Requires original document presentation
                 </label>
                 <label className="flex items-center gap-2 text-[11px] font-semibold text-gray-700 dark:text-gray-300 cursor-pointer">
                   <input type="checkbox" className="accent-[#15803d]"
-                    checked={Boolean(form.dt_is_same_day)} onChange={(e) => set('dt_is_same_day', e.target.checked)} />
-                  Eligible for Same-Day Release
+                    disabled checked={isSameDayWalkInType(form.dt_name)} />
+                  Same-day eligible when original and photocopy are presented
                 </label>
               </div>
 <button type="submit" disabled={m.saving}

@@ -7,6 +7,8 @@ vi.mock('@/services/api', () => ({
 
 import ProfileSettingsModal from '@/components/ProfileSettingsModal';
 import api from '@/services/api';
+import { getAuthenticator } from '@/services/authenticatorService';
+vi.mock('@/services/authenticatorService', () => ({ getAuthenticator: vi.fn(), beginAuthenticator: vi.fn(), updateAuthenticator: vi.fn() }));
 
 const STUDENT = {
   id: 3,
@@ -41,9 +43,18 @@ const renderModal = (overrides = {}) => render(<ProfileSettingsModal {...basePro
 
 beforeEach(() => {
   vi.clearAllMocks();
+  getAuthenticator.mockResolvedValue({ enabled: false, available: true });
 });
 
 describe('ProfileSettingsModal', () => {
+  it.each([
+    { ...STUDENT, user_type: 'student' }, { ...STUDENT, user_type: 'alumni' },
+    { ...CLERK, role: 'admin' }, { ...CLERK, desk_assignment: 'Window 1' },
+    CLERK, { ...CLERK, desk_assignment: 'Secretary' },
+  ])('shows working authenticator setup in Security for $role/$user_type/$desk_assignment', async user => {
+    renderModal({ user, initialTab: 'security' });
+    expect(await screen.findByRole('button', { name: 'Set up authenticator app' })).toBeInTheDocument();
+  });
   it('uses the avatar camera as the sole photo picker and stages without saving', () => {
     const onSave = vi.fn();
     const onAvatarChange = vi.fn();
@@ -163,7 +174,7 @@ describe('ProfileSettingsModal', () => {
     ['error', 'Attention Needed', 'Error logging out of other devices.'],
   ])('acknowledges session logout %s above settings and restores focus', async (outcome, title, message) => {
     api.get.mockResolvedValueOnce({ data: [] });
-    if (outcome === 'success') api.post.mockResolvedValueOnce({ data: {} });
+    if (outcome === 'success') api.post.mockResolvedValueOnce({ data: { token: 'replacement', user: STUDENT } });
     else api.post.mockRejectedValueOnce(new Error('Request failed'));
     const nativeAlert = vi.spyOn(window, 'alert').mockImplementation(() => {});
     const onClose = vi.fn();
@@ -178,7 +189,7 @@ describe('ProfileSettingsModal', () => {
     const feedback = await screen.findByRole('dialog', { name: title });
     expect(feedback).toHaveTextContent(message);
     expect(feedback.parentElement).toHaveClass('z-[110]');
-    expect(api.post).toHaveBeenCalledWith('/auth/logout-all');
+    expect(api.post).toHaveBeenCalledWith('/auth/logout-all', { preserve_current: true }, { timeout: 15000 });
     expect(nativeAlert).not.toHaveBeenCalled();
     expect(screen.getByRole('button', { name: 'OK' })).toHaveFocus();
     fireEvent.click(screen.getByRole('button', { name: 'OK' }));

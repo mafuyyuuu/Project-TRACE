@@ -195,9 +195,11 @@ export async function getActivityLogs() {
 }
 
 
-export async function uploadDeferredOR(documentId, file) {
+export async function uploadDeferredOR(documentId, file, { orNumber, orDate } = {}) {
   const formData = new FormData();
   formData.append('officialReceipt', file);
+  if (orNumber) formData.append('or_number', orNumber);
+  if (orDate) formData.append('or_date', orDate);
   const response = await api.post(`/documents/${documentId}/deferred-or`, formData);
   return response.data;
 }

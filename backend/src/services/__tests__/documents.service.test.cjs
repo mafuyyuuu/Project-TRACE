@@ -41,8 +41,19 @@ function fakeConnection(docRow) {
 }
 
 let connection;
+afterEach(() => vi.useRealTimers());
 
 describe('document-policy request enforcement', () => {
+  it.each([['true', 'true', true], ['true', 'false', false], ['false', 'true', false]])('records same-day eligibility only with both original and photocopy (%s/%s)', async (original_seen, photocopy_seen, eligible) => {
+    const insert = vi.spyOn(documentModel, 'insert').mockResolvedValue([{ insertId: 9 }]);
+    await service.uploadDocument(WINDOW1, { student_id: 'STU-001', document_type: 'CTC', copies: 3, original_seen, photocopy_seen }, []);
+    expect(insert).toHaveBeenCalledWith(expect.objectContaining({ is_same_day: eligible, copies: 3, current_status: STATUS.PENDING_W1_INTAKE, payment_status: 'UNPAID' }), connection);
+  });
+  it('ignores a student attempting to declare a same-day walk-in', async () => {
+    const insert = vi.spyOn(documentModel, 'insert').mockResolvedValue([{ insertId: 9 }]);
+    await service.uploadDocument(STUDENT, { document_type: 'CTC', copies: 1, original_seen: 'true', photocopy_seen: 'true', is_same_day: true }, []);
+    expect(insert).toHaveBeenCalledWith(expect.objectContaining({ is_same_day: false }), connection);
+  });
   it.each([['student', STUDENT], ['counter', WINDOW1]])('blocks a new Good Moral %s request before writing documents or logs', async (_channel, user) => {
     const insert = vi.spyOn(documentModel, 'insert').mockResolvedValue([{ insertId: 9 }]);
     await expect(service.uploadDocument(user, { document_type: 'Certificate of Good Moral', student_id: 'STU-001' }, []))
@@ -72,6 +83,8 @@ describe('document-policy request enforcement', () => {
 });
 
 beforeEach(() => {
+  vi.useFakeTimers({ toFake: ['Date'] });
+  vi.setSystemTime(new Date('2026-09-06T07:30:00Z'));
   vi.spyOn(userModel, 'getProfileById').mockResolvedValue([{ ...COMPLETE, id: 3, student_id: 'STU-001' }]);
   vi.spyOn(pricingModel, 'attachSchedules').mockImplementation(async types => types);
   vi.spyOn(userModel, 'findStudentForPolicy').mockResolvedValue([{ id: 3, student_id: 'STU-001', user_type: 'student' }]);
@@ -411,7 +424,7 @@ describe('group payment settles every document at once', () => {
     expect(res.documents_covered).toBe(2);
     expect(documentModel.updatePaymentVerificationForGroup).toHaveBeenCalledWith(
       'REQ-G1', STATUS.PAID_PENDING_SEC_RELEASE, 'PAID',
-      { officialReceiptPath: null, orNumber: 'OR-1', orDate: null }, connection
+      { officialReceiptPath: null, orNumber: 'OR-1', orDate: '2026-09-06', clearedAt: new Date('2026-09-06T07:30:00Z'), earliestDate: '2026-09-06' }, connection
     );
   });
 
@@ -470,7 +483,7 @@ describe('verifyPayment — Finance desk only', () => {
     await service.verifyPayment(FINANCE, 5, { action: 'approve', or_number: 'OR-77' }, null);
     expect(documentModel.updatePaymentVerificationForGroup).toHaveBeenCalledWith(
       'REQ-TEST01', STATUS.PAID_PENDING_SEC_RELEASE, 'PAID',
-      { officialReceiptPath: null, orNumber: 'OR-77', orDate: null }, connection
+      { officialReceiptPath: null, orNumber: 'OR-77', orDate: '2026-09-06', clearedAt: new Date('2026-09-06T07:30:00Z'), earliestDate: '2026-09-06' }, connection
     );
   });
 
@@ -485,7 +498,7 @@ describe('verifyPayment — Finance desk only', () => {
     await service.verifyPayment(FINANCE, 5, { action: 'reject', notes: 'blurry' }, null);
     expect(documentModel.updatePaymentVerificationForGroup).toHaveBeenCalledWith(
       'REQ-TEST01', STATUS.PENDING_STUDENT_PAYMENT, 'UNPAID',
-      { officialReceiptPath: null, orNumber: null, orDate: null }, connection
+      { officialReceiptPath: null, orNumber: null, orDate: null, clearedAt: null, earliestDate: null }, connection
     );
   });
 
@@ -494,7 +507,7 @@ describe('verifyPayment — Finance desk only', () => {
     await service.verifyPayment(FINANCE, 5, { action: 'approve', or_number: 'OR-77' }, { filename: 'official.png' });
     expect(documentModel.updatePaymentVerificationForGroup).toHaveBeenCalledWith(
       'REQ-TEST01', STATUS.PAID_PENDING_SEC_RELEASE, 'PAID',
-      { officialReceiptPath: '/uploads/official.png', orNumber: 'OR-77', orDate: null }, connection
+      { officialReceiptPath: '/uploads/official.png', orNumber: 'OR-77', orDate: '2026-09-06', clearedAt: new Date('2026-09-06T07:30:00Z'), earliestDate: '2026-09-06' }, connection
     );
   });
 
@@ -705,7 +718,7 @@ describe('verifyOfficialReceipt — Secretary checks the OR before handoff', () 
 
   it('moves a paid document to SEC_OR_VERIFIED', async () => {
     documentModel.findByIdForUpdate.mockResolvedValue([paidUnverified]);
-    await service.verifyOfficialReceipt(SECRETARY, 5, {});
+    await service.verifyOfficialReceipt(SECRETARY, 5, { physical_receipt_checked: true });
     expect(documentModel.updateOrVerification).toHaveBeenCalledWith(5, SECRETARY.id, connection);
   });
 
@@ -719,7 +732,7 @@ describe('verifyOfficialReceipt — Secretary checks the OR before handoff', () 
 
   it('never touches payment_status — that stays Finance\'s alone', async () => {
     documentModel.findByIdForUpdate.mockResolvedValue([paidUnverified]);
-    await service.verifyOfficialReceipt(SECRETARY, 5, {});
+    await service.verifyOfficialReceipt(SECRETARY, 5, { physical_receipt_checked: true });
     expect(documentModel.updatePaymentVerificationForGroup).not.toHaveBeenCalled();
   });
 });
@@ -831,44 +844,44 @@ describe('logWalkInPayment — Finance records a counter payment', () => {
   );
 
   it('records the receipt against the whole request', async () => {
-    documentModel.findById.mockResolvedValue([billed]);
-    documentModel.findByRequestGroup.mockResolvedValue([billed, { ...billed, id: 6 }]);
+    documentModel.findByIdForUpdate.mockResolvedValue([billed]);
+    documentModel.findByRequestGroupForUpdate.mockResolvedValue([billed, { ...billed, id: 6 }]);
     documentModel.updateWalkInPaymentForGroup.mockResolvedValue([{ affectedRows: 2 }]);
 
     const res = await service.logWalkInPayment(FINANCE, 5, body, null);
     expect(res.documents_covered).toBe(2);
     expect(documentModel.updateWalkInPaymentForGroup).toHaveBeenCalledWith(
       'REQ-G1',
-      { orNumber: 'OR-12345', orDate: '2026-09-06', clerkId: FINANCE.id, receiptPath: null }
+      { orNumber: 'OR-12345', orDate: '2026-09-06', clerkId: FINANCE.id, receiptPath: null }, connection
     );
   });
 
   it('requires the Official Receipt number', async () => {
     // A counter payment leaves no other trace in the system.
-    documentModel.findById.mockResolvedValue([billed]);
+    documentModel.findByIdForUpdate.mockResolvedValue([billed]);
     expect(await statusOf(service.logWalkInPayment(FINANCE, 5, { or_date: '2026-09-06' }, null))).toBe(400);
     expect(documentModel.updateWalkInPaymentForGroup).not.toHaveBeenCalled();
   });
 
   it('stores the scanned receipt image when one is provided', async () => {
-    documentModel.findById.mockResolvedValue([billed]);
-    documentModel.findByRequestGroup.mockResolvedValue([billed]);
+    documentModel.findByIdForUpdate.mockResolvedValue([billed]);
+    documentModel.findByRequestGroupForUpdate.mockResolvedValue([billed]);
     await service.logWalkInPayment(FINANCE, 5, body, { filename: 'or.png' });
     expect(documentModel.updateWalkInPaymentForGroup).toHaveBeenCalledWith(
-      'REQ-G1', expect.objectContaining({ receiptPath: '/uploads/or.png' })
+      'REQ-G1', expect.objectContaining({ receiptPath: '/uploads/or.png' }), connection
     );
   });
 
   it('will not log a payment against a request that has not been billed', async () => {
-    documentModel.findById.mockResolvedValue([{ ...billed, current_status: STATUS.SEC_PROCESSING }]);
+    documentModel.findByIdForUpdate.mockResolvedValue([{ ...billed, current_status: STATUS.SEC_PROCESSING }]);
     expect(await statusOf(service.logWalkInPayment(FINANCE, 5, body, null))).toBe(400);
   });
 
   it('leaves verification to a separate act', async () => {
     // A walk-in is held to the same standard as a digital payment: logging it
     // records the claim, it does not clear it.
-    documentModel.findById.mockResolvedValue([billed]);
-    documentModel.findByRequestGroup.mockResolvedValue([billed]);
+    documentModel.findByIdForUpdate.mockResolvedValue([billed]);
+    documentModel.findByRequestGroupForUpdate.mockResolvedValue([billed]);
     await service.logWalkInPayment(FINANCE, 5, body, null);
     expect(documentModel.updatePaymentVerificationForGroup).not.toHaveBeenCalled();
   });
@@ -936,23 +949,21 @@ describe('intakeDocument — Window 1 checks the paperwork', () => {
 describe('uploadDeferredOR — Finance uploads its retained copy later', () => {
   it.each([STATUS.PAID_PENDING_SEC_RELEASE, STATUS.SEC_OR_VERIFIED, STATUS.READY_FOR_RELEASE, STATUS.COMPLETED])(
     'attaches the copy to the request group at %s without changing payment or stage', async (stage) => {
-      const doc = { id: 5, request_group_id: 'REQ-G1', student_id: 'STU-001', current_status: stage, payment_status: 'PAID' };
-      documentModel.findById.mockResolvedValue([doc]);
-      const query = vi.spyOn(pool, 'query').mockResolvedValue([{ affectedRows: 2 }]);
+      const doc = { id: 5, request_group_id: 'REQ-G1', student_id: 'STU-001', current_status: stage, payment_status: 'PAID', or_number: 'OR-123', or_date: '2026-09-06' };
+      documentModel.findByIdForUpdate.mockResolvedValue([doc]);
+      documentModel.findByRequestGroupForUpdate.mockResolvedValue([doc]);
+      const publish = vi.spyOn(documentModel, 'publishOfficialReceipt').mockResolvedValue([{ affectedRows: 1 }]);
       userModel.findStudentContactByStudentId.mockResolvedValue([{ id: 3 }]);
       expect(await service.uploadDeferredOR(FINANCE, 5, RECEIPT)).toEqual({
         success: true, official_receipt_path: '/uploads/receipt.png',
       });
-      expect(query).toHaveBeenCalledWith(
-        'UPDATE documents SET official_receipt_path = ?, or_uploaded_at = CURRENT_TIMESTAMP WHERE request_group_id = ?',
-        ['/uploads/receipt.png', 'REQ-G1']
-      );
+      expect(publish).toHaveBeenCalledWith('REQ-G1', { path: '/uploads/receipt.png', number: 'OR-123', date: '2026-09-06' }, connection);
       expect(doc.current_status).toBe(stage);
       expect(doc.payment_status).toBe('PAID');
       expect(documentModel.updateStatus).not.toHaveBeenCalled();
       expect(documentModel.updatePaymentVerificationForGroup).not.toHaveBeenCalled();
-      expect(stepLogModel.insert).not.toHaveBeenCalled();
-      expect(notifications.notifyInApp).toHaveBeenCalledWith(expect.objectContaining({ userId: 3 }));
+      expect(stepLogModel.insert).toHaveBeenCalledWith(expect.objectContaining({ action_taken: 'official_receipt_published', from_status: stage, to_status: stage }), connection);
+      expect(notifications.dispatchStudentAlert).toHaveBeenCalledWith(expect.objectContaining({ user: { id: 3 }, alsoSmsAndEmail: true }));
     }
   );
 
@@ -1282,5 +1293,44 @@ describe('saved student profile gate', () => {
     expect(documentModel.insert).toHaveBeenCalledWith(expect.objectContaining({ file_path: null, original_filename: null }), connection);
     expect(connection.commit).toHaveBeenCalledOnce();
     if (user.role === 'clerk') expect(userModel.getProfileById).not.toHaveBeenCalled();
+  });
+});
+
+describe('deferred issuance and cut-off enforcement', () => {
+  const pending = { id: 5, request_group_id: 'REQ-G1', tracking_number: 'TRC-1', student_id: 'STU-001', current_status: STATUS.PENDING_FINANCE_VERIFICATION, payment_status: 'UNPAID' };
+  it('accepts payment without an OR at exactly 4 PM and records tomorrow as the lower bound', async () => {
+    vi.setSystemTime(new Date('2026-10-01T08:00:00Z'));
+    documentModel.findByIdForUpdate.mockResolvedValue([pending]);
+    documentModel.findByRequestGroupForUpdate.mockResolvedValue([pending]);
+    await service.verifyPayment(FINANCE, 5, { action: 'approve', defer_or: 'true' });
+    expect(documentModel.updatePaymentVerificationForGroup).toHaveBeenCalledWith('REQ-G1', STATUS.PAID_PENDING_SEC_RELEASE, 'PAID', expect.objectContaining({ orNumber: null, orDate: null, earliestDate: '2026-10-02', clearedAt: new Date('2026-10-01T08:00:00Z') }), connection);
+  });
+  it('does not allow a new same-day OR at exactly 4 PM, even with a backdated date', async () => {
+    vi.setSystemTime(new Date('2026-10-01T08:00:00Z'));
+    documentModel.findByIdForUpdate.mockResolvedValue([pending]);
+    await expect(service.verifyPayment(FINANCE, 5, { action: 'approve', or_number: 'OR-NEW', or_date: '2026-09-30' })).rejects.toThrow('cut-off');
+    expect(documentModel.updatePaymentVerificationForGroup).not.toHaveBeenCalled();
+  });
+  it('does not publish an OR on an unpaid request or replace a published copy', async () => {
+    vi.spyOn(documentModel, 'publishOfficialReceipt').mockResolvedValue([{ affectedRows: 1 }]);
+    for (const row of [pending, { ...pending, payment_status: 'PAID', official_receipt_path: '/uploads/old.png' }]) {
+      documentModel.findByIdForUpdate.mockResolvedValue([row]);
+      await expect(service.uploadDeferredOR(FINANCE, 5, RECEIPT, { or_number: 'OR-1', or_date: '2026-09-06' })).rejects.toMatchObject({ status: 400 });
+    }
+    expect(documentModel.publishOfficialReceipt).not.toHaveBeenCalled();
+  });
+  it('allows issuance on a later eligible day when the clerk has time, including after 4 PM', async () => {
+    vi.setSystemTime(new Date('2026-10-02T10:00:00Z'));
+    const row = { ...pending, current_status: STATUS.PAID_PENDING_SEC_RELEASE, payment_status: 'PAID', or_earliest_issue_date: '2026-10-02' };
+    documentModel.findByIdForUpdate.mockResolvedValue([row]);
+    documentModel.findByRequestGroupForUpdate.mockResolvedValue([row]);
+    vi.spyOn(documentModel, 'publishOfficialReceipt').mockResolvedValue([{ affectedRows: 1 }]);
+    await service.uploadDeferredOR(FINANCE, 5, RECEIPT, { or_number: 'OR-1', or_date: '2026-10-02' });
+    expect(documentModel.publishOfficialReceipt).toHaveBeenCalledWith('REQ-G1', { path: '/uploads/receipt.png', number: 'OR-1', date: '2026-10-02' }, connection);
+  });
+  it('keeps pending ORs from being verified by Secretary without a receipt number', async () => {
+    documentModel.findByIdForUpdate.mockResolvedValue([{ ...pending, current_status: STATUS.PAID_PENDING_SEC_RELEASE, payment_status: 'PAID' }]);
+    await expect(service.verifyOfficialReceipt(SECRETARY, 5, { physical_receipt_checked: true })).rejects.toThrow('issue the OR');
+    expect(documentModel.updateOrVerification).not.toHaveBeenCalled();
   });
 });

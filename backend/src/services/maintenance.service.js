@@ -3,6 +3,8 @@ const referenceModel = require('../models/referenceData.model');
 const pricingModel = require('../models/pricing.model');
 const { normalizedSchedule, moneyCents } = require('../utils/pricing');
 const userModel = require('../models/user.model');
+const notifications = require('./notification.service');
+const accountLock = require('../models/trustedBrowser.model');
 const documentPolicy = require('./documentPolicy.service');
 const { pool } = require('../config/db');
 const { PROVIDERS } = require('./payment');
@@ -92,7 +94,8 @@ async function listDocumentTypes(user) {
   return { document_types: rows.map(row => ({ ...row,
     is_active: documentPolicy.isRetired(row.name) ? false : row.is_active,
     is_retired: documentPolicy.isRetired(row.name),
-    is_repeatable: row.name === 'Honorable Dismissal' ? false : row.is_repeatable,
+    is_repeatable: documentPolicy.repeatable(row),
+    is_same_day: documentPolicy.sameDayWalkIn(row.name),
   })) };
 }
 
@@ -106,7 +109,9 @@ async function validateDocumentPolicy(data, name) {
       fields[key] = Boolean(data[key]);
     }
   }
-  if (name === 'Honorable Dismissal') fields.is_repeatable = false;
+  fields.is_repeatable = documentPolicy.repeatable({ name });
+  fields.is_same_day = documentPolicy.sameDayWalkIn(name);
+  if (fields.is_same_day) { fields.is_walk_in = true; fields.requires_original = true; }
   if (data.allowed_college_ids !== undefined) {
     if (!Array.isArray(data.allowed_college_ids) || data.allowed_college_ids.some(id => !Number.isInteger(id) || id < 1)) throw badRequest('Choose valid colleges.');
     fields.allowed_college_ids = [...new Set(data.allowed_college_ids)];
@@ -342,7 +347,20 @@ async function updateStaff(user, id, data) {
 
   if (Object.keys(fields).length === 0) throw badRequest('No fields to update.');
 
-  await userModel.updateStaff(id, fields);
+  if (Number(id) === Number(user.id) && fields.role && fields.role !== 'admin') throw badRequest('You cannot remove your own Admin role.');
+  const connection = await pool.getConnection();
+  try {
+    await connection.beginTransaction();
+    const locked = await accountLock.lockAccount(id, connection);
+    if (!locked || !VALID_ROLES.includes(locked.role)) throw notFound('Staff account not found.');
+    await userModel.updateStaff(id, fields, connection);
+    await userModel.incrementTokenVersion(id, connection);
+    await userModel.clearEmailOTP(id, connection);
+    await userModel.logSecurityEvent(user.id, `ACCOUNT_UPDATED:${id}`, null, null, connection);
+    await connection.commit();
+  } catch (error) { await connection.rollback(); throw error; }
+  finally { connection.release(); }
+  require('../realtime').disconnectUser(id);
   return { message: 'Staff account updated.' };
 }
 
@@ -352,26 +370,26 @@ async function updateStaff(user, id, data) {
  */
 async function setStaffActive(user, id, isActive) {
   assertAdmin(user);
-
-  const rows = await userModel.findById(id);
-  if (!rows.length || !VALID_ROLES.includes(rows[0].role)) throw notFound('Staff account not found.');
-
-  // Guard against an admin locking themselves out of the system.
-  if (!isActive && Number(id) === Number(user.id)) {
-    throw badRequest('You cannot deactivate your own account.');
-  }
-
-  await userModel.setUserActive(id, Boolean(isActive));
-
-  if (!isActive && rows[0].email) {
-    if (notifications.notifyByEmail) {
-      await notifications.notifyByEmail({
-        email: rows[0].email,
-        title: 'Account Deactivated',
-        message: 'Your Project TRACE staff account has been deactivated. Please contact an administrator if you believe this is a mistake.'
-      });
-    }
-  }
+  if (typeof isActive !== 'boolean') throw badRequest('Choose activate or deactivate.');
+  if (!isActive && Number(id) === Number(user.id)) throw badRequest('You cannot deactivate your own account.');
+  const connection = await pool.getConnection();
+  let account;
+  try {
+    await connection.beginTransaction();
+    account = await accountLock.lockAccount(id, connection);
+    if (!account || !VALID_ROLES.includes(account.role)) throw notFound('Staff account not found.');
+    await userModel.setUserActive(id, isActive, connection);
+    await userModel.clearEmailOTP(id, connection);
+    await userModel.logSecurityEvent(user.id, `${isActive ? 'ACCOUNT_REACTIVATED' : 'ACCOUNT_DEACTIVATED'}:${id}`, null, null, connection);
+    await connection.commit();
+  } catch (error) { await connection.rollback(); throw error; }
+  finally { connection.release(); }
+  require('../realtime').disconnectUser(id);
+  try {
+    const [owner] = await userModel.findById(id);
+    if (owner?.email) await notifications.sendEmail(owner.email, isActive ? 'Account Reactivated' : 'Account Deactivated',
+      `Your TRACE staff account was ${isActive ? 'reactivated' : 'deactivated'} by an administrator. If you did not expect this, contact the registrar administrator.`);
+  } catch { console.warn('Account status notification unavailable.'); }
   return { message: isActive ? 'Staff account reactivated.' : 'Staff account deactivated.' };
 }
 

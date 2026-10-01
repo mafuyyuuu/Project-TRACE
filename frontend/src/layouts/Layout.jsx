@@ -27,6 +27,7 @@ export default function Layout() {
   const [showMobileNav, setShowMobileNav] = useState(false)
   const [confirmingLogout, setConfirmingLogout] = useState(false)
   const [loggingOut, setLoggingOut] = useState(false)
+  const [logoutError, setLogoutError] = useState('')
   const [darkMode, setDarkMode] = useState(() => document.documentElement.classList.contains('dark'))
   const [textSize, setTextSize] = useState(readTextSize)
   const changeTextSize = value => setTextSize(saveTextSize(value))
@@ -170,10 +171,12 @@ export default function Layout() {
   const handleConfirmLogout = async () => {
     setLoggingOut(true)
     try {
-      await logout()
+      const result = await logout()
+      if (result === false) { setLogoutError('Could not confirm logout. Check your connection and try again.'); return; }
+      setLogoutError('')
+      setConfirmingLogout(false)
     } finally {
       setLoggingOut(false)
-      setConfirmingLogout(false)
     }
   }
 
@@ -332,14 +335,14 @@ export default function Layout() {
       <ConfirmDialog
         open={confirmingLogout}
         title="Log Out"
-        message="You'll need to sign in again to continue."
+        message={logoutError || "You'll need to sign in again to continue."}
         variant="neutral"
         confirmLabel="Log Out"
         cancelLabel="Stay Signed In"
         loadingLabel="Logging Out…"
         loading={loggingOut}
         onConfirm={handleConfirmLogout}
-        onCancel={() => setConfirmingLogout(false)}
+        onCancel={() => { setConfirmingLogout(false); setLogoutError('') }}
       />
     </div>
   )

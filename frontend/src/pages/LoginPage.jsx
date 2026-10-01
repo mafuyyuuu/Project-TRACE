@@ -20,6 +20,8 @@ export default function LoginPage() {
   const [tempToken, setTempToken] = useState('')
   const [otp, setOtp] = useState('')
   const [maskedEmail, setMaskedEmail] = useState('')
+  const [mfaMethod, setMfaMethod] = useState('email')
+  const [useRecoveryCode, setUseRecoveryCode] = useState(false)
   const [resending, setResending] = useState(false)
   const [resendNotice, setResendNotice] = useState('')
   const [resendCooldown, setResendCooldown] = useState(0)
@@ -34,6 +36,8 @@ export default function LoginPage() {
   }
 
   const showOtpChallenge = (response) => {
+    setMfaMethod(response.mfa_method || 'email')
+    setUseRecoveryCode(false)
     setRequires2FA(true)
     setTempToken(response.temp_token)
     setOtp('')
@@ -75,7 +79,7 @@ export default function LoginPage() {
           showOtpChallenge(response)
         }
       } else {
-        const data = await verify2FA({ temp_token: tempToken, otp: otp.trim(),
+        const data = await verify2FA({ temp_token: tempToken, ...(useRecoveryCode ? { recovery_code: otp.trim() } : { otp: otp.trim() }),
           ...(canTrustBrowser && trustBrowser ? { trust_browser: true } : {}) })
         localStorage.setItem('trace_token', data.token)
         localStorage.setItem('trace_user', JSON.stringify(data.user))
@@ -177,16 +181,16 @@ export default function LoginPage() {
             ) : (
               <div className="flex flex-col gap-2">
                 <p className="text-sm font-medium text-white/90 mb-4">
-                  For security, we've sent a 6-digit verification code to <strong>{maskedEmail}</strong>.
+                  {mfaMethod === 'authenticator' ? (useRecoveryCode ? 'Enter one of your saved single-use recovery codes.' : 'Enter the six-digit code from your authenticator app.') : <>For security, we've sent a 6-digit verification code to <strong>{maskedEmail}</strong>.</>}
                 </p>
-                <label className="text-xs font-bold text-white uppercase tracking-wider">VERIFICATION CODE</label>
-                <input maxLength={INPUT_LIMITS.otp} inputMode="numeric"
+                <label className="text-xs font-bold text-white uppercase tracking-wider">{useRecoveryCode ? 'RECOVERY CODE' : 'VERIFICATION CODE'}</label>
+                <input aria-label={useRecoveryCode ? 'Recovery code' : 'Verification code'} maxLength={useRecoveryCode ? 35 : INPUT_LIMITS.otp} inputMode={useRecoveryCode ? 'text' : 'numeric'}
                   type="text" 
-                  placeholder="Enter 6-digit OTP"
+                  placeholder={useRecoveryCode ? 'Enter recovery code' : 'Enter 6-digit OTP'}
                   value={otp} 
                   disabled={busy}
-                  onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))}
-                  className="w-full p-4 bg-white/10 dark:bg-gray-900/10 border border-white/20 rounded-xl text-center text-2xl tracking-[0.5em] focus:ring-2 focus:ring-white/50 outline-none text-white focus:bg-white/20 dark:focus:bg-gray-900/20 transition-all font-bold placeholder:text-white/40"
+                  onChange={(e) => setOtp(useRecoveryCode ? e.target.value : e.target.value.replace(/\D/g, ''))}
+                  className="w-full p-4 bg-white/10 dark:bg-gray-900/10 border border-white/20 rounded-xl text-center text-lg focus:ring-2 focus:ring-white/50 outline-none text-white focus:bg-white/20 dark:focus:bg-gray-900/20 transition-all font-bold placeholder:text-white/40"
                   autoFocus 
                 />
                 {canTrustBrowser && (
@@ -216,7 +220,7 @@ export default function LoginPage() {
               ) : (requires2FA ? 'VERIFY & LOGIN' : 'LOGIN')}
             </button>
 
-            {requires2FA && (
+            {requires2FA && mfaMethod === 'email' && (
               <button
                 type="button"
                 onClick={resendOtp}
@@ -226,6 +230,10 @@ export default function LoginPage() {
                 {resending ? 'Sending code…' : cooldownActive ? `Resend OTP (${resendCooldown}s)` : 'Resend OTP'}
               </button>
             )}
+
+            {requires2FA && mfaMethod === 'authenticator' && <button type="button" disabled={busy}
+              onClick={() => { setUseRecoveryCode(value => !value); setOtp(''); setLocalError(''); }}
+              className="text-sm text-white underline">{useRecoveryCode ? 'Use authenticator code' : 'Use a recovery code'}</button>}
 
             {requires2FA && (
               <button 

@@ -1,13 +1,16 @@
 import { INPUT_LIMITS } from '@/utils/inputLimits';
 import FileUploadField from '@/components/FileUploadField';
 import ConfirmDialog from '@/components/ConfirmDialog';
-import { useRef, useState, useMemo, useEffect } from 'react';
+import { useRef, useState, useMemo } from 'react';
 import ModalShell from '@/components/ModalShell';
 import DashboardAlerts from '@/components/DashboardAlerts';
-import api from '@/services/api';
+import { endOtherSessions } from '@/services/authService';
+import { disconnectRealtime } from '@/services/realtimeService';
 import UserAvatar from '@/components/UserAvatar';
 import { TEXT_SIZES } from '@/utils/textSize';
 import { getProfileCompletion } from '@/utils/profileCompletion';
+import AuthenticatorSettings from '@/components/AuthenticatorSettings';
+import useSecurityLogs from '@/hooks/useSecurityLogs';
 
 export default function ProfileSettingsModal({
   user,
@@ -33,14 +36,9 @@ export default function ProfileSettingsModal({
   const [activeTab, setActiveTab] = useState(initialTab);
   const [confirmation, setConfirmation] = useState(null);
   const [loggingOut, setLoggingOut] = useState(false);
-  const [securityLogs, setSecurityLogs] = useState([]);
+  const securityLogs = useSecurityLogs(activeTab === 'security', user?.id);
   const [sessionFeedback, setSessionFeedback] = useState({ success: '', error: '' });
   
-  useEffect(() => {
-    if (activeTab === 'security') {
-      api.get('/auth/security-logs').then(res => setSecurityLogs(res.data)).catch(console.error);
-    }
-  }, [activeTab]);
 
   const roleLabel =
     user?.role === 'admin'
@@ -85,7 +83,11 @@ export default function ProfileSettingsModal({
     }
     setLoggingOut(true);
     try {
-      await api.post('/auth/logout-all');
+      const result = await endOtherSessions();
+      localStorage.setItem('trace_token', result.token);
+      localStorage.setItem('trace_user', JSON.stringify(result.user));
+      disconnectRealtime();
+      window.dispatchEvent(new CustomEvent('trace-user-updated', { detail: result.user }));
       setSessionFeedback({ success: 'Logged out of all other devices.', error: '' });
       setConfirmation(null);
     } catch {
@@ -294,6 +296,7 @@ export default function ProfileSettingsModal({
           
           {activeTab === 'security' && (
             <div className="space-y-6">
+              <AuthenticatorSettings user={user} />
               <div className="bg-white dark:bg-gray-900 p-4 border border-gray-200 dark:border-gray-700 rounded-2xl">
                 <h3 className="text-sm font-black text-gray-900 dark:text-gray-100 mb-4 border-b border-gray-100 dark:border-gray-700 pb-2">Change Password</h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

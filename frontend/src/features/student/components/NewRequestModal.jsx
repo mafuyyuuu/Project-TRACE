@@ -1,4 +1,5 @@
 import { INPUT_LIMITS } from '@/utils/inputLimits';
+import { isHonorableDismissal } from '@/utils/documentPolicy';
 import FileUploadField from '@/components/FileUploadField';
 import ModalShell from '@/components/ModalShell';
 import { formatPeso } from '@/utils/pricing';
@@ -123,7 +124,7 @@ export default function NewRequestModal({
                         <div className="px-4 pb-4 pt-1 space-y-3 border-t border-emerald-100/70 dark:border-emerald-800/70">
                           <label className="flex flex-col gap-1.5 text-xs font-semibold">
                             Copies
-                            <input type="number" min="1" max={type.is_repeatable === false || type.name === 'Honorable Dismissal' ? 1 : 2147483647} step="1" required
+                            <input type="number" min="1" max={isHonorableDismissal(type.name) ? 1 : 2147483647} step="1" required
                               value={selection.copies} onChange={e => updateSelection(type.name, { copies: e.target.value })}
                               className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-2.5" />
                           </label>

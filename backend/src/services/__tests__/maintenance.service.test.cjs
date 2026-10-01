@@ -26,7 +26,7 @@ describe('document policy transaction', () => {
     vi.spyOn(referenceModel, 'setDocumentTypeColleges').mockResolvedValue([]);
     await service.updateDocumentType(ADMIN, 1, { available_to: 'alumni', is_repeatable: false, allowed_college_ids: [1, 1] });
     expect(referenceModel.updateDocumentType).toHaveBeenCalledWith(1,
-      expect.objectContaining({ available_to: 'alumni', is_repeatable: false, allowed_college_ids: [1] }), connection);
+      expect.objectContaining({ available_to: 'alumni', is_repeatable: true, allowed_college_ids: [1] }), connection);
     expect(referenceModel.setDocumentTypeColleges).toHaveBeenCalledWith(1, [1], connection);
     expect(connection.commit).toHaveBeenCalledOnce();
     expect(connection.release).toHaveBeenCalledOnce();
@@ -53,6 +53,11 @@ describe('document policy transaction', () => {
 });
 
 beforeEach(() => {
+  vi.spyOn(pool, 'getConnection').mockResolvedValue({ beginTransaction: vi.fn(), commit: vi.fn(), rollback: vi.fn(), release: vi.fn() });
+  vi.spyOn(require('../../models/trustedBrowser.model'), 'lockAccount').mockResolvedValue({ id: 5, role: 'clerk', is_active: 1 });
+  vi.spyOn(userModel, 'incrementTokenVersion').mockResolvedValue([]);
+  vi.spyOn(userModel, 'clearEmailOTP').mockResolvedValue([]);
+  vi.spyOn(userModel, 'logSecurityEvent').mockResolvedValue([]);
   vi.spyOn(pricingModel, 'attachSchedules').mockImplementation(async types => types);
   vi.spyOn(referenceModel, 'listColleges').mockResolvedValue([]);
   vi.spyOn(referenceModel, 'findCollegeByName').mockResolvedValue([]);
@@ -352,7 +357,8 @@ describe('staff accounts', () => {
 
   it('deactivates rather than deletes, preserving the audit trail', async () => {
     await service.setStaffActive(ADMIN, 5, false);
-    expect(userModel.setUserActive).toHaveBeenCalledWith(5, false);
+    expect(userModel.setUserActive).toHaveBeenCalledWith(5, false, expect.any(Object));
+    expect(userModel.logSecurityEvent).toHaveBeenCalledWith(ADMIN.id, 'ACCOUNT_DEACTIVATED:5', null, null, expect.any(Object));
   });
 
   it('stops an admin from deactivating their own account', async () => {

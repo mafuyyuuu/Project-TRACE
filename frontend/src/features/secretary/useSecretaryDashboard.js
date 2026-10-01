@@ -213,7 +213,7 @@ export default function useSecretaryDashboard(user) {
     const notes = physicalReceiptChecked
       ? `Physical Official Receipt ${orVerifyToConfirm.or_number} inspected by ${user.full_name}. Finance may upload its retained copy later.`
       : `Uploaded Official Receipt ${orVerifyToConfirm.or_number} inspected by ${user.full_name}.`;
-    const ok = await runAction(() => verifyOfficialReceipt(orVerifyToConfirm.id, { notes }), {
+    const ok = await runAction(() => verifyOfficialReceipt(orVerifyToConfirm.id, { notes, physical_receipt_checked: physicalReceiptChecked }), {
       successMessage: 'Official Receipt verified. Ready for handoff to Window 1.',
       errorMessage: 'Could not verify the Official Receipt.',
     });

@@ -19,17 +19,17 @@ function insert(data, executor = pool) {
   const {
     tracking_number, request_group_id, student_id, student_name, document_type,
     current_status, payment_status, assigned_clerk_id, file_path, original_filename,
-    checkout_url, purpose, copies, amount, document_sequence_number, pricing_snapshot, fee_breakdown,
+    checkout_url, purpose, copies, amount, document_sequence_number, is_same_day, pricing_snapshot, fee_breakdown,
   } = data;
   return executor.query(
     `INSERT INTO documents (tracking_number, request_group_id, student_id, student_name, document_type,
-      current_status, payment_status, assigned_clerk_id, file_path, original_filename, checkout_url, purpose, copies, amount, document_sequence_number, pricing_snapshot, fee_breakdown)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      current_status, payment_status, assigned_clerk_id, file_path, original_filename, checkout_url, purpose, copies, amount, document_sequence_number, is_same_day, pricing_snapshot, fee_breakdown)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       tracking_number, request_group_id || tracking_number,
       student_id || null, student_name || null, document_type || null,
       current_status, payment_status, assigned_clerk_id, file_path, original_filename,
-      checkout_url, purpose || null, copies, amount, document_sequence_number || null,
+      checkout_url, purpose || null, copies, amount, document_sequence_number || null, Boolean(is_same_day),
       pricing_snapshot ? JSON.stringify(pricing_snapshot) : null, fee_breakdown ? JSON.stringify(fee_breakdown) : null,
     ]
   );
@@ -288,7 +288,7 @@ function updatePaymentSubmissionForGroup(
  * blanked when Finance approves without retyping it.
  */
 function updatePaymentVerificationForGroup(
-  requestGroupId, newStatus, paymentStatus, { officialReceiptPath, orNumber, orDate } = {}, executor = pool
+  requestGroupId, newStatus, paymentStatus, { officialReceiptPath, orNumber, orDate, clearedAt, earliestDate } = {}, executor = pool
 ) {
   return executor.query(
     `UPDATE documents SET
@@ -296,10 +296,14 @@ function updatePaymentVerificationForGroup(
        payment_status = ?,
        official_receipt_path = COALESCE(?, official_receipt_path),
        or_number = COALESCE(?, or_number),
-       or_date = COALESCE(?, or_date)
+       or_date = COALESCE(?, or_date),
+       payment_cleared_at = COALESCE(FROM_UNIXTIME(?), payment_cleared_at),
+       or_earliest_issue_date = COALESCE(?, or_earliest_issue_date),
+       or_uploaded_at = CASE WHEN ? IS NOT NULL THEN CURRENT_TIMESTAMP ELSE or_uploaded_at END
      WHERE request_group_id = ? AND current_status = ?`,
     [
       newStatus, paymentStatus, officialReceiptPath || null, orNumber || null, orDate || null,
+      clearedAt ? Math.floor(clearedAt.getTime() / 1000) : null, earliestDate || null, officialReceiptPath || null,
       requestGroupId, STATUS.PENDING_FINANCE_VERIFICATION,
     ]
   );
@@ -413,6 +417,12 @@ function updateWalkInPaymentForGroup(
  * as updatePricing — a step nobody can trace back to a person is not
  * auditable, and this never touches payment_status: only Finance sets PAID.
  */
+function publishOfficialReceipt(groupId, { path, number, date }, executor = pool) {
+  return executor.query(`UPDATE documents SET official_receipt_path = ?, or_number = COALESCE(or_number, ?),
+    or_date = COALESCE(or_date, ?), or_uploaded_at = CURRENT_TIMESTAMP
+    WHERE COALESCE(request_group_id, tracking_number) = ? AND payment_status = 'PAID' AND official_receipt_path IS NULL`, [path, number, date || null, groupId]);
+}
+
 function updateOrVerification(documentId, clerkId, executor = pool) {
   return executor.query(
     `UPDATE documents
@@ -423,6 +433,7 @@ function updateOrVerification(documentId, clerkId, executor = pool) {
 }
 
 module.exports = {
+  publishOfficialReceipt,
   countBlockingRequests,
   insert,
   countByTypeAndStudent,

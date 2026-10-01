@@ -1,6 +1,8 @@
 const { Server } = require('socket.io');
 const jwt = require('jsonwebtoken');
 const env = require('../config/env');
+const { pool } = require('../config/db');
+const sessions = require('../models/session.model');
 const { corsOrigin } = require('../config/cors');
 
 /**
@@ -18,6 +20,30 @@ const { corsOrigin } = require('../config/cors');
  */
 
 let io = null;
+
+async function authenticateToken(token) {
+  const decoded = jwt.verify(token, env.JWT_SECRET);
+  if (decoded.pending_2fa || !Number.isInteger(decoded.id) || !Number.isInteger(decoded.token_version)
+    || !['student', 'admin', 'clerk'].includes(decoded.role) || !Number.isInteger(decoded.exp)) throw new Error('Invalid session');
+  const [rows] = await pool.query('SELECT token_version, is_active FROM users WHERE id = ?', [decoded.id]);
+  if (!rows[0]?.is_active || rows[0].token_version !== decoded.token_version) throw new Error('Revoked session');
+  if (await sessions.revoked(sessions.hashToken(token))) throw new Error('Ended session');
+  return { id: decoded.id, role: decoded.role, desk_assignment: decoded.desk_assignment, exp: decoded.exp };
+}
+
+function disconnectSession(sessionHash) {
+  if (!io) return false;
+  for (const socket of io.sockets.sockets.values()) {
+    if (socket.sessionToken && sessions.hashToken(socket.sessionToken) === sessionHash) socket.disconnect(true);
+  }
+  return true;
+}
+
+function disconnectUser(userId) {
+  if (!io) return false;
+  try { io.in(`user:${userId}`).disconnectSockets(true); return true; }
+  catch { return false; }
+}
 
 /** Attach Socket.IO to the HTTP server. */
 function init(httpServer) {
@@ -37,26 +63,13 @@ function init(httpServer) {
    * never outlive or bypass normal auth. An unauthenticated connection is
    * refused rather than silently downgraded.
    */
-  io.use((socket, next) => {
-    const token =
-      socket.handshake.auth?.token ||
-      (socket.handshake.headers.authorization || '').replace(/^Bearer /, '');
-
-    if (!token) {
-      return next(new Error('Authentication required.'));
-    }
-
+  io.use(async (socket, next) => {
+    const token = socket.handshake.auth?.token || (socket.handshake.headers.authorization || '').replace(/^Bearer /, '');
     try {
-      const decoded = jwt.verify(token, env.JWT_SECRET);
-      socket.user = {
-        id: decoded.id,
-        role: decoded.role,
-        desk_assignment: decoded.desk_assignment,
-      };
+      socket.user = await authenticateToken(token);
+      socket.sessionToken = token;
       return next();
-    } catch {
-      return next(new Error('Invalid or expired token.'));
-    }
+    } catch { return next(new Error('Invalid or expired token. Complete login verification again.')); }
   });
 
   io.on('connection', (socket) => {
@@ -71,9 +84,21 @@ function init(httpServer) {
     if (role === 'admin') socket.join('desk:Admin Office');
 
     socket.emit('connected', { userId: id });
+    // Check external revocations as well as application-triggered disconnects.
+    let checking = false;
+    const check = setInterval(async () => {
+      if (checking) return;
+      checking = true;
+      try { await authenticateToken(socket.sessionToken); }
+      catch { socket.disconnect(true); }
+      finally { checking = false; }
+    }, 15000);
+    check.unref?.();
+    const expires = setTimeout(() => socket.disconnect(true), Math.max(0, socket.user.exp * 1000 - Date.now()));
+    expires.unref?.();
 
     socket.on('disconnect', () => {
-      // Rooms are cleaned up by Socket.IO; nothing to undo.
+      clearInterval(check); clearTimeout(expires);
     });
   });
 
@@ -105,4 +130,4 @@ function connectionCount() {
   return io ? io.engine.clientsCount : 0;
 }
 
-module.exports = { init, emitToUser, emitToDesk, connectionCount, get io() { return io; } };
+module.exports = { authenticateToken, disconnectUser, disconnectSession, init, emitToUser, emitToDesk, connectionCount, get io() { return io; } };

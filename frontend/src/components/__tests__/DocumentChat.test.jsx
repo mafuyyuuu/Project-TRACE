@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event';
 import DocumentChat from '@/components/DocumentChat';
 import api from '@/services/api';
 
+vi.mock('@/services/realtimeService', () => ({ onNotification: vi.fn(() => () => {}) }));
 vi.mock('@/services/api', () => ({ default: { get: vi.fn(), post: vi.fn() } }));
 beforeEach(() => {
   vi.clearAllMocks();
@@ -21,7 +22,7 @@ describe('Direct document messages', () => {
     await user.type(input, 'Please check the receipt.');
     if (method === 'Enter') await user.keyboard('{Enter}');
     else await user.click(screen.getByRole('button', { name: 'Send message' }));
-    await waitFor(() => expect(api.post).toHaveBeenCalledExactlyOnceWith('/documents/11/messages', { message: 'Please check the receipt.' }));
+    await waitFor(() => expect(api.post).toHaveBeenCalledExactlyOnceWith('/documents/11/messages', { message: 'Please check the receipt.' }, { timeout: 15000 }));
     expect(input).toHaveValue('');
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
@@ -70,7 +71,8 @@ describe('Direct document messages', () => {
     expect(input).toHaveValue('');
     expect(screen.getByRole('button', { name: 'Send message' })).toBeDisabled();
     expect(api.post).toHaveBeenCalledTimes(1);
-    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    expect(screen.getByRole('alert')).toHaveTextContent('Could not load replies.');
+    expect(screen.getByRole('button', { name: 'Retry conversation' })).toBeEnabled();
   });
 
   it('does not move a pending send or its draft into another request', async () => {
@@ -87,7 +89,7 @@ describe('Direct document messages', () => {
     expect(nextInput).toHaveValue('New draft');
     expect(nextInput).toBeEnabled();
     expect(screen.queryByText('First request')).not.toBeInTheDocument();
-    expect(api.post).toHaveBeenCalledExactlyOnceWith('/documents/11/messages', { message: 'First request' });
+    expect(api.post).toHaveBeenCalledExactlyOnceWith('/documents/11/messages', { message: 'First request' }, { timeout: 15000 });
   });
 
   it('does not fetch or offer sending before the account is available', () => {

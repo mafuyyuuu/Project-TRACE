@@ -270,3 +270,17 @@ Chat **Send** or **Enter** submits immediately, without another confirmation. Pe
 Student-profile dialogs stop a stalled lookup after 15 seconds and offer **Retry loading profile**. Admin Templates loads independently of document history and offers retry on failed, malformed or stalled template reads. These repairs need deployment before they affect the live site. The unused shared header search is removed; queue/report filters remain.
 
 Window 1 and College Secretary have **Reports & Export**; the dedicated Finance export is still FIN-05 work. Authenticator-app enrollment (QR plus recovery codes) is still pending and must be available under **Edit Profile → Security** for every role when built. Existing email OTP does not provide authenticator setup. Full Window 1 two-way messaging and general pre-request support remain separate work from direct Send/Enter.
+
+## Batch 10: Authenticator, Messages, Case Attachments and Official Receipts
+
+Open your avatar → Edit Profile → Security → Authenticator App on any account. Confirm your current password, scan the QR code (or enter its manual key) in your authenticator app, and confirm the generated code. Save the recovery codes shown once. At login, enrolled accounts use the app or one unused recovery code. Email resend does not bypass enrollment. Server configuration is required before setup becomes available.
+
+Messages & Attachments lists your request conversations. Students can also open the floating Chat button. Send/Enter submits directly. Window 1 receives student messages and can reply without a prior assigned clerk. A conversation is associated with a filed request; there is no separate pre-request support conversation in this release.
+
+The Registrar may request other pertinent documents for a particular case. Follow its named requirement and instructions, choose a JPG, PNG or PDF up to 10 MB, and confirm submission. Registrar staff can accept the upload or request resubmission with a reason. Accepted/submitted files cannot be overwritten through the upload action. These extra requirements do not impose a universal attachment list or automatically change processing status.
+
+All available document types allow repeat requests and varying quantities except Honorable Dismissal, which retains one copy and no additional active/completed request. Same-day walk-in eligibility applies to CTC, 2nd Copy of COR, 2nd Copy of OGR and CAV after presenting the original and a photocopy at Window 1. The normal evaluation, pricing, payment and release checks still apply.
+
+Finance can clear a payment and defer Official Receipt issuance with Later. Payment acknowledgment is separate from the actual OR. New same-day OR issuance closes at exactly 4:00 PM Manila time. A later eligible day is not a promised issue deadline. When the actual OR is issued, Finance records its number/date and publishes the digital copy; the student is notified and the Secretary inspects the OR for release alongside the document. Existing recorded receipt numbers remain unchanged.
+
+Finance's Transactions & Export shows cleared payments once per request group, receipt states, total amounts and elapsed time awaiting an OR. Filter by clearance dates or receipt state and export CSV. Historical payments without a recorded clearance timestamp show an unknown waiting time. No automatic overdue alert or working-day promise has been added without an institutional threshold/calendar.

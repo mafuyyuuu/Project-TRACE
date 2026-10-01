@@ -99,6 +99,25 @@ describe('Account submission confirmations', () => {
     expect(screen.getByRole('button', { name: 'LOGIN' })).toBeEnabled();
   });
 
+  it('uses app recovery codes without offering an email downgrade', async () => {
+    const user = userEvent.setup();
+    auth.login.mockResolvedValueOnce({ requires_2fa: true, mfa_method: 'authenticator', temp_token: 'app-challenge' });
+    const { container } = renderPage(<LoginPage />);
+    await user.type(screen.getByPlaceholderText(/23-00123/), 'STU-001');
+    await user.type(container.querySelector('input[type=password]'), 'password123');
+    await user.click(screen.getByRole('button', { name: 'LOGIN' }));
+    expect(await screen.findByText(/six-digit code from your authenticator app/)).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Resend OTP/ })).not.toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Use a recovery code' }));
+    const code = '01234567-89ABCDEF-01234567-89ABCDEF';
+    await user.type(screen.getByPlaceholderText('Enter recovery code'), code);
+    api.post.mockRejectedValueOnce({ response: { data: { error: 'Code already used.' } } });
+    await user.click(screen.getByRole('button', { name: 'VERIFY & LOGIN' }));
+    expect(api.post).toHaveBeenCalledExactlyOnceWith('/auth/verify-2fa', { temp_token: 'app-challenge', recovery_code: code });
+    expect(await screen.findByRole('alert')).toHaveTextContent('Code already used.');
+    expect(screen.getByPlaceholderText('Enter recovery code')).toHaveValue(code);
+  });
+
   it('keeps required OTP, submits it directly, and allows retry after verification failure', async () => {
     const user = userEvent.setup();
     auth.login.mockResolvedValueOnce({ requires_2fa: true, temp_token: 'challenge-token', email: 'staff@example.test' });

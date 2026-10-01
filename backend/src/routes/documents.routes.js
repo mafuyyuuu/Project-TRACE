@@ -1,7 +1,7 @@
 const express = require('express');
 const documentsController = require('../controllers/documents.controller');
 const { authenticate } = require('../middlewares/auth.middleware');
-const { documentUpload } = require('../middlewares/upload.middleware');
+const { documentUpload, pertinentUpload } = require('../middlewares/upload.middleware');
 const { verifyWebhookSecret } = require('../middlewares/webhookAuth.middleware');
 
 const router = express.Router();
@@ -18,6 +18,10 @@ router.get('/stats', authenticate, documentsController.stats);
 router.get('/stats/forecast', authenticate, documentsController.forecast);
 router.get('/stats/insights', authenticate, documentsController.insights);
 router.get('/activity-logs', authenticate, documentsController.activityLogs);
+router.get('/messages/threads', authenticate, documentsController.messageThreads);
+const financeController = require('../controllers/finance.controller');
+router.get('/finance/transactions', authenticate, financeController.transactions);
+router.get('/finance/transactions/export', authenticate, financeController.exportTransactions);
 
 // Public tracking lookup (no auth — students track by tracking number).
 router.get('/:trackingNumber', documentsController.track);
@@ -47,5 +51,11 @@ router.post('/:id/release', authenticate, documentsController.release);
 router.get('/:id/messages', authenticate, documentsController.getMessages);
 router.post('/:id/messages', authenticate, documentsController.sendMessage);
 router.delete('/:id', authenticate, documentsController.cancel);
+
+const attachments = require('../controllers/requestAttachments.controller');
+router.get('/:id/attachments', authenticate, attachments.list);
+router.post('/:id/attachments', authenticate, attachments.request);
+router.post('/:id/attachments/:requirementId/upload', authenticate, pertinentUpload.single('attachment'), attachments.upload);
+router.post('/:id/attachments/:requirementId/review', authenticate, attachments.review);
 
 module.exports = router;

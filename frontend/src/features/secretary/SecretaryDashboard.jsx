@@ -15,6 +15,7 @@ import DashboardAlerts from '@/components/DashboardAlerts';
 import DashboardLoading from '@/components/DashboardLoading';
 import StudentProfileModal from '@/components/StudentProfileModal';
 import ReportsPanel from '@/features/admin/components/ReportsPanel';
+import RequestMessagesPanel from '@/components/RequestMessagesPanel';
 
 /**
  * College Secretary: the three passes this desk makes over a request.
@@ -79,8 +80,9 @@ export default function SecretaryDashboard({ user, currentTab, setViewImageUrl }
   const [activeQueueTab, setActiveQueueTab] = useState('evaluation');
   const todayFormatted = todayLongDate();
 
-  if (loading) return <DashboardLoading />;
+  if (currentTab === 'messages') return <RequestMessagesPanel user={user} initialDocumentId={new URLSearchParams(window.location.search).get('document')} />;
   if (currentTab === 'reports') return <ReportsPanel user={user} currentTab={currentTab} />;
+  if (loading) return <DashboardLoading />;
 
   return (
     <>

@@ -133,7 +133,7 @@ async function setDeviceCookie(req, res, result) {
 async function verify2FA(req, res) {
   try {
     const { browserTrust, ...result } = await authService.verify2FA(req.body.temp_token, req.body.otp,
-      req.ip, req.headers['user-agent'], req.body.trust_browser === true);
+      req.ip, req.headers['user-agent'], req.body.trust_browser === true, req.body.recovery_code);
     if (browserTrust) {
       res.cookie(trustedBrowser.COOKIE_NAME, browserTrust.value, {
         ...trustedBrowser.COOKIE_OPTIONS, expires: new Date(browserTrust.expiresAt),
@@ -158,11 +158,16 @@ async function getGlobalSecurityLogs(req, res) {
 }
 async function logoutAll(req, res) {
   try {
-    const result = await authService.logoutAll(req.user.id);
+    const result = await authService.logoutAll(req.user.id, req.body?.preserve_current === true, req.user.token_version);
     clearTrustCookie(res);
     res.json(result);
   }
   catch (err) { fail(res, err, 'Global logout error', 'Could not close sessions.'); }
+}
+
+async function logout(req, res) {
+  try { const result = await authService.logout(req.user); res.json(result); }
+  catch (err) { fail(res, err, 'Logout error', 'Could not end this session.'); }
 }
 
 function clearTrustCookie(res) {
@@ -170,7 +175,7 @@ function clearTrustCookie(res) {
 }
 
 module.exports = {
-  verify2FA, verifyEmailChange, getSecurityLogs, getGlobalSecurityLogs, logoutAll,
+  logout, verify2FA, verifyEmailChange, getSecurityLogs, getGlobalSecurityLogs, logoutAll,
   login,
   getMe,
   register,

@@ -18,7 +18,7 @@ export async function login(credentials) {
 
 export async function register(formData) {
   const { data } = await api.post('/auth/register', formData, {
-    headers: { 'Content-Type': 'multipart/form-data' },
+    headers: { 'Content-Type': 'multipart/form-data' }, timeout: 60000,
   })
   return data
 }
@@ -130,4 +130,19 @@ export async function extractSignupId(file, options = {}) {
 export async function verifyEmailChange(otp) {
   const { data } = await api.post('/auth/verify-email-change', { otp })
   return data
+}
+
+export async function endSession() {
+  const { data } = await api.post('/auth/logout', {}, { timeout: 15000 });
+  return data;
+}
+export async function getSecurityLogs(signal) {
+  const { data } = await api.get('/auth/security-logs', { signal, timeout: 15000 });
+  if (!Array.isArray(data)) throw new Error('Could not load security activity.');
+  return data;
+}
+export async function endOtherSessions() {
+  const { data } = await api.post('/auth/logout-all', { preserve_current: true }, { timeout: 15000 });
+  if (!data?.token || !data.user) throw new Error('Could not confirm session change. Log in again.');
+  return data;
 }
