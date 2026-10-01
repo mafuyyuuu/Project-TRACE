@@ -43,7 +43,7 @@ RUN python -m pip check \
     && python -c "import torch, torchvision; assert torch.version.cuda is None, 'Expected CPU-only PyTorch'"
 
 WORKDIR /app
-COPY app.py ocr_engine.py identity_parser.py ./
+COPY app.py ocr_engine.py identity_parser.py registration_verification.py ./
 
 # Bake the EasyOCR detection + recognition models into the image. They are
 # ~100 MB and ocr_engine.py builds the Reader at import time, so without this

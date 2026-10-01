@@ -42,7 +42,7 @@ function RequestConversationPanel({ user, initialDocumentId }) {
       <span>Page {page}</span>
       <button disabled={page * 20 >= inbox.total} onClick={() => { setPage(previous => previous + 1); setSelected(''); }} type="button" className="rounded-lg border px-3 py-2 disabled:opacity-40">Next</button>
     </div>
-    {selected && <div className="h-[60dvh] min-h-48"><DocumentChat documentId={selected} user={user} /></div>}
+    {selected && <div className="h-[min(45dvh,28rem)] min-h-64"><DocumentChat documentId={selected} user={user} focusComposer /></div>}
     {selected && <RequestAttachments key={selected} documentId={selected} user={user} />}
   </section>;
 }

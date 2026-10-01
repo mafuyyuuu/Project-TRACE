@@ -12,6 +12,7 @@ import { getProfileCompletion } from '@/utils/profileCompletion';
 import AuthenticatorSettings from '@/components/AuthenticatorSettings';
 import useSecurityLogs from '@/hooks/useSecurityLogs';
 import { hasClerkBrowserPreference, forgetClerkBrowserPreference } from '@/utils/clerkBrowserPreference';
+import EmailVerificationNotice from '@/components/EmailVerificationNotice';
 
 export default function ProfileSettingsModal({
   user,
@@ -31,11 +32,17 @@ export default function ProfileSettingsModal({
   onToggleTheme,
   textSize = 100, onTextSizeChange,
   pendingEmail = '',
+  onVerifyEmail,
+  verifyingEmail = false,
+  verificationMessage = '',
+  verificationError = '',
 }) {
   const fileInputRef = useRef(null);
+  const emailInputRef = useRef(null);
 
   const [activeTab, setActiveTab] = useState(initialTab);
   const [confirmation, setConfirmation] = useState(null);
+  const [emailDraft, setEmailDraft] = useState(null);
   const [loggingOut, setLoggingOut] = useState(false);
   const [showPasswords, setShowPasswords] = useState(false);
   const [personalBrowser, setPersonalBrowser] = useState(hasClerkBrowserPreference);
@@ -51,6 +58,13 @@ export default function ProfileSettingsModal({
         : 'Student';
         
   const isStudent = user?.role === 'student';
+  const emailChanged = (profileData.email || '').trim().toLowerCase() !== (user?.email || '').trim().toLowerCase();
+  const requestEmailVerification = () => {
+    if (!emailInputRef.current?.reportValidity()) return;
+    const draft = { email: profileData.email, current_password: profileData.current_password };
+    if (emailChanged) { setEmailDraft(draft); setConfirmation('email'); }
+    else void onVerifyEmail?.(draft);
+  };
   const { progress, missingPersonal, missingEdu, missing } = useMemo(
     () => getProfileCompletion({ ...user, ...profileData }), [user, profileData],
   );
@@ -76,6 +90,10 @@ export default function ProfileSettingsModal({
   );
 
   const confirmAction = async () => {
+    if (confirmation === 'email') {
+      if (await onVerifyEmail?.(emailDraft)) setConfirmation(null);
+      return;
+    }
     if (confirmation === 'browser') {
       forgetClerkBrowserPreference();
       setPersonalBrowser(false);
@@ -128,22 +146,20 @@ export default function ProfileSettingsModal({
       )}
     >
       <ConfirmDialog open={!!confirmation}
-        title={confirmation === 'profile' ? 'Confirm Profile Save' : confirmation === 'browser' ? 'Use Shared-Computer Verification' : 'Log Out Other Devices'}
+        title={confirmation === 'email' ? 'Verify Email Address' : confirmation === 'profile' ? 'Confirm Profile Save' : confirmation === 'browser' ? 'Use Shared-Computer Verification' : 'Log Out Other Devices'}
         message={confirmation === 'profile'
           ? ['Save your profile changes and selected picture?', error ? <span role="alert">{error}</span> : null]
+          : confirmation === 'email' ? [`Send a verification link to ${emailDraft?.email}? Your current address stays active until verified. Other profile changes will remain unsaved.`, verificationError ? <span role="alert">{verificationError}</span> : null]
           : confirmation === 'browser' ? 'Forget the personal-browser preference here? Your next login will require verification. This keeps your current session open.' : 'Log out of all other active sessions?'}
-        confirmLabel={confirmation === 'profile' ? 'Save Profile' : confirmation === 'browser' ? 'Use Shared Verification' : 'Log Out Other Devices'}
+        confirmLabel={confirmation === 'email' ? 'Send Verification Link' : confirmation === 'profile' ? 'Save Profile' : confirmation === 'browser' ? 'Use Shared Verification' : 'Log Out Other Devices'}
         variant={confirmation === 'sessions' ? 'destructive' : 'neutral'}
-        loading={saving || loggingOut} onConfirm={confirmAction} onCancel={() => setConfirmation(null)} />
+        loading={saving || verifyingEmail || loggingOut} onConfirm={confirmAction} onCancel={() => setConfirmation(null)} />
       <DashboardAlerts
         dismissalKey={activeTab}
         success={sessionFeedback.success}
         error={sessionFeedback.error}
         onDismiss={() => setSessionFeedback({ success: '', error: '' })}
       />
-      {pendingEmail && <section className="mb-4 p-4 rounded-xl border border-amber-200 dark:border-amber-800" aria-label="Email verification">
-        <p className="text-sm">Open the verification link sent to <span className="select-text break-all">{pendingEmail}</span>. Your current email stays active until verification. If it expires, save the new email with your current password again to resend.</p>
-      </section>}
       <div className="trace-profile-header bg-white dark:bg-gray-900 px-6 pt-4 pb-0 flex flex-col border-b border-gray-100 dark:border-gray-700">
         <div className="flex flex-wrap items-start gap-4 pb-6">
           <div className="relative shrink-0">
@@ -232,10 +248,14 @@ export default function ProfileSettingsModal({
                   <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">Phone Number <span className="text-red-500 dark:text-red-300">*</span></label>
                   <input maxLength={INPUT_LIMITS.phone} type="text" value={profileData.phone_number} onChange={(e) => setField('phone_number', e.target.value)} required className="w-full bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl py-3 px-4 text-sm font-semibold focus:ring-2 focus:ring-[#15803d]/20 outline-none" />
                 </div>
-                <div>
-                  <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">Email Address <span className="text-red-500 dark:text-red-300">*</span></label>
-                  <input maxLength={INPUT_LIMITS.email} type="email" value={profileData.email} onChange={(e) => setField('email', e.target.value)} required className="w-full bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl py-3 px-4 text-sm font-semibold focus:ring-2 focus:ring-[#15803d]/20 outline-none" />
-                  {profileData.email !== user?.email && <label className="block text-sm mt-3">Current password to change email
+                <div className="min-w-0 sm:col-span-2">
+                  <label htmlFor="profile-email" className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">Email Address <span className="text-red-500 dark:text-red-300">*</span></label>
+                  <EmailVerificationNotice user={user} email={profileData.email} pendingEmail={pendingEmail} sending={verifyingEmail}
+                    message={verificationMessage} error={confirmation === 'email' ? '' : verificationError}
+                    disabled={saving || (emailChanged && !profileData.current_password)} onVerify={requestEmailVerification}>
+                    <input id="profile-email" ref={emailInputRef} maxLength={INPUT_LIMITS.email} type="email" value={profileData.email} onChange={(e) => setField('email', e.target.value)} required disabled={verifyingEmail} className="min-w-0 flex-1 basis-48 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl py-3 px-4 text-sm font-semibold focus:ring-2 focus:ring-[#15803d]/20 outline-none" />
+                  </EmailVerificationNotice>
+                  {emailChanged && <label className="block text-sm mt-3">Current password to change email
                     <input type={showPasswords ? 'text' : 'password'} autoComplete="current-password" value={profileData.current_password || ''} onChange={e => setField('current_password', e.target.value)} className="mt-2 w-full border rounded-xl p-3 bg-white dark:bg-gray-900" />
                   </label>}
                 </div>

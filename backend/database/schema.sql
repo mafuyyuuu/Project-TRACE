@@ -41,6 +41,7 @@ CREATE TABLE IF NOT EXISTS users (
   -- route like every other upload, never from a public static path.
   profile_picture VARCHAR(500),
   verification_status ENUM('pending', 'verified', 'rejected') DEFAULT 'pending',
+  verification_reason VARCHAR(300) NULL,
   course VARCHAR(100),
   college_id INT NULL,
   FOREIGN KEY (college_id) REFERENCES colleges(id) ON DELETE SET NULL,

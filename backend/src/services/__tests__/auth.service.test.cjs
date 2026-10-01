@@ -399,6 +399,14 @@ describe('register', () => {
     expect(userModel.createUser).toHaveBeenCalledWith(expect.objectContaining({ verification_status: 'pending' }));
   });
 
+  it('stores and returns a review reason without calling a genuine but unreadable proof fake', async () => {
+    aiEngine.verifyIdDocument.mockResolvedValue({ verified: false, reason: 'School name and Student ID found, but College did not match.' });
+    const result = await service.register(body, file);
+    expect(result.verification_reason).toContain('could not confirm the selected college');
+    expect(userModel.createUser).toHaveBeenCalledWith(expect.objectContaining({ verification_status: 'pending', verification_reason: result.verification_reason }));
+    expect(result.verification_reason).not.toMatch(/fake|fraud|counterfeit|rejected/);
+  });
+
   it('stores a bcrypt hash, never the raw password', async () => {
     await service.register(body, file);
     const stored = userModel.createUser.mock.calls[0][0].password_hash;
