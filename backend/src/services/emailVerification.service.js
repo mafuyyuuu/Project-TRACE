@@ -16,8 +16,8 @@ function frontendUrl() {
   const origin = env.FRONTEND_URL.split(',')[0].trim() || 'http://localhost:5273';
   return origin.replace(/\/$/, '');
 }
-async function notice(email, title, message) {
-  try { return await notifications.sendEmail(email, title, message); }
+async function notice(email, title, message, options) {
+  try { return await notifications.sendEmail(email, title, message, options); }
   catch { return { ok: false }; }
 }
 async function issue(userId, { email, current_password } = {}) {
@@ -44,8 +44,10 @@ async function issue(userId, { email, current_password } = {}) {
     await connection.commit();
   } catch (error) { await connection.rollback(); throw error; }
   finally { connection.release(); }
+  const url = `${frontendUrl()}/verify-email#token=${token}`;
   const sent = await notice(destination, kind === 'change' ? 'Verify your new TRACE email' : 'Verify your TRACE email',
-    `Open this link to verify your email address. It expires in one hour and works once:\n\n${frontendUrl()}/verify-email#token=${token}\n\nIf this was not you, ignore this email. Your existing email stays unchanged until verification.`);
+    `Verify your email address using the link below. It expires in one hour and works once:\n\n${url}\n\nIf this was not you, ignore this email. Your existing email stays unchanged until verification.`,
+    { action: { url, label: 'Verify Email' } });
   if (kind === 'change' && account.email) await notice(account.email, 'TRACE email change requested', `An email change was requested. Your current address is still active. If this was not you, secure your account at ${frontendUrl()}/forgot-password and contact the Registrar.`);
   return { message: sent?.ok ? 'Verification link sent. Check your inbox and spam folder.' : 'Verification link could not be delivered. Retry in 60 seconds, or contact the Registrar to check email delivery.', email_verification_required: true, pending_email: kind === 'change' ? destination : null, email_sent: Boolean(sent?.ok) };
 }

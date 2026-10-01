@@ -145,7 +145,8 @@ trace_migrate_rollout() {
     migrate_support_messages.js \
     migrate_request_sequences.js \
     migrate_staff_authenticator_setup.js \
-    migrate_verification_reason.js
+    migrate_verification_reason.js \
+    migrate_onboarding_guides.js
   do
     printf '\nApplying %s\n' "$TRACE_MIGRATION_FILE"
     if ! docker compose run --rm --no-deps -T backend node "database/$TRACE_MIGRATION_FILE"; then
@@ -160,7 +161,7 @@ trace_migrate_rollout
 
 Require **`Schema presence check passed.`** The check reads `information_schema`; it validates selected critical table/column presence, not every definition, index, constraint, rate, data row or live transaction. If it lists a named migration, investigate that script's output. Password history now has its own explicit migration, added after the user's first 18-script run exposed that base-table gap. If the check says `base schema`, such as missing `password_resets`, `grad_applications` or core users fields, keep writers stopped and share the non-secret check output for a targeted preserving repair. Do not import the full schema or reseed to fill the gap.
 
-The profile/Maintenance/OCR follow-up adds `migrate_verification_reason.js` (20 scripts in the complete list). For a server that already passed the earlier rollout, only this new reason-column migration is required; do not rerun the data migrations solely for this follow-up. Build both backend and ai-engine now: OCR imports a new pure text-matching module included in the AI Dockerfile. Historical OCR reasons remain unknown. Deploy the matching frontend after the migration/check/runtime update. Inspect real image outcomes separately; normalization tests do not prove document authenticity or actual OCR accuracy.
+The profile/Maintenance/OCR follow-up adds `migrate_verification_reason.js`. The guided-tour follow-up adds `migrate_onboarding_guides.js` (21 scripts in the complete list). For a server that already passed the earlier rollout, apply only these new migrations that have not been applied; do not rerun data migrations solely for these follow-ups. Build both backend and ai-engine if deploying the OCR changes: OCR imports a new pure text-matching module included in the AI Dockerfile. The email-button/tour changes require a backend rebuild and matching frontend; they add no AI changes. Historical OCR reasons remain unknown. The guide migration creates an empty table and preserves existing display state; only accounts registered on the updated backend receive an automatic tour. Existing accounts can replay using the question mark. Deploy the matching frontend after migration/check/runtime update. Inspect real image outcomes separately; normalization tests do not prove document authenticity or actual OCR accuracy.
 
 MySQL DDL can commit before a later command fails. Do not assume a failed script changed nothing; inspect the error before rerunning or restoring. A rollback may require coordinated restoration of database, uploads, configuration and matching code, not just a Git checkout.
 

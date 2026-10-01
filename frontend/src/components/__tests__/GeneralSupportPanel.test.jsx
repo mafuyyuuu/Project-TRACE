@@ -18,6 +18,7 @@ beforeEach(() => {
 });
 it('opens general support from the floating bubble without requiring a document request', async () => {
   render(<FloatingSupportChat user={student} />);
+  expect(screen.getByRole('button', { name: 'Open registrar support' }).querySelector('svg')).toBeInTheDocument();
   fireEvent.click(screen.getByRole('button', { name: 'Open registrar support' }));
   expect(await screen.findByText(/a document request is not required/)).toBeInTheDocument();
   expect(screen.getByRole('region', { name: 'General support conversation' })).toBeInTheDocument();

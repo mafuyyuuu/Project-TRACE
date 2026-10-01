@@ -28,3 +28,16 @@ it('delivers the branded default when template data is unavailable', async () =>
   expect(await notifications.sendEmail('recipient@example.test', 'Reset', 'Body')).toMatchObject({ ok: true });
   expect(mail.sendMail.mock.calls[0][0].html).toContain('PLP Registrar');
 });
+it.each(['saved', 'default'])('delivers a Verify Email button with the exact token link in the %s layout', async layout => {
+  if (layout === 'default') model.findByKey.mockRejectedValue(new Error('missing table'));
+  const url = `https://trace.example/verify-email#token=${'a'.repeat(64)}`;
+  const text = `Verify your email:\n\n${url}\n\nExpires in one hour.`;
+  await notifications.sendEmail('recipient@example.test', 'Verify', text, { action: { url, label: 'Verify Email' } });
+  const sent = mail.sendMail.mock.calls[0][0];
+  expect(sent.text).toBe(text);
+  expect(sent.html).toContain(`href="${url}"`);
+  expect(sent.html).toContain('>Verify Email</a>');
+  expect(sent.html).not.toContain(`>${url}</a>`);
+  for (const style of ['display:inline-block', 'background-color:#15803d', 'color:#ffffff', 'padding:12px 24px', 'border-radius:8px']) expect(sent.html).toContain(style);
+  expect(sent.html).toContain('Expires in one hour.');
+});

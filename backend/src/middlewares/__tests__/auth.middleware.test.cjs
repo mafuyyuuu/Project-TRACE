@@ -23,6 +23,14 @@ describe('account onboarding gates', () => {
   const claims = { id: 3, role: 'student', token_version: 2 };
   const account = { token_version: 2, is_active: 1, role: 'student', user_type: 'student', email_verified_at: null };
   const request = (path, method = 'POST') => ({ baseUrl: '/api', path, method });
+  it('allows the guide before email verification but keeps the graduation and temporary-password gates', async () => {
+    expect((await check(claims, account, request('/auth/onboarding/start'))).next).toHaveBeenCalledOnce();
+    for (const override of [{ user_type: 'alumni', has_grad_application: 0 }, { must_change_password: 1 }]) {
+      const result = await check(claims, { ...account, ...override }, request('/auth/onboarding/start'));
+      expect(result.next).not.toHaveBeenCalled();
+      expect(result.res.status).toHaveBeenCalledWith(403);
+    }
+  });
   it.each(['/documents/upload', '/documents/1/pay', '/auth/authenticator/begin'])('blocks an unverified student action at %s', async path => {
     const result = await check(claims, account, request(path));
     expect(result.next).not.toHaveBeenCalled();

@@ -2,7 +2,7 @@ export default function EmailVerificationNotice({ user, email = '', pendingEmail
   const matchesSaved = email.trim().toLowerCase() === (user?.email || '').trim().toLowerCase();
   const verified = matchesSaved && Boolean(user?.email_verified_at);
   return <section aria-label="Verify email" className="min-w-0 space-y-2">
-    <div className="flex flex-wrap items-center gap-2">
+    <div id="tutorial-email" className="flex flex-wrap items-center gap-2">
       {children}
       {verified ? <span className="text-sm font-bold text-green-700 dark:text-green-300">Verified</span>
         : <button type="button" disabled={disabled || sending || !email.trim()} onClick={onVerify}

@@ -18,6 +18,7 @@ vi.mock('@/services/realtimeService', () => ({
   onNotification: vi.fn(() => () => {}),
   disconnectRealtime: vi.fn(),
 }));
+vi.mock('@/services/onboardingService', () => ({ startFirstLoginGuide: vi.fn(async () => false) }));
 
 vi.mock('@/services/api', () => ({
   default: { get: vi.fn(() => new Promise(() => {})) },
@@ -37,6 +38,7 @@ let currentUser = STUDENT;
 vi.mock('@/features/graduate/GraduateApplication', () => ({ default: () => <section aria-label="Graduate application">Graduate application form</section> }));
 
 import Layout from '@/layouts/Layout';
+import { startFirstLoginGuide } from '@/services/onboardingService';
 import { TEXT_SIZE_KEY, applyTextSize } from '@/utils/textSize';
 
 const renderLayout = () =>
@@ -53,9 +55,30 @@ beforeEach(() => {
   localStorage.removeItem('trace_theme');
   localStorage.removeItem(TEXT_SIZE_KEY);
   applyTextSize(100);
+  startFirstLoginGuide.mockResolvedValue(false);
 });
 
 describe('Layout', () => {
+  it('automatically offers a new account the tour and uses the question mark for replay', async () => {
+    startFirstLoginGuide.mockResolvedValue(true);
+    renderLayout();
+    expect(await screen.findByRole('dialog', { name: 'TRACE quick guide' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Open quick guide' }).querySelector('svg')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: /Open my profile/ }));
+    expect(screen.getByLabelText(/Email Address/)).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Verify your email' })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Skip quick guide' }));
+    expect(screen.queryByRole('dialog', { name: 'TRACE quick guide' })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Open quick guide' }));
+    expect(screen.getByRole('heading', { name: 'Start with your profile' })).toBeInTheDocument();
+    expect(startFirstLoginGuide).toHaveBeenCalledOnce();
+  });
+  it('does not offer the student tour to staff', () => {
+    currentUser = { ...STUDENT, role: 'clerk', desk_assignment: 'Finance' };
+    renderLayout();
+    expect(screen.queryByRole('button', { name: 'Open quick guide' })).not.toBeInTheDocument();
+    expect(startFirstLoginGuide).not.toHaveBeenCalled();
+  });
   it('places email verification in Edit Profile instead of the dashboard banner', () => {
     currentUser = { ...STUDENT, email_verified_at: null };
     renderLayout();
