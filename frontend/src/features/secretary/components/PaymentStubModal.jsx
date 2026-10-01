@@ -1,9 +1,9 @@
-import api from '@/services/api';
-import { useEffect, useState } from 'react';
+import FeeBreakdown from '@/components/FeeBreakdown';
+import usePaymentSlip from '@/hooks/usePaymentSlip';
 import ModalShell from '@/components/ModalShell';
-import QRCode from 'qrcode';
 import { formatPeso } from '@/utils/pricing';
 import { todayLongDate } from '@/utils/formatters';
+import { renderTemplateValues } from '@/utils/templateValues';
 
 /**
  * The payment slip a walk-in student carries to the Finance Office.
@@ -17,45 +17,23 @@ import { todayLongDate } from '@/utils/formatters';
  * behind it so the printer gets the slip and nothing else.
  */
 export default function PaymentStubModal({ selectedDoc, groupDocs, setActiveModal }) {
-  const [qrSvg, setQrSvg] = useState('');
-  const [template, setTemplate] = useState('');
-
-useEffect(() => {
-    let mounted = true;
-    api.get('/api/templates/payment_slip').then(res => {
-      if (mounted) setTemplate(res.data);
-    }).catch(() => {});
-    return () => { mounted = false; };
-  }, []);
-
   const tracking = selectedDoc?.tracking_number;
-
-  useEffect(() => {
-    if (!tracking) return;
-    let cancelled = false;
-    // Rendered as SVG so it stays sharp on paper at any printer resolution.
-    QRCode.toString(tracking, { type: 'svg', margin: 0, width: 132 })
-      .then((svg) => { if (!cancelled) setQrSvg(svg); })
-      // A slip without a QR is still a valid slip — the tracking number is
-      // printed beneath it in full, so the counter can always fall back to it.
-      .catch(() => { if (!cancelled) setQrSvg(''); });
-    return () => { cancelled = true; };
-  }, [tracking]);
+  const { qrSvg, template } = usePaymentSlip(tracking);
 
   if (!selectedDoc) return null;
 
-const items = groupDocs?.length ? groupDocs : [selectedDoc];
+  const items = groupDocs?.length ? groupDocs : [selectedDoc];
   const total = items.reduce((sum, d) => sum + (parseFloat(d.amount) || 0), 0);
 
   let printHtml = '';
   if (template && template.content) {
     const docList = items.map(d => `${d.document_type} (P${parseFloat(d.amount).toFixed(2)})`).join(', ');
-    printHtml = template.content
-      .replace(/{{STUDENT_NAME}}/g, selectedDoc.student_name || '—')
-      .replace(/{{STUDENT_ID}}/g, selectedDoc.student_id || '—')
-      .replace(/{{DOCUMENT_TYPE}}/g, docList)
-      .replace(/{{OR_NUMBER}}/g, tracking)
-      .replace(/{{AMOUNT}}/g, formatPeso(total));
+    printHtml = renderTemplateValues(template.content, {
+      STUDENT_NAME: selectedDoc.student_name || '—', STUDENT_ID: selectedDoc.student_id || '—',
+      DOCUMENT_TYPE: docList, OR_NUMBER: tracking, TRACKING_NUMBER: tracking, AMOUNT: formatPeso(total),
+      PROGRAM_COURSE: selectedDoc.program || 'Not entered', DATE_ISSUED: todayLongDate(),
+      REQUEST_SEQUENCE: items.map(doc => doc.document_sequence_number || 'Historical sequence not recorded').join(', '),
+    });
   }
 
   return (
@@ -78,7 +56,7 @@ const items = groupDocs?.length ? groupDocs : [selectedDoc];
             Close
           </button>
           <button
-            onClick={() => window.print()}
+            type="button" onClick={() => setTimeout(() => window.print(), 100)}
             className="flex-1 px-5 py-3 rounded-2xl text-xs font-bold bg-gray-900 hover:bg-gray-800 text-white shadow-sm transition-colors"
           >
             Print Slip
@@ -87,11 +65,20 @@ const items = groupDocs?.length ? groupDocs : [selectedDoc];
       }
     >
 {printHtml ? (
-        <div 
+        <>
+        <div className="space-y-3 py-4 border-b border-dashed border-gray-300">
+          <h3 className="text-lg font-bold">TRACE · Order of Payment</h3>
+          {qrSvg && <div className="mx-auto w-[132px]" dangerouslySetInnerHTML={{ __html: qrSvg }} />}
+          <p className="text-center font-mono font-bold select-text">{tracking}</p>
+          <p className="text-sm break-words">Program/Course: {selectedDoc.program || 'Not entered'}</p>
+          {items.map(doc => <p key={doc.id} className="text-xs break-words">{doc.document_sequence_number || `${doc.document_type}: historical sequence not recorded`}</p>)}
+        </div>
+        <div
           className="print-slip" 
           style={{ fontFamily: template.font_family, fontSize: template.font_size }}
           dangerouslySetInnerHTML={{ __html: printHtml }} 
         />
+        </>
       ) : (
         <>
           {/* Slip header */}
@@ -100,7 +87,7 @@ const items = groupDocs?.length ? groupDocs : [selectedDoc];
           Pamantasan ng Lungsod ng Pasig
         </p>
         <h3 className="text-lg font-black text-gray-900 mt-1">ORDER OF PAYMENT</h3>
-        <p className="text-[10px] text-gray-500 font-semibold mt-1">Office of the Registrar</p>
+        <p className="text-[10px] text-gray-500 font-semibold mt-1">TRACE · Office of the Registrar</p>
       </div>
 
       {/* The machine-readable half */}
@@ -118,10 +105,10 @@ const items = groupDocs?.length ? groupDocs : [selectedDoc];
 
       {/* Who it belongs to */}
       <div className="py-4 space-y-1.5 text-[11px] font-mono text-gray-600 border-b border-dashed border-gray-300">
-        <div className="flex justify-between"><span>Student</span><span className="font-bold text-gray-900">{selectedDoc.student_name || '—'}</span></div>
-        <div className="flex justify-between"><span>Student ID</span><span className="font-bold text-gray-900">{selectedDoc.student_id || '—'}</span></div>
-        <div className="flex justify-between"><span>Program/Course</span><span className="font-bold text-gray-900">{selectedDoc.course || '—'}</span></div>
-        <div className="flex justify-between"><span>Date issued</span><span className="font-bold text-gray-900">{todayLongDate()}</span></div>
+        <div className="flex flex-wrap justify-between gap-x-3 gap-y-1"><span>Student</span><span className="font-bold text-gray-900 select-text break-words">{selectedDoc.student_name || '—'}</span></div>
+        <div className="flex flex-wrap justify-between gap-x-3 gap-y-1"><span>Student ID</span><span className="font-bold text-gray-900">{selectedDoc.student_id || '—'}</span></div>
+        <div className="flex flex-wrap justify-between gap-x-3 gap-y-1"><span>Program/Course</span><span className="font-bold text-gray-900 break-words">{selectedDoc.program || 'Not entered'}</span></div>
+        <div className="flex flex-wrap justify-between gap-x-3 gap-y-1"><span>Date issued</span><span className="font-bold text-gray-900">{todayLongDate()}</span></div>
       </div>
 
       {/* What is being charged. Every document in the request, because the
@@ -135,6 +122,7 @@ const items = groupDocs?.length ? groupDocs : [selectedDoc];
                 {d.document_type}
                 {d.copies > 1 && <span className="text-gray-400"> × {d.copies}</span>}
                 {d.page_count ? <span className="text-gray-400 font-mono"> · {d.page_count}p</span> : null}
+                {d.document_sequence_number && <span className="block text-xs break-words">{d.document_sequence_number}</span>}
               </span>
               <span className="font-mono font-bold text-gray-900">{formatPeso(d.amount)}</span>
             </div>
@@ -153,6 +141,10 @@ const items = groupDocs?.length ? groupDocs : [selectedDoc];
       </p>
         </>
       )}
+      <div className="space-y-4 py-4">{items.map(doc => <div key={doc.id}>
+        <h4 className="text-xs font-bold">{doc.document_type}</h4>
+        <FeeBreakdown breakdown={doc.fee_breakdown} amount={doc.amount} />
+      </div>)}</div>
     </ModalShell>
   );
 }

@@ -56,14 +56,14 @@ Every request, whatever its type and whichever channel it arrived through, follo
 | 4 | `PENDING_STUDENT_PAYMENT` | Student | Printed and priced. The student is told what to pay; Finance is told to expect it. A payment slip is issued for anyone paying at the counter. |
 | 5 | `PENDING_FINANCE_VERIFICATION` | Finance | Payment claimed — either the student uploaded proof online, or Finance logged a counter payment. |
 | 6 | `PAID_PENDING_SEC_RELEASE` | Secretary | Finance confirmed the money. The Secretary still physically holds the printed document. |
-| 7 | `SEC_OR_VERIFIED` | Secretary | The Secretary has checked the Official Receipt Finance attached — present, and the number looks right. A paperwork check, not a second payment decision; `payment_status` is untouched here. |
+| 7 | `SEC_OR_VERIFIED` | Secretary | The Secretary has inspected the physical Official Receipt handed over by Finance, or its uploaded copy, against the recorded OR number. A paperwork check, not a second payment decision; `payment_status` is untouched here. |
 | 8 | `READY_FOR_RELEASE` | Window 1 | The document has physically reached the release desk. |
 | 9 | `COMPLETED` | — | Handed to the student. For a walk-in, against the Official Receipt they present. |
 
-**Rejection at any desk returns the request exactly one step**, with the reason written to the audit
+**Supported desk rejection actions return the request exactly one step**, with the reason written to the audit
 trail. Two deliberate exceptions: Window 1 is the first desk, so returning a request there leaves it
 in the intake queue with a note rather than moving it anywhere; and nothing reverses past
-`PAID_PENDING_SEC_RELEASE`, because undoing a payment is a refund the Registrar handles off-system.
+`PAID_PENDING_SEC_RELEASE`, because undoing a payment is a refund the Registrar handles off-system. Window 1 has no release-stage return-to-Secretary action.
 
 **Students may cancel only through step 2.** Once the Secretary starts processing, paper and toner
 have been spent on a document that cannot be un-printed.
@@ -124,6 +124,19 @@ clear it: it moves to the same verification queue an online payment would.
 > is required** when logging one and absent from the online path. It is also what the student
 > presents at Window 1 to collect the document.
 
+### Physical OR handoff and deferred digital copy
+
+Finance must record the OR number before approving payment, but does not need to scan or photograph
+it immediately. Hand the physical original to the College Secretary for inspection before handoff
+to Window 1. Finance may later upload its retained second copy from **Transactions & OR Copies**,
+including after release or completion. That upload updates only the existing receipt-copy fields
+for the request group; it does not repeat payment verification, create another receipt record, or
+change pipeline stages.
+
+Secretary's current UI requires the OR number and, without an uploaded copy, explicit physical
+inspection acknowledgment. It uses the existing `verify-or` notes payload. These are frontend
+prerequisites; no new server receipt-validation rule was added in Batch 4.
+
 ### Payment methods
 
 Every online method follows the same path — pay, submit proof, Finance confirms — but each asks for
@@ -165,8 +178,8 @@ runs whether the file came from the student or the counter.
   Accounting, Dean) and flags anything it cannot confirm for the intake clerk.
 
 ### D. Certificate of Good Moral Character
-* **Requirement:** A valid Student ID photo.
-* **AI Workflow:** OCR reads the student ID to confirm it matches the requesting student's record.
+* **Retired for new requests (CN-03):** Good Moral no longer appears in online or counter document options. The API rejects new requests and Admin cannot recreate, rename or restore retired entries. Historical catalog entries and existing requests remain available; existing requests may finish processing.
+* **Historical requirement:** A valid Student ID photo. Historical OCR reads the ID to confirm it matches the requesting student's record.
 
 ### E. Official Receipts (Finance, not a document type)
 * **Where:** The Finance walk-in logging form, not the student pipeline.
@@ -212,8 +225,8 @@ runs whether the file came from the student or the counter.
 
 > The Secretary sets the **price**; Finance confirms the **payment**. Those two authorities are
 > deliberately held apart — it is what makes the money trail auditable. The Secretary's later OR
-> Verification step (below) does not change this: it only checks the paperwork Finance attached is
-> present and correct, and never writes `payment_status` itself.
+> Verification step (below) does not change this: it checks the physical OR or its uploaded copy
+> against the recorded number and never writes `payment_status` itself.
 
 ### 📜 College Secretary (`SEC-CCS001`, `SEC-CON001`, … one per college)
 * **Role:** Academic evaluator, and the desk that does the actual work. Four queues, because a
@@ -232,9 +245,10 @@ runs whether the file came from the student or the counter.
      be defended when a student disputes it.
      Pricing the **last** document in a request bills the whole request: the student is notified,
      Finance is notified, and the payment slip is produced.
-  3. **OR Verification.** Once Finance confirms the money, check that the Official Receipt they
-     attached is present and its number looks right — a paperwork completeness check, not a second
-     money decision. It never sets `payment_status`; only Finance does that.
+  3. **OR Verification.** Once Finance confirms the money, inspect the physical Official Receipt
+     handed over by Finance, or its uploaded copy, against the recorded OR number. With no uploaded
+     copy, explicitly acknowledge physical inspection; the existing verification notes record it.
+     This is a paperwork check and never sets `payment_status`; only Finance does that.
   4. **Final Handoff.** Physically pass the printed document to Window 1 and record it. This is a
      separate step on purpose — it marks a real physical event, and marking it while the document sits
      in a drawer is exactly the drift this pipeline exists to stop.
@@ -250,8 +264,9 @@ runs whether the file came from the student or the counter.
   2. **File a walk-in** — type in a request for a student at the counter. It enters the intake queue
      unpaid exactly like an online submission, so a walk-in cannot skip its own evaluation or its bill.
   3. **Release Queue** — hand the finished document over. The Official Receipt number is shown on the
-     row, with a **View** link to the scanned or uploaded image itself, so the clerk can check it
-     against the paper the student presents — whichever channel the payment came through.
+     row, with a **View** link when Finance has uploaded its retained copy. Otherwise the row says
+     **Digital copy pending upload**. The Secretary has already inspected the OR before handoff;
+     absence of the digital copy does not block release.
      Releasing closes the request and notifies both the student and the Secretary who prepared it.
   4. **Tracking Desk** — every document in the system, at any stage. This is the window a student
      walks up to and asks "where is mine?", which is why it is deliberately **not** filtered down to
@@ -263,7 +278,7 @@ runs whether the file came from the student or the counter.
   1. Does not handle individual documents.
   2. Monitors the **AI Insights Panel** (Random Forest) for queue bottlenecks (e.g., "Warning: Secretary queue is backing up").
   3. Uses **Predictive Analytics** (Prophet ML) to forecast 7-day document volume, allowing the admin to schedule more clerks on predicted busy days.
-  4. Manages the global **Registered Users** table, manually verifying or rejecting the accounts
+  4. Manages **System Maintenance → Accounts** and the separate **Account Verification** review queue, verifying or rejecting the accounts
      that failed automatic AI verification at registration (section 0a), and administering staff
      accounts, document types and colleges.
   5. Monitors the global **Activity Logs** (`step_logs` audit trail) to maintain total system accountability across all desks.
@@ -275,3 +290,45 @@ runs whether the file came from the student or the counter.
 **See also:** `docs/ENV_SETUP_GUIDE.md` for configuration · `docs/BACKEND_GUIDE.md` for the endpoints
 behind each step · `docs/ALGORITHM_COMPUTATION.md` for how the OCR, forecast and classifier actually
 compute.
+
+
+## Batch 8 Account and Presentation Flow
+
+Registration proof selection is local until the existing confirmed registration submission. Each AI HTTP call has a 15-second timeout covering connection and response-body parsing. Unavailable/inconclusive identity verification retains the existing pending/manual-review fallback. The signup response exposes only approved verification-reason copy; internal engine exception details are not sent to the applicant. Active administrators receive a bell entry linking to that applicant's Review dialog.
+
+Login OTP uses its own code/expiry; email-change codes carry a purpose marker, so old shared codes cannot verify a new address. Staff OTP sign-in completes before a browser-recognition record or alert is created. Successful logins compare a hashed random recognition cookie against that user's `user_devices` records; a newly seen browser, including the first successful login, generates in-app and email notices. IP/user-agent metadata describes the login and does not decide identity. Recognition is not a JWT session or a revocation mechanism. Cookie loss/privacy blocking means the browser may be recognized as new again.
+
+Phone changes persist normally. An email change is staged in the pending-email/OTP fields, separate from login OTP; the previous address stays active until a valid, unexpired code commits it. The frontend fetches the fresh profile after that commit and refreshes its cache. Student/alumni identity and graduate-completion reads use the student identifier in `grad_applications`; alumni dashboard access unlocks after a submission exists, independently of review approval. A failed post-save profile refresh preserves submission success and asks for a page refresh rather than reporting the saved application as failed. This is a frontend onboarding gate, not new authorization on every API endpoint.
+
+Admin account edits are restricted to full name, email, phone, course/program, and a valid college reference. IDs, roles, verification, and activation are not editable through the new profile endpoint. Existing staff activation/password permissions are unchanged. Registered Users navigation merges into Maintenance's Accounts section; old tab URLs remain compatible.
+
+Window 1 shares an Intake/Release workspace beside the upload card. Intake notes and confirmation remain required for return; release shows attachment information alongside request details. Finance hands the physical OR to Secretary and may upload its retained copy later. Receipt selection is local, OCR runs on **Read Receipt**, and recording still requires confirmation. No new return-to-Secretary route or digital-attachment release prerequisite was introduced.
+
+Students share one History table with request/payment filters. Reports retain API pagination and filter-aware machine-readable CSV; only on-screen timestamps/amounts are formatted. Existing paginated Window 1 queues/tracking, Admin tracker, and Reports use measured viewport row capacities. Finance and Secretary queues and account card grids do not gain pagination. The forecast card/modal share one zero-based scale with headroom, calculated from the unfiltered seven-day data.
+
+The pipeline order/vocabulary is unchanged. Mobile tracker nodes derive from `PIPELINE`; desktop remains horizontal. Legacy APPROVED/REJECTED records stay outside the active pipeline with zero active progress; rejection has a red status treatment. Help/FAQ reflects the user manual, and **Preferences** contains appearance controls; the avatar opens **Edit Profile**.
+
+
+## Batch 8b Eligibility, Identity, and Staff Review
+
+The new-alumni signup ID is stored in the existing `users.student_id` login key. Existing identifiers are not migrated. Signup saves a validated active `college_id`; legacy `course` remains compatible with routing. The explicit 8b migration backfills only byte-exact college-name matches. Degree/program names and unknown mappings are never guessed; the profile warns that Admin review is needed.
+
+`document_types` owns audience, repeatability, counter-only, original-document, fixed registrar-attachment, and same-day settings. `document_type_colleges` owns the allowed-college list; an empty list means unrestricted. Admin saves settings and junction rows in one transaction. Student reference-data reads expose eligibility reasons, and both online and counter filing enforce audience/college/repeat rules against the **target student**, not the clerk. Window 1 and Secretary approval recheck those rules. Existing inactive types can continue processing; deactivation blocks new filing. No stage is added or reordered.
+
+The filing transaction locks the target user before checking prior requests, serializing simultaneous nonrepeatable submissions. Every existing document except terminal legacy `REJECTED` blocks a repeat, including `COMPLETED`; cancellation deletes the document. Secretary rejection is an active return to Intake and continues to block duplicates. Requested quantities must be positive integers within the SQL range; nonrepeatable types permit one. The backend now preserves copies and multiplies the filing estimate, matching the frontend. Secretary final pricing and Finance payment authority remain separate.
+
+A raw attached counter scan may be staged without an identifier for human review. Restricted types cannot pass Secretary evaluation without a recognized student and eligible college/applicant type. This exception does not bypass rules for a typed, identified walk-in. Four counter types are seeded as inactive zero-fee drafts, without original inspection. Photocopy enforcement is pending user policy confirmation. Per-case attachment requests/upload/processing holds are deferred to the future messaging batch; the existing text chat is not presented as an attachment workflow.
+
+Signup OCR is explicitly requested, temporary, bounded, and advisory. It fills only empty fields, discards results after file/account-type changes, and falls back to manual entry. It neither creates an account nor approves it. Saved registration proofs are surfaced through the existing protected file endpoint. Full-profile lookup is limited to Admin and the Window 1, Secretary, and Finance desks and never returns authentication secrets. Verification previews already existed in the account, intake, Secretary, Finance, and OR dialogs; those implementations are reused.
+
+Acknowledgment feedback and bell popups dismiss on SPA navigation or leaving the browser tab. Queue/maintenance/security tab changes dismiss their feedback. Draft forms and pending confirmations remain intact. Preferences contains only local appearance; Edit Profile retains personal, educational, and security functions. Window 1 and Secretary reuse Admin's report/export UI with existing server permissions.
+
+## Registrar Consultation — CN-03/CN-04
+
+Good Moral is retired from request options and blocked by the server for new online/counter submissions, including unidentified scans. The policy recognizes the three existing repository names and normalizes case/whitespace. An existing Good Moral request can still advance; changing another request into Good Moral cannot bypass retirement. Secretary Approve and Return both reject that type change before saving, logging or sending notifications; unchanged historical Good Moral types may still be approved or returned. Admin sees the historical type as retired and cannot create, edit, rename or restore it. Historical records, OCR classifications and status filters are retained.
+
+Diploma uses an editable **₱250 reissue default**. This remains a filing estimate; Secretary pricing still determines the final amount. `migrate_cn03_cn04.js` changes a catalog Diploma fee of ₱50 to ₱250 once, without changing existing request amounts or other configured fees. Its completion marker and catalog updates commit together in an InnoDB transaction. Failure rolls them back; subsequent runs leave later fee edits intact. The full migration's seed also preserves existing Diploma fees.
+
+From the repository root, deploy the data changes with `node backend/database/migrate_cn03_cn04.js` using the configured database. The main migration invokes the same guarded change. Do not run the older `migrate_b9.js` for this scope: its name mismatches and attachment changes have not been reconciled. The development verification uses mocked models/connections; no live migration was applied.
+
+Program/Course and online-submission QR recommendations are agreed but not implemented in this phase. Form separation, attachments, quantities, per-page pricing, numbering, messaging/attachment holds, delays and templates each retain their own approval/verification scope. See `PROGRESS.md` for the code findings that supersede the earlier Batch 9 completion claims.

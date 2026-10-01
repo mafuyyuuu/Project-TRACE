@@ -21,12 +21,16 @@ const renderNav = (props) =>
   );
 
 describe('navItemsForUser', () => {
+  it('gives each admin destination a distinct icon', () => {
+    const icons = navItemsForUser(ADMIN).map((item) => item.icon);
+    expect(new Set(icons).size).toBe(icons.length);
+  });
   it.each([
-    ['student', STUDENT, ['dashboard', 'request-history', 'payment-history']],
-    ['alumnus', ALUMNI, ['dashboard', 'request-history', 'payment-history', 'graduate-application']],
-    ['secretary', SECRETARY, ['dashboard', 'completed-logs', 'grad-applications', 'reports']],
-    ['window 1', WINDOW1, ['dashboard', 'tracking-desk', 'reports']],
-    ['finance', FINANCE, ['dashboard']],
+    ['student', STUDENT, ['dashboard', 'history', 'messages', 'help']],
+    ['alumnus', ALUMNI, ['dashboard', 'history', 'messages', 'graduate-application', 'help']],
+    ['secretary', SECRETARY, ['dashboard', 'completed-logs', 'messages', 'grad-applications', 'reports', 'help']],
+    ['window 1', WINDOW1, ['dashboard', 'tracking-desk', 'messages', 'reports', 'help']],
+    ['finance', FINANCE, ['dashboard', 'reports', 'help']],
   ])('gives a %s their own tabs', (_label, user, expected) => {
     expect(navItemsForUser(user).map((i) => i.tab)).toEqual(expected);
   });
@@ -40,7 +44,7 @@ describe('navItemsForUser', () => {
     expect(navItemsForUser(ADMIN).map((i) => i.tab)).toEqual([
       'dashboard',
       'admin-tracker',
-      'admin-users',
+      'messages',
       'admin-logs',
       'admin-security',
       'admin-reports',
@@ -48,6 +52,7 @@ describe('navItemsForUser', () => {
       'admin-grad-applications',
       'admin-templates',
       'admin-maintenance',
+      'help',
     ]);
   });
 
@@ -59,8 +64,8 @@ describe('navItemsForUser', () => {
 describe('SidebarNav', () => {
   it('labels every destination in drawer mode', () => {
     renderNav({ user: ALUMNI, showLabels: true });
-    expect(screen.getByText('Request History')).toBeInTheDocument();
-    expect(screen.getByText('Payment History')).toBeInTheDocument();
+    expect(screen.getByText('History')).toBeInTheDocument();
+    expect(screen.getByText('Help / FAQ')).toBeInTheDocument();
     expect(screen.getByText('Graduate Application')).toBeInTheDocument();
   });
 
@@ -74,14 +79,14 @@ describe('SidebarNav', () => {
   // The desktop rail is icon-only; the labels live in the title attribute.
   it('stays icon-only in rail mode', () => {
     renderNav({ user: STUDENT });
-    expect(screen.queryByText('Request History')).not.toBeInTheDocument();
-    expect(screen.getByTitle('Request History')).toBeInTheDocument();
+    expect(screen.queryByText('History')).not.toBeInTheDocument();
+    expect(screen.getByTitle('History')).toBeInTheDocument();
   });
 
   it('closes the drawer when a destination is chosen', () => {
     const onNavigate = vi.fn();
     renderNav({ user: STUDENT, showLabels: true, onNavigate });
-    fireEvent.click(screen.getByText('Payment History'));
+    fireEvent.click(screen.getByText('Help / FAQ'));
     expect(onNavigate).toHaveBeenCalled();
   });
 
@@ -89,7 +94,7 @@ describe('SidebarNav', () => {
     const onOpenSettings = vi.fn();
     const onNavigate = vi.fn();
     renderNav({ user: STUDENT, showLabels: true, onOpenSettings, onNavigate });
-    fireEvent.click(screen.getByText('Settings'));
+    fireEvent.click(screen.getByText('Preferences'));
     expect(onOpenSettings).toHaveBeenCalled();
     expect(onNavigate).toHaveBeenCalled();
   });
@@ -104,6 +109,6 @@ describe('SidebarNav', () => {
   it('marks the active tab', () => {
     renderNav({ user: ADMIN, tab: 'admin-reports', showLabels: true });
     expect(screen.getByText('Reports & Export').closest('a').className).toContain('bg-[#15803d]');
-    expect(screen.getByText('Registered Users').closest('a').className).not.toContain('bg-[#15803d]');
+    expect(screen.getByText('System Maintenance').closest('a').className).not.toContain('bg-[#15803d]');
   });
 });

@@ -30,15 +30,20 @@ export default function useDashboardCore(user) {
   const [activeModal, setActiveModal] = useState(null);
   const [selectedDoc, setSelectedDoc] = useState(null);
 
-  /** Transient toast. Errors and successes share one channel by design. */
+  /** Feedback stays visible until the user acknowledges it. */
   const triggerNotification = useCallback((msg, type = 'success') => {
     if (type === 'success') {
       setSuccess(msg);
-      setTimeout(() => setSuccess(''), 4000);
+      setError('');
     } else {
       setError(msg);
-      setTimeout(() => setError(''), 4000);
+      setSuccess('');
     }
+  }, []);
+
+  const dismissNotification = useCallback(() => {
+    setSuccess('');
+    setError('');
   }, []);
 
   /**
@@ -88,7 +93,7 @@ export default function useDashboardCore(user) {
   }, [user, fetchCoreData]);
 
   /**
-   * Wraps an async action with the shared loading flag, success toast, and
+   * Wraps an async action with the shared loading flag, success feedback, and
    * error handling, then refreshes the queue. Every desk action goes through
    * this so the behaviour stays identical across roles.
    *
@@ -126,6 +131,7 @@ export default function useDashboardCore(user) {
     selectedDoc,
     setSelectedDoc,
     triggerNotification,
+    dismissNotification,
     loadDashboardData,
     runAction,
     setActionLoading,

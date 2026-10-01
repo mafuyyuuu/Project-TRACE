@@ -1,9 +1,9 @@
 # ---------------------------------------------------------------------------
 # TRACE AI Engine — Flask + EasyOCR (PyTorch), Prophet, scikit-learn
 #
-# Targets linux/arm64 (Oracle Cloud Ampere). Note that no CPU-only torch index
-# is needed here: the CUDA builds are x86_64-only, so the default aarch64
-# wheels on PyPI are already CPU-only.
+# Supports linux/amd64 and linux/arm64 with CPU-only OCR. On x86-64, select
+# PyTorch's CPU wheels explicitly so the build does not install CUDA libraries.
+# The existing aarch64 PyPI wheels are already CPU-only.
 #
 # Multi-stage: the Stan compiler toolchain that cmdstanpy/Prophet needs at
 # install time is several hundred MB and is not needed at runtime.
@@ -21,7 +21,13 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 WORKDIR /install
 COPY requirements.txt .
-RUN pip install --no-cache-dir --prefix=/install/deps -r requirements.txt
+RUN if [ "$(uname -m)" = "x86_64" ]; then \
+      pip install --no-cache-dir --prefix=/install/deps -r requirements.txt \
+        --extra-index-url https://download.pytorch.org/whl/cpu \
+        'torch==2.8.0+cpu' 'torchvision==0.23.0+cpu'; \
+    else \
+      pip install --no-cache-dir --prefix=/install/deps -r requirements.txt; \
+    fi
 
 
 FROM python:3.12-slim
@@ -33,8 +39,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 COPY --from=builder /install/deps /usr/local
 
+RUN python -m pip check \
+    && python -c "import torch, torchvision; assert torch.version.cuda is None, 'Expected CPU-only PyTorch'"
+
 WORKDIR /app
-COPY app.py ocr_engine.py ./
+COPY app.py ocr_engine.py identity_parser.py ./
 
 # Bake the EasyOCR detection + recognition models into the image. They are
 # ~100 MB and ocr_engine.py builds the Reader at import time, so without this

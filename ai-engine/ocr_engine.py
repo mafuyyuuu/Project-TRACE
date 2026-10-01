@@ -24,6 +24,7 @@ from datetime import date
 import easyocr
 import cv2
 import numpy as np
+from identity_parser import parse_identity_data
 
 logger = logging.getLogger(__name__)
 
@@ -124,6 +125,15 @@ def extract_text(filepath):
     except Exception as e:
         logger.error("EasyOCR extraction failed for %s: %s", filepath, str(e))
         return ""
+
+
+def process_identity(filepath):
+    try:
+        data = parse_identity_data(extract_text(filepath))
+        return {'success': any(data.values()), 'extracted_data': data}
+    except Exception:
+        logger.warning('Identity OCR unavailable; manual entry is required.')
+        return {'success': False, 'extracted_data': {}}
 
 
 def parse_student_data(raw_text):

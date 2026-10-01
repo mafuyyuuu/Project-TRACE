@@ -1,5 +1,10 @@
 const templateModel = require('../models/template.model');
-const { fail } = require('../utils/response');
+const templateService = require('../services/template.service');
+
+function fail(res, err, logLabel, fallbackMessage) {
+  console.error(`${logLabel}:`, err);
+  res.status(err.status || 500).json({ error: err.status ? err.message : fallbackMessage });
+}
 
 async function list(req, res) {
   try {
@@ -11,7 +16,7 @@ async function list(req, res) {
 
 async function getByKey(req, res) {
   try {
-    const template = await templateModel.findByKey(req.params.key);
+    const template = await templateService.get(req.params.key);
     if (!template) return res.status(404).json({ message: 'Template not found' });
     res.json(template);
   } catch (err) {
@@ -21,8 +26,7 @@ async function getByKey(req, res) {
 
 async function update(req, res) {
   try {
-    const { content, font_family, font_size } = req.body;
-    await templateModel.update(req.params.key, content, font_family, font_size);
+    await templateService.update(req.params.key, req.body);
     res.json({ message: 'Template updated successfully.' });
   } catch (err) {
     fail(res, err, 'Update template error', 'Failed to update template.');

@@ -1,4 +1,5 @@
 const { pool } = require('../config/db');
+const pricingModel = require('./pricing.model');
 const { STATUS, PIPELINE } = require('../utils/documentStatus');
 
 /**
@@ -6,21 +7,30 @@ const { STATUS, PIPELINE } = require('../utils/documentStatus');
  * `executor` (pool or in-flight transaction connection); defaults to the pool.
  */
 
+function shapePricing(rows) {
+  return rows.map(row => {
+    const pricing_snapshot = typeof row.pricing_snapshot === 'string' ? JSON.parse(row.pricing_snapshot) : row.pricing_snapshot;
+    const fee_breakdown = typeof row.fee_breakdown === 'string' ? JSON.parse(row.fee_breakdown) : row.fee_breakdown;
+    return { ...row, pricing_snapshot, fee_breakdown, pricing_schedule: pricing_snapshot || row.pricing_schedule };
+  });
+}
+
 function insert(data, executor = pool) {
   const {
     tracking_number, request_group_id, student_id, student_name, document_type,
     current_status, payment_status, assigned_clerk_id, file_path, original_filename,
-    checkout_url, purpose, copies, amount, document_sequence_number,
+    checkout_url, purpose, copies, amount, document_sequence_number, is_same_day, pricing_snapshot, fee_breakdown,
   } = data;
   return executor.query(
     `INSERT INTO documents (tracking_number, request_group_id, student_id, student_name, document_type,
-      current_status, payment_status, assigned_clerk_id, file_path, original_filename, checkout_url, purpose, copies, amount, document_sequence_number)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      current_status, payment_status, assigned_clerk_id, file_path, original_filename, checkout_url, purpose, copies, amount, document_sequence_number, is_same_day, pricing_snapshot, fee_breakdown)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       tracking_number, request_group_id || tracking_number,
       student_id || null, student_name || null, document_type || null,
       current_status, payment_status, assigned_clerk_id, file_path, original_filename,
-      checkout_url, purpose || null, copies, amount, document_sequence_number || null,
+      checkout_url, purpose || null, copies, amount, document_sequence_number || null, Boolean(is_same_day),
+      pricing_snapshot ? JSON.stringify(pricing_snapshot) : null, fee_breakdown ? JSON.stringify(fee_breakdown) : null,
     ]
   );
 }
@@ -30,23 +40,31 @@ function countByTypeAndStudent(documentType, studentId, executor = pool) {
   return executor.query('SELECT COUNT(*) as count FROM documents WHERE document_type = ? AND student_id = ?', [documentType, studentId]).then(([rows]) => rows[0].count);
 }
 
+function countBlockingRequests(documentType, studentId, excludeId = null, executor = pool) {
+  const { LEGACY_STATUS } = require('../utils/documentStatus');
+  return executor.query(`SELECT COUNT(*) AS count FROM documents
+    WHERE document_type = ? AND student_id = ? AND COALESCE(current_status, '') <> ?
+    AND (? IS NULL OR id <> ?)`, [documentType, studentId, LEGACY_STATUS.REJECTED, excludeId, excludeId])
+    .then(([rows]) => Number(rows[0].count));
+}
+
 function findById(documentId, executor = pool) {
   return executor
     .query('SELECT * FROM documents WHERE id = ?', [documentId])
-    .then(([rows]) => rows);
+    .then(([rows]) => shapePricing(rows));
 }
 
 /** Row-locking read — must be called inside a transaction. */
 function findByIdForUpdate(documentId, executor) {
   return executor
     .query('SELECT * FROM documents WHERE id = ? FOR UPDATE', [documentId])
-    .then(([rows]) => rows);
+    .then(([rows]) => shapePricing(rows));
 }
 
 function findByTrackingNumber(trackingNumber, executor = pool) {
   return executor
     .query('SELECT * FROM documents WHERE tracking_number = ?', [trackingNumber])
-    .then(([rows]) => rows);
+    .then(([rows]) => shapePricing(rows));
 }
 
 /**
@@ -54,14 +72,14 @@ function findByTrackingNumber(trackingNumber, executor = pool) {
  * both always filter identically.
  */
 function listWithFilters(conditions, params, limit, offset, executor = pool) {
-  let query = 'SELECT * FROM documents';
+  let query = "SELECT d.*, student.program FROM documents d LEFT JOIN users student ON student.student_id = d.student_id AND student.role = 'student'";
   if (conditions.length > 0) query += ' WHERE ' + conditions.join(' AND ');
-  query += ' ORDER BY created_at DESC LIMIT ? OFFSET ?';
-  return executor.query(query, [...params, limit, offset]).then(([rows]) => rows);
+  query += ' ORDER BY d.created_at DESC LIMIT ? OFFSET ?';
+  return executor.query(query, [...params, limit, offset]).then(([rows]) => pricingModel.enrichDocuments(shapePricing(rows), executor));
 }
 
 function countWithFilters(conditions, params, executor = pool) {
-  let countQuery = 'SELECT COUNT(*) as total FROM documents';
+  let countQuery = 'SELECT COUNT(*) as total FROM documents d';
   if (conditions.length > 0) countQuery += ' WHERE ' + conditions.join(' AND ');
   return executor.query(countQuery, params).then(([rows]) => rows[0].total);
 }
@@ -92,13 +110,15 @@ function updateEvaluation(
 ) {
   return executor.query(
     `UPDATE documents SET
+      pricing_snapshot = CASE WHEN COALESCE(?, student_id) <=> student_id AND COALESCE(?, document_type) <=> document_type THEN pricing_snapshot ELSE NULL END,
+      fee_breakdown = CASE WHEN COALESCE(?, student_id) <=> student_id AND COALESCE(?, document_type) <=> document_type THEN fee_breakdown ELSE NULL END,
       current_status = ?,
       student_id = COALESCE(?, student_id),
       student_name = COALESCE(?, student_name),
       document_type = COALESCE(?, document_type),
       estimated_ready_date = COALESCE(?, estimated_ready_date)
      WHERE id = ?`,
-    [newStatus, studentId, studentName, documentType, estimatedReadyDate || null, documentId]
+    [studentId, documentType, studentId, documentType, newStatus, studentId, studentName, documentType, estimatedReadyDate || null, documentId]
   );
 }
 
@@ -268,7 +288,7 @@ function updatePaymentSubmissionForGroup(
  * blanked when Finance approves without retyping it.
  */
 function updatePaymentVerificationForGroup(
-  requestGroupId, newStatus, paymentStatus, { officialReceiptPath, orNumber, orDate } = {}, executor = pool
+  requestGroupId, newStatus, paymentStatus, { officialReceiptPath, orNumber, orDate, clearedAt, earliestDate } = {}, executor = pool
 ) {
   return executor.query(
     `UPDATE documents SET
@@ -276,10 +296,14 @@ function updatePaymentVerificationForGroup(
        payment_status = ?,
        official_receipt_path = COALESCE(?, official_receipt_path),
        or_number = COALESCE(?, or_number),
-       or_date = COALESCE(?, or_date)
+       or_date = COALESCE(?, or_date),
+       payment_cleared_at = COALESCE(FROM_UNIXTIME(?), payment_cleared_at),
+       or_earliest_issue_date = COALESCE(?, or_earliest_issue_date),
+       or_uploaded_at = CASE WHEN ? IS NOT NULL THEN CURRENT_TIMESTAMP ELSE or_uploaded_at END
      WHERE request_group_id = ? AND current_status = ?`,
     [
       newStatus, paymentStatus, officialReceiptPath || null, orNumber || null, orDate || null,
+      clearedAt ? Math.floor(clearedAt.getTime() / 1000) : null, earliestDate || null, officialReceiptPath || null,
       requestGroupId, STATUS.PENDING_FINANCE_VERIFICATION,
     ]
   );
@@ -314,12 +338,12 @@ function updateStatus(documentId, newStatus, executor = pool) {
  * never afterwards: a charge whose origin is unknown cannot be defended when a
  * student disputes it, and this is the only place a price is ever set.
  */
-function updatePricing(documentId, { amount, pageCount, pricingNotes, clerkId }, executor = pool) {
+function updatePricing(documentId, { amount, pageCount, pricingNotes, clerkId, pricingSnapshot, feeBreakdown }, executor = pool) {
   return executor.query(
     `UPDATE documents
-     SET amount = ?, page_count = ?, pricing_notes = ?, priced_by_clerk_id = ?, priced_at = NOW()
+     SET amount = ?, page_count = ?, pricing_notes = ?, priced_by_clerk_id = ?, priced_at = NOW(), pricing_snapshot = ?, fee_breakdown = ?
      WHERE id = ?`,
-    [amount, pageCount ?? null, pricingNotes || null, clerkId, documentId]
+    [amount, pageCount ?? null, pricingNotes || null, clerkId, JSON.stringify(pricingSnapshot), JSON.stringify(feeBreakdown), documentId]
   );
 }
 
@@ -393,6 +417,12 @@ function updateWalkInPaymentForGroup(
  * as updatePricing — a step nobody can trace back to a person is not
  * auditable, and this never touches payment_status: only Finance sets PAID.
  */
+function publishOfficialReceipt(groupId, { path, number, date }, executor = pool) {
+  return executor.query(`UPDATE documents SET official_receipt_path = ?, or_number = COALESCE(or_number, ?),
+    or_date = COALESCE(or_date, ?), or_uploaded_at = CURRENT_TIMESTAMP
+    WHERE COALESCE(request_group_id, tracking_number) = ? AND payment_status = 'PAID' AND official_receipt_path IS NULL`, [path, number, date || null, groupId]);
+}
+
 function updateOrVerification(documentId, clerkId, executor = pool) {
   return executor.query(
     `UPDATE documents
@@ -403,6 +433,8 @@ function updateOrVerification(documentId, clerkId, executor = pool) {
 }
 
 module.exports = {
+  publishOfficialReceipt,
+  countBlockingRequests,
   insert,
   countByTypeAndStudent,
   updateAttachment,

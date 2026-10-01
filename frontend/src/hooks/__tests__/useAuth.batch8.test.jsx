@@ -1,0 +1,51 @@
+import { beforeEach, expect, it, vi } from 'vitest';
+import { act, renderHook, waitFor } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
+import useAuth from '@/hooks/useAuth';
+import useGraduateApplication from '@/features/graduate/useGraduateApplication';
+import { getFormFields, getMyApplications, submitApplication } from '@/services/gradService';
+import { login, getMe } from '@/services/authService';
+vi.mock('@/services/authService', () => ({ login: vi.fn(), getMe: vi.fn(), register: vi.fn() }));
+vi.mock('@/services/gradService', () => ({ getFormFields: vi.fn(), getMyApplications: vi.fn(), submitApplication: vi.fn() }));
+const wrapper = ({ children }) => <MemoryRouter>{children}</MemoryRouter>;
+beforeEach(() => { localStorage.clear(); vi.clearAllMocks(); });
+it('returns the OTP challenge without storing authentication credentials', async () => {
+  const challenge = { requires_2fa: true, temp_token: 'otp-challenge', email: 'staff@example.test' };
+  login.mockResolvedValue(challenge);
+  const { result } = renderHook(() => useAuth(), { wrapper });
+  let response;
+  await act(async () => { response = await result.current.login({ employeeId: 'STAFF-1', password: 'secret' }); });
+  expect(response).toEqual(challenge);
+  expect(localStorage.getItem('trace_token')).toBeNull();
+  expect(localStorage.getItem('trace_user')).toBeNull();
+  expect(result.current.user).toBeNull();
+});
+it('refreshes persisted contact data instead of restoring stale cached values', async () => {
+  localStorage.setItem('trace_token', 'token');
+  localStorage.setItem('trace_user', JSON.stringify({ id: 1, email: 'old@example.test' }));
+  getMe.mockResolvedValue({ user: { id: 1, email: 'new@example.test', phone_number: '09123456789' } });
+  const { result } = renderHook(() => useAuth(), { wrapper });
+  await waitFor(() => expect(result.current.user.email).toBe('new@example.test'));
+  expect(JSON.parse(localStorage.getItem('trace_user'))).toMatchObject({ email: 'new@example.test', phone_number: '09123456789' });
+});
+
+it.each([true, false])('preserves saved graduate submission when profile refresh succeeds=%s', async (refreshSucceeds) => {
+  const alumni = { id: 1, role: 'student', user_type: 'alumni', has_grad_application: false };
+  localStorage.setItem('trace_user', JSON.stringify(alumni));
+  getFormFields.mockResolvedValue({ fields: [] });
+  getMyApplications.mockResolvedValue({ applications: [] });
+  submitApplication.mockResolvedValue({ message: 'Application received.' });
+  if (refreshSucceeds) getMe.mockResolvedValue({ user: { ...alumni, has_grad_application: true } });
+  else getMe.mockRejectedValue(new Error('Profile unavailable'));
+  const { result } = renderHook(() => useGraduateApplication(alumni));
+  await waitFor(() => expect(result.current.loading).toBe(false));
+  await act(async () => { await result.current.handleSubmit({ preventDefault: vi.fn() }); });
+  expect(submitApplication).not.toHaveBeenCalled();
+  await act(async () => { await result.current.confirmSubmission(); });
+  expect(submitApplication).toHaveBeenCalledOnce();
+  expect(result.current.error).toBe('');
+  expect(result.current.answersToConfirm).toBeNull();
+  expect(result.current.success).toContain('Application received.');
+  expect(JSON.parse(localStorage.getItem('trace_user')).has_grad_application).toBe(refreshSucceeds);
+  if (!refreshSucceeds) expect(result.current.success).toContain('Refresh the page');
+});

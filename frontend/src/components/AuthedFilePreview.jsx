@@ -20,8 +20,8 @@ export default function AuthedFilePreview({
 
   if (loading) {
     return (
-      <div className="w-full h-full flex items-center justify-center text-gray-400">
-        <div className="w-6 h-6 border-2 border-gray-300 border-t-gray-500 rounded-full animate-spin" />
+      <div className="w-full h-full flex items-center justify-center text-gray-400 dark:text-gray-400">
+        <div className="w-6 h-6 border-2 border-gray-300 dark:border-gray-700 border-t-gray-500 dark:border-t-gray-700 rounded-full animate-spin" />
       </div>
     );
   }
@@ -29,7 +29,7 @@ export default function AuthedFilePreview({
   if (error || !url) {
     return (
       <div className="w-full h-full flex items-center justify-center text-center px-4">
-        <span className="text-xs font-semibold text-gray-400">{error || 'No file available'}</span>
+        <span className="text-xs font-semibold text-gray-400 dark:text-gray-400">{error || 'No file available'}</span>
       </div>
     );
   }
@@ -43,7 +43,12 @@ export default function AuthedFilePreview({
   if (!onClick) return image;
 
   return (
-    <div onClick={onClick} className={wrapperClassName}>
+    <div role="button" tabIndex={0} aria-label={`Open ${alt}`} onClick={onClick} onKeyDown={(event) => {
+      if (event.key === 'Enter' || event.key === ' ') {
+        event.preventDefault();
+        onClick(event);
+      }
+    }} className={wrapperClassName}>
       {image}
     </div>
   );

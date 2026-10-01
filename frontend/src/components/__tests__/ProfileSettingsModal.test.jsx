@@ -1,11 +1,14 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
 
 vi.mock('@/services/api', () => ({
-  default: { get: vi.fn(() => new Promise(() => {})) },
+  default: { get: vi.fn(() => new Promise(() => {})), post: vi.fn() },
 }));
 
 import ProfileSettingsModal from '@/components/ProfileSettingsModal';
+import api from '@/services/api';
+import { getAuthenticator } from '@/services/authenticatorService';
+vi.mock('@/services/authenticatorService', () => ({ getAuthenticator: vi.fn(), beginAuthenticator: vi.fn(), updateAuthenticator: vi.fn() }));
 
 const STUDENT = {
   id: 3,
@@ -40,9 +43,86 @@ const renderModal = (overrides = {}) => render(<ProfileSettingsModal {...basePro
 
 beforeEach(() => {
   vi.clearAllMocks();
+  localStorage.clear();
+  getAuthenticator.mockResolvedValue({ enabled: false, available: true });
 });
 
 describe('ProfileSettingsModal', () => {
+  it('lets only clerks forget personal-browser preference after confirmation', async () => {
+    localStorage.setItem('trace_clerk_browser_until', String(Date.now() + 60000));
+    renderModal({ user: CLERK, initialTab: 'security' });
+    fireEvent.click(screen.getByRole('button', { name: 'Use shared-computer verification' }));
+    expect(localStorage.getItem('trace_clerk_browser_until')).not.toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Use Shared Verification' }));
+    await waitFor(() => expect(localStorage.getItem('trace_clerk_browser_until')).toBeNull());
+    expect(screen.getByText(/Shared-computer verification is the default/)).toBeInTheDocument();
+    expect(api.post).not.toHaveBeenCalled();
+  });
+  it.each([STUDENT, { ...CLERK, role: 'admin' }])('does not offer clerk browser settings to $role', user => {
+    renderModal({ user, initialTab: 'security' });
+    expect(screen.queryByRole('region', { name: 'Clerk browser verification' })).not.toBeInTheDocument();
+  });
+  it('shows and hides both password fields in Security without saving', () => {
+    renderModal({ initialTab: 'security', profileData: { ...baseProps.profileData, current_password: 'current', password: 'Newpassword1!' } });
+    expect(screen.getByLabelText('Current Password')).toHaveAttribute('type', 'password');
+    fireEvent.click(screen.getByRole('button', { name: 'Show passwords' }));
+    expect(screen.getByLabelText('Current Password')).toHaveAttribute('type', 'text');
+    expect(screen.getByLabelText('New Password')).toHaveAttribute('type', 'text');
+    expect(baseProps.onSave).not.toHaveBeenCalled();
+  });
+  it.each([
+    { ...STUDENT, user_type: 'student' }, { ...STUDENT, user_type: 'alumni' },
+    { ...CLERK, role: 'admin' }, { ...CLERK, desk_assignment: 'Window 1' },
+    CLERK, { ...CLERK, desk_assignment: 'Secretary' },
+  ])('shows working authenticator setup in Security for $role/$user_type/$desk_assignment', async user => {
+    renderModal({ user, initialTab: 'security' });
+    expect(await screen.findByRole('button', { name: 'Set up authenticator app' })).toBeInTheDocument();
+  });
+  it('uses the avatar camera as the sole photo picker and stages without saving', () => {
+    const onSave = vi.fn();
+    const onAvatarChange = vi.fn();
+    renderModal({ onSave, onAvatarChange });
+    const input = screen.getByLabelText('Profile picture');
+    const openPicker = vi.spyOn(input, 'click');
+    fireEvent.click(screen.getByRole('button', { name: 'Change profile picture' }));
+    expect(openPicker).toHaveBeenCalledOnce();
+    expect(input).not.toBeVisible();
+    expect(screen.queryByRole('region', { name: 'Profile picture' })).not.toBeInTheDocument();
+    const file = new File(['x'], 'avatar.png', { type: 'image/png' });
+    fireEvent.change(input, { target: { files: [file] } });
+    expect(onAvatarChange).toHaveBeenCalledWith(file);
+    expect(onSave).not.toHaveBeenCalled();
+  });
+  it('keeps Preferences dedicated to appearance rather than profile editing', () => {
+    const toggle = vi.fn();
+    renderModal({ initialTab: 'appearance', onToggleTheme: toggle });
+    expect(screen.getByRole('dialog', { name: 'Preferences' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Save Profile' })).not.toBeInTheDocument();
+    expect(screen.queryByDisplayValue('ana@plp.edu.ph')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Switch to Dark Mode' }));
+    expect(toggle).toHaveBeenCalledOnce();
+  });
+
+  it('surfaces the saved registration proof without a replacement control', () => {
+    renderModal({ user: { ...STUDENT, user_type: 'alumni', id_proof_path: '/uploads/id.png' } });
+    const proof = screen.getByRole('region', { name: 'Registration identity / diploma proof' });
+    expect(proof).toHaveTextContent('Uploaded: id.png');
+    expect(proof.querySelector('input[type=file]')).toBeNull();
+  });
+  it('keeps Settings open on confirmation cancellation and saves only after confirmation', async () => {
+    const onSave = vi.fn().mockResolvedValue(true);
+    renderModal({ onSave, user: CLERK });
+    const save = screen.getByRole('button', { name: 'Save Profile' });
+    fireEvent.click(save);
+    expect(onSave).not.toHaveBeenCalled();
+    fireEvent.keyDown(document, { key: 'Escape' });
+    expect(screen.getByDisplayValue('ana@plp.edu.ph')).toBeInTheDocument();
+    fireEvent.click(save);
+    const confirmation = screen.getByRole('dialog', { name: 'Confirm Profile Save' });
+    fireEvent.click(within(confirmation).getByRole('button', { name: 'Save Profile' }));
+    await waitFor(() => expect(onSave).toHaveBeenCalledOnce());
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Confirm Profile Save' })).not.toBeInTheDocument());
+  });
   it('presents the account as a profile card', () => {
     renderModal();
     expect(screen.getByText('Ana Reyes')).toBeInTheDocument();
@@ -108,7 +188,42 @@ describe('ProfileSettingsModal', () => {
   it('closes on the close control', () => {
     const onClose = vi.fn();
     renderModal({ onClose });
-    fireEvent.click(screen.getByLabelText('Close settings'));
+    fireEvent.click(screen.getByLabelText('Close profile'));
     expect(onClose).toHaveBeenCalled();
+  });
+
+  it.each([
+    ['success', 'Success', 'Logged out of all other devices.'],
+    ['error', 'Attention Needed', 'Error logging out of other devices.'],
+  ])('acknowledges session logout %s above settings and restores focus', async (outcome, title, message) => {
+    api.get.mockResolvedValueOnce({ data: [] });
+    if (outcome === 'success') api.post.mockResolvedValueOnce({ data: { token: 'replacement', user: STUDENT } });
+    else api.post.mockRejectedValueOnce(new Error('Request failed'));
+    const nativeAlert = vi.spyOn(window, 'alert').mockImplementation(() => {});
+    const onClose = vi.fn();
+    renderModal({ onClose });
+    fireEvent.click(screen.getByRole('button', { name: /^Security$/ }));
+    const logout = screen.getByRole('button', { name: 'Logout All Devices' });
+    logout.focus();
+    fireEvent.click(logout);
+    expect(api.post).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', { name: 'Log Out Other Devices' }));
+
+    const feedback = await screen.findByRole('dialog', { name: title });
+    expect(feedback).toHaveTextContent(message);
+    expect(feedback.parentElement).toHaveClass('z-[110]');
+    expect(api.post).toHaveBeenCalledWith('/auth/logout-all', { preserve_current: true }, { timeout: 15000 });
+    expect(nativeAlert).not.toHaveBeenCalled();
+    expect(screen.getByRole('button', { name: 'OK' })).toHaveFocus();
+    fireEvent.click(screen.getByRole('button', { name: 'OK' }));
+    expect(screen.queryByRole('dialog', { name: title })).not.toBeInTheDocument();
+    expect(screen.getByRole('dialog', { name: 'Edit Profile' })).toBeInTheDocument();
+    if (outcome === 'error') {
+      expect(screen.getByRole('dialog', { name: 'Log Out Other Devices' })).toBeInTheDocument();
+      fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+    }
+    expect(logout).toHaveFocus();
+    expect(onClose).not.toHaveBeenCalled();
+    nativeAlert.mockRestore();
   });
 });

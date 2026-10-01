@@ -355,9 +355,8 @@ async function migrate() {
       // name, base_fee, fee_rule, requires_attachment, attachment_label, attachment_helper
       ['Transcript of Records', 100.0, 'per_semester_block', false, 'Optional Attachment (Clearances, Old ID, etc)', 'optional files'],
       ['Graduation Clearance', 50.0, 'flat', true, 'Required Attachment (Signed Routing Form)', 'signed clearance form'],
-      ['Certificate of Good Moral', 50.0, 'flat', true, 'Required Attachment (Valid Student ID)', 'student ID photo'],
       ['Honorable Dismissal', 100.0, 'flat', true, 'Required Attachment (Validated Clearance)', 'clearance file'],
-      ['Diploma', 50.0, 'flat', false, 'Optional Attachment (Clearances, Old ID, etc)', 'optional files'],
+      ['Diploma', 250.0, 'flat', false, 'Optional Attachment (Clearances, Old ID, etc)', 'optional files'],
     ];
     for (const [i, [name, fee, rule, reqAtt, label, helper]] of DOCUMENT_TYPES.entries()) {
       await pool.query(
@@ -365,7 +364,7 @@ async function migrate() {
            (name, base_fee, fee_rule, requires_attachment, attachment_label, attachment_helper, sort_order)
          VALUES (?, ?, ?, ?, ?, ?, ?)
          ON DUPLICATE KEY UPDATE
-           base_fee = VALUES(base_fee), fee_rule = VALUES(fee_rule),
+           base_fee = IF(name = 'Diploma', base_fee, VALUES(base_fee)), fee_rule = VALUES(fee_rule),
            requires_attachment = VALUES(requires_attachment),
            attachment_label = VALUES(attachment_label),
            attachment_helper = VALUES(attachment_helper),
@@ -712,6 +711,8 @@ async function migrate() {
       ('email_notice', 'Standard Email Notice')
     `);
 
+    await require('./migrate_8b').migrate(pool);
+    await require('./migrate_cn03_cn04').migrate(pool);
     console.log('✅ Database migration completed successfully.');
     process.exit(0);
   } catch (err) {

@@ -11,6 +11,7 @@ const gradApplicationRoutes = require('./routes/gradApplication.routes');
 const maintenanceRoutes = require('./routes/maintenance.routes');
 const reportRoutes = require('./routes/reports.routes');
 const aiRoutes = require('./routes/ai.routes');
+const templateRoutes = require('./routes/templates.routes');
 const errorHandler = require('./middlewares/errorHandler.middleware');
 const env = require('./config/env');
 const { corsOrigin } = require('./config/cors');
@@ -70,6 +71,8 @@ app.use('/api/grad-applications', gradApplicationRoutes);
 app.use('/api/maintenance', maintenanceRoutes);
 app.use('/api/reports', reportRoutes);
 app.use('/api/ai', aiRoutes);
+app.use('/api/templates', templateRoutes);
+app.use('/api/support', require('./routes/support.routes'));
 
 // Must be registered last.
 app.use(errorHandler);

@@ -110,10 +110,16 @@ export default function useGradApplicationReview(user, currentTab) {
 
   const cancelReview = useCallback(() => setReviewToConfirm(null), []);
 
+  const dismissNotification = useCallback(() => {
+    setSuccess('');
+    setError('');
+  }, []);
+
   return {
     loading,
     error,
     success,
+    dismissNotification,
     pendingApplications,
     approvedApplications,
     rejectedApplications,

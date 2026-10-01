@@ -1,4 +1,4 @@
-const pool = require('../config/db');
+const { pool } = require('../config/db');
 
 function list() {
   return pool.query('SELECT id, template_key, name, font_family, font_size, updated_at FROM system_templates ORDER BY id ASC').then(([rows]) => rows);

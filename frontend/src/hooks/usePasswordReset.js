@@ -1,5 +1,6 @@
-import { useCallback, useState } from 'react'
+import { useCallback, useRef, useState } from 'react'
 import { forgotPassword, resetPassword } from '@/services/authService'
+import { PASSWORD_REQUIREMENTS, validNewPassword } from '@/utils/passwordPolicy'
 
 /**
  * State and API calls for the two password-recovery screens, kept out of the
@@ -7,6 +8,7 @@ import { forgotPassword, resetPassword } from '@/services/authService'
  * useProfileSettings / ProfileSettingsModal).
  */
 export default function usePasswordReset() {
+  const busy = useRef(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [message, setMessage] = useState('')
@@ -21,6 +23,7 @@ export default function usePasswordReset() {
    * the generic response is designed to hide.
    */
   const requestLink = useCallback(async (identifier) => {
+    if (busy.current) return
     setError('')
     setMessage('')
     if (!identifier.trim()) {
@@ -28,6 +31,7 @@ export default function usePasswordReset() {
       return
     }
     setLoading(true)
+    busy.current = true
     try {
       const res = await forgotPassword(identifier.trim())
       setMessage(res.message)
@@ -36,26 +40,26 @@ export default function usePasswordReset() {
       setError(err.response?.data?.error || 'Could not start the password reset. Please try again.')
     } finally {
       setLoading(false)
+      busy.current = false
     }
   }, [])
 
   /** Set the new password using the single-use token from the emailed link. */
   const submitNewPassword = useCallback(async (token, password, confirmPassword) => {
+    if (busy.current) return
     setError('')
     setMessage('')
     if (!token) {
       setError('This reset link is missing its token. Please request a new one.')
       return
     }
-    if (password.length < 8) {
-      setError('Password must be at least 8 characters.')
-      return
-    }
     if (password !== confirmPassword) {
       setError('The two passwords do not match.')
       return
     }
+    if (!validNewPassword(password)) { setError(PASSWORD_REQUIREMENTS); return }
     setLoading(true)
+    busy.current = true
     try {
       const res = await resetPassword({ token, password })
       setMessage(res.message)
@@ -64,6 +68,7 @@ export default function usePasswordReset() {
       setError(err.response?.data?.error || 'Could not reset the password. Please try again.')
     } finally {
       setLoading(false)
+      busy.current = false
     }
   }, [])
 

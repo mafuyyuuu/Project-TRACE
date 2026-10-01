@@ -53,6 +53,7 @@ services:
       # Keep under the managed database's per-account connection cap.
       DB_POOL_LIMIT: ${DB_POOL_LIMIT:-10}
       JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required}
+      MFA_ENCRYPTION_KEY: ${MFA_ENCRYPTION_KEY:-}
       WEBHOOK_SECRET: ${WEBHOOK_SECRET:?WEBHOOK_SECRET is required}
       FRONTEND_URL: ${FRONTEND_URL:-}
       # Caddy is the single proxy hop in front of this.

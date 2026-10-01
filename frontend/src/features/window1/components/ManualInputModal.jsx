@@ -1,3 +1,5 @@
+import { isHonorableDismissal, isSameDayWalkInType } from '@/utils/documentPolicy';
+import { INPUT_LIMITS } from '@/utils/inputLimits';
 import ModalShell from '@/components/ModalShell';
 
 /**
@@ -14,32 +16,41 @@ export default function ManualInputModal({
   handleManualInputSubmit,
   handleFetchStudent,
   actionLoading,
+  documentTypes = [], documentTypesLoading = false,
 }) {
   const [docType, setDocType] = useState('');
   const [purpose, setPurpose] = useState('');
   const isGraduate = purpose === 'Graduation Clearance' || docType === 'Graduate Clearance';
   return (
-    <ModalShell open={open} onClose={onClose} title="Manual Input" maxWidth="max-w-3xl">
-      <p className="text-sm font-semibold text-gray-500 mb-8 leading-relaxed">
+    <ModalShell open={open} onClose={onClose} title="Manual Input" maxWidth="max-w-3xl" footer={<div className="flex justify-end pt-4">
+          <button
+            type="submit" form="manual-input-form"
+            disabled={actionLoading || isGraduate || documentTypesLoading || !documentTypes.length}
+            className="px-8 py-3 bg-[#15803d] hover:bg-[#166534] disabled:opacity-75 text-white font-bold rounded-xl text-xs shadow-md transition-all uppercase tracking-wider"
+          >
+            {actionLoading ? 'Saving...' : 'Submit Request'}
+          </button>
+        </div>}>
+      <p className="text-sm font-semibold text-gray-500 dark:text-gray-400 mb-8 leading-relaxed">
         Digitize physical walk-in requests and legacy records.
       </p>
 
-      <form onSubmit={handleManualInputSubmit} className="space-y-10">
+      <form id="manual-input-form" onSubmit={handleManualInputSubmit} className="space-y-10">
         {/* STUDENT INFORMATION */}
         <div>
-          <h3 className="text-xs font-black text-[#15803d] uppercase tracking-widest border-b border-gray-100 pb-3 mb-6">STUDENT INFORMATION</h3>
+          <h3 className="text-xs font-black text-[#15803d] dark:text-green-300 uppercase tracking-widest border-b border-gray-100 dark:border-gray-700 pb-3 mb-6">STUDENT INFORMATION</h3>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div className="flex flex-col gap-2">
-              <label className="text-[10px] font-bold text-gray-800 uppercase tracking-widest">Student ID</label>
+              <label className="text-[10px] font-bold text-gray-800 dark:text-gray-100 uppercase tracking-widest">Student ID</label>
               <div className="flex gap-2">
-                <input
+                <input maxLength={INPUT_LIMITS.id}
                   type="text"
                   name="studentId"
                   id="manual-student-id"
                   placeholder="e.g. 23-23922"
                   required
-                  className="flex-1 p-3 bg-gray-50 border border-gray-200 rounded-xl text-xs font-semibold focus:ring-2 focus:ring-[#15803d]/20 outline-none transition-all"
+                  className="flex-1 p-3 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-xs font-semibold focus:ring-2 focus:ring-[#15803d]/20 outline-none transition-all"
                 />
                 <button
                   type="button"
@@ -52,24 +63,24 @@ export default function ManualInputModal({
             </div>
 
             <div className="flex flex-col gap-2">
-              <label className="text-[10px] font-bold text-gray-800 uppercase tracking-widest">Full Name</label>
-              <input
+              <label className="text-[10px] font-bold text-gray-800 dark:text-gray-100 uppercase tracking-widest">Full Name</label>
+              <input maxLength={INPUT_LIMITS.name}
                 type="text"
                 name="fullName"
                 id="manual-full-name"
                 placeholder="Last Name, First Name"
                 required
-                className="p-3 bg-gray-50 border border-gray-200 rounded-xl text-xs font-semibold focus:ring-2 focus:ring-[#15803d]/20 outline-none transition-all"
+                className="p-3 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-xs font-semibold focus:ring-2 focus:ring-[#15803d]/20 outline-none transition-all"
               />
             </div>
 
             <div className="flex flex-col gap-2">
-              <label className="text-[10px] font-bold text-gray-800 uppercase tracking-widest">Course / Program</label>
+              <label className="text-[10px] font-bold text-gray-800 dark:text-gray-100 uppercase tracking-widest">Course / Program</label>
               <select
                 name="course"
                 id="manual-course"
                 required
-                className="p-3 bg-gray-50 border border-gray-200 rounded-xl text-xs font-semibold focus:ring-2 focus:ring-[#15803d]/20 outline-none transition-all cursor-pointer"
+                className="p-3 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-xs font-semibold focus:ring-2 focus:ring-[#15803d]/20 outline-none transition-all cursor-pointer"
               >
                 <option value="" disabled selected>Select Course...</option>
                 <option value="BSCS">BS Computer Science</option>
@@ -84,32 +95,39 @@ export default function ManualInputModal({
 
         {/* DOCUMENT DETAILS */}
         <div>
-          <h3 className="text-xs font-black text-[#15803d] uppercase tracking-widest border-b border-gray-100 pb-3 mb-6">DOCUMENT DETAILS</h3>
+          <h3 className="text-xs font-black text-[#15803d] dark:text-green-300 uppercase tracking-widest border-b border-gray-100 dark:border-gray-700 pb-3 mb-6">DOCUMENT DETAILS</h3>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="flex flex-col gap-2">
-              <label className="text-[10px] font-bold text-gray-800 uppercase tracking-widest">Requested Document</label>
+              <label className="text-[10px] font-bold text-gray-800 dark:text-gray-100 uppercase tracking-widest">Requested Document</label>
               <select
                 name="docType"
+                value={docType} onChange={e => setDocType(e.target.value)}
                 required
-                className="p-3 bg-gray-50 border border-gray-200 rounded-xl text-xs font-semibold focus:ring-2 focus:ring-[#15803d]/20 outline-none transition-all cursor-pointer"
+                className="p-3 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-xs font-semibold focus:ring-2 focus:ring-[#15803d]/20 outline-none transition-all cursor-pointer"
               >
-                <option value="" disabled selected>Document Type</option>
-                <option>Transcript of Records</option>
-                <option>Clearance</option>
-                <option>Certification</option>
-                <option>Diploma</option>
+                <option value="" disabled>Document Type</option>
+                {documentTypes.map(type => <option key={type.id || type.name} value={type.name}>{type.name}</option>)}
               </select>
             </div>
 
+            <label className="flex flex-col gap-2 text-sm font-bold">Copies
+              <input name="copies" type="number" required min="1" max={isHonorableDismissal(docType) ? 1 : 2147483647} step="1" defaultValue="1" className="p-3 border rounded-xl bg-transparent" />
+            </label>
+            {isSameDayWalkInType(docType) && <fieldset className="space-y-3 text-sm md:col-span-2">
+              <legend className="font-bold">Walk-in same-day eligibility</legend>
+              <p>Eligible only when the requester presents both the original document and its photocopy. Otherwise file for normal evaluation; no same-day promise.</p>
+              <label className="flex items-start gap-3"><input name="originalSeen" type="checkbox" className="mt-1 shrink-0" />Original document presented and checked</label>
+              <label className="flex items-start gap-3"><input name="photocopySeen" type="checkbox" className="mt-1 shrink-0" />Photocopy presented and checked</label>
+            </fieldset>}
             <div className="flex flex-col gap-2">
-              <label className="text-[10px] font-bold text-gray-800 uppercase tracking-widest">Purpose of Request</label>
+              <label className="text-[10px] font-bold text-gray-800 dark:text-gray-100 uppercase tracking-widest">Purpose of Request</label>
               <select
                 name="purpose"
                 required
                 value={purpose}
                 onChange={(e) => setPurpose(e.target.value)}
-                className="p-3 bg-gray-50 border border-gray-200 rounded-xl text-xs font-semibold focus:ring-2 focus:ring-[#15803d]/20 outline-none transition-all cursor-pointer"
+                className="p-3 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-xs font-semibold focus:ring-2 focus:ring-[#15803d]/20 outline-none transition-all cursor-pointer"
               >
                 <option value="" disabled selected>Purpose of Request</option>
                 <option>Graduation Clearance</option>
@@ -121,24 +139,15 @@ export default function ManualInputModal({
           </div>
 
           <div className="flex flex-col gap-2 mt-6">
-            <label className="text-[10px] font-bold text-gray-800 uppercase tracking-widest">Clerk Remarks / Notes (Optional)</label>
-            <textarea
+            <label className="text-[10px] font-bold text-gray-800 dark:text-gray-100 uppercase tracking-widest">Clerk Remarks / Notes (Optional)</label>
+            <textarea maxLength={INPUT_LIMITS.notes}
               name="remarks"
               placeholder="Enter remarks..."
-              className="p-4 bg-gray-50 border border-gray-200 rounded-xl text-xs font-semibold focus:ring-2 focus:ring-[#15803d]/20 outline-none transition-all h-28 resize-none"
+              className="p-4 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-xs font-semibold focus:ring-2 focus:ring-[#15803d]/20 outline-none transition-all h-28 resize-none"
             />
           </div>
         </div>
 
-        <div className="flex justify-end pt-4">
-          <button
-            type="submit"
-            disabled={actionLoading || isGraduate}
-            className="px-8 py-3 bg-[#15803d] hover:bg-[#166534] disabled:opacity-75 text-white font-bold rounded-xl text-xs shadow-md transition-all uppercase tracking-wider"
-          >
-            {actionLoading ? 'Saving...' : 'Submit Request'}
-          </button>
-        </div>
       </form>
     </ModalShell>
   );

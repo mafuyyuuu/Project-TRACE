@@ -132,3 +132,10 @@ describe('notifyInAppBulk', () => {
     expect(notificationModel.create).toHaveBeenCalledTimes(2);
   });
 });
+
+it('escapes user content in TRACE email HTML while preserving text', () => {
+  const html = service.emailHtml('<title>', 'A <script> & B');
+  expect(html).toContain('TRACE');
+  expect(html).toContain('&lt;script&gt;');
+  expect(html).not.toContain('<script>');
+});

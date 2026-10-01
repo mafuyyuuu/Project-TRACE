@@ -731,3 +731,243 @@ docker compose exec mysql mysql -uroot -p"$DB_PASSWORD" trace_db \
 **See also:** [`DEPLOYMENT_GUIDE.md`](DEPLOYMENT_GUIDE.md) for the deployment steps in order ·
 [`../README.md`](../README.md) for local setup and test accounts ·
 [`BACKEND_GUIDE.md`](BACKEND_GUIDE.md) for endpoints and schema.
+
+
+## Batch 8 Migration and Recognition-Cookie Acceptance
+
+No new environment variables are required. Existing `FRONTEND_URL`, SMTP values, database configuration, and `AI_ENGINE_URL` remain authoritative.
+
+Before rolling out the Batch 8 backend, back up the target database and review `backend/database/migrate_batch8.js`. With existing migrations already applied and the intended database configured, run from the repository root:
+
+```sh
+node backend/database/migrate_batch8.js
+```
+
+The script creates `security_logs` and `user_devices`, adds nullable `notifications.action_url`, reconciles auth columns (lockout, token version, pending email, and OTP/2FA fields), and adds separate login OTP code/expiry. Reruns tolerate existing tables/columns without overwriting their types or updating user records. It is explicit, not an API startup action. It has **not been run by this implementation session**. Apply it during a controlled backend rollout, then deploy the corresponding backend/frontend together, then verify a complete login, a second login from the same browser, and a login from a separate browser/profile. Expect first/new-browser notices, no repeated known-browser notice, and an internal Security link. Confirm pending signup notices open the matching admin review; verify SMTP delivery separately from bell delivery.
+
+### Existing installation: missing login audit table
+
+The original Batch 8 migration omitted `security_logs`, although the base schema defines it. Live staff OTP verification accepted a code, cleared it, then returned 500 when the audit insert found the table missing. Retrying that consumed code returned 401. This repair adds the existing schema definition to the explicit migration; it does not disable OTP or reset accounts.
+
+After the repaired revision is merged and pulled into the server checkout, run these commands from its repository root, one at a time. Stop if any command fails:
+
+```sh
+docker compose build backend
+docker compose run --rm --no-deps -T backend node database/migrate_batch8.js
+docker compose up -d --no-deps backend
+curl -fsS http://localhost:3300/api/health
+```
+
+The rebuild is necessary: the one-off migration reads the database scripts copied into the image, not the host checkout. Keep the verified database/uploads backup. Do not import `schema.sql`, reseed, or restore the database for this repair. The added `CREATE TABLE IF NOT EXISTS` leaves existing tables and audit rows intact; unexpected database errors still stop migration. Existing column types are not reconciled by a rerun.
+
+After migration completes, sign in again to request a fresh OTP, or use **Resend OTP** after its countdown once the updated frontend is deployed. Use the latest email. Verify completed sign-in and check backend logs; a healthy `/api/health` response alone does not prove login tables are complete. Promotion remains separate from applying this repair.
+
+### Login returns to the sign-in page after OTP
+
+The previous token issuer converted stored `token_version = 0` to `1`; the authentication middleware correctly rejected the mismatch on the next request. The repair preserves zero in both password and OTP login tokens. No additional migration or account-version update is needed for this correction. After the repaired commit reaches the server checkout, rebuild and recreate backend:
+
+```sh
+docker compose build backend
+docker compose up -d --no-deps backend
+curl -fsS http://localhost:3300/api/health
+```
+
+Request a fresh login/code after deployment. Confirm that `/api/auth/verify-2fa` succeeds, `/api/auth/me` returns 200 and the dashboard remains open. Do not bypass OTP or disable middleware revocation checks. If the audit-table repair has not been applied, apply its explicit migration above first.
+
+### Existing installation: missing student profile table
+
+Admin student lookup returned 500 because the live database lacks `student_profiles`. The lookup joins that table to read the existing personal/education fields. Its definition is present in `schema.sql`, but earlier upgrade migrations did not create it. Apply the standalone repair after the approved revision is merged and pulled into the server checkout. Run from its repository root, one command at a time; stop on any failure:
+
+```sh
+docker compose build backend
+docker compose run --rm --no-deps -T backend node database/migrate_student_profiles.js
+docker compose up -d --no-deps backend
+curl -fsS http://localhost:3300/api/health
+```
+
+The image rebuild includes the new migration script. Keep the verified database/uploads backup. The script uses only `CREATE TABLE IF NOT EXISTS`, matching the base schema and its `users(id)` foreign key. It preserves existing users and any existing profile table/records; it does not reconcile an existing table's columns or fabricate/backfill personal data. Existing users without a profile row return null for joined profile fields. Unexpected database errors propagate; no migration runs on import or API startup. Do not import the full schema, reseed or restore for this repair.
+
+Deploy the corresponding frontend import repair, then verify Admin Security Logs loads and an authorized student lookup succeeds. Check backend logs for missing-table errors. A health response checks connectivity only and does not establish profile lookup success. New Vercel deployment URLs still require the exact origin configuration below; production promotion remains separate.
+
+### Batch 10: Clerk browser-trust deployment
+
+After committing and pulling the approved revision into the server checkout, run these commands from its root, one at a time, stopping on failure:
+
+```sh
+docker compose build backend
+docker compose run --rm --no-deps -T backend node database/migrate_trusted_browsers.js
+docker compose up -d --no-deps backend
+curl -fsS http://localhost:3300/api/health
+```
+
+Keep the already verified database/uploads backup. This standalone migration creates only `trusted_browsers` with `CREATE TABLE IF NOT EXISTS`; existing users/profile records remain intact. The table references the existing `users(id)` and version column already covered by Batch 8. Do not reimport the full schema, reseed or restore for this change. No migration runs at API startup; without the new table, clerk trust falls back to OTP. Existing incompatible table definitions need investigation rather than automatic alteration. These commands have not been executed on the server in this scope.
+
+Deploy the matching frontend. No new environment variables are required: keep `VITE_API_URL` pointed at the HTTPS API and preserve the exact test origin in the root server `.env`'s `FRONTEND_URL`. If that allowlist changes, validate with `docker compose config --quiet` and recreate backend with `docker compose up -d --no-deps --force-recreate backend`. Obtain a fresh login/OTP after rollout: older pending tokens lack the newly required account-version binding. The Vercel CLI is not installed locally; installing it with `npm i -g vercel` is strongly recommended for `vercel env pull`, `vercel deploy` and `vercel logs`. No deployment or production promotion was performed here.
+
+Live acceptance, using authorized test accounts and without sharing credentials/cookie values:
+
+1. Admin receives OTP every login, including when personal mode is selected.
+2. A clerk in default shared mode always receives OTP and cannot choose browser trust. Shared mode also ignores and clears an earlier personal-browser cookie.
+3. A clerk selects personal mode by unchecking “This is a shared computer”, completes OTP and opts into “Trust this browser for today”. Confirm `trace_mfa_trust` is HttpOnly, host-only, scoped to `/api/auth` and expires at midnight Manila time. The raw value must not appear in JSON or logs.
+4. Ordinary logout, followed by another correct-password login with **personal mode selected again**, skips clerk OTP before expiry. An incorrect password never authenticates. Omitting personal mode intentionally forces OTP.
+5. Missing/cleared/blocked cookie or midnight expiry requires OTP. If privacy rules block cross-site cookies, complete OTP normally; do not disable browser privacy controls. Server expiry uses epoch milliseconds and does not depend on a browser clock.
+6. Password change, password reset and logout-all revoke the old proof and older pending OTP challenges. Existing JWT sessions also expire, including the current one; sign in again. Repeat attempts with old proof/challenge must fail or require OTP. Confirm transaction failures leave credentials unchanged.
+7. Student/alumni optional 2FA is unchanged. Confirm existing new-browser notification recognition still works after full authentication and does not grant MFA trust.
+
+Mocked automated tests and a successful health response do not establish real cookie, SMTP or transaction acceptance. The existing `/api` CORS/credential configuration is required; third-party cookie policies still apply regardless ([MDN](https://developer.mozilla.org/en-US/docs/Web/HTTP/Guides/CORS#requests_with_credentials)). No automatic physical-device detection, session redesign, or other Batch 10 feature is included.
+
+### New staged URL: API origin and protected manifest
+
+Each new Vercel deployment hostname is a different origin. Append only the intended test origin to the server root `.env`'s comma-separated `FRONTEND_URL`, preserving existing production/staging entries and omitting trailing slashes. Run `docker compose config --quiet`, then `docker compose up -d --no-deps --force-recreate backend` to load the environment. A plain restart retains the previous Compose environment. Recheck preflight headers for the exact URL: HTTP 204 without a matching `Access-Control-Allow-Origin` still blocks login before password validation. Keep production-domain promotion pending until the matching frontend/backend pass.
+
+The manifest uses the existing `frontend/public/favicon.svg`, declared as `image/svg+xml` with scalable `sizes: any`, and the build includes that asset. Missing PNG references have been removed. `VitePWA.useCredentials: true` generates `crossorigin="use-credentials"` on the manifest link so its request carries the browser's Vercel session on protected deployments. Verify the new deployment's manifest and icon rather than reusing an earlier deployment URL; old artifacts may continue to reference missing icons. Vercel SSO redirects while fetching the manifest are a separate protection/credential boundary from the API allowlist. Do not disable deployment protection to hide that error. Physical-device installation and protected-deployment acceptance remain required.
+
+For authenticated inspection of protected deployments, install the Vercel CLI with `npm i -g vercel`; use `vercel whoami` to check your identity, then `vercel curl <exact-deployment-url>`. Authenticate if the CLI reports no user. Do not paste session tokens or bypass secrets into source or logs. This CLI installation is recommended for deployment diagnostics; it is not required for the backend SSH repair.
+
+Axios includes credentials while JWT authentication remains in its existing header. The HttpOnly recognition cookie is scoped to `/api/auth` for one year. HTTPS frontend configuration uses `Secure` plus `SameSite=None`; local HTTP uses `SameSite=Lax`. The existing CORS allowlist must include the exact frontend origin and credential support remains enabled. HTTPS API access is required for Secure cookies.
+
+Brave/Safari privacy controls can block cross-site cookies even with those attributes. Prefer a same-site frontend/API domain arrangement or a same-origin `/api` proxy when persistent recognition is required; confirm the cookie is set and sent in the actual browser. A cleared/blocked cookie can generate repeat new-browser notices. Do not disable browser privacy settings or treat this cookie as authentication. No browser/device integration acceptance is claimed from mocked service tests.
+
+Older shared OTP challenges are not accepted by the separated flows. Sign in again for a fresh login code; for a pending email change, save the desired address again with the current password to request a fresh email code. The read-only database metadata check found the original auth columns in the configured database, despite their absence from repository DDL; separate login OTP columns still require migration.
+
+The AI timeout is 15 seconds per request, covering response parsing. Test a genuine alumni Diploma registration against the configured engine before calling SU-08 accepted; this session tested controlled timeout/fallback cases without creating live accounts or uploading real proofs.
+
+
+## Batch 8b Migration and Acceptance
+
+No new environment variables or dependencies are required. Review the migration and back up the intended database/uploads before rollout. Apply existing base migrations first, then run explicitly from the repository root:
+
+```sh
+node backend/database/migrate_8b.js
+```
+
+This adds policy columns to `document_types`, creates `document_type_colleges`, reconciles `users.college_id`/its foreign key, backfills only byte-exact college-name matches, enforces Honorable Dismissal's nonrepeat flag, and inserts four missing counter types as **inactive, zero-fee drafts**. Existing type records/fees/activation are preserved. Unmatched college assignments remain null for Admin review. Legacy policy columns previously placed on `colleges` are not dropped. Fresh schema imports now create colleges before users. DDL may commit independently in MySQL; errors other than a duplicate column propagate, and the migration can be rerun after resolving them. No migration was applied during implementation.
+
+Deploy the backend/schema and frontend together, and rebuild the separate AI-engine container for `/ocr/identity` and its parser. Imports do not execute the 8b migration, and the API does not migrate on startup. Admin must review fees and activate the counter drafts; zero is a placeholder, not an approved charge. The photocopy policy remains pending.
+
+Before live acceptance, verify new alumni login identifiers and saved college IDs, exact-only legacy backfill, forged/cross-college/counter-only requests, simultaneous Honorable Dismissal attempts, cancellation retry, protected profile/proof access, and rollback on a failed college-restriction write against MySQL. Test genuine ID/diploma images against the engine, including timeout/manual fallback and temporary-file cleanup. PDF upload acceptance does not guarantee OCR extraction. Synthetic browser/API and mocked tests do not establish live database/OCR acceptance, and desktop emulation does not replace a physical phone.
+
+
+## Batch 10 Fee Schedule Deployment and Acceptance
+
+These changes are local until the approved revision is committed, reviewed and pulled into the server checkout. Keep a verified database/uploads backup. Schedule a maintenance window so writers cannot change rates or requests during the upgrade. From the server repository root, run each command separately and stop on failure:
+
+```sh
+docker compose stop backend ai-engine n8n
+docker compose build backend
+docker compose run --rm --no-deps -T backend node database/migrate_fee_schedules.js
+docker compose up -d --no-deps backend ai-engine n8n
+curl -fsS http://localhost:3300/api/health
+```
+
+Use the service names in this repository's Compose file. The rebuilt backend image contains the explicit migration. Do not import the full schema or reseed. The script adds missing rental/special columns (default zero), request snapshot/breakdown JSON columns, TEXT pricing notes, a nullable `documents.document_sequence_number` (VARCHAR(255)), and the fee-schedule table. The sequence column fixes the confirmed Certificate of Transfer insert error; existing columns and rows are preserved, with no invented sequence backfill. It preserves existing rates, users, profiles and billed amounts. It does not repair unrelated missing tables. The previously approved `migrate_student_profiles.js` must already have been applied: profile reads and the request gate join that table. MySQL DDL auto-commits; stop on error, diagnose, then rerun the idempotent script. An already existing incompatible schedule table needs manual review. No startup migration, new dependency or environment variable is introduced.
+
+Deploy the matching frontend with its existing HTTPS `VITE_API_URL` and exact API CORS origin configuration. The Vercel CLI is not installed locally; installing `npm i -g vercel` is strongly recommended for deployment/env/log tooling. No server migration or Vercel deployment was performed in this scope.
+
+Use synthetic authorized accounts for acceptance:
+
+1. Admin saves a default page rate, Rental/Special Fee and a named item, then a complete college override. Reload and verify both schedules persisted. A clerk cannot change rates.
+2. Student filing shows rates only, including TOR per-page rate; no estimate total. TOR requires Year Started/Year Ended, with invalid or reversed years blocked.
+3. File two copies of a three-page TOR at ₱100/page with Rental ₱20, Special ₱30 and Certification ₱10. Secretary enters three pages per copy. The final bill is ₱660: ₱600 base + ₱60 extras, each extra once.
+4. Change the Admin rate after filing. That pending request still prices from its saved schedule. A later request uses the new rate. Confirm a college override (including zero extras) replaces the default.
+5. Price each document in a multi-document request. It becomes payable only after the last one. Check dashboard, checkout, Finance review and the printed payment slip show the same saved breakdown/total. Verify payment separately through Finance.
+6. An already billed historical record keeps its amount without an invented breakdown. An older unpriced request shows current rates and cannot be priced until Secretary explicitly reviews them.
+7. An incomplete student sees the missing-field popup at New Request and can open Edit Profile directly. An API submission also returns 403 before request/log writes. Save a complete profile, reload, and verify progress and eligibility agree. Check History succeeds and a complete student can file Certificate of Transfer without an attachment when its rule says none.
+8. Check Preferences at every size, on a narrow and desktop viewport: header wrapping, profile scroll/Save, expanded FAQ answers, table horizontal scroll and chart labels. Reset to 100% and check printing stays unchanged.
+9. Check migration and API logs without posting credentials or real student records. A health response confirms connectivity only; it does not establish real SQL transaction, printed-slip or role-flow acceptance.
+
+The pricing/payment authority split is retained. FIN-01–FIN-05, authenticator enrollment and general Window 1 support remain separate pending scopes. Text-size preferences, FAQ/photo UI and the approved profile-completion repair are implemented locally; live acceptance still requires the matching frontend/backend and explicit migrations.
+
+## Batch 10 Authenticator, Sessions, Finance and Registrar Policy Rollout
+
+This continuation implements these features locally. Earlier “pending scope” statements above are historical. Deploy the matching frontend and backend together. No live migration or deployment was performed during implementation.
+
+Review the scripts, retain the verified database/uploads backup, and apply the existing base, Batch 8b, student-profile, trusted-browser, OTP separation and fee-schedule migrations first. Existing installations must use the explicit migrations; do not reimport schema.sql or reseed. Build the updated backend image before running the following, one command at a time, stopping on any failure:
+
+```bash
+docker compose build backend
+docker compose run --rm --no-deps -T backend node database/migrate_authenticator.js
+docker compose run --rm --no-deps -T backend node database/migrate_sessions.js
+docker compose run --rm --no-deps -T backend node database/migrate_finance_receipts.js
+docker compose run --rm --no-deps -T backend node database/migrate_registrar_policy.js
+docker compose run --rm --no-deps -T backend node database/migrate_request_attachments.js
+```
+
+Configure `MFA_ENCRYPTION_KEY` in the server root `.env` as a dedicated random 32-byte key encoded in 64 hexadecimal characters. Keep it out of source, browser variables, logs and shared screenshots. Store its backup securely: changing or losing it prevents decryption of enrolled authenticators. Do not reuse JWT_SECRET. Compose passes it only to the backend. Setup remains unavailable until configured; the Security panel must show the reason/retry rather than silently omit the option. Once configured and migrations finish, recreate the backend:
+
+```bash
+docker compose up -d --no-deps backend
+```
+
+The new tables use CREATE TABLE IF NOT EXISTS. Receipt columns are nullable; old timestamps remain unknown rather than fabricated. Registrar migration adds a false-by-default request eligibility flag, reconciles reference repeat rules and the four walk-in types, and does not activate inactive fee drafts. Admin must approve their rates before activation. Attachment records preserve each upload and its requester, uploader and reviewer. DDL can auto-commit independently; investigate errors or incompatible existing definitions before rerunning.
+
+Acceptance on the deployed system:
+
+- Every role can open Edit Profile → Security → Authenticator App. Test QR/manual enrollment, confirmation, one-time recovery-code display/download, app login and single-use recovery. Replayed/expired/pending challenges cannot access REST or Socket.IO, and email OTP cannot bypass an enrolled app.
+- Admin challenges each login. Clerk personal-browser trust expires at Manila midnight; a new/shared browser challenges. Enrolled students use app/recovery codes at login. Unenrolled students do not gain a new first-login email OTP requirement from this change.
+- Logout revokes this session on the server; a copied old token and its socket stop working. Logout other devices rotates the current session while invalidating other sessions. Staff deactivation stops REST/socket access and sends the owner notice; confirm real SMTP delivery separately.
+- Student messages appear in Window 1's inbox even before a clerk is assigned. Replies return to the owning student. Check notifications, unread counts, polling, stale-tab cancellation, failed sends preserving drafts and successful sends followed by failed refreshes without duplicate drafts.
+- Registrar requests a named attachment from Messages & Attachments; the student confirms a JPG/PNG/PDF upload (10 MB maximum). Review Accept or Request resubmission with notes. Verify other students and Secretaries from another college cannot read or upload the file, and an attachment action does not change the request stage.
+- Non-Honorable-Dismissal requests allow repeats and varying quantities; Honorable Dismissal retains one copy and no second active/completed request. CTC, 2nd Copy of COR, 2nd Copy of OGR and CAV receive a same-day eligibility marker only after the counter clerk checks both original and photocopy. No stage bypass or automatic deadline is implied.
+- At exactly 4:00 PM Manila, Finance must choose Later for a new same-day OR. Payment clearance immediately acknowledges payment; actual OR publication separately sends the digital-copy availability notice and routes to Secretary. On a later eligible day, use the actual number/date and preserve existing numbers. Secretary must inspect an issued OR or explicitly acknowledge physical inspection before handoff.
+- Finance Transactions & Export shows cleared payments once per request group, correct totals, receipt states and elapsed issuance wait. Check populated CSV filters, dates, peso amounts and spreadsheet-formula escaping. Historic unknown clearance times remain clearly unknown.
+- Check 320/375/768/desktop widths, both themes and 100–200% text preferences with populated messages, attachments, Finance tables and authenticator settings. Synthetic browser/mocked tests do not establish real SQL concurrency, mail, cookies or physical-phone acceptance.
+
+The institution has not supplied the delay-notification threshold or an OR service deadline/holiday calendar. Automatic overdue alerts remain on hold. The final continuation below adds signup/email-change links and other reviewed account/document changes to these rollout steps.
+
+## Final continuation: existing-server rollout and missing-table repair
+
+For a single ordered walkthrough covering source preparation, a fresh database/uploads backup, configuration, all incremental prerequisites, stop-on-failure migrations, schema check and live verification, use [MIGRATION_ROLLOUT.md](MIGRATION_ROLLOUT.md). The commands below remain the continuation-only list after its prerequisites are satisfied.
+
+These source changes must be reviewed/merged and pulled into the server checkout before their new migration files exist there. Rebuild the image from that checkout. Configure the existing `MFA_ENCRYPTION_KEY`, stable `JWT_SECRET`, Gmail SMTP settings and `FRONTEND_URL` first; the first configured frontend origin is used for email-link destinations and must be the intended HTTPS site. The key is a separate 32-byte random secret: generate with `openssl rand -hex 32`, save only in the server root `.env`/secure backup, never a `VITE_` variable. Do not rotate an existing key with enrolled authenticators.
+
+Keep a verified database/uploads backup and pause writers during rollout, including AI/n8n jobs that can write to the database. Stop on the first failed command. Base schema/security/password-reset/history tables, Batch 8/8b, student profiles, trusted browsers and catalog migrations remain prerequisites. Do not import the complete schema into production, reseed, remove volumes, or run `migration_phase3.js` (a code-generation helper) as a repair.
+
+Run commands individually from the SSH repository root after pulling the reviewed revision:
+
+```bash
+docker compose stop backend ai-engine n8n
+docker compose build backend
+docker compose run --rm --no-deps -T backend node database/migrate_fee_schedules.js
+docker compose run --rm --no-deps -T backend node database/migrate_authenticator.js
+docker compose run --rm --no-deps -T backend node database/migrate_sessions.js
+docker compose run --rm --no-deps -T backend node database/migrate_finance_receipts.js
+docker compose run --rm --no-deps -T backend node database/migrate_registrar_policy.js
+docker compose run --rm --no-deps -T backend node database/migrate_request_attachments.js
+docker compose run --rm --no-deps -T backend node database/migrate_document_messages.js
+docker compose run --rm --no-deps -T backend node database/migrate_templates.js
+docker compose run --rm --no-deps -T backend node database/migrate_program.js
+docker compose run --rm --no-deps -T backend node database/migrate_email_verification.js
+docker compose run --rm --no-deps -T backend node database/migrate_support_messages.js
+docker compose run --rm --no-deps -T backend node database/migrate_request_sequences.js
+docker compose run --rm --no-deps -T backend node database/migrate_staff_authenticator_setup.js
+docker compose run --rm --no-deps -T backend node database/check_schema.js
+docker compose up -d --no-deps backend ai-engine n8n
+docker compose ps
+```
+
+Do not resume writers until the presence check passes. That check reads metadata and identifies the responsible scripts; it does not validate types, constraints, rates, data or live transactions. Existing incompatible table definitions need review rather than destructive replacement. These scripts preserve records/rates/layouts, but MySQL DDL may auto-commit; investigate a failure before rerunning. They are never automatic API startup migrations. Pair the matching frontend deployment with the backend/schema update.
+
+Confirmed server failures map to these scripts:
+
+| Error | Explicit repair |
+| --- | --- |
+| Missing `authenticator_credentials` at login | `migrate_authenticator.js`; the user subsequently reported login working. |
+| Missing `document_fee_schedules`, `document_types.rental_fee` or sequence column | `migrate_fee_schedules.js`. |
+| Missing `document_messages` at the inbox | `migrate_document_messages.js`. |
+| Missing `system_templates` | `migrate_templates.js`; creates only missing catalog keys without overwriting saved layouts. |
+| Missing `request_attachment_uploads` when reading a proof/avatar | `migrate_request_attachments.js`; file authorization consults case-attachment ownership first. |
+
+Check one-line `docker compose ps`; entering `docker` and `compose ps` on separate lines runs different commands. A browser stack trace alone cannot establish a SQL or WebSocket cause. After repair, reproduce once and inspect backend/Caddy logs with a short time window. Successful polling does not prove WebSocket upgrade. Never paste tokens, OTPs, setup/recovery codes, keys or personal records into logs/shared reports.
+
+Additional live acceptance:
+
+- Existing and new students verify email by a single-use link, separate from ID approval. Signup accepts any email domain. A new alumni account remains restricted to its graduate form and necessary recovery/logout until submission. Incomplete/unverified students cannot submit through the API; General support remains available for email help after the alumni form gate.
+- Test changed phone persistence; password requirements/history; old reset-link invalidation after credential changes; concurrent reset/link use; real owner notices; pending email retaining the old address, followed by verification, session invalidation and old/new-address notices.
+- Admin opens an active clerk account in Accounts, confirms their Admin password and issues a private ten-minute initial setup code after identity checking. On `/staff-setup`, the clerk supplies their own ID/password and that code, scans the QR/manual key and confirms an app code. No dashboard session exists before confirmation. Save recovery codes. Test expired/replaced/used codes and five failed attempts; an already-enrolled factor cannot be replaced with a setup code. Email-free staff use app/recovery codes on later login. Already-enrolled lost-factor recovery still needs an institutional identity-recovery process.
+- The initial login form has no shared-computer checkbox. Only a clerk factor challenge offers unchecked personal-browser trust; consent saves a preference only after a server-confirmed grant. Admin always verifies; students receive no new first/new-browser email-OTP policy. Clerk Security can forget the preference, making the next login clear trust/use shared verification. Test midnight expiry and actual cross-site cookie behavior.
+- General support works with no request, with private student ownership and Window 1 replies. Case attachments remain separately authorized. Program/Course is distinct from College on signup/profile/slips/Finance review/export; old missing values remain unknown. Submission QR points to the current TRACE origin with the chosen applicant type.
+- Verify numbering under concurrent requests, cancellation and identity/type corrections. Existing labels are preserved; original issuance requires Window 1's explicit evidence note. Deleted history cannot be reconstructed. Rates and final historical calculations remain intact.
+- Test Admin saved layouts in the payment slip and an actual email. Allowed markup/variables preserve the tracking QR and safe clickable verification/reset links. Check 100–200% text and mobile widths with populated data, and perform the original physical-phone tracker/input/Back-to-Login checks.
+
+This round adds `sanitize-html` to backend dependencies; the rebuilt image installs the lockfile. Local mocked tests/build are not acceptance of live MySQL concurrency, SMTP, genuine app enrollment, uploaded records, physical phones or payment-provider behavior.

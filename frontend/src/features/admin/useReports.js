@@ -1,3 +1,4 @@
+import useViewportPagination from '@/hooks/useViewportPagination';
 import { useState, useEffect, useCallback } from 'react';
 import {
   getDocumentReport,
@@ -31,7 +32,15 @@ export default function useReports(user, currentTab) {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
-  const isActive = user?.role === 'admin' && (currentTab === 'admin-reports' || currentTab === 'admin-analytics');
+  const dismissNotification = useCallback(() => {
+    setSuccess('');
+    setError('');
+  }, []);
+
+  const isActive = (user?.role === 'admin' && ['admin-reports', 'admin-analytics'].includes(currentTab)) ||
+    (user?.role === 'clerk' && ['Window 1', 'Secretary'].includes(user.desk_assignment) && currentTab === 'reports');
+
+  const pagination = useViewportPagination({ page, setPage, total: report?.total || 0, fallback: 25, enabled: isActive });
 
   /** Strip blanks so an untouched filter isn't sent as an empty string. */
   const activeFilters = Object.fromEntries(Object.entries(filters).filter(([, v]) => v !== ''));
@@ -40,7 +49,7 @@ export default function useReports(user, currentTab) {
     async (nextPage = page, nextFilters = activeFilters) => {
       try {
         const [r, a] = await Promise.allSettled([
-          getDocumentReport({ ...nextFilters, page: nextPage, limit: 25 }),
+          getDocumentReport({ ...nextFilters, page: nextPage, limit: pagination.pageSize }),
           getAnalytics(nextFilters),
         ]);
 
@@ -54,7 +63,7 @@ export default function useReports(user, currentTab) {
     },
     // activeFilters is derived from `filters`, which is the real dependency.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [page, filters]
+    [page, filters, pagination.pageSize]
   );
 
   useEffect(() => {
@@ -95,10 +104,10 @@ export default function useReports(user, currentTab) {
       try {
         const filename = await exportStudentsCsv(category);
         setSuccess(`Exported ${filename}`);
-        setTimeout(() => setSuccess(''), 4000);
+        setError('');
       } catch {
         setError('Export failed.');
-        setTimeout(() => setError(''), 4000);
+        setSuccess('');
       } finally {
         setExporting('');
       }
@@ -111,10 +120,10 @@ export default function useReports(user, currentTab) {
     try {
       const filename = await exportDocumentsCsv(activeFilters);
       setSuccess(`Exported ${filename}`);
-      setTimeout(() => setSuccess(''), 4000);
+      setError('');
     } catch {
       setError('Export failed.');
-      setTimeout(() => setError(''), 4000);
+      setSuccess('');
     } finally {
       setExporting('');
     }
@@ -122,9 +131,11 @@ export default function useReports(user, currentTab) {
   }, [filters]);
 
   return {
+    tableRef: pagination.containerRef,
     filters, updateFilter, applyFilters, resetFilters,
     report, analytics, page, goToPage,
     loading, exporting, error, success,
+    dismissNotification,
     downloadStudents, downloadDocuments,
   };
 }

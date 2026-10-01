@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
+import { disconnectRealtime } from '@/services/realtimeService';
 import { useNavigate } from 'react-router-dom';
-import { getMe, login as apiLogin, register as apiRegister } from '@/services/authService';
+import { getMe, login as apiLogin, register as apiRegister, endSession } from '@/services/authService';
 
 /**
  * Global authentication state: the current user, plus login/logout/register.
@@ -40,29 +41,47 @@ export function useAuth() {
     }
   }, []);
 
+  useEffect(() => {
+    const sync = (event) => setUser(current => ({ ...current, ...event.detail }));
+    window.addEventListener('trace-user-updated', sync);
+    return () => window.removeEventListener('trace-user-updated', sync);
+  }, []);
+
   const login = async (credentials) => {
     setLoading(true);
     setError('');
     try {
       const data = await apiLogin(credentials);
+      if (data.requires_2fa || data.requires_authenticator_setup) return data;
       localStorage.setItem('trace_token', data.token);
       if (data.user) {
         localStorage.setItem('trace_user', JSON.stringify(data.user));
         setUser(data.user);
       }
       navigate('/dashboard');
+      return data;
     } catch (err) {
       setError(err.response?.data?.message || err.response?.data?.error || 'Authentication failed. Please try again.');
+      return undefined;
     } finally {
       setLoading(false);
     }
   };
 
-  const logout = () => {
-    localStorage.removeItem('trace_token');
-    localStorage.removeItem('trace_user');
-    setUser(null);
-    navigate('/');
+  const logout = async () => {
+    setLoading(true);
+    try {
+      await endSession();
+      disconnectRealtime();
+      localStorage.removeItem('trace_token');
+      localStorage.removeItem('trace_user');
+      setUser(null);
+      navigate('/');
+      return true;
+    } catch {
+      setError('Could not confirm logout. Retry while connected to end this session.');
+      return false;
+    } finally { setLoading(false); }
   };
 
   const register = async (credentials) => {
@@ -92,7 +111,14 @@ export function useAuth() {
     });
   };
 
-  return { user, loading, error, login, logout, register, updateCachedUser };
+  const refreshUser = async () => {
+    const { user: fresh } = await getMe();
+    localStorage.setItem('trace_user', JSON.stringify(fresh));
+    window.dispatchEvent(new CustomEvent('trace-user-updated', { detail: fresh }));
+    return fresh;
+  };
+
+  return { user, loading, error, login, logout, register, updateCachedUser, refreshUser };
 }
 
 export default useAuth;

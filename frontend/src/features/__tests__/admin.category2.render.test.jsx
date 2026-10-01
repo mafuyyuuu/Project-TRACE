@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { STATUS } from '@/utils/documentStatus';
-import { render, screen, waitFor, within } from '@testing-library/react';
+import { render, renderHook, act, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
 /**
@@ -10,6 +10,16 @@ import userEvent from '@testing-library/user-event';
  * "deactivate" is not a delete, that exports respect the on-screen filters, and
  * that staff figures are presented as workload rather than a ranking.
  */
+
+vi.mock('@/services/authService', () => ({ getUsers: vi.fn(), getPendingStudents: vi.fn(), verifyStudent: vi.fn() }));
+import { getUsers, getPendingStudents, verifyStudent } from '@/services/authService';
+vi.mock('@/services/documentsService', () => ({
+  getDocuments: vi.fn().mockResolvedValue({ documents: [] }),
+  getDashboardStats: vi.fn().mockResolvedValue({}),
+  getForecast: vi.fn().mockResolvedValue({ forecast: [] }),
+  getInsights: vi.fn().mockResolvedValue({ insights: [] }),
+  getActivityLogs: vi.fn().mockResolvedValue({ logs: [] }),
+}));
 
 vi.mock('@/services/maintenanceService', () => ({
   getStaff: vi.fn(), createStaff: vi.fn(), updateStaff: vi.fn(), setStaffActive: vi.fn(),
@@ -28,6 +38,8 @@ import * as reportsService from '@/services/reportsService';
 import MaintenancePanel from '@/features/admin/components/MaintenancePanel';
 import ReportsPanel from '@/features/admin/components/ReportsPanel';
 import AnalyticsPanel from '@/features/admin/components/AnalyticsPanel';
+import AccountVerificationModal from '@/features/admin/components/AccountVerificationModal';
+import useAdminDashboard from '@/features/admin/useAdminDashboard';
 
 const ADMIN = { id: 7, role: 'admin', full_name: 'Registrar Admin' };
 
@@ -77,6 +89,8 @@ const ANALYTICS = {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  getUsers.mockResolvedValue({ users: STAFF });
+  getPendingStudents.mockResolvedValue({ pending_students: [{ id: 22, full_name: 'Alumni Applicant', student_id: 'ALU-22' }] });
   maintenanceService.getStaff.mockResolvedValue({ staff: STAFF });
   maintenanceService.getDocumentTypes.mockResolvedValue({ document_types: DOC_TYPES });
   maintenanceService.getColleges.mockResolvedValue({ colleges: COLLEGES });
@@ -85,6 +99,9 @@ beforeEach(() => {
   maintenanceService.setStaffActive.mockResolvedValue({ message: 'Staff account deactivated.' });
   maintenanceService.setDocumentTypeActive.mockResolvedValue({ message: 'Document type deactivated.' });
   maintenanceService.createPaymentMethod.mockResolvedValue({ message: 'Payment method created.' });
+  maintenanceService.createCollege.mockResolvedValue({ message: 'College created.' });
+  maintenanceService.createDocumentType.mockResolvedValue({ message: 'Document type created.' });
+  maintenanceService.updateDocumentType.mockResolvedValue({ message: 'Document type updated.' });
   maintenanceService.setPaymentMethodActive.mockResolvedValue({ message: 'Payment method deactivated.' });
 
   reportsService.getDocumentReport.mockResolvedValue(REPORT);
@@ -93,8 +110,62 @@ beforeEach(() => {
   reportsService.exportDocumentsCsv.mockResolvedValue('documents-report-2026-08-24.csv');
 });
 
+it('edits audience, fees and college restrictions only after a confirmed save', async () => {
+  const user = userEvent.setup();
+  render(<MaintenancePanel user={ADMIN} currentTab="admin-maintenance" />);
+  await screen.findByText('System');
+  await user.click(screen.getByRole('button', { name: /Document Types/ }));
+  const row = screen.getByText('Transcript of Records').closest('tr');
+  await user.click(within(row).getByRole('button', { name: 'Edit' }));
+  await user.selectOptions(screen.getByRole('option', { name: 'Alumni Only' }).parentElement, 'alumni');
+  await user.click(screen.getByRole('checkbox', { name: 'College of Computer Studies' }));
+  await user.clear(screen.getByPlaceholderText('Base fee (₱)'));
+  await user.type(screen.getByPlaceholderText('Base fee (₱)'), '75');
+  await user.click(screen.getByRole('button', { name: 'Save Changes' }));
+  expect(maintenanceService.updateDocumentType).not.toHaveBeenCalled();
+  await user.keyboard('{Escape}');
+  expect(screen.getByPlaceholderText('Base fee (₱)')).toHaveValue(75);
+  await user.click(screen.getByRole('button', { name: 'Save Changes' }));
+  await user.click(within(screen.getByRole('dialog', { name: 'Confirm Document Type' })).getByRole('button', { name: 'Save' }));
+  await waitFor(() => expect(maintenanceService.updateDocumentType).toHaveBeenCalledWith(1,
+    expect.objectContaining({ available_to: 'alumni', allowed_college_ids: [1], base_fee: '75' })));
+});
+
 const settle = async () =>
   waitFor(() => expect(screen.queryByText(/Synchronizing Command Center/i)).not.toBeInTheDocument());
+
+describe('Registration review', () => {
+  it('opens a notification after SPA navigation and permits reopening it without submitting a decision', async () => {
+    const { result, rerender } = renderHook(({ id, navigation }) => useAdminDashboard(ADMIN, 'dashboard', id, navigation), {
+      initialProps: { id: null, navigation: null },
+    });
+    await waitFor(() => expect(result.current.pendingStudents).toHaveLength(1));
+    expect(result.current.studentVerifyToConfirm).toBeNull();
+    rerender({ id: '22', navigation: 'first-click' });
+    await waitFor(() => expect(result.current.studentVerifyToConfirm?.student.id).toBe(22));
+    act(() => result.current.cancelAdminVerifyStudent());
+    expect(result.current.studentVerifyToConfirm).toBeNull();
+    rerender({ id: '22', navigation: 'second-click' });
+    await waitFor(() => expect(result.current.studentVerifyToConfirm?.student.id).toBe(22));
+    expect(verifyStudent).not.toHaveBeenCalled();
+  });
+
+  it.each(['verify', 'reject'])('requires a separate confirmation before %s and supports cancellation', async (decision) => {
+    const user = userEvent.setup();
+    const confirm = vi.fn();
+    render(<AccountVerificationModal studentVerifyToConfirm={{ student: { id: 22, full_name: 'Alumni Applicant', student_id: 'ALU-22' }, action: 'review' }}
+      cancelAdminVerifyStudent={vi.fn()} confirmAdminVerifyStudent={confirm} actionLoading={false} setViewImageUrl={vi.fn()} />);
+    const label = decision === 'verify' ? 'Verify' : 'Reject';
+    await user.click(screen.getByRole('button', { name: label, exact: true }));
+    expect(confirm).not.toHaveBeenCalled();
+    await user.keyboard('{Escape}');
+    expect(screen.getByRole('dialog', { name: 'Review Registration' })).toBeInTheDocument();
+    expect(confirm).not.toHaveBeenCalled();
+    await user.click(screen.getByRole('button', { name: label, exact: true }));
+    await user.click(within(screen.getByRole('dialog', { name: `${label} Account` })).getByRole('button', { name: `${label} Account` }));
+    expect(confirm).toHaveBeenCalledExactlyOnceWith(decision);
+  });
+});
 
 describe('MaintenancePanel', () => {
   const renderPanel = async () => {
@@ -166,6 +237,9 @@ describe('MaintenancePanel', () => {
     await user.type(screen.getByPlaceholderText(/Temporary password/), 'temporary-1234');
     await user.click(screen.getByRole('button', { name: /create account/i }));
 
+    expect(maintenanceService.createStaff).not.toHaveBeenCalled();
+    const confirmation = await screen.findByRole('dialog', { name: /confirm staff account/i });
+    await user.click(within(confirmation).getByRole('button', { name: /create account/i }));
     await waitFor(() => expect(maintenanceService.createStaff).toHaveBeenCalled());
     expect(maintenanceService.createStaff).toHaveBeenCalledWith(
       expect.objectContaining({ employee_id: 'CLERK99', full_name: 'New Clerk', role: 'clerk' })
@@ -177,6 +251,36 @@ describe('MaintenancePanel', () => {
     await renderPanel();
     await user.click(await screen.findByRole('button', { name: /\+ add user/i }));
     expect(await screen.findByText(/replace it at first login/i)).toBeInTheDocument();
+  });
+
+  it('preserves a college draft after cancelling and creates it only after confirmation', async () => {
+    const user = userEvent.setup();
+    await renderPanel();
+    await user.click(screen.getByRole('button', { name: /Colleges/ }));
+    const name = screen.getByPlaceholderText('College name *');
+    await user.type(name, 'College of Engineering');
+    await user.type(screen.getByPlaceholderText('Short code (e.g. CCS)'), 'COE');
+    await user.click(screen.getByRole('button', { name: 'Create College' }));
+    expect(maintenanceService.createCollege).not.toHaveBeenCalled();
+    await user.keyboard('{Escape}');
+    expect(name).toHaveValue('College of Engineering');
+    await user.click(screen.getByRole('button', { name: 'Create College' }));
+    await user.click(within(screen.getByRole('dialog', { name: 'Confirm College' })).getByRole('button', { name: 'Save' }));
+    await waitFor(() => expect(maintenanceService.createCollege).toHaveBeenCalledExactlyOnceWith({ name: 'College of Engineering', short_code: 'COE' }));
+  });
+
+  it('confirms a document type before sending its configured defaults', async () => {
+    const user = userEvent.setup();
+    await renderPanel();
+    await user.click(screen.getByRole('button', { name: /Document Types/ }));
+    await user.type(screen.getByPlaceholderText('Name *'), 'Certification');
+    await user.type(screen.getByPlaceholderText('Base fee (₱)'), '50');
+    await user.click(screen.getByRole('button', { name: 'Create Type' }));
+    expect(maintenanceService.createDocumentType).not.toHaveBeenCalled();
+    await user.click(within(screen.getByRole('dialog', { name: 'Confirm Document Type' })).getByRole('button', { name: 'Save' }));
+    await waitFor(() => expect(maintenanceService.createDocumentType).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({
+      name: 'Certification', base_fee: '50', fee_rule: 'flat', available_to: 'both', requires_attachment: false,
+    })));
   });
 
   it('switches to the document types section', async () => {
@@ -206,6 +310,9 @@ describe('MaintenancePanel', () => {
     await user.type(screen.getByPlaceholderText(/Display name/), 'PayMaya');
     await user.click(screen.getByRole('button', { name: /create method/i }));
 
+    expect(maintenanceService.createPaymentMethod).not.toHaveBeenCalled();
+    const confirmation = await screen.findByRole('dialog', { name: /confirm payment method/i });
+    await user.click(within(confirmation).getByRole('button', { name: 'Save' }));
     await waitFor(() => expect(maintenanceService.createPaymentMethod).toHaveBeenCalled());
     expect(maintenanceService.createPaymentMethod).toHaveBeenCalledWith(
       expect.objectContaining({ code: 'paymaya', name: 'PayMaya' })
@@ -277,16 +384,17 @@ describe('ReportsPanel', () => {
 
   it('offers all four student export categories', async () => {
     await renderPanel();
-    expect(await screen.findByText('Active Students')).toBeInTheDocument();
-    expect(screen.getByText('Graduates / Alumni')).toBeInTheDocument();
-    expect(screen.getByText('Others')).toBeInTheDocument();
-    expect(screen.getByText('All Students')).toBeInTheDocument();
+    expect(await screen.findByText('Active Students (CSV)')).toBeInTheDocument();
+    expect(screen.getByText('Graduates / Alumni (CSV)')).toBeInTheDocument();
+    expect(screen.getByText('Others (CSV)')).toBeInTheDocument();
+    expect(screen.getByText('All Students (CSV)')).toBeInTheDocument();
   });
 
   it('exports the selected student category', async () => {
     const user = userEvent.setup();
     await renderPanel();
-    await user.click(await screen.findByText('Graduates / Alumni'));
+    await user.selectOptions(screen.getByRole('combobox', { name: 'Export options' }), 'alumni');
+    await user.click(screen.getByRole('button', { name: 'Export' }));
     await waitFor(() => expect(reportsService.exportStudentsCsv).toHaveBeenCalledWith('alumni'));
   });
 
@@ -295,7 +403,7 @@ describe('ReportsPanel', () => {
     await renderPanel();
 
     await user.selectOptions(await screen.findByDisplayValue('All statuses'), STATUS.COMPLETED);
-    await user.click(screen.getByRole('button', { name: /export these records/i }));
+    await user.click(screen.getByRole('button', { name: 'Export' }));
 
     await waitFor(() =>
       expect(reportsService.exportDocumentsCsv).toHaveBeenCalledWith(

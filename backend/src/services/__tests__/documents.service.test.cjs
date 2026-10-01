@@ -12,7 +12,14 @@ const n8n = require('../n8n.service');
 const { STATUS } = require('../../utils/documentStatus');
 const referenceModel = require('../../models/referenceData.model');
 const { pool } = require('../../config/db');
+const pricingModel = require('../../models/pricing.model');
+const requestSequences = require('../../models/requestSequence.model');
 const service = require('../documents.service');
+
+const COMPLETE = { role: 'student', user_type: 'student', phone_number: '09123456789', email: 'student@example.test',
+  birth_date: '2000-01-01', place_of_birth: 'City', sex: 'Male', civil_status: 'Single', home_address: 'Address',
+  elem_school: 'Elementary', elem_grad_year: 2012, jhs_school: 'Junior High', jhs_grad_year: 2016,
+  shs_school: 'Senior High', shs_grad_year: 2018 };
 
 const STUDENT = { id: 3, role: 'student', full_name: 'Ana Reyes' };
 const FINANCE = { id: 4, role: 'clerk', desk_assignment: 'Finance', full_name: 'Finance Officer' };
@@ -35,8 +42,55 @@ function fakeConnection(docRow) {
 }
 
 let connection;
+afterEach(() => vi.useRealTimers());
+
+describe('document-policy request enforcement', () => {
+  it.each([['true', 'true', true], ['true', 'false', false], ['false', 'true', false]])('records same-day eligibility only with both original and photocopy (%s/%s)', async (original_seen, photocopy_seen, eligible) => {
+    const insert = vi.spyOn(documentModel, 'insert').mockResolvedValue([{ insertId: 9 }]);
+    await service.uploadDocument(WINDOW1, { student_id: 'STU-001', document_type: 'CTC', copies: 3, original_seen, photocopy_seen }, []);
+    expect(insert).toHaveBeenCalledWith(expect.objectContaining({ is_same_day: eligible, copies: 3, current_status: STATUS.PENDING_W1_INTAKE, payment_status: 'UNPAID' }), connection);
+  });
+  it('ignores a student attempting to declare a same-day walk-in', async () => {
+    const insert = vi.spyOn(documentModel, 'insert').mockResolvedValue([{ insertId: 9 }]);
+    await service.uploadDocument(STUDENT, { document_type: 'CTC', copies: 1, original_seen: 'true', photocopy_seen: 'true', is_same_day: true }, []);
+    expect(insert).toHaveBeenCalledWith(expect.objectContaining({ is_same_day: false }), connection);
+  });
+  it.each([['student', STUDENT], ['counter', WINDOW1]])('blocks a new Good Moral %s request before writing documents or logs', async (_channel, user) => {
+    const insert = vi.spyOn(documentModel, 'insert').mockResolvedValue([{ insertId: 9 }]);
+    await expect(service.uploadDocument(user, { document_type: 'Certificate of Good Moral', student_id: 'STU-001' }, []))
+      .rejects.toThrow(/no longer available/);
+    expect(insert).not.toHaveBeenCalled();
+    expect(stepLogModel.insert).not.toHaveBeenCalled();
+    expect(connection.rollback).toHaveBeenCalledOnce();
+    expect(connection.commit).not.toHaveBeenCalled();
+  });
+  it('rejects a forged audience selection at the server before any document write', async () => {
+    referenceModel.findDocumentTypesByNames.mockResolvedValue([{ name: 'Diploma', is_active: 1, available_to: 'alumni', base_fee: 50, fee_rule: 'flat' }]);
+    await expect(service.uploadDocument(STUDENT, { document_type: 'Diploma', copies: 1 }, [])).rejects.toMatchObject({ status: 400 });
+    expect(userModel.findStudentForPolicy).toHaveBeenCalledWith('STU-001', connection, true);
+    expect(connection.rollback).toHaveBeenCalledOnce();
+    expect(connection.commit).not.toHaveBeenCalled();
+  });
+
+  it.each([0, -1, 1.5, 2147483648])('rejects an invalid copy quantity %s', async copies => {
+    await expect(service.uploadDocument(STUDENT, { document_type: 'Diploma', copies }, [])).rejects.toMatchObject({ status: 400 });
+    expect(pool.getConnection).not.toHaveBeenCalled();
+  });
+
+  it('rejects a multi-copy Honorable Dismissal even when no prior request exists', async () => {
+    await expect(service.uploadDocument(STUDENT, { document_type: 'Honorable Dismissal', copies: 2 }, [])).rejects.toThrow(/one copy/);
+    expect(connection.rollback).toHaveBeenCalledOnce();
+  });
+});
 
 beforeEach(() => {
+  vi.useFakeTimers({ toFake: ['Date'] });
+  vi.setSystemTime(new Date('2026-09-06T07:30:00Z'));
+  vi.spyOn(userModel, 'getProfileById').mockResolvedValue([{ ...COMPLETE, id: 3, student_id: 'STU-001' }]);
+  vi.spyOn(pricingModel, 'attachSchedules').mockImplementation(async types => types);
+  vi.spyOn(userModel, 'findStudentForPolicy').mockResolvedValue([{ id: 3, student_id: 'STU-001', user_type: 'student' }]);
+  vi.spyOn(referenceModel, 'findDocumentTypeByName').mockImplementation(async name => [{ name, is_active: 1, is_repeatable: 1, available_to: 'both' }]);
+  vi.spyOn(documentModel, 'countBlockingRequests').mockResolvedValue(0);
   connection = fakeConnection();
   vi.spyOn(pool, 'getConnection').mockImplementation(async () => connection);
 
@@ -53,12 +107,16 @@ beforeEach(() => {
   vi.spyOn(documentModel, 'markGroupPayable').mockResolvedValue([{ affectedRows: 1 }]);
   vi.spyOn(documentModel, 'updateOrVerification').mockResolvedValue([{ affectedRows: 1 }]);
   vi.spyOn(documentModel, 'sumGroupAmount').mockResolvedValue(0);
-  vi.spyOn(documentModel, 'countByTypeAndStudent').mockResolvedValue(0);
+  vi.spyOn(requestSequences, 'allocate').mockImplementation(async (_studentId, type) => `${type} – Request No. 1`);
+  vi.spyOn(requestSequences, 'recordOriginal').mockResolvedValue(true);
+  vi.spyOn(requestSequences, 'setDocumentSequence').mockResolvedValue([{ affectedRows: 1 }]);
   // Default: this was the last unpriced document, so pricing bills the group.
   vi.spyOn(documentModel, 'countUnpricedInGroup').mockResolvedValue(0);
   vi.spyOn(documentModel, 'findByRequestGroup').mockResolvedValue([]);
   vi.spyOn(documentModel, 'findByRequestGroupForUpdate').mockResolvedValue([]);
-  vi.spyOn(referenceModel, 'findDocumentTypesByNames').mockResolvedValue([]);
+  vi.spyOn(referenceModel, 'findDocumentTypesByNames').mockImplementation(async names => names.map(name => ({ name, is_active: 1, available_to: 'both', is_repeatable: 1,
+    base_fee: ['Transcript of Records', 'Honorable Dismissal'].includes(name) ? 100 : 50,
+    fee_rule: name === 'Transcript of Records' ? 'per_semester_block' : 'flat' })));
   // Payment methods are reference data; GCash is the default the student sees.
   vi.spyOn(referenceModel, 'findPaymentMethodByCode').mockResolvedValue([
     { id: 1, code: 'gcash', name: 'GCash', provider: 'manual', is_active: 1,
@@ -241,7 +299,7 @@ describe('uploadDocument — a student can only file for themselves', () => {
       { document_type: 'Transcript of Records', semesters: 8, copies: 2, amount: '1.00' },
       null
     );
-    expect(documentModel.insert.mock.calls[0][0].amount).toBe(200);
+    expect(documentModel.insert.mock.calls[0][0].amount).toBe(400);
   });
 });
 
@@ -369,7 +427,7 @@ describe('group payment settles every document at once', () => {
     expect(res.documents_covered).toBe(2);
     expect(documentModel.updatePaymentVerificationForGroup).toHaveBeenCalledWith(
       'REQ-G1', STATUS.PAID_PENDING_SEC_RELEASE, 'PAID',
-      { officialReceiptPath: null, orNumber: 'OR-1', orDate: null }, connection
+      { officialReceiptPath: null, orNumber: 'OR-1', orDate: '2026-09-06', clearedAt: new Date('2026-09-06T07:30:00Z'), earliestDate: '2026-09-06' }, connection
     );
   });
 
@@ -428,7 +486,7 @@ describe('verifyPayment — Finance desk only', () => {
     await service.verifyPayment(FINANCE, 5, { action: 'approve', or_number: 'OR-77' }, null);
     expect(documentModel.updatePaymentVerificationForGroup).toHaveBeenCalledWith(
       'REQ-TEST01', STATUS.PAID_PENDING_SEC_RELEASE, 'PAID',
-      { officialReceiptPath: null, orNumber: 'OR-77', orDate: null }, connection
+      { officialReceiptPath: null, orNumber: 'OR-77', orDate: '2026-09-06', clearedAt: new Date('2026-09-06T07:30:00Z'), earliestDate: '2026-09-06' }, connection
     );
   });
 
@@ -443,7 +501,7 @@ describe('verifyPayment — Finance desk only', () => {
     await service.verifyPayment(FINANCE, 5, { action: 'reject', notes: 'blurry' }, null);
     expect(documentModel.updatePaymentVerificationForGroup).toHaveBeenCalledWith(
       'REQ-TEST01', STATUS.PENDING_STUDENT_PAYMENT, 'UNPAID',
-      { officialReceiptPath: null, orNumber: null, orDate: null }, connection
+      { officialReceiptPath: null, orNumber: null, orDate: null, clearedAt: null, earliestDate: null }, connection
     );
   });
 
@@ -452,7 +510,7 @@ describe('verifyPayment — Finance desk only', () => {
     await service.verifyPayment(FINANCE, 5, { action: 'approve', or_number: 'OR-77' }, { filename: 'official.png' });
     expect(documentModel.updatePaymentVerificationForGroup).toHaveBeenCalledWith(
       'REQ-TEST01', STATUS.PAID_PENDING_SEC_RELEASE, 'PAID',
-      { officialReceiptPath: '/uploads/official.png', orNumber: 'OR-77', orDate: null }, connection
+      { officialReceiptPath: '/uploads/official.png', orNumber: 'OR-77', orDate: '2026-09-06', clearedAt: new Date('2026-09-06T07:30:00Z'), earliestDate: '2026-09-06' }, connection
     );
   });
 
@@ -504,6 +562,31 @@ describe('acceptForProcessing — Secretary desk only', () => {
     );
   });
 
+  it.each(['approve', 'reject'].flatMap(action =>
+    ['Certificate of Good Moral', 'Certificate of Good Moral Character', '  good moral certificate  '].map(name => [action, name])
+  ))('blocks a type change to retired Good Moral on %s (%s)', async (action, name) => {
+    documentModel.findByIdForUpdate.mockResolvedValue([{ ...doc, document_type: 'Diploma' }]);
+    await expect(service.acceptForProcessing(SECRETARY, 5, {
+      ...body, action, notes: 'Needs correction', document_type: name,
+    })).rejects.toThrow(/no longer available/);
+    expect(documentModel.updateEvaluation).not.toHaveBeenCalled();
+    expect(stepLogModel.insert).not.toHaveBeenCalled();
+    expect(connection.rollback).toHaveBeenCalledOnce();
+    expect(connection.commit).not.toHaveBeenCalled();
+    expect(notifications.dispatchStudentAlert).not.toHaveBeenCalled();
+  });
+
+  it.each(['approve', 'reject'])('permits %s of an unchanged historical Good Moral request', async action => {
+    const name = 'Certificate of Good Moral';
+    documentModel.findByIdForUpdate.mockResolvedValue([{ ...doc, document_type: name, copies: 1 }]);
+    referenceModel.findDocumentTypeByName.mockResolvedValue([{ name, is_active: 0, available_to: 'both', is_repeatable: 1 }]);
+    await service.acceptForProcessing(SECRETARY, 5, { ...body, action, notes: 'Historical request', document_type: name });
+    expect(documentModel.updateEvaluation).toHaveBeenCalledWith(5,
+      action === 'approve' ? STATUS.SEC_PROCESSING : STATUS.PENDING_W1_INTAKE,
+      'STU-001', 'Ana', name, action === 'approve' ? '2026-09-05' : null, connection);
+    expect(connection.commit).toHaveBeenCalledOnce();
+  });
+
   it('will not reject without saying why', async () => {
     documentModel.findByIdForUpdate.mockResolvedValue([doc]);
     expect(await statusOf(service.acceptForProcessing(SECRETARY, 5, { ...body, action: 'reject' }))).toBe(400);
@@ -531,7 +614,8 @@ describe('acceptForProcessing — Secretary desk only', () => {
 describe('priceDocument — the Secretary sets the price, nobody else', () => {
   const doc = {
     id: 5, student_id: 'STU-001', tracking_number: 'TRC-1', request_group_id: 'REQ-G1',
-    document_type: 'Diploma', student_name: 'Ana', current_status: STATUS.SEC_PROCESSING,
+    document_type: 'Diploma', copies: 1, student_name: 'Ana', current_status: STATUS.SEC_PROCESSING,
+    pricing_snapshot: { document_type: 'Diploma', base_fee: 250, fee_rule: 'flat' },
   };
   const body = { amount: 250, page_count: 5, pricing_notes: '5 pages at standard rate' };
 
@@ -548,16 +632,16 @@ describe('priceDocument — the Secretary sets the price, nobody else', () => {
     await service.priceDocument(SECRETARY, 5, body);
     expect(documentModel.updatePricing).toHaveBeenCalledWith(
       5,
-      { amount: 250, pageCount: 5, pricingNotes: '5 pages at standard rate', clerkId: SECRETARY.id },
+      expect.objectContaining({ amount: 250, pageCount: 5, pricingNotes: expect.stringContaining('5 pages at standard rate'), clerkId: SECRETARY.id, feeBreakdown: expect.objectContaining({ total: 250, stage: 'final' }) }),
       connection
     );
   });
 
-  it.each([[0, 'zero'], [-5, 'negative'], ['abc', 'non-numeric'], [undefined, 'missing']])(
-    'refuses a %s amount (%s)',
+  it.each([[0, 'zero'], [-5, 'negative'], ['abc', 'non-numeric'], [1.5, 'fractional']])(
+    'refuses a %s page count (%s)',
     async (amount) => {
       documentModel.findByIdForUpdate.mockResolvedValue([doc]);
-      expect(await statusOf(service.priceDocument(SECRETARY, 5, { ...body, amount }))).toBe(400);
+      expect(await statusOf(service.priceDocument(SECRETARY, 5, { ...body, page_count: amount }))).toBe(400);
       expect(documentModel.updatePricing).not.toHaveBeenCalled();
     }
   );
@@ -637,7 +721,7 @@ describe('verifyOfficialReceipt — Secretary checks the OR before handoff', () 
 
   it('moves a paid document to SEC_OR_VERIFIED', async () => {
     documentModel.findByIdForUpdate.mockResolvedValue([paidUnverified]);
-    await service.verifyOfficialReceipt(SECRETARY, 5, {});
+    await service.verifyOfficialReceipt(SECRETARY, 5, { physical_receipt_checked: true });
     expect(documentModel.updateOrVerification).toHaveBeenCalledWith(5, SECRETARY.id, connection);
   });
 
@@ -651,7 +735,7 @@ describe('verifyOfficialReceipt — Secretary checks the OR before handoff', () 
 
   it('never touches payment_status — that stays Finance\'s alone', async () => {
     documentModel.findByIdForUpdate.mockResolvedValue([paidUnverified]);
-    await service.verifyOfficialReceipt(SECRETARY, 5, {});
+    await service.verifyOfficialReceipt(SECRETARY, 5, { physical_receipt_checked: true });
     expect(documentModel.updatePaymentVerificationForGroup).not.toHaveBeenCalled();
   });
 });
@@ -763,44 +847,44 @@ describe('logWalkInPayment — Finance records a counter payment', () => {
   );
 
   it('records the receipt against the whole request', async () => {
-    documentModel.findById.mockResolvedValue([billed]);
-    documentModel.findByRequestGroup.mockResolvedValue([billed, { ...billed, id: 6 }]);
+    documentModel.findByIdForUpdate.mockResolvedValue([billed]);
+    documentModel.findByRequestGroupForUpdate.mockResolvedValue([billed, { ...billed, id: 6 }]);
     documentModel.updateWalkInPaymentForGroup.mockResolvedValue([{ affectedRows: 2 }]);
 
     const res = await service.logWalkInPayment(FINANCE, 5, body, null);
     expect(res.documents_covered).toBe(2);
     expect(documentModel.updateWalkInPaymentForGroup).toHaveBeenCalledWith(
       'REQ-G1',
-      { orNumber: 'OR-12345', orDate: '2026-09-06', clerkId: FINANCE.id, receiptPath: null }
+      { orNumber: 'OR-12345', orDate: '2026-09-06', clerkId: FINANCE.id, receiptPath: null }, connection
     );
   });
 
   it('requires the Official Receipt number', async () => {
     // A counter payment leaves no other trace in the system.
-    documentModel.findById.mockResolvedValue([billed]);
+    documentModel.findByIdForUpdate.mockResolvedValue([billed]);
     expect(await statusOf(service.logWalkInPayment(FINANCE, 5, { or_date: '2026-09-06' }, null))).toBe(400);
     expect(documentModel.updateWalkInPaymentForGroup).not.toHaveBeenCalled();
   });
 
   it('stores the scanned receipt image when one is provided', async () => {
-    documentModel.findById.mockResolvedValue([billed]);
-    documentModel.findByRequestGroup.mockResolvedValue([billed]);
+    documentModel.findByIdForUpdate.mockResolvedValue([billed]);
+    documentModel.findByRequestGroupForUpdate.mockResolvedValue([billed]);
     await service.logWalkInPayment(FINANCE, 5, body, { filename: 'or.png' });
     expect(documentModel.updateWalkInPaymentForGroup).toHaveBeenCalledWith(
-      'REQ-G1', expect.objectContaining({ receiptPath: '/uploads/or.png' })
+      'REQ-G1', expect.objectContaining({ receiptPath: '/uploads/or.png' }), connection
     );
   });
 
   it('will not log a payment against a request that has not been billed', async () => {
-    documentModel.findById.mockResolvedValue([{ ...billed, current_status: STATUS.SEC_PROCESSING }]);
+    documentModel.findByIdForUpdate.mockResolvedValue([{ ...billed, current_status: STATUS.SEC_PROCESSING }]);
     expect(await statusOf(service.logWalkInPayment(FINANCE, 5, body, null))).toBe(400);
   });
 
   it('leaves verification to a separate act', async () => {
     // A walk-in is held to the same standard as a digital payment: logging it
     // records the claim, it does not clear it.
-    documentModel.findById.mockResolvedValue([billed]);
-    documentModel.findByRequestGroup.mockResolvedValue([billed]);
+    documentModel.findByIdForUpdate.mockResolvedValue([billed]);
+    documentModel.findByRequestGroupForUpdate.mockResolvedValue([billed]);
     await service.logWalkInPayment(FINANCE, 5, body, null);
     expect(documentModel.updatePaymentVerificationForGroup).not.toHaveBeenCalled();
   });
@@ -825,10 +909,34 @@ describe('intakeDocument — Window 1 checks the paperwork', () => {
     expect(documentModel.updateStatus).toHaveBeenCalledWith(5, STATUS.PENDING_SEC_EVALUATION, connection);
   });
 
+  it('requires issuance evidence before recording an original or routing', async () => {
+    documentModel.findByIdForUpdate.mockResolvedValue([filed]);
+    expect(await statusOf(service.intakeDocument(WINDOW1, 5, { action: 'approve', original_issued: 'true' }, null))).toBe(400);
+    expect(requestSequences.recordOriginal).not.toHaveBeenCalled();
+    expect(documentModel.updateStatus).not.toHaveBeenCalled();
+    expect(connection.rollback).toHaveBeenCalledOnce();
+  });
+
+  it('records an explicitly confirmed original and allocates the reissue inside the same transaction', async () => {
+    documentModel.findByIdForUpdate.mockResolvedValue([{ ...filed, document_sequence_number: 'Diploma – Request No. 1' }]);
+    requestSequences.allocate.mockResolvedValue('Diploma – Request No. 2');
+    await service.intakeDocument(WINDOW1, 5, { action: 'approve', original_issued: true, notes: 'Checked issuance register.' }, null);
+    expect(requestSequences.recordOriginal).toHaveBeenCalledWith('STU-001', 'Diploma', WINDOW1.id, 'Checked issuance register.', connection);
+    expect(requestSequences.setDocumentSequence).toHaveBeenCalledWith(5, 'Diploma – Request No. 2', connection);
+    expect(connection.commit).toHaveBeenCalledOnce();
+  });
+
+  it('preserves an already numbered request when no new original is confirmed', async () => {
+    documentModel.findByIdForUpdate.mockResolvedValue([{ ...filed, document_sequence_number: 'Diploma – Request No. 8' }]);
+    await service.intakeDocument(WINDOW1, 5, { action: 'approve' }, null);
+    expect(requestSequences.allocate).not.toHaveBeenCalled();
+    expect(requestSequences.setDocumentSequence).not.toHaveBeenCalled();
+  });
+
   it('only asks n8n for a desk once a human has cleared the paperwork', async () => {
     documentModel.findByIdForUpdate.mockResolvedValue([filed]);
-    userModel.findStudentCourseByStudentId.mockResolvedValue([{ course: 'BS Computer Science' }]);
-    referenceModel.findCollegeByName = vi.fn().mockResolvedValue([{ short_code: 'CCS' }]);
+    userModel.findStudentCourseByStudentId.mockResolvedValue([{ course: 'College of Computer Studies' }]);
+    referenceModel.findCollegeByName = vi.fn().mockResolvedValue([{ name: 'College of Computer Studies', short_code: 'CCS' }]);
 
     await service.intakeDocument(WINDOW1, 5, { action: 'approve' }, null);
     expect(n8n.triggerDocumentRouting).toHaveBeenCalledWith(
@@ -862,6 +970,45 @@ describe('intakeDocument — Window 1 checks the paperwork', () => {
 
   it('rejects an unknown action', async () => {
     expect(await statusOf(service.intakeDocument(WINDOW1, 5, { action: 'maybe' }, null))).toBe(400);
+  });
+});
+
+describe('uploadDeferredOR — Finance uploads its retained copy later', () => {
+  it.each([STATUS.PAID_PENDING_SEC_RELEASE, STATUS.SEC_OR_VERIFIED, STATUS.READY_FOR_RELEASE, STATUS.COMPLETED])(
+    'attaches the copy to the request group at %s without changing payment or stage', async (stage) => {
+      const doc = { id: 5, request_group_id: 'REQ-G1', student_id: 'STU-001', current_status: stage, payment_status: 'PAID', or_number: 'OR-123', or_date: '2026-09-06' };
+      documentModel.findByIdForUpdate.mockResolvedValue([doc]);
+      documentModel.findByRequestGroupForUpdate.mockResolvedValue([doc]);
+      const publish = vi.spyOn(documentModel, 'publishOfficialReceipt').mockResolvedValue([{ affectedRows: 1 }]);
+      userModel.findStudentContactByStudentId.mockResolvedValue([{ id: 3 }]);
+      expect(await service.uploadDeferredOR(FINANCE, 5, RECEIPT)).toEqual({
+        success: true, official_receipt_path: '/uploads/receipt.png',
+      });
+      expect(publish).toHaveBeenCalledWith('REQ-G1', { path: '/uploads/receipt.png', number: 'OR-123', date: '2026-09-06' }, connection);
+      expect(doc.current_status).toBe(stage);
+      expect(doc.payment_status).toBe('PAID');
+      expect(documentModel.updateStatus).not.toHaveBeenCalled();
+      expect(documentModel.updatePaymentVerificationForGroup).not.toHaveBeenCalled();
+      expect(stepLogModel.insert).toHaveBeenCalledWith(expect.objectContaining({ action_taken: 'official_receipt_published', from_status: stage, to_status: stage }), connection);
+      expect(notifications.dispatchStudentAlert).toHaveBeenCalledWith(expect.objectContaining({ user: { id: 3 }, alsoSmsAndEmail: true }));
+    }
+  );
+
+  it('rejects a missing document before writing or notifying', async () => {
+    const query = vi.spyOn(pool, 'query');
+    expect(await statusOf(service.uploadDeferredOR(FINANCE, 999, RECEIPT))).toBe(404);
+    expect(query).not.toHaveBeenCalled();
+    expect(notifications.notifyInApp).not.toHaveBeenCalled();
+  });
+
+  it('requires a file', async () => {
+    expect(await statusOf(service.uploadDeferredOR(FINANCE, 5, null))).toBe(400);
+    expect(documentModel.findById).not.toHaveBeenCalled();
+  });
+
+  it.each([STUDENT, SECRETARY, WINDOW1, ADMIN])('preserves Finance-only authorization for $role/$desk_assignment', async (user) => {
+    expect(await statusOf(service.uploadDeferredOR(user, 5, RECEIPT))).toBe(403);
+    expect(documentModel.findById).not.toHaveBeenCalled();
   });
 });
 
@@ -1060,5 +1207,157 @@ describe('AI-engine fallbacks', () => {
 describe('getActivityLogs — admin only', () => {
   it.each([['a student', STUDENT], ['Finance', FINANCE]])('rejects %s', async (_label, user) => {
     expect(await statusOf(service.getActivityLogs(user))).toBe(403);
+  });
+});
+
+describe('intake OCR confidence adapter', () => {
+  it.each([0, 87.25, undefined])('preserves the engine confidence %s without inventing a score', async confidence => {
+    vi.spyOn(documentModel, 'insert').mockResolvedValue([{ insertId: 77 }]);
+    vi.spyOn(documentModel, 'updateOcrData').mockResolvedValue([{}]);
+    vi.spyOn(aiEngine, 'extractDocument').mockResolvedValue({ success: true, raw_text: 'diploma', extracted_data: { student_id: 'STU-001', form_type: 'Diploma', confidence } });
+    await service.uploadDocument(STUDENT, { document_type: 'Diploma' }, { fieldname: 'document', filename: 'proof.png', originalname: 'proof.png', path: '/unused/proof.png' });
+    expect(documentModel.updateOcrData).toHaveBeenCalledWith(77, expect.objectContaining({ confidence: confidence ?? null }));
+  });
+});
+
+describe('saved fee schedules and final computation', () => {
+  beforeEach(() => vi.spyOn(documentModel, 'insert').mockResolvedValue([{ insertId: 5 }]));
+  const schedule = { version: 1, document_type: 'Transcript of Records', college_id: 2, source: 'college', base_fee: 100, fee_rule: 'per_semester_block', rental_fee: 20, special_fee: 30, fee_items: [{ label: 'Certification', amount: 10 }] };
+  function stage(extra = {}) {
+    const doc = { id: 5, document_type: 'Transcript of Records', student_id: 'STU-001', request_group_id: 'REQ-1', current_status: STATUS.SEC_PROCESSING, copies: 2, pricing_snapshot: schedule, ...extra };
+    documentModel.findByIdForUpdate.mockResolvedValue([doc]); documentModel.findByRequestGroupForUpdate.mockResolvedValue([doc]);
+    return doc;
+  }
+  it('ignores forged amounts and rates, uses the snapshot, and never clears payment', async () => {
+    stage();
+    await service.priceDocument(SECRETARY, 5, { page_count: 3, amount: 1, base_fee: 1, rental_fee: 0 });
+    expect(documentModel.updatePricing).toHaveBeenCalledWith(5, expect.objectContaining({ amount: 660, pageCount: 3, pricingSnapshot: expect.objectContaining({ base_fee: 100 }), feeBreakdown: expect.objectContaining({ total: 660 }) }), connection);
+    expect(referenceModel.findDocumentTypesByNames).not.toHaveBeenCalled();
+    expect(documentModel.updatePaymentVerificationForGroup).not.toHaveBeenCalled();
+  });
+  it('refuses missing pages for page-based pricing without billing', async () => {
+    stage(); await expect(service.priceDocument(SECRETARY, 5, {})).rejects.toMatchObject({ status: 400 });
+    expect(documentModel.markGroupPayable).not.toHaveBeenCalled(); expect(connection.rollback).toHaveBeenCalledOnce();
+  });
+  it.each([undefined, false, 'true'])('requires explicit legacy rate review (%s)', async confirm_current_rates => {
+    stage({ pricing_snapshot: null });
+    await expect(service.priceDocument(SECRETARY, 5, { page_count: 3, confirm_current_rates })).rejects.toThrow(/Review and confirm/);
+    expect(documentModel.updatePricing).not.toHaveBeenCalled();
+  });
+  it('captures current college rates only after explicit legacy review', async () => {
+    stage({ pricing_snapshot: null });
+    userModel.findStudentForPolicy.mockResolvedValue([{ student_id: 'STU-001', college_id: 2 }]);
+    referenceModel.findDocumentTypesByNames.mockResolvedValue([{ name: 'Transcript of Records', base_fee: 50, fee_rule: 'per_semester_block', college_fee_schedules: [{ college_id: 2, base_fee: 80, fee_rule: 'per_semester_block', fee_items: [] }] }]);
+    await service.priceDocument(SECRETARY, 5, { page_count: 3, confirm_current_rates: true });
+    expect(documentModel.updatePricing).toHaveBeenCalledWith(5, expect.objectContaining({ amount: 480, pricingNotes: expect.stringContaining('Current rates reviewed for legacy request') }), connection);
+  });
+  it('refuses to overwrite a confirmed historical bill', async () => {
+    stage({ priced_at: '2026-01-01' });
+    await expect(service.priceDocument(SECRETARY, 5, { page_count: 3 })).rejects.toThrow(/already has/);
+    expect(documentModel.updatePricing).not.toHaveBeenCalled();
+  });
+  it('rolls back amount, breakdown and billing together on failure', async () => {
+    stage(); documentModel.updatePricing.mockRejectedValue(new Error('write failed'));
+    await expect(service.priceDocument(SECRETARY, 5, { page_count: 3 })).rejects.toThrow('write failed');
+    expect(connection.rollback).toHaveBeenCalledOnce(); expect(connection.commit).not.toHaveBeenCalled();
+    expect(documentModel.markGroupPayable).not.toHaveBeenCalled();
+  });
+  it('stores the authoritative college estimate and snapshot at filing', async () => {
+    userModel.findStudentForPolicy.mockResolvedValue([{ student_id: 'STU-001', college_id: 2, user_type: 'student' }]);
+    referenceModel.findDocumentTypesByNames.mockResolvedValue([{ name: 'Transcript of Records', is_active: 1, is_repeatable: 1, base_fee: 50, fee_rule: 'per_semester_block', college_fee_schedules: [{ college_id: 2, base_fee: 100, fee_rule: 'per_semester_block', rental_fee: 20, special_fee: 0, fee_items: [] }] }]);
+    await service.uploadDocument(STUDENT, { document_type: 'Transcript of Records', semesters: 8, copies: 2, amount: 1, college_id: 999 }, []);
+    expect(referenceModel.findDocumentTypesByNames).toHaveBeenCalledWith(['Transcript of Records'], connection, true);
+    expect(documentModel.insert).toHaveBeenCalledWith(expect.objectContaining({ amount: 420, pricing_snapshot: expect.objectContaining({ college_id: 2, base_fee: 100 }), fee_breakdown: expect.objectContaining({ stage: 'estimate', total: 420 }) }), connection);
+  });
+  it('rejects duplicate type selections so extras cannot be charged twice', async () => {
+    await expect(service.uploadDocument(STUDENT, { items: JSON.stringify([{ document_type: 'Diploma' }, { document_type: 'Diploma' }]) }, [])).rejects.toThrow(/each document type once/);
+    expect(documentModel.insert).not.toHaveBeenCalled();
+  });
+});
+
+describe('TOR study years', () => {
+  beforeEach(() => vi.spyOn(documentModel, 'insert').mockResolvedValue([{ insertId: 5 }]));
+  it('validates and stores years without using them as printed-page counts', async () => {
+    await service.uploadDocument(STUDENT, { document_type: 'Transcript of Records', year_started: '2020', year_ended: '2024', copies: 1 }, []);
+    const data = documentModel.insert.mock.calls[0][0];
+    expect(JSON.parse(data.purpose)).toEqual({ year_started: 2020, year_ended: 2024 });
+    expect(data.pricing_snapshot.fee_rule).toBe('per_semester_block');
+    expect(data.page_count).toBeUndefined();
+  });
+  it.each([['', '2024'], ['2025', '2024'], ['2020.5', '2024'], ['2020', '9999']])('rejects invalid years %s–%s at the server', async (year_started, year_ended) => {
+    await expect(service.uploadDocument(STUDENT, { document_type: 'Transcript of Records', year_started, year_ended }, [])).rejects.toMatchObject({ status: 400 });
+    expect(documentModel.insert).not.toHaveBeenCalled();
+  });
+});
+
+describe('saved student profile gate', () => {
+  it.each([{}, { birth_date: '  ' }, { is_transfer_student: 1, previous_school: '' },
+    { user_type: 'alumni', has_grad_application: true, last_attendance_year: null }, { sex: 'Female', civil_status: 'Married', maiden_name: '' }])
+    ('refuses incomplete saved profile %j before request/log writes', async patch => {
+      const saved = Object.keys(patch).length ? { ...COMPLETE, ...patch } : { role: 'student', email: COMPLETE.email, phone_number: COMPLETE.phone_number };
+      userModel.getProfileById.mockResolvedValue([saved]);
+      const insert = vi.spyOn(documentModel, 'insert');
+      await expect(service.uploadDocument(STUDENT, { document_type: 'Certificate of Transfer', profile_complete: true, ...COMPLETE }, []))
+        .rejects.toMatchObject({ status: 403, message: expect.stringContaining('Complete your profile') });
+      expect(userModel.getProfileById).toHaveBeenCalledWith(STUDENT.id, connection, true);
+      expect(insert).not.toHaveBeenCalled();
+      expect(stepLogModel.insert).not.toHaveBeenCalled();
+      expect(connection.rollback).toHaveBeenCalledOnce();
+      expect(connection.commit).not.toHaveBeenCalled();
+      expect(connection.release).toHaveBeenCalledOnce();
+      expect(notifications.notifyInApp).not.toHaveBeenCalled();
+    });
+  it('refuses a missing saved profile', async () => {
+    userModel.getProfileById.mockResolvedValue([]);
+    await expect(service.uploadDocument(STUDENT, { document_type: 'Certificate of Transfer' }, []))
+      .rejects.toMatchObject({ status: 403 });
+    expect(connection.rollback).toHaveBeenCalledOnce();
+  });
+  it.each([STUDENT, WINDOW1])('allows complete self-service or staff-assisted attachment-free Transfer intake: $role', async user => {
+    if (user.role === 'clerk') userModel.getProfileById.mockResolvedValue([]);
+    vi.spyOn(documentModel, 'insert').mockResolvedValue([{ insertId: 9 }]);
+    await service.uploadDocument(user, { document_type: 'Certificate of Transfer', student_id: 'STU-001', copies: 1 }, []);
+    expect(documentModel.insert).toHaveBeenCalledWith(expect.objectContaining({ file_path: null, original_filename: null }), connection);
+    expect(connection.commit).toHaveBeenCalledOnce();
+    if (user.role === 'clerk') expect(userModel.getProfileById).not.toHaveBeenCalled();
+  });
+});
+
+describe('deferred issuance and cut-off enforcement', () => {
+  const pending = { id: 5, request_group_id: 'REQ-G1', tracking_number: 'TRC-1', student_id: 'STU-001', current_status: STATUS.PENDING_FINANCE_VERIFICATION, payment_status: 'UNPAID' };
+  it('accepts payment without an OR at exactly 4 PM and records tomorrow as the lower bound', async () => {
+    vi.setSystemTime(new Date('2026-10-01T08:00:00Z'));
+    documentModel.findByIdForUpdate.mockResolvedValue([pending]);
+    documentModel.findByRequestGroupForUpdate.mockResolvedValue([pending]);
+    await service.verifyPayment(FINANCE, 5, { action: 'approve', defer_or: 'true' });
+    expect(documentModel.updatePaymentVerificationForGroup).toHaveBeenCalledWith('REQ-G1', STATUS.PAID_PENDING_SEC_RELEASE, 'PAID', expect.objectContaining({ orNumber: null, orDate: null, earliestDate: '2026-10-02', clearedAt: new Date('2026-10-01T08:00:00Z') }), connection);
+  });
+  it('does not allow a new same-day OR at exactly 4 PM, even with a backdated date', async () => {
+    vi.setSystemTime(new Date('2026-10-01T08:00:00Z'));
+    documentModel.findByIdForUpdate.mockResolvedValue([pending]);
+    await expect(service.verifyPayment(FINANCE, 5, { action: 'approve', or_number: 'OR-NEW', or_date: '2026-09-30' })).rejects.toThrow('cut-off');
+    expect(documentModel.updatePaymentVerificationForGroup).not.toHaveBeenCalled();
+  });
+  it('does not publish an OR on an unpaid request or replace a published copy', async () => {
+    vi.spyOn(documentModel, 'publishOfficialReceipt').mockResolvedValue([{ affectedRows: 1 }]);
+    for (const row of [pending, { ...pending, payment_status: 'PAID', official_receipt_path: '/uploads/old.png' }]) {
+      documentModel.findByIdForUpdate.mockResolvedValue([row]);
+      await expect(service.uploadDeferredOR(FINANCE, 5, RECEIPT, { or_number: 'OR-1', or_date: '2026-09-06' })).rejects.toMatchObject({ status: 400 });
+    }
+    expect(documentModel.publishOfficialReceipt).not.toHaveBeenCalled();
+  });
+  it('allows issuance on a later eligible day when the clerk has time, including after 4 PM', async () => {
+    vi.setSystemTime(new Date('2026-10-02T10:00:00Z'));
+    const row = { ...pending, current_status: STATUS.PAID_PENDING_SEC_RELEASE, payment_status: 'PAID', or_earliest_issue_date: '2026-10-02' };
+    documentModel.findByIdForUpdate.mockResolvedValue([row]);
+    documentModel.findByRequestGroupForUpdate.mockResolvedValue([row]);
+    vi.spyOn(documentModel, 'publishOfficialReceipt').mockResolvedValue([{ affectedRows: 1 }]);
+    await service.uploadDeferredOR(FINANCE, 5, RECEIPT, { or_number: 'OR-1', or_date: '2026-10-02' });
+    expect(documentModel.publishOfficialReceipt).toHaveBeenCalledWith('REQ-G1', { path: '/uploads/receipt.png', number: 'OR-1', date: '2026-10-02' }, connection);
+  });
+  it('keeps pending ORs from being verified by Secretary without a receipt number', async () => {
+    documentModel.findByIdForUpdate.mockResolvedValue([{ ...pending, current_status: STATUS.PAID_PENDING_SEC_RELEASE, payment_status: 'PAID' }]);
+    await expect(service.verifyOfficialReceipt(SECRETARY, 5, { physical_receipt_checked: true })).rejects.toThrow('issue the OR');
+    expect(documentModel.updateOrVerification).not.toHaveBeenCalled();
   });
 });

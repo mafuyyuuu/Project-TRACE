@@ -1,10 +1,12 @@
+import { INPUT_LIMITS } from '@/utils/inputLimits';
+import ConfirmDialog from '@/components/ConfirmDialog';
 import { useState } from 'react';
 import ModalShell from '@/components/ModalShell';
 
 const DESKS = ['Finance', 'Window 1', 'Secretary', 'Admin Office', 'Receiving Desk', 'Records Desk'];
 
 const inputClass =
-  'w-full bg-gray-50 border border-gray-200 rounded-xl p-2.5 text-xs font-semibold outline-none focus:ring-2 focus:ring-[#15803d]/20 focus:bg-white transition-all';
+  'w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-2.5 text-xs font-semibold outline-none focus:ring-2 focus:ring-[#15803d]/20 focus:bg-white dark:focus:bg-gray-900 transition-all';
 
 /**
  * Creates a staff account — the same fields and the same `createStaff` call
@@ -13,11 +15,12 @@ const inputClass =
  */
 export default function AddUserModal({ open, onClose, onCreate, saving }) {
   const [form, setForm] = useState({ role: 'clerk', desk_assignment: 'Finance' });
+  const [accountToConfirm, setAccountToConfirm] = useState(null);
   const set = (key, value) => setForm((f) => ({ ...f, [key]: value }));
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const ok = await onCreate({
+    setAccountToConfirm({
       employee_id: form.employee_id,
       full_name: form.full_name,
       email: form.email,
@@ -25,7 +28,7 @@ export default function AddUserModal({ open, onClose, onCreate, saving }) {
       role: form.role || 'clerk',
       desk_assignment: form.desk_assignment || 'Finance',
     });
-    if (ok) onClose();
+
   };
 
   return (
@@ -40,7 +43,7 @@ export default function AddUserModal({ open, onClose, onCreate, saving }) {
             type="button"
             onClick={onClose}
             disabled={saving}
-            className="flex-1 px-5 py-3 rounded-2xl text-xs font-bold border border-gray-200 text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-50"
+            className="flex-1 px-5 py-3 rounded-2xl text-xs font-bold border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors disabled:opacity-50"
           >
             Cancel
           </button>
@@ -55,12 +58,18 @@ export default function AddUserModal({ open, onClose, onCreate, saving }) {
         </div>
       }
     >
+      <ConfirmDialog open={!!accountToConfirm} title="Confirm Staff Account"
+        message={accountToConfirm ? `Create an account for ${accountToConfirm.full_name} (${accountToConfirm.employee_id})?` : ''}
+        confirmLabel="Create Account" loading={saving} onCancel={() => setAccountToConfirm(null)}
+        onConfirm={async () => {
+          if (await onCreate(accountToConfirm)) { setAccountToConfirm(null); onClose(); }
+        }} />
       <form id="add-user-form" onSubmit={handleSubmit} className="space-y-3">
-        <input className={inputClass} placeholder="Employee ID *" required
+        <input maxLength={INPUT_LIMITS.id} className={inputClass} placeholder="Employee ID *" required
           value={form.employee_id || ''} onChange={(e) => set('employee_id', e.target.value)} />
-        <input className={inputClass} placeholder="Full Name *" required
+        <input maxLength={INPUT_LIMITS.name} className={inputClass} placeholder="Full Name *" required
           value={form.full_name || ''} onChange={(e) => set('full_name', e.target.value)} />
-        <input className={inputClass} type="email" placeholder="Email"
+        <input maxLength={INPUT_LIMITS.email} className={inputClass} type="email" placeholder="Email"
           value={form.email || ''} onChange={(e) => set('email', e.target.value)} />
 
         <select className={`${inputClass} cursor-pointer`} value={form.role || 'clerk'}
@@ -75,9 +84,9 @@ export default function AddUserModal({ open, onClose, onCreate, saving }) {
         </select>
 
         <div>
-          <input className={inputClass} type="password" placeholder="Temporary password *" required minLength={8}
+          <input maxLength={INPUT_LIMITS.password} className={inputClass} type="password" placeholder="Temporary password *" required minLength={8}
             value={form.password || ''} onChange={(e) => set('password', e.target.value)} />
-          <p className="text-[10px] text-gray-400 mt-1.5 leading-relaxed">
+          <p className="text-[10px] text-gray-400 dark:text-gray-400 mt-1.5 leading-relaxed">
             At least 8 characters. The user must replace it at first login, so it is never a
             permanent credential.
           </p>

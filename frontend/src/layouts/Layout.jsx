@@ -1,7 +1,9 @@
-import { useState, useEffect } from 'react'
-import { Outlet, useLocation } from 'react-router-dom'
+import { readTextSize, saveTextSize } from '@/utils/textSize';
+import { useState, useEffect, useRef } from 'react'
+import { Outlet, useLocation, useNavigate } from 'react-router-dom'
 import useAuth from '@/hooks/useAuth'
 import useProfileSettings from '@/hooks/useProfileSettings'
+import useNotificationDismissal from '@/hooks/useNotificationDismissal'
 import { getNotifications, markNotificationsRead } from '@/services/authService'
 import { onNotification, disconnectRealtime } from '@/services/realtimeService'
 import SidebarNav from '@/layouts/SidebarNav'
@@ -9,21 +11,79 @@ import ProfileSettingsModal from '@/components/ProfileSettingsModal'
 import ConfirmDialog from '@/components/ConfirmDialog'
 import UserAvatar from '@/components/UserAvatar'
 import plpLogo from '@/assets/plp_logo.png'
-import OnboardingTutorial from '@/features/student/components/OnboardingTutorial'
+import GraduateApplication from '@/features/graduate/GraduateApplication'
+import EmailVerificationNotice from '@/components/EmailVerificationNotice'
 
 export default function Layout() {
   const { user, logout } = useAuth()
+  const graduateRequired = user?.role === 'student' && user.user_type === 'alumni' && !user.has_grad_application
   const location = useLocation()
+  const navigate = useNavigate()
+  const [settingsTab, setSettingsTab] = useState(() => new URLSearchParams(location.search).get('settings') === 'security' ? 'security' : 'personal')
   const query = new URLSearchParams(location.search)
   const tab = query.get('tab') || 'dashboard'
 
   const [notifications, setNotifications] = useState([])
   const [showNotifs, setShowNotifs] = useState(false)
-  const [showSettings, setShowSettings] = useState(false)
+  useNotificationDismissal(() => setShowNotifs(false));
+  const [showSettings, setShowSettings] = useState(() => query.get('settings') === 'security')
   const [showMobileNav, setShowMobileNav] = useState(false)
-  const [showTutorial, setShowTutorial] = useState(user?.role === 'student' && !localStorage.getItem('trace_tutorial_seen'))
   const [confirmingLogout, setConfirmingLogout] = useState(false)
   const [loggingOut, setLoggingOut] = useState(false)
+  const [logoutError, setLogoutError] = useState('')
+  const [darkMode, setDarkMode] = useState(() => document.documentElement.classList.contains('dark'))
+  const [textSize, setTextSize] = useState(readTextSize)
+  const changeTextSize = value => setTextSize(saveTextSize(value))
+  const contentRef = useRef(null)
+  const drawerRef = useRef(null)
+
+  const toggleTheme = () => {
+    const next = !darkMode
+    setDarkMode(next)
+    document.documentElement.classList.toggle('dark', next)
+    try {
+      localStorage.setItem('trace_theme', next ? 'dark' : 'light')
+    } catch {
+      // The choice still applies when persistent storage is unavailable.
+    }
+  }
+
+  useEffect(() => {
+    if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return undefined
+    const animation = contentRef.current?.animate?.(
+      [{ opacity: 0 }, { opacity: 1 }],
+      { duration: 200, easing: 'cubic-bezier(0.2, 0, 0, 1)' },
+    )
+    return () => animation?.cancel()
+  }, [location.key])
+
+  useEffect(() => {
+    if (!showMobileNav) return undefined
+    const previousFocus = document.activeElement
+    drawerRef.current?.querySelector('button')?.focus()
+    const handleKeyDown = (event) => {
+      if (document.querySelector('[data-modal-layer]')) return
+      if (event.key === 'Escape') setShowMobileNav(false)
+      if (event.key !== 'Tab') return
+      const controls = drawerRef.current?.querySelectorAll('button, a[href]')
+      if (!controls?.length) return
+      const first = controls[0]
+      const last = controls[controls.length - 1]
+      const outside = !drawerRef.current.contains(document.activeElement)
+      if (event.shiftKey && (document.activeElement === first || outside)) {
+        event.preventDefault()
+        last.focus()
+      } else if (!event.shiftKey && (document.activeElement === last || outside)) {
+        event.preventDefault()
+        first.focus()
+      }
+    }
+    document.addEventListener('keydown', handleKeyDown)
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown)
+      previousFocus?.focus()
+    }
+  }, [showMobileNav])
 
   const settings = useProfileSettings(user)
 
@@ -38,16 +98,16 @@ export default function Layout() {
   }
 
   useEffect(() => {
-    if (user) {
+    if (user && !graduateRequired) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       loadNotifs()
     }
-  }, [user])
+  }, [user, graduateRequired])
 
   // Live push: a new notification appears in the bell within milliseconds
   // instead of waiting for the next page load.
   useEffect(() => {
-    if (!user) return undefined
+    if (!user || graduateRequired) return undefined
 
     const unsubscribe = onNotification((incoming) => {
       setNotifications((current) => [
@@ -57,7 +117,7 @@ export default function Layout() {
     })
 
     return unsubscribe
-  }, [user])
+  }, [user, graduateRequired])
 
   // Drop the socket on logout so the next account doesn't inherit it.
   useEffect(() => {
@@ -73,6 +133,7 @@ export default function Layout() {
     setNavLocationKey(location.key)
     setShowMobileNav(false);
     setShowNotifs(false);
+    if (query.get('settings') === 'security') { setSettingsTab('security'); setShowSettings(true); }
   }
 
   const handleNotifClick = async () => {
@@ -89,7 +150,8 @@ export default function Layout() {
 
   const unreadCount = (notifications || []).filter(n => !n?.is_read).length
 
-  const openSettings = () => {
+  const openSettings = (section = 'personal') => {
+    setSettingsTab(typeof section === 'string' ? section : 'personal')
     settings.resetFeedback()
     setShowSettings(true)
   }
@@ -97,74 +159,100 @@ export default function Layout() {
   // A picked-but-unsaved picture must not survive closing without Save.
 
   useEffect(() => {
-    const handleOpenSettings = () => setShowSettings(true);
+    const handleOpenSettings = () => { setSettingsTab('personal'); setShowSettings(true); };
     window.addEventListener('open-profile-settings', handleOpenSettings);
     return () => window.removeEventListener('open-profile-settings', handleOpenSettings);
   }, []);
 
+
   const closeSettings = () => {
     settings.discardAvatarChange()
     setShowSettings(false)
+    if (query.has('settings')) { query.delete('settings'); navigate({ pathname: location.pathname, search: query.toString() }, { replace: true }); }
   }
 
   const handleConfirmLogout = async () => {
     setLoggingOut(true)
     try {
-      await logout()
+      const result = await logout()
+      if (result === false) { setLogoutError('Could not confirm logout. Check your connection and try again.'); return; }
+      setLogoutError('')
+      setConfirmingLogout(false)
     } finally {
       setLoggingOut(false)
-      setConfirmingLogout(false)
     }
   }
 
+  if (graduateRequired) return (
+    <main className="min-h-dvh bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 p-4 sm:p-8 space-y-5">
+      <header className="flex flex-wrap gap-4 items-center justify-between"><strong className="text-xl">TRACE</strong>
+        <button type="button" onClick={() => setConfirmingLogout(true)} className="border rounded-xl px-4 py-2">Log Out</button></header>
+      <p className="text-sm">Submit your graduate application to unlock TRACE. You can complete email verification afterward.</p>
+      <GraduateApplication user={user} />
+      <ConfirmDialog open={confirmingLogout} title="Log Out" message={logoutError || 'End this session?'} confirmLabel="Log Out" loading={loggingOut} onConfirm={handleConfirmLogout} onCancel={() => setConfirmingLogout(false)} />
+    </main>
+  );
+
   return (
-    <div className="h-dvh overflow-hidden bg-gray-50 flex flex-col p-3 sm:p-4 md:p-6 gap-4 sm:gap-6 font-body text-gray-800">
+    <div className="h-dvh overflow-hidden bg-gray-50 dark:bg-gray-800 flex flex-col p-3 sm:p-4 md:p-6 gap-4 sm:gap-6 font-body text-gray-800 dark:text-gray-100">
       {/* Header */}
-      <header className="bg-white rounded-full shadow-sm px-4 sm:px-6 py-3 flex items-center justify-between shrink-0 border border-gray-100">
-        <div className="flex items-center gap-2 sm:gap-3">
+      <header className="bg-white dark:bg-gray-900 rounded-3xl sm:rounded-full shadow-sm px-4 sm:px-6 py-3 flex flex-wrap gap-2 items-center justify-between shrink-0 border border-gray-100 dark:border-gray-700">
+        <div className="flex min-w-0 items-center gap-2 sm:gap-3">
           <button
             onClick={() => setShowMobileNav(true)}
             aria-label="Open navigation menu"
-            className="md:hidden w-9 h-9 -ml-1 rounded-full flex items-center justify-center text-gray-500 hover:bg-gray-100 transition-colors"
+            aria-expanded={showMobileNav}
+            aria-controls="mobile-navigation"
+            className="md:hidden w-9 h-9 -ml-1 rounded-full flex items-center justify-center text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
           </button>
           <img src={plpLogo} alt="PLP Logo" className="w-9 h-9 sm:w-10 sm:h-10 rounded-full object-cover shadow-md" />
-          <span className="font-display font-black text-[#15803d] text-base sm:text-lg tracking-widest uppercase">TRACE</span>
+          <span className="font-display font-black text-[#15803d] dark:text-green-300 text-base sm:text-lg tracking-widest uppercase">TRACE</span>
         </div>
 
-        <div className="flex-1 max-w-xl mx-8 hidden sm:block">
+        <div className="flex shrink-0 ml-auto items-center gap-2 sm:gap-4">
+          <button
+            type="button"
+            onClick={toggleTheme}
+            aria-label="Dark mode"
+            aria-pressed={darkMode}
+            title={darkMode ? 'Switch to light mode' : 'Switch to dark mode'}
+            className="w-9 h-9 shrink-0 rounded-full flex items-center justify-center text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+          >
+            <svg aria-hidden="true" className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              {darkMode
+                ? <><circle cx="12" cy="12" r="4" strokeWidth="2" /><path strokeWidth="2" strokeLinecap="round" d="M12 2v2m0 16v2M2 12h2m16 0h2M5 5l1.5 1.5m11 11L19 19M5 19l1.5-1.5m11-11L19 5" /></>
+                : <path strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" d="M20.9 13A9 9 0 0 1 11 3.1 9 9 0 1 0 20.9 13Z" />}
+            </svg>
+          </button>
           <div className="relative">
-            <span className="absolute inset-y-0 left-0 pl-4 flex items-center text-gray-400">
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
-            </span>
-            <input type="text" placeholder="Search" className="w-full bg-gray-50 border-none rounded-full py-2.5 pl-11 pr-4 text-xs font-semibold focus:ring-2 focus:ring-[#15803d]/20 outline-none transition-all" />
-          </div>
-        </div>
-
-        <div className="flex items-center gap-2 sm:gap-4">
-          <div className="relative">
-            <button onClick={handleNotifClick} aria-label="Notifications" className="w-10 h-10 rounded-full flex items-center justify-center text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors relative">
+            <button onClick={handleNotifClick} aria-label="Notifications" className="w-10 h-10 rounded-full flex items-center justify-center text-gray-400 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-600 dark:hover:text-gray-300 transition-colors relative">
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
               {unreadCount > 0 && (
-                <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full"></span>
+                <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 dark:bg-red-500 rounded-full"></span>
               )}
             </button>
             {showNotifs && (
-              <div className="absolute right-0 mt-2 w-72 sm:w-80 max-w-[calc(100vw-2rem)] bg-white rounded-xl shadow-xl border border-gray-100 overflow-hidden z-50">
-                <div className="p-3 border-b border-gray-50 bg-gray-50/50">
-                  <h4 className="text-sm font-bold text-gray-800">Notifications</h4>
+              <div className="absolute right-0 mt-2 w-72 sm:w-80 max-w-[calc(100vw-2rem)] bg-white dark:bg-gray-900 rounded-xl shadow-xl border border-gray-100 dark:border-gray-700 overflow-hidden z-50">
+                <div className="p-3 border-b border-gray-50 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800/50">
+                  <h4 className="text-sm font-bold text-gray-800 dark:text-gray-100">Notifications</h4>
                 </div>
                 <div className="max-h-80 overflow-y-auto">
                   {!(notifications && notifications.length > 0) ? (
-                    <div className="p-4 text-center text-sm text-gray-400">No new notifications</div>
+                    <div className="p-4 text-center text-sm text-gray-400 dark:text-gray-400">No new notifications</div>
                   ) : (
                     notifications.map(n => (
-                      <div key={n.id} className={`p-3 text-sm border-b border-gray-50 ${n.is_read ? 'bg-white text-gray-500' : 'bg-green-50/30 text-gray-800 font-medium'}`}>
+                      <button type="button" key={n.id} onClick={() => {
+                          if (typeof n.action_url === 'string' && n.action_url.startsWith('/dashboard') && !n.action_url.startsWith('//')) { navigate(n.action_url); setShowNotifs(false); return; }
+                          const match = n.message.match(/TRC-[A-Z0-9]+/i) || n.message.match(/#([0-9]+)/);
+                          if (match) window.dispatchEvent(new CustomEvent('trace-open-doc', { detail: match[0].replace('#', '') }));
+                          setShowNotifs(false);
+                        }} className={`w-full text-left p-3 text-sm border-b border-gray-50 dark:border-gray-700 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors ${n.is_read ? 'bg-white dark:bg-gray-900 text-gray-500 dark:text-gray-400' : 'bg-green-50/30 dark:bg-green-950/30 text-gray-800 dark:text-gray-100 font-medium'}`}>
                         <div className="font-bold mb-1">{n.title}</div>
                         <div className="text-xs">{n.message}</div>
-                        <div className="text-[10px] text-gray-400 mt-1">{new Date(n.created_at).toLocaleString()}</div>
-                      </div>
+                        <div className="text-[10px] text-gray-400 dark:text-gray-400 mt-1">{new Date(n.created_at).toLocaleString()}</div>
+                      </button>
                     ))
                   )}
                 </div>
@@ -174,8 +262,8 @@ export default function Layout() {
           <button
             id="tutorial-profile"
             onClick={openSettings}
-            aria-label="Account settings"
-            className="w-10 h-10 rounded-full overflow-hidden border-2 border-white shadow-sm shrink-0 bg-gray-100"
+            aria-label="Edit Profile"
+            className="w-10 h-10 rounded-full overflow-hidden border-2 border-white dark:border-gray-800 shadow-sm shrink-0 bg-gray-100 dark:bg-gray-800"
           >
             <UserAvatar
               user={user}
@@ -189,11 +277,11 @@ export default function Layout() {
       {/* Main Area */}
       <div className="flex-1 flex gap-6 min-h-0 overflow-hidden relative">
         {/* Desktop rail */}
-        <aside className="hidden md:flex w-20 h-full overflow-y-auto flex-col items-center justify-between bg-white rounded-[2rem] shadow-sm py-8 shrink-0 border border-gray-100/50">
+        <aside className="hidden md:flex w-20 h-full overflow-y-auto flex-col items-center justify-between bg-white dark:bg-gray-900 rounded-[2rem] shadow-sm py-8 shrink-0 border border-gray-100/50 dark:border-gray-700/50">
           <SidebarNav
             user={user}
             tab={tab}
-            onOpenSettings={openSettings}
+            onOpenSettings={() => openSettings('appearance')}
             onLogout={() => setConfirmingLogout(true)}
           />
         </aside>
@@ -207,13 +295,13 @@ export default function Layout() {
               onClick={() => setShowMobileNav(false)}
               aria-hidden="true"
             />
-            <aside className="relative w-72 max-w-[85vw] h-full bg-white shadow-2xl p-4 overflow-y-auto flex flex-col animate-slide-up">
+            <aside ref={drawerRef} id="mobile-navigation" role="dialog" aria-modal="true" aria-label="Navigation menu" className="relative w-72 max-w-[85vw] h-full bg-white dark:bg-gray-900 shadow-2xl p-4 overflow-y-auto flex flex-col animate-slide-up">
               <div className="flex items-center justify-between mb-6 px-2">
-                <span className="font-display font-black text-[#15803d] text-lg tracking-widest uppercase">TRACE</span>
+                <span className="font-display font-black text-[#15803d] dark:text-green-300 text-lg tracking-widest uppercase">TRACE</span>
                 <button
                   onClick={() => setShowMobileNav(false)}
                   aria-label="Close navigation menu"
-                  className="text-gray-400 hover:text-gray-600 transition-colors"
+                  className="text-gray-400 dark:text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
                 >
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"/></svg>
                 </button>
@@ -223,7 +311,7 @@ export default function Layout() {
                 tab={tab}
                 showLabels
                 onNavigate={() => setShowMobileNav(false)}
-                onOpenSettings={openSettings}
+                onOpenSettings={() => openSettings('appearance')}
                 onLogout={() => setConfirmingLogout(true)}
               />
             </aside>
@@ -231,7 +319,8 @@ export default function Layout() {
         )}
 
         {/* Main Content Area */}
-        <main className="flex-1 min-w-0 h-full overflow-y-auto">
+        <main ref={contentRef} className="trace-content flex-1 min-w-0 h-full overflow-y-auto">
+          <EmailVerificationNotice user={user} />
           <Outlet />
         </main>
       </div>
@@ -239,11 +328,15 @@ export default function Layout() {
       {showSettings && (
         <ProfileSettingsModal
           user={user}
+          initialTab={settingsTab} darkMode={darkMode} onToggleTheme={toggleTheme}
+          textSize={textSize} onTextSizeChange={changeTextSize}
+          pendingEmail={settings.pendingEmail}
           onClose={closeSettings}
           profileData={settings.profileData}
           setField={settings.setField}
           avatarPath={settings.avatarPath}
           avatarPreviewUrl={settings.avatarPreviewUrl}
+          avatarFile={settings.avatarFile}
           saving={settings.saving}
           success={settings.success}
           error={settings.error}
@@ -255,14 +348,14 @@ export default function Layout() {
       <ConfirmDialog
         open={confirmingLogout}
         title="Log Out"
-        message="You'll need to sign in again to continue."
+        message={logoutError || "You'll need to sign in again to continue."}
         variant="neutral"
         confirmLabel="Log Out"
         cancelLabel="Stay Signed In"
         loadingLabel="Logging Out…"
         loading={loggingOut}
         onConfirm={handleConfirmLogout}
-        onCancel={() => setConfirmingLogout(false)}
+        onCancel={() => { setConfirmingLogout(false); setLogoutError('') }}
       />
     </div>
   )

@@ -4,7 +4,7 @@
  * The tabs each role can reach. `tab` is matched against the `?tab=` query,
  * with 'dashboard' as the default when none is present.
  */
-export function navItemsForUser(user) {
+function roleNavItems(user) {
   const isWindow1 =
     user?.role === 'clerk' &&
     (user?.desk_assignment === 'Window 1' || user?.desk_assignment === 'Receiving Desk');
@@ -12,8 +12,8 @@ export function navItemsForUser(user) {
   if (user?.role === 'student') {
     const items = [
       { tab: 'dashboard', to: '/dashboard', label: 'Dashboard', icon: 'dashboard' },
-      { tab: 'request-history', to: '/dashboard?tab=request-history', label: 'Request History', icon: 'document' },
-      { tab: 'payment-history', to: '/dashboard?tab=payment-history', label: 'Payment History', icon: 'card' },
+      { tab: 'history', to: '/dashboard?tab=history', label: 'History', icon: 'document' },
+      { tab: 'messages', to: '/dashboard?tab=messages', label: 'Messages & Attachments', icon: 'message' },
     ];
     // Only an alumnus can file the Graduate Application — a regular student
     // never sees the tab at all, not even to navigate to it directly.
@@ -27,6 +27,7 @@ export function navItemsForUser(user) {
     return [
       { tab: 'dashboard', to: '/dashboard', label: 'Dashboard', icon: 'dashboard' },
       { tab: 'completed-logs', to: '/dashboard?tab=completed-logs', label: 'Completed Logs', icon: 'checklist' },
+      { tab: 'messages', to: '/dashboard?tab=messages', label: 'Messages & Attachments', icon: 'message' },
       { tab: 'grad-applications', to: '/dashboard?tab=grad-applications', label: 'Graduate Applications', icon: 'cap' },
       { tab: 'reports', to: '/dashboard?tab=reports', label: 'Reports & Export', icon: 'report' },
     ];
@@ -36,6 +37,7 @@ export function navItemsForUser(user) {
     return [
       { tab: 'dashboard', to: '/dashboard', label: 'Workspace Dashboard', icon: 'dashboard' },
       { tab: 'tracking-desk', to: '/dashboard?tab=tracking-desk', label: 'Tracking Desk', icon: 'users' },
+      { tab: 'messages', to: '/dashboard?tab=messages', label: 'Messages & Attachments', icon: 'message' },
       { tab: 'reports', to: '/dashboard?tab=reports', label: 'Reports & Export', icon: 'report' },
     ];
   }
@@ -44,21 +46,32 @@ export function navItemsForUser(user) {
     return [
       { tab: 'dashboard', to: '/dashboard', label: 'Dashboard', icon: 'dashboard' },
       { tab: 'admin-tracker', to: '/dashboard?tab=admin-tracker', label: 'Document Tracker', icon: 'document' },
-      { tab: 'admin-users', to: '/dashboard?tab=admin-users', label: 'Registered Users', icon: 'users' },
+      { tab: 'messages', to: '/dashboard?tab=messages', label: 'Messages & Attachments', icon: 'message' },
       { tab: 'admin-logs', to: '/dashboard?tab=admin-logs', label: 'Activity Logs', icon: 'checklist' },
-      { tab: 'admin-security', to: '/dashboard?tab=admin-security', label: 'Security Logs', icon: 'users' },
+      { tab: 'admin-security', to: '/dashboard?tab=admin-security', label: 'Security Logs', icon: 'shield' },
       { tab: 'admin-reports', to: '/dashboard?tab=admin-reports', label: 'Reports & Export', icon: 'report' },
       { tab: 'admin-analytics', to: '/dashboard?tab=admin-analytics', label: 'Efficiency Analytics', icon: 'bolt' },
       { tab: 'admin-grad-applications', to: '/dashboard?tab=admin-grad-applications', label: 'Graduate Applications', icon: 'cap' },
-      { tab: 'admin-templates', to: '/dashboard?tab=admin-templates', label: 'Templates', icon: 'document' },
+      { tab: 'admin-templates', to: '/dashboard?tab=admin-templates', label: 'Templates', icon: 'template' },
       { tab: 'admin-maintenance', to: '/dashboard?tab=admin-maintenance', label: 'System Maintenance', icon: 'wrench' },
     ];
   }
 
-  // Finance clerk, and any other desk, gets the dashboard alone.
+  if (user?.role === 'clerk' && user?.desk_assignment === 'Finance') {
+    return [
+      { tab: 'dashboard', to: '/dashboard', label: 'Dashboard', icon: 'dashboard' },
+      { tab: 'reports', to: '/dashboard?tab=reports', label: 'Transactions & Export', icon: 'report' },
+    ];
+  }
+  // Other desks get the dashboard alone.
   if (user?.role === 'clerk') {
     return [{ tab: 'dashboard', to: '/dashboard', label: 'Dashboard', icon: 'dashboard' }];
   }
 
   return [];
+}
+
+export function navItemsForUser(user) {
+  const items = roleNavItems(user);
+  return user?.role ? [...items, { tab: 'help', to: '/dashboard?tab=help', label: 'Help / FAQ', icon: 'book' }] : items;
 }

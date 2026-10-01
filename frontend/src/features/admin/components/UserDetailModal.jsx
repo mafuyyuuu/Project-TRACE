@@ -1,12 +1,14 @@
 import ModalShell from '@/components/ModalShell';
 import UserAvatar from '@/components/UserAvatar';
+import FileUploadField from '@/components/FileUploadField';
 import { getUserLabel } from '@/utils/userLabels';
+import StaffAuthenticatorSetup from '@/features/admin/components/StaffAuthenticatorSetup';
 
 function Field({ label, value }) {
   return (
-    <div className="flex justify-between text-[11px] font-mono text-gray-600 py-2 border-b border-gray-100 last:border-0">
+    <div className="flex justify-between gap-3 text-[11px] font-mono text-gray-600 dark:text-gray-300 py-2 border-b border-gray-100 dark:border-gray-700 last:border-0">
       <span>{label}</span>
-      <span className="font-bold text-gray-950 select-text">{value || '—'}</span>
+      <span className="font-bold text-gray-950 dark:text-gray-100 select-text min-w-0 break-words text-right">{value || '—'}</span>
     </div>
   );
 }
@@ -23,7 +25,7 @@ export default function UserDetailModal({ open, onClose, user, onEdit, onToggleA
 
   const isStudent = user.role === 'student';
   const isSelf = user.id === viewerId;
-  const mutationDisabled = isStudent || !onEdit;
+  const mutationDisabled = !onEdit;
   const dateJoined = user.created_at
     ? new Date(user.created_at).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
     : null;
@@ -37,52 +39,47 @@ export default function UserDetailModal({ open, onClose, user, onEdit, onToggleA
       footer={
         <div className="space-y-3">
           <div className="flex flex-col sm:flex-row gap-3">
-            <button
+            {onEdit && <button
               type="button"
               onClick={onEdit}
               disabled={mutationDisabled || saving}
-              className="flex-1 px-5 py-3 rounded-2xl text-xs font-bold bg-[#15803d] hover:bg-[#166534] text-white shadow-sm disabled:opacity-50 transition-colors"
+              className="flex-1 px-5 py-3 rounded-2xl text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white shadow-sm disabled:opacity-50 transition-colors"
             >
               Edit User
-            </button>
-            <button
+            </button>}
+            {onToggleActive && <button
               type="button"
               onClick={onToggleActive}
-              disabled={mutationDisabled || isSelf || saving}
+              disabled={isStudent || !onToggleActive || isSelf || saving}
               title={isSelf ? 'You cannot deactivate your own account' : ''}
-              className="flex-1 px-5 py-3 rounded-2xl text-xs font-bold border border-gray-200 text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-50"
+              className={`flex-1 px-5 py-3 rounded-2xl text-xs font-bold border transition-colors disabled:opacity-50 ${user.is_active ? 'border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 hover:bg-red-50 dark:hover:bg-red-950/40' : 'border-green-200 dark:border-green-800 text-green-700 dark:text-green-300 hover:bg-green-50 dark:hover:bg-green-950/40'}`}
             >
               {user.is_active ? 'Deactivate User' : 'Restore User'}
-            </button>
+            </button>}
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 px-5 py-3 rounded-2xl text-xs font-bold text-gray-500 hover:text-gray-700 transition-colors"
+              className="flex-1 px-5 py-3 rounded-2xl text-xs font-bold text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"
             >
               Close
             </button>
           </div>
-          {mutationDisabled && (
-            <p className="text-[11px] text-gray-400 text-center">
-              {isStudent ? 'Not available for student accounts.' : 'View only.'}
-            </p>
-          )}
         </div>
       }
     >
-      <div className="flex flex-col items-center text-center pb-6 border-b border-gray-100">
+      <div className="flex flex-col items-center text-center pb-6 border-b border-gray-100 dark:border-gray-700">
         <UserAvatar user={user} className="w-20 h-20 rounded-full object-cover" alt={user.full_name} />
-        <h4 className="mt-3 text-lg font-display font-black text-gray-900">{user.full_name}</h4>
-        <p className="text-xs text-gray-500 select-text">{user.email || '—'}</p>
+        <h4 className="mt-3 text-lg font-display font-black text-gray-900 dark:text-gray-100 select-text break-words">{user.full_name}</h4>
+        <p className="text-xs text-gray-500 dark:text-gray-400 select-text">{user.email || '—'}</p>
         <div className="flex flex-wrap justify-center gap-1.5 mt-3">
-          <span className="text-[10px] font-bold px-2.5 py-1 rounded-full border bg-gray-50 text-gray-600 border-gray-200">
+          <span className="text-[10px] font-bold px-2.5 py-1 rounded-full border bg-gray-50 dark:bg-gray-800 text-gray-600 dark:text-gray-300 border-gray-200 dark:border-gray-700">
             {getUserLabel(user)}
           </span>
           <span
             className={`text-[10px] font-bold px-2.5 py-1 rounded-full border ${
               user.is_active
-                ? 'bg-emerald-50 text-[#15803d] border-emerald-100'
-                : 'bg-gray-100 text-gray-500 border-gray-200'
+                ? 'bg-emerald-50 dark:bg-emerald-950/40 text-[#15803d] dark:text-green-300 border-emerald-100 dark:border-emerald-800'
+                : 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 border-gray-200 dark:border-gray-700'
             }`}
           >
             {user.is_active ? 'Active' : 'Inactive'}
@@ -91,14 +88,36 @@ export default function UserDetailModal({ open, onClose, user, onEdit, onToggleA
       </div>
 
       <div className="pt-4 space-y-0.5">
-        <Field label="Department" value="—" />
-        <Field label="Position" value="—" />
-        <Field label="Appointment" value="—" />
-        <Field label="UID" value={user.student_id} />
+        <Field label="College / Department" value={user.college || user.college_name || user.college_id} />
+        {user.role === 'student' && !user.college_id && <p className="text-xs text-amber-800 dark:text-amber-300">College assignment needs Admin review before requesting college-restricted documents.</p>}
+        <Field label="College" value={user.college_name || user.course} />
+        {isStudent && <Field label="Program/Course" value={user.program} />}
+        <Field label={isStudent ? user.user_type === 'alumni' ? 'Alumni ID' : 'Student ID' : 'Staff ID'} value={user.student_id} />
         <Field label="Date Joined" value={dateJoined} />
         <Field label="Email" value={user.email} />
         <Field label="Contact Number" value={user.phone_number} />
-        <Field label="Last Activity" value="—" />
+        {user.role === 'clerk' && Boolean(user.is_active) && viewerId && <StaffAuthenticatorSetup key={user.id} user={user} />}
+        {isStudent && <>
+          <Field label="Extension Name" value={user.extension_name} />
+          <Field label="Birth Date" value={user.birth_date ? new Date(user.birth_date).toLocaleDateString('en-PH') : null} />
+          <Field label="Place of Birth" value={user.place_of_birth} />
+          <Field label="Sex" value={user.sex} />
+          <Field label="Civil Status" value={user.civil_status} />
+          <Field label="Maiden Name" value={user.maiden_name} />
+          <Field label="Home Address" value={user.home_address} />
+          <Field label="Enrollment Status" value={user.enrollment_status} />
+          <Field label="Study Load" value={user.study_load} />
+          <Field label="Last Attendance Year" value={user.last_attendance_year} />
+          <Field label="Transfer Student" value={user.is_transfer_student ? 'Yes' : 'No'} />
+          <Field label="Previous School" value={user.previous_school} />
+          <Field label="Elementary School" value={user.elem_school} />
+          <Field label="Elementary Graduation" value={user.elem_grad_year} />
+          <Field label="Junior High School" value={user.jhs_school} />
+          <Field label="Junior High Graduation" value={user.jhs_grad_year} />
+          <Field label="Senior High School" value={user.shs_school} />
+          <Field label="Senior High Graduation" value={user.shs_grad_year} />
+          <FileUploadField label="Registration identity proof" path={user.id_proof_path} allowReplace={false} />
+        </>}
       </div>
     </ModalShell>
   );

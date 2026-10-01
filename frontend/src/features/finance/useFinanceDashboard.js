@@ -1,8 +1,8 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import useDashboardCore from '@/hooks/useDashboardCore';
-import { verifyPayment, logWalkInPayment, scanReceipt } from '@/services/documentsService';
+import { verifyPayment, logWalkInPayment, scanReceipt, uploadDeferredOR } from '@/services/documentsService';
 import { getPaymentMethods } from '@/services/referenceService';
-import { STATUS } from '@/utils/documentStatus';
+import { STATUS, PIPELINE } from '@/utils/documentStatus';
 
 /**
  * Finance clerk: the desk money passes through, in two queues.
@@ -37,6 +37,7 @@ export default function useFinanceDashboard(user) {
   // Walk-in logging: what the clerk reads off the Official Receipt.
   const [orNumber, setOrNumber] = useState('');
   const [orDate, setOrDate] = useState('');
+  const [counterDeferred, setCounterDeferred] = useState(false);
   const [orFile, setOrFile] = useState(null);
   const [scanning, setScanning] = useState(false);
   const [scanConfidence, setScanConfidence] = useState(null);
@@ -53,26 +54,43 @@ export default function useFinanceDashboard(user) {
     [documents]
   );
 
+  const transactionsQueue = useMemo(
+    () => documents.filter((doc) =>
+      PIPELINE.slice(PIPELINE.indexOf(STATUS.PAID_PENDING_SEC_RELEASE)).includes(doc.current_status)),
+    [documents]
+  );
+
+  const handleDeferredUpload = useCallback(async (doc, file, metadata) => {
+    const ok = await runAction(() => uploadDeferredOR(doc.id, file, metadata), {
+      successMessage: 'Official Receipt copy uploaded. The document stage is unchanged.',
+      errorMessage: 'Could not upload the Official Receipt copy.',
+    });
+    if (ok) setActiveModal(null);
+    return ok;
+  }, [runAction, setActiveModal]);
+
   /**
    * @param {'approve'|'reject'} action
    * @param {File} [file] optional official receipt to attach
    * @param {string} [orNumber] required to approve — the Official Receipt number
    */
   const handleFinanceVerify = useCallback(
-    (action, file, orNumber) => {
+    (action, file, orNumber, metadata = {}) => {
       if (!selectedDoc) return;
-      setFinanceVerifyToConfirm({ action, file, orNumber });
+      setFinanceVerifyToConfirm({ action, file, orNumber, ...metadata });
     },
     [selectedDoc]
   );
 
   const confirmFinanceVerify = useCallback(async () => {
     if (!financeVerifyToConfirm) return;
-    const { action, file, orNumber } = financeVerifyToConfirm;
+    const { action, file, orNumber, orDate, deferred } = financeVerifyToConfirm;
 
     const formData = new FormData();
     formData.append('action', action);
     formData.append('notes', clerkNotes);
+    if (deferred) formData.append('defer_or', 'true');
+    if (orDate) formData.append('or_date', orDate);
     if (orNumber) formData.append('or_number', orNumber);
     if (file) formData.append('officialReceipt', file);
 
@@ -105,7 +123,6 @@ export default function useFinanceDashboard(user) {
   const handleScanReceipt = useCallback(
     async (file) => {
       if (!file) return;
-      setOrFile(file);
       setScanning(true);
       setScanConfidence(null);
 
@@ -138,22 +155,22 @@ export default function useFinanceDashboard(user) {
   /** Stage a counter payment for confirmation. */
   const handleLogWalkIn = useCallback(() => {
     if (!selectedDoc) return;
-    if (!orNumber.trim()) {
+    if (!counterDeferred && !orNumber.trim()) {
       triggerNotification('Enter the Official Receipt number.', 'error');
       return;
     }
     setWalkInToConfirm(true);
-  }, [selectedDoc, orNumber, triggerNotification]);
+  }, [selectedDoc, orNumber, counterDeferred, triggerNotification]);
 
   /** Record a payment taken at the counter, against the whole request. */
   const confirmLogWalkIn = useCallback(async () => {
     if (!selectedDoc) return;
 
     const formData = new FormData();
-    formData.append('or_number', orNumber.trim());
-    formData.append('or_date', orDate);
+    if (counterDeferred) formData.append('defer_or', 'true');
+    else { formData.append('or_number', orNumber.trim()); formData.append('or_date', orDate); }
     formData.append('notes', clerkNotes);
-    if (orFile) formData.append('officialReceipt', orFile);
+    if (orFile && !counterDeferred) formData.append('officialReceipt', orFile);
 
     const ok = await runAction(() => logWalkInPayment(selectedDoc.id, formData), {
       successMessage: (r) =>
@@ -163,6 +180,7 @@ export default function useFinanceDashboard(user) {
 
     if (ok) {
       setActiveModal(null);
+      setCounterDeferred(false);
       setOrNumber('');
       setOrDate('');
       setOrFile(null);
@@ -170,7 +188,7 @@ export default function useFinanceDashboard(user) {
       setScanConfidence(null);
       setWalkInToConfirm(false);
     }
-  }, [selectedDoc, orNumber, orDate, orFile, clerkNotes, runAction, setActiveModal]);
+  }, [selectedDoc, orNumber, orDate, orFile, counterDeferred, clerkNotes, runAction, setActiveModal]);
 
   const cancelLogWalkIn = useCallback(() => {
     setWalkInToConfirm(false);
@@ -180,10 +198,13 @@ export default function useFinanceDashboard(user) {
     ...core,
     awaitingPaymentQueue,
     verificationQueue,
+    transactionsQueue,
+    handleDeferredUpload,
     clerkNotes, setClerkNotes,
+    counterDeferred, setCounterDeferred,
     orNumber, setOrNumber,
     orDate, setOrDate,
-    orFile, setOrFile,
+    orFile, setOrFile: (file) => { setOrFile(file); setScanConfidence(null); },
     scanning,
     scanConfidence,
     handleFinanceVerify,

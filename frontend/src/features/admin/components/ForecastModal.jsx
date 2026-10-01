@@ -1,3 +1,4 @@
+import { forecastCeiling } from '@/utils/forecastScale';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import ModalShell from '@/components/ModalShell';
 
@@ -21,11 +22,11 @@ export default function ForecastModal({ open, onClose, forecastData, forecastFil
   return (
     <ModalShell open={open} onClose={onClose} title="7-Day Volume Forecast" maxWidth="max-w-3xl">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-        <p className="text-xs text-gray-400 font-medium">Predicted incoming document volume via Prophet ML — full week.</p>
+        <p className="text-xs text-gray-400 dark:text-gray-400 font-medium">Predicted incoming document volume via Prophet ML — full week.</p>
         <select
           value={forecastFilter}
           onChange={(e) => setForecastFilter(e.target.value)}
-          className="bg-gray-50 border border-gray-200 rounded-xl px-3 py-1.5 text-xs text-gray-700 font-bold cursor-pointer hover:bg-gray-100 transition-colors focus:outline-none focus:border-[#15803d]"
+          className="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl px-3 py-1.5 text-xs text-gray-700 dark:text-gray-300 font-bold cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors focus:outline-none focus:border-[#15803d]"
         >
           <option value="All">All Documents</option>
           <option value="Transcript of Records">Transcript of Records</option>
@@ -35,7 +36,7 @@ export default function ForecastModal({ open, onClose, forecastData, forecastFil
       </div>
 
       {chartData.length > 0 ? (
-        <div className="h-80">
+        <div className="overflow-x-auto"><div className="h-80 min-w-[20rem]">
           <ResponsiveContainer width="100%" height="100%">
             <AreaChart data={chartData} margin={{ top: 20, right: 15, left: 15, bottom: 0 }}>
               <defs>
@@ -44,17 +45,18 @@ export default function ForecastModal({ open, onClose, forecastData, forecastFil
                   <stop offset="95%" stopColor="#15803d" stopOpacity={0} />
                 </linearGradient>
               </defs>
-              <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{ fill: '#9ca3af', fontSize: 10, fontWeight: 'bold' }} dy={10} />
-              <YAxis axisLine={false} tickLine={false} tick={{ fill: '#9ca3af', fontSize: 10, fontWeight: 'bold' }} allowDecimals={false} domain={[0, 'auto']} />
+              <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{ fill: '#9ca3af', fontSize: '0.625rem', fontWeight: 'bold' }} dy={10} />
+              <YAxis axisLine={false} tickLine={false} tick={{ fill: '#9ca3af', fontSize: '0.625rem', fontWeight: 'bold' }} allowDecimals={false} domain={[0, forecastCeiling(forecastData)]} />
               <Tooltip
                 contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
-                itemStyle={{ color: '#15803d', fontWeight: 'bold' }}
-                labelStyle={{ color: '#6b7280', fontWeight: 'bold', marginBottom: '4px' }}
+                itemStyle={{ color: 'var(--trace-chart-accent)', fontWeight: 'bold' }}
+                labelStyle={{ color: 'var(--trace-chart-text)', fontWeight: 'bold', marginBottom: '4px' }}
               />
               <Area
+                isAnimationActive={false}
                 type="monotone"
                 dataKey="volume"
-                stroke="#0f172a"
+                stroke="var(--trace-chart-line)"
                 strokeWidth={2.5}
                 fillOpacity={1}
                 fill="url(#colorVolumeExpanded)"
@@ -62,16 +64,16 @@ export default function ForecastModal({ open, onClose, forecastData, forecastFil
               />
             </AreaChart>
           </ResponsiveContainer>
-        </div>
+        </div></div>
       ) : (
-        <div className="h-80 flex items-center justify-center text-gray-400 font-medium text-xs">Loading forecast data...</div>
+        <div className="h-80 flex items-center justify-center text-gray-400 dark:text-gray-400 font-medium text-xs">Loading forecast data...</div>
       )}
 
       <div className="mt-6 grid grid-cols-3 sm:grid-cols-7 gap-2">
         {chartData.map((d) => (
-          <div key={d.day} className="bg-gray-50 border border-gray-100 rounded-xl p-3 text-center">
-            <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{d.day}</div>
-            <div className="text-sm font-black text-gray-900 mt-1">{d.volume}</div>
+          <div key={d.day} className="bg-gray-50 dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-xl p-3 text-center">
+            <div className="text-[10px] font-bold text-gray-400 dark:text-gray-400 uppercase tracking-widest">{d.day}</div>
+            <div className="text-sm font-black text-gray-900 dark:text-gray-100 mt-1">{d.volume}</div>
           </div>
         ))}
       </div>

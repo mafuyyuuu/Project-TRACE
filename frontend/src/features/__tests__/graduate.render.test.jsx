@@ -93,6 +93,8 @@ describe('submitting', () => {
     await user.type(await screen.findByLabelText(/Year Graduated/), '2024');
     await user.type(screen.getByLabelText(/Degree Program/), 'BSIT');
     await user.click(screen.getByRole('button', { name: /submit application/i }));
+    expect(gradService.submitApplication).not.toHaveBeenCalled();
+    await user.click(screen.getByRole('button', { name: 'Confirm Submission' }));
 
     await waitFor(() => expect(gradService.submitApplication).toHaveBeenCalled());
     expect(gradService.submitApplication).toHaveBeenCalledWith(
@@ -134,6 +136,8 @@ describe('submitting', () => {
     await user.type(await screen.findByLabelText(/Year Graduated/), '2024');
     await user.type(screen.getByLabelText(/Degree Program/), 'BSIT');
     await user.click(screen.getByRole('button', { name: /submit application/i }));
+    expect(gradService.submitApplication).not.toHaveBeenCalled();
+    await user.click(screen.getByRole('button', { name: 'Confirm Submission' }));
 
     expect(await screen.findByText(/must be a number/i)).toBeInTheDocument();
   });

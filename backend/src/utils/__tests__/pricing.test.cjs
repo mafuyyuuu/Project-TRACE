@@ -91,6 +91,9 @@ describe('calculateAmount with a database-supplied type', () => {
 });
 
 describe('calculateGroupAmount', () => {
+  it('preserves quantity and multiplies a flat estimate by the number of copies', () => {
+    expect(calculateGroupAmount([{ document_type: 'Diploma', copies: 3 }], TYPES)).toMatchObject({ total: 150, items: [{ copies: 3, amount: 150 }] });
+  });
   it('sums a mixed group of flat and per-semester documents', () => {
     // TOR 8 semesters = 200, Diploma = 50
     const { total } = calculateGroupAmount(
@@ -160,5 +163,50 @@ describe('generateRequestGroupId', () => {
   it('does not repeat across many calls', () => {
     const seen = new Set(Array.from({ length: 500 }, generateRequestGroupId));
     expect(seen.size).toBe(500);
+  });
+});
+
+const { calculateBreakdown, resolveSchedule, normalizedSchedule } = require('../pricing');
+describe('authoritative fee calculation', () => {
+  const schedule = { name: 'Test', base_fee: '100.00', fee_rule: 'per_semester_block', rental_fee: '20.00', special_fee: '30.00', fee_items: [{ label: 'Certification', amount: '10.00' }] };
+  it('charges actual pages per copy and each extra once', () => {
+    const result = calculateBreakdown(schedule, { page_count: 3, copies: 2 }, true);
+    expect(result.total).toBe(660);
+    expect(result.items.map(item => item.amount)).toEqual([600, 20, 30, 10]);
+    expect(result.items[0].calculation).toContain('3 pages per copy × 2 copies');
+  });
+  it('flat rates depend on copies rather than printed pages', () => {
+    expect(calculateBreakdown({ ...schedule, fee_rule: 'flat' }, { page_count: 10, copies: 2 }, true).total).toBe(260);
+  });
+  it('replaces the entire default with a college override including explicit zero extras', () => {
+    const type = { ...schedule, college_fee_schedules: [{ college_id: 2, base_fee: 80, fee_rule: 'flat', rental_fee: 0, special_fee: 0, fee_items: [] }] };
+    expect(calculateBreakdown(resolveSchedule(type, 2), { copies: 2 }, true).total).toBe(160);
+    expect(resolveSchedule(type, 3)).toMatchObject({ base_fee: 100, rental_fee: 20, source: 'default' });
+  });
+  it.each(['-1', '1.001', '1x', 'Infinity', '1e3', ''])('rejects invalid money %s', value => {
+    expect(() => normalizedSchedule({ base_fee: value })).toThrow();
+  });
+  it.each([0, -1, 1.5, '2x', undefined])('rejects invalid actual pages %s', page_count => {
+    expect(() => calculateBreakdown(schedule, { page_count }, true)).toThrow();
+  });
+  it('rejects duplicate or reserved extra fee names', () => {
+    expect(() => normalizedSchedule({ fee_items: [{ label: 'Rental Fee', amount: 1 }] })).toThrow(/reserved/);
+    expect(() => normalizedSchedule({ fee_items: [{ label: 'A', amount: 1 }, { label: 'a', amount: 2 }] })).toThrow(/unique/);
+  });
+  it('rejects overflow and preserves centavo arithmetic', () => {
+    expect(() => calculateBreakdown({ base_fee: 99999999.99 }, { copies: 2 }, true)).toThrow(/exceeds/);
+    expect(calculateBreakdown({ base_fee: 0.1, rental_fee: 0.2 }, { copies: 3 }, true).total).toBe(0.5);
+  });
+});
+
+
+describe('pricing quantity boundaries', () => {
+  it('rejects unsafe multiplied page quantities even when the base rate is zero', () => {
+    expect(() => calculateBreakdown({ base_fee: 0, fee_rule: 'per_semester_block', rental_fee: 10 },
+      { copies: 2147483647, page_count: 2147483647 }, true)).toThrow(/quantity/);
+  });
+  it('validates supplied page metadata even for a flat charge', () => {
+    expect(() => calculateBreakdown({ base_fee: 50, fee_rule: 'flat' }, { page_count: 1.5 }, true)).toThrow(/Pages/);
+    expect(calculateBreakdown({ base_fee: 50, fee_rule: 'flat' }, { page_count: 3, copies: 2 }, true).total).toBe(100);
   });
 });

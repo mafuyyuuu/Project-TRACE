@@ -4,20 +4,21 @@ import api from '@/services/api'
 
 /**
  * Authenticate a user with employee credentials.
- * @param {{ employeeId: string, password: string }} credentials
+ * @param {{ employeeId: string, password: string, sharedComputer?: boolean }} credentials
  * @returns {Promise<{ token: string, user: object }>}
  */
 export async function login(credentials) {
   const { data } = await api.post('/auth/login', {
     employee_id: credentials.employeeId,
     password: credentials.password,
+    shared_computer: credentials.sharedComputer !== false,
   })
   return data
 }
 
 export async function register(formData) {
   const { data } = await api.post('/auth/register', formData, {
-    headers: { 'Content-Type': 'multipart/form-data' },
+    headers: { 'Content-Type': 'multipart/form-data' }, timeout: 60000,
   })
   return data
 }
@@ -90,8 +91,8 @@ export async function getUsers() {
  * Look up a student by student ID.
  * @param {string} studentId
  */
-export async function lookupStudent(studentId) {
-  const { data } = await api.get(`/auth/student/${studentId}`)
+export async function lookupStudent(studentId, options = {}) {
+  const { data } = await api.get(`/auth/student/${encodeURIComponent(studentId)}`, options)
   return data
 }
 
@@ -113,4 +114,35 @@ export async function forgotPassword(identifier) {
 export async function resetPassword({ token, password }) {
   const { data } = await api.post('/auth/reset-password', { token, password })
   return data
+}
+
+export async function verify2FA(payload) {
+  const { data } = await api.post('/auth/verify-2fa', payload)
+  return data
+}
+
+export async function extractSignupId(file, options = {}) {
+  const form = new FormData();
+  form.append('id_proof', file);
+  const { data } = await api.post('/ai/extract-id', form, options);
+  return data;
+}
+export async function verifyEmailChange(otp) {
+  const { data } = await api.post('/auth/verify-email-change', { otp })
+  return data
+}
+
+export async function endSession() {
+  const { data } = await api.post('/auth/logout', {}, { timeout: 15000 });
+  return data;
+}
+export async function getSecurityLogs(signal) {
+  const { data } = await api.get('/auth/security-logs', { signal, timeout: 15000 });
+  if (!Array.isArray(data)) throw new Error('Could not load security activity.');
+  return data;
+}
+export async function endOtherSessions() {
+  const { data } = await api.post('/auth/logout-all', { preserve_current: true }, { timeout: 15000 });
+  if (!data?.token || !data.user) throw new Error('Could not confirm session change. Log in again.');
+  return data;
 }

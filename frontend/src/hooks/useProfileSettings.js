@@ -1,7 +1,37 @@
-import { useState } from 'react';
-import { updateProfile, uploadProfilePicture } from '@/services/authService';
+import { useRef, useState } from 'react';
+import { updateProfile, uploadProfilePicture, getMe } from '@/services/authService';
+
+import { isTransferStudent } from '@/utils/profileCompletion';
+import { disconnectRealtime } from '@/services/realtimeService';
 
 const STORED_USER_KEY = 'trace_user';
+
+function formFromUser(user) {
+  return {
+    phone_number: user?.phone_number || '',
+    email: user?.email || '',
+    program: user?.program || '',
+    password: '',
+    current_password: '',
+    extension_name: user?.extension_name || '',
+    birth_date: user?.birth_date ? String(user.birth_date).split('T')[0] : '',
+    place_of_birth: user?.place_of_birth || '',
+    sex: user?.sex || '',
+    civil_status: user?.civil_status || '',
+    maiden_name: user?.maiden_name || '',
+    home_address: user?.home_address || '',
+    last_attendance_year: user?.last_attendance_year || '',
+    is_transfer_student: isTransferStudent(user?.is_transfer_student),
+    previous_school: user?.previous_school || '',
+    elem_school: user?.elem_school || '',
+    elem_grad_year: user?.elem_grad_year || '',
+    jhs_school: user?.jhs_school || '',
+    jhs_grad_year: user?.jhs_grad_year || '',
+    shs_school: user?.shs_school || '',
+    shs_grad_year: user?.shs_grad_year || '',
+  };
+}
+
 
 /**
  * State and actions behind the Account Settings profile card.
@@ -21,47 +51,38 @@ const STORED_USER_KEY = 'trace_user';
  * `discardAvatarChange` drops the stage without ever having called the server.
  */
 export default function useProfileSettings(user) {
-  const [profileData, setProfileData] = useState({
-    phone_number: user?.phone_number || '',
-    email: user?.email || '',
-    password: '',
-    current_password: '',
-    extension_name: user?.extension_name || '',
-    birth_date: user?.birth_date ? user.birth_date.split('T')[0] : '',
-    place_of_birth: user?.place_of_birth || '',
-    sex: user?.sex || '',
-    civil_status: user?.civil_status || '',
-    maiden_name: user?.maiden_name || '',
-    home_address: user?.home_address || '',
-    last_attendance_year: user?.last_attendance_year || '',
-    is_transfer_student: user?.is_transfer_student || false,
-    previous_school: user?.previous_school || '',
-    elem_school: user?.elem_school || '',
-    elem_grad_year: user?.elem_grad_year || '',
-    jhs_school: user?.jhs_school || '',
-    jhs_grad_year: user?.jhs_grad_year || '',
-    shs_school: user?.shs_school || '',
-    shs_grad_year: user?.shs_grad_year || '',
-  });
+  const savingRef = useRef(false);
+  const [profileData, setProfileData] = useState(() => formFromUser(user));
+  const [dirty, setDirty] = useState(false);
+  const [sourceUser, setSourceUser] = useState(user);
   const [avatarPath, setAvatarPath] = useState(user?.profile_picture || null);
   const [avatarFile, setAvatarFile] = useState(null);
   const [avatarPreviewUrl, setAvatarPreviewUrl] = useState(null);
+  const [pendingEmail, setPendingEmail] = useState(user?.pending_email || '');
   const [saving, setSaving] = useState(false);
   const [success, setSuccess] = useState('');
   const [error, setError] = useState('');
+
+  // /auth/me can arrive after the layout mounts. Adopt saved fields without
+  // overwriting a draft the user has already started editing.
+  if (sourceUser !== user) {
+    setSourceUser(user);
+    if (!dirty) setProfileData(formFromUser(user));
+  }
 
   /** Keep the cached user in sync so a refresh doesn't revert the avatar. */
   const patchStoredUser = (patch) => {
     try {
       const stored = localStorage.getItem(STORED_USER_KEY);
-      if (!stored) return;
-      localStorage.setItem(STORED_USER_KEY, JSON.stringify({ ...JSON.parse(stored), ...patch }));
+      localStorage.setItem(STORED_USER_KEY, JSON.stringify({ ...(stored ? JSON.parse(stored) : user), ...patch }));
     } catch {
       // A corrupt or unavailable localStorage must not break the save.
     }
+    window.dispatchEvent(new CustomEvent('trace-user-updated', { detail: patch }));
   };
 
   const setField = (field, value) => {
+    setDirty(true);
     setProfileData((current) => ({ ...current, [field]: value }));
   };
 
@@ -70,6 +91,8 @@ export default function useProfileSettings(user) {
 
   const saveProfile = async (e) => {
     if (e) e.preventDefault();
+    if (savingRef.current) return false;
+    savingRef.current = true;
     setSaving(true);
     setSuccess('');
     setError('');
@@ -93,10 +116,29 @@ export default function useProfileSettings(user) {
     }
 
     try {
-      await updateProfile(profileData);
-      patchStoredUser({ phone_number: profileData.phone_number, email: profileData.email });
+      const result = await updateProfile(profileData);
+      if (result?.token && result?.user) {
+        localStorage.setItem('trace_token', result.token);
+        disconnectRealtime();
+        patchStoredUser(result.user);
+      }
+      patchStoredUser({ phone_number: profileData.phone_number, ...(result?.email_verification_required ? {} : { email: profileData.email }) });
+      if (result?.email_verification_required) setPendingEmail(result.pending_email || profileData.email);
       setProfileData((current) => ({ ...current, password: '', current_password: '' }));
-      messages.push('Profile updated successfully.');
+      if (!profileData.password || result?.token) {
+        try {
+          const { user: fresh } = await getMe();
+          if (!fresh) throw new Error('Profile refresh returned no account.');
+          setDirty(false);
+          setProfileData(formFromUser(fresh));
+          patchStoredUser(fresh);
+        } catch {
+          // The write succeeded. Do not claim it failed or publish unsaved draft fields.
+          errors.push('Profile saved, but saved details could not be refreshed. Reopen TRACE before requesting documents.');
+        }
+      }
+      messages.push(result?.message || (pendingEmail || profileData.email !== user?.email ? 'Profile saved. If an email change was requested, open the verification link sent to the new address.' : 'Profile updated successfully.'));
+      if (result?.email_sent === false) errors.push('Profile saved, but the verification link could not be delivered. Retry in 60 seconds or contact the Registrar.');
     } catch (err) {
       errors.push(readError(err));
     }
@@ -104,6 +146,8 @@ export default function useProfileSettings(user) {
     if (messages.length) setSuccess(messages.join(' '));
     if (errors.length) setError(errors.join(' '));
     setSaving(false);
+    savingRef.current = false;
+    return errors.length === 0;
   };
 
   /** Stage a picked file as a local preview only — it uploads on Save. */
@@ -129,7 +173,9 @@ export default function useProfileSettings(user) {
     setError('');
   };
 
+
   return {
+    pendingEmail, avatarFile,
     profileData,
     setField,
     avatarPath,
