@@ -73,8 +73,19 @@ describe('Layout', () => {
     expect(screen.getByRole('heading', { name: 'Start with your profile' })).toBeInTheDocument();
     expect(startFirstLoginGuide).toHaveBeenCalledOnce();
   });
-  it('does not offer the student tour to staff', () => {
-    currentUser = { ...STUDENT, role: 'clerk', desk_assignment: 'Finance' };
+  it.each(['Finance', 'Secretary', 'Window 1', 'Admin'])('offers the %s tour automatically and provides replay', async desk => {
+    currentUser = { ...STUDENT, role: desk === 'Admin' ? 'admin' : 'clerk', desk_assignment: desk };
+    startFirstLoginGuide.mockResolvedValue(true);
+    renderLayout();
+    expect(await screen.findByRole('heading', { name: 'Keep your account details current' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Open quick guide' })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Skip quick guide' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Open quick guide' }));
+    expect(screen.getByRole('heading', { name: 'Keep your account details current' })).toBeInTheDocument();
+    expect(startFirstLoginGuide).toHaveBeenCalledOnce();
+  });
+  it('waits for staff to replace the temporary password', () => {
+    currentUser = { ...STUDENT, role: 'clerk', must_change_password: true, desk_assignment: 'Finance' };
     renderLayout();
     expect(screen.queryByRole('button', { name: 'Open quick guide' })).not.toBeInTheDocument();
     expect(startFirstLoginGuide).not.toHaveBeenCalled();

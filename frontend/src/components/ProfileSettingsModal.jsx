@@ -1,3 +1,4 @@
+import { PASSWORD_REQUIREMENTS, validNewPassword } from '@/utils/passwordPolicy';
 import { INPUT_LIMITS } from '@/utils/inputLimits';
 import FileUploadField from '@/components/FileUploadField';
 import ConfirmDialog from '@/components/ConfirmDialog';
@@ -11,7 +12,7 @@ import { TEXT_SIZES } from '@/utils/textSize';
 import { getProfileCompletion } from '@/utils/profileCompletion';
 import AuthenticatorSettings from '@/components/AuthenticatorSettings';
 import useSecurityLogs from '@/hooks/useSecurityLogs';
-import { hasClerkBrowserPreference, forgetClerkBrowserPreference } from '@/utils/clerkBrowserPreference';
+import { hasBrowserTrustPreference, forgetBrowserTrustPreference } from '@/utils/browserTrustPreference';
 import EmailVerificationNotice from '@/components/EmailVerificationNotice';
 
 export default function ProfileSettingsModal({
@@ -41,11 +42,12 @@ export default function ProfileSettingsModal({
   const emailInputRef = useRef(null);
 
   const [activeTab, setActiveTab] = useState(initialTab);
+  const [passwordError, setPasswordError] = useState('');
   const [confirmation, setConfirmation] = useState(null);
   const [emailDraft, setEmailDraft] = useState(null);
   const [loggingOut, setLoggingOut] = useState(false);
   const [showPasswords, setShowPasswords] = useState(false);
-  const [personalBrowser, setPersonalBrowser] = useState(hasClerkBrowserPreference);
+  const [personalBrowser, setPersonalBrowser] = useState(hasBrowserTrustPreference);
   const securityLogs = useSecurityLogs(activeTab === 'security', user?.id);
   const [sessionFeedback, setSessionFeedback] = useState({ success: '', error: '' });
   
@@ -64,6 +66,15 @@ export default function ProfileSettingsModal({
     const draft = { email: profileData.email, current_password: profileData.current_password };
     if (emailChanged) { setEmailDraft(draft); setConfirmation('email'); }
     else void onVerifyEmail?.(draft);
+  };
+  const stageProfileSave = event => {
+    event.preventDefault();
+    if (profileData.password && !validNewPassword(profileData.password)) {
+      setPasswordError(PASSWORD_REQUIREMENTS);
+      return;
+    }
+    setPasswordError('');
+    setConfirmation('profile');
   };
   const { progress, missingPersonal, missingEdu, missing } = useMemo(
     () => getProfileCompletion({ ...user, ...profileData }), [user, profileData],
@@ -95,7 +106,7 @@ export default function ProfileSettingsModal({
       return;
     }
     if (confirmation === 'browser') {
-      forgetClerkBrowserPreference();
+      forgetBrowserTrustPreference();
       setPersonalBrowser(false);
       setConfirmation(null);
       setSessionFeedback({ success: 'Shared-computer verification restored for the next login.', error: '' });
@@ -240,7 +251,8 @@ export default function ProfileSettingsModal({
         {isStudent && missing.length > 0 && <p role="status" className="px-6 pt-3 text-sm text-amber-800 dark:text-amber-200">
           Still needed: {missing.map(item => item.label).join(', ')}.
         </p>}
-        <form id="profile-settings-form" onSubmit={(e) => { e.preventDefault(); setConfirmation('profile'); }} className="space-y-6">
+        <form id="profile-settings-form" onSubmit={stageProfileSave} className="space-y-6">
+          {passwordError && <p role="alert" className="text-sm text-red-600 dark:text-red-300">{passwordError}</p>}
           {activeTab === 'personal' && (
             <div className="space-y-6">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -326,7 +338,7 @@ export default function ProfileSettingsModal({
           {activeTab === 'security' && (
             <div className="space-y-6">
               <AuthenticatorSettings user={user} />
-              {user?.role === 'clerk' && <section aria-label="Clerk browser verification" className="bg-white dark:bg-gray-900 p-4 border border-gray-200 dark:border-gray-700 rounded-2xl space-y-3">
+              {['clerk', 'admin'].includes(user?.role) && <section aria-label="Browser verification" className="bg-white dark:bg-gray-900 p-4 border border-gray-200 dark:border-gray-700 rounded-2xl space-y-3">
                 <h3 className="font-bold">Browser verification</h3>
                 <p className="text-sm">{personalBrowser ? 'Personal-browser preference is saved until midnight Manila time.' : 'Shared-computer verification is the default. Verify each login; choose personal-browser trust during verification only on your own device.'}</p>
                 {personalBrowser && <button type="button" onClick={() => setConfirmation('browser')} className="border rounded-xl px-3 py-2 text-sm">Use shared-computer verification</button>}
@@ -348,13 +360,13 @@ export default function ProfileSettingsModal({
                         <span className={/[A-Z]/.test(profileData.password) ? 'text-green-600 dark:text-green-300' : 'text-gray-400 dark:text-gray-400'}>{/[A-Z]/.test(profileData.password) ? '✓' : '○'} 1 Uppercase</span>
                         <span className={/[a-z]/.test(profileData.password) ? 'text-green-600 dark:text-green-300' : 'text-gray-400 dark:text-gray-400'}>{/[a-z]/.test(profileData.password) ? '✓' : '○'} 1 Lowercase</span>
                         <span className={/\d/.test(profileData.password) ? 'text-green-600 dark:text-green-300' : 'text-gray-400 dark:text-gray-400'}>{/\d/.test(profileData.password) ? '✓' : '○'} 1 Number</span>
-                        <span className={/[@$!%*?&]/.test(profileData.password) ? 'text-green-600 dark:text-green-300' : 'text-gray-400 dark:text-gray-400'}>{/[@$!%*?&]/.test(profileData.password) ? '✓' : '○'} 1 Special Char</span>
+                        <span className={/[@$!%*?&_]/.test(profileData.password) ? 'text-green-600 dark:text-green-300' : 'text-gray-400 dark:text-gray-400'}>{/[@$!%*?&_]/.test(profileData.password) ? '✓' : '○'} 1 Special Char</span>
                       </div>
                     )}
                   </div>
                 </div>
                 <button type="button" aria-pressed={showPasswords} onClick={() => setShowPasswords(value => !value)} className="mt-3 border rounded-xl px-3 py-2 text-sm">{showPasswords ? 'Hide passwords' : 'Show passwords'}</button>
-                <p className="text-sm mt-3">Choose 8–64 characters with uppercase, lowercase, a number and @$!%*?&. You cannot reuse your current or last three passwords. Changing your password logs out other devices and keeps this browser signed in.</p>
+                <p className="text-sm mt-3">{PASSWORD_REQUIREMENTS} You cannot reuse your current or last three passwords. Changing your password logs out other devices and keeps this browser signed in.</p>
               </div>
               <div className="bg-white dark:bg-gray-900 p-4 border border-gray-200 dark:border-gray-700 rounded-2xl">
                 <h3 className="text-sm font-black text-gray-900 dark:text-gray-100 mb-4 border-b border-gray-100 dark:border-gray-700 pb-2">Session Management</h3>

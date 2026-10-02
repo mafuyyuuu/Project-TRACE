@@ -7,7 +7,7 @@
  */
 export default function QueueTabs({ tabs, activeKey, onChange }) {
   return (
-    <div className="flex flex-wrap w-fit max-w-full bg-gray-100 dark:bg-gray-800 rounded-3xl sm:rounded-full p-1.5 gap-1 mt-8" role="tablist" aria-label="Queue filters">
+    <div id="tutorial-queues" className="flex flex-wrap w-fit max-w-full bg-gray-100 dark:bg-gray-800 rounded-3xl sm:rounded-full p-1.5 gap-1 mt-8" role="tablist" aria-label="Queue filters">
       {tabs.map((tab) => {
         const isActive = tab.key === activeKey;
         return (

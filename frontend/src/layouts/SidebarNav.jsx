@@ -78,6 +78,7 @@ export default function SidebarNav({
         {items.map((item) => (
           <Link
             key={item.tab}
+            data-guide-tab={item.tab}
             to={item.to}
             onClick={onNavigate}
             title={item.label}

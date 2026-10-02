@@ -157,6 +157,7 @@ export default function SignupPage() {
             <div className="flex flex-col gap-1.5">
               <label className="text-sm font-semibold text-gray-800 dark:text-gray-100 ml-1">Email Address *</label>
               <input type="email" maxLength={INPUT_LIMITS.email} placeholder="juan@plp.edu.ph" value={formData.email} onChange={(e) => setFormData({...formData, email: e.target.value})} className="w-full p-3.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm focus:ring-2 focus:ring-pine-500 focus:bg-white dark:focus:bg-gray-900 outline-none transition-all" />
+              <p className="text-xs text-gray-500 dark:text-gray-400">After your first login, verify this address from Edit Profile before requesting documents.</p>
             </div>
 
             <div className="flex flex-col gap-1.5">

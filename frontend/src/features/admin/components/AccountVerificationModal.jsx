@@ -58,7 +58,8 @@ export default function AccountVerificationModal({
           <div className="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl p-5 mb-6 font-mono text-[11px] text-gray-600 dark:text-gray-300 space-y-2">
             <div className="flex flex-wrap justify-between gap-x-3 gap-y-1"><span>Applicant</span><span className="font-bold text-gray-950 dark:text-gray-100 select-text">{student.full_name}</span></div>
             <div className="flex flex-wrap justify-between gap-x-3 gap-y-1"><span>ID Number</span><span className="font-bold text-gray-950 dark:text-gray-100 select-text break-words">{student.student_id}</span></div>
-            <div className="flex flex-wrap justify-between gap-x-3 gap-y-1"><span>Course/Program</span><span className="font-bold text-gray-950 dark:text-gray-100">{student.course || '—'}</span></div>
+            <div className="flex flex-wrap justify-between gap-x-3 gap-y-1"><span>Course/Program</span><span className="font-bold text-gray-950 dark:text-gray-100">{student.program || 'Not entered'}</span></div>
+            <div className="flex flex-wrap justify-between gap-x-3 gap-y-1"><span>College</span><span className="font-bold text-gray-950 dark:text-gray-100 select-text">{student.course || 'Not entered'}</span></div>
             <div className="flex flex-wrap justify-between gap-x-3 gap-y-1"><span>Email</span><span className="font-bold text-gray-950 dark:text-gray-100 select-text break-words">{student.email || '—'}</span></div>
           </div>
           <RegistrationReviewNotice user={student} />

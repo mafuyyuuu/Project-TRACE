@@ -95,7 +95,7 @@ export default function ForcePasswordChange({ user, onChanged, onLogout }) {
               minLength={MIN_LENGTH} autoComplete="new-password"
               value={password} onChange={(e) => setPassword(e.target.value)}
             />
-            <p className="text-sm text-gray-500 dark:text-gray-400">At least {MIN_LENGTH} characters. Include uppercase, lowercase, a number and @$!%*?&. Other devices will be logged out.</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400">{PASSWORD_REQUIREMENTS} Other devices will be logged out.</p>
           </div>
 
           <div className="flex flex-col gap-1.5">

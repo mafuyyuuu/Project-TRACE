@@ -234,7 +234,7 @@ describe('MaintenancePanel', () => {
     await user.click(await screen.findByRole('button', { name: /\+ add user/i }));
     await user.type(await screen.findByPlaceholderText(/Employee ID/), 'CLERK99');
     await user.type(screen.getByPlaceholderText(/Full Name/), 'New Clerk');
-    await user.type(screen.getByPlaceholderText(/Temporary password/), 'temporary-1234');
+    await user.type(screen.getByPlaceholderText(/Temporary password/), 'Temporary_1234');
     await user.click(screen.getByRole('button', { name: /create account/i }));
 
     expect(maintenanceService.createStaff).not.toHaveBeenCalled();

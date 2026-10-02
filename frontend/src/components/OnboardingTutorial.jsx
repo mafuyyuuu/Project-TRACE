@@ -1,35 +1,23 @@
 import { useEffect, useRef, useState } from 'react';
 import ModalShell from '@/components/ModalShell';
+import { getOnboardingSteps } from '@/utils/onboardingSteps';
 
-const STEPS = [
-  { title: 'Start with your profile', target: 'tutorial-profile', area: 'profile', action: 'Open my profile', next: true,
-    text: 'This is your Edit Profile button. Add your personal information and educational background. Missing-field markers and the progress bar show what remains; requests stay blocked until your saved profile is complete.' },
-  { title: 'Verify your email', target: 'tutorial-email', area: 'email',
-    text: 'Choose Verify beside Email Address, then click Verify Email in your inbox. The link works once and expires in one hour. Email confirmation is separate from ID approval. Changing your email also requires your current password.' },
-  { title: 'Request documents', target: 'tutorial-new-request', area: 'dashboard',
-    text: 'Use New Request to choose documents and copies. TOR uses Year Started and Year Ended. Rates here are for information; Secretary uses actual printed pages to prepare your final bill. Review your details before confirming.' },
-  { title: 'Review and pay your bill', target: 'tutorial-requests', area: 'dashboard',
-    text: 'Your requests appear here. When Secretary finishes pricing, the final itemized bill and payment action appear on this dashboard. Follow the payment instructions; Finance verifies your payment. A payment acknowledgment and the Official Receipt are separate.' },
-  { title: 'Track and collect', target: 'tutorial-requests', area: 'dashboard',
-    text: 'After filing a request, choose Live Tracking in its Action column. Follow the stages and respond to any rejection reason. Wait for the release notice and collection instructions before visiting Window 1.' },
-  { title: 'Watch for updates', target: 'tutorial-notifications', area: 'dashboard',
-    text: 'The bell shows payment, request and account updates. Open a notice to follow its link or see the related request.' },
-  { title: 'Talk to Window 1', target: 'tutorial-support', area: 'dashboard', action: 'Open support',
-    text: 'This chat button opens General support, even before your first request. Switch to Request conversations and select a request to type a message or read replies. Requested attachments appear with that conversation.' },
-  { title: 'Protect your account', target: 'authenticator-heading', area: 'security',
-    text: 'Edit Profile → Security contains password changes, other-device logout, security activity and Two-factor authentication. Scan the authenticator QR code or enter its manual key, and save your recovery codes. Preferences adjusts text size and theme.' },
-  { title: 'Help is always nearby', target: 'tutorial-guide', area: 'dashboard',
-    text: 'Use this question mark whenever you want to replay the tour. It opens automatically only once for a newly registered account. You can also ask Window 1 using chat.' },
-];
 
-export default function OnboardingTutorial({ onComplete, onPrepare = () => {}, onAction = () => {} }) {
+function findTarget(target) {
+  if (!target.startsWith('nav:')) return document.getElementById(target);
+  return [...document.querySelectorAll('[data-guide-tab]')].find(element =>
+    element.dataset.guideTab === target.slice(4) && element.getBoundingClientRect().width > 0);
+}
+
+export default function OnboardingTutorial({ user, onComplete, onPrepare = () => {}, onAction = () => {} }) {
+  const steps = getOnboardingSteps(user);
   const [step, setStep] = useState(0);
   const [geometry, setGeometry] = useState(null);
   const cardRef = useRef(null);
   const prepareRef = useRef(onPrepare);
   useEffect(() => { prepareRef.current = onPrepare; }, [onPrepare]);
   useEffect(() => {
-    const current = STEPS[step];
+    const current = steps[step];
     prepareRef.current(current.area);
     const scrollableCopy = cardRef.current?.querySelector('[data-guide-copy]');
     if (scrollableCopy) scrollableCopy.scrollTop = 0;
@@ -37,7 +25,7 @@ export default function OnboardingTutorial({ onComplete, onPrepare = () => {}, o
     let target;
     let frame;
     const measure = () => {
-      target = document.getElementById(current.target);
+      target = findTarget(current.target);
       const bounds = target?.getBoundingClientRect();
       const width = window.innerWidth, height = window.innerHeight;
       const hole = bounds?.width && bounds?.height ? {
@@ -59,14 +47,14 @@ export default function OnboardingTutorial({ onComplete, onPrepare = () => {}, o
       });
     };
     frame = requestAnimationFrame(() => {
-      document.getElementById(current.target)?.scrollIntoView?.({ block: 'start', inline: 'nearest', behavior: 'instant' });
+      findTarget(current.target)?.scrollIntoView?.({ block: 'start', inline: 'nearest', behavior: 'instant' });
       measure();
     });
     const observer = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(measure) : null;
     if (cardRef.current) observer?.observe(cardRef.current);
     // Profile targets mount after the preparation callback updates Layout.
     const mutations = new MutationObserver(() => {
-      const next = document.getElementById(current.target);
+      const next = findTarget(current.target);
       if (next !== target) { next?.scrollIntoView?.({ block: 'start', behavior: 'instant' }); measure(); }
     });
     mutations.observe(document.body, { childList: true, subtree: true });
@@ -78,9 +66,9 @@ export default function OnboardingTutorial({ onComplete, onPrepare = () => {}, o
       window.removeEventListener('resize', measure); document.removeEventListener('scroll', measure, true);
       document.removeEventListener('animationend', measure, true);
     };
-  }, [step]);
+  }, [step, steps]);
 
-  const current = STEPS[step];
+  const current = steps[step];
   const hole = geometry?.hole;
   const clipPath = hole ? `polygon(evenodd, 0px 0px, ${geometry.width}px 0px, ${geometry.width}px ${geometry.height}px, 0px ${geometry.height}px, 0px 0px, ${hole.left}px ${hole.top}px, ${hole.left}px ${hole.bottom}px, ${hole.right}px ${hole.bottom}px, ${hole.right}px ${hole.top}px, ${hole.left}px ${hole.top}px)` : undefined;
   return <ModalShell open onClose={onComplete} title="TRACE quick guide" bare showCloseButton={false} layer="feedback" closeOnBackdrop={false}
@@ -95,7 +83,7 @@ export default function OnboardingTutorial({ onComplete, onPrepare = () => {}, o
         <button type="button" onClick={onComplete} aria-label="Skip quick guide" className="shrink-0 rounded-full px-2 py-1 text-sm text-gray-500 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800">Skip</button>
       </div>
       <section data-guide-copy aria-live="polite" className="min-h-0 overflow-y-auto overscroll-contain space-y-3 pr-1">
-        <p className="text-xs text-gray-500 dark:text-gray-400">Step {step + 1} of {STEPS.length}</p>
+        <p className="text-xs text-gray-500 dark:text-gray-400">Step {step + 1} of {steps.length}</p>
         <h2 tabIndex={-1} className="text-xl font-bold leading-snug outline-none">{current.title}</h2>
         <p className="text-sm leading-relaxed">{current.text}</p>
         {current.action && <button type="button" onClick={() => {
@@ -103,10 +91,10 @@ export default function OnboardingTutorial({ onComplete, onPrepare = () => {}, o
           if (current.next) setStep(value => value + 1);
         }} className="rounded-xl border border-green-600 px-4 py-2 text-sm font-bold text-green-700 dark:text-green-300">{current.action} <span aria-hidden="true">↗</span></button>}
       </section>
-      <div aria-hidden="true" className="flex shrink-0 gap-1">{STEPS.map((_, index) => <span key={index} className={`h-1 flex-1 rounded-full ${index <= step ? 'bg-green-600' : 'bg-gray-200 dark:bg-gray-700'}`} />)}</div>
+      <div aria-hidden="true" className="flex shrink-0 gap-1">{steps.map((_, index) => <span key={index} className={`h-1 flex-1 rounded-full ${index <= step ? 'bg-green-600' : 'bg-gray-200 dark:bg-gray-700'}`} />)}</div>
       <div className="flex shrink-0 flex-wrap items-center justify-between gap-3">
         <button type="button" disabled={step === 0} onClick={() => setStep(value => value - 1)} className="rounded-xl px-3 py-2 text-sm font-bold disabled:opacity-30">Back</button>
-        <button type="button" onClick={() => step === STEPS.length - 1 ? onComplete() : setStep(value => value + 1)} className="rounded-xl bg-green-700 px-5 py-2.5 text-sm font-bold text-white hover:bg-green-800">{step === STEPS.length - 1 ? 'Finish tour' : 'Next'}</button>
+        <button type="button" onClick={() => step === steps.length - 1 ? onComplete() : setStep(value => value + 1)} className="rounded-xl bg-green-700 px-5 py-2.5 text-sm font-bold text-white hover:bg-green-800">{step === steps.length - 1 ? 'Finish tour' : 'Next'}</button>
       </div>
     </div>
   </ModalShell>;

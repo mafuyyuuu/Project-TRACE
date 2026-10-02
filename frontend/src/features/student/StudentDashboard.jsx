@@ -106,6 +106,7 @@ export default function StudentDashboard({ user, currentTab, setViewImageUrl }) 
                 <button id="tutorial-new-request"
                   onClick={() => {
                     const missing = getProfileCompletion(user).missing.map(item => item.label);
+                    if (user.email_verified_at === null) missing.push('Email Address verification — choose Verify in Edit Profile');
                     if (missing.length > 0) {
                       setMissingProfileFields(missing);
                       return;

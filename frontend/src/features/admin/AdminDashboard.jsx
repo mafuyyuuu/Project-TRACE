@@ -279,8 +279,8 @@ export default function AdminDashboard({ user, currentTab, setViewImageUrl, revi
 
                 {/* Student Account Verification dashboard */}
                 <div className="bg-white dark:bg-gray-900 rounded-3xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
-                  <div className="p-4 sm:p-6 border-b border-gray-100 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800/50 flex justify-between items-center">
-                    <h3 className="font-bold text-gray-900 dark:text-gray-100 text-lg">Account Verification</h3>
+                  <div className="p-4 sm:p-6 border-b border-gray-100 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800/50 flex flex-wrap gap-3 justify-between items-center">
+                    <h3 id="tutorial-account-review" className="min-w-0 max-w-full font-bold text-gray-900 dark:text-gray-100 text-lg">Account Verification</h3>
                     <span className="bg-amber-100 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-wider">
                       {pendingStudents.length} Account Verification Requests
                     </span>

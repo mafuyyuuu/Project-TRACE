@@ -12,7 +12,7 @@ import ConfirmDialog from '@/components/ConfirmDialog'
 import UserAvatar from '@/components/UserAvatar'
 import plpLogo from '@/assets/plp_logo.png'
 import GraduateApplication from '@/features/graduate/GraduateApplication'
-import OnboardingTutorial from '@/features/student/components/OnboardingTutorial'
+import OnboardingTutorial from '@/components/OnboardingTutorial'
 import useQuickGuide from '@/hooks/useQuickGuide'
 
 export default function Layout() {
@@ -23,7 +23,8 @@ export default function Layout() {
   const [settingsTab, setSettingsTab] = useState(() => new URLSearchParams(location.search).get('settings') === 'security' ? 'security' : 'personal')
   const query = new URLSearchParams(location.search)
   const tab = query.get('tab') || 'dashboard'
-  const guide = useQuickGuide(user?.id, user?.role === 'student' && !authLoading && !graduateRequired && !user?.must_change_password && tab === 'dashboard')
+  const guideEligible = ['student', 'clerk', 'admin'].includes(user?.role) && !authLoading && !graduateRequired && !user?.must_change_password
+  const guide = useQuickGuide(user?.id, guideEligible && tab === 'dashboard')
 
   const [notifications, setNotifications] = useState([])
   const [showNotifs, setShowNotifs] = useState(false)
@@ -62,7 +63,7 @@ export default function Layout() {
   useEffect(() => {
     if (!showMobileNav) return undefined
     const previousFocus = document.activeElement
-    drawerRef.current?.querySelector('button')?.focus()
+    if (!document.querySelector('[data-modal-layer]')) drawerRef.current?.querySelector('button')?.focus()
     const handleKeyDown = (event) => {
       if (document.querySelector('[data-modal-layer]')) return
       if (event.key === 'Escape') setShowMobileNav(false)
@@ -175,7 +176,7 @@ export default function Layout() {
 
   const prepareGuide = (area) => {
     setShowNotifs(false)
-    setShowMobileNav(false)
+    setShowMobileNav(area.startsWith('navigation:') && window.innerWidth < 768)
     window.dispatchEvent(new Event('trace-close-support'))
     if (area === 'email' || area === 'security') openSettings(area === 'email' ? 'personal' : 'security')
     else closeSettings()
@@ -183,6 +184,7 @@ export default function Layout() {
 
   const closeGuide = () => {
     guide.close()
+    setShowMobileNav(false)
     closeSettings()
     window.dispatchEvent(new Event('trace-close-support'))
   }
@@ -228,7 +230,7 @@ export default function Layout() {
         </div>
 
         <div className="flex shrink-0 ml-auto items-center gap-2 sm:gap-4">
-          {user?.role === 'student' && !user?.must_change_password && <button id="tutorial-guide" type="button" aria-label="Open quick guide" title="Quick guide" onClick={() => { navigate('/dashboard'); guide.show(); }} className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800 focus-visible:outline-2 focus-visible:outline-green-700">
+          {guideEligible && <button id="tutorial-guide" type="button" aria-label="Open quick guide" title="Quick guide" onClick={() => { navigate('/dashboard'); guide.show(); }} className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800 focus-visible:outline-2 focus-visible:outline-green-700">
             <svg aria-hidden="true" className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><circle cx="12" cy="12" r="9" /><path d="M9.5 9a2.5 2.5 0 0 1 5 .3c0 1.7-2.5 1.8-2.5 3.7M12 16h.01" /></svg>
           </button>}
           <button
@@ -343,8 +345,9 @@ export default function Layout() {
         </main>
       </div>
 
-      {guide.open && <OnboardingTutorial onComplete={closeGuide} onPrepare={prepareGuide} onAction={area => {
+      {guide.open && guideEligible && <OnboardingTutorial key={user.id} user={user} onComplete={closeGuide} onPrepare={prepareGuide} onAction={area => {
         if (area === 'profile') openSettings('personal')
+        else if (area.startsWith('navigation:')) { navigate(`/dashboard?tab=${area.slice(11)}`); closeGuide(); }
         else window.dispatchEvent(new Event('trace-open-support'))
       }} />}
 

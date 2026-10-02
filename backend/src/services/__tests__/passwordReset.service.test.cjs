@@ -100,6 +100,17 @@ describe('requestPasswordReset', () => {
 
 describe('resetPassword', () => {
   const usable = () => [{ id: 12, user_id: 7, student_id: 'STU2024001' }];
+  it('accepts underscore as the only symbol while preserving the last-three-password check', async () => {
+    passwordResetModel.findUsableByTokenHash.mockResolvedValue(usable());
+    await service.resetPassword({ token: 'synthetic-token', password: 'Newpassword_2026' });
+    expect(await bcrypt.compare('Newpassword_2026', userModel.updateProfile.mock.calls[0][1].password_hash)).toBe(true);
+    userModel.updateProfile.mockClear();
+    passwordResetModel.markUsed.mockClear();
+    userModel.getPasswordHistory.mockResolvedValue([{ password_hash: await bcrypt.hash('Newpassword_2026', 4) }]);
+    await expect(service.resetPassword({ token: 'synthetic-token', password: 'Newpassword_2026' })).rejects.toThrow('last 3 passwords');
+    expect(userModel.updateProfile).not.toHaveBeenCalled();
+    expect(passwordResetModel.markUsed).not.toHaveBeenCalled();
+  });
 
   it('requires both a token and a password', async () => {
     expect(await statusOf(service.resetPassword({}))).toBe(400);

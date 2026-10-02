@@ -789,7 +789,7 @@ The image rebuild includes the new migration script. Keep the verified database/
 
 Deploy the corresponding frontend import repair, then verify Admin Security Logs loads and an authorized student lookup succeeds. Check backend logs for missing-table errors. A health response checks connectivity only and does not establish profile lookup success. New Vercel deployment URLs still require the exact origin configuration below; production promotion remains separate.
 
-### Batch 10: Clerk browser-trust deployment
+### Batch 10: Staff browser-trust deployment
 
 After committing and pulling the approved revision into the server checkout, run these commands from its root, one at a time, stopping on failure:
 
@@ -806,10 +806,10 @@ Deploy the matching frontend. No new environment variables are required: keep `V
 
 Live acceptance, using authorized test accounts and without sharing credentials/cookie values:
 
-1. Admin receives OTP every login, including when personal mode is selected.
-2. A clerk in default shared mode always receives OTP and cannot choose browser trust. Shared mode also ignores and clears an earlier personal-browser cookie.
-3. A clerk selects personal mode by unchecking “This is a shared computer”, completes OTP and opts into “Trust this browser for today”. Confirm `trace_mfa_trust` is HttpOnly, host-only, scoped to `/api/auth` and expires at midnight Manila time. The raw value must not appear in JSON or logs.
-4. Ordinary logout, followed by another correct-password login with **personal mode selected again**, skips clerk OTP before expiry. An incorrect password never authenticates. Omitting personal mode intentionally forces OTP.
+1. Admin with an enrolled app receives an unchecked personal-browser trust choice on the app challenge. Admin email challenges remain ineligible.
+2. A clerk or eligible Admin with no current grant receives verification. The public login form has no shared-computer checkbox; Security → Browser verification can forget a grant.
+3. An eligible account checks “This is my personal browser — trust it for today” during verification and completes it successfully. Confirm `trace_mfa_trust` is HttpOnly, host-only, scoped to `/api/auth` and expires at midnight Manila time. The raw value must not appear in JSON or logs.
+4. Ordinary logout followed by correct-password login on the trusted browser skips the factor before expiry. An incorrect password never authenticates. Security’s shared-computer reset clears the preference and proof; an explicit shared-mode API login ignores and clears them.
 5. Missing/cleared/blocked cookie or midnight expiry requires OTP. If privacy rules block cross-site cookies, complete OTP normally; do not disable browser privacy controls. Server expiry uses epoch milliseconds and does not depend on a browser clock.
 6. Password change, password reset and logout-all revoke the old proof and older pending OTP challenges. Existing JWT sessions also expire, including the current one; sign in again. Repeat attempts with old proof/challenge must fail or require OTP. Confirm transaction failures leave credentials unchanged.
 7. Student/alumni optional 2FA is unchanged. Confirm existing new-browser notification recognition still works after full authentication and does not grant MFA trust.
@@ -904,7 +904,7 @@ The new tables use CREATE TABLE IF NOT EXISTS. Receipt columns are nullable; old
 Acceptance on the deployed system:
 
 - Every role can open Edit Profile → Security → Authenticator App. Test QR/manual enrollment, confirmation, one-time recovery-code display/download, app login and single-use recovery. Replayed/expired/pending challenges cannot access REST or Socket.IO, and email OTP cannot bypass an enrolled app.
-- Admin challenges each login. Clerk personal-browser trust expires at Manila midnight; a new/shared browser challenges. Enrolled students use app/recovery codes at login. Unenrolled students do not gain a new first-login email OTP requirement from this change.
+- Admin with an enrolled app and clerks can opt into personal-browser trust on their verification screen. Admin using email codes challenges every login. Trust expires at Manila midnight; a new/shared browser challenges. Enrolled students use app/recovery codes at login. Unenrolled students do not gain a new first-login email OTP requirement from this change.
 - Logout revokes this session on the server; a copied old token and its socket stop working. Logout other devices rotates the current session while invalidating other sessions. Staff deactivation stops REST/socket access and sends the owner notice; confirm real SMTP delivery separately.
 - Student messages appear in Window 1's inbox even before a clerk is assigned. Replies return to the owning student. Check notifications, unread counts, polling, stale-tab cancellation, failed sends preserving drafts and successful sends followed by failed refreshes without duplicate drafts.
 - Registrar requests a named attachment from Messages & Attachments; the student confirms a JPG/PNG/PDF upload (10 MB maximum). Review Accept or Request resubmission with notes. Verify other students and Secretaries from another college cannot read or upload the file, and an attachment action does not change the request stage.

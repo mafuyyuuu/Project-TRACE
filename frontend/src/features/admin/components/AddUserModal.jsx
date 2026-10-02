@@ -1,3 +1,4 @@
+import { PASSWORD_REQUIREMENTS, validNewPassword } from '@/utils/passwordPolicy';
 import { INPUT_LIMITS } from '@/utils/inputLimits';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import { useState } from 'react';
@@ -15,11 +16,14 @@ const inputClass =
  */
 export default function AddUserModal({ open, onClose, onCreate, saving }) {
   const [form, setForm] = useState({ role: 'clerk', desk_assignment: 'Finance' });
+  const [validationError, setValidationError] = useState('');
   const [accountToConfirm, setAccountToConfirm] = useState(null);
   const set = (key, value) => setForm((f) => ({ ...f, [key]: value }));
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!validNewPassword(form.password)) { setValidationError(PASSWORD_REQUIREMENTS); return; }
+    setValidationError('');
     setAccountToConfirm({
       employee_id: form.employee_id,
       full_name: form.full_name,
@@ -64,6 +68,7 @@ export default function AddUserModal({ open, onClose, onCreate, saving }) {
         onConfirm={async () => {
           if (await onCreate(accountToConfirm)) { setAccountToConfirm(null); onClose(); }
         }} />
+      {validationError && <p role="alert" className="text-sm text-red-600 dark:text-red-300 mb-3">{validationError}</p>}
       <form id="add-user-form" onSubmit={handleSubmit} className="space-y-3">
         <input maxLength={INPUT_LIMITS.id} className={inputClass} placeholder="Employee ID *" required
           value={form.employee_id || ''} onChange={(e) => set('employee_id', e.target.value)} />
@@ -87,8 +92,7 @@ export default function AddUserModal({ open, onClose, onCreate, saving }) {
           <input maxLength={INPUT_LIMITS.password} className={inputClass} type="password" placeholder="Temporary password *" required minLength={8}
             value={form.password || ''} onChange={(e) => set('password', e.target.value)} />
           <p className="text-[10px] text-gray-400 dark:text-gray-400 mt-1.5 leading-relaxed">
-            At least 8 characters. The user must replace it at first login, so it is never a
-            permanent credential.
+            {PASSWORD_REQUIREMENTS} The user must replace it at first login.
           </p>
         </div>
       </form>

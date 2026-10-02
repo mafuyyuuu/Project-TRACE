@@ -29,8 +29,7 @@ Use your own account and password. The example accounts in older documentation a
 
 **Email verification and login verification are different.** Email verification uses a button/link to confirm an address. A login code confirms access to an account during sign-in.
 
-- Admin verifies every login.
-- Clerks verify unless TRACE accepts their previously trusted personal browser. Only clerks see **This is my personal browser — trust it for today** during verification. Leave it unchecked on school or shared computers. Trust expires at midnight Manila time and browser privacy settings may prevent it from being remembered.
+- Admin with an enrolled authenticator and clerks can opt into **This is my personal browser — trust it for today** on the verification screen. It starts unchecked. Complete verification to grant trust; the password is still required on later logins. Leave it unchecked on school or shared computers. Trust expires at midnight Manila time; a new browser, revoked trust or blocked cookies requires verification again. Admin using email codes verifies every login.
 - Students without an enabled login factor do not receive an OTP just because it is their first login or a new browser. Students with an enrolled authenticator use an app or recovery code at login.
 - Staff without an email inbox must ask Admin for initial authenticator setup; see [Admin tasks](#11-admin-tasks).
 
@@ -43,7 +42,7 @@ Use your own account and password. The example accounts in older documentation a
 3. Select the requested ID or diploma proof. You may choose **Read ID** to fill missing fields, then check the result yourself. Unreadable fields can be entered manually.
 4. Review the form, select **Submit Registration**, then confirm. File selection and Read ID do not submit the account.
 5. Follow the displayed success or review instructions. If the account is pending review, wait for Admin's decision.
-6. Open TRACE's email and select **Verify Email**. You can resend the link from Profile after gaining dashboard access.
+6. After approval, sign in and open **Edit Profile → Personal Info**. Select **Verify** beside Email Address, then select **Verify Email** in your inbox. Signup saves the address without sending this ownership link automatically. Requests stay blocked until verification succeeds.
 
 New alumni use their **Alumni ID** to sign in. Existing alumni keep their current login identifier. **Back to Login** returns to the sign-in page.
 
@@ -51,16 +50,16 @@ On the first alumni login, complete and submit the **Graduate Application** befo
 
 ## 3. Use the first-login tutorial
 
-New student and alumni accounts created on the updated backend receive the tutorial on their first eligible dashboard visit. Required Graduate Application or temporary-password steps come first.
+New student and alumni accounts created on the updated backend receive the tutorial on their first eligible dashboard visit. Window 1, Secretary, Finance and Admin receive their own tour on their first eligible dashboard visit after this update, including existing staff who have never received one. Required Graduate Application or temporary-password steps come first.
 
-The tour highlights a real control and blurs the surrounding screen. It covers Profile, email verification, New Request, payment, tracking, notifications, support, Security and help.
+The tour highlights a real control and blurs the surrounding screen. The student tour covers Profile, email verification, requests, payment, tracking, notifications, support and Security. Staff tours explain the desk's queues and reports; Window 1 also covers tracking and messaging, Secretary covers pricing and graduate applications, Finance covers payment and deferred ORs, and Admin covers account review, Maintenance, Templates, tracking and security logs. On phones, navigation steps open the menu to highlight the destination.
 
 1. Read the floating instruction beside the highlighted control.
 2. Use **Open my profile** or **Open support** when offered to explore that area.
 3. Select **Next** or **Back** to move through the steps.
 4. Select **Finish tour** at the end, or **Skip** to close it early.
 
-TRACE records the automatic offer against your account. Skipping, logging out, reloading or changing browsers does not start it automatically again. Accounts created before this update use manual replay.
+TRACE records the automatic offer against your account. Skipping, logging out, reloading or changing browsers does not start it automatically again. Student accounts created before guide enrollment was added use manual replay.
 
 **Replay it anytime:** select the **?** beside the light/dark-mode button in the dashboard header. There is no large Quick Guide button. If enlarged text makes an instruction long, scroll inside the tour card; Back and Next remain at the bottom.
 
@@ -175,9 +174,9 @@ Setup is available to every role when the server is configured. At login, use th
 
 ### Other account controls
 
-Security includes password changes, **Logout All Devices** and security activity. Password changes require the current password; a new password needs 8–64 characters, uppercase, lowercase, a number and a symbol from `@$!%*?&`, and cannot reuse the current or last three passwords. Successful changes end older sessions. Review unfamiliar login activity and report it to the Registrar.
+Security includes password changes, **Logout All Devices** and security activity. Password changes require the current password; a new password needs 8–64 characters, uppercase, lowercase, a number and a symbol from `@$!%*?&_`, and cannot reuse the current or last three passwords. Successful changes end older sessions. Review unfamiliar login activity and report it to the Registrar.
 
-Clerks can choose **Browser verification → Use shared-computer verification** to forget this browser's trust preference.
+Clerks and Admin can choose **Browser verification → Use shared-computer verification** to forget this browser's trust preference.
 
 ### Appearance and accessibility
 

@@ -1,3 +1,4 @@
+import { PASSWORD_REQUIREMENTS, validNewPassword } from '@/utils/passwordPolicy';
 import { useRef, useState } from 'react';
 import { updateProfile, uploadProfilePicture, getMe } from '@/services/authService';
 
@@ -114,6 +115,7 @@ export default function useProfileSettings(user) {
   const saveProfile = async (e) => {
     if (e) e.preventDefault();
     if (savingRef.current) return false;
+    if (profileData.password && !validNewPassword(profileData.password)) { setError(PASSWORD_REQUIREMENTS); return false; }
     savingRef.current = true;
     setSaving(true);
     setSuccess('');

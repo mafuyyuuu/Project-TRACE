@@ -2,10 +2,10 @@ const nodemailer = require('nodemailer');
 const env = require('../../config/env');
 const model = require('../../models/template.model');
 const mail = { sendMail: vi.fn().mockResolvedValue({}) };
-const original = Object.fromEntries(['SMTP_HOST', 'SMTP_USER', 'SMTP_PASS'].map(key => [key, env[key]]));
+const original = Object.fromEntries(['SMTP_HOST', 'SMTP_USER', 'SMTP_PASS', 'SMTP_FROM'].map(key => [key, env[key]]));
 let notifications;
 beforeAll(() => {
-  env.SMTP_HOST = 'synthetic.test'; env.SMTP_USER = 'synthetic@example.test'; env.SMTP_PASS = 'synthetic';
+  env.SMTP_HOST = 'synthetic.test'; env.SMTP_USER = 'synthetic@example.test'; env.SMTP_PASS = 'synthetic'; env.SMTP_FROM = 'synthetic@example.test';
   vi.spyOn(nodemailer, 'createTransport').mockReturnValue(mail);
   notifications = require('../notification.service');
 });
@@ -19,6 +19,9 @@ it('uses the saved template for actual outbound HTML and retains the original pl
   const text = 'Open https://trace.example/verify-email#token=synthetic';
   expect(await notifications.sendEmail('recipient@example.test', 'Verify', text)).toMatchObject({ ok: true });
   const sent = mail.sendMail.mock.calls[0][0];
+  expect(sent.to).toBe('recipient@example.test');
+  expect(sent).not.toHaveProperty('cc'); expect(sent).not.toHaveProperty('bcc');
+  expect(sent.from).toContain('synthetic@example.test');
   expect(sent.text).toBe(text); expect(sent.html).toContain('Custom Verify');
   expect(sent.html).toContain('href="https://trace.example/verify-email#token=synthetic"');
   expect(sent.html).toContain('TRACE');

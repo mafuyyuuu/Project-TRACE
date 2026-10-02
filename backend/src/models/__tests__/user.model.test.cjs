@@ -1,4 +1,12 @@
 const model = require('../user.model');
+it('returns the entered program and college for pending registration review without credentials', async () => {
+  const rows = [{ id: 3, program: 'BS Computer Science', course: 'College A', college_id: 2 }];
+  const executor = { query: vi.fn().mockResolvedValue([rows]) };
+  await expect(model.listPendingStudents(executor)).resolves.toEqual(rows);
+  const [sql] = executor.query.mock.calls[0];
+  expect(sql).toContain('course, program, college_id');
+  expect(sql).not.toMatch(/SELECT \*|password|otp|token|secret/);
+});
 it('returns protected photo/proof paths in the safe Admin account list', async () => {
   const rows = [{ id: 3, profile_picture: 'avatar-test.jpg', id_proof_path: '/uploads/proof-test.jpg' }];
   const executor = { query: vi.fn().mockResolvedValue([rows]) };

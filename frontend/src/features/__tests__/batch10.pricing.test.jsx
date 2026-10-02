@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { act, render, renderHook, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, renderHook, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import MaintenancePanel from '@/features/admin/components/MaintenancePanel';
 import NewRequestModal from '@/features/student/components/NewRequestModal';
@@ -165,6 +165,18 @@ describe('New Request profile gate', () => {
     birth_date: '2000-01-01', place_of_birth: 'City', sex: 'Male', civil_status: 'Single', home_address: 'Address',
     elem_school: 'Elementary', elem_grad_year: 2012, jhs_school: 'Junior High', jhs_grad_year: 2016,
     shs_school: 'Senior High', shs_grad_year: 2018 };
+  it('blocks an otherwise complete unverified student before opening the request form and links to Profile', async () => {
+    const opened = vi.fn();
+    window.addEventListener('open-profile-settings', opened);
+    try {
+      render(<StudentDashboard user={{ ...complete, email_verified_at: null }} currentTab="dashboard" setViewImageUrl={vi.fn()} />);
+      fireEvent.click(screen.getByRole('button', { name: 'New Request' }));
+      expect(screen.getByText('Email Address verification — choose Verify in Edit Profile')).toBeVisible();
+      expect(core.setActiveModal).not.toHaveBeenCalled();
+      fireEvent.click(screen.getByRole('button', { name: 'Complete Profile' }));
+      expect(opened).toHaveBeenCalledOnce();
+    } finally { window.removeEventListener('open-profile-settings', opened); }
+  });
   it('blocks a student with contacts but missing education and opens Edit Profile from the popup', async () => {
     const user = userEvent.setup(), opened = vi.fn();
     window.addEventListener('open-profile-settings', opened);

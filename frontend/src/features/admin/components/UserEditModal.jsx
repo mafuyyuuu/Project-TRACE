@@ -1,3 +1,4 @@
+import { PASSWORD_REQUIREMENTS, validNewPassword } from '@/utils/passwordPolicy';
 import { INPUT_LIMITS } from '@/utils/inputLimits';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import { useState } from 'react';
@@ -32,6 +33,7 @@ function Note({ children }) {
  */
 export default function UserEditModal({ open, onClose, user, onSave, saving, colleges = [] }) {
   const [activeTab, setActiveTab] = useState('personal');
+  const [validationError, setValidationError] = useState('');
   const [editToConfirm, setEditToConfirm] = useState(null);
   const [fullName, setFullName] = useState(user?.full_name || '');
   const [phoneNumber, setPhoneNumber] = useState(user?.phone_number || '');
@@ -48,6 +50,8 @@ export default function UserEditModal({ open, onClose, user, onSave, saving, col
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (passwordMismatch) return;
+    if (newPassword && !validNewPassword(newPassword)) { setValidationError(PASSWORD_REQUIREMENTS); return; }
+    setValidationError('');
 
     const payload = {};
     if (fullName !== user.full_name) payload.full_name = fullName;
@@ -114,6 +118,7 @@ export default function UserEditModal({ open, onClose, user, onSave, saving, col
         ))}
       </div>
 
+      {validationError && <p role="alert" className="text-sm text-red-600 dark:text-red-300 mb-3">{validationError}</p>}
       <form id="edit-user-form" onSubmit={handleSubmit} className="space-y-4">
         {activeTab === 'personal' && (
           <>
@@ -152,6 +157,7 @@ export default function UserEditModal({ open, onClose, user, onSave, saving, col
             {user.role !== 'student' && <>
             <div>
               <Label>New Password</Label>
+              <Note>{PASSWORD_REQUIREMENTS}</Note>
               <input maxLength={INPUT_LIMITS.password}
                 type="password"
                 className={inputClass}

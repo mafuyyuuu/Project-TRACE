@@ -82,9 +82,9 @@ describe('submitNewPassword', () => {
     resetPassword.mockResolvedValue({ message: 'Password updated.' });
     const { result } = renderHook(() => usePasswordReset());
 
-    await act(async () => result.current.submitNewPassword('tok', 'Newpassword1!', 'Newpassword1!'));
+    await act(async () => result.current.submitNewPassword('tok', 'Newpassword1_', 'Newpassword1_'));
 
-    expect(resetPassword).toHaveBeenCalledWith({ token: 'tok', password: 'Newpassword1!' });
+    expect(resetPassword).toHaveBeenCalledWith({ token: 'tok', password: 'Newpassword1_' });
     await waitFor(() => expect(result.current.done).toBe(true));
   });
 });

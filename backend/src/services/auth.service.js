@@ -2,12 +2,7 @@ const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
 
-function validatePassword(password) {
-  const regex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
-  if (typeof password !== 'string' || Buffer.byteLength(password, 'utf8') > 64 || !regex.test(password)) {
-    throw badRequest('Password must be 8–64 characters and include uppercase, lowercase, number, and a special character (@$!%*?&).');
-  }
-}
+const { validatePassword } = require('../utils/passwordPolicy');
 
 async function checkPasswordHistory(userId, newPassword, executor = pool, currentHash) {
   if (currentHash && await bcrypt.compare(newPassword, currentHash)) throw badRequest('Choose a password different from your current password.');
@@ -120,13 +115,13 @@ async function login({ employee_id, password, shared_computer = true }, ipAddres
 
   
   const isStaff = ['admin', 'clerk'].includes(user.role);
-  const trusted = user.role === 'clerk' && shared_computer === false
-    && await trustedBrowser.isTrusted(user, cookieHeader, shared_computer);
   const appEnabled = await authenticator.isEnabled(user.id);
+  const trusted = (user.role === 'clerk' || (user.role === 'admin' && appEnabled)) && shared_computer === false
+    && await trustedBrowser.isTrusted(user, cookieHeader, shared_computer);
   const requires2FA = (appEnabled || user.two_factor_enabled || isStaff) && !trusted;
 
   if (requires2FA) {
-    if (appEnabled) return authenticator.challenge(user, user.role === 'clerk');
+    if (appEnabled) return authenticator.challenge(user, isStaff);
     if (user.role === 'clerk' && !user.email?.trim()) return { requires_authenticator_setup: true };
     const otp = crypto.randomInt(100000, 1000000).toString();
     const expires = new Date(Date.now() + 5 * 60000); // 5 mins
@@ -250,9 +245,6 @@ async function register(body, file) {
   });
 
   await onboarding.enroll(created.insertId);
-  let emailResult;
-  try { emailResult = await emailVerification.issue(created.insertId); }
-  catch { emailResult = { email_sent: false }; }
 
   if (verification_status === 'pending') {
     try {
@@ -264,14 +256,13 @@ async function register(body, file) {
     } catch (err) { console.warn('Registration notification unavailable:', err.message); }
   }
   return {
-    email_verification_required: true, email_sent: emailResult.email_sent,
+    email_verification_required: true, email_sent: false,
     verification_status,
     verification_reason,
     message: (verification_status === 'verified'
       ? 'Registration successful. Your account was automatically verified by AI!'
       : 'Registration successful. Please wait for administrator verification.')
-      + (emailResult.email_sent ? ' Open the email verification link in your inbox before requesting documents.'
-        : ' The email verification link could not be delivered. After account approval, sign in and use Verify Email to resend, or contact the Registrar.'),
+      + ' After account approval, sign in and open Edit Profile. Choose Verify beside Email Address and follow the email link before requesting documents.',
   };
 }
 
@@ -495,7 +486,7 @@ async function verify2FA(tempToken, otp, ipAddress, userAgent, trustBrowser = fa
   if (decoded.mfa_method === 'authenticator') {
     const user = await authenticator.verifyChallenge(decoded, { code: otp, recovery_code: recoveryCode });
     const result = createSession(user);
-    if (user.role === 'clerk' && decoded.can_trust_browser === true && trustBrowser === true) {
+    if (['clerk', 'admin'].includes(user.role) && decoded.can_trust_browser === true && trustBrowser === true) {
       const proof = await trustedBrowser.issue(user.id, decoded.token_version);
       if (proof) result.browserTrust = proof;
     }

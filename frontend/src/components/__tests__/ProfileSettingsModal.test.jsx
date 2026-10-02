@@ -48,6 +48,13 @@ beforeEach(() => {
 });
 
 describe('ProfileSettingsModal', () => {
+  it.each([['Trace_2026', true], ['weak_pass', false]])('checks replacement password before opening Save confirmation: %s', (password, allowed) => {
+    renderModal({ initialTab: 'security', profileData: { ...baseProps.profileData, password } });
+    fireEvent.submit(document.getElementById('profile-settings-form'));
+    expect(Boolean(screen.queryByRole('dialog', { name: 'Confirm Profile Save' }))).toBe(allowed);
+    if (!allowed) expect(screen.getAllByRole('alert').some(node => node.textContent.includes('@$!%*?&_'))).toBe(true);
+    expect(baseProps.onSave).not.toHaveBeenCalled();
+  });
   it.each([STUDENT, CLERK, { ...CLERK, role: 'admin' }])('offers link verification beside the profile email for $role without saving other fields', async account => {
     const onVerifyEmail = vi.fn().mockResolvedValue(true);
     renderModal({ user: { ...account, email: baseProps.profileData.email, email_verified_at: null }, onVerifyEmail });
@@ -77,9 +84,9 @@ describe('ProfileSettingsModal', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Verify' }));
     expect(onVerifyEmail).not.toHaveBeenCalled();
   });
-  it('lets only clerks forget personal-browser preference after confirmation', async () => {
+  it.each([CLERK, { ...CLERK, role: 'admin' }])('lets staff forget personal-browser preference after confirmation: $role', async user => {
     localStorage.setItem('trace_clerk_browser_until', String(Date.now() + 60000));
-    renderModal({ user: CLERK, initialTab: 'security' });
+    renderModal({ user, initialTab: 'security' });
     fireEvent.click(screen.getByRole('button', { name: 'Use shared-computer verification' }));
     expect(localStorage.getItem('trace_clerk_browser_until')).not.toBeNull();
     fireEvent.click(screen.getByRole('button', { name: 'Use Shared Verification' }));
@@ -87,9 +94,9 @@ describe('ProfileSettingsModal', () => {
     expect(screen.getByText(/Shared-computer verification is the default/)).toBeInTheDocument();
     expect(api.post).not.toHaveBeenCalled();
   });
-  it.each([STUDENT, { ...CLERK, role: 'admin' }])('does not offer clerk browser settings to $role', user => {
+  it.each([STUDENT])('does not offer staff browser settings to $role', user => {
     renderModal({ user, initialTab: 'security' });
-    expect(screen.queryByRole('region', { name: 'Clerk browser verification' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('region', { name: 'Browser verification' })).not.toBeInTheDocument();
   });
   it('shows and hides both password fields in Security without saving', () => {
     renderModal({ initialTab: 'security', profileData: { ...baseProps.profileData, current_password: 'current', password: 'Newpassword1!' } });

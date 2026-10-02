@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom'
 import useAuth from '@/hooks/useAuth'
 import AuthShell from '@/components/AuthShell'
 import { verify2FA } from '@/services/authService'
-import { hasClerkBrowserPreference, rememberClerkBrowserPreference } from '@/utils/clerkBrowserPreference'
+import { hasBrowserTrustPreference, rememberBrowserTrustPreference } from '@/utils/browserTrustPreference'
 
 export default function LoginPage() {
   const { login, loading, error: authError } = useAuth()
@@ -13,7 +13,7 @@ export default function LoginPage() {
   const [localError, setLocalError] = useState('')
   const [needsStaffSetup, setNeedsStaffSetup] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
-  const sharedComputer = !hasClerkBrowserPreference()
+  const sharedComputer = !hasBrowserTrustPreference()
   const [canTrustBrowser, setCanTrustBrowser] = useState(false)
   const [trustBrowser, setTrustBrowser] = useState(false)
 
@@ -85,7 +85,7 @@ export default function LoginPage() {
       } else {
         const data = await verify2FA({ temp_token: tempToken, ...(useRecoveryCode ? { recovery_code: otp.trim() } : { otp: otp.trim() }),
           ...(canTrustBrowser && trustBrowser ? { trust_browser: true } : {}) })
-        rememberClerkBrowserPreference(data, canTrustBrowser && trustBrowser)
+        rememberBrowserTrustPreference(data, canTrustBrowser && trustBrowser)
         localStorage.setItem('trace_token', data.token)
         localStorage.setItem('trace_user', JSON.stringify(data.user))
         window.location.href = '/dashboard'
@@ -198,7 +198,7 @@ export default function LoginPage() {
                         className="h-4 w-4 accent-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white" />
                       This is my personal browser — trust it for today
                     </label>
-                    <p>Leave unchecked on school or shared computers. After verification, clerk logins can skip OTP until midnight Manila time. Your password is still required. Change this preference in Profile → Security. Browser privacy settings may require OTP again.</p>
+                    <p>Leave unchecked on school or shared computers. After verification, later logins on this browser can skip OTP until midnight Manila time. Your password is still required. Change this preference in Profile → Security. Browser privacy settings may require OTP again.</p>
                   </div>
                 )}
               </div>

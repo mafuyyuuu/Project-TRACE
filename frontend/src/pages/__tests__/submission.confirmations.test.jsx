@@ -30,6 +30,27 @@ afterEach(() => vi.useRealTimers());
 const renderPage = (page, path = '/') => render(<MemoryRouter initialEntries={[path]}>{page}</MemoryRouter>);
 
 describe('Account submission confirmations', () => {
+  it('offers Admin personal-browser trust unchecked on the authenticator challenge and saves only a confirmed grant', async () => {
+    auth.login.mockResolvedValueOnce({ requires_2fa: true, mfa_method: 'authenticator', temp_token: 'admin-app', can_trust_browser: true });
+    const { container } = renderPage(<LoginPage />);
+    expect(screen.queryByRole('checkbox')).not.toBeInTheDocument();
+    fireEvent.change(screen.getByPlaceholderText(/23-00123/), { target: { value: 'ADMIN001' } });
+    fireEvent.change(container.querySelector('input[type=password]'), { target: { value: 'test-password' } });
+    fireEvent.submit(container.querySelector('form'));
+    const choice = await screen.findByRole('checkbox');
+    expect(choice).not.toBeChecked();
+    fireEvent.click(choice);
+    fireEvent.change(screen.getByPlaceholderText('Enter 6-digit OTP'), { target: { value: '123456' } });
+    api.post.mockRejectedValueOnce({ response: { data: { error: 'Invalid verification code.' } } });
+    fireEvent.submit(container.querySelector('form'));
+    expect(await screen.findByRole('alert')).toHaveTextContent('Invalid verification code.');
+    expect(localStorage.getItem('trace_browser_trust_until')).toBeNull();
+    const until = new Date(Date.now() + 60000).toISOString();
+    api.post.mockResolvedValueOnce({ data: { token: 'synthetic-session', user: { role: 'admin' }, browser_trusted_until: until } });
+    fireEvent.submit(container.querySelector('form'));
+    await waitFor(() => expect(localStorage.getItem('trace_browser_trust_until')).toBe(String(Date.parse(until))));
+    expect(api.post).toHaveBeenLastCalledWith('/auth/verify-2fa', { temp_token: 'admin-app', otp: '123456', trust_browser: true });
+  });
   it('offers staff setup only after the server identifies a clerk needing enrollment', async () => {
     auth.login.mockResolvedValueOnce({ requires_authenticator_setup: true });
     const { container } = renderPage(<LoginPage />);
@@ -271,7 +292,7 @@ describe('Account submission confirmations', () => {
     await screen.findByRole('option', { name: 'Engineering' });
     fireEvent.change(container.querySelectorAll('select')[1], { target: { value: 'Engineering' } });
     const inputs = container.querySelectorAll('input');
-    const values = ['STU-001', 'BS Engineering', 'Ana Reyes', 'ana@example.test', '09171234567', 'Password123!', 'Password123!'];
+    const values = ['STU-001', 'BS Engineering', 'Ana Reyes', 'ana@example.test', '09171234567', 'Password123_', 'Password123_'];
     values.forEach((value, index) => fireEvent.change(inputs[index], { target: { value } }));
     const proof = new File(['proof'], 'id.png', { type: 'image/png' });
     const picker = container.querySelector('input[type=file]');
@@ -289,6 +310,7 @@ describe('Account submission confirmations', () => {
     expect(payload.get('course')).toBe('Engineering');
     expect(payload.get('college_id')).toBe('1');
     expect(payload.get('program')).toBe('BS Engineering');
+    expect(payload.get('password')).toBe('Password123_');
     expect(payload.get('id_proof').name).toBe('id.png');
   });
 

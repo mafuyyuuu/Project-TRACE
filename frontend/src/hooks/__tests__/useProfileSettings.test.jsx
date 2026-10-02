@@ -35,6 +35,15 @@ beforeEach(() => {
 });
 
 describe('useProfileSettings', () => {
+  it('rejects an invalid replacement password before saving any staged photo or profile fields', async () => {
+    const { result } = renderHook(() => useProfileSettings(USER));
+    act(() => { result.current.setField('password', 'weak_pass'); result.current.changeAvatar(new File(['x'], 'draft.png')); });
+    await act(async () => { expect(await result.current.saveProfile()).toBe(false); });
+    expect(result.current.error).toContain('@$!%*?&_');
+    expect(result.current.avatarFile).not.toBeNull();
+    expect(updateProfile).not.toHaveBeenCalled();
+    expect(uploadProfilePicture).not.toHaveBeenCalled();
+  });
   it('sends the current email link without saving other drafts and blocks duplicate sends/saves', async () => {
     let resolve;
     resendVerification.mockReturnValue(new Promise(done => { resolve = done; }));
@@ -124,7 +133,7 @@ describe('useProfileSettings', () => {
     updateProfile.mockResolvedValue({ message: 'Profile updated successfully.' });
     const { result } = renderHook(() => useProfileSettings(USER));
 
-    act(() => result.current.setField('password', 'newpw'));
+    act(() => result.current.setField('password', 'Newpassword_2026'));
     await act(async () => result.current.saveProfile());
 
     await waitFor(() => expect(result.current.profileData.password).toBe(''));
