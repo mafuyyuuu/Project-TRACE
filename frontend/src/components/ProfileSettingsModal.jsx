@@ -86,12 +86,12 @@ export default function ProfileSettingsModal({
         <h3 className="font-bold">Appearance</h3>
         <p className="text-sm text-gray-600 dark:text-gray-300">Choose how TRACE looks on this device.</p>
         <button type="button" aria-pressed={darkMode} onClick={onToggleTheme}
-          className="px-4 py-3 rounded-xl border border-gray-300 dark:border-gray-600 focus-visible:ring-2 focus-visible:ring-green-600">
+          className="trace-button trace-button-secondary">
           {darkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
         </button>
-        <label className="block font-semibold">Text size
+        <label className="trace-label block">Text size
           <select value={textSize} onChange={event => onTextSizeChange?.(event.target.value)}
-            className="mt-2 w-full rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 p-3">
+            className="trace-control mt-2 w-full">
             {TEXT_SIZES.map(size => <option key={size} value={size}>{size}%{size === 100 ? ' (Default)' : ''}</option>)}
           </select>
         </label>
@@ -139,8 +139,6 @@ export default function ProfileSettingsModal({
       title="Edit Profile"
       maxWidth="max-w-xl"
       bodyClassName="min-h-0 flex-1 overflow-y-auto overscroll-contain pb-4"
-      backdropClassName="absolute inset-0 bg-black/40 backdrop-blur-sm transition-opacity duration-200"
-      panelClassName="bg-gray-50 dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-xl max-h-[calc(100dvh-2rem)] z-10 relative animate-slide-up flex flex-col overflow-hidden"
       closeButtonIcon={
         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"/></svg>
       }
@@ -150,7 +148,7 @@ export default function ProfileSettingsModal({
           disabled={saving}
           type="submit"
           form="profile-settings-form"
-          className="w-full bg-[#15803d] hover:bg-[#166534] text-white font-bold py-3 px-4 rounded-xl transition-colors disabled:opacity-50 shadow-md"
+          className="trace-button trace-button-primary w-full"
         >
           {saving ? 'Saving...' : 'Save Profile'}
         </button>
@@ -171,7 +169,7 @@ export default function ProfileSettingsModal({
         error={sessionFeedback.error}
         onDismiss={() => setSessionFeedback({ success: '', error: '' })}
       />
-      <div className="trace-profile-header bg-white dark:bg-gray-900 px-6 pt-4 pb-0 flex flex-col border-b border-gray-100 dark:border-gray-700">
+      <div className="trace-profile-header bg-white dark:bg-gray-900 px-4 sm:px-6 pt-4 pb-0 flex flex-col border-b border-gray-100 dark:border-gray-700">
         <div className="flex flex-wrap items-start gap-4 pb-6">
           <div className="relative shrink-0">
             {avatarPreviewUrl ? (
@@ -184,7 +182,7 @@ export default function ProfileSettingsModal({
               onClick={() => fileInputRef.current?.click()}
               disabled={saving}
               aria-label="Change profile picture"
-              className="absolute -bottom-1 -right-1 w-8 h-8 rounded-full bg-[#15803d] hover:bg-[#166534] text-white flex items-center justify-center shadow-md transition-colors"
+              className="trace-action absolute -bottom-1 -right-1 w-8 h-8 rounded-full bg-[#15803d] hover:bg-[#166534] text-white flex items-center justify-center shadow-md transition-colors"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
             </button>
@@ -215,7 +213,7 @@ export default function ProfileSettingsModal({
             <button
               type="button"
               onClick={() => setActiveTab('personal')}
-              className={`pb-3 text-xs font-bold uppercase tracking-widest transition-colors relative flex items-center gap-1.5 ${activeTab === 'personal' ? 'text-[#15803d] dark:text-green-300 border-b-2 border-[#15803d]' : 'text-gray-400 dark:text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'}`}
+              className={`trace-tab relative  ${activeTab === 'personal' ? 'text-[#15803d] dark:text-green-300 border-b-2 border-[#15803d]' : 'text-gray-400 dark:text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'}`}
             >
               Personal Info
               {missingPersonal && <span className="w-2 h-2 rounded-full bg-red-500 dark:bg-red-500 absolute -top-0.5 -right-2"></span>}
@@ -223,7 +221,7 @@ export default function ProfileSettingsModal({
             <button
               type="button"
               onClick={() => setActiveTab('educational')}
-              className={`pb-3 text-xs font-bold uppercase tracking-widest transition-colors relative flex items-center gap-1.5 ${activeTab === 'educational' ? 'text-[#15803d] dark:text-green-300 border-b-2 border-[#15803d]' : 'text-gray-400 dark:text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'}`}
+              className={`trace-tab relative  ${activeTab === 'educational' ? 'text-[#15803d] dark:text-green-300 border-b-2 border-[#15803d]' : 'text-gray-400 dark:text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'}`}
             >
               Educational Background
               {missingEdu && <span className="w-2 h-2 rounded-full bg-red-500 dark:bg-red-500 absolute -top-0.5 -right-2"></span>}
@@ -231,22 +229,22 @@ export default function ProfileSettingsModal({
             <button
               type="button"
               onClick={() => setActiveTab('security')}
-              className={`pb-3 text-xs font-bold uppercase tracking-widest transition-colors relative flex items-center gap-1.5 ${activeTab === 'security' ? 'text-[#15803d] dark:text-green-300 border-b-2 border-[#15803d]' : 'text-gray-400 dark:text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'}`}
+              className={`trace-tab relative  ${activeTab === 'security' ? 'text-[#15803d] dark:text-green-300 border-b-2 border-[#15803d]' : 'text-gray-400 dark:text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'}`}
             >
               Security
             </button>
           </div>
         ) : (
            <div className="flex flex-wrap gap-3 sm:gap-6 border-b border-gray-100 dark:border-gray-700 px-2 mt-2">
-             <button type="button" onClick={() => setActiveTab('personal')} className={`pb-3 text-xs font-bold uppercase tracking-widest transition-colors relative flex items-center gap-1.5 ${activeTab === 'personal' ? 'text-[#15803d] dark:text-green-300 border-b-2 border-[#15803d]' : 'text-gray-400 dark:text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'}`}>Personal Info</button>
-             <button type="button" onClick={() => setActiveTab('security')} className={`pb-3 text-xs font-bold uppercase tracking-widest transition-colors relative flex items-center gap-1.5 ${activeTab === 'security' ? 'text-[#15803d] dark:text-green-300 border-b-2 border-[#15803d]' : 'text-gray-400 dark:text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'}`}>Security</button>
+             <button type="button" onClick={() => setActiveTab('personal')} className={`trace-tab relative  ${activeTab === 'personal' ? 'text-[#15803d] dark:text-green-300 border-b-2 border-[#15803d]' : 'text-gray-400 dark:text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'}`}>Personal Info</button>
+             <button type="button" onClick={() => setActiveTab('security')} className={`trace-tab relative  ${activeTab === 'security' ? 'text-[#15803d] dark:text-green-300 border-b-2 border-[#15803d]' : 'text-gray-400 dark:text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'}`}>Security</button>
            </div>
         )}
       </div>
 
-      <div className="p-6">
+      <div className="trace-section-body">
         {success && <div className="mb-6 rounded-xl bg-green-50 dark:bg-green-950/40 border border-green-100 dark:border-green-800 px-4 py-3 text-sm font-semibold text-green-800 dark:text-green-300">{success}</div>}
-        {error && <div className="mb-6 rounded-xl bg-red-50 dark:bg-red-950/40 border border-red-100 dark:border-red-800 px-4 py-3 text-sm font-semibold text-red-700 dark:text-red-300">{error}</div>}
+        {error && <div className="trace-error mb-6">{error}</div>}
 
         {isStudent && missing.length > 0 && <p role="status" className="px-6 pt-3 text-sm text-amber-800 dark:text-amber-200">
           Still needed: {missing.map(item => item.label).join(', ')}.
@@ -255,53 +253,53 @@ export default function ProfileSettingsModal({
           {passwordError && <p role="alert" className="text-sm text-red-600 dark:text-red-300">{passwordError}</p>}
           {activeTab === 'personal' && (
             <div className="space-y-6">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="trace-form-grid">
                 <div>
-                  <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">Phone Number <span className="text-red-500 dark:text-red-300">*</span></label>
-                  <input maxLength={INPUT_LIMITS.phone} type="text" value={profileData.phone_number} onChange={(e) => setField('phone_number', e.target.value)} required className="w-full bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl py-3 px-4 text-sm font-semibold focus:ring-2 focus:ring-[#15803d]/20 outline-none" />
+                  <label className="trace-label block mb-2">Phone Number <span className="text-red-500 dark:text-red-300">*</span></label>
+                  <input maxLength={INPUT_LIMITS.phone} type="text" value={profileData.phone_number} onChange={(e) => setField('phone_number', e.target.value)} required className="trace-control w-full" />
                 </div>
-                <div className="min-w-0 sm:col-span-2">
-                  <label htmlFor="profile-email" className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">Email Address <span className="text-red-500 dark:text-red-300">*</span></label>
+                <div className="min-w-0 col-span-full">
+                  <label htmlFor="profile-email" className="trace-label block mb-2">Email Address <span className="text-red-500 dark:text-red-300">*</span></label>
                   <EmailVerificationNotice user={user} email={profileData.email} pendingEmail={pendingEmail} sending={verifyingEmail}
                     message={verificationMessage} error={confirmation === 'email' ? '' : verificationError}
                     disabled={saving || (emailChanged && !profileData.current_password)} onVerify={requestEmailVerification}>
-                    <input id="profile-email" ref={emailInputRef} maxLength={INPUT_LIMITS.email} type="email" value={profileData.email} onChange={(e) => setField('email', e.target.value)} required disabled={verifyingEmail} className="min-w-0 flex-1 basis-48 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl py-3 px-4 text-sm font-semibold focus:ring-2 focus:ring-[#15803d]/20 outline-none" />
+                    <input id="profile-email" ref={emailInputRef} maxLength={INPUT_LIMITS.email} type="email" value={profileData.email} onChange={(e) => setField('email', e.target.value)} required disabled={verifyingEmail} className="trace-control min-w-0 flex-1 basis-48" />
                   </EmailVerificationNotice>
-                  {emailChanged && <label className="block text-sm mt-3">Current password to change email
-                    <input type={showPasswords ? 'text' : 'password'} autoComplete="current-password" value={profileData.current_password || ''} onChange={e => setField('current_password', e.target.value)} className="mt-2 w-full border rounded-xl p-3 bg-white dark:bg-gray-900" />
+                  {emailChanged && <label className="trace-label block mt-3">Current password to change email
+                    <input type={showPasswords ? 'text' : 'password'} autoComplete="current-password" value={profileData.current_password || ''} onChange={e => setField('current_password', e.target.value)} className="trace-control mt-2 w-full" />
                   </label>}
                 </div>
               </div>
 
               {isStudent && (
                 <>
-                  <label className="block text-sm font-bold">Program/Course
-                    <input maxLength={150} value={profileData.program || ''} onChange={event => setField('program', event.target.value)} placeholder="e.g. BS Information Technology" className="mt-2 w-full rounded-xl border p-3 bg-white dark:bg-gray-900" />
+                  <label className="trace-label block">Program/Course
+                    <input maxLength={150} value={profileData.program || ''} onChange={event => setField('program', event.target.value)} placeholder="e.g. BS Information Technology" className="trace-control mt-2 w-full" />
                     <span className="block text-xs font-normal mt-1">Your degree or program, separate from your college. Used on the payment slip and by Finance when preparing the OR.</span>
                   </label>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="trace-form-grid">
                     <div>
-                      <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">Birth Date <span className="text-red-500 dark:text-red-300">*</span></label>
-                      <input type="date" value={profileData.birth_date} onChange={(e) => setField('birth_date', e.target.value)} required className="w-full bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl py-3 px-4 text-sm font-semibold focus:ring-2 focus:ring-[#15803d]/20 outline-none" />
+                      <label className="trace-label block mb-2">Birth Date <span className="text-red-500 dark:text-red-300">*</span></label>
+                      <input type="date" value={profileData.birth_date} onChange={(e) => setField('birth_date', e.target.value)} required className="trace-control w-full" />
                     </div>
                     <div>
-                      <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">Place of Birth <span className="text-red-500 dark:text-red-300">*</span></label>
-                      <input maxLength={INPUT_LIMITS.name} type="text" value={profileData.place_of_birth} onChange={(e) => setField('place_of_birth', e.target.value)} required className="w-full bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl py-3 px-4 text-sm font-semibold focus:ring-2 focus:ring-[#15803d]/20 outline-none" />
+                      <label className="trace-label block mb-2">Place of Birth <span className="text-red-500 dark:text-red-300">*</span></label>
+                      <input maxLength={INPUT_LIMITS.name} type="text" value={profileData.place_of_birth} onChange={(e) => setField('place_of_birth', e.target.value)} required className="trace-control w-full" />
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div className="trace-form-grid">
                     <div>
-                      <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">Sex <span className="text-red-500 dark:text-red-300">*</span></label>
-                      <select value={profileData.sex} onChange={(e) => setField('sex', e.target.value)} required className="w-full bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl py-3 px-4 text-sm font-semibold focus:ring-2 focus:ring-[#15803d]/20 outline-none">
+                      <label className="trace-label block mb-2">Sex <span className="text-red-500 dark:text-red-300">*</span></label>
+                      <select value={profileData.sex} onChange={(e) => setField('sex', e.target.value)} required className="trace-control w-full">
                         <option value="">Select...</option>
                         <option value="Male">Male</option>
                         <option value="Female">Female</option>
                       </select>
                     </div>
                     <div>
-                      <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">Civil Status <span className="text-red-500 dark:text-red-300">*</span></label>
-                      <select value={profileData.civil_status} onChange={(e) => setField('civil_status', e.target.value)} required className="w-full bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl py-3 px-4 text-sm font-semibold focus:ring-2 focus:ring-[#15803d]/20 outline-none">
+                      <label className="trace-label block mb-2">Civil Status <span className="text-red-500 dark:text-red-300">*</span></label>
+                      <select value={profileData.civil_status} onChange={(e) => setField('civil_status', e.target.value)} required className="trace-control w-full">
                         <option value="">Select...</option>
                         <option value="Single">Single</option>
                         <option value="Married">Married</option>
@@ -311,21 +309,21 @@ export default function ProfileSettingsModal({
                       </select>
                     </div>
                     <div>
-                      <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">Extension Name</label>
-                      <input maxLength={INPUT_LIMITS.shortCode} type="text" placeholder="Jr., III, etc." value={profileData.extension_name} onChange={(e) => setField('extension_name', e.target.value)} className="w-full bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl py-3 px-4 text-sm font-semibold focus:ring-2 focus:ring-[#15803d]/20 outline-none" />
+                      <label className="trace-label block mb-2">Extension Name</label>
+                      <input maxLength={INPUT_LIMITS.shortCode} type="text" placeholder="Jr., III, etc." value={profileData.extension_name} onChange={(e) => setField('extension_name', e.target.value)} className="trace-control w-full" />
                     </div>
                   </div>
 
                   {profileData.sex === 'Female' && profileData.civil_status === 'Married' && (
                     <div>
-                      <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">Maiden Name <span className="text-red-500 dark:text-red-300">*</span></label>
-                      <input maxLength={INPUT_LIMITS.name} type="text" value={profileData.maiden_name} onChange={(e) => setField('maiden_name', e.target.value)} required className="w-full bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl py-3 px-4 text-sm font-semibold focus:ring-2 focus:ring-[#15803d]/20 outline-none" />
+                      <label className="trace-label block mb-2">Maiden Name <span className="text-red-500 dark:text-red-300">*</span></label>
+                      <input maxLength={INPUT_LIMITS.name} type="text" value={profileData.maiden_name} onChange={(e) => setField('maiden_name', e.target.value)} required className="trace-control w-full" />
                     </div>
                   )}
 
                   <div>
-                    <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">Home Address <span className="text-red-500 dark:text-red-300">*</span></label>
-                    <textarea maxLength={INPUT_LIMITS.address} value={profileData.home_address} onChange={(e) => setField('home_address', e.target.value)} required rows="2" className="w-full bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl py-3 px-4 text-sm font-semibold focus:ring-2 focus:ring-[#15803d]/20 outline-none resize-none"></textarea>
+                    <label className="trace-label block mb-2">Home Address <span className="text-red-500 dark:text-red-300">*</span></label>
+                    <textarea maxLength={INPUT_LIMITS.address} value={profileData.home_address} onChange={(e) => setField('home_address', e.target.value)} required rows="2" className="trace-control w-full resize-none"></textarea>
                   </div>
                 </>
               )}
@@ -338,21 +336,21 @@ export default function ProfileSettingsModal({
           {activeTab === 'security' && (
             <div className="space-y-6">
               <AuthenticatorSettings user={user} />
-              {['clerk', 'admin'].includes(user?.role) && <section aria-label="Browser verification" className="bg-white dark:bg-gray-900 p-4 border border-gray-200 dark:border-gray-700 rounded-2xl space-y-3">
+              {['clerk', 'admin'].includes(user?.role) && <section aria-label="Browser verification" className="trace-section trace-section-body space-y-3">
                 <h3 className="font-bold">Browser verification</h3>
                 <p className="text-sm">{personalBrowser ? 'Personal-browser preference is saved until midnight Manila time.' : 'Shared-computer verification is the default. Verify each login; choose personal-browser trust during verification only on your own device.'}</p>
-                {personalBrowser && <button type="button" onClick={() => setConfirmation('browser')} className="border rounded-xl px-3 py-2 text-sm">Use shared-computer verification</button>}
+                {personalBrowser && <button type="button" onClick={() => setConfirmation('browser')} className="trace-button trace-button-secondary">Use shared-computer verification</button>}
               </section>}
-              <div className="bg-white dark:bg-gray-900 p-4 border border-gray-200 dark:border-gray-700 rounded-2xl">
+              <div className="trace-section trace-section-body">
                 <h3 className="text-sm font-black text-gray-900 dark:text-gray-100 mb-4 border-b border-gray-100 dark:border-gray-700 pb-2">Change Password</h3>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="trace-form-grid">
                   <div>
-                    <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">Current Password</label>
-                    <input aria-label="Current Password" autoComplete="current-password" type={showPasswords ? 'text' : 'password'} value={profileData.current_password || ''} onChange={(e) => setField('current_password', e.target.value)} placeholder="Required to change email or password" className="w-full bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl py-3 px-4 text-sm font-semibold focus:ring-2 focus:ring-[#15803d]/20 outline-none" />
+                    <label className="trace-label block mb-2">Current Password</label>
+                    <input aria-label="Current Password" autoComplete="current-password" type={showPasswords ? 'text' : 'password'} value={profileData.current_password || ''} onChange={(e) => setField('current_password', e.target.value)} placeholder="Required to change email or password" className="trace-control w-full" />
                   </div>
                   <div>
-                    <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">New Password</label>
-                    <input aria-label="New Password" autoComplete="new-password" maxLength={INPUT_LIMITS.password} type={showPasswords ? 'text' : 'password'} value={profileData.password} onChange={(e) => setField('password', e.target.value)} placeholder="Leave blank to keep current password" className="w-full bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl py-3 px-4 text-sm font-semibold focus:ring-2 focus:ring-[#15803d]/20 outline-none" />
+                    <label className="trace-label block mb-2">New Password</label>
+                    <input aria-label="New Password" autoComplete="new-password" maxLength={INPUT_LIMITS.password} type={showPasswords ? 'text' : 'password'} value={profileData.password} onChange={(e) => setField('password', e.target.value)} placeholder="Leave blank to keep current password" className="trace-control w-full" />
                     
                     {profileData.password && (
                       <div className="mt-2 text-[10px] font-bold uppercase tracking-widest grid grid-cols-2 gap-1">
@@ -365,17 +363,17 @@ export default function ProfileSettingsModal({
                     )}
                   </div>
                 </div>
-                <button type="button" aria-pressed={showPasswords} onClick={() => setShowPasswords(value => !value)} className="mt-3 border rounded-xl px-3 py-2 text-sm">{showPasswords ? 'Hide passwords' : 'Show passwords'}</button>
+                <button type="button" aria-pressed={showPasswords} onClick={() => setShowPasswords(value => !value)} className="trace-button trace-button-secondary mt-3">{showPasswords ? 'Hide passwords' : 'Show passwords'}</button>
                 <p className="text-sm mt-3">{PASSWORD_REQUIREMENTS} You cannot reuse your current or last three passwords. Changing your password logs out other devices and keeps this browser signed in.</p>
               </div>
-              <div className="bg-white dark:bg-gray-900 p-4 border border-gray-200 dark:border-gray-700 rounded-2xl">
+              <div className="trace-section trace-section-body">
                 <h3 className="text-sm font-black text-gray-900 dark:text-gray-100 mb-4 border-b border-gray-100 dark:border-gray-700 pb-2">Session Management</h3>
                 <p className="text-sm text-gray-600 dark:text-gray-300 mb-4">Log out of all other active sessions across all devices. You will remain logged in on this device.</p>
-                <button type="button" disabled={loggingOut} onClick={() => setConfirmation('sessions')} className="bg-red-50 dark:bg-red-950/40 text-red-600 dark:text-red-300 font-bold uppercase tracking-widest text-xs py-2 px-4 rounded-xl hover:bg-red-100 dark:hover:bg-red-950/40 transition-colors border border-red-200 dark:border-red-800">
+                <button type="button" disabled={loggingOut} onClick={() => setConfirmation('sessions')} className="trace-button trace-button-danger">
                   Logout All Devices
                 </button>
               </div>
-              <div className="bg-white dark:bg-gray-900 p-4 border border-gray-200 dark:border-gray-700 rounded-2xl">
+              <div className="trace-section trace-section-body">
                 <h3 className="text-sm font-black text-gray-900 dark:text-gray-100 mb-4 border-b border-gray-100 dark:border-gray-700 pb-2">Recent Security Activity</h3>
                 <div className="text-xs text-gray-500 dark:text-gray-400 mb-2">View your recent logins, password changes, and other security events.</div>
                 <div className="flex justify-center my-4">
@@ -413,16 +411,16 @@ export default function ProfileSettingsModal({
           {activeTab === 'educational' && isStudent && (
             <div className="space-y-6">
               
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-white dark:bg-gray-900 p-4 border border-gray-200 dark:border-gray-700 rounded-2xl">
+              <div className="trace-section trace-section-body grid grid-cols-1 sm:grid-cols-2 ga">
                 {user?.user_type === 'alumni' && (
                   <div>
-                    <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">Graduation Year <span className="text-red-500 dark:text-red-300">*</span></label>
-                    <input type="number" min="1950" max="2100" value={profileData.last_attendance_year} onChange={(e) => setField('last_attendance_year', e.target.value)} required className="w-full bg-gray-50 dark:bg-gray-800 border-none rounded-xl py-3 px-4 text-sm font-semibold focus:ring-2 focus:ring-[#15803d]/20 outline-none" />
+                    <label className="trace-label block mb-2">Graduation Year <span className="text-red-500 dark:text-red-300">*</span></label>
+                    <input type="number" min="1950" max="2100" value={profileData.last_attendance_year} onChange={(e) => setField('last_attendance_year', e.target.value)} required className="trace-control w-full border-none" />
                   </div>
                 )}
                 <div>
-                  <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">Transfer Student?</label>
-                  <select value={profileData.is_transfer_student ? 'yes' : 'no'} onChange={(e) => setField('is_transfer_student', e.target.value === 'yes')} className="w-full bg-gray-50 dark:bg-gray-800 border-none rounded-xl py-3 px-4 text-sm font-semibold focus:ring-2 focus:ring-[#15803d]/20 outline-none">
+                  <label className="trace-label block mb-2">Transfer Student?</label>
+                  <select value={profileData.is_transfer_student ? 'yes' : 'no'} onChange={(e) => setField('is_transfer_student', e.target.value === 'yes')} className="trace-control w-full border-none">
                     <option value="no">No</option>
                     <option value="yes">Yes</option>
                   </select>
@@ -431,39 +429,39 @@ export default function ProfileSettingsModal({
 
               {profileData.is_transfer_student && (
                 <div>
-                  <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">Previous School <span className="text-red-500 dark:text-red-300">*</span></label>
-                  <input maxLength={INPUT_LIMITS.name} type="text" value={profileData.previous_school} onChange={(e) => setField('previous_school', e.target.value)} required className="w-full bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl py-3 px-4 text-sm font-semibold focus:ring-2 focus:ring-[#15803d]/20 outline-none" />
+                  <label className="trace-label block mb-2">Previous School <span className="text-red-500 dark:text-red-300">*</span></label>
+                  <input maxLength={INPUT_LIMITS.name} type="text" value={profileData.previous_school} onChange={(e) => setField('previous_school', e.target.value)} required className="trace-control w-full" />
                 </div>
               )}
 
               <div className="space-y-4">
                 <h4 className="text-xs font-bold text-gray-800 dark:text-gray-100 uppercase tracking-widest border-b border-gray-200 dark:border-gray-700 pb-2">Elementary</h4>
-                <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
-                  <div className="sm:col-span-3">
-                    <input maxLength={INPUT_LIMITS.name} type="text" placeholder="School Name" required value={profileData.elem_school} onChange={(e) => setField('elem_school', e.target.value)} className="w-full bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl py-3 px-4 text-sm font-semibold focus:ring-2 focus:ring-[#15803d]/20 outline-none" />
+                <div className="trace-form-grid">
+                  <div className="col-span-full">
+                    <input maxLength={INPUT_LIMITS.name} type="text" placeholder="School Name" required value={profileData.elem_school} onChange={(e) => setField('elem_school', e.target.value)} className="trace-control w-full" />
                   </div>
                   <div>
-                    <input type="number" placeholder="Year" required value={profileData.elem_grad_year} onChange={(e) => setField('elem_grad_year', e.target.value)} className="w-full bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl py-3 px-4 text-sm font-semibold focus:ring-2 focus:ring-[#15803d]/20 outline-none" />
+                    <input type="number" placeholder="Year" required value={profileData.elem_grad_year} onChange={(e) => setField('elem_grad_year', e.target.value)} className="trace-control w-full" />
                   </div>
                 </div>
 
                 <h4 className="text-xs font-bold text-gray-800 dark:text-gray-100 uppercase tracking-widest border-b border-gray-200 dark:border-gray-700 pb-2 pt-2">Junior High School</h4>
-                <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
-                  <div className="sm:col-span-3">
-                    <input maxLength={INPUT_LIMITS.name} type="text" placeholder="School Name" required value={profileData.jhs_school} onChange={(e) => setField('jhs_school', e.target.value)} className="w-full bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl py-3 px-4 text-sm font-semibold focus:ring-2 focus:ring-[#15803d]/20 outline-none" />
+                <div className="trace-form-grid">
+                  <div className="col-span-full">
+                    <input maxLength={INPUT_LIMITS.name} type="text" placeholder="School Name" required value={profileData.jhs_school} onChange={(e) => setField('jhs_school', e.target.value)} className="trace-control w-full" />
                   </div>
                   <div>
-                    <input type="number" placeholder="Year" required value={profileData.jhs_grad_year} onChange={(e) => setField('jhs_grad_year', e.target.value)} className="w-full bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl py-3 px-4 text-sm font-semibold focus:ring-2 focus:ring-[#15803d]/20 outline-none" />
+                    <input type="number" placeholder="Year" required value={profileData.jhs_grad_year} onChange={(e) => setField('jhs_grad_year', e.target.value)} className="trace-control w-full" />
                   </div>
                 </div>
 
                 <h4 className="text-xs font-bold text-gray-800 dark:text-gray-100 uppercase tracking-widest border-b border-gray-200 dark:border-gray-700 pb-2 pt-2">Senior High School</h4>
-                <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
-                  <div className="sm:col-span-3">
-                    <input maxLength={INPUT_LIMITS.name} type="text" placeholder="School Name" required value={profileData.shs_school} onChange={(e) => setField('shs_school', e.target.value)} className="w-full bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl py-3 px-4 text-sm font-semibold focus:ring-2 focus:ring-[#15803d]/20 outline-none" />
+                <div className="trace-form-grid">
+                  <div className="col-span-full">
+                    <input maxLength={INPUT_LIMITS.name} type="text" placeholder="School Name" required value={profileData.shs_school} onChange={(e) => setField('shs_school', e.target.value)} className="trace-control w-full" />
                   </div>
                   <div>
-                    <input type="number" placeholder="Year" required value={profileData.shs_grad_year} onChange={(e) => setField('shs_grad_year', e.target.value)} className="w-full bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl py-3 px-4 text-sm font-semibold focus:ring-2 focus:ring-[#15803d]/20 outline-none" />
+                    <input type="number" placeholder="Year" required value={profileData.shs_grad_year} onChange={(e) => setField('shs_grad_year', e.target.value)} className="trace-control w-full" />
                   </div>
                 </div>
               </div>

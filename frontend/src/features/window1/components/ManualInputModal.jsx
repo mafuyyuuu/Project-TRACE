@@ -26,7 +26,7 @@ export default function ManualInputModal({
           <button
             type="submit" form="manual-input-form"
             disabled={actionLoading || isGraduate || documentTypesLoading || !documentTypes.length}
-            className="px-8 py-3 bg-[#15803d] hover:bg-[#166534] disabled:opacity-75 text-white font-bold rounded-xl text-xs shadow-md transition-all uppercase tracking-wider"
+            className="trace-button trace-button-primary"
           >
             {actionLoading ? 'Saving...' : 'Submit Request'}
           </button>
@@ -40,9 +40,9 @@ export default function ManualInputModal({
         <div>
           <h3 className="text-xs font-black text-[#15803d] dark:text-green-300 uppercase tracking-widest border-b border-gray-100 dark:border-gray-700 pb-3 mb-6">STUDENT INFORMATION</h3>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="trace-form-grid">
             <div className="flex flex-col gap-2">
-              <label className="text-[10px] font-bold text-gray-800 dark:text-gray-100 uppercase tracking-widest">Student ID</label>
+              <label className="trace-label">Student ID</label>
               <div className="flex gap-2">
                 <input maxLength={INPUT_LIMITS.id}
                   type="text"
@@ -50,12 +50,12 @@ export default function ManualInputModal({
                   id="manual-student-id"
                   placeholder="e.g. 23-23922"
                   required
-                  className="flex-1 p-3 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-xs font-semibold focus:ring-2 focus:ring-[#15803d]/20 outline-none transition-all"
+                  className="trace-control flex-1"
                 />
                 <button
                   type="button"
                   onClick={handleFetchStudent}
-                  className="px-4 py-3 bg-[#15803d] text-white rounded-xl text-xs font-bold hover:bg-[#166534] transition-all shadow-sm shrink-0"
+                  className="trace-button trace-button-primary shrink-0"
                 >
                   FETCH
                 </button>
@@ -63,24 +63,24 @@ export default function ManualInputModal({
             </div>
 
             <div className="flex flex-col gap-2">
-              <label className="text-[10px] font-bold text-gray-800 dark:text-gray-100 uppercase tracking-widest">Full Name</label>
+              <label className="trace-label">Full Name</label>
               <input maxLength={INPUT_LIMITS.name}
                 type="text"
                 name="fullName"
                 id="manual-full-name"
                 placeholder="Last Name, First Name"
                 required
-                className="p-3 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-xs font-semibold focus:ring-2 focus:ring-[#15803d]/20 outline-none transition-all"
+                className="trace-control"
               />
             </div>
 
             <div className="flex flex-col gap-2">
-              <label className="text-[10px] font-bold text-gray-800 dark:text-gray-100 uppercase tracking-widest">Course / Program</label>
+              <label className="trace-label">Course / Program</label>
               <select
                 name="course"
                 id="manual-course"
                 required
-                className="p-3 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-xs font-semibold focus:ring-2 focus:ring-[#15803d]/20 outline-none transition-all cursor-pointer"
+                className="trace-control cursor-pointer"
               >
                 <option value="" disabled selected>Select Course...</option>
                 <option value="BSCS">BS Computer Science</option>
@@ -97,14 +97,14 @@ export default function ManualInputModal({
         <div>
           <h3 className="text-xs font-black text-[#15803d] dark:text-green-300 uppercase tracking-widest border-b border-gray-100 dark:border-gray-700 pb-3 mb-6">DOCUMENT DETAILS</h3>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="trace-form-grid">
             <div className="flex flex-col gap-2">
-              <label className="text-[10px] font-bold text-gray-800 dark:text-gray-100 uppercase tracking-widest">Requested Document</label>
+              <label className="trace-label">Requested Document</label>
               <select
                 name="docType"
                 value={docType} onChange={e => setDocType(e.target.value)}
                 required
-                className="p-3 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-xs font-semibold focus:ring-2 focus:ring-[#15803d]/20 outline-none transition-all cursor-pointer"
+                className="trace-control cursor-pointer"
               >
                 <option value="" disabled>Document Type</option>
                 {documentTypes.map(type => <option key={type.id || type.name} value={type.name}>{type.name}</option>)}
@@ -112,22 +112,22 @@ export default function ManualInputModal({
             </div>
 
             <label className="flex flex-col gap-2 text-sm font-bold">Copies
-              <input name="copies" type="number" required min="1" max={isHonorableDismissal(docType) ? 1 : 2147483647} step="1" defaultValue="1" className="p-3 border rounded-xl bg-transparent" />
+              <input name="copies" type="number" required min="1" max={isHonorableDismissal(docType) ? 1 : 2147483647} step="1" defaultValue="1" className="trace-control" />
             </label>
             {isSameDayWalkInType(docType) && <fieldset className="space-y-3 text-sm md:col-span-2">
               <legend className="font-bold">Walk-in same-day eligibility</legend>
               <p>Eligible only when the requester presents both the original document and its photocopy. Otherwise file for normal evaluation; no same-day promise.</p>
-              <label className="flex items-start gap-3"><input name="originalSeen" type="checkbox" className="mt-1 shrink-0" />Original document presented and checked</label>
-              <label className="flex items-start gap-3"><input name="photocopySeen" type="checkbox" className="mt-1 shrink-0" />Photocopy presented and checked</label>
+              <label className="flex items-start gap-3"><input name="originalSeen" type="checkbox" className="trace-choice mt-1 shrink-0" />Original document presented and checked</label>
+              <label className="flex items-start gap-3"><input name="photocopySeen" type="checkbox" className="trace-choice mt-1 shrink-0" />Photocopy presented and checked</label>
             </fieldset>}
             <div className="flex flex-col gap-2">
-              <label className="text-[10px] font-bold text-gray-800 dark:text-gray-100 uppercase tracking-widest">Purpose of Request</label>
+              <label className="trace-label">Purpose of Request</label>
               <select
                 name="purpose"
                 required
                 value={purpose}
                 onChange={(e) => setPurpose(e.target.value)}
-                className="p-3 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-xs font-semibold focus:ring-2 focus:ring-[#15803d]/20 outline-none transition-all cursor-pointer"
+                className="trace-control cursor-pointer"
               >
                 <option value="" disabled selected>Purpose of Request</option>
                 <option>Graduation Clearance</option>
@@ -139,11 +139,11 @@ export default function ManualInputModal({
           </div>
 
           <div className="flex flex-col gap-2 mt-6">
-            <label className="text-[10px] font-bold text-gray-800 dark:text-gray-100 uppercase tracking-widest">Clerk Remarks / Notes (Optional)</label>
+            <label className="trace-label">Clerk Remarks / Notes (Optional)</label>
             <textarea maxLength={INPUT_LIMITS.notes}
               name="remarks"
               placeholder="Enter remarks..."
-              className="p-4 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-xs font-semibold focus:ring-2 focus:ring-[#15803d]/20 outline-none transition-all h-28 resize-none"
+              className="trace-control h-28 resize-none"
             />
           </div>
         </div>

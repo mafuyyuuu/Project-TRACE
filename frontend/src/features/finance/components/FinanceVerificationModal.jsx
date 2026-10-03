@@ -45,16 +45,14 @@ export default function FinanceVerificationModal({
           <button
             onClick={() => handleFinanceVerify('reject', null)}
             disabled={actionLoading}
-            className="w-full sm:w-1/2 py-3 rounded-xl font-bold text-xs shadow-md transition-all text-center uppercase tracking-wider bg-red-600 dark:bg-red-600 hover:bg-red-700 dark:hover:bg-red-700 text-white disabled:opacity-50"
+            className="trace-button trace-button-danger w-full sm:w-1/2 text-center"
           >
             Reject Payment
           </button>
           <button
             onClick={() => handleFinanceVerify('approve', deferred ? null : financeReceiptFile, deferred ? '' : orNumber.trim(), { deferred, orDate: deferred ? '' : orDate })}
             disabled={actionLoading || !canVerify}
-            className={`w-full sm:w-1/2 py-3 rounded-xl font-bold text-xs shadow-md transition-all text-center uppercase tracking-wider ${
-              !canVerify ? 'bg-gray-300 dark:bg-gray-700 text-gray-500 dark:text-gray-400 cursor-not-allowed' : 'bg-[#15803d] hover:bg-[#166534] text-white'
-            }`}
+            className="trace-button trace-button-primary w-full sm:flex-1"
           >
             Verify Payment
           </button>
@@ -113,7 +111,7 @@ export default function FinanceVerificationModal({
         </div>
 
         {!selectedDoc.or_number && <label className="flex items-start gap-3 text-sm font-semibold">
-          <input type="checkbox" checked={deferred} onChange={e => setDeferred(e.target.checked)} className="mt-1 shrink-0" />
+          <input type="checkbox" checked={deferred} onChange={e => setDeferred(e.target.checked)} className="trace-choice mt-1 shrink-0" />
           Later — clear payment now; issue the Official Receipt later
         </label>}
         {!deferred && <>
@@ -128,12 +126,12 @@ export default function FinanceVerificationModal({
             value={orNumber}
             onChange={(e) => setOrNumber(e.target.value)}
             placeholder="e.g. OR-2026-00123"
-            className="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-3 text-xs font-bold font-mono focus:ring-2 focus:ring-[#15803d]/20 focus:bg-white dark:focus:bg-gray-900 outline-none transition-all"
+            className="trace-control w-full font-mono"
           />
         </div>
 
-        {!selectedDoc.or_number && <label className="block text-sm font-semibold">OR issue date (Manila)
-          <input type="date" value={orDate} onChange={e => setOrDate(e.target.value)} className="block w-full border rounded-xl p-3 bg-transparent" />
+        {!selectedDoc.or_number && <label className="trace-label block">OR issue date (Manila)
+          <input type="date" value={orDate} onChange={e => setOrDate(e.target.value)} className="trace-control block w-full" />
           <span className="text-xs font-normal">Blank uses today’s Manila date; server enforces the 4:00 PM cut-off.</span>
         </label>}
         <div className="flex flex-col gap-2">
@@ -146,17 +144,17 @@ export default function FinanceVerificationModal({
       </div>
 
       <div className="flex flex-col gap-1.5 mt-4">
-        <label className="text-[10px] font-bold text-gray-800 dark:text-gray-100 uppercase tracking-widest">Clerk Notes / Remarks</label>
+        <label className="trace-label">Clerk Notes / Remarks</label>
         <textarea maxLength={INPUT_LIMITS.notes}
           value={clerkNotes}
           onChange={(e) => setClerkNotes(e.target.value)}
           placeholder="Add notes (required for rejection)..."
           rows={2}
-          className="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-3 text-xs font-semibold focus:ring-2 focus:ring-[#15803d]/20 focus:bg-white dark:focus:bg-gray-900 outline-none transition-all resize-none"
+          className="trace-control w-full resize-none"
         />
       </div>
       <div className="flex flex-col gap-1.5 mt-4 border-t border-gray-100 dark:border-gray-700 pt-4">
-        <label className="text-[10px] font-bold text-gray-800 dark:text-gray-100 uppercase tracking-widest">Discussion</label>
+        <label className="trace-label">Discussion</label>
         <DocumentChat documentId={selectedDoc.id} user={user} />
       </div>
     </ModalShell>

@@ -65,15 +65,15 @@ export default function AccountVerificationModal({
           <RegistrationReviewNotice user={student} />
         </div>
 
-        <div className="shrink-0 px-6 sm:px-8 py-6 border-t border-gray-100 dark:border-gray-700 flex items-center gap-3">
+        <div className="trace-modal-footer trace-actions">
           <button
             onClick={cancelAdminVerifyStudent}
-            className="w-1/3 py-3 rounded-xl font-bold text-xs border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors uppercase tracking-wider text-center"
+            className="trace-button trace-button-secondary w-1/3 text-center"
           >
             Cancel
           </button>
-          <button onClick={() => setDecision('reject')} disabled={actionLoading} className="flex-1 py-3 rounded-xl border border-red-300 text-red-700 dark:text-red-300 text-xs font-bold">Reject</button>
-          <button onClick={() => setDecision('verify')} disabled={actionLoading} className="flex-1 py-3 rounded-xl bg-[#15803d] text-white text-xs font-bold">Verify</button>
+          <button onClick={() => setDecision('reject')} disabled={actionLoading} className="trace-button trace-button-danger flex-1">Reject</button>
+          <button onClick={() => setDecision('verify')} disabled={actionLoading} className="trace-button trace-button-primary flex-1">Verify</button>
         </div>
       </div>
       <ConfirmDialog open={!!decision} title={decision === 'verify' ? 'Verify Account' : 'Reject Account'}

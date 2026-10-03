@@ -89,18 +89,18 @@ export default function Window1Dashboard({ user, currentTab, setViewImageUrl }) 
   return (
     <>
       <DashboardAlerts success={success} error={error} onDismiss={dismissNotification} dismissalKey={`${currentTab}:${queueTab}`} />
-      <div className="space-y-8 animate-fade-in">
+      <div className="trace-page animate-fade-in">
         {/* 3.1. WORKSPACE DASHBOARD VIEW */}
         {currentTab === 'dashboard' && (
           <>
             {/* Welcome Header */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+            <div className="trace-page-header">
               <div>
-                <h2 className="text-2xl sm:text-3xl font-display font-black text-gray-900 dark:text-gray-100 tracking-tight">
+                <h2 className="trace-page-title">
                   Welcome back, <span className="text-[#15803d] dark:text-green-300">Window 1 Clerk</span>
                 </h2>
               </div>
-              <div className="flex items-center gap-3 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-2xl px-5 py-2.5 shadow-sm">
+              <div className="trace-date">
                 <span className="text-xs font-semibold text-gray-500 dark:text-gray-400">Today:</span>
                 <span className="text-xs font-bold text-gray-800 dark:text-gray-100">{todayFormatted}</span>
                 <svg className="w-4 h-4 text-gray-400 dark:text-gray-400 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
@@ -110,7 +110,7 @@ export default function Window1Dashboard({ user, currentTab, setViewImageUrl }) 
             {/* Top KPIs Row */}
             <SubmissionQrPanel />
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div className="bg-white dark:bg-gray-900 rounded-3xl p-6 shadow-sm border border-gray-200 dark:border-gray-700 flex flex-col justify-between min-h-44">
+              <div className="trace-section trace-section-body flex flex-col justify-between min-h-44">
                 <div className="flex justify-between items-start">
                   <div>
                     <span className="text-[10px] font-bold text-gray-400 dark:text-gray-400 uppercase tracking-widest block">PROCESSED MANUAL DOCUMENT TODAY</span>
@@ -124,7 +124,7 @@ export default function Window1Dashboard({ user, currentTab, setViewImageUrl }) 
                 </div>
               </div>
 
-              <div className="bg-white dark:bg-gray-900 rounded-3xl p-6 shadow-sm border border-gray-200 dark:border-gray-700 flex flex-col justify-between min-h-44">
+              <div className="trace-section trace-section-body flex flex-col justify-between min-h-44">
                 <div className="flex justify-between items-start">
                   <div>
                     <span className="text-[10px] font-bold text-gray-400 dark:text-gray-400 uppercase tracking-widest block">AWAITING SECRETARY</span>
@@ -139,7 +139,7 @@ export default function Window1Dashboard({ user, currentTab, setViewImageUrl }) 
                 </div>
               </div>
 
-              <div className="bg-white dark:bg-gray-900 rounded-3xl p-6 shadow-sm border border-gray-200 dark:border-gray-700 flex flex-col justify-between min-h-44">
+              <div className="trace-section trace-section-body flex flex-col justify-between min-h-44">
                 <div className="flex justify-between items-start">
                   <div>
                     <span className="text-[10px] font-bold text-gray-400 dark:text-gray-400 uppercase tracking-widest block">COMPLETED TODAY</span>
@@ -158,7 +158,7 @@ export default function Window1Dashboard({ user, currentTab, setViewImageUrl }) 
 
             {/* Upload Document Dropzone */}
             <div className="grid grid-cols-1 lg:grid-cols-[320px_minmax(0,1fr)] gap-6 mt-8 items-start">
-              <aside className="min-w-0">            <div className="bg-white dark:bg-gray-900 p-4 rounded-3xl shadow-sm border border-gray-200 dark:border-gray-700 flex flex-col justify-between">
+              <aside className="min-w-0">            <div className="trace-section trace-section-body flex flex-col justify-between">
               <div className="flex flex-col items-start gap-3">
                 <div>
                   <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100">UPLOAD DOCUMENT</h3>
@@ -166,7 +166,7 @@ export default function Window1Dashboard({ user, currentTab, setViewImageUrl }) 
                 </div>
                 <button
                   onClick={() => setActiveModal('manual-input')}
-                  className="shrink-0 px-4 py-2.5 bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#15803d]/40"
+                  className="trace-button trace-button-secondary shrink-0 flex items-center gap-1.5"
                 >
                   <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4"/></svg>
                   Manual Entry
@@ -181,8 +181,8 @@ export default function Window1Dashboard({ user, currentTab, setViewImageUrl }) 
               <section className="min-w-0">
                 <QueueTabs tabs={[{ key: 'intake', label: 'Intake', count: intakeQueue.length }, { key: 'release', label: 'Release', count: releaseQueue.length }]} activeKey={queueTab} onChange={setQueueTab} />
                 {queueTab === 'intake' && <>            {/* Intake queue — the first human look at every request, online or walk-in */}
-            <div className="bg-white dark:bg-gray-900 rounded-3xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
-              <div className="p-4 sm:p-6 border-b border-gray-100 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800/50 flex flex-col sm:flex-row justify-between sm:items-center gap-4">
+            <div className="trace-section overflow-hidden">
+              <div className="trace-section-header border-gray-100 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800/50">
                 <div>
                   <h3 className="font-bold text-gray-900 dark:text-gray-100 text-lg uppercase tracking-wider">INTAKE QUEUE</h3>
                   <div className="flex items-center gap-4 mt-1 text-xs text-gray-500 dark:text-gray-400 font-medium">
@@ -216,7 +216,7 @@ export default function Window1Dashboard({ user, currentTab, setViewImageUrl }) 
                             <tr key={doc.id} className="hover:bg-gray-50/50 dark:hover:bg-gray-800/50 group">
                               <td className="py-4 pl-4 font-mono text-xs text-gray-500 dark:text-gray-400">#{doc.tracking_number ? doc.tracking_number.slice(0, 10).toUpperCase() : doc.id}</td>
                               <td className="py-4">
-                                <button type="button" disabled={!doc.student_id} onClick={() => setViewProfileId(doc.student_id)} className="text-sm font-bold text-blue-700 dark:text-blue-300 hover:underline text-left focus-visible:ring-2 focus-visible:ring-blue-500">{doc.student_name || 'Name Unresolved'}</button>
+                                <button type="button" disabled={!doc.student_id} onClick={() => setViewProfileId(doc.student_id)} className="trace-action text-sm font-bold text-blue-700 dark:text-blue-300 hover:underline text-left focus-visible:ring-2 focus-visible:ring-blue-500">{doc.student_name || 'Name Unresolved'}</button>
                                 <div className="text-xs font-mono text-gray-400 dark:text-gray-400 mt-0.5 select-text break-words">{doc.student_id || 'ID Pending'}</div>
                               </td>
                               <td className="py-4 text-xs font-bold text-gray-600 dark:text-gray-300">{doc.document_type}</td>
@@ -231,7 +231,7 @@ export default function Window1Dashboard({ user, currentTab, setViewImageUrl }) 
                               <td className="py-4 text-right pr-4">
                                 <button
                                   onClick={() => { setSelectedDoc(doc); setActiveModal('intake-review'); }}
-                                  className="px-5 py-2.5 bg-[#15803d] hover:bg-[#166534] text-white text-xs font-bold rounded-xl shadow-sm transition-all flex items-center gap-1.5 ml-auto"
+                                  className="trace-button trace-button-primary flex items-center gap-1.5 ml-auto"
                                 >
                                   <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                                   Check
@@ -247,7 +247,7 @@ export default function Window1Dashboard({ user, currentTab, setViewImageUrl }) 
                           <button
                             disabled={w1IntakePage === 1}
                             onClick={() => setW1IntakePage(p => p - 1)}
-                            className="px-4 py-2 text-xs font-bold text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-800 rounded-xl disabled:opacity-50 transition-colors"
+                            className="trace-button trace-button-secondary"
                           >
                             Previous
                           </button>
@@ -257,7 +257,7 @@ export default function Window1Dashboard({ user, currentTab, setViewImageUrl }) 
                           <button
                             disabled={w1IntakePage >= Math.ceil(intakeQueue.length / itemsPerPage)}
                             onClick={() => setW1IntakePage(p => p + 1)}
-                            className="px-4 py-2 text-xs font-bold text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-800 rounded-xl disabled:opacity-50 transition-colors"
+                            className="trace-button trace-button-secondary"
                           >
                             Next
                           </button>
@@ -271,8 +271,8 @@ export default function Window1Dashboard({ user, currentTab, setViewImageUrl }) 
 
 </>}
                 {queueTab === 'release' && <>            {/* Active release queue card */}
-            <div className="bg-white dark:bg-gray-900 rounded-3xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
-              <div className="p-4 sm:p-6 border-b border-gray-100 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800/50 flex flex-col sm:flex-row justify-between sm:items-center gap-4">
+            <div className="trace-section overflow-hidden">
+              <div className="trace-section-header border-gray-100 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800/50">
                 <div>
                   <h3 className="font-bold text-gray-900 dark:text-gray-100 text-lg uppercase tracking-wider">RELEASE DESK</h3>
                   <div className="flex items-center gap-4 mt-1 text-xs text-gray-500 dark:text-gray-400 font-medium">
@@ -280,7 +280,7 @@ export default function Window1Dashboard({ user, currentTab, setViewImageUrl }) 
                     <span>Cleared by Secretary Today: <strong className="text-gray-900 dark:text-gray-100">{dashStats.cleared_by_secretary_today}</strong></span>
                   </div>
                 </div>
-                <button onClick={loadDashboardData} className="text-xs text-[#15803d] dark:text-green-300 font-bold hover:underline inline-flex items-center gap-1"><svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.992 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182" /></svg> Refresh</button>
+                <button onClick={loadDashboardData} className="trace-action text-xs text-[#15803d] dark:text-green-300 font-bold hover:underline inline-flex items-center gap-1"><svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.992 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182" /></svg> Refresh</button>
               </div>
 
               <div className="p-4 sm:p-6">
@@ -307,7 +307,7 @@ export default function Window1Dashboard({ user, currentTab, setViewImageUrl }) 
                             <tr key={doc.id} className="hover:bg-gray-50/50 dark:hover:bg-gray-800/50 group">
                               <td className="py-4 pl-4 font-mono text-xs text-gray-500 dark:text-gray-400">#{doc.tracking_number ? doc.tracking_number.slice(0, 10).toUpperCase() : doc.id}</td>
                               <td className="py-4">
-                                <button type="button" disabled={!doc.student_id} onClick={() => setViewProfileId(doc.student_id)} className="text-sm font-bold text-blue-700 dark:text-blue-300 hover:underline text-left focus-visible:ring-2 focus-visible:ring-blue-500">{doc.student_name || 'Name Unresolved'}</button>
+                                <button type="button" disabled={!doc.student_id} onClick={() => setViewProfileId(doc.student_id)} className="trace-action text-sm font-bold text-blue-700 dark:text-blue-300 hover:underline text-left focus-visible:ring-2 focus-visible:ring-blue-500">{doc.student_name || 'Name Unresolved'}</button>
                                 <div className="text-xs font-mono text-gray-400 dark:text-gray-400 mt-0.5 select-text break-words">{doc.student_id || 'ID Pending'}</div>
                               </td>
                               <td className="py-4 text-xs font-bold text-gray-600 dark:text-gray-300">{doc.document_type}</td>
@@ -319,7 +319,7 @@ export default function Window1Dashboard({ user, currentTab, setViewImageUrl }) 
                                 {doc.official_receipt_path && (
                                   <button
                                     onClick={() => setViewImageUrl(doc.official_receipt_path)}
-                                    className="ml-2 text-[#15803d] dark:text-green-300 hover:underline font-sans font-bold"
+                                    className="trace-action ml-2 text-[#15803d] dark:text-green-300 hover:underline font-sans font-bold"
                                   >
                                     View
                                   </button>
@@ -330,7 +330,7 @@ export default function Window1Dashboard({ user, currentTab, setViewImageUrl }) 
                                 <button 
                                   onClick={() => handleWindow1Release(doc)}
                                   disabled={actionLoading}
-                                  className="px-5 py-2.5 bg-[#15803d] hover:bg-[#166534] text-white text-xs font-bold rounded-xl shadow-sm transition-all flex items-center gap-1.5 ml-auto"
+                                  className="trace-button trace-button-primary flex items-center gap-1.5 ml-auto"
                                 >
                                   <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M5 13l4 4L19 7"/></svg>
                                   Release Doc
@@ -346,7 +346,7 @@ export default function Window1Dashboard({ user, currentTab, setViewImageUrl }) 
                           <button 
                             disabled={w1ReleasePage === 1}
                             onClick={() => setW1ReleasePage(p => p - 1)}
-                            className="px-4 py-2 text-xs font-bold text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-800 rounded-xl disabled:opacity-50 transition-colors"
+                            className="trace-button trace-button-secondary"
                           >
                             Previous
                           </button>
@@ -356,7 +356,7 @@ export default function Window1Dashboard({ user, currentTab, setViewImageUrl }) 
                           <button 
                             disabled={w1ReleasePage >= Math.ceil(releaseQueue.length / (releasePagination?.pageSize || itemsPerPage))}
                             onClick={() => setW1ReleasePage(p => p + 1)}
-                            className="px-4 py-2 text-xs font-bold text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-800 rounded-xl disabled:opacity-50 transition-colors"
+                            className="trace-button trace-button-secondary"
                           >
                             Next
                           </button>
@@ -377,21 +377,21 @@ export default function Window1Dashboard({ user, currentTab, setViewImageUrl }) 
         {currentTab === 'tracking-desk' && (
           <>
             {/* Header */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+            <div className="trace-page-header">
               <div>
-                <h2 className="text-2xl sm:text-3xl font-display font-black text-gray-900 dark:text-gray-100 tracking-tight">
+                <h2 className="trace-page-title">
                   Tracking Desk
                 </h2>
               </div>
-              <div className="flex items-center gap-3 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-2xl px-5 py-2.5 shadow-sm">
+              <div className="trace-date">
                 <span className="text-xs font-semibold text-gray-500 dark:text-gray-400">Today:</span>
                 <span className="text-xs font-bold text-gray-800 dark:text-gray-100">{todayFormatted}</span>
                 <svg className="w-4 h-4 text-gray-400 dark:text-gray-400 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
               </div>
             </div>
             {/* System Documents Progress Queue */}
-            <div className="bg-white dark:bg-gray-900 rounded-3xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden mt-8">
-              <div className="p-4 sm:p-6 border-b border-gray-100 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800/50 flex justify-between items-center">
+            <div className="trace-section overflow-hidden mt-8">
+              <div className="trace-section-header border-gray-100 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800/50">
                 <div>
                   <h3 className="font-bold text-gray-900 dark:text-gray-100 text-lg uppercase tracking-wider">SYSTEM DOCUMENTS PROGRESS</h3>
                   <p className="text-xs text-gray-400 dark:text-gray-400 mt-1">Live tracking of all active requested documents in the system.</p>
@@ -444,7 +444,7 @@ export default function Window1Dashboard({ user, currentTab, setViewImageUrl }) 
                         <button 
                           disabled={w1ProgressPage === 1}
                           onClick={() => setW1ProgressPage(p => p - 1)}
-                          className="px-4 py-2 text-xs font-bold text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-800 rounded-xl disabled:opacity-50 transition-colors"
+                          className="trace-button trace-button-secondary"
                         >
                           Previous
                         </button>
@@ -454,7 +454,7 @@ export default function Window1Dashboard({ user, currentTab, setViewImageUrl }) 
                         <button 
                           disabled={w1ProgressPage >= Math.ceil(documents.length / (progressPagination?.pageSize || itemsPerPage))}
                           onClick={() => setW1ProgressPage(p => p + 1)}
-                          className="px-4 py-2 text-xs font-bold text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-800 rounded-xl disabled:opacity-50 transition-colors"
+                          className="trace-button trace-button-secondary"
                         >
                           Next
                         </button>
@@ -472,7 +472,7 @@ export default function Window1Dashboard({ user, currentTab, setViewImageUrl }) 
         {/* 3.4. CAMERA SCANNING MODAL */}
         {activeModal === 'scanning' && (
           <ModalShell open onClose={() => setActiveModal(null)} title="Scan Document" footer={<div className="flex items-center justify-center gap-8 pt-2">
-                <button type="button" aria-label="Flash" className="w-12 h-12 rounded-full border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 flex items-center justify-center hover:bg-gray-50 dark:hover:bg-gray-800 text-gray-500 dark:text-gray-400 shadow-sm">
+                <button type="button" aria-label="Flash" className="trace-action w-12 h-12 rounded-full border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 flex items-center justify-center hover:bg-gray-50 dark:hover:bg-gray-800 text-gray-500 dark:text-gray-400 shadow-sm">
                   <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
                 </button>
                 <button type="button" aria-label="Capture document"
@@ -481,7 +481,7 @@ export default function Window1Dashboard({ user, currentTab, setViewImageUrl }) 
                     setScanDocType('Transcript of Records');
                     setActiveModal('scan-confirm');
                   }}
-                  className="w-16 h-16 rounded-full bg-white dark:bg-gray-900 border-8 border-gray-200 dark:border-gray-700 flex items-center justify-center hover:border-gray-300 dark:hover:border-gray-700 transition-all shadow-md focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-700"
+                  className="trace-action w-16 h-16 rounded-full bg-white dark:bg-gray-900 border-8 border-gray-200 dark:border-gray-700 flex items-center justify-center hover:border-gray-300 dark:hover:border-gray-700 transition-all shadow-md focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-700"
                 >
                   <div className="w-10 h-10 rounded-full bg-[#15803d] hover:bg-[#166534] transition-all"></div>
                 </button>
@@ -513,17 +513,17 @@ export default function Window1Dashboard({ user, currentTab, setViewImageUrl }) 
                     handleWindow1ScanUpload(scanDocType);
                   }}
                   disabled={actionLoading || documentTypesLoading || !documentTypes.some(type => type.name === scanDocType)}
-                  className="px-8 py-3.5 bg-[#15803d] hover:bg-[#166534] disabled:opacity-75 text-white font-bold rounded-xl text-xs shadow-md transition-all uppercase tracking-wider w-full text-center"
+                  className="trace-button trace-button-primary w-full text-center"
                 >
                   {actionLoading ? 'Uploading...' : 'Create Request'}
                 </button>
               </div>}>
               <div className="flex flex-col gap-2 my-4">
-                <label className="text-[10px] font-bold text-gray-800 dark:text-gray-100 uppercase tracking-widest">Document Type</label>
+                <label className="trace-label">Document Type</label>
                 <select 
                   value={scanDocType}
                   onChange={(e) => setScanDocType(e.target.value)}
-                  className="p-3 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-xs font-semibold focus:ring-2 focus:ring-[#15803d]/20 outline-none cursor-pointer"
+                  className="trace-control cursor-pointer"
                 >
                   <option value="">Choose a document type</option>
                   {documentTypes.map(type => <option key={type.id || type.name} value={type.name}>{type.name}</option>)}

@@ -127,21 +127,21 @@ export default function AdminTemplatesPanel() {
       <h3 className="font-bold text-gray-900 dark:text-gray-100">System Templates</h3>
       <p role="alert" className="text-sm text-red-600 dark:text-red-300">{loadError}</p>
       <button type="button" onClick={() => { setLoading(true); setLoadError(''); setListRetry(value => value + 1); }}
-        className="rounded-xl bg-[#15803d] px-4 py-2 text-sm font-bold text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#15803d]">
+        className="trace-button trace-button-primary">
         Retry loading templates
       </button>
     </div>
   );
 
   return (
-    <div className="bg-white dark:bg-gray-900 rounded-3xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden flex flex-col md:flex-row min-h-[600px]">
+    <div className="trace-section overflow-hidden flex flex-col md:flex-row min-h-[600px]">
       <ConfirmDialog open={!!templateToConfirm} title="Confirm Template Save"
         message={['Save this template?', saveError ? <span role="alert">{saveError}</span> : null]}
         confirmLabel="Save Template" loading={saving} onConfirm={confirmSave}
         onCancel={() => setTemplateToConfirm(null)} />
       {/* Sidebar List */}
       <div className="w-full md:w-64 bg-gray-50 dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 shrink-0">
-        <div className="p-4 border-b border-gray-200 dark:border-gray-700">
+        <div className="trace-section-header border-gray-200 dark:border-gray-700">
           <h3 className="font-bold text-gray-900 dark:text-gray-100">System Templates</h3>
         </div>
         <ul className="py-2">
@@ -151,7 +151,7 @@ export default function AdminTemplatesPanel() {
                 type="button"
                 disabled={saving}
                 onClick={() => setSelectedKey(t.template_key)}
-                className={`w-full text-left px-4 py-3 text-sm font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[#15803d] disabled:opacity-50 ${selectedKey === t.template_key ? 'bg-white dark:bg-gray-900 text-[#15803d] dark:text-green-300 border-l-4 border-[#15803d]' : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 border-l-4 border-transparent'}`}
+                className={`trace-tab w-full text-left focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[#15803d]  ${selectedKey === t.template_key ? 'bg-white dark:bg-gray-900 text-[#15803d] dark:text-green-300 border-l-4 border-[#15803d]' : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 border-l-4 border-transparent'}`}
               >
                 {t.name}
               </button>
@@ -168,20 +168,20 @@ export default function AdminTemplatesPanel() {
           <div className="space-y-4 p-8">
             <p role="alert" className="text-sm text-red-600 dark:text-red-300">{detailError}</p>
             <button type="button" onClick={() => { setTemplateDetails(null); setDetailRetry(value => value + 1); }}
-              className="rounded-xl bg-[#15803d] px-4 py-2 text-sm font-bold text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#15803d]">
+              className="trace-button trace-button-primary">
               Retry loading template
             </button>
           </div>
         ) : selectedKey ? (
           <form onSubmit={handleSave} className="flex-1 flex flex-col h-full">
-            <div className="p-4 border-b border-gray-200 dark:border-gray-700 flex flex-wrap gap-4 items-center justify-between bg-white dark:bg-gray-900">
+            <div className="trace-section-header border-gray-200 dark:border-gray-700 flex-wrap bg-white dark:bg-gray-900">
               <div className="flex flex-wrap gap-4 items-center min-w-0">
                 <div>
-                  <label className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest block mb-1">Font Family</label>
+                  <label className="trace-label block mb-1">Font Family</label>
                   <select
                     value={formData.font_family}
                     onChange={e => setFormData({...formData, font_family: e.target.value})}
-                    className="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-1.5 text-xs font-semibold focus:ring-2 focus:ring-[#15803d]/20 outline-none"
+                    className="trace-control"
                   >
                     <option value="sans-serif">Sans Serif</option>
                     <option value="serif">Serif</option>
@@ -191,11 +191,11 @@ export default function AdminTemplatesPanel() {
                   </select>
                 </div>
                 <div>
-                  <label className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest block mb-1">Base Font Size</label>
+                  <label className="trace-label block mb-1">Base Font Size</label>
                   <select
                     value={formData.font_size}
                     onChange={e => setFormData({...formData, font_size: e.target.value})}
-                    className="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-1.5 text-xs font-semibold focus:ring-2 focus:ring-[#15803d]/20 outline-none"
+                    className="trace-control"
                   >
                     <option value="10px">10px</option>
                     <option value="11px">11px</option>
@@ -210,7 +210,7 @@ export default function AdminTemplatesPanel() {
                 <button
                   type="submit"
                   disabled={saving}
-                  className="bg-[#15803d] hover:bg-[#166534] text-white px-6 py-2 rounded-xl text-xs font-bold shadow-sm disabled:opacity-50 transition-all"
+                  className="trace-button trace-button-primary"
                 >
                   {saving ? 'Saving...' : 'Save Template'}
                 </button>
@@ -219,18 +219,18 @@ export default function AdminTemplatesPanel() {
             
             <div className="flex-1 min-w-0 p-4 bg-gray-50 dark:bg-gray-800 flex flex-col lg:flex-row gap-4">
               <div className="flex-1 flex flex-col">
-                <label htmlFor="admin-template-content" className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest block mb-2">HTML Template (Use {'{{VARIABLE_NAME}}'})</label>
+                <label htmlFor="admin-template-content" className="trace-label block mb-2">HTML Template (Use {'{{VARIABLE_NAME}}'})</label>
                 <p className="text-xs mb-2 break-words">{selectedKey === 'email_notice' ? 'Email variables: {{SUBJECT}}, {{MESSAGE}}. MESSAGE is required for verification links and account notices.' : 'Slip variables: {{STUDENT_NAME}}, {{STUDENT_ID}}, {{DOCUMENT_TYPE}}, {{TRACKING_NUMBER}}, {{AMOUNT}}, {{PROGRAM_COURSE}}, {{REQUEST_SEQUENCE}}, {{DATE_ISSUED}}. OR_NUMBER is a legacy alias for the tracking number.'} Basic text, tables and supported inline styles are saved; scripts, forms, remote images and active content are removed. Clear the body to use the default.</p>
                 <textarea id="admin-template-content" maxLength={INPUT_LIMITS.template}
                   value={formData.content}
                   onChange={e => setFormData({...formData, content: e.target.value})}
-                  className="flex-1 w-full font-mono text-xs p-4 bg-gray-900 dark:bg-gray-800 text-green-400 dark:text-green-300 rounded-xl outline-none focus:ring-2 focus:ring-[#15803d] resize-none"
+                  className="trace-control flex-1 w-full font-mono resize-none"
                   placeholder="<div><h1>{{STUDENT_NAME}}</h1></div>"
                 />
               </div>
               
               <div className="w-full lg:w-1/3 flex flex-col">
-                <label className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest block mb-2">Live Preview (Mock Data)</label>
+                <label className="trace-label block mb-2">Live Preview (Mock Data)</label>
                 <iframe
                   title="Template preview"
                   sandbox=""

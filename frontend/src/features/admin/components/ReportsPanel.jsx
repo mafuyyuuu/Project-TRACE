@@ -21,7 +21,7 @@ const EXPORT_CATEGORIES = [
 ];
 
 const inputClass =
-  'w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-2.5 text-xs font-semibold outline-none focus:ring-2 focus:ring-[#15803d]/20 focus:bg-white dark:focus:bg-gray-900 transition-all';
+  "trace-control w-full";
 
 function StatCard({ label, value, tone = 'default' }) {
   const tones = {
@@ -31,7 +31,7 @@ function StatCard({ label, value, tone = 'default' }) {
     bad: 'text-red-600 dark:text-red-300',
   };
   return (
-    <div className="bg-white dark:bg-gray-900 rounded-2xl p-4 border border-gray-200 dark:border-gray-700 shadow-sm">
+    <div className="trace-section trace-section-body">
       <span className="text-[10px] font-bold text-gray-400 dark:text-gray-400 uppercase tracking-widest block">{label}</span>
       <span className={`text-2xl font-display font-black mt-1 block ${tones[tone]}`}>{value}</span>
     </div>
@@ -59,32 +59,32 @@ export default function ReportsPanel({ user, currentTab }) {
       <StudentProfileModal open={!!viewProfileId} studentId={viewProfileId} onClose={() => setViewProfileId(null)} />
       <DashboardAlerts success={r.success} error={r.error} onDismiss={r.dismissNotification} />
 
-      <div className="space-y-6 animate-fade-in">
+      <div className="trace-page animate-fade-in">
         <div>
-          <h2 className="text-2xl sm:text-3xl font-display font-black text-gray-900 dark:text-gray-100 tracking-tight">
+          <h2 className="trace-page-title">
             Reports & <span className="text-[#15803d] dark:text-green-300">Export</span>
           </h2>
-          <p className="text-xs text-gray-400 dark:text-gray-400 mt-1 font-semibold">
+          <p className="trace-page-description">
             Filter records, review the totals, and export to CSV.
           </p>
         </div>
 
         {/* Filters */}
-        <div className="bg-white dark:bg-gray-900 rounded-3xl p-6 shadow-sm border border-gray-200 dark:border-gray-700">
+        <div className="trace-section trace-section-body">
           <h3 className="text-sm font-bold text-gray-900 dark:text-gray-100 mb-4">Filters</h3>
           <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-3">
             <div className="flex flex-col gap-1.5">
-              <label className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest">From</label>
+              <label className="trace-label">From</label>
               <input type="date" className={inputClass} value={r.filters.dateFrom}
                 onChange={(e) => r.updateFilter('dateFrom', e.target.value)} />
             </div>
             <div className="flex flex-col gap-1.5">
-              <label className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest">To</label>
+              <label className="trace-label">To</label>
               <input type="date" className={inputClass} value={r.filters.dateTo}
                 onChange={(e) => r.updateFilter('dateTo', e.target.value)} />
             </div>
             <div className="flex flex-col gap-1.5">
-              <label className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest">Status</label>
+              <label className="trace-label">Status</label>
               <select className={`${inputClass} cursor-pointer`} value={r.filters.status}
                 onChange={(e) => r.updateFilter('status', e.target.value)}>
                 <option value="">All statuses</option>
@@ -92,12 +92,12 @@ export default function ReportsPanel({ user, currentTab }) {
               </select>
             </div>
             <div className="flex flex-col gap-1.5">
-              <label className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest">Document Type</label>
+              <label className="trace-label">Document Type</label>
               <input maxLength={INPUT_LIMITS.referenceName} className={inputClass} placeholder="e.g. Diploma" value={r.filters.documentType}
                 onChange={(e) => r.updateFilter('documentType', e.target.value)} />
             </div>
             <div className="flex flex-col gap-1.5">
-              <label className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest">Payment</label>
+              <label className="trace-label">Payment</label>
               <select className={`${inputClass} cursor-pointer`} value={r.filters.paymentStatus}
                 onChange={(e) => r.updateFilter('paymentStatus', e.target.value)}>
                 <option value="">Any</option>
@@ -109,11 +109,11 @@ export default function ReportsPanel({ user, currentTab }) {
 
           <div className="flex flex-wrap gap-3 mt-4 pt-4 border-t border-gray-100 dark:border-gray-700">
             <button onClick={r.applyFilters}
-              className="px-6 py-2.5 bg-[#15803d] hover:bg-[#166534] text-white rounded-xl text-xs font-bold uppercase tracking-wider">
+              className="trace-button trace-button-primary">
               Apply Filters
             </button>
             <button onClick={r.resetFilters}
-              className="px-6 py-2.5 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 rounded-xl text-xs font-bold hover:bg-gray-50 dark:hover:bg-gray-800">
+              className="trace-button trace-button-secondary">
               Reset
             </button>
 
@@ -131,19 +131,19 @@ export default function ReportsPanel({ user, currentTab }) {
           </div>
         )}
 
-        <div className="bg-white dark:bg-gray-900 rounded-3xl p-6 border border-gray-200 dark:border-gray-700 flex flex-col sm:flex-row gap-3">
+        <div className="trace-section trace-section-body flex flex-col sm:flex-row ga">
           <label className="flex-1 text-sm font-bold">Export options
             <select value={exportOption} onChange={e => setExportOption(e.target.value)} className={inputClass} disabled={Boolean(r.exporting)}>
               <option value="documents">Filtered document records (CSV)</option>
               {EXPORT_CATEGORIES.map(c => <option key={c.key} value={c.key}>{c.label} (CSV)</option>)}
             </select>
           </label>
-          <button type="button" disabled={Boolean(r.exporting)} onClick={() => exportOption === 'documents' ? r.downloadDocuments() : r.downloadStudents(exportOption)} className="px-5 py-3 rounded-xl bg-[#15803d] text-white font-bold disabled:opacity-50">{r.exporting ? 'Exporting…' : 'Export'}</button>
+          <button type="button" disabled={Boolean(r.exporting)} onClick={() => exportOption === 'documents' ? r.downloadDocuments() : r.downloadStudents(exportOption)} className="trace-button trace-button-primary">{r.exporting ? 'Exporting…' : 'Export'}</button>
         </div>
 
         {/* Filtered records */}
-        <div className="bg-white dark:bg-gray-900 rounded-3xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
-          <div className="p-5 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between">
+        <div className="trace-section overflow-hidden">
+          <div className="trace-section-header border-gray-100 dark:border-gray-700">
             <h3 className="text-sm font-bold text-gray-900 dark:text-gray-100">Records</h3>
             {r.report && (
               <span className="text-[10px] font-bold text-gray-400 dark:text-gray-400">
@@ -174,7 +174,7 @@ export default function ReportsPanel({ user, currentTab }) {
                     <td className="py-3 px-3 text-xs text-gray-500 dark:text-gray-400">{formatDateTime(d.updated_at)}</td>
                     <td className="py-3 px-5 break-all text-[11px] font-mono text-gray-700 dark:text-gray-300">{d.tracking_number}</td>
                     <td className="py-3">
-                      <button type="button" disabled={!d.student_id} onClick={() => setViewProfileId(d.student_id)} className="text-xs font-bold text-blue-700 dark:text-blue-300 hover:underline select-text break-words text-left focus-visible:ring-2 focus-visible:ring-blue-500">{d.student_name || '—'}</button>
+                      <button type="button" disabled={!d.student_id} onClick={() => setViewProfileId(d.student_id)} className="trace-action text-xs font-bold text-blue-700 dark:text-blue-300 hover:underline select-text break-words text-left focus-visible:ring-2 focus-visible:ring-blue-500">{d.student_name || '—'}</button>
                       <div className="text-[10px] text-gray-400 dark:text-gray-400 font-mono select-text break-words">{d.student_id || '—'}</div>
                     </td>
                     <td className="py-3 pr-2 break-words text-xs text-gray-600 dark:text-gray-300">{d.document_type || '—'}</td>
@@ -207,11 +207,11 @@ export default function ReportsPanel({ user, currentTab }) {
           {r.report && r.report.totalPages > 1 && (
             <div className="p-4 border-t border-gray-100 dark:border-gray-700 flex justify-center gap-2">
               <button onClick={() => r.goToPage(r.page - 1)} disabled={r.page <= 1}
-                className="px-4 py-2 text-xs font-bold border border-gray-200 dark:border-gray-700 rounded-lg disabled:opacity-40 hover:bg-gray-50 dark:hover:bg-gray-800">
+                className="trace-button trace-button-secondary">
                 Previous
               </button>
               <button onClick={() => r.goToPage(r.page + 1)} disabled={r.page >= r.report.totalPages}
-                className="px-4 py-2 text-xs font-bold border border-gray-200 dark:border-gray-700 rounded-lg disabled:opacity-40 hover:bg-gray-50 dark:hover:bg-gray-800">
+                className="trace-button trace-button-secondary">
                 Next
               </button>
             </div>

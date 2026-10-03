@@ -45,14 +45,14 @@ export default function IntakeReviewModal({
           <button
             onClick={() => handleIntake('return')}
             disabled={actionLoading}
-            className="flex-1 px-5 py-3 rounded-2xl text-xs font-bold border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-950/40 text-red-600 dark:text-red-300 hover:bg-red-100 dark:hover:bg-red-950/40 disabled:opacity-50 transition-colors"
+            className="trace-button trace-button-danger flex-1"
           >
             Return to Student
           </button>
           <button
             onClick={() => handleIntake('approve')}
             disabled={actionLoading}
-            className="flex-1 px-5 py-3 rounded-2xl text-xs font-bold bg-[#15803d] hover:bg-[#166534] text-white shadow-sm disabled:opacity-50 transition-colors"
+            className="trace-button trace-button-primary flex-1"
           >
             {actionLoading ? 'Routing…' : 'Route to Secretary'}
           </button>
@@ -121,14 +121,14 @@ export default function IntakeReviewModal({
       {selectedDoc.student_id && setOriginalIssued && (
         <div className="my-5 rounded-2xl border border-gray-200 dark:border-gray-700 p-4 space-y-2">
           <label className="flex items-start gap-3 text-xs font-semibold">
-            <input type="checkbox" checked={originalIssued} disabled={actionLoading} onChange={event => setOriginalIssued(event.target.checked)} className="mt-1 shrink-0" />
+            <input type="checkbox" checked={originalIssued} disabled={actionLoading} onChange={event => setOriginalIssued(event.target.checked)} className="trace-choice mt-1 shrink-0" />
             I confirmed an original of this document was previously issued to this student.
           </label>
           <p className="text-xs text-gray-500 dark:text-gray-400">Record your evidence in Notes. This records issuance history for request numbering; presenting an original for a walk-in is a separate check.</p>
         </div>
       )}
 
-        <label className="block">
+        <label className="trace-label block">
           <span className="text-[10px] font-bold text-gray-800 dark:text-gray-100 uppercase tracking-widest block mb-2">
             Notes <span className="text-gray-400 dark:text-gray-400 normal-case font-semibold">· required when returning or confirming prior original issuance</span>
           </span>
@@ -137,7 +137,7 @@ export default function IntakeReviewModal({
             value={intakeNotes}
             onChange={(e) => setIntakeNotes(e.target.value)}
             placeholder="e.g. Clearance is unsigned — ask the student to have it signed by the Registrar."
-            className="w-full rounded-2xl border border-gray-200 dark:border-gray-700 p-3 text-xs focus:outline-none focus:ring-2 focus:ring-[#15803d]/30"
+            className="trace-control w-full"
           />
         </label>
 

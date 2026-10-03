@@ -51,13 +51,13 @@ export default function PaymentStubModal({ selectedDoc, groupDocs, setActiveModa
         <div className="flex flex-col sm:flex-row gap-3">
           <button
             onClick={() => setActiveModal(null)}
-            className="flex-1 px-5 py-3 rounded-2xl text-xs font-bold border border-gray-200 text-gray-700 hover:bg-gray-50 transition-colors"
+            className="trace-button trace-button-secondary flex-1"
           >
             Close
           </button>
           <button
             type="button" onClick={() => setTimeout(() => window.print(), 100)}
-            className="flex-1 px-5 py-3 rounded-2xl text-xs font-bold bg-gray-900 hover:bg-gray-800 text-white shadow-sm transition-colors"
+            className="trace-button trace-button-secondary flex-1"
           >
             Print Slip
           </button>

@@ -44,7 +44,7 @@ export default function UserDetailModal({ open, onClose, user, onEdit, onToggleA
               type="button"
               onClick={onEdit}
               disabled={mutationDisabled || saving}
-              className="flex-1 px-5 py-3 rounded-2xl text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white shadow-sm disabled:opacity-50 transition-colors"
+              className="trace-button trace-button-info flex-1"
             >
               Edit User
             </button>}
@@ -53,14 +53,14 @@ export default function UserDetailModal({ open, onClose, user, onEdit, onToggleA
               onClick={onToggleActive}
               disabled={isStudent || !onToggleActive || isSelf || saving}
               title={isSelf ? 'You cannot deactivate your own account' : ''}
-              className={`flex-1 px-5 py-3 rounded-2xl text-xs font-bold border transition-colors disabled:opacity-50 ${user.is_active ? 'border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 hover:bg-red-50 dark:hover:bg-red-950/40' : 'border-green-200 dark:border-green-800 text-green-700 dark:text-green-300 hover:bg-green-50 dark:hover:bg-green-950/40'}`}
+              className={`trace-button flex-1 ${user.is_active ? 'trace-button-danger' : 'trace-button-primary'}`}
             >
               {user.is_active ? 'Deactivate User' : 'Restore User'}
             </button>}
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 px-5 py-3 rounded-2xl text-xs font-bold text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"
+              className="trace-button trace-button-secondary flex-1"
             >
               Close
             </button>

@@ -204,7 +204,7 @@ export default function Layout() {
   if (graduateRequired) return (
     <main className="min-h-dvh bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 p-4 sm:p-8 space-y-5">
       <header className="flex flex-wrap gap-4 items-center justify-between"><strong className="text-xl">TRACE</strong>
-        <button type="button" onClick={() => setConfirmingLogout(true)} className="border rounded-xl px-4 py-2">Log Out</button></header>
+        <button type="button" onClick={() => setConfirmingLogout(true)} className="trace-button trace-button-secondary">Log Out</button></header>
       <p className="text-sm">Submit your graduate application to unlock TRACE. You can complete email verification afterward.</p>
       <GraduateApplication user={user} />
       <ConfirmDialog open={confirmingLogout} title="Log Out" message={logoutError || 'End this session?'} confirmLabel="Log Out" loading={loggingOut} onConfirm={handleConfirmLogout} onCancel={() => setConfirmingLogout(false)} />
@@ -221,7 +221,7 @@ export default function Layout() {
             aria-label="Open navigation menu"
             aria-expanded={showMobileNav}
             aria-controls="mobile-navigation"
-            className="md:hidden w-9 h-9 -ml-1 rounded-full flex items-center justify-center text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+            className="trace-action trace-icon-button md:hidden -ml-1"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
           </button>
@@ -230,7 +230,7 @@ export default function Layout() {
         </div>
 
         <div className="flex shrink-0 ml-auto items-center gap-2 sm:gap-4">
-          {guideEligible && <button id="tutorial-guide" type="button" aria-label="Open quick guide" title="Quick guide" onClick={() => { navigate('/dashboard'); guide.show(); }} className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800 focus-visible:outline-2 focus-visible:outline-green-700">
+          {guideEligible && <button id="tutorial-guide" type="button" aria-label="Open quick guide" title="Quick guide" onClick={() => { navigate('/dashboard'); guide.show(); }} className="trace-action trace-icon-button">
             <svg aria-hidden="true" className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><circle cx="12" cy="12" r="9" /><path d="M9.5 9a2.5 2.5 0 0 1 5 .3c0 1.7-2.5 1.8-2.5 3.7M12 16h.01" /></svg>
           </button>}
           <button
@@ -239,7 +239,7 @@ export default function Layout() {
             aria-label="Dark mode"
             aria-pressed={darkMode}
             title={darkMode ? 'Switch to light mode' : 'Switch to dark mode'}
-            className="w-9 h-9 shrink-0 rounded-full flex items-center justify-center text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+            className="trace-icon-button"
           >
             <svg aria-hidden="true" className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               {darkMode
@@ -248,7 +248,7 @@ export default function Layout() {
             </svg>
           </button>
           <div className="relative">
-            <button id="tutorial-notifications" onClick={handleNotifClick} aria-label="Notifications" className="w-10 h-10 rounded-full flex items-center justify-center text-gray-400 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-600 dark:hover:text-gray-300 transition-colors relative">
+            <button id="tutorial-notifications" onClick={handleNotifClick} aria-label="Notifications" className="trace-icon-button relative">
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
               {unreadCount > 0 && (
                 <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 dark:bg-red-500 rounded-full"></span>
@@ -284,7 +284,7 @@ export default function Layout() {
             id="tutorial-profile"
             onClick={openSettings}
             aria-label="Edit Profile"
-            className="w-10 h-10 rounded-full overflow-hidden border-2 border-white dark:border-gray-800 shadow-sm shrink-0 bg-gray-100 dark:bg-gray-800"
+            className="trace-action w-10 h-10 rounded-full overflow-hidden border-2 border-white dark:border-gray-800 shadow-sm shrink-0 bg-gray-100 dark:bg-gray-800"
           >
             <UserAvatar
               user={user}
@@ -322,7 +322,7 @@ export default function Layout() {
                 <button
                   onClick={() => setShowMobileNav(false)}
                   aria-label="Close navigation menu"
-                  className="text-gray-400 dark:text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+                  className="trace-action text-gray-400 dark:text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
                 >
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"/></svg>
                 </button>

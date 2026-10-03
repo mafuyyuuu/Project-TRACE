@@ -4,11 +4,11 @@ import useSubmissionQr from '@/hooks/useSubmissionQr';
 export default function SubmissionQrPanel() {
   const [applicant, setApplicant] = useState('student');
   const qr = useSubmissionQr(applicant);
-  return <section className="min-w-0 rounded-3xl border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-900 space-y-3">
+  return <section className="trace-section trace-section-body min-w-0 space-y-3">
     <h3 className="text-lg font-bold">TRACE registration QR</h3>
     <p className="text-sm">Share this registration link with counter applicants. Alumni continue to the graduate application on first login. Existing accounts can use Back to Login. This QR is separate from the tracking QR on a payment slip.</p>
-    <label className="block text-sm font-bold">Applicant type
-      <select value={applicant} onChange={event => setApplicant(event.target.value)} className="mt-2 w-full rounded-xl border p-3 bg-transparent">
+    <label className="trace-label block">Applicant type
+      <select value={applicant} onChange={event => setApplicant(event.target.value)} className="trace-control mt-2 w-full">
         <option value="student">Current student</option><option value="alumni">Alumni</option>
       </select>
     </label>

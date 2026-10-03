@@ -92,7 +92,7 @@ export default function ReceiptVerificationModal({
               <label className="flex items-start gap-3 rounded-xl border border-gray-200 dark:border-gray-700 p-4 text-xs font-semibold text-gray-700 dark:text-gray-300">
                 <input type="checkbox" checked={physicalReceiptChecked}
                   onChange={(e) => setPhysicalReceiptChecked(e.target.checked)}
-                  disabled={actionLoading} className="mt-0.5 shrink-0 accent-[#15803d]" />
+                  disabled={actionLoading} className="trace-choice mt-0.5 shrink-0 accent-[#15803d]" />
                 I inspected the physical Official Receipt from Finance and its number matches this request.
               </label>
             )}
@@ -103,14 +103,14 @@ export default function ReceiptVerificationModal({
           <button
             onClick={close}
             disabled={actionLoading}
-            className="w-1/3 py-3 rounded-xl font-bold text-xs border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors uppercase tracking-wider text-center"
+            className="trace-button trace-button-secondary w-1/3 text-center"
           >
             Cancel
           </button>
           <button
             onClick={() => handleSecretaryVerifyReceipt('confirm', { physicalReceiptChecked })}
             disabled={actionLoading || !canConfirm}
-            className="w-2/3 py-3 rounded-xl font-bold text-xs shadow-md transition-all text-center uppercase tracking-wider bg-[#15803d] hover:bg-[#166534] text-white disabled:opacity-50"
+            className="trace-button trace-button-primary w-2/3 text-center"
           >
             Confirm Receipt
           </button>

@@ -37,14 +37,14 @@ export default function PricingModal({
         <div className="flex flex-col sm:flex-row gap-3">
           <button
             onClick={() => setActiveModal(null)}
-            className="flex-1 px-5 py-3 rounded-2xl text-xs font-bold border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+            className="trace-button trace-button-secondary flex-1"
           >
             Cancel
           </button>
           <button
             onClick={handlePriceDocument}
             disabled={actionLoading || !priceBreakdown || Number(priceAmount) <= 0 || (selectedDoc.pricing_requires_review && !confirmCurrentRates)}
-            className="flex-1 px-5 py-3 rounded-2xl text-xs font-bold bg-[#15803d] hover:bg-[#166534] text-white shadow-sm disabled:opacity-50 transition-colors"
+            className="trace-button trace-button-primary flex-1"
           >
             {actionLoading ? 'Saving…' : siblingsUnpriced > 0 ? 'Save Price' : 'Save & Bill Student'}
           </button>
@@ -72,7 +72,7 @@ export default function PricingModal({
       </p>
 
       <div className="space-y-5">
-        <label className="block">
+        <label className="trace-label block">
           <span className="text-[10px] font-bold text-gray-800 dark:text-gray-100 uppercase tracking-widest block mb-2">
             Amount to charge <span className="text-red-600 dark:text-red-300">*</span>
           </span>
@@ -85,12 +85,12 @@ export default function PricingModal({
               value={priceAmount}
               readOnly aria-label="Calculated amount to charge"
               placeholder="0.00"
-              className="w-full rounded-2xl border border-gray-200 dark:border-gray-700 pl-9 pr-4 py-3 text-sm font-bold focus:outline-none focus:ring-2 focus:ring-[#15803d]/30"
+              className="trace-control w-full pl-9 pr-4"
             />
           </div>
         </label>
 
-        <label className="block">
+        <label className="trace-label block">
           <span className="text-[10px] font-bold text-gray-800 dark:text-gray-100 uppercase tracking-widest block mb-2">Pages printed per copy</span>
           <input
             type="number"
@@ -98,7 +98,7 @@ export default function PricingModal({
             value={pricePageCount}
             onChange={(e) => setPricePageCount(e.target.value)}
             placeholder="e.g. 8"
-            className="w-full rounded-2xl border border-gray-200 dark:border-gray-700 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#15803d]/30"
+            className="trace-control w-full"
           />
         </label>
 
@@ -106,7 +106,7 @@ export default function PricingModal({
 
         {pricingError && <p role="status" className="text-xs text-amber-800 dark:text-amber-300">{pricingError}</p>}
         {priceBreakdown && <FeeBreakdown breakdown={priceBreakdown} />}
-        <label className="block text-xs">Pricing note (optional)<textarea className="w-full rounded-xl border p-3 bg-white dark:bg-gray-800" maxLength={Math.min(INPUT_LIMITS.notes, 1000)} value={priceNotes || ''} onChange={event => setPriceNotes(event.target.value)} /></label>
+        <label className="trace-label block">Pricing note (optional)<textarea className="trace-control w-full" maxLength={Math.min(INPUT_LIMITS.notes, 1000)} value={priceNotes || ''} onChange={event => setPriceNotes(event.target.value)} /></label>
         {selectedDoc.pricing_requires_review && <label className="flex gap-2 text-xs text-amber-800 dark:text-amber-300">
           <input type="checkbox" checked={confirmCurrentRates} onChange={event => setConfirmCurrentRates(event.target.checked)} />
           This older request has no saved fee schedule. I reviewed the current rates shown above.

@@ -1,6 +1,24 @@
 # Project TRACE Progress Report
 
-## Current Status — 2026-10-02
+## Current Status — 2026-10-03
+
+### Consistent controls and page layouts — 2026-10-03
+
+#### Findings recorded before presentation edits
+
+The user confirmed scope includes every role and public authentication pages. The existing Tailwind theme has color/font/motion tokens and global keyboard/mobile/text-size rules, but no shared control or page-section styles. Similar elements repeat independent utility strings: FinanceTransactionsPanel date filters use `p-2` and transparent backgrounds, PricingModal fields use `py-3` without an explicit dark background, Window 1 ManualInputModal uses `text-xs`, and SignupPage's program field omits the focus/border conventions of neighboring fields. ModalShell supplies shared behavior, but ProfileSettingsModal overrides normal panel/backdrop styling. Dashboard headings/cards also repeat local sizing and spacing.
+
+Use explicit reusable Tailwind component classes for fields, action variants, page headings/sections and modal chrome. Keep inverse authentication controls, icon buttons, tabs, native file/choice controls, printable slips and template previews distinct. Preserve all event handlers, field identities, permissions, validation, API payloads, confirmation workflows, focus trapping and text-size preferences. No backend or schema changes are needed.
+
+#### Implementation and verification
+
+- Added shared Tailwind component classes in `frontend/src/index.css` and adopted them across 55 UI modules, including every role, messaging, fees/reports, Profile/Security, graduate forms and public account pages. Normal modal appearance/footer spacing is shared; deliberate split-column, print, lightbox and spotlight layouts remain supported.
+- Form grids adapt to available width; full-row fields use `col-span-full`. Labels, controls and wrapped actions use unitless line height to avoid overlapping text at 200%. Date chips and document-selection labels wrap without squeezing words into single-character columns. Signup's Back to Login link now appears in the page flow above the form; its local errors use the shared inline alert styling. Green-background status panels retain an inverse variant.
+- Documented reusable variants and review steps in [UI_CONVENTIONS.md](UI_CONVENTIONS.md) and Coding Preferences. Updated ModalShell/ConfirmDialog regression assertions to follow the new shared classes while retaining their focus, cancellation, pending-action and pinned-footer checks.
+- Final frontend validation: **588 tests / 69 suites pass**, ESLint passes, production build passes (the existing large-chunk advisory remains). `git diff --check` passes. A presentation AST audit of all 55 changed UI modules found no changes beyond styling/whitespace and Signup's added alert semantics; handlers, validation, permissions and payloads are unchanged.
+- Isolated local browser verification: **105 checks pass**, no JavaScript exceptions. Checked Window 1/Secretary/Finance/student forms and shared states at 320/375/768/1280 widths, both themes, 100%/200% text; checked public account pages, five role dashboards and five role Profile dialogs. Separate computed-style checks verified hover color changes, keyboard focus, red invalid borders, disabled treatment and readable inverse panels. Reviewed screenshots, including mobile Signup/Profile and large-text request forms. Fixtures used synthetic records and blocked live API access; this is not deployed-role or physical-phone acceptance evidence.
+
+No production deployment, database migration or dependency change was performed.
 
 ### Signup/account repairs and approved follow-ups — 2026-10-02
 

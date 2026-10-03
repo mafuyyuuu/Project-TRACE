@@ -29,7 +29,7 @@ export default function QueueTabs({ tabs, activeKey, onChange }) {
               event.currentTarget.parentElement.querySelectorAll('[role="tab"]')[nextIndex]?.focus();
             }}
             onClick={() => onChange(tab.key)}
-            className={`flex min-w-0 max-w-full items-center justify-center gap-2 px-3 sm:px-4 py-2 rounded-full text-xs font-bold uppercase tracking-wider transition-all ${
+            className={`trace-tab min-w-0 max-w-full sm:px-4 rounded-full  ${
               isActive ? 'bg-[#15803d] text-white shadow-md' : 'text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-800 hover:text-gray-800 dark:hover:text-gray-100'
             }`}
           >

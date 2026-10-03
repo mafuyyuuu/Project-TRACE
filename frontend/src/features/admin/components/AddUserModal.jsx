@@ -7,7 +7,7 @@ import ModalShell from '@/components/ModalShell';
 const DESKS = ['Finance', 'Window 1', 'Secretary', 'Admin Office', 'Receiving Desk', 'Records Desk'];
 
 const inputClass =
-  'w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-2.5 text-xs font-semibold outline-none focus:ring-2 focus:ring-[#15803d]/20 focus:bg-white dark:focus:bg-gray-900 transition-all';
+  "trace-control w-full";
 
 /**
  * Creates a staff account — the same fields and the same `createStaff` call
@@ -47,7 +47,7 @@ export default function AddUserModal({ open, onClose, onCreate, saving }) {
             type="button"
             onClick={onClose}
             disabled={saving}
-            className="flex-1 px-5 py-3 rounded-2xl text-xs font-bold border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors disabled:opacity-50"
+            className="trace-button trace-button-secondary flex-1"
           >
             Cancel
           </button>
@@ -55,7 +55,7 @@ export default function AddUserModal({ open, onClose, onCreate, saving }) {
             type="submit"
             form="add-user-form"
             disabled={saving}
-            className="flex-1 px-5 py-3 rounded-2xl text-xs font-bold bg-[#15803d] hover:bg-[#166534] text-white shadow-sm disabled:opacity-50 transition-colors"
+            className="trace-button trace-button-primary flex-1"
           >
             {saving ? 'Saving…' : 'Create Account'}
           </button>

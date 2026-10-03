@@ -41,6 +41,7 @@ utils/         # Backend helper functions (AppError)
 
 - **Framework:** React (via Vite) for all UI portals.
 - **Styling:** Tailwind CSS exclusively. No inline styles. Leverage Tailwind for glassmorphism and modern, clean layouts.
+- **Shared presentation:** use the explicit `trace-*` Tailwind component classes in `frontend/src/index.css` for ordinary controls, page sections and modal chrome. See [UI_CONVENTIONS.md](UI_CONVENTIONS.md) for variants and examples. Add layout utilities only; avoid repeating local font/padding/color/focus recipes. Keep icon buttons, tabs, file/choice controls, inverse authentication forms and print/template output as deliberate variants. Use unitless line height so 200% text remains readable with the stable spacing token.
 - **Imports:** Use the `@/` alias for `src/` (configured in `vite.config.js` + `jsconfig.json`) — e.g. `import useAuth from '@/hooks/useAuth'`. Avoid `../../..` chains.
 - **Components:** Keep components modular and reusable. Separate the fetching logic (hooks) from the presentational components.
 - **State Management:** Use standard React hooks (`useState`, `useEffect`, `useMemo`). Keep complex global state minimal, relying on backend fetches when possible.

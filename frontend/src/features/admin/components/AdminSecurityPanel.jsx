@@ -20,14 +20,14 @@ export default function AdminSecurityPanel() {
   }, []);
 
   return (
-    <div className="space-y-8 animate-fade-in">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+    <div className="trace-page animate-fade-in">
+      <div className="trace-page-header">
         <div>
-          <h2 className="text-2xl sm:text-3xl font-display font-black text-gray-900 dark:text-gray-100 tracking-tight">Security Logs</h2>
+          <h2 className="trace-page-title">Security Logs</h2>
         </div>
       </div>
-      <div className="bg-white dark:bg-gray-900 rounded-3xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
-        <div className="p-4 sm:p-6 border-b border-gray-100 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800/50 flex justify-between items-center">
+      <div className="trace-section overflow-hidden">
+        <div className="trace-section-header border-gray-100 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800/50">
           <h3 className="font-bold text-gray-900 dark:text-gray-100 text-lg">Global Security Audit Log</h3>
         </div>
         <div className="p-4 sm:p-6">

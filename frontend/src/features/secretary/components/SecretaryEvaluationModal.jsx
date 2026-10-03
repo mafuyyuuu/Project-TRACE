@@ -79,22 +79,22 @@ function EvaluationForm({
       )}
 
       <div className="space-y-4">
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="trace-form-grid">
           <div className="flex flex-col gap-1.5">
-            <label className="text-[10px] font-bold text-gray-800 dark:text-gray-100 uppercase tracking-widest">Student ID</label>
+            <label className="trace-label">Student ID</label>
             <input maxLength={INPUT_LIMITS.id}
               type="text"
               value={evalStudentId}
               onChange={(e) => setEvalStudentId(e.target.value)}
-              className="w-full p-3 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-xs font-semibold focus:ring-2 focus:ring-[#15803d]/20 outline-none"
+              className="trace-control w-full"
             />
           </div>
           <div className="flex flex-col gap-1.5">
-            <label className="text-[10px] font-bold text-gray-800 dark:text-gray-100 uppercase tracking-widest">Document Type</label>
+            <label className="trace-label">Document Type</label>
             <select
               value={evalDocType}
               onChange={(e) => setEvalDocType(e.target.value)}
-              className="w-full p-3 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-xs font-semibold focus:ring-2 focus:ring-[#15803d]/20 outline-none cursor-pointer"
+              className="trace-control w-full cursor-pointer"
             >
               {!documentTypes.some(type => type.name === evalDocType) && <option value={evalDocType}>{evalDocType}</option>}
               {documentTypes.map(type => <option key={type.id || type.name} value={type.name}>{type.name}</option>)}
@@ -103,17 +103,17 @@ function EvaluationForm({
         </div>
 
         <div className="flex flex-col gap-1.5">
-          <label className="text-[10px] font-bold text-gray-800 dark:text-gray-100 uppercase tracking-widest">Student Name</label>
+          <label className="trace-label">Student Name</label>
           <input maxLength={INPUT_LIMITS.name}
             type="text"
             value={evalStudentName}
             onChange={(e) => setEvalStudentName(e.target.value)}
-            className="w-full p-3 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-xs font-semibold focus:ring-2 focus:ring-[#15803d]/20 outline-none"
+            className="trace-control w-full"
           />
         </div>
 
         <div className="flex flex-col gap-1.5">
-          <label className="text-[10px] font-bold text-gray-800 dark:text-gray-100 uppercase tracking-widest">
+          <label className="trace-label">
             Ready By <span className="text-red-600 dark:text-red-300">*</span>
           </label>
           <input
@@ -121,7 +121,7 @@ function EvaluationForm({
             value={estimatedReadyDate || ''}
             onChange={(e) => setEstimatedReadyDate(e.target.value)}
             min={new Date().toISOString().split('T')[0]}
-            className="w-full p-3 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-xs font-semibold focus:ring-2 focus:ring-[#15803d]/20 outline-none"
+            className="trace-control w-full"
           />
           {/* The student is told this date, and the office is measured
               against it — so it is required to accept the work. */}
@@ -131,17 +131,17 @@ function EvaluationForm({
         </div>
 
         <div className="flex flex-col gap-1.5">
-          <label className="text-[10px] font-bold text-gray-800 dark:text-gray-100 uppercase tracking-widest">Secretary Notes</label>
+          <label className="trace-label">Secretary Notes</label>
           <textarea maxLength={INPUT_LIMITS.notes}
             value={clerkNotes}
             onChange={(e) => setClerkNotes(e.target.value)}
             placeholder="Add any remarks...."
-            className="w-full p-3 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-xs font-semibold focus:ring-2 focus:ring-[#15803d]/20 outline-none h-24 resize-none"
+            className="trace-control w-full h-24 resize-none"
           />
         </div>
 
         <div className="flex flex-col gap-1.5 pt-4 border-t border-gray-100 dark:border-gray-700">
-          <label className="text-[10px] font-bold text-gray-800 dark:text-gray-100 uppercase tracking-widest">Discussion</label>
+          <label className="trace-label">Discussion</label>
           <DocumentChat documentId={selectedDoc.id} user={user} />
           <RequestAttachments key={selectedDoc.id} documentId={selectedDoc.id} user={user} />
         </div>
@@ -157,14 +157,14 @@ function EvaluationActions({ handleSecretaryEvaluate, actionLoading }) {
       <button
         onClick={() => handleSecretaryEvaluate('reject')}
         disabled={actionLoading}
-        className="w-1/2 py-3 rounded-xl font-bold text-xs shadow-md transition-all text-center uppercase tracking-wider bg-red-600 dark:bg-red-600 hover:bg-red-700 dark:hover:bg-red-700 text-white disabled:opacity-50"
+        className="trace-button trace-button-danger w-1/2 text-center"
       >
         Return to Window 1
       </button>
       <button
         onClick={() => handleSecretaryEvaluate('approve')}
         disabled={actionLoading}
-        className="w-1/2 py-3 bg-[#15803d] hover:bg-[#166534] text-white rounded-xl font-bold text-xs shadow-md transition-all text-center uppercase tracking-wider disabled:opacity-50"
+        className="trace-button trace-button-primary w-1/2 text-center"
       >
         Accept for Processing
       </button>

@@ -133,7 +133,7 @@ export default function LoginPage() {
   return (
     <AuthShell title={requires2FA ? 'Verification Required' : 'Login'}>
           <form onSubmit={handleSubmit} aria-busy={busy} className="flex flex-col gap-6">
-            {error && <p role="alert" className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-800 dark:border-red-800 dark:bg-red-950 dark:text-red-200">{error}</p>}
+            {error && <p role="alert" className="trace-error">{error}</p>}
             {needsStaffSetup && <p role="status" className="text-sm">This staff account needs an authenticator. Ask Admin for a private setup code, then <Link to="/staff-setup" className="font-bold underline">open staff authenticator setup</Link>.</p>}
             {resendNotice && <p role="status" className="text-sm font-medium text-white/90">{resendNotice}</p>}
             {!requires2FA ? (
@@ -146,7 +146,7 @@ export default function LoginPage() {
                     value={employeeId} 
                     disabled={busy}
                     onChange={(e) => setEmployeeId(e.target.value)} 
-                    className="w-full p-4 bg-white/10 dark:bg-gray-900/10 border border-white/20 rounded-xl text-sm focus:ring-2 focus:ring-white/50 outline-none text-white focus:bg-white/20 dark:focus:bg-gray-900/20 transition-all font-semibold placeholder:text-white/40"
+                    className="trace-control trace-control-inverse w-full "
                     autoFocus 
                   />
                 </div>
@@ -159,12 +159,12 @@ export default function LoginPage() {
                       value={password} 
                       disabled={busy}
                       onChange={(e) => setPassword(e.target.value)} 
-                      className="w-full p-4 pr-12 bg-white/10 dark:bg-gray-900/10 border border-white/20 rounded-xl text-sm focus:ring-2 focus:ring-white/50 outline-none text-white focus:bg-white/20 dark:focus:bg-gray-900/20 transition-all font-semibold placeholder:text-white/40"
+                      className="trace-control trace-control-inverse w-full pr-12 "
                     />
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
-                      className="absolute inset-y-0 right-0 pr-4 flex items-center text-white/60 hover:text-white transition-colors"
+                      className="trace-action absolute inset-y-0 right-0 pr-4 flex items-center text-white/60 hover:text-white transition-colors"
                       tabIndex={-1}
                     >
                       {showPassword ? 'Hide' : 'Show'}
@@ -187,7 +187,7 @@ export default function LoginPage() {
                   value={otp} 
                   disabled={busy}
                   onChange={(e) => setOtp(useRecoveryCode ? e.target.value : e.target.value.replace(/\D/g, ''))}
-                  className="w-full p-4 bg-white/10 dark:bg-gray-900/10 border border-white/20 rounded-xl text-center text-lg focus:ring-2 focus:ring-white/50 outline-none text-white focus:bg-white/20 dark:focus:bg-gray-900/20 transition-all font-bold placeholder:text-white/40"
+                  className="trace-control trace-control-inverse w-full text-center "
                   autoFocus 
                 />
                 {canTrustBrowser && (
@@ -195,7 +195,7 @@ export default function LoginPage() {
                     <label className="flex items-center gap-3 cursor-pointer">
                       <input type="checkbox" checked={trustBrowser} disabled={busy}
                         onChange={e => setTrustBrowser(e.target.checked)}
-                        className="h-4 w-4 accent-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white" />
+                        className="trace-choice h-4 w-4 accent-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white" />
                       This is my personal browser — trust it for today
                     </label>
                     <p>Leave unchecked on school or shared computers. After verification, later logins on this browser can skip OTP until midnight Manila time. Your password is still required. Change this preference in Profile → Security. Browser privacy settings may require OTP again.</p>
@@ -207,7 +207,7 @@ export default function LoginPage() {
             <button 
               type="submit" 
               disabled={busy}
-              className="mt-6 w-full py-5 bg-[#f8f9fa] dark:bg-gray-900 text-gray-900 dark:text-gray-100 font-black text-2xl rounded-xl hover:bg-gray-200 dark:hover:bg-gray-800 active:bg-gray-300 disabled:opacity-70 disabled:cursor-not-allowed focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white transition-all duration-200 shadow-lg uppercase tracking-wide flex items-center justify-center gap-3"
+              className="trace-button trace-button-inverse-primary mt-6 w-full flex items-center justify-center gap-3"
             >
               {busy ? (
                 <>
@@ -222,7 +222,7 @@ export default function LoginPage() {
                 type="button"
                 onClick={resendOtp}
                 disabled={busy || cooldownActive}
-                className="text-sm font-semibold text-white hover:underline disabled:opacity-60 disabled:cursor-not-allowed focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+                className="trace-action text-sm font-semibold text-white hover:underline disabled:opacity-60 disabled:cursor-not-allowed focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
               >
                 {resending ? 'Sending code…' : cooldownActive ? `Resend OTP (${resendCooldown}s)` : 'Resend OTP'}
               </button>
@@ -230,14 +230,14 @@ export default function LoginPage() {
 
             {requires2FA && mfaMethod === 'authenticator' && <button type="button" disabled={busy}
               onClick={() => { setUseRecoveryCode(value => !value); setOtp(''); setLocalError(''); }}
-              className="text-sm text-white underline">{useRecoveryCode ? 'Use authenticator code' : 'Use a recovery code'}</button>}
+              className="trace-action text-sm text-white underline">{useRecoveryCode ? 'Use authenticator code' : 'Use a recovery code'}</button>}
 
             {requires2FA && (
               <button 
                 type="button" 
                 disabled={busy}
                 onClick={() => setRequires2FA(false)}
-                className="mt-2 text-sm text-white/70 hover:text-white hover:underline"
+                className="trace-action mt-2 text-sm text-white/70 hover:text-white hover:underline"
               >
                 Back to Login
               </button>

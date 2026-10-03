@@ -36,7 +36,7 @@ export default function AuthShell({ title, subtitle, children, footer }) {
       {/* Right Column (Pine Spec) */}
       <div className="md:w-1/2 bg-[#15803d] p-4 sm:p-8 lg:p-12 xl:p-24 flex flex-col justify-center text-white relative">
         <div className="max-w-md w-full mx-auto">
-          <h2 className="text-3xl sm:text-4xl font-display font-black mb-3 tracking-tight">{title}</h2>
+          <h2 className="text-2xl sm:text-3xl font-display font-bold leading-tight mb-3 tracking-tight">{title}</h2>
           {subtitle && (
             <p className="text-sm font-medium text-white/80 leading-relaxed mb-8">{subtitle}</p>
           )}

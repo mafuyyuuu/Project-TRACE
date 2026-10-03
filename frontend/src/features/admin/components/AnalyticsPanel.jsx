@@ -7,7 +7,7 @@ import { formatDuration } from '@/utils/formatters';
 function MetricCard({ label, value, sub, tone = 'default' }) {
   const tones = { default: 'text-gray-900 dark:text-gray-100', good: 'text-[#15803d] dark:text-green-300', warn: 'text-amber-600 dark:text-amber-300' };
   return (
-    <div className="bg-white dark:bg-gray-900 rounded-2xl p-5 border border-gray-200 dark:border-gray-700 shadow-sm">
+    <div className="trace-section trace-section-body">
       <span className="text-[10px] font-bold text-gray-400 dark:text-gray-400 uppercase tracking-widest block">{label}</span>
       <span className={`text-2xl font-display font-black mt-1 block ${tones[tone]}`}>{value}</span>
       {sub && <span className="text-[10px] text-gray-400 dark:text-gray-400 mt-1 block">{sub}</span>}
@@ -39,12 +39,12 @@ export default function AnalyticsPanel({ user, currentTab }) {
     <>
       <DashboardAlerts success={r.success} error={r.error} onDismiss={r.dismissNotification} />
 
-      <div className="space-y-6 animate-fade-in">
+      <div className="trace-page animate-fade-in">
         <div>
-          <h2 className="text-2xl sm:text-3xl font-display font-black text-gray-900 dark:text-gray-100 tracking-tight">
+          <h2 className="trace-page-title">
             Efficiency <span className="text-[#15803d] dark:text-green-300">Analytics</span>
           </h2>
-          <p className="text-xs text-gray-400 dark:text-gray-400 mt-1 font-semibold">
+          <p className="trace-page-description">
             Processing times and turnaround, computed from the document audit trail.
           </p>
         </div>
@@ -77,7 +77,7 @@ export default function AnalyticsPanel({ user, currentTab }) {
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Where documents actually wait */}
-          <div className="bg-white dark:bg-gray-900 rounded-3xl p-6 shadow-sm border border-gray-200 dark:border-gray-700">
+          <div className="trace-section trace-section-body">
             <h3 className="text-sm font-bold text-gray-900 dark:text-gray-100">Turnaround by Desk</h3>
             <p className="text-[10px] text-gray-400 dark:text-gray-400 mt-1 mb-4">
               Average time a document waits at each stage before moving on.
@@ -114,7 +114,7 @@ export default function AnalyticsPanel({ user, currentTab }) {
           </div>
 
           {/* Throughput trend */}
-          <div className="bg-white dark:bg-gray-900 rounded-3xl p-6 shadow-sm border border-gray-200 dark:border-gray-700">
+          <div className="trace-section trace-section-body">
             <h3 className="text-sm font-bold text-gray-900 dark:text-gray-100">Documents Released</h3>
             <p className="text-[10px] text-gray-400 dark:text-gray-400 mt-1 mb-4">
               Completed documents per day over the recent period.
@@ -144,8 +144,8 @@ export default function AnalyticsPanel({ user, currentTab }) {
         </div>
 
         {/* Workload distribution */}
-        <div className="bg-white dark:bg-gray-900 rounded-3xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
-          <div className="p-5 border-b border-gray-100 dark:border-gray-700">
+        <div className="trace-section overflow-hidden">
+          <div className="trace-section-header border-gray-100 dark:border-gray-700">
             <h3 className="text-sm font-bold text-gray-900 dark:text-gray-100">Workload by Staff</h3>
             <p className="text-[10px] text-gray-400 dark:text-gray-400 mt-1">
               How work is distributed across desks. Desks differ in difficulty, so these are volume

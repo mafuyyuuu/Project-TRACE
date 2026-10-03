@@ -4,8 +4,8 @@ import ConfirmDialog from '@/components/ConfirmDialog';
 import useAuthenticator from '@/hooks/useAuthenticator';
 import { downloadRecoveryCodes } from '@/utils/downloadRecoveryCodes';
 
-const inputClass = 'mt-2 w-full rounded-xl border border-gray-300 bg-white p-3 text-sm dark:border-gray-600 dark:bg-gray-900';
-const buttonClass = 'rounded-xl bg-[#15803d] px-4 py-3 text-sm font-bold text-white disabled:opacity-50';
+const inputClass = "trace-control mt-2 w-full";
+const buttonClass = "trace-button trace-button-primary";
 
 export default function AuthenticatorSettings({ user }) {
   const auth = useAuthenticator(user.id);
@@ -36,7 +36,7 @@ export default function AuthenticatorSettings({ user }) {
   function downloadCodes() {
     downloadRecoveryCodes(auth.codes);
   }
-  return <section aria-labelledby="authenticator-heading" onKeyDown={event => { if (event.key === 'Enter' && event.target.tagName === 'INPUT') event.preventDefault(); }} className="space-y-4 rounded-2xl border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-900">
+  return <section aria-labelledby="authenticator-heading" onKeyDown={event => { if (event.key === 'Enter' && event.target.tagName === 'INPUT') event.preventDefault(); }} className="trace-section trace-section-body space-y-4">
     <h3 id="authenticator-heading" className="text-sm font-black">Two-factor authentication</h3>
     <p className="text-sm">Use an authenticator app on your phone to generate login codes. Available to every TRACE account.</p>
     {auth.error && <div className="space-y-2"><p role="alert" className="text-sm text-red-700 dark:text-red-300">{auth.error}</p>
@@ -55,7 +55,7 @@ export default function AuthenticatorSettings({ user }) {
           <button type="button" className={buttonClass} onClick={() => { navigator.clipboard?.writeText(auth.codes.join('\n')).catch(() => {}); }}>Copy recovery codes</button>
           <button type="button" className={buttonClass} onClick={auth.acknowledgeCodes}>I saved my recovery codes</button></div>
       </div> : auth.status.available && <>
-        <label className="block text-sm font-semibold">Current password
+        <label className="trace-label block">Current password
           <input type="password" autoComplete="current-password" value={password} disabled={auth.busy} onChange={event => setPassword(event.target.value)} className={inputClass} />
         </label>
         {!auth.status.enabled && !auth.setup ? <button type="button" className={buttonClass} disabled={auth.busy || !password} onClick={() => auth.run('setup', { current_password: password })}>Set up authenticator app</button> : <>
@@ -65,16 +65,16 @@ export default function AuthenticatorSettings({ user }) {
             {qrError && <p role="status" className="text-sm">{qrError}</p>}
             <p className="text-sm">Manual setup key: <code className="select-text break-all font-mono">{auth.setup.secret}</code></p>
           </div>}
-          <label className="block text-sm font-semibold">{recovery ? 'Recovery code' : 'Authenticator code'}
+          <label className="trace-label block">{recovery ? 'Recovery code' : 'Authenticator code'}
             <input value={code} disabled={auth.busy} autoComplete="one-time-code" inputMode={recovery ? 'text' : 'numeric'} maxLength={recovery ? 35 : 6}
               onChange={event => setCode(recovery ? event.target.value : event.target.value.replace(/\D/g, ''))} className={inputClass} />
           </label>
           <div className="flex flex-wrap gap-2">
             {auth.setup ? <><button type="button" disabled={auth.busy || !password || code.length !== 6} className={buttonClass} onClick={() => stage('enable')}>Enable authenticator</button>
-              <button type="button" disabled={auth.busy} className="rounded-xl border px-4 py-3 text-sm" onClick={() => { auth.discardSetup(); setQr(''); setCode(''); setPassword(''); }}>Cancel setup</button></> : <>
-              <button type="button" disabled={auth.busy} className="text-sm underline" onClick={() => { setRecovery(value => !value); setCode(''); }}>{recovery ? 'Use authenticator code' : 'Use a recovery code'}</button>
+              <button type="button" disabled={auth.busy} className="trace-button trace-button-secondary" onClick={() => { auth.discardSetup(); setQr(''); setCode(''); setPassword(''); }}>Cancel setup</button></> : <>
+              <button type="button" disabled={auth.busy} className="trace-action text-sm underline" onClick={() => { setRecovery(value => !value); setCode(''); }}>{recovery ? 'Use authenticator code' : 'Use a recovery code'}</button>
               <button type="button" disabled={auth.busy || !password || !code} className={buttonClass} onClick={() => stage('regenerate')}>Generate new recovery codes</button>
-              <button type="button" disabled={auth.busy || !password || !code} className="rounded-xl border border-red-300 px-4 py-3 text-sm text-red-700 disabled:opacity-50 dark:text-red-300" onClick={() => stage('disable')}>Disable authenticator</button>
+              <button type="button" disabled={auth.busy || !password || !code} className="trace-button trace-button-danger" onClick={() => stage('disable')}>Disable authenticator</button>
             </>}
           </div>
         </>}

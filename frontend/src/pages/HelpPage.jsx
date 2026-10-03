@@ -50,10 +50,10 @@ export default function HelpPage({ user }) {
     ['How do I review pending registrations?', 'Use Account Verification → Review, inspect the proof, choose Verify or Reject, then confirm the decision. Pending registrations also appear in the notification bell.'],
     ['How do I export records?', 'Open Reports & Export, apply filters, select an export option, then choose Export. The document export follows the current filters.'],
   );
-  return <section className="w-full min-w-0 space-y-5 pb-6" aria-label="User Manual / FAQ">
-    <h1 className="text-2xl sm:text-3xl font-display font-black">User Manual / FAQ</h1>
-    <p className="text-sm text-gray-600 dark:text-gray-300">Guidance for your TRACE account. Contact the PLP Registrar for unresolved record or account concerns.</p>
-    {entries.map(([question, answer]) => <details key={question} className="w-full min-w-0 p-4 rounded-2xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 [overflow-wrap:anywhere]">
+  return <section className="trace-page w-full pb-6" aria-label="User Manual / FAQ">
+    <h1 className="trace-page-title">User Manual / FAQ</h1>
+    <p className="trace-page-description">Guidance for your TRACE account. Contact the PLP Registrar for unresolved record or account concerns.</p>
+    {entries.map(([question, answer]) => <details key={question} className="trace-section trace-section-body w-full [overflow-wrap:anywhere]">
       <summary className="cursor-pointer font-bold text-sm whitespace-normal">{question}</summary><p className="mt-3 text-sm leading-relaxed text-gray-600 dark:text-gray-300 select-text whitespace-normal">{answer}</p>
     </details>)}
   </section>;

@@ -2,7 +2,7 @@ import { INPUT_LIMITS } from '@/utils/inputLimits';
 import UserCard from '@/components/UserCard';
 
 const selectClass =
-  'px-4 py-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl text-sm focus:outline-none focus:border-[#15803d] cursor-pointer';
+  "trace-control cursor-pointer";
 
 /**
  * Search + filters + a responsive grid of UserCards.
@@ -32,7 +32,7 @@ export default function UserGrid({
           placeholder="Search by name or email…"
           value={searchValue}
           onChange={(e) => onSearchChange(e.target.value)}
-          className="flex-1 min-w-[220px] px-4 py-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl text-sm focus:outline-none focus:border-[#15803d]"
+          className="trace-control flex-1 min-w-[220px]"
         />
         <select className={selectClass} value={roleFilter} onChange={(e) => onRoleFilterChange(e.target.value)}>
           {roleOptions.map((o) => (
@@ -50,7 +50,7 @@ export default function UserGrid({
           <button
             type="button"
             onClick={onAddUser}
-            className="px-5 py-2 bg-[#15803d] hover:bg-[#166534] text-white rounded-xl text-xs font-bold shadow-sm transition-all whitespace-nowrap"
+            className="trace-button trace-button-primary"
           >
             + Add User
           </button>
@@ -58,7 +58,7 @@ export default function UserGrid({
       </div>
 
       {users.length === 0 ? (
-        <div className="text-center py-12 text-gray-400 dark:text-gray-400 font-medium bg-white dark:bg-gray-900 rounded-3xl border border-gray-200 dark:border-gray-700">
+        <div className="trace-section text-center py-12 text-gray-400 dark:text-gray-400 font-medium">
           No users match your filters.
         </div>
       ) : (

@@ -7,6 +7,65 @@
   --default-transition-timing-function: cubic-bezier(0.2, 0, 0, 1);
 }
 
+/* Explicit opt-in conventions: native choices, file pickers, tabs and icon
+   controls keep their own geometry. Utilities may add layout (e.g. pl-10 for
+   an input icon) without duplicating the base appearance. */
+@layer components {
+  .trace-control {
+    @apply block w-full min-w-0 min-h-11 rounded-xl border border-gray-300 bg-gray-50 px-4 py-3 text-sm leading-normal text-gray-900 placeholder:text-gray-500 transition-colors dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 dark:placeholder:text-gray-400;
+    @apply enabled:hover:border-gray-400 dark:enabled:hover:border-gray-500 focus:border-pine-600 focus:bg-white focus:ring-2 focus:ring-pine-600/20 dark:focus:border-green-400 dark:focus:bg-gray-900 dark:focus:ring-green-400/25;
+    @apply disabled:cursor-not-allowed disabled:opacity-60;
+  }
+  .trace-control[readonly] { @apply bg-gray-100 dark:bg-gray-800; }
+  textarea.trace-control { @apply min-h-28 resize-y; }
+  .trace-control-inverse {
+    @apply border-white/40 bg-white/10 text-white placeholder:text-white/70 enabled:hover:border-white/70 focus:border-white focus:bg-white/20 focus:ring-white/30 dark:border-white/40 dark:bg-white/10 dark:text-white dark:placeholder:text-white/70 dark:enabled:hover:border-white/70 dark:focus:border-white dark:focus:bg-white/20 dark:focus:ring-white/30;
+    @apply focus-visible:outline-white;
+  }
+  .trace-control[aria-invalid="true"], .trace-control:user-invalid {
+    @apply border-red-600 focus:border-red-600 focus:ring-red-600/20 dark:border-red-400 dark:focus:border-red-400 dark:focus:ring-red-400/25;
+  }
+  .trace-choice { @apply shrink-0 accent-pine-600 disabled:cursor-not-allowed disabled:opacity-60; }
+  .trace-file {
+    @apply block w-full min-w-0 text-sm text-gray-700 dark:text-gray-200 disabled:cursor-not-allowed disabled:opacity-60;
+    @apply file:mr-3 file:rounded-xl file:border-0 file:bg-green-50 file:px-4 file:py-3 file:text-sm file:font-semibold file:text-green-800 hover:file:bg-green-100 dark:file:bg-green-950 dark:file:text-green-200 dark:hover:file:bg-green-900;
+  }
+  .trace-action { @apply transition-colors disabled:cursor-not-allowed disabled:opacity-60; }
+  .trace-button {
+    @apply inline-flex min-h-11 max-w-full shrink-0 items-center justify-center gap-2 rounded-xl border border-transparent px-4 py-3 text-sm font-semibold leading-normal text-center whitespace-normal break-words transition-colors disabled:cursor-not-allowed disabled:opacity-60;
+  }
+  .trace-button-primary { @apply bg-pine-600 text-white enabled:hover:bg-pine-700 enabled:active:bg-green-900; }
+  .trace-button-secondary { @apply border-gray-300 bg-white text-gray-700 enabled:hover:bg-gray-100 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-200 dark:enabled:hover:bg-gray-800; }
+  .trace-button-secondary[aria-pressed="true"] { @apply border-pine-600 bg-pine-600 text-white enabled:hover:bg-pine-700 dark:border-pine-600 dark:bg-pine-600 dark:text-white dark:enabled:hover:bg-pine-700; }
+  .trace-button-danger { @apply border-red-300 bg-red-50 text-red-700 enabled:hover:bg-red-100 dark:border-red-800 dark:bg-red-950 dark:text-red-200 dark:enabled:hover:bg-red-900; }
+  .trace-button-warning { @apply border-amber-300 bg-amber-50 text-amber-800 enabled:hover:bg-amber-100 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-200 dark:enabled:hover:bg-amber-900; }
+  .trace-button-info { @apply border-blue-200 bg-blue-50 text-blue-800 enabled:hover:bg-blue-100 dark:border-blue-800 dark:bg-blue-950 dark:text-blue-200 dark:enabled:hover:bg-blue-900; }
+  .trace-button-inverse { @apply border-white/40 bg-white/10 text-white enabled:hover:bg-white/20 dark:border-white/40 dark:bg-white/10 dark:text-white dark:enabled:hover:bg-white/20 focus-visible:outline-white; }
+  .trace-button-inverse-primary { @apply bg-white text-pine-700 enabled:hover:bg-green-50 dark:bg-white dark:text-pine-700 dark:enabled:hover:bg-green-50 focus-visible:outline-white; }
+  .trace-icon-button { @apply inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-gray-500 enabled:hover:bg-gray-100 dark:text-gray-400 dark:enabled:hover:bg-gray-800 transition-colors disabled:cursor-not-allowed disabled:opacity-60; }
+  .trace-label { @apply block text-sm font-semibold leading-normal text-gray-700 dark:text-gray-200; }
+  .trace-label-inverse { @apply text-white dark:text-white; }
+  .trace-form-grid { @apply grid grid-cols-[repeat(auto-fit,minmax(min(100%,14rem),1fr))] gap-4; }
+  .trace-tab { @apply inline-flex min-h-11 max-w-full items-center justify-center gap-2 px-4 py-3 text-sm font-semibold leading-normal text-center whitespace-normal break-words transition-colors disabled:cursor-not-allowed disabled:opacity-60; }
+  .trace-page { @apply min-w-0 space-y-6; }
+  .trace-page-header { @apply flex min-w-0 flex-col flex-wrap items-start justify-between gap-4 sm:flex-row; }
+  .trace-page-header > * { @apply min-w-0 max-w-full; }
+  .trace-page-title { @apply text-2xl font-display font-bold leading-tight tracking-tight text-gray-900 dark:text-gray-100 sm:text-3xl; }
+  .trace-page-description { @apply mt-2 text-sm leading-relaxed text-gray-600 dark:text-gray-300; }
+  .trace-section { @apply min-w-0 rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-900; }
+  .trace-section-inverse { @apply border-white/30 bg-white/10 text-white dark:border-white/30 dark:bg-white/10 dark:text-white; }
+  .trace-section-body { @apply p-4 sm:p-6; }
+  .trace-date { @apply inline-flex max-w-full flex-wrap items-center gap-x-3 gap-y-1 rounded-xl border border-gray-200 bg-white px-4 py-3 shadow-sm dark:border-gray-700 dark:bg-gray-900; }
+  .trace-date > span { @apply min-w-0 max-w-full; overflow-wrap: normal; }
+  .trace-date > :first-child, .trace-date > svg { @apply shrink-0; }
+  .trace-section-header { @apply flex flex-wrap items-center justify-between gap-3 border-b border-gray-200 p-4 dark:border-gray-700 sm:p-6; }
+  .trace-actions { @apply flex flex-wrap items-center gap-3; }
+  .trace-error { @apply rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold leading-relaxed text-red-800 dark:border-red-800 dark:bg-red-950 dark:text-red-200; }
+  .trace-modal-panel { @apply relative z-10 flex w-full max-h-[calc(100dvh-2rem)] flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-2xl dark:border-gray-700 dark:bg-gray-900; }
+  .trace-modal-body { @apply min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 pb-4 sm:px-6 sm:pb-6; }
+  .trace-modal-footer { @apply shrink-0 border-t border-gray-200 p-4 dark:border-gray-700 sm:p-6; }
+}
+
 :root {
   color-scheme: light;
   --trace-chart-line: #0f172a;
@@ -55,13 +114,14 @@ input, textarea, select {
   overflow-wrap: anywhere;
 }
 
-:where(button, a, input, textarea, select, [tabindex]):focus-visible {
-  outline: 2px solid #15803d;
-  outline-offset: 3px;
-}
-
-.dark :where(button, a, input, textarea, select, [tabindex]):focus-visible {
-  outline-color: #86efac;
+@layer base {
+  :where(button, a, input, textarea, select, [tabindex]):focus-visible {
+    outline: 2px solid #15803d;
+    outline-offset: 3px;
+  }
+  .dark :where(button, a, input, textarea, select, [tabindex]):focus-visible {
+    outline-color: #86efac;
+  }
 }
 
 .recharts-default-tooltip {

@@ -9,7 +9,7 @@ export default function StudentProfileModal({ open, onClose, studentId }) {
     <ModalShell open title="Student Profile" onClose={onClose} maxWidth="max-w-lg">
       {error ? <div className="space-y-4">
         <p role="alert" className="text-red-700 dark:text-red-300">{error}</p>
-        <button type="button" onClick={retry} className="rounded-xl bg-[#15803d] px-4 py-2 text-white font-bold">Retry loading profile</button>
+        <button type="button" onClick={retry} className="trace-button trace-button-primary">Retry loading profile</button>
       </div> : <p role="status">Loading profile…</p>}
     </ModalShell>
   );

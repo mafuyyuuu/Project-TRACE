@@ -28,7 +28,7 @@ export default function DashboardAlerts({ success, error, onDismiss, dismissalKe
           ref={acknowledgeRef}
           type="button"
           onClick={onDismiss}
-          className="w-full px-5 py-3 rounded-2xl text-xs font-bold text-white bg-[#15803d] hover:bg-[#166534] transition-colors"
+          className="trace-button trace-button-primary w-full"
         >
           OK
         </button>
