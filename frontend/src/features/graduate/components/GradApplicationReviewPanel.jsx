@@ -108,7 +108,7 @@ export default function GradApplicationReviewPanel({ user, currentTab }) {
   const isDecided = selectedApplication?.status === 'approved' || selectedApplication?.status === 'rejected';
 
   return (
-    <div className="trace-page animate-fade-in">
+    <div className="trace-page">
       <StudentProfileModal open={!!viewProfileId} studentId={viewProfileId} onClose={() => setViewProfileId(null)} />
       <DashboardAlerts success={success} error={error} onDismiss={dismissNotification} dismissalKey={activeQueueTab} />
       <div>
@@ -130,7 +130,7 @@ export default function GradApplicationReviewPanel({ user, currentTab }) {
         onChange={setActiveQueueTab}
       />
 
-      <div key={activeQueueTab} className="trace-section animate-fade-in overflow-hidden mt-6">
+      <div key={activeQueueTab} className="trace-section trace-motion-context overflow-hidden mt-6">
         <div className="p-4 sm:p-6">
           <div className="max-h-[calc(100vh-280px)] overflow-y-auto overflow-x-auto">
             <ApplicationsTable

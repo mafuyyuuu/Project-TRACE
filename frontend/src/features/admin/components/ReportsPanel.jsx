@@ -59,7 +59,7 @@ export default function ReportsPanel({ user, currentTab }) {
       <StudentProfileModal open={!!viewProfileId} studentId={viewProfileId} onClose={() => setViewProfileId(null)} />
       <DashboardAlerts success={r.success} error={r.error} onDismiss={r.dismissNotification} />
 
-      <div className="trace-page animate-fade-in">
+      <div className="trace-page">
         <div>
           <h2 className="trace-page-title">
             Reports & <span className="text-[#15803d] dark:text-green-300">Export</span>

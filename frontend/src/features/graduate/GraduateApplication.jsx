@@ -95,7 +95,7 @@ export default function GraduateApplication({ user }) {
         loading={submitting} loadingLabel="Submitting…" onConfirm={confirmSubmission} onCancel={cancelSubmission} />
       <DashboardAlerts success={success} error={error} onDismiss={dismissNotification} />
 
-      <div className="trace-page animate-fade-in">
+      <div className="trace-page">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
             <h2 className="trace-page-title">

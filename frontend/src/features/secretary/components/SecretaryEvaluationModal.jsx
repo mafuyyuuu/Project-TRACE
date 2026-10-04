@@ -226,7 +226,7 @@ export default function SecretaryEvaluationModal({
       onClose={() => setActiveModal(null)}
       bare
       title="AI Data Extraction Review"
-      panelClassName="bg-white dark:bg-gray-900 rounded-3xl shadow-2xl w-full max-w-7xl h-[85vh] z-10 border border-gray-100 dark:border-gray-700 relative animate-slide-up flex flex-col lg:flex-row overflow-hidden"
+      panelClassName="bg-white dark:bg-gray-900 rounded-3xl shadow-2xl w-full max-w-7xl h-[85vh] z-10 border border-gray-100 dark:border-gray-700 relative flex flex-col lg:flex-row overflow-hidden"
       closeButtonClassName="absolute top-4 right-4 w-8 h-8 rounded-full flex items-center justify-center text-gray-400 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 z-20"
     >
       {/* Left: Original document scan preview */}
@@ -242,7 +242,7 @@ export default function SecretaryEvaluationModal({
             path={selectedDoc.file_path}
             alt="Scanned Document"
             iframeTitle="PDF Preview"
-            className="w-full h-full object-contain group-hover:scale-105 transition-transform"
+            className="w-full h-full object-contain group-hover:scale-105 motion-reduce:transform-none transition-transform"
             onClick={() => setViewImageUrl(selectedDoc.file_path)}
             wrapperClassName="cursor-zoom-in w-full h-full flex items-center justify-center group relative"
           />

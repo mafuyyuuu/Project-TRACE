@@ -21,7 +21,7 @@ export default function AccountVerificationModal({
       onClose={cancelAdminVerifyStudent}
       bare
       title="Review Registration"
-      panelClassName="bg-white dark:bg-gray-900 rounded-3xl shadow-2xl w-full max-w-5xl h-[85vh] z-10 border border-gray-100 dark:border-gray-700 relative animate-slide-up flex flex-col lg:flex-row overflow-hidden"
+      panelClassName="bg-white dark:bg-gray-900 rounded-3xl shadow-2xl w-full max-w-5xl h-[85vh] z-10 border border-gray-100 dark:border-gray-700 relative flex flex-col lg:flex-row overflow-hidden"
       closeButtonClassName="absolute top-4 right-4 w-8 h-8 rounded-full flex items-center justify-center text-gray-400 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 z-20"
     >
       <div className="lg:w-1/2 p-6 flex flex-col border-r border-gray-200 dark:border-gray-700 min-h-0 bg-gray-50/30 dark:bg-gray-800/30">
@@ -34,7 +34,7 @@ export default function AccountVerificationModal({
               path={student.id_proof_path}
               alt="ID Proof"
               iframeTitle="ID Proof"
-              className="w-full h-full object-contain hover:scale-105 transition-transform"
+              className="w-full h-full object-contain hover:scale-105 motion-reduce:transform-none transition-transform"
               onClick={() => setViewImageUrl(student.id_proof_path)}
               wrapperClassName="cursor-zoom-in w-full h-full flex items-center justify-center group relative"
             />

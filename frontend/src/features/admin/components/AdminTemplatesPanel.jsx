@@ -206,7 +206,7 @@ export default function AdminTemplatesPanel() {
                 </div>
               </div>
               <div className="flex flex-wrap items-center gap-3">
-                {success && <span className="text-xs font-bold text-[#15803d] dark:text-green-300 animate-fade-in">{success}</span>}
+                {success && <span className="text-xs font-bold text-[#15803d] dark:text-green-300 trace-motion-feedback">{success}</span>}
                 <button
                   type="submit"
                   disabled={saving}

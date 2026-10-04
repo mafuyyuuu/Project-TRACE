@@ -1,5 +1,6 @@
 import { useEffect, useId, useRef } from 'react';
 import { createPortal } from 'react-dom';
+import useDrillMotion from '@/hooks/useDrillMotion';
 
 const FOCUSABLE_SELECTOR =
   'a[href], button, textarea, input:not([type="hidden"]), select, [tabindex], [contenteditable="true"]';
@@ -31,7 +32,7 @@ function getFocusableElements(panel) {
  * support lightboxes and split-column forms without duplicating the shell.
  */
 const DEFAULT_BACKDROP_CLASS_NAME =
-  'absolute inset-0 bg-gray-900/60 dark:bg-gray-800/60 backdrop-blur-md transition-opacity duration-200';
+  'absolute inset-0 bg-gray-900/60 dark:bg-gray-800/60 backdrop-blur-md transition-opacity';
 const DEFAULT_CLOSE_BUTTON_CLASS_NAME =
   'trace-icon-button absolute top-3 right-3 z-10';
 const DEFAULT_FOOTER_CLASS_NAME =
@@ -64,6 +65,7 @@ export default function ModalShell({
 }) {
   const titleId = useId();
   const panelRef = useRef(null);
+  useDrillMotion(panelRef, open, layer);
 
   useEffect(() => {
     if (!open) return undefined;
@@ -144,7 +146,7 @@ export default function ModalShell({
 
   const resolvedPanelClassName =
     panelClassName ??
-    `trace-modal-panel ${maxWidth} animate-slide-up`;
+    `trace-modal-panel ${maxWidth}`;
   const resolvedBodyClassName =
     bodyClassName ?? `trace-modal-body ${title ? 'pt-2' : 'pt-4 sm:pt-6'}`;
 

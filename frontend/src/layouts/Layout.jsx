@@ -15,6 +15,8 @@ import { applyBrandIcon } from '@/utils/branding'
 import GraduateApplication from '@/features/graduate/GraduateApplication'
 import OnboardingTutorial from '@/components/OnboardingTutorial'
 import useQuickGuide from '@/hooks/useQuickGuide'
+import useMotion from '@/hooks/useMotion'
+import useDrillMotion from '@/hooks/useDrillMotion'
 
 export default function Layout() {
   const { user, logout, loading: authLoading } = useAuth()
@@ -41,6 +43,8 @@ export default function Layout() {
   const changeTextSize = value => setTextSize(saveTextSize(value))
   const contentRef = useRef(null)
   const drawerRef = useRef(null)
+  useMotion(contentRef, `${location.pathname}:${location.search}`, 'context', { initial: false })
+  useDrillMotion(drawerRef, showMobileNav, 'drawer')
 
   const toggleTheme = () => {
     const next = !darkMode
@@ -53,15 +57,6 @@ export default function Layout() {
       // The choice still applies when persistent storage is unavailable.
     }
   }
-
-  useEffect(() => {
-    if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return undefined
-    const animation = contentRef.current?.animate?.(
-      [{ opacity: 0 }, { opacity: 1 }],
-      { duration: 200, easing: 'cubic-bezier(0.2, 0, 0, 1)' },
-    )
-    return () => animation?.cancel()
-  }, [location.key])
 
   useEffect(() => {
     if (!showMobileNav) return undefined
@@ -317,11 +312,11 @@ export default function Layout() {
         {showMobileNav && (
           <div className="md:hidden fixed inset-0 z-[90] flex">
             <div
-              className="absolute inset-0 bg-black/40 backdrop-blur-sm transition-opacity duration-200"
+              className="absolute inset-0 bg-black/40 backdrop-blur-sm transition-opacity animate-fade-in"
               onClick={() => setShowMobileNav(false)}
               aria-hidden="true"
             />
-            <aside ref={drawerRef} id="mobile-navigation" role="dialog" aria-modal="true" aria-label="Navigation menu" className="trace-nav-scroll relative w-72 max-w-[85vw] h-full bg-white dark:bg-gray-900 shadow-2xl p-4 overflow-y-auto overscroll-contain flex flex-col animate-slide-up">
+            <aside ref={drawerRef} id="mobile-navigation" role="dialog" aria-modal="true" aria-label="Navigation menu" className="trace-nav-scroll relative w-72 max-w-[85vw] h-full bg-white dark:bg-gray-900 shadow-2xl p-4 overflow-y-auto overscroll-contain flex flex-col">
               <div className="flex shrink-0 items-center justify-between mb-6 px-2">
                 <TraceBrand />
                 <button

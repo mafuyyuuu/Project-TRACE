@@ -204,7 +204,7 @@ export default function SignupPage() {
               <p className="text-xs text-gray-400 dark:text-gray-400 ml-1 mt-1">Please attach a clear photo of your Student ID or Diploma for verification.</p>
             </div>
 
-            <button type="submit" disabled={loading || ocr.reading} className="trace-action mt-4 w-full py-4 bg-pine-600 hover:bg-pine-700 disabled:opacity-70 text-white rounded-full font-bold transition-all shadow-sm flex items-center justify-center gap-2">
+            <button type="submit" disabled={loading || ocr.reading} className="trace-action mt-4 w-full py-4 bg-pine-600 hover:bg-pine-700 disabled:opacity-70 text-white rounded-full font-bold transition-colors shadow-sm flex items-center justify-center gap-2">
               {loading ? 'Creating...' : 'Create Account'}
             </button>
           </form>

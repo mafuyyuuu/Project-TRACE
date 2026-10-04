@@ -42,7 +42,7 @@ export default function UserCard({ user, onClick }) {
       onClick={onClick}
       data-testid="user-card"
       data-user-id={user.id}
-      className="bg-white dark:bg-gray-900 rounded-3xl p-5 shadow-sm border border-gray-200 dark:border-gray-700 hover:border-[#15803d]/40 hover:shadow-md transition-all text-left flex flex-col gap-3"
+      className="bg-white dark:bg-gray-900 rounded-3xl p-5 shadow-sm border border-gray-200 dark:border-gray-700 hover:border-[#15803d]/40 hover:shadow-md transition-colors text-left flex flex-col gap-3"
     >
       <div className="flex items-center gap-3">
         <UserAvatar user={user} className="w-14 h-14 rounded-full object-cover shrink-0" alt={user.full_name} />

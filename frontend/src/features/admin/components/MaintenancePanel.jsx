@@ -120,7 +120,7 @@ export default function MaintenancePanel({ user, currentTab }) {
         }} />
       <DashboardAlerts success={m.success} error={m.error} onDismiss={m.dismissNotification} dismissalKey={section} />
 
-      <div className="trace-page animate-fade-in">
+      <div className="trace-page">
         <div>
           <h2 className="trace-page-title">
             System <span className="text-[#15803d] dark:text-green-300">Maintenance</span>

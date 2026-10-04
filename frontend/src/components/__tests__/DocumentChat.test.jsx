@@ -15,6 +15,30 @@ beforeEach(() => {
 const chat = () => <DocumentChat documentId={11} user={{ id: 3, full_name: 'Ana Reyes' }} />;
 
 describe('Direct document messages', () => {
+  it('keeps readers in place during refresh and follows replies only when already at the bottom', async () => {
+    const rows = [{ id: 1, sender_id: 9, message: 'Earlier message', created_at: '2026-10-01' }];
+    api.get.mockResolvedValueOnce({ data: rows });
+    render(chat());
+    await screen.findByText('Earlier message');
+    const history = screen.getByRole('region', { name: 'Request conversation' }).querySelector('[aria-live]');
+    Object.defineProperties(history, {
+      scrollHeight: { configurable: true, value: 1000 },
+      clientHeight: { configurable: true, value: 200 },
+    });
+    history.scrollTop = 50;
+    fireEvent.scroll(history);
+    api.get.mockResolvedValueOnce({ data: [...rows, { id: 2, sender_id: 9, message: 'New reply', created_at: '2026-10-01' }] });
+    fireEvent(window, new Event('focus'));
+    await screen.findByText('New reply');
+    expect(history.scrollTop).toBe(50);
+    history.scrollTop = 800;
+    fireEvent.scroll(history);
+    api.get.mockResolvedValueOnce({ data: [...rows, { id: 3, sender_id: 9, message: 'Following reply', created_at: '2026-10-01' }] });
+    fireEvent(window, new Event('focus'));
+    await screen.findByText('Following reply');
+    expect(history.scrollTop).toBe(1000);
+  });
+
   it.each(['Enter', 'Send'])('submits immediately using %s without confirmation', async method => {
     const user = userEvent.setup();
     render(chat());

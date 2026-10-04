@@ -20,7 +20,7 @@ export default function AdminSecurityPanel() {
   }, []);
 
   return (
-    <div className="trace-page animate-fade-in">
+    <div className="trace-page">
       <div className="trace-page-header">
         <div>
           <h2 className="trace-page-title">Security Logs</h2>

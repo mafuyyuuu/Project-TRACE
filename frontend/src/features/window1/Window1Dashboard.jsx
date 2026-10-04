@@ -1,3 +1,4 @@
+import ProgressFill from '@/components/ProgressFill';
 import RequestMessagesPanel from '@/components/RequestMessagesPanel';
 import FileUploadField from '@/components/FileUploadField';
 import QueueTabs from '@/components/QueueTabs';
@@ -89,7 +90,7 @@ export default function Window1Dashboard({ user, currentTab, setViewImageUrl }) 
   return (
     <>
       <DashboardAlerts success={success} error={error} onDismiss={dismissNotification} dismissalKey={`${currentTab}:${queueTab}`} />
-      <div className="trace-page animate-fade-in">
+      <div className="trace-page">
         {/* 3.1. WORKSPACE DASHBOARD VIEW */}
         {currentTab === 'dashboard' && (
           <>
@@ -423,7 +424,7 @@ export default function Window1Dashboard({ user, currentTab, setViewImageUrl }) 
                               <td className="py-4 w-1/3">
                                 <div className="flex items-center gap-3">
                                   <div className="w-full bg-gray-100 dark:bg-gray-800 rounded-full h-2 overflow-hidden">
-                                    <div className="bg-[#15803d] h-2 rounded-full transition-all duration-200" style={{ width: `${getProgressVal(doc.current_status)}%` }}></div>
+                                    <ProgressFill value={getProgressVal(doc.current_status)} className="bg-[#15803d]" />
                                   </div>
                                   <span className="text-[11px] font-bold text-gray-600 dark:text-gray-300 font-mono">{getProgressVal(doc.current_status)}%</span>
                                 </div>
@@ -481,9 +482,9 @@ export default function Window1Dashboard({ user, currentTab, setViewImageUrl }) 
                     setScanDocType('Transcript of Records');
                     setActiveModal('scan-confirm');
                   }}
-                  className="trace-action w-16 h-16 rounded-full bg-white dark:bg-gray-900 border-8 border-gray-200 dark:border-gray-700 flex items-center justify-center hover:border-gray-300 dark:hover:border-gray-700 transition-all shadow-md focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-700"
+                  className="trace-action w-16 h-16 rounded-full bg-white dark:bg-gray-900 border-8 border-gray-200 dark:border-gray-700 flex items-center justify-center hover:border-gray-300 dark:hover:border-gray-700 transition-colors shadow-md focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-700"
                 >
-                  <div className="w-10 h-10 rounded-full bg-[#15803d] hover:bg-[#166534] transition-all"></div>
+                  <div className="w-10 h-10 rounded-full bg-[#15803d] hover:bg-[#166534] transition-colors"></div>
                 </button>
                 <div className="w-12 h-12"></div> {/* spacer */}
               </div>}>

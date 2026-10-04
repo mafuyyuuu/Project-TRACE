@@ -1,3 +1,5 @@
+import MotionDetails from '@/components/MotionDetails';
+
 /** Role-aware excerpts from docs/USER_MANUAL.md; no separate workflow rules. */
 export default function HelpPage({ user }) {
   const desk = user?.desk_assignment;
@@ -54,8 +56,8 @@ export default function HelpPage({ user }) {
   return <section className="trace-page w-full pb-6" aria-label="User Manual / FAQ">
     <h1 className="trace-page-title">User Manual / FAQ</h1>
     <p className="trace-page-description">Guidance for your TRACE account. Contact the PLP Registrar for unresolved record or account concerns.</p>
-    {entries.map(([question, answer]) => <details key={question} className="trace-section trace-section-body w-full [overflow-wrap:anywhere]">
-      <summary className="cursor-pointer font-bold text-sm whitespace-normal">{question}</summary><p className="mt-3 text-sm leading-relaxed text-gray-600 dark:text-gray-300 select-text whitespace-normal">{answer}</p>
-    </details>)}
+    {entries.map(([question, answer]) => <MotionDetails key={question} summary={question}>
+      <p className="mt-3 text-sm leading-relaxed text-gray-600 dark:text-gray-300 select-text whitespace-normal">{answer}</p>
+    </MotionDetails>)}
   </section>;
 }

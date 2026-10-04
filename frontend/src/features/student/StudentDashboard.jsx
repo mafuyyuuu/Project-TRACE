@@ -1,3 +1,4 @@
+import ProgressFill from '@/components/ProgressFill';
 import RequestMessagesPanel from '@/components/RequestMessagesPanel';
 import { getProfileCompletion } from '@/utils/profileCompletion';
 import FeeBreakdown from '@/components/FeeBreakdown';
@@ -86,7 +87,7 @@ export default function StudentDashboard({ user, currentTab, setViewImageUrl }) 
     <>
       <FloatingSupportChat user={user} />
       <DashboardAlerts success={success} error={error} onDismiss={dismissNotification} />
-      <div className="trace-page animate-fade-in">
+      <div className="trace-page">
         {/* 1.1. STUDENT PORTAL - WORKSPACE DASHBOARD */}
         {currentTab === 'dashboard' && (
           <>
@@ -113,7 +114,7 @@ export default function StudentDashboard({ user, currentTab, setViewImageUrl }) 
                     }
                     setActiveModal('new-request');
                   }}
-                  className="trace-action flex items-center gap-2 px-5 py-2.5 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 hover:border-gray-400 dark:hover:border-gray-700 text-gray-800 dark:text-gray-100 text-xs font-bold rounded-full shadow-sm transition-all"
+                  className="trace-action flex items-center gap-2 px-5 py-2.5 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 hover:border-gray-400 dark:hover:border-gray-700 text-gray-800 dark:text-gray-100 text-xs font-bold rounded-full shadow-sm transition-colors"
                 >
                   <span>New Request</span>
                   <svg className="w-4 h-4 text-gray-800 dark:text-gray-100" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.2" d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
@@ -252,7 +253,7 @@ export default function StudentDashboard({ user, currentTab, setViewImageUrl }) 
                             <td className="py-4 px-4 align-middle">
                               <div className="flex items-center gap-3 min-w-32">
                                 <div role="progressbar" aria-label={`Progress for ${doc.tracking_number || doc.id}`} aria-valuemin={0} aria-valuemax={100} aria-valuenow={getProgressVal(doc.current_status)} className="flex-1 min-w-12 bg-gray-100 dark:bg-gray-800 rounded-full h-2 overflow-hidden">
-                                  <div className="bg-[#15803d] h-2 rounded-full transition-all duration-200" style={{ width: `${getProgressVal(doc.current_status)}%` }}></div>
+                                  <ProgressFill value={getProgressVal(doc.current_status)} className="bg-[#15803d]" />
                                 </div>
                                 <span className="shrink-0 whitespace-nowrap text-[11px] font-bold text-gray-600 dark:text-gray-300 font-mono">{getProgressVal(doc.current_status)}%</span>
                               </div>

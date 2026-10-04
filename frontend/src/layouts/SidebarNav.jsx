@@ -1,6 +1,7 @@
 import { useLayoutEffect, useRef, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { navGroupsForUser } from '@/utils/navigation';
+import useMotion from '@/hooks/useMotion';
 
 /**
  * The role-aware navigation list, rendered twice: as the icon-only desktop
@@ -68,6 +69,7 @@ export default function SidebarNav({
     ? groups.more.some(item => item.tab === revealTab) ? 'more' : 'main'
     : selection.context === context ? selection.group : activeGroup;
   const navRef = useRef(null);
+  useMotion(navRef, group, 'context', { initial: false });
   const focusAfterSwitch = useRef(false);
   useLayoutEffect(() => {
     const active = navRef.current?.querySelector('[aria-current="page"]');

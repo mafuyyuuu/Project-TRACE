@@ -39,7 +39,7 @@ export default function AnalyticsPanel({ user, currentTab }) {
     <>
       <DashboardAlerts success={r.success} error={r.error} onDismiss={r.dismissNotification} />
 
-      <div className="trace-page animate-fade-in">
+      <div className="trace-page">
         <div>
           <h2 className="trace-page-title">
             Efficiency <span className="text-[#15803d] dark:text-green-300">Analytics</span>

@@ -80,7 +80,7 @@ export default function AdminDashboard({ user, currentTab, setViewImageUrl, revi
     <>
       <DashboardAlerts success={success} error={error} onDismiss={dismissNotification} />
             {currentTab === 'dashboard' && (
-              <div className="trace-page animate-fade-in">
+              <div className="trace-page">
                 {/* Welcome Header */}
                 <div className="trace-page-header">
                   <div>
@@ -227,6 +227,7 @@ export default function AdminDashboard({ user, currentTab, setViewImageUrl, revi
                               labelStyle={{ color: 'var(--trace-chart-text)', fontWeight: 'bold', marginBottom: '4px' }}
                             />
                             <Area
+                              isAnimationActive={false}
                               type="monotone"
                               dataKey="volume"
                               stroke="var(--trace-chart-line)"
@@ -335,7 +336,7 @@ export default function AdminDashboard({ user, currentTab, setViewImageUrl, revi
               </div>
             )}
             {currentTab === 'admin-tracker' && (
-              <div className="trace-page animate-fade-in">
+              <div className="trace-page">
                 {/* Header */}
                 <div className="trace-page-header">
                   <div>
@@ -453,7 +454,7 @@ export default function AdminDashboard({ user, currentTab, setViewImageUrl, revi
               </div>
             )}
             {currentTab === 'admin-users' && (
-              <div className="trace-page animate-fade-in">
+              <div className="trace-page">
                 <div className="trace-page-header">
                   <div>
                     <h2 className="trace-page-title">Registered Users</h2>
@@ -482,7 +483,7 @@ export default function AdminDashboard({ user, currentTab, setViewImageUrl, revi
               </div>
             )}
             {currentTab === 'admin-logs' && (
-              <div className="trace-page animate-fade-in">
+              <div className="trace-page">
                 <div className="trace-page-header">
                   <div>
                     <h2 className="trace-page-title">Activity Logs</h2>

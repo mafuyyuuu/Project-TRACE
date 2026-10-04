@@ -92,7 +92,7 @@ export default function IntakeReviewModal({
               path={selectedDoc.file_path}
               alt="Submitted document"
               iframeTitle="Submitted document"
-              className="w-full h-full object-contain hover:scale-105 transition-transform"
+              className="w-full h-full object-contain hover:scale-105 motion-reduce:transform-none transition-transform"
               onClick={() => setViewImageUrl(selectedDoc.file_path)}
               wrapperClassName="cursor-zoom-in w-full h-full flex items-center justify-center"
             />

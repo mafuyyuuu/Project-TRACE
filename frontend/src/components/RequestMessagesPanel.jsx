@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
+import useMotion from '@/hooks/useMotion';
 import { useMessageThreads } from '@/hooks/useDocumentChat';
 import DocumentChat from '@/components/DocumentChat';
 import RequestAttachments from '@/components/RequestAttachments';
@@ -8,8 +9,10 @@ import GeneralSupportPanel from '@/components/GeneralSupportPanel';
 export default function RequestMessagesPanel({ user, initialDocumentId, initialView = 'request' }) {
   const supportId = new URLSearchParams(window.location.search).get('support');
   const [view, setView] = useState(supportId ? 'support' : initialView);
+  const contextRef = useRef(null);
+  useMotion(contextRef, view, 'context', { initial: false });
   const canSupport = ['student', 'admin'].includes(user.role) || (user.role === 'clerk' && ['Window 1', 'Receiving Desk'].includes(user.desk_assignment));
-  return <div className="space-y-4 min-w-0">
+  return <div ref={contextRef} className="space-y-4 min-w-0">
     {canSupport && <div className="flex flex-wrap gap-3" aria-label="Conversation type">
       <button type="button" aria-pressed={view === 'request'} onClick={() => setView('request')} className="trace-button trace-button-secondary">Request conversations</button>
       <button type="button" aria-pressed={view === 'support'} onClick={() => setView('support')} className="trace-button trace-button-secondary">General support</button>

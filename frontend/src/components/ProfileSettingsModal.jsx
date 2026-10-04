@@ -9,6 +9,8 @@ import { endOtherSessions } from '@/services/authService';
 import { disconnectRealtime } from '@/services/realtimeService';
 import UserAvatar from '@/components/UserAvatar';
 import PreferencesModal from '@/components/PreferencesModal';
+import ProgressFill from '@/components/ProgressFill';
+import useMotion from '@/hooks/useMotion';
 import { getProfileCompletion } from '@/utils/profileCompletion';
 import AuthenticatorSettings from '@/components/AuthenticatorSettings';
 import useSecurityLogs from '@/hooks/useSecurityLogs';
@@ -39,9 +41,11 @@ export default function ProfileSettingsModal({
   verificationError = '',
 }) {
   const fileInputRef = useRef(null);
+  const tabContentRef = useRef(null);
   const emailInputRef = useRef(null);
 
   const [activeTab, setActiveTab] = useState(initialTab);
+  useMotion(tabContentRef, activeTab, 'context', { initial: false });
   const [passwordError, setPasswordError] = useState('');
   const [confirmation, setConfirmation] = useState(null);
   const [emailDraft, setEmailDraft] = useState(null);
@@ -183,7 +187,7 @@ export default function ProfileSettingsModal({
                   <span className={progress === 100 ? "text-[#15803d] dark:text-green-300" : "text-amber-600 dark:text-amber-300"}>{progress}%</span>
                 </div>
                 <div className="h-1.5 w-full bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
-                  <div className={`h-full rounded-full transition-all duration-200 ${progress === 100 ? 'bg-[#15803d]' : 'bg-amber-500 dark:bg-amber-500'}`} style={{ width: `${progress}%` }}></div>
+                  <ProgressFill value={progress} className={progress === 100 ? 'bg-[#15803d]' : 'bg-amber-500 dark:bg-amber-500'} />
                 </div>
               </div>
             )}
@@ -234,7 +238,7 @@ export default function ProfileSettingsModal({
         {isStudent && missing.length > 0 && <p role="status" className="px-6 pt-3 text-sm text-amber-800 dark:text-amber-200">
           Still needed: {missing.map(item => item.label).join(', ')}.
         </p>}
-        <form id="profile-settings-form" onSubmit={stageProfileSave} className="space-y-6">
+        <form ref={tabContentRef} id="profile-settings-form" onSubmit={stageProfileSave} className="space-y-6">
           {passwordError && <p role="alert" className="text-sm text-red-600 dark:text-red-300">{passwordError}</p>}
           {activeTab === 'personal' && (
             <div className="space-y-6">

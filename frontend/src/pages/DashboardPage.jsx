@@ -57,7 +57,7 @@ export default function DashboardPage() {
   if (currentTab === 'help') return <HelpPage user={user} />;
 
   return (
-    <div className="space-y-8 animate-fade-in relative pb-16">
+    <div className="space-y-8 relative pb-16">
       {/* Graduates/alumni fill in the Registrar's application from its own tab.
           A regular student forcing this tab via the URL falls through to their
           normal dashboard instead, same as any other unrecognized tab value. */}

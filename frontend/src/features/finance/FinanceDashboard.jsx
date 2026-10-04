@@ -71,7 +71,7 @@ export default function FinanceDashboard({ user, setViewImageUrl, currentTab = '
   return (
     <>
       <DashboardAlerts success={success} error={error} onDismiss={dismissNotification} dismissalKey={activeQueueTab} />
-      <div className="trace-page animate-fade-in">
+      <div className="trace-page">
         {/* Header */}
         <div className="trace-page-header">
           <div>
@@ -100,7 +100,7 @@ export default function FinanceDashboard({ user, setViewImageUrl, currentTab = '
         {/* 1 · Billed, waiting on the student. Read-only, except that a student
             can walk up with the printed slip and pay at the counter. */}
         {activeQueueTab === 'awaiting-payment' && (
-        <div className="trace-section animate-fade-in overflow-hidden mt-6">
+        <div className="trace-section trace-motion-context overflow-hidden mt-6">
           <div className="trace-section-header border-gray-100 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800/50">
             <div>
               <h3 className="font-bold text-gray-950 dark:text-gray-100 text-sm tracking-wider uppercase">1 · AWAITING PAYMENT</h3>
@@ -162,7 +162,7 @@ export default function FinanceDashboard({ user, setViewImageUrl, currentTab = '
 
         {/* Verification Queue Table */}
         {activeQueueTab === 'verification' && (
-        <div className="trace-section animate-fade-in overflow-hidden mt-6">
+        <div className="trace-section trace-motion-context overflow-hidden mt-6">
           <div className="trace-section-header border-gray-100 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800/50">
             <h3 className="font-bold text-gray-950 dark:text-gray-100 text-sm tracking-wider uppercase">2 · VERIFICATION QUEUE</h3>
             <span className="text-xs text-gray-500 dark:text-gray-400 font-semibold whitespace-nowrap">

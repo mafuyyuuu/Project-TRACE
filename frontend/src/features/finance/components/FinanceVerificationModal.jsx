@@ -97,7 +97,7 @@ export default function FinanceVerificationModal({
               path={selectedDoc.receipt_image_path}
               alt="Payment Receipt"
               iframeTitle="PDF Receipt"
-              className="w-full h-full object-contain hover:scale-105 transition-transform"
+              className="w-full h-full object-contain hover:scale-105 motion-reduce:transform-none transition-transform"
               onClick={() => setViewImageUrl(selectedDoc.receipt_image_path)}
               wrapperClassName="cursor-zoom-in w-full h-full flex items-center justify-center"
             />

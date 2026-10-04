@@ -42,8 +42,8 @@ export default function PaymentStubModal({ selectedDoc, groupDocs, setActiveModa
       onClose={() => setActiveModal(null)}
       title={null}
       maxWidth="max-w-md"
-      backdropClassName="absolute inset-0 bg-gray-900/60 backdrop-blur-md print-hide transition-opacity duration-200"
-      panelClassName="bg-white rounded-3xl shadow-2xl w-full max-w-md max-h-[calc(100dvh-2rem)] z-10 border border-gray-100 relative animate-slide-up flex flex-col overflow-hidden print-slip"
+      backdropClassName="absolute inset-0 bg-gray-900/60 backdrop-blur-md print-hide transition-opacity"
+      panelClassName="bg-white rounded-3xl shadow-2xl w-full max-w-md max-h-[calc(100dvh-2rem)] z-10 border border-gray-100 relative flex flex-col overflow-hidden print-slip"
       closeButtonClassName="absolute top-4 right-4 w-8 h-8 rounded-full flex items-center justify-center text-gray-400 hover:bg-gray-100 print-hide"
       bodyClassName="flex-1 overflow-y-auto px-6 sm:px-8 pt-6 sm:pt-8"
       footerClassName="shrink-0 px-6 sm:px-8 pb-6 sm:pb-8 pt-6 print-hide"

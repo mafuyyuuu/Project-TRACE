@@ -97,7 +97,7 @@ export default function NewRequestModal({
                   return (
                     <div
                       key={type.name}
-                      className={`rounded-2xl border transition-all ${
+                      className={`rounded-2xl border transition-colors ${
                         isSelected ? 'border-[#15803d] bg-emerald-50/40 dark:bg-emerald-950/40' : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 hover:bg-gray-50 dark:hover:bg-gray-800'
                       }`}
                     >

@@ -50,17 +50,17 @@ export default {
       },
       keyframes: {
         'slide-up': {
-          '0%': { transform: 'translateY(1rem)', opacity: '0' },
+          '0%': { transform: 'translateY(var(--trace-motion-drill-distance))', opacity: 'var(--trace-motion-opacity)' },
           '100%': { transform: 'translateY(0)', opacity: '1' },
         },
         'fade-in': {
-          '0%': { opacity: '0' },
+          '0%': { opacity: 'var(--trace-motion-opacity)' },
           '100%': { opacity: '1' },
         },
       },
       animation: {
-        'slide-up': 'slide-up 0.2s cubic-bezier(0.2, 0, 0, 1)',
-        'fade-in': 'fade-in 0.2s cubic-bezier(0.2, 0, 0, 1)',
+        'slide-up': 'slide-up var(--trace-motion-drill-duration) var(--trace-motion-easing)',
+        'fade-in': 'fade-in var(--trace-motion-context-duration) var(--trace-motion-easing)',
       }
     },
   },
