@@ -1,9 +1,10 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
-import { MemoryRouter } from 'react-router-dom';
+import userEvent from '@testing-library/user-event';
+import { MemoryRouter, useLocation, useNavigate } from 'react-router-dom';
 
 import SidebarNav from '@/layouts/SidebarNav';
-import { navItemsForUser } from '@/utils/navigation';
+import { navItemsForUser, navGroupsForUser } from '@/utils/navigation';
 
 const STUDENT = { id: 3, role: 'student' };
 const SECRETARY = { id: 4, role: 'clerk', desk_assignment: 'Secretary' };
@@ -19,6 +20,16 @@ const renderNav = (props) =>
       <SidebarNav tab="dashboard" onOpenSettings={vi.fn()} onLogout={vi.fn()} {...props} />
     </MemoryRouter>
   );
+
+function RoutedNav() {
+  const location = useLocation(), navigate = useNavigate();
+  return <>
+    <SidebarNav user={ADMIN} tab={new URLSearchParams(location.search).get('tab') || 'dashboard'} />
+    <button onClick={() => navigate('/dashboard?tab=admin-templates')}>Direct template link</button>
+    <button onClick={() => navigate(-1)}>Browser Back</button>
+    <button onClick={() => navigate(1)}>Browser Forward</button>
+  </>;
+}
 
 describe('navItemsForUser', () => {
   it('gives each admin destination a distinct icon', () => {
@@ -59,12 +70,26 @@ describe('navItemsForUser', () => {
   it('returns nothing for a signed-out visitor', () => {
     expect(navItemsForUser(null)).toEqual([]);
   });
+  it.each([STUDENT, ALUMNI, SECRETARY, WINDOW1, RECEIVING, FINANCE, ADMIN, { role: 'clerk', desk_assignment: 'Other' }])('partitions every authorized destination exactly once for $role/$desk_assignment', user => {
+    const groups = navGroupsForUser(user);
+    const tabs = [...groups.main, ...groups.more].map(item => item.tab);
+    expect(tabs.sort()).toEqual(navItemsForUser(user).map(item => item.tab).sort());
+    expect(new Set(tabs).size).toBe(tabs.length);
+    expect(groups.main.every(item => item.group !== 'more')).toBe(true);
+    expect(groups.more.map(item => item.tab)).toContain('help');
+  });
+  it('keeps daily Finance transactions in Main and admin configuration available', () => {
+    expect(navGroupsForUser(FINANCE).main.map(item => item.tab)).toEqual(['dashboard', 'reports']);
+    expect(navGroupsForUser(ADMIN).main.map(item => item.tab)).toContain('admin-maintenance');
+  });
 });
 
 describe('SidebarNav', () => {
   it('labels every destination in drawer mode', () => {
     renderNav({ user: ALUMNI, showLabels: true });
     expect(screen.getByText('History')).toBeInTheDocument();
+    expect(screen.queryByText('Graduate Application')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'More' }));
     expect(screen.getByText('Help / FAQ')).toBeInTheDocument();
     expect(screen.getByText('Graduate Application')).toBeInTheDocument();
   });
@@ -73,6 +98,7 @@ describe('SidebarNav', () => {
   // navigate to it directly.
   it('hides Graduate Application from a regular student', () => {
     renderNav({ user: STUDENT, showLabels: true });
+    fireEvent.click(screen.getByRole('button', { name: 'More' }));
     expect(screen.queryByText('Graduate Application')).not.toBeInTheDocument();
   });
 
@@ -86,6 +112,8 @@ describe('SidebarNav', () => {
   it('closes the drawer when a destination is chosen', () => {
     const onNavigate = vi.fn();
     renderNav({ user: STUDENT, showLabels: true, onNavigate });
+    fireEvent.click(screen.getByRole('button', { name: 'More' }));
+    expect(onNavigate).not.toHaveBeenCalled();
     fireEvent.click(screen.getByText('Help / FAQ'));
     expect(onNavigate).toHaveBeenCalled();
   });
@@ -109,6 +137,56 @@ describe('SidebarNav', () => {
   it('marks the active tab', () => {
     renderNav({ user: ADMIN, tab: 'admin-reports', showLabels: true });
     expect(screen.getByText('Reports & Export').closest('a').className).toContain('bg-[#15803d]');
-    expect(screen.getByText('System Maintenance').closest('a').className).not.toContain('bg-[#15803d]');
+    expect(screen.getByRole('link', { name: 'Reports & Export' })).toHaveAttribute('aria-current', 'page');
+    expect(screen.queryByRole('link', { name: 'System Maintenance' })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Back to main' }));
+    expect(screen.getByRole('link', { name: 'System Maintenance' })).not.toHaveAttribute('aria-current');
+    expect(screen.getByRole('button', { name: 'More' }).className).toContain('bg-[#15803d]');
+  });
+  it.each([false, true])('keeps Preferences and Logout working in both groups (labels=%s)', showLabels => {
+    const onOpenSettings = vi.fn(), onLogout = vi.fn();
+    renderNav({ user: ADMIN, showLabels, onOpenSettings, onLogout });
+    fireEvent.click(screen.getByRole('button', { name: 'Preferences' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Logout' }));
+    fireEvent.click(screen.getByRole('button', { name: 'More' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Preferences' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Logout' }));
+    expect(onOpenSettings).toHaveBeenCalledTimes(2);
+    expect(onLogout).toHaveBeenCalledTimes(2);
+  });
+  it('reveals a new active destination after route/account changes and when a guide targets More', () => {
+    const { rerender } = renderNav({ user: ADMIN });
+    rerender(<MemoryRouter><SidebarNav user={ADMIN} tab="admin-templates" /></MemoryRouter>);
+    expect(screen.getByRole('link', { name: 'Templates' })).toHaveAttribute('aria-current', 'page');
+    rerender(<MemoryRouter><SidebarNav user={ADMIN} tab="dashboard" revealTab="admin-security" /></MemoryRouter>);
+    expect(screen.getByRole('link', { name: 'Security Logs' })).toHaveAttribute('data-guide-tab', 'admin-security');
+    rerender(<MemoryRouter><SidebarNav user={STUDENT} tab="dashboard" /></MemoryRouter>);
+    expect(screen.getByRole('link', { name: 'History' })).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Templates' })).not.toBeInTheDocument();
+  });
+  it('transfers focus after keyboard group switches without navigating', async () => {
+    const keyboard = userEvent.setup(), onNavigate = vi.fn();
+    renderNav({ user: ADMIN, showLabels: true, onNavigate });
+    screen.getByRole('button', { name: 'More' }).focus();
+    await keyboard.keyboard('{Enter}');
+    expect(screen.getByRole('link', { name: 'Activity Logs' })).toHaveFocus();
+    screen.getByRole('button', { name: 'Back to main' }).focus();
+    await keyboard.keyboard(' ');
+    expect(screen.getByRole('link', { name: 'Dashboard' })).toHaveFocus();
+    expect(onNavigate).not.toHaveBeenCalled();
+  });
+  it('follows direct links and browser history, including a repeated direct link after Back to main', async () => {
+    const keyboard = userEvent.setup();
+    render(<MemoryRouter initialEntries={['/dashboard']}><RoutedNav /></MemoryRouter>);
+    await keyboard.click(screen.getByRole('button', { name: 'Direct template link' }));
+    expect(screen.getByRole('link', { name: 'Templates' })).toHaveAttribute('aria-current', 'page');
+    await keyboard.click(screen.getByRole('button', { name: 'Browser Back' }));
+    expect(screen.getByRole('link', { name: 'Dashboard' })).toHaveAttribute('aria-current', 'page');
+    await keyboard.click(screen.getByRole('button', { name: 'Browser Forward' }));
+    expect(screen.getByRole('link', { name: 'Templates' })).toHaveAttribute('aria-current', 'page');
+    await keyboard.click(screen.getByRole('button', { name: 'Back to main' }));
+    expect(screen.queryByRole('link', { name: 'Templates' })).not.toBeInTheDocument();
+    await keyboard.click(screen.getByRole('button', { name: 'Direct template link' }));
+    expect(screen.getByRole('link', { name: 'Templates' })).toHaveAttribute('aria-current', 'page');
   });
 });

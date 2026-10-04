@@ -10,7 +10,8 @@ import SidebarNav from '@/layouts/SidebarNav'
 import ProfileSettingsModal from '@/components/ProfileSettingsModal'
 import ConfirmDialog from '@/components/ConfirmDialog'
 import UserAvatar from '@/components/UserAvatar'
-import plpLogo from '@/assets/plp_logo.png'
+import TraceBrand from '@/components/TraceBrand'
+import { applyBrandIcon } from '@/utils/branding'
 import GraduateApplication from '@/features/graduate/GraduateApplication'
 import OnboardingTutorial from '@/components/OnboardingTutorial'
 import useQuickGuide from '@/hooks/useQuickGuide'
@@ -31,6 +32,7 @@ export default function Layout() {
   useNotificationDismissal(() => setShowNotifs(false));
   const [showSettings, setShowSettings] = useState(() => query.get('settings') === 'security')
   const [showMobileNav, setShowMobileNav] = useState(false)
+  const [guideNavTab, setGuideNavTab] = useState(null)
   const [confirmingLogout, setConfirmingLogout] = useState(false)
   const [loggingOut, setLoggingOut] = useState(false)
   const [logoutError, setLogoutError] = useState('')
@@ -44,6 +46,7 @@ export default function Layout() {
     const next = !darkMode
     setDarkMode(next)
     document.documentElement.classList.toggle('dark', next)
+    applyBrandIcon(next)
     try {
       localStorage.setItem('trace_theme', next ? 'dark' : 'light')
     } catch {
@@ -175,6 +178,7 @@ export default function Layout() {
   }
 
   const prepareGuide = (area) => {
+    setGuideNavTab(area.startsWith('navigation:') ? area.slice(11) : null)
     setShowNotifs(false)
     setShowMobileNav(area.startsWith('navigation:') && window.innerWidth < 768)
     window.dispatchEvent(new Event('trace-close-support'))
@@ -183,6 +187,7 @@ export default function Layout() {
   }
 
   const closeGuide = () => {
+    setGuideNavTab(null)
     guide.close()
     setShowMobileNav(false)
     closeSettings()
@@ -203,7 +208,7 @@ export default function Layout() {
 
   if (graduateRequired) return (
     <main className="min-h-dvh bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 p-4 sm:p-8 space-y-5">
-      <header className="flex flex-wrap gap-4 items-center justify-between"><strong className="text-xl">TRACE</strong>
+      <header className="flex flex-wrap gap-4 items-center justify-between"><TraceBrand />
         <button type="button" onClick={() => setConfirmingLogout(true)} className="trace-button trace-button-secondary">Log Out</button></header>
       <p className="text-sm">Submit your graduate application to unlock TRACE. You can complete email verification afterward.</p>
       <GraduateApplication user={user} />
@@ -225,8 +230,7 @@ export default function Layout() {
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
           </button>
-          <img src={plpLogo} alt="PLP Logo" className="w-9 h-9 sm:w-10 sm:h-10 rounded-full object-cover shadow-md" />
-          <span className="font-display font-black text-[#15803d] dark:text-green-300 text-base sm:text-lg tracking-widest uppercase">TRACE</span>
+          <TraceBrand />
         </div>
 
         <div className="flex shrink-0 ml-auto items-center gap-2 sm:gap-4">
@@ -298,10 +302,11 @@ export default function Layout() {
       {/* Main Area */}
       <div className="flex-1 flex gap-6 min-h-0 overflow-hidden relative">
         {/* Desktop rail */}
-        <aside className="hidden md:flex w-20 h-full overflow-y-auto flex-col items-center justify-between bg-white dark:bg-gray-900 rounded-[2rem] shadow-sm py-8 shrink-0 border border-gray-100/50 dark:border-gray-700/50">
+        <aside aria-label="Sidebar" tabIndex={0} className="trace-nav-scroll hidden md:block w-20 h-full overflow-y-auto overscroll-contain bg-white dark:bg-gray-900 rounded-[2rem] shadow-sm px-3 py-4 shrink-0 border border-gray-100/50 dark:border-gray-700/50 focus-visible:outline-2 focus-visible:outline-pine-600 dark:focus-visible:outline-green-400">
           <SidebarNav
             user={user}
             tab={tab}
+            revealTab={guide.open ? guideNavTab : null}
             onOpenSettings={() => openSettings('appearance')}
             onLogout={() => setConfirmingLogout(true)}
           />
@@ -316,25 +321,28 @@ export default function Layout() {
               onClick={() => setShowMobileNav(false)}
               aria-hidden="true"
             />
-            <aside ref={drawerRef} id="mobile-navigation" role="dialog" aria-modal="true" aria-label="Navigation menu" className="relative w-72 max-w-[85vw] h-full bg-white dark:bg-gray-900 shadow-2xl p-4 overflow-y-auto flex flex-col animate-slide-up">
-              <div className="flex items-center justify-between mb-6 px-2">
-                <span className="font-display font-black text-[#15803d] dark:text-green-300 text-lg tracking-widest uppercase">TRACE</span>
+            <aside ref={drawerRef} id="mobile-navigation" role="dialog" aria-modal="true" aria-label="Navigation menu" className="trace-nav-scroll relative w-72 max-w-[85vw] h-full bg-white dark:bg-gray-900 shadow-2xl p-4 overflow-y-auto overscroll-contain flex flex-col animate-slide-up">
+              <div className="flex shrink-0 items-center justify-between mb-6 px-2">
+                <TraceBrand />
                 <button
                   onClick={() => setShowMobileNav(false)}
                   aria-label="Close navigation menu"
-                  className="trace-action text-gray-400 dark:text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+                  className="trace-icon-button"
                 >
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"/></svg>
                 </button>
               </div>
-              <SidebarNav
-                user={user}
-                tab={tab}
-                showLabels
-                onNavigate={() => setShowMobileNav(false)}
-                onOpenSettings={() => openSettings('appearance')}
-                onLogout={() => setConfirmingLogout(true)}
-              />
+              <div className="flex-1">
+                <SidebarNav
+                  user={user}
+                  tab={tab}
+                  revealTab={guide.open ? guideNavTab : null}
+                  showLabels
+                  onNavigate={() => setShowMobileNav(false)}
+                  onOpenSettings={() => openSettings('appearance')}
+                  onLogout={() => setConfirmingLogout(true)}
+                />
+              </div>
             </aside>
           </div>
         )}

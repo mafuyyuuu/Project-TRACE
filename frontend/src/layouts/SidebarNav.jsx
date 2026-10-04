@@ -1,5 +1,6 @@
-import { Link } from 'react-router-dom';
-import { navItemsForUser } from '@/utils/navigation';
+import { useLayoutEffect, useRef, useState } from 'react';
+import { Link, useLocation } from 'react-router-dom';
+import { navGroupsForUser } from '@/utils/navigation';
 
 /**
  * The role-aware navigation list, rendered twice: as the icon-only desktop
@@ -19,6 +20,8 @@ import { navItemsForUser } from '@/utils/navigation';
 
 // Each icon is a path set rather than a component so the list below stays readable.
 const ICONS = {
+  more: <><rect x="3" y="3" width="7" height="7" rx="1.5" strokeWidth="2" /><rect x="14" y="3" width="7" height="7" rx="1.5" strokeWidth="2" /><rect x="3" y="14" width="7" height="7" rx="1.5" strokeWidth="2" /><rect x="14" y="14" width="7" height="7" rx="1.5" strokeWidth="2" /></>,
+  back: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="m12 5-7 7 7 7M5 12h15" />,
   message: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 11.5a8.5 8.5 0 0 1-8.5 8.5H4l-2 2v-8.5A8.5 8.5 0 0 1 10.5 5H19a2 2 0 0 1 2 2v4.5ZM7 10h9M7 14h6" />,
   book: <><path strokeWidth="2" strokeLinejoin="round" d="M12 6c-3-2-6-2-9-1v14c3-1 6-1 9 1 3-2 6-2 9-1V5c-3-1-6-1-9 1Z"/><path strokeWidth="2" d="M12 6v14"/></>,
   shield: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 3 3 7v5c0 5 9 9 9 9s9-4 9-9V7l-9-4Zm-4 9 3 3 5-6" />,
@@ -47,35 +50,62 @@ function Icon({ name, className }) {
 export default function SidebarNav({
   user,
   tab,
+  revealTab,
   showLabels = false,
   onNavigate = () => {},
   onOpenSettings,
   onLogout,
 }) {
-  const items = navItemsForUser(user);
+  const groups = navGroupsForUser(user);
+  const location = useLocation();
+  const activeGroup = groups.more.some(item => item.tab === tab) ? 'more' : 'main';
+  const context = `${location.key}:${user?.id}:${user?.role}:${user?.desk_assignment}:${user?.user_type}:${tab}`;
+  const [selection, setSelection] = useState({ context, group: activeGroup });
+  // A direct link, browser Back/Forward or account change reveals its group.
+  // Adjust during render so the active destination never flashes hidden.
+  if (selection.context !== context) setSelection({ context, group: activeGroup });
+  const group = revealTab
+    ? groups.more.some(item => item.tab === revealTab) ? 'more' : 'main'
+    : selection.context === context ? selection.group : activeGroup;
+  const navRef = useRef(null);
+  const focusAfterSwitch = useRef(false);
+  useLayoutEffect(() => {
+    const active = navRef.current?.querySelector('[aria-current="page"]');
+    active?.scrollIntoView?.({ block: 'nearest', inline: 'nearest', behavior: 'instant' });
+    if (focusAfterSwitch.current) {
+      focusAfterSwitch.current = false;
+      (active || navRef.current?.querySelector('a, button'))?.focus();
+    }
+  }, [context, group]);
+
+  const switchGroup = () => {
+    focusAfterSwitch.current = true;
+    setSelection({ context, group: group === 'main' ? 'more' : 'main' });
+  };
 
   const linkClass = (isActive) =>
     showLabels
-      ? `flex items-center gap-3 w-full rounded-2xl px-4 py-3 text-sm font-bold transition-all ${
+      ? `trace-nav-item w-full gap-3 px-4 py-3 text-sm font-bold leading-normal ${
           isActive ? 'bg-[#15803d] text-white shadow-md' : 'text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-gray-800 dark:hover:text-gray-100'
         }`
-      : `w-12 h-12 rounded-2xl flex items-center justify-center transition-all ${
+      : `trace-nav-item w-12 h-12 justify-center ${
           isActive ? 'bg-[#15803d] text-white shadow-md' : 'text-gray-400 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-gray-600 dark:hover:text-gray-300'
         }`;
 
   const actionClass = (danger) =>
     showLabels
-      ? `flex items-center gap-3 w-full rounded-2xl px-4 py-3 text-sm font-bold text-gray-500 dark:text-gray-400 transition-colors ${
+      ? `trace-nav-item w-full gap-3 px-4 py-3 text-sm font-bold leading-normal text-gray-500 dark:text-gray-400 ${
           danger ? 'hover:bg-red-50 dark:hover:bg-red-950/40 hover:text-red-500 dark:hover:text-red-300' : 'hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-gray-800 dark:hover:text-gray-100'
         }`
-      : `w-12 h-12 rounded-full flex items-center justify-center text-gray-400 dark:text-gray-400 transition-colors ${
+      : `trace-nav-item w-12 h-12 justify-center text-gray-400 dark:text-gray-400 ${
           danger ? 'hover:bg-red-50 dark:hover:bg-red-950/40 hover:text-red-500 dark:hover:text-red-300' : 'hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-gray-600 dark:hover:text-gray-300'
         }`;
 
   return (
-    <>
-      <nav className={showLabels ? 'flex flex-col gap-2' : 'flex flex-col gap-4'}>
-        {items.map((item) => (
+    <div className="flex min-h-full shrink-0 flex-col justify-between gap-6">
+      <nav ref={navRef} aria-label={group === 'main' ? 'Main navigation' : 'More navigation'} className="flex shrink-0 flex-col gap-2">
+        <span className={showLabels ? 'px-4 text-xs font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400' : 'sr-only'}>{group === 'main' ? 'Main' : 'More'}</span>
+        {groups[group].map((item) => (
           <Link
             key={item.tab}
             data-guide-tab={item.tab}
@@ -90,25 +120,38 @@ export default function SidebarNav({
             {showLabels && <span>{item.label}</span>}
           </Link>
         ))}
+        {groups.more.length > 0 && <button
+          type="button"
+          onClick={switchGroup}
+          aria-label={group === 'main' ? 'More' : 'Back to main'}
+          title={group === 'main' && activeGroup === 'more' ? `More — current page: ${groups.more.find(item => item.tab === tab)?.label}` : group === 'main' ? 'More' : 'Back to main'}
+          className={linkClass(group === 'main' && activeGroup === 'more')}
+        >
+          <Icon name={group === 'main' ? 'more' : 'back'} className="w-6 h-6 shrink-0" />
+          {showLabels && <span>{group === 'main' ? 'More' : 'Back to main'}</span>}
+          {group === 'main' && activeGroup === 'more' && <span className="sr-only">Current page is in More</span>}
+        </button>}
       </nav>
 
-      <div className={showLabels ? 'flex flex-col gap-2 mt-6 pt-6 border-t border-gray-100 dark:border-gray-700' : 'flex flex-col gap-4'}>
+      <div className="flex shrink-0 flex-col gap-2 pt-4 border-t border-gray-100 dark:border-gray-700">
         <button
+          type="button"
           onClick={() => {
             onOpenSettings();
             onNavigate();
           }}
           title="Preferences"
+          aria-label="Preferences"
           className={actionClass(false)}
         >
           <Icon name="cog" className="w-6 h-6 shrink-0" />
           {showLabels && <span>Preferences</span>}
         </button>
-        <button onClick={onLogout} title="Logout" className={actionClass(true)}>
+        <button type="button" onClick={onLogout} title="Logout" aria-label="Logout" className={actionClass(true)}>
           <Icon name="logout" className="w-6 h-6 shrink-0" />
           {showLabels && <span>Logout</span>}
         </button>
       </div>
-    </>
+    </div>
   );
 }

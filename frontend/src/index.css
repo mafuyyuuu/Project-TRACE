@@ -31,6 +31,7 @@
     @apply file:mr-3 file:rounded-xl file:border-0 file:bg-green-50 file:px-4 file:py-3 file:text-sm file:font-semibold file:text-green-800 hover:file:bg-green-100 dark:file:bg-green-950 dark:file:text-green-200 dark:hover:file:bg-green-900;
   }
   .trace-action { @apply transition-colors disabled:cursor-not-allowed disabled:opacity-60; }
+  .trace-nav-item { @apply flex shrink-0 items-center rounded-2xl transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-pine-600 dark:focus-visible:outline-green-400; }
   .trace-button {
     @apply inline-flex min-h-11 max-w-full shrink-0 items-center justify-center gap-2 rounded-xl border border-transparent px-4 py-3 text-sm font-semibold leading-normal text-center whitespace-normal break-words transition-colors disabled:cursor-not-allowed disabled:opacity-60;
   }
@@ -61,9 +62,17 @@
   .trace-section-header { @apply flex flex-wrap items-center justify-between gap-3 border-b border-gray-200 p-4 dark:border-gray-700 sm:p-6; }
   .trace-actions { @apply flex flex-wrap items-center gap-3; }
   .trace-error { @apply rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold leading-relaxed text-red-800 dark:border-red-800 dark:bg-red-950 dark:text-red-200; }
-  .trace-modal-panel { @apply relative z-10 flex w-full max-h-[calc(100dvh-2rem)] flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-2xl dark:border-gray-700 dark:bg-gray-900; }
+  /* Match the overlay's stable p-4 gutter even when root typography enlarges. */
+  .trace-modal-panel { @apply relative z-10 flex w-full max-h-[calc(100dvh-32px)] flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-2xl dark:border-gray-700 dark:bg-gray-900; }
   .trace-modal-body { @apply min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 pb-4 sm:px-6 sm:pb-6; }
   .trace-modal-footer { @apply shrink-0 border-t border-gray-200 p-4 dark:border-gray-700 sm:p-6; }
+}
+
+.trace-nav-scroll {
+  scrollbar-width: none;
+}
+.trace-nav-scroll::-webkit-scrollbar {
+  display: none;
 }
 
 :root {

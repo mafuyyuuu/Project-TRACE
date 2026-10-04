@@ -18,7 +18,7 @@ function roleNavItems(user) {
     // Only an alumnus can file the Graduate Application — a regular student
     // never sees the tab at all, not even to navigate to it directly.
     if (user?.user_type === 'alumni') {
-      items.push({ tab: 'graduate-application', to: '/dashboard?tab=graduate-application', label: 'Graduate Application', icon: 'cap' });
+      items.push({ tab: 'graduate-application', to: '/dashboard?tab=graduate-application', label: 'Graduate Application', icon: 'cap', group: 'more' });
     }
     return items;
   }
@@ -28,8 +28,8 @@ function roleNavItems(user) {
       { tab: 'dashboard', to: '/dashboard', label: 'Dashboard', icon: 'dashboard' },
       { tab: 'completed-logs', to: '/dashboard?tab=completed-logs', label: 'Completed Logs', icon: 'checklist' },
       { tab: 'messages', to: '/dashboard?tab=messages', label: 'Messages & Attachments', icon: 'message' },
-      { tab: 'grad-applications', to: '/dashboard?tab=grad-applications', label: 'Graduate Applications', icon: 'cap' },
-      { tab: 'reports', to: '/dashboard?tab=reports', label: 'Reports & Export', icon: 'report' },
+      { tab: 'grad-applications', to: '/dashboard?tab=grad-applications', label: 'Graduate Applications', icon: 'cap', group: 'more' },
+      { tab: 'reports', to: '/dashboard?tab=reports', label: 'Reports & Export', icon: 'report', group: 'more' },
     ];
   }
 
@@ -38,7 +38,7 @@ function roleNavItems(user) {
       { tab: 'dashboard', to: '/dashboard', label: 'Workspace Dashboard', icon: 'dashboard' },
       { tab: 'tracking-desk', to: '/dashboard?tab=tracking-desk', label: 'Tracking Desk', icon: 'users' },
       { tab: 'messages', to: '/dashboard?tab=messages', label: 'Messages & Attachments', icon: 'message' },
-      { tab: 'reports', to: '/dashboard?tab=reports', label: 'Reports & Export', icon: 'report' },
+      { tab: 'reports', to: '/dashboard?tab=reports', label: 'Reports & Export', icon: 'report', group: 'more' },
     ];
   }
 
@@ -47,12 +47,12 @@ function roleNavItems(user) {
       { tab: 'dashboard', to: '/dashboard', label: 'Dashboard', icon: 'dashboard' },
       { tab: 'admin-tracker', to: '/dashboard?tab=admin-tracker', label: 'Document Tracker', icon: 'document' },
       { tab: 'messages', to: '/dashboard?tab=messages', label: 'Messages & Attachments', icon: 'message' },
-      { tab: 'admin-logs', to: '/dashboard?tab=admin-logs', label: 'Activity Logs', icon: 'checklist' },
-      { tab: 'admin-security', to: '/dashboard?tab=admin-security', label: 'Security Logs', icon: 'shield' },
-      { tab: 'admin-reports', to: '/dashboard?tab=admin-reports', label: 'Reports & Export', icon: 'report' },
-      { tab: 'admin-analytics', to: '/dashboard?tab=admin-analytics', label: 'Efficiency Analytics', icon: 'bolt' },
-      { tab: 'admin-grad-applications', to: '/dashboard?tab=admin-grad-applications', label: 'Graduate Applications', icon: 'cap' },
-      { tab: 'admin-templates', to: '/dashboard?tab=admin-templates', label: 'Templates', icon: 'template' },
+      { tab: 'admin-logs', to: '/dashboard?tab=admin-logs', label: 'Activity Logs', icon: 'checklist', group: 'more' },
+      { tab: 'admin-security', to: '/dashboard?tab=admin-security', label: 'Security Logs', icon: 'shield', group: 'more' },
+      { tab: 'admin-reports', to: '/dashboard?tab=admin-reports', label: 'Reports & Export', icon: 'report', group: 'more' },
+      { tab: 'admin-analytics', to: '/dashboard?tab=admin-analytics', label: 'Efficiency Analytics', icon: 'bolt', group: 'more' },
+      { tab: 'admin-grad-applications', to: '/dashboard?tab=admin-grad-applications', label: 'Graduate Applications', icon: 'cap', group: 'more' },
+      { tab: 'admin-templates', to: '/dashboard?tab=admin-templates', label: 'Templates', icon: 'template', group: 'more' },
       { tab: 'admin-maintenance', to: '/dashboard?tab=admin-maintenance', label: 'System Maintenance', icon: 'wrench' },
     ];
   }
@@ -73,5 +73,13 @@ function roleNavItems(user) {
 
 export function navItemsForUser(user) {
   const items = roleNavItems(user);
-  return user?.role ? [...items, { tab: 'help', to: '/dashboard?tab=help', label: 'Help / FAQ', icon: 'book' }] : items;
+  return user?.role ? [...items, { tab: 'help', to: '/dashboard?tab=help', label: 'Help / FAQ', icon: 'book', group: 'more' }] : items;
+}
+
+export function navGroupsForUser(user) {
+  const items = navItemsForUser(user);
+  return {
+    main: items.filter(item => item.group !== 'more'),
+    more: items.filter(item => item.group === 'more'),
+  };
 }
