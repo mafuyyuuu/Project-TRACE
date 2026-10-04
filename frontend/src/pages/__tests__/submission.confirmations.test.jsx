@@ -7,6 +7,7 @@ import SignupPage from '@/pages/SignupPage';
 import ForgotPasswordPage from '@/pages/ForgotPasswordPage';
 import ResetPasswordPage from '@/pages/ResetPasswordPage';
 import api from '@/services/api';
+import plpLoginLogo from '@/assets/plp-login-logo.png';
 
 const { auth, reset } = vi.hoisted(() => ({
   auth: { login: vi.fn(), register: vi.fn(), loading: false, error: '' },
@@ -33,11 +34,14 @@ describe('Account submission confirmations', () => {
   it('offers Admin personal-browser trust unchecked on the authenticator challenge and saves only a confirmed grant', async () => {
     auth.login.mockResolvedValueOnce({ requires_2fa: true, mfa_method: 'authenticator', temp_token: 'admin-app', can_trust_browser: true });
     const { container } = renderPage(<LoginPage />);
+    expect(screen.getByRole('img', { name: 'Pamantasan ng Lungsod ng Pasig logo' })).toHaveAttribute('src', plpLoginLogo);
+    expect(screen.queryByRole('img', { name: 'TRACE logo' })).not.toBeInTheDocument();
     expect(screen.queryByRole('checkbox')).not.toBeInTheDocument();
     fireEvent.change(screen.getByPlaceholderText(/23-00123/), { target: { value: 'ADMIN001' } });
     fireEvent.change(container.querySelector('input[type=password]'), { target: { value: 'test-password' } });
     fireEvent.submit(container.querySelector('form'));
     const choice = await screen.findByRole('checkbox');
+    expect(screen.getByRole('img', { name: 'Pamantasan ng Lungsod ng Pasig logo' })).toHaveAttribute('src', plpLoginLogo);
     expect(choice).not.toBeChecked();
     fireEvent.click(choice);
     fireEvent.change(screen.getByPlaceholderText('Enter 6-digit OTP'), { target: { value: '123456' } });

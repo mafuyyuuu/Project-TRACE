@@ -8,7 +8,7 @@ import DashboardAlerts from '@/components/DashboardAlerts';
 import { endOtherSessions } from '@/services/authService';
 import { disconnectRealtime } from '@/services/realtimeService';
 import UserAvatar from '@/components/UserAvatar';
-import { TEXT_SIZES } from '@/utils/textSize';
+import PreferencesModal from '@/components/PreferencesModal';
 import { getProfileCompletion } from '@/utils/profileCompletion';
 import AuthenticatorSettings from '@/components/AuthenticatorSettings';
 import useSecurityLogs from '@/hooks/useSecurityLogs';
@@ -81,23 +81,8 @@ export default function ProfileSettingsModal({
   );
 
   if (activeTab === 'appearance') return (
-    <ModalShell open onClose={onClose} title="Preferences" maxWidth="max-w-xl">
-      <section className="space-y-4" aria-label="Appearance">
-        <h3 className="font-bold">Appearance</h3>
-        <p className="text-sm text-gray-600 dark:text-gray-300">Choose how TRACE looks on this device.</p>
-        <button type="button" aria-pressed={darkMode} onClick={onToggleTheme}
-          className="trace-button trace-button-secondary">
-          {darkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
-        </button>
-        <label className="trace-label block">Text size
-          <select value={textSize} onChange={event => onTextSizeChange?.(event.target.value)}
-            className="trace-control mt-2 w-full">
-            {TEXT_SIZES.map(size => <option key={size} value={size}>{size}%{size === 100 ? ' (Default)' : ''}</option>)}
-          </select>
-        </label>
-        <p className="text-sm text-gray-600 dark:text-gray-300">Applies across TRACE on this browser, including menus, forms, tables and chat. Saved automatically. Printed documents keep their original formatting.</p>
-      </section>
-    </ModalShell>
+    <PreferencesModal onClose={onClose} darkMode={darkMode} onToggleTheme={onToggleTheme}
+      textSize={textSize} onTextSizeChange={onTextSizeChange} />
   );
 
   const confirmAction = async () => {

@@ -129,9 +129,12 @@ describe('ProfileSettingsModal', () => {
     expect(onAvatarChange).toHaveBeenCalledWith(file);
     expect(onSave).not.toHaveBeenCalled();
   });
-  it('keeps Preferences dedicated to appearance rather than profile editing', () => {
+  it.each([
+    STUDENT, { ...STUDENT, user_type: 'alumni' }, { ...CLERK, role: 'admin' },
+    { ...CLERK, desk_assignment: 'Window 1' }, CLERK, { ...CLERK, desk_assignment: 'Secretary' },
+  ])('keeps Preferences dedicated to appearance for $role/$user_type/$desk_assignment', (user) => {
     const toggle = vi.fn();
-    renderModal({ initialTab: 'appearance', onToggleTheme: toggle });
+    renderModal({ user, initialTab: 'appearance', onToggleTheme: toggle });
     expect(screen.getByRole('dialog', { name: 'Preferences' })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Save Profile' })).not.toBeInTheDocument();
     expect(screen.queryByDisplayValue('ana@plp.edu.ph')).not.toBeInTheDocument();
