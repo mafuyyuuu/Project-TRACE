@@ -1,3 +1,4 @@
+import { manilaYear, yearError } from '@/utils/profileYears';
 import Button from '@/components/Button';
 import { INPUT_LIMITS } from '@/utils/inputLimits';
 import ConfirmDialog from '@/components/ConfirmDialog';
@@ -27,6 +28,8 @@ const STATUS_LABELS = {
  * this component adapts.
  */
 function DynamicField({ field, value, onChange }) {
+  const isGraduationYear = field.field_key === 'year_graduated';
+  const problem = isGraduationYear ? yearError(value, { label: field.label, minimum: 2002, required: Boolean(field.is_required) }) : '';
   const shared = {
     id: field.field_key,
     value: value ?? '',
@@ -59,10 +62,13 @@ function DynamicField({ field, value, onChange }) {
           ))}
         </select>
       ) : (
-        <input maxLength={['number', 'date'].includes(field.field_type) ? undefined : field.field_type === 'email' ? INPUT_LIMITS.email : field.field_type === 'tel' ? INPUT_LIMITS.phone : INPUT_LIMITS.shortText}
+        <input maxLength={isGraduationYear || ['number', 'date'].includes(field.field_type) ? undefined : field.field_type === 'email' ? INPUT_LIMITS.email : field.field_type === 'tel' ? INPUT_LIMITS.phone : INPUT_LIMITS.shortText}
           {...shared}
+          inputMode={isGraduationYear ? 'numeric' : undefined} pattern={isGraduationYear ? '[1-9][0-9]{3}' : undefined}
+          aria-invalid={isGraduationYear ? Boolean(problem) : undefined}
+          aria-describedby={isGraduationYear ? `${field.field_key}-hint${problem ? ` ${field.field_key}-error` : ''}` : undefined}
           type={
-            field.field_type === 'number' ? 'number'
+            isGraduationYear ? 'text' : field.field_type === 'number' ? 'number'
               : field.field_type === 'date' ? 'date'
               : field.field_type === 'email' ? 'email'
               : field.field_type === 'tel' ? 'tel'
@@ -71,6 +77,8 @@ function DynamicField({ field, value, onChange }) {
         />
       )}
 
+      {isGraduationYear && <p id={`${field.field_key}-hint`} className="text-xs text-gray-600 dark:text-gray-300">2002–{manilaYear()}, four digits.</p>}
+      {problem && <p id={`${field.field_key}-error`} className="text-xs text-amber-800 dark:text-amber-200">{problem}</p>}
       {field.help_text && <p className="text-[10px] text-gray-400 dark:text-gray-400">{field.help_text}</p>}
     </div>
   );

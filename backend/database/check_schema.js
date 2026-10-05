@@ -11,6 +11,7 @@ const requirements = [
   ['onboarding_guides', ['user_id', 'shown_at'], 'migrate_onboarding_guides.js'],
   ['security_logs', ['user_id', 'event_type', 'created_at'], 'migrate_batch8.js'],
   ['student_profiles', ['user_id', 'birth_date', 'home_address', 'shs_grad_year'], 'migrate_student_profiles.js'],
+  ['student_profiles', ['graduation_year'], 'migrate_graduation_year.js'],
   ['trusted_browsers', ['user_id', 'token_hash', 'token_version'], 'migrate_trusted_browsers.js'],
   ['authenticator_credentials', ['user_id', 'active_secret', 'pending_secret', 'last_counter'], 'migrate_authenticator.js'],
   ['authenticator_recovery_codes', ['user_id', 'code_hash', 'used_at'], 'migrate_authenticator.js'],

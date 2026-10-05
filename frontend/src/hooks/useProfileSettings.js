@@ -1,3 +1,4 @@
+import { profileYearErrors } from '@/utils/profileYears';
 import { PASSWORD_REQUIREMENTS, validNewPassword } from '@/utils/passwordPolicy';
 import { useRef, useState } from 'react';
 import { updateProfile, uploadProfilePicture, getMe } from '@/services/authService';
@@ -23,15 +24,16 @@ function formFromUser(user) {
     civil_status: user?.civil_status || '',
     maiden_name: user?.maiden_name || '',
     home_address: user?.home_address || '',
-    last_attendance_year: user?.last_attendance_year || '',
+    graduation_year: user?.graduation_year == null ? '' : String(user.graduation_year),
+    last_attendance_year: user?.last_attendance_year == null ? '' : String(user.last_attendance_year),
     is_transfer_student: isTransferStudent(user?.is_transfer_student),
     previous_school: user?.previous_school || '',
     elem_school: user?.elem_school || '',
-    elem_grad_year: user?.elem_grad_year || '',
+    elem_grad_year: user?.elem_grad_year == null ? '' : String(user.elem_grad_year),
     jhs_school: user?.jhs_school || '',
-    jhs_grad_year: user?.jhs_grad_year || '',
+    jhs_grad_year: user?.jhs_grad_year == null ? '' : String(user.jhs_grad_year),
     shs_school: user?.shs_school || '',
-    shs_grad_year: user?.shs_grad_year || '',
+    shs_grad_year: user?.shs_grad_year == null ? '' : String(user.shs_grad_year),
   };
 }
 
@@ -117,6 +119,8 @@ export default function useProfileSettings(user) {
     if (e) e.preventDefault();
     if (savingRef.current) return false;
     if (profileData.password && !validNewPassword(profileData.password)) { setError(PASSWORD_REQUIREMENTS); return false; }
+    const yearErrors = profileYearErrors(profileData, user);
+    if (Object.keys(yearErrors).length) { setError(Object.values(yearErrors)[0]); return false; }
     const academicChanged = String(profileData.college_id || '') !== String(user?.college_id || '') || profileData.program !== (user?.program || '');
     if (academicChanged && (!/^[1-9]\d*$/.test(profileData.college_id) || !profileData.program)) {
       setError('Choose College and an active Program/Course belonging to it before saving.');

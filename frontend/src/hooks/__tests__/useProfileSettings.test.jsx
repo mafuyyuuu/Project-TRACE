@@ -298,3 +298,25 @@ it('omits unchanged legacy academic fields while saving unrelated profile change
   const payload = updateProfile.mock.calls.at(-1)[0];
   expect(payload).not.toHaveProperty('college_id'); expect(payload).not.toHaveProperty('program');
 });
+
+it('rejects invalid years before any staged photo or profile write and retains drafts', async () => {
+  const user = { ...USER, role: 'student', user_type: 'alumni' };
+  const { result } = renderHook(() => useProfileSettings(user));
+  act(() => { result.current.setField('graduation_year', '2.026e3'); result.current.changeAvatar(new File(['x'], 'draft.png')); });
+  await act(async () => expect(await result.current.saveProfile()).toBe(false));
+  expect(result.current.error).toContain('exactly four digits');
+  expect(result.current.profileData.graduation_year).toBe('2.026e3');
+  expect(result.current.avatarFile).not.toBeNull();
+  expect(updateProfile).not.toHaveBeenCalled(); expect(uploadProfilePicture).not.toHaveBeenCalled();
+});
+it('reads saved integer years as exact draft strings and persists separate graduation without changing attendance', async () => {
+  const user = { ...USER, role: 'student', user_type: 'alumni', last_attendance_year: 1980, elem_grad_year: 1970, graduation_year: 2002 };
+  const { result, unmount } = renderHook(() => useProfileSettings(user));
+  expect(result.current.profileData).toMatchObject({ graduation_year: '2002', last_attendance_year: '1980', elem_grad_year: '1970' });
+  act(() => result.current.setField('graduation_year', '2024'));
+  await act(async () => expect(await result.current.saveProfile()).toBe(true));
+  expect(updateProfile).toHaveBeenCalledWith(expect.objectContaining({ graduation_year: '2024', last_attendance_year: '1980', elem_grad_year: '1970' }));
+  const saved = JSON.parse(localStorage.getItem('trace_user')); unmount();
+  const reopened = renderHook(() => useProfileSettings(saved));
+  expect(reopened.result.current.profileData).toMatchObject({ graduation_year: '2024', last_attendance_year: '1980', elem_grad_year: '1970' });
+});

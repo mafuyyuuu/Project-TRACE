@@ -1292,7 +1292,8 @@ describe('TOR study years', () => {
 
 describe('saved student profile gate', () => {
   it.each([{}, { birth_date: '  ' }, { is_transfer_student: 1, previous_school: '' },
-    { user_type: 'alumni', has_grad_application: true, last_attendance_year: null }, { sex: 'Female', civil_status: 'Married', maiden_name: '' }])
+    { user_type: 'alumni', has_grad_application: true, graduation_year: null, last_attendance_year: 2024 },
+    { user_type: 'alumni', has_grad_application: true, graduation_year: 2001 }, { elem_grad_year: -2012 }, { shs_grad_year: 9999 }, { sex: 'Female', civil_status: 'Married', maiden_name: '' }])
     ('refuses incomplete saved profile %j before request/log writes', async patch => {
       const saved = Object.keys(patch).length ? { ...COMPLETE, ...patch } : { role: 'student', email: COMPLETE.email, phone_number: COMPLETE.phone_number };
       userModel.getProfileById.mockResolvedValue([saved]);

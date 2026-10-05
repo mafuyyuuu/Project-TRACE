@@ -11,6 +11,7 @@ async function migrate(executor = pool) {
     civil_status ENUM('Single', 'Married', 'Widowed', 'Divorced', 'Separated'),
     maiden_name VARCHAR(255),
     home_address VARCHAR(500),
+    graduation_year INT NULL,
     last_attendance_year INT,
     is_transfer_student BOOLEAN DEFAULT FALSE,
     previous_school VARCHAR(255),

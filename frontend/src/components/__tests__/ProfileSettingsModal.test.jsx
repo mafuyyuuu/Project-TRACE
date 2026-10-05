@@ -73,10 +73,10 @@ describe('ProfileSettingsModal', () => {
     for (const name of ['Elementary', 'Junior High School', 'Senior High School']) {
       expect(screen.getByRole('heading', { name, level: 4 })).toBeInTheDocument();
     }
-    for (const label of ['Elementary School', 'Elementary Graduation Year', 'Junior High School', 'Junior High Graduation Year', 'Senior High School', 'Senior High Graduation Year']) {
+    for (const label of ['Elementary School', 'Elementary Year Graduated', 'Junior High School', 'Junior High Year Graduated', 'Senior High School', 'Senior High Year Graduated']) {
       expect(screen.getByLabelText(`${label} *`)).toBeRequired();
     }
-    if (user_type === 'alumni') expect(screen.getByLabelText('Graduation Year *')).toBeRequired();
+    if (user_type === 'alumni') expect(screen.getByLabelText('PLP/College Year Graduated *')).toBeRequired();
     expect(baseProps.onSave).not.toHaveBeenCalled();
   });
 
@@ -124,16 +124,16 @@ describe('ProfileSettingsModal', () => {
       draft={{ ...completeProfile, sex: 'Female', civil_status: 'Married', is_transfer_student: true }} />);
     expect(screen.getByLabelText(/Maiden Name/)).toHaveAccessibleDescription('Required: Maiden Name.');
     expect(screen.queryByText('Required: Previous School.')).not.toBeInTheDocument();
-    expect(screen.queryByText('Required: Graduation Year.')).not.toBeInTheDocument();
+    expect(screen.queryByText('PLP/College Year Graduated is required.')).not.toBeInTheDocument();
     fireEvent.change(screen.getByLabelText(/Civil Status/), { target: { value: 'Single' } });
     expect(screen.queryByLabelText(/Maiden Name/)).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: /^Personal Info$/ })).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: /Educational Background/ }));
-    expect(screen.getByLabelText(/^Graduation Year/)).toHaveAccessibleDescription('Required: Graduation Year.');
+    expect(screen.getByLabelText(/^PLP\/College Year Graduated/)).toHaveAccessibleDescription(expect.stringContaining('PLP/College Year Graduated is required.'));
     expect(screen.getByLabelText(/Previous School/)).toHaveAccessibleDescription('Required: Previous School.');
     fireEvent.change(screen.getByLabelText('Transfer Student?'), { target: { value: 'no' } });
     expect(screen.queryByText('Required: Previous School.')).not.toBeInTheDocument();
-    fireEvent.change(screen.getByLabelText(/^Graduation Year/), { target: { value: '2024' } });
+    fireEvent.change(screen.getByLabelText(/^PLP\/College Year Graduated/), { target: { value: '2024' } });
     expect(screen.getByRole('button', { name: /^Educational Background$/ })).toBeInTheDocument();
   });
 
@@ -380,4 +380,37 @@ describe('ProfileSettingsModal', () => {
     expect(onClose).not.toHaveBeenCalled();
     nativeAlert.mockRestore();
   });
+});
+
+it('keeps attendance separate, college graduation optional for current students and school years required', () => {
+  render(<DraftProfile user={{ ...STUDENT, user_type: 'student' }} draft={{ ...completeProfile, last_attendance_year: '1980', graduation_year: '' }} initialTab="educational" />);
+  expect(screen.getByLabelText('Last Attendance Year')).toHaveValue('1980');
+  expect(screen.getByLabelText('PLP/College Year Graduated')).not.toBeRequired();
+  expect(screen.getByLabelText('PLP/College Year Graduated')).toHaveValue('');
+  for (const label of ['Elementary', 'Junior High', 'Senior High']) {
+    const input = screen.getByLabelText(`${label} Year Graduated *`);
+    expect(input).toBeRequired(); expect(input).toHaveAttribute('inputmode', 'numeric');
+  }
+});
+it.each(['-2020', '2020.5', '2e3', '2001', '9999', '202', '20265'])('rejects invalid alumni graduation before staging Save and keeps the draft: %s', value => {
+  render(<DraftProfile user={{ ...STUDENT, user_type: 'alumni' }} draft={{ ...completeProfile, graduation_year: value }} initialTab="educational" />);
+  const input = screen.getByLabelText('PLP/College Year Graduated *');
+  fireEvent.click(screen.getByRole('button', { name: 'Save Profile' }));
+  expect(input).toHaveValue(value);
+  expect(input).toHaveAttribute('aria-invalid', 'true');
+  expect(input).toHaveAccessibleDescription(expect.stringContaining('PLP/College Year Graduated must'));
+  expect(screen.queryByRole('dialog', { name: 'Confirm Profile Save' })).not.toBeInTheDocument();
+  expect(baseProps.onSave).not.toHaveBeenCalled();
+});
+it('reveals and focuses the invalid education field when saving from Personal Info, then permits a corrected draft', () => {
+  render(<DraftProfile draft={{ ...completeProfile, elem_grad_year: '-1980' }} />);
+  fireEvent.click(screen.getByRole('button', { name: 'Save Profile' }));
+  const input = screen.getByLabelText('Elementary Year Graduated *');
+  expect(input).toHaveFocus(); expect(input).toHaveValue('-1980');
+  expect(screen.queryByRole('dialog', { name: 'Confirm Profile Save' })).not.toBeInTheDocument();
+  fireEvent.change(input, { target: { value: '1980' } });
+  expect(input).toHaveAttribute('aria-invalid', 'false');
+  expect(screen.getByRole('button', { name: /^Educational Background$/ })).toBeInTheDocument();
+  fireEvent.click(screen.getByRole('button', { name: 'Save Profile' }));
+  expect(screen.getByRole('dialog', { name: 'Confirm Profile Save' })).toBeInTheDocument();
 });

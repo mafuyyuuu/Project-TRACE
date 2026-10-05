@@ -31,7 +31,7 @@ it.each([false, true])('reads saved personal/education fields and optionally loc
   const [sql, params] = executor.query.mock.calls[0];
   expect(sql).toContain('LEFT JOIN student_profiles p ON p.user_id = u.id');
   for (const field of ['birth_date', 'home_address', 'civil_status', 'maiden_name', 'previous_school', 'is_transfer_student',
-    'last_attendance_year', 'elem_school', 'elem_grad_year', 'jhs_school', 'jhs_grad_year', 'shs_school', 'shs_grad_year']) expect(sql).toContain('p.' + field);
+    'graduation_year', 'last_attendance_year', 'elem_school', 'elem_grad_year', 'jhs_school', 'jhs_grad_year', 'shs_school', 'shs_grad_year']) expect(sql).toContain('p.' + field);
   expect(sql).not.toMatch(/password_hash|otp|u\.\*/);
   expect(sql.endsWith(' FOR UPDATE')).toBe(lock);
   expect(params).toEqual([3]);
@@ -42,4 +42,21 @@ it('checks three distinct prior hashes without counting repeated current-passwor
   const [sql, params] = executor.query.mock.calls[0];
   expect(sql).toContain('password_hash <> ?'); expect(sql).toContain('GROUP BY password_hash');
   expect(sql).toContain('LIMIT 3'); expect(params).toEqual([3, 'current-hash']);
+});
+
+it('writes graduation and attendance into separate parameterized columns', async () => {
+  const executor = { query: vi.fn().mockResolvedValue([{}]) };
+  await model.upsertProfile(3, { graduation_year: '2002', last_attendance_year: '1980' }, executor);
+  const [sql, params] = executor.query.mock.calls[0];
+  expect(sql).toContain('home_address, graduation_year, last_attendance_year');
+  expect(sql).toContain('graduation_year = VALUES(graduation_year)');
+  expect(sql.match(/\?/g)).toHaveLength(params.length);
+  expect(params.slice(8, 10)).toEqual(['2002', '1980']);
+});
+it('includes both year meanings in staff student lookup without exposing credentials', async () => {
+  const executor = { query: vi.fn().mockResolvedValue([[]]) };
+  await model.findStudentBasicInfo('SYNTHETIC', executor);
+  const [sql, params] = executor.query.mock.calls[0];
+  expect(sql).toContain('p.graduation_year, p.last_attendance_year');
+  expect(sql).not.toContain('password_hash'); expect(params).toEqual(['SYNTHETIC']);
 });

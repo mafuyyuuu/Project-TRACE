@@ -17,10 +17,10 @@ it('keeps personal and education tab indicators consistent with progress', () =>
   expect(getProfileCompletion({ ...COMPLETE, birth_date: null })).toMatchObject({ missingPersonal: true, missingEdu: false });
   expect(getProfileCompletion({ ...COMPLETE, jhs_school: '' })).toMatchObject({ missingPersonal: false, missingEdu: true });
 });
-it('requires alumni attendance, married female maiden name and transfer school conditionally', () => {
+it('requires separate alumni graduation, married female maiden name and transfer school conditionally', () => {
   const profile = { ...COMPLETE, user_type: 'alumni', sex: 'Female', civil_status: 'Married', is_transfer_student: 1 };
-  expect(getProfileCompletion(profile).missing.map(item => item.field)).toEqual(['maiden_name', 'last_attendance_year', 'previous_school']);
-  expect(getProfileCompletion({ ...profile, maiden_name: 'Name', last_attendance_year: 2024, previous_school: 'School' }).complete).toBe(true);
+  expect(getProfileCompletion(profile).missing.map(item => item.field)).toEqual(['maiden_name', 'graduation_year', 'previous_school']);
+  expect(getProfileCompletion({ ...profile, maiden_name: 'Name', graduation_year: 2024, previous_school: 'School' }).complete).toBe(true);
 });
 it.each([false, 0, '0', null, undefined])('does not require a transfer school for %s', value => {
   expect(isTransferStudent(value)).toBe(false);
@@ -32,4 +32,12 @@ it.each([true, 1, '1'])('requires transfer school for %s', value => {
 });
 it.each(['admin', 'clerk'])('does not classify staff with legacy student user_type as students: %s', role => {
   expect(getProfileCompletion({ role, user_type: 'student' })).toMatchObject({ complete: true, progress: 100 });
+});
+
+it('never infers graduation from historical attendance and rejects malformed saved years for completion', () => {
+  expect(getProfileCompletion({ ...COMPLETE, user_type: 'alumni', last_attendance_year: 2024 }).missing).toContainEqual({ field: 'graduation_year', label: 'PLP/College Year Graduated' });
+  expect(getProfileCompletion({ ...COMPLETE, elem_grad_year: -2012 }).complete).toBe(false);
+  expect(getProfileCompletion({ ...COMPLETE, elem_grad_year: 1980 }).complete).toBe(true);
+  expect(getProfileCompletion({ ...COMPLETE, user_type: 'alumni', graduation_year: 2001 }).complete).toBe(false);
+  expect(getProfileCompletion({ ...COMPLETE, shs_grad_year: 9999 }).complete).toBe(false);
 });

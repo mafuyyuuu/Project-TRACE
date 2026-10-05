@@ -110,15 +110,16 @@ export default function UserDetailModal({ open, onClose, user, onEdit, onToggleA
           <Field label="Home Address" value={user.home_address} />
           <Field label="Enrollment Status" value={user.enrollment_status} />
           <Field label="Study Load" value={user.study_load} />
+          <Field label="PLP/College Year Graduated" value={user.graduation_year} />
           <Field label="Last Attendance Year" value={user.last_attendance_year} />
           <Field label="Transfer Student" value={user.is_transfer_student ? 'Yes' : 'No'} />
           <Field label="Previous School" value={user.previous_school} />
           <Field label="Elementary School" value={user.elem_school} />
-          <Field label="Elementary Graduation" value={user.elem_grad_year} />
+          <Field label="Elementary Year Graduated" value={user.elem_grad_year} />
           <Field label="Junior High School" value={user.jhs_school} />
-          <Field label="Junior High Graduation" value={user.jhs_grad_year} />
+          <Field label="Junior High Year Graduated" value={user.jhs_grad_year} />
           <Field label="Senior High School" value={user.shs_school} />
-          <Field label="Senior High Graduation" value={user.shs_grad_year} />
+          <Field label="Senior High Year Graduated" value={user.shs_grad_year} />
           <RegistrationProof path={user.id_proof_path} />
         </>}
       </div>
