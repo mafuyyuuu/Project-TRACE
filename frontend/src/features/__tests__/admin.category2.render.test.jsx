@@ -374,6 +374,25 @@ describe('ReportsPanel', () => {
     await waitFor(() => expect(reportsService.getDocumentReport).toHaveBeenCalled());
   });
 
+  it.each([
+    ['Admin', ADMIN, 'admin-reports'],
+    ['Window 1', { role: 'clerk', desk_assignment: 'Window 1' }, 'reports'],
+    ['Secretary', { role: 'clerk', desk_assignment: 'Secretary' }, 'reports'],
+  ])('keeps %s reports ordered Filters, KPIs, Records with one header export', async (_, account, tab) => {
+    render(<ReportsPanel user={account} currentTab={tab} />);
+    const filters = await screen.findByRole('region', { name: 'Filters' });
+    const summary = screen.getByRole('region', { name: 'Report summary' });
+    const records = screen.getByRole('region', { name: 'Records' });
+    expect(filters.nextElementSibling).toBe(summary);
+    expect(summary.nextElementSibling).toBe(records);
+    expect(screen.getAllByRole('button', { name: 'Export' })).toHaveLength(1);
+    expect(screen.getByRole('button', { name: 'Export' }).closest('.trace-page-header')).toBeInTheDocument();
+    expect(within(summary).getByText('Revenue')).toBeInTheDocument();
+    expect(within(records).getAllByRole('columnheader').map(header => header.textContent)).toEqual([
+      'Requested On', 'Last Updated', 'Tracking', 'Student', 'Document', 'Status', 'Payment', 'Amount',
+    ]);
+  });
+
   it('shows the summary for the current slice', async () => {
     await renderPanel();
     // "Records"/"Completed"/"₱50.00" each appear in both the summary cards and

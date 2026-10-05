@@ -1,7 +1,7 @@
 import Button from '@/components/Button';
 import ExportDropdown from '@/components/ExportDropdown';
 import { INPUT_LIMITS } from '@/utils/inputLimits';
-import { useState } from 'react';
+import { useId, useState } from 'react';
 import StudentProfileModal from '@/components/StudentProfileModal';
 import { formatDateTime } from '@/utils/formatters';
 import useReports from '@/features/admin/useReports';
@@ -50,10 +50,13 @@ function StatCard({ label, value, tone = 'default' }) {
 export default function ReportsPanel({ user, currentTab }) {
   const { tableRef, ...r } = useReports(user, currentTab);
   const [viewProfileId, setViewProfileId] = useState(null);
+  const filtersId = useId();
+  const recordsId = useId();
 
   if (r.loading) return <DashboardLoading />;
 
-  const summary = r.report?.summary;
+  const report = r.refreshing ? null : r.report;
+  const summary = report?.summary;
 
   return (
     <>
@@ -78,8 +81,8 @@ export default function ReportsPanel({ user, currentTab }) {
         </div>
 
         {/* Filters */}
-        <div className="trace-section trace-section-body">
-          <h3 className="text-sm font-bold text-gray-900 dark:text-gray-100 mb-4">Filters</h3>
+        <section className="trace-section trace-section-body" aria-labelledby={filtersId}>
+          <h3 id={filtersId} className="text-sm font-bold text-gray-900 dark:text-gray-100 mb-4">Filters</h3>
           <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-3">
             <div className="flex flex-col gap-1.5">
               <label className="trace-label">From</label>
@@ -126,26 +129,24 @@ export default function ReportsPanel({ user, currentTab }) {
             </Button>
 
           </div>
-        </div>
+        </section>
 
         {/* Summary for the current filter slice */}
-        {summary && (
-          <div className="grid [grid-template-columns:repeat(auto-fit,minmax(min(100%,9rem),1fr))] gap-4">
-            <StatCard label="Records" value={summary.total.toLocaleString()} />
-            <StatCard label="Completed" value={summary.completed.toLocaleString()} tone="good" />
-            <StatCard label="Rejected" value={summary.rejected.toLocaleString()} tone="bad" />
-            <StatCard label="Paid" value={summary.paid.toLocaleString()} />
-            <StatCard label="Revenue" value={formatPeso(summary.revenue)} tone="good" />
-          </div>
-        )}
+        <section aria-label="Report summary" aria-busy={r.refreshing} className="grid [grid-template-columns:repeat(auto-fit,minmax(min(100%,9rem),1fr))] gap-4">
+          <StatCard label="Records" value={summary ? summary.total.toLocaleString() : '—'} />
+          <StatCard label="Completed" value={summary ? summary.completed.toLocaleString() : '—'} tone="good" />
+          <StatCard label="Rejected" value={summary ? summary.rejected.toLocaleString() : '—'} tone="bad" />
+          <StatCard label="Paid" value={summary ? summary.paid.toLocaleString() : '—'} />
+          <StatCard label="Revenue" value={summary ? formatPeso(summary.revenue) : '—'} tone="good" />
+        </section>
 
         {/* Filtered records */}
-        <div className="trace-section overflow-hidden">
+        <section className="trace-section overflow-hidden" aria-labelledby={recordsId} aria-busy={r.refreshing}>
           <div className="trace-section-header border-gray-100 dark:border-gray-700">
-            <h3 className="text-sm font-bold text-gray-900 dark:text-gray-100">Records</h3>
-            {r.report && (
+            <h3 id={recordsId} className="text-sm font-bold text-gray-900 dark:text-gray-100">Records</h3>
+            {report && (
               <span className="text-[10px] font-bold text-gray-400 dark:text-gray-400">
-                Page {r.report.page} of {r.report.totalPages || 1}
+                Page {report.page} of {report.totalPages || 1}
               </span>
             )}
           </div>
@@ -166,7 +167,7 @@ export default function ReportsPanel({ user, currentTab }) {
                 </tr>
               </thead>
               <tbody>
-                {(r.report?.documents || []).map((d) => (
+                {(report?.documents || []).map((d) => (
                   <tr key={d.id} className="border-b border-gray-50 dark:border-gray-700 hover:bg-gray-50/50 dark:hover:bg-gray-800/50">
                     <td className="py-3 px-5 text-xs text-gray-500 dark:text-gray-400">{formatDateTime(d.created_at)}</td>
                     <td className="py-3 px-3 text-xs text-gray-500 dark:text-gray-400">{formatDateTime(d.updated_at)}</td>
@@ -191,10 +192,10 @@ export default function ReportsPanel({ user, currentTab }) {
                     </td>
                   </tr>
                 ))}
-                {(r.report?.documents || []).length === 0 && (
+                {(report?.documents || []).length === 0 && (
                   <tr>
                     <td colSpan={8} className="py-10 text-center text-xs text-gray-400 dark:text-gray-400 font-semibold">
-                      No records match these filters.
+                      {r.refreshing ? <span role="status">Updating report…</span> : report ? 'No records match these filters.' : 'Report unavailable. Apply Filters to retry.'}
                     </td>
                   </tr>
                 )}
@@ -202,19 +203,19 @@ export default function ReportsPanel({ user, currentTab }) {
             </table>
           </div>
 
-          {r.report && r.report.totalPages > 1 && (
+          {report && report.totalPages > 1 && (
             <div className="p-4 border-t border-gray-100 dark:border-gray-700 flex justify-center gap-2">
               <Button onClick={() => r.goToPage(r.page - 1)} disabled={r.page <= 1}
                 className="trace-button trace-button-secondary">
                 Previous
               </Button>
-              <Button onClick={() => r.goToPage(r.page + 1)} disabled={r.page >= r.report.totalPages}
+              <Button onClick={() => r.goToPage(r.page + 1)} disabled={r.page >= report.totalPages}
                 className="trace-button trace-button-secondary">
                 Next
               </Button>
             </div>
           )}
-        </div>
+        </section>
       </div>
     </>
   );
