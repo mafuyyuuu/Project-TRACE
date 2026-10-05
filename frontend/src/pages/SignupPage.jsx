@@ -6,6 +6,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import useAuth from '@/hooks/useAuth'
 import { getColleges } from '@/services/referenceService'
 import ModalShell from '@/components/ModalShell'
+import PlpBrand from '@/components/PlpBrand'
 import FileUploadField from '@/components/FileUploadField'
 import useSignupOcr from '@/hooks/useSignupOcr'
 import useNotificationDismissal from '@/hooks/useNotificationDismissal'
@@ -104,6 +105,7 @@ export default function SignupPage() {
 
       <div className="trace-section trace-section-body max-w-md w-full relative z-10">
         <div className="text-center mb-10">
+          <div className="flex justify-center mb-4"><PlpBrand /></div>
           <h1 className="trace-page-title mb-2">TRACE Sign Up</h1>
           <p className="text-sm font-semibold text-gray-500 dark:text-gray-400 mb-1">PLP Registrar's Office</p>
         </div>

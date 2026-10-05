@@ -1,19 +1,19 @@
 import { Link } from 'react-router-dom'
-import TraceBrand from '@/components/TraceBrand'
+import PlpBrand from '@/components/PlpBrand'
 
 /**
  * The grey-and-green split screen shared by the public auth pages, so the
  * recovery screens are visibly part of the same system as Login. Purely
  * presentational — it holds no state and makes no API calls.
  */
-export default function AuthShell({ title, subtitle, children, footer, brand }) {
+export default function AuthShell({ title, subtitle, children, footer }) {
   return (
     <div className="min-h-screen flex flex-col md:flex-row font-body relative overflow-hidden bg-white dark:bg-gray-900">
       {/* Left Column (Light Spec) */}
       <div className="md:w-1/2 bg-[#f8f9fa] dark:bg-gray-900 p-4 sm:p-8 lg:p-12 xl:p-24 flex flex-col justify-between shrink-0">
         <div>
           <Link to="/" className="inline-flex items-center gap-3" aria-label="TRACE — PLP Registrar">
-            {brand ?? <TraceBrand large />}
+            <PlpBrand />
           </Link>
         </div>
 

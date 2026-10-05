@@ -2,19 +2,83 @@
 
 Use this guide to update the existing `~/Project-TRACE` server with bundled MySQL (`mysql:3306/trace_db`) and its uploads volume. Run server commands in SSH, from the project folder. Keep the same terminal open, copy each command exactly and stop if any command fails. Long commands may wrap visually; do not insert a newline inside them.
 
+## Current migration audit — 2026-10-05
+
+The user's October 1 logs confirm completion of the earlier 18 incremental scripts and an equivalent manual creation of `password_history`, followed by a passing schema check. These are historical confirmations, not a read of the database today. No server output in this conversation confirms the three later scripts below:
+
+| Script to check/apply now | Purpose | Rerun behavior |
+| --- | --- | --- |
+| `migrate_verification_reason.js` | Nullable `users.verification_reason` for stored OCR/Admin review reasons | Adds only when missing; preserves stored reasons. |
+| `migrate_onboarding_guides.js` | `onboarding_guides` for per-account tour state | Creates only when absent; preserves shown markers. |
+| `migrate_program_catalog.js` | Empty college-linked `programs`; widen `users.course` to accommodate college names | Creates only when absent, widens only a shorter course column; no program seeds/profile rewrites. |
+
+`migrate_program.js` is a prerequisite already confirmed in the 18-script run. `migrate_password_history.js` is the preserving scripted equivalent of the manual table repair already confirmed; it is not a new missing-table requirement. Either may be rerun explicitly if its prerequisite status is uncertain. The latest UI/motion/report/status changes, password-reset lookup fix and Admin same-day browser trust introduce no additional database migration. Keep the existing MFA encryption key.
+
+Audit findings: the full incremental list has **22** scripts, all exist and its dependencies are ordered; the short follow-up path now includes the Program catalog. Older data migrations are not all passive no-ops: `migrate_8b.js` backfills college mappings/enforces policy flags and `migrate_registrar_policy.js` writes catalog repeat/walk-in rules. Do not rerun those just for a UI or Program-catalog deployment.
+
+The existing `check_schema.js` checks selected column presence, not every SQL type/index/foreign key or data row. Separately, fresh `schema.sql` currently omits the legacy `password_resets` and `payment_methods` definitions that live in the broad historical migration; this is a fresh-install gap, not evidence those tables are absent on this existing server. If live metadata reports a base table missing, stop for a targeted preserving repair rather than rerunning that broad migration or importing the fresh schema.
+
+After applying the three follow-ups, this optional read-only metadata check verifies their objects, the separate program prerequisite, password history and the two legacy base tables, without reading account data:
+
+```bash
+docker compose run --rm --no-deps -T backend node <<'NODE'
+const { pool } = require('./src/config/db');
+(async () => {
+  try {
+    const [rows] = await pool.query(`SELECT TABLE_NAME, COLUMN_NAME, COLUMN_TYPE, CHARACTER_MAXIMUM_LENGTH
+      FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE()
+      AND TABLE_NAME IN ('users', 'programs', 'onboarding_guides', 'password_history', 'password_resets', 'payment_methods')`);
+    const found = new Map(rows.map(row => [`${row.TABLE_NAME}.${row.COLUMN_NAME}`, row]));
+    for (const [table, columns] of [
+      ['users', ['program', 'course', 'verification_reason']],
+      ['programs', ['id', 'college_id', 'name', 'is_active']],
+      ['onboarding_guides', ['user_id', 'shown_at']],
+      ['password_history', ['id', 'user_id', 'password_hash', 'created_at']],
+      ['password_resets', ['id', 'user_id', 'token_hash', 'expires_at', 'used_at']],
+      ['payment_methods', ['id', 'code', 'name', 'provider', 'instructions', 'requires_reference', 'reference_label', 'requires_proof', 'is_active', 'sort_order']]
+    ]) {
+      for (const column of columns) {
+        const row = found.get(`${table}.${column}`);
+        console.log(`${table}.${column}: ${row ? row.COLUMN_TYPE : 'MISSING'}`);
+        if (!row) process.exitCode = 1;
+      }
+    }
+    const course = found.get('users.course');
+    if (!course || Number(course.CHARACTER_MAXIMUM_LENGTH) < 150) {
+      console.error('users.course must support at least 150 characters.'); process.exitCode = 1;
+    }
+    const [indexes] = await pool.query(`SELECT INDEX_NAME, NON_UNIQUE, GROUP_CONCAT(COLUMN_NAME ORDER BY SEQ_IN_INDEX) AS columns_list
+      FROM information_schema.STATISTICS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'programs'
+      GROUP BY INDEX_NAME, NON_UNIQUE`);
+    if (!indexes.some(index => Number(index.NON_UNIQUE) === 0 && index.columns_list === 'college_id,name')) {
+      console.error('programs: missing unique college_id/name index.'); process.exitCode = 1;
+    }
+    const [keys] = await pool.query(`SELECT CONSTRAINT_NAME FROM information_schema.KEY_COLUMN_USAGE
+      WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'programs' AND COLUMN_NAME = 'college_id'
+      AND REFERENCED_TABLE_NAME = 'colleges' AND REFERENCED_COLUMN_NAME = 'id'`);
+    if (!keys.length) { console.error('programs: missing college foreign key.'); process.exitCode = 1; }
+  } catch {
+    console.error('Metadata audit failed. Check database connectivity/permissions privately.'); process.exitCode = 1;
+  } finally { await pool.end(); }
+})();
+NODE
+```
+
+Require no `MISSING` entries, no constraint/capacity error and a zero exit status. An incompatible existing table is not repaired by `CREATE TABLE IF NOT EXISTS`; investigate before restarting writers. This supplementary audit still does not certify every historical table definition or a working application transaction.
+
 ## Choose the right update path
 
-- **Your earlier rollout already passed the schema check:** use [Update the email button and guided tour](#update-the-email-button-and-guided-tour). This includes the prior Profile/Maintenance/OCR follow-up.
+- **Your earlier rollout already passed the schema check:** use the latest follow-up path, including the Program catalog, under [Update the email button and guided tour](#update-the-email-button-and-guided-tour). This includes the prior Profile/Maintenance/OCR follow-up.
 - **Earlier migrations are missing or their status is unknown:** use the complete numbered walkthrough below. Review the failed schema output before deciding which repairs are needed.
 - **A new, empty installation:** use [DEPLOYMENT_GUIDE.md](DEPLOYMENT_GUIDE.md). This guide is for an existing database.
 
-The user reported a successful earlier schema check and API health checks on October 1. Those results cover that earlier deployment. The new reason-column and guided-tour migrations still need applying if they have not been deployed. Local tests pass, but real email delivery, phone layouts and live workflows must be checked after updating.
+The user reported a successful earlier schema check and API health checks on October 1. Those results cover that earlier deployment. The new reason-column, guided-tour and Program-catalog migrations still need applying if they have not been deployed. Local tests pass, but real email delivery, phone layouts and live workflows must be checked after updating.
 
 The October 2 signup/account repairs add no migration: rebuild/recreate the backend and deploy the matching frontend. They restore multipart **Read ID**, display the separately saved Program/Course and College during Admin review, and allow `_` in passwords across creation/change/reset flows. New Admin temporary passwords use the same 8–64 character policy; existing login passwords are unchanged. Test Read ID with a synthetic/test proof, review a new registration's program, and test underscore passwords through signup, Profile, reset and Admin creation. The approved follow-up keeps email required at signup but sends its verification link from Profile only; requests remain blocked until verified. Admin with an enrolled app can opt into same-day personal-browser trust after verification. Clerk/Admin tours now enroll existing staff on their first eligible guide check. These additions reuse existing `trusted_browsers`, `authenticator_credentials` and `onboarding_guides`; there is no additional migration. Keep the existing MFA encryption key.
 
 ## Update the email button and guided tour
 
-This path adds a **Verify Email** button in HTML mail, inline Profile verification, Maintenance proof/photo display, the request-chat input repair, OCR review reasons and the first-login guided tour. Email buttons themselves need no new table; the automatic tour does.
+This path adds a **Verify Email** button in HTML mail, inline Profile verification, Maintenance proof/photo display, the request-chat input repair, OCR review reasons, the first-login guided tour and linked College/Program selections. Email buttons themselves need no new table; the review reasons, tour state and Program catalog have explicit migrations.
 
 ### A. Prepare and back up
 
@@ -45,10 +109,11 @@ docker compose run --rm --no-deps -T ai-engine python -c 'import identity_parser
 ```bash
 docker compose run --rm --no-deps -T backend node database/migrate_verification_reason.js
 docker compose run --rm --no-deps -T backend node database/migrate_onboarding_guides.js
+docker compose run --rm --no-deps -T backend node database/migrate_program_catalog.js
 docker compose run --rm --no-deps -T backend node database/check_schema.js
 ```
 
-**Expected result:** both migration completion messages, followed by **Schema presence check passed.** These migrations preserve existing reasons and tour display records. If another missing table/column is reported, keep writers stopped and inspect that specific error; do not import the full schema or repeat old data migrations as a shortcut.
+**Expected result:** all three migration completion messages, followed by **Schema presence check passed.** These migrations preserve existing reasons, tour display records and academic values. This path assumes `migrate_program.js` already added `users.program`, as confirmed in the earlier server logs; if that field is reported missing, apply that preserving prerequisite before continuing. If another missing table/column is reported, keep writers stopped and inspect that specific error; do not import the full schema or repeat old data migrations as a shortcut.
 
 ### D. Restart and deploy the matching frontend
 
@@ -77,6 +142,7 @@ Vercel's Git-connected deployment can be used. For deployment, environment and l
 | Select the header **?** | The tour can be replayed manually, including on older accounts. |
 | Send a verification link from Profile | The received HTML email shows **Verify Email**; its button opens the verification page. Plain-text readers show the link. |
 | Open Maintenance and a request conversation | Stored proof/photo previews load; selecting a request reveals **Message to Window 1** and sending works. |
+| Open System Maintenance → Programs, then a student/alumni profile | Admin can enter the real Registrar-approved catalog; active Program/Course options follow College, changing College clears Program, and confirmed selections survive reload. |
 | Review a fresh pending registration | A stored review reason appears when the automatic check is inconclusive. Older reasons may remain unknown. |
 | Use a real phone with enlarged text | Tour instructions scroll and Back/Next stay reachable; profile, chat and tables remain usable. |
 
@@ -161,7 +227,74 @@ tar -tzf "$TRACE_BACKUP_DIR/uploads.tar.gz" > /dev/null
 ls -lh "$TRACE_BACKUP_DIR"
 ```
 
-Copy this private folder off the server using the working SSH/browser-download method. On the Mac, inside the copied folder, run `shasum -a 256 -c SHA256SUMS` and require both files to report `OK`. A completed dump, readable archive and matching checksums are basic integrity checks; they are not a test restore. Do not post backup contents or `server.env`.
+### 2A. Package the backup in SSH
+
+Continue in the same **server SSH terminal**. The commands above created the backup folder; the next commands package it into one file for download. Keep backend, AI and n8n stopped, and MySQL running until the update checks pass.
+
+```bash
+printf 'Backup directory: %s\n' "$TRACE_BACKUP_DIR"
+```
+
+Confirm this is the fresh backup you just created. If it is blank after reconnecting, set the variable to the exact recorded folder before continuing. For the backup reported on October 5, that command is:
+
+```bash
+TRACE_BACKUP_DIR="$HOME/trace-backups/20261005-115358"
+```
+
+That timestamp is an example from this rollout, not a folder to reuse for future updates. Use each update's newly recorded backup path.
+
+Run each command separately and stop if any fails:
+
+```bash
+umask 077
+test -n "$TRACE_BACKUP_DIR"
+test -d "$TRACE_BACKUP_DIR"
+test -s "$TRACE_BACKUP_DIR/database.sql"
+test -s "$TRACE_BACKUP_DIR/uploads.tar.gz"
+test -s "$TRACE_BACKUP_DIR/SHA256SUMS"
+tar -czf "${TRACE_BACKUP_DIR}.tar.gz" -C "$(dirname "$TRACE_BACKUP_DIR")" "$(basename "$TRACE_BACKUP_DIR")"
+chmod 600 "${TRACE_BACKUP_DIR}.tar.gz"
+printf 'Download this file: %s\n' "${TRACE_BACKUP_DIR}.tar.gz"
+```
+
+The `test` commands normally print nothing when successful. The archive contains the whole private folder, including `server.env`; do not publish it or put it in Git. Packaging does not delete the original backup.
+
+### 2B. Download the archive to the Mac
+
+Use the browser SSH's existing **Download file** option. Enter the absolute path printed by the last command and save the file to your Mac's **Downloads** folder. For the October 5 backup, the path is:
+
+```text
+/home/jhervinjimenez03/trace-backups/20261005-115358.tar.gz
+```
+
+Wait for the download to finish. Run the following steps in your **Mac Terminal**, not in SSH.
+
+### 2C. Extract and verify on the Mac
+
+Set `TRACE_BACKUP_NAME` to the exact folder name printed in SSH. The example below matches the October 5 backup; replace it for a different update. If the browser renamed the downloaded archive, use its actual filename in the `chmod` and `tar` commands.
+
+```bash
+umask 077
+TRACE_BACKUP_NAME="20261005-115358"
+mkdir -p "$HOME/trace-backups"
+chmod 600 "$HOME/Downloads/${TRACE_BACKUP_NAME}.tar.gz"
+tar -xzf "$HOME/Downloads/${TRACE_BACKUP_NAME}.tar.gz" -C "$HOME/trace-backups"
+cd "$HOME/trace-backups/$TRACE_BACKUP_NAME"
+shasum -a 256 -c SHA256SUMS
+```
+
+Run one command at a time and stop if any fails. Both checks must report:
+
+```text
+database.sql: OK
+uploads.tar.gz: OK
+```
+
+If either reports `FAILED`, is missing, or cannot be read, stop before pulling or migrating. Check that the correct archive finished downloading and extract it again into a fresh private location before retrying verification. Do not regenerate `SHA256SUMS` on the Mac to make a mismatch pass.
+
+A completed dump, readable archive and matching checksums are basic integrity checks; they are not a test restore. Share only the checksum result, never backup contents or `server.env`. Retain both server and Mac copies through rollout and acceptance.
+
+For this rollout, the user's October 5 server output confirms the fresh folder `20261005-115358`, nonempty database/upload files, checks with no reported errors and private file permissions. Off-server download and Mac checksum verification are still pending user output; the earlier October 1 transfer does not verify this new backup. After both October 5 checks report `OK`, return to **SSH** in `~/Project-TRACE` and proceed to the chosen update path's pull/build step.
 
 ## 3. Pull, check configuration and rebuild
 
@@ -199,7 +332,7 @@ A successful import is not OCR/forecast acceptance. Do not remove volumes, retai
 
 ## 4. Apply incremental schema migrations and check the result
 
-**Do not import `schema.sql` into this existing production database.** It defines a fresh installation, and `CREATE TABLE IF NOT EXISTS` does not add missing columns to existing tables. Compose's initialization scripts run on an empty MySQL data directory only. Do not run `seed.sql`, the broad `migration.js`, `migrate_b9.js` or `migration_phase3.js` as a shortcut.
+**Do not import `schema.sql` into this existing production database.** It defines a fresh installation, and `CREATE TABLE IF NOT EXISTS` does not add missing columns to existing tables. Compose's initialization scripts run on an empty MySQL data directory only. Do not run `seed.sql`, the broad `migration.js`, `migrate_b9.js`, `migration_phase3.js` or `retroactive_purpose.js` as a shortcut. The last script rewrites existing request-purpose data; it is not a schema upgrade.
 
 This existing server already reported successful Batch 8, Batch 8b and CN-03/CN-04 migrations. The list includes them for prerequisite coverage; their deliberate rerun behavior is retained: Batch 8b fills missing college mappings/drafts and enforces the known Honorable Dismissal flag; the following Registrar migration applies the confirmed repeat policy. CN-03/CN-04's ledger preserves later fee edits. These are data migrations as well as schema changes, not a universal repair for incompatible old definitions.
 
@@ -244,7 +377,7 @@ trace_migrate_rollout
 
 Require **`Schema presence check passed.`** The check reads `information_schema`; it validates selected critical table/column presence, not every definition, index, constraint, rate, data row or live transaction. If it lists a named migration, investigate that script's output. Password history now has its own explicit migration, added after the user's first 18-script run exposed that base-table gap. If the check says `base schema`, such as missing `password_resets`, `grad_applications` or core users fields, keep writers stopped and share the non-secret check output for a targeted preserving repair. Do not import the full schema or reseed to fill the gap.
 
-The profile/Maintenance/OCR follow-up adds `migrate_verification_reason.js`. The guided-tour follow-up adds `migrate_onboarding_guides.js` (21 scripts in the complete list). For a server that already passed the earlier rollout, apply only these new migrations that have not been applied; do not rerun data migrations solely for these follow-ups. Build both backend and ai-engine if deploying the OCR changes: OCR imports a new pure text-matching module included in the AI Dockerfile. The email-button/tour changes require a backend rebuild and matching frontend; they add no AI changes. Historical OCR reasons remain unknown. The guide migration creates an empty table and preserves existing display state; students registered on the updated backend receive an automatic tour; clerk/Admin accounts enroll lazily on their first eligible guide check. All supported roles can replay using the question mark. Deploy the matching frontend after migration/check/runtime update. Inspect real image outcomes separately; normalization tests do not prove document authenticity or actual OCR accuracy.
+The profile/Maintenance/OCR follow-up adds `migrate_verification_reason.js`. The guided-tour follow-up adds `migrate_onboarding_guides.js`; the linked-program follow-up adds `migrate_program_catalog.js` (22 scripts in the complete list). For a server that already passed the earlier rollout, apply only these new migrations that have not been applied; do not rerun data migrations solely for these follow-ups. Build both backend and ai-engine if deploying the OCR changes: OCR imports a new pure text-matching module included in the AI Dockerfile. The email-button/tour changes require a backend rebuild and matching frontend; they add no AI changes. Historical OCR reasons remain unknown. The guide migration creates an empty table and preserves existing display state; students registered on the updated backend receive an automatic tour; clerk/Admin accounts enroll lazily on their first eligible guide check. All supported roles can replay using the question mark. Deploy the matching frontend after migration/check/runtime update. Inspect real image outcomes separately; normalization tests do not prove document authenticity or actual OCR accuracy.
 
 MySQL DDL can commit before a later command fails. Do not assume a failed script changed nothing; inspect the error before rerunning or restoring. A rollback may require coordinated restoration of database, uploads, configuration and matching code, not just a Git checkout.
 

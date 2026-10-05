@@ -4,6 +4,8 @@ Use this guide for registration, profile settings, document requests and desk wo
 
 Use your own account and password. The example accounts in older documentation are demonstration accounts, not production login instructions.
 
+The public Login/welcome, registration, password recovery, email verification and staff setup pages show the PLP seal. Signed-in dashboards show the approved TRACE branding.
+
 ## Find the instructions you need
 
 - [Sign in or recover your password](#1-sign-in-or-recover-your-password)
@@ -189,7 +191,7 @@ Clerks and Admin can choose **Browser verification → Use shared-computer verif
 
 The header's theme button also switches light/dark mode. On phones, use the top-left menu for navigation. Long forms scroll inside their dialogs; wide tables/charts scroll inside their cards. Printed documents keep their original size.
 
-Navigation has **Main** for daily work and **More** for secondary destinations. Choose the four-square **More** button for secondary destinations and **Help / FAQ** available to your role. Secretary's **Records & Export** and Finance's **Transactions & Export** remain in Main. Choose **Back to main** to return. **Preferences** and **Logout** are available in both sets. Opening a direct link reveals the correct set and marks its current page. On a short screen you can scroll the navigation with touch, a wheel/trackpad or keyboard even though its scrollbar is hidden; Tab still reaches every control.
+Navigation shows up to five destinations in **Main**, with daily work first. When your account has additional destinations, the four-square **More** button appears sixth and opens the remaining pages; choose **Back to main** to return. Accounts with five or fewer destinations show all their pages directly, including **Help / FAQ**, without More. Secretary's **Records & Export** and Finance's **Transactions & Export** remain in Main. **Preferences** and **Logout** are available in both sets and do not count toward the five destinations. Opening a direct link reveals the correct set and marks its current page. On a short screen you can scroll the navigation with touch, a wheel/trackpad or keyboard even though its scrollbar is hidden; Tab still reaches every control.
 
 Use Tab to move between controls, Enter/Space to activate them, and Escape to close eligible dialogs. Queue tabs support arrow keys, Home and End. Names, IDs, tracking numbers and notes can be selected and copied.
 
