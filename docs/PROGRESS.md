@@ -1,5 +1,14 @@
 # Project TRACE Progress Report
 
+### Structured student payment line items — investigation 2026-10-05
+
+Finding before edits: each payment list item is a full-width flex-wrap/justify-between row; document and amount are separated by free space, while FeeBreakdown spans the entire row below. This preserves data but spreads related information across the outer card on desktop. Replace each row with a bounded, noninteractive shared section: nearby document/amount header, saved calculation beneath, and stacked header fields on narrow screens. Keep FeeBreakdown's saved/history behavior, group totals, Pay-after-breakdown footer, amber/contrast styling and all payment handlers unchanged. No backend or schema change is needed.
+
+Implemented bounded shared sections for each document in StudentDashboard. The name and amount sit together above FeeBreakdown on desktop and stack below the small-screen breakpoint. Long labels wrap; informational items gain no action, tab stop or hover affordance. FeeBreakdown, saved amounts, group totals and payment handlers are unchanged. Regression coverage keeps saved and historical descriptions with their respective document/amount and preserves the combined total and checkout flow.
+
+Validation: Student payment, pricing and dashboard regression suites pass 55 tests; frontend lint/build and git diff --check pass. Read-only synthetic browser checks pass 130 assertions over saved/historical states, 320/375/768/1280 px, light/dark and 100%/200% text: related-field alignment, mobile stacking, contained layout, unchanged total, no invented item actions, preserved Pay-after-charges order and text contrast. Reviewed mobile dark enlarged-text and desktop light screenshots. Existing build chunk-size advisory remains. No real records, payment writes, migration or deployment.
+
+
 ### Student payment amount and description contrast — investigation 2026-10-05
 
 Measured before edits using computed browser foreground/card-background colors from read-only synthetic StudentDashboard records. The 12 px line amount uses gray-500/gray-400: 4.8364:1 on white in light mode, 6.8210:1 on gray-900 in dark mode. FeeBreakdown's older-record paragraph uses gray-600/gray-300: 7.5581:1 / 12.0527:1. Saved-breakdown description uses gray-700/gray-200: 10.3048:1 / 14.3338:1. All measured pairs meet the [WCAG AA normal-text 4.5:1 minimum](https://www.w3.org/WAI/WCAG22/Understanding/contrast-minimum.html); the reported faintness is not proof of an AA failure. Strengthen primary line amounts with gray-900/gray-100 and font-semibold; align the recorded-charge explanation with saved secondary text and emphasize its recorded amount separately. Preserve currency, saved amounts/calculations, fallback wording, payment eligibility and handlers. No schema/backend change is needed.

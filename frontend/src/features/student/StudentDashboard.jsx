@@ -190,12 +190,14 @@ export default function StudentDashboard({ user, currentTab, setViewImageUrl }) 
                     {billableGroups.map((group) => (
                       <section key={group.groupId} aria-label={`Payment for request ${group.groupId}`} className="space-y-4 pb-5 border-b border-gray-100 dark:border-gray-700 last:border-0 last:pb-0">
                         <p className="text-xs font-mono text-gray-500 dark:text-gray-400 break-words select-text">Request {group.groupId}</p>
-                        <ul className="space-y-2">
+                        <ul className="space-y-3">
                           {group.docs.map((doc) => (
-                            <li key={doc.id} className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-2 text-sm">
-                              <span className="min-w-0 font-bold text-gray-900 dark:text-gray-100 break-words select-text">{doc.document_sequence_number || doc.document_type}</span>
-                              <span className="shrink-0 font-mono text-xs font-semibold text-gray-900 dark:text-gray-100 select-text">{formatPeso(doc.amount)}</span>
-                              <div className="w-full min-w-0"><FeeBreakdown breakdown={doc.fee_breakdown} amount={doc.amount} /></div>
+                            <li key={doc.id} className="trace-section trace-section-body max-w-2xl space-y-3 text-sm">
+                              <div className="grid min-w-0 grid-cols-1 gap-1 sm:flex sm:flex-wrap sm:items-baseline sm:gap-x-3 sm:gap-y-1">
+                                <span className="min-w-0 font-bold text-gray-900 dark:text-gray-100 break-words select-text">{doc.document_sequence_number || doc.document_type}</span>
+                                <span className="shrink-0 font-mono text-xs font-semibold text-gray-900 dark:text-gray-100 select-text">{formatPeso(doc.amount)}</span>
+                              </div>
+                              <FeeBreakdown breakdown={doc.fee_breakdown} amount={doc.amount} />
                             </li>
                           ))}
                         </ul>

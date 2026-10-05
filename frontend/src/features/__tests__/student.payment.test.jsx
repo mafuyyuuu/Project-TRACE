@@ -60,6 +60,24 @@ describe('Student grouped payment', () => {
     expect(within(screen.getByRole('table', { name: 'Active requests' })).queryByRole('button', { name: /^Pay / })).not.toBeInTheDocument();
   });
 
+  it('keeps long document labels, saved calculations and historical descriptions with their own amounts', async () => {
+    const longName = 'Certificate of Transfer – Supporting Academic Records for Registrar Review';
+    documentsService.getDocuments.mockResolvedValue({ documents: [DOCS[0], { ...DOCS[1], document_sequence_number: longName, amount: '75.00' }] });
+    renderStudent();
+    await screen.findByRole('button', { name: 'Pay ₱175.00 (2 documents)' });
+    const group = screen.getByRole('region', { name: 'Payment for request REQ-G1' });
+    const [saved, historical] = within(group).getAllByRole('listitem');
+    expect(saved).toHaveTextContent('Transcript of Records');
+    expect(within(saved).getByRole('region', { name: 'Fee calculation' })).toHaveTextContent('1 copy × 1 page × ₱100.00');
+    expect(historical).toHaveTextContent(longName);
+    expect(historical).toHaveTextContent('Recorded charge: ₱75.00. Detailed calculation was not saved for this older record.');
+    expect(historical).not.toHaveTextContent('Printed pages');
+    expect(group).toHaveTextContent('Total amount due: ₱175.00');
+    expect(within(saved).queryByRole('button')).not.toBeInTheDocument();
+    expect(within(historical).queryByRole('button')).not.toBeInTheDocument();
+    expect(documentsService.submitPayment).not.toHaveBeenCalled();
+  });
+
   it('places each Pay action after its saved charges and visible group total in document reading order', async () => {
     documentsService.getDocuments.mockResolvedValue({ documents: [
       ...DOCS, { ...DOCS[1], id: 21, tracking_number: 'TRC-21', request_group_id: 'REQ-G2', amount: '50.00' },
