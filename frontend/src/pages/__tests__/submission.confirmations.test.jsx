@@ -154,6 +154,21 @@ describe('Account submission confirmations', () => {
     await user.click(screen.getByRole('button', { name: 'LOGIN' }));
     expect(await screen.findByText(/six-digit code from your authenticator app/)).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /Resend OTP/ })).not.toBeInTheDocument();
+    const input = screen.getByRole('textbox', { name: 'Verification code' });
+    const recoverySwitch = screen.getByRole('button', { name: 'Use a recovery code' });
+    expect(input.nextElementSibling).toBe(recoverySwitch);
+    await user.type(input, '123456');
+    await user.tab();
+    expect(recoverySwitch).toHaveFocus();
+    await user.keyboard('{Enter}');
+    expect(screen.getByRole('textbox', { name: 'Recovery code' })).toHaveValue('');
+    expect(input).toHaveAttribute('maxlength', '35');
+    expect(input).toHaveAttribute('inputmode', 'text');
+    await user.type(input, 'SYNTHETIC');
+    await user.click(screen.getByRole('button', { name: 'Use authenticator code' }));
+    expect(screen.getByRole('textbox', { name: 'Verification code' })).toHaveValue('');
+    expect(input).toHaveAttribute('maxlength', '6');
+    expect(input).toHaveAttribute('inputmode', 'numeric');
     await user.click(screen.getByRole('button', { name: 'Use a recovery code' }));
     const code = '01234567-89ABCDEF-01234567-89ABCDEF';
     await user.type(screen.getByPlaceholderText('Enter recovery code'), code);
@@ -162,6 +177,29 @@ describe('Account submission confirmations', () => {
     expect(api.post).toHaveBeenCalledExactlyOnceWith('/auth/verify-2fa', { temp_token: 'app-challenge', recovery_code: code });
     expect(await screen.findByRole('alert')).toHaveTextContent('Code already used.');
     expect(screen.getByPlaceholderText('Enter recovery code')).toHaveValue(code);
+  });
+
+  it('disables the under-input MFA switch during verification and retains the existing payload', async () => {
+    auth.login.mockResolvedValueOnce({ requires_2fa: true, mfa_method: 'authenticator', temp_token: 'app-challenge' });
+    const { container } = renderPage(<LoginPage />);
+    fireEvent.change(screen.getByPlaceholderText(/23-00123/), { target: { value: 'FINANCE001' } });
+    fireEvent.change(container.querySelector('input[type=password]'), { target: { value: 'synthetic' } });
+    fireEvent.submit(container.querySelector('form'));
+    const input = await screen.findByRole('textbox', { name: 'Verification code' });
+    const recoverySwitch = screen.getByRole('button', { name: 'Use a recovery code' });
+    fireEvent.change(input, { target: { value: '123456' } });
+    let fail;
+    api.post.mockReturnValueOnce(new Promise((_, reject) => { fail = reject; }));
+    fireEvent.submit(container.querySelector('form'));
+    expect(recoverySwitch).toBeDisabled();
+    expect(input).toBeDisabled();
+    expect(api.post).toHaveBeenCalledExactlyOnceWith('/auth/verify-2fa', { temp_token: 'app-challenge', otp: '123456' });
+    await act(async () => { fail({ response: { data: { error: 'Invalid verification code.' } } }); });
+    expect(input).toHaveValue('123456');
+    expect(recoverySwitch).toBeEnabled();
+    fireEvent.click(recoverySwitch);
+    expect(input).toHaveValue('');
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
   });
 
   it('keeps required OTP, submits it directly, and allows retry after verification failure', async () => {

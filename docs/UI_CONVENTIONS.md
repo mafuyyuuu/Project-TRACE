@@ -42,6 +42,8 @@ Example (import Button from @/components/Button):
 
 Utilities can adjust layout, such as `flex-1`, `w-full`, `mt-2` or `pr-12` for a password visibility icon. Do not add a second base border, background, font-size or padding recipe to ordinary controls. New variants belong in the shared component layer.
 
+Verification-mode switches belong directly beneath their associated input, outside submit and management action groups. Keep both directions in the same location, use a native `type="button"`, and preserve the existing input clearing, validation and pending-state guards. Login MFA and enrolled-authenticator Security settings follow this arrangement.
+
 Sidebar groups come from `navGroupsForUser` in `utils/navigation.js`, partitioning the existing authorized destinations. `SidebarNav` renders Main or More with shared `trace-nav-item` controls, Preferences and Logout in both, native keyboard activation and focus transfer after a group switch. Direct routes reveal their group; onboarding may reveal a group without navigating. `trace-nav-scroll` hides scrollbar chrome only. Keep `overflow-y-auto`, nonshrinking items and keyboard focus access on the rail/drawer so short screens retain every destination.
 
 Normal dialogs use `ModalShell`, which applies `trace-modal-panel`, `trace-modal-body` and `trace-modal-footer`. Keep actions in its pinned footer. Profile retains its scrolling header/body arrangement with common panel/footer appearance. Lightboxes, split-column account review, printable slips and isolated HTML template previews may keep their existing overrides.

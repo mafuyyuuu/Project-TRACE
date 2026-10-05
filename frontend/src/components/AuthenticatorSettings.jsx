@@ -68,14 +68,16 @@ export default function AuthenticatorSettings({ user }) {
             {qrError && <p role="status" className="text-sm">{qrError}</p>}
             <p className="text-sm">Manual setup key: <code className="select-text break-all font-mono">{auth.setup.secret}</code></p>
           </div>}
-          <label className="trace-label block">{recovery ? 'Recovery code' : 'Authenticator code'}
-            <input value={code} disabled={auth.busy} autoComplete="one-time-code" inputMode={recovery ? 'text' : 'numeric'} maxLength={recovery ? 35 : 6}
-              onChange={event => setCode(recovery ? event.target.value : event.target.value.replace(/\D/g, ''))} className={inputClass} />
-          </label>
+          <div className="flex flex-col items-start gap-2">
+            <label className="trace-label block w-full">{recovery ? 'Recovery code' : 'Authenticator code'}
+              <input value={code} disabled={auth.busy} autoComplete="one-time-code" inputMode={recovery ? 'text' : 'numeric'} maxLength={recovery ? 35 : 6}
+                onChange={event => setCode(recovery ? event.target.value : event.target.value.replace(/\D/g, ''))} className={inputClass} />
+            </label>
+            {!auth.setup && <Button type="button" disabled={auth.busy} className="trace-action text-sm underline" onClick={() => { setRecovery(value => !value); setCode(''); }}>{recovery ? 'Use authenticator code' : 'Use a recovery code'}</Button>}
+          </div>
           <div className="flex flex-wrap gap-2">
             {auth.setup ? <><Button type="button" disabled={auth.busy || !password || code.length !== 6} className={buttonClass} onClick={() => stage('enable')}>Enable authenticator</Button>
               <Button type="button" disabled={auth.busy} className="trace-button trace-button-secondary" onClick={() => { auth.discardSetup(); setQr(''); setCode(''); setPassword(''); }}>Cancel setup</Button></> : <>
-              <Button type="button" disabled={auth.busy} className="trace-action text-sm underline" onClick={() => { setRecovery(value => !value); setCode(''); }}>{recovery ? 'Use authenticator code' : 'Use a recovery code'}</Button>
               <Button type="button" disabled={auth.busy || !password || !code} className={buttonClass} onClick={() => stage('regenerate')}>Generate new recovery codes</Button>
               <Button type="button" disabled={auth.busy || !password || !code} className="trace-button trace-button-danger" onClick={() => stage('disable')}>Disable authenticator</Button>
             </>}

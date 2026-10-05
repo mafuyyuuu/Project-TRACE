@@ -24,7 +24,7 @@ Use your own account and password. The example accounts in older documentation a
 1. Open the TRACE website supplied by the Registrar.
 2. Enter your Student ID, Alumni ID or Staff ID and your password.
 3. Select **Login** and wait for the result. Errors appear in the form.
-4. If a verification screen opens, enter the code from your enrolled authenticator app, an unused recovery code, or the emailed login code requested by that screen.
+4. If a verification screen opens, enter the code requested by that screen. For an enrolled authenticator, **Use a recovery code** appears directly below the code input; **Use authenticator code** switches back in the same place. Switching clears the entry and does not submit it. Email-code verification has its own entry screen.
 5. Select **Verify & Login**. For email codes, **Resend OTP** becomes available after 60 seconds; use the newest code.
 
 **Email verification and login verification are different.** Email verification uses a button/link to confirm an address. A login code confirms access to an account during sign-in.
@@ -172,6 +172,8 @@ Requirements vary by case. An extra document is not required unless requested. S
 6. After saving them privately, select **I saved my recovery codes**. Copy/download does not dismiss or acknowledge the codes; they will not be shown again after acknowledgment.
 
 Setup is available to every role when the server is configured. At login, use the app or one unused recovery code. Email resend cannot bypass an enrolled authenticator. If you lose both the app and recovery codes, contact the Registrar; initial staff setup cannot replace an existing factor.
+
+For an enrolled authenticator, the same **Use a recovery code** / **Use authenticator code** switch appears directly below its code field in **Edit Profile → Security**, separate from the generate and disable actions. Switching clears the field; choose the management action afterward.
 
 ### Other account controls
 

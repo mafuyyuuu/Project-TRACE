@@ -195,6 +195,9 @@ export default function LoginPage() {
                   className="trace-control trace-control-inverse w-full text-center "
                   autoFocus 
                 />
+                {mfaMethod === 'authenticator' && <Button type="button" disabled={busy}
+                  onClick={() => { setUseRecoveryCode(value => !value); setOtp(''); setLocalError(''); }}
+                  className="trace-action self-start text-sm text-white underline">{useRecoveryCode ? 'Use authenticator code' : 'Use a recovery code'}</Button>}
                 {canTrustBrowser && (
                   <div className="mt-3 flex flex-col gap-2 text-sm text-white/90">
                     <label className="flex items-center gap-3 cursor-pointer">
@@ -232,10 +235,6 @@ export default function LoginPage() {
                 {resending ? 'Sending code…' : cooldownActive ? `Resend OTP (${resendCooldown}s)` : 'Resend OTP'}
               </Button>
             )}
-
-            {requires2FA && mfaMethod === 'authenticator' && <Button type="button" disabled={busy}
-              onClick={() => { setUseRecoveryCode(value => !value); setOtp(''); setLocalError(''); }}
-              className="trace-action text-sm text-white underline">{useRecoveryCode ? 'Use authenticator code' : 'Use a recovery code'}</Button>}
 
             {requires2FA && (
               <Button

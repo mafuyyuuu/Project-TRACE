@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
-import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import AuthenticatorSettings from '@/components/AuthenticatorSettings';
 import * as api from '@/services/authenticatorService';
@@ -100,4 +100,41 @@ it('keeps failed activation open for correction without publishing enabled statu
   fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Confirm change' }));
   await waitFor(() => expect(within(screen.getByRole('dialog')).getByRole('alert')).toHaveTextContent('Offline'));
   expect(screen.getByText('Authenticator app: Not enabled')).toBeInTheDocument();
+});
+
+it('keeps the recovery switch beneath its field with clearing, native keyboard access and pending guards', async () => {
+  api.getAuthenticator.mockResolvedValue({ enabled: true, available: true, recovery_codes_remaining: 5 });
+  const interaction = userEvent.setup();
+  render(<AuthenticatorSettings user={{ ...user, role: 'admin' }} />);
+  const input = await screen.findByLabelText('Authenticator code');
+  const recoverySwitch = screen.getByRole('button', { name: 'Use a recovery code' });
+  expect(input.closest('label').nextElementSibling).toBe(recoverySwitch);
+  expect(recoverySwitch.parentElement).not.toBe(screen.getByRole('button', { name: 'Generate new recovery codes' }).parentElement);
+  await interaction.type(input, '12a3456');
+  expect(input).toHaveValue('123456');
+  await interaction.tab();
+  expect(recoverySwitch).toHaveFocus();
+  await interaction.keyboard('{Enter}');
+  expect(screen.getByLabelText('Recovery code')).toHaveValue('');
+  expect(input).toHaveAttribute('maxlength', '35');
+  expect(input).toHaveAttribute('inputmode', 'text');
+  await interaction.type(input, 'SYNTHETIC');
+  await interaction.click(screen.getByRole('button', { name: 'Use authenticator code' }));
+  expect(screen.getByLabelText('Authenticator code')).toHaveValue('');
+  expect(input).toHaveAttribute('maxlength', '6');
+  expect(input).toHaveAttribute('inputmode', 'numeric');
+  await interaction.click(screen.getByRole('button', { name: 'Use a recovery code' }));
+  await interaction.type(input, 'SYNTHETIC');
+  await interaction.type(screen.getByLabelText('Current password'), 'synthetic');
+  await interaction.click(screen.getByRole('button', { name: 'Generate new recovery codes' }));
+  expect(api.updateAuthenticator).not.toHaveBeenCalled();
+  let fail;
+  api.updateAuthenticator.mockReturnValueOnce(new Promise((_, reject) => { fail = reject; }));
+  await interaction.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Confirm change' }));
+  expect(recoverySwitch).toBeDisabled();
+  expect(input).toBeDisabled();
+  expect(api.updateAuthenticator).toHaveBeenCalledExactlyOnceWith('regenerate', { current_password: 'synthetic', recovery_code: 'SYNTHETIC' });
+  await act(async () => { fail(new Error('Synthetic rejection')); });
+  expect(input).toHaveValue('SYNTHETIC');
+  expect(recoverySwitch).toBeEnabled();
 });
