@@ -124,8 +124,8 @@ describe('Sidebar hover labels', () => {
     fireEvent.scroll(window);
     expect(screen.getByRole('tooltip')).toHaveTextContent('Preferences');
     fireEvent.click(screen.getByRole('button', { name: 'More' }));
-    expect(screen.getByRole('link', { name: 'Security Logs' })).toHaveFocus();
-    expect(screen.getByRole('tooltip')).toHaveTextContent('Security Logs');
+    expect(screen.getByRole('link', { name: 'Reports & Export' })).toHaveFocus();
+    expect(screen.getByRole('tooltip')).toHaveTextContent('Reports & Export');
     fireEvent.click(screen.getByRole('button', { name: 'Back to main' }));
     expect(screen.getByRole('tooltip')).toHaveTextContent('Dashboard');
   });

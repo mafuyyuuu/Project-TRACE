@@ -85,7 +85,7 @@ Required information includes phone, email, birth date, birthplace, sex, civil s
 1. In **Edit Profile → Personal Info**, check **Email Address**.
 2. If it is not verified, select **Verify** beside the field.
 3. Open the email sent by TRACE and select the green **Verify Email** button.
-4. Return to TRACE and refresh. The email field should show **Verified**.
+4. On the result page, select **Return to TRACE** if signed in or **Back to Login** if signed out. Refresh TRACE after returning; the email field should show **Verified**.
 
 The short guidance beside Email explains the request/payment requirement and one-hour expiry. Open **Verification help** for resend, refresh and ID-approval guidance. The link works once; check Spam/Junk if the email is missing and use **Verify** to resend after 60 seconds. Plain-text email readers show a link instead of a button. Sending a link does not save other profile drafts.
 
@@ -193,7 +193,7 @@ Clerks and Admin can choose **Browser verification → Use shared-computer verif
 
 The header's theme button also switches light/dark mode. On phones, use the top-left menu for navigation. Long forms scroll inside their dialogs; wide tables/charts scroll inside their cards. Printed documents keep their original size.
 
-Navigation shows up to five destinations in **Main**, with daily work first. When your account has additional destinations, the four-square **More** button appears sixth and opens the remaining pages; choose **Back to main** to return. Accounts with five or fewer destinations show all their pages directly, including **Help / FAQ**, without More. Secretary's **Records & Export** and Finance's **Transactions & Export** remain in Main. **Preferences** and **Logout** are available in both sets and do not count toward the five destinations. Opening a direct link reveals the correct set and marks its current page. On a short screen you can scroll the navigation with touch, a wheel/trackpad or keyboard even though its scrollbar is hidden; Tab still reaches every control.
+Navigation shows up to six destinations in **Main**, with daily work first. When your account has additional destinations, the four-square **More** button appears seventh and opens the remaining pages; choose **Back to main** to return. Accounts with six or fewer destinations show all their pages directly, including **Help / FAQ**, without More. Secretary's **Records & Export** and Finance's **Transactions & Export** remain in Main. **Preferences** and **Logout** are available in both sets and do not count toward the six destinations. Opening a direct link reveals the correct set and marks its current page. On a short screen you can scroll the navigation with touch, a wheel/trackpad or keyboard even though its scrollbar is hidden; Tab still reaches every control.
 
 Use Tab to move between controls, Enter/Space to activate them, and Escape to close eligible dialogs. Queue tabs support arrow keys, Home and End. Names, IDs, tracking numbers and notes can be selected and copied.
 
