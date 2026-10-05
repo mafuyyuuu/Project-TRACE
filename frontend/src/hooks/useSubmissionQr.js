@@ -7,7 +7,7 @@ export default function useSubmissionQr(applicant) {
   const [result, setResult] = useState({ url: '', image: '', error: '' });
   useEffect(() => {
     let active = true;
-    QRCode.toDataURL(url, { width: 256, margin: 2, errorCorrectionLevel: 'M' })
+    QRCode.toDataURL(url, { width: 768, margin: 4, errorCorrectionLevel: 'M', color: { dark: '#000000', light: '#ffffff' } })
       .then(image => { if (active) setResult({ url, image, error: '' }); })
       .catch(() => { if (active) setResult({ url, image: '', error: 'QR unavailable. Use the displayed registration link.' }); });
     return () => { active = false; };

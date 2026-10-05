@@ -25,8 +25,8 @@ it('exports Finance CSV with current filters and retains pending, failure and do
   const user = userEvent.setup();
   render(<Panel />);
   await waitFor(() => expect(screen.queryByText('Loading payments…')).not.toBeInTheDocument());
-  await user.type(screen.getByLabelText('From (Manila)'), '2026-10-01');
-  await user.type(screen.getByLabelText('Through (Manila)'), '2026-10-05');
+  await user.type(screen.getByLabelText('From'), '2026-10-01');
+  await user.type(screen.getByLabelText('To'), '2026-10-05');
   await user.selectOptions(screen.getByLabelText('OR status'), 'pending');
   let reject;
   exportFinanceTransactions.mockReturnValueOnce(new Promise((_, fail) => { reject = fail; }));

@@ -191,7 +191,9 @@ Clerks and Admin can choose **Browser verification → Use shared-computer verif
 
 The header's theme button also switches light/dark mode. On phones, use the top-left menu for navigation. Long forms scroll inside their dialogs; wide tables/charts scroll inside their cards. Printed documents keep their original size.
 
-Navigation shows up to six destinations in **Main**, with daily work first. When your account has additional destinations, the four-square **More** button appears seventh and opens the remaining pages; choose **Back to main** to return. Accounts with six or fewer destinations show all their pages directly, including **Help / FAQ**, without More. Secretary's **Records & Export** and Finance's **Transactions & Export** remain in Main. **Preferences** and **Logout** are available in both sets and do not count toward the six destinations. Opening a direct link reveals the correct set and marks its current page. On a short screen you can scroll the navigation with touch, a wheel/trackpad or keyboard even though its scrollbar is hidden; Tab still reaches every control.
+Navigation shows up to six destinations in **Main**, with daily work first. When your account has additional destinations, the four-square **More** button appears seventh and opens the remaining pages; choose **Back to main** to return. Accounts with six or fewer destinations show all their pages directly, including **Help / FAQ**, without More. Secretary's **Records & Export** and Finance's **Transactions & OR Copies** remain in Main. **Preferences** and **Logout** are available in both sets and do not count toward the six destinations. Opening a direct link reveals the correct set and marks its current page. On a short screen you can scroll the navigation with touch, a wheel/trackpad or keyboard even though its scrollbar is hidden; Tab still reaches every control.
+
+Detail dialogs use a short entry and exit; page/tab switches use a brief fade and movement, and FAQ changes emphasize the same card. Operating-system reduced motion removes these movements. Focus and state changes remain immediate.
 
 Use Tab to move between controls, Enter/Space to activate them, and Escape to close eligible dialogs. Queue tabs support arrow keys, Home and End. Names, IDs, tracking numbers and notes can be selected and copied.
 
@@ -203,7 +205,8 @@ Use Tab to move between controls, Enter/Space to activate them, and Escape to cl
 - **Questions:** use Tracking Desk to inspect status. Select a student's linked name to view their saved profile.
 - **Support:** declare availability, claim the oldest ticket and reply. One live ticket per Window 1 clerk is enforced. Request case documents through the composer; explicitly request student replies, mark Awaiting student or resolve. Admin and Window 1 manage global Support settings and view Support analytics.
 - **Exports:** open **Reports & Export**, apply filters, select an export option and export.
-- **Submission QR:** the Online Submission QR opens TRACE signup; the tracking QR identifies an existing request. Record prior original issuance only after checking evidence and adding notes.
+- **Registration QR:** find the compact card directly below Upload Document. Choose Current student or Alumni, then let the applicant scan, use Open registration form or Download QR. Select Preview (or focus it and press Enter/Space) for a larger QR; Escape closes it and returns focus. Download permanent QR codes from the production site. This registration QR does not identify an existing request; the payment slip’s tracking QR does.
+- **Waiting:** intake uses the latest recorded entry into its queue, including a Secretary return; a note that keeps the same intake status does not restart the wait. Legacy records without an entry use their creation time. Labels refresh every minute and when returning to the page: minutes, hours, days from 24 hours, weeks from seven days. Missing/invalid timestamps show —; future clock skew shows < 1 min. These are elapsed waits, not promised processing deadlines.
 
 ## 9. College Secretary tasks
 
@@ -226,12 +229,12 @@ Choose **Export** beside the title. **Filtered document records (CSV)** uses the
 
 ## 10. Finance tasks
 
-1. Use **Awaiting Payment** for counter payments. Record the actual payment details, review the bill, then save and confirm. Logging a payment does not clear it.
+1. Open **Dashboard** for **Awaiting Payment** and **Verification Queue**. Transactions are a separate sidebar page. Use **Awaiting Payment** for counter payments. Record the actual payment details, review the bill, then save and confirm. Logging a payment does not clear it.
 2. Use **Verification Queue** to compare payment references and evidence against the actual payment records. OCR is an aid; check its output yourself.
 3. Confirm verified payment, or give a clear reason when rejecting it.
 4. Record the actual OR details, or choose **Later** when issuance must be deferred. Payment clearance sends an acknowledgment while the OR is pending.
 5. Use the receipt actions to issue/publish the actual OR with its number, issue date and digital copy. Give the physical receipt to Secretary for release with the document. Existing recorded OR numbers remain unchanged.
-6. Open **Transactions & Export** to filter cleared payments by date/receipt state and export CSV. Each request group appears once with its total. The view shows elapsed time awaiting an OR when a clearance timestamp exists.
+6. Open **Transactions & OR Copies** in the sidebar. Set **From**, **To** and **OR status**; both dates are inclusive and interpreted in Asia/Manila. Choose **Export** beside the title for filtered CSV. Each request group appears once with its total. **View OR** in Actions opens an available digital receipt through authenticated access. **Upload OR copy** means an OR number exists but its copy is pending; **Issue OR & upload** means issuance is pending. Existing Reports/Export links open this same page. The view shows elapsed time awaiting an OR when a clearance timestamp exists.
 
 New same-day OR issuance closes at **exactly 4:00 PM Manila time**. Deferred issuance is not a promised next-day deadline. Finance can upload a retained copy later without re-verifying an already cleared payment.
 

@@ -102,11 +102,13 @@ Let's switch perspectives. I'm logging in as the **Window 1 Clerk** — the coun
 
 "Window 1 sits at *both* ends of our pipeline. Here at the front is the **Intake Queue**: the first human look at every request. The clerk confirms the paperwork is there and readable.
 
+The Waiting column measures elapsed time from the latest intake entry, using days and weeks for longer waits. A compact registration QR sits below Upload Document; applicants choose their type and can open a larger preview. It is separate from the payment-slip tracking QR.
+
 This is also where walk-ins enter. A student with no internet can come to this counter and the clerk files the request for them — it enters exactly the same queue, unpaid, so a walk-in cannot skip its own evaluation or its bill. If they brought paper with them, the clerk scans it here and our Python OCR engine reads it, the same way it would an online upload."
 
 *(Action: Open the intake check, then click 'Route to Secretary')*
 
-"On approving intake, the request enters its college Secretary queue. The configured n8n workflow can assign the corresponding Secretary account; unassigned work uses college filtering if routing is unavailable. The server still enforces the college boundary. This is different from Vercel’s production-domain assignment setting.
+"On approving intake, the request enters its college Secretary queue. Automatic document assignment is disabled in the approved deployment. If enabled later, the configured n8n workflow can assign the corresponding Secretary account; unassigned work uses college filtering if routing is unavailable. The server still enforces the college boundary. This is different from Vercel’s production-domain assignment setting.
 
 I'll pass the floor to [Speaker 3 Name], logging in as the **CCS Secretary**."
 
@@ -152,7 +154,7 @@ Two things worth noting. It deliberately takes the *largest* figure on the recei
 
 *Crucially*: that click is the **only** place in our entire codebase that marks a document as PAID. The Secretary sets the price; Finance confirms the money. One person cannot do both, and that separation is what makes the money trail auditable.
 
-Finance can clear payment while the OR is pending: the student receives an acknowledgment, then the digital OR when published. At exactly 4:00 PM Manila time, new same-day issuance closes. The current earliest-date rule uses the next calendar date, not a holiday calendar or a promised issuance time. Finance’s transaction view shows elapsed waiting time and supports filtered exports.
+Finance can clear payment while the OR is pending: the student receives an acknowledgment, then the digital OR when published. At exactly 4:00 PM Manila time, new same-day issuance closes. The current earliest-date rule uses the next calendar date, not a holiday calendar or a promised issuance time. The dedicated **Transactions & OR Copies** sidebar page keeps paid records separate from these dashboard queues. Its **From/To** filters still use inclusive Manila dates. **View OR** opens an available private copy; missing or deferred copies keep their own states and upload actions. **Export** uses the current filters. Elapsed receipt waiting time is informational.
 
 For the release demonstration we will use an issued synthetic OR. Back to [Speaker 3 Name] for receipt inspection and handoff."
 

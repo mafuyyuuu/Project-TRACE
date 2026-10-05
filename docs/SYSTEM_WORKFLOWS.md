@@ -121,7 +121,7 @@ clear it: it moves to the same verification queue an online payment would.
 
 Finance may enter the issued OR details or choose Later to defer issuance. Payment clearance immediately sends a payment acknowledgment; an acknowledgment is not an Official Receipt. The actual digital OR is distributed when issued and routed to Secretary for inspection before handoff/release. A physical issued OR can be inspected while Finance's digital retained copy is still pending.
 
-At exactly 4:00 PM Asia/Manila, new same-day OR issuance closes. Deferred receipts have an earliest next-calendar-date value; this is not a working-day/holiday calendar or a promised issuance deadline. Finance sees elapsed time waiting for an OR in Transactions & Export. Publishing a later copy does not repeat payment verification or change document stages.
+At exactly 4:00 PM Asia/Manila, new same-day OR issuance closes. Deferred receipts have an earliest next-calendar-date value; this is not a working-day/holiday calendar or a promised issuance deadline. Finance sees elapsed time waiting for an OR in Transactions & OR Copies. Publishing a later copy does not repeat payment verification or change document stages.
 
 Secretary's receipt check requires the recorded OR and either an uploaded copy or an explicit physical-inspection acknowledgment. It is distinct from Finance's money decision. Refer to current service validation rather than historical Batch 4 UI-only descriptions.
 

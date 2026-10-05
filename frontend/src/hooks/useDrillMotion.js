@@ -1,7 +1,15 @@
-import { useLayoutEffect } from 'react';
+import { useCallback, useLayoutEffect, useRef } from 'react';
 import { animateMotion, cancelMotion, clearDrillExits, prepareDrillExit } from '@/utils/motion';
 
 export default function useDrillMotion(ref, open, layer = 'modal') {
+  const detachedExit = useRef(null);
+  // Capture before DOM removal: an open=false update can remove the portal
+  // before layout-effect cleanup, leaving no geometry for the visual exit.
+  const attachPanel = useCallback(panel => {
+    if (!panel && ref.current) detachedExit.current = prepareDrillExit(ref.current, layer);
+    if (panel) detachedExit.current = null;
+    ref.current = panel;
+  }, [ref, layer]);
   useLayoutEffect(() => {
     if (!open || !ref.current) return undefined;
     clearDrillExits();
@@ -16,7 +24,7 @@ export default function useDrillMotion(ref, open, layer = 'modal') {
     }
     animateMotion(panel, layer === 'feedback' ? 'feedback' : 'drill');
     return () => {
-      const exit = prepareDrillExit(panel, layer);
+      const exit = detachedExit.current || prepareDrillExit(panel, layer);
       cancelMotion(panel);
       // StrictMode rehearsal and effect replacements leave the panel connected.
       // Only a real DOM removal may produce a noninteractive visual exit.
@@ -27,4 +35,5 @@ export default function useDrillMotion(ref, open, layer = 'modal') {
       });
     };
   }, [ref, open, layer]);
+  return attachPanel;
 }

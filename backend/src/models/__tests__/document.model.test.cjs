@@ -5,10 +5,13 @@ it('declares the document alias in both paginated student history queries', asyn
   const params = ['STU-TEST', 'COMPLETED'];
   await expect(model.listWithFilters(conditions, params, 10, 20, executor)).resolves.toEqual([]);
   await expect(model.countWithFilters(conditions, params, executor)).resolves.toBe(0);
-  expect(executor.query.mock.calls[0]).toEqual([
-    "SELECT d.*, student.program FROM documents d LEFT JOIN users student ON student.student_id = d.student_id AND student.role = 'student' WHERE d.student_id = ? AND d.current_status = ? ORDER BY d.created_at DESC LIMIT ? OFFSET ?",
-    [...params, 10, 20],
-  ]);
+  const [listSql, listParams] = executor.query.mock.calls[0];
+  expect(listSql).toContain("FROM documents d LEFT JOIN users student ON student.student_id = d.student_id AND student.role = 'student' WHERE d.student_id = ? AND d.current_status = ? ORDER BY d.created_at DESC LIMIT ? OFFSET ?");
+  expect(listParams).toEqual([...params, 10, 20]);
+  expect(listSql).toContain('MAX(intake.timestamp_started)');
+  expect(listSql).toContain("intake.to_status = 'PENDING_W1_INTAKE'");
+  expect(listSql).toContain('intake.from_status IS NULL OR intake.from_status <> intake.to_status');
+  expect(listSql).toContain('d.created_at)');
   expect(executor.query.mock.calls[1]).toEqual([
     'SELECT COUNT(*) as total FROM documents d WHERE d.student_id = ? AND d.current_status = ?', params,
   ]);

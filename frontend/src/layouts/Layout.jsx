@@ -45,7 +45,7 @@ export default function Layout() {
   const contentRef = useRef(null)
   const drawerRef = useRef(null)
   useMotion(contentRef, `${location.pathname}:${location.search}`, 'context', { initial: false })
-  useDrillMotion(drawerRef, showMobileNav, 'drawer')
+  const attachDrawer = useDrillMotion(drawerRef, showMobileNav, 'drawer')
 
   const toggleTheme = () => {
     const next = !darkMode
@@ -317,7 +317,7 @@ export default function Layout() {
               onClick={() => setShowMobileNav(false)}
               aria-hidden="true"
             />
-            <aside ref={drawerRef} id="mobile-navigation" role="dialog" aria-modal="true" aria-label="Navigation menu" className="trace-nav-scroll relative w-72 max-w-[85vw] h-full bg-white dark:bg-gray-900 shadow-2xl p-4 overflow-y-auto overscroll-contain flex flex-col">
+            <aside ref={attachDrawer} id="mobile-navigation" role="dialog" aria-modal="true" aria-label="Navigation menu" className="trace-nav-scroll relative w-72 max-w-[85vw] h-full bg-white dark:bg-gray-900 shadow-2xl p-4 overflow-y-auto overscroll-contain flex flex-col">
               <div className="flex shrink-0 items-center justify-between mb-6 px-2">
                 <TraceBrand />
                 <Button

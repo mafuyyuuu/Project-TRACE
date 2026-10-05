@@ -35,6 +35,7 @@ The Express app follows a strict **route → controller → service → model** 
 | `utils/pricing.js` | `calculateAmount`, `generateTrackingNumber` | Pure — no DB or service imports, so it is directly testable |
 
 **Key conventions:**
+- **Intake duration projection:** paginated document lists return `intake_entered_at` for intake records, derived from the latest `step_logs.timestamp_started` entry into `PENDING_W1_INTAKE`. Same-status notes do not restart it; absent historical entries fall back to `documents.created_at`. No stored timestamp or lifecycle is rewritten. Other stages return null for this field. Window 1 refreshes its elapsed display clock locally, without an API poll per row.
 - **Transactions:** every multi-write desk action (payment verification, evaluation, release, cancellation) runs inside `beginTransaction`/`commit`/`rollback` with a `FOR UPDATE` row lock. Model functions accept an optional `executor` argument so their queries can join the transaction.
 - **Fail-soft integrations:** `notification.service.js`, `aiEngine.service.js`, and `n8n.service.js` log and swallow their errors. A failed SMS, an offline Flask engine, or a stopped n8n container must never roll back a committed document action.
 - **Route ordering:** in `documents.routes.js`, the literal paths `/stats`, `/stats/forecast`, `/stats/insights`, and `/activity-logs` must stay **above** the `/:trackingNumber` wildcard or they'll be swallowed by it.

@@ -59,7 +59,7 @@ function roleNavItems(user) {
   if (user?.role === 'clerk' && user?.desk_assignment === 'Finance') {
     return [
       { tab: 'dashboard', to: '/dashboard', label: 'Dashboard', icon: 'dashboard' },
-      { tab: 'reports', to: '/dashboard?tab=reports', label: 'Transactions & Export', icon: 'report' },
+      { tab: 'transactions', to: '/dashboard?tab=transactions', label: 'Transactions & OR Copies', icon: 'report' },
       { tab: 'messages', to: '/dashboard?tab=messages', label: 'Support', icon: 'message' },
     ];
   }
@@ -89,5 +89,6 @@ export function navGroupsForUser(user) {
 
 /** Keep the old Secretary deep link active within the combined workspace. */
 export function canonicalTabForUser(user, tab) {
+  if (user?.role === 'clerk' && user.desk_assignment === 'Finance' && ['reports', 'export', 'exports'].includes(tab)) return 'transactions';
   return user?.role === 'clerk' && user.desk_assignment === 'Secretary' && tab === 'completed-logs' ? 'reports' : tab;
 }

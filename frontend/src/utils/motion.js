@@ -76,7 +76,7 @@ export function clearDrillExits() {
 
 /** Capture only a transient visual, never a second interactive dialog. */
 export function prepareDrillExit(panel, layer = 'modal') {
-  if (!panel?.animate || prefersReducedMotion()) return () => {};
+  if (!panel?.animate || panel.closest('[data-motion-private]') || prefersReducedMotion()) return () => {};
   const timing = tokens('exit');
   const rect = panel.getBoundingClientRect();
   if (!timing || !rect.width || !rect.height) return () => {};
@@ -95,6 +95,9 @@ export function prepareDrillExit(panel, layer = 'modal') {
     node.classList.remove(...[...node.classList].filter(name => name.startsWith('animate-')));
     if ('disabled' in node) node.disabled = true;
     if (node.matches('input, textarea, select')) { node.value = ''; node.removeAttribute('value'); node.textContent = ''; }
+    // MFA setup QR/manual secrets and recovery codes are text/images too;
+    // clearing input values alone is insufficient for a security-panel exit.
+    if (node.matches('[data-motion-private]')) node.remove();
     if (node.matches('iframe, object, embed, video, audio, script, link, style')) node.remove();
     if (node.matches('img') && !/^(blob:|data:)/.test(node.src)) node.remove();
   }

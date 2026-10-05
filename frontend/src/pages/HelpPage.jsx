@@ -44,8 +44,8 @@ export default function HelpPage({ user }) {
   );
   if (desk === 'Finance') entries.unshift(
     ['How do I record counter payments?', 'Record payment details and the actual Official Receipt number, or choose Later to defer issuance, then confirm. Receipt OCR is an aid; check its values yourself. New same-day OR issuance closes at 4:00 PM Manila time. Payment clearance sends an acknowledgment while the OR is pending.'],
-    ['Can I issue or upload the receipt later?', 'Yes. Deferred OR upload requires the actual receipt number, issue date and digital copy. An existing recorded OR keeps its number. Students receive the digital copy when published; the issued receipt accompanies the document at release. Transactions & Export shows elapsed time waiting for an OR, without promising an issue deadline.'],
-    ['How do I export Finance transactions?', 'Open Transactions & Export, filter cleared payments by date and receipt state, then choose Export CSV. A request with multiple documents appears once with its total payment.'],
+    ['Can I issue or upload the receipt later?', 'Yes. Deferred OR upload requires the actual receipt number, issue date and digital copy. An existing recorded OR keeps its number. Students receive the digital copy when published; the issued receipt accompanies the document at release. Transactions & OR Copies shows elapsed time waiting for an OR, without promising an issue deadline.'],
+    ['How do I export Finance transactions?', 'Open the separate Transactions & OR Copies page. From/To are inclusive Manila dates. Filter by date and receipt state, use View OR for available private copies, then choose Export for CSV. A request with multiple documents appears once with its total payment.'],
   );
   if (user?.role === 'admin') entries.unshift(
     ['Can I restore Good Moral or change the Diploma fee?', 'Good Moral types are retired and cannot be restored or edited. Historical requests remain on record. Diploma starts with a ₱250 reissue default; its configured fee remains editable and the Secretary sets the final amount.'],

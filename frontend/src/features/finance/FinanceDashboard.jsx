@@ -1,12 +1,11 @@
 import Button from '@/components/Button';
 import RequestMessagesPanel from '@/components/RequestMessagesPanel';
 import { useState } from 'react';
-import FinanceTransactionsPanel from '@/features/finance/components/FinanceTransactionsPanel';
-import useFinanceTransactions from '@/hooks/useFinanceTransactions';
+import FinanceTransactionsWorkspace from '@/features/finance/components/FinanceTransactionsWorkspace';
+import { canonicalTabForUser } from '@/utils/navigation';
 import FinanceVerificationModal from '@/features/finance/components/FinanceVerificationModal';
 import WalkInPaymentModal from '@/features/finance/components/WalkInPaymentModal';
 import ConfirmDialog from '@/components/ConfirmDialog';
-import DeferredOrUploadModal from './components/DeferredOrUploadModal';
 import QueueTabs from '@/components/QueueTabs';
 import { formatPeso } from '@/utils/pricing';
 import { getStatusLabel } from '@/utils/documentStatus';
@@ -25,6 +24,13 @@ import PaymentStubModal from '@/features/secretary/components/PaymentStubModal';
  * only place in the system a document ever becomes PAID.
  */
 export default function FinanceDashboard({ user, setViewImageUrl, currentTab = 'dashboard' }) {
+  const tab = canonicalTabForUser(user, currentTab);
+  if (tab === 'messages') return <RequestMessagesPanel user={user} initialDocumentId={new URLSearchParams(window.location.search).get('document')} />;
+  if (tab === 'transactions') return <FinanceTransactionsWorkspace setViewImageUrl={setViewImageUrl} />;
+  return <FinanceOverview user={user} setViewImageUrl={setViewImageUrl} />;
+}
+
+function FinanceOverview({ user, setViewImageUrl }) {
   const [viewProfileId, setViewProfileId] = useState(null);
 
   const {
@@ -35,7 +41,6 @@ export default function FinanceDashboard({ user, setViewImageUrl, currentTab = '
     documents,
     awaitingPaymentQueue,
     verificationQueue,
-    handleDeferredUpload,
     actionLoading,
     clerkNotes,
     setClerkNotes,
@@ -62,14 +67,11 @@ export default function FinanceDashboard({ user, setViewImageUrl, currentTab = '
     paymentMethods,
   } = useFinanceDashboard(user);
 
-  const [queueTab, setActiveQueueTab] = useState('awaiting-payment');
-  const activeQueueTab = currentTab === 'reports' ? 'transactions' : queueTab;
-  const transactions = useFinanceTransactions();
+  const [activeQueueTab, setActiveQueueTab] = useState('awaiting-payment');
 
   const todayFormatted = todayLongDate();
 
-  if(currentTab==='messages')return <RequestMessagesPanel user={user} initialDocumentId={new URLSearchParams(window.location.search).get('document')} />;
-  if (loading && activeQueueTab !== 'transactions') return <DashboardLoading />;
+  if (loading) return <DashboardLoading />;
 
   return (
     <>
@@ -94,7 +96,6 @@ export default function FinanceDashboard({ user, setViewImageUrl, currentTab = '
           tabs={[
             { key: 'awaiting-payment', label: 'Awaiting Payment', count: awaitingPaymentQueue.length },
             { key: 'verification', label: 'Verification Queue', count: verificationQueue.length },
-            { key: 'transactions', label: 'Transactions & OR Copies', count: transactions.total },
           ]}
           activeKey={activeQueueTab}
           onChange={setActiveQueueTab}
@@ -230,14 +231,6 @@ export default function FinanceDashboard({ user, setViewImageUrl, currentTab = '
         </div>
         )}
 
-        
-        {activeQueueTab === 'transactions' && <FinanceTransactionsPanel state={transactions}
-          onProfile={setViewProfileId}
-          onUpload={doc => { setSelectedDoc(doc); setActiveModal('upload-or-later'); }}
-        />}
-
-        {/* Finance Receipt Verification Modal */}
-        {activeModal === 'upload-or-later' && selectedDoc && <DeferredOrUploadModal selectedDoc={selectedDoc} setActiveModal={setActiveModal} handleDeferredUpload={async (...args) => { const ok = await handleDeferredUpload(...args); if (ok) transactions.refresh(); return ok; }} actionLoading={actionLoading} />}
         {/* 2.1 FINANCE VERIFICATION MODAL */}
         {activeModal === 'verify-pay' && selectedDoc && (
           <FinanceVerificationModal

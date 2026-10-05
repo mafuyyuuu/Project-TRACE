@@ -41,7 +41,7 @@ const SECRETARY_STEPS = [PROFILE, SECURITY,
   MESSAGES, nav('grad-applications', 'Graduate Applications', 'Open an application to review the submitted alumni information, then use the available confirmed decision controls.'), nav('reports', 'Records & Export', 'Review your assigned college records. Secretary-cleared includes Ready for Pick-up and Completed; choose Completed only for released records. Review filters before exporting.'), UPDATES, HELP];
 const FINANCE_STEPS = [PROFILE, SECURITY,
   queue('Review the final bill and submitted payment proof against Finance records before verifying payment. A payment acknowledgment is separate from the Official Receipt. If the OR is deferred, watch its elapsed waiting time and issue it when ready. Payments at or after 4:00 PM Manila time have no same-day OR.'),
-  nav('reports', 'Transactions & Export', 'Open the Finance transaction report, choose filters and export the matching payment records. Check totals and receipt details before using the export.'),
+  nav('transactions', 'Transactions & OR Copies', 'Filter cleared payments, view available Official Receipts and export matching records. Receipt uploads and issuance stay separate from payment verification.'),
   nav('messages', 'Support', 'Open authorized linked case conversations. General tickets, live queue claims, lifecycle management and document requirement requests belong to Registrar staff.'),
   UPDATES, HELP];
 const ADMIN_STEPS = [PROFILE, SECURITY,

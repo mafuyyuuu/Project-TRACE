@@ -70,6 +70,18 @@ Require no `MISSING` entries, no constraint/capacity error and a zero exit statu
 
 ## Choose the right update path
 
+### Last batch (TRACE-42–47) and visible motion repair
+
+These changes add **no database migration**. The registration QR remains a generated frontend link; Finance reuses existing transaction/receipt APIs; intake waits derive from existing `step_logs` transitions, excluding same-status notes, with creation as the legacy fallback. Rebuild/recreate the backend for that timestamp projection and deploy the matching frontend for the compact QR/preview, dedicated Finance page, View OR, From/To labels and shared motion repair. Do not re-import schema, reseed, regenerate the MFA key, or rerun old policy-writing migrations for this UI batch.
+
+If the latest Support rollout has **not** been applied, the pending named follow-ups are still the five commands in [Support ticket rollout](#support-ticket-rollout): `migrate_password_resets.js`, `migrate_payment_methods.js`, `migrate_graduation_year.js`, `migrate_support_tickets.js`, `migrate_support_requirements.js`, then `check_schema.js`. The first two preserving base-table scripts may find existing tables. The earlier October 5 reason/onboarding/program migrations are already confirmed; do not mistake this new UI work for a requirement to rerun all 27 scripts.
+
+If those five follow-ups already passed, use the normal fresh-backup, review/merge, pull, backend build/recreate and matching frontend deployment steps; run `check_schema.js` to check the current image against the current database. No AI rebuild is necessary for TRACE-42–47 or motion alone; the separate Support insights rollout does require its matching AI image.
+
+After rollout, check Window 1 QR placement/scan/download/student–alumni selection/keyboard preview, a new and a Secretary-returned intake wait, one Finance transactions page through new and old links, From/To inclusivity, authenticated image/PDF OR previews and missing/deferred states. Check modal entry/exit, page/FAQ transitions, rapid reopening and focus restoration with normal and reduced motion. A stale Vercel frontend or OS reduced-motion setting can hide the new motion even when the API is healthy.
+
+Remaining operator work: enter Registrar-approved Program and supporting-document catalogs; review Support calendars/timeouts and clerk availability; compare legacy import ownership/counts privately; test live role/file permissions, email/SMS, real-phone keyboards and enlarged text; rehearse a restore; and run the agreed capacity test in matching staging before claiming production capacity. SEC-01 remains held for its separate agreed design/sign-off; no missing institutional forms or delay-notification threshold is invented. Track these in [FEATURE_ACCEPTANCE_MATRIX.md](FEATURE_ACCEPTANCE_MATRIX.md) and [SUPPORT_IMPLEMENTATION_CHECKLIST.md](SUPPORT_IMPLEMENTATION_CHECKLIST.md).
+
 **For this repository revision, use the Support ticket rollout path.** The older targeted paths below describe earlier revisions. The latest schema checker also requires the new Support and preserving base-table objects; do not apply only an older follow-up list and expect the current checker to pass.
 
 - **Deploying the unified Support workspace:** follow [Support ticket rollout](#support-ticket-rollout) first; it includes the new explicit migrations and matching API/AI/frontend.

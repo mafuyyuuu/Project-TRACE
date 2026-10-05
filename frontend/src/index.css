@@ -216,20 +216,20 @@
 
 :root {
   --trace-motion-feedback-duration: 150ms;
-  --trace-motion-context-duration: 180ms;
-  --trace-motion-continuity-duration: 180ms;
-  --trace-motion-drill-duration: 220ms;
-  --trace-motion-exit-duration: 160ms;
+  --trace-motion-context-duration: 220ms;
+  --trace-motion-continuity-duration: 220ms;
+  --trace-motion-drill-duration: 250ms;
+  --trace-motion-exit-duration: 200ms;
   --trace-motion-return-duration: 150ms;
   --trace-motion-easing: cubic-bezier(0.2, 0, 0, 1);
   --trace-motion-continuity-distance: 2px;
-  --trace-motion-context-distance: 4px;
-  --trace-motion-drill-distance: 8px;
+  --trace-motion-context-distance: 8px;
+  --trace-motion-drill-distance: 12px;
   --trace-motion-exit-distance: 8px;
   --trace-motion-feedback-distance: 0px;
   --trace-motion-return-distance: 0px;
-  --trace-motion-opacity: 0.84;
-  --trace-motion-scale: 0.99;
+  --trace-motion-opacity: 0.6;
+  --trace-motion-scale: 0.96;
   --trace-motion-elevation-rest: 0 1px 3px rgb(0 0 0 / 0.1);
   --trace-motion-elevation-raised: 0 25px 50px -12px rgb(0 0 0 / 0.25);
   --trace-motion-button-lift: 2px;

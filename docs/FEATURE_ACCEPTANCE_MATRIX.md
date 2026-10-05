@@ -82,6 +82,20 @@ See [SUPPORT_IMPLEMENTATION_CHECKLIST.md](SUPPORT_IMPLEMENTATION_CHECKLIST.md) f
 
 TRACE-28–41 and the approved chat-file workflow are **implemented and locally verified**. The shared workspace, FAQ escalation, durable queue, calendars/reply clocks, private files, catalog/replacements, cancellation history, metrics and aggregate advice have source tests and synthetic checks. [SUPPORT_VALIDATION.md](SUPPORT_VALIDATION.md) records actual migration/race/browser/capacity evidence and its limits. Secretary/Finance review dialogs now use the ticket workspace; legacy send endpoints reject stale clients instead of splitting new history. The matched API, AI image, frontend and explicit migrations are ready for rollout review. They have not been deployed by the agent; real-phone, live permissions/delivery and matching staging capacity remain separate acceptance work.
 
-## Acceptance that source tests cannot complete
+## Last batch — TRACE-42 through TRACE-47
+
+| Feature | Local implementation | Live check |
+| --- | --- | --- |
+| TRACE-42 QR location/size | Same-column compact registration card directly beneath Upload Document | Check desk screen, applicant choice and permanent production URL |
+| TRACE-43 QR preview | Native keyboard thumbnail; crisp 768 px QR with white quiet zone; shared modal/Escape/focus return; original download | Scan both applicant types on a physical phone |
+| TRACE-44 Intake waits | Latest actual intake transition, same-status notes excluded, legacy creation fallback; minute clock/return refresh; safe minutes/hours/days/weeks | New/returned/legacy records and open-page refresh |
+| TRACE-45 Finance separation | Overview has two payment queues; one Transactions & OR Copies page; Reports/Export aliases; view-specific fetching | New/old deep links and all Finance navigation |
+| TRACE-46 View OR | Actions uses authenticated image/PDF preview; deferred/missing states keep existing issue/upload actions | Private receipt permissions and real copies |
+| TRACE-47 From/To | Accessible labels changed; filter fields, Manila dates, inclusive range, export payload unchanged | Boundary-day records and filtered CSV |
+| Motion follow-up | Before-removal exit capture; clearer shared context/continuity/drill tokens; immediate focus, cancellation and reduced motion retained | Matching frontend and actual browser/OS preferences |
+
+No new migration for these rows. The earlier Support/year/base-table follow-ups and deployment acceptance remain separate, as documented in MIGRATION_ROLLOUT.
+
+## Acceptance that source tests cannot complete (still pending)
 
 Keep the user's original acceptance checklist in PROGRESS active: actual first-login alumni gate; phone/email persistence through live logout/login; institutional visibility saves observed by actual student/alumnus sessions; owner emails; original Back to Login viewport; physical phone input zoom, nine-step tracker/line, large-text layouts and queue badges; real populated exports; measured low/high chart rendering; private off-server backups plus a **test restore**; and production-like capacity. A healthy container, checksum or synthetic browser screenshot does not substitute for those checks.

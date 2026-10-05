@@ -205,7 +205,7 @@ flowchart LR
     subgraph "💰 Finance Clerk"
         F1["View Payment Verification Queue"]
         F2["Approve / Reject Payments"]
-        F3["Review Proof / Issue or Defer OR<br/>Transaction Export"]
+        F3["Review Proof / Issue or Defer OR<br/>Separate Transactions & OR Copies<br/>Private OR Preview + Filtered Export"]
     end
 
     subgraph "📜 College Secretary"
@@ -215,7 +215,7 @@ flowchart LR
     end
 
     subgraph "🏢 Window 1 Clerk"
-        W1A["AI Intake Scanner Dropzone"]
+        W1A["AI Intake Scanner Dropzone<br/>Compact Expandable Registration QR"]
         W1B["View Release Queue"]
         W1C["Release Documents to Students"]
     end
