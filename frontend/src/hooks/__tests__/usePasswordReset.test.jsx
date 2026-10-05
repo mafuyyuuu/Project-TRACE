@@ -43,6 +43,24 @@ describe('requestLink', () => {
     expect(forgotPassword).toHaveBeenCalledWith('STU2024001');
   });
 
+  it('shows the opaque support reference without exposing delivery or lookup metadata', async () => {
+    forgotPassword.mockResolvedValue({ message: 'Request received. Check Spam/Junk.', request_id: 'synthetic-reference' });
+    const { result } = renderHook(() => usePasswordReset());
+    await act(async () => result.current.requestLink('FINANCE001'));
+    expect(result.current.requestReference).toBe('synthetic-reference');
+    expect(result.current.message).toBe('Request received. Check Spam/Junk.');
+    expect(result.current.done).toBe(true);
+  });
+
+  it('gives timeout guidance without claiming the server did not send an email', async () => {
+    forgotPassword.mockRejectedValue({ code: 'ECONNABORTED' });
+    const { result } = renderHook(() => usePasswordReset());
+    await act(async () => result.current.requestLink('FINANCE001'));
+    expect(result.current.error).toMatch(/timed out.*email may still arrive.*Registrar/);
+    expect(result.current.done).toBe(false);
+    expect(result.current.loading).toBe(false);
+  });
+
   it('surfaces a server error inline', async () => {
     forgotPassword.mockRejectedValue({ response: { data: { error: 'Too many requests.' } } });
     const { result } = renderHook(() => usePasswordReset());

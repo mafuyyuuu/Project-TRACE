@@ -370,6 +370,18 @@ describe('Account submission confirmations', () => {
     expect(reset.requestLink).toHaveBeenCalledExactlyOnceWith('ana@example.test');
   });
 
+  it('announces generic reset guidance with a copyable request reference', () => {
+    Object.assign(reset, { done: true, message: 'Request received. Check Spam/Junk and contact the Registrar if nothing arrives.', requestReference: 'synthetic-reference' });
+    try {
+      renderPage(<ForgotPasswordPage />);
+      expect(screen.getByRole('status')).toHaveTextContent('Request reference: synthetic-reference');
+      expect(screen.getByRole('status')).toHaveTextContent('Check Spam/Junk');
+      expect(screen.getByText('synthetic-reference')).toHaveClass('select-text');
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+      expect(screen.getByRole('link', { name: 'Back to Login' })).toHaveAttribute('href', '/');
+    } finally { Object.assign(reset, { done: false, message: '', requestReference: '' }); }
+  });
+
   it('checks password matching before confirmation and keeps the token and new password payload', async () => {
     const user = userEvent.setup();
     renderPage(<ResetPasswordPage />, '/reset-password?token=test-token');

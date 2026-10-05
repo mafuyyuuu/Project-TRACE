@@ -30,9 +30,12 @@ const onboarding = require('../models/onboarding.model');
 const aiEngine = require('./aiEngine.service');
 const { registrationVerification } = require('../utils/registrationVerification');
 const notifications = require('./notification.service');
-const sendAuthEmail = async ({ email, title, message }) => {
-  try { return await notifications.sendEmail(email, title, message); }
-  catch { return { ok: false }; }
+const { errorDetails } = require('../utils/emailDiagnostics');
+const sendAuthEmail = async ({ email, title, message, requestId, purpose }) => {
+  try {
+    return requestId ? await notifications.sendEmail(email, title, message, { requestId, purpose })
+      : await notifications.sendEmail(email, title, message);
+  } catch (error) { return { ok: false, outcome: 'smtp_failed', diagnostics: errorDetails(error) }; }
 };
 const { UPLOAD_DIR } = require('../middlewares/upload.middleware');
 const { badRequest, unauthorized, forbidden, notFound } = require('../utils/AppError');
@@ -590,53 +593,75 @@ async function logoutAll(userId, preserveCurrent = false, expectedVersion) {
   return result;
 }
 
+function resetFrontendOrigin() {
+  const configured = (env.FRONTEND_URL.split(',')[0] || '').trim();
+  if (!configured && env.NODE_ENV === 'production') return null;
+  try {
+    const url = new URL(configured || 'http://localhost:5273');
+    if (!['http:', 'https:'].includes(url.protocol) || url.username || url.password || url.search || url.hash || url.pathname !== '/') return null;
+    if (env.NODE_ENV === 'production' && (url.protocol !== 'https:' || ['localhost', '127.0.0.1', '[::1]'].includes(url.hostname))) return null;
+    return url.origin;
+  } catch { return null; }
+}
+
 async function requestPasswordReset({ identifier }) {
   if (!identifier || !String(identifier).trim()) {
     throw badRequest('Enter your Student ID / Staff ID or your email address.');
   }
 
+  const requestId = crypto.randomUUID();
   const generic = {
-    message:
-      'If that account exists, a password reset link has been sent to its registered email address.',
+    message: 'Password reset request received. If an active account matches, TRACE will attempt to send a reset link to its registered email address. Check Spam/Junk. If nothing arrives, contact the Registrar with the request reference below.',
+    request_id: requestId,
   };
+  const report = (outcome, diagnostics = {}) => {
+    const log = outcome === 'smtp_accepted' ? console.log : console.warn;
+    log('[Password reset]', JSON.stringify({ request_id: requestId, outcome, ...diagnostics }));
+    return generic;
+  };
+  const base = resetFrontendOrigin();
+  if (!base) return report('invalid_frontend_url');
 
-  const rows = await userModel.findActiveByStudentIdOrEmail(String(identifier).trim());
-  if (rows.length === 0) return generic;
-
-  let user = rows[0];
-
-  // No email on file means there is nowhere to send the link. Silently stop:
-  // saying so out loud would leak that the account exists.
-  if (!user.email) return generic;
-
-  const token = crypto.randomBytes(32).toString('hex');
-  const connection = await pool.getConnection();
+  let phase = 'lookup';
   try {
-    await connection.beginTransaction();
-    user = await trustedBrowserModel.lockAccount(user.id, connection);
-    if (!user?.is_active || !user.email) { await connection.commit(); return generic; }
-    // Serialize issuance against password changes, resets and other resends.
-    await passwordResetModel.invalidateAllForUser(user.id, connection);
-    await passwordResetModel.create({ user_id: user.id, token_hash: hashResetToken(token), expires_at: new Date(Date.now() + RESET_TOKEN_TTL_MS) }, connection);
-    await connection.commit();
-  } catch (error) { await connection.rollback(); throw error; }
-  finally { connection.release(); }
+    const rows = await userModel.findActiveByStudentIdOrEmail(String(identifier).trim());
+    if (rows.length === 0) return report('account_not_available');
+    let user = rows[0];
+    if (!user.email) return report('no_registered_email');
 
-  const base = (env.FRONTEND_URL.split(',')[0] || '').trim() || 'http://localhost:5273';
-  const link = `${base.replace(/\/$/, '')}/reset-password#token=${token}`;
+    phase = 'issuance';
+    const token = crypto.randomBytes(32).toString('hex');
+    const connection = await pool.getConnection();
+    try {
+      await connection.beginTransaction();
+      user = await trustedBrowserModel.lockAccount(user.id, connection);
+      if (!user?.is_active || !user.email) {
+        await connection.commit();
+        return report('account_not_available');
+      }
+      // Serialize issuance against password changes, resets and other resends.
+      await passwordResetModel.invalidateAllForUser(user.id, connection);
+      await passwordResetModel.create({ user_id: user.id, token_hash: hashResetToken(token), expires_at: new Date(Date.now() + RESET_TOKEN_TTL_MS) }, connection);
+      await connection.commit();
+    } catch (error) { await connection.rollback(); throw error; }
+    finally { connection.release(); }
 
-  const sent = await sendAuthEmail({
-    email: user.email,
-    title: 'Password reset request',
-    message: `Hi ${user.full_name ? user.full_name.split(',')[0] : 'there'},\n\n` +
-      `A password reset was requested for ${user.student_id}. Open the link below within the hour to choose a new password:\n\n` +
-      `${link}\n\n` +
-      `If you did not request this, you can ignore this email — your password will not change.`
-  });
-
-  if (!sent.ok) console.warn('[Password reset] Email not delivered. Check SMTP configuration.');
-
-  return generic;
+    phase = 'delivery';
+    const link = `${base}/reset-password#token=${token}`;
+    const sent = await sendAuthEmail({
+      email: user.email,
+      title: 'Password reset request',
+      message: `Hi ${user.full_name ? user.full_name.split(',')[0] : 'there'},\n\n` +
+        `A password reset was requested for ${user.student_id}. Open the link below within the hour to choose a new password:\n\n` +
+        `${link}\n\n` +
+        `If you did not request this, you can ignore this email — your password will not change.`,
+      requestId, purpose: 'password_reset',
+    });
+    // Never expose provider outcomes to this unauthenticated caller.
+    return report(sent?.ok ? 'smtp_accepted' : 'email_not_accepted', sent?.diagnostics);
+  } catch (error) {
+    return report(`${phase}_failed`, errorDetails(error));
+  }
 }
 
 /**

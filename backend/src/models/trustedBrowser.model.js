@@ -22,7 +22,7 @@ async function hasActiveAuthenticator(userId, executor = pool) {
 
 // Serialize grants and credential changes against the existing version bump.
 async function lockAccount(userId, executor = pool) {
-  const [rows] = await executor.query(`SELECT id, role, is_active, token_version, password_hash
+  const [rows] = await executor.query(`SELECT id, role, is_active, token_version, password_hash, email, full_name, student_id
     FROM users WHERE id = ? FOR UPDATE`, [userId]);
   return rows[0];
 }

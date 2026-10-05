@@ -16,7 +16,7 @@ export default function ForgotPasswordPage() {
   const [identifier, setIdentifier] = useState('')
   const [identifierToConfirm, setIdentifierToConfirm] = useState(null)
   const [localError, setLocalError] = useState('')
-  const { loading, error: requestError, message, done, requestLink } = usePasswordReset()
+  const { loading, error: requestError, message, requestReference, done, requestLink } = usePasswordReset()
 
   const handleSubmit = (e) => {
     e.preventDefault()
@@ -30,7 +30,7 @@ export default function ForgotPasswordPage() {
   return (
     <AuthShell
       title="Reset your password"
-      subtitle="Enter your Student ID, Staff ID, or the email address on your account and we'll send you a link to choose a new password."
+      subtitle="Enter your Student ID, Staff ID, or the email address on your account to request a password reset link."
       footer={
         <Link to="/" className="text-sm font-medium text-white/90 hover:text-white hover:underline">
           Back to Login
@@ -48,8 +48,9 @@ export default function ForgotPasswordPage() {
       )}
 
       {done ? (
-        <div className="trace-section trace-section-inverse trace-section-body text-sm font-bold leading-relaxed">
-          {message}
+        <div role="status" className="trace-section trace-section-inverse trace-section-body text-sm font-bold leading-relaxed">
+          <p>{message}</p>
+          {requestReference && <p className="mt-3">Request reference: <span className="select-text">{requestReference}</span></p>}
         </div>
       ) : (
         <form onSubmit={handleSubmit}>

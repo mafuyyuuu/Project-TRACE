@@ -103,7 +103,7 @@ export async function lookupStudent(studentId, options = {}) {
  * @param {string} identifier Student/Staff ID or email address.
  */
 export async function forgotPassword(identifier) {
-  const { data } = await api.post('/auth/forgot-password', { identifier })
+  const { data } = await api.post('/auth/forgot-password', { identifier }, { timeout: 60000 })
   return data
 }
 

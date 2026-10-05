@@ -33,7 +33,7 @@ Use your own account and password. The example accounts in older documentation a
 - Students without an enabled login factor do not receive an OTP just because it is their first login or a new browser. Students with an enrolled authenticator use an app or recovery code at login.
 - Staff without an email inbox must ask Admin for initial authenticator setup; see [Admin tasks](#11-admin-tasks).
 
-**Forgot your password?** Select **Forgot Password?**, enter your email and follow the reset instructions sent there. The request response does not confirm whether an account exists. Use the newest valid reset link and choose a new password. If you cannot access the inbox, contact the Registrar.
+**Forgot your password?** Select **Forgot Password?**, enter your Student ID, Staff ID or current saved email, choose **Send Reset Link**, then confirm **Request Link**. The receipt message is the same for every request and does not confirm an account match or email delivery. Check the registered inbox and Spam/Junk. If nothing arrives, give the displayed **Request reference** to the Registrar; it is safe to share and contains no reset token. Staff without a saved email or access to its inbox must contact the Registrar. Use only the newest link; it expires after one hour and works once. If a request times out, an email may still arrive—check before retrying.
 
 ## 2. Create a student or alumni account
 

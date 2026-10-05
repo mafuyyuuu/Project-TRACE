@@ -49,6 +49,7 @@ if (JWT_SECRET === COMPROMISED_JWT_SECRET) {
 }
 
 module.exports = {
+  NODE_ENV: process.env.NODE_ENV || 'development',
   // Separate from JWT signing; authenticator operations fail closed without it.
   MFA_ENCRYPTION_KEY: process.env.MFA_ENCRYPTION_KEY || '',
   JWT_SECRET,

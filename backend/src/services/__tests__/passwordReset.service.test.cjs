@@ -10,6 +10,10 @@ const notifications = require('../notification.service');
 const service = require('../auth.service');
 const { pool } = require('../../config/db');
 const trustedBrowserModel = require('../../models/trustedBrowser.model');
+const env = require('../../config/env');
+const originalFrontend = env.FRONTEND_URL;
+const originalNodeEnv = env.NODE_ENV;
+afterEach(() => { env.FRONTEND_URL = originalFrontend; env.NODE_ENV = originalNodeEnv; });
 let connection;
 
 const statusOf = (promise) => promise.then(() => undefined, (err) => err.status);
@@ -40,9 +44,28 @@ beforeEach(() => {
   vi.spyOn(passwordResetModel, 'invalidateAllForUser').mockResolvedValue([{ affectedRows: 0 }]);
   vi.spyOn(notifications, 'sendEmail').mockResolvedValue({ ok: true });
   vi.spyOn(console, 'warn').mockImplementation(() => {});
+  vi.spyOn(console, 'log').mockImplementation(() => {});
+  env.FRONTEND_URL = 'https://trace.example.test';
+  env.NODE_ENV = 'test';
 });
 
 describe('requestPasswordReset', () => {
+  it('uses the real lock query projection so an active saved email survives the account lock', async () => {
+    userModel.findActiveByStudentIdOrEmail.mockResolvedValue([account()]);
+    trustedBrowserModel.lockAccount.mockRestore();
+    const stored = { ...account(), role: 'student', is_active: 1, token_version: 0, password_hash: 'synthetic-hash' };
+    connection.query = vi.fn().mockImplementation(async sql => {
+      // Model the fields SQL actually selects, rather than returning a richer
+      // fixture that conceals a missing email in the account-lock query.
+      const columns = sql.match(/SELECT\s+([\s\S]+?)\s+FROM/)[1].split(',').map(value => value.trim());
+      return [[Object.fromEntries(columns.map(column => [column, stored[column]]))]];
+    });
+    await service.requestPasswordReset({ identifier: 'STU2024001' });
+    expect(connection.query).toHaveBeenCalledWith(expect.stringContaining('FOR UPDATE'), [7]);
+    expect(passwordResetModel.create).toHaveBeenCalledOnce();
+    expect(notifications.sendEmail).toHaveBeenCalledWith('ana@plp.edu.ph', 'Password reset request',
+      expect.stringContaining('STU2024001'), expect.objectContaining({ purpose: 'password_reset' }));
+  });
   it('rejects an empty identifier', async () => {
     expect(await statusOf(service.requestPasswordReset({}))).toBe(400);
     expect(await statusOf(service.requestPasswordReset({ identifier: '   ' }))).toBe(400);
@@ -55,7 +78,10 @@ describe('requestPasswordReset', () => {
     const real = await service.requestPasswordReset({ identifier: 'STU2024001' });
 
     // The whole point: the response must not reveal which accounts exist.
-    expect(real).toEqual(unknown);
+    expect(real.message).toBe(unknown.message);
+    expect(Object.keys(real)).toEqual(Object.keys(unknown));
+    for (const result of [real, unknown]) expect(result.request_id).toMatch(/^[a-f0-9-]{36}$/);
+    expect(real.request_id).not.toBe(unknown.request_id);
   });
 
   it('sends no email and stores no token for an unknown account', async () => {
@@ -74,6 +100,72 @@ describe('requestPasswordReset', () => {
 
     expect(stored.token_hash).not.toBe(rawToken);
     expect(stored.token_hash).toBe(crypto.createHash('sha256').update(rawToken).digest('hex'));
+  });
+
+  it.each(['  STU2024001  ', ' FINANCE001 ', 'ana@plp.edu.ph'])('looks up trimmed identifier %s and sends only to the locked active email', async identifier => {
+    userModel.findActiveByStudentIdOrEmail.mockResolvedValue([{ ...account(), email: 'stale@example.test' }]);
+    trustedBrowserModel.lockAccount.mockResolvedValue({ ...account(), is_active: 1, pending_email: 'pending@example.test' });
+    const result = await service.requestPasswordReset({ identifier });
+    expect(userModel.findActiveByStudentIdOrEmail).toHaveBeenCalledWith(identifier.trim());
+    expect(notifications.sendEmail).toHaveBeenCalledExactlyOnceWith('ana@plp.edu.ph', 'Password reset request',
+      expect.stringContaining('https://trace.example.test/reset-password#token='), { purpose: 'password_reset', requestId: result.request_id });
+    const stored = passwordResetModel.create.mock.calls[0][0];
+    expect(stored.expires_at.getTime() - Date.now()).toBeGreaterThan(3590000);
+    expect(stored.expires_at.getTime() - Date.now()).toBeLessThanOrEqual(3600000);
+  });
+
+  it.each(['unconfigured', 'smtp_rejected', 'smtp_failed'])('keeps %s operational outcomes private and gives a usable support reference', async outcome => {
+    userModel.findActiveByStudentIdOrEmail.mockResolvedValue([account()]);
+    notifications.sendEmail.mockResolvedValue({ ok: false, outcome, diagnostics: { code: 'EAUTH', response_code: 535 } });
+    const result = await service.requestPasswordReset({ identifier: 'STU2024001' });
+    const unknown = await service.requestPasswordReset({ identifier: 'unknown' });
+    expect(result.message).toBe(unknown.message);
+    expect(result).not.toHaveProperty('outcome');
+    expect(result.message).toMatch(/Spam\/Junk.*Registrar/);
+    expect(result.message).not.toMatch(/has been sent/);
+    expect(console.warn).toHaveBeenCalledWith('[Password reset]', expect.stringContaining(result.request_id));
+    const output = JSON.stringify(console.warn.mock.calls);
+    expect(output).not.toContain('ana@');
+    expect(output).not.toContain('STU2024001');
+    expect(output).not.toContain(passwordResetModel.create.mock.calls[0][0].token_hash);
+    expect(output).not.toContain('token=');
+  });
+
+  it.each(['', 'http://trace.example.test', 'https://user:secret@trace.example.test', 'https://trace.example.test/nested', 'https://trace.example.test?token=secret', 'https://localhost'])('does not issue production reset links for an unsafe frontend origin: %s', async origin => {
+    env.NODE_ENV = 'production'; env.FRONTEND_URL = origin;
+    const result = await service.requestPasswordReset({ identifier: 'STU2024001' });
+    expect(result.request_id).toBeTruthy();
+    expect(userModel.findActiveByStudentIdOrEmail).not.toHaveBeenCalled();
+    expect(passwordResetModel.create).not.toHaveBeenCalled();
+    expect(notifications.sendEmail).not.toHaveBeenCalled();
+    expect(console.warn).toHaveBeenCalledWith('[Password reset]', expect.stringContaining('invalid_frontend_url'));
+  });
+
+  it('uses the first configured HTTPS origin with a fragment token and no query token', async () => {
+    env.NODE_ENV = 'production'; env.FRONTEND_URL = 'https://trace.example.test/,https://preview.example.test';
+    userModel.findActiveByStudentIdOrEmail.mockResolvedValue([account()]);
+    await service.requestPasswordReset({ identifier: 'STU2024001' });
+    const body = notifications.sendEmail.mock.calls[0][2];
+    expect(body).toMatch(/https:\/\/trace\.example\.test\/reset-password#token=[a-f0-9]{64}/);
+    expect(body).not.toContain('?token=');
+    expect(body).not.toContain('preview.example');
+  });
+
+  it.each(['lookup', 'issuance', 'delivery'])('logs only safe metadata after a %s failure and preserves the generic response', async phase => {
+    const error = Object.assign(new Error('sensitive recipient reset-password#token=secret'), { code: phase === 'delivery' ? 'EAUTH' : 'ER_NO_SUCH_TABLE', sql: 'sensitive sql', response: 'password=secret' });
+    userModel.findActiveByStudentIdOrEmail.mockResolvedValue([account()]);
+    if (phase === 'lookup') userModel.findActiveByStudentIdOrEmail.mockRejectedValue(error);
+    if (phase === 'issuance') passwordResetModel.create.mockRejectedValue(error);
+    if (phase === 'delivery') notifications.sendEmail.mockRejectedValue(error);
+    const result = await service.requestPasswordReset({ identifier: 'STU2024001' });
+    expect(result.message).toMatch(/request received/);
+    expect(JSON.stringify(console.warn.mock.calls)).not.toMatch(/sensitive|secret|token=/);
+    expect(console.warn).toHaveBeenCalledWith('[Password reset]', expect.stringContaining(result.request_id));
+    if (phase === 'issuance') {
+      expect(connection.rollback).toHaveBeenCalledOnce();
+      expect(connection.release).toHaveBeenCalledOnce();
+      expect(notifications.sendEmail).not.toHaveBeenCalled();
+    }
   });
 
   it('retires earlier outstanding links so only the newest works', async () => {
@@ -100,6 +192,21 @@ describe('requestPasswordReset', () => {
 
 describe('resetPassword', () => {
   const usable = () => [{ id: 12, user_id: 7, student_id: 'STU2024001' }];
+  it('allows an issued token only once and rejects a later replay', async () => {
+    userModel.findActiveByStudentIdOrEmail.mockResolvedValue([account()]);
+    await service.requestPasswordReset({ identifier: 'STU2024001' });
+    const token = notifications.sendEmail.mock.calls[0][2].match(/#token=([a-f0-9]{64})/)[1];
+    let consumed = false;
+    passwordResetModel.findUsableByTokenHash.mockImplementation(async hash => {
+      expect(hash).toBe(passwordResetModel.create.mock.calls[0][0].token_hash);
+      return consumed ? [] : usable();
+    });
+    passwordResetModel.markUsed.mockImplementation(async () => { consumed = true; return [{ affectedRows: 1 }]; });
+    await service.resetPassword({ token, password: 'Newpassword1!' });
+    expect(await statusOf(service.resetPassword({ token, password: 'Otherpassword1!' }))).toBe(400);
+    expect(userModel.updateProfile).toHaveBeenCalledOnce();
+    expect(passwordResetModel.markUsed).toHaveBeenCalledOnce();
+  });
   it('accepts underscore as the only symbol while preserving the last-three-password check', async () => {
     passwordResetModel.findUsableByTokenHash.mockResolvedValue(usable());
     await service.resetPassword({ token: 'synthetic-token', password: 'Newpassword_2026' });

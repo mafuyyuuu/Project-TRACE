@@ -1016,3 +1016,33 @@ docker compose run --rm --no-deps -T backend node database/check_schema.js
 ```
 
 Require the passing schema message before following the runtime restart/health instructions above. Do not rerun the whole migration list or import the full schema for this gap. The agent has not executed this SQL on the server.
+
+### Password-reset delivery diagnosis (Oct 5 repair)
+
+The reset account-lock query previously omitted the saved email/name/ID. A matching active account therefore returned the generic 200 response before issuing a token or invoking SMTP. Deploy the repaired backend model/service and updated frontend together after review/merge; rebuild/recreate the backend image. This repair adds no database migration. Docker already sets `NODE_ENV=production`; other production runners must set it too.
+
+Set the first comma-separated `FRONTEND_URL` value to the intended HTTPS frontend origin, with no path, query, fragment, credentials or localhost destination. Missing/unsafe production origins now stop issuance with `invalid_frontend_url` in server logs instead of emailing a localhost link. SMTP credentials remain server-only; Compose reads them from root `.env`, while a directly run backend reads `backend/.env`. Changing Compose environment values requires recreating the container. Do not print or share environment files.
+
+A completed Forgot Password request displays a random **Request reference**. Every outcome uses the same public response shape/message; neither a 200 nor that reference proves an account match or mailbox delivery. Match the reference to `[Password reset]` and `[Email]` records:
+
+```bash
+docker compose logs --since=10m --tail=150 backend
+```
+
+New records contain only reference/purpose/outcome and allowlisted error codes, SMTP command/reply number or recipient counts. They omit identifiers, recipient addresses, message bodies, reset links, token hashes, passwords and raw provider responses. Never enable Nodemailer `debug` for a reset investigation; it can log message content. Sanitise older-version logs before sharing.
+
+| Outcome | Operator action |
+| --- | --- |
+| `account_not_available` | Check the exact saved ID/email and active state privately; also covers an account becoming unavailable under its lock. Do not disclose existence through Forgot Password. |
+| `no_registered_email` | Review the saved active email privately. Email-free staff need Registrar-assisted recovery; a pending address is not the reset destination. |
+| `invalid_frontend_url` | Correct the first production frontend origin and recreate the backend before retrying. |
+| `lookup_failed` / `issuance_failed` | Inspect the safe database error code and reviewed schema/configuration. Run the existing schema check; do not reseed or import the whole schema as a repair. |
+| `unconfigured` | Configure real SMTP host/user/password in the environment used by that runner. |
+| `smtp_failed` + `EAUTH` / 535 | Check sender authentication and the provider's account/security policy. Never paste credentials or the raw provider reply. |
+| `smtp_failed` + `EDNS`, `ECONNECTION`, `ESOCKET` or `ETIMEDOUT` | Check host/port, DNS, server egress and TLS/network availability. Inactivity is bounded: DNS/connect/greeting 10 seconds each; socket 20 seconds. |
+| `smtp_rejected` or `EENVELOPE` / 550-class reply | Check the saved recipient and sender/recipient policy privately. |
+| `smtp_accepted` | The provider accepted submission, not necessarily inbox delivery. Check Spam/Junk, provider delivery records and sender bounce notices. |
+
+The request summary uses `email_not_accepted` for skipped/failed submission; its paired `[Email]` record provides the specific outcome. A 60-second frontend request timeout does not cancel a server send—an email may still arrive. Do not auto-retry; check the inbox and use only the newest one-hour, single-use link. A failure after token storage leaves an undisclosed hash that expires normally; it does not create a public recovery bypass. Reset completion retains account locking, history checks, token consumption and session revocation.
+
+Use a controlled test account/inbox for live acceptance after deployment: submit a student ID, staff ID and saved email; confirm each goes to the active saved address, not a pending address. Verify a newest link once, reject its replay/expiry, and confirm old sessions are revoked. Keep real SMTP acceptance and mailbox arrival as separate checks. Local tests and a synthetic SMTP server do not prove production delivery.
