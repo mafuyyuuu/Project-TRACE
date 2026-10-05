@@ -53,6 +53,7 @@ describe('Student grouped payment', () => {
     expect(items).toHaveLength(2);
     expect(items[0]).toHaveTextContent('Transcript of Records');
     expect(items[0]).toHaveTextContent('₱100.00');
+    expect(items[0].querySelector('span.font-mono')).toHaveClass('font-semibold', 'text-gray-900', 'dark:text-gray-100');
     expect(within(items[0]).getByRole('region', { name: 'Fee calculation' })).toHaveTextContent('1 copy × 1 page × ₱100.00');
     expect(items[1]).toHaveTextContent('Diploma');
     expect(items[1]).toHaveTextContent('₱100.00');

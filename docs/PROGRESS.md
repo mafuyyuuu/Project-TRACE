@@ -1,5 +1,16 @@
 # Project TRACE Progress Report
 
+### Student payment amount and description contrast — investigation 2026-10-05
+
+Measured before edits using computed browser foreground/card-background colors from read-only synthetic StudentDashboard records. The 12 px line amount uses gray-500/gray-400: 4.8364:1 on white in light mode, 6.8210:1 on gray-900 in dark mode. FeeBreakdown's older-record paragraph uses gray-600/gray-300: 7.5581:1 / 12.0527:1. Saved-breakdown description uses gray-700/gray-200: 10.3048:1 / 14.3338:1. All measured pairs meet the [WCAG AA normal-text 4.5:1 minimum](https://www.w3.org/WAI/WCAG22/Understanding/contrast-minimum.html); the reported faintness is not proof of an AA failure. Strengthen primary line amounts with gray-900/gray-100 and font-semibold; align the recorded-charge explanation with saved secondary text and emphasize its recorded amount separately. Preserve currency, saved amounts/calculations, fallback wording, payment eligibility and handlers. No schema/backend change is needed.
+
+Implemented stronger per-document amounts in StudentDashboard and the secondary historical explanation plus distinct primary amount in shared FeeBreakdown. Existing saved calculations already use the clearer secondary palette and remain unchanged. Tests preserve historical text/currency, saved labels, escaping and grouped payment flow, while asserting both theme variants and amount hierarchy.
+
+Measured after edits on the actual card: primary amount gray-900 on white = 17.7466:1; gray-100 on gray-900 = 16.1257:1. Historical description now matches saved description at 10.3048:1 light / 14.3338:1 dark. Its embedded recorded amount uses the primary pair. Original ratios already met AA; these changes increase reading comfort and hierarchy rather than remediate a demonstrated AA failure. Ratios use computed browser colors converted to sRGB and the WCAG relative-luminance formula; thresholds are checked unrounded.
+
+Validation: full frontend 81 suites / 728 tests, lint/build and git diff --check pass. Read-only synthetic browser checks pass 98 assertions over saved/historical states, 320/375/768/1280 px, light/dark and 100%/200% text: ≥4.5:1 text contrast, stronger primary amount/weight, preserved Pay-after-charges order and contained card/page layout. Reviewed mobile dark enlarged-text and desktop light historical-charge screenshots. Existing build chunk-size advisory remains. No real records, payment writes, migrations or deployment.
+
+
 ### Student payment action after fee breakdown — investigation 2026-10-05
 
 Finding before edits: each request-group section in StudentDashboard emits Request ID, then Pay, then the itemized document list/FeeBreakdown. This JSX order drives both visual and keyboard reading order; FeeBreakdown itself only renders calculations. Move the same grouped Pay action after the list in a responsive right-aligned footer, with the existing group total displayed before it. Preserve amber styling, eligibility, selected representative document/group total and the existing checkout/confirmation/submission flow. No backend or schema change is needed.

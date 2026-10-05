@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { act, fireEvent, render, renderHook, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, renderHook, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import MaintenancePanel from '@/features/admin/components/MaintenancePanel';
 import NewRequestModal from '@/features/student/components/NewRequestModal';
@@ -154,7 +154,10 @@ it('shows the same saved bill in Finance and the printed payment slip', () => {
 });
 it('preserves legacy totals and escapes saved item labels', () => {
   const { rerender } = render(<FeeBreakdown amount={75} />);
-  expect(screen.getByText(/Recorded charge: ₱75.00/)).toBeInTheDocument();
+  const description = screen.getByText(/Recorded charge:/);
+  expect(description).toHaveTextContent('Recorded charge: ₱75.00. Detailed calculation was not saved for this older record.');
+  expect(description).toHaveClass('text-gray-700', 'dark:text-gray-200');
+  expect(within(description).getByText('₱75.00')).toHaveClass('font-semibold', 'text-gray-900', 'dark:text-gray-100');
   rerender(<FeeBreakdown breakdown={{ ...BILL, items: [{ label: '<img src=x onerror=alert(1)>', calculation: 'saved', amount: 75 }] }} />);
   expect(screen.getByText('<img src=x onerror=alert(1)>')).toBeInTheDocument();
   expect(document.querySelector('img')).toBeNull();

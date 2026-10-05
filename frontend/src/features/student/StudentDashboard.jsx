@@ -194,7 +194,7 @@ export default function StudentDashboard({ user, currentTab, setViewImageUrl }) 
                           {group.docs.map((doc) => (
                             <li key={doc.id} className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-2 text-sm">
                               <span className="min-w-0 font-bold text-gray-900 dark:text-gray-100 break-words select-text">{doc.document_sequence_number || doc.document_type}</span>
-                              <span className="shrink-0 font-mono text-xs text-gray-500 dark:text-gray-400 select-text">{formatPeso(doc.amount)}</span>
+                              <span className="shrink-0 font-mono text-xs font-semibold text-gray-900 dark:text-gray-100 select-text">{formatPeso(doc.amount)}</span>
                               <div className="w-full min-w-0"><FeeBreakdown breakdown={doc.fee_breakdown} amount={doc.amount} /></div>
                             </li>
                           ))}
