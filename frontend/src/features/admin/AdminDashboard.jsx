@@ -246,37 +246,37 @@ export default function AdminDashboard({ user, currentTab, setViewImageUrl, revi
                   </div>
 
                   {/* Admin Insights Panel */}
-                  <div className="lg:col-span-1 bg-gray-900 dark:bg-gray-800 rounded-3xl p-6 md:p-8 shadow-sm text-white flex flex-col justify-between h-full min-h-[380px] relative overflow-hidden">
-                    <div className="absolute top-0 right-0 w-36 h-36 bg-pine-600/20 blur-[50px] rounded-full"></div>
+                  <section aria-labelledby="ai-insights-heading" className="trace-section trace-section-body lg:col-span-1 flex flex-col justify-between h-full min-h-[380px]">
                     <div>
-                      <h3 className="text-lg font-bold flex items-center gap-2">AI INSIGHTS</h3>
-                      <p className="text-xs text-gray-400 dark:text-gray-400 mt-1 font-mono">Prescriptive actions from Random Forest model.</p>
+                      <h3 id="ai-insights-heading" className="text-lg font-bold text-gray-900 dark:text-gray-100">AI INSIGHTS</h3>
+                      <p className="text-xs text-gray-600 dark:text-gray-300 mt-1 font-mono">Prescriptive actions from Random Forest model.</p>
                     </div>
 
                     <div className="flex flex-col gap-4 mt-6">
                       {aiInsights && aiInsights.length > 0 ? (
                         aiInsights.map((insight, idx) => (
-                          <div key={idx} className={`${insight.type === 'warning' ? 'bg-amber-500/10 dark:bg-amber-500/10 border-amber-500/20 dark:border-amber-800/20' : 'bg-white/10 dark:bg-gray-900/10 border-white/15'} border rounded-2xl p-4 backdrop-blur-md`}>
-                            <div className={`text-[10px] font-bold ${insight.type === 'warning' ? 'text-amber-300' : 'text-pine-300'} uppercase tracking-widest mb-1 flex items-center gap-1`}>
-                              {insight.type === 'warning' && <svg className="w-3.5 h-3.5 inline-block mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" /></svg>}{insight.title}
-                            </div>
-                            <div className="text-xs text-gray-200 leading-relaxed font-medium">
+                          <article key={idx} className={`${insight.type === 'warning' ? 'bg-amber-50 border-amber-200 text-amber-900 dark:bg-amber-950 dark:border-amber-800 dark:text-amber-200' : 'bg-green-50 border-green-200 text-green-900 dark:bg-green-950 dark:border-green-800 dark:text-green-200'} min-w-0 border rounded-2xl p-4 select-text [overflow-wrap:anywhere]`}>
+                            <h4 className="text-sm font-bold mb-1 flex items-start gap-2">
+                              <span className="sr-only">{insight.type === 'warning' ? 'Warning: ' : 'Information: '}</span>
+                              <svg aria-hidden="true" className="w-4 h-4 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                                {insight.type === 'warning'
+                                  ? <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+                                  : <path strokeLinecap="round" strokeLinejoin="round" d="M12 8h.01M12 11v5m9-4a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />}
+                              </svg>
+                              <span className="min-w-0">{insight.title}</span>
+                            </h4>
+                            <div className="text-xs leading-relaxed font-medium">
                               {insight.message}
                             </div>
-                          </div>
+                          </article>
                         ))
                       ) : (
-                        <>
-                          <div className="trace-section trace-section-inverse trace-section-body border-white/15 backdrop-blur-md">
-                            <div className="text-[10px] font-bold text-pine-300 uppercase tracking-widest mb-1 flex items-center gap-1"><svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" /></svg> Volume Warning</div>
-                            <div className="text-xs text-gray-200 leading-relaxed font-medium">
-                              Loading insights...
-                            </div>
-                          </div>
-                        </>
+                        <div className="rounded-2xl border border-gray-200 bg-gray-50 p-4 text-xs text-gray-600 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 leading-relaxed font-medium">
+                          Loading insights...
+                        </div>
                       )}
                     </div>
-                  </div>
+                  </section>
                 </div>
 
                 {/* Student Account Verification dashboard */}

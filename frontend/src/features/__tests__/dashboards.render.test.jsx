@@ -51,7 +51,10 @@ import SecretaryDashboard from '@/features/secretary/SecretaryDashboard';
 import AdminDashboard from '@/features/admin/AdminDashboard';
 import AdminSecurityPanel from '@/features/admin/components/AdminSecurityPanel';
 
-afterEach(() => vi.useRealTimers());
+afterEach(() => {
+  vi.useRealTimers();
+  document.documentElement.classList.remove('dark');
+});
 
 const DOC = {
   id: 1,
@@ -149,6 +152,28 @@ describe('command centers mount and load their own data', () => {
     await waitFor(() => expect(documentsService.getForecast).toHaveBeenCalled());
     expect(documentsService.getInsights).toHaveBeenCalled();
     expect(authService.getPendingStudents).toHaveBeenCalled();
+  });
+
+  it('Admin — preserves warning and informational insights when the root theme changes', async () => {
+    documentsService.getInsights.mockResolvedValue({ insights: [
+      { type: 'warning', title: 'Queue needs attention', message: 'Review the waiting requests.' },
+      { type: 'info', title: 'System Normal', message: 'All other queues normal.' },
+    ] });
+    await renderDashboard(<AdminDashboard user={USERS.admin} currentTab="dashboard" setViewImageUrl={vi.fn()} />);
+    const panel = await screen.findByRole('region', { name: 'AI INSIGHTS' });
+    const warning = await within(panel).findByRole('heading', { name: /Warning:.*Queue needs attention/ });
+    const information = within(panel).getByRole('heading', { name: /Information:.*System Normal/ });
+    const fetchCount = documentsService.getInsights.mock.calls.length;
+    for (const dark of [true, false, true]) {
+      act(() => document.documentElement.classList.toggle('dark', dark));
+      expect(within(panel).getByRole('heading', { name: /Warning:.*Queue needs attention/ })).toBe(warning);
+      expect(within(panel).getByRole('heading', { name: /Information:.*System Normal/ })).toBe(information);
+      expect(within(panel).getByText('Review the waiting requests.')).toBeInTheDocument();
+      expect(within(panel).getByText('All other queues normal.')).toBeInTheDocument();
+      expect(documentsService.getInsights).toHaveBeenCalledTimes(fetchCount);
+    }
+    expect(warning.querySelector('svg')).toHaveAttribute('aria-hidden', 'true');
+    expect(information.querySelector('svg')).toHaveAttribute('aria-hidden', 'true');
   });
 });
 
