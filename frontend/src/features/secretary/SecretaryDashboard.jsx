@@ -108,7 +108,7 @@ export default function SecretaryDashboard({ user, currentTab, setViewImageUrl }
 
             {/* KPI Cards */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div className="trace-section trace-section-body flex flex-col justify-between min-h-44">
+              <div className="trace-section trace-card-info trace-section-body flex flex-col justify-between min-h-44">
                 <div className="flex justify-between items-start">
                   <div>
                     <span className="text-[10px] font-bold text-gray-400 dark:text-gray-400 uppercase tracking-widest block">PROCESSED DOCUMENT TODAY</span>
@@ -122,7 +122,7 @@ export default function SecretaryDashboard({ user, currentTab, setViewImageUrl }
                 </div>
               </div>
 
-              <div className="trace-section trace-section-body flex flex-col justify-between min-h-44">
+              <div className="trace-section trace-card-info trace-section-body flex flex-col justify-between min-h-44">
                 <div className="flex justify-between items-start">
                   <div>
                     <span className="text-[10px] font-bold text-gray-400 dark:text-gray-400 uppercase tracking-widest block">PENDING DOCUMENTS</span>
@@ -137,7 +137,7 @@ export default function SecretaryDashboard({ user, currentTab, setViewImageUrl }
                 </div>
               </div>
 
-              <div className="trace-section trace-section-body flex flex-col justify-between min-h-44">
+              <div className="trace-section trace-card-info trace-section-body flex flex-col justify-between min-h-44">
                 <div className="flex justify-between items-start">
                   <div>
                     <span className="text-[10px] font-bold text-gray-400 dark:text-gray-400 uppercase tracking-widest block">APPROVED & ROUTED</span>

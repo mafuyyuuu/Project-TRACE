@@ -129,6 +129,42 @@
   }
 }
 
+/* Informational cards gain shadow only. Cards with nested controls never
+   translate, so their native input/button feedback doesn't stack with a lift. */
+@layer components {
+  .trace-card-info, .trace-card-interactive, .trace-card-controls { position: relative; isolation: isolate; }
+  .trace-card-interactive { transition: transform var(--trace-motion-feedback-duration) var(--trace-motion-easing); }
+  .trace-card-interactive:not(:disabled):not([aria-disabled="true"]):not([aria-busy="true"]) { cursor: pointer; }
+  .trace-card-interactive:is(:disabled, [aria-disabled="true"]) { cursor: not-allowed; }
+  .trace-card-interactive::after, .trace-card-info::after, .trace-card-controls::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    pointer-events: none;
+    box-shadow: var(--trace-motion-card-elevation);
+    opacity: 0;
+    transition: opacity var(--trace-motion-feedback-duration) var(--trace-motion-easing);
+  }
+  .trace-card-inset::after { box-shadow: var(--trace-motion-card-inset); }
+  .trace-card-inset:focus-visible { outline-offset: -3px; }
+  .trace-card-interactive:not(:disabled):not([aria-disabled="true"]):not([aria-busy="true"]):focus-visible::after,
+  .trace-card-controls:not([data-card-disabled]):has(:focus-visible)::after { opacity: 1; }
+  .trace-card-interactive:not(.trace-card-inset):not(:disabled):not([aria-disabled="true"]):not([aria-busy="true"]):not(:has(button, a, input, select, textarea, iframe)):focus-visible { transform: translateY(calc(-1 * var(--trace-motion-card-lift))); }
+  @media (hover: hover) and (pointer: fine) {
+    .trace-card-info:hover::after { opacity: 0.45; }
+    .trace-card-controls:not([data-card-disabled]):hover::after,
+    .trace-card-interactive:not(:disabled):not([aria-disabled="true"]):not([aria-busy="true"]):hover::after { opacity: 1; }
+    .trace-card-interactive:not(.trace-card-inset):not(:disabled):not([aria-disabled="true"]):not([aria-busy="true"]):not(:has(button, a, input, select, textarea, iframe)):hover { transform: translateY(calc(-1 * var(--trace-motion-card-lift))); }
+  }
+  .trace-card-interactive:not(.trace-card-inset):not(:disabled):not([aria-disabled="true"]):not([aria-busy="true"]):not(:has(button, a, input, select, textarea, iframe)):active { transform: none; }
+  .trace-card-interactive:is(:disabled, [aria-disabled="true"], [aria-busy="true"]) { transform: none; transition: none; }
+  .trace-card-interactive:is(:disabled, [aria-disabled="true"], [aria-busy="true"])::after { opacity: 0; transition: none; }
+  @media (prefers-reduced-motion: reduce) {
+    .trace-card-interactive { transform: none !important; }
+  }
+}
+
 /* Lift the decorative icon only; the control's hit target never moves. */
 .trace-nav-icon-control { position: relative; isolation: isolate; }
 .trace-nav-icon-control::before {
@@ -196,6 +232,9 @@
   --trace-motion-elevation-raised: 0 25px 50px -12px rgb(0 0 0 / 0.25);
   --trace-motion-button-lift: 2px;
   --trace-motion-button-elevation: 0 5px 10px rgb(15 23 42 / 0.14);
+  --trace-motion-card-lift: 2px;
+  --trace-motion-card-elevation: 0 4px 8px rgb(15 23 42 / 0.12);
+  --trace-motion-card-inset: inset 0 0 0 2px rgb(21 128 61 / 0.18);
   color-scheme: light;
   --trace-chart-line: #0f172a;
   --trace-chart-surface: #ffffff;
@@ -238,6 +277,8 @@
 
 :root.dark {
   --trace-motion-button-elevation: 0 5px 12px rgb(0 0 0 / 0.3);
+  --trace-motion-card-elevation: 0 4px 8px rgb(0 0 0 / 0.3);
+  --trace-motion-card-inset: inset 0 0 0 2px rgb(74 222 128 / 0.22);
   color-scheme: dark;
   --trace-chart-line: #e2e8f0;
   --trace-chart-surface: #1f2937;

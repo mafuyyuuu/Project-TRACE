@@ -98,17 +98,18 @@ export default function NewRequestModal({
                   return (
                     <div
                       key={type.name}
-                      className={`rounded-2xl border transition-colors ${
-                        isSelected ? 'border-[#15803d] bg-emerald-50/40 dark:bg-emerald-950/40' : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 hover:bg-gray-50 dark:hover:bg-gray-800'
+                      data-card-disabled={Boolean(type.unavailable_reason) || undefined}
+                      className={`trace-card-controls trace-card-inset rounded-2xl border transition-colors ${
+                        isSelected ? 'border-[#15803d] bg-emerald-50/40 dark:bg-emerald-950/40' : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900'
                       }`}
                     >
-                      <label className="flex flex-wrap items-start gap-3 p-4 cursor-pointer">
+                      <label className={`flex flex-wrap items-start gap-3 p-4 ${type.unavailable_reason ? 'cursor-not-allowed' : 'cursor-pointer'}`}>
                         <input
                           type="checkbox"
                           disabled={Boolean(type.unavailable_reason)}
                           checked={isSelected}
                           onChange={() => toggleDocumentType(type.name)}
-                          className="trace-choice w-4 h-4 accent-[#15803d] cursor-pointer"
+                          className="trace-choice w-4 h-4 accent-[#15803d] enabled:cursor-pointer disabled:cursor-not-allowed"
                         />
                         <span className="min-w-0 flex-1 basis-40 text-sm font-semibold text-gray-800 dark:text-gray-100">
                           {type.name}

@@ -112,7 +112,7 @@ export default function Window1Dashboard({ user, currentTab, setViewImageUrl }) 
             {/* Top KPIs Row */}
             <SubmissionQrPanel />
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div className="trace-section trace-section-body flex flex-col justify-between min-h-44">
+              <div className="trace-section trace-card-info trace-section-body flex flex-col justify-between min-h-44">
                 <div className="flex justify-between items-start">
                   <div>
                     <span className="text-[10px] font-bold text-gray-400 dark:text-gray-400 uppercase tracking-widest block">PROCESSED MANUAL DOCUMENT TODAY</span>
@@ -126,7 +126,7 @@ export default function Window1Dashboard({ user, currentTab, setViewImageUrl }) 
                 </div>
               </div>
 
-              <div className="trace-section trace-section-body flex flex-col justify-between min-h-44">
+              <div className="trace-section trace-card-info trace-section-body flex flex-col justify-between min-h-44">
                 <div className="flex justify-between items-start">
                   <div>
                     <span className="text-[10px] font-bold text-gray-400 dark:text-gray-400 uppercase tracking-widest block">AWAITING SECRETARY</span>
@@ -141,7 +141,7 @@ export default function Window1Dashboard({ user, currentTab, setViewImageUrl }) 
                 </div>
               </div>
 
-              <div className="trace-section trace-section-body flex flex-col justify-between min-h-44">
+              <div className="trace-section trace-card-info trace-section-body flex flex-col justify-between min-h-44">
                 <div className="flex justify-between items-start">
                   <div>
                     <span className="text-[10px] font-bold text-gray-400 dark:text-gray-400 uppercase tracking-widest block">COMPLETED TODAY</span>

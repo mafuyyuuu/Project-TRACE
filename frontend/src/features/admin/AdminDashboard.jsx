@@ -98,7 +98,7 @@ export default function AdminDashboard({ user, currentTab, setViewImageUrl, revi
 
                 {/* Metrics Overview Row */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  <section aria-label="System throughput" className="trace-section trace-section-body flex flex-col justify-between min-h-44">
+                  <section aria-label="System throughput" className="trace-section trace-card-info trace-section-body flex flex-col justify-between min-h-44">
                     <div>
                       <span className="text-[10px] font-bold text-gray-400 dark:text-gray-400 uppercase tracking-widest block">System Throughput</span>
                       {analyticsSummary?.end_to_end?.completed_count > 0 ? (
@@ -125,7 +125,7 @@ export default function AdminDashboard({ user, currentTab, setViewImageUrl, revi
                     </div>
                   </section>
 
-                  <div className="trace-section trace-section-body flex flex-col justify-between min-h-44">
+                  <div className="trace-section trace-card-info trace-section-body flex flex-col justify-between min-h-44">
                     <div className="flex justify-between items-start">
                       <div>
                         <span className="text-[10px] font-bold text-gray-400 dark:text-gray-400 uppercase tracking-widest block">AI Confidence Avg</span>
@@ -138,7 +138,7 @@ export default function AdminDashboard({ user, currentTab, setViewImageUrl, revi
                     </div>
                   </div>
 
-                  <div className="trace-section trace-section-body flex flex-col justify-between min-h-44">
+                  <div className="trace-section trace-card-info trace-section-body flex flex-col justify-between min-h-44">
                     <div className="flex justify-between items-start">
                       <div>
                         <span className="text-[10px] font-bold text-gray-400 dark:text-gray-400 uppercase tracking-widest block">Real-time Backlog</span>

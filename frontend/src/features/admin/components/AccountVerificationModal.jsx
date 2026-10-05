@@ -35,7 +35,7 @@ export default function AccountVerificationModal({
               path={student.id_proof_path}
               alt="ID Proof"
               iframeTitle="ID Proof"
-              className="w-full h-full object-contain hover:scale-105 motion-reduce:transform-none transition-transform"
+              className="w-full h-full object-contain"
               onClick={() => setViewImageUrl(student.id_proof_path)}
               wrapperClassName="cursor-zoom-in w-full h-full flex items-center justify-center group relative"
             />

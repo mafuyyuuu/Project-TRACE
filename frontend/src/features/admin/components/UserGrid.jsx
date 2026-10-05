@@ -63,7 +63,7 @@ export default function UserGrid({
           No users match your filters.
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 p-2">
           {users.map((u) => (
             <UserCard key={u.id} user={u} onClick={() => onSelectUser(u)} />
           ))}

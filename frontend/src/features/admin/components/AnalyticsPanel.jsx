@@ -7,7 +7,7 @@ import { formatDuration } from '@/utils/formatters';
 function MetricCard({ label, value, sub, tone = 'default' }) {
   const tones = { default: 'text-gray-900 dark:text-gray-100', good: 'text-[#15803d] dark:text-green-300', warn: 'text-amber-600 dark:text-amber-300' };
   return (
-    <div className="trace-section trace-section-body">
+    <div className="trace-section trace-card-info trace-section-body">
       <span className="text-[10px] font-bold text-gray-400 dark:text-gray-400 uppercase tracking-widest block">{label}</span>
       <span className={`text-2xl font-display font-black mt-1 block ${tones[tone]}`}>{value}</span>
       {sub && <span className="text-[10px] text-gray-400 dark:text-gray-400 mt-1 block">{sub}</span>}

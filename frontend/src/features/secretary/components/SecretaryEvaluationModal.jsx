@@ -243,7 +243,7 @@ export default function SecretaryEvaluationModal({
             path={selectedDoc.file_path}
             alt="Scanned Document"
             iframeTitle="PDF Preview"
-            className="w-full h-full object-contain group-hover:scale-105 motion-reduce:transform-none transition-transform"
+            className="w-full h-full object-contain"
             onClick={() => setViewImageUrl(selectedDoc.file_path)}
             wrapperClassName="cursor-zoom-in w-full h-full flex items-center justify-center group relative"
           />

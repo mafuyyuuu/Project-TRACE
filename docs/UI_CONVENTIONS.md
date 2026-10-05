@@ -18,6 +18,10 @@ The existing green branding is the baseline. Normal fields and actions use consi
 | Link/row action with specialized geometry | `trace-action` | Shared transition and disabled treatment; does not turn a row or text link into a boxed button. |
 | Page | `trace-page`, `trace-page-header`, `trace-page-title`, `trace-page-description` | Responsive wrapping and common section spacing. |
 | Card/section | `trace-section` | Add `trace-section-body` for padding; use `trace-section-header` for a separate header. `trace-section-inverse` keeps white text readable on green/dark surfaces. Tables/charts retain their own scrollers. |
+| Informational metric | `trace-card-info` | Optional stationary shadow on fine-pointer hover. Never add a cursor, action or tab stop. Keep chart/data panels stationary. |
+| Whole-card action | `trace-card-interactive` | Use a native button/link, shared 2 px lift and focus outline. Disabled/busy cards do not lift. Preserve grid gutters and responsive width. |
+| Card containing controls | `trace-card-controls` | Stationary decoration; retain each control's own semantics and selected state. Use `data-card-disabled` for unavailable choices. |
+| Card inside a clipped container | `trace-card-inset` | Stationary inset emphasis instead of outer elevation; keeps image/choice feedback and focus inside the clipping boundary. |
 | Form fields | `trace-form-grid` | Columns depend on available reading width, not only viewport width. Spanning fields fill the row when it stacks. |
 | Action group | `trace-actions` | Wraps on narrow screens. Stacked modal footers may retain `flex-col sm:flex-row`. |
 | Date chip | `trace-date` | Wraps label, value and icon without splitting words at enlarged text sizes. |
