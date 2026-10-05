@@ -242,6 +242,8 @@ function throughputByDay({ days = 30 } = {}, executor = pool) {
  * Deliberately reported as volume and average handling time, not as a ranking —
  * desks differ in difficulty, so these figures describe workload distribution
  * rather than individual performance.
+ * Returns the complete date-filtered staff dataset, without pagination: share
+ * denominators must include every returned staff member, not one displayed page.
  */
 function workloadByClerk({ dateFrom, dateTo } = {}, executor = pool) {
   const params = [];

@@ -2,7 +2,9 @@ import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, BarChart, 
 import useReports from '@/features/admin/useReports';
 import DashboardLoading from '@/components/DashboardLoading';
 import DashboardAlerts from '@/components/DashboardAlerts';
+import ProgressFill from '@/components/ProgressFill';
 import { formatDuration } from '@/utils/formatters';
+import { getWorkloadShares } from '@/utils/workloadShare';
 
 function MetricCard({ label, value, sub, tone = 'default' }) {
   const tones = { default: 'text-gray-900 dark:text-gray-100', good: 'text-[#15803d] dark:text-green-300', warn: 'text-amber-600 dark:text-amber-300' };
@@ -33,7 +35,7 @@ export default function AnalyticsPanel({ user, currentTab }) {
 
   // The slowest desk is the bottleneck worth acting on.
   const slowest = a.turnaround_by_desk.length ? a.turnaround_by_desk[0] : null;
-  const busiest = a.workload_by_clerk.length ? a.workload_by_clerk[0] : null;
+  const workload = getWorkloadShares(a.workload_by_clerk);
 
   return (
     <>
@@ -149,12 +151,13 @@ export default function AnalyticsPanel({ user, currentTab }) {
             <h3 className="text-sm font-bold text-gray-900 dark:text-gray-100">Workload by Staff</h3>
             <p className="text-[10px] text-gray-400 dark:text-gray-400 mt-1">
               How work is distributed across desks. Desks differ in difficulty, so these are volume
-              figures &mdash; not a performance ranking.
+              figures &mdash; not a performance ranking. Share is each staff member's documents
+              handled divided by the total handled across all staff in this period.
             </p>
           </div>
 
           <div className="max-h-80 overflow-auto">
-            <table className="w-full text-left">
+            <table aria-label="Workload by Staff" className="w-full text-left min-w-[36rem]">
               <thead className="bg-gray-50 dark:bg-gray-800 sticky top-0">
                 <tr className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest">
                   <th className="py-3 px-5">Staff</th>
@@ -164,10 +167,8 @@ export default function AnalyticsPanel({ user, currentTab }) {
                 </tr>
               </thead>
               <tbody>
-                {a.workload_by_clerk.map((c) => {
-                  const share = busiest && busiest.documents_handled
-                    ? Math.round((c.documents_handled / busiest.documents_handled) * 100)
-                    : 0;
+                {workload.map((c) => {
+                  const share = c.share;
                   return (
                     <tr key={c.id} className="border-b border-gray-50 dark:border-gray-700 hover:bg-gray-50/50 dark:hover:bg-gray-800/50">
                       <td className="py-3 px-5 text-xs font-bold text-gray-900 dark:text-gray-100">{c.full_name}</td>
@@ -177,9 +178,10 @@ export default function AnalyticsPanel({ user, currentTab }) {
                       </td>
                       <td className="py-3 pr-5">
                         <div className="flex items-center gap-2 justify-end">
-                          <div className="w-24 h-1.5 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
-                            <div className="h-full bg-[#15803d] rounded-full" style={{ width: `${share}%` }} />
+                          <div role="meter" aria-label={`${c.full_name} workload share`} aria-valuemin={0} aria-valuemax={100} aria-valuenow={share} aria-valuetext={`${share}% of total staff documents handled`} className="w-24 shrink-0 h-1.5 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
+                            <ProgressFill value={share} className="bg-[#15803d] dark:bg-green-400" />
                           </div>
+                          <span className="min-w-[3.5rem] text-right text-xs font-semibold tabular-nums text-gray-700 dark:text-gray-300">{share}%</span>
                         </div>
                       </td>
                     </tr>

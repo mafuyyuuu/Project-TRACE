@@ -40,6 +40,8 @@ import ReportsPanel from '@/features/admin/components/ReportsPanel';
 import AnalyticsPanel from '@/features/admin/components/AnalyticsPanel';
 import AccountVerificationModal from '@/features/admin/components/AccountVerificationModal';
 import useAdminDashboard from '@/features/admin/useAdminDashboard';
+import useReports from '@/features/admin/useReports';
+import { getWorkloadShares } from '@/utils/workloadShare';
 
 const ADMIN = { id: 7, role: 'admin', full_name: 'Registrar Admin' };
 
@@ -538,6 +540,40 @@ describe('AnalyticsPanel', () => {
     expect(await screen.findByText('Workload by Staff')).toBeInTheDocument();
     expect(screen.getByText(/not a performance ranking/i)).toBeInTheDocument();
     expect(screen.getByText('1,953')).toBeInTheDocument();
+  });
+
+  it('renders 60/30/10 shares with matching numeric labels, accessible values and fills', async () => {
+    reportsService.getAnalytics.mockResolvedValue({ ...ANALYTICS, workload_by_clerk: [60, 30, 10].map((documents_handled, id) => ({ id, documents_handled, full_name: `Staff ${id}`, desk_assignment: 'Secretary' })) });
+    await renderPanel();
+    const table = screen.getByRole('table', { name: 'Workload by Staff' });
+    [60, 30, 10].forEach((share, id) => {
+      const meter = within(table).getByRole('meter', { name: `Staff ${id} workload share` });
+      expect(meter).toHaveAttribute('aria-valuenow', String(share));
+      expect(meter).toHaveAttribute('aria-valuetext', `${share}% of total staff documents handled`);
+      expect(meter.firstChild).toHaveStyle({ transform: `scaleX(${share / 100})` });
+      expect(within(meter.closest('tr')).getByText(`${share}%`)).toBeInTheDocument();
+    });
+  });
+
+  it('renders zero shares for staff with no handled documents', async () => {
+    reportsService.getAnalytics.mockResolvedValue({ ...ANALYTICS, workload_by_clerk: [{ id: 1, full_name: 'Staff Zero', documents_handled: 0 }] });
+    await renderPanel();
+    const meter = screen.getByRole('meter', { name: 'Staff Zero workload share' });
+    expect(meter).toHaveAttribute('aria-valuenow', '0');
+    expect(meter.firstChild).toHaveStyle({ transform: 'scaleX(0)' });
+    expect(within(meter.closest('tr')).getByText('0%')).toBeInTheDocument();
+  });
+
+  it('keeps the full workload denominator when the associated document report changes page', async () => {
+    reportsService.getAnalytics.mockResolvedValue({ ...ANALYTICS, workload_by_clerk: [60, 30, 10].map((documents_handled, id) => ({ id, documents_handled })) });
+    reportsService.getDocumentReport.mockResolvedValue({ ...REPORT, total: 100, totalPages: 4 });
+    const { result } = renderHook(() => useReports(ADMIN, 'admin-analytics'));
+    await waitFor(() => expect(result.current.analytics).toBeTruthy());
+    await act(async () => result.current.goToPage(2));
+    await waitFor(() => expect(result.current.refreshing).toBe(false));
+    expect(reportsService.getDocumentReport).toHaveBeenLastCalledWith(expect.objectContaining({ page: 2 }));
+    expect(reportsService.getAnalytics).toHaveBeenLastCalledWith({});
+    expect(getWorkloadShares(result.current.analytics.workload_by_clerk).map(row => row.share)).toEqual([60, 30, 10]);
   });
 
   it('handles an empty system without crashing', async () => {

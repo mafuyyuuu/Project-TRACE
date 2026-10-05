@@ -245,4 +245,13 @@ describe('efficiency analytics', () => {
     expect(reportModel.turnaroundByDesk).toHaveBeenCalledWith(range);
     expect(reportModel.workloadByClerk).toHaveBeenCalledWith(range);
   });
+
+  it.each([1, 2, 3])('preserves the complete workload dataset when document report page is %s', async page => {
+    const rows = [60, 30, 10].map((documents_handled, id) => ({ id, documents_handled: String(documents_handled) }));
+    reportModel.workloadByClerk.mockResolvedValue(rows);
+    const range = { dateFrom: '2026-10-01', dateTo: '2026-10-05' };
+    const res = await service.getEfficiencyAnalytics(ADMIN, { ...range, page, limit: 1 });
+    expect(reportModel.workloadByClerk).toHaveBeenCalledWith(range);
+    expect(res.workload_by_clerk.map(row => row.documents_handled)).toEqual([60, 30, 10]);
+  });
 });
