@@ -21,7 +21,6 @@ import {
   getStatusTone,
   getStatusLabel,
   isCancellable,
-  isAwaitingStudent,
   requiresAttachment,
 } from '@/utils/documentStatus';
 import { formatPeso } from '@/utils/pricing';
@@ -260,7 +259,7 @@ export default function StudentDashboard({ user, currentTab, setViewImageUrl }) 
                               </div>
                             </td>
                             <td className="py-4 px-4 align-middle">
-                              <span className={`inline-flex max-w-48 px-3 py-1 rounded-full text-[10px] leading-relaxed font-black uppercase tracking-wider ${getStatusTone(doc.current_status, isAwaitingStudent(doc.current_status) ? 'bg-red-50 dark:bg-red-950/40 text-red-700 dark:text-red-300' : undefined)}}`}>
+                              <span className={`inline-flex max-w-48 px-3 py-1 rounded-full text-[10px] leading-relaxed font-black uppercase tracking-wider ${getStatusTone(doc.current_status)}`}>
                                 {getStatusLabel(doc.current_status)}
                               </span>
                             </td>
@@ -325,13 +324,13 @@ export default function StudentDashboard({ user, currentTab, setViewImageUrl }) 
             {['all', 'payments'].map(filter => <Button key={filter} type="button" aria-pressed={historyFilter === filter} onClick={() => setHistoryView({ tab: currentTab, filter })} className={`trace-tab rounded-xl  ${historyFilter === filter ? 'bg-[#15803d] text-white' : 'bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700'}`}>{filter === 'all' ? 'All Requests' : 'Payments'}</Button>)}
           </div>
           <div className="trace-section trace-section-body overflow-x-auto max-h-[60vh]">
-            <table className="w-full table-fixed min-w-[980px] text-left text-xs">
+            <table className="w-full table-fixed min-w-[61.25rem] text-left text-xs">
               <thead className="sticky top-0 bg-white dark:bg-gray-900 z-10"><tr>{['Requested', 'Tracking', 'Document', 'Request Status', 'Amount', 'Payment Status', 'Payment Reference', 'Receipt'].map(label => <th key={label} className="px-3 py-3">{label}</th>)}</tr></thead>
               <tbody>{documents.filter(doc => historyFilter === 'all' || doc.payment_status === 'PAID' || doc.gcash_reference_no).map(doc => <tr key={doc.id} className="border-t border-gray-100 dark:border-gray-700">
                 <td className="px-3 py-4">{new Date(doc.created_at).toLocaleDateString()}</td>
                 <td className="px-3 py-4 break-all">{doc.tracking_number || doc.id}</td>
                 <td className="px-3 py-4 break-words font-bold">{doc.document_type}</td>
-                <td className="px-3 py-4"><span className={`inline-block px-2 py-1 rounded-xl ${getStatusTone(doc.current_status, isAwaitingStudent(doc.current_status) ? 'bg-red-50 dark:bg-red-950/40 text-red-700 dark:text-red-300' : undefined)}`}>{getStatusLabel(doc.current_status)}</span></td>
+                <td className="px-3 py-4"><span className={`inline-flex max-w-full px-2 py-1 rounded-xl ${getStatusTone(doc.current_status)}`}>{getStatusLabel(doc.current_status)}</span></td>
                 <td className="px-3 py-4">{doc.priced_at || doc.payment_status === 'PAID' || [STATUS.PENDING_STUDENT_PAYMENT, STATUS.PENDING_FINANCE_VERIFICATION, STATUS.PAID_PENDING_SEC_RELEASE, STATUS.SEC_OR_VERIFIED, STATUS.READY_FOR_RELEASE, STATUS.COMPLETED].includes(doc.current_status)
                   ? <details><summary className="cursor-pointer">{formatPeso(doc.amount)}</summary><FeeBreakdown breakdown={doc.fee_breakdown} amount={doc.amount} /></details>
                   : 'Pending Secretary pricing'}</td>

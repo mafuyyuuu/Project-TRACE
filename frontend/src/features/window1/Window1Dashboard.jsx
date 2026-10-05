@@ -405,7 +405,7 @@ export default function Window1Dashboard({ user, currentTab, setViewImageUrl }) 
                 ) : (
                   <>
                     <div ref={progressPagination?.containerRef} className="max-h-[calc(100vh-280px)] overflow-y-auto overflow-x-auto">
-                      <table className="w-full text-left border-collapse table-fixed min-w-[700px]">
+                      <table className="w-full text-left border-collapse table-fixed min-w-[43.75rem]">
                         <thead className="sticky top-0 bg-white dark:bg-gray-900 z-10">
                           <tr className="text-gray-400 dark:text-gray-400 text-[10px] uppercase tracking-widest border-b border-gray-100 dark:border-gray-700">
                             <th className="pb-4 font-bold pl-4">Date Requested</th>
@@ -431,7 +431,7 @@ export default function Window1Dashboard({ user, currentTab, setViewImageUrl }) 
                                 </div>
                               </td>
                               <td className="py-4">
-                                <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${getStatusTone(doc.current_status)}`}>
+                                <span className={`inline-flex max-w-full px-3 py-1 rounded-full text-[10px] leading-normal font-black uppercase tracking-wider ${getStatusTone(doc.current_status)}`}>
                                   {getStatusLabel(doc.current_status)}
                                 </span>
                               </td>

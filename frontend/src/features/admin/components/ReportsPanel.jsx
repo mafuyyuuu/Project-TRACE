@@ -152,8 +152,8 @@ export default function ReportsPanel({ user, currentTab }) {
           </div>
 
           <div ref={tableRef} className="max-h-[60vh] overflow-y-auto overflow-x-auto">
-            <table className="w-full text-left table-fixed min-w-[1120px]">
-              <colgroup>{[180,180,160,180,160,120,90,100].map((width, index) => <col key={index} style={{ width }} />)}</colgroup>
+            <table className="w-full text-left table-fixed min-w-[70rem]">
+              <colgroup>{[180,180,160,180,160,120,90,100].map((width, index) => <col key={index} style={{ width: `${width / 16}rem` }} />)}</colgroup>
               <thead className="bg-gray-50 dark:bg-gray-800 sticky top-0">
                 <tr className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest">
                   <th className="py-3 px-5">Requested On</th>
@@ -177,7 +177,7 @@ export default function ReportsPanel({ user, currentTab }) {
                       <div className="text-[10px] text-gray-400 dark:text-gray-400 font-mono select-text break-words">{d.student_id || '—'}</div>
                     </td>
                     <td className="py-3 pr-2 break-words text-xs text-gray-600 dark:text-gray-300">{d.document_type || '—'}</td>
-                    <td className="py-3 pr-2 break-words text-xs"><span className={getStatusTone(d.current_status, 'text-gray-600 dark:text-gray-300')}>{getStatusLabel(d.current_status)}</span></td>
+                    <td className="py-3 pr-2 break-words text-xs"><span className={`inline-flex max-w-full rounded-full px-2 py-1 font-semibold ${getStatusTone(d.current_status)}`}>{getStatusLabel(d.current_status)}</span></td>
                     <td className="py-3">
                       <span className={`text-[10px] font-bold px-2 py-1 rounded-full ${
                         d.payment_status === 'PAID'

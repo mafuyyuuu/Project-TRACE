@@ -371,7 +371,7 @@ export default function AdminDashboard({ user, currentTab, setViewImageUrl, revi
                       {documents.filter(doc => adminDocFilter === 'All' || doc.document_type === adminDocFilter).length === 0 ? (
                         <div className="text-center py-12 text-gray-400 dark:text-gray-400 font-medium">No documents match the current filter.</div>
                       ) : (
-                        <table className="w-full text-left border-collapse table-fixed min-w-[680px]">
+                        <table className="w-full text-left border-collapse table-fixed min-w-[42.5rem]">
                           <thead className="sticky top-0 bg-white dark:bg-gray-900 z-10">
                             <tr className="text-gray-400 dark:text-gray-400 text-[10px] uppercase tracking-widest border-b border-gray-100 dark:border-gray-700">
                               <th className="pb-4 font-bold pl-4">Tracking ID</th>
@@ -394,8 +394,8 @@ export default function AdminDashboard({ user, currentTab, setViewImageUrl, revi
                                   <td className="py-4 text-sm font-bold"><Button type="button" disabled={!doc.student_id} onClick={() => setViewProfileId(doc.student_id)} className="trace-action text-blue-700 dark:text-blue-300 hover:underline text-left break-words focus-visible:ring-2 focus-visible:ring-blue-500 disabled:text-gray-500">{doc.student_name || doc.student_id || 'Unknown'}</Button></td>
                                   <td className="py-4 text-xs font-bold text-gray-600 dark:text-gray-300">{doc.document_sequence_number || doc.document_type}</td>
                                   <td className="py-4">
-                                    <span className={`px-3 py-1 text-[10px] font-black rounded-full uppercase tracking-wider ${
-                                      getStatusTone(doc.current_status, 'bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-300')
+                                    <span className={`inline-flex max-w-full px-3 py-1 text-[10px] leading-normal font-black rounded-full uppercase tracking-wider ${
+                                      getStatusTone(doc.current_status)
                                     }`}>
                                       {getStatusLabel(doc.current_status)}
                                     </span>
@@ -494,7 +494,7 @@ export default function AdminDashboard({ user, currentTab, setViewImageUrl, revi
                   </div>
                   <div className="p-4 sm:p-6">
                     <div className="max-h-[calc(100vh-280px)] overflow-y-auto overflow-x-auto">
-                      <table className="w-full text-left border-collapse table-fixed whitespace-nowrap min-w-[680px]">
+                      <table className="w-full text-left border-collapse table-fixed whitespace-nowrap min-w-[42.5rem]">
                         <thead className="sticky top-0 bg-white dark:bg-gray-900 z-10">
                           <tr className="text-xs uppercase tracking-widest text-gray-400 dark:text-gray-400 border-b border-gray-100 dark:border-gray-700">
                             <th className="pb-4 font-bold pl-4">Timestamp</th>
@@ -512,8 +512,8 @@ export default function AdminDashboard({ user, currentTab, setViewImageUrl, revi
                               <td className="py-4 text-sm text-gray-600 dark:text-gray-300 capitalize">{log.step_name ? log.step_name.replace(/_/g, ' ') : 'System Action'}</td>
                               <td className="py-4 text-sm text-gray-600 dark:text-gray-300">{log.user_name || 'System'}</td>
                               <td className="py-4">
-                                <span className={`px-3 py-1 rounded-full text-xs font-bold ${log.status === 'completed' ? 'bg-emerald-100 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300' : 'bg-amber-100 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300'}`}>
-                                  {log.status}
+                                <span className={`inline-flex max-w-full px-3 py-1 rounded-full text-xs font-bold whitespace-normal break-words ${getStatusTone(log.status)}`}>
+                                  {getStatusLabel(log.status)}
                                 </span>
                               </td>
                             </tr>

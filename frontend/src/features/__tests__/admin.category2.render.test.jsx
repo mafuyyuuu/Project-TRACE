@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { STATUS } from '@/utils/documentStatus';
+import { STATUS, LEGACY_STATUS, getStatusLabel } from '@/utils/documentStatus';
 import { render, renderHook, act, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
@@ -372,6 +372,23 @@ describe('ReportsPanel', () => {
   it('loads the report on mount', async () => {
     await renderPanel();
     await waitFor(() => expect(reportsService.getDocumentReport).toHaveBeenCalled());
+  });
+
+  it.each([
+    ['Admin', ADMIN, 'admin-reports'],
+    ['Window 1', { role: 'clerk', desk_assignment: 'Window 1' }, 'reports'],
+    ['Secretary', { role: 'clerk', desk_assignment: 'Secretary' }, 'reports'],
+  ])('uses shared status badges in %s reports without changing payment meanings', async (_, account, tab) => {
+    const examples = [[STATUS.PENDING_STUDENT_PAYMENT, 'amber'], [STATUS.SEC_PROCESSING, 'blue'],
+      [STATUS.READY_FOR_RELEASE, 'green'], [STATUS.COMPLETED, 'green'], [LEGACY_STATUS.APPROVED, 'blue'], [LEGACY_STATUS.REJECTED, 'red']];
+    reportsService.getDocumentReport.mockResolvedValue({ ...REPORT, documents: examples.map(([status], index) => ({ ...REPORT.documents[0], id: index, current_status: status })) });
+    render(<ReportsPanel user={account} currentTab={tab} />);
+    const table = await screen.findByRole('table');
+    for (const [status, color] of examples) {
+      const badge = within(table).getByText(getStatusLabel(status));
+      expect(badge).toHaveClass(`bg-${color}-50`, 'rounded-full');
+    }
+    expect(within(table).getAllByText('PAID')).toHaveLength(examples.length);
   });
 
   it.each([

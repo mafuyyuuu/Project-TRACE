@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { STATUS } from '@/utils/documentStatus';
+import { STATUS, LEGACY_STATUS, getStatusLabel } from '@/utils/documentStatus';
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
@@ -117,6 +117,38 @@ async function renderDashboard(ui) {
   );
   return utils;
 }
+
+describe('shared document badge colors', () => {
+  const examples = [
+    [STATUS.PENDING_STUDENT_PAYMENT, 'amber'], [STATUS.SEC_PROCESSING, 'blue'],
+    [STATUS.READY_FOR_RELEASE, 'green'], [STATUS.COMPLETED, 'green'],
+    [LEGACY_STATUS.APPROVED, 'blue'], [LEGACY_STATUS.REJECTED, 'red'],
+  ];
+  const sample = examples.map(([status], index) => ({ ...DOC, id: index + 1, current_status: status, tracking_number: `TRC-COLOR-${index}` }));
+  it.each([
+    ['Admin', AdminDashboard, USERS.admin, 'admin-tracker'],
+    ['Window 1', Window1Dashboard, USERS.window1, 'tracking-desk'],
+    ['Student history', StudentDashboard, USERS.student, 'history'],
+  ])('uses the same explicit status meanings in %s', async (_, Component, user, tab) => {
+    documentsService.getDocuments.mockResolvedValue({ documents: sample, total: sample.length, totalPages: 1 });
+    await renderDashboard(<Component user={user} currentTab={tab} setViewImageUrl={vi.fn()} />);
+    for (const [status, color] of examples) {
+      const badge = await screen.findByText(getStatusLabel(status), { selector: 'tbody span' });
+      expect(badge).toHaveClass(`bg-${color}-50`);
+      expect(badge.className).toContain(`dark:bg-${color}-950`);
+      expect(badge).not.toHaveClass('bg-yellow-50');
+    }
+  });
+
+  it('maps uppercase and historical lowercase statuses in the activity log, retaining readable labels', async () => {
+    documentsService.getActivityLogs.mockResolvedValue({ logs: examples.map(([status], index) => ({ id: index, status: index === 3 ? 'completed' : status, timestamp_started: '2026-10-01T00:00:00Z' })) });
+    await renderDashboard(<AdminDashboard user={USERS.admin} currentTab="admin-logs" setViewImageUrl={vi.fn()} />);
+    for (const [status, color] of examples) {
+      const badge = await screen.findByText(getStatusLabel(status), { selector: 'tbody span' });
+      expect(badge).toHaveClass(`bg-${color}-50`);
+    }
+  });
+});
 
 describe('command centers mount and load their own data', () => {
   it('Student', async () => {
