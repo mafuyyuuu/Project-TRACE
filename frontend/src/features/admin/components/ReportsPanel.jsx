@@ -1,4 +1,5 @@
 import Button from '@/components/Button';
+import ExportDropdown from '@/components/ExportDropdown';
 import { INPUT_LIMITS } from '@/utils/inputLimits';
 import { useState } from 'react';
 import StudentProfileModal from '@/components/StudentProfileModal';
@@ -48,7 +49,6 @@ function StatCard({ label, value, tone = 'default' }) {
  */
 export default function ReportsPanel({ user, currentTab }) {
   const { tableRef, ...r } = useReports(user, currentTab);
-  const [exportOption, setExportOption] = useState('documents');
   const [viewProfileId, setViewProfileId] = useState(null);
 
   if (r.loading) return <DashboardLoading />;
@@ -61,13 +61,20 @@ export default function ReportsPanel({ user, currentTab }) {
       <DashboardAlerts success={r.success} error={r.error} onDismiss={r.dismissNotification} />
 
       <div className="trace-page">
-        <div>
-          <h2 className="trace-page-title">
-            Reports & <span className="text-[#15803d] dark:text-green-300">Export</span>
-          </h2>
-          <p className="trace-page-description">
-            Filter records, review the totals, and export to CSV.
-          </p>
+        <div className="trace-page-header">
+          <div className="flex-1">
+            <h2 className="trace-page-title">
+              Reports & <span className="text-[#15803d] dark:text-green-300">Export</span>
+            </h2>
+            <p className="trace-page-description">
+              Filter records, review the totals, and export to CSV.
+            </p>
+          </div>
+          <div className="ml-auto">
+            <ExportDropdown exporting={r.exporting}
+              options={[{ key: 'documents', label: 'Filtered document records (CSV)' }, ...EXPORT_CATEGORIES.map(c => ({ key: c.key, label: `${c.label} (CSV)` }))]}
+              onSelect={key => key === 'documents' ? r.downloadDocuments() : r.downloadStudents(key)} />
+          </div>
         </div>
 
         {/* Filters */}
@@ -123,7 +130,7 @@ export default function ReportsPanel({ user, currentTab }) {
 
         {/* Summary for the current filter slice */}
         {summary && (
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+          <div className="grid [grid-template-columns:repeat(auto-fit,minmax(min(100%,9rem),1fr))] gap-4">
             <StatCard label="Records" value={summary.total.toLocaleString()} />
             <StatCard label="Completed" value={summary.completed.toLocaleString()} tone="good" />
             <StatCard label="Rejected" value={summary.rejected.toLocaleString()} tone="bad" />
@@ -131,16 +138,6 @@ export default function ReportsPanel({ user, currentTab }) {
             <StatCard label="Revenue" value={formatPeso(summary.revenue)} tone="good" />
           </div>
         )}
-
-        <div className="trace-section trace-section-body flex flex-col sm:flex-row ga">
-          <label className="flex-1 text-sm font-bold">Export options
-            <select value={exportOption} onChange={e => setExportOption(e.target.value)} className={inputClass} disabled={Boolean(r.exporting)}>
-              <option value="documents">Filtered document records (CSV)</option>
-              {EXPORT_CATEGORIES.map(c => <option key={c.key} value={c.key}>{c.label} (CSV)</option>)}
-            </select>
-          </label>
-          <Button type="button" disabled={Boolean(r.exporting)} onClick={() => exportOption === 'documents' ? r.downloadDocuments() : r.downloadStudents(exportOption)} className="trace-button trace-button-primary">{r.exporting ? 'Exporting…' : 'Export'}</Button>
-        </div>
 
         {/* Filtered records */}
         <div className="trace-section overflow-hidden">

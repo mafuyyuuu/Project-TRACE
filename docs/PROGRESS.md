@@ -1,5 +1,17 @@
 # Project TRACE Progress Report
 
+### Export in report headers — 2026-10-05
+
+Finding before edits: Admin, Window 1 and Secretary render the same ReportsPanel. Its export selector and separate submit button sit in a standalone section below the filters/summary (with an incomplete `ga` class). FinanceTransactionsPanel already puts its single CSV button beside its own title, but does not use the same dropdown presentation. Reports supports filtered documents plus four student categories; Finance supports filtered transactions only. Backend staff authorization and the existing export services remain authoritative. Student-category exports are category-wide; the document and Finance exports retain their respective date/status filters.
+
+Use a shared, labelled Export disclosure beside each panel title, with wrapped header actions, themed buttons, keyboard dismissal/navigation and pending-state disabling. Selecting an option invokes the existing download handler immediately. Remove only the standalone reports export section; retain filters, report data, notifications and role routes. No migration or backend change is needed.
+
+Browser finding: the existing two-column reports summary overflows at 320 px with 200% text even though the header/dropdown fit. Use available reading width for summary columns so it stacks at that size and retains all values; no metric calculation changes.
+
+Finance's date-filter labels also use their native input minimum widths as unconstrained flex-item widths at 200% text. Constrain those labels to their container while preserving values, handlers and native controls.
+
+Implemented the shared header dropdown in ReportsPanel (Admin/Window 1/Secretary) and FinanceTransactionsPanel. Existing service/hook/backend export paths are unchanged. Regression checks cover keyboard/focus dismissal, category selection, filtered document/Finance payloads, pending controls, failure feedback/retry and Finance's browser download filename. Local frontend validation: **681 tests / 79 suites pass**, lint/build and `git diff --check` pass (existing build chunk-size advisory). **259 isolated browser checks pass** across all four role panels at 320/375/768/1280 px, light/dark, 100%/200% text, plus touch/reduced-motion checks; screenshots reviewed. Synthetic fixtures reject writes and block external API access. This is local verification, not production or physical-phone acceptance. No deployment, migration or dependency change was performed.
+
 ## Current Status — 2026-10-03
 
 ### Consistent controls and page layouts — 2026-10-03

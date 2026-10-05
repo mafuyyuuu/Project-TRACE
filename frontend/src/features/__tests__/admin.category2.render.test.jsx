@@ -410,6 +410,7 @@ describe('ReportsPanel', () => {
 
   it('offers all four student export categories', async () => {
     await renderPanel();
+    await userEvent.click(screen.getByRole('button', { name: 'Export' }));
     expect(await screen.findByText('Active Students (CSV)')).toBeInTheDocument();
     expect(screen.getByText('Graduates / Alumni (CSV)')).toBeInTheDocument();
     expect(screen.getByText('Others (CSV)')).toBeInTheDocument();
@@ -419,8 +420,8 @@ describe('ReportsPanel', () => {
   it('exports the selected student category', async () => {
     const user = userEvent.setup();
     await renderPanel();
-    await user.selectOptions(screen.getByRole('combobox', { name: 'Export options' }), 'alumni');
     await user.click(screen.getByRole('button', { name: 'Export' }));
+    await user.click(screen.getByRole('button', { name: 'Graduates / Alumni (CSV)' }));
     await waitFor(() => expect(reportsService.exportStudentsCsv).toHaveBeenCalledWith('alumni'));
   });
 
@@ -430,6 +431,7 @@ describe('ReportsPanel', () => {
 
     await user.selectOptions(await screen.findByDisplayValue('All statuses'), STATUS.COMPLETED);
     await user.click(screen.getByRole('button', { name: 'Export' }));
+    await user.click(screen.getByRole('button', { name: 'Filtered document records (CSV)' }));
 
     await waitFor(() =>
       expect(reportsService.exportDocumentsCsv).toHaveBeenCalledWith(
@@ -442,6 +444,32 @@ describe('ReportsPanel', () => {
     reportsService.getDocumentReport.mockResolvedValue({ ...REPORT, documents: [], total: 0, totalPages: 0 });
     await renderPanel();
     expect(await screen.findByText(/No records match these filters/i)).toBeInTheDocument();
+  });
+
+  it.each(['Window 1', 'Secretary'])('keeps the header exports available to %s', async desk => {
+    render(<ReportsPanel user={{ role: 'clerk', desk_assignment: desk }} currentTab="reports" />);
+    const trigger = await screen.findByRole('button', { name: 'Export' });
+    expect(trigger.closest('.trace-page-header')).toContainElement(screen.getByRole('heading', { name: 'Reports & Export' }));
+    expect(screen.queryByRole('combobox', { name: 'Export options' })).not.toBeInTheDocument();
+    await userEvent.click(trigger);
+    expect(screen.getByRole('group', { name: 'Export options' })).toContainElement(screen.getByRole('button', { name: 'All Students (CSV)' }));
+  });
+
+  it('disables export while downloading and preserves failure feedback and retry', async () => {
+    const user = userEvent.setup();
+    let reject;
+    reportsService.exportDocumentsCsv.mockReturnValueOnce(new Promise((_, fail) => { reject = fail; }));
+    await renderPanel();
+    await user.click(screen.getByRole('button', { name: 'Export' }));
+    await user.click(screen.getByRole('button', { name: 'Filtered document records (CSV)' }));
+    expect(screen.getByRole('button', { name: 'Exporting…' })).toBeDisabled();
+    expect(screen.queryByRole('group', { name: 'Export options' })).not.toBeInTheDocument();
+    await act(async () => reject(new Error('unavailable')));
+    expect(await screen.findByRole('dialog', { name: 'Attention Needed' })).toHaveTextContent('Export failed.');
+    await user.click(screen.getByRole('button', { name: 'OK' }));
+    await user.click(screen.getByRole('button', { name: 'Export' }));
+    await user.click(screen.getByRole('button', { name: 'Filtered document records (CSV)' }));
+    expect(reportsService.exportDocumentsCsv).toHaveBeenCalledTimes(2);
   });
 });
 
