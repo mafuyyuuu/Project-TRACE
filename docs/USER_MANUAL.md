@@ -135,34 +135,32 @@ One payment covers the documents in that request group. Separate groups have sep
 
 For walk-ins, **CTC, 2nd Copy of COR, 2nd Copy of OGR and CAV** qualify for same-day handling when the original and a photocopy of the required document are presented. Evaluation, pricing, payment and release checks still apply.
 
-## 6. Message Window 1 and submit case attachments
+## 6. Get Support and submit case documents
 
-### Ask a general question
+### Ask for help
 
-1. Select the speech-bubble button at the bottom right of the student dashboard.
-2. Open **General support**.
-3. Type your question and select **Send**, or press Enter.
-4. Return to the conversation to read Window 1's reply.
+1. Open **Support** in navigation or the floating speech-bubble button.
+2. Choose **New ticket**, enter a subject and optionally link your own open document request. In the compact widget, expand **Support actions** to find New ticket; use **Tickets** to switch conversations.
+3. Read an approved suggested FAQ. Select **Helpful**, **Not helpful**, or **This resolved my question** explicitly. Helpful does not close the ticket.
+4. Choose **Talk to staff**, or send “human”, “live support” or “talk to staff”. The same ticket enters the Registrar queue with its history intact.
+5. Use **Message** and Send/Enter. Sending is immediate; wait for completion before retrying. A failed send keeps its draft/files. Only one unresolved general ticket is allowed; opening another returns to the existing one.
 
-General support does not require a filed request. New alumni must complete their Graduate Application first. Replies depend on staff availability; this is not an automated chat service.
+General tickets do not require a document request. New alumni still complete the Graduate Application before dashboard access. Request-linked tickets require ownership and verified email. Only the selected ticket is highlighted; older tickets/messages remain reachable through **Load older** controls, without Previous/Next pages.
 
-### Discuss an existing request
+### Live hours and waiting
 
-1. Open **Request conversations** in the chat panel, or **Messages & Attachments**.
-2. Select the request you want to discuss.
-3. Type in **Message to Window 1**, then select Send or press Enter.
-4. Check the conversation for replies and case-specific attachment instructions.
+Defaults are **Monday–Thursday, 8:00 AM–4:00 PM Asia/Manila**. Friday–Sunday and configured closed dates are outside live hours. FAQ access, ticket submission and history remain available; Window 1 live claims and replies pause. Queue position is retained when you leave. Declared available capacity is not a promise that a clerk is online. A wait range appears only with sufficient observed handling data and available capacity; otherwise TRACE says **Waiting for available staff**.
 
-Messages send immediately without a confirmation dialog. While sending, wait for the result. If sending fails, the draft remains and an inline error explains the failure.
+A clerk can explicitly request a reply. The default warning is at **3 service minutes**, timeout at **5**; clocks pause outside support hours. Timeout moves the ticket to **Awaiting student**, not Resolved, and frees the clerk. Your next message requeues the same ticket fairly at the tail. A resolved ticket can be reopened if its document case remains open and no other unresolved general ticket conflicts.
 
-### Submit an attachment requested by the Registrar
+### Files and case-specific requirements
 
-1. Open the request conversation and read the named requirement and instructions.
-2. Select the requested JPG, PNG or PDF, up to 10 MB.
-3. Submit and confirm the upload.
-4. Check whether staff accepts it or asks for resubmission with a reason.
+- **Attach files** sends up to **3 JPEG/PNG/PDF files per message, 5 MB each**, retained with ticket history. TRACE checks file contents; accepted types are not a malware-scan guarantee. Share only information relevant to the case. Downloads require an authorized account.
+- Authorized Registrar staff use the composer paperclip **Request supporting document**, choose an approved type and enter case instructions, then confirm. A general FAQ ticket alone grants no document-request rights.
+- The request appears as a system bubble showing document, instructions, requester and time. The student chooses **Upload file for [document]**, selects JPEG/PNG/PDF up to **10 MB**, and confirms. This case-upload allowance is separate from chat files.
+- Staff accept or reject with a correction reason. Rejected documents can be uploaded again. An explicit **Request replacement** preserves the original uploads/reviews and links the new requirement. **View upload and review history** shows retained events; older events load incrementally.
+- Completed, legacy Approved/Rejected and unknown document states are read-only. Authorized messages, files and recorded events remain available; cancellation retains linked ticket history. Awaiting student is a support state and does not mean the document case is closed.
 
-Requirements vary by case. An extra document is not required unless requested. Submitted/accepted files cannot simply be overwritten. These requirements do not automatically place the request on hold or create a new processing stage.
 
 ## 7. Set up security and larger text
 
@@ -203,7 +201,7 @@ Use Tab to move between controls, Enter/Space to activate them, and Escape to cl
 - **Walk-ins:** use Manual Entry or the authorized scanning flow, review all entered/OCR values, then submit and confirm. Record original/photocopy checks for eligible same-day types.
 - **Release:** check the recorded OR and Secretary handoff, physically hand over the documents, then confirm release. A retained digital OR copy pending upload does not itself block release.
 - **Questions:** use Tracking Desk to inspect status. Select a student's linked name to view their saved profile.
-- **Messages:** open request conversations or General support, select the conversation and reply. Request extra case documents with clear instructions when needed.
+- **Support:** declare availability, claim the oldest ticket and reply. One live ticket per Window 1 clerk is enforced. Request case documents through the composer; explicitly request student replies, mark Awaiting student or resolve. Admin and Window 1 manage global Support settings and view Support analytics.
 - **Exports:** open **Reports & Export**, apply filters, select an export option and export.
 - **Submission QR:** the Online Submission QR opens TRACE signup; the tracking QR identifies an existing request. Record prior original issuance only after checking evidence and adding notes.
 
@@ -277,7 +275,7 @@ Open **Security Logs** to review each event's timestamp, event name, account nam
 | An expired or used email link | Send a fresh link from Profile and open the newest email. |
 | New Request is blocked | Complete and save the exact fields listed, verify email, then try again. |
 | Registration proof is flagged | Read the review reason if available and contact the Registrar. OCR can miss genuine ID text; do not treat pending review as rejection. |
-| You cannot find the request message box | Select a request in Request conversations, then use **Message to Window 1** beneath its history. |
+| You cannot find the request message box | Open Support, select a ticket, and use **Message** at the bottom. Window 1 must claim its ticket to reply; closed histories have no send action. |
 | A profile is stuck loading | Choose **Retry loading profile** when the lookup fails. If it repeats, report the screen and error to Admin. |
 | Templates will not load | Use its retry action and report the visible error to the deployment operator. |
 | Two-factor setup is unavailable | Ask Admin to check the backend configuration and migrations. Never share QR secrets or recovery codes. |

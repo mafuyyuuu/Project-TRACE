@@ -1,4 +1,5 @@
 import Button from '@/components/Button';
+import RequestMessagesPanel from '@/components/RequestMessagesPanel';
 import { useState } from 'react';
 import FinanceTransactionsPanel from '@/features/finance/components/FinanceTransactionsPanel';
 import useFinanceTransactions from '@/hooks/useFinanceTransactions';
@@ -67,6 +68,7 @@ export default function FinanceDashboard({ user, setViewImageUrl, currentTab = '
 
   const todayFormatted = todayLongDate();
 
+  if(currentTab==='messages')return <RequestMessagesPanel user={user} initialDocumentId={new URLSearchParams(window.location.search).get('document')} />;
   if (loading && activeQueueTab !== 'transactions') return <DashboardLoading />;
 
   return (

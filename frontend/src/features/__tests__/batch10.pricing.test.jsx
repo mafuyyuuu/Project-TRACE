@@ -26,6 +26,7 @@ vi.mock('@/services/documentsService', () => ({
   uploadDocument: vi.fn(), submitPayment: vi.fn(), cancelDocument: vi.fn(),
 }));
 vi.mock('@/services/api', () => ({ default: { get: vi.fn().mockResolvedValue({ data: null }) } }));
+vi.mock('@/components/RequestMessagesPanel', () => ({ default: () => null }));
 vi.mock('@/components/AuthedFilePreview', () => ({ default: () => null }));
 
 const USER = { id: 1, role: 'student', student_id: 'STU-TEST', full_name: 'Test Student', user_type: 'student' };

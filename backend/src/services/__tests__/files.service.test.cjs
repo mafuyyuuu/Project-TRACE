@@ -6,6 +6,7 @@
 const documentModel = require('../../models/document.model');
 const userModel = require('../../models/user.model');
 const attachments = require('../../models/requestAttachment.model');
+const tickets = require('../../models/supportTicket.model');
 const { getFilePathForUser, resolveSafePath } = require('../files.service');
 
 const STAFF = { id: 1, role: 'clerk', desk_assignment: 'Finance' };
@@ -20,6 +21,7 @@ const STUDENT = { id: 3, role: 'student' };
 const statusOf = (promise) => promise.then(() => undefined, (err) => err.status);
 
 beforeEach(() => {
+  vi.spyOn(tickets,'fileOwner').mockResolvedValue(undefined);
   vi.spyOn(attachments, 'fileOwner').mockResolvedValue(undefined);
   vi.spyOn(documentModel, 'findByAttachedFilename').mockResolvedValue([]);
   vi.spyOn(userModel, 'findStudentIdById').mockResolvedValue([{ student_id: 'STU-001' }]);
@@ -125,4 +127,10 @@ describe('file authorization', () => {
     userModel.findByProfilePictureFilename.mockResolvedValue([{ id: 77, student_id: 'STU-999' }]);
     expect(await statusOf(getFilePathForUser(STAFF, 'avatar-theirs.png'))).not.toBe(403);
   });
+});
+it.each([STAFF,ADMIN,STUDENT])('routes chat and archived files through ticket authorization before broad staff access',async actor=>{
+ const support=require('../supportTicket.service');vi.spyOn(support,'assertFileRead').mockRejectedValue(Object.assign(new Error('Not permitted'),{status:403}));
+ tickets.fileOwner.mockResolvedValue({ticket_id:11});
+ expect(await statusOf(getFilePathForUser(actor,'archived-synthetic.png'))).toBe(403);
+ expect(support.assertFileRead).toHaveBeenCalledWith(actor,'archived-synthetic.png');
 });

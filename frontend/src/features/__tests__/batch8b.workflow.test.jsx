@@ -5,6 +5,8 @@ import ManualInputModal from '@/features/window1/components/ManualInputModal';
 import StudentProfileModal from '@/components/StudentProfileModal';
 import useReports from '@/features/admin/useReports';
 import HelpPage from '@/pages/HelpPage';
+import topics from '../../../../backend/src/config/supportFaq.json';
+vi.mock('@/hooks/useSupportFaq',()=>({default:()=>({topics,error:''})}));
 import useStudentDashboard from '@/features/student/useStudentDashboard';
 import { uploadDocument } from '@/services/documentsService';
 import { getDocumentTypes, getPaymentMethods } from '@/services/referenceService';

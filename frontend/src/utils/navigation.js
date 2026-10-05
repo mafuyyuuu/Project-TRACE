@@ -13,7 +13,7 @@ function roleNavItems(user) {
     const items = [
       { tab: 'dashboard', to: '/dashboard', label: 'Dashboard', icon: 'dashboard' },
       { tab: 'history', to: '/dashboard?tab=history', label: 'History', icon: 'document' },
-      { tab: 'messages', to: '/dashboard?tab=messages', label: 'Messages & Attachments', icon: 'message' },
+      { tab: 'messages', to: '/dashboard?tab=messages', label: 'Support', icon: 'message' },
     ];
     // Only an alumnus can file the Graduate Application — a regular student
     // never sees the tab at all, not even to navigate to it directly.
@@ -27,7 +27,7 @@ function roleNavItems(user) {
     return [
       { tab: 'dashboard', to: '/dashboard', label: 'Dashboard', icon: 'dashboard' },
       { tab: 'reports', to: '/dashboard?tab=reports', label: 'Records & Export', icon: 'report' },
-      { tab: 'messages', to: '/dashboard?tab=messages', label: 'Messages & Attachments', icon: 'message' },
+      { tab: 'messages', to: '/dashboard?tab=messages', label: 'Support', icon: 'message' },
       { tab: 'grad-applications', to: '/dashboard?tab=grad-applications', label: 'Graduate Applications', icon: 'cap', group: 'more' },
     ];
   }
@@ -36,7 +36,7 @@ function roleNavItems(user) {
     return [
       { tab: 'dashboard', to: '/dashboard', label: 'Workspace Dashboard', icon: 'dashboard' },
       { tab: 'tracking-desk', to: '/dashboard?tab=tracking-desk', label: 'Tracking Desk', icon: 'users' },
-      { tab: 'messages', to: '/dashboard?tab=messages', label: 'Messages & Attachments', icon: 'message' },
+      { tab: 'messages', to: '/dashboard?tab=messages', label: 'Support', icon: 'message' },
       { tab: 'reports', to: '/dashboard?tab=reports', label: 'Reports & Export', icon: 'report', group: 'more' },
     ];
   }
@@ -45,7 +45,7 @@ function roleNavItems(user) {
     return [
       { tab: 'dashboard', to: '/dashboard', label: 'Dashboard', icon: 'dashboard' },
       { tab: 'admin-tracker', to: '/dashboard?tab=admin-tracker', label: 'Document Tracker', icon: 'document' },
-      { tab: 'messages', to: '/dashboard?tab=messages', label: 'Messages & Attachments', icon: 'message' },
+      { tab: 'messages', to: '/dashboard?tab=messages', label: 'Support', icon: 'message' },
       { tab: 'admin-logs', to: '/dashboard?tab=admin-logs', label: 'Activity Logs', icon: 'checklist', group: 'more' },
       { tab: 'admin-security', to: '/dashboard?tab=admin-security', label: 'Security Logs', icon: 'shield', group: 'more' },
       { tab: 'admin-reports', to: '/dashboard?tab=admin-reports', label: 'Reports & Export', icon: 'report', group: 'more' },
@@ -60,6 +60,7 @@ function roleNavItems(user) {
     return [
       { tab: 'dashboard', to: '/dashboard', label: 'Dashboard', icon: 'dashboard' },
       { tab: 'reports', to: '/dashboard?tab=reports', label: 'Transactions & Export', icon: 'report' },
+      { tab: 'messages', to: '/dashboard?tab=messages', label: 'Support', icon: 'message' },
     ];
   }
   // Other desks get the dashboard alone.

@@ -27,6 +27,13 @@ function requireSecret(name) {
   }
   return value;
 }
+function boundedInteger(name, fallback, minimum, maximum) {
+  const raw=process.env[name];
+  if(raw===undefined || raw==='')return fallback;
+  const value=Number(raw);
+  if(!/^\d+$/.test(raw) || !Number.isSafeInteger(value) || value<minimum || value>maximum)throw new Error(`${name} must be an integer from ${minimum} to ${maximum}.`);
+  return value;
+}
 
 // This exact string shipped as a hardcoded fallback and is present in git
 // history, so any token signed with it is forgeable by anyone with repo access.
@@ -68,6 +75,7 @@ module.exports = {
   // Per-instance pool ceiling. N replicas each open this many, so it has to be
   // tunable against a managed database's connection cap.
   DB_POOL_LIMIT: parseInt(process.env.DB_POOL_LIMIT, 10) || 10,
+  DB_POOL_QUEUE_LIMIT: boundedInteger('DB_POOL_QUEUE_LIMIT',200,1,1000),
   PORT: process.env.PORT || 3300,
   // Origin of the React app. Serves two purposes: it is the allowlist for CORS
   // and the Socket.IO handshake, and it is the base of the password-reset link

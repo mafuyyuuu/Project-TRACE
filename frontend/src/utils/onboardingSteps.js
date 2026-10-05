@@ -12,7 +12,7 @@ const STUDENT_STEPS = [
   { title: 'Watch for updates', target: 'tutorial-notifications', area: 'dashboard',
     text: 'The bell shows payment, request and account updates. Open a notice to follow its link or see the related request.' },
   { title: 'Talk to Window 1', target: 'tutorial-support', area: 'dashboard', action: 'Open support',
-    text: 'This chat button opens General support, even before your first request. Switch to Request conversations and select a request to type a message or read replies. Requested attachments appear with that conversation.' },
+    text: 'This button opens Support. Create a ticket even without a request, read an approved FAQ, or choose Talk to staff. Select a ticket to message; requested case documents appear as actionable bubbles. Your queue place is saved when you leave.' },
   { title: 'Protect your account', target: 'authenticator-heading', area: 'security',
     text: 'Edit Profile → Security contains password changes, other-device logout, security activity and Two-factor authentication. Scan the authenticator QR code or enter its manual key, and save your recovery codes. Preferences adjusts text size and theme.' },
   { title: 'Help is always nearby', target: 'tutorial-guide', area: 'dashboard',
@@ -29,7 +29,7 @@ const HELP = { title: 'Replay this guide', target: 'tutorial-guide', area: 'dash
   text: 'This question mark reopens the guide for your role. The automatic tour appears only once per account after required setup. Use Help / FAQ for instructions whenever you need them.' };
 const nav = (tab, title, text) => ({ title, text, target: `nav:${tab}`, area: `navigation:${tab}`, action: `Open ${title}` });
 const queue = text => ({ title: 'Work through your queues', target: 'tutorial-queues', area: 'dashboard', text });
-const MESSAGES = nav('messages', 'Messages & Attachments', 'Open a request conversation, select the request and type in its message box. Send submits immediately. Read replies and use case-specific attachments when the Registrar needs more documents. Keep messages tied to the correct request.');
+const MESSAGES = nav('messages', 'Support', 'Select a ticket to read its conversation. Window 1 declares availability and claims the oldest ticket, one live slot per clerk. Send is immediate. Use the composer paperclip for authorized case documents; retained history stays tied to its ticket. Support settings and analytics are available to Admin and Window 1.');
 const REPORTS = nav('reports', 'Reports & Export', 'Filter the report to the dates and records you need, review it and export the results. Dates and peso amounts appear in the report; exporting does not change a request.');
 
 const WINDOW1_STEPS = [PROFILE, SECURITY,
@@ -41,7 +41,9 @@ const SECRETARY_STEPS = [PROFILE, SECURITY,
   MESSAGES, nav('grad-applications', 'Graduate Applications', 'Open an application to review the submitted alumni information, then use the available confirmed decision controls.'), nav('reports', 'Records & Export', 'Review your assigned college records. Secretary-cleared includes Ready for Pick-up and Completed; choose Completed only for released records. Review filters before exporting.'), UPDATES, HELP];
 const FINANCE_STEPS = [PROFILE, SECURITY,
   queue('Review the final bill and submitted payment proof against Finance records before verifying payment. A payment acknowledgment is separate from the Official Receipt. If the OR is deferred, watch its elapsed waiting time and issue it when ready. Payments at or after 4:00 PM Manila time have no same-day OR.'),
-  nav('reports', 'Transactions & Export', 'Open the Finance transaction report, choose filters and export the matching payment records. Check totals and receipt details before using the export.'), UPDATES, HELP];
+  nav('reports', 'Transactions & Export', 'Open the Finance transaction report, choose filters and export the matching payment records. Check totals and receipt details before using the export.'),
+  nav('messages', 'Support', 'Open authorized linked case conversations. General tickets, live queue claims, lifecycle management and document requirement requests belong to Registrar staff.'),
+  UPDATES, HELP];
 const ADMIN_STEPS = [PROFILE, SECURITY,
   { title: 'Review account applications', target: 'tutorial-account-review', area: 'dashboard',
     text: 'Review each identity proof together with the applicant type, Program/Course and College. An inconclusive OCR result needs manual review; it is not a counterfeit verdict. Open Review and confirm your decision after checking the supplied information.' },

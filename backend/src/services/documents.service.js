@@ -532,7 +532,7 @@ async function getForecast() {
  * Prescriptive queue insights from the Random Forest engine, falling back to
  * direct threshold checks against the live queue counts.
  */
-async function getInsights() {
+async function getDocumentInsights() {
   const aiData = await aiEngine.getInsights();
   if (aiData) return aiData;
 
@@ -574,6 +574,10 @@ async function getInsights() {
   }
 
   return { insights, source: 'fallback' };
+}
+async function getInsights(user) {
+  const [documents,support]=await Promise.all([getDocumentInsights(),user?.role==='admin' ? require('./supportInsight.service').get(user) : []]);
+  return {...documents,insights:[...documents.insights,...support]};
 }
 
 async function getActivityLogs(user) {
@@ -1560,6 +1564,7 @@ async function cancelDocument(user, documentId) {
       throw badRequest('Cannot cancel a request that is already being processed.');
     }
 
+    await require('./supportArchive.service').archiveCase(documentId,connection);
     await stepLogModel.deleteByDocumentId(documentId, connection);
     await documentModel.deleteById(documentId, connection);
 
@@ -1685,6 +1690,7 @@ async function sendMessage(user, documentId, body = {}) {
     [doc] = await documentModel.findByIdForUpdate(documentId, connection);
     if (!doc) throw notFound('Document not found.');
     await authorizeMessage(user, doc, connection);
+    require('../utils/supportCase').assertCaseWritable(doc.current_status);
     const [res] = await documentMessageModel.insert(documentId, user.id, message, connection);
     inserted = res.insertId;
     await connection.commit();
@@ -1712,6 +1718,7 @@ async function sendMessage(user, documentId, body = {}) {
 }
 
 module.exports = {
+  messageScope,
   authorizeMessage,
   messageThreads,
   getMessages,

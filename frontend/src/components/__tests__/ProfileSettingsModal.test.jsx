@@ -368,7 +368,7 @@ describe('ProfileSettingsModal', () => {
     expect(feedback.parentElement).toHaveClass('z-[110]');
     expect(api.post).toHaveBeenCalledWith('/auth/logout-all', { preserve_current: true }, { timeout: 15000 });
     expect(nativeAlert).not.toHaveBeenCalled();
-    expect(screen.getByRole('button', { name: 'OK' })).toHaveFocus();
+    await waitFor(() => expect(screen.getByRole('button', { name: 'OK' })).toHaveFocus());
     fireEvent.click(screen.getByRole('button', { name: 'OK' }));
     expect(screen.queryByRole('dialog', { name: title })).not.toBeInTheDocument();
     expect(screen.getByRole('dialog', { name: 'Edit Profile' })).toBeInTheDocument();

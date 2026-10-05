@@ -54,8 +54,6 @@ export default function AdminDashboard({ user, currentTab, setViewImageUrl, revi
     setAdminDocFilter,
     forecastFilter,
     setForecastFilter,
-    adminUsersFilter,
-    setAdminUsersFilter,
     adminUsersRoleFilter,
     setAdminUsersRoleFilter,
     filteredAdminUsers,
@@ -247,7 +245,7 @@ export default function AdminDashboard({ user, currentTab, setViewImageUrl, revi
                   <section aria-labelledby="ai-insights-heading" className="trace-section trace-section-body lg:col-span-1 flex flex-col justify-between h-full min-h-[380px]">
                     <div>
                       <h3 id="ai-insights-heading" className="text-lg font-bold text-gray-900 dark:text-gray-100">AI INSIGHTS</h3>
-                      <p className="text-xs text-gray-600 dark:text-gray-300 mt-1 font-mono">Prescriptive actions from Random Forest model.</p>
+                      <p className="text-xs text-gray-600 dark:text-gray-300 mt-1">Document model advice and measured support trends. Recommendations require review.</p>
                     </div>
 
                     <div className="flex flex-col gap-4 mt-6">
@@ -265,6 +263,7 @@ export default function AdminDashboard({ user, currentTab, setViewImageUrl, revi
                             </h4>
                             <div className="text-xs leading-relaxed font-medium">
                               {insight.message}
+                              {insight.period && <p className="mt-2">{new Date(insight.period.from).toLocaleDateString('en-PH',{timeZone:'Asia/Manila'})}–{new Date(insight.period.to_exclusive).toLocaleDateString('en-PH',{timeZone:'Asia/Manila'})} · {insight.sample_size} observations · {insight.method==='aggregate_rules' ? 'Aggregate rules; descriptive, not a forecast' : 'Advisory'}</p>}
                             </div>
                           </article>
                         ))
@@ -462,8 +461,6 @@ export default function AdminDashboard({ user, currentTab, setViewImageUrl, revi
                 <UserGrid
                   users={filteredAdminUsers}
                   onSelectUser={setSelectedUser}
-                  searchValue={adminUsersFilter}
-                  onSearchChange={setAdminUsersFilter}
                   roleFilter={adminUsersRoleFilter}
                   onRoleFilterChange={setAdminUsersRoleFilter}
                   roleOptions={[

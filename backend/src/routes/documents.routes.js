@@ -49,11 +49,12 @@ router.post('/:id/verify-or', authenticate, documentsController.verifyOfficialRe
 router.post('/:id/handoff', authenticate, documentsController.handoff);
 router.post('/:id/release', authenticate, documentsController.release);
 router.get('/:id/messages', authenticate, documentsController.getMessages);
-router.post('/:id/messages', authenticate, documentsController.sendMessage);
+router.post('/:id/messages', authenticate, require('../middlewares/legacyMessaging.middleware').readOnly);
 router.delete('/:id', authenticate, documentsController.cancel);
 
 const attachments = require('../controllers/requestAttachments.controller');
 router.get('/:id/attachments', authenticate, attachments.list);
+router.get('/:id/attachments/:requirementId/history', authenticate, attachments.history);
 router.post('/:id/attachments', authenticate, attachments.request);
 router.post('/:id/attachments/:requirementId/upload', authenticate, pertinentUpload.single('attachment'), attachments.upload);
 router.post('/:id/attachments/:requirementId/review', authenticate, attachments.review);

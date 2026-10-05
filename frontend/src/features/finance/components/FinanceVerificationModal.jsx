@@ -2,7 +2,7 @@ import Button from '@/components/Button';
 import FeeBreakdown from '@/components/FeeBreakdown';
 import { INPUT_LIMITS } from '@/utils/inputLimits';
 import FileUploadField from '@/components/FileUploadField';
-import DocumentChat from '@/components/DocumentChat';
+import RequestMessagesPanel from '@/components/RequestMessagesPanel';
 import { useState } from 'react';
 import ModalShell from '@/components/ModalShell';
 import AuthedFilePreview from '@/components/AuthedFilePreview';
@@ -156,7 +156,7 @@ export default function FinanceVerificationModal({
       </div>
       <div className="flex flex-col gap-1.5 mt-4 border-t border-gray-100 dark:border-gray-700 pt-4">
         <label className="trace-label">Discussion</label>
-        <DocumentChat documentId={selectedDoc.id} user={user} />
+        <div className="h-[70dvh] min-h-96"><RequestMessagesPanel initialDocumentId={selectedDoc.id} user={user} compact /></div>
       </div>
     </ModalShell>
   );

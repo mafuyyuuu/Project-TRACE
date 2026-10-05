@@ -876,7 +876,7 @@ Use synthetic authorized accounts for acceptance:
 8. Check Preferences at every size, on a narrow and desktop viewport: header wrapping, profile scroll/Save, expanded FAQ answers, table horizontal scroll and chart labels. Reset to 100% and check printing stays unchanged.
 9. Check migration and API logs without posting credentials or real student records. A health response confirms connectivity only; it does not establish real SQL transaction, printed-slip or role-flow acceptance.
 
-The pricing/payment authority split is retained. FIN-01–FIN-05, authenticator enrollment and general Window 1 support remain separate pending scopes. Text-size preferences, FAQ/photo UI and the approved profile-completion repair are implemented locally; live acceptance still requires the matching frontend/backend and explicit migrations.
+The pricing/payment authority split is retained. FIN-01–FIN-05 and authenticator enrollment were implemented in subsequent scopes. General support is now replaced by the unified ticket workspace; use the current Support rollout below. Text-size preferences, FAQ/photo UI and the approved profile-completion repair are implemented locally; live acceptance still requires the matching frontend/backend and explicit migrations.
 
 ## Batch 10 Authenticator, Sessions, Finance and Registrar Policy Rollout
 
@@ -1055,3 +1055,11 @@ Follow [MIGRATION_ROLLOUT.md](MIGRATION_ROLLOUT.md) for the explicit `migrate_pr
 ### Separate college graduation and attendance years
 
 For existing databases, apply `backend/database/migrate_graduation_year.js` from the rebuilt backend image, then `check_schema.js`, before recreating the API. Follow the backup and stopped-writer sequence in [MIGRATION_ROLLOUT.md](MIGRATION_ROLLOUT.md#graduation-year-follow-up). This adds a nullable `student_profiles.graduation_year`; attendance and school records are preserved with no inferred backfill. Alumni enter their confirmed college graduation year to complete their profile. Current students may leave college graduation blank; school graduation years remain required for completion. No new environment variable is needed. Do not import the fresh-install schema into an existing database.
+
+## Unified Support configuration and schema (October 6, 2026)
+
+Use [MIGRATION_ROLLOUT.md](MIGRATION_ROLLOUT.md#support-ticket-rollout) for the matched upgrade. The preserving follow-ups are `migrate_payment_methods.js`, `migrate_password_resets.js`, `migrate_support_tickets.js`, then `migrate_support_requirements.js`; include `migrate_graduation_year.js` if not yet applied. Earlier general/document messaging and request-attachment migrations are prerequisites. Stop writers during legacy import and never re-import the fresh schema into production. Keep the existing MFA key.
+
+`DB_POOL_QUEUE_LIMIT` defaults to 200, validated 1–1000. It bounds queued pool queries, with 10 database connections unchanged. Configure it in root `.env` for Compose or backend `.env` locally; it is documented in both examples. Measured local 100-user results do not establish production capacity. Support hours/calendar/warning/timeout are durable settings edited by Admin or Window 1, not browser timers or environment secrets. Approved FAQ text lives in backend `config/supportFaq.json`; Admin populates the empty supporting-document catalog.
+
+Build both backend (sharp/pdf-lib validators) and AI (support aggregate advice module), apply/check the migrations, start the matching API/AI, then promote the matching frontend. Validate ticket import counts/ownership privately, FCFS claims, timer recovery, protected attachments, read-only cases and role-scoped analytics. [SUPPORT_VALIDATION.md](SUPPORT_VALIDATION.md) separates local evidence from staging/physical-device acceptance.

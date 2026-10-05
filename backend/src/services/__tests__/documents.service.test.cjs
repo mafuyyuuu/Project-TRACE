@@ -1035,6 +1035,7 @@ describe('releaseDocument — Window 1 only', () => {
 });
 
 describe('cancelDocument — owner only, unpaid only', () => {
+  beforeEach(() => {vi.spyOn(require('../supportArchive.service'),'archiveCase').mockResolvedValue(undefined);});
   it('rejects non-students', async () => {
     expect(await statusOf(service.cancelDocument(FINANCE, 5))).toBe(403);
   });
