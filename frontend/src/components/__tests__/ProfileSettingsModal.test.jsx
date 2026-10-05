@@ -62,6 +62,30 @@ beforeEach(() => {
 });
 
 describe('ProfileSettingsModal', () => {
+  it.each(['student', 'alumni'])('uses Title Case captions while retaining labelled required fields for %s', user_type => {
+    render(<DraftProfile user={{ ...STUDENT, user_type }} draft={completeProfile} />);
+    expect(screen.getByText('Profile Completion')).toBeInTheDocument();
+    expect(screen.getByRole('region', { name: user_type === 'alumni' ? 'Registration Identity / Diploma Proof' : 'Registration ID Proof' })).toBeInTheDocument();
+    for (const label of ['Phone Number', 'Email Address', 'Birth Date', 'Place of Birth', 'Sex', 'Civil Status', 'Home Address']) {
+      expect(screen.getByLabelText(`${label} *`)).toBeRequired();
+    }
+    fireEvent.click(screen.getByRole('button', { name: /Educational Background/ }));
+    for (const name of ['Elementary', 'Junior High School', 'Senior High School']) {
+      expect(screen.getByRole('heading', { name, level: 4 })).toBeInTheDocument();
+    }
+    for (const label of ['Elementary School', 'Elementary Graduation Year', 'Junior High School', 'Junior High Graduation Year', 'Senior High School', 'Senior High Graduation Year']) {
+      expect(screen.getByLabelText(`${label} *`)).toBeRequired();
+    }
+    if (user_type === 'alumni') expect(screen.getByLabelText('Graduation Year *')).toBeRequired();
+    expect(baseProps.onSave).not.toHaveBeenCalled();
+  });
+
+  it('uses Title Case for the changed-email password label with its input association intact', () => {
+    renderModal({ user: { ...STUDENT, email: 'old@example.test' }, profileData: completeProfile });
+    expect(screen.getByLabelText('Current Password to Change Email')).toHaveAttribute('autoComplete', 'current-password');
+    expect(baseProps.onSave).not.toHaveBeenCalled();
+  });
+
   it('shows only the rendered tab\'s associated field warnings while keeping accessible tab indicators', () => {
     render(<DraftProfile draft={{ ...completeProfile, birth_date: '', elem_school: '' }} />);
     expect(screen.queryByText(/Still needed:/)).not.toBeInTheDocument();
@@ -225,7 +249,7 @@ describe('ProfileSettingsModal', () => {
 
   it('surfaces the saved registration proof without a replacement control', () => {
     renderModal({ user: { ...STUDENT, user_type: 'alumni', id_proof_path: '/uploads/id.png' } });
-    const proof = screen.getByRole('region', { name: 'Registration identity / diploma proof' });
+    const proof = screen.getByRole('region', { name: 'Registration Identity / Diploma Proof' });
     expect(proof).toHaveTextContent('Uploaded: id.png');
     expect(proof.querySelector('input[type=file]')).toBeNull();
   });

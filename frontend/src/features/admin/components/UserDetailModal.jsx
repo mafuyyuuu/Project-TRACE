@@ -119,7 +119,7 @@ export default function UserDetailModal({ open, onClose, user, onEdit, onToggleA
           <Field label="Junior High Graduation" value={user.jhs_grad_year} />
           <Field label="Senior High School" value={user.shs_school} />
           <Field label="Senior High Graduation" value={user.shs_grad_year} />
-          <FileUploadField label="Registration identity proof" path={user.id_proof_path} allowReplace={false} />
+          <FileUploadField label="Registration Identity Proof" path={user.id_proof_path} allowReplace={false} />
         </>}
       </div>
     </ModalShell>

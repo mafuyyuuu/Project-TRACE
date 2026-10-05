@@ -194,7 +194,7 @@ export default function ProfileSettingsModal({
             
             {isStudent && (
               <div className="mt-3 w-full max-w-xs">
-                <div className="flex flex-wrap gap-2 justify-between text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest mb-1.5">
+                <div className="flex flex-wrap gap-2 justify-between text-[10px] font-bold text-gray-500 dark:text-gray-400 mb-1.5">
                   <span>Profile Completion</span>
                   <span className={progress === 100 ? "text-[#15803d] dark:text-green-300" : "text-amber-600 dark:text-amber-300"}>{progress}%</span>
                 </div>
@@ -207,7 +207,7 @@ export default function ProfileSettingsModal({
         </div>
         
         <FileUploadField pickerOnly label="Profile picture" inputRef={fileInputRef} file={avatarFile} onChange={onAvatarChange} accept="image/jpeg,image/png,image/webp" maxBytes={2 * 1024 * 1024} disabled={saving} />
-        {user?.role === 'student' && <FileUploadField label={user.user_type === 'alumni' ? 'Registration identity / diploma proof' : 'Registration ID proof'} path={user.id_proof_path} allowReplace={false} />}
+        {user?.role === 'student' && <FileUploadField label={user.user_type === 'alumni' ? 'Registration Identity / Diploma Proof' : 'Registration ID Proof'} path={user.id_proof_path} allowReplace={false} />}
         {/* Tabs */}
         {isStudent ? (
           <div className="flex flex-wrap gap-3 sm:gap-6 border-b border-gray-100 dark:border-gray-700 px-2 mt-2">
@@ -273,7 +273,7 @@ export default function ProfileSettingsModal({
                     <input aria-describedby={missingByField.has('email') ? 'profile-email-needed' : undefined} id="profile-email" ref={emailInputRef} maxLength={INPUT_LIMITS.email} type="email" value={profileData.email} onChange={(e) => setField('email', e.target.value)} required disabled={verifyingEmail} className="trace-control min-w-0 flex-1 basis-48" />
                   </EmailVerificationNotice>
                   {fieldWarning('email')}
-                  {emailChanged && <label className="trace-label block mt-3">Current password to change email
+                  {emailChanged && <label className="trace-label block mt-3">Current Password to Change Email
                     <input type={showPasswords ? 'text' : 'password'} autoComplete="current-password" value={profileData.current_password || ''} onChange={e => setField('current_password', e.target.value)} className="trace-control mt-2 w-full" />
                   </label>}
                 </div>
@@ -451,7 +451,7 @@ export default function ProfileSettingsModal({
               )}
 
               <div className="space-y-4">
-                <h4 className="text-xs font-bold text-gray-800 dark:text-gray-100 uppercase tracking-widest border-b border-gray-200 dark:border-gray-700 pb-2">Elementary</h4>
+                <h4 className="trace-label border-b border-gray-200 dark:border-gray-700 pb-2">Elementary</h4>
                 <div className="trace-form-grid">
                   <div className="col-span-full">
                     <label htmlFor="profile-elem_school" className="trace-label block mb-2">Elementary School <span className="text-red-500 dark:text-red-300">*</span></label>
@@ -465,7 +465,7 @@ export default function ProfileSettingsModal({
                   </div>
                 </div>
 
-                <h4 className="text-xs font-bold text-gray-800 dark:text-gray-100 uppercase tracking-widest border-b border-gray-200 dark:border-gray-700 pb-2 pt-2">Junior High School</h4>
+                <h4 className="trace-label border-b border-gray-200 dark:border-gray-700 pb-2 pt-2">Junior High School</h4>
                 <div className="trace-form-grid">
                   <div className="col-span-full">
                     <label htmlFor="profile-jhs_school" className="trace-label block mb-2">Junior High School <span className="text-red-500 dark:text-red-300">*</span></label>
@@ -479,7 +479,7 @@ export default function ProfileSettingsModal({
                   </div>
                 </div>
 
-                <h4 className="text-xs font-bold text-gray-800 dark:text-gray-100 uppercase tracking-widest border-b border-gray-200 dark:border-gray-700 pb-2 pt-2">Senior High School</h4>
+                <h4 className="trace-label border-b border-gray-200 dark:border-gray-700 pb-2 pt-2">Senior High School</h4>
                 <div className="trace-form-grid">
                   <div className="col-span-full">
                     <label htmlFor="profile-shs_school" className="trace-label block mb-2">Senior High School <span className="text-red-500 dark:text-red-300">*</span></label>
