@@ -37,6 +37,10 @@ function resolveSafePath(requested) {
  * own request, their own registration ID proof, and their own avatar.
  */
 async function assertCanRead(user, filename) {
+  if (filename.startsWith('support-') || await require('../models/supportTicket.model').fileOwner(filename)) {
+    await require('./supportTicket.service').assertFileRead(user,filename);
+    return;
+  }
   const attachment = await require('../models/requestAttachment.model').fileOwner(filename);
   if (attachment) {
     await require('./documents.service').authorizeMessage(user, attachment);

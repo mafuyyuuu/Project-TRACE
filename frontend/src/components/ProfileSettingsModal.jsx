@@ -1,10 +1,12 @@
+import ProfileYearField from '@/components/ProfileYearField';
+import { profileYearErrors } from '@/utils/profileYears';
 import AcademicProfileFields from '@/components/AcademicProfileFields';
 import Button from '@/components/Button';
 import { PASSWORD_REQUIREMENTS, validNewPassword } from '@/utils/passwordPolicy';
 import { INPUT_LIMITS } from '@/utils/inputLimits';
 import FileUploadField from '@/components/FileUploadField';
 import ConfirmDialog from '@/components/ConfirmDialog';
-import { useRef, useState, useMemo } from 'react';
+import { useRef, useState, useMemo, useEffect } from 'react';
 import ModalShell from '@/components/ModalShell';
 import DashboardAlerts from '@/components/DashboardAlerts';
 import { endOtherSessions } from '@/services/authService';
@@ -18,6 +20,7 @@ import AuthenticatorSettings from '@/components/AuthenticatorSettings';
 import useSecurityLogs from '@/hooks/useSecurityLogs';
 import { hasBrowserTrustPreference, forgetBrowserTrustPreference } from '@/utils/browserTrustPreference';
 import EmailVerificationNotice from '@/components/EmailVerificationNotice';
+import RegistrationProof from '@/components/RegistrationProof';
 
 export default function ProfileSettingsModal({
   user,
@@ -48,6 +51,10 @@ export default function ProfileSettingsModal({
 
   const [activeTab, setActiveTab] = useState(initialTab);
   useMotion(tabContentRef, activeTab, 'context', { initial: false });
+  const [yearFocus, setYearFocus] = useState(null);
+  useEffect(() => {
+    if (activeTab === 'educational' && yearFocus) document.getElementById(`profile-${yearFocus.field}`)?.focus();
+  }, [activeTab, yearFocus]);
   const [passwordError, setPasswordError] = useState('');
   const [confirmation, setConfirmation] = useState(null);
   const [emailDraft, setEmailDraft] = useState(null);
@@ -80,6 +87,12 @@ export default function ProfileSettingsModal({
       return;
     }
     setPasswordError('');
+    const invalidYear = Object.keys(profileYearErrors(profileData, user))[0];
+    if (invalidYear && isStudent) {
+      setActiveTab('educational');
+      setYearFocus({ field: invalidYear });
+      return;
+    }
     setConfirmation('profile');
   };
   const { progress, missingPersonal, missingEdu, missing } = useMemo(
@@ -208,7 +221,7 @@ export default function ProfileSettingsModal({
         </div>
         
         <FileUploadField pickerOnly label="Profile picture" inputRef={fileInputRef} file={avatarFile} onChange={onAvatarChange} accept="image/jpeg,image/png,image/webp" maxBytes={2 * 1024 * 1024} disabled={saving} />
-        {user?.role === 'student' && <FileUploadField label={user.user_type === 'alumni' ? 'Registration Identity / Diploma Proof' : 'Registration ID Proof'} path={user.id_proof_path} allowReplace={false} />}
+        {user?.role === 'student' && <RegistrationProof label={user.user_type === 'alumni' ? 'Registration Identity / Diploma Proof' : 'Registration ID Proof'} path={user.id_proof_path} />}
         {/* Tabs */}
         {isStudent ? (
           <div className="flex flex-wrap gap-3 sm:gap-6 border-b border-gray-100 dark:border-gray-700 px-2 mt-2">
@@ -423,14 +436,12 @@ export default function ProfileSettingsModal({
           {activeTab === 'educational' && isStudent && (
             <div className="space-y-6">
               
-              <div className="trace-section trace-section-body grid grid-cols-1 sm:grid-cols-2 ga">
-                {user?.user_type === 'alumni' && (
-                  <div>
-                    <label htmlFor="profile-last_attendance_year" className="trace-label block mb-2">Graduation Year <span className="text-red-500 dark:text-red-300">*</span></label>
-                    <input {...fieldDescription('last_attendance_year')} type="number" min="1950" max="2100" value={profileData.last_attendance_year} onChange={(e) => setField('last_attendance_year', e.target.value)} required className="trace-control w-full border-none" />
-                    {fieldWarning('last_attendance_year', 'Graduation Year')}
-                  </div>
-                )}
+              <div className="trace-section trace-section-body trace-form-grid">
+                <ProfileYearField field="graduation_year" value={profileData.graduation_year}
+                  required={user?.user_type === 'alumni'} missing={missingByField.has('graduation_year')}
+                  disabled={saving} onChange={value => setField('graduation_year', value)} />
+                <ProfileYearField field="last_attendance_year" value={profileData.last_attendance_year}
+                  disabled={saving} onChange={value => setField('last_attendance_year', value)} />
                 <div>
                   <label htmlFor="profile-transfer" className="trace-label block mb-2">Transfer Student?</label>
                   <select id="profile-transfer" value={profileData.is_transfer_student ? 'yes' : 'no'} onChange={(e) => setField('is_transfer_student', e.target.value === 'yes')} className="trace-control w-full border-none">
@@ -456,11 +467,8 @@ export default function ProfileSettingsModal({
                     <input {...fieldDescription('elem_school')} maxLength={INPUT_LIMITS.name} type="text" placeholder="School Name" required value={profileData.elem_school} onChange={(e) => setField('elem_school', e.target.value)} className="trace-control w-full" />
                     {fieldWarning('elem_school')}
                   </div>
-                  <div>
-                    <label htmlFor="profile-elem_grad_year" className="trace-label block mb-2">Elementary Graduation Year <span className="text-red-500 dark:text-red-300">*</span></label>
-                    <input {...fieldDescription('elem_grad_year')} type="number" placeholder="Year" required value={profileData.elem_grad_year} onChange={(e) => setField('elem_grad_year', e.target.value)} className="trace-control w-full" />
-                    {fieldWarning('elem_grad_year')}
-                  </div>
+                  <ProfileYearField field="elem_grad_year" value={profileData.elem_grad_year} required
+                    missing={missingByField.has('elem_grad_year')} disabled={saving} onChange={value => setField('elem_grad_year', value)} />
                 </div>
 
                 <h4 className="trace-label border-b border-gray-200 dark:border-gray-700 pb-2 pt-2">Junior High School</h4>
@@ -470,11 +478,8 @@ export default function ProfileSettingsModal({
                     <input {...fieldDescription('jhs_school')} maxLength={INPUT_LIMITS.name} type="text" placeholder="School Name" required value={profileData.jhs_school} onChange={(e) => setField('jhs_school', e.target.value)} className="trace-control w-full" />
                     {fieldWarning('jhs_school')}
                   </div>
-                  <div>
-                    <label htmlFor="profile-jhs_grad_year" className="trace-label block mb-2">Junior High Graduation Year <span className="text-red-500 dark:text-red-300">*</span></label>
-                    <input {...fieldDescription('jhs_grad_year')} type="number" placeholder="Year" required value={profileData.jhs_grad_year} onChange={(e) => setField('jhs_grad_year', e.target.value)} className="trace-control w-full" />
-                    {fieldWarning('jhs_grad_year')}
-                  </div>
+                  <ProfileYearField field="jhs_grad_year" value={profileData.jhs_grad_year} required
+                    missing={missingByField.has('jhs_grad_year')} disabled={saving} onChange={value => setField('jhs_grad_year', value)} />
                 </div>
 
                 <h4 className="trace-label border-b border-gray-200 dark:border-gray-700 pb-2 pt-2">Senior High School</h4>
@@ -484,11 +489,8 @@ export default function ProfileSettingsModal({
                     <input {...fieldDescription('shs_school')} maxLength={INPUT_LIMITS.name} type="text" placeholder="School Name" required value={profileData.shs_school} onChange={(e) => setField('shs_school', e.target.value)} className="trace-control w-full" />
                     {fieldWarning('shs_school')}
                   </div>
-                  <div>
-                    <label htmlFor="profile-shs_grad_year" className="trace-label block mb-2">Senior High Graduation Year <span className="text-red-500 dark:text-red-300">*</span></label>
-                    <input {...fieldDescription('shs_grad_year')} type="number" placeholder="Year" required value={profileData.shs_grad_year} onChange={(e) => setField('shs_grad_year', e.target.value)} className="trace-control w-full" />
-                    {fieldWarning('shs_grad_year')}
-                  </div>
+                  <ProfileYearField field="shs_grad_year" value={profileData.shs_grad_year} required
+                    missing={missingByField.has('shs_grad_year')} disabled={saving} onChange={value => setField('shs_grad_year', value)} />
                 </div>
               </div>
 

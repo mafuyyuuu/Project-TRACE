@@ -19,6 +19,7 @@ import DashboardLoading from '@/components/DashboardLoading';
 import StudentProfileModal from '@/components/StudentProfileModal';
 import ReportsPanel from '@/features/admin/components/ReportsPanel';
 import SubmissionQrPanel from '@/features/window1/components/SubmissionQrPanel';
+import useElapsedClock from '@/hooks/useElapsedClock';
 
 /**
  * Window 1 clerk: the counter at both ends of the pipeline.
@@ -28,6 +29,7 @@ import SubmissionQrPanel from '@/features/window1/components/SubmissionQrPanel';
  * window a student walks up to and asks "where is mine?".
  */
 export default function Window1Dashboard({ user, currentTab, setViewImageUrl }) {
+  const now = useElapsedClock();
   const [queueTab, setQueueTab] = useState('intake');
   const [viewProfileId, setViewProfileId] = useState(null);
 
@@ -110,7 +112,6 @@ export default function Window1Dashboard({ user, currentTab, setViewImageUrl }) 
             </div>
 
             {/* Top KPIs Row */}
-            <SubmissionQrPanel />
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <div className="trace-section trace-card-info trace-section-body flex flex-col justify-between min-h-44">
                 <div className="flex justify-between items-start">
@@ -160,7 +161,7 @@ export default function Window1Dashboard({ user, currentTab, setViewImageUrl }) 
 
             {/* Upload Document Dropzone */}
             <div className="grid grid-cols-1 lg:grid-cols-[320px_minmax(0,1fr)] gap-6 mt-8 items-start">
-              <aside className="min-w-0">            <div className="trace-section trace-section-body flex flex-col justify-between">
+              <aside className="min-w-0 space-y-6">            <div className="trace-section trace-section-body flex flex-col justify-between">
               <div className="flex flex-col items-start gap-3">
                 <div>
                   <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100">UPLOAD DOCUMENT</h3>
@@ -179,6 +180,7 @@ export default function Window1Dashboard({ user, currentTab, setViewImageUrl }) 
                 <FileUploadField label="Scan or upload a document" file={scanFile} onChange={simulateHardwareScan} disabled={actionLoading} />
               </div>
             </div>
+                <SubmissionQrPanel />
               </aside>
               <section className="min-w-0">
                 <QueueTabs tabs={[{ key: 'intake', label: 'Intake', count: intakeQueue.length }, { key: 'release', label: 'Release', count: releaseQueue.length }]} activeKey={queueTab} onChange={setQueueTab} />
@@ -229,7 +231,7 @@ export default function Window1Dashboard({ user, currentTab, setViewImageUrl }) 
                                     ? <span className="text-amber-600 dark:text-amber-300">Needs scan</span>
                                     : <span className="text-gray-400 dark:text-gray-400">None</span>}
                               </td>
-                              <td className="py-4 text-xs font-bold text-gray-500 dark:text-gray-400 font-mono">{getWaitTime(doc.created_at)}</td>
+                              <td className="py-4 text-xs font-bold text-gray-500 dark:text-gray-400 font-mono">{getWaitTime(doc.intake_entered_at || doc.created_at, now)}</td>
                               <td className="py-4 text-right pr-4">
                                 <Button
                                   onClick={() => { setSelectedDoc(doc); setActiveModal('intake-review'); }}
@@ -327,7 +329,7 @@ export default function Window1Dashboard({ user, currentTab, setViewImageUrl }) 
                                   </Button>
                                 )}
                               </td>
-                              <td className="py-4 text-xs font-bold text-gray-505 font-mono">{getWaitTime(doc.updated_at)}</td>
+                              <td className="py-4 text-xs font-bold text-gray-500 dark:text-gray-400 font-mono">{getWaitTime(doc.updated_at, now)}</td>
                               <td className="py-4 text-right pr-4">
                                 <Button
                                   onClick={() => handleWindow1Release(doc)}

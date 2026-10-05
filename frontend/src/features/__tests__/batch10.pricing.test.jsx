@@ -26,6 +26,7 @@ vi.mock('@/services/documentsService', () => ({
   uploadDocument: vi.fn(), submitPayment: vi.fn(), cancelDocument: vi.fn(),
 }));
 vi.mock('@/services/api', () => ({ default: { get: vi.fn().mockResolvedValue({ data: null }) } }));
+vi.mock('@/components/RequestMessagesPanel', () => ({ default: () => null }));
 vi.mock('@/components/AuthedFilePreview', () => ({ default: () => null }));
 
 const USER = { id: 1, role: 'student', student_id: 'STU-TEST', full_name: 'Test Student', user_type: 'student' };
@@ -187,7 +188,7 @@ describe('New Request profile gate', () => {
       render(<StudentDashboard user={{ ...complete, shs_grad_year: '' }} currentTab="dashboard" setViewImageUrl={vi.fn()} />);
       await user.click(screen.getByRole('button', { name: 'New Request' }));
       expect(screen.getByRole('dialog', { name: 'Profile Incomplete' })).toBeVisible();
-      expect(screen.getByText('Senior High Graduation Year')).toBeVisible();
+      expect(screen.getByText('Senior High Year Graduated')).toBeVisible();
       expect(core.setActiveModal).not.toHaveBeenCalled();
       await user.click(screen.getByRole('button', { name: 'Complete Profile' }));
       expect(opened).toHaveBeenCalledOnce();

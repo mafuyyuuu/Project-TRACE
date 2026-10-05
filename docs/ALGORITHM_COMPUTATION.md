@@ -1,5 +1,10 @@
 # HOW THE ALGORITHMS WORK
 
+## Implementation and evidence note — October 5, 2026
+
+The mathematical explanations and worked examples below are instructional; they are not measured validation results. The current forecast SQL counts daily step-log events, not distinct requested documents, and the API returns seven nonnegative integer yhat values without uncertainty bounds. Daily seasonality alone should not be described as proof of a learned weekly pattern. The recommendation classifier fits four coded examples and applies queue thresholds; no held-out classification result is established here. OCR field-presence scores measure extraction completeness rather than authenticity, ownership or recognition accuracy. Proposed support-ticket metrics/insights are documented in SUPPORT_DESIGN and must not be described as active until implemented and verified.
+
+
 ## Computation and Execution of the AI/ML Models in Project TRACE
 
 This document explains, step by step, the algorithms behind each AI and machine learning model used in Project TRACE: **EasyOCR** for text recognition, **Facebook Prophet** for time-series forecasting, and **Random Forest** for prescriptive administrative insights. Each section includes the mathematical formulas, the actual implementation from the codebase, and a worked sample computation.
@@ -458,7 +463,7 @@ Prophet also outputs `yhat_lower` and `yhat_upper` (the 80% uncertainty interval
 
 **Step 2 — Model Fitting:**
 
-Prophet fits the additive model *y(t) = g(t) + s(t) + ε(t)* on the 10 data points using MAP estimation. The fitted trend captures the base rate (approximately 15.6 transactions/day), and the daily seasonality captures the weekly cycle (lower volumes on weekends, peak on weekdays).
+Prophet fits the additive model *y(t) = g(t) + s(t) + ε(t)* on the 10 data points using MAP estimation. The fitted trend captures the base rate (approximately 15.6 transactions/day), The illustrative figures are not a recorded fit result; weekly-pattern behavior must be checked against the actual fitted model and data.
 
 **Step 3 — Future Dataframe Generation:**
 
@@ -760,7 +765,7 @@ The Random Forest classifier, which generates prescriptive insights for the Admi
 
 ### 4.4 Mean Absolute Percentage Error (MAPE) for Prophet
 
-The Facebook Prophet time-series model predicts the next 7 days of document request volumes. Its forecasting accuracy is evaluated using MAPE.
+The current Prophet endpoint predicts the next seven days of step-log event counts. Evaluation must use that same target, or explicitly change both the source query and evaluation target before calling it document-request volume. Its forecasting accuracy is evaluated using MAPE.
 
 *   **What it is for:** To measure the average forecasting error as a percentage of the actual document volume. It answers the question: "On average, how far off are the Prophet predictions from the real number of student requests?"
 *   **How it is calculated:**
@@ -776,3 +781,9 @@ The Facebook Prophet time-series model predicts the next 7 days of document requ
     *   `ŷ(t)` = the Prophet predicted volume on day `t`
 
     *Example:* If Prophet predicts 20 documents for Monday, but the actual volume is 25, the absolute error is 5, and the percentage error for that day is `(5 / 25) × 100% = 20%`. The MAPE is the average of these percentage errors over the evaluated period. A lower MAPE indicates a more accurate forecasting model.
+
+## Support metrics and aggregate advice
+
+Support uses durable lifecycle events, independent of document step logs. Queue wait is queue-entry → claim in recorded service-calendar minutes, split into initial/requeue samples. First human response is first escalation/reopen → first staff message. Resolution episodes run creation/reopen → resolution, reporting wall time and service time excluding Awaiting student intervals. Explicit requested-response intervals are measured separately. Unfinished/unavailable durations are counted as missing, not zeros; imported histories are excluded from duration samples. Median/p90 use observed samples. FAQ helpful/resolved counts require explicit events, and escalation includes its FAQ-assisted creation-cohort denominator.
+
+Backend sends only selected-period aggregates/approved category counts to `/ai/support-insights`. Transparent rules require sufficient samples and label period, evidence and uncertainty. They compare equal-length periods for queue changes and show busiest observed queue-entry buckets, not predictions. No private conversations or identity images are inputs. See SUPPORT_DESIGN and SUPPORT_VALIDATION for definitions and evidence.

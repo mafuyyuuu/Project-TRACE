@@ -1,12 +1,32 @@
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { act, renderHook } from '@testing-library/react';
 import useRecoveryCodeActions from '@/hooks/useRecoveryCodeActions';
+import { useLayoutEffect, useRef } from 'react';
 import { downloadRecoveryCodes } from '@/utils/downloadRecoveryCodes';
 
 vi.mock('@/utils/downloadRecoveryCodes', () => ({ downloadRecoveryCodes: vi.fn() }));
 const codes = ['SYNTHETIC-ONE', 'SYNTHETIC-TWO'];
 beforeEach(() => vi.resetAllMocks());
 afterEach(() => vi.unstubAllGlobals());
+
+it('allows copying newly published codes immediately, before passive effects', async () => {
+  const writeText = vi.fn().mockResolvedValue(undefined);
+  vi.stubGlobal('navigator', { clipboard: { writeText } });
+  const { result, rerender } = renderHook(({ values }) => {
+    const actions = useRecoveryCodeActions(values);
+    const copied = useRef(null);
+    useLayoutEffect(() => {
+      if (values.length && copied.current !== values) {
+        copied.current = values;
+        void actions.copy();
+      }
+    }, [values, actions]);
+    return actions;
+  }, { initialProps: { values: [] } });
+  await act(async () => rerender({ values: codes }));
+  expect(writeText).toHaveBeenCalledExactlyOnceWith(codes.join('\n'));
+  expect(result.current.notice).toMatch(/copied/);
+});
 
 it('announces success only after the clipboard resolves and guards pending duplicates', async () => {
   let resolve;

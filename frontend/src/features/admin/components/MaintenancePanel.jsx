@@ -1,5 +1,6 @@
 import Button from '@/components/Button';
 import ProgramsPanel from './ProgramsPanel';
+import SupportingDocumentsPanel from './SupportingDocumentsPanel';
 import FeeScheduleEditor from './FeeScheduleEditor';
 import { isHonorableDismissal, isSameDayWalkInType } from '@/utils/documentPolicy';
 import { INPUT_LIMITS } from '@/utils/inputLimits';
@@ -25,6 +26,7 @@ const SECTIONS = [
   { key: 'documentTypes', label: 'Document Types' },
   { key: 'colleges', label: 'Colleges' },
   { key: 'programs', label: 'Programs' },
+  { key: 'supportingDocuments', label: 'Supporting Documents' },
   { key: 'paymentMethods', label: 'Payment Methods' },
 ];
 
@@ -58,7 +60,6 @@ export default function MaintenancePanel({ user, currentTab }) {
   const [form, setForm] = useState({});
   const [editingTypeId, setEditingTypeId] = useState(null);
   const [saveToConfirm, setSaveToConfirm] = useState(null);
-  const [staffSearch, setStaffSearch] = useState('');
   const [staffRoleFilter, setStaffRoleFilter] = useState('All');
   const [staffDeskFilter, setStaffDeskFilter] = useState('All');
 
@@ -68,12 +69,9 @@ export default function MaintenancePanel({ user, currentTab }) {
   const resetForm = () => { setForm({}); setEditingTypeId(null); };
 
   const filteredStaff = (m.accounts || m.staff).filter((s) => {
-    const q = staffSearch.toLowerCase();
-    const matchesSearch =
-      !q || s.full_name?.toLowerCase().includes(q) || s.student_id?.toLowerCase().includes(q) || s.email?.toLowerCase().includes(q);
     const matchesRole = staffRoleFilter === 'All' || s.role === staffRoleFilter;
     const matchesDesk = staffDeskFilter === 'All' || s.desk_assignment === staffDeskFilter;
-    return matchesSearch && matchesRole && matchesDesk;
+    return matchesRole && matchesDesk;
   });
 
   const submitDocType = async (e) => {
@@ -146,12 +144,13 @@ export default function MaintenancePanel({ user, currentTab }) {
                   : 'text-gray-400 dark:text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'
               }`}
             >
-              {s.label}{s.key !== 'programs' && ` (${(s.key === 'staff' ? m.accounts : m[s.key]).length})`}
+              {s.label}{!['programs','supportingDocuments'].includes(s.key) && ` (${(s.key === 'staff' ? m.accounts : m[s.key]).length})`}
             </Button>
           ))}
         </div>
 
         {section === 'programs' && <ProgramsPanel colleges={m.colleges} />}
+        {section === 'supportingDocuments' && <SupportingDocumentsPanel />}
 
         {/* ---------------------------------------------------------------- Staff */}
         {section === 'staff' && (
@@ -159,8 +158,6 @@ export default function MaintenancePanel({ user, currentTab }) {
             <UserGrid
               users={filteredStaff}
               onSelectUser={m.setSelectedUser}
-              searchValue={staffSearch}
-              onSearchChange={setStaffSearch}
               roleFilter={staffRoleFilter}
               onRoleFilterChange={setStaffRoleFilter}
               roleOptions={[

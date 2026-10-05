@@ -2,6 +2,8 @@
 
 **Estimated Time:** 15-20 minutes
 
+> 📌 **Content reviewed: October 6, 2026.** The original three-presenter script and visual format are retained. Rehearse the matching deployed version with synthetic records and privately prepared credentials. The ticket redesign has local checks; include its demo only on the matching deployed revision. Use [CAPSTONE_DEFENSE_GUIDE.md](CAPSTONE_DEFENSE_GUIDE.md) for updated diagrams and the question bank.
+
 **Roles:**
 - **Speaker 1:** Formal greeting, Window 1 release demo, Admin AI Insights (Prophet & Random Forest), formal conclusion.
 - **Speaker 2:** Problem statement, system architecture, Live Demo (Student, Finance). Highlights form dynamism and OCR AI.
@@ -10,10 +12,10 @@
 ---
 
 ## 🎬 Part 1: Powerpoint Presentation
-**(Setup: Display the Title Slide on the projector. Stand confidently. Ensure all servers (Frontend, Backend, AI Engine) are running locally.)**
+**(Setup: Display the Title Slide on the projector. Stand confidently. Check the matching frontend, API/database health and AI service. Complete demo-account password/MFA setup privately. Use the intended Docker/Caddy deployment or an isolated local demo; never demonstrate with real identity or payment records.)**
 
-**Speaker 1:** 
-"Good day, respected panelists, our esteemed thesis adviser, and guests. We are the researchers behind TRACE, which stands for Tracking, Routing, and Automated Credential Engine. I am [Speaker 1 Name], and standing with me today are my co-researchers, [Speaker 2 Name] and [Speaker 3 Name]. 
+**Speaker 1:**
+"Good day, respected panelists, our esteemed thesis adviser, and guests. We are the researchers behind TRACE, which stands for Tracking, Routing, and Automated Credential Engine. I am [Speaker 1 Name], and standing with me today are my co-researchers, [Speaker 2 Name] and [Speaker 3 Name].
 
 Today, we present our study: An AI-Assisted Registrar Document Workflow System with Machine Learning and Process Recommendations. This is an AI-powered, centralized document routing and verification ecosystem, engineered specifically to modernize and optimize the Pamantasan ng Lungsod ng Pasig (PLP) Registrar's Office.
 
@@ -58,7 +60,7 @@ I will now return the floor to [Speaker 2 Name] to explain how we built a system
 
 First, the Presentation Layer is our React Web App. It serves as the primary interface for students to submit requests and for registrar personnel to process them.
 
-Second, the Application Layer acts as our core engine. A Node.js backend handles the primary requests, while an independent Python Flask microservice powers our AI. This includes using EasyOCR for data extraction and identity verification, and utilizing n8n for rule-based workflow routing. This layer also drives our analytics, using Prophet for volume forecasting and Random Forest to classify live queue metrics.
+Second, the Application Layer acts as our core engine. A Node.js backend handles the primary requests, while an independent Python Flask microservice powers our AI. This includes using EasyOCR for data extraction and identity verification, and utilizing n8n for rule-based workflow routing. This layer also provides prototype analytics, using Prophet for workflow-event forecasting and Random Forest plus thresholds for queue insights.
 
 Finally, the Data Layer utilizes a MySQL database. It acts as our single source of truth, securely storing request records, payment statuses, and step logs. Together, these layers allow the system to output automated tracking, actionable workload forecasts, and intelligent process recommendations.
 
@@ -69,22 +71,26 @@ We will now transition to the Live System Demo to show you exactly how these tec
 ## 💻 Part 2: Live Demo - Student to Secretary Flow
 **(Action: Switch from PowerPoint to the Web Browser. Have the login page open.)**
 
-**Speaker 2:** 
+**Speaker 2:**
 "We will begin the demo at the Student Portal."
 
 *(Action: Navigate to Registration Page)*
 
-"Before a student can request anything, they must create an account. During registration, the student is required to upload their PLP Student ID. This is where our OCR AI performs its first critical task. Our Python API visually reads the uploaded ID to perform a strict identity verification—cross-matching the Pamantasan ng Lungsod ng Pasig institution name and the student number. This guarantees that fake accounts cannot enter the system."
+"Before filing a request, a student creates an account with an email and identity proof. Read ID suggests fields from readable text; the student checks them and enters missing information manually. The registration check compares school, identifier and college text. An inconclusive result stays pending for Admin review with a reason. This assists identity review; it cannot prove that an ID is genuine or that it belongs to the uploader."
 
 *(Action: Admin quickly verifies the account. Log in as Student)*
 
-"Once the Admin approves the account, the student logs in to request a document. Our forms are dynamic—for example, selecting a Transcript asks for the number of semesters attended.
+"Once identity review is complete, the student fills the required saved profile and verifies email through the Profile button and a one-click inbox link. New alumni first submit the configured Graduate Application. Identity approval, email ownership and login MFA are separate checks.
+
+*(Action: Show Profile completion, Email Verify and the role tutorial using a prepared account.)*
+
+The floating tutorial highlights actual controls; the question mark replays it. In Profile, College and Program come from the approved catalog. PLP graduation and last attendance are separate fields; alumni must provide the applicable graduation year. We will now use a complete, verified synthetic student account to file a request."
 
 *(Action: Select Transcript of Records from the dropdown)*
 
-"...the system dynamically adapts, asking for the 'Number of Semesters Attended'. I'll input 8, and you'll see it shows an estimate of 200 pesos — **clearly labelled as an estimate, because the student does not pay anything yet.**
+"...TOR asks for **Year Started and Year Ended**, together with copies. Filing shows the configured per-page rate and applicable extra charges, **without an estimated total**. Study years do not determine printed pages; the final itemized amount appears after preparation and server pricing.
 
-That is the single most important design decision in our system, so let me explain it before we go further. The registrar prices a document by its page count. Nobody — not the student, not the system — knows that number until the document has actually been printed. The old way was to charge a fee up front and hope it matched. Ours does the work first and bills what the document actually cost. It also means a student never pays for something the office later finds it cannot issue."
+That is the single most important design decision in our system, so let me explain it before we go further. For page-based documents, the final charge needs the actual printed-page count. Admin manages the fee schedule, Secretary records the pages and the server calculates the amount. Flat-fee types follow their configured rule. The old way was to charge a fee up front and hope it matched. Ours does the work first and bills what the document actually cost. It also means a student never pays for something the office later finds it cannot issue."
 
 *(Action: Submit the request without any payment step.)*
 
@@ -92,22 +98,24 @@ That is the single most important design decision in our system, so let me expla
 
 Let's switch perspectives. I'm logging in as the **Window 1 Clerk** — the counter students physically walk up to."
 
-*(Action: Log out. Log in as `WINDOW1001` with `trace2024`)*
+*(Action: Log out. Log in as `WINDOW1001` using privately prepared demo credentials and the required factor)*
 
 "Window 1 sits at *both* ends of our pipeline. Here at the front is the **Intake Queue**: the first human look at every request. The clerk confirms the paperwork is there and readable.
+
+The Waiting column measures elapsed time from the latest intake entry, using days and weeks for longer waits. A compact registration QR sits below Upload Document; applicants choose their type and can open a larger preview. It is separate from the payment-slip tracking QR.
 
 This is also where walk-ins enter. A student with no internet can come to this counter and the clerk files the request for them — it enters exactly the same queue, unpaid, so a walk-in cannot skip its own evaluation or its bill. If they brought paper with them, the clerk scans it here and our Python OCR engine reads it, the same way it would an online upload."
 
 *(Action: Open the intake check, then click 'Route to Secretary')*
 
-"On approving intake, our n8n orchestration engine routes the document. Because Ana is a Computer Studies student, it goes deterministically to the CCS Secretary and to no other queue. Note *when* that happens — we only ask n8n to pick a desk once a human has confirmed there is something real to route.
+"On approving intake, the request enters its college Secretary queue. Automatic document assignment is disabled in the approved deployment. If enabled later, the configured n8n workflow can assign the corresponding Secretary account; unassigned work uses college filtering if routing is unavailable. The server still enforces the college boundary. This is different from Vercel’s production-domain assignment setting.
 
 I'll pass the floor to [Speaker 3 Name], logging in as the **CCS Secretary**."
 
-*(Action: Log out. Log in as `SEC-CCS001` with `trace2024`)*
+*(Action: Log out. Log in as `SEC-CCS001` using privately prepared demo credentials and the required factor)*
 
 **Speaker 3:**
-"The Secretary has three queues, because this desk touches a document three separate times.
+"The Secretary has four working queues: Initial Evaluation, Processing & Pricing, OR Verification, and Final Handoff. Each represents a different action, and records/exports are scoped to the assigned college.
 
 First, **Initial Evaluation**. Opening Ana's request presents our **Split-Screen Evaluation interface** — the scanned original on the left, the AI-extracted fields on the right. The Secretary compares them, corrects anything the OCR misread, and then does the thing that matters to the student: sets an **estimated ready date**. That date is required. It is sent straight to Ana by SMS and email, so she can plan around it instead of guessing."
 
@@ -117,7 +125,7 @@ First, **Initial Evaluation**. Opening Ana's request presents our **Split-Screen
 
 *(Action: Open the pricing modal.)*
 
-"I enter the amount, the number of pages, and a note explaining how I arrived at it. All three are stored against my clerk ID in the audit trail. If a student ever disputes a charge, we can say exactly who set it, when, and why.
+"I enter the actual printed pages. The server uses the applicable saved Admin schedule, copies and itemized fees to calculate the final charge; rental, special and named items apply once per document type. The breakdown, pages and clerk identity are saved so a later rate change does not rewrite an old bill.
 
 Notice the button says 'Save & Bill Student'. That is because this is the last document in Ana's request. If she had asked for a Transcript *and* a Diploma, pricing the first would just save quietly — we only bill when every document in the request has a price. Otherwise she would be sent to the Finance Office twice for one request."
 
@@ -127,18 +135,18 @@ Notice the button says 'Save & Bill Student'. That is because this is the last d
 
 Ana now has two ways to pay. Let me show both. I'll hand to [Speaker 2 Name] at the Finance desk."
 
-*(Action: Log out. Log in as `FINANCE001` with `trace2024`)*
+*(Action: Log out. Log in as `FINANCE001` using privately prepared demo credentials and the required factor)*
 
 **Speaker 2:**
 "The Finance Desk has two queues. **Awaiting Payment** is read-only — it shows what each student has been billed, so if someone walks up holding that printed slip, the clerk can answer them immediately.
 
-If Ana pays online, she uploads her reference and receipt from her own dashboard and it lands in our verification queue. But suppose she walks in and pays cash at the cashier. She brings back an Official Receipt — and nothing about that transaction has reached our system at all. That is what this form is for."
+If Ana pays online, she uploads her reference and receipt from her own dashboard and it lands in our verification queue. But suppose she walks in and pays cash at the cashier. The clerk records the payment details and either enters the issued Official Receipt or chooses Later to defer issuance. A payment acknowledgment is separate from the actual OR. That is what this form records."
 
 *(Action: Open 'Log Counter Payment' and scan a receipt image.)*
 
 "I can type the details, or scan the receipt and let our AI read it. This is the **third** use of OCR in our system, after document intake and ID verification at registration. It pulls the OR number, the amount and the date.
 
-Two things worth noting. It deliberately takes the *largest* figure on the receipt, because a receipt lists line items before its total — taking the first would under-record every multi-item payment. And the fields stay editable: the clerk re-checks every one before saving. A misread amount here is a money error, so the AI assists the decision, it never makes it. If our AI engine is down entirely, this form still works by hand — there is a student standing at the counter either way."
+Two things worth noting. It deliberately takes the *largest* figure on the receipt, because a receipt lists line items before its total — taking a line-item amount could under-record a payment. This remains a heuristic, so the largest figure can also be wrong. And the fields stay editable: the clerk re-checks every one before saving. A misread amount here is a money error, so the AI assists the decision, it never makes it. If our AI engine is down entirely, this form still works by hand — there is a student standing at the counter either way."
 
 *(Action: Confirm the fields, click Record Payment. Then open the Verification Queue.)*
 
@@ -146,12 +154,18 @@ Two things worth noting. It deliberately takes the *largest* figure on the recei
 
 *Crucially*: that click is the **only** place in our entire codebase that marks a document as PAID. The Secretary sets the price; Finance confirms the money. One person cannot do both, and that separation is what makes the money trail auditable.
 
-Back to [Speaker 3 Name] for the handoff."
+Finance can clear payment while the OR is pending: the student receives an acknowledgment, then the digital OR when published. At exactly 4:00 PM Manila time, new same-day issuance closes. The current earliest-date rule uses the next calendar date, not a holiday calendar or a promised issuance time. The dedicated **Transactions & OR Copies** sidebar page keeps paid records separate from these dashboard queues. Its **From/To** filters still use inclusive Manila dates. **View OR** opens an available private copy; missing or deferred copies keep their own states and upload actions. **Export** uses the current filters. Elapsed receipt waiting time is informational.
+
+For the release demonstration we will use an issued synthetic OR. Back to [Speaker 3 Name] for receipt inspection and handoff."
 
 *(Action: Log out. Log in as `SEC-CCS001`.)*
 
 **Speaker 3:**
-"Third and last queue: **Final Handoff**. The payment is confirmed, but the printed document is still physically in the Secretary's hands. Clicking here records that the paper actually reached Window 1.
+"Third, **OR Verification**. The Secretary inspects the issued receipt against its recorded number, using the digital copy or an explicit physical-inspection acknowledgment. This is a paperwork check; it does not clear payment a second time.
+
+*(Action: Inspect the synthetic OR and confirm verification.)*
+
+Fourth, **Final Handoff**. Payment and receipt inspection are complete, but the printed document is still in the Secretary’s hands. This action records that the paper actually reached Window 1.
 
 We made this a deliberate, separate step. Marking a document 'ready for pickup' while it is still sitting in a drawer is exactly the drift this whole system exists to eliminate."
 
@@ -166,34 +180,46 @@ I will now hand the floor to [Speaker 1 Name] to demonstrate the final release p
 **Speaker 1:**
 "Thank you, [Speaker 3 Name]. Panelists, we are now at the final step of the document's journey."
 
-*(Action: Log out. Log in as `WINDOW1001` with `trace2024`)*
+*(Action: Log out. Log in as `WINDOW1001` using privately prepared demo credentials and the required factor)*
 
 "I am back at the **Window 1 Clerk** — the same desk we started at, now at the other end of the pipeline. Ana's document sits in the **Release Queue**.
 
-Notice the Official Receipt number on the row. When Ana arrives, she presents the physical receipt Finance gave her, and the clerk checks it against what is on screen before letting the document go. For a student who paid online this column simply reads 'paid online'.
+Notice the Official Receipt number on the row. When Ana arrives, she presents the physical receipt Finance gave her, and the clerk checks it against what is on screen before letting the document go. Online payments also require the appropriate issued OR and recorded receipt check; a payment channel label is not a substitute for that inspection.
 
 There is also a third view here — the **Tracking Desk** — which shows every document in the system at any stage. That is deliberate: this is the window a student walks up to and asks 'where is mine?', so it is the one queue we do *not* filter down.
 
-When Ana claims her Transcript, the clerk clicks Release. That closes the request, fires a final SMS and email, and notifies the Secretary who prepared it that it was collected. Eight desks, one audit trail, and every transition timestamped."
+When Ana claims her Transcript, the clerk clicks Release. That closes the request, fires a final SMS and email, and notifies the Secretary who prepared it that it was collected. Nine recorded stages, one audit trail, and timestamped transitions."
 
-*(Action: Click Release. Log out. Log in as `ADMIN001` with `trace2024`)*
+*(Action: Click Release. Log out. Log in as `ADMIN001` using privately prepared demo credentials and the required factor)*
 
 "But what happens to the thousands of transactions generated by this system? This brings us to the **Registrar Admin Dashboard**. This is the command center of Project TRACE."
+
+*(Action: Briefly show System Maintenance, Templates, Security Logs and Reports & Export.)*
+
+“Admin maintains Registrar-approved programs, document availability and fee schedules. Templates provide isolated previews; Security contains authenticator settings and account activity. Reports place Export beside the header, then Filters, KPI summaries and Records. We preserve role permissions while using shared controls, dark mode, readable status colors and enlarged text.”
+
+*(Action: If demonstrated, open only the messaging feature verified on this deployment.)*
+
+“Support now uses one ticket workspace: approved FAQs first, explicit staff escalation, and a durable first-come queue with one live ticket per Window 1 clerk. Manila service calendars pause reply timers outside hours. Case-specific document bubbles preserve upload and replacement history. Files require ticket authorization. We will show these only on the matching deployed revision.”
+
+**Optional live demo:** Create a synthetic ticket, open an FAQ, escalate, claim it from Window 1, and request a case document through the paperclip. Show its persisted state and private history after reload.
+
+“Support analytics show observed waits, first response and resolution durations with sample counts and median/p90; unavailable data is not a fabricated zero. Aggregated support advice is descriptive and does not train on private conversations. Our local 100-user test saved all 100 messages with no duplicate or cross-user accepted messages; latest p95 was 558 ms for saves and 392 ms for reads. Matching staging and physical-device acceptance remain separate.”
 
 *(Action: Navigate to the Dashboard / AI Insights tab)*
 
 "Because we log every single state change and timestamp in our database, we possess highly structured time-series data. We feed this data back into our Python AI Engine, which runs two specific machine learning algorithms.
 
-First, you'll see this line chart. This is generated by a **Prophet forecasting model**. It analyzes historical traffic and predicts exactly how many document requests the Registrar will receive over the next 7 days. This allows the university to proactively allocate staff before peak seasons, like enrollment or graduation.
+First, you'll see this line chart. This is generated by a **Prophet forecasting model**. It fits daily counts of step-log events and returns seven nonnegative integer predictions. Multiple events can belong to one document, so this is a workload-event proxy rather than a distinct-request forecast. The API does not return uncertainty bounds. Staffing use requires sufficient real history and held-out evaluation; a plausible line is not proof of accuracy.
 
-Second, below the chart, we have the **AI Insights Panel**. This uses a **Random Forest classification algorithm**. It constantly monitors queue metrics. If the AI detects that the Secretary Desk is holding 40% more documents than usual, it triggers a prescriptive alert on this dashboard, warning the Admin of a potential bottleneck *before* it actually causes a major delay.
+Second, below the chart, we have the **AI Insights Panel**. This uses a **Random Forest classification algorithm**. It uses evaluation-queue count, release-queue count and today’s step-log count. The current prototype fits four coded examples and applies queue thresholds. Its recommendations are advisory; it has not established a learned 40% trend, optimal staffing or validated prediction accuracy.
 
 Finally, we also utilize our AI during the very first step: Student Account Registration. When a student signs up and uploads their PLP ID, our OCR engine runs a strict **3-point cross-match verification**. It visually reads the ID and verifies:
 1. The Institution Name (PLP).
 2. The Student ID Number.
-3. The specific College they selected in the dropdown. 
+3. The specific College they selected in the dropdown.
 
-If an engineering student accidentally selects the College of Nursing, the AI detects the mismatch between the form and the physical ID, and flags the account for manual review. This guarantees that fake accounts cannot enter the system."
+If an engineering student accidentally selects the College of Nursing, the AI detects the mismatch between the form and the physical ID, and flags the account for manual review. The account remains pending for Admin review when text checks are inconclusive. These checks do not guarantee authenticity or ownership."
 
 ---
 
@@ -201,11 +227,11 @@ If an engineering student accidentally selects the College of Nursing, the AI de
 **(Action: Switch back to PowerPoint - Conclusion Slide)**
 
 **Speaker 1:**
-"To conclude, Project TRACE is not just a digital filing cabinet. By combining React, Node.js, and specialized Python Machine Learning models, we have built an intelligent, self-monitoring ecosystem. 
+"To conclude, Project TRACE is not just a digital filing cabinet. By combining React, Node.js, and specialized Python Machine Learning models, we have built an intelligent, self-monitoring ecosystem.
 
-We successfully eliminated physical queues, drastically reduced the manual verification workload through OCR, and most importantly, we transformed raw university data into actionable, predictive intelligence for the administration. 
+We connected filing, authorized evaluation, recorded fees, payment verification and release in one visible workflow. OCR assists reading and analytics provide advisory views. Claims about reduced queues, processing time or model accuracy must come from our actual study measurements, rather than this demo alone.
 
-Project TRACE proves that the future of educational administration is proactive, highly transparent, and AI-driven.
+The next evaluation priorities are live acceptance, a restore rehearsal, measured capacity and validated AI performance. Staff remain responsible for institutional decisions.
 
 Thank you very much for your time, your attention, and the opportunity to present our research. We now warmly open the floor to the panel for any questions, and we can gladly navigate through the system if you wish to see any specific features."
 

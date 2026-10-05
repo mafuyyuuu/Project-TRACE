@@ -47,6 +47,9 @@ async function authenticate(req, res, next) {
       }
       if (decoded.role === 'student' && account.email_verified_at === null && req.method !== 'GET'
         && !/^\/api\/support\/[1-9]\d*\/messages$/.test(route)
+        // General FAQ/support remains available; the ticket service separately
+        // enforces email ownership before any linked-document write.
+        && !/^\/api\/support\/tickets(?:\/[1-9]\d*\/(?:messages|actions|faq))?$/.test(route)
         && !accountRecovery.includes(route) && !['/api/auth/profile', '/api/auth/profile/picture', '/api/auth/onboarding/start', '/api/grad-applications'].includes(route)) {
         return res.status(403).json({ error: 'Open Edit Profile and choose Verify beside Email Address, then follow the email link before continuing.', code: 'EMAIL_VERIFICATION_REQUIRED' });
       }

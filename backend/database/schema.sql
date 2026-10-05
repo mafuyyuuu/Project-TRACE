@@ -103,6 +103,7 @@ CREATE TABLE IF NOT EXISTS student_profiles (
   civil_status ENUM('Single', 'Married', 'Widowed', 'Divorced', 'Separated'),
   maiden_name VARCHAR(255),
   home_address VARCHAR(500),
+  graduation_year INT NULL,
   last_attendance_year INT,
   is_transfer_student BOOLEAN DEFAULT FALSE,
   previous_school VARCHAR(255),
@@ -380,11 +381,20 @@ CREATE TABLE IF NOT EXISTS session_revocations (
 
 
 -- Case-specific pertinent documents requested by Registrar
+CREATE TABLE IF NOT EXISTS supporting_document_types (
+    id INT AUTO_INCREMENT PRIMARY KEY, name VARCHAR(255) NOT NULL UNIQUE,
+    is_active BOOLEAN NOT NULL DEFAULT TRUE, updated_by INT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (updated_by) REFERENCES users(id)
+  ) ENGINE=InnoDB;
+
 CREATE TABLE IF NOT EXISTS request_attachment_requirements (
     id INT AUTO_INCREMENT PRIMARY KEY, document_id INT NOT NULL, label VARCHAR(255) NOT NULL,
-    instructions VARCHAR(2000) NOT NULL, status ENUM('requested','uploaded','accepted') NOT NULL DEFAULT 'requested',
+    instructions VARCHAR(2000) NOT NULL, status ENUM('requested','uploaded','accepted','rejected') NOT NULL DEFAULT 'requested',
+    catalog_id INT NULL, identity_key VARCHAR(100) NULL, replacement_of INT NULL, superseded_at TIMESTAMP NULL,
     requested_by INT NOT NULL, reviewed_by INT NULL, review_notes VARCHAR(2000) NULL,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, reviewed_at TIMESTAMP NULL,
+    CONSTRAINT attachment_catalog_fk FOREIGN KEY (catalog_id) REFERENCES supporting_document_types(id),
     FOREIGN KEY (document_id) REFERENCES documents(id) ON DELETE CASCADE,
     FOREIGN KEY (requested_by) REFERENCES users(id), FOREIGN KEY (reviewed_by) REFERENCES users(id), INDEX (document_id)
   ) ENGINE=InnoDB;
@@ -451,4 +461,82 @@ CREATE TABLE IF NOT EXISTS document_messages (
   INDEX idx_document_messages_doc (document_id),
   FOREIGN KEY (document_id) REFERENCES documents(id) ON DELETE CASCADE,
   FOREIGN KEY (sender_id) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+
+-- Unified support ticket workflow; legacy message stores remain read-only.
+CREATE TABLE IF NOT EXISTS support_settings (
+    id INT PRIMARY KEY, settings JSON NOT NULL, updated_by INT NULL,
+    updated_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3), FOREIGN KEY (updated_by) REFERENCES users(id)
+  ) ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS support_availability (
+    user_id INT PRIMARY KEY, available BOOLEAN NOT NULL DEFAULT FALSE,
+    updated_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3), FOREIGN KEY (user_id) REFERENCES users(id)
+  ) ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS support_tickets (
+    id INT AUTO_INCREMENT PRIMARY KEY, student_user_id INT NOT NULL, document_id INT NULL,
+    subject VARCHAR(255) NOT NULL, category VARCHAR(100) NOT NULL DEFAULT 'general',
+    state ENUM('FAQ_ASSISTANCE','QUEUED','IN_PROGRESS','AWAITING_STUDENT','RESOLVED') NOT NULL,
+    assigned_to INT NULL, queued_at DATETIME(3) NULL, claimed_at DATETIME(3) NULL,
+    reply_requested_at DATETIME(3) NULL, reply_clock JSON NULL, warned_at DATETIME(3) NULL,
+    resolved_at DATETIME(3) NULL, imported BOOLEAN NOT NULL DEFAULT FALSE, import_key VARCHAR(100) NULL UNIQUE,
+    created_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3), updated_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    open_general_owner INT GENERATED ALWAYS AS (CASE WHEN category <> 'linked' AND state <> 'RESOLVED' THEN student_user_id ELSE NULL END) STORED,
+    live_clerk INT GENERATED ALWAYS AS (CASE WHEN state = 'IN_PROGRESS' THEN assigned_to ELSE NULL END) STORED,
+    UNIQUE KEY support_one_open_general (open_general_owner), UNIQUE KEY support_one_live_clerk (live_clerk),
+    INDEX support_owner_cursor(student_user_id,id), INDEX support_queue(state,queued_at,id), INDEX support_document(document_id),
+    FOREIGN KEY (student_user_id) REFERENCES users(id), FOREIGN KEY (document_id) REFERENCES documents(id) ON DELETE SET NULL,
+    FOREIGN KEY (assigned_to) REFERENCES users(id)
+  ) ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS support_ticket_messages (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY, ticket_id INT NOT NULL, sender_id INT NULL,
+    kind ENUM('message','system','requirement') NOT NULL DEFAULT 'message', message VARCHAR(2000) NOT NULL,
+    metadata JSON NULL, client_key VARCHAR(100) NULL, payload_hash CHAR(64) NULL, import_key VARCHAR(100) NULL UNIQUE,
+    created_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    UNIQUE KEY support_send_retry(sender_id,client_key), INDEX support_message_cursor(ticket_id,id),
+    FOREIGN KEY (ticket_id) REFERENCES support_tickets(id), FOREIGN KEY (sender_id) REFERENCES users(id)
+  ) ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS support_ticket_files (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY, message_id BIGINT NOT NULL, filename VARCHAR(100) NOT NULL UNIQUE,
+    original_name VARCHAR(255) NOT NULL, mime_type VARCHAR(100) NOT NULL, size_bytes INT NOT NULL,
+    FOREIGN KEY (message_id) REFERENCES support_ticket_messages(id), INDEX(message_id)
+  ) ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS support_ticket_events (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY, ticket_id INT NULL, actor_id INT NULL, event_type VARCHAR(100) NOT NULL,
+    event_key VARCHAR(100) NOT NULL UNIQUE, data JSON NULL, created_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    INDEX support_event_timeline(ticket_id,id), INDEX support_event_period(created_at,event_type),
+    FOREIGN KEY(ticket_id) REFERENCES support_tickets(id), FOREIGN KEY(actor_id) REFERENCES users(id)
+  ) ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS request_attachment_events (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY, requirement_id INT NULL,
+    document_id INT NULL, actor_id INT NULL, event_type VARCHAR(50) NOT NULL,
+    snapshot JSON NOT NULL, created_at DATETIME(3) NOT NULL,
+    FOREIGN KEY (requirement_id) REFERENCES request_attachment_requirements(id) ON DELETE SET NULL,
+    FOREIGN KEY (document_id) REFERENCES documents(id) ON DELETE SET NULL,
+    FOREIGN KEY (actor_id) REFERENCES users(id), INDEX (requirement_id,id)
+  ) ENGINE=InnoDB;
+
+INSERT INTO support_settings(id,settings) VALUES (1,'{"weekdays":[1,2,3,4],"open_minute":480,"close_minute":960,"closed_dates":[],"warning_minutes":3,"timeout_minutes":5}') ON DUPLICATE KEY UPDATE id=id;
+
+CREATE TABLE IF NOT EXISTS password_resets (
+  id INT AUTO_INCREMENT PRIMARY KEY, user_id INT NOT NULL,
+  token_hash CHAR(64) NOT NULL UNIQUE, expires_at DATETIME NOT NULL,
+  used_at DATETIME NULL, created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+  INDEX password_reset_user (user_id,used_at,expires_at)
+) ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS payment_methods (
+  id INT AUTO_INCREMENT PRIMARY KEY, code VARCHAR(50) NOT NULL UNIQUE,
+  name VARCHAR(150) NOT NULL, provider VARCHAR(50) NOT NULL DEFAULT 'manual',
+  instructions TEXT NULL, requires_reference BOOLEAN NOT NULL DEFAULT TRUE,
+  reference_label VARCHAR(150) NULL, requires_proof BOOLEAN NOT NULL DEFAULT TRUE,
+  is_active BOOLEAN NOT NULL DEFAULT TRUE, sort_order INT NOT NULL DEFAULT 0,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB;

@@ -31,7 +31,6 @@ export default function useAdminDashboard(user, currentTab, reviewAccountId, rev
   const [adminDocFilter, setAdminDocFilter] = useState('All');
   const [forecastFilter, setForecastFilter] = useState('All');
   const [adminUsers, setAdminUsers] = useState([]);
-  const [adminUsersFilter, setAdminUsersFilter] = useState('');
   const [adminUsersRoleFilter, setAdminUsersRoleFilter] = useState('All');
   const [adminLogs, setAdminLogs] = useState([]);
 
@@ -45,15 +44,10 @@ export default function useAdminDashboard(user, currentTab, reviewAccountId, rev
   const filteredAdminUsers = useMemo(
     () =>
       adminUsers.filter((u) => {
-        const q = adminUsersFilter.toLowerCase();
-        const matchesSearch =
-          u?.full_name?.toLowerCase().includes(q) ||
-          u?.student_id?.toLowerCase().includes(q) ||
-          u?.email?.toLowerCase().includes(q);
         const matchesRole = adminUsersRoleFilter === 'All' || u.role === adminUsersRoleFilter;
-        return matchesSearch && matchesRole;
+        return matchesRole;
       }),
-    [adminUsers, adminUsersFilter, adminUsersRoleFilter]
+    [adminUsers, adminUsersRoleFilter]
   );
 
   /**
@@ -158,7 +152,7 @@ export default function useAdminDashboard(user, currentTab, reviewAccountId, rev
     adminDocPage: pagination.page, setAdminDocPage,
     adminDocFilter, setAdminDocFilter,
     forecastFilter, setForecastFilter,
-    adminUsers, adminUsersFilter, setAdminUsersFilter,
+    adminUsers,
     adminUsersRoleFilter, setAdminUsersRoleFilter,
     filteredAdminUsers,
     selectedUser, setSelectedUser,

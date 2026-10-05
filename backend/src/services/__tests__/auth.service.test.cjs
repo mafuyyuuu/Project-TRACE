@@ -73,6 +73,7 @@ beforeEach(() => {
   vi.spyOn(userModel, 'getProfileById').mockResolvedValue([]);
   vi.spyOn(userModel, 'findStudentBasicInfo').mockResolvedValue([]);
   vi.spyOn(userModel, 'updateProfile').mockResolvedValue(true);
+  vi.spyOn(userModel, 'upsertProfile').mockResolvedValue([{}]);
   vi.spyOn(userModel, 'findProfilePictureById').mockResolvedValue([{ profile_picture: null }]);
 
   vi.spyOn(userModel, 'getLoginSecurity').mockResolvedValue([]);
@@ -697,5 +698,35 @@ describe('server-side logout', () => {
   it('does not let an old session obtain a replacement after revocation', async () => {
     await expect(service.logoutAll(3, true, 4)).rejects.toMatchObject({ status: 401 });
     expect(userModel.incrementTokenVersion).not.toHaveBeenCalled();
+  });
+});
+
+describe('graduation years before profile mutations', () => {
+  beforeEach(() => userModel.getProfileById.mockResolvedValue([{ id: 3, role: 'student', user_type: 'alumni', email: 'old@example.test', last_attendance_year: 1980, elem_grad_year: 1970, jhs_grad_year: 1974, shs_grad_year: 1976 }]));
+  it.each(['-2020', '2020.5', '2e3', '2001', '9999', '202', ' 2024', 2024, ''])('rejects invalid alumni graduation before credential/email/contact/profile writes: %s', async graduation_year => {
+    expect(await statusOf(service.updateProfile(3, { graduation_year, phone_number: 'new', email: 'new@example.test', password: 'Newpassword_2026', current_password: 'any' }))).toBe(400);
+    expect(userModel.updateProfile).not.toHaveBeenCalled();
+    expect(userModel.upsertProfile).not.toHaveBeenCalled();
+    expect(emailVerification.issue).not.toHaveBeenCalled();
+    expect(pool.getConnection).not.toHaveBeenCalled();
+    expect(userModel.addPasswordHistory).not.toHaveBeenCalled();
+  });
+  it('saves confirmed graduation independently and preserves omitted historical attendance and school years', async () => {
+    await service.updateProfile(3, { graduation_year: '2002' });
+    expect(userModel.upsertProfile).toHaveBeenCalledWith(3, expect.objectContaining({ graduation_year: '2002', last_attendance_year: 1980, elem_grad_year: 1970, jhs_grad_year: 1974, shs_grad_year: 1976 }));
+  });
+  it('allows partial contact edits without copying attendance into graduation', async () => {
+    await service.updateProfile(3, { phone_number: 'new' });
+    expect(userModel.updateProfile).toHaveBeenCalledWith(3, { phone_number: 'new' });
+    expect(userModel.upsertProfile).not.toHaveBeenCalled();
+  });
+  it.each(['-1980', '1980.5', '1.98e3', '9999'])('rejects invalid school years: %s', async elem_grad_year => {
+    expect(await statusOf(service.updateProfile(3, { elem_grad_year }))).toBe(400);
+    expect(userModel.upsertProfile).not.toHaveBeenCalled();
+  });
+  it('allows current students to leave college graduation blank', async () => {
+    userModel.getProfileById.mockResolvedValue([{ id: 3, role: 'student', user_type: 'student' }]);
+    await service.updateProfile(3, { graduation_year: '', elem_grad_year: '1980' });
+    expect(userModel.upsertProfile).toHaveBeenCalledWith(3, expect.objectContaining({ graduation_year: '', elem_grad_year: '1980' }));
   });
 });

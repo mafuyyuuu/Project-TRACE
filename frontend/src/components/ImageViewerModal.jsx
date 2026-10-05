@@ -1,31 +1,29 @@
 import ModalShell from '@/components/ModalShell';
-import AuthedFilePreview from '@/components/AuthedFilePreview';
+import useAuthedFile, { toFilename } from '@/hooks/useAuthedFile';
 
 export default function ImageViewerModal({ viewImageUrl, setViewImageUrl }) {
+  const filename = toFilename(viewImageUrl);
+  const { url, loading, error } = useAuthedFile(filename);
   if (!viewImageUrl) return null;
 
-  const isPdf = String(viewImageUrl).toLowerCase().endsWith('.pdf');
+  const isPdf = /\.pdf$/i.test(filename);
 
   return (
     <ModalShell
       open={!!viewImageUrl}
       onClose={() => setViewImageUrl(null)}
       title="Document preview"
-      bare
-      backdropClassName="absolute inset-0 bg-gray-900/90 dark:bg-gray-800/90 backdrop-blur-sm transition-opacity"
-      panelClassName="relative z-10 max-w-5xl w-full flex items-center justify-center"
-      closeButtonClassName="focus-visible:outline-white trace-button-lift absolute top-6 right-6 w-12 h-12 bg-white/10 dark:bg-gray-900/10 hover:bg-white/20 dark:hover:bg-gray-900/20 text-white rounded-full flex items-center justify-center transition-colors z-10 backdrop-blur-md"
+      maxWidth="max-w-5xl"
+      bodyClassName="trace-modal-body flex items-center justify-center bg-gray-50 dark:bg-gray-800"
+      footer={url && <div className="flex flex-wrap items-center justify-between gap-3">
+        <span className="min-w-0 flex-1 basis-48 break-all text-sm text-gray-600 dark:text-gray-300">{filename}</span>
+        <a href={url} download={filename} className="trace-button trace-button-secondary trace-button-feedback">Download file</a>
+      </div>}
     >
-      <AuthedFilePreview
-        path={viewImageUrl}
-        alt="Full Screen Viewer"
-        iframeTitle="PDF Viewer"
-        className={
-          isPdf
-            ? 'w-full h-[calc(100dvh-2rem)] max-h-[90vh] rounded-xl shadow-2xl bg-white dark:bg-gray-900'
-            : 'max-w-full max-h-[calc(100dvh-2rem)] object-contain rounded-xl shadow-2xl'
-        }
-      />
+      {loading && <p role="status" className="text-sm text-gray-600 dark:text-gray-300">Loading document…</p>}
+      {error && <p role="alert" className="text-sm text-red-700 dark:text-red-300">{error}</p>}
+      {url && (isPdf ? <iframe src={url} title="PDF Viewer" className="h-[65dvh] w-full rounded-lg bg-white dark:bg-gray-900" />
+        : <img src={url} alt="Full Screen Viewer" className="h-[65dvh] w-full object-contain" />)}
     </ModalShell>
   );
 }

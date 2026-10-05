@@ -37,10 +37,10 @@ describe('Sidebar hover labels', () => {
   it('portals a single full label outside the scroller and preserves the selected link', () => {
     const { container } = mount();
     const selected = screen.getByRole('link', { name: 'Dashboard' });
-    const messages = screen.getByRole('link', { name: 'Messages & Attachments' });
+    const messages = screen.getByRole('link', { name: 'Support' });
     fireEvent.pointerOver(messages, { pointerType: 'mouse' });
     const tooltip = screen.getByRole('tooltip');
-    expect(tooltip).toHaveTextContent('Messages & Attachments');
+    expect(tooltip).toHaveTextContent('Support');
     expect(container.contains(tooltip)).toBe(false);
     expect(messages).toHaveAttribute('aria-describedby', tooltip.id);
     expect(messages).not.toHaveAttribute('title');
@@ -88,18 +88,18 @@ describe('Sidebar hover labels', () => {
   it('does not require hover labels or a first reveal tap in the labeled drawer', () => {
     const onNavigate = vi.fn();
     mount({ showLabels: true, onNavigate });
-    const messages = screen.getByRole('link', { name: 'Messages & Attachments' });
+    const messages = screen.getByRole('link', { name: 'Support' });
     fireEvent.pointerOver(messages, { pointerType: 'mouse' });
     act(() => messages.focus());
     expect(screen.queryByRole('tooltip')).toBeNull();
-    expect(screen.getByText('Messages & Attachments')).toBeInTheDocument();
+    expect(screen.getByText('Support')).toBeInTheDocument();
     fireEvent.click(messages);
     expect(onNavigate).toHaveBeenCalledOnce();
   });
 
   it('suppresses coarse-pointer hover and removes stale labels on scroll, mode change and unmount', () => {
     const { unmount } = mount();
-    const messages = screen.getByRole('link', { name: 'Messages & Attachments' });
+    const messages = screen.getByRole('link', { name: 'Support' });
     fine.matches = false;
     fireEvent.pointerOver(messages, { pointerType: 'touch' });
     expect(screen.queryByRole('tooltip')).toBeNull();
@@ -124,8 +124,8 @@ describe('Sidebar hover labels', () => {
     fireEvent.scroll(window);
     expect(screen.getByRole('tooltip')).toHaveTextContent('Preferences');
     fireEvent.click(screen.getByRole('button', { name: 'More' }));
-    expect(screen.getByRole('link', { name: 'Security Logs' })).toHaveFocus();
-    expect(screen.getByRole('tooltip')).toHaveTextContent('Security Logs');
+    expect(screen.getByRole('link', { name: 'Reports & Export' })).toHaveFocus();
+    expect(screen.getByRole('tooltip')).toHaveTextContent('Reports & Export');
     fireEvent.click(screen.getByRole('button', { name: 'Back to main' }));
     expect(screen.getByRole('tooltip')).toHaveTextContent('Dashboard');
   });

@@ -56,7 +56,7 @@ it.each(['Window 1', 'Secretary', 'Finance', 'Admin'])('guides %s through only i
 });
 it('spotlights the visible mobile link instead of the hidden duplicate desktop link', async () => {
   const prepare = vi.fn(), action = vi.fn();
-  render(<><a data-guide-tab="reports" href="#desktop">Desktop report</a><a data-guide-tab="reports" href="#mobile">Mobile report</a>
+  render(<><a data-guide-tab="transactions" href="#desktop">Desktop report</a><a data-guide-tab="transactions" href="#mobile">Mobile report</a>
     <OnboardingTutorial user={{ role: 'clerk', desk_assignment: 'Finance' }} onComplete={vi.fn()} onPrepare={prepare} onAction={action} /></>);
   vi.spyOn(screen.getByText('Desktop report'), 'getBoundingClientRect').mockReturnValue({ width: 0, height: 0 });
   const mobile = screen.getByText('Mobile report');
@@ -64,7 +64,7 @@ it('spotlights the visible mobile link instead of the hidden duplicate desktop l
   for (let step = 0; step < 3; step += 1) fireEvent.click(screen.getByRole('button', { name: 'Next' }));
   await waitFor(() => expect(document.querySelector('.backdrop-blur-sm').style.clipPath).toContain('32px 112px'));
   expect(mobile.scrollIntoView).toHaveBeenCalled();
-  expect(prepare).toHaveBeenLastCalledWith('navigation:reports');
-  fireEvent.click(screen.getByRole('button', { name: 'Open Transactions & Export' }));
-  expect(action).toHaveBeenCalledWith('navigation:reports');
+  expect(prepare).toHaveBeenLastCalledWith('navigation:transactions');
+  fireEvent.click(screen.getByRole('button', { name: 'Open Transactions & OR Copies' }));
+  expect(action).toHaveBeenCalledWith('navigation:transactions');
 });

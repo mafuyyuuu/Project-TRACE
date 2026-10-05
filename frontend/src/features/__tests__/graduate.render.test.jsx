@@ -50,7 +50,8 @@ describe('rendering an admin-defined form', () => {
 
   it('picks the input type from the field definition', async () => {
     await renderForm();
-    expect(await screen.findByLabelText(/Year Graduated/)).toHaveAttribute('type', 'number');
+    expect(await screen.findByLabelText(/Year Graduated/)).toHaveAttribute('type', 'text');
+    expect(screen.getByLabelText(/Year Graduated/)).toHaveAttribute('inputmode', 'numeric');
     expect(screen.getByLabelText(/Degree Program/)).toHaveAttribute('type', 'text');
     // a textarea has no `type` attribute
     expect(screen.getByLabelText(/Purpose/).tagName).toBe('TEXTAREA');
@@ -162,4 +163,18 @@ describe('previous submissions', () => {
     await renderForm();
     expect(await screen.findByText(/No applications submitted yet/i)).toBeInTheDocument();
   });
+});
+
+it.each(['-2020', '2020.5', '2e3', '2001', '9999', '202'])('keeps invalid graduation drafts visible and blocks application confirmation: %s', async value => {
+  const user = userEvent.setup();
+  await renderForm();
+  const input = screen.getByLabelText(/Year Graduated/);
+  await user.type(input, value);
+  await user.type(screen.getByLabelText(/Degree Program/), 'Approved Program');
+  await user.click(screen.getByRole('button', { name: /submit application/i }));
+  expect(input).toHaveValue(value);
+  expect(input).toHaveAttribute('aria-invalid', 'true');
+  expect(input).toHaveAccessibleDescription(expect.stringContaining('Year Graduated must'));
+  expect(screen.queryByRole('dialog', { name: 'Confirm Graduate Application' })).not.toBeInTheDocument();
+  expect(gradService.submitApplication).not.toHaveBeenCalled();
 });

@@ -41,7 +41,7 @@ describe('navItemsForUser', () => {
     ['alumnus', ALUMNI, ['dashboard', 'history', 'messages', 'graduate-application', 'help']],
     ['secretary', SECRETARY, ['dashboard', 'reports', 'messages', 'grad-applications', 'help']],
     ['window 1', WINDOW1, ['dashboard', 'tracking-desk', 'messages', 'reports', 'help']],
-    ['finance', FINANCE, ['dashboard', 'reports', 'help']],
+    ['finance', FINANCE, ['dashboard', 'transactions', 'messages', 'help']],
   ])('gives a %s their own tabs', (_label, user, expected) => {
     expect(navItemsForUser(user).map((i) => i.tab)).toEqual(expected);
   });
@@ -75,16 +75,24 @@ describe('navItemsForUser', () => {
     const tabs = [...groups.main, ...groups.more].map(item => item.tab);
     expect(tabs.sort()).toEqual(navItemsForUser(user).map(item => item.tab).sort());
     expect(new Set(tabs).size).toBe(tabs.length);
-    expect(groups.main).toHaveLength(Math.min(5, tabs.length));
-    expect(groups.more).toHaveLength(Math.max(0, tabs.length - 5));
+    expect(groups.main).toHaveLength(Math.min(6, tabs.length));
+    expect(groups.more).toHaveLength(Math.max(0, tabs.length - 6));
   });
   it('keeps daily Finance transactions in Main and admin configuration available', () => {
-    expect(navGroupsForUser(FINANCE).main.map(item => item.tab)).toEqual(['dashboard', 'reports', 'help']);
+    expect(navGroupsForUser(FINANCE).main.map(item => item.tab)).toEqual(['dashboard', 'transactions', 'messages', 'help']);
     expect(navGroupsForUser(ADMIN).main.map(item => item.tab)).toContain('admin-maintenance');
   });
 });
 
 describe('SidebarNav', () => {
+  it.each(['transactions', 'reports', 'export', 'exports'])('keeps Finance %s deep links active on the one transactions destination', tab => {
+    renderNav({ user: FINANCE, tab, showLabels: true });
+    const link = screen.getByRole('link', { name: 'Transactions & OR Copies' });
+    expect(link).toHaveAttribute('aria-current', 'page');
+    expect(link).toHaveAttribute('href', '/dashboard?tab=transactions');
+    expect(canonicalTabForUser(FINANCE, tab)).toBe('transactions');
+    expect(canonicalTabForUser(WINDOW1, 'reports')).toBe('reports');
+  });
   it.each([STUDENT, ALUMNI, SECRETARY, WINDOW1, RECEIVING, FINANCE])('shows every destination directly without More for $role/$desk_assignment', user => {
     renderNav({ user, showLabels: true });
     const nav = screen.getByRole('navigation', { name: 'Main navigation' });
@@ -94,14 +102,15 @@ describe('SidebarNav', () => {
     expect(screen.getByRole('button', { name: 'Preferences' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Logout' })).toBeInTheDocument();
   });
-  it('places More sixth after five Admin destinations and exposes all overflow', () => {
+  it('places More seventh after six Admin destinations and exposes all overflow', () => {
     renderNav({ user: ADMIN, showLabels: true });
     const main = screen.getByRole('navigation', { name: 'Main navigation' });
-    expect(within(main).getAllByRole('link')).toHaveLength(5);
-    expect([...main.querySelectorAll('a, button')].at(5)).toBe(screen.getByRole('button', { name: 'More' }));
+    expect(within(main).getAllByRole('link')).toHaveLength(6);
+    expect([...main.querySelectorAll('a, button')].at(6)).toBe(screen.getByRole('button', { name: 'More' }));
+    expect(within(main).getByRole('link', { name: 'Security Logs' })).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'More' }));
     const more = screen.getByRole('navigation', { name: 'More navigation' });
-    expect(within(more).getAllByRole('link')).toHaveLength(navItemsForUser(ADMIN).length - 5);
+    expect(within(more).getAllByRole('link')).toHaveLength(navItemsForUser(ADMIN).length - 6);
     expect(screen.getByRole('button', { name: 'Back to main' })).toBeInTheDocument();
   });
   it('marks the combined Secretary workspace active for both old and current links', () => {
@@ -194,7 +203,7 @@ describe('SidebarNav', () => {
     renderNav({ user: ADMIN, showLabels: true, onNavigate });
     screen.getByRole('button', { name: 'More' }).focus();
     await keyboard.keyboard('{Enter}');
-    expect(screen.getByRole('link', { name: 'Security Logs' })).toHaveFocus();
+    expect(screen.getByRole('link', { name: 'Reports & Export' })).toHaveFocus();
     screen.getByRole('button', { name: 'Back to main' }).focus();
     await keyboard.keyboard(' ');
     expect(screen.getByRole('link', { name: 'Dashboard' })).toHaveFocus();

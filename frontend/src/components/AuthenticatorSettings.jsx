@@ -35,7 +35,7 @@ export default function AuthenticatorSettings({ user }) {
   function stage(action) {
     if (password && code) setConfirmation({ action, payload: payload() });
   }
-  return <section aria-labelledby="authenticator-heading" onKeyDown={event => { if (event.key === 'Enter' && event.target.tagName === 'INPUT') event.preventDefault(); }} className="trace-section trace-section-body space-y-4">
+  return <section data-motion-private aria-labelledby="authenticator-heading" onKeyDown={event => { if (event.key === 'Enter' && event.target.tagName === 'INPUT') event.preventDefault(); }} className="trace-section trace-section-body space-y-4">
     <h3 id="authenticator-heading" className="text-sm font-black">Two-factor authentication</h3>
     <p className="text-sm">Use an authenticator app on your phone to generate login codes. Available to every TRACE account.</p>
     {auth.error && <div className="space-y-2"><p role="alert" className="text-sm text-red-700 dark:text-red-300">{auth.error}</p>

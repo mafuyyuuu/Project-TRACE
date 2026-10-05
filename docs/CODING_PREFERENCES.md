@@ -236,3 +236,8 @@ utils/         # Backend helper functions (AppError)
 - The profile camera is the only photo picker. Preserve local validation/preview and confirmed saving; selection never uploads automatically.
 - Keep `utils/profileCompletion.js` in backend/frontend synchronized. Completion is derived from saved required fields, including conditional alumni/transfer/maiden-name requirements, with explicit string/number boolean normalization. Student role determines eligibility; a legacy staff user_type must not gate staff.
 - Refresh authoritative `getMe` data after successful non-password profile writes before updating completion caches. Preserve dirty drafts during background refresh; report refresh failures separately from failed saves. The API must independently enforce completion under the filing transaction before writes.
+
+
+## Living documentation
+
+When workflows, role permissions, schema, security or AI inputs change, update the affected User Manual/Help, System Workflows, Backend Guide, migration/environment instructions and Capstone Defense Guide/Script, including diagrams. Record findings before code edits in PROGRESS. Distinguish proposed, implemented, locally verified and deployed behavior; do not describe planned ticket features as delivered or claim measured outcomes without evidence. Never include private credentials, tokens or real uploaded records in guides or fixtures.

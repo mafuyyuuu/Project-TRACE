@@ -74,7 +74,7 @@ describe('validateAnswers — driven entirely by the field definitions', () => {
   });
 
   it.each([
-    ['number', { year_graduated: 'not-a-year', program: 'BSIT' }, /Year Graduated must be a number/],
+    ['number', { year_graduated: 'not-a-year', program: 'BSIT' }, /Year Graduated must contain exactly four digits/],
     ['email', { year_graduated: '2024', program: 'BSIT', contact_email: 'nope' }, /valid email/],
     ['date', { year_graduated: '2024', program: 'BSIT', grad_date: 'someday' }, /valid date/],
   ])('enforces the %s field type', (_label, answers, pattern) => {
@@ -227,4 +227,13 @@ describe('staff review', () => {
     gradModel.updateApplicationStatus.mockResolvedValue([{ affectedRows: 0 }]);
     expect(await statusOf(service.reviewApplication(ADMIN, 999, { status: 'approved' }))).toBe(404);
   });
+});
+
+it.each(['-2020', '2020.5', '2e3', '2001', '9999', '202', ' 2024', 2024])('rejects invalid college graduation in the alumni application before any write: %s', async year_graduated => {
+  expect(await statusOf(service.submitApplication(STUDENT, { answers: { year_graduated, program: 'BSIT' } }))).toBe(400);
+  expect(gradModel.insertApplication).not.toHaveBeenCalled();
+  expect(pool.getConnection).not.toHaveBeenCalled();
+});
+it('keeps unrelated configurable number fields numeric', () => {
+  expect(service.validateAnswers([{ field_key: 'quantity', field_type: 'number', label: 'Quantity' }], { quantity: '1.5' })).toEqual([]);
 });

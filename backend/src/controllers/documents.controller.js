@@ -44,7 +44,7 @@ async function forecast(req, res) {
 
 async function insights(req, res) {
   try {
-    res.json(await documentsService.getInsights());
+    res.json(await documentsService.getInsights(req.user));
   } catch (err) {
     fail(res, err, 'Insights error', 'Failed to fetch insights.');
   }

@@ -13,7 +13,7 @@ function roleNavItems(user) {
     const items = [
       { tab: 'dashboard', to: '/dashboard', label: 'Dashboard', icon: 'dashboard' },
       { tab: 'history', to: '/dashboard?tab=history', label: 'History', icon: 'document' },
-      { tab: 'messages', to: '/dashboard?tab=messages', label: 'Messages & Attachments', icon: 'message' },
+      { tab: 'messages', to: '/dashboard?tab=messages', label: 'Support', icon: 'message' },
     ];
     // Only an alumnus can file the Graduate Application — a regular student
     // never sees the tab at all, not even to navigate to it directly.
@@ -27,7 +27,7 @@ function roleNavItems(user) {
     return [
       { tab: 'dashboard', to: '/dashboard', label: 'Dashboard', icon: 'dashboard' },
       { tab: 'reports', to: '/dashboard?tab=reports', label: 'Records & Export', icon: 'report' },
-      { tab: 'messages', to: '/dashboard?tab=messages', label: 'Messages & Attachments', icon: 'message' },
+      { tab: 'messages', to: '/dashboard?tab=messages', label: 'Support', icon: 'message' },
       { tab: 'grad-applications', to: '/dashboard?tab=grad-applications', label: 'Graduate Applications', icon: 'cap', group: 'more' },
     ];
   }
@@ -36,7 +36,7 @@ function roleNavItems(user) {
     return [
       { tab: 'dashboard', to: '/dashboard', label: 'Workspace Dashboard', icon: 'dashboard' },
       { tab: 'tracking-desk', to: '/dashboard?tab=tracking-desk', label: 'Tracking Desk', icon: 'users' },
-      { tab: 'messages', to: '/dashboard?tab=messages', label: 'Messages & Attachments', icon: 'message' },
+      { tab: 'messages', to: '/dashboard?tab=messages', label: 'Support', icon: 'message' },
       { tab: 'reports', to: '/dashboard?tab=reports', label: 'Reports & Export', icon: 'report', group: 'more' },
     ];
   }
@@ -45,7 +45,7 @@ function roleNavItems(user) {
     return [
       { tab: 'dashboard', to: '/dashboard', label: 'Dashboard', icon: 'dashboard' },
       { tab: 'admin-tracker', to: '/dashboard?tab=admin-tracker', label: 'Document Tracker', icon: 'document' },
-      { tab: 'messages', to: '/dashboard?tab=messages', label: 'Messages & Attachments', icon: 'message' },
+      { tab: 'messages', to: '/dashboard?tab=messages', label: 'Support', icon: 'message' },
       { tab: 'admin-logs', to: '/dashboard?tab=admin-logs', label: 'Activity Logs', icon: 'checklist', group: 'more' },
       { tab: 'admin-security', to: '/dashboard?tab=admin-security', label: 'Security Logs', icon: 'shield', group: 'more' },
       { tab: 'admin-reports', to: '/dashboard?tab=admin-reports', label: 'Reports & Export', icon: 'report', group: 'more' },
@@ -59,7 +59,8 @@ function roleNavItems(user) {
   if (user?.role === 'clerk' && user?.desk_assignment === 'Finance') {
     return [
       { tab: 'dashboard', to: '/dashboard', label: 'Dashboard', icon: 'dashboard' },
-      { tab: 'reports', to: '/dashboard?tab=reports', label: 'Transactions & Export', icon: 'report' },
+      { tab: 'transactions', to: '/dashboard?tab=transactions', label: 'Transactions & OR Copies', icon: 'report' },
+      { tab: 'messages', to: '/dashboard?tab=messages', label: 'Support', icon: 'message' },
     ];
   }
   // Other desks get the dashboard alone.
@@ -77,16 +78,17 @@ export function navItemsForUser(user) {
 
 export function navGroupsForUser(user) {
   const items = navItemsForUser(user);
-  // Keep daily-work destinations first, then fill the five visible slots.
-  // More is the sixth control only when there are destinations left over.
+  // Keep six daily-work destinations visible; More is the seventh control
+  // only when at least seven destinations are available.
   const ordered = [...items.filter(item => item.group !== 'more'), ...items.filter(item => item.group === 'more')];
   return {
-    main: ordered.slice(0, 5),
-    more: ordered.slice(5),
+    main: ordered.slice(0, 6),
+    more: ordered.slice(6),
   };
 }
 
 /** Keep the old Secretary deep link active within the combined workspace. */
 export function canonicalTabForUser(user, tab) {
+  if (user?.role === 'clerk' && user.desk_assignment === 'Finance' && ['reports', 'export', 'exports'].includes(tab)) return 'transactions';
   return user?.role === 'clerk' && user.desk_assignment === 'Secretary' && tab === 'completed-logs' ? 'reports' : tab;
 }

@@ -114,4 +114,27 @@ const pertinentUpload = multer({
     cb(allowed ? null : badRequest('Choose a JPG, PNG or PDF document, at most 10 MB.'), Boolean(allowed));
   },
 });
-module.exports = { idProofUpload, signupOcrUpload, documentUpload, pertinentUpload, profilePictureUpload, UPLOAD_DIR };
+const supportLimits = require('../utils/supportUpload');
+const supportStorage = multer.diskStorage({
+  destination: (req, file, cb) => cb(null, UPLOAD_DIR),
+  filename: (req, file, cb) => cb(null, 'support-' + crypto.randomBytes(24).toString('hex') + path.extname(file.originalname).toLowerCase()),
+});
+const supportUpload = multer({
+  storage: supportStorage,
+  limits: { files: supportLimits.MAX_FILES, fileSize: supportLimits.MAX_BYTES, fields: 3, fieldSize: 10000, parts: 6 },
+  fileFilter: (req, file, cb) => {
+    const mime = supportLimits.MIME[path.extname(file.originalname).toLowerCase()];
+    const valid = Boolean(mime && mime === file.mimetype);
+    cb(valid ? null : badRequest('Chat accepts JPEG, PNG or PDF files only, at most 5 MB each.'), valid);
+  },
+});
+const parseSupportFiles = supportUpload.array('files', supportLimits.MAX_FILES);
+function supportMessageUpload(req, res, next) {
+  parseSupportFiles(req, res, async error => {
+    if (!error) return next();
+    await supportLimits.cleanup(req.files || []);
+    next(error.code?.startsWith('LIMIT_')
+      ? badRequest('Attach at most 3 JPEG, PNG or PDF files, 5 MB each, with your message.') : error);
+  });
+}
+module.exports = { supportMessageUpload, supportUpload, idProofUpload, signupOcrUpload, documentUpload, pertinentUpload, profilePictureUpload, UPLOAD_DIR };

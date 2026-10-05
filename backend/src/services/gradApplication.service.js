@@ -1,3 +1,4 @@
+const { yearError } = require('../utils/profileYears');
 const { pool } = require('../config/db');
 const gradModel = require('../models/gradApplication.model');
 const userModel = require('../models/user.model');
@@ -9,7 +10,8 @@ const { badRequest, forbidden, notFound } = require('../utils/AppError');
  * The Registrar hasn't finalised the field list, so nothing about the form is
  * hardcoded: the fields live in `grad_form_fields` and validation is *derived*
  * from those rows. Adding, removing or reordering a question is a data change,
- * not a code change.
+ * not a code change. The known college year_graduated field additionally uses
+ * the shared institutional year policy; other numeric fields stay configurable.
  */
 
 /** Field types whose values must parse as something specific. */
@@ -36,6 +38,11 @@ function validateAnswers(fields, answers) {
 
   for (const field of fields) {
     const raw = answers[field.field_key];
+    if (field.field_key === 'year_graduated') {
+      const problem = yearError(raw, { label: field.label, minimum: 2002, required: Boolean(field.is_required) });
+      if (problem) errors.push(problem);
+      continue;
+    }
     const value = typeof raw === 'string' ? raw.trim() : raw;
     const isEmpty = value === undefined || value === null || value === '';
 

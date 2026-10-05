@@ -1,12 +1,11 @@
 import Button from '@/components/Button';
-import { INPUT_LIMITS } from '@/utils/inputLimits';
 import UserCard from '@/components/UserCard';
 
 const selectClass =
   "trace-control cursor-pointer";
 
 /**
- * Search + filters + a responsive grid of UserCards.
+ * Role/desk filters and a responsive grid of UserCards.
  *
  * The desk filter and "+ Add User" button are both optional — a consumer
  * only gets them by passing the matching handler prop. Filtering itself
@@ -15,8 +14,6 @@ const selectClass =
 export default function UserGrid({
   users,
   onSelectUser,
-  searchValue,
-  onSearchChange,
   roleFilter,
   onRoleFilterChange,
   roleOptions,
@@ -28,13 +25,6 @@ export default function UserGrid({
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row flex-wrap gap-3 sm:items-center">
-        <input maxLength={INPUT_LIMITS.shortText}
-          type="text"
-          placeholder="Search by name or email…"
-          value={searchValue}
-          onChange={(e) => onSearchChange(e.target.value)}
-          className="trace-control flex-1 min-w-[220px]"
-        />
         <select className={selectClass} value={roleFilter} onChange={(e) => onRoleFilterChange(e.target.value)}>
           {roleOptions.map((o) => (
             <option key={o.value} value={o.value}>{o.label}</option>

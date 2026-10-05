@@ -19,7 +19,7 @@ beforeEach(() => {
   });
   for (const [, key, value] of declaredTokens) document.documentElement.style.setProperty(key, value);
   expect(declaredTokens.length).toBeGreaterThan(10);
-  expect(getComputedStyle(document.documentElement).getPropertyValue('--trace-motion-context-duration')).toBe('180ms');
+  expect(getComputedStyle(document.documentElement).getPropertyValue('--trace-motion-context-duration')).toBe('220ms');
 });
 afterEach(() => {
   clearDrillExits();
@@ -40,8 +40,8 @@ describe('Shared motion', () => {
   it('reads configurable tokens and replaces interrupted motion from its current presentation', () => {
     const element = panel();
     const stop = animateMotion(element, 'context');
-    expect(animations[0].options.duration).toBe(180);
-    expect(animations[0].frames[0].transform).toBe('translateY(4px)');
+    expect(animations[0].options.duration).toBe(220);
+    expect(animations[0].frames[0].transform).toBe('translateY(8px)');
     element.style.opacity = '0.92';
     element.style.transform = 'translateY(2px)';
     stop();
@@ -98,7 +98,7 @@ describe('Shared motion', () => {
     expect(copy.querySelector('button')).toBeDisabled();
     expect(copy.querySelector('input')).toHaveValue('');
     expect(copy.firstChild.scrollTop).toBe(80);
-    vi.advanceTimersByTime(211);
+    vi.advanceTimersByTime(251);
     expect(copy.isConnected).toBe(false);
     expect(animations[0].cancel).toHaveBeenCalledOnce();
   });
@@ -121,6 +121,25 @@ describe('Shared motion', () => {
       }
       expect(document.querySelector('[data-motion-exit]')).toBeNull();
     }
+  });
+  it('excludes marked credential regions, including text and QR images, from visual exits', () => {
+    const element = panel();
+    element.innerHTML = '<p>Public heading</p><section data-motion-private><code>SYNTHETIC-SETUP-KEY</code><ul><li>SYNTHETIC-RECOVERY-CODE</li></ul><img src="data:image/png;base64,c3ludGhldGlj" alt="Authenticator setup"></section>';
+    const exit = prepareDrillExit(element);
+    element.remove();
+    exit();
+    const copy = document.querySelector('[data-motion-exit]');
+    expect(copy).toHaveTextContent('Public heading');
+    expect(copy.innerHTML).not.toContain('SYNTHETIC-SETUP-KEY');
+    expect(copy.innerHTML).not.toContain('SYNTHETIC-RECOVERY-CODE');
+    expect(copy.querySelector('img, [data-motion-private]')).toBeNull();
+    clearDrillExits();
+    const privatePanel = panel();
+    privatePanel.setAttribute('data-motion-private', '');
+    const privateExit = prepareDrillExit(privatePanel);
+    privatePanel.remove();
+    privateExit();
+    expect(document.querySelector('[data-motion-exit]')).toBeNull();
   });
 
   it('does not leave a late exit after rapid reopen, StrictMode rehearsal, or reduced-motion dismissal', () => {

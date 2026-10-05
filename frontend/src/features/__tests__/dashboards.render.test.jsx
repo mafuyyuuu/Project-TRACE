@@ -170,6 +170,15 @@ describe('command centers mount and load their own data', () => {
   it('Window 1', async () => {
     await renderDashboard(<Window1Dashboard user={USERS.window1} currentTab="dashboard" />);
     expect(documentsService.getDocuments).toHaveBeenCalled();
+    const upload = screen.getByRole('heading', { name: 'UPLOAD DOCUMENT' }).closest('aside');
+    expect(upload).toContainElement(screen.getByRole('region', { name: 'Registration QR' }));
+    expect(screen.getByRole('heading', { name: 'UPLOAD DOCUMENT' }).compareDocumentPosition(screen.getByRole('region', { name: 'Registration QR' })) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+  it('uses the latest intake-entry timestamp rather than creation for returned requests', async () => {
+    const now = Date.now();
+    documentsService.getDocuments.mockResolvedValue({ documents: [{ ...DOC, created_at: new Date(now - 10 * 86400000).toISOString(), intake_entered_at: new Date(now - 2 * 86400000).toISOString() }] });
+    await renderDashboard(<Window1Dashboard user={USERS.window1} currentTab="dashboard" />);
+    expect(screen.getByRole('cell', { name: '2 days' })).toBeInTheDocument();
   });
 
   it('Secretary', async () => {

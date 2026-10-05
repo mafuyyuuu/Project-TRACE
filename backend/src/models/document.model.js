@@ -72,7 +72,14 @@ function findByTrackingNumber(trackingNumber, executor = pool) {
  * both always filter identically.
  */
 function listWithFilters(conditions, params, limit, offset, executor = pool) {
-  let query = "SELECT d.*, student.program FROM documents d LEFT JOIN users student ON student.student_id = d.student_id AND student.role = 'student'";
+  // A same-status intake note must not restart the wait. Secretary returns do.
+  let query = `SELECT d.*, student.program,
+    CASE WHEN d.current_status = 'PENDING_W1_INTAKE' THEN COALESCE(
+      (SELECT MAX(intake.timestamp_started) FROM step_logs intake
+       WHERE intake.document_id = d.id AND intake.to_status = 'PENDING_W1_INTAKE'
+       AND (intake.from_status IS NULL OR intake.from_status <> intake.to_status)), d.created_at)
+    END AS intake_entered_at
+    FROM documents d LEFT JOIN users student ON student.student_id = d.student_id AND student.role = 'student'`;
   if (conditions.length > 0) query += ' WHERE ' + conditions.join(' AND ');
   query += ' ORDER BY d.created_at DESC LIMIT ? OFFSET ?';
   return executor.query(query, [...params, limit, offset]).then(([rows]) => pricingModel.enrichDocuments(shapePricing(rows), executor));

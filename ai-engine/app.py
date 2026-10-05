@@ -230,6 +230,17 @@ def ai_recommend():
         return jsonify({'error': str(e)}), 500
 
 
+@app.route('/ai/support-insights', methods=['POST'])
+def support_insights():
+    from support_insights import build_support_insights
+    if request.content_length and request.content_length > 65536:
+        return jsonify({'error': 'Aggregate payload too large.'}), 413
+    try:
+        return jsonify({'insights': build_support_insights(request.get_json(silent=True)), 'source': 'aggregate_rules'})
+    except (ValueError, TypeError, KeyError, AttributeError):
+        return jsonify({'error': 'Invalid support aggregates.'}), 400
+
+
 @app.route('/ocr/identity', methods=['POST'])
 def ocr_identity():
     file = request.files.get('document')

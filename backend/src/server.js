@@ -28,6 +28,8 @@ async function start() {
   // rides through the same Vite proxy in development.
   const server = http.createServer(app);
   realtime.init(server);
+  const stopSupportTimers = require('./services/supportTimer.service').startTimers();
+  server.once('close', stopSupportTimers);
 
   server.listen(env.PORT, () => {
     console.log(`🚀 TRACE Backend API listening on http://localhost:${env.PORT}`);

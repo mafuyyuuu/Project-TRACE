@@ -2,6 +2,7 @@ import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, BarChart, 
 import useReports from '@/features/admin/useReports';
 import DashboardLoading from '@/components/DashboardLoading';
 import DashboardAlerts from '@/components/DashboardAlerts';
+import SupportAnalytics from '@/components/SupportAnalytics';
 import ProgressFill from '@/components/ProgressFill';
 import { formatDuration } from '@/utils/formatters';
 import { getWorkloadShares } from '@/utils/workloadShare';
@@ -198,6 +199,7 @@ export default function AnalyticsPanel({ user, currentTab }) {
             </table>
           </div>
         </div>
+        <div className="trace-section trace-section-body"><SupportAnalytics /></div>
       </div>
     </>
   );

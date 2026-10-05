@@ -66,7 +66,7 @@ export default function ModalShell({
 }) {
   const titleId = useId();
   const panelRef = useRef(null);
-  useDrillMotion(panelRef, open, layer);
+  const attachPanel = useDrillMotion(panelRef, open, layer);
 
   useEffect(() => {
     if (!open) return undefined;
@@ -160,7 +160,7 @@ export default function ModalShell({
         aria-hidden="true"
       />
       <div
-        ref={panelRef}
+        ref={attachPanel}
         data-modal-layer={layer}
         role="dialog"
         aria-modal="true"

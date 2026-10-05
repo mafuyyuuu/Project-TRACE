@@ -1,0 +1,32 @@
+[
+  {
+    "id": "profile",
+    "question": "How do I find missing profile information?",
+    "answer": "Open your avatar → Edit Profile. Personal Info and Educational Background show an exclamation marker when required information is missing. Open each marked tab and follow the Required hints beside its fields; hints update as you type. Save and confirm to persist your changes. Requests use the saved profile, so filling the draft alone does not unlock them."
+  },
+  {
+    "id": "email",
+    "question": "How do I verify or change my email?",
+    "answer": "Open your avatar → Edit Profile → Personal Info. Choose Verify beside Email Address, then select Verify Email in the message sent to your inbox. On the result page, use Return to TRACE if signed in or Back to Login if signed out. The link works once and expires after one hour; check Spam/Junk and refresh TRACE after verifying. Open Verification help beside the field for resend and refresh instructions. Enter the new email and current password to change addresses, choose Verify and confirm, then open the link sent to the new address. Your existing email stays active until verification succeeds. Email verification is separate from login codes."
+  },
+  {
+    "id": "requests",
+    "question": "How do I request and track documents?",
+    "answer": "Choose New Request. If your saved profile is incomplete, use Complete Profile in the missing-field popup, fill the required fields and confirm Save. Select the available document types and complete their fields. TOR asks Year Started/Year Ended. Filing shows rates only; the final pricing breakdown appears on your dashboard. Confirm submission. Use Live Track to see the current processing stage; History includes request and payment records."
+  },
+  {
+    "id": "payment",
+    "question": "When do I pay?",
+    "answer": "The Secretary sets the price after preparing the document. Use the single payment action for the request’s total, or present your payment slip at Finance."
+  },
+  {
+    "id": "copies",
+    "question": "Can I request multiple copies or repeat a request?",
+    "answer": "All available documents allow repeat requests and varying quantities except Honorable Dismissal. Honorable Dismissal allows one copy; an active or completed request blocks another. Cancellation or a terminal rejection allows retry. A Secretary return to Intake keeps the same request active."
+  },
+  {
+    "id": "walk-in",
+    "question": "Which walk-in transactions qualify for same-day handling?",
+    "answer": "CTC, 2nd Copy of COR, 2nd Copy of OGR and CAV qualify when you present the original and a photocopy of the required document at Window 1. The clerk records these checks. Evaluation, pricing, payment and release checks still apply."
+  }
+]

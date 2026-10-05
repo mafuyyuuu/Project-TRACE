@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { downloadRecoveryCodes } from '@/utils/downloadRecoveryCodes';
 
 export default function useRecoveryCodeActions(codes) {
@@ -7,7 +7,9 @@ export default function useRecoveryCodeActions(codes) {
   const lifetime = useRef(null);
   const pending = useRef(null);
   const [feedback, setFeedback] = useState(null);
-  useEffect(() => {
+  // Newly visible codes must be actionable before paint. A passive effect can
+  // leave the first Copy click comparing against the previous code scope.
+  useLayoutEffect(() => {
     lifetime.current = scope;
     return () => {
       lifetime.current = null;

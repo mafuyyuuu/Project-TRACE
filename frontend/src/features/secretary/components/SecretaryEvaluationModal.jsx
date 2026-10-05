@@ -1,7 +1,6 @@
 import Button from '@/components/Button';
 import { INPUT_LIMITS } from '@/utils/inputLimits';
-import DocumentChat from '@/components/DocumentChat';
-import RequestAttachments from '@/components/RequestAttachments';
+import RequestMessagesPanel from '@/components/RequestMessagesPanel';
 import ModalShell from '@/components/ModalShell';
 import AuthedFilePreview from '@/components/AuthedFilePreview';
 
@@ -143,8 +142,7 @@ function EvaluationForm({
 
         <div className="flex flex-col gap-1.5 pt-4 border-t border-gray-100 dark:border-gray-700">
           <label className="trace-label">Discussion</label>
-          <DocumentChat documentId={selectedDoc.id} user={user} />
-          <RequestAttachments key={selectedDoc.id} documentId={selectedDoc.id} user={user} />
+          <div className="h-[70dvh] min-h-96"><RequestMessagesPanel initialDocumentId={selectedDoc.id} user={user} compact /></div>
         </div>
       </div>
     </div>

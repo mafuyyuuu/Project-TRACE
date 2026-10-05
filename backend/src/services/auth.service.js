@@ -1,3 +1,4 @@
+const { profileYearErrors } = require('../utils/profileYears');
 const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
@@ -329,6 +330,8 @@ async function updateProfile(userId, { phone_number, email, course, college_id, 
   const users = await userModel.getProfileById(userId);
   if (!users || users.length === 0) throw notFound('User not found.');
   const currentUser = users[0];
+  const yearErrors = profileYearErrors(profileFields, currentUser, { onlyProvided: true });
+  if (Object.keys(yearErrors).length) throw badRequest(Object.values(yearErrors)[0]);
   const academicDraft = { course, college_id, program };
   const academic = await programService.profileFields(currentUser, academicDraft);
 
@@ -410,11 +413,13 @@ async function updateProfile(userId, { phone_number, email, course, college_id, 
   }
 
   // Handle student profile fields (PROF-01)
-  const profileKeys = ['extension_name', 'birth_date', 'place_of_birth', 'sex', 'civil_status', 'maiden_name', 'home_address', 'last_attendance_year', 'is_transfer_student', 'previous_school', 'elem_school', 'elem_grad_year', 'jhs_school', 'jhs_grad_year', 'shs_school', 'shs_grad_year'];
+  const profileKeys = ['extension_name', 'birth_date', 'place_of_birth', 'sex', 'civil_status', 'maiden_name', 'home_address', 'graduation_year', 'last_attendance_year', 'is_transfer_student', 'previous_school', 'elem_school', 'elem_grad_year', 'jhs_school', 'jhs_grad_year', 'shs_school', 'shs_grad_year'];
   const hasProfileFields = profileKeys.some(key => profileFields[key] !== undefined);
   
   if (hasProfileFields) {
-    await userModel.upsertProfile(userId, profileFields);
+    // Preserve omitted saved values, especially historical attendance years.
+    const mergedProfile = Object.fromEntries(profileKeys.map(key => [key, profileFields[key] !== undefined ? profileFields[key] : currentUser[key]]));
+    await userModel.upsertProfile(userId, mergedProfile);
   }
 
   if (Object.keys(fields).length === 0 && !hasProfileFields && !emailChanged) {

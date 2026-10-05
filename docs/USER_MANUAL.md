@@ -74,18 +74,20 @@ TRACE records the automatic offer against your account. Skipping, logging out, r
 3. Select Save, review the confirmation and confirm.
 4. Check that the saved progress updates. Unsaved entries do not count toward completion.
 
-Required information includes phone, email, birth date, birthplace, sex, civil status, home address, and elementary, junior-high and senior-high schools with graduation years. Alumni supply their graduation year; transfer students supply Previous School; married female students supply a maiden name. Follow each marked tab's field hints for your account. Extension name and profile photo are optional. Program/Course is separate from College. In Personal Info, choose College first, then its active Registrar-approved Program/Course. Changing College clears the draft program. Save and confirm, then check the saved selections after reload. If no programs are available, ask Admin to add the approved catalog. Your recorded unlisted/inactive entries are preserved when saving other information.
+Required information includes phone, email, birth date, birthplace, sex, civil status, home address, and elementary, junior-high and senior-high schools with graduation years. Use Year Graduated for school years: enter four digits, no later than the current Manila year; older school years are allowed. PLP/College Year Graduated accepts 2002 through the current Manila year, is required for alumni and optional for current students. Last Attendance Year is a separate optional field; existing values are kept until you confirm their meaning, and are never automatically treated as graduation. Enter the confirmed college graduation year even if you already submitted a Graduate Application. Alumni supply their college graduation year; transfer students supply Previous School; married female students supply a maiden name. Follow each marked tab's field hints for your account. Extension name and profile photo are optional. Program/Course is separate from College. In Personal Info, choose College first, then its active Registrar-approved Program/Course. Changing College clears the draft program. Save and confirm, then check the saved selections after reload. If no programs are available, ask Admin to add the approved catalog. Your recorded unlisted/inactive entries are preserved when saving other information.
 
-**Change your photo:** select the camera on your avatar, choose an image, check the preview, then Save and confirm. Selecting an image does not upload it immediately. Your saved registration proof is available for viewing/downloading; this does not grant permission to replace it.
+**Change your photo:** select the camera on your avatar, choose an image, check the preview, then Save and confirm. Selecting an image does not upload it immediately.
+
+**View your registration proof:** in Edit Profile, select the framed thumbnail or **Preview** magnifying glass. The larger preview has **Download file**; **Download proof** is also available below the thumbnail. Close the preview or press Escape to return to the profile. The proof remains read-only.
 
 ### Verify your current email
 
 1. In **Edit Profile → Personal Info**, check **Email Address**.
 2. If it is not verified, select **Verify** beside the field.
 3. Open the email sent by TRACE and select the green **Verify Email** button.
-4. Return to TRACE and refresh. The email field should show **Verified**.
+4. On the result page, select **Return to TRACE** if signed in or **Back to Login** if signed out. Refresh TRACE after returning; the email field should show **Verified**.
 
-The link works once and expires after one hour. Check Spam/Junk if the email is missing; you can resend once per minute. Plain-text email readers show a link instead of a button. Sending a link does not save other profile drafts.
+The short guidance beside Email explains the request/payment requirement and one-hour expiry. Open **Verification help** for resend, refresh and ID-approval guidance. The link works once; check Spam/Junk if the email is missing and use **Verify** to resend after 60 seconds. Plain-text email readers show a link instead of a button. Sending a link does not save other profile drafts.
 
 ### Change your email
 
@@ -133,34 +135,32 @@ One payment covers the documents in that request group. Separate groups have sep
 
 For walk-ins, **CTC, 2nd Copy of COR, 2nd Copy of OGR and CAV** qualify for same-day handling when the original and a photocopy of the required document are presented. Evaluation, pricing, payment and release checks still apply.
 
-## 6. Message Window 1 and submit case attachments
+## 6. Get Support and submit case documents
 
-### Ask a general question
+### Ask for help
 
-1. Select the speech-bubble button at the bottom right of the student dashboard.
-2. Open **General support**.
-3. Type your question and select **Send**, or press Enter.
-4. Return to the conversation to read Window 1's reply.
+1. Open **Support** in navigation or the floating speech-bubble button.
+2. Choose **New ticket**, enter a subject and optionally link your own open document request. In the compact widget, expand **Support actions** to find New ticket; use **Tickets** to switch conversations.
+3. Read an approved suggested FAQ. Select **Helpful**, **Not helpful**, or **This resolved my question** explicitly. Helpful does not close the ticket.
+4. Choose **Talk to staff**, or send “human”, “live support” or “talk to staff”. The same ticket enters the Registrar queue with its history intact.
+5. Use **Message** and Send/Enter. Sending is immediate; wait for completion before retrying. A failed send keeps its draft/files. Only one unresolved general ticket is allowed; opening another returns to the existing one.
 
-General support does not require a filed request. New alumni must complete their Graduate Application first. Replies depend on staff availability; this is not an automated chat service.
+General tickets do not require a document request. New alumni still complete the Graduate Application before dashboard access. Request-linked tickets require ownership and verified email. Only the selected ticket is highlighted; older tickets/messages remain reachable through **Load older** controls, without Previous/Next pages.
 
-### Discuss an existing request
+### Live hours and waiting
 
-1. Open **Request conversations** in the chat panel, or **Messages & Attachments**.
-2. Select the request you want to discuss.
-3. Type in **Message to Window 1**, then select Send or press Enter.
-4. Check the conversation for replies and case-specific attachment instructions.
+Defaults are **Monday–Thursday, 8:00 AM–4:00 PM Asia/Manila**. Friday–Sunday and configured closed dates are outside live hours. FAQ access, ticket submission and history remain available; Window 1 live claims and replies pause. Queue position is retained when you leave. Declared available capacity is not a promise that a clerk is online. A wait range appears only with sufficient observed handling data and available capacity; otherwise TRACE says **Waiting for available staff**.
 
-Messages send immediately without a confirmation dialog. While sending, wait for the result. If sending fails, the draft remains and an inline error explains the failure.
+A clerk can explicitly request a reply. The default warning is at **3 service minutes**, timeout at **5**; clocks pause outside support hours. Timeout moves the ticket to **Awaiting student**, not Resolved, and frees the clerk. Your next message requeues the same ticket fairly at the tail. A resolved ticket can be reopened if its document case remains open and no other unresolved general ticket conflicts.
 
-### Submit an attachment requested by the Registrar
+### Files and case-specific requirements
 
-1. Open the request conversation and read the named requirement and instructions.
-2. Select the requested JPG, PNG or PDF, up to 10 MB.
-3. Submit and confirm the upload.
-4. Check whether staff accepts it or asks for resubmission with a reason.
+- **Attach files** sends up to **3 JPEG/PNG/PDF files per message, 5 MB each**, retained with ticket history. TRACE checks file contents; accepted types are not a malware-scan guarantee. Share only information relevant to the case. Downloads require an authorized account.
+- Authorized Registrar staff use the composer paperclip **Request supporting document**, choose an approved type and enter case instructions, then confirm. A general FAQ ticket alone grants no document-request rights.
+- The request appears as a system bubble showing document, instructions, requester and time. The student chooses **Upload file for [document]**, selects JPEG/PNG/PDF up to **10 MB**, and confirms. This case-upload allowance is separate from chat files.
+- Staff accept or reject with a correction reason. Rejected documents can be uploaded again. An explicit **Request replacement** preserves the original uploads/reviews and links the new requirement. **View upload and review history** shows retained events; older events load incrementally.
+- Completed, legacy Approved/Rejected and unknown document states are read-only. Authorized messages, files and recorded events remain available; cancellation retains linked ticket history. Awaiting student is a support state and does not mean the document case is closed.
 
-Requirements vary by case. An extra document is not required unless requested. Submitted/accepted files cannot simply be overwritten. These requirements do not automatically place the request on hold or create a new processing stage.
 
 ## 7. Set up security and larger text
 
@@ -191,7 +191,9 @@ Clerks and Admin can choose **Browser verification → Use shared-computer verif
 
 The header's theme button also switches light/dark mode. On phones, use the top-left menu for navigation. Long forms scroll inside their dialogs; wide tables/charts scroll inside their cards. Printed documents keep their original size.
 
-Navigation shows up to five destinations in **Main**, with daily work first. When your account has additional destinations, the four-square **More** button appears sixth and opens the remaining pages; choose **Back to main** to return. Accounts with five or fewer destinations show all their pages directly, including **Help / FAQ**, without More. Secretary's **Records & Export** and Finance's **Transactions & Export** remain in Main. **Preferences** and **Logout** are available in both sets and do not count toward the five destinations. Opening a direct link reveals the correct set and marks its current page. On a short screen you can scroll the navigation with touch, a wheel/trackpad or keyboard even though its scrollbar is hidden; Tab still reaches every control.
+Navigation shows up to six destinations in **Main**, with daily work first. When your account has additional destinations, the four-square **More** button appears seventh and opens the remaining pages; choose **Back to main** to return. Accounts with six or fewer destinations show all their pages directly, including **Help / FAQ**, without More. Secretary's **Records & Export** and Finance's **Transactions & OR Copies** remain in Main. **Preferences** and **Logout** are available in both sets and do not count toward the six destinations. Opening a direct link reveals the correct set and marks its current page. On a short screen you can scroll the navigation with touch, a wheel/trackpad or keyboard even though its scrollbar is hidden; Tab still reaches every control.
+
+Detail dialogs use a short entry and exit; page/tab switches use a brief fade and movement, and FAQ changes emphasize the same card. Operating-system reduced motion removes these movements. Focus and state changes remain immediate.
 
 Use Tab to move between controls, Enter/Space to activate them, and Escape to close eligible dialogs. Queue tabs support arrow keys, Home and End. Names, IDs, tracking numbers and notes can be selected and copied.
 
@@ -201,9 +203,10 @@ Use Tab to move between controls, Enter/Space to activate them, and Escape to cl
 - **Walk-ins:** use Manual Entry or the authorized scanning flow, review all entered/OCR values, then submit and confirm. Record original/photocopy checks for eligible same-day types.
 - **Release:** check the recorded OR and Secretary handoff, physically hand over the documents, then confirm release. A retained digital OR copy pending upload does not itself block release.
 - **Questions:** use Tracking Desk to inspect status. Select a student's linked name to view their saved profile.
-- **Messages:** open request conversations or General support, select the conversation and reply. Request extra case documents with clear instructions when needed.
+- **Support:** declare availability, claim the oldest ticket and reply. One live ticket per Window 1 clerk is enforced. Request case documents through the composer; explicitly request student replies, mark Awaiting student or resolve. Admin and Window 1 manage global Support settings and view Support analytics.
 - **Exports:** open **Reports & Export**, apply filters, select an export option and export.
-- **Submission QR:** the Online Submission QR opens TRACE signup; the tracking QR identifies an existing request. Record prior original issuance only after checking evidence and adding notes.
+- **Registration QR:** find the compact card directly below Upload Document. Choose Current student or Alumni, then let the applicant scan, use Open registration form or Download QR. Select Preview (or focus it and press Enter/Space) for a larger QR; Escape closes it and returns focus. Download permanent QR codes from the production site. This registration QR does not identify an existing request; the payment slip’s tracking QR does.
+- **Waiting:** intake uses the latest recorded entry into its queue, including a Secretary return; a note that keeps the same intake status does not restart the wait. Legacy records without an entry use their creation time. Labels refresh every minute and when returning to the page: minutes, hours, days from 24 hours, weeks from seven days. Missing/invalid timestamps show —; future clock skew shows < 1 min. These are elapsed waits, not promised processing deadlines.
 
 ## 9. College Secretary tasks
 
@@ -226,12 +229,12 @@ Choose **Export** beside the title. **Filtered document records (CSV)** uses the
 
 ## 10. Finance tasks
 
-1. Use **Awaiting Payment** for counter payments. Record the actual payment details, review the bill, then save and confirm. Logging a payment does not clear it.
+1. Open **Dashboard** for **Awaiting Payment** and **Verification Queue**. Transactions are a separate sidebar page. Use **Awaiting Payment** for counter payments. Record the actual payment details, review the bill, then save and confirm. Logging a payment does not clear it.
 2. Use **Verification Queue** to compare payment references and evidence against the actual payment records. OCR is an aid; check its output yourself.
 3. Confirm verified payment, or give a clear reason when rejecting it.
 4. Record the actual OR details, or choose **Later** when issuance must be deferred. Payment clearance sends an acknowledgment while the OR is pending.
 5. Use the receipt actions to issue/publish the actual OR with its number, issue date and digital copy. Give the physical receipt to Secretary for release with the document. Existing recorded OR numbers remain unchanged.
-6. Open **Transactions & Export** to filter cleared payments by date/receipt state and export CSV. Each request group appears once with its total. The view shows elapsed time awaiting an OR when a clearance timestamp exists.
+6. Open **Transactions & OR Copies** in the sidebar. Set **From**, **To** and **OR status**; both dates are inclusive and interpreted in Asia/Manila. Choose **Export** beside the title for filtered CSV. Each request group appears once with its total. **View OR** in Actions opens an available digital receipt through authenticated access. **Upload OR copy** means an OR number exists but its copy is pending; **Issue OR & upload** means issuance is pending. Existing Reports/Export links open this same page. The view shows elapsed time awaiting an OR when a clearance timestamp exists.
 
 New same-day OR issuance closes at **exactly 4:00 PM Manila time**. Deferred issuance is not a promised next-day deadline. Finance can upload a retained copy later without re-verifying an already cleared payment.
 
@@ -239,7 +242,7 @@ New same-day OR issuance closes at **exactly 4:00 PM Manila time**. Deferred iss
 
 ### Review registrations and accounts
 
-Open **Account Verification → Review**, inspect Applicant Type, proof and the recorded automatic-check reason, then confirm Verify or Reject. An OCR flag means text needs review; it does not establish that an ID is fake. Older accounts may have no recorded reason.
+Open **Account Verification → Review**, inspect Applicant Type, proof and the recorded automatic-check reason, then confirm Verify or Reject. Select **Preview** to enlarge the proof; download it from the card or preview. Press Escape to return to the review. An OCR flag means text needs review; it does not establish that an ID is fake. Older accounts may have no recorded reason.
 
 Use **System Maintenance → Accounts** to inspect profile photos/proofs, edit supported account fields and use authorized activation or staff controls. IDs remain read-only. Choose a linked student's name in request/report lists for their full saved profile.
 
@@ -275,7 +278,7 @@ Open **Security Logs** to review each event's timestamp, event name, account nam
 | An expired or used email link | Send a fresh link from Profile and open the newest email. |
 | New Request is blocked | Complete and save the exact fields listed, verify email, then try again. |
 | Registration proof is flagged | Read the review reason if available and contact the Registrar. OCR can miss genuine ID text; do not treat pending review as rejection. |
-| You cannot find the request message box | Select a request in Request conversations, then use **Message to Window 1** beneath its history. |
+| You cannot find the request message box | Open Support, select a ticket, and use **Message** at the bottom. Window 1 must claim its ticket to reply; closed histories have no send action. |
 | A profile is stuck loading | Choose **Retry loading profile** when the lookup fails. If it repeats, report the screen and error to Admin. |
 | Templates will not load | Use its retry action and report the visible error to the deployment operator. |
 | Two-factor setup is unavailable | Ask Admin to check the backend configuration and migrations. Never share QR secrets or recovery codes. |
