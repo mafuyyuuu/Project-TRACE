@@ -487,7 +487,7 @@ describe('ReportsPanel', () => {
   it.each(['Window 1', 'Secretary'])('keeps the header exports available to %s', async desk => {
     render(<ReportsPanel user={{ role: 'clerk', desk_assignment: desk }} currentTab="reports" />);
     const trigger = await screen.findByRole('button', { name: 'Export' });
-    expect(trigger.closest('.trace-page-header')).toContainElement(screen.getByRole('heading', { name: 'Reports & Export' }));
+    expect(trigger.closest('.trace-page-header')).toContainElement(screen.getByRole('heading', { name: desk === 'Secretary' ? 'Records & Export' : 'Reports & Export' }));
     expect(screen.queryByRole('combobox', { name: 'Export options' })).not.toBeInTheDocument();
     await userEvent.click(trigger);
     expect(screen.getByRole('group', { name: 'Export options' })).toContainElement(screen.getByRole('button', { name: 'All Students (CSV)' }));

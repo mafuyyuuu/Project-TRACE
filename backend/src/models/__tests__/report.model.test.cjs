@@ -13,3 +13,35 @@ it('returns every date-filtered staff workload row without paging the denominato
   expect(sql).not.toMatch(/\bLIMIT\b|\bOFFSET\b/i);
   expect(params).toEqual(['2026-10-01', '2026-10-05']);
 });
+
+it('uses the same parameterized college and cleared-status filters for lists, counts, summaries and exports', async () => {
+  const filters = { collegeId: 4, collegeName: 'College Four', statuses: ['READY_FOR_RELEASE', 'COMPLETED'], dateFrom: '2026-10-01', paymentStatus: 'PAID' };
+  const { where, params } = model.buildDocumentFilters(filters);
+  expect(where).toContain('d.current_status IN (?, ?)');
+  expect(where).toContain("scoped_student.role = 'student'");
+  expect(where).toContain('scoped_student.college_id = ?');
+  expect(where).toContain('scoped_student.college_id IS NULL AND scoped_student.course = ?');
+  expect(params).toEqual(['2026-10-01', 'READY_FOR_RELEASE', 'COMPLETED', 'PAID', 4, 'College Four']);
+  const executor = { query: vi.fn().mockResolvedValue([[{ total: 0 }]]) };
+  await model.listDocumentsForReport(filters, { limit: 25, offset: 25 }, executor);
+  await model.countDocumentsForReport(filters, executor);
+  await model.summariseDocuments(filters, executor);
+  await model.groupDocumentsBy('current_status', filters, executor);
+  executor.query.mock.calls.forEach(([sql, values], index) => {
+    expect(sql).toContain(where);
+    expect(values).toEqual(index === 0 ? [...params, 25, 25] : params);
+  });
+  expect(executor.query.mock.calls[0][0]).toContain('d.document_sequence_number');
+  expect(executor.query.mock.calls[0][0]).toContain('ORDER BY d.created_at DESC');
+});
+
+it('scopes legacy college names and student category exports without changing their category', async () => {
+  const filters = { collegeName: 'Legacy College' };
+  expect(model.buildDocumentFilters(filters).params).toEqual(['Legacy College']);
+  const executor = { query: vi.fn().mockResolvedValue([[]]) };
+  await model.listStudentsForExport('alumni', executor, filters);
+  const [sql, params] = executor.query.mock.calls[0];
+  expect(sql).toContain("u.enrollment_status = 'graduated'");
+  expect(sql).toContain('AND u.course = ?');
+  expect(params).toEqual(['Legacy College']);
+});

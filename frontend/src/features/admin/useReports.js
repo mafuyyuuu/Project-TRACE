@@ -1,4 +1,5 @@
 import useViewportPagination from '@/hooks/useViewportPagination';
+import { STATUS } from '@/utils/documentStatus';
 import { useState, useEffect, useCallback, useRef } from 'react';
 import {
   getDocumentReport,
@@ -13,6 +14,7 @@ const EMPTY_FILTERS = {
   status: '',
   documentType: '',
   paymentStatus: '',
+  recordSet: '',
 };
 
 /**
@@ -21,8 +23,8 @@ const EMPTY_FILTERS = {
  * Filters are held here and applied to the report, the CSV export and the
  * analytics alike, so what's exported always matches what's on screen.
  */
-export default function useReports(user, currentTab) {
-  const [filters, setFilters] = useState(EMPTY_FILTERS);
+export default function useReports(user, currentTab, initialRecordSet = '') {
+  const [filters, setFilters] = useState(() => ({ ...EMPTY_FILTERS, recordSet: initialRecordSet }));
   const [reportResult, setReportResult] = useState(null);
   const [analytics, setAnalytics] = useState(null);
   const [page, setPage] = useState(1);
@@ -99,7 +101,12 @@ export default function useReports(user, currentTab) {
   }, [load]);
 
   const updateFilter = useCallback((key, value) => {
-    setFilters((current) => ({ ...current, [key]: value }));
+    setFilters((current) => ({ ...current, [key]: value, ...(key === 'status' ? { recordSet: '' } : {}) }));
+  }, []);
+
+  const chooseRecordView = useCallback(view => {
+    setPage(1);
+    setFilters(current => ({ ...current, recordSet: view === 'cleared' ? 'secretary-cleared' : '', status: view === 'completed' ? STATUS.COMPLETED : '' }));
   }, []);
 
   const goToPage = useCallback(
@@ -152,7 +159,7 @@ export default function useReports(user, currentTab) {
 
   return {
     tableRef: pagination.containerRef,
-    filters, updateFilter, applyFilters, resetFilters,
+    filters, updateFilter, chooseRecordView, applyFilters, resetFilters,
     report, analytics, page, goToPage,
     loading, refreshing, exporting, error, success,
     dismissNotification,

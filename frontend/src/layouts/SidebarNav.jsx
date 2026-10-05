@@ -1,6 +1,6 @@
 import { useLayoutEffect, useRef, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { navGroupsForUser } from '@/utils/navigation';
+import { canonicalTabForUser, navGroupsForUser } from '@/utils/navigation';
 import useMotion from '@/hooks/useMotion';
 import useSidebarTooltip from '@/hooks/useSidebarTooltip';
 import SidebarTooltip from '@/components/SidebarTooltip';
@@ -52,7 +52,7 @@ function Icon({ name, className }) {
 
 export default function SidebarNav({
   user,
-  tab,
+  tab: requestedTab,
   revealTab,
   showLabels = false,
   onNavigate = () => {},
@@ -60,6 +60,7 @@ export default function SidebarNav({
   onLogout,
 }) {
   const groups = navGroupsForUser(user);
+  const tab = canonicalTabForUser(user, requestedTab);
   const location = useLocation();
   const activeGroup = groups.more.some(item => item.tab === tab) ? 'more' : 'main';
   const context = `${location.key}:${user?.id}:${user?.role}:${user?.desk_assignment}:${user?.user_type}:${tab}`;

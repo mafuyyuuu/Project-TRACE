@@ -26,10 +26,9 @@ function roleNavItems(user) {
   if (user?.role === 'clerk' && user?.desk_assignment === 'Secretary') {
     return [
       { tab: 'dashboard', to: '/dashboard', label: 'Dashboard', icon: 'dashboard' },
-      { tab: 'completed-logs', to: '/dashboard?tab=completed-logs', label: 'Completed Logs', icon: 'checklist' },
+      { tab: 'reports', to: '/dashboard?tab=reports', label: 'Records & Export', icon: 'report' },
       { tab: 'messages', to: '/dashboard?tab=messages', label: 'Messages & Attachments', icon: 'message' },
       { tab: 'grad-applications', to: '/dashboard?tab=grad-applications', label: 'Graduate Applications', icon: 'cap', group: 'more' },
-      { tab: 'reports', to: '/dashboard?tab=reports', label: 'Reports & Export', icon: 'report', group: 'more' },
     ];
   }
 
@@ -82,4 +81,9 @@ export function navGroupsForUser(user) {
     main: items.filter(item => item.group !== 'more'),
     more: items.filter(item => item.group === 'more'),
   };
+}
+
+/** Keep the old Secretary deep link active within the combined workspace. */
+export function canonicalTabForUser(user, tab) {
+  return user?.role === 'clerk' && user.desk_assignment === 'Secretary' && tab === 'completed-logs' ? 'reports' : tab;
 }

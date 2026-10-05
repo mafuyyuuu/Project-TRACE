@@ -4,7 +4,7 @@ import userEvent from '@testing-library/user-event';
 import { MemoryRouter, useLocation, useNavigate } from 'react-router-dom';
 
 import SidebarNav from '@/layouts/SidebarNav';
-import { navItemsForUser, navGroupsForUser } from '@/utils/navigation';
+import { canonicalTabForUser, navItemsForUser, navGroupsForUser } from '@/utils/navigation';
 
 const STUDENT = { id: 3, role: 'student' };
 const SECRETARY = { id: 4, role: 'clerk', desk_assignment: 'Secretary' };
@@ -39,7 +39,7 @@ describe('navItemsForUser', () => {
   it.each([
     ['student', STUDENT, ['dashboard', 'history', 'messages', 'help']],
     ['alumnus', ALUMNI, ['dashboard', 'history', 'messages', 'graduate-application', 'help']],
-    ['secretary', SECRETARY, ['dashboard', 'completed-logs', 'messages', 'grad-applications', 'reports', 'help']],
+    ['secretary', SECRETARY, ['dashboard', 'reports', 'messages', 'grad-applications', 'help']],
     ['window 1', WINDOW1, ['dashboard', 'tracking-desk', 'messages', 'reports', 'help']],
     ['finance', FINANCE, ['dashboard', 'reports', 'help']],
   ])('gives a %s their own tabs', (_label, user, expected) => {
@@ -85,6 +85,14 @@ describe('navItemsForUser', () => {
 });
 
 describe('SidebarNav', () => {
+  it('marks the combined Secretary workspace active for both old and current links', () => {
+    expect(canonicalTabForUser(ADMIN, 'completed-logs')).toBe('completed-logs');
+    expect(canonicalTabForUser(SECRETARY, 'completed-logs')).toBe('reports');
+    renderNav({ user: SECRETARY, tab: 'completed-logs', showLabels: true });
+    expect(screen.getByRole('link', { name: 'Records & Export' })).toHaveAttribute('aria-current', 'page');
+    expect(screen.queryByRole('link', { name: 'Completed Logs' })).not.toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Records & Export' })).toHaveAttribute('href', '/dashboard?tab=reports');
+  });
   it('labels every destination in drawer mode', () => {
     renderNav({ user: ALUMNI, showLabels: true });
     expect(screen.getByText('History')).toBeInTheDocument();

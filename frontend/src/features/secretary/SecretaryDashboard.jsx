@@ -40,7 +40,6 @@ export default function SecretaryDashboard({ user, currentTab, setViewImageUrl }
     processingQueue,
     orVerificationQueue,
     handoffQueue,
-    clearedQueue,
     clerkNotes,
     setClerkNotes,
     estimatedReadyDate,
@@ -82,7 +81,7 @@ export default function SecretaryDashboard({ user, currentTab, setViewImageUrl }
   const todayFormatted = todayLongDate();
 
   if (currentTab === 'messages') return <RequestMessagesPanel user={user} initialDocumentId={new URLSearchParams(window.location.search).get('document')} />;
-  if (currentTab === 'reports') return <ReportsPanel user={user} currentTab={currentTab} />;
+  if (['reports', 'completed-logs'].includes(currentTab)) return <ReportsPanel key={currentTab} user={user} currentTab="reports" initialRecordSet={currentTab === 'completed-logs' ? 'secretary-cleared' : ''} />;
   if (loading) return <DashboardLoading />;
 
   return (
@@ -410,61 +409,6 @@ export default function SecretaryDashboard({ user, currentTab, setViewImageUrl }
               </div>
             </div>
             )}
-          </>
-        )}
-
-        {/* 4.2. COLLEGE SECRETARY - COMPLETED LOGS */}
-        {currentTab === 'completed-logs' && (
-          <>
-            {/* Header */}
-            <div className="trace-page-header">
-              <div>
-                <h2 className="trace-page-title">
-                  Completed Logs
-                </h2>
-              </div>
-            </div>
-
-            {/* Completed Logs Table */}
-            <div className="trace-section overflow-hidden">
-              <div className="trace-section-header border-gray-100 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800/50">
-                <h3 className="font-bold text-gray-950 dark:text-gray-100 text-sm tracking-wider uppercase">COMPLETED LOGS</h3>
-              </div>
-              <div className="p-4 sm:p-6">
-                <div className="max-h-[calc(100vh-280px)] overflow-y-auto overflow-x-auto">
-                  {clearedQueue.length === 0 ? (
-                    <div className="text-center py-12 text-gray-400 dark:text-gray-400 font-medium">No completed evaluation logs found.</div>
-                  ) : (
-                    <table className="w-full text-left border-collapse table-fixed min-w-[680px]">
-                      <thead className="sticky top-0 bg-white dark:bg-gray-900 z-10">
-                        <tr className="text-gray-400 dark:text-gray-400 text-[10px] uppercase tracking-widest border-b border-gray-100 dark:border-gray-700">
-                          <th className="pb-4 font-bold pl-4">Date Approved</th>
-                          <th className="pb-4 font-bold">Document Details</th>
-                          <th className="pb-4 font-bold">Category</th>
-                          <th className="pb-4 font-bold">Status</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-gray-50 dark:divide-gray-700">
-                        {clearedQueue.map(doc => (
-                          <tr key={doc.id} className="hover:bg-gray-50/30 dark:hover:bg-gray-800/30">
-                            <td className="py-4 pl-4 text-xs font-semibold text-gray-400 dark:text-gray-400">{new Date(doc.updated_at).toLocaleDateString()} {new Date(doc.updated_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</td>
-                            <td className="py-4">
-                              <Button type="button" disabled={!doc.student_id} onClick={() => setViewProfileId(doc.student_id)} className="trace-action font-bold text-blue-700 dark:text-blue-300 hover:underline text-left focus-visible:ring-2 focus-visible:ring-blue-500">{doc.student_name || 'Unknown Student'}</Button>
-                              <div className="text-xs font-mono text-gray-400 dark:text-gray-400 mt-0.5">#{doc.tracking_number ? doc.tracking_number.slice(0, 10).toUpperCase() : doc.id}</div>
-                            </td>
-                            <td className="py-4 text-xs font-bold text-gray-600 dark:text-gray-300">{doc.document_sequence_number || doc.document_type}</td>
-                            <td className="py-4">
-                              <span className="px-3 py-1 bg-emerald-50 dark:bg-emerald-950/40 text-[#15803d] dark:text-green-300 text-[10px] font-black rounded-full uppercase tracking-wider">APPROVED</span>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  )}
-
-                </div>
-              </div>
-            </div>
           </>
         )}
 

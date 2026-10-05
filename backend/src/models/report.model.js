@@ -29,7 +29,14 @@ const SQL_REJECTED = `'${LEGACY_STATUS.REJECTED}'`;
  * Column names are fixed strings; only values are parameterised, so no user
  * input ever reaches the SQL text.
  */
-function buildDocumentFilters({ dateFrom, dateTo, status, documentType, paymentStatus, studentId } = {}) {
+function collegeScope({ collegeId, collegeName } = {}, alias) {
+  // Alias is supplied only by this model's fixed SQL, never by a request.
+  if (collegeId) return { condition: `(${alias}.college_id = ? OR (${alias}.college_id IS NULL AND ${alias}.course = ?))`, params: [collegeId, collegeName || null] };
+  if (collegeName) return { condition: `${alias}.course = ?`, params: [collegeName] };
+  return { condition: '', params: [] };
+}
+
+function buildDocumentFilters({ dateFrom, dateTo, status, statuses, documentType, paymentStatus, studentId, collegeId, collegeName } = {}) {
   const conditions = [];
   const params = [];
 
@@ -45,6 +52,9 @@ function buildDocumentFilters({ dateFrom, dateTo, status, documentType, paymentS
   if (status) {
     conditions.push('d.current_status = ?');
     params.push(status);
+  } else if (statuses?.length) {
+    conditions.push(`d.current_status IN (${statuses.map(() => '?').join(', ')})`);
+    params.push(...statuses);
   }
   if (documentType) {
     conditions.push('d.document_type = ?');
@@ -59,6 +69,12 @@ function buildDocumentFilters({ dateFrom, dateTo, status, documentType, paymentS
     params.push(studentId);
   }
 
+  const scope = collegeScope({ collegeId, collegeName }, 'scoped_student');
+  if (scope.condition) {
+    conditions.push(`d.student_id IN (SELECT scoped_student.student_id FROM users scoped_student WHERE scoped_student.role = 'student' AND ${scope.condition})`);
+    params.push(...scope.params);
+  }
+
   return { where: conditions.length ? ` WHERE ${conditions.join(' AND ')}` : '', params };
 }
 
@@ -67,7 +83,7 @@ function listDocumentsForReport(filters, { limit = 1000, offset = 0 } = {}, exec
   return executor
     .query(
       `SELECT d.id, d.tracking_number, d.request_group_id, d.student_id, d.student_name,
-              d.document_type, d.current_status, d.payment_status, d.amount, d.copies,
+              d.document_type, d.document_sequence_number, d.current_status, d.payment_status, d.amount, d.copies,
               d.created_at, d.updated_at, u.course
        FROM documents d
        LEFT JOIN users u ON u.student_id = d.student_id${where}
@@ -129,7 +145,7 @@ function groupDocumentsBy(column, filters, executor = pool) {
  *  - alumni    : graduated
  *  - others    : dropped out or transferred (former students)
  */
-function listStudentsForExport(bucket, executor = pool) {
+function listStudentsForExport(bucket, executor = pool, filters = {}) {
   const BUCKETS = {
     active: "u.enrollment_status = 'active'",
     alumni: "u.enrollment_status = 'graduated'",
@@ -138,6 +154,7 @@ function listStudentsForExport(bucket, executor = pool) {
   };
   const clause = BUCKETS[bucket];
   if (!clause) throw new Error(`Unknown export bucket: ${bucket}`);
+  const scope = collegeScope(filters, 'u');
 
   return executor
     .query(
@@ -148,9 +165,10 @@ function listStudentsForExport(bucket, executor = pool) {
               SUM(d.current_status = ${SQL_COMPLETED}) AS completed_requests
        FROM users u
        LEFT JOIN documents d ON d.student_id = u.student_id
-       WHERE u.role = 'student' AND ${clause}
+       WHERE u.role = 'student' AND ${clause}${scope.condition ? ` AND ${scope.condition}` : ''}
        GROUP BY u.id
-       ORDER BY u.full_name`
+       ORDER BY u.full_name`,
+      scope.params
     )
     .then(([rows]) => rows);
 }

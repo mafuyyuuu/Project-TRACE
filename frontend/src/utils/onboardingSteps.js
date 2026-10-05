@@ -37,9 +37,8 @@ const WINDOW1_STEPS = [PROFILE, SECURITY,
   nav('tracking-desk', 'Tracking Desk', 'Find a submitted request by its tracking number or scan its TRACE submission QR. Open its details to check its current stage before directing the student.'),
   MESSAGES, REPORTS, UPDATES, HELP];
 const SECRETARY_STEPS = [PROFILE, SECURITY,
-  queue('Open the request you are processing. Enter actual printed pages where required; Admin manages rates and TRACE calculates the final breakdown. Confirm the charge and handoff only after reviewing the documents. Completed Logs keeps finished work separate.'),
-  nav('completed-logs', 'Completed Logs', 'Review your completed requests and their recorded outcomes without changing the current queue.'),
-  MESSAGES, nav('grad-applications', 'Graduate Applications', 'Open an application to review the submitted alumni information, then use the available confirmed decision controls.'), REPORTS, UPDATES, HELP];
+  queue('Open the request you are processing. Enter actual printed pages where required; Admin manages rates and TRACE calculates the final breakdown. Confirm the charge and handoff only after reviewing the documents. Records & Export includes a Secretary-cleared filter for work handed to Window 1 or released.'),
+  MESSAGES, nav('grad-applications', 'Graduate Applications', 'Open an application to review the submitted alumni information, then use the available confirmed decision controls.'), nav('reports', 'Records & Export', 'Review your assigned college records. Secretary-cleared includes Ready for Pick-up and Completed; choose Completed only for released records. Review filters before exporting.'), UPDATES, HELP];
 const FINANCE_STEPS = [PROFILE, SECURITY,
   queue('Review the final bill and submitted payment proof against Finance records before verifying payment. A payment acknowledgment is separate from the Official Receipt. If the OR is deferred, watch its elapsed waiting time and issue it when ready. Payments at or after 4:00 PM Manila time have no same-day OR.'),
   nav('reports', 'Transactions & Export', 'Open the Finance transaction report, choose filters and export the matching payment records. Check totals and receipt details before using the export.'), UPDATES, HELP];

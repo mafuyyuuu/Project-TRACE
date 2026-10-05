@@ -111,3 +111,44 @@ it('preserves paging, Apply/Reset and category-wide student exports', async () =
   await act(async () => result.current.downloadStudents('alumni'));
   expect(service.exportStudentsCsv).toHaveBeenCalledWith('alumni');
 });
+
+it('loads the legacy Secretary-cleared view and keeps export, paging and explicit Completed-only filters aligned', async () => {
+  const secretary = { role: 'clerk', desk_assignment: 'Secretary' };
+  service.getDocumentReport.mockImplementation(async filters => data('Secretary record', 60, filters.page));
+  const { result } = renderHook(() => useReports(secretary, 'reports', 'secretary-cleared'));
+  await waitFor(() => expect(result.current.report).not.toBeNull());
+  expect(service.getDocumentReport).toHaveBeenLastCalledWith({ recordSet: 'secretary-cleared', page: 1, limit: 25 });
+  act(() => result.current.goToPage(2));
+  await waitFor(() => expect(result.current.report?.page).toBe(2));
+  await act(async () => result.current.downloadDocuments());
+  expect(service.exportDocumentsCsv).toHaveBeenLastCalledWith({ recordSet: 'secretary-cleared' });
+  act(() => result.current.chooseRecordView('completed'));
+  await waitFor(() => expect(result.current.report?.page).toBe(1));
+  expect(service.getDocumentReport).toHaveBeenLastCalledWith({ status: STATUS.COMPLETED, page: 1, limit: 25 });
+  act(() => result.current.chooseRecordView('all'));
+  await waitFor(() => expect(result.current.report).not.toBeNull());
+  expect(service.getDocumentReport).toHaveBeenLastCalledWith({ page: 1, limit: 25 });
+  act(() => result.current.chooseRecordView('cleared'));
+  act(() => result.current.updateFilter('status', STATUS.SEC_PROCESSING));
+  await waitFor(() => expect(result.current.report).not.toBeNull());
+  expect(service.getDocumentReport).toHaveBeenLastCalledWith({ status: STATUS.SEC_PROCESSING, page: 1, limit: 25 });
+});
+
+it('preserves Secretary record fields and profile actions in the combined workspace', async () => {
+  const user = userEvent.setup();
+  const record = data('College Student', 2);
+  record.documents[0] = { ...record.documents[0], student_id: 'SYNTHETIC-STUDENT', document_sequence_number: 'Diploma – Request No. 2', document_type: 'Diploma', current_status: STATUS.READY_FOR_RELEASE, payment_status: 'PAID', created_at: '2026-10-01T00:00:00Z', updated_at: '2026-10-02T00:00:00Z' };
+  service.getDocumentReport.mockResolvedValue(record);
+  render(<ReportsPanel user={{ role: 'clerk', desk_assignment: 'Secretary' }} currentTab="reports" initialRecordSet="secretary-cleared" />);
+  await screen.findByRole('heading', { name: 'Records & Export' });
+  expect(screen.getByRole('button', { name: 'Secretary-cleared' })).toHaveAttribute('aria-pressed', 'true');
+  expect(screen.getByText('Diploma – Request No. 2')).toBeInTheDocument();
+  expect(screen.getByText('Ready for Pick-up', { selector: 'tbody span' })).toBeInTheDocument();
+  expect(screen.getByRole('button', { name: 'College Student' })).toBeEnabled();
+  expect(screen.getAllByRole('columnheader')).toHaveLength(8);
+  await user.click(screen.getByRole('button', { name: 'Completed only' }));
+  await waitFor(() => expect(service.getDocumentReport).toHaveBeenLastCalledWith(expect.objectContaining({ status: STATUS.COMPLETED })));
+  expect(screen.getByRole('button', { name: 'Completed only' })).toHaveAttribute('aria-pressed', 'true');
+  await user.click(screen.getByRole('button', { name: 'Export' }));
+  expect(screen.getByRole('group', { name: 'Export options' }).querySelectorAll('button')).toHaveLength(5);
+});

@@ -38,10 +38,12 @@ vi.mock('@/services/authService', () => ({
 
 vi.mock('@/services/reportsService', () => ({
   getAnalytics: vi.fn().mockResolvedValue({}),
+  getDocumentReport: vi.fn(), exportStudentsCsv: vi.fn(), exportDocumentsCsv: vi.fn(),
 }));
 
 import * as documentsService from '@/services/documentsService';
 import * as authService from '@/services/authService';
+import * as reportsService from '@/services/reportsService';
 import api from '@/services/api';
 
 import StudentDashboard from '@/features/student/StudentDashboard';
@@ -420,4 +422,22 @@ describe('Admin Templates tab', () => {
       content: 'Email content', font_family: 'serif', font_size: '14px',
     }));
   });
+});
+
+
+it('keeps the old Secretary Completed Logs tab as a cleared-records alias, with the profile action and full report available', async () => {
+  const record = { ...DOC, current_status: STATUS.READY_FOR_RELEASE, document_sequence_number: 'Transcript of Records – Request No. 2' };
+  reportsService.getDocumentReport.mockResolvedValue({ documents: [record], page: 1, totalPages: 1, total: 1, summary: { total: 1, completed: 0, rejected: 0, paid: 0, revenue: 0 } });
+  authService.lookupStudent.mockResolvedValue({ student: { ...USERS.student, course: 'Synthetic College' } });
+  const { rerender } = render(<SecretaryDashboard user={USERS.secretary} currentTab="completed-logs" />);
+  await screen.findByText(record.document_sequence_number);
+  expect(screen.getByRole('heading', { name: 'Records & Export' })).toBeInTheDocument();
+  expect(reportsService.getDocumentReport).toHaveBeenLastCalledWith({ recordSet: 'secretary-cleared', page: 1, limit: 25 });
+  expect(screen.getByRole('button', { name: 'Secretary-cleared' })).toHaveAttribute('aria-pressed', 'true');
+  expect(screen.getAllByRole('columnheader')).toHaveLength(8);
+  await userEvent.click(screen.getByRole('button', { name: DOC.student_name }));
+  await waitFor(() => expect(authService.lookupStudent).toHaveBeenCalledWith(DOC.student_id, expect.anything()));
+  rerender(<SecretaryDashboard user={USERS.secretary} currentTab="reports" />);
+  await waitFor(() => expect(reportsService.getDocumentReport).toHaveBeenLastCalledWith({ page: 1, limit: 25 }));
+  expect(screen.getByRole('button', { name: 'All records' })).toHaveAttribute('aria-pressed', 'true');
 });

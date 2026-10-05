@@ -189,7 +189,7 @@ Clerks and Admin can choose **Browser verification → Use shared-computer verif
 
 The header's theme button also switches light/dark mode. On phones, use the top-left menu for navigation. Long forms scroll inside their dialogs; wide tables/charts scroll inside their cards. Printed documents keep their original size.
 
-Navigation has **Main** for daily work and **More** for secondary destinations. Choose the four-square **More** button for logs, reports, templates and **Help / FAQ** available to your role; Finance's **Transactions & Export** remains in Main. Choose **Back to main** to return. **Preferences** and **Logout** are available in both sets. Opening a direct link reveals the correct set and marks its current page. On a short screen you can scroll the navigation with touch, a wheel/trackpad or keyboard even though its scrollbar is hidden; Tab still reaches every control.
+Navigation has **Main** for daily work and **More** for secondary destinations. Choose the four-square **More** button for secondary destinations and **Help / FAQ** available to your role. Secretary's **Records & Export** and Finance's **Transactions & Export** remain in Main. Choose **Back to main** to return. **Preferences** and **Logout** are available in both sets. Opening a direct link reveals the correct set and marks its current page. On a short screen you can scroll the navigation with touch, a wheel/trackpad or keyboard even though its scrollbar is hidden; Tab still reaches every control.
 
 Use Tab to move between controls, Enter/Space to activate them, and Escape to close eligible dialogs. Queue tabs support arrow keys, Home and End. Names, IDs, tracking numbers and notes can be selected and copied.
 
@@ -212,7 +212,15 @@ Use Tab to move between controls, Enter/Space to activate them, and Escape to cl
 5. In **OR Verification**, inspect the physical OR or uploaded copy and check its number. If the digital copy is pending, record the physical inspection acknowledgment before confirming.
 6. In **Final Handoff**, pass the printed document to Window 1 and confirm the handoff.
 
-Receipt verification and handoff are separate actions. Finance alone clears payment. Use request messaging for corrections and **Reports & Export** for authorized exports.
+Receipt verification and handoff are separate actions. Finance alone clears payment. Use request messaging for corrections. Open **Records & Export** in Main to review your assigned college's records:
+
+- **All records** shows all statuses within the other filters.
+- **Secretary-cleared** shows **Ready for Pick-up** and **Completed**. Old Completed Logs links open this view.
+- **Completed only** shows released documents. You can also select any individual status in Filters.
+
+The page keeps Filters, summary cards and Records in that order. Records show requested/updated dates, full tracking numbers, clickable student names, document request labels, actual statuses, payment and amounts. Scroll inside the table on narrow screens and use its page controls for more records. **Last Updated** is the recorded update time, not a separate approval timestamp.
+
+Choose **Export** beside the title. **Filtered document records (CSV)** uses the current document filters; the four student CSV options use their account categories. Every Secretary export is limited to the assigned college. An account without a college assignment must ask Admin to correct its assignment before viewing or exporting records.
 
 ## 10. Finance tasks
 

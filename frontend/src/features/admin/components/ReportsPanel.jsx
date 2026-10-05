@@ -7,7 +7,7 @@ import { formatDateTime } from '@/utils/formatters';
 import useReports from '@/features/admin/useReports';
 import DashboardLoading from '@/components/DashboardLoading';
 import DashboardAlerts from '@/components/DashboardAlerts';
-import { getStatusLabel, getStatusTone, PIPELINE, LEGACY_STATUS } from '@/utils/documentStatus';
+import { getStatusLabel, getStatusTone, PIPELINE, LEGACY_STATUS, STATUS } from '@/utils/documentStatus';
 import { formatPeso } from '@/utils/pricing';
 
 // The live pipeline, plus the terminals only pre-refactor records can hold —
@@ -47,8 +47,9 @@ function StatCard({ label, value, tone = 'default' }) {
  * export — so what the Registrar downloads always matches what they are looking
  * at.
  */
-export default function ReportsPanel({ user, currentTab }) {
-  const { tableRef, ...r } = useReports(user, currentTab);
+export default function ReportsPanel({ user, currentTab, initialRecordSet = '' }) {
+  const { tableRef, ...r } = useReports(user, currentTab, initialRecordSet);
+  const isSecretary = user?.role === 'clerk' && user.desk_assignment === 'Secretary';
   const [viewProfileId, setViewProfileId] = useState(null);
   const filtersId = useId();
   const recordsId = useId();
@@ -67,10 +68,10 @@ export default function ReportsPanel({ user, currentTab }) {
         <div className="trace-page-header">
           <div className="flex-1">
             <h2 className="trace-page-title">
-              Reports & <span className="text-[#15803d] dark:text-green-300">Export</span>
+              {isSecretary ? 'Records' : 'Reports'} & <span className="text-[#15803d] dark:text-green-300">Export</span>
             </h2>
             <p className="trace-page-description">
-              Filter records, review the totals, and export to CSV.
+              {isSecretary ? 'Review records for your assigned college, including cleared requests, and export to CSV.' : 'Filter records, review the totals, and export to CSV.'}
             </p>
           </div>
           <div className="ml-auto">
@@ -79,6 +80,16 @@ export default function ReportsPanel({ user, currentTab }) {
               onSelect={key => key === 'documents' ? r.downloadDocuments() : r.downloadStudents(key)} />
           </div>
         </div>
+
+        {isSecretary && <div className="flex flex-wrap gap-3" role="group" aria-label="Record views">
+          {[['all', 'All records'], ['cleared', 'Secretary-cleared'], ['completed', 'Completed only']].map(([view, label]) => {
+            const selected = view === 'cleared' ? r.filters.recordSet === 'secretary-cleared'
+              : view === 'completed' ? r.filters.status === STATUS.COMPLETED
+              : !r.filters.recordSet && !r.filters.status;
+            return <Button key={view} type="button" aria-pressed={selected} onClick={() => r.chooseRecordView(view)} className={`trace-tab ${selected ? 'bg-[#15803d] text-white' : 'bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700'}`}>{label}</Button>;
+          })}
+          <p className="w-full text-xs text-gray-500 dark:text-gray-400">Secretary-cleared includes Ready for Pick-up and Completed. All exports are limited to your assigned college; student exports use their category rather than the document filters.</p>
+        </div>}
 
         {/* Filters */}
         <section className="trace-section trace-section-body" aria-labelledby={filtersId}>
@@ -98,7 +109,7 @@ export default function ReportsPanel({ user, currentTab }) {
               <label className="trace-label">Status</label>
               <select className={`${inputClass} cursor-pointer`} value={r.filters.status}
                 onChange={(e) => r.updateFilter('status', e.target.value)}>
-                <option value="">All statuses</option>
+                <option value="">{r.filters.recordSet ? 'Secretary-cleared' : 'All statuses'}</option>
                 {STATUSES.map((s) => <option key={s} value={s}>{getStatusLabel(s)}</option>)}
               </select>
             </div>
@@ -176,7 +187,7 @@ export default function ReportsPanel({ user, currentTab }) {
                       <Button type="button" disabled={!d.student_id} onClick={() => setViewProfileId(d.student_id)} className="trace-action text-xs font-bold text-blue-700 dark:text-blue-300 hover:underline select-text break-words text-left focus-visible:ring-2 focus-visible:ring-blue-500">{d.student_name || '—'}</Button>
                       <div className="text-[10px] text-gray-400 dark:text-gray-400 font-mono select-text break-words">{d.student_id || '—'}</div>
                     </td>
-                    <td className="py-3 pr-2 break-words text-xs text-gray-600 dark:text-gray-300">{d.document_type || '—'}</td>
+                    <td className="py-3 pr-2 break-words text-xs text-gray-600 dark:text-gray-300">{d.document_type || '—'}{isSecretary && d.document_sequence_number && <div className="mt-1 font-semibold">{d.document_sequence_number}</div>}</td>
                     <td className="py-3 pr-2 break-words text-xs"><span className={`inline-flex max-w-full rounded-full px-2 py-1 font-semibold ${getStatusTone(d.current_status)}`}>{getStatusLabel(d.current_status)}</span></td>
                     <td className="py-3">
                       <span className={`text-[10px] font-bold px-2 py-1 rounded-full ${
