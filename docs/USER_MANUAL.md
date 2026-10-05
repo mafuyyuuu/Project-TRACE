@@ -68,11 +68,11 @@ TRACE records the automatic offer against your account. Skipping, logging out, r
 ### Save your information
 
 1. Select your avatar to open **Edit Profile**.
-2. Complete **Personal Info** and educational information. The progress bar and missing-field indicators show what remains.
+2. Complete **Personal Info** and **Educational Background**. An exclamation marker identifies a tab with missing required information; open it to see concise **Required** hints beside its fields. Hints and draft progress update as you edit.
 3. Select Save, review the confirmation and confirm.
 4. Check that the saved progress updates. Unsaved entries do not count toward completion.
 
-Required information includes phone, email, birth date, birthplace, sex, civil status, home address, and elementary, junior-high and senior-high schools with graduation years. Alumni supply their graduation year; transfer students supply Previous School; married female students supply a maiden name. Follow the missing-field list for your account. Extension name and profile photo are optional. Program/Course is separate from College.
+Required information includes phone, email, birth date, birthplace, sex, civil status, home address, and elementary, junior-high and senior-high schools with graduation years. Alumni supply their graduation year; transfer students supply Previous School; married female students supply a maiden name. Follow each marked tab's field hints for your account. Extension name and profile photo are optional. Program/Course is separate from College.
 
 **Change your photo:** select the camera on your avatar, choose an image, check the preview, then Save and confirm. Selecting an image does not upload it immediately. Your saved registration proof is available for viewing/downloading; this does not grant permission to replace it.
 

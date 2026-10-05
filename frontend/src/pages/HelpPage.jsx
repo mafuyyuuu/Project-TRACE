@@ -16,6 +16,7 @@ export default function HelpPage({ user }) {
     ['What does a new-browser alert mean?', 'TRACE recognized a browser that has not previously signed in to your account. Open Security to review activity. If you do not recognize the login, contact the Registrar immediately.'],
   ];
   if (user?.role === 'student') entries.unshift(
+    ['How do I find missing profile information?', 'Open your avatar → Edit Profile. Personal Info and Educational Background show an exclamation marker when required information is missing. Open each marked tab and follow the Required hints beside its fields; hints update as you type. Save and confirm to persist your changes. Requests use the saved profile, so filling the draft alone does not unlock them.'],
     ['Are Good Moral certificates available?', 'Good Moral certificates are no longer available for new requests. Earlier requests and their records remain accessible.'],
     ['What is the Diploma reissue fee?', 'The default is ₱250. Admin may configure a different fee, and the Secretary sets the final amount before payment.'],
     ['How do I request and track documents?', 'Choose New Request. If your saved profile is incomplete, use Complete Profile in the missing-field popup, fill the required fields and confirm Save. Select the available document types and complete their fields. TOR asks Year Started/Year Ended. Filing shows rates only; the final pricing breakdown appears on your dashboard. Confirm submission. Use Live Track to see the current processing stage; History includes request and payment records.'],

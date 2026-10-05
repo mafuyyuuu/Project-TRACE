@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
+import { useState } from 'react';
 
 vi.mock('@/services/api', () => ({
   default: { get: vi.fn(() => new Promise(() => {})), post: vi.fn() },
@@ -41,6 +42,19 @@ const baseProps = {
 
 const renderModal = (overrides = {}) => render(<ProfileSettingsModal {...baseProps} {...overrides} />);
 
+const completeProfile = {
+  ...baseProps.profileData, birth_date: '2000-01-01', place_of_birth: 'City', sex: 'Male',
+  civil_status: 'Single', home_address: 'Address', maiden_name: '', extension_name: '',
+  elem_school: 'Elementary', elem_grad_year: '2012', jhs_school: 'Junior High', jhs_grad_year: '2016',
+  shs_school: 'Senior High', shs_grad_year: '2018', is_transfer_student: false, previous_school: '', last_attendance_year: '',
+};
+
+function DraftProfile({ draft, user = STUDENT, ...props }) {
+  const [profileData, setProfileData] = useState(draft);
+  return <ProfileSettingsModal {...baseProps} {...props} user={{ ...user, email: completeProfile.email }}
+    profileData={profileData} setField={(field, value) => setProfileData(current => ({ ...current, [field]: value }))} />;
+}
+
 beforeEach(() => {
   vi.clearAllMocks();
   localStorage.clear();
@@ -48,6 +62,73 @@ beforeEach(() => {
 });
 
 describe('ProfileSettingsModal', () => {
+  it('shows only the rendered tab\'s associated field warnings while keeping accessible tab indicators', () => {
+    render(<DraftProfile draft={{ ...completeProfile, birth_date: '', elem_school: '' }} />);
+    expect(screen.queryByText(/Still needed:/)).not.toBeInTheDocument();
+    expect(screen.getByLabelText(/Birth Date/)).toHaveAccessibleDescription('Required: Birth Date.');
+    expect(screen.queryByText('Required: Elementary School.')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Personal Info.*Required information missing/ })).toHaveAttribute('aria-pressed', 'true');
+    const education = screen.getByRole('button', { name: /Educational Background.*Required information missing/ });
+    fireEvent.click(education);
+    expect(education).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByLabelText(/Elementary School/)).toHaveAccessibleDescription('Required: Elementary School.');
+    expect(screen.queryByText('Required: Birth Date.')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: /^Security$/ }));
+    expect(screen.queryByText(/^Required:/)).not.toBeInTheDocument();
+  });
+
+  it('updates warnings, tab indicators and completion from edits without a save', () => {
+    render(<DraftProfile draft={{ ...completeProfile, birth_date: '', elem_school: '' }} />);
+    const birth = screen.getByLabelText(/Birth Date/);
+    fireEvent.change(birth, { target: { value: '2000-01-01' } });
+    expect(birth).not.toHaveAttribute('aria-describedby');
+    expect(screen.getByRole('button', { name: /^Personal Info$/ })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: /Educational Background/ }));
+    const school = screen.getByLabelText(/Elementary School/);
+    fireEvent.change(school, { target: { value: 'Completed School' } });
+    expect(screen.getByRole('button', { name: /^Educational Background$/ })).toBeInTheDocument();
+    expect(screen.getByText('100%')).toBeInTheDocument();
+    expect(screen.queryByText(/^Required:/)).not.toBeInTheDocument();
+    fireEvent.change(school, { target: { value: '  ' } });
+    expect(school).toHaveAccessibleDescription('Required: Elementary School.');
+    expect(screen.getByRole('button', { name: /Educational Background.*Required information missing/ })).toBeInTheDocument();
+    expect(baseProps.onSave).not.toHaveBeenCalled();
+  });
+
+  it('keeps conditional alumni, maiden-name and transfer-school warnings in their owning tabs', () => {
+    render(<DraftProfile user={{ ...STUDENT, user_type: 'alumni' }}
+      draft={{ ...completeProfile, sex: 'Female', civil_status: 'Married', is_transfer_student: true }} />);
+    expect(screen.getByLabelText(/Maiden Name/)).toHaveAccessibleDescription('Required: Maiden Name.');
+    expect(screen.queryByText('Required: Previous School.')).not.toBeInTheDocument();
+    expect(screen.queryByText('Required: Graduation Year.')).not.toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText(/Civil Status/), { target: { value: 'Single' } });
+    expect(screen.queryByLabelText(/Maiden Name/)).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /^Personal Info$/ })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: /Educational Background/ }));
+    expect(screen.getByLabelText(/^Graduation Year/)).toHaveAccessibleDescription('Required: Graduation Year.');
+    expect(screen.getByLabelText(/Previous School/)).toHaveAccessibleDescription('Required: Previous School.');
+    fireEvent.change(screen.getByLabelText('Transfer Student?'), { target: { value: 'no' } });
+    expect(screen.queryByText('Required: Previous School.')).not.toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText(/^Graduation Year/), { target: { value: '2024' } });
+    expect(screen.getByRole('button', { name: /^Educational Background$/ })).toBeInTheDocument();
+  });
+
+  it('retains native required validation, partial-profile confirmation and server save feedback', async () => {
+    const onSave = vi.fn().mockResolvedValue(false);
+    render(<DraftProfile draft={{ ...completeProfile, birth_date: '', elem_school: '' }} onSave={onSave} error="Profile could not be saved." />);
+    fireEvent.click(screen.getByRole('button', { name: 'Save Profile' }));
+    expect(screen.queryByRole('dialog', { name: 'Confirm Profile Save' })).not.toBeInTheDocument();
+    expect(onSave).not.toHaveBeenCalled();
+    fireEvent.change(screen.getByLabelText(/Birth Date/), { target: { value: '2000-01-01' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Save Profile' }));
+    const confirmation = screen.getByRole('dialog', { name: 'Confirm Profile Save' });
+    expect(confirmation).toHaveTextContent('Profile could not be saved.');
+    expect(onSave).not.toHaveBeenCalled();
+    fireEvent.click(within(confirmation).getByRole('button', { name: 'Save Profile' }));
+    await waitFor(() => expect(onSave).toHaveBeenCalledOnce());
+    expect(confirmation).toBeInTheDocument();
+  });
+
   it.each([['Trace_2026', true], ['weak_pass', false]])('checks replacement password before opening Save confirmation: %s', (password, allowed) => {
     renderModal({ initialTab: 'security', profileData: { ...baseProps.profileData, password } });
     fireEvent.submit(document.getElementById('profile-settings-form'));

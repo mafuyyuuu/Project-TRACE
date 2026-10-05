@@ -259,6 +259,8 @@ it('opens Edit Profile directly from the incomplete-request action', () => {
   renderLayout();
   act(() => window.dispatchEvent(new CustomEvent('open-profile-settings')));
   expect(screen.getByRole('dialog', { name: 'Edit Profile' })).toBeInTheDocument();
-  expect(screen.getByText(/Still needed:/)).toHaveTextContent('Birth Date');
-  expect(screen.getByText('Personal Info')).toBeInTheDocument();
+  expect(screen.getByLabelText(/Birth Date/)).toHaveAccessibleDescription('Required: Birth Date.');
+  expect(screen.getByRole('button', { name: /Personal Info.*Required information missing/ })).toHaveAttribute('aria-pressed', 'true');
+  expect(screen.queryByText(/Still needed:/)).not.toBeInTheDocument();
+  expect(screen.queryByText('Required: Elementary School.')).not.toBeInTheDocument();
 });

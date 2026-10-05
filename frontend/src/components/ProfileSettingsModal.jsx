@@ -85,6 +85,17 @@ export default function ProfileSettingsModal({
     () => getProfileCompletion({ ...user, ...profileData }), [user, profileData],
   );
 
+  const missingByField = new Map(missing.map(item => [item.field, item.label]));
+  const fieldDescription = field => ({
+    id: `profile-${field}`,
+    'aria-describedby': missingByField.has(field) ? `profile-${field}-needed` : undefined,
+  });
+  const fieldWarning = (field, label = missingByField.get(field)) => missingByField.has(field) && (
+    <p id={`profile-${field}-needed`} className="mt-1 text-xs text-amber-800 dark:text-amber-200">
+      Required: {label}.
+    </p>
+  );
+
   if (activeTab === 'appearance') return (
     <PreferencesModal onClose={onClose} darkMode={darkMode} onToggleTheme={onToggleTheme}
       textSize={textSize} onTextSizeChange={onTextSizeChange} />
@@ -203,18 +214,26 @@ export default function ProfileSettingsModal({
             <Button
               type="button"
               onClick={() => setActiveTab('personal')}
+              aria-pressed={activeTab === 'personal'}
               className={`trace-tab relative  ${activeTab === 'personal' ? 'text-[#15803d] dark:text-green-300 border-b-2 border-[#15803d]' : 'text-gray-400 dark:text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'}`}
             >
               Personal Info
-              {missingPersonal && <span className="w-2 h-2 rounded-full bg-red-500 dark:bg-red-500 absolute -top-0.5 -right-2"></span>}
+              {missingPersonal && <>
+                <span aria-hidden="true" className="ml-2 inline-flex items-center justify-center rounded-full bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-200 px-1.5 text-xs font-bold">!</span>
+                <span className="sr-only"> — Required information missing</span>
+              </>}
             </Button>
             <Button
               type="button"
               onClick={() => setActiveTab('educational')}
+              aria-pressed={activeTab === 'educational'}
               className={`trace-tab relative  ${activeTab === 'educational' ? 'text-[#15803d] dark:text-green-300 border-b-2 border-[#15803d]' : 'text-gray-400 dark:text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'}`}
             >
               Educational Background
-              {missingEdu && <span className="w-2 h-2 rounded-full bg-red-500 dark:bg-red-500 absolute -top-0.5 -right-2"></span>}
+              {missingEdu && <>
+                <span aria-hidden="true" className="ml-2 inline-flex items-center justify-center rounded-full bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-200 px-1.5 text-xs font-bold">!</span>
+                <span className="sr-only"> — Required information missing</span>
+              </>}
             </Button>
             <Button
               type="button"
@@ -236,25 +255,24 @@ export default function ProfileSettingsModal({
         {success && <div className="mb-6 rounded-xl bg-green-50 dark:bg-green-950/40 border border-green-100 dark:border-green-800 px-4 py-3 text-sm font-semibold text-green-800 dark:text-green-300">{success}</div>}
         {error && <div className="trace-error mb-6">{error}</div>}
 
-        {isStudent && missing.length > 0 && <p role="status" className="px-6 pt-3 text-sm text-amber-800 dark:text-amber-200">
-          Still needed: {missing.map(item => item.label).join(', ')}.
-        </p>}
         <form ref={tabContentRef} id="profile-settings-form" onSubmit={stageProfileSave} className="space-y-6">
           {passwordError && <p role="alert" className="text-sm text-red-600 dark:text-red-300">{passwordError}</p>}
           {activeTab === 'personal' && (
             <div className="space-y-6">
               <div className="trace-form-grid">
                 <div>
-                  <label className="trace-label block mb-2">Phone Number <span className="text-red-500 dark:text-red-300">*</span></label>
-                  <input maxLength={INPUT_LIMITS.phone} type="text" value={profileData.phone_number} onChange={(e) => setField('phone_number', e.target.value)} required className="trace-control w-full" />
+                  <label htmlFor="profile-phone_number" className="trace-label block mb-2">Phone Number <span className="text-red-500 dark:text-red-300">*</span></label>
+                  <input {...fieldDescription('phone_number')} maxLength={INPUT_LIMITS.phone} type="text" value={profileData.phone_number} onChange={(e) => setField('phone_number', e.target.value)} required className="trace-control w-full" />
+                  {fieldWarning('phone_number')}
                 </div>
                 <div className="min-w-0 col-span-full">
                   <label htmlFor="profile-email" className="trace-label block mb-2">Email Address <span className="text-red-500 dark:text-red-300">*</span></label>
                   <EmailVerificationNotice user={user} email={profileData.email} pendingEmail={pendingEmail} sending={verifyingEmail}
                     message={verificationMessage} error={confirmation === 'email' ? '' : verificationError}
                     disabled={saving || (emailChanged && !profileData.current_password)} onVerify={requestEmailVerification}>
-                    <input id="profile-email" ref={emailInputRef} maxLength={INPUT_LIMITS.email} type="email" value={profileData.email} onChange={(e) => setField('email', e.target.value)} required disabled={verifyingEmail} className="trace-control min-w-0 flex-1 basis-48" />
+                    <input aria-describedby={missingByField.has('email') ? 'profile-email-needed' : undefined} id="profile-email" ref={emailInputRef} maxLength={INPUT_LIMITS.email} type="email" value={profileData.email} onChange={(e) => setField('email', e.target.value)} required disabled={verifyingEmail} className="trace-control min-w-0 flex-1 basis-48" />
                   </EmailVerificationNotice>
+                  {fieldWarning('email')}
                   {emailChanged && <label className="trace-label block mt-3">Current password to change email
                     <input type={showPasswords ? 'text' : 'password'} autoComplete="current-password" value={profileData.current_password || ''} onChange={e => setField('current_password', e.target.value)} className="trace-control mt-2 w-full" />
                   </label>}
@@ -269,27 +287,30 @@ export default function ProfileSettingsModal({
                   </label>
                   <div className="trace-form-grid">
                     <div>
-                      <label className="trace-label block mb-2">Birth Date <span className="text-red-500 dark:text-red-300">*</span></label>
-                      <input type="date" value={profileData.birth_date} onChange={(e) => setField('birth_date', e.target.value)} required className="trace-control w-full" />
+                      <label htmlFor="profile-birth_date" className="trace-label block mb-2">Birth Date <span className="text-red-500 dark:text-red-300">*</span></label>
+                      <input {...fieldDescription('birth_date')} type="date" value={profileData.birth_date} onChange={(e) => setField('birth_date', e.target.value)} required className="trace-control w-full" />
+                      {fieldWarning('birth_date')}
                     </div>
                     <div>
-                      <label className="trace-label block mb-2">Place of Birth <span className="text-red-500 dark:text-red-300">*</span></label>
-                      <input maxLength={INPUT_LIMITS.name} type="text" value={profileData.place_of_birth} onChange={(e) => setField('place_of_birth', e.target.value)} required className="trace-control w-full" />
+                      <label htmlFor="profile-place_of_birth" className="trace-label block mb-2">Place of Birth <span className="text-red-500 dark:text-red-300">*</span></label>
+                      <input {...fieldDescription('place_of_birth')} maxLength={INPUT_LIMITS.name} type="text" value={profileData.place_of_birth} onChange={(e) => setField('place_of_birth', e.target.value)} required className="trace-control w-full" />
+                      {fieldWarning('place_of_birth')}
                     </div>
                   </div>
 
                   <div className="trace-form-grid">
                     <div>
-                      <label className="trace-label block mb-2">Sex <span className="text-red-500 dark:text-red-300">*</span></label>
-                      <select value={profileData.sex} onChange={(e) => setField('sex', e.target.value)} required className="trace-control w-full">
+                      <label htmlFor="profile-sex" className="trace-label block mb-2">Sex <span className="text-red-500 dark:text-red-300">*</span></label>
+                      <select {...fieldDescription('sex')} value={profileData.sex} onChange={(e) => setField('sex', e.target.value)} required className="trace-control w-full">
                         <option value="">Select...</option>
                         <option value="Male">Male</option>
                         <option value="Female">Female</option>
                       </select>
+                      {fieldWarning('sex')}
                     </div>
                     <div>
-                      <label className="trace-label block mb-2">Civil Status <span className="text-red-500 dark:text-red-300">*</span></label>
-                      <select value={profileData.civil_status} onChange={(e) => setField('civil_status', e.target.value)} required className="trace-control w-full">
+                      <label htmlFor="profile-civil_status" className="trace-label block mb-2">Civil Status <span className="text-red-500 dark:text-red-300">*</span></label>
+                      <select {...fieldDescription('civil_status')} value={profileData.civil_status} onChange={(e) => setField('civil_status', e.target.value)} required className="trace-control w-full">
                         <option value="">Select...</option>
                         <option value="Single">Single</option>
                         <option value="Married">Married</option>
@@ -297,6 +318,7 @@ export default function ProfileSettingsModal({
                         <option value="Divorced">Divorced</option>
                         <option value="Separated">Separated</option>
                       </select>
+                      {fieldWarning('civil_status')}
                     </div>
                     <div>
                       <label className="trace-label block mb-2">Extension Name</label>
@@ -306,14 +328,16 @@ export default function ProfileSettingsModal({
 
                   {profileData.sex === 'Female' && profileData.civil_status === 'Married' && (
                     <div>
-                      <label className="trace-label block mb-2">Maiden Name <span className="text-red-500 dark:text-red-300">*</span></label>
-                      <input maxLength={INPUT_LIMITS.name} type="text" value={profileData.maiden_name} onChange={(e) => setField('maiden_name', e.target.value)} required className="trace-control w-full" />
+                      <label htmlFor="profile-maiden_name" className="trace-label block mb-2">Maiden Name <span className="text-red-500 dark:text-red-300">*</span></label>
+                      <input {...fieldDescription('maiden_name')} maxLength={INPUT_LIMITS.name} type="text" value={profileData.maiden_name} onChange={(e) => setField('maiden_name', e.target.value)} required className="trace-control w-full" />
+                      {fieldWarning('maiden_name')}
                     </div>
                   )}
 
                   <div>
-                    <label className="trace-label block mb-2">Home Address <span className="text-red-500 dark:text-red-300">*</span></label>
-                    <textarea maxLength={INPUT_LIMITS.address} value={profileData.home_address} onChange={(e) => setField('home_address', e.target.value)} required rows="2" className="trace-control w-full resize-none"></textarea>
+                    <label htmlFor="profile-home_address" className="trace-label block mb-2">Home Address <span className="text-red-500 dark:text-red-300">*</span></label>
+                    <textarea {...fieldDescription('home_address')} maxLength={INPUT_LIMITS.address} value={profileData.home_address} onChange={(e) => setField('home_address', e.target.value)} required rows="2" className="trace-control w-full resize-none"></textarea>
+                    {fieldWarning('home_address')}
                   </div>
                 </>
               )}
@@ -404,13 +428,14 @@ export default function ProfileSettingsModal({
               <div className="trace-section trace-section-body grid grid-cols-1 sm:grid-cols-2 ga">
                 {user?.user_type === 'alumni' && (
                   <div>
-                    <label className="trace-label block mb-2">Graduation Year <span className="text-red-500 dark:text-red-300">*</span></label>
-                    <input type="number" min="1950" max="2100" value={profileData.last_attendance_year} onChange={(e) => setField('last_attendance_year', e.target.value)} required className="trace-control w-full border-none" />
+                    <label htmlFor="profile-last_attendance_year" className="trace-label block mb-2">Graduation Year <span className="text-red-500 dark:text-red-300">*</span></label>
+                    <input {...fieldDescription('last_attendance_year')} type="number" min="1950" max="2100" value={profileData.last_attendance_year} onChange={(e) => setField('last_attendance_year', e.target.value)} required className="trace-control w-full border-none" />
+                    {fieldWarning('last_attendance_year', 'Graduation Year')}
                   </div>
                 )}
                 <div>
-                  <label className="trace-label block mb-2">Transfer Student?</label>
-                  <select value={profileData.is_transfer_student ? 'yes' : 'no'} onChange={(e) => setField('is_transfer_student', e.target.value === 'yes')} className="trace-control w-full border-none">
+                  <label htmlFor="profile-transfer" className="trace-label block mb-2">Transfer Student?</label>
+                  <select id="profile-transfer" value={profileData.is_transfer_student ? 'yes' : 'no'} onChange={(e) => setField('is_transfer_student', e.target.value === 'yes')} className="trace-control w-full border-none">
                     <option value="no">No</option>
                     <option value="yes">Yes</option>
                   </select>
@@ -419,8 +444,9 @@ export default function ProfileSettingsModal({
 
               {profileData.is_transfer_student && (
                 <div>
-                  <label className="trace-label block mb-2">Previous School <span className="text-red-500 dark:text-red-300">*</span></label>
-                  <input maxLength={INPUT_LIMITS.name} type="text" value={profileData.previous_school} onChange={(e) => setField('previous_school', e.target.value)} required className="trace-control w-full" />
+                  <label htmlFor="profile-previous_school" className="trace-label block mb-2">Previous School <span className="text-red-500 dark:text-red-300">*</span></label>
+                  <input {...fieldDescription('previous_school')} maxLength={INPUT_LIMITS.name} type="text" value={profileData.previous_school} onChange={(e) => setField('previous_school', e.target.value)} required className="trace-control w-full" />
+                  {fieldWarning('previous_school')}
                 </div>
               )}
 
@@ -428,30 +454,42 @@ export default function ProfileSettingsModal({
                 <h4 className="text-xs font-bold text-gray-800 dark:text-gray-100 uppercase tracking-widest border-b border-gray-200 dark:border-gray-700 pb-2">Elementary</h4>
                 <div className="trace-form-grid">
                   <div className="col-span-full">
-                    <input maxLength={INPUT_LIMITS.name} type="text" placeholder="School Name" required value={profileData.elem_school} onChange={(e) => setField('elem_school', e.target.value)} className="trace-control w-full" />
+                    <label htmlFor="profile-elem_school" className="trace-label block mb-2">Elementary School <span className="text-red-500 dark:text-red-300">*</span></label>
+                    <input {...fieldDescription('elem_school')} maxLength={INPUT_LIMITS.name} type="text" placeholder="School Name" required value={profileData.elem_school} onChange={(e) => setField('elem_school', e.target.value)} className="trace-control w-full" />
+                    {fieldWarning('elem_school')}
                   </div>
                   <div>
-                    <input type="number" placeholder="Year" required value={profileData.elem_grad_year} onChange={(e) => setField('elem_grad_year', e.target.value)} className="trace-control w-full" />
+                    <label htmlFor="profile-elem_grad_year" className="trace-label block mb-2">Elementary Graduation Year <span className="text-red-500 dark:text-red-300">*</span></label>
+                    <input {...fieldDescription('elem_grad_year')} type="number" placeholder="Year" required value={profileData.elem_grad_year} onChange={(e) => setField('elem_grad_year', e.target.value)} className="trace-control w-full" />
+                    {fieldWarning('elem_grad_year')}
                   </div>
                 </div>
 
                 <h4 className="text-xs font-bold text-gray-800 dark:text-gray-100 uppercase tracking-widest border-b border-gray-200 dark:border-gray-700 pb-2 pt-2">Junior High School</h4>
                 <div className="trace-form-grid">
                   <div className="col-span-full">
-                    <input maxLength={INPUT_LIMITS.name} type="text" placeholder="School Name" required value={profileData.jhs_school} onChange={(e) => setField('jhs_school', e.target.value)} className="trace-control w-full" />
+                    <label htmlFor="profile-jhs_school" className="trace-label block mb-2">Junior High School <span className="text-red-500 dark:text-red-300">*</span></label>
+                    <input {...fieldDescription('jhs_school')} maxLength={INPUT_LIMITS.name} type="text" placeholder="School Name" required value={profileData.jhs_school} onChange={(e) => setField('jhs_school', e.target.value)} className="trace-control w-full" />
+                    {fieldWarning('jhs_school')}
                   </div>
                   <div>
-                    <input type="number" placeholder="Year" required value={profileData.jhs_grad_year} onChange={(e) => setField('jhs_grad_year', e.target.value)} className="trace-control w-full" />
+                    <label htmlFor="profile-jhs_grad_year" className="trace-label block mb-2">Junior High Graduation Year <span className="text-red-500 dark:text-red-300">*</span></label>
+                    <input {...fieldDescription('jhs_grad_year')} type="number" placeholder="Year" required value={profileData.jhs_grad_year} onChange={(e) => setField('jhs_grad_year', e.target.value)} className="trace-control w-full" />
+                    {fieldWarning('jhs_grad_year')}
                   </div>
                 </div>
 
                 <h4 className="text-xs font-bold text-gray-800 dark:text-gray-100 uppercase tracking-widest border-b border-gray-200 dark:border-gray-700 pb-2 pt-2">Senior High School</h4>
                 <div className="trace-form-grid">
                   <div className="col-span-full">
-                    <input maxLength={INPUT_LIMITS.name} type="text" placeholder="School Name" required value={profileData.shs_school} onChange={(e) => setField('shs_school', e.target.value)} className="trace-control w-full" />
+                    <label htmlFor="profile-shs_school" className="trace-label block mb-2">Senior High School <span className="text-red-500 dark:text-red-300">*</span></label>
+                    <input {...fieldDescription('shs_school')} maxLength={INPUT_LIMITS.name} type="text" placeholder="School Name" required value={profileData.shs_school} onChange={(e) => setField('shs_school', e.target.value)} className="trace-control w-full" />
+                    {fieldWarning('shs_school')}
                   </div>
                   <div>
-                    <input type="number" placeholder="Year" required value={profileData.shs_grad_year} onChange={(e) => setField('shs_grad_year', e.target.value)} className="trace-control w-full" />
+                    <label htmlFor="profile-shs_grad_year" className="trace-label block mb-2">Senior High Graduation Year <span className="text-red-500 dark:text-red-300">*</span></label>
+                    <input {...fieldDescription('shs_grad_year')} type="number" placeholder="Year" required value={profileData.shs_grad_year} onChange={(e) => setField('shs_grad_year', e.target.value)} className="trace-control w-full" />
+                    {fieldWarning('shs_grad_year')}
                   </div>
                 </div>
               </div>
