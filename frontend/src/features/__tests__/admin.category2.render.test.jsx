@@ -131,6 +131,32 @@ it('edits audience, fees and college restrictions only after a confirmed save', 
     expect.objectContaining({ available_to: 'alumni', allowed_college_ids: [1], base_fee: '75' })));
 });
 
+it.each([true, false])('keeps document-type active=%s actions confirmed, cancellable and disabled while saving', async active => {
+  maintenanceService.getDocumentTypes.mockResolvedValue({ document_types: [{ ...DOC_TYPES[0], is_active: active }] });
+  let finish;
+  maintenanceService.setDocumentTypeActive.mockImplementation(() => new Promise(resolve => { finish = resolve; }));
+  const user = userEvent.setup();
+  render(<MaintenancePanel user={ADMIN} currentTab="admin-maintenance" />);
+  await user.click(await screen.findByRole('button', { name: /Document Types/ }));
+  const row = (await screen.findByText('Transcript of Records')).closest('tr');
+  const label = active ? 'Deactivate' : 'Restore';
+  await user.click(within(row).getByRole('button', { name: label }));
+  expect(maintenanceService.setDocumentTypeActive).not.toHaveBeenCalled();
+  expect(screen.getByRole('dialog', { name: `${label} Document Type` })).toHaveTextContent('Transcript of Records');
+  await user.keyboard('{Escape}');
+  expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  expect(maintenanceService.setDocumentTypeActive).not.toHaveBeenCalled();
+  await user.click(within(row).getByRole('button', { name: label }));
+  const dialog = screen.getByRole('dialog', { name: `${label} Document Type` });
+  await user.click(within(dialog).getByRole('button', { name: label }));
+  expect(maintenanceService.setDocumentTypeActive).toHaveBeenCalledExactlyOnceWith(DOC_TYPES[0].id, !active);
+  expect(within(row).getByRole('button', { name: label })).toBeDisabled();
+  expect(within(dialog).getByRole('button', { name: 'Saving…' })).toBeDisabled();
+  await user.click(within(row).getByRole('button', { name: label }));
+  expect(maintenanceService.setDocumentTypeActive).toHaveBeenCalledOnce();
+  await act(async () => finish({ message: 'Saved.' }));
+});
+
 const settle = async () =>
   waitFor(() => expect(screen.queryByText(/Synchronizing Command Center/i)).not.toBeInTheDocument());
 

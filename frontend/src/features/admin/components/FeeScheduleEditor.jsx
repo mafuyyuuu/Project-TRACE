@@ -5,14 +5,14 @@ const inputClass = "trace-control w-full";
 function NamedItems({ items, onChange }) {
   return <div className="space-y-2">
     <p className="text-xs font-semibold">Named fees · once per document type in each request</p>
-    {items.map((item, index) => <div key={index} className="flex gap-2">
-      <label className="flex-1 text-xs">Item name<input className={inputClass} required maxLength={100} value={item.label}
+    {items.map((item, index) => <div key={index} className="flex flex-wrap items-end gap-2">
+      <label className="min-w-0 flex-[1_1_12rem] text-xs">Item name<input className={inputClass} required maxLength={100} value={item.label}
         onChange={event => onChange(items.map((row, i) => i === index ? { ...row, label: event.target.value } : row))} /></label>
       <label className="trace-label w-24">Item fee (₱)<input className={inputClass} required type="number" min="0" step="0.01" value={item.amount}
         onChange={event => onChange(items.map((row, i) => i === index ? { ...row, amount: event.target.value } : row))} /></label>
-      <Button type="button" className="trace-action text-sm font-semibold text-red-700 dark:text-red-300" aria-label={`Remove fee item ${index + 1}`} onClick={() => onChange(items.filter((_, i) => i !== index))}>Remove</Button>
+      <Button type="button" className="trace-button trace-button-danger" aria-label={`Remove fee item ${index + 1}`} onClick={() => onChange(items.filter((_, i) => i !== index))}>Remove</Button>
     </div>)}
-    <Button type="button" className="trace-action text-xs font-bold text-green-700 dark:text-green-300" disabled={items.length >= 30}
+    <Button type="button" className="trace-button trace-button-secondary" disabled={items.length >= 30}
       onClick={() => onChange([...items, { label: '', amount: 0 }])}>Add named fee</Button>
   </div>;
 }
@@ -45,9 +45,9 @@ export default function FeeScheduleEditor({ value, colleges, onChange }) {
           <option value="flat">Flat fee per copy</option><option value="per_semester_block">Per printed page per copy</option>
         </select></label>
         <ExtraFees schedule={row} onChange={next => updateOverride(index, next)} />
-        <Button type="button" className="trace-action text-xs text-red-700 dark:text-red-300" onClick={() => onChange({ ...value, college_fee_schedules: overrides.filter((_, i) => i !== index) })}>Remove college override</Button>
+        <Button type="button" className="trace-button trace-button-danger" onClick={() => onChange({ ...value, college_fee_schedules: overrides.filter((_, i) => i !== index) })}>Remove college override</Button>
       </fieldset>)}
-      <Button type="button" className="trace-action text-xs font-bold text-green-700 dark:text-green-300" disabled={overrides.length >= 100}
+      <Button type="button" className="trace-button trace-button-secondary" disabled={overrides.length >= 100}
         onClick={() => onChange({ ...value, college_fee_schedules: [...overrides, { ...emptySchedule(), college_id: null }] })}>Add college override</Button>
     </fieldset>
   </div>;

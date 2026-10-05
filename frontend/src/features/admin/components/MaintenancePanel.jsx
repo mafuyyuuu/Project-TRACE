@@ -319,23 +319,25 @@ export default function MaintenancePanel({ user, currentTab }) {
                         <td className="py-3"><StatusBadge active={d.is_active} retired={d.is_retired} /></td>
                         <td className="py-3 pr-5 text-right">
                           {d.is_retired && <span className="block text-xs text-gray-500 dark:text-gray-400 mb-2">Unavailable for new requests; history retained.</span>}
-                          <Button type="button" disabled={d.is_retired} onClick={() => {
-                            setEditingTypeId(d.id);
-                            setForm({ dt_name: d.name, dt_fee: d.base_fee, dt_rule: d.fee_rule,
-                              dt_rental_fee: d.rental_fee ?? 0, dt_special_fee: d.special_fee ?? 0, dt_fee_items: d.fee_items || [], dt_fee_schedules: d.college_fee_schedules || [],
-                              dt_attach: Boolean(d.requires_attachment), dt_label: d.attachment_label,
-                              dt_available_to: d.available_to || 'both', dt_is_repeatable: Boolean(d.is_repeatable),
-                              dt_is_walk_in: Boolean(d.is_walk_in), dt_requires_original: Boolean(d.requires_original),
-                              dt_is_same_day: Boolean(d.is_same_day), dt_reg_attach: d.registrar_attachment_rule,
-                              dt_college_ids: d.allowed_college_ids || [] });
-                          }} className="trace-action mr-2 text-xs font-bold text-blue-700 dark:text-blue-300 hover:underline disabled:opacity-40 focus-visible:ring-2 focus-visible:ring-blue-500">Edit</Button>
-                          <Button
-                            onClick={() => m.handleToggleDocumentTypeActive(d)}
-                            disabled={m.saving || d.is_retired}
-                            className={`trace-button ${d.is_active ? 'trace-button-danger' : 'trace-button-primary'}`}
-                          >
-                            {d.is_retired ? 'Retired' : d.is_active ? 'Deactivate' : 'Restore'}
-                          </Button>
+                          <div className="trace-actions justify-end">
+                            <Button type="button" disabled={d.is_retired} onClick={() => {
+                              setEditingTypeId(d.id);
+                              setForm({ dt_name: d.name, dt_fee: d.base_fee, dt_rule: d.fee_rule,
+                                dt_rental_fee: d.rental_fee ?? 0, dt_special_fee: d.special_fee ?? 0, dt_fee_items: d.fee_items || [], dt_fee_schedules: d.college_fee_schedules || [],
+                                dt_attach: Boolean(d.requires_attachment), dt_label: d.attachment_label,
+                                dt_available_to: d.available_to || 'both', dt_is_repeatable: Boolean(d.is_repeatable),
+                                dt_is_walk_in: Boolean(d.is_walk_in), dt_requires_original: Boolean(d.requires_original),
+                                dt_is_same_day: Boolean(d.is_same_day), dt_reg_attach: d.registrar_attachment_rule,
+                                dt_college_ids: d.allowed_college_ids || [] });
+                            }} className="trace-button trace-button-secondary">Edit</Button>
+                            <Button
+                              onClick={() => m.handleToggleDocumentTypeActive(d)}
+                              disabled={m.saving || d.is_retired}
+                              className={`trace-button ${d.is_active ? 'trace-button-danger' : 'trace-button-primary'}`}
+                            >
+                              {d.is_retired ? 'Retired' : d.is_active ? 'Deactivate' : 'Restore'}
+                            </Button>
+                          </div>
                         </td>
                       </tr>
                     ))}
