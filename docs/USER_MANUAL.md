@@ -76,7 +76,9 @@ TRACE records the automatic offer against your account. Skipping, logging out, r
 
 Required information includes phone, email, birth date, birthplace, sex, civil status, home address, and elementary, junior-high and senior-high schools with graduation years. Alumni supply their graduation year; transfer students supply Previous School; married female students supply a maiden name. Follow each marked tab's field hints for your account. Extension name and profile photo are optional. Program/Course is separate from College. In Personal Info, choose College first, then its active Registrar-approved Program/Course. Changing College clears the draft program. Save and confirm, then check the saved selections after reload. If no programs are available, ask Admin to add the approved catalog. Your recorded unlisted/inactive entries are preserved when saving other information.
 
-**Change your photo:** select the camera on your avatar, choose an image, check the preview, then Save and confirm. Selecting an image does not upload it immediately. Your saved registration proof is available for viewing/downloading; this does not grant permission to replace it.
+**Change your photo:** select the camera on your avatar, choose an image, check the preview, then Save and confirm. Selecting an image does not upload it immediately.
+
+**View your registration proof:** in Edit Profile, select the framed thumbnail or **Preview** magnifying glass. The larger preview has **Download file**; **Download proof** is also available below the thumbnail. Close the preview or press Escape to return to the profile. The proof remains read-only.
 
 ### Verify your current email
 
@@ -85,7 +87,7 @@ Required information includes phone, email, birth date, birthplace, sex, civil s
 3. Open the email sent by TRACE and select the green **Verify Email** button.
 4. Return to TRACE and refresh. The email field should show **Verified**.
 
-The link works once and expires after one hour. Check Spam/Junk if the email is missing; you can resend once per minute. Plain-text email readers show a link instead of a button. Sending a link does not save other profile drafts.
+The short guidance beside Email explains the request/payment requirement and one-hour expiry. Open **Verification help** for resend, refresh and ID-approval guidance. The link works once; check Spam/Junk if the email is missing and use **Verify** to resend after 60 seconds. Plain-text email readers show a link instead of a button. Sending a link does not save other profile drafts.
 
 ### Change your email
 
@@ -239,7 +241,7 @@ New same-day OR issuance closes at **exactly 4:00 PM Manila time**. Deferred iss
 
 ### Review registrations and accounts
 
-Open **Account Verification → Review**, inspect Applicant Type, proof and the recorded automatic-check reason, then confirm Verify or Reject. An OCR flag means text needs review; it does not establish that an ID is fake. Older accounts may have no recorded reason.
+Open **Account Verification → Review**, inspect Applicant Type, proof and the recorded automatic-check reason, then confirm Verify or Reject. Select **Preview** to enlarge the proof; download it from the card or preview. Press Escape to return to the review. An OCR flag means text needs review; it does not establish that an ID is fake. Older accounts may have no recorded reason.
 
 Use **System Maintenance → Accounts** to inspect profile photos/proofs, edit supported account fields and use authorized activation or staff controls. IDs remain read-only. Choose a linked student's name in request/report lists for their full saved profile.
 

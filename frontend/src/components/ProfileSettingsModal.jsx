@@ -18,6 +18,7 @@ import AuthenticatorSettings from '@/components/AuthenticatorSettings';
 import useSecurityLogs from '@/hooks/useSecurityLogs';
 import { hasBrowserTrustPreference, forgetBrowserTrustPreference } from '@/utils/browserTrustPreference';
 import EmailVerificationNotice from '@/components/EmailVerificationNotice';
+import RegistrationProof from '@/components/RegistrationProof';
 
 export default function ProfileSettingsModal({
   user,
@@ -208,7 +209,7 @@ export default function ProfileSettingsModal({
         </div>
         
         <FileUploadField pickerOnly label="Profile picture" inputRef={fileInputRef} file={avatarFile} onChange={onAvatarChange} accept="image/jpeg,image/png,image/webp" maxBytes={2 * 1024 * 1024} disabled={saving} />
-        {user?.role === 'student' && <FileUploadField label={user.user_type === 'alumni' ? 'Registration Identity / Diploma Proof' : 'Registration ID Proof'} path={user.id_proof_path} allowReplace={false} />}
+        {user?.role === 'student' && <RegistrationProof label={user.user_type === 'alumni' ? 'Registration Identity / Diploma Proof' : 'Registration ID Proof'} path={user.id_proof_path} />}
         {/* Tabs */}
         {isStudent ? (
           <div className="flex flex-wrap gap-3 sm:gap-6 border-b border-gray-100 dark:border-gray-700 px-2 mt-2">

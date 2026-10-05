@@ -253,6 +253,16 @@ describe('ProfileSettingsModal', () => {
     expect(proof).toHaveTextContent('Uploaded: id.png');
     expect(proof.querySelector('input[type=file]')).toBeNull();
   });
+  it('opens the student saved proof with download and returns to Edit Profile on Escape', async () => {
+    api.get.mockResolvedValueOnce({ data: new Blob(['SYNTHETIC TEST FILE'], { type: 'image/png' }) });
+    renderModal({ user: { ...STUDENT, id_proof_path: '/uploads/proof-test.png' } });
+    const preview = await screen.findByRole('button', { name: 'Preview Registration ID Proof' });
+    preview.focus(); fireEvent.click(preview);
+    expect(screen.getByRole('dialog', { name: 'Document preview' })).toBeInTheDocument();
+    fireEvent.keyDown(document, { key: 'Escape' });
+    expect(screen.getByRole('button', { name: 'Save Profile' })).toBeInTheDocument();
+    expect(preview).toHaveFocus();
+  });
   it('keeps Settings open on confirmation cancellation and saves only after confirmation', async () => {
     const onSave = vi.fn().mockResolvedValue(true);
     renderModal({ onSave, user: CLERK });

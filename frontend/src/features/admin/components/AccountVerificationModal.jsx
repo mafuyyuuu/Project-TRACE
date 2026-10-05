@@ -2,7 +2,7 @@ import Button from '@/components/Button';
 import { useState } from 'react';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import ModalShell from '@/components/ModalShell';
-import AuthedFilePreview from '@/components/AuthedFilePreview';
+import RegistrationProof from '@/components/RegistrationProof';
 import RegistrationReviewNotice from '@/components/RegistrationReviewNotice';
 
 export default function AccountVerificationModal({
@@ -20,38 +20,17 @@ export default function AccountVerificationModal({
     <ModalShell
       open={!!studentVerifyToConfirm}
       onClose={cancelAdminVerifyStudent}
-      bare
-      title="Review Registration"
-      panelClassName="bg-white dark:bg-gray-900 rounded-3xl shadow-2xl w-full max-w-5xl h-[85vh] z-10 border border-gray-100 dark:border-gray-700 relative flex flex-col lg:flex-row overflow-hidden"
-      closeButtonClassName="trace-button-lift absolute top-4 right-4 w-8 h-8 rounded-full flex items-center justify-center text-gray-400 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 z-20"
+      title={<span className="text-base sm:text-xl">Review Registration</span>}
+      maxWidth="max-w-5xl"
+      footer={<div className="trace-actions">
+        <Button type="button" onClick={cancelAdminVerifyStudent} className="trace-button trace-button-secondary flex-1">Cancel</Button>
+        <Button type="button" onClick={() => setDecision('reject')} disabled={actionLoading} className="trace-button trace-button-danger flex-1">Reject</Button>
+        <Button type="button" onClick={() => setDecision('verify')} disabled={actionLoading} className="trace-button trace-button-primary flex-1">Verify</Button>
+      </div>}
     >
-      <div className="lg:w-1/2 p-6 flex flex-col border-r border-gray-200 dark:border-gray-700 min-h-0 bg-gray-50/30 dark:bg-gray-800/30">
-        <div className="flex justify-between items-center mb-3">
-          <span className="text-xs font-black text-gray-800 dark:text-gray-100">ID Proof</span>
-        </div>
-        <div className="flex-1 bg-gray-200 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-2xl overflow-hidden relative flex items-center justify-center shadow-inner">
-          {student.id_proof_path ? (
-            <AuthedFilePreview
-              path={student.id_proof_path}
-              alt="ID Proof"
-              iframeTitle="ID Proof"
-              className="w-full h-full object-contain"
-              onClick={() => setViewImageUrl(student.id_proof_path)}
-              wrapperClassName="cursor-zoom-in w-full h-full flex items-center justify-center group relative"
-            />
-          ) : (
-            <span className="text-xs text-gray-400 dark:text-gray-400 px-6 text-center">
-              No ID proof uploaded.
-            </span>
-          )}
-        </div>
-      </div>
-
-      <div className="lg:w-1/2 flex flex-col overflow-hidden">
-        <div className="flex-1 overflow-y-auto p-6 sm:p-8">
-          <h3 className="text-xl font-black text-gray-900 dark:text-gray-100">
-            Review Registration
-          </h3>
+      <div className="grid min-w-0 gap-4 lg:grid-cols-2 lg:gap-6">
+        <RegistrationProof path={student.id_proof_path} label="ID Proof" onPreview={setViewImageUrl} />
+        <div className="min-w-0">
           <p className="text-xs text-gray-400 dark:text-gray-400 mt-1 font-semibold pb-5 mb-6 border-b border-gray-100 dark:border-gray-700">
             Check the identity proof and account details, then choose a decision.
           </p>
@@ -64,17 +43,6 @@ export default function AccountVerificationModal({
             <div className="flex flex-wrap justify-between gap-x-3 gap-y-1"><span>Email</span><span className="font-bold text-gray-950 dark:text-gray-100 select-text break-words">{student.email || '—'}</span></div>
           </div>
           <RegistrationReviewNotice user={student} />
-        </div>
-
-        <div className="trace-modal-footer trace-actions">
-          <Button
-            onClick={cancelAdminVerifyStudent}
-            className="trace-button trace-button-secondary w-1/3 text-center"
-          >
-            Cancel
-          </Button>
-          <Button onClick={() => setDecision('reject')} disabled={actionLoading} className="trace-button trace-button-danger flex-1">Reject</Button>
-          <Button onClick={() => setDecision('verify')} disabled={actionLoading} className="trace-button trace-button-primary flex-1">Verify</Button>
         </div>
       </div>
       <ConfirmDialog open={!!decision} title={decision === 'verify' ? 'Verify Account' : 'Reject Account'}
