@@ -177,10 +177,10 @@ export default function StudentDashboard({ user, currentTab, setViewImageUrl }) 
                 once for the whole request, so several of its documents can be
                 awaiting payment together, and one receipt settles all of them. */}
             {billableGroups.length > 0 && (
-              <div className="trace-section border-2 border-[#15803d] overflow-hidden mt-8">
-                <div className="bg-[#15803d] px-6 py-3 flex items-center gap-2">
-                  <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 9v2m0 4h.01M5 19h14a2 2 0 001.84-2.75L13.74 4a2 2 0 00-3.48 0l-7.1 12.25A2 2 0 005 19z"/></svg>
-                  <h3 className="font-black text-white text-sm uppercase tracking-wider">Action Required — Payment</h3>
+              <div className="trace-section border-2 border-amber-300 dark:border-amber-800 overflow-hidden mt-8">
+                <div className="bg-amber-50 dark:bg-amber-950 text-amber-900 dark:text-amber-200 px-4 sm:px-6 py-3 flex items-center gap-2">
+                  <svg aria-hidden="true" className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 9v2m0 4h.01M5 19h14a2 2 0 001.84-2.75L13.74 4a2 2 0 00-3.48 0l-7.1 12.25A2 2 0 005 19z"/></svg>
+                  <h3 className="font-black text-sm uppercase tracking-wider">Action Required — Payment</h3>
                 </div>
                 <div className="p-4 sm:p-6">
                   <p className="text-xs text-gray-600 dark:text-gray-300 leading-relaxed mb-5">
@@ -199,10 +199,10 @@ export default function StudentDashboard({ user, currentTab, setViewImageUrl }) 
                         </Button>
                         <ul className="space-y-2">
                           {group.docs.map((doc) => (
-                            <li key={doc.id} className="flex items-baseline justify-between gap-4 text-sm">
+                            <li key={doc.id} className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-2 text-sm">
                               <span className="min-w-0 font-bold text-gray-900 dark:text-gray-100 break-words select-text">{doc.document_sequence_number || doc.document_type}</span>
                               <span className="shrink-0 font-mono text-xs text-gray-500 dark:text-gray-400 select-text">{formatPeso(doc.amount)}</span>
-                              <FeeBreakdown breakdown={doc.fee_breakdown} amount={doc.amount} />
+                              <div className="w-full min-w-0"><FeeBreakdown breakdown={doc.fee_breakdown} amount={doc.amount} /></div>
                             </li>
                           ))}
                         </ul>

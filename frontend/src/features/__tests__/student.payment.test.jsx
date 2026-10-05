@@ -16,7 +16,7 @@ vi.mock('@/services/referenceService', () => ({
 
 const USER = { id: 3, role: 'student', student_id: 'STU-001', full_name: 'Ana Reyes' };
 const DOCS = [
-  { id: 11, document_type: 'Transcript of Records', amount: '100.00', request_group_id: 'REQ-G1' },
+  { id: 11, document_type: 'Transcript of Records', amount: '100.00', request_group_id: 'REQ-G1', fee_breakdown: { stage: 'final', source: 'default', total: 100, items: [{ label: 'Printed pages', calculation: '1 copy × 1 page × ₱100.00', amount: 100 }] } },
   { id: 12, document_type: 'Diploma', amount: '100.00', request_group_id: 'REQ-G1' },
 ].map((doc) => ({
   ...doc, tracking_number: `TRC-${doc.id}`, student_id: USER.student_id,
@@ -42,12 +42,18 @@ describe('Student grouped payment', () => {
   it('offers one combined action with line items and removes document-row payment buttons', async () => {
     renderStudent();
     expect(await screen.findByRole('button', { name: 'Pay ₱200.00 (2 documents)' })).toHaveClass('trace-button-warning');
+    const heading = screen.getByRole('heading', { name: 'Action Required — Payment' });
+    expect(heading.parentElement).toHaveClass('bg-amber-50', 'dark:bg-amber-950', 'text-amber-900', 'dark:text-amber-200');
+    expect(heading.parentElement.parentElement).toHaveClass('border-amber-300', 'dark:border-amber-800');
+    expect(heading.parentElement).not.toHaveClass('bg-[#15803d]');
+    expect(heading.parentElement.querySelector('svg')).toHaveAttribute('aria-hidden', 'true');
     expect(screen.getAllByRole('button', { name: /^Pay / })).toHaveLength(1);
     const group = screen.getByRole('region', { name: 'Payment for request REQ-G1' });
     const items = within(group).getAllByRole('listitem');
     expect(items).toHaveLength(2);
     expect(items[0]).toHaveTextContent('Transcript of Records');
     expect(items[0]).toHaveTextContent('₱100.00');
+    expect(within(items[0]).getByRole('region', { name: 'Fee calculation' })).toHaveTextContent('1 copy × 1 page × ₱100.00');
     expect(items[1]).toHaveTextContent('Diploma');
     expect(items[1]).toHaveTextContent('₱100.00');
     expect(within(screen.getByRole('table', { name: 'Active requests' })).queryByRole('button', { name: /^Pay / })).not.toBeInTheDocument();
@@ -116,4 +122,18 @@ describe('Student grouped payment', () => {
     expect(screen.getByRole('dialog', { name: 'Cancel Request' })).toBeInTheDocument();
     expect(documentsService.cancelDocument).not.toHaveBeenCalled();
   });
+});
+
+
+it.each([
+  [STATUS.PENDING_FINANCE_VERIFICATION, 'UNPAID'],
+  [STATUS.PAID_PENDING_SEC_RELEASE, 'PAID'],
+  [STATUS.COMPLETED, 'PAID'],
+])('does not offer another pending payment action for %s/%s', async (current_status, payment_status) => {
+  documentsService.getDocuments.mockResolvedValue({ documents: DOCS.map(doc => ({ ...doc, current_status, payment_status })) });
+  renderStudent();
+  await screen.findByRole('table', { name: 'Active requests' });
+  expect(screen.queryByRole('heading', { name: 'Action Required — Payment' })).not.toBeInTheDocument();
+  expect(screen.queryByRole('button', { name: /^Pay / })).not.toBeInTheDocument();
+  expect(documentsService.submitPayment).not.toHaveBeenCalled();
 });
