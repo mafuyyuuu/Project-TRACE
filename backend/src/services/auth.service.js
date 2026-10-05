@@ -19,6 +19,7 @@ const jwt = require('jsonwebtoken');
 const env = require('../config/env');
 const userModel = require('../models/user.model');
 const referenceModel = require('../models/referenceData.model');
+const programService = require('./program.service');
 const { pool } = require('../config/db');
 const notificationModel = require('../models/notification.model');
 const passwordResetModel = require('../models/passwordReset.model');
@@ -320,7 +321,7 @@ function readProgram(value) {
   if (typeof value !== 'string' || value.trim().length > 150) throw badRequest('Program/Course must be text of at most 150 characters.');
   return value.trim() || null;
 }
-async function updateProfile(userId, { phone_number, email, course, program, password, current_password, ...profileFields }) {
+async function updateProfile(userId, { phone_number, email, course, college_id, program, password, current_password, ...profileFields }) {
   const fields = {};
   let verifiedPasswordHash;
   let changedSession;
@@ -328,6 +329,8 @@ async function updateProfile(userId, { phone_number, email, course, program, pas
   const users = await userModel.getProfileById(userId);
   if (!users || users.length === 0) throw notFound('User not found.');
   const currentUser = users[0];
+  const academicDraft = { course, college_id, program };
+  const academic = await programService.profileFields(currentUser, academicDraft);
 
   const emailChanged = (email !== undefined && email !== '' && email !== currentUser.email);
   if (emailChanged && password) throw badRequest('Change your password and email separately so each verification can finish.');
@@ -357,8 +360,7 @@ async function updateProfile(userId, { phone_number, email, course, program, pas
   let emailResult;
   if (emailChanged) emailResult = await emailVerification.issue(userId, { email, current_password });
 
-  if (course !== undefined) fields.course = course;
-  if (program !== undefined) fields.program = readProgram(program);
+  Object.assign(fields, academic);
   
   if (password) {
     validatePassword(password);
@@ -368,6 +370,11 @@ async function updateProfile(userId, { phone_number, email, course, program, pas
     const changedAccount = await writeCredentialsAndRevoke(userId, async connection => {
       await checkPasswordHistory(userId, password, connection, verifiedPasswordHash);
       await userModel.addPasswordHistory(userId, verifiedPasswordHash, connection);
+      if (Object.keys(academic).length) {
+        const [fresh] = await userModel.getProfileById(userId, connection, true);
+        if (!fresh) throw notFound('User not found.');
+        Object.assign(fields, await programService.profileFields(fresh, academicDraft, connection, true));
+      }
       await userModel.updateProfile(userId, fields, connection);
       await userModel.addPasswordHistory(userId, fields.password_hash, connection);
       await userModel.logSecurityEvent(userId, 'PASSWORD_CHANGE', null, null, connection);
@@ -388,7 +395,18 @@ async function updateProfile(userId, { phone_number, email, course, program, pas
   }
 
   if (Object.keys(fields).length > 0 && !password) {
-    await userModel.updateProfile(userId, fields);
+    if (Object.keys(academic).length) {
+      const connection = await pool.getConnection();
+      try {
+        await connection.beginTransaction();
+        const [fresh] = await userModel.getProfileById(userId, connection, true);
+        if (!fresh) throw notFound('User not found.');
+        Object.assign(fields, await programService.profileFields(fresh, academicDraft, connection, true));
+        await userModel.updateProfile(userId, fields, connection);
+        await connection.commit();
+      } catch (error) { await connection.rollback(); throw error; }
+      finally { connection.release(); }
+    } else await userModel.updateProfile(userId, fields);
   }
 
   // Handle student profile fields (PROF-01)

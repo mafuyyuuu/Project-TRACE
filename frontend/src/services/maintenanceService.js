@@ -85,3 +85,16 @@ export async function updateAccount(id, payload) {
   const { data } = await api.put(`/maintenance/users/${id}`, payload);
   return data;
 }
+
+export async function getPrograms(options = {}) {
+  const { data } = await api.get('/maintenance/programs', options)
+  return data
+}
+export async function createProgram(payload) {
+  const { data } = await api.post('/maintenance/programs', payload)
+  return data
+}
+export async function setProgramActive(id, isActive) {
+  const { data } = await api.patch(`/maintenance/programs/${id}/active`, { is_active: isActive })
+  return data
+}

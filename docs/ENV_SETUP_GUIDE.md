@@ -938,6 +938,7 @@ docker compose run --rm --no-deps -T backend node database/migrate_request_attac
 docker compose run --rm --no-deps -T backend node database/migrate_document_messages.js
 docker compose run --rm --no-deps -T backend node database/migrate_templates.js
 docker compose run --rm --no-deps -T backend node database/migrate_program.js
+docker compose run --rm --no-deps -T backend node database/migrate_program_catalog.js
 docker compose run --rm --no-deps -T backend node database/migrate_email_verification.js
 docker compose run --rm --no-deps -T backend node database/migrate_support_messages.js
 docker compose run --rm --no-deps -T backend node database/migrate_request_sequences.js
@@ -1046,3 +1047,7 @@ New records contain only reference/purpose/outcome and allowlisted error codes, 
 The request summary uses `email_not_accepted` for skipped/failed submission; its paired `[Email]` record provides the specific outcome. A 60-second frontend request timeout does not cancel a server send—an email may still arrive. Do not auto-retry; check the inbox and use only the newest one-hour, single-use link. A failure after token storage leaves an undisclosed hash that expires normally; it does not create a public recovery bypass. Reset completion retains account locking, history checks, token consumption and session revocation.
 
 Use a controlled test account/inbox for live acceptance after deployment: submit a student ID, staff ID and saved email; confirm each goes to the active saved address, not a pending address. Verify a newest link once, reject its replay/expiry, and confirm old sessions are revoked. Keep real SMTP acceptance and mailbox arrival as separate checks. Local tests and a synthetic SMTP server do not prove production delivery.
+
+### Registrar-approved Program catalog
+
+Follow [MIGRATION_ROLLOUT.md](MIGRATION_ROLLOUT.md) for the explicit `migrate_program_catalog.js` rollout. It requires existing colleges and users (including the separate `migrate_program.js` column), creates no guessed programs, and preserves saved academic values. Admin enters approved programs under System Maintenance → Programs. Student/alumni Edit Profile → Personal Info uses linked active College and Program/Course choices. Changing College clears the draft program; the API validates membership and saves the reference college id, canonical college display name and canonical program together. Unchanged historical/inactive entries remain readable and do not prevent unrelated saves. Programs have no destructive delete or rename; replace via approved addition and deactivation. No new environment variables.

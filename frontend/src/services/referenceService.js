@@ -7,8 +7,8 @@ import api from '@/services/api'
  */
 
 /** Colleges for the signup and profile dropdowns. Public — signup has no token. */
-export async function getColleges() {
-  const { data } = await api.get('/reference/colleges')
+export async function getColleges(options = {}) {
+  const { data } = await api.get('/reference/colleges', options)
   return data
 }
 
@@ -27,5 +27,11 @@ export async function getDocumentTypes() {
  */
 export async function getPaymentMethods() {
   const { data } = await api.get('/reference/payment-methods')
+  return data
+}
+
+/** Active programs in active colleges; authenticated profile reference data. */
+export async function getPrograms(options = {}) {
+  const { data } = await api.get('/reference/programs', options)
   return data
 }

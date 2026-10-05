@@ -7,6 +7,11 @@ const router = express.Router();
 // Every route is admin-only; the service layer enforces it.
 router.use(authenticate);
 
+// Registrar-approved program catalog
+router.get('/programs', maintenanceController.listPrograms);
+router.post('/programs', maintenanceController.createProgram);
+router.patch('/programs/:id/active', maintenanceController.setProgramActive);
+
 // Colleges
 router.get('/colleges', maintenanceController.listColleges);
 router.post('/colleges', maintenanceController.createCollege);

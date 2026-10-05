@@ -13,6 +13,7 @@ function formFromUser(user) {
     phone_number: user?.phone_number || '',
     email: user?.pending_email || user?.email || '',
     program: user?.program || '',
+    college_id: user?.college_id ? String(user.college_id) : '',
     password: '',
     current_password: '',
     extension_name: user?.extension_name || '',
@@ -88,7 +89,7 @@ export default function useProfileSettings(user) {
   const setField = (field, value) => {
     if (field === 'email') verification.reset();
     setDirty(true);
-    setProfileData((current) => ({ ...current, [field]: value }));
+    setProfileData((current) => ({ ...current, [field]: value, ...(field === 'college_id' && String(value) !== String(current.college_id) ? { program: '' } : {}) }));
   };
 
   const readError = (err) =>
@@ -116,6 +117,11 @@ export default function useProfileSettings(user) {
     if (e) e.preventDefault();
     if (savingRef.current) return false;
     if (profileData.password && !validNewPassword(profileData.password)) { setError(PASSWORD_REQUIREMENTS); return false; }
+    const academicChanged = String(profileData.college_id || '') !== String(user?.college_id || '') || profileData.program !== (user?.program || '');
+    if (academicChanged && (!/^[1-9]\d*$/.test(profileData.college_id) || !profileData.program)) {
+      setError('Choose College and an active Program/Course belonging to it before saving.');
+      return false;
+    }
     savingRef.current = true;
     setSaving(true);
     setSuccess('');
@@ -144,7 +150,9 @@ export default function useProfileSettings(user) {
       // link (or claim the address changed) when saving unrelated profile fields.
       const payload = pendingEmail && profileData.email.trim().toLowerCase() === pendingEmail.toLowerCase()
         ? { ...profileData, email: user?.email || '' } : profileData;
-      const result = await updateProfile(payload);
+      const request = { ...payload };
+      if (!academicChanged) { delete request.college_id; delete request.program; }
+      const result = await updateProfile(request);
       if (result?.token && result?.user) {
         localStorage.setItem('trace_token', result.token);
         disconnectRealtime();

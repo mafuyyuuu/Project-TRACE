@@ -1,4 +1,5 @@
 import Button from '@/components/Button';
+import ProgramsPanel from './ProgramsPanel';
 import FeeScheduleEditor from './FeeScheduleEditor';
 import { isHonorableDismissal, isSameDayWalkInType } from '@/utils/documentPolicy';
 import { INPUT_LIMITS } from '@/utils/inputLimits';
@@ -23,6 +24,7 @@ const SECTIONS = [
   { key: 'staff', label: 'Accounts' },
   { key: 'documentTypes', label: 'Document Types' },
   { key: 'colleges', label: 'Colleges' },
+  { key: 'programs', label: 'Programs' },
   { key: 'paymentMethods', label: 'Payment Methods' },
 ];
 
@@ -127,7 +129,7 @@ export default function MaintenancePanel({ user, currentTab }) {
             System <span className="text-[#15803d] dark:text-green-300">Maintenance</span>
           </h2>
           <p className="trace-page-description">
-            Manage accounts, document types, colleges and payment methods. Deactivating hides an
+            Manage accounts, document types, colleges, approved programs and payment methods. Deactivating hides an
             entry from new requests without affecting existing records.
           </p>
         </div>
@@ -144,10 +146,12 @@ export default function MaintenancePanel({ user, currentTab }) {
                   : 'text-gray-400 dark:text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'
               }`}
             >
-              {s.label} ({(s.key === 'staff' ? m.accounts : m[s.key]).length})
+              {s.label}{s.key !== 'programs' && ` (${(s.key === 'staff' ? m.accounts : m[s.key]).length})`}
             </Button>
           ))}
         </div>
+
+        {section === 'programs' && <ProgramsPanel colleges={m.colleges} />}
 
         {/* ---------------------------------------------------------------- Staff */}
         {section === 'staff' && (

@@ -223,6 +223,7 @@ trace_migrate_rollout() {
     migrate_document_messages.js \
     migrate_templates.js \
     migrate_program.js \
+    migrate_program_catalog.js \
     migrate_email_verification.js \
     migrate_support_messages.js \
     migrate_request_sequences.js \
@@ -291,3 +292,16 @@ Share only the relevant error and stack trace; omit passwords, tokens, codes, ke
 | Health passes but a feature returns 500 | Reproduce the specific action once and inspect recent backend/Caddy logs. A healthy database connection does not verify every table or feature. |
 
 Record the deployed commit, applied migrations and live checks after the rollout. Keep the verified backup until the updated site has passed acceptance.
+
+### Linked College and Program catalog (2026-10-05)
+
+Existing deployments must run `migrate_program.js` and then `migrate_program_catalog.js` from the newly built backend image before recreating the API. Follow the backup/writer-stop sequence above; do not re-import `schema.sql` into an existing database. The new migration creates an empty `programs` catalog and widens `users.course` to match the college display-name capacity, without seeding or rewriting academic values. Reruns preserve entries and profile records. Run `check_schema.js` after migration.
+
+```sh
+docker compose run --rm --no-deps -T backend node database/migrate_program_catalog.js
+docker compose run --rm --no-deps -T backend node database/check_schema.js
+```
+
+After rollout, Admin opens **System Maintenance → Programs**, selects an active college, enters its Registrar-approved program name, and confirms Add Program. Populate the real approved catalog before asking students to update their academic selections. No program list is inferred from existing free text. Names/college membership stay immutable: add an approved replacement and deactivate the superseded row. Deactivation hides new selections and preserves saved entries; restore requires an active college. Existing signup retains its manual Program/Course entry; this rollout changes Edit Profile selections.
+
+Acceptance: load a saved profile, change College and see Program clear, select its active program, confirm Save, and reload/sign in again to verify `college_id`, college display name (`course`) and degree/program (`program`). Test a program from another college, an inactive program/college, no programs, reference failure/retry, and a historical unlisted program while saving phone only. Verify Admin alone can manage the catalog and that deactivation does not change existing profiles or request pricing snapshots. Check 320/375/768/desktop, both themes and enlarged text.

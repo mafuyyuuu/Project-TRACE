@@ -36,4 +36,9 @@ async function getPaymentMethods(req, res) {
   }
 }
 
-module.exports = { getColleges, getDocumentTypes, getPaymentMethods };
+async function getPrograms(req, res) {
+  try { res.json(await referenceService.listPrograms()); }
+  catch (err) { fail(res, err, 'List programs error', 'Failed to fetch programs.'); }
+}
+
+module.exports = { getPrograms, getColleges, getDocumentTypes, getPaymentMethods };

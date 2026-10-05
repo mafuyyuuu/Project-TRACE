@@ -72,7 +72,7 @@ TRACE records the automatic offer against your account. Skipping, logging out, r
 3. Select Save, review the confirmation and confirm.
 4. Check that the saved progress updates. Unsaved entries do not count toward completion.
 
-Required information includes phone, email, birth date, birthplace, sex, civil status, home address, and elementary, junior-high and senior-high schools with graduation years. Alumni supply their graduation year; transfer students supply Previous School; married female students supply a maiden name. Follow each marked tab's field hints for your account. Extension name and profile photo are optional. Program/Course is separate from College.
+Required information includes phone, email, birth date, birthplace, sex, civil status, home address, and elementary, junior-high and senior-high schools with graduation years. Alumni supply their graduation year; transfer students supply Previous School; married female students supply a maiden name. Follow each marked tab's field hints for your account. Extension name and profile photo are optional. Program/Course is separate from College. In Personal Info, choose College first, then its active Registrar-approved Program/Course. Changing College clears the draft program. Save and confirm, then check the saved selections after reload. If no programs are available, ask Admin to add the approved catalog. Your recorded unlisted/inactive entries are preserved when saving other information.
 
 **Change your photo:** select the camera on your avatar, choose an image, check the preview, then Save and confirm. Selecting an image does not upload it immediately. Your saved registration proof is available for viewing/downloading; this does not grant permission to replace it.
 
@@ -281,3 +281,13 @@ Open **Security Logs** to review each event's timestamp, event name, account nam
 | A server error persists | Note the action and time. Ask the operator to inspect the relevant logs; do not share passwords, tokens, codes or private records. |
 
 Read confirmations before saving or making desk decisions. Cancel keeps the draft; file selection alone does not submit it. Login and message sending submit directly. A Loading indicator means API work is pending, not that you should repeatedly click the action.
+
+### Maintain Registrar-approved programs (Admin)
+
+1. Open **System Maintenance → Programs**.
+2. Choose an active College, then enter the exact Registrar-approved program name (up to 150 characters).
+3. Select **Add Program**, check the confirmation and confirm. Cancelling or a failed save keeps your draft.
+4. Use **Deactivate** to hide a program from new profile selections; saved student records remain unchanged. **Restore** makes it available again when its College is active.
+5. To replace a name or college association, add the approved replacement and deactivate the old entry. Duplicate names within the same college are rejected; restore an existing inactive entry instead.
+
+The catalog starts empty. Add only approved programs; TRACE does not infer a program list from student-entered text. Students and alumni use these choices in Edit Profile; registration's existing manual entry is unchanged.

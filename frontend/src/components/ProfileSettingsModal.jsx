@@ -1,3 +1,4 @@
+import AcademicProfileFields from '@/components/AcademicProfileFields';
 import Button from '@/components/Button';
 import { PASSWORD_REQUIREMENTS, validNewPassword } from '@/utils/passwordPolicy';
 import { INPUT_LIMITS } from '@/utils/inputLimits';
@@ -281,10 +282,7 @@ export default function ProfileSettingsModal({
 
               {isStudent && (
                 <>
-                  <label className="trace-label block">Program/Course
-                    <input maxLength={150} value={profileData.program || ''} onChange={event => setField('program', event.target.value)} placeholder="e.g. BS Information Technology" className="trace-control mt-2 w-full" />
-                    <span className="block text-xs font-normal mt-1">Your degree or program, separate from your college. Used on the payment slip and by Finance when preparing the OR.</span>
-                  </label>
+                  <AcademicProfileFields user={user} profileData={profileData} setField={setField} busy={saving} />
                   <div className="trace-form-grid">
                     <div>
                       <label htmlFor="profile-birth_date" className="trace-label block mb-2">Birth Date <span className="text-red-500 dark:text-red-300">*</span></label>

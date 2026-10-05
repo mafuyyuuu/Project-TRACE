@@ -1,4 +1,5 @@
 const referenceModel = require('../models/referenceData.model');
+const programModel = require('../models/program.model');
 const pricingModel = require('../models/pricing.model');
 const { resolveSchedule } = require('../utils/pricing');
 const userModel = require('../models/user.model');
@@ -73,4 +74,8 @@ async function listPaymentMethods({ includeInactive = false } = {}) {
   };
 }
 
-module.exports = { listColleges, listDocumentTypes, listPaymentMethods };
+async function listPrograms() {
+  return { programs: await programModel.list() };
+}
+
+module.exports = { listPrograms, listColleges, listDocumentTypes, listPaymentMethods };
