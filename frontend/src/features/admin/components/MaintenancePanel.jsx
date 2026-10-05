@@ -1,3 +1,4 @@
+import Button from '@/components/Button';
 import FeeScheduleEditor from './FeeScheduleEditor';
 import { isHonorableDismissal, isSameDayWalkInType } from '@/utils/documentPolicy';
 import { INPUT_LIMITS } from '@/utils/inputLimits';
@@ -134,7 +135,7 @@ export default function MaintenancePanel({ user, currentTab }) {
         {/* Section switcher */}
       <div className="flex flex-wrap gap-2 border-b border-gray-200 dark:border-gray-700">
           {SECTIONS.map((s) => (
-            <button
+            <Button
               key={s.key}
               onClick={() => { setSection(s.key); resetForm(); }}
               className={`trace-tab rounded-t-xl  ${
@@ -144,7 +145,7 @@ export default function MaintenancePanel({ user, currentTab }) {
               }`}
             >
               {s.label} ({(s.key === 'staff' ? m.accounts : m[s.key]).length})
-            </button>
+            </Button>
           ))}
         </div>
 
@@ -276,11 +277,11 @@ export default function MaintenancePanel({ user, currentTab }) {
                   Same-day eligible when original and photocopy are presented
                 </label>
               </div>
-<button type="submit" disabled={m.saving}
+<Button type="submit" disabled={m.saving}
                 className="trace-button trace-button-primary w-full">
                 {m.saving ? 'Saving...' : editingTypeId ? 'Save Changes' : 'Create Type'}
-              </button>
-              {editingTypeId && <button type="button" onClick={resetForm} className="trace-action w-full py-2 text-gray-600 dark:text-gray-300 focus-visible:ring-2 focus-visible:ring-green-600">Cancel Edit</button>}
+              </Button>
+              {editingTypeId && <Button type="button" onClick={resetForm} className="trace-action w-full py-2 text-gray-600 dark:text-gray-300 focus-visible:ring-2 focus-visible:ring-green-600">Cancel Edit</Button>}
             </form>
 
             <div className="trace-section lg:col-span-2 overflow-hidden">
@@ -318,7 +319,7 @@ export default function MaintenancePanel({ user, currentTab }) {
                         <td className="py-3"><StatusBadge active={d.is_active} retired={d.is_retired} /></td>
                         <td className="py-3 pr-5 text-right">
                           {d.is_retired && <span className="block text-xs text-gray-500 dark:text-gray-400 mb-2">Unavailable for new requests; history retained.</span>}
-                          <button type="button" disabled={d.is_retired} onClick={() => {
+                          <Button type="button" disabled={d.is_retired} onClick={() => {
                             setEditingTypeId(d.id);
                             setForm({ dt_name: d.name, dt_fee: d.base_fee, dt_rule: d.fee_rule,
                               dt_rental_fee: d.rental_fee ?? 0, dt_special_fee: d.special_fee ?? 0, dt_fee_items: d.fee_items || [], dt_fee_schedules: d.college_fee_schedules || [],
@@ -327,14 +328,14 @@ export default function MaintenancePanel({ user, currentTab }) {
                               dt_is_walk_in: Boolean(d.is_walk_in), dt_requires_original: Boolean(d.requires_original),
                               dt_is_same_day: Boolean(d.is_same_day), dt_reg_attach: d.registrar_attachment_rule,
                               dt_college_ids: d.allowed_college_ids || [] });
-                          }} className="trace-action mr-2 text-xs font-bold text-blue-700 dark:text-blue-300 hover:underline disabled:opacity-40 focus-visible:ring-2 focus-visible:ring-blue-500">Edit</button>
-                          <button
+                          }} className="trace-action mr-2 text-xs font-bold text-blue-700 dark:text-blue-300 hover:underline disabled:opacity-40 focus-visible:ring-2 focus-visible:ring-blue-500">Edit</Button>
+                          <Button
                             onClick={() => m.handleToggleDocumentTypeActive(d)}
                             disabled={m.saving || d.is_retired}
                             className={`trace-button ${d.is_active ? 'trace-button-danger' : 'trace-button-primary'}`}
                           >
                             {d.is_retired ? 'Retired' : d.is_active ? 'Deactivate' : 'Restore'}
-                          </button>
+                          </Button>
                         </td>
                       </tr>
                     ))}
@@ -354,10 +355,10 @@ export default function MaintenancePanel({ user, currentTab }) {
                 value={form.c_name || ''} onChange={(e) => set('c_name', e.target.value)} />
               <input maxLength={INPUT_LIMITS.shortCode} className={inputClass} placeholder="Short code (e.g. CCS)"
                 value={form.c_code || ''} onChange={(e) => set('c_code', e.target.value)} />
-              <button type="submit" disabled={m.saving}
+              <Button type="submit" disabled={m.saving}
                 className="trace-button trace-button-primary w-full">
                 {m.saving ? 'Saving...' : 'Create College'}
-              </button>
+              </Button>
             </form>
 
             <div className="trace-section lg:col-span-2 overflow-hidden">
@@ -381,13 +382,13 @@ export default function MaintenancePanel({ user, currentTab }) {
                         <td className="py-3 text-xs text-gray-600 dark:text-gray-300 font-mono">{c.short_code || '—'}</td>
                         <td className="py-3"><StatusBadge active={c.is_active} /></td>
                         <td className="py-3 pr-5 text-right">
-                          <button
+                          <Button
                             onClick={() => m.handleToggleCollegeActive(c)}
                             disabled={m.saving}
                             className="trace-button trace-button-secondary"
                           >
                             {c.is_active ? 'Deactivate' : 'Restore'}
-                          </button>
+                          </Button>
                         </td>
                       </tr>
                     ))}
@@ -434,10 +435,10 @@ export default function MaintenancePanel({ user, currentTab }) {
                 Requires a proof-of-payment upload
               </label>
 
-              <button type="submit" disabled={m.saving}
+              <Button type="submit" disabled={m.saving}
                 className="trace-button trace-button-primary w-full">
                 {m.saving ? 'Saving...' : 'Create Method'}
-              </button>
+              </Button>
             </form>
 
             <div className="trace-section lg:col-span-2 overflow-hidden">
@@ -472,13 +473,13 @@ export default function MaintenancePanel({ user, currentTab }) {
                         <td className="py-3 text-xs text-gray-600 dark:text-gray-300">{p.requires_proof ? 'Required' : '—'}</td>
                         <td className="py-3"><StatusBadge active={p.is_active} /></td>
                         <td className="py-3 pr-5 text-right">
-                          <button
+                          <Button
                             onClick={() => m.handleTogglePaymentMethodActive(p)}
                             disabled={m.saving}
                             className="trace-button trace-button-secondary"
                           >
                             {p.is_active ? 'Deactivate' : 'Restore'}
-                          </button>
+                          </Button>
                         </td>
                       </tr>
                     ))}

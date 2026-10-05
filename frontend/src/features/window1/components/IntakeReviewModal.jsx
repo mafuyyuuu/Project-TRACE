@@ -1,3 +1,4 @@
+import Button from '@/components/Button';
 import { INPUT_LIMITS } from '@/utils/inputLimits';
 import FileUploadField from '@/components/FileUploadField';
 import ModalShell from '@/components/ModalShell';
@@ -42,20 +43,20 @@ export default function IntakeReviewModal({
       maxWidth="w-[90vw] sm:w-full max-w-xl"
       footer={
         <div className="flex flex-col sm:flex-row gap-3">
-          <button
+          <Button
             onClick={() => handleIntake('return')}
             disabled={actionLoading}
             className="trace-button trace-button-danger flex-1"
           >
             Return to Student
-          </button>
-          <button
+          </Button>
+          <Button
             onClick={() => handleIntake('approve')}
             disabled={actionLoading}
             className="trace-button trace-button-primary flex-1"
           >
             {actionLoading ? 'Routing…' : 'Route to Secretary'}
-          </button>
+          </Button>
         </div>
       }
     >

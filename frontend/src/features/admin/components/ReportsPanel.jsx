@@ -1,3 +1,4 @@
+import Button from '@/components/Button';
 import { INPUT_LIMITS } from '@/utils/inputLimits';
 import { useState } from 'react';
 import StudentProfileModal from '@/components/StudentProfileModal';
@@ -108,14 +109,14 @@ export default function ReportsPanel({ user, currentTab }) {
           </div>
 
           <div className="flex flex-wrap gap-3 mt-4 pt-4 border-t border-gray-100 dark:border-gray-700">
-            <button onClick={r.applyFilters}
+            <Button onClick={r.applyFilters}
               className="trace-button trace-button-primary">
               Apply Filters
-            </button>
-            <button onClick={r.resetFilters}
+            </Button>
+            <Button onClick={r.resetFilters}
               className="trace-button trace-button-secondary">
               Reset
-            </button>
+            </Button>
 
           </div>
         </div>
@@ -138,7 +139,7 @@ export default function ReportsPanel({ user, currentTab }) {
               {EXPORT_CATEGORIES.map(c => <option key={c.key} value={c.key}>{c.label} (CSV)</option>)}
             </select>
           </label>
-          <button type="button" disabled={Boolean(r.exporting)} onClick={() => exportOption === 'documents' ? r.downloadDocuments() : r.downloadStudents(exportOption)} className="trace-button trace-button-primary">{r.exporting ? 'Exporting…' : 'Export'}</button>
+          <Button type="button" disabled={Boolean(r.exporting)} onClick={() => exportOption === 'documents' ? r.downloadDocuments() : r.downloadStudents(exportOption)} className="trace-button trace-button-primary">{r.exporting ? 'Exporting…' : 'Export'}</Button>
         </div>
 
         {/* Filtered records */}
@@ -174,7 +175,7 @@ export default function ReportsPanel({ user, currentTab }) {
                     <td className="py-3 px-3 text-xs text-gray-500 dark:text-gray-400">{formatDateTime(d.updated_at)}</td>
                     <td className="py-3 px-5 break-all text-[11px] font-mono text-gray-700 dark:text-gray-300">{d.tracking_number}</td>
                     <td className="py-3">
-                      <button type="button" disabled={!d.student_id} onClick={() => setViewProfileId(d.student_id)} className="trace-action text-xs font-bold text-blue-700 dark:text-blue-300 hover:underline select-text break-words text-left focus-visible:ring-2 focus-visible:ring-blue-500">{d.student_name || '—'}</button>
+                      <Button type="button" disabled={!d.student_id} onClick={() => setViewProfileId(d.student_id)} className="trace-action text-xs font-bold text-blue-700 dark:text-blue-300 hover:underline select-text break-words text-left focus-visible:ring-2 focus-visible:ring-blue-500">{d.student_name || '—'}</Button>
                       <div className="text-[10px] text-gray-400 dark:text-gray-400 font-mono select-text break-words">{d.student_id || '—'}</div>
                     </td>
                     <td className="py-3 pr-2 break-words text-xs text-gray-600 dark:text-gray-300">{d.document_type || '—'}</td>
@@ -206,14 +207,14 @@ export default function ReportsPanel({ user, currentTab }) {
 
           {r.report && r.report.totalPages > 1 && (
             <div className="p-4 border-t border-gray-100 dark:border-gray-700 flex justify-center gap-2">
-              <button onClick={() => r.goToPage(r.page - 1)} disabled={r.page <= 1}
+              <Button onClick={() => r.goToPage(r.page - 1)} disabled={r.page <= 1}
                 className="trace-button trace-button-secondary">
                 Previous
-              </button>
-              <button onClick={() => r.goToPage(r.page + 1)} disabled={r.page >= r.report.totalPages}
+              </Button>
+              <Button onClick={() => r.goToPage(r.page + 1)} disabled={r.page >= r.report.totalPages}
                 className="trace-button trace-button-secondary">
                 Next
-              </button>
+              </Button>
             </div>
           )}
         </div>

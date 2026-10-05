@@ -1,3 +1,4 @@
+import Button from '@/components/Button';
 import { INPUT_LIMITS } from '@/utils/inputLimits';
 import { isHonorableDismissal } from '@/utils/documentPolicy';
 import FileUploadField from '@/components/FileUploadField';
@@ -42,21 +43,21 @@ export default function NewRequestModal({
       maxWidth="max-w-2xl"
       footer={
         <div className="trace-actions justify-end">
-          <button
+          <Button
             type="button"
             onClick={() => setActiveModal(null)}
             className="trace-button trace-button-secondary"
           >
             Cancel
-          </button>
-          <button
+          </Button>
+          <Button
             type="submit"
             form="new-request-form"
             disabled={actionLoading || documentTypesLoading || selectedNames.length === 0 || selectedNames.some(name => !availableTypes.some(type => type.name === name && !type.unavailable_reason))}
             className="trace-button trace-button-primary"
           >
             {actionLoading ? 'Submitting...' : 'Next'}
-          </button>
+          </Button>
         </div>
       }
     >

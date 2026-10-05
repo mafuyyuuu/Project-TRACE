@@ -1,3 +1,4 @@
+import Button from '@/components/Button';
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import AuthShell from '@/components/AuthShell';
@@ -18,8 +19,8 @@ export default function StaffAuthenticatorSetupPage() {
     {auth.codes.length ? <section className="space-y-4">
       <p role="status">Authenticator enabled. Save these recovery codes privately before continuing. Each works once; they will not be shown again.</p>
       <ul aria-label="Recovery codes" className="select-text font-mono text-sm space-y-2">{auth.codes.map(value => <li key={value} className="break-all">{value}</li>)}</ul>
-      <button type="button" onClick={() => downloadRecoveryCodes(auth.codes)} className="trace-button trace-button-inverse">Download recovery codes</button>
-      <button type="button" onClick={() => { window.location.href = '/dashboard'; }} className="trace-button trace-button-inverse-primary w-full">I saved my recovery codes — Continue</button>
+      <Button type="button" onClick={() => downloadRecoveryCodes(auth.codes)} className="trace-button trace-button-inverse">Download recovery codes</Button>
+      <Button type="button" onClick={() => { window.location.href = '/dashboard'; }} className="trace-button trace-button-inverse-primary w-full">I saved my recovery codes — Continue</Button>
     </section> : <form className="space-y-4" onSubmit={event => { event.preventDefault(); if (!auth.setup) auth.run(payload()); else setConfirming(true); }}>
       {!auth.setup ? <>
         <p className="text-sm">Ask Admin to check your identity and issue a private ten-minute setup code. Use your own staff password.</p>
@@ -31,9 +32,9 @@ export default function StaffAuthenticatorSetupPage() {
         {auth.qr && <img src={auth.qr} alt="Staff authenticator setup QR" width={240} height={240} className="max-w-full rounded-xl" />}
         <p>Manual setup key: <code className="select-text break-all">{auth.setup.secret}</code></p>
         <label className="trace-label trace-label-inverse block">Authenticator code<input required maxLength={6} inputMode="numeric" autoComplete="one-time-code" value={code} disabled={auth.busy} onChange={event => setCode(event.target.value.replace(/\D/g, ''))} className={inputClass} /></label>
-        <button type="button" disabled={auth.busy} onClick={() => { auth.restart(); setCode(''); }} className="trace-action underline">Start again</button>
+        <Button type="button" disabled={auth.busy} onClick={() => { auth.restart(); setCode(''); }} className="trace-action underline">Start again</Button>
       </>}
-      <button disabled={auth.busy || (auth.setup && code.length !== 6)} type="submit" className="trace-button trace-button-inverse-primary w-full">{auth.busy ? 'Verifying…' : auth.setup ? 'Enable authenticator' : 'Verify staff setup'}</button>
+      <Button disabled={auth.busy || (auth.setup && code.length !== 6)} type="submit" className="trace-button trace-button-inverse-primary w-full">{auth.busy ? 'Verifying…' : auth.setup ? 'Enable authenticator' : 'Verify staff setup'}</Button>
     </form>}
     <div className="mt-6"><Link to="/" className="underline">Back to Login</Link></div>
     <ConfirmDialog open={confirming} title="Enable Staff Authenticator" message="Enable this authenticator and revoke older sessions? Save the recovery codes that appear next." confirmLabel="Enable authenticator" loading={auth.busy} onConfirm={enroll} onCancel={() => setConfirming(false)}>

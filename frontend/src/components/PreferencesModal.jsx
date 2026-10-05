@@ -1,3 +1,4 @@
+import Button from '@/components/Button';
 import { useId } from 'react';
 import ModalShell from '@/components/ModalShell';
 import { TEXT_SIZES } from '@/utils/textSize';
@@ -16,10 +17,10 @@ export default function PreferencesModal({ onClose, darkMode, onToggleTheme, tex
             <h4 id={appearanceId} className="trace-label">Appearance</h4>
             <p className="text-sm leading-relaxed text-gray-600 dark:text-gray-300">Choose how TRACE looks on this device.</p>
           </div>
-          <button type="button" aria-pressed={darkMode} onClick={onToggleTheme} disabled={!onToggleTheme}
+          <Button type="button" aria-pressed={darkMode} onClick={onToggleTheme} disabled={!onToggleTheme}
             className="trace-button trace-button-secondary w-full min-w-0 enabled:active:bg-gray-200 dark:enabled:active:bg-gray-700 aria-pressed:enabled:active:bg-green-900 dark:aria-pressed:enabled:active:bg-green-900">
             {darkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
-          </button>
+          </Button>
         </section>
         <section aria-labelledby={textSizeId} className="min-w-0 space-y-3 border-t border-gray-200 pt-6 dark:border-gray-700">
           <div className="space-y-2">

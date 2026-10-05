@@ -1,3 +1,4 @@
+import Button from '@/components/Button';
 import { useState } from 'react';
 import { useMessageThreads } from '@/hooks/useDocumentChat';
 import DocumentChat from '@/components/DocumentChat';
@@ -11,7 +12,7 @@ export default function GeneralSupportPanel({ user, initialStudentId }) {
     <p className="text-sm">Ask for help before filing a request. For an existing request or a required attachment, use Request conversations. Replies show when Window 1 sends them; this is not an automated or guaranteed immediate response.</p>
     {!student && <>
       {inbox.loading && <p role="status">Loading support conversations…</p>}
-      {inbox.error && <div><p role="alert">{inbox.error}</p><button type="button" onClick={inbox.retry} className="trace-button trace-button-secondary">Retry support inbox</button></div>}
+      {inbox.error && <div><p role="alert">{inbox.error}</p><Button type="button" onClick={inbox.retry} className="trace-button trace-button-secondary">Retry support inbox</Button></div>}
       {!inbox.loading && !inbox.error && !inbox.threads.length && <p>No general support messages yet.</p>}
       <label className="trace-label block">Student support conversation
         <select value={selected} onChange={event => setSelected(event.target.value)} className="trace-control mt-2 w-full min-w-0">
@@ -21,9 +22,9 @@ export default function GeneralSupportPanel({ user, initialStudentId }) {
         </select>
       </label>
       <div className="flex flex-wrap gap-3 items-center text-sm">
-        <button type="button" disabled={page === 1} onClick={() => { setPage(value => value - 1); setSelected(''); }} className="trace-button trace-button-secondary">Previous support page</button>
+        <Button type="button" disabled={page === 1} onClick={() => { setPage(value => value - 1); setSelected(''); }} className="trace-button trace-button-secondary">Previous support page</Button>
         <span>Page {page}</span>
-        <button type="button" disabled={page * 20 >= inbox.total} onClick={() => { setPage(value => value + 1); setSelected(''); }} className="trace-button trace-button-secondary">Next support page</button>
+        <Button type="button" disabled={page * 20 >= inbox.total} onClick={() => { setPage(value => value + 1); setSelected(''); }} className="trace-button trace-button-secondary">Next support page</Button>
       </div>
     </>}
     {selected && <div className="h-[50dvh] min-h-48"><DocumentChat documentId={selected} user={user} kind="support" /></div>}

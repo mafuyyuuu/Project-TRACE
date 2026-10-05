@@ -1,3 +1,4 @@
+import Button from '@/components/Button';
 import ProgressFill from '@/components/ProgressFill';
 import RequestMessagesPanel from '@/components/RequestMessagesPanel';
 import { getProfileCompletion } from '@/utils/profileCompletion';
@@ -104,7 +105,7 @@ export default function StudentDashboard({ user, currentTab, setViewImageUrl }) 
                   <span className="text-xs font-bold text-gray-800 dark:text-gray-100">{todayFormatted}</span>
                   <svg className="w-4 h-4 text-gray-400 dark:text-gray-400 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
                 </div>
-                <button id="tutorial-new-request"
+                <Button id="tutorial-new-request"
                   onClick={() => {
                     const missing = getProfileCompletion(user).missing.map(item => item.label);
                     if (user.email_verified_at === null) missing.push('Email Address verification — choose Verify in Edit Profile');
@@ -114,11 +115,11 @@ export default function StudentDashboard({ user, currentTab, setViewImageUrl }) 
                     }
                     setActiveModal('new-request');
                   }}
-                  className="trace-action flex items-center gap-2 px-5 py-2.5 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 hover:border-gray-400 dark:hover:border-gray-700 text-gray-800 dark:text-gray-100 text-xs font-bold rounded-full shadow-sm transition-colors"
+                  className="trace-button-lift trace-action flex items-center gap-2 px-5 py-2.5 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 enabled:hover:border-gray-400 dark:enabled:hover:border-gray-700 text-gray-800 dark:text-gray-100 text-xs font-bold rounded-full shadow-sm transition-colors"
                 >
                   <span>New Request</span>
                   <svg className="w-4 h-4 text-gray-800 dark:text-gray-100" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.2" d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                </button>
+                </Button>
               </div>
             </div>
 
@@ -190,13 +191,13 @@ export default function StudentDashboard({ user, currentTab, setViewImageUrl }) 
                     {billableGroups.map((group) => (
                       <section key={group.groupId} aria-label={`Payment for request ${group.groupId}`} className="space-y-4 pb-5 border-b border-gray-100 dark:border-gray-700 last:border-0 last:pb-0">
                         <p className="text-xs font-mono text-gray-500 dark:text-gray-400 break-words select-text">Request {group.groupId}</p>
-                        <button
+                        <Button
                           type="button"
                           onClick={() => { setSelectedDoc({ ...group.docs[0], group_total: group.total }); setActiveModal('pay'); }}
-                          className="trace-button trace-button-primary w-full sm:w-auto sm:px-6"
+                          className="trace-button trace-button-warning w-full sm:w-auto sm:px-6"
                         >
                           Pay {formatPeso(group.total)} ({group.docs.length} {group.docs.length === 1 ? 'document' : 'documents'})
-                        </button>
+                        </Button>
                         <ul className="space-y-2">
                           {group.docs.map((doc) => (
                             <li key={doc.id} className="flex items-baseline justify-between gap-4 text-sm">
@@ -217,7 +218,7 @@ export default function StudentDashboard({ user, currentTab, setViewImageUrl }) 
             <div className="trace-section overflow-hidden mt-8">
               <div id="tutorial-requests" className="trace-section-header border-gray-100 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800/50">
                 <h3 className="font-bold text-gray-900 dark:text-gray-100 text-lg">ACTIVE REQUESTS</h3>
-                <button onClick={loadDashboardData} className="trace-action text-xs text-[#15803d] dark:text-green-300 font-bold hover:underline inline-flex items-center gap-1"><svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.992 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182" /></svg> Refresh</button>
+                <Button onClick={loadDashboardData} className="trace-action text-xs text-[#15803d] dark:text-green-300 font-bold hover:underline inline-flex items-center gap-1"><svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.992 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182" /></svg> Refresh</Button>
               </div>
               <div className="p-4 sm:p-6">
                 <div className="max-h-[calc(100vh-280px)] overflow-y-auto overflow-x-auto">
@@ -266,22 +267,22 @@ export default function StudentDashboard({ user, currentTab, setViewImageUrl }) 
                             <td className="py-4 px-4 align-middle text-right">
                               <div className="flex justify-end gap-2">
                                 {isCancellable(doc.current_status) ? (
-                                  <button
+                                  <Button
                                     onClick={() => handleStudentCancelRequest(doc.id)}
                                     className="trace-button trace-button-danger flex items-center gap-1.5 shrink-0"
                                   >
                                     <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M6 18L18 6M6 6l12 12"/></svg>
                                     Cancel
-                                  </button>
+                                  </Button>
                                 ) : (
-                                  <button
+                                  <Button
                                     onClick={() => { setSelectedDoc(doc); setActiveModal('tracking'); }}
                                     className="trace-button trace-button-info flex items-center gap-1.5 shrink-0"
                                     title="Track Document"
                                   >
                                     <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"/></svg>
                                     Live Track
-                                  </button>
+                                  </Button>
                                 )}
                               </div>
                             </td>
@@ -300,7 +301,7 @@ export default function StudentDashboard({ user, currentTab, setViewImageUrl }) 
       {/* INCOMPLETE PROFILE MODAL */}
       {missingProfileFields && (
         <ModalShell open={true} onClose={() => setMissingProfileFields(null)} title="Profile Incomplete" maxWidth="max-w-sm"
-          footer={<button onClick={() => { setMissingProfileFields(null); window.dispatchEvent(new CustomEvent('open-profile-settings')); }} className="trace-button trace-button-primary w-full">Complete Profile</button>}>
+          footer={<Button onClick={() => { setMissingProfileFields(null); window.dispatchEvent(new CustomEvent('open-profile-settings')); }} className="trace-button trace-button-primary w-full">Complete Profile</Button>}>
           <div className="flex flex-col items-center gap-4 text-center">
             <div className="w-16 h-16 rounded-full bg-amber-50 dark:bg-amber-950/40 text-amber-500 dark:text-amber-300 flex items-center justify-center mb-2">
               <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
@@ -321,7 +322,7 @@ export default function StudentDashboard({ user, currentTab, setViewImageUrl }) 
         {['request-history', 'payment-history', 'history'].includes(currentTab) && <section className="space-y-5">
           <h2 className="trace-page-title">History</h2>
           <div className="flex flex-wrap gap-3" aria-label="History filters">
-            {['all', 'payments'].map(filter => <button key={filter} type="button" aria-pressed={historyFilter === filter} onClick={() => setHistoryView({ tab: currentTab, filter })} className={`trace-tab rounded-xl  ${historyFilter === filter ? 'bg-[#15803d] text-white' : 'bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700'}`}>{filter === 'all' ? 'All Requests' : 'Payments'}</button>)}
+            {['all', 'payments'].map(filter => <Button key={filter} type="button" aria-pressed={historyFilter === filter} onClick={() => setHistoryView({ tab: currentTab, filter })} className={`trace-tab rounded-xl  ${historyFilter === filter ? 'bg-[#15803d] text-white' : 'bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700'}`}>{filter === 'all' ? 'All Requests' : 'Payments'}</Button>)}
           </div>
           <div className="trace-section trace-section-body overflow-x-auto max-h-[60vh]">
             <table className="w-full table-fixed min-w-[980px] text-left text-xs">
@@ -336,7 +337,7 @@ export default function StudentDashboard({ user, currentTab, setViewImageUrl }) 
                   : 'Pending Secretary pricing'}</td>
                 <td className="px-3 py-4">{doc.payment_status || 'PENDING'}</td>
                 <td className="px-3 py-4 break-all">{doc.gcash_reference_no || doc.or_number || '—'}</td>
-                <td className="px-3 py-4">{doc.official_receipt_path ? <button type="button" onClick={() => setViewImageUrl(doc.official_receipt_path)} className="trace-action font-bold text-green-700 dark:text-green-300 underline">View Receipt</button> : 'No digital copy'}</td>
+                <td className="px-3 py-4">{doc.official_receipt_path ? <Button type="button" onClick={() => setViewImageUrl(doc.official_receipt_path)} className="trace-action font-bold text-green-700 dark:text-green-300 underline">View Receipt</Button> : 'No digital copy'}</td>
               </tr>)}</tbody>
             </table>
             {documents.filter(doc => historyFilter === 'all' || doc.payment_status === 'PAID' || doc.gcash_reference_no).length === 0 && <p className="p-6 text-sm text-gray-500 dark:text-gray-400">No records match this filter.</p>}
@@ -364,28 +365,28 @@ export default function StudentDashboard({ user, currentTab, setViewImageUrl }) 
         {/* 1.5. COMPLETE YOUR GCASH PAYMENT MODAL */}
         {activeModal === 'pay' && selectedDoc && (
           <ModalShell open onClose={() => setActiveModal(null)} title="Complete your Payment"
-            footer={<div><button
+            footer={<div><Button
                   type="submit" form="student-payment-form"
                   disabled={actionLoading}
                   className="trace-button trace-button-primary w-full flex justify-center items-center"
                 >
                   {actionLoading ? 'Submitting...' : 'Submit Payment'}
-                </button>
-                <button
+                </Button>
+                <Button
                   type="button"
                   onClick={() => setActiveModal('payment-stub')}
                   className="trace-button trace-button-secondary w-full mt-3 flex justify-center items-center gap-2"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
                   Print Payment Slip (Walk-in)
-                </button></div>}>
-              <button 
+                </Button></div>}>
+              <Button
                 onClick={() => handleStudentCancelRequest(selectedDoc.id, true)}
                 className="trace-button trace-button-secondary mb-4 w-fit flex items-center gap-1"
               >
                 <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
                 Back to Form
-              </button>
+              </Button>
 
 
               <p className="text-xs text-gray-400 dark:text-gray-400 mb-6 font-semibold">One payment for {selectedPaymentDocuments.length} {selectedPaymentDocuments.length === 1 ? 'document' : 'documents'}</p>
@@ -393,7 +394,7 @@ export default function StudentDashboard({ user, currentTab, setViewImageUrl }) 
               {/* Payment method picker */}
               <div className="flex flex-wrap gap-2 mb-6">
                 {paymentMethods.map((m) => (
-                  <button
+                  <Button
                     key={m.code}
                     type="button"
                     onClick={() => setSelectedMethod(m.code)}
@@ -404,7 +405,7 @@ export default function StudentDashboard({ user, currentTab, setViewImageUrl }) 
                     }`}
                   >
                     {m.name}
-                  </button>
+                  </Button>
                 ))}
               </div>
 
@@ -494,12 +495,12 @@ export default function StudentDashboard({ user, currentTab, setViewImageUrl }) 
         {/* 1.6. PAYMENT SUCCESS SCREEN MODAL */}
         {activeModal === 'pay-success' && (
           <ModalShell open onClose={() => setActiveModal(null)} title="Payment Submitted"
-            footer={<button
+            footer={<Button
                 onClick={() => setActiveModal(null)}
                 className="trace-button trace-button-primary w-full"
               >
                 Return to Dashboard
-              </button>}>
+              </Button>}>
               <div className="border-2 border-dashed border-[#15803d]/40 bg-gray-50/50 dark:bg-gray-800/50 p-8 rounded-2xl flex flex-col items-center gap-6 mb-6">
                 <p className="text-xs font-semibold text-gray-600 dark:text-gray-300 leading-relaxed max-w-xs">
                   Your reference number and uploaded receipt have been securely routed to Finance Office for verification. Once cleared, your Transcript of Record will be proceed to processing.

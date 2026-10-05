@@ -1,3 +1,4 @@
+import Button from '@/components/Button';
 import { INPUT_LIMITS } from '@/utils/inputLimits';
 import UserCard from '@/components/UserCard';
 
@@ -47,13 +48,13 @@ export default function UserGrid({
           </select>
         )}
         {onAddUser && (
-          <button
+          <Button
             type="button"
             onClick={onAddUser}
             className="trace-button trace-button-primary"
           >
             + Add User
-          </button>
+          </Button>
         )}
       </div>
 

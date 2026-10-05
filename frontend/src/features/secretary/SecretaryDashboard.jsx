@@ -1,3 +1,4 @@
+import Button from '@/components/Button';
 import { useState } from 'react';
 import SecretaryEvaluationModal from '@/features/secretary/components/SecretaryEvaluationModal';
 import PricingModal from '@/features/secretary/components/PricingModal';
@@ -190,7 +191,7 @@ export default function SecretaryDashboard({ user, currentTab, setViewImageUrl }
                         {evaluationQueue.map(doc => (
                           <tr key={doc.id} className="hover:bg-gray-50/30 dark:hover:bg-gray-800/30 group">
                             <td className="py-4 pl-4">
-                              <button type="button" disabled={!doc.student_id} onClick={() => setViewProfileId(doc.student_id)} className="trace-action font-bold text-blue-700 dark:text-blue-300 hover:underline text-left focus-visible:ring-2 focus-visible:ring-blue-500">{doc.student_name || 'Unresolved Student'}</button>
+                              <Button type="button" disabled={!doc.student_id} onClick={() => setViewProfileId(doc.student_id)} className="trace-action font-bold text-blue-700 dark:text-blue-300 hover:underline text-left focus-visible:ring-2 focus-visible:ring-blue-500">{doc.student_name || 'Unresolved Student'}</Button>
                               <div className="text-xs font-mono text-gray-400 dark:text-gray-400 mt-0.5">#{doc.tracking_number ? doc.tracking_number.slice(0, 10).toUpperCase() : doc.id}</div>
                             </td>
                             <td className="py-4 text-xs font-bold text-gray-600 dark:text-gray-300">{doc.document_sequence_number || doc.document_type || 'Transcript of Records'}</td>
@@ -201,7 +202,7 @@ export default function SecretaryDashboard({ user, currentTab, setViewImageUrl }
                               <span className="px-3 py-1 bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 text-[10px] font-black rounded-full uppercase tracking-wider">UNPAID</span>
                             </td>
                             <td className="py-4 text-right pr-4">
-                              <button 
+                              <Button
                                 onClick={() => {
                                   setSelectedDoc(doc);
                                   setEvalStudentId(doc.student_id || '');
@@ -213,7 +214,7 @@ export default function SecretaryDashboard({ user, currentTab, setViewImageUrl }
                               >
                                 <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                                 Review
-                              </button>
+                              </Button>
                             </td>
                           </tr>
                         ))}
@@ -259,7 +260,7 @@ export default function SecretaryDashboard({ user, currentTab, setViewImageUrl }
                           return (
                             <tr key={doc.id} className="hover:bg-gray-50/30 dark:hover:bg-gray-800/30 group">
                               <td className="py-4 pl-4">
-                                <button type="button" disabled={!doc.student_id} onClick={() => setViewProfileId(doc.student_id)} className="trace-action font-bold text-blue-700 dark:text-blue-300 hover:underline text-left focus-visible:ring-2 focus-visible:ring-blue-500">{doc.student_name || 'Unresolved Student'}</button>
+                                <Button type="button" disabled={!doc.student_id} onClick={() => setViewProfileId(doc.student_id)} className="trace-action font-bold text-blue-700 dark:text-blue-300 hover:underline text-left focus-visible:ring-2 focus-visible:ring-blue-500">{doc.student_name || 'Unresolved Student'}</Button>
                                 <div className="text-xs font-mono text-gray-400 dark:text-gray-400 mt-0.5">#{doc.tracking_number ? doc.tracking_number.slice(0, 10).toUpperCase() : doc.id}</div>
                               </td>
                               <td className="py-4 text-xs font-bold text-gray-600 dark:text-gray-300">{doc.document_sequence_number || doc.document_type}</td>
@@ -276,7 +277,7 @@ export default function SecretaryDashboard({ user, currentTab, setViewImageUrl }
                                   : <span className="text-gray-400 dark:text-gray-400">not set</span>}
                               </td>
                               <td className="py-4 text-right pr-4">
-                                <button
+                                <Button
                                   onClick={() => {
                                     setSelectedDoc(doc);
                                     setPriceNotes(''); setConfirmCurrentRates(false);
@@ -286,7 +287,7 @@ export default function SecretaryDashboard({ user, currentTab, setViewImageUrl }
                                   className="trace-button trace-button-secondary ml-auto block"
                                 >
                                   {priced ? 'Adjust Price' : 'Set Price'}
-                                </button>
+                                </Button>
                               </td>
                             </tr>
                           );
@@ -324,29 +325,29 @@ export default function SecretaryDashboard({ user, currentTab, setViewImageUrl }
                         {orVerificationQueue.map(doc => (
                           <tr key={doc.id} className="hover:bg-gray-50/30 dark:hover:bg-gray-800/30 group">
                             <td className="py-4 pl-4">
-                              <button type="button" disabled={!doc.student_id} onClick={() => setViewProfileId(doc.student_id)} className="trace-action font-bold text-blue-700 dark:text-blue-300 hover:underline text-left focus-visible:ring-2 focus-visible:ring-blue-500">{doc.student_name || 'Unresolved Student'}</button>
+                              <Button type="button" disabled={!doc.student_id} onClick={() => setViewProfileId(doc.student_id)} className="trace-action font-bold text-blue-700 dark:text-blue-300 hover:underline text-left focus-visible:ring-2 focus-visible:ring-blue-500">{doc.student_name || 'Unresolved Student'}</Button>
                               <div className="text-xs font-mono text-gray-400 dark:text-gray-400 mt-0.5">#{doc.tracking_number ? doc.tracking_number.slice(0, 10).toUpperCase() : doc.id}</div>
                             </td>
                             <td className="py-4 text-xs font-bold text-gray-600 dark:text-gray-300">{doc.document_sequence_number || doc.document_type}</td>
                             <td className="py-4 text-xs font-mono">
                               <span className="font-bold text-gray-700 dark:text-gray-300">{doc.or_number || 'None on file'}</span>
                               {doc.official_receipt_path && (
-                                <button
+                                <Button
                                   onClick={() => setViewImageUrl(doc.official_receipt_path)}
                                   className="trace-action ml-2 text-[#15803d] dark:text-green-300 hover:underline font-sans font-bold"
                                 >
                                   View
-                                </button>
+                                </Button>
                               )}
                             </td>
                             <td className="py-4 text-right pr-4">
-                              <button
+                              <Button
                                 onClick={() => handleVerifyOfficialReceipt(doc)}
                                 disabled={actionLoading}
                                 className="trace-button trace-button-primary ml-auto block"
                               >
                                 Verify Receipt
-                              </button>
+                              </Button>
                             </td>
                           </tr>
                         ))}
@@ -383,7 +384,7 @@ export default function SecretaryDashboard({ user, currentTab, setViewImageUrl }
                         {handoffQueue.map(doc => (
                           <tr key={doc.id} className="hover:bg-gray-50/30 dark:hover:bg-gray-800/30 group">
                             <td className="py-4 pl-4">
-                              <button type="button" disabled={!doc.student_id} onClick={() => setViewProfileId(doc.student_id)} className="trace-action font-bold text-blue-700 dark:text-blue-300 hover:underline text-left focus-visible:ring-2 focus-visible:ring-blue-500">{doc.student_name || 'Unresolved Student'}</button>
+                              <Button type="button" disabled={!doc.student_id} onClick={() => setViewProfileId(doc.student_id)} className="trace-action font-bold text-blue-700 dark:text-blue-300 hover:underline text-left focus-visible:ring-2 focus-visible:ring-blue-500">{doc.student_name || 'Unresolved Student'}</Button>
                               <div className="text-xs font-mono text-gray-400 dark:text-gray-400 mt-0.5">#{doc.tracking_number ? doc.tracking_number.slice(0, 10).toUpperCase() : doc.id}</div>
                             </td>
                             <td className="py-4 text-xs font-bold text-gray-600 dark:text-gray-300">{doc.document_sequence_number || doc.document_type}</td>
@@ -392,13 +393,13 @@ export default function SecretaryDashboard({ user, currentTab, setViewImageUrl }
                               <span className="text-gray-400 dark:text-gray-400 ml-2">{doc.or_number || (doc.payment_channel === 'digital' ? 'online' : '')}</span>
                             </td>
                             <td className="py-4 text-right pr-4">
-                              <button
+                              <Button
                                 onClick={() => handleConfirmHandoff(doc)}
                                 disabled={actionLoading}
                                 className="trace-button trace-button-primary ml-auto block"
                               >
                                 Handed to Window 1
-                              </button>
+                              </Button>
                             </td>
                           </tr>
                         ))}
@@ -448,7 +449,7 @@ export default function SecretaryDashboard({ user, currentTab, setViewImageUrl }
                           <tr key={doc.id} className="hover:bg-gray-50/30 dark:hover:bg-gray-800/30">
                             <td className="py-4 pl-4 text-xs font-semibold text-gray-400 dark:text-gray-400">{new Date(doc.updated_at).toLocaleDateString()} {new Date(doc.updated_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</td>
                             <td className="py-4">
-                              <button type="button" disabled={!doc.student_id} onClick={() => setViewProfileId(doc.student_id)} className="trace-action font-bold text-blue-700 dark:text-blue-300 hover:underline text-left focus-visible:ring-2 focus-visible:ring-blue-500">{doc.student_name || 'Unknown Student'}</button>
+                              <Button type="button" disabled={!doc.student_id} onClick={() => setViewProfileId(doc.student_id)} className="trace-action font-bold text-blue-700 dark:text-blue-300 hover:underline text-left focus-visible:ring-2 focus-visible:ring-blue-500">{doc.student_name || 'Unknown Student'}</Button>
                               <div className="text-xs font-mono text-gray-400 dark:text-gray-400 mt-0.5">#{doc.tracking_number ? doc.tracking_number.slice(0, 10).toUpperCase() : doc.id}</div>
                             </td>
                             <td className="py-4 text-xs font-bold text-gray-600 dark:text-gray-300">{doc.document_sequence_number || doc.document_type}</td>

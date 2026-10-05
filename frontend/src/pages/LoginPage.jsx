@@ -1,3 +1,4 @@
+import Button from '@/components/Button';
 import { INPUT_LIMITS } from '@/utils/inputLimits';
 import { useState, useEffect, useRef } from 'react'
 import { Link } from 'react-router-dom'
@@ -165,14 +166,14 @@ export default function LoginPage() {
                       onChange={(e) => setPassword(e.target.value)} 
                       className="trace-control trace-control-inverse w-full pr-12 "
                     />
-                    <button
+                    <Button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
                       className="trace-action absolute inset-y-0 right-0 pr-4 flex items-center text-white/60 hover:text-white transition-colors"
                       tabIndex={-1}
                     >
                       {showPassword ? 'Hide' : 'Show'}
-                    </button>
+                    </Button>
                   </div>
                   <div className="text-right mt-2">
                     <Link to="/forgot-password" className="text-sm font-medium text-white/90 hover:text-white hover:underline">Forgot Password?</Link>
@@ -208,7 +209,7 @@ export default function LoginPage() {
               </div>
             )}
 
-            <button 
+            <Button
               type="submit" 
               disabled={busy}
               className="trace-button trace-button-inverse-primary mt-6 w-full flex items-center justify-center gap-3"
@@ -219,32 +220,32 @@ export default function LoginPage() {
                   <span role="status" className="text-xl">PROCESSING...</span>
                 </>
               ) : (requires2FA ? 'VERIFY & LOGIN' : 'LOGIN')}
-            </button>
+            </Button>
 
             {requires2FA && mfaMethod === 'email' && (
-              <button
+              <Button
                 type="button"
                 onClick={resendOtp}
                 disabled={busy || cooldownActive}
                 className="trace-action text-sm font-semibold text-white hover:underline disabled:opacity-60 disabled:cursor-not-allowed focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
               >
                 {resending ? 'Sending code…' : cooldownActive ? `Resend OTP (${resendCooldown}s)` : 'Resend OTP'}
-              </button>
+              </Button>
             )}
 
-            {requires2FA && mfaMethod === 'authenticator' && <button type="button" disabled={busy}
+            {requires2FA && mfaMethod === 'authenticator' && <Button type="button" disabled={busy}
               onClick={() => { setUseRecoveryCode(value => !value); setOtp(''); setLocalError(''); }}
-              className="trace-action text-sm text-white underline">{useRecoveryCode ? 'Use authenticator code' : 'Use a recovery code'}</button>}
+              className="trace-action text-sm text-white underline">{useRecoveryCode ? 'Use authenticator code' : 'Use a recovery code'}</Button>}
 
             {requires2FA && (
-              <button 
+              <Button
                 type="button" 
                 disabled={busy}
                 onClick={() => setRequires2FA(false)}
                 className="trace-action mt-2 text-sm text-white/70 hover:text-white hover:underline"
               >
                 Back to Login
-              </button>
+              </Button>
             )}
           </form>
 

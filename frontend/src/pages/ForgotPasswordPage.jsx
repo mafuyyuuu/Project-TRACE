@@ -1,3 +1,4 @@
+import Button from '@/components/Button';
 import { INPUT_LIMITS } from '@/utils/inputLimits';
 import ConfirmDialog from '@/components/ConfirmDialog'
 import { useState } from 'react'
@@ -65,13 +66,13 @@ export default function ForgotPasswordPage() {
             className="trace-control trace-control-inverse w-full placeholder-white/50"
           />
 
-          <button
+          <Button
             type="submit"
             disabled={loading}
             className="trace-button trace-button-inverse-primary mt-6 w-full"
           >
             {loading ? 'Sending…' : 'Send Reset Link'}
-          </button>
+          </Button>
         </form>
       )}
     </AuthShell>

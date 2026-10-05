@@ -1,3 +1,4 @@
+import Button from '@/components/Button';
 import { useState } from 'react';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import ModalShell from '@/components/ModalShell';
@@ -22,7 +23,7 @@ export default function AccountVerificationModal({
       bare
       title="Review Registration"
       panelClassName="bg-white dark:bg-gray-900 rounded-3xl shadow-2xl w-full max-w-5xl h-[85vh] z-10 border border-gray-100 dark:border-gray-700 relative flex flex-col lg:flex-row overflow-hidden"
-      closeButtonClassName="absolute top-4 right-4 w-8 h-8 rounded-full flex items-center justify-center text-gray-400 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 z-20"
+      closeButtonClassName="trace-button-lift absolute top-4 right-4 w-8 h-8 rounded-full flex items-center justify-center text-gray-400 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 z-20"
     >
       <div className="lg:w-1/2 p-6 flex flex-col border-r border-gray-200 dark:border-gray-700 min-h-0 bg-gray-50/30 dark:bg-gray-800/30">
         <div className="flex justify-between items-center mb-3">
@@ -66,14 +67,14 @@ export default function AccountVerificationModal({
         </div>
 
         <div className="trace-modal-footer trace-actions">
-          <button
+          <Button
             onClick={cancelAdminVerifyStudent}
             className="trace-button trace-button-secondary w-1/3 text-center"
           >
             Cancel
-          </button>
-          <button onClick={() => setDecision('reject')} disabled={actionLoading} className="trace-button trace-button-danger flex-1">Reject</button>
-          <button onClick={() => setDecision('verify')} disabled={actionLoading} className="trace-button trace-button-primary flex-1">Verify</button>
+          </Button>
+          <Button onClick={() => setDecision('reject')} disabled={actionLoading} className="trace-button trace-button-danger flex-1">Reject</Button>
+          <Button onClick={() => setDecision('verify')} disabled={actionLoading} className="trace-button trace-button-primary flex-1">Verify</Button>
         </div>
       </div>
       <ConfirmDialog open={!!decision} title={decision === 'verify' ? 'Verify Account' : 'Reject Account'}

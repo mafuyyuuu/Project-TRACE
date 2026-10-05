@@ -41,7 +41,7 @@ beforeEach(() => {
 describe('Student grouped payment', () => {
   it('offers one combined action with line items and removes document-row payment buttons', async () => {
     renderStudent();
-    expect(await screen.findByRole('button', { name: 'Pay ₱200.00 (2 documents)' })).toBeInTheDocument();
+    expect(await screen.findByRole('button', { name: 'Pay ₱200.00 (2 documents)' })).toHaveClass('trace-button-warning');
     expect(screen.getAllByRole('button', { name: /^Pay / })).toHaveLength(1);
     const group = screen.getByRole('region', { name: 'Payment for request REQ-G1' });
     const items = within(group).getAllByRole('listitem');

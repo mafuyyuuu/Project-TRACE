@@ -1,3 +1,4 @@
+import Button from '@/components/Button';
 import { useId, useRef } from 'react';
 import ModalShell from '@/components/ModalShell';
 import useNotificationDismissal from '@/hooks/useNotificationDismissal';
@@ -24,14 +25,14 @@ export default function DashboardAlerts({ success, error, onDismiss, dismissalKe
       initialFocusRef={acknowledgeRef}
       descriptionId={descriptionId}
       footer={
-        <button
+        <Button
           ref={acknowledgeRef}
           type="button"
           onClick={onDismiss}
           className="trace-button trace-button-primary w-full"
         >
           OK
-        </button>
+        </Button>
       }
     >
       <div id={descriptionId} className="space-y-3 text-sm leading-relaxed break-words select-text">

@@ -1,3 +1,4 @@
+import Button from '@/components/Button';
 import { INPUT_LIMITS } from '@/utils/inputLimits';
 import { useState } from 'react';
 import ConfirmDialog from '@/components/ConfirmDialog';
@@ -108,7 +109,7 @@ export default function ForcePasswordChange({ user, onChanged, onLogout }) {
               value={confirm} onChange={(e) => setConfirm(e.target.value)}
             />
           </div>
-          <button type="button" aria-pressed={showPassword} onClick={() => setShowPassword(value => !value)} className="trace-button trace-button-secondary">{showPassword ? 'Hide passwords' : 'Show passwords'}</button>
+          <Button type="button" aria-pressed={showPassword} onClick={() => setShowPassword(value => !value)} className="trace-button trace-button-secondary">{showPassword ? 'Hide passwords' : 'Show passwords'}</Button>
 
           {(error || saveError) && (
             <p className="text-xs font-semibold text-red-600 dark:text-red-300 bg-red-50 dark:bg-red-950/40 border border-red-100 dark:border-red-800 rounded-xl p-3">
@@ -116,19 +117,19 @@ export default function ForcePasswordChange({ user, onChanged, onLogout }) {
             </p>
           )}
 
-          <button
+          <Button
             type="submit" disabled={saving}
             className="trace-button trace-button-primary w-full"
           >
             {saving ? 'Saving...' : 'Set Password & Continue'}
-          </button>
+          </Button>
 
-          <button
+          <Button
             type="button" onClick={() => { setLogoutError(''); setConfirmingLogout(true); }}
             className="trace-action w-full py-2 text-[11px] font-bold text-gray-400 dark:text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
           >
             Sign out instead
-          </button>
+          </Button>
         </form>
       </div>
       <ConfirmDialog open={passwordToConfirm !== null} title="Confirm Password Change"

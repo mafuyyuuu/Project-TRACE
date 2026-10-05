@@ -1,3 +1,4 @@
+import Button from '@/components/Button';
 import { INPUT_LIMITS } from '@/utils/inputLimits';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import { useState, useEffect } from 'react';
@@ -126,10 +127,10 @@ export default function AdminTemplatesPanel() {
     <div className="space-y-4 rounded-3xl bg-white dark:bg-gray-900 p-8">
       <h3 className="font-bold text-gray-900 dark:text-gray-100">System Templates</h3>
       <p role="alert" className="text-sm text-red-600 dark:text-red-300">{loadError}</p>
-      <button type="button" onClick={() => { setLoading(true); setLoadError(''); setListRetry(value => value + 1); }}
+      <Button type="button" onClick={() => { setLoading(true); setLoadError(''); setListRetry(value => value + 1); }}
         className="trace-button trace-button-primary">
         Retry loading templates
-      </button>
+      </Button>
     </div>
   );
 
@@ -147,14 +148,14 @@ export default function AdminTemplatesPanel() {
         <ul className="py-2">
           {templates.map(t => (
             <li key={t.template_key}>
-              <button
+              <Button
                 type="button"
                 disabled={saving}
                 onClick={() => setSelectedKey(t.template_key)}
                 className={`trace-tab w-full text-left focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[#15803d]  ${selectedKey === t.template_key ? 'bg-white dark:bg-gray-900 text-[#15803d] dark:text-green-300 border-l-4 border-[#15803d]' : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 border-l-4 border-transparent'}`}
               >
                 {t.name}
-              </button>
+              </Button>
             </li>
           ))}
         </ul>
@@ -167,10 +168,10 @@ export default function AdminTemplatesPanel() {
         ) : detailError ? (
           <div className="space-y-4 p-8">
             <p role="alert" className="text-sm text-red-600 dark:text-red-300">{detailError}</p>
-            <button type="button" onClick={() => { setTemplateDetails(null); setDetailRetry(value => value + 1); }}
+            <Button type="button" onClick={() => { setTemplateDetails(null); setDetailRetry(value => value + 1); }}
               className="trace-button trace-button-primary">
               Retry loading template
-            </button>
+            </Button>
           </div>
         ) : selectedKey ? (
           <form onSubmit={handleSave} className="flex-1 flex flex-col h-full">
@@ -207,13 +208,13 @@ export default function AdminTemplatesPanel() {
               </div>
               <div className="flex flex-wrap items-center gap-3">
                 {success && <span className="text-xs font-bold text-[#15803d] dark:text-green-300 trace-motion-feedback">{success}</span>}
-                <button
+                <Button
                   type="submit"
                   disabled={saving}
                   className="trace-button trace-button-primary"
                 >
                   {saving ? 'Saving...' : 'Save Template'}
-                </button>
+                </Button>
               </div>
             </div>
             

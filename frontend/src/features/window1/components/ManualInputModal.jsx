@@ -1,3 +1,4 @@
+import Button from '@/components/Button';
 import { isHonorableDismissal, isSameDayWalkInType } from '@/utils/documentPolicy';
 import { INPUT_LIMITS } from '@/utils/inputLimits';
 import ModalShell from '@/components/ModalShell';
@@ -23,13 +24,13 @@ export default function ManualInputModal({
   const isGraduate = purpose === 'Graduation Clearance' || docType === 'Graduate Clearance';
   return (
     <ModalShell open={open} onClose={onClose} title="Manual Input" maxWidth="max-w-3xl" footer={<div className="flex justify-end pt-4">
-          <button
+          <Button
             type="submit" form="manual-input-form"
             disabled={actionLoading || isGraduate || documentTypesLoading || !documentTypes.length}
             className="trace-button trace-button-primary"
           >
             {actionLoading ? 'Saving...' : 'Submit Request'}
-          </button>
+          </Button>
         </div>}>
       <p className="text-sm font-semibold text-gray-500 dark:text-gray-400 mb-8 leading-relaxed">
         Digitize physical walk-in requests and legacy records.
@@ -52,13 +53,13 @@ export default function ManualInputModal({
                   required
                   className="trace-control flex-1"
                 />
-                <button
+                <Button
                   type="button"
                   onClick={handleFetchStudent}
                   className="trace-button trace-button-primary shrink-0"
                 >
                   FETCH
-                </button>
+                </Button>
               </div>
             </div>
 

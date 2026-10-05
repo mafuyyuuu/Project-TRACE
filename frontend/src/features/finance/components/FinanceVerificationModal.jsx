@@ -1,3 +1,4 @@
+import Button from '@/components/Button';
 import FeeBreakdown from '@/components/FeeBreakdown';
 import { INPUT_LIMITS } from '@/utils/inputLimits';
 import FileUploadField from '@/components/FileUploadField';
@@ -42,20 +43,20 @@ export default function FinanceVerificationModal({
       maxWidth="max-w-xl"
       footer={
         <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-          <button
+          <Button
             onClick={() => handleFinanceVerify('reject', null)}
             disabled={actionLoading}
             className="trace-button trace-button-danger w-full sm:w-1/2 text-center"
           >
             Reject Payment
-          </button>
-          <button
+          </Button>
+          <Button
             onClick={() => handleFinanceVerify('approve', deferred ? null : financeReceiptFile, deferred ? '' : orNumber.trim(), { deferred, orDate: deferred ? '' : orDate })}
             disabled={actionLoading || !canVerify}
             className="trace-button trace-button-primary w-full sm:flex-1"
           >
             Verify Payment
-          </button>
+          </Button>
         </div>
       }
     >

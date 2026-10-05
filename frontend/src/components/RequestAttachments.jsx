@@ -1,3 +1,4 @@
+import Button from '@/components/Button';
 import { useState } from 'react';
 import useRequestAttachments from '@/hooks/useRequestAttachments';
 import FileUploadField from '@/components/FileUploadField';
@@ -13,12 +14,12 @@ function AttachmentItem({ row, canReview, state }) {
     {row.file_path && <AuthedFilePreview path={row.file_path} alt={row.label} iframeTitle={row.label} className="max-h-48 max-w-full object-contain" />}
     {row.status === 'requested' && <>
       <FileUploadField label={`Upload ${row.label}`} file={file} onChange={setFile} accept=".jpg,.jpeg,.png,.pdf" maxBytes={10 * 1024 * 1024} disabled={state.saving} />
-      <button type="button" disabled={!file || state.saving} onClick={() => state.stage({ kind: 'upload', id: row.id, file })} className="trace-button trace-button-secondary">Submit pertinent document</button>
+      <Button type="button" disabled={!file || state.saving} onClick={() => state.stage({ kind: 'upload', id: row.id, file })} className="trace-button trace-button-secondary">Submit pertinent document</Button>
     </>}
     {canReview && row.status === 'uploaded' && <>
       <label className="trace-label block">Review notes<textarea maxLength={2000} value={notes} onChange={e => setNotes(e.target.value)} className="trace-control block w-full" /></label>
-      <div className="flex flex-wrap gap-2"><button type="button" disabled={state.saving} onClick={() => state.stage({ kind: 'review', id: row.id, action: 'accept', notes })} className="trace-button trace-button-secondary">Accept document</button>
-        <button type="button" disabled={state.saving || !notes.trim()} onClick={() => state.stage({ kind: 'review', id: row.id, action: 'resubmit', notes })} className="trace-button trace-button-secondary">Request resubmission</button></div>
+      <div className="flex flex-wrap gap-2"><Button type="button" disabled={state.saving} onClick={() => state.stage({ kind: 'review', id: row.id, action: 'accept', notes })} className="trace-button trace-button-secondary">Accept document</Button>
+        <Button type="button" disabled={state.saving || !notes.trim()} onClick={() => state.stage({ kind: 'review', id: row.id, action: 'resubmit', notes })} className="trace-button trace-button-secondary">Request resubmission</Button></div>
     </>}
   </article>;
 }
@@ -27,7 +28,7 @@ export default function RequestAttachments({ documentId, user }) {
   const [label, setLabel] = useState(''), [instructions, setInstructions] = useState('');
   const canReview = user.role === 'admin' || (user.role === 'clerk' && ['Window 1', 'Receiving Desk', 'Secretary'].includes(user.desk_assignment));
   return <section className="space-y-3 min-w-0" aria-label="Case-specific attachments">
-    <div className="flex flex-wrap justify-between gap-2"><h3 className="font-bold text-lg">Attachments</h3><button type="button" onClick={state.refresh} className="trace-action underline text-sm">Refresh attachments</button></div>
+    <div className="flex flex-wrap justify-between gap-2"><h3 className="font-bold text-lg">Attachments</h3><Button type="button" onClick={state.refresh} className="trace-action underline text-sm">Refresh attachments</Button></div>
     <p className="text-sm">The Registrar may request additional documents for this case. Follow each instruction below.</p>
     {state.loading && <p role="status">Loading attachments…</p>}
     {state.error && <p role="alert" className="text-red-700 dark:text-red-300">{state.error}</p>}
@@ -37,7 +38,7 @@ export default function RequestAttachments({ documentId, user }) {
     {canReview && <div className="space-y-3 border-t pt-3">
       <label className="trace-label block">Required document<input maxLength={255} value={label} onChange={e => setLabel(e.target.value)} className="trace-control block w-full" /></label>
       <label className="trace-label block">Case-specific instructions<textarea maxLength={2000} value={instructions} onChange={e => setInstructions(e.target.value)} className="trace-control block w-full" /></label>
-      <button type="button" disabled={state.saving || !label.trim() || !instructions.trim()} onClick={() => state.stage({ kind: 'request', label: label.trim(), instructions: instructions.trim() })} className="trace-button trace-button-secondary">Request additional document</button>
+      <Button type="button" disabled={state.saving || !label.trim() || !instructions.trim()} onClick={() => state.stage({ kind: 'request', label: label.trim(), instructions: instructions.trim() })} className="trace-button trace-button-secondary">Request additional document</Button>
     </div>}
     <ConfirmDialog open={Boolean(state.staged)} title="Save Attachment Action" message={state.error || 'Save this attachment action for the selected request?'} confirmLabel="Save" loading={state.saving} onCancel={state.cancel} onConfirm={async () => {
       const kind = state.staged?.kind;

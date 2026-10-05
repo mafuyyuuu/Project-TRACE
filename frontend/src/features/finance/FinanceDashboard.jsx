@@ -1,3 +1,4 @@
+import Button from '@/components/Button';
 import { useState } from 'react';
 import FinanceTransactionsPanel from '@/features/finance/components/FinanceTransactionsPanel';
 import useFinanceTransactions from '@/hooks/useFinanceTransactions';
@@ -130,25 +131,25 @@ export default function FinanceDashboard({ user, setViewImageUrl, currentTab = '
                       <tr key={doc.id} className="hover:bg-gray-50/30 dark:hover:bg-gray-800/30 group">
                         <td className="py-4 pl-4 font-mono text-xs font-semibold text-gray-500 dark:text-gray-400">#{doc.tracking_number ? doc.tracking_number.slice(0, 10).toUpperCase() : doc.id}</td>
                         <td className="py-4">
-                          <button type="button" disabled={!doc.student_id} onClick={() => setViewProfileId(doc.student_id)} className="trace-action text-sm font-bold text-blue-700 dark:text-blue-300 hover:underline text-left focus-visible:ring-2 focus-visible:ring-blue-500">{doc.student_name || 'Unknown Student'}</button>
+                          <Button type="button" disabled={!doc.student_id} onClick={() => setViewProfileId(doc.student_id)} className="trace-action text-sm font-bold text-blue-700 dark:text-blue-300 hover:underline text-left focus-visible:ring-2 focus-visible:ring-blue-500">{doc.student_name || 'Unknown Student'}</Button>
                           <div className="text-xs font-mono text-gray-400 dark:text-gray-400 mt-0.5 select-text break-words">{doc.student_id || 'ID Pending'}</div>
                         </td>
                         <td className="py-4 text-xs font-bold text-gray-600 dark:text-gray-300">{doc.document_type}</td>
                         <td className="py-4 text-xs font-bold text-gray-800 dark:text-gray-100 font-mono">{formatPeso(doc.amount)}</td>
                         <td className="py-4 text-right pr-4 min-w-[200px]"><div className="flex flex-wrap justify-end gap-2 items-center">
 
-                          <button
+                          <Button
                             onClick={() => { setSelectedDoc(doc); setActiveModal('payment-stub'); }}
                             className="trace-button trace-button-secondary block shrink-0"
                           >
                             View Slip
-                          </button>
-                          <button
+                          </Button>
+                          <Button
                             onClick={() => { setSelectedDoc(doc); setActiveModal('walk-in-payment'); }}
                             className="trace-button trace-button-secondary ml-auto block shrink-0"
                           >
                             Log Counter Payment
-                          </button>
+                          </Button>
                         </div></td>
                       </tr>
                     ))}
@@ -190,7 +191,7 @@ export default function FinanceDashboard({ user, setViewImageUrl, currentTab = '
                       <tr key={doc.id} className="hover:bg-gray-50/30 dark:hover:bg-gray-800/30 group">
                         <td className="py-4 pl-4 font-mono text-xs font-semibold text-gray-500 dark:text-gray-400">#{doc.tracking_number ? doc.tracking_number.slice(0, 10).toUpperCase() : doc.id}</td>
                         <td className="py-4">
-                          <button type="button" disabled={!doc.student_id} onClick={() => setViewProfileId(doc.student_id)} className="trace-action text-sm font-bold text-blue-700 dark:text-blue-300 hover:underline text-left focus-visible:ring-2 focus-visible:ring-blue-500">{doc.student_name || 'Unknown Student'}</button>
+                          <Button type="button" disabled={!doc.student_id} onClick={() => setViewProfileId(doc.student_id)} className="trace-action text-sm font-bold text-blue-700 dark:text-blue-300 hover:underline text-left focus-visible:ring-2 focus-visible:ring-blue-500">{doc.student_name || 'Unknown Student'}</Button>
                           <div className="text-xs font-mono text-gray-400 dark:text-gray-400 mt-0.5 select-text break-words">{doc.student_id || 'ID Pending'}</div>
                         </td>
                         <td className="py-4 text-xs font-bold text-gray-600 dark:text-gray-300">{doc.document_type}</td>
@@ -202,19 +203,19 @@ export default function FinanceDashboard({ user, setViewImageUrl, currentTab = '
                         </td>
                         <td className="py-4 text-right pr-4 min-w-[140px]"><div className="flex flex-wrap justify-end gap-2 items-center">
 
-                          <button
+                          <Button
                             onClick={() => { setSelectedDoc(doc); setActiveModal('payment-stub'); }}
                             className="trace-button trace-button-secondary shrink-0"
                           >
                             Slip
-                          </button>
-                          <button
+                          </Button>
+                          <Button
                             onClick={() => { setSelectedDoc(doc); setActiveModal('verify-pay'); }}
                             className="trace-button trace-button-primary flex items-center gap-1.5 ml-auto shrink-0"
                           >
                             <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                             Review
-                          </button>
+                          </Button>
                         </div></td>
                       </tr>
                     ))}

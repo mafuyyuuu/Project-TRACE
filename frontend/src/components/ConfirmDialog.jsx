@@ -1,3 +1,4 @@
+import Button from '@/components/Button';
 import { useId, useRef } from 'react';
 import ModalShell from '@/components/ModalShell';
 
@@ -38,7 +39,7 @@ export default function ConfirmDialog({
       busy={loading}
       footer={
         <div className="flex flex-col sm:flex-row gap-3">
-          <button
+          <Button
             type="button"
             ref={cancelButtonRef}
             onClick={onCancel}
@@ -46,8 +47,8 @@ export default function ConfirmDialog({
             className="trace-button trace-button-secondary flex-1"
           >
             {cancelLabel}
-          </button>
-          <button
+          </Button>
+          <Button
             type="button"
             onClick={onConfirm}
             disabled={loading}
@@ -56,7 +57,7 @@ export default function ConfirmDialog({
             }`}
           >
             {loading ? loadingLabel : confirmLabel}
-          </button>
+          </Button>
         </div>
       }
     >

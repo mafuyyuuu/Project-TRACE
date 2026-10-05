@@ -1,3 +1,4 @@
+import Button from '@/components/Button';
 import { INPUT_LIMITS } from '@/utils/inputLimits';
 import ModalShell from '@/components/ModalShell';
 import ConfirmDialog from '@/components/ConfirmDialog';
@@ -27,8 +28,8 @@ function ApplicationsTable({ applications, onReview, onProfile, emptyMessage }) 
         {applications.map((a) => (
           <tr key={a.id} className="hover:bg-gray-50/30 dark:hover:bg-gray-800/30 group">
             <td className="py-4 pl-4">
-              <button type="button" disabled={!a.student_id} onClick={() => onProfile(a.student_id)}
-                className="trace-action font-bold text-blue-700 dark:text-blue-300 hover:underline select-text break-words text-left focus-visible:ring-2 focus-visible:ring-blue-500 disabled:text-gray-500">{a.full_name || 'Unknown'}</button>
+              <Button type="button" disabled={!a.student_id} onClick={() => onProfile(a.student_id)}
+                className="trace-action font-bold text-blue-700 dark:text-blue-300 hover:underline select-text break-words text-left focus-visible:ring-2 focus-visible:ring-blue-500 disabled:text-gray-500">{a.full_name || 'Unknown'}</Button>
               <div className="text-xs font-mono text-gray-400 dark:text-gray-400 mt-0.5 select-text break-words">{a.student_id}</div>
             </td>
             <td className="py-4 text-xs font-bold text-gray-600 dark:text-gray-300">{a.course || '—'}</td>
@@ -47,12 +48,12 @@ function ApplicationsTable({ applications, onReview, onProfile, emptyMessage }) 
               </span>
             </td>
             <td className="py-4 text-right pr-4">
-              <button
+              <Button
                 onClick={() => onReview(a)}
                 className="trace-button trace-button-primary ml-auto block"
               >
                 Review
-              </button>
+              </Button>
             </td>
           </tr>
         ))}
@@ -151,20 +152,20 @@ export default function GradApplicationReviewPanel({ user, currentTab }) {
         footer={
           !isDecided ? (
             <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-              <button
+              <Button
                 onClick={() => stageReview('rejected')}
                 disabled={actionLoading || !notes.trim()}
                 className="trace-button trace-button-danger w-full sm:w-1/2 text-center"
               >
                 Reject
-              </button>
-              <button
+              </Button>
+              <Button
                 onClick={() => stageReview('approved')}
                 disabled={actionLoading}
                 className="trace-button trace-button-primary w-full sm:w-1/2 text-center"
               >
                 Approve
-              </button>
+              </Button>
             </div>
           ) : null
         }

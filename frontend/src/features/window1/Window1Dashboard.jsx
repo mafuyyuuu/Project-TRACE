@@ -1,3 +1,4 @@
+import Button from '@/components/Button';
 import ProgressFill from '@/components/ProgressFill';
 import RequestMessagesPanel from '@/components/RequestMessagesPanel';
 import FileUploadField from '@/components/FileUploadField';
@@ -165,13 +166,13 @@ export default function Window1Dashboard({ user, currentTab, setViewImageUrl }) 
                   <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100">UPLOAD DOCUMENT</h3>
                   <p className="text-xs text-gray-400 dark:text-gray-400 mt-1">Upload physical papers to extract data via AI Engine.</p>
                 </div>
-                <button
+                <Button
                   onClick={() => setActiveModal('manual-input')}
                   className="trace-button trace-button-secondary shrink-0 flex items-center gap-1.5"
                 >
                   <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4"/></svg>
                   Manual Entry
-                </button>
+                </Button>
               </div>
 
               <div className="mt-4">
@@ -217,7 +218,7 @@ export default function Window1Dashboard({ user, currentTab, setViewImageUrl }) 
                             <tr key={doc.id} className="hover:bg-gray-50/50 dark:hover:bg-gray-800/50 group">
                               <td className="py-4 pl-4 font-mono text-xs text-gray-500 dark:text-gray-400">#{doc.tracking_number ? doc.tracking_number.slice(0, 10).toUpperCase() : doc.id}</td>
                               <td className="py-4">
-                                <button type="button" disabled={!doc.student_id} onClick={() => setViewProfileId(doc.student_id)} className="trace-action text-sm font-bold text-blue-700 dark:text-blue-300 hover:underline text-left focus-visible:ring-2 focus-visible:ring-blue-500">{doc.student_name || 'Name Unresolved'}</button>
+                                <Button type="button" disabled={!doc.student_id} onClick={() => setViewProfileId(doc.student_id)} className="trace-action text-sm font-bold text-blue-700 dark:text-blue-300 hover:underline text-left focus-visible:ring-2 focus-visible:ring-blue-500">{doc.student_name || 'Name Unresolved'}</Button>
                                 <div className="text-xs font-mono text-gray-400 dark:text-gray-400 mt-0.5 select-text break-words">{doc.student_id || 'ID Pending'}</div>
                               </td>
                               <td className="py-4 text-xs font-bold text-gray-600 dark:text-gray-300">{doc.document_type}</td>
@@ -230,13 +231,13 @@ export default function Window1Dashboard({ user, currentTab, setViewImageUrl }) 
                               </td>
                               <td className="py-4 text-xs font-bold text-gray-500 dark:text-gray-400 font-mono">{getWaitTime(doc.created_at)}</td>
                               <td className="py-4 text-right pr-4">
-                                <button
+                                <Button
                                   onClick={() => { setSelectedDoc(doc); setActiveModal('intake-review'); }}
                                   className="trace-button trace-button-primary flex items-center gap-1.5 ml-auto"
                                 >
                                   <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                                   Check
-                                </button>
+                                </Button>
                               </td>
                             </tr>
                           ))}
@@ -245,23 +246,23 @@ export default function Window1Dashboard({ user, currentTab, setViewImageUrl }) 
 
                       {intakeQueue.length > itemsPerPage && (
                         <div className="flex justify-between items-center mt-6 border-t border-gray-100 dark:border-gray-700 pt-4">
-                          <button
+                          <Button
                             disabled={w1IntakePage === 1}
                             onClick={() => setW1IntakePage(p => p - 1)}
                             className="trace-button trace-button-secondary"
                           >
                             Previous
-                          </button>
+                          </Button>
                           <span className="text-xs font-bold text-gray-500 dark:text-gray-400">
                             Page {w1IntakePage} of {Math.ceil(intakeQueue.length / itemsPerPage)}
                           </span>
-                          <button
+                          <Button
                             disabled={w1IntakePage >= Math.ceil(intakeQueue.length / itemsPerPage)}
                             onClick={() => setW1IntakePage(p => p + 1)}
                             className="trace-button trace-button-secondary"
                           >
                             Next
-                          </button>
+                          </Button>
                         </div>
                       )}
                     </>
@@ -281,7 +282,7 @@ export default function Window1Dashboard({ user, currentTab, setViewImageUrl }) 
                     <span>Cleared by Secretary Today: <strong className="text-gray-900 dark:text-gray-100">{dashStats.cleared_by_secretary_today}</strong></span>
                   </div>
                 </div>
-                <button onClick={loadDashboardData} className="trace-action text-xs text-[#15803d] dark:text-green-300 font-bold hover:underline inline-flex items-center gap-1"><svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.992 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182" /></svg> Refresh</button>
+                <Button onClick={loadDashboardData} className="trace-action text-xs text-[#15803d] dark:text-green-300 font-bold hover:underline inline-flex items-center gap-1"><svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.992 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182" /></svg> Refresh</Button>
               </div>
 
               <div className="p-4 sm:p-6">
@@ -308,7 +309,7 @@ export default function Window1Dashboard({ user, currentTab, setViewImageUrl }) 
                             <tr key={doc.id} className="hover:bg-gray-50/50 dark:hover:bg-gray-800/50 group">
                               <td className="py-4 pl-4 font-mono text-xs text-gray-500 dark:text-gray-400">#{doc.tracking_number ? doc.tracking_number.slice(0, 10).toUpperCase() : doc.id}</td>
                               <td className="py-4">
-                                <button type="button" disabled={!doc.student_id} onClick={() => setViewProfileId(doc.student_id)} className="trace-action text-sm font-bold text-blue-700 dark:text-blue-300 hover:underline text-left focus-visible:ring-2 focus-visible:ring-blue-500">{doc.student_name || 'Name Unresolved'}</button>
+                                <Button type="button" disabled={!doc.student_id} onClick={() => setViewProfileId(doc.student_id)} className="trace-action text-sm font-bold text-blue-700 dark:text-blue-300 hover:underline text-left focus-visible:ring-2 focus-visible:ring-blue-500">{doc.student_name || 'Name Unresolved'}</Button>
                                 <div className="text-xs font-mono text-gray-400 dark:text-gray-400 mt-0.5 select-text break-words">{doc.student_id || 'ID Pending'}</div>
                               </td>
                               <td className="py-4 text-xs font-bold text-gray-600 dark:text-gray-300">{doc.document_type}</td>
@@ -318,24 +319,24 @@ export default function Window1Dashboard({ user, currentTab, setViewImageUrl }) 
                                   : <span className="text-gray-400 dark:text-gray-400">OR number not recorded</span>}
                                 {!doc.official_receipt_path && <span className="block text-[10px] text-gray-500 dark:text-gray-400 font-sans">Digital copy pending upload</span>}
                                 {doc.official_receipt_path && (
-                                  <button
+                                  <Button
                                     onClick={() => setViewImageUrl(doc.official_receipt_path)}
                                     className="trace-action ml-2 text-[#15803d] dark:text-green-300 hover:underline font-sans font-bold"
                                   >
                                     View
-                                  </button>
+                                  </Button>
                                 )}
                               </td>
                               <td className="py-4 text-xs font-bold text-gray-505 font-mono">{getWaitTime(doc.updated_at)}</td>
                               <td className="py-4 text-right pr-4">
-                                <button 
+                                <Button
                                   onClick={() => handleWindow1Release(doc)}
                                   disabled={actionLoading}
                                   className="trace-button trace-button-primary flex items-center gap-1.5 ml-auto"
                                 >
                                   <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M5 13l4 4L19 7"/></svg>
                                   Release Doc
-                                </button>
+                                </Button>
                               </td>
                             </tr>
                           ))}
@@ -344,23 +345,23 @@ export default function Window1Dashboard({ user, currentTab, setViewImageUrl }) 
 
                       {releaseQueue.length > (releasePagination?.pageSize || itemsPerPage) && (
                         <div className="flex justify-between items-center mt-6 border-t border-gray-100 dark:border-gray-700 pt-4">
-                          <button 
+                          <Button
                             disabled={w1ReleasePage === 1}
                             onClick={() => setW1ReleasePage(p => p - 1)}
                             className="trace-button trace-button-secondary"
                           >
                             Previous
-                          </button>
+                          </Button>
                           <span className="text-xs font-bold text-gray-500 dark:text-gray-400">
                             Page {w1ReleasePage} of {Math.ceil(releaseQueue.length / (releasePagination?.pageSize || itemsPerPage))}
                           </span>
-                          <button 
+                          <Button
                             disabled={w1ReleasePage >= Math.ceil(releaseQueue.length / (releasePagination?.pageSize || itemsPerPage))}
                             onClick={() => setW1ReleasePage(p => p + 1)}
                             className="trace-button trace-button-secondary"
                           >
                             Next
-                          </button>
+                          </Button>
                         </div>
                       )}
                     </>
@@ -442,23 +443,23 @@ export default function Window1Dashboard({ user, currentTab, setViewImageUrl }) 
 
                     {documents.length > (progressPagination?.pageSize || itemsPerPage) && (
                       <div className="flex justify-between items-center mt-6 border-t border-gray-100 dark:border-gray-700 pt-4">
-                        <button 
+                        <Button
                           disabled={w1ProgressPage === 1}
                           onClick={() => setW1ProgressPage(p => p - 1)}
                           className="trace-button trace-button-secondary"
                         >
                           Previous
-                        </button>
+                        </Button>
                         <span className="text-xs font-bold text-gray-500 dark:text-gray-400">
                           Page {w1ProgressPage} of {Math.ceil(documents.length / (progressPagination?.pageSize || itemsPerPage))}
                         </span>
-                        <button 
+                        <Button
                           disabled={w1ProgressPage >= Math.ceil(documents.length / (progressPagination?.pageSize || itemsPerPage))}
                           onClick={() => setW1ProgressPage(p => p + 1)}
                           className="trace-button trace-button-secondary"
                         >
                           Next
-                        </button>
+                        </Button>
                       </div>
                     )}
                   </>
@@ -473,19 +474,19 @@ export default function Window1Dashboard({ user, currentTab, setViewImageUrl }) 
         {/* 3.4. CAMERA SCANNING MODAL */}
         {activeModal === 'scanning' && (
           <ModalShell open onClose={() => setActiveModal(null)} title="Scan Document" footer={<div className="flex items-center justify-center gap-8 pt-2">
-                <button type="button" aria-label="Flash" className="trace-action w-12 h-12 rounded-full border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 flex items-center justify-center hover:bg-gray-50 dark:hover:bg-gray-800 text-gray-500 dark:text-gray-400 shadow-sm">
+                <Button type="button" aria-label="Flash" className="trace-button-lift trace-action w-12 h-12 rounded-full border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 flex items-center justify-center enabled:hover:bg-gray-50 dark:enabled:hover:bg-gray-800 text-gray-500 dark:text-gray-400 shadow-sm">
                   <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
-                </button>
-                <button type="button" aria-label="Capture document"
+                </Button>
+                <Button type="button" aria-label="Capture document"
                   onClick={() => {
                     setScanFile({ name: 'scan_doc_00129.jpg', size: 245800 });
                     setScanDocType('Transcript of Records');
                     setActiveModal('scan-confirm');
                   }}
-                  className="trace-action w-16 h-16 rounded-full bg-white dark:bg-gray-900 border-8 border-gray-200 dark:border-gray-700 flex items-center justify-center hover:border-gray-300 dark:hover:border-gray-700 transition-colors shadow-md focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-700"
+                  className="trace-button-lift trace-action w-16 h-16 rounded-full bg-white dark:bg-gray-900 border-8 border-gray-200 dark:border-gray-700 flex items-center justify-center enabled:hover:border-gray-300 dark:enabled:hover:border-gray-700 transition-colors shadow-md focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-700"
                 >
                   <div className="w-10 h-10 rounded-full bg-[#15803d] hover:bg-[#166534] transition-colors"></div>
-                </button>
+                </Button>
                 <div className="w-12 h-12"></div> {/* spacer */}
               </div>}>
               {/* Mock Camera Preview Box */}
@@ -509,7 +510,7 @@ export default function Window1Dashboard({ user, currentTab, setViewImageUrl }) 
         {/* 3.5. INTAKE SCAN CONFIRMATION MODAL */}
         {activeModal === 'scan-confirm' && scanFile && (
           <ModalShell open onClose={() => setActiveModal(null)} title="Confirm Information" footer={<div className="flex justify-end pt-2">
-                <button 
+                <Button
                   onClick={() => {
                     handleWindow1ScanUpload(scanDocType);
                   }}
@@ -517,7 +518,7 @@ export default function Window1Dashboard({ user, currentTab, setViewImageUrl }) 
                   className="trace-button trace-button-primary w-full text-center"
                 >
                   {actionLoading ? 'Uploading...' : 'Create Request'}
-                </button>
+                </Button>
               </div>}>
               <div className="flex flex-col gap-2 my-4">
                 <label className="trace-label">Document Type</label>

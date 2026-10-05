@@ -1,3 +1,4 @@
+import Button from '@/components/Button';
 import { INPUT_LIMITS } from '@/utils/inputLimits';
 import FileUploadField from '@/components/FileUploadField';
 import ModalShell from '@/components/ModalShell';
@@ -48,19 +49,19 @@ export default function WalkInPaymentModal({
       maxWidth="max-w-lg"
       footer={
         <div className="flex flex-col sm:flex-row gap-3">
-          <button
+          <Button
             onClick={() => setActiveModal(null)}
             className="trace-button trace-button-secondary flex-1"
           >
             Cancel
-          </button>
-          <button
+          </Button>
+          <Button
             onClick={handleLogWalkIn}
             disabled={actionLoading || scanning}
             className="trace-button trace-button-primary flex-1"
           >
             {actionLoading ? 'Saving…' : 'Record Payment'}
-          </button>
+          </Button>
         </div>
       }
     >
@@ -89,10 +90,10 @@ export default function WalkInPaymentModal({
 
       <div className="space-y-5">
         <FileUploadField label="Official Receipt copy · optional" file={orFile} onChange={setOrFile} disabled={counterDeferred || scanning || actionLoading} maxBytes={5 * 1024 * 1024} />
-        <button type="button" onClick={() => handleScanReceipt(orFile)} disabled={counterDeferred || !orFile || scanning || actionLoading}
+        <Button type="button" onClick={() => handleScanReceipt(orFile)} disabled={counterDeferred || !orFile || scanning || actionLoading}
           className="trace-button trace-button-secondary">
           {scanning ? 'Reading receipt…' : 'Read Receipt'}
-        </button>
+        </Button>
 
         {scanConfidence != null && (
           <div className={`rounded-2xl p-4 border ${lowConfidence ? 'bg-amber-50 dark:bg-amber-950/40 border-amber-200 dark:border-amber-800' : 'bg-blue-50 dark:bg-blue-950/40 border-blue-100 dark:border-blue-800'}`}>

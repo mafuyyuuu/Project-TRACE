@@ -1,3 +1,4 @@
+import Button from '@/components/Button';
 import { forecastCeiling } from '@/utils/forecastScale';
 import { USER_TYPE_LABELS } from '@/utils/userLabels';
 import AdminTemplatesPanel from './components/AdminTemplatesPanel';
@@ -173,14 +174,14 @@ export default function AdminDashboard({ user, currentTab, setViewImageUrl, revi
                           <option value="Clearance">Clearance</option>
                           <option value="Diploma">Diploma</option>
                         </select>
-                        <button
+                        <Button
                           onClick={() => setActiveModal('forecast-detail')}
                           aria-label="Expand 7-day volume forecast"
                           title="Expand"
-                          className="trace-action p-2 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-700 dark:hover:text-gray-300 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#15803d]/40"
+                          className="trace-button-lift trace-action p-2 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-gray-500 dark:text-gray-400 enabled:hover:bg-gray-100 dark:enabled:hover:bg-gray-800 enabled:hover:text-gray-700 dark:enabled:hover:text-gray-300 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#15803d]/40"
                         >
                           <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"/></svg>
-                        </button>
+                        </Button>
                       </div>
                     </div>
                     {/* Dynamic Recharts line graph */}
@@ -311,18 +312,18 @@ export default function AdminDashboard({ user, currentTab, setViewImageUrl, revi
                                 <td className="py-4 text-sm text-gray-600 dark:text-gray-300">{student.email || '—'}</td>
                                 <td className="py-4">
                                   {student.id_proof_path ? (
-                                    <button
+                                    <Button
                                       onClick={() => setViewImageUrl(student.id_proof_path)}
                                       className="trace-action text-xs text-indigo-600 dark:text-indigo-300 font-bold hover:underline flex items-center gap-1"
                                     >
                                       <svg className="w-3.5 h-3.5 inline-block mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" /></svg>View ID / Diploma Attachment
-                                    </button>
+                                    </Button>
                                   ) : (
                                     <span className="text-xs text-gray-400 dark:text-gray-400 italic">No proof uploaded</span>
                                   )}
                                 </td>
                                 <td className="py-4">
-                                  <button onClick={() => handleAdminVerifyStudent(student, 'review')} disabled={actionLoading} className="trace-button trace-button-primary">Review</button>
+                                  <Button onClick={() => handleAdminVerifyStudent(student, 'review')} disabled={actionLoading} className="trace-button trace-button-primary">Review</Button>
                                 </td>
                               </tr>
                             ))}
@@ -392,7 +393,7 @@ export default function AdminDashboard({ user, currentTab, setViewImageUrl, revi
                                   <td className="py-4 pl-4 font-mono text-xs font-bold text-gray-900 dark:text-gray-100">
                                     #{doc.tracking_number ? doc.tracking_number.slice(0, 10).toUpperCase() : doc.id}
                                   </td>
-                                  <td className="py-4 text-sm font-bold"><button type="button" disabled={!doc.student_id} onClick={() => setViewProfileId(doc.student_id)} className="trace-action text-blue-700 dark:text-blue-300 hover:underline text-left break-words focus-visible:ring-2 focus-visible:ring-blue-500 disabled:text-gray-500">{doc.student_name || doc.student_id || 'Unknown'}</button></td>
+                                  <td className="py-4 text-sm font-bold"><Button type="button" disabled={!doc.student_id} onClick={() => setViewProfileId(doc.student_id)} className="trace-action text-blue-700 dark:text-blue-300 hover:underline text-left break-words focus-visible:ring-2 focus-visible:ring-blue-500 disabled:text-gray-500">{doc.student_name || doc.student_id || 'Unknown'}</Button></td>
                                   <td className="py-4 text-xs font-bold text-gray-600 dark:text-gray-300">{doc.document_sequence_number || doc.document_type}</td>
                                   <td className="py-4">
                                     <span className={`px-3 py-1 text-[10px] font-black rounded-full uppercase tracking-wider ${
@@ -406,14 +407,14 @@ export default function AdminDashboard({ user, currentTab, setViewImageUrl, revi
                                   </td>
                                   <td className="py-4 text-right pr-4">
                                     {doc.file_path ? (
-                                      <button
+                                      <Button
                                         onClick={() => setViewImageUrl(doc.file_path)}
                                         className="trace-button trace-button-primary inline-flex items-center gap-1"
                                         title="View Attached File"
                                       >
                                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
                                         View
-                                      </button>
+                                      </Button>
                                     ) : (
                                       <span className="text-[10px] text-gray-400 dark:text-gray-400 font-bold uppercase tracking-widest">No File</span>
                                     )}
@@ -433,20 +434,20 @@ export default function AdminDashboard({ user, currentTab, setViewImageUrl, revi
                         Showing Page {adminDocPage} of {Math.ceil(documents.filter(doc => adminDocFilter === 'All' || doc.document_type === adminDocFilter).length / itemsPerPage)}
                       </span>
                       <div className="flex gap-2">
-                        <button
+                        <Button
                           onClick={() => setAdminDocPage(p => Math.max(1, p - 1))}
                           disabled={adminDocPage === 1}
                           className="trace-button trace-button-secondary"
                         >
                           Previous
-                        </button>
-                        <button
+                        </Button>
+                        <Button
                           onClick={() => setAdminDocPage(p => Math.min(Math.ceil(documents.filter(doc => adminDocFilter === 'All' || doc.document_type === adminDocFilter).length / itemsPerPage), p + 1))}
                           disabled={adminDocPage === Math.ceil(documents.filter(doc => adminDocFilter === 'All' || doc.document_type === adminDocFilter).length / itemsPerPage)}
                           className="trace-button trace-button-secondary"
                         >
                           Next
-                        </button>
+                        </Button>
                       </div>
                     </div>
                   )}

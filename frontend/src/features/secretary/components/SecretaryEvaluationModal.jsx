@@ -1,3 +1,4 @@
+import Button from '@/components/Button';
 import { INPUT_LIMITS } from '@/utils/inputLimits';
 import DocumentChat from '@/components/DocumentChat';
 import RequestAttachments from '@/components/RequestAttachments';
@@ -154,20 +155,20 @@ function EvaluationForm({
 function EvaluationActions({ handleSecretaryEvaluate, actionLoading }) {
   return (
     <div className="flex items-center gap-3">
-      <button
+      <Button
         onClick={() => handleSecretaryEvaluate('reject')}
         disabled={actionLoading}
         className="trace-button trace-button-danger w-1/2 text-center"
       >
         Return to Window 1
-      </button>
-      <button
+      </Button>
+      <Button
         onClick={() => handleSecretaryEvaluate('approve')}
         disabled={actionLoading}
         className="trace-button trace-button-primary w-1/2 text-center"
       >
         Accept for Processing
-      </button>
+      </Button>
     </div>
   );
 }
@@ -227,7 +228,7 @@ export default function SecretaryEvaluationModal({
       bare
       title="AI Data Extraction Review"
       panelClassName="bg-white dark:bg-gray-900 rounded-3xl shadow-2xl w-full max-w-7xl h-[85vh] z-10 border border-gray-100 dark:border-gray-700 relative flex flex-col lg:flex-row overflow-hidden"
-      closeButtonClassName="absolute top-4 right-4 w-8 h-8 rounded-full flex items-center justify-center text-gray-400 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 z-20"
+      closeButtonClassName="trace-button-lift absolute top-4 right-4 w-8 h-8 rounded-full flex items-center justify-center text-gray-400 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 z-20"
     >
       {/* Left: Original document scan preview */}
       <div className="lg:w-1/2 p-6 flex flex-col border-r border-gray-200 dark:border-gray-700 min-h-0 bg-gray-50/30 dark:bg-gray-800/30">

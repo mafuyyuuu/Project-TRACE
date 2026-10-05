@@ -1,3 +1,4 @@
+import Button from '@/components/Button';
 import { INPUT_LIMITS } from '@/utils/inputLimits';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import useGraduateApplication from '@/features/graduate/useGraduateApplication';
@@ -138,13 +139,13 @@ export default function GraduateApplication({ user }) {
                 ))}
 
                 <div className="flex justify-end pt-4 border-t border-gray-100 dark:border-gray-700">
-                  <button
+                  <Button
                     type="submit"
                     disabled={submitting}
                     className="trace-button trace-button-primary w-full sm:w-auto sm:px-8"
                   >
                     {submitting ? 'Submitting...' : 'Submit Application'}
-                  </button>
+                  </Button>
                 </div>
               </form>
             )}

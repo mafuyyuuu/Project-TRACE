@@ -1,3 +1,4 @@
+import Button from '@/components/Button';
 import { readTextSize, saveTextSize } from '@/utils/textSize';
 import { useState, useEffect, useRef } from 'react'
 import { Outlet, useLocation, useNavigate } from 'react-router-dom'
@@ -204,7 +205,7 @@ export default function Layout() {
   if (graduateRequired) return (
     <main className="min-h-dvh bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 p-4 sm:p-8 space-y-5">
       <header className="flex flex-wrap gap-4 items-center justify-between"><TraceBrand />
-        <button type="button" onClick={() => setConfirmingLogout(true)} className="trace-button trace-button-secondary">Log Out</button></header>
+        <Button type="button" onClick={() => setConfirmingLogout(true)} className="trace-button trace-button-secondary">Log Out</Button></header>
       <p className="text-sm">Submit your graduate application to unlock TRACE. You can complete email verification afterward.</p>
       <GraduateApplication user={user} />
       <ConfirmDialog open={confirmingLogout} title="Log Out" message={logoutError || 'End this session?'} confirmLabel="Log Out" loading={loggingOut} onConfirm={handleConfirmLogout} onCancel={() => setConfirmingLogout(false)} />
@@ -216,7 +217,7 @@ export default function Layout() {
       {/* Header */}
       <header className="bg-white dark:bg-gray-900 rounded-3xl sm:rounded-full shadow-sm px-4 sm:px-6 py-3 flex flex-wrap gap-2 items-center justify-between shrink-0 border border-gray-100 dark:border-gray-700">
         <div className="flex min-w-0 items-center gap-2 sm:gap-3">
-          <button
+          <Button
             onClick={() => setShowMobileNav(true)}
             aria-label="Open navigation menu"
             aria-expanded={showMobileNav}
@@ -224,15 +225,15 @@ export default function Layout() {
             className="trace-action trace-icon-button trace-navigation-trigger md:hidden -ml-1"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
-          </button>
+          </Button>
           <TraceBrand />
         </div>
 
         <div className="flex shrink-0 ml-auto items-center gap-2 sm:gap-4">
-          {guideEligible && <button id="tutorial-guide" type="button" aria-label="Open quick guide" title="Quick guide" onClick={() => { navigate('/dashboard'); guide.show(); }} className="trace-action trace-icon-button">
+          {guideEligible && <Button id="tutorial-guide" type="button" aria-label="Open quick guide" title="Quick guide" onClick={() => { navigate('/dashboard'); guide.show(); }} className="trace-action trace-icon-button">
             <svg aria-hidden="true" className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><circle cx="12" cy="12" r="9" /><path d="M9.5 9a2.5 2.5 0 0 1 5 .3c0 1.7-2.5 1.8-2.5 3.7M12 16h.01" /></svg>
-          </button>}
-          <button
+          </Button>}
+          <Button
             type="button"
             onClick={toggleTheme}
             aria-label="Dark mode"
@@ -245,14 +246,14 @@ export default function Layout() {
                 ? <><circle cx="12" cy="12" r="4" strokeWidth="2" /><path strokeWidth="2" strokeLinecap="round" d="M12 2v2m0 16v2M2 12h2m16 0h2M5 5l1.5 1.5m11 11L19 19M5 19l1.5-1.5m11-11L19 5" /></>
                 : <path strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" d="M20.9 13A9 9 0 0 1 11 3.1 9 9 0 1 0 20.9 13Z" />}
             </svg>
-          </button>
+          </Button>
           <div className="relative">
-            <button id="tutorial-notifications" onClick={handleNotifClick} aria-label="Notifications" className="trace-icon-button relative">
+            <Button id="tutorial-notifications" onClick={handleNotifClick} aria-label="Notifications" className="trace-icon-button relative">
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
               {unreadCount > 0 && (
                 <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 dark:bg-red-500 rounded-full"></span>
               )}
-            </button>
+            </Button>
             {showNotifs && (
               <div className="absolute right-0 mt-2 w-72 sm:w-80 max-w-[calc(100vw-2rem)] bg-white dark:bg-gray-900 rounded-xl shadow-xl border border-gray-100 dark:border-gray-700 overflow-hidden z-50">
                 <div className="p-3 border-b border-gray-50 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800/50">
@@ -263,7 +264,7 @@ export default function Layout() {
                     <div className="p-4 text-center text-sm text-gray-400 dark:text-gray-400">No new notifications</div>
                   ) : (
                     notifications.map(n => (
-                      <button type="button" key={n.id} onClick={() => {
+                      <Button type="button" key={n.id} onClick={() => {
                           if (typeof n.action_url === 'string' && n.action_url.startsWith('/dashboard') && !n.action_url.startsWith('//')) { navigate(n.action_url); setShowNotifs(false); return; }
                           const match = n.message.match(/TRC-[A-Z0-9]+/i) || n.message.match(/#([0-9]+)/);
                           if (match) window.dispatchEvent(new CustomEvent('trace-open-doc', { detail: match[0].replace('#', '') }));
@@ -272,25 +273,25 @@ export default function Layout() {
                         <div className="font-bold mb-1">{n.title}</div>
                         <div className="text-xs">{n.message}</div>
                         <div className="text-[10px] text-gray-400 dark:text-gray-400 mt-1">{new Date(n.created_at).toLocaleString()}</div>
-                      </button>
+                      </Button>
                     ))
                   )}
                 </div>
               </div>
             )}
           </div>
-          <button
+          <Button
             id="tutorial-profile"
             onClick={openSettings}
             aria-label="Edit Profile"
-            className="trace-action w-10 h-10 rounded-full overflow-hidden border-2 border-white dark:border-gray-800 shadow-sm shrink-0 bg-gray-100 dark:bg-gray-800"
+            className="trace-button-lift trace-action w-10 h-10 rounded-full overflow-hidden border-2 border-white dark:border-gray-800 shadow-sm shrink-0 bg-gray-100 dark:bg-gray-800"
           >
             <UserAvatar
               user={user}
               overridePath={settings.avatarPath}
               className="w-full h-full object-cover"
             />
-          </button>
+          </Button>
         </div>
       </header>
 
@@ -319,13 +320,13 @@ export default function Layout() {
             <aside ref={drawerRef} id="mobile-navigation" role="dialog" aria-modal="true" aria-label="Navigation menu" className="trace-nav-scroll relative w-72 max-w-[85vw] h-full bg-white dark:bg-gray-900 shadow-2xl p-4 overflow-y-auto overscroll-contain flex flex-col">
               <div className="flex shrink-0 items-center justify-between mb-6 px-2">
                 <TraceBrand />
-                <button
+                <Button
                   onClick={() => setShowMobileNav(false)}
                   aria-label="Close navigation menu"
                   className="trace-icon-button"
                 >
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"/></svg>
-                </button>
+                </Button>
               </div>
               <div className="flex-1">
                 <SidebarNav

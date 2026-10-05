@@ -1,3 +1,4 @@
+import Button from '@/components/Button';
 import { PASSWORD_REQUIREMENTS, validNewPassword } from '@/utils/passwordPolicy';
 import { INPUT_LIMITS } from '@/utils/inputLimits';
 import ConfirmDialog from '@/components/ConfirmDialog';
@@ -76,22 +77,22 @@ export default function UserEditModal({ open, onClose, user, onSave, saving, col
       maxWidth="max-w-xl"
       footer={
         <div className="flex flex-col sm:flex-row gap-3">
-          <button
+          <Button
             type="button"
             onClick={onClose}
             disabled={saving}
             className="trace-button trace-button-secondary flex-1"
           >
             Cancel
-          </button>
-          <button
+          </Button>
+          <Button
             type="submit"
             form="edit-user-form"
             disabled={saving || passwordMismatch}
             className="trace-button trace-button-primary flex-1"
           >
             {saving ? 'Saving…' : 'Save Changes'}
-          </button>
+          </Button>
         </div>
       }
     >
@@ -103,7 +104,7 @@ export default function UserEditModal({ open, onClose, user, onSave, saving, col
         }} />
       <div className="flex flex-wrap gap-2 border-b border-gray-200 dark:border-gray-700 mb-6">
         {TABS.map((t) => (
-          <button
+          <Button
             key={t.key}
             type="button"
             onClick={() => setActiveTab(t.key)}
@@ -114,7 +115,7 @@ export default function UserEditModal({ open, onClose, user, onSave, saving, col
             }`}
           >
             {t.label}
-          </button>
+          </Button>
         ))}
       </div>
 

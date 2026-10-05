@@ -1,3 +1,4 @@
+import Button from '@/components/Button';
 import { PASSWORD_REQUIREMENTS, validNewPassword } from '@/utils/passwordPolicy';
 import { INPUT_LIMITS } from '@/utils/inputLimits';
 import FileUploadField from '@/components/FileUploadField';
@@ -133,14 +134,14 @@ export default function ProfileSettingsModal({
       }
       closeButtonAriaLabel="Close profile"
       footer={activeTab !== 'appearance' && (
-        <button
+        <Button
           disabled={saving}
           type="submit"
           form="profile-settings-form"
           className="trace-button trace-button-primary w-full"
         >
           {saving ? 'Saving...' : 'Save Profile'}
-        </button>
+        </Button>
       )}
     >
       <ConfirmDialog open={!!confirmation}
@@ -166,15 +167,15 @@ export default function ProfileSettingsModal({
             ) : (
               <UserAvatar user={user} overridePath={avatarPath} className="w-20 h-20 rounded-full object-cover border-4 border-white dark:border-gray-800 shadow-md bg-gray-100 dark:bg-gray-800" />
             )}
-            <button
+            <Button
               type="button"
               onClick={() => fileInputRef.current?.click()}
               disabled={saving}
               aria-label="Change profile picture"
-              className="trace-action absolute -bottom-1 -right-1 w-8 h-8 rounded-full bg-[#15803d] hover:bg-[#166534] text-white flex items-center justify-center shadow-md transition-colors"
+              className="trace-button-lift trace-action absolute -bottom-1 -right-1 w-8 h-8 rounded-full bg-[#15803d] enabled:hover:bg-[#166534] text-white flex items-center justify-center shadow-md transition-colors"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
-            </button>
+            </Button>
           </div>
           <div className="flex flex-col flex-1 basis-48 min-w-0 pt-1">
             <h3 className="text-xl font-display font-black text-gray-900 dark:text-gray-100 leading-tight select-text break-words">{user?.full_name || '—'}</h3>
@@ -199,34 +200,34 @@ export default function ProfileSettingsModal({
         {/* Tabs */}
         {isStudent ? (
           <div className="flex flex-wrap gap-3 sm:gap-6 border-b border-gray-100 dark:border-gray-700 px-2 mt-2">
-            <button
+            <Button
               type="button"
               onClick={() => setActiveTab('personal')}
               className={`trace-tab relative  ${activeTab === 'personal' ? 'text-[#15803d] dark:text-green-300 border-b-2 border-[#15803d]' : 'text-gray-400 dark:text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'}`}
             >
               Personal Info
               {missingPersonal && <span className="w-2 h-2 rounded-full bg-red-500 dark:bg-red-500 absolute -top-0.5 -right-2"></span>}
-            </button>
-            <button
+            </Button>
+            <Button
               type="button"
               onClick={() => setActiveTab('educational')}
               className={`trace-tab relative  ${activeTab === 'educational' ? 'text-[#15803d] dark:text-green-300 border-b-2 border-[#15803d]' : 'text-gray-400 dark:text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'}`}
             >
               Educational Background
               {missingEdu && <span className="w-2 h-2 rounded-full bg-red-500 dark:bg-red-500 absolute -top-0.5 -right-2"></span>}
-            </button>
-            <button
+            </Button>
+            <Button
               type="button"
               onClick={() => setActiveTab('security')}
               className={`trace-tab relative  ${activeTab === 'security' ? 'text-[#15803d] dark:text-green-300 border-b-2 border-[#15803d]' : 'text-gray-400 dark:text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'}`}
             >
               Security
-            </button>
+            </Button>
           </div>
         ) : (
            <div className="flex flex-wrap gap-3 sm:gap-6 border-b border-gray-100 dark:border-gray-700 px-2 mt-2">
-             <button type="button" onClick={() => setActiveTab('personal')} className={`trace-tab relative  ${activeTab === 'personal' ? 'text-[#15803d] dark:text-green-300 border-b-2 border-[#15803d]' : 'text-gray-400 dark:text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'}`}>Personal Info</button>
-             <button type="button" onClick={() => setActiveTab('security')} className={`trace-tab relative  ${activeTab === 'security' ? 'text-[#15803d] dark:text-green-300 border-b-2 border-[#15803d]' : 'text-gray-400 dark:text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'}`}>Security</button>
+             <Button type="button" onClick={() => setActiveTab('personal')} className={`trace-tab relative  ${activeTab === 'personal' ? 'text-[#15803d] dark:text-green-300 border-b-2 border-[#15803d]' : 'text-gray-400 dark:text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'}`}>Personal Info</Button>
+             <Button type="button" onClick={() => setActiveTab('security')} className={`trace-tab relative  ${activeTab === 'security' ? 'text-[#15803d] dark:text-green-300 border-b-2 border-[#15803d]' : 'text-gray-400 dark:text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'}`}>Security</Button>
            </div>
         )}
       </div>
@@ -328,7 +329,7 @@ export default function ProfileSettingsModal({
               {['clerk', 'admin'].includes(user?.role) && <section aria-label="Browser verification" className="trace-section trace-section-body space-y-3">
                 <h3 className="font-bold">Browser verification</h3>
                 <p className="text-sm">{personalBrowser ? 'Personal-browser preference is saved until midnight Manila time.' : 'Shared-computer verification is the default. Verify each login; choose personal-browser trust during verification only on your own device.'}</p>
-                {personalBrowser && <button type="button" onClick={() => setConfirmation('browser')} className="trace-button trace-button-secondary">Use shared-computer verification</button>}
+                {personalBrowser && <Button type="button" onClick={() => setConfirmation('browser')} className="trace-button trace-button-secondary">Use shared-computer verification</Button>}
               </section>}
               <div className="trace-section trace-section-body">
                 <h3 className="text-sm font-black text-gray-900 dark:text-gray-100 mb-4 border-b border-gray-100 dark:border-gray-700 pb-2">Change Password</h3>
@@ -352,15 +353,15 @@ export default function ProfileSettingsModal({
                     )}
                   </div>
                 </div>
-                <button type="button" aria-pressed={showPasswords} onClick={() => setShowPasswords(value => !value)} className="trace-button trace-button-secondary mt-3">{showPasswords ? 'Hide passwords' : 'Show passwords'}</button>
+                <Button type="button" aria-pressed={showPasswords} onClick={() => setShowPasswords(value => !value)} className="trace-button trace-button-secondary mt-3">{showPasswords ? 'Hide passwords' : 'Show passwords'}</Button>
                 <p className="text-sm mt-3">{PASSWORD_REQUIREMENTS} You cannot reuse your current or last three passwords. Changing your password logs out other devices and keeps this browser signed in.</p>
               </div>
               <div className="trace-section trace-section-body">
                 <h3 className="text-sm font-black text-gray-900 dark:text-gray-100 mb-4 border-b border-gray-100 dark:border-gray-700 pb-2">Session Management</h3>
                 <p className="text-sm text-gray-600 dark:text-gray-300 mb-4">Log out of all other active sessions across all devices. You will remain logged in on this device.</p>
-                <button type="button" disabled={loggingOut} onClick={() => setConfirmation('sessions')} className="trace-button trace-button-danger">
+                <Button type="button" disabled={loggingOut} onClick={() => setConfirmation('sessions')} className="trace-button trace-button-danger">
                   Logout All Devices
-                </button>
+                </Button>
               </div>
               <div className="trace-section trace-section-body">
                 <h3 className="text-sm font-black text-gray-900 dark:text-gray-100 mb-4 border-b border-gray-100 dark:border-gray-700 pb-2">Recent Security Activity</h3>

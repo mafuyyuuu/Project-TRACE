@@ -1,3 +1,4 @@
+import Button from '@/components/Button';
 import { PASSWORD_REQUIREMENTS, validNewPassword } from '@/utils/passwordPolicy';
 import { INPUT_LIMITS } from '@/utils/inputLimits';
 import ConfirmDialog from '@/components/ConfirmDialog';
@@ -43,22 +44,22 @@ export default function AddUserModal({ open, onClose, onCreate, saving }) {
       maxWidth="max-w-md"
       footer={
         <div className="flex flex-col sm:flex-row gap-3">
-          <button
+          <Button
             type="button"
             onClick={onClose}
             disabled={saving}
             className="trace-button trace-button-secondary flex-1"
           >
             Cancel
-          </button>
-          <button
+          </Button>
+          <Button
             type="submit"
             form="add-user-form"
             disabled={saving}
             className="trace-button trace-button-primary flex-1"
           >
             {saving ? 'Saving…' : 'Create Account'}
-          </button>
+          </Button>
         </div>
       }
     >

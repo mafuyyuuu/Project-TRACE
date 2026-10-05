@@ -12,7 +12,7 @@ The existing green branding is the baseline. Normal fields and actions use consi
 | Field label | `trace-label` | Add `trace-label-inverse` on green backgrounds. Retain `htmlFor`, required markers and accessible names. |
 | Checkbox/radio | `trace-choice` | Retains native selection behavior and compact geometry. |
 | File picker | `trace-file` | The native file button has its own theme/state styles. Camera-only photo pickers remain hidden. |
-| Action | `trace-button` plus a variant | `trace-button-primary`, `-secondary`, `-danger`, `-warning`, `-info`, `-inverse` or `-inverse-primary`. Secondary toggle actions reflect `aria-pressed`. |
+| Action | `Button` with `trace-button` plus a variant | `trace-button-primary`, `-secondary`, `-danger`, `-warning`, `-info`, `-inverse` or `-inverse-primary`. Secondary toggle actions reflect `aria-pressed`. |
 | Icon action | `trace-icon-button` | Use an accessible label. Avatar/camera/floating support buttons retain their deliberate geometry. |
 | Tab | `trace-tab` | Keep selection colors, tab semantics and keyboard behavior in the existing component. Queue tabs retain circular badges. |
 | Link/row action with specialized geometry | `trace-action` | Shared transition and disabled treatment; does not turn a row or text link into a boxed button. |
@@ -23,7 +23,7 @@ The existing green branding is the baseline. Normal fields and actions use consi
 | Date chip | `trace-date` | Wraps label, value and icon without splitting words at enlarged text sizes. |
 | Error panel | `trace-error` | Retain existing alert/status semantics and error text. |
 
-Example:
+Example (import Button from @/components/Button):
 
 ```jsx
 <label className="trace-label" htmlFor="reference">
@@ -31,8 +31,8 @@ Example:
 </label>
 <input id="reference" className="trace-control mt-2" disabled={saving} />
 <div className="trace-actions mt-4">
-  <button type="button" className="trace-button trace-button-secondary" onClick={onCancel}>Cancel</button>
-  <button type="submit" className="trace-button trace-button-primary" disabled={saving}>Save</button>
+  <Button type="button" className="trace-button trace-button-secondary" onClick={onCancel}>Cancel</Button>
+  <Button type="submit" className="trace-button trace-button-primary" disabled={saving}>Save</Button>
 </div>
 ```
 
@@ -51,3 +51,5 @@ Shared branding uses `components/TraceBrand.jsx` and `utils/branding.js`. The su
 Shared interaction mappings and tokens are documented in [UI_MOTION.md](UI_MOTION.md). Layout owns route context; SidebarNav owns group context; ModalShell owns drill entry/return for all consumers. Do not add a second page/modal entrance class. Keep native disclosure layout and scroll immediate, use transform-only ProgressFill for progress, and keep alerts/focus/busy state independent of animation completion.
 
 Sidebar hover-label finding (2026-10-04, before implementation): SidebarNav has permanent aria-label names but desktop names otherwise rely on title; local hover recipes are gray/red and have no icon lift or tooltip lifecycle. Layout's desktop rail deliberately scrolls and clips overflow, so labels need a body portal. The current md breakpoint also hides the labeled menu trigger on wide touch screens. Use one delegated tooltip per icon rail, fine-pointer hover and keyboard focus, Escape dismissal, a contiguous pointer bridge to the label, viewport-clamped placement and scroll/resize dismissal. Keep Main/More metadata and selected green treatment; add a 2 px icon-only feedback-token lift and a noninteractive diffuse green pseudo-layer. Keep labeled drawer controls static and expose that drawer for coarse/nonhover pointers at every width. Reduced motion keeps highlight/labels but removes the lift.
+
+Button actions use components/Button.jsx with the existing semantic variant classes. It forwards native attributes, events and refs (including submit/form association); it neither schedules nor intercepts actions. Boxed button/icon classes get a fixed-target visual-content lift and decorative elevation; trace-button-lift opts existing custom geometry into the same treatment. Inline links, tabs and card selectors keep stationary feedback. Use motion="feedback" to suppress a boxed lift where needed. Navigation retains its separate SVG-only feedback. Don't transform the native button, alter padding on hover, add individual durations or color every action green. Use amber for unpaid-balance actions and retain destructive red. Green authentication panels use trace-action-inverse-surface so focus outlines remain white. Disabled/busy presentation clears immediately. See UI_MOTION.md for the pointer/reduced-motion mappings.

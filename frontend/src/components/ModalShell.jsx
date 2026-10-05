@@ -1,3 +1,4 @@
+import Button from '@/components/Button';
 import { useEffect, useId, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import useDrillMotion from '@/hooks/useDrillMotion';
@@ -172,14 +173,14 @@ export default function ModalShell({
         style={panelStyle}
       >
         {showCloseButton && (
-          <button
+          <Button
             type="button"
             onClick={onClose}
             aria-label={closeButtonAriaLabel}
             className={closeButtonClassName ?? DEFAULT_CLOSE_BUTTON_CLASS_NAME}
           >
             {closeButtonIcon}
-          </button>
+          </Button>
         )}
 
         {bare ? (

@@ -1,3 +1,4 @@
+import Button from '@/components/Button';
 import ModalShell from '@/components/ModalShell';
 import UserAvatar from '@/components/UserAvatar';
 import FileUploadField from '@/components/FileUploadField';
@@ -40,15 +41,15 @@ export default function UserDetailModal({ open, onClose, user, onEdit, onToggleA
       footer={
         <div className="space-y-3">
           <div className="flex flex-col sm:flex-row gap-3">
-            {onEdit && <button
+            {onEdit && <Button
               type="button"
               onClick={onEdit}
               disabled={mutationDisabled || saving}
               className="trace-button trace-button-info flex-1"
             >
               Edit User
-            </button>}
-            {onToggleActive && <button
+            </Button>}
+            {onToggleActive && <Button
               type="button"
               onClick={onToggleActive}
               disabled={isStudent || !onToggleActive || isSelf || saving}
@@ -56,14 +57,14 @@ export default function UserDetailModal({ open, onClose, user, onEdit, onToggleA
               className={`trace-button flex-1 ${user.is_active ? 'trace-button-danger' : 'trace-button-primary'}`}
             >
               {user.is_active ? 'Deactivate User' : 'Restore User'}
-            </button>}
-            <button
+            </Button>}
+            <Button
               type="button"
               onClick={onClose}
               className="trace-button trace-button-secondary flex-1"
             >
               Close
-            </button>
+            </Button>
           </div>
         </div>
       }

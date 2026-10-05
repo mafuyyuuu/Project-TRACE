@@ -1,3 +1,4 @@
+import Button from '@/components/Button';
 import FeeBreakdown from '@/components/FeeBreakdown';
 import { INPUT_LIMITS } from '@/utils/inputLimits';
 import ModalShell from '@/components/ModalShell';
@@ -35,19 +36,19 @@ export default function PricingModal({
       maxWidth="max-w-lg"
       footer={
         <div className="flex flex-col sm:flex-row gap-3">
-          <button
+          <Button
             onClick={() => setActiveModal(null)}
             className="trace-button trace-button-secondary flex-1"
           >
             Cancel
-          </button>
-          <button
+          </Button>
+          <Button
             onClick={handlePriceDocument}
             disabled={actionLoading || !priceBreakdown || Number(priceAmount) <= 0 || (selectedDoc.pricing_requires_review && !confirmCurrentRates)}
             className="trace-button trace-button-primary flex-1"
           >
             {actionLoading ? 'Saving…' : siblingsUnpriced > 0 ? 'Save Price' : 'Save & Bill Student'}
-          </button>
+          </Button>
         </div>
       }
     >

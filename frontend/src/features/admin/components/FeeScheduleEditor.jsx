@@ -1,3 +1,4 @@
+import Button from '@/components/Button';
 const emptySchedule = () => ({ base_fee: 0, fee_rule: 'flat', rental_fee: 0, special_fee: 0, fee_items: [] });
 const inputClass = "trace-control w-full";
 
@@ -9,10 +10,10 @@ function NamedItems({ items, onChange }) {
         onChange={event => onChange(items.map((row, i) => i === index ? { ...row, label: event.target.value } : row))} /></label>
       <label className="trace-label w-24">Item fee (₱)<input className={inputClass} required type="number" min="0" step="0.01" value={item.amount}
         onChange={event => onChange(items.map((row, i) => i === index ? { ...row, amount: event.target.value } : row))} /></label>
-      <button type="button" aria-label={`Remove fee item ${index + 1}`} onClick={() => onChange(items.filter((_, i) => i !== index))}>Remove</button>
+      <Button type="button" className="trace-action text-sm font-semibold text-red-700 dark:text-red-300" aria-label={`Remove fee item ${index + 1}`} onClick={() => onChange(items.filter((_, i) => i !== index))}>Remove</Button>
     </div>)}
-    <button type="button" className="trace-action text-xs font-bold text-green-700 dark:text-green-300" disabled={items.length >= 30}
-      onClick={() => onChange([...items, { label: '', amount: 0 }])}>Add named fee</button>
+    <Button type="button" className="trace-action text-xs font-bold text-green-700 dark:text-green-300" disabled={items.length >= 30}
+      onClick={() => onChange([...items, { label: '', amount: 0 }])}>Add named fee</Button>
   </div>;
 }
 function ExtraFees({ schedule, onChange }) {
@@ -44,10 +45,10 @@ export default function FeeScheduleEditor({ value, colleges, onChange }) {
           <option value="flat">Flat fee per copy</option><option value="per_semester_block">Per printed page per copy</option>
         </select></label>
         <ExtraFees schedule={row} onChange={next => updateOverride(index, next)} />
-        <button type="button" className="trace-action text-xs text-red-700 dark:text-red-300" onClick={() => onChange({ ...value, college_fee_schedules: overrides.filter((_, i) => i !== index) })}>Remove college override</button>
+        <Button type="button" className="trace-action text-xs text-red-700 dark:text-red-300" onClick={() => onChange({ ...value, college_fee_schedules: overrides.filter((_, i) => i !== index) })}>Remove college override</Button>
       </fieldset>)}
-      <button type="button" className="trace-action text-xs font-bold text-green-700 dark:text-green-300" disabled={overrides.length >= 100}
-        onClick={() => onChange({ ...value, college_fee_schedules: [...overrides, { ...emptySchedule(), college_id: null }] })}>Add college override</button>
+      <Button type="button" className="trace-action text-xs font-bold text-green-700 dark:text-green-300" disabled={overrides.length >= 100}
+        onClick={() => onChange({ ...value, college_fee_schedules: [...overrides, { ...emptySchedule(), college_id: null }] })}>Add college override</Button>
     </fieldset>
   </div>;
 }

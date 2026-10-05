@@ -1,3 +1,4 @@
+import Button from '@/components/Button';
 import UserAvatar from '@/components/UserAvatar';
 import { getUserLabel } from '@/utils/userLabels';
 
@@ -37,7 +38,7 @@ function VerificationChip({ status }) {
  */
 export default function UserCard({ user, onClick }) {
   return (
-    <button
+    <Button
       type="button"
       onClick={onClick}
       data-testid="user-card"
@@ -64,6 +65,6 @@ export default function UserCard({ user, onClick }) {
         <ActiveChip active={user.is_active} />
         <VerificationChip status={user.verification_status} />
       </div>
-    </button>
+    </Button>
   );
 }

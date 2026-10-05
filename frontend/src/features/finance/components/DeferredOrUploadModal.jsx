@@ -1,3 +1,4 @@
+import Button from '@/components/Button';
 import { INPUT_LIMITS } from '@/utils/inputLimits';
 import FileUploadField from '@/components/FileUploadField';
 import { useState } from 'react';
@@ -27,12 +28,12 @@ export default function DeferredOrUploadModal({
     <ModalShell open={true} onClose={() => setActiveModal(null)} title="Upload Deferred OR"
       footer={
         <div className="flex flex-col sm:flex-row justify-end gap-3">
-          <button type="button" disabled={actionLoading} onClick={() => setActiveModal(null)}
-            className="trace-action px-4 py-2 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 text-xs font-bold">Cancel</button>
-          <button type="submit" form="deferred-or-form" disabled={actionLoading || !orFile}
+          <Button type="button" disabled={actionLoading} onClick={() => setActiveModal(null)}
+            className="trace-action px-4 py-2 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 text-xs font-bold">Cancel</Button>
+          <Button type="submit" form="deferred-or-form" disabled={actionLoading || !orFile}
             className="trace-button trace-button-primary">
             {actionLoading ? 'Uploading...' : 'Upload Receipt'}
-          </button>
+          </Button>
         </div>
       }>
       <form id="deferred-or-form" onSubmit={handleSubmit} className="space-y-6">

@@ -1,3 +1,4 @@
+import Button from '@/components/Button';
 import { INPUT_LIMITS } from '@/utils/inputLimits';
 import ConfirmDialog from '@/components/ConfirmDialog'
 import { useEffect, useRef, useState } from 'react'
@@ -92,15 +93,15 @@ export default function ResetPasswordPage() {
             onChange={(e) => setConfirmPassword(e.target.value)}
             className={field}
           />
-          <button type="button" aria-pressed={showPassword} onClick={() => setShowPassword(value => !value)} className="trace-button trace-button-inverse mt-4">{showPassword ? 'Hide passwords' : 'Show passwords'}</button>
+          <Button type="button" aria-pressed={showPassword} onClick={() => setShowPassword(value => !value)} className="trace-button trace-button-inverse mt-4">{showPassword ? 'Hide passwords' : 'Show passwords'}</Button>
 
-          <button
+          <Button
             type="submit"
             disabled={loading}
             className="trace-button trace-button-inverse-primary mt-6 w-full"
           >
             {loading ? 'Saving…' : 'Set New Password'}
-          </button>
+          </Button>
         </form>
       )}
     </AuthShell>

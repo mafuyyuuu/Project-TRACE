@@ -41,7 +41,7 @@
   .trace-button-danger { @apply border-red-300 bg-red-50 text-red-700 enabled:hover:bg-red-100 dark:border-red-800 dark:bg-red-950 dark:text-red-200 dark:enabled:hover:bg-red-900; }
   .trace-button-warning { @apply border-amber-300 bg-amber-50 text-amber-800 enabled:hover:bg-amber-100 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-200 dark:enabled:hover:bg-amber-900; }
   .trace-button-info { @apply border-blue-200 bg-blue-50 text-blue-800 enabled:hover:bg-blue-100 dark:border-blue-800 dark:bg-blue-950 dark:text-blue-200 dark:enabled:hover:bg-blue-900; }
-  .trace-button-inverse { @apply border-white/40 bg-white/10 text-white enabled:hover:bg-white/20 dark:border-white/40 dark:bg-white/10 dark:text-white dark:enabled:hover:bg-white/20 focus-visible:outline-white; }
+  .trace-button-inverse { @apply border-white/40 bg-black/10 text-white enabled:hover:bg-black/20 dark:border-white/40 dark:bg-black/10 dark:text-white dark:enabled:hover:bg-black/20 focus-visible:outline-white; }
   .trace-button-inverse-primary { @apply bg-white text-pine-700 enabled:hover:bg-green-50 dark:bg-white dark:text-pine-700 dark:enabled:hover:bg-green-50 focus-visible:outline-white; }
   .trace-icon-button { @apply inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-gray-500 enabled:hover:bg-gray-100 dark:text-gray-400 dark:enabled:hover:bg-gray-800 transition-colors disabled:cursor-not-allowed disabled:opacity-60; }
   .trace-label { @apply block text-sm font-semibold leading-normal text-gray-700 dark:text-gray-200; }
@@ -73,6 +73,60 @@
 }
 .trace-nav-scroll::-webkit-scrollbar {
   display: none;
+}
+
+/* Native target, background, border and footprint stay fixed. The visual
+   content and noninteractive elevation layer alone move. */
+@layer components {
+  .trace-button-feedback:focus-visible {
+    outline: 2px solid var(--trace-button-focus, #15803d);
+    outline-offset: 2px;
+  }
+  .dark .trace-button-feedback:focus-visible { outline-color: var(--trace-button-focus, #4ade80); }
+  .trace-action-inverse-surface, .trace-button-inverse, .trace-button-inverse-primary { --trace-button-focus: #fff; }
+  .trace-button-feedback:not(:disabled):not([aria-disabled="true"]):not([aria-busy="true"]):active { opacity: 0.9; }
+  .trace-button-motion { position: relative; isolation: isolate; }
+  .trace-button-motion::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    pointer-events: none;
+    box-shadow: var(--trace-motion-button-elevation);
+    opacity: 0;
+    transition: opacity var(--trace-motion-feedback-duration) var(--trace-motion-easing), transform var(--trace-motion-feedback-duration) var(--trace-motion-easing);
+  }
+  .trace-button-visual {
+    display: inline-flex;
+    width: 100%;
+    height: 100%;
+    min-width: 0;
+    max-width: 100%;
+    align-items: inherit;
+    justify-content: inherit;
+    flex-direction: inherit;
+    flex-wrap: inherit;
+    gap: inherit;
+    pointer-events: none;
+    transition: transform var(--trace-motion-feedback-duration) var(--trace-motion-easing);
+  }
+  .trace-button-motion:not(:disabled):not([aria-disabled="true"]):not([aria-busy="true"]):focus-visible::after { opacity: 1; }
+  .trace-button-motion:not(:disabled):not([aria-disabled="true"]):not([aria-busy="true"]):focus-visible > .trace-button-visual,
+  .trace-button-motion:not(:disabled):not([aria-disabled="true"]):not([aria-busy="true"]):focus-visible::after { transform: translateY(calc(-1 * var(--trace-motion-button-lift))); }
+  @media (hover: hover) and (pointer: fine) {
+    .trace-button-motion:not(:disabled):not([aria-disabled="true"]):not([aria-busy="true"]):hover::after { opacity: 1; }
+    .trace-button-motion:not(:disabled):not([aria-disabled="true"]):not([aria-busy="true"]):hover > .trace-button-visual,
+    .trace-button-motion:not(:disabled):not([aria-disabled="true"]):not([aria-busy="true"]):hover::after { transform: translateY(calc(-1 * var(--trace-motion-button-lift))); }
+  }
+  .trace-button-motion:not(:disabled):not([aria-disabled="true"]):not([aria-busy="true"]):active > .trace-button-visual,
+  .trace-button-motion:not(:disabled):not([aria-disabled="true"]):not([aria-busy="true"]):active::after { transform: none; }
+  .trace-button-motion:not(:disabled):not([aria-disabled="true"]):not([aria-busy="true"]):active::after { opacity: 0.3; }
+  .trace-button-motion:is(:disabled, [aria-disabled="true"], [aria-busy="true"]) > .trace-button-visual,
+  .trace-button-motion:is(:disabled, [aria-disabled="true"], [aria-busy="true"])::after { transform: none; transition: none; }
+  .trace-button-motion:is(:disabled, [aria-disabled="true"], [aria-busy="true"])::after { opacity: 0; }
+  @media (prefers-reduced-motion: reduce) {
+    .trace-button-motion > .trace-button-visual, .trace-button-motion::after { transform: none !important; }
+  }
 }
 
 /* Lift the decorative icon only; the control's hit target never moves. */
@@ -140,6 +194,8 @@
   --trace-motion-scale: 0.99;
   --trace-motion-elevation-rest: 0 1px 3px rgb(0 0 0 / 0.1);
   --trace-motion-elevation-raised: 0 25px 50px -12px rgb(0 0 0 / 0.25);
+  --trace-motion-button-lift: 2px;
+  --trace-motion-button-elevation: 0 5px 10px rgb(15 23 42 / 0.14);
   color-scheme: light;
   --trace-chart-line: #0f172a;
   --trace-chart-surface: #ffffff;
@@ -181,6 +237,7 @@
 }
 
 :root.dark {
+  --trace-motion-button-elevation: 0 5px 12px rgb(0 0 0 / 0.3);
   color-scheme: dark;
   --trace-chart-line: #e2e8f0;
   --trace-chart-surface: #1f2937;
