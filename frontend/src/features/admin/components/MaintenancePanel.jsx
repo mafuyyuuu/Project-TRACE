@@ -1,3 +1,5 @@
+import Button from '@/components/Button';
+import ProgramsPanel from './ProgramsPanel';
 import FeeScheduleEditor from './FeeScheduleEditor';
 import { isHonorableDismissal, isSameDayWalkInType } from '@/utils/documentPolicy';
 import { INPUT_LIMITS } from '@/utils/inputLimits';
@@ -22,11 +24,12 @@ const SECTIONS = [
   { key: 'staff', label: 'Accounts' },
   { key: 'documentTypes', label: 'Document Types' },
   { key: 'colleges', label: 'Colleges' },
+  { key: 'programs', label: 'Programs' },
   { key: 'paymentMethods', label: 'Payment Methods' },
 ];
 
 const inputClass =
-  'w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-2.5 text-xs font-semibold outline-none focus:ring-2 focus:ring-[#15803d]/20 focus:bg-white dark:focus:bg-gray-900 transition-all';
+  "trace-control w-full";
 
 /** Active/Inactive pill — "deleted" entries are deactivated, never removed. */
 function StatusBadge({ active, retired = false }) {
@@ -120,33 +123,35 @@ export default function MaintenancePanel({ user, currentTab }) {
         }} />
       <DashboardAlerts success={m.success} error={m.error} onDismiss={m.dismissNotification} dismissalKey={section} />
 
-      <div className="space-y-6 animate-fade-in">
+      <div className="trace-page">
         <div>
-          <h2 className="text-2xl sm:text-3xl font-display font-black text-gray-900 dark:text-gray-100 tracking-tight">
+          <h2 className="trace-page-title">
             System <span className="text-[#15803d] dark:text-green-300">Maintenance</span>
           </h2>
-          <p className="text-xs text-gray-400 dark:text-gray-400 mt-1 font-semibold">
-            Manage accounts, document types, colleges and payment methods. Deactivating hides an
+          <p className="trace-page-description">
+            Manage accounts, document types, colleges, approved programs and payment methods. Deactivating hides an
             entry from new requests without affecting existing records.
           </p>
         </div>
 
         {/* Section switcher */}
-        <div className="flex gap-2 border-b border-gray-200 dark:border-gray-700">
+      <div className="flex flex-wrap gap-2 border-b border-gray-200 dark:border-gray-700">
           {SECTIONS.map((s) => (
-            <button
+            <Button
               key={s.key}
               onClick={() => { setSection(s.key); resetForm(); }}
-              className={`px-5 py-2.5 text-xs font-bold rounded-t-xl transition-colors ${
+              className={`trace-tab rounded-t-xl  ${
                 section === s.key
                   ? 'bg-white dark:bg-gray-900 border border-b-white border-gray-200 dark:border-gray-700 text-[#15803d] dark:text-green-300 -mb-px'
                   : 'text-gray-400 dark:text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'
               }`}
             >
-              {s.label} ({(s.key === 'staff' ? m.accounts : m[s.key]).length})
-            </button>
+              {s.label}{s.key !== 'programs' && ` (${(s.key === 'staff' ? m.accounts : m[s.key]).length})`}
+            </Button>
           ))}
         </div>
+
+        {section === 'programs' && <ProgramsPanel colleges={m.colleges} />}
 
         {/* ---------------------------------------------------------------- Staff */}
         {section === 'staff' && (
@@ -221,7 +226,7 @@ export default function MaintenancePanel({ user, currentTab }) {
                 onChange={value => setForm(previous => ({ ...previous, dt_rental_fee: value.rental_fee, dt_special_fee: value.special_fee,
                   dt_fee_items: value.fee_items, dt_fee_schedules: value.college_fee_schedules }))} />
               <label className="flex items-center gap-2 text-xs font-semibold text-gray-700 dark:text-gray-300 cursor-pointer">
-                <input type="checkbox" className="accent-[#15803d]"
+                <input type="checkbox" className="trace-choice accent-[#15803d]"
                   checked={Boolean(form.dt_attach)} onChange={(e) => set('dt_attach', e.target.checked)} />
                 Requires an attachment
               </label>
@@ -256,35 +261,35 @@ export default function MaintenancePanel({ user, currentTab }) {
               </fieldset>
               <div className="space-y-2 py-2">
                 <label className="flex items-center gap-2 text-[11px] font-semibold text-gray-700 dark:text-gray-300 cursor-pointer">
-                  <input type="checkbox" className="accent-[#15803d]"
+                  <input type="checkbox" className="trace-choice accent-[#15803d]"
                     disabled checked={!isHonorableDismissal(form.dt_name)} />
                   Repeat requests and quantities (Registrar policy)
                 </label>
                 <label className="flex items-center gap-2 text-[11px] font-semibold text-gray-700 dark:text-gray-300 cursor-pointer">
-                  <input type="checkbox" className="accent-[#15803d]"
+                  <input type="checkbox" className="trace-choice accent-[#15803d]"
                     disabled={isSameDayWalkInType(form.dt_name)} checked={isSameDayWalkInType(form.dt_name) || Boolean(form.dt_is_walk_in)} onChange={(e) => set('dt_is_walk_in', e.target.checked)} />
                   Counter-only request type
                 </label>
                 <label className="flex items-center gap-2 text-[11px] font-semibold text-gray-700 dark:text-gray-300 cursor-pointer">
-                  <input type="checkbox" className="accent-[#15803d]"
+                  <input type="checkbox" className="trace-choice accent-[#15803d]"
                     disabled={isSameDayWalkInType(form.dt_name)} checked={isSameDayWalkInType(form.dt_name) || Boolean(form.dt_requires_original)} onChange={(e) => set('dt_requires_original', e.target.checked)} />
                   Requires original document presentation
                 </label>
                 <label className="flex items-center gap-2 text-[11px] font-semibold text-gray-700 dark:text-gray-300 cursor-pointer">
-                  <input type="checkbox" className="accent-[#15803d]"
+                  <input type="checkbox" className="trace-choice accent-[#15803d]"
                     disabled checked={isSameDayWalkInType(form.dt_name)} />
                   Same-day eligible when original and photocopy are presented
                 </label>
               </div>
-<button type="submit" disabled={m.saving}
-                className="w-full py-3 bg-[#15803d] hover:bg-[#166534] disabled:opacity-60 text-white rounded-xl text-xs font-bold uppercase tracking-wider transition-all">
+<Button type="submit" disabled={m.saving}
+                className="trace-button trace-button-primary w-full">
                 {m.saving ? 'Saving...' : editingTypeId ? 'Save Changes' : 'Create Type'}
-              </button>
-              {editingTypeId && <button type="button" onClick={resetForm} className="w-full py-2 text-gray-600 dark:text-gray-300 focus-visible:ring-2 focus-visible:ring-green-600">Cancel Edit</button>}
+              </Button>
+              {editingTypeId && <Button type="button" onClick={resetForm} className="trace-action w-full py-2 text-gray-600 dark:text-gray-300 focus-visible:ring-2 focus-visible:ring-green-600">Cancel Edit</Button>}
             </form>
 
-            <div className="lg:col-span-2 bg-white dark:bg-gray-900 rounded-3xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
-              <div className="p-5 border-b border-gray-100 dark:border-gray-700">
+            <div className="trace-section lg:col-span-2 overflow-hidden">
+              <div className="trace-section-header border-gray-100 dark:border-gray-700">
                 <h3 className="text-sm font-bold text-gray-900 dark:text-gray-100">Document Types</h3>
                 <p className="text-[10px] text-gray-400 dark:text-gray-400 mt-1">
                   Fees apply to new requests only. A type already used by documents cannot be renamed.
@@ -318,23 +323,25 @@ export default function MaintenancePanel({ user, currentTab }) {
                         <td className="py-3"><StatusBadge active={d.is_active} retired={d.is_retired} /></td>
                         <td className="py-3 pr-5 text-right">
                           {d.is_retired && <span className="block text-xs text-gray-500 dark:text-gray-400 mb-2">Unavailable for new requests; history retained.</span>}
-                          <button type="button" disabled={d.is_retired} onClick={() => {
-                            setEditingTypeId(d.id);
-                            setForm({ dt_name: d.name, dt_fee: d.base_fee, dt_rule: d.fee_rule,
-                              dt_rental_fee: d.rental_fee ?? 0, dt_special_fee: d.special_fee ?? 0, dt_fee_items: d.fee_items || [], dt_fee_schedules: d.college_fee_schedules || [],
-                              dt_attach: Boolean(d.requires_attachment), dt_label: d.attachment_label,
-                              dt_available_to: d.available_to || 'both', dt_is_repeatable: Boolean(d.is_repeatable),
-                              dt_is_walk_in: Boolean(d.is_walk_in), dt_requires_original: Boolean(d.requires_original),
-                              dt_is_same_day: Boolean(d.is_same_day), dt_reg_attach: d.registrar_attachment_rule,
-                              dt_college_ids: d.allowed_college_ids || [] });
-                          }} className="mr-2 text-xs font-bold text-blue-700 dark:text-blue-300 hover:underline disabled:opacity-40 focus-visible:ring-2 focus-visible:ring-blue-500">Edit</button>
-                          <button
-                            onClick={() => m.handleToggleDocumentTypeActive(d)}
-                            disabled={m.saving || d.is_retired}
-                            className={`text-[10px] font-bold px-3 py-1.5 rounded-lg border disabled:opacity-40 focus-visible:ring-2 focus-visible:ring-blue-500 ${d.is_active ? 'border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 hover:bg-red-50 dark:hover:bg-red-950/40' : 'border-green-200 dark:border-green-800 text-green-700 dark:text-green-300 hover:bg-green-50 dark:hover:bg-green-950/40'}`}
-                          >
-                            {d.is_retired ? 'Retired' : d.is_active ? 'Deactivate' : 'Restore'}
-                          </button>
+                          <div className="trace-actions justify-end">
+                            <Button type="button" disabled={d.is_retired} onClick={() => {
+                              setEditingTypeId(d.id);
+                              setForm({ dt_name: d.name, dt_fee: d.base_fee, dt_rule: d.fee_rule,
+                                dt_rental_fee: d.rental_fee ?? 0, dt_special_fee: d.special_fee ?? 0, dt_fee_items: d.fee_items || [], dt_fee_schedules: d.college_fee_schedules || [],
+                                dt_attach: Boolean(d.requires_attachment), dt_label: d.attachment_label,
+                                dt_available_to: d.available_to || 'both', dt_is_repeatable: Boolean(d.is_repeatable),
+                                dt_is_walk_in: Boolean(d.is_walk_in), dt_requires_original: Boolean(d.requires_original),
+                                dt_is_same_day: Boolean(d.is_same_day), dt_reg_attach: d.registrar_attachment_rule,
+                                dt_college_ids: d.allowed_college_ids || [] });
+                            }} className="trace-button trace-button-secondary">Edit</Button>
+                            <Button
+                              onClick={() => m.handleToggleDocumentTypeActive(d)}
+                              disabled={m.saving || d.is_retired}
+                              className={`trace-button ${d.is_active ? 'trace-button-danger' : 'trace-button-primary'}`}
+                            >
+                              {d.is_retired ? 'Retired' : d.is_active ? 'Deactivate' : 'Restore'}
+                            </Button>
+                          </div>
                         </td>
                       </tr>
                     ))}
@@ -354,14 +361,14 @@ export default function MaintenancePanel({ user, currentTab }) {
                 value={form.c_name || ''} onChange={(e) => set('c_name', e.target.value)} />
               <input maxLength={INPUT_LIMITS.shortCode} className={inputClass} placeholder="Short code (e.g. CCS)"
                 value={form.c_code || ''} onChange={(e) => set('c_code', e.target.value)} />
-              <button type="submit" disabled={m.saving}
-                className="w-full py-3 bg-[#15803d] hover:bg-[#166534] disabled:opacity-60 text-white rounded-xl text-xs font-bold uppercase tracking-wider transition-all">
+              <Button type="submit" disabled={m.saving}
+                className="trace-button trace-button-primary w-full">
                 {m.saving ? 'Saving...' : 'Create College'}
-              </button>
+              </Button>
             </form>
 
-            <div className="lg:col-span-2 bg-white dark:bg-gray-900 rounded-3xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
-              <div className="p-5 border-b border-gray-100 dark:border-gray-700">
+            <div className="trace-section lg:col-span-2 overflow-hidden">
+              <div className="trace-section-header border-gray-100 dark:border-gray-700">
                 <h3 className="text-sm font-bold text-gray-900 dark:text-gray-100">Colleges</h3>
               </div>
               <div className="max-h-[32rem] overflow-y-auto">
@@ -381,13 +388,13 @@ export default function MaintenancePanel({ user, currentTab }) {
                         <td className="py-3 text-xs text-gray-600 dark:text-gray-300 font-mono">{c.short_code || '—'}</td>
                         <td className="py-3"><StatusBadge active={c.is_active} /></td>
                         <td className="py-3 pr-5 text-right">
-                          <button
+                          <Button
                             onClick={() => m.handleToggleCollegeActive(c)}
                             disabled={m.saving}
-                            className="text-[10px] font-bold px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-800 disabled:opacity-40"
+                            className="trace-button trace-button-secondary"
                           >
                             {c.is_active ? 'Deactivate' : 'Restore'}
-                          </button>
+                          </Button>
                         </td>
                       </tr>
                     ))}
@@ -417,7 +424,7 @@ export default function MaintenancePanel({ user, currentTab }) {
                 value={form.pm_instructions || ''} onChange={(e) => set('pm_instructions', e.target.value)} />
 
               <label className="flex items-center gap-2 text-xs font-semibold text-gray-700 dark:text-gray-300 cursor-pointer">
-                <input type="checkbox" className="accent-[#15803d]"
+                <input type="checkbox" className="trace-choice accent-[#15803d]"
                   checked={form.pm_requires_reference !== false}
                   onChange={(e) => set('pm_requires_reference', e.target.checked)} />
                 Requires a reference number
@@ -428,20 +435,20 @@ export default function MaintenancePanel({ user, currentTab }) {
               )}
 
               <label className="flex items-center gap-2 text-xs font-semibold text-gray-700 dark:text-gray-300 cursor-pointer">
-                <input type="checkbox" className="accent-[#15803d]"
+                <input type="checkbox" className="trace-choice accent-[#15803d]"
                   checked={form.pm_requires_proof !== false}
                   onChange={(e) => set('pm_requires_proof', e.target.checked)} />
                 Requires a proof-of-payment upload
               </label>
 
-              <button type="submit" disabled={m.saving}
-                className="w-full py-3 bg-[#15803d] hover:bg-[#166534] disabled:opacity-60 text-white rounded-xl text-xs font-bold uppercase tracking-wider transition-all">
+              <Button type="submit" disabled={m.saving}
+                className="trace-button trace-button-primary w-full">
                 {m.saving ? 'Saving...' : 'Create Method'}
-              </button>
+              </Button>
             </form>
 
-            <div className="lg:col-span-2 bg-white dark:bg-gray-900 rounded-3xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
-              <div className="p-5 border-b border-gray-100 dark:border-gray-700">
+            <div className="trace-section lg:col-span-2 overflow-hidden">
+              <div className="trace-section-header border-gray-100 dark:border-gray-700">
                 <h3 className="text-sm font-bold text-gray-900 dark:text-gray-100">Payment Methods</h3>
                 <p className="text-[10px] text-gray-400 dark:text-gray-400 mt-1">
                   Every method settles manually against Finance's own records — a hosted gateway can be
@@ -472,13 +479,13 @@ export default function MaintenancePanel({ user, currentTab }) {
                         <td className="py-3 text-xs text-gray-600 dark:text-gray-300">{p.requires_proof ? 'Required' : '—'}</td>
                         <td className="py-3"><StatusBadge active={p.is_active} /></td>
                         <td className="py-3 pr-5 text-right">
-                          <button
+                          <Button
                             onClick={() => m.handleTogglePaymentMethodActive(p)}
                             disabled={m.saving}
-                            className="text-[10px] font-bold px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-800 disabled:opacity-40"
+                            className="trace-button trace-button-secondary"
                           >
                             {p.is_active ? 'Deactivate' : 'Restore'}
-                          </button>
+                          </Button>
                         </td>
                       </tr>
                     ))}

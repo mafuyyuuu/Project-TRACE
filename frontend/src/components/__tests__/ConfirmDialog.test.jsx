@@ -19,7 +19,7 @@ describe('ConfirmDialog', () => {
 
   it.each(['neutral', 'destructive'])('supports the %s variant', (variant) => {
     render(<ConfirmDialog {...props} variant={variant} onConfirm={vi.fn()} onCancel={vi.fn()} />);
-    expect(screen.getByRole('button', { name: 'Release' })).toHaveClass(variant === 'destructive' ? 'bg-red-600' : 'bg-[#15803d]');
+    expect(screen.getByRole('button', { name: 'Release' })).toHaveClass(variant === 'destructive' ? 'trace-button-danger' : 'trace-button-primary');
   });
 
   it.each(['button', 'Escape', 'backdrop', 'close'])('cancels through %s', async (method) => {

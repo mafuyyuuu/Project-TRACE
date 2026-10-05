@@ -1,3 +1,4 @@
+import Button from '@/components/Button';
 import { useState } from 'react';
 import SecretaryEvaluationModal from '@/features/secretary/components/SecretaryEvaluationModal';
 import PricingModal from '@/features/secretary/components/PricingModal';
@@ -39,7 +40,6 @@ export default function SecretaryDashboard({ user, currentTab, setViewImageUrl }
     processingQueue,
     orVerificationQueue,
     handoffQueue,
-    clearedQueue,
     clerkNotes,
     setClerkNotes,
     estimatedReadyDate,
@@ -81,24 +81,24 @@ export default function SecretaryDashboard({ user, currentTab, setViewImageUrl }
   const todayFormatted = todayLongDate();
 
   if (currentTab === 'messages') return <RequestMessagesPanel user={user} initialDocumentId={new URLSearchParams(window.location.search).get('document')} />;
-  if (currentTab === 'reports') return <ReportsPanel user={user} currentTab={currentTab} />;
+  if (['reports', 'completed-logs'].includes(currentTab)) return <ReportsPanel key={currentTab} user={user} currentTab="reports" initialRecordSet={currentTab === 'completed-logs' ? 'secretary-cleared' : ''} />;
   if (loading) return <DashboardLoading />;
 
   return (
     <>
       <DashboardAlerts success={success} error={error} onDismiss={dismissNotification} dismissalKey={`${currentTab}:${activeQueueTab}`} />
-      <div className="space-y-8 animate-fade-in">
+      <div className="trace-page">
         {/* 4.1. COLLEGE SECRETARY - WORKSPACE DASHBOARD */}
         {currentTab === 'dashboard' && (
           <>
             {/* Welcome Header */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+            <div className="trace-page-header">
               <div>
-                <h2 className="text-2xl sm:text-3xl font-display font-black text-gray-900 dark:text-gray-100 tracking-tight">
+                <h2 className="trace-page-title">
                   Welcome back, <span className="text-[#15803d] dark:text-green-300 font-bold">College Secretary</span>
                 </h2>
               </div>
-              <div className="flex items-center gap-3 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-2xl px-5 py-2.5 shadow-sm">
+              <div className="trace-date">
                 <span className="text-xs font-semibold text-gray-500 dark:text-gray-400">Today:</span>
                 <span className="text-xs font-bold text-gray-800 dark:text-gray-100">{todayFormatted}</span>
                 <svg className="w-4 h-4 text-gray-400 dark:text-gray-400 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
@@ -107,7 +107,7 @@ export default function SecretaryDashboard({ user, currentTab, setViewImageUrl }
 
             {/* KPI Cards */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div className="bg-white dark:bg-gray-900 rounded-3xl p-6 shadow-sm border border-gray-200 dark:border-gray-700 flex flex-col justify-between min-h-44">
+              <div className="trace-section trace-card-info trace-section-body flex flex-col justify-between min-h-44">
                 <div className="flex justify-between items-start">
                   <div>
                     <span className="text-[10px] font-bold text-gray-400 dark:text-gray-400 uppercase tracking-widest block">PROCESSED DOCUMENT TODAY</span>
@@ -121,7 +121,7 @@ export default function SecretaryDashboard({ user, currentTab, setViewImageUrl }
                 </div>
               </div>
 
-              <div className="bg-white dark:bg-gray-900 rounded-3xl p-6 shadow-sm border border-gray-200 dark:border-gray-700 flex flex-col justify-between min-h-44">
+              <div className="trace-section trace-card-info trace-section-body flex flex-col justify-between min-h-44">
                 <div className="flex justify-between items-start">
                   <div>
                     <span className="text-[10px] font-bold text-gray-400 dark:text-gray-400 uppercase tracking-widest block">PENDING DOCUMENTS</span>
@@ -136,7 +136,7 @@ export default function SecretaryDashboard({ user, currentTab, setViewImageUrl }
                 </div>
               </div>
 
-              <div className="bg-white dark:bg-gray-900 rounded-3xl p-6 shadow-sm border border-gray-200 dark:border-gray-700 flex flex-col justify-between min-h-44">
+              <div className="trace-section trace-card-info trace-section-body flex flex-col justify-between min-h-44">
                 <div className="flex justify-between items-start">
                   <div>
                     <span className="text-[10px] font-bold text-gray-400 dark:text-gray-400 uppercase tracking-widest block">APPROVED & ROUTED</span>
@@ -166,8 +166,8 @@ export default function SecretaryDashboard({ user, currentTab, setViewImageUrl }
             />
 
             {activeQueueTab === 'evaluation' && (
-            <div className="animate-fade-in bg-white dark:bg-gray-900 rounded-3xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden mt-6">
-              <div className="p-4 sm:p-6 border-b border-gray-100 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800/50">
+            <div className="trace-section trace-motion-context overflow-hidden mt-6">
+              <div className="trace-section-header border-gray-100 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800/50">
                 <h3 className="font-bold text-gray-950 dark:text-gray-100 text-sm tracking-wider uppercase">1 · INITIAL EVALUATION</h3>
                 <p className="text-[11px] text-gray-500 dark:text-gray-400 font-medium mt-1">Check the request, then give the student a date to expect it by.</p>
               </div>
@@ -190,7 +190,7 @@ export default function SecretaryDashboard({ user, currentTab, setViewImageUrl }
                         {evaluationQueue.map(doc => (
                           <tr key={doc.id} className="hover:bg-gray-50/30 dark:hover:bg-gray-800/30 group">
                             <td className="py-4 pl-4">
-                              <button type="button" disabled={!doc.student_id} onClick={() => setViewProfileId(doc.student_id)} className="font-bold text-blue-700 dark:text-blue-300 hover:underline text-left focus-visible:ring-2 focus-visible:ring-blue-500">{doc.student_name || 'Unresolved Student'}</button>
+                              <Button type="button" disabled={!doc.student_id} onClick={() => setViewProfileId(doc.student_id)} className="trace-action font-bold text-blue-700 dark:text-blue-300 hover:underline text-left focus-visible:ring-2 focus-visible:ring-blue-500">{doc.student_name || 'Unresolved Student'}</Button>
                               <div className="text-xs font-mono text-gray-400 dark:text-gray-400 mt-0.5">#{doc.tracking_number ? doc.tracking_number.slice(0, 10).toUpperCase() : doc.id}</div>
                             </td>
                             <td className="py-4 text-xs font-bold text-gray-600 dark:text-gray-300">{doc.document_sequence_number || doc.document_type || 'Transcript of Records'}</td>
@@ -201,7 +201,7 @@ export default function SecretaryDashboard({ user, currentTab, setViewImageUrl }
                               <span className="px-3 py-1 bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 text-[10px] font-black rounded-full uppercase tracking-wider">UNPAID</span>
                             </td>
                             <td className="py-4 text-right pr-4">
-                              <button 
+                              <Button
                                 onClick={() => {
                                   setSelectedDoc(doc);
                                   setEvalStudentId(doc.student_id || '');
@@ -209,11 +209,11 @@ export default function SecretaryDashboard({ user, currentTab, setViewImageUrl }
                                   setEvalDocType(doc.document_type || 'Transcript of Records');
                                   setActiveModal('evaluate');
                                 }}
-                                className="px-4 py-2 bg-[#15803d] hover:bg-[#166534] text-white rounded-xl text-xs font-bold shadow-sm transition-all flex items-center gap-1.5 ml-auto"
+                                className="trace-button trace-button-primary flex items-center gap-1.5 ml-auto"
                               >
                                 <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                                 Review
-                              </button>
+                              </Button>
                             </td>
                           </tr>
                         ))}
@@ -229,8 +229,8 @@ export default function SecretaryDashboard({ user, currentTab, setViewImageUrl }
             {/* 2 · Printed and awaiting a price. The student is only billed
                 once every document in their request has one. */}
             {activeQueueTab === 'processing' && (
-            <div className="animate-fade-in bg-white dark:bg-gray-900 rounded-3xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden mt-6">
-              <div className="p-4 sm:p-6 border-b border-gray-100 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800/50">
+            <div className="trace-section trace-motion-context overflow-hidden mt-6">
+              <div className="trace-section-header border-gray-100 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800/50">
                 <h3 className="font-bold text-gray-950 dark:text-gray-100 text-sm tracking-wider uppercase">2 · PROCESSING &amp; PRICING</h3>
                 <p className="text-[11px] text-gray-500 dark:text-gray-400 font-medium mt-1">Print the document, then set what it costs. The request is billed once every document in it is priced.</p>
               </div>
@@ -259,7 +259,7 @@ export default function SecretaryDashboard({ user, currentTab, setViewImageUrl }
                           return (
                             <tr key={doc.id} className="hover:bg-gray-50/30 dark:hover:bg-gray-800/30 group">
                               <td className="py-4 pl-4">
-                                <button type="button" disabled={!doc.student_id} onClick={() => setViewProfileId(doc.student_id)} className="font-bold text-blue-700 dark:text-blue-300 hover:underline text-left focus-visible:ring-2 focus-visible:ring-blue-500">{doc.student_name || 'Unresolved Student'}</button>
+                                <Button type="button" disabled={!doc.student_id} onClick={() => setViewProfileId(doc.student_id)} className="trace-action font-bold text-blue-700 dark:text-blue-300 hover:underline text-left focus-visible:ring-2 focus-visible:ring-blue-500">{doc.student_name || 'Unresolved Student'}</Button>
                                 <div className="text-xs font-mono text-gray-400 dark:text-gray-400 mt-0.5">#{doc.tracking_number ? doc.tracking_number.slice(0, 10).toUpperCase() : doc.id}</div>
                               </td>
                               <td className="py-4 text-xs font-bold text-gray-600 dark:text-gray-300">{doc.document_sequence_number || doc.document_type}</td>
@@ -276,17 +276,17 @@ export default function SecretaryDashboard({ user, currentTab, setViewImageUrl }
                                   : <span className="text-gray-400 dark:text-gray-400">not set</span>}
                               </td>
                               <td className="py-4 text-right pr-4">
-                                <button
+                                <Button
                                   onClick={() => {
                                     setSelectedDoc(doc);
                                     setPriceNotes(''); setConfirmCurrentRates(false);
                                     setPricePageCount(doc.page_count ? String(doc.page_count) : '');
                                     setActiveModal('price');
                                   }}
-                                  className="px-4 py-2 bg-gray-900 dark:bg-gray-800 hover:bg-gray-800 dark:hover:bg-gray-800 text-white rounded-xl text-xs font-bold shadow-sm transition-all ml-auto block"
+                                  className="trace-button trace-button-secondary ml-auto block"
                                 >
                                   {priced ? 'Adjust Price' : 'Set Price'}
-                                </button>
+                                </Button>
                               </td>
                             </tr>
                           );
@@ -301,8 +301,8 @@ export default function SecretaryDashboard({ user, currentTab, setViewImageUrl }
 
             {/* 3 · Paid, waiting on a paperwork check before handoff. */}
             {activeQueueTab === 'or-verification' && (
-            <div className="animate-fade-in bg-white dark:bg-gray-900 rounded-3xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden mt-6">
-              <div className="p-4 sm:p-6 border-b border-gray-100 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800/50">
+            <div className="trace-section trace-motion-context overflow-hidden mt-6">
+              <div className="trace-section-header border-gray-100 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800/50">
                 <h3 className="font-bold text-gray-950 dark:text-gray-100 text-sm tracking-wider uppercase">3 · OR VERIFICATION</h3>
                 <p className="text-[11px] text-gray-500 dark:text-gray-400 font-medium mt-1">Finance has confirmed the payment. Check the Official Receipt is present and the number looks right before handoff.</p>
               </div>
@@ -324,29 +324,29 @@ export default function SecretaryDashboard({ user, currentTab, setViewImageUrl }
                         {orVerificationQueue.map(doc => (
                           <tr key={doc.id} className="hover:bg-gray-50/30 dark:hover:bg-gray-800/30 group">
                             <td className="py-4 pl-4">
-                              <button type="button" disabled={!doc.student_id} onClick={() => setViewProfileId(doc.student_id)} className="font-bold text-blue-700 dark:text-blue-300 hover:underline text-left focus-visible:ring-2 focus-visible:ring-blue-500">{doc.student_name || 'Unresolved Student'}</button>
+                              <Button type="button" disabled={!doc.student_id} onClick={() => setViewProfileId(doc.student_id)} className="trace-action font-bold text-blue-700 dark:text-blue-300 hover:underline text-left focus-visible:ring-2 focus-visible:ring-blue-500">{doc.student_name || 'Unresolved Student'}</Button>
                               <div className="text-xs font-mono text-gray-400 dark:text-gray-400 mt-0.5">#{doc.tracking_number ? doc.tracking_number.slice(0, 10).toUpperCase() : doc.id}</div>
                             </td>
                             <td className="py-4 text-xs font-bold text-gray-600 dark:text-gray-300">{doc.document_sequence_number || doc.document_type}</td>
                             <td className="py-4 text-xs font-mono">
                               <span className="font-bold text-gray-700 dark:text-gray-300">{doc.or_number || 'None on file'}</span>
                               {doc.official_receipt_path && (
-                                <button
+                                <Button
                                   onClick={() => setViewImageUrl(doc.official_receipt_path)}
-                                  className="ml-2 text-[#15803d] dark:text-green-300 hover:underline font-sans font-bold"
+                                  className="trace-action ml-2 text-[#15803d] dark:text-green-300 hover:underline font-sans font-bold"
                                 >
                                   View
-                                </button>
+                                </Button>
                               )}
                             </td>
                             <td className="py-4 text-right pr-4">
-                              <button
+                              <Button
                                 onClick={() => handleVerifyOfficialReceipt(doc)}
                                 disabled={actionLoading}
-                                className="px-4 py-2 bg-[#15803d] hover:bg-[#166534] text-white rounded-xl text-xs font-bold shadow-sm transition-all disabled:opacity-50 ml-auto block"
+                                className="trace-button trace-button-primary ml-auto block"
                               >
                                 Verify Receipt
-                              </button>
+                              </Button>
                             </td>
                           </tr>
                         ))}
@@ -360,8 +360,8 @@ export default function SecretaryDashboard({ user, currentTab, setViewImageUrl }
 
             {/* 4 · Paid and waiting to physically change hands. */}
             {activeQueueTab === 'handoff' && (
-            <div className="animate-fade-in bg-white dark:bg-gray-900 rounded-3xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden mt-6">
-              <div className="p-4 sm:p-6 border-b border-gray-100 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800/50">
+            <div className="trace-section trace-motion-context overflow-hidden mt-6">
+              <div className="trace-section-header border-gray-100 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800/50">
                 <h3 className="font-bold text-gray-950 dark:text-gray-100 text-sm tracking-wider uppercase">4 · FINAL HANDOFF</h3>
                 <p className="text-[11px] text-gray-500 dark:text-gray-400 font-medium mt-1">Paid and signed. Confirm once the printed document is physically at Window 1.</p>
               </div>
@@ -383,7 +383,7 @@ export default function SecretaryDashboard({ user, currentTab, setViewImageUrl }
                         {handoffQueue.map(doc => (
                           <tr key={doc.id} className="hover:bg-gray-50/30 dark:hover:bg-gray-800/30 group">
                             <td className="py-4 pl-4">
-                              <button type="button" disabled={!doc.student_id} onClick={() => setViewProfileId(doc.student_id)} className="font-bold text-blue-700 dark:text-blue-300 hover:underline text-left focus-visible:ring-2 focus-visible:ring-blue-500">{doc.student_name || 'Unresolved Student'}</button>
+                              <Button type="button" disabled={!doc.student_id} onClick={() => setViewProfileId(doc.student_id)} className="trace-action font-bold text-blue-700 dark:text-blue-300 hover:underline text-left focus-visible:ring-2 focus-visible:ring-blue-500">{doc.student_name || 'Unresolved Student'}</Button>
                               <div className="text-xs font-mono text-gray-400 dark:text-gray-400 mt-0.5">#{doc.tracking_number ? doc.tracking_number.slice(0, 10).toUpperCase() : doc.id}</div>
                             </td>
                             <td className="py-4 text-xs font-bold text-gray-600 dark:text-gray-300">{doc.document_sequence_number || doc.document_type}</td>
@@ -392,13 +392,13 @@ export default function SecretaryDashboard({ user, currentTab, setViewImageUrl }
                               <span className="text-gray-400 dark:text-gray-400 ml-2">{doc.or_number || (doc.payment_channel === 'digital' ? 'online' : '')}</span>
                             </td>
                             <td className="py-4 text-right pr-4">
-                              <button
+                              <Button
                                 onClick={() => handleConfirmHandoff(doc)}
                                 disabled={actionLoading}
-                                className="px-4 py-2 bg-[#15803d] hover:bg-[#166534] text-white rounded-xl text-xs font-bold shadow-sm transition-all disabled:opacity-50 ml-auto block"
+                                className="trace-button trace-button-primary ml-auto block"
                               >
                                 Handed to Window 1
-                              </button>
+                              </Button>
                             </td>
                           </tr>
                         ))}
@@ -409,61 +409,6 @@ export default function SecretaryDashboard({ user, currentTab, setViewImageUrl }
               </div>
             </div>
             )}
-          </>
-        )}
-
-        {/* 4.2. COLLEGE SECRETARY - COMPLETED LOGS */}
-        {currentTab === 'completed-logs' && (
-          <>
-            {/* Header */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
-              <div>
-                <h2 className="text-2xl sm:text-3xl font-display font-black text-gray-900 dark:text-gray-100 tracking-tight">
-                  Completed Logs
-                </h2>
-              </div>
-            </div>
-
-            {/* Completed Logs Table */}
-            <div className="bg-white dark:bg-gray-900 rounded-3xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
-              <div className="p-4 sm:p-6 border-b border-gray-100 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800/50">
-                <h3 className="font-bold text-gray-950 dark:text-gray-100 text-sm tracking-wider uppercase">COMPLETED LOGS</h3>
-              </div>
-              <div className="p-4 sm:p-6">
-                <div className="max-h-[calc(100vh-280px)] overflow-y-auto overflow-x-auto">
-                  {clearedQueue.length === 0 ? (
-                    <div className="text-center py-12 text-gray-400 dark:text-gray-400 font-medium">No completed evaluation logs found.</div>
-                  ) : (
-                    <table className="w-full text-left border-collapse table-fixed min-w-[680px]">
-                      <thead className="sticky top-0 bg-white dark:bg-gray-900 z-10">
-                        <tr className="text-gray-400 dark:text-gray-400 text-[10px] uppercase tracking-widest border-b border-gray-100 dark:border-gray-700">
-                          <th className="pb-4 font-bold pl-4">Date Approved</th>
-                          <th className="pb-4 font-bold">Document Details</th>
-                          <th className="pb-4 font-bold">Category</th>
-                          <th className="pb-4 font-bold">Status</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-gray-50 dark:divide-gray-700">
-                        {clearedQueue.map(doc => (
-                          <tr key={doc.id} className="hover:bg-gray-50/30 dark:hover:bg-gray-800/30">
-                            <td className="py-4 pl-4 text-xs font-semibold text-gray-400 dark:text-gray-400">{new Date(doc.updated_at).toLocaleDateString()} {new Date(doc.updated_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</td>
-                            <td className="py-4">
-                              <button type="button" disabled={!doc.student_id} onClick={() => setViewProfileId(doc.student_id)} className="font-bold text-blue-700 dark:text-blue-300 hover:underline text-left focus-visible:ring-2 focus-visible:ring-blue-500">{doc.student_name || 'Unknown Student'}</button>
-                              <div className="text-xs font-mono text-gray-400 dark:text-gray-400 mt-0.5">#{doc.tracking_number ? doc.tracking_number.slice(0, 10).toUpperCase() : doc.id}</div>
-                            </td>
-                            <td className="py-4 text-xs font-bold text-gray-600 dark:text-gray-300">{doc.document_sequence_number || doc.document_type}</td>
-                            <td className="py-4">
-                              <span className="px-3 py-1 bg-emerald-50 dark:bg-emerald-950/40 text-[#15803d] dark:text-green-300 text-[10px] font-black rounded-full uppercase tracking-wider">APPROVED</span>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  )}
-
-                </div>
-              </div>
-            </div>
           </>
         )}
 

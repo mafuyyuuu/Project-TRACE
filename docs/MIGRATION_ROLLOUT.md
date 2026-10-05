@@ -10,6 +10,8 @@ Use this guide to update the existing `~/Project-TRACE` server with bundled MySQ
 
 The user reported a successful earlier schema check and API health checks on October 1. Those results cover that earlier deployment. The new reason-column and guided-tour migrations still need applying if they have not been deployed. Local tests pass, but real email delivery, phone layouts and live workflows must be checked after updating.
 
+The October 2 signup/account repairs add no migration: rebuild/recreate the backend and deploy the matching frontend. They restore multipart **Read ID**, display the separately saved Program/Course and College during Admin review, and allow `_` in passwords across creation/change/reset flows. New Admin temporary passwords use the same 8–64 character policy; existing login passwords are unchanged. Test Read ID with a synthetic/test proof, review a new registration's program, and test underscore passwords through signup, Profile, reset and Admin creation. The approved follow-up keeps email required at signup but sends its verification link from Profile only; requests remain blocked until verified. Admin with an enrolled app can opt into same-day personal-browser trust after verification. Clerk/Admin tours now enroll existing staff on their first eligible guide check. These additions reuse existing `trusted_browsers`, `authenticator_credentials` and `onboarding_guides`; there is no additional migration. Keep the existing MFA encryption key.
+
 ## Update the email button and guided tour
 
 This path adds a **Verify Email** button in HTML mail, inline Profile verification, Maintenance proof/photo display, the request-chat input repair, OCR review reasons and the first-login guided tour. Email buttons themselves need no new table; the automatic tour does.
@@ -68,7 +70,9 @@ Vercel's Git-connected deployment can be used. For deployment, environment and l
 
 | Check | Expected result |
 | --- | --- |
-| Register and sign in with a fresh test account | After required onboarding, the tour highlights controls and blurs the background. Complete any Admin review needed before login. |
+| Register and sign in with a fresh test account | Signup saves email without sending an ownership link. After account approval and required onboarding, the tour highlights controls and blurs the background. Profile Verify sends the link; requests remain blocked until verified. |
+| Sign in as Window 1, Secretary, Finance and Admin | After required password setup, the role-specific tour appears once. Existing staff with no prior guide marker receive this offer too. Navigation steps highlight the visible desktop link or open the phone menu. |
+| Admin opts into personal-browser trust on the app challenge | The choice starts unchecked. Only a successful verification grants trust. Correct-password login skips the factor before Manila midnight; new browsers, revoked grants and expired trust challenge again. Admin email challenges never offer this grant. |
 | Finish/skip the tour, sign out and sign in again | The tour does not open automatically again. Another browser does not reset the account's marker. |
 | Select the header **?** | The tour can be replayed manually, including on older accounts. |
 | Send a verification link from Profile | The received HTML email shows **Verify Email**; its button opens the verification page. Plain-text readers show the link. |
@@ -76,7 +80,7 @@ Vercel's Git-connected deployment can be used. For deployment, environment and l
 | Review a fresh pending registration | A stored review reason appears when the automatic check is inconclusive. Older reasons may remain unknown. |
 | Use a real phone with enlarged text | Tour instructions scroll and Back/Next stay reachable; profile, chat and tables remain usable. |
 
-Use [USER_MANUAL.md](USER_MANUAL.md) for the click-by-click user tutorial. Existing accounts are not automatically enrolled in the tour; use a fresh account to test the first-login offer.
+Use [USER_MANUAL.md](USER_MANUAL.md) for the click-by-click user tutorial. Existing student accounts use manual replay; existing clerk/Admin accounts without a shown marker receive their new role tour once. Use fresh student accounts and each staff role to test the automatic offer.
 
 ## Remaining acceptance and policy decisions
 
@@ -219,6 +223,7 @@ trace_migrate_rollout() {
     migrate_document_messages.js \
     migrate_templates.js \
     migrate_program.js \
+    migrate_program_catalog.js \
     migrate_email_verification.js \
     migrate_support_messages.js \
     migrate_request_sequences.js \
@@ -239,7 +244,7 @@ trace_migrate_rollout
 
 Require **`Schema presence check passed.`** The check reads `information_schema`; it validates selected critical table/column presence, not every definition, index, constraint, rate, data row or live transaction. If it lists a named migration, investigate that script's output. Password history now has its own explicit migration, added after the user's first 18-script run exposed that base-table gap. If the check says `base schema`, such as missing `password_resets`, `grad_applications` or core users fields, keep writers stopped and share the non-secret check output for a targeted preserving repair. Do not import the full schema or reseed to fill the gap.
 
-The profile/Maintenance/OCR follow-up adds `migrate_verification_reason.js`. The guided-tour follow-up adds `migrate_onboarding_guides.js` (21 scripts in the complete list). For a server that already passed the earlier rollout, apply only these new migrations that have not been applied; do not rerun data migrations solely for these follow-ups. Build both backend and ai-engine if deploying the OCR changes: OCR imports a new pure text-matching module included in the AI Dockerfile. The email-button/tour changes require a backend rebuild and matching frontend; they add no AI changes. Historical OCR reasons remain unknown. The guide migration creates an empty table and preserves existing display state; only accounts registered on the updated backend receive an automatic tour. Existing accounts can replay using the question mark. Deploy the matching frontend after migration/check/runtime update. Inspect real image outcomes separately; normalization tests do not prove document authenticity or actual OCR accuracy.
+The profile/Maintenance/OCR follow-up adds `migrate_verification_reason.js`. The guided-tour follow-up adds `migrate_onboarding_guides.js` (21 scripts in the complete list). For a server that already passed the earlier rollout, apply only these new migrations that have not been applied; do not rerun data migrations solely for these follow-ups. Build both backend and ai-engine if deploying the OCR changes: OCR imports a new pure text-matching module included in the AI Dockerfile. The email-button/tour changes require a backend rebuild and matching frontend; they add no AI changes. Historical OCR reasons remain unknown. The guide migration creates an empty table and preserves existing display state; students registered on the updated backend receive an automatic tour; clerk/Admin accounts enroll lazily on their first eligible guide check. All supported roles can replay using the question mark. Deploy the matching frontend after migration/check/runtime update. Inspect real image outcomes separately; normalization tests do not prove document authenticity or actual OCR accuracy.
 
 MySQL DDL can commit before a later command fails. Do not assume a failed script changed nothing; inspect the error before rerunning or restoring. A rollback may require coordinated restoration of database, uploads, configuration and matching code, not just a Git checkout.
 
@@ -287,3 +292,16 @@ Share only the relevant error and stack trace; omit passwords, tokens, codes, ke
 | Health passes but a feature returns 500 | Reproduce the specific action once and inspect recent backend/Caddy logs. A healthy database connection does not verify every table or feature. |
 
 Record the deployed commit, applied migrations and live checks after the rollout. Keep the verified backup until the updated site has passed acceptance.
+
+### Linked College and Program catalog (2026-10-05)
+
+Existing deployments must run `migrate_program.js` and then `migrate_program_catalog.js` from the newly built backend image before recreating the API. Follow the backup/writer-stop sequence above; do not re-import `schema.sql` into an existing database. The new migration creates an empty `programs` catalog and widens `users.course` to match the college display-name capacity, without seeding or rewriting academic values. Reruns preserve entries and profile records. Run `check_schema.js` after migration.
+
+```sh
+docker compose run --rm --no-deps -T backend node database/migrate_program_catalog.js
+docker compose run --rm --no-deps -T backend node database/check_schema.js
+```
+
+After rollout, Admin opens **System Maintenance → Programs**, selects an active college, enters its Registrar-approved program name, and confirms Add Program. Populate the real approved catalog before asking students to update their academic selections. No program list is inferred from existing free text. Names/college membership stay immutable: add an approved replacement and deactivate the superseded row. Deactivation hides new selections and preserves saved entries; restore requires an active college. Existing signup retains its manual Program/Course entry; this rollout changes Edit Profile selections.
+
+Acceptance: load a saved profile, change College and see Program clear, select its active program, confirm Save, and reload/sign in again to verify `college_id`, college display name (`course`) and degree/program (`program`). Test a program from another college, an inactive program/college, no programs, reference failure/retry, and a historical unlisted program while saving phone only. Verify Admin alone can manage the catalog and that deactivation does not change existing profiles or request pricing snapshots. Check 320/375/768/desktop, both themes and enlarged text.

@@ -7,6 +7,7 @@ import SignupPage from '@/pages/SignupPage';
 import ForgotPasswordPage from '@/pages/ForgotPasswordPage';
 import ResetPasswordPage from '@/pages/ResetPasswordPage';
 import api from '@/services/api';
+import plpLoginLogo from '@/assets/plp-login-logo.png';
 
 const { auth, reset } = vi.hoisted(() => ({
   auth: { login: vi.fn(), register: vi.fn(), loading: false, error: '' },
@@ -30,6 +31,30 @@ afterEach(() => vi.useRealTimers());
 const renderPage = (page, path = '/') => render(<MemoryRouter initialEntries={[path]}>{page}</MemoryRouter>);
 
 describe('Account submission confirmations', () => {
+  it('offers Admin personal-browser trust unchecked on the authenticator challenge and saves only a confirmed grant', async () => {
+    auth.login.mockResolvedValueOnce({ requires_2fa: true, mfa_method: 'authenticator', temp_token: 'admin-app', can_trust_browser: true });
+    const { container } = renderPage(<LoginPage />);
+    expect(screen.getByRole('img', { name: 'Pamantasan ng Lungsod ng Pasig logo' })).toHaveAttribute('src', plpLoginLogo);
+    expect(screen.queryByRole('img', { name: 'TRACE logo' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('checkbox')).not.toBeInTheDocument();
+    fireEvent.change(screen.getByPlaceholderText(/23-00123/), { target: { value: 'ADMIN001' } });
+    fireEvent.change(container.querySelector('input[type=password]'), { target: { value: 'test-password' } });
+    fireEvent.submit(container.querySelector('form'));
+    const choice = await screen.findByRole('checkbox');
+    expect(screen.getByRole('img', { name: 'Pamantasan ng Lungsod ng Pasig logo' })).toHaveAttribute('src', plpLoginLogo);
+    expect(choice).not.toBeChecked();
+    fireEvent.click(choice);
+    fireEvent.change(screen.getByPlaceholderText('Enter 6-digit OTP'), { target: { value: '123456' } });
+    api.post.mockRejectedValueOnce({ response: { data: { error: 'Invalid verification code.' } } });
+    fireEvent.submit(container.querySelector('form'));
+    expect(await screen.findByRole('alert')).toHaveTextContent('Invalid verification code.');
+    expect(localStorage.getItem('trace_browser_trust_until')).toBeNull();
+    const until = new Date(Date.now() + 60000).toISOString();
+    api.post.mockResolvedValueOnce({ data: { token: 'synthetic-session', user: { role: 'admin' }, browser_trusted_until: until } });
+    fireEvent.submit(container.querySelector('form'));
+    await waitFor(() => expect(localStorage.getItem('trace_browser_trust_until')).toBe(String(Date.parse(until))));
+    expect(api.post).toHaveBeenLastCalledWith('/auth/verify-2fa', { temp_token: 'admin-app', otp: '123456', trust_browser: true });
+  });
   it('offers staff setup only after the server identifies a clerk needing enrollment', async () => {
     auth.login.mockResolvedValueOnce({ requires_authenticator_setup: true });
     const { container } = renderPage(<LoginPage />);
@@ -129,6 +154,21 @@ describe('Account submission confirmations', () => {
     await user.click(screen.getByRole('button', { name: 'LOGIN' }));
     expect(await screen.findByText(/six-digit code from your authenticator app/)).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /Resend OTP/ })).not.toBeInTheDocument();
+    const input = screen.getByRole('textbox', { name: 'Verification code' });
+    const recoverySwitch = screen.getByRole('button', { name: 'Use a recovery code' });
+    expect(input.nextElementSibling).toBe(recoverySwitch);
+    await user.type(input, '123456');
+    await user.tab();
+    expect(recoverySwitch).toHaveFocus();
+    await user.keyboard('{Enter}');
+    expect(screen.getByRole('textbox', { name: 'Recovery code' })).toHaveValue('');
+    expect(input).toHaveAttribute('maxlength', '35');
+    expect(input).toHaveAttribute('inputmode', 'text');
+    await user.type(input, 'SYNTHETIC');
+    await user.click(screen.getByRole('button', { name: 'Use authenticator code' }));
+    expect(screen.getByRole('textbox', { name: 'Verification code' })).toHaveValue('');
+    expect(input).toHaveAttribute('maxlength', '6');
+    expect(input).toHaveAttribute('inputmode', 'numeric');
     await user.click(screen.getByRole('button', { name: 'Use a recovery code' }));
     const code = '01234567-89ABCDEF-01234567-89ABCDEF';
     await user.type(screen.getByPlaceholderText('Enter recovery code'), code);
@@ -137,6 +177,29 @@ describe('Account submission confirmations', () => {
     expect(api.post).toHaveBeenCalledExactlyOnceWith('/auth/verify-2fa', { temp_token: 'app-challenge', recovery_code: code });
     expect(await screen.findByRole('alert')).toHaveTextContent('Code already used.');
     expect(screen.getByPlaceholderText('Enter recovery code')).toHaveValue(code);
+  });
+
+  it('disables the under-input MFA switch during verification and retains the existing payload', async () => {
+    auth.login.mockResolvedValueOnce({ requires_2fa: true, mfa_method: 'authenticator', temp_token: 'app-challenge' });
+    const { container } = renderPage(<LoginPage />);
+    fireEvent.change(screen.getByPlaceholderText(/23-00123/), { target: { value: 'FINANCE001' } });
+    fireEvent.change(container.querySelector('input[type=password]'), { target: { value: 'synthetic' } });
+    fireEvent.submit(container.querySelector('form'));
+    const input = await screen.findByRole('textbox', { name: 'Verification code' });
+    const recoverySwitch = screen.getByRole('button', { name: 'Use a recovery code' });
+    fireEvent.change(input, { target: { value: '123456' } });
+    let fail;
+    api.post.mockReturnValueOnce(new Promise((_, reject) => { fail = reject; }));
+    fireEvent.submit(container.querySelector('form'));
+    expect(recoverySwitch).toBeDisabled();
+    expect(input).toBeDisabled();
+    expect(api.post).toHaveBeenCalledExactlyOnceWith('/auth/verify-2fa', { temp_token: 'app-challenge', otp: '123456' });
+    await act(async () => { fail({ response: { data: { error: 'Invalid verification code.' } } }); });
+    expect(input).toHaveValue('123456');
+    expect(recoverySwitch).toBeEnabled();
+    fireEvent.click(recoverySwitch);
+    expect(input).toHaveValue('');
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
   });
 
   it('keeps required OTP, submits it directly, and allows retry after verification failure', async () => {
@@ -271,7 +334,7 @@ describe('Account submission confirmations', () => {
     await screen.findByRole('option', { name: 'Engineering' });
     fireEvent.change(container.querySelectorAll('select')[1], { target: { value: 'Engineering' } });
     const inputs = container.querySelectorAll('input');
-    const values = ['STU-001', 'BS Engineering', 'Ana Reyes', 'ana@example.test', '09171234567', 'Password123!', 'Password123!'];
+    const values = ['STU-001', 'BS Engineering', 'Ana Reyes', 'ana@example.test', '09171234567', 'Password123_', 'Password123_'];
     values.forEach((value, index) => fireEvent.change(inputs[index], { target: { value } }));
     const proof = new File(['proof'], 'id.png', { type: 'image/png' });
     const picker = container.querySelector('input[type=file]');
@@ -289,6 +352,7 @@ describe('Account submission confirmations', () => {
     expect(payload.get('course')).toBe('Engineering');
     expect(payload.get('college_id')).toBe('1');
     expect(payload.get('program')).toBe('BS Engineering');
+    expect(payload.get('password')).toBe('Password123_');
     expect(payload.get('id_proof').name).toBe('id.png');
   });
 
@@ -304,6 +368,18 @@ describe('Account submission confirmations', () => {
     await user.click(screen.getByRole('button', { name: 'Send Reset Link' }));
     await user.click(screen.getByRole('button', { name: 'Request Link' }));
     expect(reset.requestLink).toHaveBeenCalledExactlyOnceWith('ana@example.test');
+  });
+
+  it('announces generic reset guidance with a copyable request reference', () => {
+    Object.assign(reset, { done: true, message: 'Request received. Check Spam/Junk and contact the Registrar if nothing arrives.', requestReference: 'synthetic-reference' });
+    try {
+      renderPage(<ForgotPasswordPage />);
+      expect(screen.getByRole('status')).toHaveTextContent('Request reference: synthetic-reference');
+      expect(screen.getByRole('status')).toHaveTextContent('Check Spam/Junk');
+      expect(screen.getByText('synthetic-reference')).toHaveClass('select-text');
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+      expect(screen.getByRole('link', { name: 'Back to Login' })).toHaveAttribute('href', '/');
+    } finally { Object.assign(reset, { done: false, message: '', requestReference: '' }); }
   });
 
   it('checks password matching before confirmation and keeps the token and new password payload', async () => {

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { STATUS } from '@/utils/documentStatus';
+import { STATUS, LEGACY_STATUS, getStatusLabel } from '@/utils/documentStatus';
 import { render, renderHook, act, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
@@ -40,6 +40,8 @@ import ReportsPanel from '@/features/admin/components/ReportsPanel';
 import AnalyticsPanel from '@/features/admin/components/AnalyticsPanel';
 import AccountVerificationModal from '@/features/admin/components/AccountVerificationModal';
 import useAdminDashboard from '@/features/admin/useAdminDashboard';
+import useReports from '@/features/admin/useReports';
+import { getWorkloadShares } from '@/utils/workloadShare';
 
 const ADMIN = { id: 7, role: 'admin', full_name: 'Registrar Admin' };
 
@@ -129,6 +131,32 @@ it('edits audience, fees and college restrictions only after a confirmed save', 
   await user.click(within(screen.getByRole('dialog', { name: 'Confirm Document Type' })).getByRole('button', { name: 'Save' }));
   await waitFor(() => expect(maintenanceService.updateDocumentType).toHaveBeenCalledWith(1,
     expect.objectContaining({ available_to: 'alumni', allowed_college_ids: [1], base_fee: '75' })));
+});
+
+it.each([true, false])('keeps document-type active=%s actions confirmed, cancellable and disabled while saving', async active => {
+  maintenanceService.getDocumentTypes.mockResolvedValue({ document_types: [{ ...DOC_TYPES[0], is_active: active }] });
+  let finish;
+  maintenanceService.setDocumentTypeActive.mockImplementation(() => new Promise(resolve => { finish = resolve; }));
+  const user = userEvent.setup();
+  render(<MaintenancePanel user={ADMIN} currentTab="admin-maintenance" />);
+  await user.click(await screen.findByRole('button', { name: /Document Types/ }));
+  const row = (await screen.findByText('Transcript of Records')).closest('tr');
+  const label = active ? 'Deactivate' : 'Restore';
+  await user.click(within(row).getByRole('button', { name: label }));
+  expect(maintenanceService.setDocumentTypeActive).not.toHaveBeenCalled();
+  expect(screen.getByRole('dialog', { name: `${label} Document Type` })).toHaveTextContent('Transcript of Records');
+  await user.keyboard('{Escape}');
+  expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  expect(maintenanceService.setDocumentTypeActive).not.toHaveBeenCalled();
+  await user.click(within(row).getByRole('button', { name: label }));
+  const dialog = screen.getByRole('dialog', { name: `${label} Document Type` });
+  await user.click(within(dialog).getByRole('button', { name: label }));
+  expect(maintenanceService.setDocumentTypeActive).toHaveBeenCalledExactlyOnceWith(DOC_TYPES[0].id, !active);
+  expect(within(row).getByRole('button', { name: label })).toBeDisabled();
+  expect(within(dialog).getByRole('button', { name: 'Saving…' })).toBeDisabled();
+  await user.click(within(row).getByRole('button', { name: label }));
+  expect(maintenanceService.setDocumentTypeActive).toHaveBeenCalledOnce();
+  await act(async () => finish({ message: 'Saved.' }));
 });
 
 const settle = async () =>
@@ -234,7 +262,7 @@ describe('MaintenancePanel', () => {
     await user.click(await screen.findByRole('button', { name: /\+ add user/i }));
     await user.type(await screen.findByPlaceholderText(/Employee ID/), 'CLERK99');
     await user.type(screen.getByPlaceholderText(/Full Name/), 'New Clerk');
-    await user.type(screen.getByPlaceholderText(/Temporary password/), 'temporary-1234');
+    await user.type(screen.getByPlaceholderText(/Temporary password/), 'Temporary_1234');
     await user.click(screen.getByRole('button', { name: /create account/i }));
 
     expect(maintenanceService.createStaff).not.toHaveBeenCalled();
@@ -348,6 +376,42 @@ describe('ReportsPanel', () => {
     await waitFor(() => expect(reportsService.getDocumentReport).toHaveBeenCalled());
   });
 
+  it.each([
+    ['Admin', ADMIN, 'admin-reports'],
+    ['Window 1', { role: 'clerk', desk_assignment: 'Window 1' }, 'reports'],
+    ['Secretary', { role: 'clerk', desk_assignment: 'Secretary' }, 'reports'],
+  ])('uses shared status badges in %s reports without changing payment meanings', async (_, account, tab) => {
+    const examples = [[STATUS.PENDING_STUDENT_PAYMENT, 'amber'], [STATUS.SEC_PROCESSING, 'blue'],
+      [STATUS.READY_FOR_RELEASE, 'green'], [STATUS.COMPLETED, 'green'], [LEGACY_STATUS.APPROVED, 'blue'], [LEGACY_STATUS.REJECTED, 'red']];
+    reportsService.getDocumentReport.mockResolvedValue({ ...REPORT, documents: examples.map(([status], index) => ({ ...REPORT.documents[0], id: index, current_status: status })) });
+    render(<ReportsPanel user={account} currentTab={tab} />);
+    const table = await screen.findByRole('table');
+    for (const [status, color] of examples) {
+      const badge = within(table).getByText(getStatusLabel(status));
+      expect(badge).toHaveClass(`bg-${color}-50`, 'rounded-full');
+    }
+    expect(within(table).getAllByText('PAID')).toHaveLength(examples.length);
+  });
+
+  it.each([
+    ['Admin', ADMIN, 'admin-reports'],
+    ['Window 1', { role: 'clerk', desk_assignment: 'Window 1' }, 'reports'],
+    ['Secretary', { role: 'clerk', desk_assignment: 'Secretary' }, 'reports'],
+  ])('keeps %s reports ordered Filters, KPIs, Records with one header export', async (_, account, tab) => {
+    render(<ReportsPanel user={account} currentTab={tab} />);
+    const filters = await screen.findByRole('region', { name: 'Filters' });
+    const summary = screen.getByRole('region', { name: 'Report summary' });
+    const records = screen.getByRole('region', { name: 'Records' });
+    expect(filters.nextElementSibling).toBe(summary);
+    expect(summary.nextElementSibling).toBe(records);
+    expect(screen.getAllByRole('button', { name: 'Export' })).toHaveLength(1);
+    expect(screen.getByRole('button', { name: 'Export' }).closest('.trace-page-header')).toBeInTheDocument();
+    expect(within(summary).getByText('Revenue')).toBeInTheDocument();
+    expect(within(records).getAllByRole('columnheader').map(header => header.textContent)).toEqual([
+      'Requested On', 'Last Updated', 'Tracking', 'Student', 'Document', 'Status', 'Payment', 'Amount',
+    ]);
+  });
+
   it('shows the summary for the current slice', async () => {
     await renderPanel();
     // "Records"/"Completed"/"₱50.00" each appear in both the summary cards and
@@ -384,6 +448,7 @@ describe('ReportsPanel', () => {
 
   it('offers all four student export categories', async () => {
     await renderPanel();
+    await userEvent.click(screen.getByRole('button', { name: 'Export' }));
     expect(await screen.findByText('Active Students (CSV)')).toBeInTheDocument();
     expect(screen.getByText('Graduates / Alumni (CSV)')).toBeInTheDocument();
     expect(screen.getByText('Others (CSV)')).toBeInTheDocument();
@@ -393,8 +458,8 @@ describe('ReportsPanel', () => {
   it('exports the selected student category', async () => {
     const user = userEvent.setup();
     await renderPanel();
-    await user.selectOptions(screen.getByRole('combobox', { name: 'Export options' }), 'alumni');
     await user.click(screen.getByRole('button', { name: 'Export' }));
+    await user.click(screen.getByRole('button', { name: 'Graduates / Alumni (CSV)' }));
     await waitFor(() => expect(reportsService.exportStudentsCsv).toHaveBeenCalledWith('alumni'));
   });
 
@@ -404,6 +469,7 @@ describe('ReportsPanel', () => {
 
     await user.selectOptions(await screen.findByDisplayValue('All statuses'), STATUS.COMPLETED);
     await user.click(screen.getByRole('button', { name: 'Export' }));
+    await user.click(screen.getByRole('button', { name: 'Filtered document records (CSV)' }));
 
     await waitFor(() =>
       expect(reportsService.exportDocumentsCsv).toHaveBeenCalledWith(
@@ -416,6 +482,32 @@ describe('ReportsPanel', () => {
     reportsService.getDocumentReport.mockResolvedValue({ ...REPORT, documents: [], total: 0, totalPages: 0 });
     await renderPanel();
     expect(await screen.findByText(/No records match these filters/i)).toBeInTheDocument();
+  });
+
+  it.each(['Window 1', 'Secretary'])('keeps the header exports available to %s', async desk => {
+    render(<ReportsPanel user={{ role: 'clerk', desk_assignment: desk }} currentTab="reports" />);
+    const trigger = await screen.findByRole('button', { name: 'Export' });
+    expect(trigger.closest('.trace-page-header')).toContainElement(screen.getByRole('heading', { name: desk === 'Secretary' ? 'Records & Export' : 'Reports & Export' }));
+    expect(screen.queryByRole('combobox', { name: 'Export options' })).not.toBeInTheDocument();
+    await userEvent.click(trigger);
+    expect(screen.getByRole('group', { name: 'Export options' })).toContainElement(screen.getByRole('button', { name: 'All Students (CSV)' }));
+  });
+
+  it('disables export while downloading and preserves failure feedback and retry', async () => {
+    const user = userEvent.setup();
+    let reject;
+    reportsService.exportDocumentsCsv.mockReturnValueOnce(new Promise((_, fail) => { reject = fail; }));
+    await renderPanel();
+    await user.click(screen.getByRole('button', { name: 'Export' }));
+    await user.click(screen.getByRole('button', { name: 'Filtered document records (CSV)' }));
+    expect(screen.getByRole('button', { name: 'Exporting…' })).toBeDisabled();
+    expect(screen.queryByRole('group', { name: 'Export options' })).not.toBeInTheDocument();
+    await act(async () => reject(new Error('unavailable')));
+    expect(await screen.findByRole('dialog', { name: 'Attention Needed' })).toHaveTextContent('Export failed.');
+    await user.click(screen.getByRole('button', { name: 'OK' }));
+    await user.click(screen.getByRole('button', { name: 'Export' }));
+    await user.click(screen.getByRole('button', { name: 'Filtered document records (CSV)' }));
+    expect(reportsService.exportDocumentsCsv).toHaveBeenCalledTimes(2);
   });
 });
 
@@ -448,6 +540,40 @@ describe('AnalyticsPanel', () => {
     expect(await screen.findByText('Workload by Staff')).toBeInTheDocument();
     expect(screen.getByText(/not a performance ranking/i)).toBeInTheDocument();
     expect(screen.getByText('1,953')).toBeInTheDocument();
+  });
+
+  it('renders 60/30/10 shares with matching numeric labels, accessible values and fills', async () => {
+    reportsService.getAnalytics.mockResolvedValue({ ...ANALYTICS, workload_by_clerk: [60, 30, 10].map((documents_handled, id) => ({ id, documents_handled, full_name: `Staff ${id}`, desk_assignment: 'Secretary' })) });
+    await renderPanel();
+    const table = screen.getByRole('table', { name: 'Workload by Staff' });
+    [60, 30, 10].forEach((share, id) => {
+      const meter = within(table).getByRole('meter', { name: `Staff ${id} workload share` });
+      expect(meter).toHaveAttribute('aria-valuenow', String(share));
+      expect(meter).toHaveAttribute('aria-valuetext', `${share}% of total staff documents handled`);
+      expect(meter.firstChild).toHaveStyle({ transform: `scaleX(${share / 100})` });
+      expect(within(meter.closest('tr')).getByText(`${share}%`)).toBeInTheDocument();
+    });
+  });
+
+  it('renders zero shares for staff with no handled documents', async () => {
+    reportsService.getAnalytics.mockResolvedValue({ ...ANALYTICS, workload_by_clerk: [{ id: 1, full_name: 'Staff Zero', documents_handled: 0 }] });
+    await renderPanel();
+    const meter = screen.getByRole('meter', { name: 'Staff Zero workload share' });
+    expect(meter).toHaveAttribute('aria-valuenow', '0');
+    expect(meter.firstChild).toHaveStyle({ transform: 'scaleX(0)' });
+    expect(within(meter.closest('tr')).getByText('0%')).toBeInTheDocument();
+  });
+
+  it('keeps the full workload denominator when the associated document report changes page', async () => {
+    reportsService.getAnalytics.mockResolvedValue({ ...ANALYTICS, workload_by_clerk: [60, 30, 10].map((documents_handled, id) => ({ id, documents_handled })) });
+    reportsService.getDocumentReport.mockResolvedValue({ ...REPORT, total: 100, totalPages: 4 });
+    const { result } = renderHook(() => useReports(ADMIN, 'admin-analytics'));
+    await waitFor(() => expect(result.current.analytics).toBeTruthy());
+    await act(async () => result.current.goToPage(2));
+    await waitFor(() => expect(result.current.refreshing).toBe(false));
+    expect(reportsService.getDocumentReport).toHaveBeenLastCalledWith(expect.objectContaining({ page: 2 }));
+    expect(reportsService.getAnalytics).toHaveBeenLastCalledWith({});
+    expect(getWorkloadShares(result.current.analytics.workload_by_clerk).map(row => row.share)).toEqual([60, 30, 10]);
   });
 
   it('handles an empty system without crashing', async () => {

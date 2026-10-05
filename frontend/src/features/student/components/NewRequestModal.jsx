@@ -1,3 +1,4 @@
+import Button from '@/components/Button';
 import { INPUT_LIMITS } from '@/utils/inputLimits';
 import { isHonorableDismissal } from '@/utils/documentPolicy';
 import FileUploadField from '@/components/FileUploadField';
@@ -41,22 +42,22 @@ export default function NewRequestModal({
       title="New Request"
       maxWidth="max-w-2xl"
       footer={
-        <div className="flex justify-end gap-3">
-          <button
+        <div className="trace-actions justify-end">
+          <Button
             type="button"
             onClick={() => setActiveModal(null)}
-            className="px-6 py-3 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 rounded-xl text-xs font-bold hover:bg-gray-50 dark:hover:bg-gray-800"
+            className="trace-button trace-button-secondary"
           >
             Cancel
-          </button>
-          <button
+          </Button>
+          <Button
             type="submit"
             form="new-request-form"
             disabled={actionLoading || documentTypesLoading || selectedNames.length === 0 || selectedNames.some(name => !availableTypes.some(type => type.name === name && !type.unavailable_reason))}
-            className="px-8 py-3 bg-[#15803d] hover:bg-[#166534] disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-xl text-xs font-bold shadow-md transition-all uppercase tracking-wider"
+            className="trace-button trace-button-primary"
           >
             {actionLoading ? 'Submitting...' : 'Next'}
-          </button>
+          </Button>
         </div>
       }
     >
@@ -66,19 +67,19 @@ export default function NewRequestModal({
 
       <form id="new-request-form" onSubmit={handleStudentSubmitRequest} className="space-y-6">
           {/* Auto-filled identity */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-gray-50/50 dark:bg-gray-800/50 p-4 rounded-2xl border border-gray-100 dark:border-gray-700">
+          <div className="trace-form-grid bg-gray-50/50 dark:bg-gray-800/50 p-4 rounded-2xl border border-gray-100 dark:border-gray-700">
             <div className="flex flex-col gap-1.5">
-              <label className="text-[9px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest">Student Name</label>
-              <input type="text" value={user?.full_name || ''} disabled className="bg-transparent border-none p-0 text-sm font-bold text-gray-900 dark:text-gray-100" />
+              <label className="trace-label">Student Name</label>
+              <input type="text" value={user?.full_name || ''} disabled className="trace-control border-none" />
             </div>
             <div className="flex flex-col gap-1.5">
-              <label className="text-[9px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest">Student ID</label>
-              <input type="text" value={user?.student_id || ''} disabled className="bg-transparent border-none p-0 text-sm font-bold text-gray-900 dark:text-gray-100" />
+              <label className="trace-label">Student ID</label>
+              <input type="text" value={user?.student_id || ''} disabled className="trace-control border-none" />
             </div>
           </div>
 
           <div className="flex flex-col gap-2">
-            <label className="text-[10px] font-bold text-gray-800 dark:text-gray-100 uppercase tracking-widest">
+            <label className="trace-label">
               Documents Requested {selectedNames.length > 0 && `(${selectedNames.length} selected)`}
             </label>
 
@@ -97,23 +98,24 @@ export default function NewRequestModal({
                   return (
                     <div
                       key={type.name}
-                      className={`rounded-2xl border transition-all ${
-                        isSelected ? 'border-[#15803d] bg-emerald-50/40 dark:bg-emerald-950/40' : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 hover:bg-gray-50 dark:hover:bg-gray-800'
+                      data-card-disabled={Boolean(type.unavailable_reason) || undefined}
+                      className={`trace-card-controls trace-card-inset rounded-2xl border transition-colors ${
+                        isSelected ? 'border-[#15803d] bg-emerald-50/40 dark:bg-emerald-950/40' : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900'
                       }`}
                     >
-                      <label className="flex items-center gap-3 p-4 cursor-pointer">
+                      <label className={`flex flex-wrap items-start gap-3 p-4 ${type.unavailable_reason ? 'cursor-not-allowed' : 'cursor-pointer'}`}>
                         <input
                           type="checkbox"
                           disabled={Boolean(type.unavailable_reason)}
                           checked={isSelected}
                           onChange={() => toggleDocumentType(type.name)}
-                          className="w-4 h-4 accent-[#15803d] cursor-pointer"
+                          className="trace-choice w-4 h-4 accent-[#15803d] enabled:cursor-pointer disabled:cursor-not-allowed"
                         />
-                        <span className="flex-1 text-xs font-bold text-gray-800 dark:text-gray-100">
+                        <span className="min-w-0 flex-1 basis-40 text-sm font-semibold text-gray-800 dark:text-gray-100">
                           {type.name}
                           {type.name === 'Diploma' && <span className="ml-1 text-[10px] text-gray-500 dark:text-gray-400 font-normal italic">(Reissue Fee)</span>}
                         </span>
-                        <span className="text-xs font-black text-[#15803d] dark:text-green-300">
+                        <span className="w-full sm:w-auto min-w-0 text-sm font-semibold text-[#15803d] dark:text-green-300">
                           {formatPeso(type.base_fee)}
                           <span className="text-[9px] text-gray-400 dark:text-gray-400 font-semibold">{type.fee_rule === 'per_semester_block' ? ' per printed page' : ' per copy'}</span>
                         </span>
@@ -126,19 +128,19 @@ export default function NewRequestModal({
                             Copies
                             <input type="number" min="1" max={isHonorableDismissal(type.name) ? 1 : 2147483647} step="1" required
                               value={selection.copies} onChange={e => updateSelection(type.name, { copies: e.target.value })}
-                              className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-2.5" />
+                              className="trace-control w-full" />
                           </label>
                           {needsStudyYears(type.name) && <div className="grid grid-cols-2 gap-3">
-                            {[['year_started', 'Year Started'], ['year_ended', 'Year Ended']].map(([key, label]) => <label key={key} className="text-xs font-semibold">
+                            {[['year_started', 'Year Started'], ['year_ended', 'Year Ended']].map(([key, label]) => <label key={key} className="trace-label">
                               {label}<input type="number" required min="1900" max={new Date().getFullYear()} step="1" value={selection[key] || ''}
                                 onChange={event => updateSelection(type.name, { [key]: event.target.value })}
-                                className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-2.5" />
+                                className="trace-control w-full" />
                             </label>)}
                           </div>}
 
                           {needsRequestingSchool(type.name) && (
                             <div className="flex flex-col gap-1.5">
-                              <label className="text-[10px] font-bold text-gray-700 dark:text-gray-300 uppercase tracking-widest">
+                              <label className="trace-label">
                                 Requesting School / Company
                               </label>
                               <input maxLength={INPUT_LIMITS.name}
@@ -146,14 +148,14 @@ export default function NewRequestModal({
                                 value={selection.requestingSchool}
                                 onChange={(e) => updateSelection(type.name, { requestingSchool: e.target.value })}
                                 placeholder="e.g. Mapua University"
-                                className="w-full bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-2.5 text-xs outline-none focus:ring-2 focus:ring-[#15803d]/20"
+                                className="trace-control w-full"
                               />
                             </div>
                           )}
 
                           {needsYearGraduated(type.name) && (
                             <div className="flex flex-col gap-1.5">
-                              <label className="text-[10px] font-bold text-gray-700 dark:text-gray-300 uppercase tracking-widest">
+                              <label className="trace-label">
                                 Year Graduated / Last Attended
                               </label>
                               <input maxLength={INPUT_LIMITS.shortText}
@@ -161,27 +163,27 @@ export default function NewRequestModal({
                                 value={selection.yearGraduated}
                                 onChange={(e) => updateSelection(type.name, { yearGraduated: e.target.value })}
                                 placeholder="e.g. 2025"
-                                className="w-full bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-2.5 text-xs outline-none focus:ring-2 focus:ring-[#15803d]/20"
+                                className="trace-control w-full"
                               />
                             </div>
                           )}
 
                             <div className="grid grid-cols-1 gap-3">
                               <div className="flex flex-col gap-1.5">
-                                <label className="text-[10px] font-bold text-gray-700 dark:text-gray-300 uppercase tracking-widest">Purpose</label>
+                                <label className="trace-label">Purpose</label>
                               <input maxLength={INPUT_LIMITS.shortText}
                                 type="text" required
                                 value={selection.purpose}
                                 onChange={(e) => updateSelection(type.name, { purpose: e.target.value })}
                                 placeholder="e.g. Employment"
-                                className="w-full bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-2.5 text-xs outline-none focus:ring-2 focus:ring-[#15803d]/20"
+                                className="trace-control w-full"
                               />
                             </div>
                           </div>
 
                           {type.requires_attachment ? (
                             <div className="flex flex-col gap-1.5">
-                              <label className="text-[10px] font-bold text-gray-700 dark:text-gray-300 uppercase tracking-widest">
+                              <label className="trace-label">
                                 {type.attachment_label || 'Supporting Attachment'}
                                 <span className="font-normal normal-case text-gray-400 dark:text-gray-400 ml-1">
                                   · upload now, or bring it to Window 1
@@ -191,7 +193,7 @@ export default function NewRequestModal({
                             </div>
                           ) : (
                             <div className="flex flex-col gap-1.5">
-                              <label className="text-[10px] font-bold text-gray-700 dark:text-gray-300 uppercase tracking-widest">
+                              <label className="trace-label">
                                 Required Attachment: <span className="text-gray-500 dark:text-gray-400 font-normal">None</span>
                               </label>
                             </div>

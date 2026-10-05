@@ -103,7 +103,7 @@ export async function lookupStudent(studentId, options = {}) {
  * @param {string} identifier Student/Staff ID or email address.
  */
 export async function forgotPassword(identifier) {
-  const { data } = await api.post('/auth/forgot-password', { identifier })
+  const { data } = await api.post('/auth/forgot-password', { identifier }, { timeout: 60000 })
   return data
 }
 
@@ -124,7 +124,9 @@ export async function verify2FA(payload) {
 export async function extractSignupId(file, options = {}) {
   const form = new FormData();
   form.append('id_proof', file);
-  const { data } = await api.post('/ai/extract-id', form, options);
+  const { data } = await api.post('/ai/extract-id', form, {
+    ...options, headers: { ...options.headers, 'Content-Type': 'multipart/form-data' },
+  });
   return data;
 }
 export async function verifyEmailChange(otp) {

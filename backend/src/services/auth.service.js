@@ -2,12 +2,7 @@ const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
 
-function validatePassword(password) {
-  const regex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
-  if (typeof password !== 'string' || Buffer.byteLength(password, 'utf8') > 64 || !regex.test(password)) {
-    throw badRequest('Password must be 8–64 characters and include uppercase, lowercase, number, and a special character (@$!%*?&).');
-  }
-}
+const { validatePassword } = require('../utils/passwordPolicy');
 
 async function checkPasswordHistory(userId, newPassword, executor = pool, currentHash) {
   if (currentHash && await bcrypt.compare(newPassword, currentHash)) throw badRequest('Choose a password different from your current password.');
@@ -24,6 +19,7 @@ const jwt = require('jsonwebtoken');
 const env = require('../config/env');
 const userModel = require('../models/user.model');
 const referenceModel = require('../models/referenceData.model');
+const programService = require('./program.service');
 const { pool } = require('../config/db');
 const notificationModel = require('../models/notification.model');
 const passwordResetModel = require('../models/passwordReset.model');
@@ -35,9 +31,12 @@ const onboarding = require('../models/onboarding.model');
 const aiEngine = require('./aiEngine.service');
 const { registrationVerification } = require('../utils/registrationVerification');
 const notifications = require('./notification.service');
-const sendAuthEmail = async ({ email, title, message }) => {
-  try { return await notifications.sendEmail(email, title, message); }
-  catch { return { ok: false }; }
+const { errorDetails } = require('../utils/emailDiagnostics');
+const sendAuthEmail = async ({ email, title, message, requestId, purpose }) => {
+  try {
+    return requestId ? await notifications.sendEmail(email, title, message, { requestId, purpose })
+      : await notifications.sendEmail(email, title, message);
+  } catch (error) { return { ok: false, outcome: 'smtp_failed', diagnostics: errorDetails(error) }; }
 };
 const { UPLOAD_DIR } = require('../middlewares/upload.middleware');
 const { badRequest, unauthorized, forbidden, notFound } = require('../utils/AppError');
@@ -120,13 +119,13 @@ async function login({ employee_id, password, shared_computer = true }, ipAddres
 
   
   const isStaff = ['admin', 'clerk'].includes(user.role);
-  const trusted = user.role === 'clerk' && shared_computer === false
-    && await trustedBrowser.isTrusted(user, cookieHeader, shared_computer);
   const appEnabled = await authenticator.isEnabled(user.id);
+  const trusted = (user.role === 'clerk' || (user.role === 'admin' && appEnabled)) && shared_computer === false
+    && await trustedBrowser.isTrusted(user, cookieHeader, shared_computer);
   const requires2FA = (appEnabled || user.two_factor_enabled || isStaff) && !trusted;
 
   if (requires2FA) {
-    if (appEnabled) return authenticator.challenge(user, user.role === 'clerk');
+    if (appEnabled) return authenticator.challenge(user, isStaff);
     if (user.role === 'clerk' && !user.email?.trim()) return { requires_authenticator_setup: true };
     const otp = crypto.randomInt(100000, 1000000).toString();
     const expires = new Date(Date.now() + 5 * 60000); // 5 mins
@@ -250,9 +249,6 @@ async function register(body, file) {
   });
 
   await onboarding.enroll(created.insertId);
-  let emailResult;
-  try { emailResult = await emailVerification.issue(created.insertId); }
-  catch { emailResult = { email_sent: false }; }
 
   if (verification_status === 'pending') {
     try {
@@ -264,14 +260,13 @@ async function register(body, file) {
     } catch (err) { console.warn('Registration notification unavailable:', err.message); }
   }
   return {
-    email_verification_required: true, email_sent: emailResult.email_sent,
+    email_verification_required: true, email_sent: false,
     verification_status,
     verification_reason,
     message: (verification_status === 'verified'
       ? 'Registration successful. Your account was automatically verified by AI!'
       : 'Registration successful. Please wait for administrator verification.')
-      + (emailResult.email_sent ? ' Open the email verification link in your inbox before requesting documents.'
-        : ' The email verification link could not be delivered. After account approval, sign in and use Verify Email to resend, or contact the Registrar.'),
+      + ' After account approval, sign in and open Edit Profile. Choose Verify beside Email Address and follow the email link before requesting documents.',
   };
 }
 
@@ -326,7 +321,7 @@ function readProgram(value) {
   if (typeof value !== 'string' || value.trim().length > 150) throw badRequest('Program/Course must be text of at most 150 characters.');
   return value.trim() || null;
 }
-async function updateProfile(userId, { phone_number, email, course, program, password, current_password, ...profileFields }) {
+async function updateProfile(userId, { phone_number, email, course, college_id, program, password, current_password, ...profileFields }) {
   const fields = {};
   let verifiedPasswordHash;
   let changedSession;
@@ -334,6 +329,8 @@ async function updateProfile(userId, { phone_number, email, course, program, pas
   const users = await userModel.getProfileById(userId);
   if (!users || users.length === 0) throw notFound('User not found.');
   const currentUser = users[0];
+  const academicDraft = { course, college_id, program };
+  const academic = await programService.profileFields(currentUser, academicDraft);
 
   const emailChanged = (email !== undefined && email !== '' && email !== currentUser.email);
   if (emailChanged && password) throw badRequest('Change your password and email separately so each verification can finish.');
@@ -363,8 +360,7 @@ async function updateProfile(userId, { phone_number, email, course, program, pas
   let emailResult;
   if (emailChanged) emailResult = await emailVerification.issue(userId, { email, current_password });
 
-  if (course !== undefined) fields.course = course;
-  if (program !== undefined) fields.program = readProgram(program);
+  Object.assign(fields, academic);
   
   if (password) {
     validatePassword(password);
@@ -374,6 +370,11 @@ async function updateProfile(userId, { phone_number, email, course, program, pas
     const changedAccount = await writeCredentialsAndRevoke(userId, async connection => {
       await checkPasswordHistory(userId, password, connection, verifiedPasswordHash);
       await userModel.addPasswordHistory(userId, verifiedPasswordHash, connection);
+      if (Object.keys(academic).length) {
+        const [fresh] = await userModel.getProfileById(userId, connection, true);
+        if (!fresh) throw notFound('User not found.');
+        Object.assign(fields, await programService.profileFields(fresh, academicDraft, connection, true));
+      }
       await userModel.updateProfile(userId, fields, connection);
       await userModel.addPasswordHistory(userId, fields.password_hash, connection);
       await userModel.logSecurityEvent(userId, 'PASSWORD_CHANGE', null, null, connection);
@@ -394,7 +395,18 @@ async function updateProfile(userId, { phone_number, email, course, program, pas
   }
 
   if (Object.keys(fields).length > 0 && !password) {
-    await userModel.updateProfile(userId, fields);
+    if (Object.keys(academic).length) {
+      const connection = await pool.getConnection();
+      try {
+        await connection.beginTransaction();
+        const [fresh] = await userModel.getProfileById(userId, connection, true);
+        if (!fresh) throw notFound('User not found.');
+        Object.assign(fields, await programService.profileFields(fresh, academicDraft, connection, true));
+        await userModel.updateProfile(userId, fields, connection);
+        await connection.commit();
+      } catch (error) { await connection.rollback(); throw error; }
+      finally { connection.release(); }
+    } else await userModel.updateProfile(userId, fields);
   }
 
   // Handle student profile fields (PROF-01)
@@ -495,7 +507,7 @@ async function verify2FA(tempToken, otp, ipAddress, userAgent, trustBrowser = fa
   if (decoded.mfa_method === 'authenticator') {
     const user = await authenticator.verifyChallenge(decoded, { code: otp, recovery_code: recoveryCode });
     const result = createSession(user);
-    if (user.role === 'clerk' && decoded.can_trust_browser === true && trustBrowser === true) {
+    if (['clerk', 'admin'].includes(user.role) && decoded.can_trust_browser === true && trustBrowser === true) {
       const proof = await trustedBrowser.issue(user.id, decoded.token_version);
       if (proof) result.browserTrust = proof;
     }
@@ -599,53 +611,75 @@ async function logoutAll(userId, preserveCurrent = false, expectedVersion) {
   return result;
 }
 
+function resetFrontendOrigin() {
+  const configured = (env.FRONTEND_URL.split(',')[0] || '').trim();
+  if (!configured && env.NODE_ENV === 'production') return null;
+  try {
+    const url = new URL(configured || 'http://localhost:5273');
+    if (!['http:', 'https:'].includes(url.protocol) || url.username || url.password || url.search || url.hash || url.pathname !== '/') return null;
+    if (env.NODE_ENV === 'production' && (url.protocol !== 'https:' || ['localhost', '127.0.0.1', '[::1]'].includes(url.hostname))) return null;
+    return url.origin;
+  } catch { return null; }
+}
+
 async function requestPasswordReset({ identifier }) {
   if (!identifier || !String(identifier).trim()) {
     throw badRequest('Enter your Student ID / Staff ID or your email address.');
   }
 
+  const requestId = crypto.randomUUID();
   const generic = {
-    message:
-      'If that account exists, a password reset link has been sent to its registered email address.',
+    message: 'Password reset request received. If an active account matches, TRACE will attempt to send a reset link to its registered email address. Check Spam/Junk. If nothing arrives, contact the Registrar with the request reference below.',
+    request_id: requestId,
   };
+  const report = (outcome, diagnostics = {}) => {
+    const log = outcome === 'smtp_accepted' ? console.log : console.warn;
+    log('[Password reset]', JSON.stringify({ request_id: requestId, outcome, ...diagnostics }));
+    return generic;
+  };
+  const base = resetFrontendOrigin();
+  if (!base) return report('invalid_frontend_url');
 
-  const rows = await userModel.findActiveByStudentIdOrEmail(String(identifier).trim());
-  if (rows.length === 0) return generic;
-
-  let user = rows[0];
-
-  // No email on file means there is nowhere to send the link. Silently stop:
-  // saying so out loud would leak that the account exists.
-  if (!user.email) return generic;
-
-  const token = crypto.randomBytes(32).toString('hex');
-  const connection = await pool.getConnection();
+  let phase = 'lookup';
   try {
-    await connection.beginTransaction();
-    user = await trustedBrowserModel.lockAccount(user.id, connection);
-    if (!user?.is_active || !user.email) { await connection.commit(); return generic; }
-    // Serialize issuance against password changes, resets and other resends.
-    await passwordResetModel.invalidateAllForUser(user.id, connection);
-    await passwordResetModel.create({ user_id: user.id, token_hash: hashResetToken(token), expires_at: new Date(Date.now() + RESET_TOKEN_TTL_MS) }, connection);
-    await connection.commit();
-  } catch (error) { await connection.rollback(); throw error; }
-  finally { connection.release(); }
+    const rows = await userModel.findActiveByStudentIdOrEmail(String(identifier).trim());
+    if (rows.length === 0) return report('account_not_available');
+    let user = rows[0];
+    if (!user.email) return report('no_registered_email');
 
-  const base = (env.FRONTEND_URL.split(',')[0] || '').trim() || 'http://localhost:5273';
-  const link = `${base.replace(/\/$/, '')}/reset-password#token=${token}`;
+    phase = 'issuance';
+    const token = crypto.randomBytes(32).toString('hex');
+    const connection = await pool.getConnection();
+    try {
+      await connection.beginTransaction();
+      user = await trustedBrowserModel.lockAccount(user.id, connection);
+      if (!user?.is_active || !user.email) {
+        await connection.commit();
+        return report('account_not_available');
+      }
+      // Serialize issuance against password changes, resets and other resends.
+      await passwordResetModel.invalidateAllForUser(user.id, connection);
+      await passwordResetModel.create({ user_id: user.id, token_hash: hashResetToken(token), expires_at: new Date(Date.now() + RESET_TOKEN_TTL_MS) }, connection);
+      await connection.commit();
+    } catch (error) { await connection.rollback(); throw error; }
+    finally { connection.release(); }
 
-  const sent = await sendAuthEmail({
-    email: user.email,
-    title: 'Password reset request',
-    message: `Hi ${user.full_name ? user.full_name.split(',')[0] : 'there'},\n\n` +
-      `A password reset was requested for ${user.student_id}. Open the link below within the hour to choose a new password:\n\n` +
-      `${link}\n\n` +
-      `If you did not request this, you can ignore this email — your password will not change.`
-  });
-
-  if (!sent.ok) console.warn('[Password reset] Email not delivered. Check SMTP configuration.');
-
-  return generic;
+    phase = 'delivery';
+    const link = `${base}/reset-password#token=${token}`;
+    const sent = await sendAuthEmail({
+      email: user.email,
+      title: 'Password reset request',
+      message: `Hi ${user.full_name ? user.full_name.split(',')[0] : 'there'},\n\n` +
+        `A password reset was requested for ${user.student_id}. Open the link below within the hour to choose a new password:\n\n` +
+        `${link}\n\n` +
+        `If you did not request this, you can ignore this email — your password will not change.`,
+      requestId, purpose: 'password_reset',
+    });
+    // Never expose provider outcomes to this unauthenticated caller.
+    return report(sent?.ok ? 'smtp_accepted' : 'email_not_accepted', sent?.diagnostics);
+  } catch (error) {
+    return report(`${phase}_failed`, errorDetails(error));
+  }
 }
 
 /**

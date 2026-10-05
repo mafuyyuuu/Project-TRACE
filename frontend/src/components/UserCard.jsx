@@ -1,3 +1,4 @@
+import Button from '@/components/Button';
 import UserAvatar from '@/components/UserAvatar';
 import { getUserLabel } from '@/utils/userLabels';
 
@@ -36,18 +37,19 @@ function VerificationChip({ status }) {
  * detail view the caller wants.
  */
 export default function UserCard({ user, onClick }) {
+  const Surface = onClick ? Button : 'article';
   return (
-    <button
-      type="button"
+    <Surface
+      type={onClick ? 'button' : undefined}
       onClick={onClick}
       data-testid="user-card"
       data-user-id={user.id}
-      className="bg-white dark:bg-gray-900 rounded-3xl p-5 shadow-sm border border-gray-200 dark:border-gray-700 hover:border-[#15803d]/40 hover:shadow-md transition-all text-left flex flex-col gap-3"
+      className={`${onClick ? 'trace-card-interactive' : 'trace-card-info'} w-full min-w-0 bg-white dark:bg-gray-900 rounded-3xl p-4 sm:p-5 shadow-sm border border-gray-200 dark:border-gray-700 text-left flex flex-col gap-3`}
     >
-      <div className="flex items-center gap-3">
+      <div className="flex flex-wrap items-center gap-3">
         <UserAvatar user={user} className="w-14 h-14 rounded-full object-cover shrink-0" alt={user.full_name} />
-        <div className="min-w-0">
-          <div className="text-sm font-bold text-gray-900 dark:text-gray-100 truncate select-text break-words">{user.full_name}</div>
+        <div className="min-w-0 flex-1 basis-40">
+          <div className="text-sm font-bold text-gray-900 dark:text-gray-100 select-text break-words">{user.full_name}</div>
           <div className="text-xs font-mono text-gray-400 dark:text-gray-400 truncate select-text break-words">{user.student_id || '—'}</div>
         </div>
       </div>
@@ -64,6 +66,6 @@ export default function UserCard({ user, onClick }) {
         <ActiveChip active={user.is_active} />
         <VerificationChip status={user.verification_status} />
       </div>
-    </button>
+    </Surface>
   );
 }

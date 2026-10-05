@@ -1,5 +1,6 @@
 import useViewportPagination from '@/hooks/useViewportPagination';
-import { useState, useEffect, useCallback } from 'react';
+import { STATUS } from '@/utils/documentStatus';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import {
   getDocumentReport,
   getAnalytics,
@@ -13,6 +14,7 @@ const EMPTY_FILTERS = {
   status: '',
   documentType: '',
   paymentStatus: '',
+  recordSet: '',
 };
 
 /**
@@ -21,13 +23,15 @@ const EMPTY_FILTERS = {
  * Filters are held here and applied to the report, the CSV export and the
  * analytics alike, so what's exported always matches what's on screen.
  */
-export default function useReports(user, currentTab) {
-  const [filters, setFilters] = useState(EMPTY_FILTERS);
-  const [report, setReport] = useState(null);
+export default function useReports(user, currentTab, initialRecordSet = '') {
+  const [filters, setFilters] = useState(() => ({ ...EMPTY_FILTERS, recordSet: initialRecordSet }));
+  const [reportResult, setReportResult] = useState(null);
   const [analytics, setAnalytics] = useState(null);
   const [page, setPage] = useState(1);
 
   const [loading, setLoading] = useState(true);
+  const [settledScope, setSettledScope] = useState(null);
+  const loadSequence = useRef(0);
   const [exporting, setExporting] = useState('');
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -40,25 +44,35 @@ export default function useReports(user, currentTab) {
   const isActive = (user?.role === 'admin' && ['admin-reports', 'admin-analytics'].includes(currentTab)) ||
     (user?.role === 'clerk' && ['Window 1', 'Secretary'].includes(user.desk_assignment) && currentTab === 'reports');
 
-  const pagination = useViewportPagination({ page, setPage, total: report?.total || 0, fallback: 25, enabled: isActive });
+  const pagination = useViewportPagination({ page, setPage, total: reportResult?.data?.total || 0, fallback: 25, enabled: isActive });
 
   /** Strip blanks so an untouched filter isn't sent as an empty string. */
   const activeFilters = Object.fromEntries(Object.entries(filters).filter(([, v]) => v !== ''));
+  const scopeKey = JSON.stringify({ filters: activeFilters, page, limit: pagination.pageSize });
+  const report = reportResult?.scopeKey === scopeKey ? reportResult.data : null;
+  const refreshing = isActive && settledScope !== scopeKey;
 
   const load = useCallback(
     async (nextPage = page, nextFilters = activeFilters) => {
+      const sequence = ++loadSequence.current;
+      const requestedScope = JSON.stringify({ filters: nextFilters, page: nextPage, limit: pagination.pageSize });
       try {
         const [r, a] = await Promise.allSettled([
           getDocumentReport({ ...nextFilters, page: nextPage, limit: pagination.pageSize }),
           getAnalytics(nextFilters),
         ]);
 
-        if (r.status === 'fulfilled') setReport(r.value);
-        else setError(r.reason?.response?.data?.error || 'Failed to generate report.');
+        if (sequence !== loadSequence.current) return;
+        if (r.status === 'fulfilled') {
+          setReportResult({ data: r.value, scopeKey: requestedScope });
+        } else {
+          setReportResult(null);
+          setError(r.reason?.response?.data?.error || 'Failed to generate report.');
+        }
 
         if (a.status === 'fulfilled') setAnalytics(a.value);
       } finally {
-        setLoading(false);
+        if (sequence === loadSequence.current) { setLoading(false); setSettledScope(requestedScope); }
       }
     },
     // activeFilters is derived from `filters`, which is the real dependency.
@@ -68,15 +82,18 @@ export default function useReports(user, currentTab) {
 
   useEffect(() => {
     if (isActive) load();
+    return () => { loadSequence.current += 1; };
   }, [isActive, load]);
 
   const applyFilters = useCallback(() => {
+    setSettledScope(null);
     setError('');
     setPage(1);
     load(1);
   }, [load]);
 
   const resetFilters = useCallback(() => {
+    setSettledScope(null);
     setFilters(EMPTY_FILTERS);
     setPage(1);
     setError('');
@@ -84,11 +101,17 @@ export default function useReports(user, currentTab) {
   }, [load]);
 
   const updateFilter = useCallback((key, value) => {
-    setFilters((current) => ({ ...current, [key]: value }));
+    setFilters((current) => ({ ...current, [key]: value, ...(key === 'status' ? { recordSet: '' } : {}) }));
+  }, []);
+
+  const chooseRecordView = useCallback(view => {
+    setPage(1);
+    setFilters(current => ({ ...current, recordSet: view === 'cleared' ? 'secretary-cleared' : '', status: view === 'completed' ? STATUS.COMPLETED : '' }));
   }, []);
 
   const goToPage = useCallback(
     (nextPage) => {
+      setSettledScope(null);
       setPage(nextPage);
       load(nextPage);
     },
@@ -116,6 +139,10 @@ export default function useReports(user, currentTab) {
   );
 
   const downloadDocuments = useCallback(async () => {
+    if (!report || refreshing) {
+      setError('Wait for the current report to load before exporting. Apply Filters to retry if loading failed.');
+      return;
+    }
     setExporting('documents');
     try {
       const filename = await exportDocumentsCsv(activeFilters);
@@ -128,13 +155,13 @@ export default function useReports(user, currentTab) {
       setExporting('');
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filters]);
+  }, [filters, report, refreshing]);
 
   return {
     tableRef: pagination.containerRef,
-    filters, updateFilter, applyFilters, resetFilters,
+    filters, updateFilter, chooseRecordView, applyFilters, resetFilters,
     report, analytics, page, goToPage,
-    loading, exporting, error, success,
+    loading, refreshing, exporting, error, success,
     dismissNotification,
     downloadStudents, downloadDocuments,
   };

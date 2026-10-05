@@ -26,6 +26,7 @@ const authenticator = require('../authenticator.service');
 const emailVerification = require('../emailVerification.service');
 const onboarding = require('../../models/onboarding.model');
 const passwordResetModel = require('../../models/passwordReset.model');
+const notifications = require('../notification.service');
 let credentialConnection;
 
 const statusOf = (promise) => promise.then(() => undefined, (err) => err.status);
@@ -49,6 +50,7 @@ const verifiedStudent = () => ({
 });
 
 beforeEach(() => {
+  vi.spyOn(notifications, 'sendEmail').mockResolvedValue({ ok: true });
   vi.spyOn(onboarding, 'enroll').mockResolvedValue([{}]);
   vi.spyOn(passwordResetModel, 'invalidateAllForUser').mockResolvedValue([{}]);
   vi.spyOn(emailVerification, 'issue').mockResolvedValue({ email_sent: true, message: 'Link sent.', pending_email: 'new@example.test', email_verification_required: true });
@@ -96,6 +98,12 @@ beforeEach(() => {
 });
 
 describe('login', () => {
+  it('sends a Finance email challenge only to the active account address, never its pending address or SMTP sender', async () => {
+    userModel.findActiveByStudentId.mockResolvedValue([{ ...verifiedStudent(), role: 'clerk',
+      email: 'finance-active@example.test', pending_email: 'finance-pending@example.test', desk_assignment: 'Finance' }]);
+    await service.login({ employee_id: 'FIN', password: 'Trace2024!' });
+    expect(notifications.sendEmail).toHaveBeenCalledExactlyOnceWith('finance-active@example.test', 'Project TRACE Login Verification', expect.any(String));
+  });
   it('uses the enrolled app instead of sending an email code', async () => {
     const user = { ...verifiedStudent(), is_active: 1, token_version: 0 };
     userModel.findActiveByStudentId.mockResolvedValue([user]);
@@ -103,6 +111,7 @@ describe('login', () => {
     vi.spyOn(authenticator, 'challenge').mockResolvedValue({ requires_2fa: true, mfa_method: 'authenticator' });
     expect(await service.login({ employee_id: 'STU-001', password: 'Trace2024!' })).toHaveProperty('mfa_method', 'authenticator');
     expect(userModel.updateEmailOTP).not.toHaveBeenCalled();
+    expect(notifications.sendEmail).not.toHaveBeenCalled();
   });
   it('never lets an old email challenge bypass a newly enrolled authenticator', async () => {
     const user = { ...verifiedStudent(), is_active: 1, token_version: 0, login_otp: '123456', login_otp_expires: new Date(Date.now() + 60000) };
@@ -231,6 +240,38 @@ describe('clerk MFA browser policy', () => {
     await service.verify2FA(result.temp_token, '123456', null, null, true);
     expect(trustedBrowser.issue).not.toHaveBeenCalled();
   });
+  it('offers Admin app trust, skips the app only with valid password/personal proof, and keeps shared mode protected', async () => {
+    const admin = { ...clerk(), role: 'admin' };
+    userModel.findActiveByStudentId.mockResolvedValue([admin]);
+    authenticator.isEnabled.mockResolvedValue(true);
+    vi.spyOn(authenticator, 'challenge').mockResolvedValue({ requires_2fa: true, can_trust_browser: true });
+    await expect(service.login(credentials)).resolves.toMatchObject({ requires_2fa: true, can_trust_browser: true });
+    expect(authenticator.challenge).toHaveBeenCalledWith(admin, true);
+    trustedBrowser.isTrusted.mockResolvedValue(true);
+    await expect(service.login({ ...credentials, shared_computer: false }, null, null, 'proof')).resolves.toHaveProperty('token');
+    expect(trustedBrowser.isTrusted).toHaveBeenCalledWith(admin, 'proof', false);
+    trustedBrowser.isTrusted.mockClear();
+    await expect(service.login({ ...credentials, password: 'wrong', shared_computer: false })).rejects.toMatchObject({ status: 401 });
+    expect(trustedBrowser.isTrusted).not.toHaveBeenCalled();
+    await expect(service.login({ ...credentials, shared_computer: true })).resolves.toMatchObject({ requires_2fa: true });
+    expect(trustedBrowser.isTrusted).not.toHaveBeenCalled();
+  });
+  it.each([false, true])('issues Admin app trust only after successful factor verification and explicit choice: %s', async choice => {
+    vi.spyOn(authenticator, 'verifyChallenge').mockResolvedValue({ ...clerk(), role: 'admin' });
+    trustedBrowser.issue.mockResolvedValue({ value: 'synthetic-proof', expiresAt: 1000 });
+    const token = challenge({ mfa_method: 'authenticator', can_trust_browser: true });
+    const result = await service.verify2FA(token, '123456', null, null, choice);
+    if (choice) {
+      expect(trustedBrowser.issue).toHaveBeenCalledWith(3, 0);
+      expect(authenticator.verifyChallenge.mock.invocationCallOrder[0]).toBeLessThan(trustedBrowser.issue.mock.invocationCallOrder[0]);
+      expect(result).toHaveProperty('browserTrust');
+    } else expect(trustedBrowser.issue).not.toHaveBeenCalled();
+  });
+  it('does not grant Admin trust on a failed app factor', async () => {
+    vi.spyOn(authenticator, 'verifyChallenge').mockRejectedValue(Object.assign(new Error('Invalid code'), { status: 401 }));
+    await expect(service.verify2FA(challenge({ mfa_method: 'authenticator', can_trust_browser: true }), '123456', null, null, true)).rejects.toMatchObject({ status: 401 });
+    expect(trustedBrowser.issue).not.toHaveBeenCalled();
+  });
 
   it.each([undefined, true, 'false', 0])('requires clerk OTP in default/shared mode %s even with a cookie', async shared_computer => {
     userModel.findActiveByStudentId.mockResolvedValue([clerk()]);
@@ -354,10 +395,23 @@ describe('register', () => {
     phone_number: '+639', password: 'Trace2024!', course: 'CCS',
   };
   const file = { path: '/tmp/id.jpg', originalname: 'id.jpg', mimetype: 'image/jpeg' };
+  it('keeps the signup email but postpones its verification link to Profile', async () => {
+    const result = await service.register(body, file);
+    expect(userModel.createUser).toHaveBeenCalledWith(expect.objectContaining({ email: body.email }));
+    expect(emailVerification.issue).not.toHaveBeenCalled();
+    expect(result).toMatchObject({ email_verification_required: true, email_sent: false });
+    expect(result.message).toContain('Verify beside Email Address');
+    expect(result.message).not.toContain('could not be delivered');
+  });
 
   it('stores the separate program without replacing college assignment', async () => {
     await service.register({ ...body, program: ' BS Information Technology ' }, file);
     expect(userModel.createUser).toHaveBeenCalledWith(expect.objectContaining({ program: 'BS Information Technology', course: 'CCS' }));
+  });
+  it('accepts underscore as the only special character at signup', async () => {
+    await service.register({ ...body, password: 'Trace_2026' }, file);
+    const stored = userModel.createUser.mock.calls[0][0].password_hash;
+    expect(await bcrypt.compare('Trace_2026', stored)).toBe(true);
   });
   it('rejects an oversized program before account creation', async () => {
     await expect(service.register({ ...body, program: 'x'.repeat(151) }, file)).rejects.toMatchObject({ status: 400 });
@@ -475,6 +529,16 @@ describe('updateProfile', () => {
     expect(fields.password_hash).toBeDefined();
     expect(fields.password_hash).not.toBe('newpw');
     expect(fields).not.toHaveProperty('password');
+  });
+  it('accepts underscore in a password change and still refuses current-password reuse', async () => {
+    await service.updateProfile(3, { password: 'Newpassword_2026', current_password: 'Trace2024!' });
+    const fields = userModel.updateProfile.mock.calls[0][1];
+    expect(await bcrypt.compare('Newpassword_2026', fields.password_hash)).toBe(true);
+    userModel.updateProfile.mockClear();
+    const hash = await bcrypt.hash('Newpassword_2026', 4);
+    userModel.findActiveByStudentId.mockResolvedValue([{ password_hash: hash }]);
+    await expect(service.updateProfile(3, { password: 'Newpassword_2026', current_password: 'Newpassword_2026' })).rejects.toThrow('current password');
+    expect(userModel.updateProfile).not.toHaveBeenCalled();
   });
 
   it('only writes the fields actually supplied', async () => {

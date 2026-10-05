@@ -12,6 +12,7 @@ export default function usePasswordReset() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [message, setMessage] = useState('')
+  const [requestReference, setRequestReference] = useState('')
   const [done, setDone] = useState(false)
 
   /**
@@ -26,6 +27,7 @@ export default function usePasswordReset() {
     if (busy.current) return
     setError('')
     setMessage('')
+    setRequestReference('')
     if (!identifier.trim()) {
       setError('Enter your Student ID / Staff ID or your email address.')
       return
@@ -35,9 +37,12 @@ export default function usePasswordReset() {
     try {
       const res = await forgotPassword(identifier.trim())
       setMessage(res.message)
+      setRequestReference(res.request_id || '')
       setDone(true)
     } catch (err) {
-      setError(err.response?.data?.error || 'Could not start the password reset. Please try again.')
+      setError(err.response?.data?.error || (err.code === 'ECONNABORTED'
+        ? 'The reset request timed out. An email may still arrive; check Spam/Junk and use the newest link. Contact the Registrar if it does not arrive.'
+        : 'Could not start the password reset. Please try again.'))
     } finally {
       setLoading(false)
       busy.current = false
@@ -72,5 +77,5 @@ export default function usePasswordReset() {
     }
   }, [])
 
-  return { loading, error, message, done, requestLink, submitNewPassword }
+  return { loading, error, message, requestReference, done, requestLink, submitNewPassword }
 }

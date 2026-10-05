@@ -1,20 +1,19 @@
 import { Link } from 'react-router-dom'
-import plpLogo from '@/assets/plp_logo.png'
+import TraceBrand from '@/components/TraceBrand'
 
 /**
  * The grey-and-green split screen shared by the public auth pages, so the
  * recovery screens are visibly part of the same system as Login. Purely
  * presentational — it holds no state and makes no API calls.
  */
-export default function AuthShell({ title, subtitle, children, footer }) {
+export default function AuthShell({ title, subtitle, children, footer, brand }) {
   return (
     <div className="min-h-screen flex flex-col md:flex-row font-body relative overflow-hidden bg-white dark:bg-gray-900">
       {/* Left Column (Light Spec) */}
       <div className="md:w-1/2 bg-[#f8f9fa] dark:bg-gray-900 p-4 sm:p-8 lg:p-12 xl:p-24 flex flex-col justify-between shrink-0">
         <div>
           <Link to="/" className="inline-flex items-center gap-3" aria-label="TRACE — PLP Registrar">
-            <img src={plpLogo} alt="PLP Logo" className="w-16 h-16 rounded-full object-cover shadow-md" />
-            <span className="text-xl font-display font-black text-[#15803d] dark:text-green-300 tracking-widest">TRACE</span>
+            {brand ?? <TraceBrand large />}
           </Link>
         </div>
 
@@ -34,9 +33,9 @@ export default function AuthShell({ title, subtitle, children, footer }) {
       </div>
 
       {/* Right Column (Pine Spec) */}
-      <div className="md:w-1/2 bg-[#15803d] p-4 sm:p-8 lg:p-12 xl:p-24 flex flex-col justify-center text-white relative">
+      <div className="trace-action-inverse-surface md:w-1/2 bg-[#15803d] p-4 sm:p-8 lg:p-12 xl:p-24 flex flex-col justify-center text-white relative">
         <div className="max-w-md w-full mx-auto">
-          <h2 className="text-3xl sm:text-4xl font-display font-black mb-3 tracking-tight">{title}</h2>
+          <h2 className="text-2xl sm:text-3xl font-display font-bold leading-tight mb-3 tracking-tight">{title}</h2>
           {subtitle && (
             <p className="text-sm font-medium text-white/80 leading-relaxed mb-8">{subtitle}</p>
           )}

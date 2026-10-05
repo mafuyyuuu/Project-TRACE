@@ -3,11 +3,240 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 @theme {
-  --default-transition-duration: 200ms;
-  --default-transition-timing-function: cubic-bezier(0.2, 0, 0, 1);
+  --default-transition-duration: var(--trace-motion-feedback-duration);
+  --default-transition-timing-function: var(--trace-motion-easing);
+}
+
+/* Explicit opt-in conventions: native choices, file pickers, tabs and icon
+   controls keep their own geometry. Utilities may add layout (e.g. pl-10 for
+   an input icon) without duplicating the base appearance. */
+@layer components {
+  .trace-control {
+    @apply block w-full min-w-0 min-h-11 rounded-xl border border-gray-300 bg-gray-50 px-4 py-3 text-sm leading-normal text-gray-900 placeholder:text-gray-500 transition-colors dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 dark:placeholder:text-gray-400;
+    @apply enabled:hover:border-gray-400 dark:enabled:hover:border-gray-500 focus:border-pine-600 focus:bg-white focus:ring-2 focus:ring-pine-600/20 dark:focus:border-green-400 dark:focus:bg-gray-900 dark:focus:ring-green-400/25;
+    @apply disabled:cursor-not-allowed disabled:opacity-60;
+  }
+  .trace-control[readonly] { @apply bg-gray-100 dark:bg-gray-800; }
+  textarea.trace-control { @apply min-h-28 resize-y; }
+  .trace-control-inverse {
+    @apply border-white/40 bg-white/10 text-white placeholder:text-white/70 enabled:hover:border-white/70 focus:border-white focus:bg-white/20 focus:ring-white/30 dark:border-white/40 dark:bg-white/10 dark:text-white dark:placeholder:text-white/70 dark:enabled:hover:border-white/70 dark:focus:border-white dark:focus:bg-white/20 dark:focus:ring-white/30;
+    @apply focus-visible:outline-white;
+  }
+  .trace-control[aria-invalid="true"], .trace-control:user-invalid {
+    @apply border-red-600 focus:border-red-600 focus:ring-red-600/20 dark:border-red-400 dark:focus:border-red-400 dark:focus:ring-red-400/25;
+  }
+  .trace-choice { @apply shrink-0 accent-pine-600 disabled:cursor-not-allowed disabled:opacity-60; }
+  .trace-file {
+    @apply block w-full min-w-0 text-sm text-gray-700 dark:text-gray-200 disabled:cursor-not-allowed disabled:opacity-60;
+    @apply file:mr-3 file:rounded-xl file:border-0 file:bg-green-50 file:px-4 file:py-3 file:text-sm file:font-semibold file:text-green-800 hover:file:bg-green-100 dark:file:bg-green-950 dark:file:text-green-200 dark:hover:file:bg-green-900;
+  }
+  .trace-action { @apply transition-colors disabled:cursor-not-allowed disabled:opacity-60; }
+  .trace-nav-item { @apply flex shrink-0 items-center rounded-2xl transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-pine-600 dark:focus-visible:outline-green-400; }
+  .trace-button {
+    @apply inline-flex min-h-11 max-w-full shrink-0 items-center justify-center gap-2 rounded-xl border border-transparent px-4 py-3 text-sm font-semibold leading-normal text-center whitespace-normal break-words transition-colors disabled:cursor-not-allowed disabled:opacity-60;
+  }
+  .trace-button-primary { @apply bg-pine-600 text-white enabled:hover:bg-pine-700 enabled:active:bg-green-900; }
+  .trace-button-secondary { @apply border-gray-300 bg-white text-gray-700 enabled:hover:bg-gray-100 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-200 dark:enabled:hover:bg-gray-800; }
+  .trace-button-secondary[aria-pressed="true"] { @apply border-pine-600 bg-pine-600 text-white enabled:hover:bg-pine-700 dark:border-pine-600 dark:bg-pine-600 dark:text-white dark:enabled:hover:bg-pine-700; }
+  .trace-button-danger { @apply border-red-300 bg-red-50 text-red-700 enabled:hover:bg-red-100 dark:border-red-800 dark:bg-red-950 dark:text-red-200 dark:enabled:hover:bg-red-900; }
+  .trace-button-warning { @apply border-amber-300 bg-amber-50 text-amber-800 enabled:hover:bg-amber-100 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-200 dark:enabled:hover:bg-amber-900; }
+  .trace-button-info { @apply border-blue-200 bg-blue-50 text-blue-800 enabled:hover:bg-blue-100 dark:border-blue-800 dark:bg-blue-950 dark:text-blue-200 dark:enabled:hover:bg-blue-900; }
+  .trace-button-inverse { @apply border-white/40 bg-black/10 text-white enabled:hover:bg-black/20 dark:border-white/40 dark:bg-black/10 dark:text-white dark:enabled:hover:bg-black/20 focus-visible:outline-white; }
+  .trace-button-inverse-primary { @apply bg-white text-pine-700 enabled:hover:bg-green-50 dark:bg-white dark:text-pine-700 dark:enabled:hover:bg-green-50 focus-visible:outline-white; }
+  .trace-icon-button { @apply inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-gray-500 enabled:hover:bg-gray-100 dark:text-gray-400 dark:enabled:hover:bg-gray-800 transition-colors disabled:cursor-not-allowed disabled:opacity-60; }
+  .trace-label { @apply block text-sm font-semibold leading-normal text-gray-700 dark:text-gray-200; }
+  .trace-label-inverse { @apply text-white dark:text-white; }
+  .trace-form-grid { @apply grid grid-cols-[repeat(auto-fit,minmax(min(100%,14rem),1fr))] gap-4; }
+  .trace-tab { @apply inline-flex min-h-11 max-w-full items-center justify-center gap-2 px-4 py-3 text-sm font-semibold leading-normal text-center whitespace-normal break-words transition-colors disabled:cursor-not-allowed disabled:opacity-60; }
+  .trace-page { @apply min-w-0 space-y-6; }
+  .trace-page-header { @apply flex min-w-0 flex-col flex-wrap items-start justify-between gap-4 sm:flex-row; }
+  .trace-page-header > * { @apply min-w-0 max-w-full; }
+  .trace-page-title { @apply text-2xl font-display font-bold leading-tight tracking-tight text-gray-900 dark:text-gray-100 sm:text-3xl; }
+  .trace-page-description { @apply mt-2 text-sm leading-relaxed text-gray-600 dark:text-gray-300; }
+  .trace-section { @apply min-w-0 rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-900; }
+  .trace-section-inverse { @apply border-white/30 bg-white/10 text-white dark:border-white/30 dark:bg-white/10 dark:text-white; }
+  .trace-section-body { @apply p-4 sm:p-6; }
+  /* A stable chart footprint independent of point count and text-size settings. */
+  .trace-kpi-sparkline { @apply w-full min-w-0 h-16 shrink-0; }
+  .trace-date { @apply inline-flex max-w-full flex-wrap items-center gap-x-3 gap-y-1 rounded-xl border border-gray-200 bg-white px-4 py-3 shadow-sm dark:border-gray-700 dark:bg-gray-900; }
+  .trace-date > span { @apply min-w-0 max-w-full; overflow-wrap: normal; }
+  .trace-date > :first-child, .trace-date > svg { @apply shrink-0; }
+  .trace-section-header { @apply flex flex-wrap items-center justify-between gap-3 border-b border-gray-200 p-4 dark:border-gray-700 sm:p-6; }
+  .trace-actions { @apply flex flex-wrap items-center gap-3; }
+  .trace-error { @apply rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold leading-relaxed text-red-800 dark:border-red-800 dark:bg-red-950 dark:text-red-200; }
+  /* Match the overlay's stable p-4 gutter even when root typography enlarges. */
+  .trace-modal-panel { @apply relative z-10 flex w-full max-h-[calc(100dvh-32px)] flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-2xl dark:border-gray-700 dark:bg-gray-900; }
+  .trace-modal-body { @apply min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 pb-4 sm:px-6 sm:pb-6; }
+  .trace-modal-footer { @apply shrink-0 border-t border-gray-200 p-4 dark:border-gray-700 sm:p-6; }
+}
+
+.trace-nav-scroll {
+  scrollbar-width: none;
+}
+.trace-nav-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+/* Native target, background, border and footprint stay fixed. The visual
+   content and noninteractive elevation layer alone move. */
+@layer components {
+  .trace-button-feedback:focus-visible {
+    outline: 2px solid var(--trace-button-focus, #15803d);
+    outline-offset: 2px;
+  }
+  .dark .trace-button-feedback:focus-visible { outline-color: var(--trace-button-focus, #4ade80); }
+  .trace-action-inverse-surface, .trace-button-inverse, .trace-button-inverse-primary { --trace-button-focus: #fff; }
+  .trace-button-feedback:not(:disabled):not([aria-disabled="true"]):not([aria-busy="true"]):active { opacity: 0.9; }
+  .trace-button-motion { position: relative; isolation: isolate; }
+  .trace-button-motion::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    pointer-events: none;
+    box-shadow: var(--trace-motion-button-elevation);
+    opacity: 0;
+    transition: opacity var(--trace-motion-feedback-duration) var(--trace-motion-easing), transform var(--trace-motion-feedback-duration) var(--trace-motion-easing);
+  }
+  .trace-button-visual {
+    display: inline-flex;
+    width: 100%;
+    height: 100%;
+    min-width: 0;
+    max-width: 100%;
+    align-items: inherit;
+    justify-content: inherit;
+    flex-direction: inherit;
+    flex-wrap: inherit;
+    gap: inherit;
+    pointer-events: none;
+    transition: transform var(--trace-motion-feedback-duration) var(--trace-motion-easing);
+  }
+  .trace-button-motion:not(:disabled):not([aria-disabled="true"]):not([aria-busy="true"]):focus-visible::after { opacity: 1; }
+  .trace-button-motion:not(:disabled):not([aria-disabled="true"]):not([aria-busy="true"]):focus-visible > .trace-button-visual,
+  .trace-button-motion:not(:disabled):not([aria-disabled="true"]):not([aria-busy="true"]):focus-visible::after { transform: translateY(calc(-1 * var(--trace-motion-button-lift))); }
+  @media (hover: hover) and (pointer: fine) {
+    .trace-button-motion:not(:disabled):not([aria-disabled="true"]):not([aria-busy="true"]):hover::after { opacity: 1; }
+    .trace-button-motion:not(:disabled):not([aria-disabled="true"]):not([aria-busy="true"]):hover > .trace-button-visual,
+    .trace-button-motion:not(:disabled):not([aria-disabled="true"]):not([aria-busy="true"]):hover::after { transform: translateY(calc(-1 * var(--trace-motion-button-lift))); }
+  }
+  .trace-button-motion:not(:disabled):not([aria-disabled="true"]):not([aria-busy="true"]):active > .trace-button-visual,
+  .trace-button-motion:not(:disabled):not([aria-disabled="true"]):not([aria-busy="true"]):active::after { transform: none; }
+  .trace-button-motion:not(:disabled):not([aria-disabled="true"]):not([aria-busy="true"]):active::after { opacity: 0.3; }
+  .trace-button-motion:is(:disabled, [aria-disabled="true"], [aria-busy="true"]) > .trace-button-visual,
+  .trace-button-motion:is(:disabled, [aria-disabled="true"], [aria-busy="true"])::after { transform: none; transition: none; }
+  .trace-button-motion:is(:disabled, [aria-disabled="true"], [aria-busy="true"])::after { opacity: 0; }
+  @media (prefers-reduced-motion: reduce) {
+    .trace-button-motion > .trace-button-visual, .trace-button-motion::after { transform: none !important; }
+  }
+}
+
+/* Informational cards gain shadow only. Cards with nested controls never
+   translate, so their native input/button feedback doesn't stack with a lift. */
+@layer components {
+  .trace-card-info, .trace-card-interactive, .trace-card-controls { position: relative; isolation: isolate; }
+  .trace-card-interactive { transition: transform var(--trace-motion-feedback-duration) var(--trace-motion-easing); }
+  .trace-card-interactive:not(:disabled):not([aria-disabled="true"]):not([aria-busy="true"]) { cursor: pointer; }
+  .trace-card-interactive:is(:disabled, [aria-disabled="true"]) { cursor: not-allowed; }
+  .trace-card-interactive::after, .trace-card-info::after, .trace-card-controls::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    pointer-events: none;
+    box-shadow: var(--trace-motion-card-elevation);
+    opacity: 0;
+    transition: opacity var(--trace-motion-feedback-duration) var(--trace-motion-easing);
+  }
+  .trace-card-inset::after { box-shadow: var(--trace-motion-card-inset); }
+  .trace-card-inset:focus-visible { outline-offset: -3px; }
+  .trace-card-interactive:not(:disabled):not([aria-disabled="true"]):not([aria-busy="true"]):focus-visible::after,
+  .trace-card-controls:not([data-card-disabled]):has(:focus-visible)::after { opacity: 1; }
+  .trace-card-interactive:not(.trace-card-inset):not(:disabled):not([aria-disabled="true"]):not([aria-busy="true"]):not(:has(button, a, input, select, textarea, iframe)):focus-visible { transform: translateY(calc(-1 * var(--trace-motion-card-lift))); }
+  @media (hover: hover) and (pointer: fine) {
+    .trace-card-info:hover::after { opacity: 0.45; }
+    .trace-card-controls:not([data-card-disabled]):hover::after,
+    .trace-card-interactive:not(:disabled):not([aria-disabled="true"]):not([aria-busy="true"]):hover::after { opacity: 1; }
+    .trace-card-interactive:not(.trace-card-inset):not(:disabled):not([aria-disabled="true"]):not([aria-busy="true"]):not(:has(button, a, input, select, textarea, iframe)):hover { transform: translateY(calc(-1 * var(--trace-motion-card-lift))); }
+  }
+  .trace-card-interactive:not(.trace-card-inset):not(:disabled):not([aria-disabled="true"]):not([aria-busy="true"]):not(:has(button, a, input, select, textarea, iframe)):active { transform: none; }
+  .trace-card-interactive:is(:disabled, [aria-disabled="true"], [aria-busy="true"]) { transform: none; transition: none; }
+  .trace-card-interactive:is(:disabled, [aria-disabled="true"], [aria-busy="true"])::after { opacity: 0; transition: none; }
+  @media (prefers-reduced-motion: reduce) {
+    .trace-card-interactive { transform: none !important; }
+  }
+}
+
+/* Lift the decorative icon only; the control's hit target never moves. */
+.trace-nav-icon-control { position: relative; isolation: isolate; }
+.trace-nav-icon-control::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: rgb(21 128 61 / 0.08);
+  box-shadow: 0 4px 12px rgb(21 128 61 / 0.12);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--trace-motion-feedback-duration) var(--trace-motion-easing);
+}
+.dark .trace-nav-icon-control::before { background: rgb(74 222 128 / 0.1); box-shadow: 0 4px 12px rgb(34 197 94 / 0.12); }
+.trace-nav-icon-control .trace-nav-icon {
+  position: relative;
+  transition: transform var(--trace-motion-feedback-duration) var(--trace-motion-easing);
+}
+.trace-nav-icon-control:focus-visible::before { opacity: 1; }
+.trace-nav-icon-control:focus-visible .trace-nav-icon { transform: translateY(calc(-1 * var(--trace-motion-continuity-distance))); }
+.trace-nav-icon-control:not([aria-current="page"]):not([data-nav-selected]):focus-visible { color: #15803d; }
+.dark .trace-nav-icon-control:not([aria-current="page"]):not([data-nav-selected]):focus-visible { color: #86efac; }
+@media (hover: hover) and (pointer: fine) {
+  .trace-nav-icon-control:hover::before { opacity: 1; }
+  .trace-nav-icon-control:hover .trace-nav-icon { transform: translateY(calc(-1 * var(--trace-motion-continuity-distance))); }
+  .trace-nav-icon-control:not([aria-current="page"]):not([data-nav-selected]):hover { color: #15803d; }
+  .dark .trace-nav-icon-control:not([aria-current="page"]):not([data-nav-selected]):hover { color: #86efac; }
+}
+.trace-sidebar-tooltip {
+  position: fixed;
+  left: var(--trace-tooltip-left, 0px);
+  top: var(--trace-tooltip-top, 0px);
+  z-index: 95;
+  max-width: calc(100vw - 16px);
+  max-height: calc(100dvh - 16px);
+  padding-left: 8px; /* Contiguous pointer bridge from the control to its label. */
+  overflow-wrap: anywhere;
+}
+@media (hover: none), (pointer: coarse) {
+  .trace-desktop-rail { display: none; }
+  .trace-navigation-trigger { display: inline-flex; }
+  .trace-navigation-drawer { display: flex; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .trace-nav-icon-control .trace-nav-icon { transform: none !important; }
 }
 
 :root {
+  --trace-motion-feedback-duration: 150ms;
+  --trace-motion-context-duration: 180ms;
+  --trace-motion-continuity-duration: 180ms;
+  --trace-motion-drill-duration: 220ms;
+  --trace-motion-exit-duration: 160ms;
+  --trace-motion-return-duration: 150ms;
+  --trace-motion-easing: cubic-bezier(0.2, 0, 0, 1);
+  --trace-motion-continuity-distance: 2px;
+  --trace-motion-context-distance: 4px;
+  --trace-motion-drill-distance: 8px;
+  --trace-motion-exit-distance: 8px;
+  --trace-motion-feedback-distance: 0px;
+  --trace-motion-return-distance: 0px;
+  --trace-motion-opacity: 0.84;
+  --trace-motion-scale: 0.99;
+  --trace-motion-elevation-rest: 0 1px 3px rgb(0 0 0 / 0.1);
+  --trace-motion-elevation-raised: 0 25px 50px -12px rgb(0 0 0 / 0.25);
+  --trace-motion-button-lift: 2px;
+  --trace-motion-button-elevation: 0 5px 10px rgb(15 23 42 / 0.14);
+  --trace-motion-card-lift: 2px;
+  --trace-motion-card-elevation: 0 4px 8px rgb(15 23 42 / 0.12);
+  --trace-motion-card-inset: inset 0 0 0 2px rgb(21 128 61 / 0.18);
   color-scheme: light;
   --trace-chart-line: #0f172a;
   --trace-chart-surface: #ffffff;
@@ -15,7 +244,43 @@
   --trace-chart-accent: #15803d;
 }
 
+.trace-section { box-shadow: var(--trace-motion-elevation-rest); }
+.trace-modal-panel { box-shadow: var(--trace-motion-elevation-raised); }
+.trace-motion-context { animation: trace-context var(--trace-motion-context-duration) var(--trace-motion-easing); }
+.trace-motion-feedback { animation: trace-feedback var(--trace-motion-feedback-duration) var(--trace-motion-easing); }
+.trace-motion-progress { transition: transform var(--trace-motion-continuity-duration) var(--trace-motion-easing); }
+.trace-motion-exit-panel {
+  position: fixed !important;
+  left: var(--trace-exit-left) !important;
+  top: var(--trace-exit-top) !important;
+  width: var(--trace-exit-width) !important;
+  height: var(--trace-exit-height) !important;
+  max-width: none !important;
+  max-height: none !important;
+  margin: 0 !important;
+  z-index: 100;
+  pointer-events: none !important;
+  user-select: none;
+  overflow: hidden;
+  animation: none !important;
+  contain: layout paint;
+}
+.trace-motion-exit-panel[data-motion-exit="feedback"] { z-index: 110; }
+.trace-motion-exit-panel[data-motion-exit="drawer"] { z-index: 90; }
+.trace-motion-exit-panel[data-motion-exit="support"] { z-index: 40; }
+@keyframes trace-context {
+  from { opacity: var(--trace-motion-opacity); transform: translateY(var(--trace-motion-context-distance)); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes trace-feedback {
+  from { opacity: var(--trace-motion-opacity); }
+  to { opacity: 1; }
+}
+
 :root.dark {
+  --trace-motion-button-elevation: 0 5px 12px rgb(0 0 0 / 0.3);
+  --trace-motion-card-elevation: 0 4px 8px rgb(0 0 0 / 0.3);
+  --trace-motion-card-inset: inset 0 0 0 2px rgb(74 222 128 / 0.22);
   color-scheme: dark;
   --trace-chart-line: #e2e8f0;
   --trace-chart-surface: #1f2937;
@@ -55,13 +320,14 @@ input, textarea, select {
   overflow-wrap: anywhere;
 }
 
-:where(button, a, input, textarea, select, [tabindex]):focus-visible {
-  outline: 2px solid #15803d;
-  outline-offset: 3px;
-}
-
-.dark :where(button, a, input, textarea, select, [tabindex]):focus-visible {
-  outline-color: #86efac;
+@layer base {
+  :where(button, a, input, textarea, select, [tabindex]):focus-visible {
+    outline: 2px solid #15803d;
+    outline-offset: 3px;
+  }
+  .dark :where(button, a, input, textarea, select, [tabindex]):focus-visible {
+    outline-color: #86efac;
+  }
 }
 
 .recharts-default-tooltip {
@@ -76,9 +342,8 @@ input, textarea, select {
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
+    animation: none !important;
+    transition: none !important;
     scroll-behavior: auto !important;
   }
 }
@@ -143,6 +408,7 @@ input, textarea, select {
 }
 @media print {
   html { font-size: 100% !important; }
+  [data-motion-exit] { display: none !important; }
 }
 
 /* Text enlargement is independent of icon sizes, card padding and sidebar widths.

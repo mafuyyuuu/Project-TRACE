@@ -1,3 +1,4 @@
+import Button from '@/components/Button';
 import { INPUT_LIMITS } from '@/utils/inputLimits';
 import ConfirmDialog from '@/components/ConfirmDialog'
 import { useEffect, useRef, useState } from 'react'
@@ -32,7 +33,7 @@ export default function ResetPasswordPage() {
   }
 
   const field =
-    'w-full px-5 py-4 rounded-xl bg-white/10 dark:bg-gray-900/10 border border-white/30 text-white placeholder-white/50 font-medium focus:outline-none focus:ring-2 focus:ring-white/60'
+    "trace-control trace-control-inverse w-full placeholder-white/50"
 
   const error = localError || resetError
 
@@ -52,13 +53,13 @@ export default function ResetPasswordPage() {
         onConfirm={() => submitNewPassword(passwordToConfirm.token, passwordToConfirm.password, passwordToConfirm.confirmPassword)}
         onCancel={() => setPasswordToConfirm(null)} />
       {error && (
-        <div className="mb-6 p-4 rounded-xl bg-red-900/40 dark:bg-red-900/40 border border-red-300/40 dark:border-red-800/40 text-sm font-bold">
+        <div className="trace-error mb-6">
           {error}
         </div>
       )}
 
       {done ? (
-        <div className="p-4 rounded-xl bg-white/10 dark:bg-gray-900/10 border border-white/30 text-sm font-bold leading-relaxed">
+        <div className="trace-section trace-section-inverse trace-section-body text-sm font-bold leading-relaxed">
           {message}{' '}
           <Link to="/" className="underline hover:text-white">
             Sign in
@@ -66,7 +67,7 @@ export default function ResetPasswordPage() {
         </div>
       ) : (
         <form onSubmit={handleSubmit}>
-          <label htmlFor="password" className="block text-sm font-bold mb-2 uppercase tracking-wide">
+          <label htmlFor="password" className="trace-label trace-label-inverse block mb-2">
             New Password
           </label>
           <input maxLength={INPUT_LIMITS.password}
@@ -80,7 +81,7 @@ export default function ResetPasswordPage() {
 
           <label
             htmlFor="confirmPassword"
-            className="block text-sm font-bold mt-5 mb-2 uppercase tracking-wide"
+            className="trace-label trace-label-inverse block mt-5 mb-2"
           >
             Confirm New Password
           </label>
@@ -92,15 +93,15 @@ export default function ResetPasswordPage() {
             onChange={(e) => setConfirmPassword(e.target.value)}
             className={field}
           />
-          <button type="button" aria-pressed={showPassword} onClick={() => setShowPassword(value => !value)} className="mt-4 border rounded-xl px-3 py-2">{showPassword ? 'Hide passwords' : 'Show passwords'}</button>
+          <Button type="button" aria-pressed={showPassword} onClick={() => setShowPassword(value => !value)} className="trace-button trace-button-inverse mt-4">{showPassword ? 'Hide passwords' : 'Show passwords'}</Button>
 
-          <button
+          <Button
             type="submit"
             disabled={loading}
-            className="mt-6 w-full py-5 bg-[#f8f9fa] dark:bg-gray-900 text-gray-900 dark:text-gray-100 font-black text-xl sm:text-2xl rounded-xl hover:bg-gray-200 dark:hover:bg-gray-800 active:bg-gray-300 disabled:opacity-70 disabled:cursor-not-allowed transition-all duration-200 shadow-lg uppercase tracking-wide"
+            className="trace-button trace-button-inverse-primary mt-6 w-full"
           >
             {loading ? 'Saving…' : 'Set New Password'}
-          </button>
+          </Button>
         </form>
       )}
     </AuthShell>

@@ -12,6 +12,7 @@ vi.mock('@/services/authService', () => ({
   markNotificationsRead: vi.fn(async () => ({})),
   updateProfile: vi.fn(async () => ({})),
   uploadProfilePicture: vi.fn(async () => ({})),
+  getSecurityLogs: vi.fn(async () => []),
 }));
 
 vi.mock('@/services/realtimeService', () => ({
@@ -59,6 +60,26 @@ beforeEach(() => {
 });
 
 describe('Layout', () => {
+  it('reveals the Admin tour target in More and returns to Main for its next target', async () => {
+    currentUser = { ...STUDENT, role: 'admin' };
+    startFirstLoginGuide.mockResolvedValue(true);
+    renderLayout();
+    const tour = await screen.findByRole('dialog', { name: 'TRACE quick guide' });
+    for (let index = 0; index < 4; index++) fireEvent.click(within(tour).getByRole('button', { name: 'Next' }));
+    expect(screen.getByRole('link', { name: 'Templates' })).toHaveAttribute('data-guide-tab', 'admin-templates');
+    expect(screen.getByRole('navigation', { name: 'More navigation' })).toBeInTheDocument();
+    fireEvent.click(within(tour).getByRole('button', { name: 'Next' }));
+    expect(screen.getByRole('link', { name: 'Document Tracker' })).toBeInTheDocument();
+    expect(screen.getByRole('navigation', { name: 'Main navigation' })).toBeInTheDocument();
+  });
+  it.each(['Student', 'Finance', 'Secretary', 'Window 1', 'Admin'])('uses shared TRACE branding for %s and its navigation drawer', desk => {
+    currentUser = { ...STUDENT, role: desk === 'Student' ? 'student' : desk === 'Admin' ? 'admin' : 'clerk', desk_assignment: desk };
+    renderLayout();
+    expect(screen.getByRole('img', { name: 'TRACE logo' })).toBeInTheDocument();
+    expect(screen.queryByRole('img', { name: 'PLP Logo' })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByLabelText('Open navigation menu'));
+    expect(within(screen.getByRole('dialog', { name: 'Navigation menu' })).getByRole('img', { name: 'TRACE logo' })).toBeInTheDocument();
+  });
   it('automatically offers a new account the tour and uses the question mark for replay', async () => {
     startFirstLoginGuide.mockResolvedValue(true);
     renderLayout();
@@ -73,8 +94,19 @@ describe('Layout', () => {
     expect(screen.getByRole('heading', { name: 'Start with your profile' })).toBeInTheDocument();
     expect(startFirstLoginGuide).toHaveBeenCalledOnce();
   });
-  it('does not offer the student tour to staff', () => {
-    currentUser = { ...STUDENT, role: 'clerk', desk_assignment: 'Finance' };
+  it.each(['Finance', 'Secretary', 'Window 1', 'Admin'])('offers the %s tour automatically and provides replay', async desk => {
+    currentUser = { ...STUDENT, role: desk === 'Admin' ? 'admin' : 'clerk', desk_assignment: desk };
+    startFirstLoginGuide.mockResolvedValue(true);
+    renderLayout();
+    expect(await screen.findByRole('heading', { name: 'Keep your account details current' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Open quick guide' })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Skip quick guide' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Open quick guide' }));
+    expect(screen.getByRole('heading', { name: 'Keep your account details current' })).toBeInTheDocument();
+    expect(startFirstLoginGuide).toHaveBeenCalledOnce();
+  });
+  it('waits for staff to replace the temporary password', () => {
+    currentUser = { ...STUDENT, role: 'clerk', must_change_password: true, desk_assignment: 'Finance' };
     renderLayout();
     expect(screen.queryByRole('button', { name: 'Open quick guide' })).not.toBeInTheDocument();
     expect(startFirstLoginGuide).not.toHaveBeenCalled();
@@ -91,6 +123,7 @@ describe('Layout', () => {
     currentUser = { ...STUDENT, user_type: 'alumni', has_grad_application: false, email_verified_at: null };
     renderLayout();
     expect(screen.getByRole('region', { name: 'Graduate application' })).toBeInTheDocument();
+    expect(screen.getByRole('img', { name: 'TRACE logo' })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Preferences' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Edit Profile' })).not.toBeInTheDocument();
     expect(screen.queryByLabelText('Open navigation menu')).not.toBeInTheDocument();
@@ -112,6 +145,9 @@ describe('Layout', () => {
     expect(screen.getByRole('combobox', { name: 'Text size' })).toHaveValue('200');
   });
   it('applies and saves the theme without resetting account data', () => {
+    const favicon = document.createElement('link');
+    favicon.rel = 'icon';
+    document.head.appendChild(favicon);
     localStorage.setItem('trace_token', 'existing-token');
     renderLayout();
     const toggle = screen.getByRole('button', { name: 'Dark mode' });
@@ -119,10 +155,13 @@ describe('Layout', () => {
     expect(toggle).toHaveAttribute('aria-pressed', 'true');
     expect(document.documentElement).toHaveClass('dark');
     expect(localStorage.getItem('trace_theme')).toBe('dark');
+    expect(favicon.getAttribute('href')).toBe('/trace-favicon-dark.svg');
     expect(localStorage.getItem('trace_token')).toBe('existing-token');
     fireEvent.click(toggle);
     expect(document.documentElement).not.toHaveClass('dark');
     expect(localStorage.getItem('trace_theme')).toBe('light');
+    expect(favicon.getAttribute('href')).toBe('/trace-favicon.svg');
+    favicon.remove();
   });
 
   it('keeps theme switching usable when storage is blocked', () => {
@@ -201,6 +240,7 @@ describe('Layout', () => {
   it('closes the drawer once a destination is chosen', async () => {
     renderLayout();
     fireEvent.click(screen.getByLabelText('Open navigation menu'));
+    fireEvent.click(within(screen.getByRole('dialog', { name: 'Navigation menu' })).getByRole('button', { name: 'More' }));
     await waitFor(() => expect(screen.getByText('Help / FAQ')).toBeInTheDocument());
 
     fireEvent.click(screen.getByText('Help / FAQ'));
@@ -219,6 +259,8 @@ it('opens Edit Profile directly from the incomplete-request action', () => {
   renderLayout();
   act(() => window.dispatchEvent(new CustomEvent('open-profile-settings')));
   expect(screen.getByRole('dialog', { name: 'Edit Profile' })).toBeInTheDocument();
-  expect(screen.getByText(/Still needed:/)).toHaveTextContent('Birth Date');
-  expect(screen.getByText('Personal Info')).toBeInTheDocument();
+  expect(screen.getByLabelText(/Birth Date/)).toHaveAccessibleDescription('Required: Birth Date.');
+  expect(screen.getByRole('button', { name: /Personal Info.*Required information missing/ })).toHaveAttribute('aria-pressed', 'true');
+  expect(screen.queryByText(/Still needed:/)).not.toBeInTheDocument();
+  expect(screen.queryByText('Required: Elementary School.')).not.toBeInTheDocument();
 });

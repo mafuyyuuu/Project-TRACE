@@ -1,5 +1,7 @@
+import Button from '@/components/Button';
 import { useEffect, useId, useRef } from 'react';
 import { createPortal } from 'react-dom';
+import useDrillMotion from '@/hooks/useDrillMotion';
 
 const FOCUSABLE_SELECTOR =
   'a[href], button, textarea, input:not([type="hidden"]), select, [tabindex], [contenteditable="true"]';
@@ -31,11 +33,11 @@ function getFocusableElements(panel) {
  * support lightboxes and split-column forms without duplicating the shell.
  */
 const DEFAULT_BACKDROP_CLASS_NAME =
-  'absolute inset-0 bg-gray-900/60 dark:bg-gray-800/60 backdrop-blur-md transition-opacity duration-200';
+  'absolute inset-0 bg-gray-900/60 dark:bg-gray-800/60 backdrop-blur-md transition-opacity';
 const DEFAULT_CLOSE_BUTTON_CLASS_NAME =
-  'absolute top-4 right-4 z-10 w-8 h-8 rounded-full flex items-center justify-center text-gray-400 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800';
+  'trace-icon-button absolute top-3 right-3 z-10';
 const DEFAULT_FOOTER_CLASS_NAME =
-  'shrink-0 px-6 sm:px-8 py-6 sm:py-8 pt-6 border-t border-gray-100 dark:border-gray-700';
+  'trace-modal-footer';
 
 export default function ModalShell({
   open,
@@ -64,6 +66,7 @@ export default function ModalShell({
 }) {
   const titleId = useId();
   const panelRef = useRef(null);
+  useDrillMotion(panelRef, open, layer);
 
   useEffect(() => {
     if (!open) return undefined;
@@ -144,9 +147,9 @@ export default function ModalShell({
 
   const resolvedPanelClassName =
     panelClassName ??
-    `bg-white dark:bg-gray-900 rounded-3xl shadow-2xl w-full ${maxWidth} max-h-[calc(100dvh-2rem)] z-10 border border-gray-100 dark:border-gray-700 relative animate-slide-up flex flex-col overflow-hidden`;
+    `trace-modal-panel ${maxWidth}`;
   const resolvedBodyClassName =
-    bodyClassName ?? `min-h-0 flex-1 overflow-y-auto overscroll-contain px-6 sm:px-8 pb-6 sm:pb-8 ${title ? 'pt-2' : 'pt-6 sm:pt-8'}`;
+    bodyClassName ?? `trace-modal-body ${title ? 'pt-2' : 'pt-4 sm:pt-6'}`;
 
   return createPortal(
     <div className={`trace-modal-overlay fixed inset-0 ${layer === 'feedback' ? 'z-[110]' : 'z-[100]'} flex items-start sm:items-center justify-center p-4 overflow-y-auto animate-fade-in`}>
@@ -170,14 +173,14 @@ export default function ModalShell({
         style={panelStyle}
       >
         {showCloseButton && (
-          <button
+          <Button
             type="button"
             onClick={onClose}
             aria-label={closeButtonAriaLabel}
             className={closeButtonClassName ?? DEFAULT_CLOSE_BUTTON_CLASS_NAME}
           >
             {closeButtonIcon}
-          </button>
+          </Button>
         )}
 
         {bare ? (
@@ -185,7 +188,7 @@ export default function ModalShell({
         ) : (
           <>
             {title && (
-              <div className="shrink-0 px-6 sm:px-8 pt-6 sm:pt-8 pb-2 pr-14">
+              <div className="shrink-0 px-4 sm:px-6 pt-4 sm:pt-6 pb-2 pr-16 sm:pr-16">
                 <h3 id={titleId} className="text-lg sm:text-xl font-black text-gray-900 dark:text-gray-100 break-words">
                   {title}
                 </h3>

@@ -20,6 +20,17 @@ CREATE TABLE IF NOT EXISTS colleges (
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+-- No invented program seeds. Admin enters the Registrar-approved catalog.
+CREATE TABLE IF NOT EXISTS programs (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  college_id INT NOT NULL,
+  name VARCHAR(150) NOT NULL,
+  is_active BOOLEAN NOT NULL DEFAULT TRUE,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE KEY programs_college_name (college_id, name),
+  FOREIGN KEY (college_id) REFERENCES colleges(id) ON DELETE RESTRICT
+) ENGINE=InnoDB;
+
 -- Users table: students, clerks, and admins
 CREATE TABLE IF NOT EXISTS users (
   id INT AUTO_INCREMENT PRIMARY KEY,
@@ -42,7 +53,7 @@ CREATE TABLE IF NOT EXISTS users (
   profile_picture VARCHAR(500),
   verification_status ENUM('pending', 'verified', 'rejected') DEFAULT 'pending',
   verification_reason VARCHAR(300) NULL,
-  course VARCHAR(100),
+  course VARCHAR(150),
   college_id INT NULL,
   FOREIGN KEY (college_id) REFERENCES colleges(id) ON DELETE SET NULL,
   phone_number VARCHAR(20),

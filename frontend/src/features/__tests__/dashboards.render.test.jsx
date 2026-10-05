@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { STATUS } from '@/utils/documentStatus';
+import { STATUS, LEGACY_STATUS, getStatusLabel } from '@/utils/documentStatus';
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 
 /**
  * Smoke tests for the role-hook split: each command center must mount, run its
@@ -37,10 +38,12 @@ vi.mock('@/services/authService', () => ({
 
 vi.mock('@/services/reportsService', () => ({
   getAnalytics: vi.fn().mockResolvedValue({}),
+  getDocumentReport: vi.fn(), exportStudentsCsv: vi.fn(), exportDocumentsCsv: vi.fn(),
 }));
 
 import * as documentsService from '@/services/documentsService';
 import * as authService from '@/services/authService';
+import * as reportsService from '@/services/reportsService';
 import api from '@/services/api';
 
 import StudentDashboard from '@/features/student/StudentDashboard';
@@ -48,8 +51,12 @@ import FinanceDashboard from '@/features/finance/FinanceDashboard';
 import Window1Dashboard from '@/features/window1/Window1Dashboard';
 import SecretaryDashboard from '@/features/secretary/SecretaryDashboard';
 import AdminDashboard from '@/features/admin/AdminDashboard';
+import AdminSecurityPanel from '@/features/admin/components/AdminSecurityPanel';
 
-afterEach(() => vi.useRealTimers());
+afterEach(() => {
+  vi.useRealTimers();
+  document.documentElement.classList.remove('dark');
+});
 
 const DOC = {
   id: 1,
@@ -113,6 +120,38 @@ async function renderDashboard(ui) {
   return utils;
 }
 
+describe('shared document badge colors', () => {
+  const examples = [
+    [STATUS.PENDING_STUDENT_PAYMENT, 'amber'], [STATUS.SEC_PROCESSING, 'blue'],
+    [STATUS.READY_FOR_RELEASE, 'green'], [STATUS.COMPLETED, 'green'],
+    [LEGACY_STATUS.APPROVED, 'blue'], [LEGACY_STATUS.REJECTED, 'red'],
+  ];
+  const sample = examples.map(([status], index) => ({ ...DOC, id: index + 1, current_status: status, tracking_number: `TRC-COLOR-${index}` }));
+  it.each([
+    ['Admin', AdminDashboard, USERS.admin, 'admin-tracker'],
+    ['Window 1', Window1Dashboard, USERS.window1, 'tracking-desk'],
+    ['Student history', StudentDashboard, USERS.student, 'history'],
+  ])('uses the same explicit status meanings in %s', async (_, Component, user, tab) => {
+    documentsService.getDocuments.mockResolvedValue({ documents: sample, total: sample.length, totalPages: 1 });
+    await renderDashboard(<Component user={user} currentTab={tab} setViewImageUrl={vi.fn()} />);
+    for (const [status, color] of examples) {
+      const badge = await screen.findByText(getStatusLabel(status), { selector: 'tbody span' });
+      expect(badge).toHaveClass(`bg-${color}-50`);
+      expect(badge.className).toContain(`dark:bg-${color}-950`);
+      expect(badge).not.toHaveClass('bg-yellow-50');
+    }
+  });
+
+  it('maps uppercase and historical lowercase statuses in the activity log, retaining readable labels', async () => {
+    documentsService.getActivityLogs.mockResolvedValue({ logs: examples.map(([status], index) => ({ id: index, status: index === 3 ? 'completed' : status, timestamp_started: '2026-10-01T00:00:00Z' })) });
+    await renderDashboard(<AdminDashboard user={USERS.admin} currentTab="admin-logs" setViewImageUrl={vi.fn()} />);
+    for (const [status, color] of examples) {
+      const badge = await screen.findByText(getStatusLabel(status), { selector: 'tbody span' });
+      expect(badge).toHaveClass(`bg-${color}-50`);
+    }
+  });
+});
+
 describe('command centers mount and load their own data', () => {
   it('Student', async () => {
     await renderDashboard(
@@ -147,6 +186,28 @@ describe('command centers mount and load their own data', () => {
     await waitFor(() => expect(documentsService.getForecast).toHaveBeenCalled());
     expect(documentsService.getInsights).toHaveBeenCalled();
     expect(authService.getPendingStudents).toHaveBeenCalled();
+  });
+
+  it('Admin — preserves warning and informational insights when the root theme changes', async () => {
+    documentsService.getInsights.mockResolvedValue({ insights: [
+      { type: 'warning', title: 'Queue needs attention', message: 'Review the waiting requests.' },
+      { type: 'info', title: 'System Normal', message: 'All other queues normal.' },
+    ] });
+    await renderDashboard(<AdminDashboard user={USERS.admin} currentTab="dashboard" setViewImageUrl={vi.fn()} />);
+    const panel = await screen.findByRole('region', { name: 'AI INSIGHTS' });
+    const warning = await within(panel).findByRole('heading', { name: /Warning:.*Queue needs attention/ });
+    const information = within(panel).getByRole('heading', { name: /Information:.*System Normal/ });
+    const fetchCount = documentsService.getInsights.mock.calls.length;
+    for (const dark of [true, false, true]) {
+      act(() => document.documentElement.classList.toggle('dark', dark));
+      expect(within(panel).getByRole('heading', { name: /Warning:.*Queue needs attention/ })).toBe(warning);
+      expect(within(panel).getByRole('heading', { name: /Information:.*System Normal/ })).toBe(information);
+      expect(within(panel).getByText('Review the waiting requests.')).toBeInTheDocument();
+      expect(within(panel).getByText('All other queues normal.')).toBeInTheDocument();
+      expect(documentsService.getInsights).toHaveBeenCalledTimes(fetchCount);
+    }
+    expect(warning.querySelector('svg')).toHaveAttribute('aria-hidden', 'true');
+    expect(information.querySelector('svg')).toHaveAttribute('aria-hidden', 'true');
   });
 });
 
@@ -188,6 +249,35 @@ describe('role isolation', () => {
     expect(await screen.findByRole('heading', { name: 'Global Security Audit Log' })).toBeInTheDocument();
     expect(await screen.findByText('No security logs found')).toBeInTheDocument();
     expect(get).toHaveBeenCalledWith('/auth/global-security-logs');
+  });
+
+  it('preserves every long audit value in its column and exposes keyboard access to the scroll region', async () => {
+    const log = {
+      created_at: '2026-10-05T00:00:00Z',
+      event_type: 'SECURITY_EVENT_' + 'LONG_DETAIL_'.repeat(20),
+      full_name: 'Synthetic account ' + 'LongName'.repeat(20),
+      student_id: 'SYNTHETIC-' + 'IDENTIFIER'.repeat(20),
+      role: 'college_secretary',
+      ip_address: '2001:0db8:85a3:0000:0000:8a2e:0370:7334',
+    };
+    const get = vi.spyOn(api, 'get').mockResolvedValue({ data: [log, { ...log, ip_address: null }] });
+    render(<AdminSecurityPanel />);
+    const table = await screen.findByRole('table', { name: 'Global security audit log' });
+    expect(within(table).getAllByRole('columnheader').map(header => header.textContent))
+      .toEqual(['Timestamp', 'Event', 'User', 'Role', 'IP Address']);
+    const cells = within(within(table).getAllByRole('row')[1]).getAllByRole('cell');
+    expect(cells[0]).toHaveTextContent(new Date(log.created_at).toLocaleString());
+    expect(cells[1].textContent).toBe(log.event_type);
+    expect(cells[2]).toHaveTextContent(log.full_name);
+    expect(cells[2]).toHaveTextContent(log.student_id);
+    expect(cells[3].textContent).toBe(log.role);
+    expect(cells[4].textContent).toBe(log.ip_address);
+    expect(within(table).getByText('Unknown')).toBeInTheDocument();
+    const region = screen.getByRole('region', { name: 'Security log table' });
+    expect(region).toContainElement(table);
+    await userEvent.setup().tab();
+    expect(region).toHaveFocus();
+    expect(get).toHaveBeenCalledExactlyOnceWith('/auth/global-security-logs');
   });
 });
 
@@ -332,4 +422,22 @@ describe('Admin Templates tab', () => {
       content: 'Email content', font_family: 'serif', font_size: '14px',
     }));
   });
+});
+
+
+it('keeps the old Secretary Completed Logs tab as a cleared-records alias, with the profile action and full report available', async () => {
+  const record = { ...DOC, current_status: STATUS.READY_FOR_RELEASE, document_sequence_number: 'Transcript of Records – Request No. 2' };
+  reportsService.getDocumentReport.mockResolvedValue({ documents: [record], page: 1, totalPages: 1, total: 1, summary: { total: 1, completed: 0, rejected: 0, paid: 0, revenue: 0 } });
+  authService.lookupStudent.mockResolvedValue({ student: { ...USERS.student, course: 'Synthetic College' } });
+  const { rerender } = render(<SecretaryDashboard user={USERS.secretary} currentTab="completed-logs" />);
+  await screen.findByText(record.document_sequence_number);
+  expect(screen.getByRole('heading', { name: 'Records & Export' })).toBeInTheDocument();
+  expect(reportsService.getDocumentReport).toHaveBeenLastCalledWith({ recordSet: 'secretary-cleared', page: 1, limit: 25 });
+  expect(screen.getByRole('button', { name: 'Secretary-cleared' })).toHaveAttribute('aria-pressed', 'true');
+  expect(screen.getAllByRole('columnheader')).toHaveLength(8);
+  await userEvent.click(screen.getByRole('button', { name: DOC.student_name }));
+  await waitFor(() => expect(authService.lookupStudent).toHaveBeenCalledWith(DOC.student_id, expect.anything()));
+  rerender(<SecretaryDashboard user={USERS.secretary} currentTab="reports" />);
+  await waitFor(() => expect(reportsService.getDocumentReport).toHaveBeenLastCalledWith({ page: 1, limit: 25 }));
+  expect(screen.getByRole('button', { name: 'All records' })).toHaveAttribute('aria-pressed', 'true');
 });

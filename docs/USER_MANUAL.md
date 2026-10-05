@@ -24,17 +24,16 @@ Use your own account and password. The example accounts in older documentation a
 1. Open the TRACE website supplied by the Registrar.
 2. Enter your Student ID, Alumni ID or Staff ID and your password.
 3. Select **Login** and wait for the result. Errors appear in the form.
-4. If a verification screen opens, enter the code from your enrolled authenticator app, an unused recovery code, or the emailed login code requested by that screen.
+4. If a verification screen opens, enter the code requested by that screen. For an enrolled authenticator, **Use a recovery code** appears directly below the code input; **Use authenticator code** switches back in the same place. Switching clears the entry and does not submit it. Email-code verification has its own entry screen.
 5. Select **Verify & Login**. For email codes, **Resend OTP** becomes available after 60 seconds; use the newest code.
 
 **Email verification and login verification are different.** Email verification uses a button/link to confirm an address. A login code confirms access to an account during sign-in.
 
-- Admin verifies every login.
-- Clerks verify unless TRACE accepts their previously trusted personal browser. Only clerks see **This is my personal browser — trust it for today** during verification. Leave it unchecked on school or shared computers. Trust expires at midnight Manila time and browser privacy settings may prevent it from being remembered.
+- Admin with an enrolled authenticator and clerks can opt into **This is my personal browser — trust it for today** on the verification screen. It starts unchecked. Complete verification to grant trust; the password is still required on later logins. Leave it unchecked on school or shared computers. Trust expires at midnight Manila time; a new browser, revoked trust or blocked cookies requires verification again. Admin using email codes verifies every login.
 - Students without an enabled login factor do not receive an OTP just because it is their first login or a new browser. Students with an enrolled authenticator use an app or recovery code at login.
 - Staff without an email inbox must ask Admin for initial authenticator setup; see [Admin tasks](#11-admin-tasks).
 
-**Forgot your password?** Select **Forgot Password?**, enter your email and follow the reset instructions sent there. The request response does not confirm whether an account exists. Use the newest valid reset link and choose a new password. If you cannot access the inbox, contact the Registrar.
+**Forgot your password?** Select **Forgot Password?**, enter your Student ID, Staff ID or current saved email, choose **Send Reset Link**, then confirm **Request Link**. The receipt message is the same for every request and does not confirm an account match or email delivery. Check the registered inbox and Spam/Junk. If nothing arrives, give the displayed **Request reference** to the Registrar; it is safe to share and contains no reset token. Staff without a saved email or access to its inbox must contact the Registrar. Use only the newest link; it expires after one hour and works once. If a request times out, an email may still arrive—check before retrying.
 
 ## 2. Create a student or alumni account
 
@@ -43,7 +42,7 @@ Use your own account and password. The example accounts in older documentation a
 3. Select the requested ID or diploma proof. You may choose **Read ID** to fill missing fields, then check the result yourself. Unreadable fields can be entered manually.
 4. Review the form, select **Submit Registration**, then confirm. File selection and Read ID do not submit the account.
 5. Follow the displayed success or review instructions. If the account is pending review, wait for Admin's decision.
-6. Open TRACE's email and select **Verify Email**. You can resend the link from Profile after gaining dashboard access.
+6. After approval, sign in and open **Edit Profile → Personal Info**. Select **Verify** beside Email Address, then select **Verify Email** in your inbox. Signup saves the address without sending this ownership link automatically. Requests stay blocked until verification succeeds.
 
 New alumni use their **Alumni ID** to sign in. Existing alumni keep their current login identifier. **Back to Login** returns to the sign-in page.
 
@@ -51,16 +50,16 @@ On the first alumni login, complete and submit the **Graduate Application** befo
 
 ## 3. Use the first-login tutorial
 
-New student and alumni accounts created on the updated backend receive the tutorial on their first eligible dashboard visit. Required Graduate Application or temporary-password steps come first.
+New student and alumni accounts created on the updated backend receive the tutorial on their first eligible dashboard visit. Window 1, Secretary, Finance and Admin receive their own tour on their first eligible dashboard visit after this update, including existing staff who have never received one. Required Graduate Application or temporary-password steps come first.
 
-The tour highlights a real control and blurs the surrounding screen. It covers Profile, email verification, New Request, payment, tracking, notifications, support, Security and help.
+The tour highlights a real control and blurs the surrounding screen. The student tour covers Profile, email verification, requests, payment, tracking, notifications, support and Security. Staff tours explain the desk's queues and reports; Window 1 also covers tracking and messaging, Secretary covers pricing and graduate applications, Finance covers payment and deferred ORs, and Admin covers account review, Maintenance, Templates, tracking and security logs. On phones, navigation steps open the menu to highlight the destination.
 
 1. Read the floating instruction beside the highlighted control.
 2. Use **Open my profile** or **Open support** when offered to explore that area.
 3. Select **Next** or **Back** to move through the steps.
 4. Select **Finish tour** at the end, or **Skip** to close it early.
 
-TRACE records the automatic offer against your account. Skipping, logging out, reloading or changing browsers does not start it automatically again. Accounts created before this update use manual replay.
+TRACE records the automatic offer against your account. Skipping, logging out, reloading or changing browsers does not start it automatically again. Student accounts created before guide enrollment was added use manual replay.
 
 **Replay it anytime:** select the **?** beside the light/dark-mode button in the dashboard header. There is no large Quick Guide button. If enlarged text makes an instruction long, scroll inside the tour card; Back and Next remain at the bottom.
 
@@ -69,11 +68,11 @@ TRACE records the automatic offer against your account. Skipping, logging out, r
 ### Save your information
 
 1. Select your avatar to open **Edit Profile**.
-2. Complete **Personal Info** and educational information. The progress bar and missing-field indicators show what remains.
+2. Complete **Personal Info** and **Educational Background**. An exclamation marker identifies a tab with missing required information; open it to see concise **Required** hints beside its fields. Hints and draft progress update as you edit.
 3. Select Save, review the confirmation and confirm.
 4. Check that the saved progress updates. Unsaved entries do not count toward completion.
 
-Required information includes phone, email, birth date, birthplace, sex, civil status, home address, and elementary, junior-high and senior-high schools with graduation years. Alumni supply their graduation year; transfer students supply Previous School; married female students supply a maiden name. Follow the missing-field list for your account. Extension name and profile photo are optional. Program/Course is separate from College.
+Required information includes phone, email, birth date, birthplace, sex, civil status, home address, and elementary, junior-high and senior-high schools with graduation years. Alumni supply their graduation year; transfer students supply Previous School; married female students supply a maiden name. Follow each marked tab's field hints for your account. Extension name and profile photo are optional. Program/Course is separate from College. In Personal Info, choose College first, then its active Registrar-approved Program/Course. Changing College clears the draft program. Save and confirm, then check the saved selections after reload. If no programs are available, ask Admin to add the approved catalog. Your recorded unlisted/inactive entries are preserved when saving other information.
 
 **Change your photo:** select the camera on your avatar, choose an image, check the preview, then Save and confirm. Selecting an image does not upload it immediately. Your saved registration proof is available for viewing/downloading; this does not grant permission to replace it.
 
@@ -169,15 +168,18 @@ Requirements vary by case. An extra document is not required unless requested. S
 2. Enter your current password and select **Set up authenticator app**.
 3. In your authenticator app, scan the QR code or enter the manual key.
 4. Enter the app's generated code, select **Enable authenticator**, then confirm the change.
-5. Save/download the recovery codes shown once, and keep them private.
+5. Select **Copy recovery codes** or **Download recovery codes** and keep them private. Copy confirms only after clipboard access succeeds; an error offers download or manual copy. “Download started” means the browser received the download action—check its downloads to confirm completion.
+6. After saving them privately, select **I saved my recovery codes**. Copy/download does not dismiss or acknowledge the codes; they will not be shown again after acknowledgment.
 
 Setup is available to every role when the server is configured. At login, use the app or one unused recovery code. Email resend cannot bypass an enrolled authenticator. If you lose both the app and recovery codes, contact the Registrar; initial staff setup cannot replace an existing factor.
 
+For an enrolled authenticator, the same **Use a recovery code** / **Use authenticator code** switch appears directly below its code field in **Edit Profile → Security**, separate from the generate and disable actions. Switching clears the field; choose the management action afterward.
+
 ### Other account controls
 
-Security includes password changes, **Logout All Devices** and security activity. Password changes require the current password; a new password needs 8–64 characters, uppercase, lowercase, a number and a symbol from `@$!%*?&`, and cannot reuse the current or last three passwords. Successful changes end older sessions. Review unfamiliar login activity and report it to the Registrar.
+Security includes password changes, **Logout All Devices** and security activity. Password changes require the current password; a new password needs 8–64 characters, uppercase, lowercase, a number and a symbol from `@$!%*?&_`, and cannot reuse the current or last three passwords. Successful changes end older sessions. Review unfamiliar login activity and report it to the Registrar.
 
-Clerks can choose **Browser verification → Use shared-computer verification** to forget this browser's trust preference.
+Clerks and Admin can choose **Browser verification → Use shared-computer verification** to forget this browser's trust preference.
 
 ### Appearance and accessibility
 
@@ -186,6 +188,8 @@ Clerks can choose **Browser verification → Use shared-computer verification** 
 3. Review the page. Preferences are remembered in this browser across reloads and sign-out.
 
 The header's theme button also switches light/dark mode. On phones, use the top-left menu for navigation. Long forms scroll inside their dialogs; wide tables/charts scroll inside their cards. Printed documents keep their original size.
+
+Navigation has **Main** for daily work and **More** for secondary destinations. Choose the four-square **More** button for secondary destinations and **Help / FAQ** available to your role. Secretary's **Records & Export** and Finance's **Transactions & Export** remain in Main. Choose **Back to main** to return. **Preferences** and **Logout** are available in both sets. Opening a direct link reveals the correct set and marks its current page. On a short screen you can scroll the navigation with touch, a wheel/trackpad or keyboard even though its scrollbar is hidden; Tab still reaches every control.
 
 Use Tab to move between controls, Enter/Space to activate them, and Escape to close eligible dialogs. Queue tabs support arrow keys, Home and End. Names, IDs, tracking numbers and notes can be selected and copied.
 
@@ -208,7 +212,15 @@ Use Tab to move between controls, Enter/Space to activate them, and Escape to cl
 5. In **OR Verification**, inspect the physical OR or uploaded copy and check its number. If the digital copy is pending, record the physical inspection acknowledgment before confirming.
 6. In **Final Handoff**, pass the printed document to Window 1 and confirm the handoff.
 
-Receipt verification and handoff are separate actions. Finance alone clears payment. Use request messaging for corrections and **Reports & Export** for authorized exports.
+Receipt verification and handoff are separate actions. Finance alone clears payment. Use request messaging for corrections. Open **Records & Export** in Main to review your assigned college's records:
+
+- **All records** shows all statuses within the other filters.
+- **Secretary-cleared** shows **Ready for Pick-up** and **Completed**. Old Completed Logs links open this view.
+- **Completed only** shows released documents. You can also select any individual status in Filters.
+
+The page keeps Filters, summary cards and Records in that order. Records show requested/updated dates, full tracking numbers, clickable student names, document request labels, actual statuses, payment and amounts. Scroll inside the table on narrow screens and use its page controls for more records. **Last Updated** is the recorded update time, not a separate approval timestamp.
+
+Choose **Export** beside the title. **Filtered document records (CSV)** uses the current document filters; the four student CSV options use their account categories. Every Secretary export is limited to the assigned college. An account without a college assignment must ask Admin to correct its assignment before viewing or exporting records.
 
 ## 10. Finance tasks
 
@@ -247,6 +259,10 @@ This is initial setup, not replacement of an enrolled authenticator. Staff use t
 - **Templates:** edit the payment-slip body or email notice, preview it, then Save and confirm. Keep `{{MESSAGE}}` in email notices so verification/reset instructions remain. Supported variables include student identity, Program/Course, document type, tracking/OR/request numbers, amount and issue date. The payment tracking QR remains outside the customizable body.
 - **Reports & Export:** apply filters, select an export category and export. Review efficiency/throughput charts as measured indicators; forecasts are estimates.
 
+### Read Security Logs
+
+Open **Security Logs** to review each event's timestamp, event name, account name/ID, role and IP address. Long values wrap without truncation. On smaller screens, scroll horizontally inside the table to reach all columns; keyboard users can Tab to the table area and use the arrow keys. Scroll vertically inside that area to review more rows while the column headings stay visible.
+
 ## 12. Solve common problems
 
 | What you see | What to do |
@@ -265,3 +281,13 @@ This is initial setup, not replacement of an enrolled authenticator. Staff use t
 | A server error persists | Note the action and time. Ask the operator to inspect the relevant logs; do not share passwords, tokens, codes or private records. |
 
 Read confirmations before saving or making desk decisions. Cancel keeps the draft; file selection alone does not submit it. Login and message sending submit directly. A Loading indicator means API work is pending, not that you should repeatedly click the action.
+
+### Maintain Registrar-approved programs (Admin)
+
+1. Open **System Maintenance → Programs**.
+2. Choose an active College, then enter the exact Registrar-approved program name (up to 150 characters).
+3. Select **Add Program**, check the confirmation and confirm. Cancelling or a failed save keeps your draft.
+4. Use **Deactivate** to hide a program from new profile selections; saved student records remain unchanged. **Restore** makes it available again when its College is active.
+5. To replace a name or college association, add the approved replacement and deactivate the old entry. Duplicate names within the same college are rejected; restore an existing inactive entry instead.
+
+The catalog starts empty. Add only approved programs; TRACE does not infer a program list from student-entered text. Students and alumni use these choices in Edit Profile; registration's existing manual entry is unchanged.

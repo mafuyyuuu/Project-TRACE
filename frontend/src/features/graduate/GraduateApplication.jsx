@@ -1,3 +1,4 @@
+import Button from '@/components/Button';
 import { INPUT_LIMITS } from '@/utils/inputLimits';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import useGraduateApplication from '@/features/graduate/useGraduateApplication';
@@ -33,7 +34,7 @@ function DynamicField({ field, value, onChange }) {
     required: Boolean(field.is_required),
     placeholder: field.placeholder || '',
     className:
-      'w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-3 text-xs font-semibold outline-none focus:ring-2 focus:ring-[#15803d]/20 focus:bg-white dark:focus:bg-gray-900 transition-all',
+      'trace-control',
   };
 
   const options = Array.isArray(field.options)
@@ -44,7 +45,7 @@ function DynamicField({ field, value, onChange }) {
 
   return (
     <div className="flex flex-col gap-1.5">
-      <label htmlFor={field.field_key} className="text-[10px] font-bold text-gray-800 dark:text-gray-100 uppercase tracking-widest">
+      <label htmlFor={field.field_key} className="trace-label">
         {field.label} {field.is_required ? <span className="text-red-500 dark:text-red-300">*</span> : null}
       </label>
 
@@ -95,25 +96,25 @@ export default function GraduateApplication({ user }) {
         loading={submitting} loadingLabel="Submitting…" onConfirm={confirmSubmission} onCancel={cancelSubmission} />
       <DashboardAlerts success={success} error={error} onDismiss={dismissNotification} />
 
-      <div className="space-y-8 animate-fade-in">
+      <div className="trace-page">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <h2 className="text-2xl sm:text-3xl font-display font-black text-gray-900 dark:text-gray-100 tracking-tight">
+            <h2 className="trace-page-title">
               Graduate <span className="text-[#15803d] dark:text-green-300">Application</span>
             </h2>
-            <p className="text-xs text-gray-400 dark:text-gray-400 mt-1 font-semibold">
+            <p className="trace-page-description">
               Complete the Registrar&apos;s application form below.
             </p>
           </div>
-          <div className="flex items-center gap-3 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-2xl px-5 py-2.5 shadow-sm">
+          <div className="trace-date">
             <span className="text-xs font-semibold text-gray-500 dark:text-gray-400">Today:</span>
             <span className="text-xs font-bold text-gray-800 dark:text-gray-100">{todayLongDate()}</span>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {/* The form itself */}
-          <div className="lg:col-span-2 bg-white dark:bg-gray-900 rounded-3xl p-4 sm:p-6 md:p-8 shadow-sm border border-gray-200 dark:border-gray-700">
+          <div className="trace-section trace-section-body lg:col-span-2">
             <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-1">Application Form</h3>
             <p className="text-xs text-gray-400 dark:text-gray-400 mb-6 pb-5 border-b border-gray-100 dark:border-gray-700">
               Fields marked <span className="text-red-500 dark:text-red-300">*</span> are required.
@@ -138,20 +139,20 @@ export default function GraduateApplication({ user }) {
                 ))}
 
                 <div className="flex justify-end pt-4 border-t border-gray-100 dark:border-gray-700">
-                  <button
+                  <Button
                     type="submit"
                     disabled={submitting}
-                    className="w-full sm:w-auto px-4 sm:px-8 py-3 bg-[#15803d] hover:bg-[#166534] disabled:opacity-60 text-white rounded-xl text-xs font-bold shadow-md transition-all uppercase tracking-wider"
+                    className="trace-button trace-button-primary w-full sm:w-auto sm:px-8"
                   >
                     {submitting ? 'Submitting...' : 'Submit Application'}
-                  </button>
+                  </Button>
                 </div>
               </form>
             )}
           </div>
 
           {/* Previous submissions */}
-          <div className="bg-white dark:bg-gray-900 rounded-3xl p-4 sm:p-6 shadow-sm border border-gray-200 dark:border-gray-700 h-fit">
+          <div className="trace-section trace-section-body h-fit">
             <h3 className="text-sm font-bold text-gray-900 dark:text-gray-100 mb-4">My Applications</h3>
 
             {applications.length === 0 ? (

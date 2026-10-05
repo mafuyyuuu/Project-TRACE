@@ -1,3 +1,4 @@
+import Button from '@/components/Button';
 import { INPUT_LIMITS } from '@/utils/inputLimits';
 import FileUploadField from '@/components/FileUploadField';
 import ModalShell from '@/components/ModalShell';
@@ -48,19 +49,19 @@ export default function WalkInPaymentModal({
       maxWidth="max-w-lg"
       footer={
         <div className="flex flex-col sm:flex-row gap-3">
-          <button
+          <Button
             onClick={() => setActiveModal(null)}
-            className="flex-1 px-5 py-3 rounded-2xl text-xs font-bold border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+            className="trace-button trace-button-secondary flex-1"
           >
             Cancel
-          </button>
-          <button
+          </Button>
+          <Button
             onClick={handleLogWalkIn}
             disabled={actionLoading || scanning}
-            className="flex-1 px-5 py-3 rounded-2xl text-xs font-bold bg-[#15803d] hover:bg-[#166534] text-white shadow-sm disabled:opacity-50 transition-colors"
+            className="trace-button trace-button-primary flex-1"
           >
             {actionLoading ? 'Saving…' : 'Record Payment'}
-          </button>
+          </Button>
         </div>
       }
     >
@@ -69,7 +70,7 @@ export default function WalkInPaymentModal({
       </p>
 
       <label className="flex items-start gap-3 text-sm mb-4">
-        <input type="checkbox" checked={counterDeferred} disabled={scanning || actionLoading} onChange={e => setCounterDeferred?.(e.target.checked)} className="mt-1 shrink-0" />
+        <input type="checkbox" checked={counterDeferred} disabled={scanning || actionLoading} onChange={e => setCounterDeferred?.(e.target.checked)} className="trace-choice mt-1 shrink-0" />
         Later — record the counter payment with OR issuance pending. Required for new ORs at or after 4:00 PM Manila time.
       </label>
       <div className="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl p-5 mb-6 font-mono text-[11px] text-gray-600 dark:text-gray-300 space-y-2">
@@ -89,10 +90,10 @@ export default function WalkInPaymentModal({
 
       <div className="space-y-5">
         <FileUploadField label="Official Receipt copy · optional" file={orFile} onChange={setOrFile} disabled={counterDeferred || scanning || actionLoading} maxBytes={5 * 1024 * 1024} />
-        <button type="button" onClick={() => handleScanReceipt(orFile)} disabled={counterDeferred || !orFile || scanning || actionLoading}
-          className="px-4 py-2 rounded-xl border border-gray-200 dark:border-gray-700 text-sm font-bold disabled:opacity-50">
+        <Button type="button" onClick={() => handleScanReceipt(orFile)} disabled={counterDeferred || !orFile || scanning || actionLoading}
+          className="trace-button trace-button-secondary">
           {scanning ? 'Reading receipt…' : 'Read Receipt'}
-        </button>
+        </Button>
 
         {scanConfidence != null && (
           <div className={`rounded-2xl p-4 border ${lowConfidence ? 'bg-amber-50 dark:bg-amber-950/40 border-amber-200 dark:border-amber-800' : 'bg-blue-50 dark:bg-blue-950/40 border-blue-100 dark:border-blue-800'}`}>
@@ -104,7 +105,7 @@ export default function WalkInPaymentModal({
           </div>
         )}
 
-        <label className="block">
+        <label className="trace-label block">
           <span className="text-[10px] font-bold text-gray-800 dark:text-gray-100 uppercase tracking-widest block mb-2">
             Official Receipt No. <span className="text-red-600 dark:text-red-300">*</span>
           </span>
@@ -113,28 +114,28 @@ export default function WalkInPaymentModal({
             disabled={counterDeferred} value={orNumber}
             onChange={(e) => setOrNumber(e.target.value)}
             placeholder="e.g. 2026-0042"
-            className="w-full rounded-2xl border border-gray-200 dark:border-gray-700 px-4 py-3 text-sm font-mono font-bold focus:outline-none focus:ring-2 focus:ring-[#15803d]/30"
+            className="trace-control w-full font-mono"
           />
         </label>
 
-        <label className="block">
+        <label className="trace-label block">
           <span className="text-[10px] font-bold text-gray-800 dark:text-gray-100 uppercase tracking-widest block mb-2">Receipt date</span>
           <input
             type="date"
             disabled={counterDeferred} value={orDate}
             onChange={(e) => setOrDate(e.target.value)}
-            className="w-full rounded-2xl border border-gray-200 dark:border-gray-700 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#15803d]/30"
+            className="trace-control w-full"
           />
         </label>
 
-        <label className="block">
+        <label className="trace-label block">
           <span className="text-[10px] font-bold text-gray-800 dark:text-gray-100 uppercase tracking-widest block mb-2">Notes</span>
           <textarea maxLength={INPUT_LIMITS.notes}
             rows={2}
             value={clerkNotes}
             onChange={(e) => setClerkNotes(e.target.value)}
             placeholder="Anything worth recording about this payment."
-            className="w-full rounded-2xl border border-gray-200 dark:border-gray-700 p-3 text-xs focus:outline-none focus:ring-2 focus:ring-[#15803d]/30"
+            className="trace-control w-full"
           />
         </label>
 

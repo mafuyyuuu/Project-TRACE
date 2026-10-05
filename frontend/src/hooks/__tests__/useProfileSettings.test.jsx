@@ -35,6 +35,15 @@ beforeEach(() => {
 });
 
 describe('useProfileSettings', () => {
+  it('rejects an invalid replacement password before saving any staged photo or profile fields', async () => {
+    const { result } = renderHook(() => useProfileSettings(USER));
+    act(() => { result.current.setField('password', 'weak_pass'); result.current.changeAvatar(new File(['x'], 'draft.png')); });
+    await act(async () => { expect(await result.current.saveProfile()).toBe(false); });
+    expect(result.current.error).toContain('@$!%*?&_');
+    expect(result.current.avatarFile).not.toBeNull();
+    expect(updateProfile).not.toHaveBeenCalled();
+    expect(uploadProfilePicture).not.toHaveBeenCalled();
+  });
   it('sends the current email link without saving other drafts and blocks duplicate sends/saves', async () => {
     let resolve;
     resendVerification.mockReturnValue(new Promise(done => { resolve = done; }));
@@ -124,7 +133,7 @@ describe('useProfileSettings', () => {
     updateProfile.mockResolvedValue({ message: 'Profile updated successfully.' });
     const { result } = renderHook(() => useProfileSettings(USER));
 
-    act(() => result.current.setField('password', 'newpw'));
+    act(() => result.current.setField('password', 'Newpassword_2026'));
     await act(async () => result.current.saveProfile());
 
     await waitFor(() => expect(result.current.profileData.password).toBe(''));
@@ -263,4 +272,29 @@ describe('saved profile refresh', () => {
     expect(result.current.error).toContain('Profile saved, but saved details could not be refreshed');
     expect(JSON.parse(localStorage.getItem('trace_user')).elem_school).toBeUndefined();
   });
+});
+
+it('clears the program on a college change, blocks incomplete academic saves, then adopts saved authoritative selections', async () => {
+  const academicUser = { ...USER, role: 'student', college_id: 1, course: 'College A', program: 'Program A' };
+  updateProfile.mockResolvedValue({ message: 'Saved' });
+  getMe.mockResolvedValue({ user: { ...academicUser, college_id: 2, course: 'College B', program: 'Program B' } });
+  const { result } = renderHook(() => useProfileSettings(academicUser));
+  expect(result.current.profileData.college_id).toBe('1');
+  act(() => result.current.setField('college_id', '2'));
+  expect(result.current.profileData.program).toBe('');
+  await act(async () => expect(await result.current.saveProfile()).toBe(false));
+  expect(updateProfile).not.toHaveBeenCalled();
+  act(() => result.current.setField('program', 'Program B'));
+  await act(async () => expect(await result.current.saveProfile()).toBe(true));
+  expect(updateProfile).toHaveBeenCalledWith(expect.objectContaining({ college_id: '2', program: 'Program B' }));
+  expect(result.current.profileData).toMatchObject({ college_id: '2', program: 'Program B' });
+});
+it('omits unchanged legacy academic fields while saving unrelated profile changes', async () => {
+  const account = { ...USER, role: 'student', college_id: null, program: 'Recorded Program' };
+  updateProfile.mockResolvedValue({ message: 'Saved' }); getMe.mockResolvedValue({ user: account });
+  const { result } = renderHook(() => useProfileSettings(account));
+  act(() => result.current.setField('phone_number', 'synthetic'));
+  await act(async () => result.current.saveProfile());
+  const payload = updateProfile.mock.calls.at(-1)[0];
+  expect(payload).not.toHaveProperty('college_id'); expect(payload).not.toHaveProperty('program');
 });

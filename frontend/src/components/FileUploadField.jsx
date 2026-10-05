@@ -37,8 +37,8 @@ export default function FileUploadField({ label = 'Attachment', file, path, onCh
     {error && <p role="alert" className="mb-3 text-sm text-red-700 dark:text-red-300">{error}</p>}
   </>;
   return <section className="min-w-0 space-y-2 rounded-xl border border-gray-200 dark:border-gray-700 p-3" aria-label={label}>
-    {allowReplace && onChange ? <label htmlFor={inputId} className="block text-xs font-bold">{label}
-      <input id={inputId} ref={inputRef} type="file" accept={accept} disabled={disabled} onChange={select} className="block w-full mt-2 text-sm file:mr-2 file:px-3 file:py-2 file:rounded-xl file:border-0 file:bg-green-50 file:text-green-800 disabled:opacity-50" />
+    {allowReplace && onChange ? <label htmlFor={inputId} className="trace-label block">{label}
+      <input id={inputId} ref={inputRef} type="file" accept={accept} disabled={disabled} onChange={select} className="trace-file block w-full mt-2" />
     </label> : <h4 className="text-xs font-bold">{label}</h4>}
     {filename && <p className="text-xs break-all select-text" role="status">{file ? 'Selected: ' : 'Uploaded: '}{filename}{file && ` (${formatFileSize(file.size)})`}</p>}
     {file && <p className="text-xs text-gray-500 dark:text-gray-400">Selected locally. Save or submit the form to upload; select another file to replace this draft.</p>}

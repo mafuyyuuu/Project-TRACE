@@ -1,3 +1,4 @@
+import Button from '@/components/Button';
 import ModalShell from '@/components/ModalShell';
 import UserAvatar from '@/components/UserAvatar';
 import FileUploadField from '@/components/FileUploadField';
@@ -40,30 +41,30 @@ export default function UserDetailModal({ open, onClose, user, onEdit, onToggleA
       footer={
         <div className="space-y-3">
           <div className="flex flex-col sm:flex-row gap-3">
-            {onEdit && <button
+            {onEdit && <Button
               type="button"
               onClick={onEdit}
               disabled={mutationDisabled || saving}
-              className="flex-1 px-5 py-3 rounded-2xl text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white shadow-sm disabled:opacity-50 transition-colors"
+              className="trace-button trace-button-info flex-1"
             >
               Edit User
-            </button>}
-            {onToggleActive && <button
+            </Button>}
+            {onToggleActive && <Button
               type="button"
               onClick={onToggleActive}
               disabled={isStudent || !onToggleActive || isSelf || saving}
               title={isSelf ? 'You cannot deactivate your own account' : ''}
-              className={`flex-1 px-5 py-3 rounded-2xl text-xs font-bold border transition-colors disabled:opacity-50 ${user.is_active ? 'border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 hover:bg-red-50 dark:hover:bg-red-950/40' : 'border-green-200 dark:border-green-800 text-green-700 dark:text-green-300 hover:bg-green-50 dark:hover:bg-green-950/40'}`}
+              className={`trace-button flex-1 ${user.is_active ? 'trace-button-danger' : 'trace-button-primary'}`}
             >
               {user.is_active ? 'Deactivate User' : 'Restore User'}
-            </button>}
-            <button
+            </Button>}
+            <Button
               type="button"
               onClick={onClose}
-              className="flex-1 px-5 py-3 rounded-2xl text-xs font-bold text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"
+              className="trace-button trace-button-secondary flex-1"
             >
               Close
-            </button>
+            </Button>
           </div>
         </div>
       }
@@ -118,7 +119,7 @@ export default function UserDetailModal({ open, onClose, user, onEdit, onToggleA
           <Field label="Junior High Graduation" value={user.jhs_grad_year} />
           <Field label="Senior High School" value={user.shs_school} />
           <Field label="Senior High Graduation" value={user.shs_grad_year} />
-          <FileUploadField label="Registration identity proof" path={user.id_proof_path} allowReplace={false} />
+          <FileUploadField label="Registration Identity Proof" path={user.id_proof_path} allowReplace={false} />
         </>}
       </div>
     </ModalShell>

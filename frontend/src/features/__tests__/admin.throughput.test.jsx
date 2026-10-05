@@ -72,4 +72,18 @@ describe('System Throughput card', () => {
     expect(within(card).queryByText('No completed requests yet')).not.toBeInTheDocument();
     expect(within(card).queryByRole('application')).not.toBeInTheDocument();
   });
+
+  it('keeps a single measured day accessible and identifies neighboring curves as illustrative', async () => {
+    getAnalytics.mockResolvedValue({ end_to_end: { completed_count: 12, avg_minutes: 90 }, throughput: [{ date: '2026-09-30', completed: 12 }] });
+    const card = await renderCard();
+    expect(await within(card).findByText('1.5 hrs')).toBeInTheDocument();
+    fireEvent.focus(within(card).getByRole('application'));
+    await waitFor(() => expect(within(card).getByText('12 docs')).toBeVisible());
+    expect(within(card).getByText('2026-09-30')).toBeVisible();
+    for (const name of ['AI confidence average', 'Real-time backlog']) {
+      const neighbor = screen.getByRole('region', { name });
+      expect(within(neighbor).getByText('Illustrative trend')).toBeInTheDocument();
+      expect(within(neighbor).queryByText(/docs$/)).not.toBeInTheDocument();
+    }
+  });
 });

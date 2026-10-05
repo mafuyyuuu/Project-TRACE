@@ -54,7 +54,7 @@ function createUser(data, executor = pool) {
 function listPendingStudents(executor = pool) {
   return executor
     .query(
-      'SELECT id, student_id, email, full_name, role, user_type, id_proof_path, verification_status, verification_reason, created_at FROM users WHERE role = "student" AND verification_status = "pending"'
+      'SELECT id, student_id, email, full_name, role, user_type, course, program, college_id, id_proof_path, verification_status, verification_reason, created_at FROM users WHERE role = "student" AND verification_status = "pending"'
     )
     .then(([rows]) => rows);
 }

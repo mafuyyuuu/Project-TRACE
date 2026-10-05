@@ -1,3 +1,4 @@
+import Button from '@/components/Button';
 import { INPUT_LIMITS } from '@/utils/inputLimits';
 import ConfirmDialog from '@/components/ConfirmDialog'
 import { useState } from 'react'
@@ -15,7 +16,7 @@ export default function ForgotPasswordPage() {
   const [identifier, setIdentifier] = useState('')
   const [identifierToConfirm, setIdentifierToConfirm] = useState(null)
   const [localError, setLocalError] = useState('')
-  const { loading, error: requestError, message, done, requestLink } = usePasswordReset()
+  const { loading, error: requestError, message, requestReference, done, requestLink } = usePasswordReset()
 
   const handleSubmit = (e) => {
     e.preventDefault()
@@ -29,7 +30,7 @@ export default function ForgotPasswordPage() {
   return (
     <AuthShell
       title="Reset your password"
-      subtitle="Enter your Student ID, Staff ID, or the email address on your account and we'll send you a link to choose a new password."
+      subtitle="Enter your Student ID, Staff ID, or the email address on your account to request a password reset link."
       footer={
         <Link to="/" className="text-sm font-medium text-white/90 hover:text-white hover:underline">
           Back to Login
@@ -41,18 +42,19 @@ export default function ForgotPasswordPage() {
         confirmLabel="Request Link" loading={loading} onConfirm={() => requestLink(identifierToConfirm)}
         onCancel={() => setIdentifierToConfirm(null)} />
       {error && (
-        <div className="mb-6 p-4 rounded-xl bg-red-900/40 dark:bg-red-900/40 border border-red-300/40 dark:border-red-800/40 text-sm font-bold">
+        <div className="trace-error mb-6">
           {error}
         </div>
       )}
 
       {done ? (
-        <div className="p-4 rounded-xl bg-white/10 dark:bg-gray-900/10 border border-white/30 text-sm font-bold leading-relaxed">
-          {message}
+        <div role="status" className="trace-section trace-section-inverse trace-section-body text-sm font-bold leading-relaxed">
+          <p>{message}</p>
+          {requestReference && <p className="mt-3">Request reference: <span className="select-text">{requestReference}</span></p>}
         </div>
       ) : (
         <form onSubmit={handleSubmit}>
-          <label htmlFor="identifier" className="block text-sm font-bold mb-2 uppercase tracking-wide">
+          <label htmlFor="identifier" className="trace-label trace-label-inverse block mb-2">
             Student ID / Staff ID or Email
           </label>
           <input maxLength={INPUT_LIMITS.email}
@@ -62,16 +64,16 @@ export default function ForgotPasswordPage() {
             value={identifier}
             onChange={(e) => setIdentifier(e.target.value)}
             placeholder="STU2024001"
-            className="w-full px-5 py-4 rounded-xl bg-white/10 dark:bg-gray-900/10 border border-white/30 text-white placeholder-white/50 font-medium focus:outline-none focus:ring-2 focus:ring-white/60"
+            className="trace-control trace-control-inverse w-full placeholder-white/50"
           />
 
-          <button
+          <Button
             type="submit"
             disabled={loading}
-            className="mt-6 w-full py-5 bg-[#f8f9fa] dark:bg-gray-900 text-gray-900 dark:text-gray-100 font-black text-xl sm:text-2xl rounded-xl hover:bg-gray-200 dark:hover:bg-gray-800 active:bg-gray-300 disabled:opacity-70 disabled:cursor-not-allowed transition-all duration-200 shadow-lg uppercase tracking-wide"
+            className="trace-button trace-button-inverse-primary mt-6 w-full"
           >
             {loading ? 'Sending…' : 'Send Reset Link'}
-          </button>
+          </Button>
         </form>
       )}
     </AuthShell>

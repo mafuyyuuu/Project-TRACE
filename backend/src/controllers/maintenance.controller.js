@@ -1,4 +1,5 @@
 const maintenanceService = require('../services/maintenance.service');
+const programService = require('../services/program.service');
 
 /** Thin HTTP layer for /api/maintenance (admin CRUD). */
 
@@ -20,6 +21,10 @@ function handler(fn, { logLabel, fallback, status = 200 }) {
     }
   };
 }
+
+const listPrograms = handler(req => programService.list(req.user), { logLabel: 'List programs error', fallback: 'Failed to fetch programs.' });
+const createProgram = handler(req => programService.create(req.user, req.body), { logLabel: 'Create program error', fallback: 'Failed to create program.', status: 201 });
+const setProgramActive = handler(req => programService.setActive(req.user, req.params.id, req.body.is_active), { logLabel: 'Toggle program error', fallback: 'Failed to update program status.' });
 
 // -- Colleges ---------------------------------------------------------------
 const listColleges = handler((req) => maintenanceService.listColleges(req.user), {
@@ -89,7 +94,7 @@ async function updateAccount(req, res) {
 }
 
 module.exports = {
-  updateAccount,
+  updateAccount, listPrograms, createProgram, setProgramActive,
   listColleges, createCollege, updateCollege, setCollegeActive,
   listDocumentTypes, createDocumentType, updateDocumentType, setDocumentTypeActive,
   listStaff, createStaff, updateStaff, setStaffActive,

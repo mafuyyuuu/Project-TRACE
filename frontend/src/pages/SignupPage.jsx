@@ -1,3 +1,4 @@
+import Button from '@/components/Button';
 import { INPUT_LIMITS } from '@/utils/inputLimits';
 import ConfirmDialog from '@/components/ConfirmDialog'
 import { useState, useEffect } from 'react'
@@ -88,7 +89,7 @@ export default function SignupPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-800 flex items-center justify-center p-4 font-body relative overflow-hidden">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-800 flex flex-col items-center justify-center gap-6 px-4 py-8 sm:py-12 font-body relative overflow-hidden">
       <ConfirmDialog open={!!registrationToConfirm} title="Confirm Registration"
         message={['Submit your registration and proof of identity for review?', localError ? <span role="alert">{localError}</span> : null]}
         confirmLabel="Submit Registration" loading={loading} onConfirm={confirmRegistration}
@@ -96,41 +97,41 @@ export default function SignupPage() {
       <div className="absolute top-[-10%] left-[-5%] w-[40vw] h-[40vw] rounded-full bg-pine-500/5 blur-[100px] pointer-events-none"></div>
       <div className="absolute bottom-[-10%] right-[-5%] w-[30vw] h-[30vw] rounded-full bg-blue-500/5 dark:bg-blue-500/5 blur-[100px] pointer-events-none"></div>
 
-      <Link to="/" className="fixed top-6 left-6 z-20 inline-flex items-center gap-2 text-sm font-semibold text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 transition-colors">
+      <Link to="/" className="trace-action relative z-20 inline-flex w-full max-w-md items-center gap-2 text-sm font-semibold text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100">
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" /></svg>
           Back to Login
       </Link>
 
-      <div className="bg-white dark:bg-gray-900 rounded-[2.5rem] p-10 sm:p-12 shadow-sm border border-gray-100 dark:border-gray-700 max-w-md w-full relative z-10">
+      <div className="trace-section trace-section-body max-w-md w-full relative z-10">
         <div className="text-center mb-10">
-          <h1 className="text-2xl font-display font-black text-gray-900 dark:text-gray-100 tracking-widest mb-2 uppercase">TRACE Sign Up</h1>
+          <h1 className="trace-page-title mb-2">TRACE Sign Up</h1>
           <p className="text-sm font-semibold text-gray-500 dark:text-gray-400 mb-1">PLP Registrar's Office</p>
         </div>
 
         {success ? (
-          <ModalShell open title="Registration Complete" onClose={() => navigate('/')} footer={<button type="button" onClick={() => navigate('/')} className="w-full py-3 bg-[#15803d] text-white rounded-xl font-bold">Close and Go to Login</button>}>
+          <ModalShell open title="Registration Complete" onClose={() => navigate('/')} footer={<Button type="button" onClick={() => navigate('/')} className="trace-button trace-button-primary w-full">Close and Go to Login</Button>}>
             <p className="text-sm leading-relaxed">{success}</p>
           </ModalShell>
         ) : (
           <form onSubmit={handleSubmit} className="flex flex-col gap-5">
             {localError && (
-              <div className="fixed bottom-6 right-6 z-50 bg-red-900 dark:bg-red-900 text-white px-6 py-4 rounded-2xl shadow-xl flex items-center gap-3 border border-red-700 dark:border-red-800 animate-slide-up">
+              <div role="alert" className="trace-error flex items-start gap-3">
                 <div className="w-8 h-8 rounded-full bg-red-500/20 dark:bg-red-500/20 text-red-400 dark:text-red-300 flex items-center justify-center shrink-0"><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" /></svg></div>
                 <span className="font-semibold text-sm">{localError}</span>
               </div>
             )}
 
             <div className="flex flex-col gap-1.5">
-              <label className="text-sm font-semibold text-gray-800 dark:text-gray-100 ml-1">Account Type *</label>
-              <select value={formData.userType} onChange={(e) => setFormData({...formData, userType: e.target.value, employeeId: ''})} className="w-full p-3.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm focus:ring-2 focus:ring-pine-500 focus:bg-white dark:focus:bg-gray-900 outline-none transition-all appearance-none cursor-pointer">
+              <label className="trace-label ml-1">Account Type *</label>
+              <select value={formData.userType} onChange={(e) => setFormData({...formData, userType: e.target.value, employeeId: ''})} className="trace-control w-full appearance-none cursor-pointer">
                 <option value="student">Current Student</option>
                 <option value="alumni">Alumni</option>
               </select>
             </div>
 
             <div className="flex flex-col gap-1.5">
-              <label className="text-sm font-semibold text-gray-800 dark:text-gray-100 ml-1">College *</label>
-              <select value={formData.college} onChange={(e) => setFormData({...formData, college: e.target.value})} className="w-full p-3.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm focus:ring-2 focus:ring-pine-500 focus:bg-white dark:focus:bg-gray-900 outline-none transition-all appearance-none cursor-pointer">
+              <label className="trace-label ml-1">College *</label>
+              <select value={formData.college} onChange={(e) => setFormData({...formData, college: e.target.value})} className="trace-control w-full appearance-none cursor-pointer">
                   <option value="" disabled>
                     {colleges.length ? 'Select your college...' : 'Loading colleges...'}
                   </option>
@@ -141,71 +142,72 @@ export default function SignupPage() {
             </div>
 
             <div className="flex flex-col gap-1.5">
-              <label className="text-sm font-semibold text-gray-800 dark:text-gray-100 ml-1">{formData.userType === 'alumni' ? 'Alumni ID *' : 'Student ID *'}</label>
-              <input maxLength={INPUT_LIMITS.id} type="text" placeholder={formData.userType === 'alumni' ? 'Enter your Alumni ID' : 'e.g. 23-00123'} value={formData.employeeId} onChange={(e) => setFormData({...formData, employeeId: e.target.value})} className="w-full p-3.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm focus:ring-2 focus:ring-pine-500 focus:bg-white dark:focus:bg-gray-900 outline-none transition-all" />
+              <label className="trace-label ml-1">{formData.userType === 'alumni' ? 'Alumni ID *' : 'Student ID *'}</label>
+              <input maxLength={INPUT_LIMITS.id} type="text" placeholder={formData.userType === 'alumni' ? 'Enter your Alumni ID' : 'e.g. 23-00123'} value={formData.employeeId} onChange={(e) => setFormData({...formData, employeeId: e.target.value})} className="trace-control w-full" />
             </div>
 
-            <label className="block text-sm font-semibold">Program/Course
-              <input maxLength={150} value={formData.program || ''} onChange={event => setFormData({ ...formData, program: event.target.value })} placeholder="e.g. BS Information Technology" className="mt-2 w-full p-3.5 rounded-xl border bg-gray-50 dark:bg-gray-800" />
+            <label className="trace-label block">Program/Course
+              <input maxLength={150} value={formData.program || ''} onChange={event => setFormData({ ...formData, program: event.target.value })} placeholder="e.g. BS Information Technology" className="trace-control mt-2 w-full" />
             </label>
 
             <div className="flex flex-col gap-1.5">
-              <label className="text-sm font-semibold text-gray-800 dark:text-gray-100 ml-1">Full Name *</label>
-              <input maxLength={INPUT_LIMITS.name} type="text" placeholder="Juan Dela Cruz" value={formData.fullName} onChange={(e) => setFormData({...formData, fullName: e.target.value})} className="w-full p-3.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm focus:ring-2 focus:ring-pine-500 focus:bg-white dark:focus:bg-gray-900 outline-none transition-all" />
+              <label className="trace-label ml-1">Full Name *</label>
+              <input maxLength={INPUT_LIMITS.name} type="text" placeholder="Juan Dela Cruz" value={formData.fullName} onChange={(e) => setFormData({...formData, fullName: e.target.value})} className="trace-control w-full" />
             </div>
 
             <div className="flex flex-col gap-1.5">
-              <label className="text-sm font-semibold text-gray-800 dark:text-gray-100 ml-1">Email Address *</label>
-              <input type="email" maxLength={INPUT_LIMITS.email} placeholder="juan@plp.edu.ph" value={formData.email} onChange={(e) => setFormData({...formData, email: e.target.value})} className="w-full p-3.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm focus:ring-2 focus:ring-pine-500 focus:bg-white dark:focus:bg-gray-900 outline-none transition-all" />
+              <label className="trace-label ml-1">Email Address *</label>
+              <input type="email" maxLength={INPUT_LIMITS.email} placeholder="juan@plp.edu.ph" value={formData.email} onChange={(e) => setFormData({...formData, email: e.target.value})} className="trace-control w-full" />
+              <p className="text-xs text-gray-500 dark:text-gray-400">After your first login, verify this address from Edit Profile before requesting documents.</p>
             </div>
 
             <div className="flex flex-col gap-1.5">
-              <label className="text-sm font-semibold text-gray-800 dark:text-gray-100 ml-1">Phone Number *</label>
-              <input type="tel" maxLength={INPUT_LIMITS.phone} placeholder="09123456789" value={formData.phoneNumber} onChange={(e) => setFormData({...formData, phoneNumber: e.target.value})} className="w-full p-3.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm focus:ring-2 focus:ring-pine-500 focus:bg-white dark:focus:bg-gray-900 outline-none transition-all" />
+              <label className="trace-label ml-1">Phone Number *</label>
+              <input type="tel" maxLength={INPUT_LIMITS.phone} placeholder="09123456789" value={formData.phoneNumber} onChange={(e) => setFormData({...formData, phoneNumber: e.target.value})} className="trace-control w-full" />
             </div>
 
             <div className="flex flex-col gap-1.5">
-              <label className="text-sm font-semibold text-gray-800 dark:text-gray-100 ml-1">Password *</label>
+              <label className="trace-label ml-1">Password *</label>
               <div className="relative">
-                <input maxLength={INPUT_LIMITS.password} type={showPassword ? 'text' : 'password'} placeholder="Create a password" value={formData.password} onChange={(e) => setFormData({...formData, password: e.target.value})} className="w-full p-3.5 pr-12 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm focus:ring-2 focus:ring-pine-500 focus:bg-white dark:focus:bg-gray-900 outline-none transition-all" />
-                <button type="button" aria-label={showPassword ? 'Hide password' : 'Show password'} onClick={() => setShowPassword(!showPassword)} className="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-400 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 transition-colors">
+                <input maxLength={INPUT_LIMITS.password} type={showPassword ? 'text' : 'password'} placeholder="Create a password" value={formData.password} onChange={(e) => setFormData({...formData, password: e.target.value})} className="trace-control w-full pr-12" />
+                <Button type="button" aria-label={showPassword ? 'Hide password' : 'Show password'} onClick={() => setShowPassword(!showPassword)} className="trace-action absolute inset-y-0 right-0 pr-4 flex items-center text-gray-400 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 transition-colors">
                   {showPassword ? (
                     <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M13.875 18.825A10.05 10.05 0 0112 19c-5 0-9.27-3.11-11-7.5a11.72 11.72 0 013.168-4.477M6.343 6.343A9.97 9.97 0 0112 5c5 0 9.27 3.11 11 7.5a11.72 11.72 0 01-4.168 4.477M6.343 6.343L3 3m3.343 3.343l2.829 2.829m4.243 4.243l2.829 2.829M6.343 6.343l11.314 11.314M14.121 14.121A3 3 0 009.879 9.879" /></svg>
                   ) : (
                     <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
                   )}
-                </button>
+                </Button>
               </div>
             </div>
 
             <div className="flex flex-col gap-1.5">
-              <label className="text-sm font-semibold text-gray-800 dark:text-gray-100 ml-1">Confirm Password *</label>
+              <label className="trace-label ml-1">Confirm Password *</label>
               <div className="relative">
-                <input maxLength={INPUT_LIMITS.password} type={showConfirm ? 'text' : 'password'} placeholder="Confirm your password" value={formData.confirmPassword} onChange={(e) => setFormData({...formData, confirmPassword: e.target.value})} className="w-full p-3.5 pr-12 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm focus:ring-2 focus:ring-pine-500 focus:bg-white dark:focus:bg-gray-900 outline-none transition-all" />
-                <button type="button" aria-label={showConfirm ? 'Hide confirmation password' : 'Show confirmation password'} onClick={() => setShowConfirm(!showConfirm)} className="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-400 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 transition-colors">
+                <input maxLength={INPUT_LIMITS.password} type={showConfirm ? 'text' : 'password'} placeholder="Confirm your password" value={formData.confirmPassword} onChange={(e) => setFormData({...formData, confirmPassword: e.target.value})} className="trace-control w-full pr-12" />
+                <Button type="button" aria-label={showConfirm ? 'Hide confirmation password' : 'Show confirmation password'} onClick={() => setShowConfirm(!showConfirm)} className="trace-action absolute inset-y-0 right-0 pr-4 flex items-center text-gray-400 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 transition-colors">
                   {showConfirm ? (
                     <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M13.875 18.825A10.05 10.05 0 0112 19c-5 0-9.27-3.11-11-7.5a11.72 11.72 0 013.168-4.477M6.343 6.343A9.97 9.97 0 0112 5c5 0 9.27 3.11 11 7.5a11.72 11.72 0 01-4.168 4.477M6.343 6.343L3 3m3.343 3.343l2.829 2.829m4.243 4.243l2.829 2.829M6.343 6.343l11.314 11.314M14.121 14.121A3 3 0 009.879 9.879" /></svg>
                   ) : (
                     <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
                   )}
-                </button>
+                </Button>
               </div>
             </div>
 
             <div className="flex flex-col gap-1.5">
-              <label className="text-sm font-semibold text-gray-800 dark:text-gray-100 ml-1">Upload Proof (ID / Diploma) *</label>
+              <label className="trace-label ml-1">Upload Proof (ID / Diploma) *</label>
               <FileUploadField label="Proof of ID / Diploma" file={file} onChange={setFile} accept=".pdf,.png,.jpg,.jpeg" disabled={loading} />
-              <button type="button" onClick={ocr.readId} disabled={!file || ocr.reading || loading}
-                className="self-start px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold disabled:opacity-50 focus-visible:ring-2 focus-visible:ring-blue-500">
+              <Button type="button" onClick={ocr.readId} disabled={!file || ocr.reading || loading}
+                className="trace-button trace-button-info self-start">
                 {ocr.reading ? 'Reading ID…' : 'Read ID'}
-              </button>
+              </Button>
               {ocr.message && <p role="status" className="text-sm text-blue-800 dark:text-blue-300 select-text">{ocr.message}</p>}
               <p className="text-xs text-gray-400 dark:text-gray-400 ml-1 mt-1">Please attach a clear photo of your Student ID or Diploma for verification.</p>
             </div>
 
-            <button type="submit" disabled={loading || ocr.reading} className="mt-4 w-full py-4 bg-pine-600 hover:bg-pine-700 disabled:opacity-70 text-white rounded-full font-bold transition-all shadow-sm flex items-center justify-center gap-2">
+            <Button type="submit" disabled={loading || ocr.reading} className="trace-button-lift trace-action mt-4 w-full py-4 bg-pine-600 enabled:hover:bg-pine-700 disabled:opacity-70 text-white rounded-full font-bold transition-colors shadow-sm flex items-center justify-center gap-2">
               {loading ? 'Creating...' : 'Create Account'}
-            </button>
+            </Button>
           </form>
         )}
 

@@ -1,4 +1,6 @@
 const reportModel = require('../models/report.model');
+const userModel = require('../models/user.model');
+const { STATUS } = require('../utils/documentStatus');
 const { toCsv, csvFilename } = require('../utils/csv');
 const { badRequest, forbidden } = require('../utils/AppError');
 
@@ -12,7 +14,7 @@ const { badRequest, forbidden } = require('../utils/AppError');
 
 const EXPORT_BUCKETS = ['active', 'alumni', 'others', 'all'];
 
-/** Staff-only: these views span every student's records. */
+/** Staff-only; Secretary record queries additionally require a college scope. */
 function assertStaff(user) {
   if (!user || (user.role !== 'admin' && user.role !== 'clerk')) {
     throw forbidden('Access denied.');
@@ -37,6 +39,24 @@ function validateDates({ dateFrom, dateTo }) {
   }
 }
 
+async function secretaryScope(user) {
+  if (user.role !== 'clerk' || user.desk_assignment !== 'Secretary') return {};
+  const [account] = await userModel.findCourseById(user.id);
+  if (!account?.college_id && !account?.course) throw forbidden('A college assignment is required to view or export Secretary records.');
+  return { collegeId: account.college_id || null, collegeName: account.course || null };
+}
+
+async function documentFilters(user, query) {
+  if (query.recordSet && query.recordSet !== 'secretary-cleared') throw badRequest('Unknown records filter.');
+  if (query.recordSet && query.status) throw badRequest('Choose either a records filter or a single status.');
+  return {
+    dateFrom: query.dateFrom, dateTo: query.dateTo, status: query.status,
+    ...(query.recordSet ? { statuses: [STATUS.READY_FOR_RELEASE, STATUS.COMPLETED] } : {}),
+    documentType: query.documentType, paymentStatus: query.paymentStatus, studentId: query.studentId,
+    ...await secretaryScope(user),
+  };
+}
+
 // ---------------------------------------------------------------------------
 // Filtered document report
 // ---------------------------------------------------------------------------
@@ -49,14 +69,7 @@ async function getDocumentReport(user, query = {}) {
   assertStaff(user);
   validateDates(query);
 
-  const filters = {
-    dateFrom: query.dateFrom,
-    dateTo: query.dateTo,
-    status: query.status,
-    documentType: query.documentType,
-    paymentStatus: query.paymentStatus,
-    studentId: query.studentId,
-  };
+  const filters = await documentFilters(user, query);
 
   const page = Math.max(parseInt(query.page) || 1, 1);
   const limit = Math.min(Math.max(parseInt(query.limit) || 100, 1), 1000);
@@ -137,7 +150,10 @@ async function exportStudentsCsv(user, bucket = 'all') {
     throw badRequest(`Unknown category. Use one of: ${EXPORT_BUCKETS.join(', ')}.`);
   }
 
-  const rows = await reportModel.listStudentsForExport(bucket);
+  const scope = await secretaryScope(user);
+  const rows = Object.keys(scope).length
+    ? await reportModel.listStudentsForExport(bucket, undefined, scope)
+    : await reportModel.listStudentsForExport(bucket);
   return {
     filename: csvFilename(`students-${bucket}`),
     csv: toCsv(STUDENT_COLUMNS, rows),
@@ -150,13 +166,7 @@ async function exportDocumentsCsv(user, query = {}) {
   assertStaff(user);
   validateDates(query);
 
-  const filters = {
-    dateFrom: query.dateFrom,
-    dateTo: query.dateTo,
-    status: query.status,
-    documentType: query.documentType,
-    paymentStatus: query.paymentStatus,
-  };
+  const filters = await documentFilters(user, query);
 
   // Export is capped rather than unbounded, so one click can't try to serialise
   // the entire table into memory.
@@ -164,7 +174,9 @@ async function exportDocumentsCsv(user, query = {}) {
   rows.forEach(r => { if (r.amount !== undefined) r.amount = '₱' + Number(r.amount).toFixed(2); });
   return {
     filename: csvFilename('documents-report'),
-    csv: toCsv(DOCUMENT_COLUMNS, rows),
+    csv: toCsv(user.role === 'clerk' && user.desk_assignment === 'Secretary'
+      ? [...DOCUMENT_COLUMNS, { key: 'document_sequence_number', label: 'Document Request' }]
+      : DOCUMENT_COLUMNS, rows),
     rowCount: rows.length,
   };
 }

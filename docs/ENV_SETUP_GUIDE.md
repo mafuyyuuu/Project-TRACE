@@ -789,7 +789,7 @@ The image rebuild includes the new migration script. Keep the verified database/
 
 Deploy the corresponding frontend import repair, then verify Admin Security Logs loads and an authorized student lookup succeeds. Check backend logs for missing-table errors. A health response checks connectivity only and does not establish profile lookup success. New Vercel deployment URLs still require the exact origin configuration below; production promotion remains separate.
 
-### Batch 10: Clerk browser-trust deployment
+### Batch 10: Staff browser-trust deployment
 
 After committing and pulling the approved revision into the server checkout, run these commands from its root, one at a time, stopping on failure:
 
@@ -806,10 +806,10 @@ Deploy the matching frontend. No new environment variables are required: keep `V
 
 Live acceptance, using authorized test accounts and without sharing credentials/cookie values:
 
-1. Admin receives OTP every login, including when personal mode is selected.
-2. A clerk in default shared mode always receives OTP and cannot choose browser trust. Shared mode also ignores and clears an earlier personal-browser cookie.
-3. A clerk selects personal mode by unchecking “This is a shared computer”, completes OTP and opts into “Trust this browser for today”. Confirm `trace_mfa_trust` is HttpOnly, host-only, scoped to `/api/auth` and expires at midnight Manila time. The raw value must not appear in JSON or logs.
-4. Ordinary logout, followed by another correct-password login with **personal mode selected again**, skips clerk OTP before expiry. An incorrect password never authenticates. Omitting personal mode intentionally forces OTP.
+1. Admin with an enrolled app receives an unchecked personal-browser trust choice on the app challenge. Admin email challenges remain ineligible.
+2. A clerk or eligible Admin with no current grant receives verification. The public login form has no shared-computer checkbox; Security → Browser verification can forget a grant.
+3. An eligible account checks “This is my personal browser — trust it for today” during verification and completes it successfully. Confirm `trace_mfa_trust` is HttpOnly, host-only, scoped to `/api/auth` and expires at midnight Manila time. The raw value must not appear in JSON or logs.
+4. Ordinary logout followed by correct-password login on the trusted browser skips the factor before expiry. An incorrect password never authenticates. Security’s shared-computer reset clears the preference and proof; an explicit shared-mode API login ignores and clears them.
 5. Missing/cleared/blocked cookie or midnight expiry requires OTP. If privacy rules block cross-site cookies, complete OTP normally; do not disable browser privacy controls. Server expiry uses epoch milliseconds and does not depend on a browser clock.
 6. Password change, password reset and logout-all revoke the old proof and older pending OTP challenges. Existing JWT sessions also expire, including the current one; sign in again. Repeat attempts with old proof/challenge must fail or require OTP. Confirm transaction failures leave credentials unchanged.
 7. Student/alumni optional 2FA is unchanged. Confirm existing new-browser notification recognition still works after full authentication and does not grant MFA trust.
@@ -904,7 +904,7 @@ The new tables use CREATE TABLE IF NOT EXISTS. Receipt columns are nullable; old
 Acceptance on the deployed system:
 
 - Every role can open Edit Profile → Security → Authenticator App. Test QR/manual enrollment, confirmation, one-time recovery-code display/download, app login and single-use recovery. Replayed/expired/pending challenges cannot access REST or Socket.IO, and email OTP cannot bypass an enrolled app.
-- Admin challenges each login. Clerk personal-browser trust expires at Manila midnight; a new/shared browser challenges. Enrolled students use app/recovery codes at login. Unenrolled students do not gain a new first-login email OTP requirement from this change.
+- Admin with an enrolled app and clerks can opt into personal-browser trust on their verification screen. Admin using email codes challenges every login. Trust expires at Manila midnight; a new/shared browser challenges. Enrolled students use app/recovery codes at login. Unenrolled students do not gain a new first-login email OTP requirement from this change.
 - Logout revokes this session on the server; a copied old token and its socket stop working. Logout other devices rotates the current session while invalidating other sessions. Staff deactivation stops REST/socket access and sends the owner notice; confirm real SMTP delivery separately.
 - Student messages appear in Window 1's inbox even before a clerk is assigned. Replies return to the owning student. Check notifications, unread counts, polling, stale-tab cancellation, failed sends preserving drafts and successful sends followed by failed refreshes without duplicate drafts.
 - Registrar requests a named attachment from Messages & Attachments; the student confirms a JPG/PNG/PDF upload (10 MB maximum). Review Accept or Request resubmission with notes. Verify other students and Secretaries from another college cannot read or upload the file, and an attachment action does not change the request stage.
@@ -938,6 +938,7 @@ docker compose run --rm --no-deps -T backend node database/migrate_request_attac
 docker compose run --rm --no-deps -T backend node database/migrate_document_messages.js
 docker compose run --rm --no-deps -T backend node database/migrate_templates.js
 docker compose run --rm --no-deps -T backend node database/migrate_program.js
+docker compose run --rm --no-deps -T backend node database/migrate_program_catalog.js
 docker compose run --rm --no-deps -T backend node database/migrate_email_verification.js
 docker compose run --rm --no-deps -T backend node database/migrate_support_messages.js
 docker compose run --rm --no-deps -T backend node database/migrate_request_sequences.js
@@ -1016,3 +1017,37 @@ docker compose run --rm --no-deps -T backend node database/check_schema.js
 ```
 
 Require the passing schema message before following the runtime restart/health instructions above. Do not rerun the whole migration list or import the full schema for this gap. The agent has not executed this SQL on the server.
+
+### Password-reset delivery diagnosis (Oct 5 repair)
+
+The reset account-lock query previously omitted the saved email/name/ID. A matching active account therefore returned the generic 200 response before issuing a token or invoking SMTP. Deploy the repaired backend model/service and updated frontend together after review/merge; rebuild/recreate the backend image. This repair adds no database migration. Docker already sets `NODE_ENV=production`; other production runners must set it too.
+
+Set the first comma-separated `FRONTEND_URL` value to the intended HTTPS frontend origin, with no path, query, fragment, credentials or localhost destination. Missing/unsafe production origins now stop issuance with `invalid_frontend_url` in server logs instead of emailing a localhost link. SMTP credentials remain server-only; Compose reads them from root `.env`, while a directly run backend reads `backend/.env`. Changing Compose environment values requires recreating the container. Do not print or share environment files.
+
+A completed Forgot Password request displays a random **Request reference**. Every outcome uses the same public response shape/message; neither a 200 nor that reference proves an account match or mailbox delivery. Match the reference to `[Password reset]` and `[Email]` records:
+
+```bash
+docker compose logs --since=10m --tail=150 backend
+```
+
+New records contain only reference/purpose/outcome and allowlisted error codes, SMTP command/reply number or recipient counts. They omit identifiers, recipient addresses, message bodies, reset links, token hashes, passwords and raw provider responses. Never enable Nodemailer `debug` for a reset investigation; it can log message content. Sanitise older-version logs before sharing.
+
+| Outcome | Operator action |
+| --- | --- |
+| `account_not_available` | Check the exact saved ID/email and active state privately; also covers an account becoming unavailable under its lock. Do not disclose existence through Forgot Password. |
+| `no_registered_email` | Review the saved active email privately. Email-free staff need Registrar-assisted recovery; a pending address is not the reset destination. |
+| `invalid_frontend_url` | Correct the first production frontend origin and recreate the backend before retrying. |
+| `lookup_failed` / `issuance_failed` | Inspect the safe database error code and reviewed schema/configuration. Run the existing schema check; do not reseed or import the whole schema as a repair. |
+| `unconfigured` | Configure real SMTP host/user/password in the environment used by that runner. |
+| `smtp_failed` + `EAUTH` / 535 | Check sender authentication and the provider's account/security policy. Never paste credentials or the raw provider reply. |
+| `smtp_failed` + `EDNS`, `ECONNECTION`, `ESOCKET` or `ETIMEDOUT` | Check host/port, DNS, server egress and TLS/network availability. Inactivity is bounded: DNS/connect/greeting 10 seconds each; socket 20 seconds. |
+| `smtp_rejected` or `EENVELOPE` / 550-class reply | Check the saved recipient and sender/recipient policy privately. |
+| `smtp_accepted` | The provider accepted submission, not necessarily inbox delivery. Check Spam/Junk, provider delivery records and sender bounce notices. |
+
+The request summary uses `email_not_accepted` for skipped/failed submission; its paired `[Email]` record provides the specific outcome. A 60-second frontend request timeout does not cancel a server send—an email may still arrive. Do not auto-retry; check the inbox and use only the newest one-hour, single-use link. A failure after token storage leaves an undisclosed hash that expires normally; it does not create a public recovery bypass. Reset completion retains account locking, history checks, token consumption and session revocation.
+
+Use a controlled test account/inbox for live acceptance after deployment: submit a student ID, staff ID and saved email; confirm each goes to the active saved address, not a pending address. Verify a newest link once, reject its replay/expiry, and confirm old sessions are revoked. Keep real SMTP acceptance and mailbox arrival as separate checks. Local tests and a synthetic SMTP server do not prove production delivery.
+
+### Registrar-approved Program catalog
+
+Follow [MIGRATION_ROLLOUT.md](MIGRATION_ROLLOUT.md) for the explicit `migrate_program_catalog.js` rollout. It requires existing colleges and users (including the separate `migrate_program.js` column), creates no guessed programs, and preserves saved academic values. Admin enters approved programs under System Maintenance → Programs. Student/alumni Edit Profile → Personal Info uses linked active College and Program/Course choices. Changing College clears the draft program; the API validates membership and saves the reference college id, canonical college display name and canonical program together. Unchanged historical/inactive entries remain readable and do not prevent unrelated saves. Programs have no destructive delete or rename; replace via approved addition and deactivation. No new environment variables.
