@@ -240,7 +240,6 @@ describe('Layout', () => {
   it('closes the drawer once a destination is chosen', async () => {
     renderLayout();
     fireEvent.click(screen.getByLabelText('Open navigation menu'));
-    fireEvent.click(within(screen.getByRole('dialog', { name: 'Navigation menu' })).getByRole('button', { name: 'More' }));
     await waitFor(() => expect(screen.getByText('Help / FAQ')).toBeInTheDocument());
 
     fireEvent.click(screen.getByText('Help / FAQ'));

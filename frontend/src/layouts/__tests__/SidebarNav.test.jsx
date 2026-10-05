@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, useLocation, useNavigate } from 'react-router-dom';
 
@@ -75,16 +75,35 @@ describe('navItemsForUser', () => {
     const tabs = [...groups.main, ...groups.more].map(item => item.tab);
     expect(tabs.sort()).toEqual(navItemsForUser(user).map(item => item.tab).sort());
     expect(new Set(tabs).size).toBe(tabs.length);
-    expect(groups.main.every(item => item.group !== 'more')).toBe(true);
-    expect(groups.more.map(item => item.tab)).toContain('help');
+    expect(groups.main).toHaveLength(Math.min(5, tabs.length));
+    expect(groups.more).toHaveLength(Math.max(0, tabs.length - 5));
   });
   it('keeps daily Finance transactions in Main and admin configuration available', () => {
-    expect(navGroupsForUser(FINANCE).main.map(item => item.tab)).toEqual(['dashboard', 'reports']);
+    expect(navGroupsForUser(FINANCE).main.map(item => item.tab)).toEqual(['dashboard', 'reports', 'help']);
     expect(navGroupsForUser(ADMIN).main.map(item => item.tab)).toContain('admin-maintenance');
   });
 });
 
 describe('SidebarNav', () => {
+  it.each([STUDENT, ALUMNI, SECRETARY, WINDOW1, RECEIVING, FINANCE])('shows every destination directly without More for $role/$desk_assignment', user => {
+    renderNav({ user, showLabels: true });
+    const nav = screen.getByRole('navigation', { name: 'Main navigation' });
+    expect(within(nav).getAllByRole('link')).toHaveLength(navItemsForUser(user).length);
+    expect(screen.queryByRole('button', { name: 'More' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Back to main' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Preferences' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Logout' })).toBeInTheDocument();
+  });
+  it('places More sixth after five Admin destinations and exposes all overflow', () => {
+    renderNav({ user: ADMIN, showLabels: true });
+    const main = screen.getByRole('navigation', { name: 'Main navigation' });
+    expect(within(main).getAllByRole('link')).toHaveLength(5);
+    expect([...main.querySelectorAll('a, button')].at(5)).toBe(screen.getByRole('button', { name: 'More' }));
+    fireEvent.click(screen.getByRole('button', { name: 'More' }));
+    const more = screen.getByRole('navigation', { name: 'More navigation' });
+    expect(within(more).getAllByRole('link')).toHaveLength(navItemsForUser(ADMIN).length - 5);
+    expect(screen.getByRole('button', { name: 'Back to main' })).toBeInTheDocument();
+  });
   it('marks the combined Secretary workspace active for both old and current links', () => {
     expect(canonicalTabForUser(ADMIN, 'completed-logs')).toBe('completed-logs');
     expect(canonicalTabForUser(SECRETARY, 'completed-logs')).toBe('reports');
@@ -96,8 +115,7 @@ describe('SidebarNav', () => {
   it('labels every destination in drawer mode', () => {
     renderNav({ user: ALUMNI, showLabels: true });
     expect(screen.getByText('History')).toBeInTheDocument();
-    expect(screen.queryByText('Graduate Application')).not.toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: 'More' }));
+    expect(screen.queryByRole('button', { name: 'More' })).not.toBeInTheDocument();
     expect(screen.getByText('Help / FAQ')).toBeInTheDocument();
     expect(screen.getByText('Graduate Application')).toBeInTheDocument();
   });
@@ -106,7 +124,6 @@ describe('SidebarNav', () => {
   // navigate to it directly.
   it('hides Graduate Application from a regular student', () => {
     renderNav({ user: STUDENT, showLabels: true });
-    fireEvent.click(screen.getByRole('button', { name: 'More' }));
     expect(screen.queryByText('Graduate Application')).not.toBeInTheDocument();
   });
 
@@ -121,7 +138,6 @@ describe('SidebarNav', () => {
   it('closes the drawer when a destination is chosen', () => {
     const onNavigate = vi.fn();
     renderNav({ user: STUDENT, showLabels: true, onNavigate });
-    fireEvent.click(screen.getByRole('button', { name: 'More' }));
     expect(onNavigate).not.toHaveBeenCalled();
     fireEvent.click(screen.getByText('Help / FAQ'));
     expect(onNavigate).toHaveBeenCalled();
@@ -178,7 +194,7 @@ describe('SidebarNav', () => {
     renderNav({ user: ADMIN, showLabels: true, onNavigate });
     screen.getByRole('button', { name: 'More' }).focus();
     await keyboard.keyboard('{Enter}');
-    expect(screen.getByRole('link', { name: 'Activity Logs' })).toHaveFocus();
+    expect(screen.getByRole('link', { name: 'Security Logs' })).toHaveFocus();
     screen.getByRole('button', { name: 'Back to main' }).focus();
     await keyboard.keyboard(' ');
     expect(screen.getByRole('link', { name: 'Dashboard' })).toHaveFocus();

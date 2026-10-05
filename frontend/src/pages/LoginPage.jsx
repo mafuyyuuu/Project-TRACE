@@ -4,7 +4,6 @@ import { useState, useEffect, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import useAuth from '@/hooks/useAuth'
 import AuthShell from '@/components/AuthShell'
-import plpLoginLogo from '@/assets/plp-login-logo.png'
 import { verify2FA } from '@/services/authService'
 import { hasBrowserTrustPreference, rememberBrowserTrustPreference } from '@/utils/browserTrustPreference'
 
@@ -135,7 +134,6 @@ export default function LoginPage() {
   return (
     <AuthShell
       title={requires2FA ? 'Verification Required' : 'Login'}
-      brand={<img src={plpLoginLogo} alt="Pamantasan ng Lungsod ng Pasig logo" className="h-20 w-20 shrink-0 object-contain" />}
     >
           <form onSubmit={handleSubmit} aria-busy={busy} className="flex flex-col gap-6">
             {error && <p role="alert" className="trace-error">{error}</p>}

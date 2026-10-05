@@ -77,9 +77,12 @@ export function navItemsForUser(user) {
 
 export function navGroupsForUser(user) {
   const items = navItemsForUser(user);
+  // Keep daily-work destinations first, then fill the five visible slots.
+  // More is the sixth control only when there are destinations left over.
+  const ordered = [...items.filter(item => item.group !== 'more'), ...items.filter(item => item.group === 'more')];
   return {
-    main: items.filter(item => item.group !== 'more'),
-    more: items.filter(item => item.group === 'more'),
+    main: ordered.slice(0, 5),
+    more: ordered.slice(5),
   };
 }
 
