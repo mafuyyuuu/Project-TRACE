@@ -56,6 +56,8 @@
   .trace-section { @apply min-w-0 rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-900; }
   .trace-section-inverse { @apply border-white/30 bg-white/10 text-white dark:border-white/30 dark:bg-white/10 dark:text-white; }
   .trace-section-body { @apply p-4 sm:p-6; }
+  /* A stable chart footprint independent of point count and text-size settings. */
+  .trace-kpi-sparkline { @apply w-full min-w-0 h-16 shrink-0; }
   .trace-date { @apply inline-flex max-w-full flex-wrap items-center gap-x-3 gap-y-1 rounded-xl border border-gray-200 bg-white px-4 py-3 shadow-sm dark:border-gray-700 dark:bg-gray-900; }
   .trace-date > span { @apply min-w-0 max-w-full; overflow-wrap: normal; }
   .trace-date > :first-child, .trace-date > svg { @apply shrink-0; }

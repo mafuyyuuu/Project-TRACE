@@ -96,63 +96,61 @@ export default function AdminDashboard({ user, currentTab, setViewImageUrl, revi
                   </div>
                 </div>
 
-                {/* Metrics Overview Row */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  <section aria-label="System throughput" className="trace-section trace-card-info trace-section-body flex flex-col justify-between min-h-44">
-                    <div>
-                      <span className="text-[10px] font-bold text-gray-400 dark:text-gray-400 uppercase tracking-widest block">System Throughput</span>
-                      {analyticsSummary?.end_to_end?.completed_count > 0 ? (
-                        <span className="text-2xl sm:text-3xl font-display font-black text-gray-900 dark:text-gray-100 mt-2 block">
-                          {formatDuration(analyticsSummary.end_to_end.avg_minutes)}
-                        </span>
-                      ) : (
-                        <span className="text-sm font-bold text-gray-400 dark:text-gray-400 mt-2 block">No completed requests yet</span>
-                      )}
-                    </div>
-                    {analyticsSummary?.end_to_end?.completed_count > 0 && analyticsSummary?.throughput?.length > 0 && (
-                      <div className="mt-4">
-                        <p className="text-[10px] font-bold text-gray-500 dark:text-gray-400 mb-2">Daily completed documents</p>
-                        <MiniSparkline
-                          data={(analyticsSummary?.throughput || []).map((t) => ({ v: t.completed, label: t.date }))}
-                          unit="docs"
-                          className="w-full h-24"
-                        />
-                      </div>
+                {/* Shared tracks keep KPI labels, values and chart slots aligned. */}
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-y-3">
+                  <section aria-label="System throughput" className="trace-section trace-card-info trace-section-body grid gap-3 lg:row-span-4 lg:grid-rows-subgrid">
+                    <span className="text-[10px] font-bold text-gray-400 dark:text-gray-400 uppercase tracking-widest block">System Throughput</span>
+                    {analyticsSummary?.end_to_end?.completed_count > 0 ? (
+                      <span className="min-w-0 break-words text-2xl sm:text-3xl font-display font-black text-gray-900 dark:text-gray-100 block">
+                        {formatDuration(analyticsSummary.end_to_end.avg_minutes)}
+                      </span>
+                    ) : (
+                      <span className="text-sm font-bold text-gray-400 dark:text-gray-400 block">No completed requests yet</span>
                     )}
-                    <div className="bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-100 dark:border-emerald-800 rounded-full px-3 py-1 text-[10px] font-bold text-[#15803d] dark:text-green-300 w-fit max-w-full flex items-center gap-1.5 mt-2">
+                    <div className="min-w-0">
+                      {analyticsSummary?.end_to_end?.completed_count > 0 && analyticsSummary?.throughput?.length > 0 ? (
+                        <>
+                          <MiniSparkline
+                            data={analyticsSummary.throughput.map((t) => ({ v: t.completed, label: t.date }))}
+                            unit="docs"
+                            className="trace-kpi-sparkline"
+                          />
+                          <p className="text-[10px] font-bold text-gray-500 dark:text-gray-400 mt-2">Daily completed documents</p>
+                        </>
+                      ) : <div aria-hidden="true" className="trace-kpi-sparkline" />}
+                    </div>
+                    <div className="self-start bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-100 dark:border-emerald-800 rounded-full px-3 py-1 text-[10px] font-bold text-[#15803d] dark:text-green-300 w-fit max-w-full flex items-center gap-1.5">
                       <span className="w-1.5 h-1.5 shrink-0 bg-[#15803d] rounded-full"></span>
                       Average document processing time across all completed requests
                     </div>
                   </section>
 
-                  <div className="trace-section trace-card-info trace-section-body flex flex-col justify-between min-h-44">
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <span className="text-[10px] font-bold text-gray-400 dark:text-gray-400 uppercase tracking-widest block">AI Confidence Avg</span>
-                        <span className="text-2xl sm:text-3xl font-display font-black text-gray-900 dark:text-gray-100 mt-2 block">{dashStats.avg_ocr_confidence > 0 ? dashStats.avg_ocr_confidence.toFixed(1) + '%' : '—'}</span>
-                      </div>
-                      <MiniSparkline trend="down" />
+                  <section aria-label="AI confidence average" className="trace-section trace-card-info trace-section-body grid gap-3 lg:row-span-4 lg:grid-rows-subgrid">
+                    <span className="text-[10px] font-bold text-gray-400 dark:text-gray-400 uppercase tracking-widest block">AI Confidence Avg</span>
+                    <span className="min-w-0 break-words text-2xl sm:text-3xl font-display font-black text-gray-900 dark:text-gray-100 block">{dashStats.avg_ocr_confidence > 0 ? dashStats.avg_ocr_confidence.toFixed(1) + '%' : '—'}</span>
+                    <div className="min-w-0">
+                      <MiniSparkline trend="down" className="trace-kpi-sparkline" />
+                      <p className="text-[10px] font-bold text-gray-500 dark:text-gray-400 mt-2">Illustrative trend</p>
                     </div>
-                    <div className="bg-[#15803d] rounded-xl px-4 py-2 text-[10px] font-medium text-white w-full mt-2 leading-snug">
+                    <div className="self-start bg-[#15803d] rounded-xl px-4 py-2 text-[10px] font-medium text-white w-full leading-snug">
                       Average extraction accuracy across all scans
                     </div>
-                  </div>
+                  </section>
 
-                  <div className="trace-section trace-card-info trace-section-body flex flex-col justify-between min-h-44">
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <span className="text-[10px] font-bold text-gray-400 dark:text-gray-400 uppercase tracking-widest block">Real-time Backlog</span>
-                        <span className="text-2xl sm:text-3xl font-display font-black text-gray-900 dark:text-gray-100 mt-2 block">
-                          {dashStats.backlog_count}
-                        </span>
-                      </div>
-                      <MiniSparkline trend="up" />
+                  <section aria-label="Real-time backlog" className="trace-section trace-card-info trace-section-body grid gap-3 lg:row-span-4 lg:grid-rows-subgrid">
+                    <span className="text-[10px] font-bold text-gray-400 dark:text-gray-400 uppercase tracking-widest block">Real-time Backlog</span>
+                    <span className="min-w-0 break-words text-2xl sm:text-3xl font-display font-black text-gray-900 dark:text-gray-100 block">
+                      {dashStats.backlog_count}
+                    </span>
+                    <div className="min-w-0">
+                      <MiniSparkline trend="up" className="trace-kpi-sparkline" />
+                      <p className="text-[10px] font-bold text-gray-500 dark:text-gray-400 mt-2">Illustrative trend</p>
                     </div>
-                    <div className="bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-100 dark:border-emerald-800 rounded-full px-3 py-1 text-[10px] font-bold text-[#15803d] dark:text-green-300 w-fit flex items-center gap-1.5 mt-2">
-                      <span className="w-1.5 h-1.5 bg-[#15803d] rounded-full"></span>
+                    <div className="self-start bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-100 dark:border-emerald-800 rounded-full px-3 py-1 text-[10px] font-bold text-[#15803d] dark:text-green-300 w-fit max-w-full flex items-center gap-1.5">
+                      <span className="w-1.5 h-1.5 shrink-0 bg-[#15803d] rounded-full"></span>
                       Documents currently pending across all desks
                     </div>
-                  </div>
+                  </section>
                 </div>
 
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
