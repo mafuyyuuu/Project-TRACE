@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { STATUS } from '@/utils/documentStatus';
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 
 /**
  * Smoke tests for the role-hook split: each command center must mount, run its
@@ -48,6 +49,7 @@ import FinanceDashboard from '@/features/finance/FinanceDashboard';
 import Window1Dashboard from '@/features/window1/Window1Dashboard';
 import SecretaryDashboard from '@/features/secretary/SecretaryDashboard';
 import AdminDashboard from '@/features/admin/AdminDashboard';
+import AdminSecurityPanel from '@/features/admin/components/AdminSecurityPanel';
 
 afterEach(() => vi.useRealTimers());
 
@@ -188,6 +190,35 @@ describe('role isolation', () => {
     expect(await screen.findByRole('heading', { name: 'Global Security Audit Log' })).toBeInTheDocument();
     expect(await screen.findByText('No security logs found')).toBeInTheDocument();
     expect(get).toHaveBeenCalledWith('/auth/global-security-logs');
+  });
+
+  it('preserves every long audit value in its column and exposes keyboard access to the scroll region', async () => {
+    const log = {
+      created_at: '2026-10-05T00:00:00Z',
+      event_type: 'SECURITY_EVENT_' + 'LONG_DETAIL_'.repeat(20),
+      full_name: 'Synthetic account ' + 'LongName'.repeat(20),
+      student_id: 'SYNTHETIC-' + 'IDENTIFIER'.repeat(20),
+      role: 'college_secretary',
+      ip_address: '2001:0db8:85a3:0000:0000:8a2e:0370:7334',
+    };
+    const get = vi.spyOn(api, 'get').mockResolvedValue({ data: [log, { ...log, ip_address: null }] });
+    render(<AdminSecurityPanel />);
+    const table = await screen.findByRole('table', { name: 'Global security audit log' });
+    expect(within(table).getAllByRole('columnheader').map(header => header.textContent))
+      .toEqual(['Timestamp', 'Event', 'User', 'Role', 'IP Address']);
+    const cells = within(within(table).getAllByRole('row')[1]).getAllByRole('cell');
+    expect(cells[0]).toHaveTextContent(new Date(log.created_at).toLocaleString());
+    expect(cells[1].textContent).toBe(log.event_type);
+    expect(cells[2]).toHaveTextContent(log.full_name);
+    expect(cells[2]).toHaveTextContent(log.student_id);
+    expect(cells[3].textContent).toBe(log.role);
+    expect(cells[4].textContent).toBe(log.ip_address);
+    expect(within(table).getByText('Unknown')).toBeInTheDocument();
+    const region = screen.getByRole('region', { name: 'Security log table' });
+    expect(region).toContainElement(table);
+    await userEvent.setup().tab();
+    expect(region).toHaveFocus();
+    expect(get).toHaveBeenCalledExactlyOnceWith('/auth/global-security-logs');
   });
 });
 

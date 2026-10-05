@@ -251,6 +251,10 @@ This is initial setup, not replacement of an enrolled authenticator. Staff use t
 - **Templates:** edit the payment-slip body or email notice, preview it, then Save and confirm. Keep `{{MESSAGE}}` in email notices so verification/reset instructions remain. Supported variables include student identity, Program/Course, document type, tracking/OR/request numbers, amount and issue date. The payment tracking QR remains outside the customizable body.
 - **Reports & Export:** apply filters, select an export category and export. Review efficiency/throughput charts as measured indicators; forecasts are estimates.
 
+### Read Security Logs
+
+Open **Security Logs** to review each event's timestamp, event name, account name/ID, role and IP address. Long values wrap without truncation. On smaller screens, scroll horizontally inside the table to reach all columns; keyboard users can Tab to the table area and use the arrow keys. Scroll vertically inside that area to review more rows while the column headings stay visible.
+
 ## 12. Solve common problems
 
 | What you see | What to do |
