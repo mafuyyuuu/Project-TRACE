@@ -1,17 +1,65 @@
-import { beforeEach, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import AuthenticatorSettings from '@/components/AuthenticatorSettings';
 import * as api from '@/services/authenticatorService';
+import { downloadRecoveryCodes } from '@/utils/downloadRecoveryCodes';
 vi.mock('@/services/authenticatorService', () => ({ getAuthenticator: vi.fn(), beginAuthenticator: vi.fn(), updateAuthenticator: vi.fn() }));
 vi.mock('@/services/realtimeService', () => ({ disconnectRealtime: vi.fn() }));
 vi.mock('qrcode', () => ({ default: { toDataURL: vi.fn().mockResolvedValue('data:image/png;base64,synthetic') } }));
+vi.mock('@/utils/downloadRecoveryCodes', () => ({ downloadRecoveryCodes: vi.fn() }));
 const user = { id: 3, role: 'student' };
 beforeEach(() => {
   vi.clearAllMocks(); localStorage.clear();
+  downloadRecoveryCodes.mockReset();
   api.getAuthenticator.mockResolvedValue({ enabled: false, available: true });
   api.beginAuthenticator.mockResolvedValue({ secret: 'MANUAL-SETUP', provisioning_uri: 'otpauth://totp/TRACE:test' });
   api.updateAuthenticator.mockResolvedValue({ token: 'synthetic', user, enabled: true, recovery_codes: ['SINGLE-USE-CODE'] });
+});
+afterEach(() => vi.unstubAllGlobals());
+
+async function showRecoveryCodes() {
+  render(<AuthenticatorSettings user={{ ...user, role: 'admin' }} />);
+  fireEvent.change(await screen.findByLabelText('Current password'), { target: { value: 'synthetic' } });
+  fireEvent.click(screen.getByRole('button', { name: 'Set up authenticator app' }));
+  fireEvent.change(await screen.findByLabelText('Authenticator code'), { target: { value: '123456' } });
+  fireEvent.click(screen.getByRole('button', { name: 'Enable authenticator' }));
+  fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Confirm change' }));
+  await screen.findByText('SINGLE-USE-CODE');
+}
+
+it('announces copy completion accessibly and preserves explicit save acknowledgment', async () => {
+  let resolve;
+  const writeText = vi.fn(() => new Promise(done => { resolve = done; }));
+  await showRecoveryCodes();
+  vi.stubGlobal('navigator', { clipboard: { writeText } });
+  fireEvent.click(screen.getByRole('button', { name: 'Copy recovery codes' }));
+  expect(screen.getByRole('button', { name: 'Copying recovery codes…' })).toBeDisabled();
+  expect(screen.getByRole('button', { name: 'Download recovery codes' })).toBeDisabled();
+  expect(screen.queryByText(/Recovery codes copied/)).not.toBeInTheDocument();
+  resolve();
+  const notice = await screen.findByText(/Recovery codes copied/);
+  expect(notice).toHaveAttribute('role', 'status');
+  expect(notice).toHaveAttribute('aria-atomic', 'true');
+  expect(screen.getByText('SINGLE-USE-CODE')).toBeInTheDocument();
+  fireEvent.click(screen.getByRole('button', { name: 'I saved my recovery codes' }));
+  expect(screen.queryByText('SINGLE-USE-CODE')).not.toBeInTheDocument();
+  expect(screen.queryByText(/Recovery codes copied/)).not.toBeInTheDocument();
+});
+
+it('announces clipboard errors with a usable alternative and retains codes', async () => {
+  await showRecoveryCodes();
+  vi.stubGlobal('navigator', { clipboard: { writeText: vi.fn().mockRejectedValue(new Error('Denied')) } });
+  fireEvent.click(screen.getByRole('button', { name: 'Copy recovery codes' }));
+  expect(await screen.findByRole('alert')).toHaveTextContent(/Allow clipboard access.*download/);
+  expect(screen.getByRole('button', { name: 'Copy recovery codes' })).toBeEnabled();
+  expect(screen.getByText('SINGLE-USE-CODE')).toBeInTheDocument();
+  fireEvent.click(screen.getByRole('button', { name: 'Download recovery codes' }));
+  const notice = screen.getByText(/download started/);
+  expect(notice).toHaveAttribute('role', 'status');
+  expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+  expect(downloadRecoveryCodes).toHaveBeenCalledExactlyOnceWith(['SINGLE-USE-CODE']);
+  expect(screen.getByText('SINGLE-USE-CODE')).toBeInTheDocument();
 });
 it('activates only after confirmed verification and shows recovery codes once', async () => {
   const interaction = userEvent.setup(); render(<AuthenticatorSettings user={user} />);

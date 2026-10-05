@@ -168,7 +168,8 @@ Requirements vary by case. An extra document is not required unless requested. S
 2. Enter your current password and select **Set up authenticator app**.
 3. In your authenticator app, scan the QR code or enter the manual key.
 4. Enter the app's generated code, select **Enable authenticator**, then confirm the change.
-5. Save/download the recovery codes shown once, and keep them private.
+5. Select **Copy recovery codes** or **Download recovery codes** and keep them private. Copy confirms only after clipboard access succeeds; an error offers download or manual copy. “Download started” means the browser received the download action—check its downloads to confirm completion.
+6. After saving them privately, select **I saved my recovery codes**. Copy/download does not dismiss or acknowledge the codes; they will not be shown again after acknowledgment.
 
 Setup is available to every role when the server is configured. At login, use the app or one unused recovery code. Email resend cannot bypass an enrolled authenticator. If you lose both the app and recovery codes, contact the Registrar; initial staff setup cannot replace an existing factor.
 

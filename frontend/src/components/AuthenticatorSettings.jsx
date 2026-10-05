@@ -3,13 +3,14 @@ import { useEffect, useState } from 'react';
 import QRCode from 'qrcode';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import useAuthenticator from '@/hooks/useAuthenticator';
-import { downloadRecoveryCodes } from '@/utils/downloadRecoveryCodes';
+import useRecoveryCodeActions from '@/hooks/useRecoveryCodeActions';
 
 const inputClass = "trace-control mt-2 w-full";
 const buttonClass = "trace-button trace-button-primary";
 
 export default function AuthenticatorSettings({ user }) {
   const auth = useAuthenticator(user.id);
+  const codeActions = useRecoveryCodeActions(auth.codes);
   const [password, setPassword] = useState('');
   const [code, setCode] = useState('');
   const [recovery, setRecovery] = useState(false);
@@ -34,9 +35,6 @@ export default function AuthenticatorSettings({ user }) {
   function stage(action) {
     if (password && code) setConfirmation({ action, payload: payload() });
   }
-  function downloadCodes() {
-    downloadRecoveryCodes(auth.codes);
-  }
   return <section aria-labelledby="authenticator-heading" onKeyDown={event => { if (event.key === 'Enter' && event.target.tagName === 'INPUT') event.preventDefault(); }} className="trace-section trace-section-body space-y-4">
     <h3 id="authenticator-heading" className="text-sm font-black">Two-factor authentication</h3>
     <p className="text-sm">Use an authenticator app on your phone to generate login codes. Available to every TRACE account.</p>
@@ -52,9 +50,13 @@ export default function AuthenticatorSettings({ user }) {
         <ul aria-label="Recovery codes" className="select-text space-y-2 rounded-xl bg-gray-50 p-3 font-mono text-sm dark:bg-gray-800">
           {auth.codes.map(value => <li key={value} className="break-all">{value}</li>)}
         </ul>
-        <div className="flex flex-wrap gap-2"><Button type="button" className={buttonClass} onClick={downloadCodes}>Download recovery codes</Button>
-          <Button type="button" className={buttonClass} onClick={() => { navigator.clipboard?.writeText(auth.codes.join('\n')).catch(() => {}); }}>Copy recovery codes</Button>
+        <div className="flex flex-wrap gap-2"><Button type="button" className={buttonClass} disabled={auth.busy || codeActions.busy} onClick={codeActions.download}>Download recovery codes</Button>
+          <Button type="button" className={buttonClass} disabled={auth.busy || codeActions.busy} aria-busy={codeActions.busy} onClick={codeActions.copy}>{codeActions.busy ? 'Copying recovery codes…' : 'Copy recovery codes'}</Button>
           <Button type="button" className={buttonClass} onClick={auth.acknowledgeCodes}>I saved my recovery codes</Button></div>
+        <p role="status" aria-atomic="true" className={`text-sm ${codeActions.busy ? 'text-gray-600 dark:text-gray-300' : 'text-green-700 dark:text-green-300'}`}>
+          {codeActions.busy ? 'Copying recovery codes…' : codeActions.notice}
+        </p>
+        {codeActions.error && <p role="alert" className="text-sm text-red-700 dark:text-red-300">{codeActions.error}</p>}
       </div> : auth.status.available && <>
         <label className="trace-label block">Current password
           <input type="password" autoComplete="current-password" value={password} disabled={auth.busy} onChange={event => setPassword(event.target.value)} className={inputClass} />
