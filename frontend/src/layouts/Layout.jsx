@@ -221,7 +221,7 @@ export default function Layout() {
             aria-label="Open navigation menu"
             aria-expanded={showMobileNav}
             aria-controls="mobile-navigation"
-            className="trace-action trace-icon-button md:hidden -ml-1"
+            className="trace-action trace-icon-button trace-navigation-trigger md:hidden -ml-1"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
           </button>
@@ -297,7 +297,7 @@ export default function Layout() {
       {/* Main Area */}
       <div className="flex-1 flex gap-6 min-h-0 overflow-hidden relative">
         {/* Desktop rail */}
-        <aside aria-label="Sidebar" tabIndex={0} className="trace-nav-scroll hidden md:block w-20 h-full overflow-y-auto overscroll-contain bg-white dark:bg-gray-900 rounded-[2rem] shadow-sm px-3 py-4 shrink-0 border border-gray-100/50 dark:border-gray-700/50 focus-visible:outline-2 focus-visible:outline-pine-600 dark:focus-visible:outline-green-400">
+        <aside aria-label="Sidebar" tabIndex={0} className="trace-nav-scroll trace-desktop-rail hidden md:block w-20 h-full overflow-y-auto overscroll-contain bg-white dark:bg-gray-900 rounded-[2rem] shadow-sm px-3 py-4 shrink-0 border border-gray-100/50 dark:border-gray-700/50 focus-visible:outline-2 focus-visible:outline-pine-600 dark:focus-visible:outline-green-400">
           <SidebarNav
             user={user}
             tab={tab}
@@ -310,7 +310,7 @@ export default function Layout() {
         {/* Mobile drawer — the rail is hidden below md, so without this there is
             no navigation at all on a phone. */}
         {showMobileNav && (
-          <div className="md:hidden fixed inset-0 z-[90] flex">
+          <div className="trace-navigation-drawer md:hidden fixed inset-0 z-[90] flex">
             <div
               className="absolute inset-0 bg-black/40 backdrop-blur-sm transition-opacity animate-fade-in"
               onClick={() => setShowMobileNav(false)}

@@ -102,11 +102,12 @@ describe('SidebarNav', () => {
     expect(screen.queryByText('Graduate Application')).not.toBeInTheDocument();
   });
 
-  // The desktop rail is icon-only; the labels live in the title attribute.
+  // The desktop rail stays icon-only; controls always have accessible names.
   it('stays icon-only in rail mode', () => {
     renderNav({ user: STUDENT });
     expect(screen.queryByText('History')).not.toBeInTheDocument();
-    expect(screen.getByTitle('History')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'History' })).toBeInTheDocument();
+    expect(screen.queryByRole('tooltip')).not.toBeInTheDocument();
   });
 
   it('closes the drawer when a destination is chosen', () => {

@@ -75,6 +75,53 @@
   display: none;
 }
 
+/* Lift the decorative icon only; the control's hit target never moves. */
+.trace-nav-icon-control { position: relative; isolation: isolate; }
+.trace-nav-icon-control::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: rgb(21 128 61 / 0.08);
+  box-shadow: 0 4px 12px rgb(21 128 61 / 0.12);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--trace-motion-feedback-duration) var(--trace-motion-easing);
+}
+.dark .trace-nav-icon-control::before { background: rgb(74 222 128 / 0.1); box-shadow: 0 4px 12px rgb(34 197 94 / 0.12); }
+.trace-nav-icon-control .trace-nav-icon {
+  position: relative;
+  transition: transform var(--trace-motion-feedback-duration) var(--trace-motion-easing);
+}
+.trace-nav-icon-control:focus-visible::before { opacity: 1; }
+.trace-nav-icon-control:focus-visible .trace-nav-icon { transform: translateY(calc(-1 * var(--trace-motion-continuity-distance))); }
+.trace-nav-icon-control:not([aria-current="page"]):not([data-nav-selected]):focus-visible { color: #15803d; }
+.dark .trace-nav-icon-control:not([aria-current="page"]):not([data-nav-selected]):focus-visible { color: #86efac; }
+@media (hover: hover) and (pointer: fine) {
+  .trace-nav-icon-control:hover::before { opacity: 1; }
+  .trace-nav-icon-control:hover .trace-nav-icon { transform: translateY(calc(-1 * var(--trace-motion-continuity-distance))); }
+  .trace-nav-icon-control:not([aria-current="page"]):not([data-nav-selected]):hover { color: #15803d; }
+  .dark .trace-nav-icon-control:not([aria-current="page"]):not([data-nav-selected]):hover { color: #86efac; }
+}
+.trace-sidebar-tooltip {
+  position: fixed;
+  left: var(--trace-tooltip-left, 0px);
+  top: var(--trace-tooltip-top, 0px);
+  z-index: 95;
+  max-width: calc(100vw - 16px);
+  max-height: calc(100dvh - 16px);
+  padding-left: 8px; /* Contiguous pointer bridge from the control to its label. */
+  overflow-wrap: anywhere;
+}
+@media (hover: none), (pointer: coarse) {
+  .trace-desktop-rail { display: none; }
+  .trace-navigation-trigger { display: inline-flex; }
+  .trace-navigation-drawer { display: flex; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .trace-nav-icon-control .trace-nav-icon { transform: none !important; }
+}
+
 :root {
   --trace-motion-feedback-duration: 150ms;
   --trace-motion-context-duration: 180ms;
