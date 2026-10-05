@@ -1,5 +1,14 @@
 # Project TRACE Progress Report
 
+### Student payment action after fee breakdown — investigation 2026-10-05
+
+Finding before edits: each request-group section in StudentDashboard emits Request ID, then Pay, then the itemized document list/FeeBreakdown. This JSX order drives both visual and keyboard reading order; FeeBreakdown itself only renders calculations. Move the same grouped Pay action after the list in a responsive right-aligned footer, with the existing group total displayed before it. Preserve amber styling, eligibility, selected representative document/group total and the existing checkout/confirmation/submission flow. No backend or schema change is needed.
+
+Implemented the same grouped Pay button after the charge list in a flex-wrap/justify-end footer. The saved group total appears immediately before the button in DOM order, and mobile full-width action styling remains. No CSS reordering, positive tabIndex, new state, timers or handler changes. Tests check both request groups' charges → total → Pay order, and retain keyboard activation, representative-document selection, confirmation, single submission and non-payable states.
+
+Validation: Student payment/dashboard regression suites pass 38 tests; frontend lint/build and git diff --check pass. Read-only synthetic browser checks pass 85 assertions across 320/375/768/1280 px, light/dark and 100%/200% text: actual Pay position below charges, right alignment, DOM order, contained layout, amber contrast, non-payable states and keyboard checkout. Screenshots reviewed. Existing build chunk-size advisory remains. No real payment writes, migration or deployment.
+
+
 ### Student unpaid Payment Action Card — investigation 2026-10-05
 
 Finding before edits: StudentDashboard renders its Action Required — Payment card only for billableGroups derived from the existing pending-payment queue. The Pay action already uses the shared trace-button-warning variant; the surrounding card still hardcodes a pine-green border and header with white warning icon/text. FeeBreakdown is neutral and renders saved fee calculations, not payment success. Align the pending card's border/header with amber light/dark palette and preserve group totals, payment eligibility, checkout, confirmation and submission handlers. No backend or schema changes are needed.

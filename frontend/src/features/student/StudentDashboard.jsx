@@ -190,13 +190,6 @@ export default function StudentDashboard({ user, currentTab, setViewImageUrl }) 
                     {billableGroups.map((group) => (
                       <section key={group.groupId} aria-label={`Payment for request ${group.groupId}`} className="space-y-4 pb-5 border-b border-gray-100 dark:border-gray-700 last:border-0 last:pb-0">
                         <p className="text-xs font-mono text-gray-500 dark:text-gray-400 break-words select-text">Request {group.groupId}</p>
-                        <Button
-                          type="button"
-                          onClick={() => { setSelectedDoc({ ...group.docs[0], group_total: group.total }); setActiveModal('pay'); }}
-                          className="trace-button trace-button-warning w-full sm:w-auto sm:px-6"
-                        >
-                          Pay {formatPeso(group.total)} ({group.docs.length} {group.docs.length === 1 ? 'document' : 'documents'})
-                        </Button>
                         <ul className="space-y-2">
                           {group.docs.map((doc) => (
                             <li key={doc.id} className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-2 text-sm">
@@ -206,6 +199,16 @@ export default function StudentDashboard({ user, currentTab, setViewImageUrl }) 
                             </li>
                           ))}
                         </ul>
+                        <div className="flex flex-wrap items-center justify-end gap-3">
+                          <p className="text-sm font-bold text-gray-900 dark:text-gray-100 select-text">Total amount due: {formatPeso(group.total)}</p>
+                          <Button
+                            type="button"
+                            onClick={() => { setSelectedDoc({ ...group.docs[0], group_total: group.total }); setActiveModal('pay'); }}
+                            className="trace-button trace-button-warning w-full sm:w-auto sm:px-6"
+                          >
+                            Pay {formatPeso(group.total)} ({group.docs.length} {group.docs.length === 1 ? 'document' : 'documents'})
+                          </Button>
+                        </div>
                       </section>
                     ))}
                   </div>

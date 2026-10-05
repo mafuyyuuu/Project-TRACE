@@ -59,6 +59,24 @@ describe('Student grouped payment', () => {
     expect(within(screen.getByRole('table', { name: 'Active requests' })).queryByRole('button', { name: /^Pay / })).not.toBeInTheDocument();
   });
 
+  it('places each Pay action after its saved charges and visible group total in document reading order', async () => {
+    documentsService.getDocuments.mockResolvedValue({ documents: [
+      ...DOCS, { ...DOCS[1], id: 21, tracking_number: 'TRC-21', request_group_id: 'REQ-G2', amount: '50.00' },
+    ] });
+    renderStudent();
+    await screen.findByRole('button', { name: 'Pay ₱200.00 (2 documents)' });
+    for (const [id, total] of [['REQ-G1', '₱200.00'], ['REQ-G2', '₱50.00']]) {
+      const group = screen.getByRole('region', { name: `Payment for request ${id}` });
+      const pay = within(group).getByRole('button', { name: /^Pay / });
+      const charges = within(group).getByRole('list');
+      const totalLabel = within(group).getByText(`Total amount due: ${total}`);
+      expect(charges.compareDocumentPosition(totalLabel) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+      expect(totalLabel.compareDocumentPosition(pay) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+      expect(charges).toHaveTextContent('₱');
+    }
+    expect(documentsService.submitPayment).not.toHaveBeenCalled();
+  });
+
   it('keeps separate requests separate and opens only the selected group with the keyboard', async () => {
     const user = userEvent.setup();
     documentsService.getDocuments.mockResolvedValue({ documents: [
