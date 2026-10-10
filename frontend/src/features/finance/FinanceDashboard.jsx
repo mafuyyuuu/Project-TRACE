@@ -107,7 +107,7 @@ function FinanceOverview({ user, setViewImageUrl }) {
         <div className="trace-section trace-motion-context overflow-hidden mt-6">
           <div className="trace-section-header border-gray-100 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800/50">
             <div>
-              <h3 className="font-bold text-gray-950 dark:text-gray-100 text-sm tracking-wider uppercase">1 · AWAITING PAYMENT</h3>
+              <h3 className="trace-section-title uppercase tracking-wider">1 · AWAITING PAYMENT</h3>
               <p className="text-[11px] text-gray-500 dark:text-gray-400 font-medium mt-1">Billed by the College Secretary. Log a payment here when the student pays at the counter.</p>
             </div>
             <span className="text-xs text-gray-500 dark:text-gray-400 font-semibold whitespace-nowrap">
@@ -168,7 +168,7 @@ function FinanceOverview({ user, setViewImageUrl }) {
         {activeQueueTab === 'verification' && (
         <div className="trace-section trace-motion-context overflow-hidden mt-6">
           <div className="trace-section-header border-gray-100 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800/50">
-            <h3 className="font-bold text-gray-950 dark:text-gray-100 text-sm tracking-wider uppercase">2 · VERIFICATION QUEUE</h3>
+            <h3 className="trace-section-title uppercase tracking-wider">2 · VERIFICATION QUEUE</h3>
             <span className="text-xs text-gray-500 dark:text-gray-400 font-semibold whitespace-nowrap">
               Pending Request: <strong className="text-gray-900 dark:text-gray-100">{verificationQueue.length}</strong>
             </span>

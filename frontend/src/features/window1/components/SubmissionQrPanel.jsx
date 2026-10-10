@@ -9,7 +9,7 @@ export default function SubmissionQrPanel() {
   const qr = useSubmissionQr(applicant);
   const download = <a href={qr.image} download={`trace-${applicant}-registration-qr.png`} className="trace-button trace-button-secondary">Download QR</a>;
   return <section aria-label="Registration QR" className="trace-section trace-section-body min-w-0 space-y-3">
-    <h3 className="text-lg font-bold">TRACE registration QR</h3>
+    <h3 className="trace-section-title">TRACE registration QR</h3>
     <p className="text-sm">Scan to open the registration form.</p>
     <label className="trace-label block">Applicant type
       <select value={applicant} onChange={event => { setPreviewApplicant(null); setApplicant(event.target.value); }} className="trace-control mt-2 w-full">

@@ -156,7 +156,7 @@ export default function AdminDashboard({ user, currentTab, setViewImageUrl, revi
                   <div className="trace-section trace-section-body lg:col-span-2 md:flex flex-col min-h-[380px]">
                     <div className="flex flex-col sm:flex-row justify-between sm:items-start gap-3 mb-6">
                       <div>
-                        <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100">7-Day Volume Forecast</h3>
+                        <h3 className="trace-section-title">7-Day Volume Forecast</h3>
                         <p className="text-xs text-gray-400 dark:text-gray-400 font-medium">Predicted incoming document volume via Prophet ML.</p>
                       </div>
                       <div className="flex min-w-0 max-w-full items-center gap-2">
@@ -244,7 +244,7 @@ export default function AdminDashboard({ user, currentTab, setViewImageUrl, revi
                   {/* Admin Insights Panel */}
                   <section aria-labelledby="ai-insights-heading" className="trace-section trace-section-body lg:col-span-1 flex flex-col justify-between h-full min-h-[380px]">
                     <div>
-                      <h3 id="ai-insights-heading" className="text-lg font-bold text-gray-900 dark:text-gray-100">AI INSIGHTS</h3>
+                      <h3 id="ai-insights-heading" className="trace-section-title">AI INSIGHTS</h3>
                       <p className="text-xs text-gray-600 dark:text-gray-300 mt-1">Document model advice and measured support trends. Recommendations require review.</p>
                     </div>
 
@@ -279,7 +279,7 @@ export default function AdminDashboard({ user, currentTab, setViewImageUrl, revi
                 {/* Student Account Verification dashboard */}
                 <div className="trace-section overflow-hidden">
                   <div className="trace-section-header border-gray-100 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800/50 flex-wrap">
-                    <h3 id="tutorial-account-review" className="min-w-0 max-w-full font-bold text-gray-900 dark:text-gray-100 text-lg">Account Verification</h3>
+                    <h3 id="tutorial-account-review" className="trace-section-title max-w-full">Account Verification</h3>
                     <span className="bg-amber-100 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-wider">
                       {pendingStudents.length} Account Verification Requests
                     </span>
@@ -347,7 +347,7 @@ export default function AdminDashboard({ user, currentTab, setViewImageUrl, revi
                 {/* All Documents Tracker */}
                 <div className="trace-section overflow-hidden">
                   <div className="trace-section-header border-gray-100 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800/50">
-                    <h3 className="font-bold text-gray-900 dark:text-gray-100 text-lg">System-Wide Document Tracker</h3>
+                    <h3 className="trace-section-title">System-Wide Document Tracker</h3>
                     <div className="flex items-center gap-2">
                       <span className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest">Filter:</span>
                       <select
@@ -487,7 +487,7 @@ export default function AdminDashboard({ user, currentTab, setViewImageUrl, revi
                 </div>
                 <div className="trace-section overflow-hidden">
                   <div className="trace-section-header border-gray-100 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800/50">
-                    <h3 className="font-bold text-gray-900 dark:text-gray-100 text-lg">System-Wide Audit Log</h3>
+                    <h3 className="trace-section-title">System-Wide Audit Log</h3>
                   </div>
                   <div className="p-4 sm:p-6">
                     <div className="max-h-[calc(100vh-280px)] overflow-y-auto overflow-x-auto">

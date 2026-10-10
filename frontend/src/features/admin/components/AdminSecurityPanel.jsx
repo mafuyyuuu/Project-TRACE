@@ -30,7 +30,7 @@ export default function AdminSecurityPanel() {
       </div>
       <div className="trace-section overflow-hidden">
         <div className="trace-section-header border-gray-100 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800/50">
-          <h3 className="font-bold text-gray-900 dark:text-gray-100 text-lg">Global Security Audit Log</h3>
+          <h3 className="trace-section-title">Global Security Audit Log</h3>
         </div>
         <div className="trace-section-body">
           {loading ? (

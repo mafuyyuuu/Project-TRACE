@@ -70,11 +70,11 @@ export default function NewRequestModal({
           <div className="trace-form-grid bg-gray-50/50 dark:bg-gray-800/50 p-4 rounded-2xl border border-gray-100 dark:border-gray-700">
             <div className="flex flex-col gap-1.5">
               <label className="trace-label">Student Name</label>
-              <input type="text" value={user?.full_name || ''} disabled className="trace-control border-none" />
+              <input type="text" value={user?.full_name || ''} disabled className="trace-control" />
             </div>
             <div className="flex flex-col gap-1.5">
               <label className="trace-label">Student ID</label>
-              <input type="text" value={user?.student_id || ''} disabled className="trace-control border-none" />
+              <input type="text" value={user?.student_id || ''} disabled className="trace-control" />
             </div>
           </div>
 
@@ -124,13 +124,13 @@ export default function NewRequestModal({
 
                       {isSelected && (
                         <div className="px-4 pb-4 pt-1 space-y-3 border-t border-emerald-100/70 dark:border-emerald-800/70">
-                          <label className="flex flex-col gap-1.5 text-xs font-semibold">
+                          <label className="trace-label flex flex-col gap-1.5">
                             Copies
                             <input type="number" min="1" max={isHonorableDismissal(type.name) ? 1 : 2147483647} step="1" required
                               value={selection.copies} onChange={e => updateSelection(type.name, { copies: e.target.value })}
                               className="trace-control w-full" />
                           </label>
-                          {needsStudyYears(type.name) && <div className="grid grid-cols-2 gap-3">
+                          {needsStudyYears(type.name) && <div className="trace-form-grid">
                             {[['year_started', 'Year Started'], ['year_ended', 'Year Ended']].map(([key, label]) => <label key={key} className="trace-label">
                               {label}<input type="number" required min="1900" max={new Date().getFullYear()} step="1" value={selection[key] || ''}
                                 onChange={event => updateSelection(type.name, { [key]: event.target.value })}

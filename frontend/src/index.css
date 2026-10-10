@@ -12,7 +12,7 @@
    an input icon) without duplicating the base appearance. */
 @layer components {
   .trace-control {
-    @apply block w-full min-w-0 min-h-11 rounded-xl border border-gray-300 bg-gray-50 px-4 py-3 text-sm leading-normal text-gray-900 placeholder:text-gray-500 transition-colors dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 dark:placeholder:text-gray-400;
+    @apply block w-full min-w-0 min-h-11 rounded-lg border border-gray-200 bg-trace-field px-4 py-3 text-sm font-normal leading-normal text-trace-ink placeholder:text-gray-600 transition-colors dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 dark:placeholder:text-gray-400;
     @apply enabled:hover:border-gray-400 dark:enabled:hover:border-gray-500 focus:border-pine-600 focus:bg-white focus:ring-2 focus:ring-pine-600/20 dark:focus:border-green-400 dark:focus:bg-gray-900 dark:focus:ring-green-400/25;
     @apply disabled:cursor-not-allowed disabled:opacity-60;
   }
@@ -28,12 +28,12 @@
   .trace-choice { @apply shrink-0 accent-pine-600 disabled:cursor-not-allowed disabled:opacity-60; }
   .trace-file {
     @apply block w-full min-w-0 text-sm text-gray-700 dark:text-gray-200 disabled:cursor-not-allowed disabled:opacity-60;
-    @apply file:mr-3 file:rounded-xl file:border-0 file:bg-green-50 file:px-4 file:py-3 file:text-sm file:font-semibold file:text-green-800 hover:file:bg-green-100 dark:file:bg-green-950 dark:file:text-green-200 dark:hover:file:bg-green-900;
+    @apply file:mr-3 file:rounded-lg file:border-0 file:bg-green-50 file:px-4 file:py-3 file:text-sm file:font-semibold file:text-green-800 hover:file:bg-green-100 dark:file:bg-green-950 dark:file:text-green-200 dark:hover:file:bg-green-900;
   }
   .trace-action { @apply transition-colors disabled:cursor-not-allowed disabled:opacity-60; }
   .trace-nav-item { @apply flex shrink-0 items-center rounded-2xl transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-pine-600 dark:focus-visible:outline-green-400; }
   .trace-button {
-    @apply inline-flex min-h-11 max-w-full shrink-0 items-center justify-center gap-2 rounded-xl border border-transparent px-4 py-3 text-sm font-semibold leading-normal text-center whitespace-normal break-words transition-colors disabled:cursor-not-allowed disabled:opacity-60;
+    @apply inline-flex min-h-11 max-w-full shrink-0 items-center justify-center gap-2 rounded-lg border border-transparent px-4 py-3 text-sm font-semibold leading-normal text-center whitespace-normal break-words transition-colors disabled:cursor-not-allowed disabled:opacity-60;
   }
   .trace-button-primary { @apply bg-pine-600 text-white enabled:hover:bg-pine-700 enabled:active:bg-green-900; }
   .trace-button-secondary { @apply border-gray-300 bg-white text-gray-700 enabled:hover:bg-gray-100 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-200 dark:enabled:hover:bg-gray-800; }
@@ -51,9 +51,9 @@
   .trace-page { @apply min-w-0 space-y-6; }
   .trace-page-header { @apply flex min-w-0 flex-col flex-wrap items-start justify-between gap-4 sm:flex-row; }
   .trace-page-header > * { @apply min-w-0 max-w-full; }
-  .trace-page-title { @apply text-2xl font-display font-bold leading-tight tracking-tight text-gray-900 dark:text-gray-100 sm:text-3xl; }
+  .trace-page-title { @apply text-2xl font-display font-semibold leading-tight tracking-tight text-trace-ink dark:text-gray-100 sm:text-3xl; }
   .trace-page-description { @apply mt-2 text-sm leading-relaxed text-gray-600 dark:text-gray-300; }
-  .trace-section { @apply min-w-0 rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-900; }
+  .trace-section { @apply min-w-0 rounded-2xl border border-gray-100 bg-trace-surface shadow-sm dark:border-gray-700 dark:bg-gray-900 sm:rounded-[2rem]; }
   .trace-section-inverse { @apply border-white/30 bg-white/10 text-white dark:border-white/30 dark:bg-white/10 dark:text-white; }
   .trace-section-body { @apply p-4 sm:p-6; }
   /* A stable chart footprint independent of point count and text-size settings. */
@@ -62,11 +62,15 @@
   .trace-date > span { @apply min-w-0 max-w-full; overflow-wrap: normal; }
   .trace-date > :first-child, .trace-date > svg { @apply shrink-0; }
   .trace-section-header { @apply flex flex-wrap items-center justify-between gap-3 border-b border-gray-200 p-4 dark:border-gray-700 sm:p-6; }
+  .trace-section-title { @apply min-w-0 break-words text-base font-bold leading-snug text-trace-ink dark:text-gray-100; }
   .trace-actions { @apply flex flex-wrap items-center gap-3; }
+  .trace-inline-error { @apply break-words text-sm leading-relaxed text-red-700 dark:text-red-300; }
   .trace-error { @apply rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold leading-relaxed text-red-800 dark:border-red-800 dark:bg-red-950 dark:text-red-200; }
   /* Match the overlay's stable p-4 gutter even when root typography enlarges. */
-  .trace-modal-panel { @apply relative z-10 flex w-full max-h-[calc(100dvh-32px)] flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-2xl dark:border-gray-700 dark:bg-gray-900; }
+  .trace-modal-panel { @apply relative z-10 flex w-full max-h-[calc(100dvh-32px)] flex-col overflow-hidden rounded-[0.875rem] border border-gray-100 bg-trace-surface shadow-2xl dark:border-gray-700 dark:bg-gray-900; }
   .trace-modal-body { @apply min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 pb-4 sm:px-6 sm:pb-6; }
+  .trace-modal-header { @apply shrink-0 px-4 pt-4 pb-2 pr-16 sm:px-6 sm:pt-6 sm:pr-16; }
+  .trace-modal-title { @apply break-words text-base font-extrabold text-trace-ink dark:text-gray-100; }
   .trace-modal-footer { @apply shrink-0 border-t border-gray-200 p-4 dark:border-gray-700 sm:p-6; }
 }
 
@@ -289,8 +293,7 @@
 }
 
 body {
-  background-color: #f9fafb; /* bg-gray-50 */
-  color: #1f2937; /* text-gray-800 */
+  @apply bg-trace-canvas font-body text-trace-ink;
   -webkit-font-smoothing: antialiased;
   user-select: none;
   -webkit-user-select: none;

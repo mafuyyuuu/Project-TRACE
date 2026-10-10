@@ -444,7 +444,7 @@ export default function ProfileSettingsModal({
                   disabled={saving} onChange={value => setField('last_attendance_year', value)} />
                 <div>
                   <label htmlFor="profile-transfer" className="trace-label block mb-2">Transfer Student?</label>
-                  <select id="profile-transfer" value={profileData.is_transfer_student ? 'yes' : 'no'} onChange={(e) => setField('is_transfer_student', e.target.value === 'yes')} className="trace-control w-full border-none">
+                  <select id="profile-transfer" value={profileData.is_transfer_student ? 'yes' : 'no'} onChange={(e) => setField('is_transfer_student', e.target.value === 'yes')} className="trace-control">
                     <option value="no">No</option>
                     <option value="yes">Yes</option>
                   </select>

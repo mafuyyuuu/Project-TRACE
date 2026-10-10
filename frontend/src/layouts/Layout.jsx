@@ -213,7 +213,7 @@ export default function Layout() {
   );
 
   return (
-    <div className="h-dvh overflow-hidden bg-gray-50 dark:bg-gray-800 flex flex-col p-3 sm:p-4 md:p-6 gap-4 sm:gap-6 font-body text-gray-800 dark:text-gray-100">
+    <div className="h-dvh overflow-hidden bg-trace-canvas dark:bg-gray-800 flex flex-col p-3 sm:p-4 md:p-6 gap-4 sm:gap-6 font-body text-trace-ink dark:text-gray-100">
       {/* Header */}
       <header className="bg-white dark:bg-gray-900 rounded-3xl sm:rounded-full shadow-sm px-4 sm:px-6 py-3 flex flex-wrap gap-2 items-center justify-between shrink-0 border border-gray-100 dark:border-gray-700">
         <div className="flex min-w-0 items-center gap-2 sm:gap-3">

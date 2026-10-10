@@ -168,7 +168,7 @@ export default function SecretaryDashboard({ user, currentTab, setViewImageUrl }
             {activeQueueTab === 'evaluation' && (
             <div className="trace-section trace-motion-context overflow-hidden mt-6">
               <div className="trace-section-header border-gray-100 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800/50">
-                <h3 className="font-bold text-gray-950 dark:text-gray-100 text-sm tracking-wider uppercase">1 · INITIAL EVALUATION</h3>
+                <h3 className="trace-section-title uppercase tracking-wider">1 · INITIAL EVALUATION</h3>
                 <p className="text-[11px] text-gray-500 dark:text-gray-400 font-medium mt-1">Check the request, then give the student a date to expect it by.</p>
               </div>
               <div className="p-4 sm:p-6">
@@ -231,7 +231,7 @@ export default function SecretaryDashboard({ user, currentTab, setViewImageUrl }
             {activeQueueTab === 'processing' && (
             <div className="trace-section trace-motion-context overflow-hidden mt-6">
               <div className="trace-section-header border-gray-100 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800/50">
-                <h3 className="font-bold text-gray-950 dark:text-gray-100 text-sm tracking-wider uppercase">2 · PROCESSING &amp; PRICING</h3>
+                <h3 className="trace-section-title uppercase tracking-wider">2 · PROCESSING &amp; PRICING</h3>
                 <p className="text-[11px] text-gray-500 dark:text-gray-400 font-medium mt-1">Print the document, then set what it costs. The request is billed once every document in it is priced.</p>
               </div>
               <div className="p-4 sm:p-6">
@@ -303,7 +303,7 @@ export default function SecretaryDashboard({ user, currentTab, setViewImageUrl }
             {activeQueueTab === 'or-verification' && (
             <div className="trace-section trace-motion-context overflow-hidden mt-6">
               <div className="trace-section-header border-gray-100 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800/50">
-                <h3 className="font-bold text-gray-950 dark:text-gray-100 text-sm tracking-wider uppercase">3 · OR VERIFICATION</h3>
+                <h3 className="trace-section-title uppercase tracking-wider">3 · OR VERIFICATION</h3>
                 <p className="text-[11px] text-gray-500 dark:text-gray-400 font-medium mt-1">Finance has confirmed the payment. Check the Official Receipt is present and the number looks right before handoff.</p>
               </div>
               <div className="p-4 sm:p-6">
@@ -362,7 +362,7 @@ export default function SecretaryDashboard({ user, currentTab, setViewImageUrl }
             {activeQueueTab === 'handoff' && (
             <div className="trace-section trace-motion-context overflow-hidden mt-6">
               <div className="trace-section-header border-gray-100 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800/50">
-                <h3 className="font-bold text-gray-950 dark:text-gray-100 text-sm tracking-wider uppercase">4 · FINAL HANDOFF</h3>
+                <h3 className="trace-section-title uppercase tracking-wider">4 · FINAL HANDOFF</h3>
                 <p className="text-[11px] text-gray-500 dark:text-gray-400 font-medium mt-1">Paid and signed. Confirm once the printed document is physically at Window 1.</p>
               </div>
               <div className="p-4 sm:p-6">

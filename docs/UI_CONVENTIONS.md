@@ -4,6 +4,10 @@ All roles and public account pages use the Tailwind component classes in `fronte
 
 The existing green branding is the baseline. Normal fields and actions use consistent typography, padding and rounded corners. Controls have a minimum 44 px height; content can increase that height. Typography and unitless line height scale with the saved text-size preference. The PDF does not prescribe these dimensions.
 
+The primary [TRACE Figma file](https://www.figma.com/design/78A3HTREQ86GIN9ZxvDBSv/TRACE-Draft?node-id=0-1) is the visual reference, applied per bug batch. Use its Font (`2:38`), Colors (`2:63`), Student Dashboard (`216:1003`) and New Request (`85:1514`) frames for shared foundations; disregard the glassmorphism/claymorphism and inspiration studies. `tailwind.config.js` defines the emerald, sage, canvas, surface, ink, muted and field tokens. Shared typography uses Inter, fields/buttons use 8 px corners, desktop sections use 32 px corners, and modal panels use 14 px corners. Keep compact mobile sections, 44 px control targets, wrapping text and the existing accessible dark equivalents. The Figma emerald is used for branding; small white-text actions retain the darker pine variant for contrast. Muted Figma text is decorative only; readable field placeholders and secondary copy retain higher-contrast colors.
+
+Shared foundations do not replace role-specific workflows with mockup content or redesign entire screens in this batch. Support workspace (`260:3301`) and compact message frames (`254:987`, `258:1093`) are the Batch 10 references. Port their layout and interaction details in that batch, preserving live data and permissions.
+
 | Element | Classes | Notes |
 | --- | --- | --- |
 | Text, number, date, password, select, textarea | `trace-control` | Includes dark, hover, focus, disabled and readonly styling. Textareas grow vertically. |
@@ -18,6 +22,7 @@ The existing green branding is the baseline. Normal fields and actions use consi
 | Link/row action with specialized geometry | `trace-action` | Shared transition and disabled treatment; does not turn a row or text link into a boxed button. |
 | Page | `trace-page`, `trace-page-header`, `trace-page-title`, `trace-page-description` | Responsive wrapping and common section spacing. |
 | Card/section | `trace-section` | Add `trace-section-body` for padding; use `trace-section-header` for a separate header. `trace-section-inverse` keeps white text readable on green/dark surfaces. Tables/charts retain their own scrollers. |
+| Section heading | `trace-section-title` | Shared wrapping, size and theme colors for headings within cards and queue sections. Keep stage numbers and other role-specific text. |
 | Informational metric | `trace-card-info` | Optional stationary shadow on fine-pointer hover. Never add a cursor, action or tab stop. Keep chart/data panels stationary. |
 | Whole-card action | `trace-card-interactive` | Use a native button/link, shared 2 px lift and focus outline. Disabled/busy cards do not lift. Preserve grid gutters and responsive width. |
 | Card containing controls | `trace-card-controls` | Stationary decoration; retain each control's own semantics and selected state. Use `data-card-disabled` for unavailable choices. |
@@ -26,6 +31,7 @@ The existing green branding is the baseline. Normal fields and actions use consi
 | Action group | `trace-actions` | Wraps on narrow screens. Stacked modal footers may retain `flex-col sm:flex-row`. |
 | Date chip | `trace-date` | Wraps label, value and icon without splitting words at enlarged text sizes. |
 | Error panel | `trace-error` | Retain existing alert/status semantics and error text. |
+| Inline error | `trace-inline-error` | Compact theme-aware error text, without a separate panel. Keep existing `role="alert"` and retry actions. |
 
 Example (import Button from @/components/Button):
 
@@ -41,6 +47,8 @@ Example (import Button from @/components/Button):
 ```
 
 Utilities can adjust layout, such as `flex-1`, `w-full`, `mt-2` or `pr-12` for a password visibility icon. Do not add a second base border, background, font-size or padding recipe to ordinary controls. New variants belong in the shared component layer.
+
+Every boxed action needs both `trace-button` and its semantic variant, including retry, restore and deactivate controls in newer panels. The variant provides color; the base provides sizing, padding, wrapping and Button's visual feedback. Set `type="button"` on retry actions within forms so they do not submit the surrounding draft. Use `trace-form-grid` and `col-span-full` for common form layouts; avoid spanning two columns before the layout actually has two columns. Disabled ordinary inputs retain the shared border rather than becoming unmarked text. `trace-control` resets font weight so fields wrapped inside bold labels look the same as fields beside their labels.
 
 Verification-mode switches belong directly beneath their associated input, outside submit and management action groups. Keep both directions in the same location, use a native `type="button"`, and preserve the existing input clearing, validation and pending-state guards. Login MFA and enrolled-authenticator Security settings follow this arrangement.
 
@@ -65,6 +73,8 @@ Document-stage badges use `getStatusLabel` and `getStatusTone` from `utils/docum
 Sidebar groups come from `navGroupsForUser` in `utils/navigation.js`, partitioning the existing authorized destinations. Existing daily-work destinations take priority, then secondary destinations fill Main to six; only overflow belongs in More. With six or fewer destinations all links are direct and there is no More button. When overflow exists, More is the seventh navigation control. Preferences and Logout sit outside that count. `SidebarNav` renders Main or More with shared `trace-nav-item` controls, Preferences and Logout in both, native keyboard activation and focus transfer after a group switch. Direct routes reveal their group; onboarding may reveal a group without navigating. `trace-nav-scroll` hides scrollbar chrome only. Keep `overflow-y-auto`, nonshrinking items and keyboard focus access on the rail/drawer so short screens retain every destination.
 
 Normal dialogs use `ModalShell`, which applies `trace-modal-panel`, `trace-modal-body` and `trace-modal-footer`. Keep actions in its pinned footer. Profile retains its scrolling header/body arrangement with common panel/footer appearance. Lightboxes, split-column account review, printable slips and isolated HTML template previews may keep their existing overrides.
+
+ModalShell also owns `trace-modal-header` and `trace-modal-title`: their responsive gutters align with the body/footer and reserve room for the close button. Common modal consumers should not repeat these recipes.
 
 Student Edit Profile shows required-field hints only beside the active tab's fields, derived from the current draft using the existing completion helper. Associate each hint with its labelled control using aria-describedby. Incomplete Personal Info/Educational Background controls keep an exclamation marker and accessible “Required information missing” text, even when another tab is open; remove both when that tab's draft fields are complete. Do not restore a global cross-tab warning paragraph or change save validation/request eligibility from presentation state. Requests still require the authoritative saved profile.
 

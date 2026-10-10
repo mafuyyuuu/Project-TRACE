@@ -188,8 +188,8 @@ export default function ModalShell({
         ) : (
           <>
             {title && (
-              <div className="shrink-0 px-4 sm:px-6 pt-4 sm:pt-6 pb-2 pr-16 sm:pr-16">
-                <h3 id={titleId} className="text-lg sm:text-xl font-black text-gray-900 dark:text-gray-100 break-words">
+              <div className="trace-modal-header">
+                <h3 id={titleId} className="trace-modal-title">
                   {title}
                 </h3>
               </div>

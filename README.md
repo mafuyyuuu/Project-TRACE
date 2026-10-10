@@ -3,7 +3,32 @@ Tracking, Routing, and Automated Credential Engine for the PLP Registrar.
 
 This repository contains the complete end-to-end system for tracking and auto-routing document flows, featuring a **manual GCash receipt payment verification pipeline** to comply with school accounting requirements.
 
-> **Current Phase:** 🟢 Deployment-Ready — every phase through 17 is complete; **Phase 18 (Go Live)** is outstanding and needs an account and a machine, not code. See [`docs/PROGRESS.md`](docs/PROGRESS.md). The frontend is fully wired to live AI APIs, machine learning forecasts, and SMS notifications, and the codebase follows the layered structure documented in [`docs/CODING_PREFERENCES.md`](docs/CODING_PREFERENCES.md).
+## Project walkthrough — no account needed
+
+**[Open the live TRACE site](https://project-trace-two.vercel.app) — login required.** The authenticated portals use role-specific accounts; the walkthrough below lets you evaluate the project without signing in. This is a group capstone project, and the descriptions reflect implemented repository workflows rather than a promise that every external service is currently online.
+
+TRACE gives students a document request and tracking portal, while Window 1, College Secretaries, Finance and the Registrar Admin each receive a desk-specific workspace. The stack is React/Vite and Tailwind, Express/Node, MySQL, Socket.IO, a Flask AI engine and an n8n routing workflow.
+
+### Main workflows
+
+| Workflow | What the user sees | What the system does |
+| --- | --- | --- |
+| Registration and profile | Students/alumni register, submit identity evidence, complete their profile and verify email. Staff use Admin-created accounts. | OCR assists with evidence checks; inconclusive accounts go to staff review. Profile completion and identity/email verification are separate checks. |
+| Student request | Choose one or more document types, copies and required attachments; receive individual tracking numbers and follow progress. | Creates a request group, sends it to Window 1 intake and keeps document routing independent within the group. |
+| Intake and college processing | Window 1 reviews an online or walk-in submission; the College Secretary evaluates, prepares and prices the document. | Records desk decisions and assignment, supports OCR-assisted intake and calculates applicable final charges from the configured fee rules. |
+| Payment and release | The student submits payment proof or pays at the counter. Finance verifies payment; Secretary checks the OR paperwork and hands the document to Window 1 for release. | Grouped payment covers the priced request; authorized desk transitions and audit history record each step through completion. |
+| Support | Students open a support ticket, consult approved FAQs and request staff assistance. Staff work within their authorized ticket/case scope. | Maintains ticket conversations, attachments and service-hour/queue state. Support analytics measure ticket service separately from document turnaround. |
+| Administration and reports | Admin reviews accounts, maintains catalogs/templates, inspects analytics and exports records. Authorized staff also use scoped reports. | Keeps role/college access rules, configured fees and report filters in the existing service/model layers. |
+
+**A typical request, in about one minute:** imagine a student requesting a TOR and a Diploma. The student submits both in one request; Window 1 reviews the submission and routes it. The Secretary evaluates and prepares each document, then records the final charges. Once the group is fully priced, one verified payment covers it. The Secretary checks the receipt paperwork, Window 1 receives the documents, and the request reaches Completed when the student collects them. The student can inspect tracking throughout and open a support ticket if assistance is needed.
+
+### Contribution highlighted in this update
+
+The current UI consistency work extends the shared Tailwind control system across the five role portals: reusable field/button states, aligned section headings, responsive form grids and shared modal chrome. It fixes omitted button base styles and a profile retry action that could submit its surrounding form, while preserving the existing desk permissions and processing logic. The visual foundations follow the main [TRACE Figma design](https://www.figma.com/design/78A3HTREQ86GIN9ZxvDBSv/TRACE-Draft?node-id=0-1), with accessible mobile, dark-mode and reduced-motion adaptations. This describes this update's concrete contribution; it does not attribute the whole group project's work to one author.
+
+For code review, start with [UI conventions](docs/UI_CONVENTIONS.md), [shared Tailwind styles](frontend/src/index.css), [ModalShell](frontend/src/components/ModalShell.jsx) and the [profile retry regression check](frontend/src/components/__tests__/AcademicProfileFields.test.jsx). For the full desk sequence and user actions, see [System workflows](docs/SYSTEM_WORKFLOWS.md) and [User manual](docs/USER_MANUAL.md).
+
+Deployment setup and rollout checkpoints are documented in [`docs/DEPLOYMENT_GUIDE.md`](docs/DEPLOYMENT_GUIDE.md) and [`docs/PROGRESS.md`](docs/PROGRESS.md). The live site and the latest `dev` changes can differ; review and validate branch changes before promoting them. Code follows the layered structure in [`docs/CODING_PREFERENCES.md`](docs/CODING_PREFERENCES.md).
 
 ---
 
