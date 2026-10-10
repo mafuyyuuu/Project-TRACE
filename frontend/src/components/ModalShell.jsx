@@ -61,6 +61,7 @@ export default function ModalShell({
   closeButtonIcon = '✕',
   closeButtonAriaLabel = 'Close',
   footerClassName,
+  headerClassName,
   bodyClassName,
   bare = false,
 }) {
@@ -188,7 +189,7 @@ export default function ModalShell({
         ) : (
           <>
             {title && (
-              <div className="trace-modal-header">
+              <div className={headerClassName ?? 'trace-modal-header'}>
                 <h3 id={titleId} className="trace-modal-title">
                   {title}
                 </h3>

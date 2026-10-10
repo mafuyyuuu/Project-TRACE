@@ -133,6 +133,7 @@ describe('ProfileSettingsModal', () => {
     expect(screen.getByLabelText(/Previous School/)).toHaveAccessibleDescription('Required: Previous School.');
     fireEvent.change(screen.getByLabelText('Transfer Student?'), { target: { value: 'no' } });
     expect(screen.queryByText('Required: Previous School.')).not.toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText(/^Year Started/), { target: { value: '2020' } });
     fireEvent.change(screen.getByLabelText(/^PLP\/College Year Graduated/), { target: { value: '2024' } });
     expect(screen.getByRole('button', { name: /^Educational Background$/ })).toBeInTheDocument();
   });

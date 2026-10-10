@@ -48,6 +48,8 @@ CREATE TABLE IF NOT EXISTS users (
   study_load ENUM('regular', 'irregular') NOT NULL DEFAULT 'regular',
   desk_assignment VARCHAR(100),
   id_proof_path VARCHAR(500),
+  registration_proof_unavailable BOOLEAN NOT NULL DEFAULT FALSE,
+  registration_proof_reason VARCHAR(500) NULL,
   -- Uploaded avatar filename. Served through the authenticated /api/files
   -- route like every other upload, never from a public static path.
   profile_picture VARCHAR(500),
@@ -104,6 +106,8 @@ CREATE TABLE IF NOT EXISTS student_profiles (
   maiden_name VARCHAR(255),
   home_address VARCHAR(500),
   graduation_year INT NULL,
+  year_started INT NULL,
+  study_years_confirmed_at DATETIME NULL,
   last_attendance_year INT,
   is_transfer_student BOOLEAN DEFAULT FALSE,
   previous_school VARCHAR(255),
@@ -540,3 +544,20 @@ CREATE TABLE IF NOT EXISTS payment_methods (
   is_active BOOLEAN NOT NULL DEFAULT TRUE, sort_order INT NOT NULL DEFAULT 0,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS study_year_events (
+    id INT AUTO_INCREMENT PRIMARY KEY, user_id INT NOT NULL, actor_id INT NOT NULL,
+    event_type ENUM('initial', 'correction') NOT NULL, previous_values JSON NOT NULL, saved_values JSON NOT NULL,
+    reason VARCHAR(1000) NOT NULL, created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    INDEX study_year_events_user (user_id, id),
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE RESTRICT,
+    FOREIGN KEY (actor_id) REFERENCES users(id) ON DELETE RESTRICT
+  ) ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS account_review_events (
+    id INT AUTO_INCREMENT PRIMARY KEY, user_id INT NOT NULL, reviewer_id INT NOT NULL,
+    decision ENUM('verified', 'rejected') NOT NULL, evidence_basis VARCHAR(1000) NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE RESTRICT,
+    FOREIGN KEY (reviewer_id) REFERENCES users(id) ON DELETE RESTRICT
+  ) ENGINE=InnoDB;

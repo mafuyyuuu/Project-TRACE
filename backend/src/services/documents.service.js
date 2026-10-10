@@ -1,4 +1,5 @@
 const { pool } = require('../config/db');
+const { yearError } = require('../utils/profileYears');
 const { getProfileCompletion } = require('../utils/profileCompletion');
 const documentModel = require('../models/document.model');
 const requestSequences = require('../models/requestSequence.model');
@@ -121,17 +122,6 @@ async function uploadDocument(user, body, files) {
   const requested = parseRequestedItems(body);
   if (new Set(requested.map(item => item.document_type)).size !== requested.length) throw badRequest('Select each document type once and use its copies field for multiple copies.');
   for (const item of requested) {
-    const isTOR = ['Transcript of Records', 'Transcript of Records (TOR)'].includes(item.document_type);
-    const hasYears = item.year_started !== undefined || item.year_ended !== undefined;
-    if (isTOR && (hasYears || (user.role === 'student' && item.semesters === undefined))) {
-      const start = Number(item.year_started), end = Number(item.year_ended);
-      const currentYear = new Date(Date.now() + 8 * 60 * 60 * 1000).getUTCFullYear();
-      if (!Number.isInteger(start) || !Number.isInteger(end) || start < 1900 || end < start || end > currentYear) throw badRequest('Enter valid Year Started and Year Ended.');
-      let details;
-      try { details = JSON.parse(item.purpose || '{}'); } catch { details = { purpose: item.purpose }; }
-      if (!details || typeof details !== 'object' || Array.isArray(details)) details = { purpose: item.purpose };
-      item.purpose = JSON.stringify({ ...details, year_started: start, year_ended: end });
-    }
     const copies = Number(item.copies ?? 1);
     if (!Number.isInteger(copies) || copies < 1 || copies > 2147483647) throw badRequest('Copies must be a positive whole number within the supported range.');
   }
@@ -173,6 +163,25 @@ async function uploadDocument(user, body, files) {
       if (profile.user_type === 'alumni' && !profile.has_grad_application) throw forbidden('Submit your graduate application before requesting documents.');
       const completion = getProfileCompletion(profile);
       if (!completion.complete) throw forbidden(`Complete your profile before requesting documents. Missing: ${completion.missing.map(item => item.label).join(', ')}.`);
+      for (const item of requested) {
+        let details;
+        try { details = JSON.parse(item.purpose || '{}'); } catch { details = { purpose: item.purpose }; }
+        if (!details || typeof details !== 'object' || Array.isArray(details)) details = { purpose: item.purpose };
+        delete details.year_started; delete details.year_ended; delete details.year_graduated;
+        if (['Transcript of Records', 'Transcript of Records (TOR)'].includes(item.document_type)) {
+          const problem = yearError(String(profile.year_started ?? ''), { label: 'Year Started', minimum: 2002, required: true });
+          if (problem) throw badRequest(`${problem} Complete study years in Edit Profile, or ask Admin for a correction.`);
+          details.year_started = Number(profile.year_started);
+        }
+        if (['Diploma', 'Graduation Clearance'].includes(item.document_type)) {
+          const year = profile.user_type === 'alumni' ? profile.graduation_year : profile.graduation_year || profile.last_attendance_year;
+          const problem = yearError(String(year ?? ''), { label: 'Year Graduated / Last Attended', minimum: 2002, required: true });
+          if (problem) throw badRequest(`${problem} Complete your educational profile before requesting this document.`);
+          details.year_graduated = Number(year);
+        }
+        item.purpose = JSON.stringify(details);
+      }
+
     }
 
     const targetStudent = await documentPolicy.resolveStudent(student_id, connection, true);

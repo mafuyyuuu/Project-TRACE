@@ -116,13 +116,13 @@ export default function useAdminDashboard(user, currentTab, reviewAccountId, rev
     setStudentVerifyToConfirm({ student, action });
   }, []);
 
-  const confirmAdminVerifyStudent = useCallback(async (decision) => {
+  const confirmAdminVerifyStudent = useCallback(async (decision, evidenceBasis) => {
     if (!studentVerifyToConfirm) return;
     const { student } = studentVerifyToConfirm;
     const action = decision || studentVerifyToConfirm.action;
     if (!['verify', 'reject'].includes(action)) return;
 
-    const ok = await runAction(() => verifyStudent(student.id, action), {
+    const ok = await runAction(() => verifyStudent(student.id, action, evidenceBasis), {
       successMessage: `Student account registration successfully ${
         action === 'verify' ? 'verified' : 'rejected'
       }.`,

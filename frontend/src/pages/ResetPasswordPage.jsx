@@ -1,4 +1,5 @@
 import Button from '@/components/Button';
+import PasswordVisibilityButton from '@/components/PasswordVisibilityButton';
 import { INPUT_LIMITS } from '@/utils/inputLimits';
 import ConfirmDialog from '@/components/ConfirmDialog'
 import { useEffect, useRef, useState } from 'react'
@@ -18,6 +19,7 @@ export default function ResetPasswordPage() {
 
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
+  const [showConfirmation, setShowConfirmation] = useState(false)
   const [confirmPassword, setConfirmPassword] = useState('')
   const [passwordToConfirm, setPasswordToConfirm] = useState(null)
   const [localError, setLocalError] = useState('')
@@ -70,14 +72,16 @@ export default function ResetPasswordPage() {
           <label htmlFor="password" className="trace-label trace-label-inverse block mb-2">
             New Password
           </label>
-          <input maxLength={INPUT_LIMITS.password}
+          <div className="relative"><input maxLength={INPUT_LIMITS.password}
             id="password"
             type={showPassword ? 'text' : 'password'}
             autoComplete="new-password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className={field}
+            className={`${field} pr-14`}
+            disabled={loading}
           />
+          <PasswordVisibilityButton visible={showPassword} onToggle={() => setShowPassword(value => !value)} controls="password" label="new password" disabled={loading} inverse /></div>
 
           <label
             htmlFor="confirmPassword"
@@ -85,15 +89,16 @@ export default function ResetPasswordPage() {
           >
             Confirm New Password
           </label>
-          <input maxLength={INPUT_LIMITS.password}
+          <div className="relative"><input maxLength={INPUT_LIMITS.password}
             id="confirmPassword"
-            type={showPassword ? 'text' : 'password'}
+            type={showConfirmation ? 'text' : 'password'}
             autoComplete="new-password"
             value={confirmPassword}
             onChange={(e) => setConfirmPassword(e.target.value)}
-            className={field}
+            className={`${field} pr-14`}
+            disabled={loading}
           />
-          <Button type="button" aria-pressed={showPassword} onClick={() => setShowPassword(value => !value)} className="trace-button trace-button-inverse mt-4">{showPassword ? 'Hide passwords' : 'Show passwords'}</Button>
+          <PasswordVisibilityButton visible={showConfirmation} onToggle={() => setShowConfirmation(value => !value)} controls="confirmPassword" label="confirmation password" disabled={loading} inverse /></div>
 
           <Button
             type="submit"

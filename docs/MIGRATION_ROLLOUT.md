@@ -11,6 +11,7 @@ The user's October 1 logs confirm completion of the earlier 18 incremental scrip
 | `migrate_verification_reason.js` | Nullable `users.verification_reason` for stored OCR/Admin review reasons | Adds only when missing; preserves stored reasons. |
 | `migrate_onboarding_guides.js` | `onboarding_guides` for per-account tour state | Creates only when absent; preserves shown markers. |
 | `migrate_graduation_year.js` | Nullable `student_profiles.graduation_year`, separate from attendance | Adds only when missing; no copying, backfill or historical rewrites. |
+| `migrate_alumni_study_years.js` | Saved Year Started, first-confirmed timestamp, proof-review demo markers and audit tables | Additive and rerunnable; keeps existing graduation/attendance/request values. Run after student profiles and graduation-year prerequisites. |
 | `migrate_program_catalog.js` | Empty college-linked `programs`; widen `users.course` to accommodate college names | Creates only when absent, widens only a shorter course column; no program seeds/profile rewrites. |
 
 `migrate_program.js` is a prerequisite already confirmed in the 18-script run. `migrate_password_history.js` is the preserving scripted equivalent of the manual table repair already confirmed; it is not a new missing-table requirement. Either may be rerun explicitly if its prerequisite status is uncertain. The latest UI/motion/report/status changes, password-reset lookup fix and Admin same-day browser trust introduce no additional database migration. Keep the existing MFA encryption key.
@@ -426,6 +427,7 @@ trace_migrate_rollout() {
     migrate_cn03_cn04.js \
     migrate_student_profiles.js \
     migrate_graduation_year.js \
+    migrate_alumni_study_years.js \
     migrate_trusted_browsers.js \
     migrate_fee_schedules.js \
     migrate_authenticator.js \
@@ -459,7 +461,7 @@ trace_migrate_rollout
 
 Require **`Schema presence check passed.`** The check reads `information_schema`; it validates selected critical table/column presence, not every definition, index, constraint, rate, data row or live transaction. If it lists a named migration, investigate that script's output. Password history now has its own explicit migration, added after the user's first 18-script run exposed that base-table gap. If the check says `base schema`, such as missing `grad_applications` or core users fields, keep writers stopped and share the non-secret check output for a targeted preserving repair. Do not import the full schema or reseed to fill the gap.
 
-The profile/Maintenance/OCR follow-up adds `migrate_verification_reason.js`. The guided-tour follow-up adds `migrate_onboarding_guides.js`; the linked-program follow-up adds `migrate_program_catalog.js`; the year-field repair adds `migrate_graduation_year.js` (27 scripts in the complete list). For a server that already passed the earlier rollout, apply only these new migrations that have not been applied; do not rerun data migrations solely for these follow-ups. Build both backend and ai-engine if deploying the OCR changes: OCR imports a new pure text-matching module included in the AI Dockerfile. The email-button/tour changes require a backend rebuild and matching frontend; they add no AI changes. Historical OCR reasons remain unknown. The guide migration creates an empty table and preserves existing display state; students registered on the updated backend receive an automatic tour; clerk/Admin accounts enroll lazily on their first eligible guide check. All supported roles can replay using the question mark. Deploy the matching frontend after migration/check/runtime update. Inspect real image outcomes separately; normalization tests do not prove document authenticity or actual OCR accuracy.
+The profile/Maintenance/OCR follow-up adds `migrate_verification_reason.js`. The guided-tour follow-up adds `migrate_onboarding_guides.js`; the linked-program follow-up adds `migrate_program_catalog.js`; the year-field repair adds `migrate_graduation_year.js` (28 scripts in the complete list, including the Revision 2 Batch 7 alumni study-year migration). For a server that already passed the earlier rollout, apply only these new migrations that have not been applied; do not rerun data migrations solely for these follow-ups. Build both backend and ai-engine if deploying the OCR changes: OCR imports a new pure text-matching module included in the AI Dockerfile. The email-button/tour changes require a backend rebuild and matching frontend; they add no AI changes. Historical OCR reasons remain unknown. The guide migration creates an empty table and preserves existing display state; students registered on the updated backend receive an automatic tour; clerk/Admin accounts enroll lazily on their first eligible guide check. All supported roles can replay using the question mark. Deploy the matching frontend after migration/check/runtime update. Inspect real image outcomes separately; normalization tests do not prove document authenticity or actual OCR accuracy.
 
 MySQL DDL can commit before a later command fails. Do not assume a failed script changed nothing; inspect the error before rerunning or restoring. A rollback may require coordinated restoration of database, uploads, configuration and matching code, not just a Git checkout.
 
@@ -520,3 +522,18 @@ docker compose run --rm --no-deps -T backend node database/check_schema.js
 After rollout, Admin opens **System Maintenance → Programs**, selects an active college, enters its Registrar-approved program name, and confirms Add Program. Populate the real approved catalog before asking students to update their academic selections. No program list is inferred from existing free text. Names/college membership stay immutable: add an approved replacement and deactivate the superseded row. Deactivation hides new selections and preserves saved entries; restore requires an active college. Existing signup retains its manual Program/Course entry; this rollout changes Edit Profile selections.
 
 Acceptance: load a saved profile, change College and see Program clear, select its active program, confirm Save, and reload/sign in again to verify `college_id`, college display name (`course`) and degree/program (`program`). Test a program from another college, an inactive program/college, no programs, reference failure/retry, and a historical unlisted program while saving phone only. Verify Admin alone can manage the catalog and that deactivation does not change existing profiles or request pricing snapshots. Check 320/375/768/desktop, both themes and enlarged text.
+
+### Revision 2 Batch 7 — alumni study years (2026-10-10)
+
+This is a paired schema/API/frontend update. Use the verified backup and stopped-writer process above. For an otherwise upgraded installation, run only the new migration from the matching backend image, then check the schema before starting the updated API/frontend:
+
+```sh
+docker compose run --rm --no-deps -T backend node database/migrate_alumni_study_years.js
+docker compose run --rm --no-deps -T backend node database/check_schema.js
+```
+
+Older installations first need `migrate_student_profiles.js` and `migrate_graduation_year.js`, plus the other outstanding prerequisites identified by schema preflight. The additive migration leaves Year Started and its confirmation timestamp NULL on existing profiles; it never infers them from attendance/graduation or rewrites historical document JSON. Existing alumni sign in and complete missing study years in Edit Profile. Saved values require an Admin correction reason; each correction and identity-review decision commits with its audit record. Keep the audit tables when restoring or upgrading.
+
+`ALUMNI_PROOF_UNAVAILABLE_DEMO_ENABLED=false` is the default. The optional proof-unavailable path is for a nonproduction defense database only and is forced off when `NODE_ENV=production`; do not enable or import demo applicants into production. No proof-unavailable production evidence policy has been approved. Ordinary proof registration, pending identity review, email verification and document access checks remain in place.
+
+Acceptance and synthetic screenshots are in [BATCH7_ACCEPTANCE.md](BATCH7_ACCEPTANCE.md). This change was tested locally with mocked database/API responses; no live migration or deployment was performed.

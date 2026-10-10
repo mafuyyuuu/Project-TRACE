@@ -161,7 +161,7 @@ export default function Layout() {
   // A picked-but-unsaved picture must not survive closing without Save.
 
   useEffect(() => {
-    const handleOpenSettings = () => { setSettingsTab('personal'); setShowSettings(true); };
+    const handleOpenSettings = event => { setSettingsTab(event.detail?.section === 'educational' ? 'educational' : 'personal'); setShowSettings(true); };
     window.addEventListener('open-profile-settings', handleOpenSettings);
     return () => window.removeEventListener('open-profile-settings', handleOpenSettings);
   }, []);

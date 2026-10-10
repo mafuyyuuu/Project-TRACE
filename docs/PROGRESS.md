@@ -1,3 +1,13 @@
+## Revision 2 Batch 7 — Alumni / Request Forms — 2026-10-10
+
+Implements the new-fixes guide's TRACE-52/53/54/75/76: persisted one-time alumni study years, saved read-only Year Started in requests with Year Ended removed, Admin corrections with transactional before/after audit, duplicate attachment-label cleanup, pending alumni proof-unavailable defense demo, and independent inline Reset Password eye icons. Figma references are New Request 85:1514, detailed confirmation 177:691 and compact confirmation 183:741; the selected approach uses detailed review for forms and compact confirmation for simple decisions. Approved pricing, multi-document intake, identity/email/request gates and historical request details remain.
+
+Verification: backend **1,323**, frontend **866** tests pass; lint/build pass. Synthetic Chromium checks cover six form/dialog types at four widths in both themes (**48 cases**), plus 200% text/reduced-motion/keyboard checks. Screenshots and reproduction are in [BATCH7_ACCEPTANCE.md](BATCH7_ACCEPTANCE.md). The older guide Batches 1–6 are separate; this is Batch 7 of the user's newer fixes, not another whole-app/shared-control pass.
+
+The additive alumni migration has **not** run against a live database; matching API/frontend rollout is required. Proof-unavailable registration defaults off, is blocked in production, and still awaits institution evidence-policy approval for any production version. Rejected applicants now reuse their original account instead of deleting audit/history. Existing historical years are not normalized on unrelated profile saves. No merge to main or deployment is included; the authorized publication target is `dev` only. The next guide batch is Batch 8 (intake/staff request access).
+
+---
+
 # Project TRACE Progress Report
 
 Current request-by-request index: [FEATURE_ACCEPTANCE_MATRIX.md](FEATURE_ACCEPTANCE_MATRIX.md). The Support redesign has its own [implementation checklist](SUPPORT_IMPLEMENTATION_CHECKLIST.md); incomplete features are not accepted merely because another feature passed.

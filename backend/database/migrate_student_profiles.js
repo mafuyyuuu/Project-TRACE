@@ -12,6 +12,8 @@ async function migrate(executor = pool) {
     maiden_name VARCHAR(255),
     home_address VARCHAR(500),
     graduation_year INT NULL,
+    year_started INT NULL,
+    study_years_confirmed_at DATETIME NULL,
     last_attendance_year INT,
     is_transfer_student BOOLEAN DEFAULT FALSE,
     previous_school VARCHAR(255),

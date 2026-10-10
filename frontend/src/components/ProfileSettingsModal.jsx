@@ -1,5 +1,5 @@
 import ProfileYearField from '@/components/ProfileYearField';
-import { profileYearErrors } from '@/utils/profileYears';
+import { profileEditYearErrors } from '@/utils/profileYears';
 import AcademicProfileFields from '@/components/AcademicProfileFields';
 import Button from '@/components/Button';
 import { PASSWORD_REQUIREMENTS, validNewPassword } from '@/utils/passwordPolicy';
@@ -52,6 +52,7 @@ export default function ProfileSettingsModal({
   const [activeTab, setActiveTab] = useState(initialTab);
   useMotion(tabContentRef, activeTab, 'context', { initial: false });
   const [yearFocus, setYearFocus] = useState(null);
+  const editYearErrors = profileEditYearErrors(profileData, user);
   useEffect(() => {
     if (activeTab === 'educational' && yearFocus) document.getElementById(`profile-${yearFocus.field}`)?.focus();
   }, [activeTab, yearFocus]);
@@ -87,7 +88,7 @@ export default function ProfileSettingsModal({
       return;
     }
     setPasswordError('');
-    const invalidYear = Object.keys(profileYearErrors(profileData, user))[0];
+    const invalidYear = Object.keys(editYearErrors)[0];
     if (invalidYear && isStudent) {
       setActiveTab('educational');
       setYearFocus({ field: invalidYear });
@@ -437,9 +438,12 @@ export default function ProfileSettingsModal({
             <div className="space-y-6">
               
               <div className="trace-section trace-section-body trace-form-grid">
-                <ProfileYearField field="graduation_year" value={profileData.graduation_year}
+                <ProfileYearField field="year_started" value={profileData.year_started} error={editYearErrors.year_started}
+                  required={user?.user_type === 'alumni'} missing={missingByField.has('year_started')}
+                  readOnly={user?.year_started != null && user.year_started !== ''} disabled={saving} onChange={value => setField('year_started', value)} />
+                <ProfileYearField field="graduation_year" value={profileData.graduation_year} error={editYearErrors.graduation_year}
                   required={user?.user_type === 'alumni'} missing={missingByField.has('graduation_year')}
-                  disabled={saving} onChange={value => setField('graduation_year', value)} />
+                  readOnly={user?.graduation_year != null && user.graduation_year !== ''} disabled={saving} onChange={value => setField('graduation_year', value)} />
                 <ProfileYearField field="last_attendance_year" value={profileData.last_attendance_year}
                   disabled={saving} onChange={value => setField('last_attendance_year', value)} />
                 <div>

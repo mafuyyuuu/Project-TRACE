@@ -1,4 +1,4 @@
-import { profileYearErrors } from '@/utils/profileYears';
+import { profileEditYearErrors } from '@/utils/profileYears';
 import { PASSWORD_REQUIREMENTS, validNewPassword } from '@/utils/passwordPolicy';
 import { useRef, useState } from 'react';
 import { updateProfile, uploadProfilePicture, getMe } from '@/services/authService';
@@ -24,6 +24,7 @@ function formFromUser(user) {
     civil_status: user?.civil_status || '',
     maiden_name: user?.maiden_name || '',
     home_address: user?.home_address || '',
+    year_started: user?.year_started == null ? '' : String(user.year_started),
     graduation_year: user?.graduation_year == null ? '' : String(user.graduation_year),
     last_attendance_year: user?.last_attendance_year == null ? '' : String(user.last_attendance_year),
     is_transfer_student: isTransferStudent(user?.is_transfer_student),
@@ -119,7 +120,7 @@ export default function useProfileSettings(user) {
     if (e) e.preventDefault();
     if (savingRef.current) return false;
     if (profileData.password && !validNewPassword(profileData.password)) { setError(PASSWORD_REQUIREMENTS); return false; }
-    const yearErrors = profileYearErrors(profileData, user);
+    const yearErrors = profileEditYearErrors(profileData, user);
     if (Object.keys(yearErrors).length) { setError(Object.values(yearErrors)[0]); return false; }
     const academicChanged = String(profileData.college_id || '') !== String(user?.college_id || '') || profileData.program !== (user?.program || '');
     if (academicChanged && (!/^[1-9]\d*$/.test(profileData.college_id) || !profileData.program)) {
@@ -155,6 +156,9 @@ export default function useProfileSettings(user) {
       const payload = pendingEmail && profileData.email.trim().toLowerCase() === pendingEmail.toLowerCase()
         ? { ...profileData, email: user?.email || '' } : profileData;
       const request = { ...payload };
+      for (const key of ['year_started', 'graduation_year']) {
+        if (String(request[key] ?? '') === String(user?.[key] ?? '')) delete request[key];
+      }
       if (!academicChanged) { delete request.college_id; delete request.program; }
       const result = await updateProfile(request);
       if (result?.token && result?.user) {

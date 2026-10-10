@@ -16,7 +16,7 @@ const { auth, reset } = vi.hoisted(() => ({
 vi.mock('@/hooks/useAuth', () => ({ default: () => auth }));
 vi.mock('@/hooks/usePasswordReset', () => ({ default: () => reset }));
 vi.mock('@/services/referenceService', () => ({ getColleges: vi.fn().mockResolvedValue({ colleges: [{ id: 1, name: 'Engineering' }] }) }));
-vi.mock('@/services/api', () => ({ default: { post: vi.fn() } }));
+vi.mock('@/services/api', () => ({ default: { post: vi.fn(), get: vi.fn() } }));
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -26,6 +26,7 @@ beforeEach(() => {
   auth.login.mockResolvedValue(undefined);
   auth.register.mockResolvedValue({ message: 'Registration received.' });
   api.post.mockResolvedValue({ data: { success: false } });
+  api.get.mockResolvedValue({ data: { proof_unavailable_demo_enabled: false } });
 });
 afterEach(() => vi.useRealTimers());
 const renderPage = (page, path = '/') => render(<MemoryRouter initialEntries={[path]}>{page}</MemoryRouter>);
@@ -401,4 +402,61 @@ describe('Account submission confirmations', () => {
     await user.click(screen.getByRole('button', { name: 'Reset Password' }));
     expect(reset.submitNewPassword).toHaveBeenCalledExactlyOnceWith('test-token', 'Password123!', 'Password123!');
   });
+});
+
+it('toggles reset password fields independently with keyboard accessible icons without submitting or losing drafts', async () => {
+  const user = userEvent.setup();
+  renderPage(<ResetPasswordPage />, '/reset-password?token=synthetic');
+  const first = screen.getByLabelText('New Password'), second = screen.getByLabelText('Confirm New Password');
+  fireEvent.change(first, { target: { value: 'Trace_2026' } });
+  fireEvent.change(second, { target: { value: 'Trace_2026' } });
+  const toggle = screen.getByRole('button', { name: 'Show new password' });
+  toggle.focus(); await user.keyboard('{Enter}');
+  expect(toggle).toHaveAttribute('aria-pressed', 'true');
+  expect(first).toHaveAttribute('type', 'text'); expect(second).toHaveAttribute('type', 'password');
+  await user.click(screen.getByRole('button', { name: 'Show confirmation password' }));
+  expect(second).toHaveAttribute('type', 'text');
+  await user.click(screen.getByRole('button', { name: 'Hide new password' }));
+  expect(first).toHaveAttribute('type', 'password'); expect(second).toHaveAttribute('type', 'text');
+  expect(first).toHaveValue('Trace_2026'); expect(second).toHaveValue('Trace_2026');
+  expect(reset.submitNewPassword).not.toHaveBeenCalled(); expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+});
+
+it('hides proof-unavailable signup when disabled and keeps alumni study fields distinct from current-student signup', async () => {
+  const { container } = renderPage(<SignupPage />);
+  await screen.findByRole('option', { name: 'Engineering' });
+  expect(screen.queryByLabelText(/Year Started/)).not.toBeInTheDocument();
+  fireEvent.change(container.querySelector('select'), { target: { value: 'alumni' } });
+  expect(screen.getByLabelText('Year Started *')).toBeRequired();
+  expect(screen.getByLabelText('Year Graduated *')).toBeRequired();
+  expect(screen.queryByRole('checkbox', { name: /proof unavailable/ })).not.toBeInTheDocument();
+});
+
+it('reviews demo alumni signup without proof, preserves the draft on cancel and sends years only on confirmation', async () => {
+  api.get.mockResolvedValue({ data: { proof_unavailable_demo_enabled: true } });
+  const user = userEvent.setup();
+  const { container } = renderPage(<SignupPage />);
+  await screen.findByRole('option', { name: 'Engineering' });
+  fireEvent.change(container.querySelector('select'), { target: { value: 'alumni' } });
+  await user.click(await screen.findByRole('checkbox', { name: /Records \/ proof unavailable/ }));
+  expect(screen.queryByRole('button', { name: 'Read ID' })).not.toBeInTheDocument();
+  fireEvent.change(container.querySelectorAll('select')[1], { target: { value: 'Engineering' } });
+  for (const [placeholder, value] of [['Enter your Alumni ID', 'ALU-DEMO'], ['Juan Dela Cruz', 'Synthetic Alumni'], ['juan@plp.edu.ph', 'demo@example.test'], ['09123456789', '09123456789'], ['Create a password', 'Trace_2026'], ['Confirm your password', 'Trace_2026']]) {
+    fireEvent.change(screen.getByPlaceholderText(placeholder), { target: { value } });
+  }
+  fireEvent.change(screen.getByLabelText('Year Started *'), { target: { value: '2010' } });
+  fireEvent.change(screen.getByLabelText('Year Graduated *'), { target: { value: '2014' } });
+  fireEvent.change(screen.getByLabelText('Explain Missing Proof'), { target: { value: 'Records unavailable; Registrar review requested.' } });
+  fireEvent.submit(container.querySelector('form'));
+  const review = screen.getByRole('dialog', { name: 'Confirm Registration' });
+  expect(review).toHaveTextContent('2010'); expect(review).toHaveTextContent('2014');
+  expect(review).not.toHaveTextContent('Trace_2026'); expect(auth.register).not.toHaveBeenCalled();
+  await user.click(within(review).getByRole('button', { name: 'Cancel' }));
+  expect(screen.getByLabelText('Year Started *')).toHaveValue('2010');
+  fireEvent.submit(container.querySelector('form'));
+  await user.click(screen.getByRole('button', { name: 'Submit Registration' }));
+  await waitFor(() => expect(auth.register).toHaveBeenCalledOnce());
+  const payload = auth.register.mock.calls[0][0];
+  expect(payload.get('year_started')).toBe('2010'); expect(payload.get('graduation_year')).toBe('2014');
+  expect(payload.get('registration_proof_unavailable')).toBe('true'); expect(payload.has('id_proof')).toBe(false);
 });

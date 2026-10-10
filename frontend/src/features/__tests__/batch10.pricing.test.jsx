@@ -29,7 +29,7 @@ vi.mock('@/services/api', () => ({ default: { get: vi.fn().mockResolvedValue({ d
 vi.mock('@/components/RequestMessagesPanel', () => ({ default: () => null }));
 vi.mock('@/components/AuthedFilePreview', () => ({ default: () => null }));
 
-const USER = { id: 1, role: 'student', student_id: 'STU-TEST', full_name: 'Test Student', user_type: 'student' };
+const USER = { id: 1, role: 'student', student_id: 'STU-TEST', full_name: 'Test Student', user_type: 'student', year_started: 2020, graduation_year: 2024, last_attendance_year: 2024 };
 const SCHEDULE = { version: 1, document_type: 'Transcript of Records', base_fee: 100, fee_rule: 'per_semester_block',
   rental_fee: 20, special_fee: 30, fee_items: [{ label: 'Certification', amount: 10 }], source: 'college', college_id: 2 };
 const BILL = calculateBreakdown(SCHEDULE, { page_count: 3, copies: 2 }, true);
@@ -72,8 +72,9 @@ it('shows TOR rate information and study years, without a pre-submission total o
     setActiveModal={vi.fn()} toggleDocumentType={vi.fn()} updateSelection={vi.fn()} handleStudentSubmitRequest={vi.fn()} />);
   expect(screen.getByText('₱100.00')).toBeInTheDocument();
   expect(screen.getByText('per printed page')).toBeInTheDocument();
-  expect(screen.getByLabelText('Year Started')).toHaveValue(2020);
-  expect(screen.getByLabelText('Year Ended')).toHaveValue(2024);
+  expect(screen.getByLabelText('Year Started')).toHaveValue('2020');
+  expect(screen.getByLabelText('Year Started')).toHaveAttribute('readonly');
+  expect(screen.queryByLabelText('Year Ended')).not.toBeInTheDocument();
   expect(screen.queryByText(/Semesters attended/i)).not.toBeInTheDocument();
   expect(screen.queryByText(/How the Amount Was Worked Out|Estimate \(/)).not.toBeInTheDocument();
   expect(screen.queryByText('₱460.00')).not.toBeInTheDocument();
@@ -88,14 +89,15 @@ it('saves study years and attachment only after request confirmation', async () 
   expect(documentsService.uploadDocument).not.toHaveBeenCalled();
   await act(() => result.current.confirmStudentSubmission());
   const item = JSON.parse(documentsService.uploadDocument.mock.calls[0][0].get('items'))[0];
-  expect(item).toMatchObject({ year_started: '2020', year_ended: '2024' });
+  expect(item).not.toHaveProperty('year_started');
+  expect(item).not.toHaveProperty('year_ended');
   expect(item.semesters).toBeUndefined();
-  expect(JSON.parse(item.purpose)).toEqual({ year_started: 2020, year_ended: 2024 });
+  expect(JSON.parse(item.purpose)).toEqual({ year_started: 2020 });
 });
-it.each([['', '2024'], ['2025', '2024'], ['2020', '9999'], ['2020.5', '2024']])('rejects invalid study-year range %s–%s', async (year_started, year_ended) => {
-  const { result } = renderHook(() => useStudentDashboard(USER));
+it.each(['', '2001', '9999', '2020.5'])('rejects invalid saved Year Started %s', async year_started => {
+  const { result } = renderHook(() => useStudentDashboard({ ...USER, year_started }));
   act(() => result.current.toggleDocumentType('Transcript of Records'));
-  act(() => result.current.updateSelection('Transcript of Records', { year_started, year_ended }));
+  act(() => result.current.updateSelection('Transcript of Records', { year_started: '2020', year_ended: '2024' }));
   await act(() => result.current.handleStudentSubmitRequest({ preventDefault: vi.fn() }));
   expect(result.current.submissionToConfirm).toBeNull();
   expect(core.triggerNotification).toHaveBeenCalledWith(expect.stringContaining('Year Started'), 'error');
@@ -201,4 +203,27 @@ describe('New Request profile gate', () => {
     expect(core.setActiveModal).toHaveBeenCalledWith('new-request');
     expect(screen.queryByRole('dialog', { name: 'Profile Incomplete' })).not.toBeInTheDocument();
   });
+});
+
+it('shows the attachment label once while retaining a named picker and selected file', async () => {
+  const update = vi.fn(), label = 'Required Attachment (Signed Routing Form)';
+  const user = userEvent.setup();
+  render(<NewRequestModal user={USER} documentTypes={[{ name: 'Transcript of Records', requires_attachment: true, attachment_label: label }]}
+    selections={{ 'Transcript of Records': { copies: 1 } }} setActiveModal={vi.fn()} toggleDocumentType={vi.fn()} updateSelection={update} handleStudentSubmitRequest={vi.fn()} />);
+  expect(screen.getAllByText(label)).toHaveLength(1);
+  const file = new File(['synthetic'], 'routing.png', { type: 'image/png' });
+  await user.upload(screen.getByLabelText(label, { selector: 'input' }), file);
+  expect(update).toHaveBeenCalledWith('Transcript of Records', { file });
+});
+it('routes missing saved request years to profile completion and disables submission', () => {
+  const close = vi.fn(), openProfile = vi.fn();
+  window.addEventListener('open-profile-settings', openProfile);
+  try {
+    render(<NewRequestModal user={{ ...USER, year_started: null }} documentTypes={[{ name: 'Transcript of Records' }]}
+      selections={{ 'Transcript of Records': { copies: 1 } }} setActiveModal={close} toggleDocumentType={vi.fn()} updateSelection={vi.fn()} handleStudentSubmitRequest={vi.fn()} />);
+    expect(screen.getByRole('button', { name: 'Next' })).toBeDisabled();
+    fireEvent.click(screen.getByRole('button', { name: 'Complete Study Years' }));
+    expect(close).toHaveBeenCalledWith(null);
+    expect(openProfile.mock.calls[0][0].detail).toEqual({ section: 'educational' });
+  } finally { window.removeEventListener('open-profile-settings', openProfile); }
 });

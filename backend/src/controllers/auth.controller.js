@@ -50,7 +50,7 @@ async function getPendingStudents(req, res) {
 
 async function verifyStudent(req, res) {
   try {
-    res.json(await authService.verifyStudentAccount(req.user, req.params.id, req.body.action));
+    res.json(await authService.verifyStudentAccount(req.user, req.params.id, req.body.action, req.body.evidence_basis));
   } catch (err) {
     fail(res, err, 'Verify student account error', 'Failed to update student account verification.');
   }
@@ -174,7 +174,15 @@ function clearTrustCookie(res) {
   res.clearCookie(trustedBrowser.COOKIE_NAME, trustedBrowser.COOKIE_OPTIONS);
 }
 
+async function correctStudyYears(req, res) {
+  try { res.json(await require('../services/studyYears.service').correct(req.user, req.params.id, req.body)); }
+  catch (error) { res.status(error.status || 500).json({ error: error.status ? error.message : 'Could not correct study years.' }); }
+}
+
+function registrationOptions(req, res) { res.json(authService.registrationOptions()); }
+
 module.exports = {
+  registrationOptions, correctStudyYears,
   logout, verify2FA, verifyEmailChange, getSecurityLogs, getGlobalSecurityLogs, logoutAll,
   login,
   getMe,

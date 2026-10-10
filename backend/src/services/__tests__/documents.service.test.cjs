@@ -16,7 +16,7 @@ const pricingModel = require('../../models/pricing.model');
 const requestSequences = require('../../models/requestSequence.model');
 const service = require('../documents.service');
 
-const COMPLETE = { role: 'student', user_type: 'student', phone_number: '09123456789', email: 'student@example.test',
+const COMPLETE = { role: 'student', user_type: 'student', year_started: 2020, graduation_year: 2024, last_attendance_year: 2024, phone_number: '09123456789', email: 'student@example.test',
   birth_date: '2000-01-01', place_of_birth: 'City', sex: 'Male', civil_status: 'Single', home_address: 'Address',
   elem_school: 'Elementary', elem_grad_year: 2012, jhs_school: 'Junior High', jhs_grad_year: 2016,
   shs_school: 'Senior High', shs_grad_year: 2018 };
@@ -1281,12 +1281,13 @@ describe('TOR study years', () => {
   it('validates and stores years without using them as printed-page counts', async () => {
     await service.uploadDocument(STUDENT, { document_type: 'Transcript of Records', year_started: '2020', year_ended: '2024', copies: 1 }, []);
     const data = documentModel.insert.mock.calls[0][0];
-    expect(JSON.parse(data.purpose)).toEqual({ year_started: 2020, year_ended: 2024 });
+    expect(JSON.parse(data.purpose)).toEqual({ year_started: 2020 });
     expect(data.pricing_snapshot.fee_rule).toBe('per_semester_block');
     expect(data.page_count).toBeUndefined();
   });
-  it.each([['', '2024'], ['2025', '2024'], ['2020.5', '2024'], ['2020', '9999']])('rejects invalid years %s–%s at the server', async (year_started, year_ended) => {
-    await expect(service.uploadDocument(STUDENT, { document_type: 'Transcript of Records', year_started, year_ended }, [])).rejects.toMatchObject({ status: 400 });
+  it.each(['', '2001', '2020.5', '9999'])('rejects invalid saved Year Started %s at the server', async year_started => {
+    userModel.getProfileById.mockResolvedValue([{ ...COMPLETE, year_started }]);
+    await expect(service.uploadDocument(STUDENT, { document_type: 'Transcript of Records', year_started: '2020', year_ended: '2024' }, [])).rejects.toMatchObject({ status: 400 });
     expect(documentModel.insert).not.toHaveBeenCalled();
   });
 });
@@ -1362,4 +1363,11 @@ describe('deferred issuance and cut-off enforcement', () => {
     await expect(service.verifyOfficialReceipt(SECRETARY, 5, { physical_receipt_checked: true })).rejects.toThrow('issue the OR');
     expect(documentModel.updateOrVerification).not.toHaveBeenCalled();
   });
+});
+
+it('uses the locked saved year and discards forged start/end/graduation values from request payloads', async () => {
+  vi.spyOn(documentModel, 'insert').mockResolvedValue([{ insertId: 5 }]);
+  await service.uploadDocument(STUDENT, { document_type: 'Transcript of Records', year_started: '2099', year_ended: '-1', purpose: JSON.stringify({ purpose: 'Employment', year_started: 1990, year_ended: 1900, year_graduated: 1800 }) }, []);
+  expect(JSON.parse(documentModel.insert.mock.calls[0][0].purpose)).toEqual({ purpose: 'Employment', year_started: 2020 });
+  expect(userModel.getProfileById).toHaveBeenCalledWith(STUDENT.id, connection, true);
 });

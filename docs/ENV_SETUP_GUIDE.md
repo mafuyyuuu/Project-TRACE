@@ -1063,3 +1063,13 @@ Use [MIGRATION_ROLLOUT.md](MIGRATION_ROLLOUT.md#support-ticket-rollout) for the 
 `DB_POOL_QUEUE_LIMIT` defaults to 200, validated 1–1000. It bounds queued pool queries, with 10 database connections unchanged. Configure it in root `.env` for Compose or backend `.env` locally; it is documented in both examples. Measured local 100-user results do not establish production capacity. Support hours/calendar/warning/timeout are durable settings edited by Admin or Window 1, not browser timers or environment secrets. Approved FAQ text lives in backend `config/supportFaq.json`; Admin populates the empty supporting-document catalog.
 
 Build both backend (sharp/pdf-lib validators) and AI (support aggregate advice module), apply/check the migrations, start the matching API/AI, then promote the matching frontend. Validate ticket import counts/ownership privately, FCFS claims, timer recovery, protected attachments, read-only cases and role-scoped analytics. [SUPPORT_VALIDATION.md](SUPPORT_VALIDATION.md) separates local evidence from staging/physical-device acceptance.
+
+## Revision 2 Batch 7: alumni proof-unavailable defense option
+
+| Variable | Default | Meaning |
+| --- | --- | --- |
+| `ALUMNI_PROOF_UNAVAILABLE_DEMO_ENABLED` | `false` | Enables alumni-only registration without proof in a nonproduction defense demo. Only the literal value `true` enables it. Ignored in production. |
+
+For a local defense rehearsal, use an isolated synthetic database and set the flag in `backend/.env`, then restart the local API. The frontend reads `/api/auth/registration-options` and safely hides the option when it is disabled or unavailable. It always submits missing-proof applicants as pending; Admin must record the checked identity evidence and decision basis before approval. Approval does not remove the separate profile, email-verification or Graduate-application gates for requests. The standard production Docker image sets `NODE_ENV=production` and cannot activate this demo option.
+
+Apply the additive [alumni study-year migration](MIGRATION_ROLLOUT.md#revision-2-batch-7--alumni-study-years-2026-10-10) before using the updated API. Existing profiles retain NULL missing years until supplied once; saved values can only be corrected by Admin with an audit reason. No production proof-unavailable evidence policy is enabled by this release.

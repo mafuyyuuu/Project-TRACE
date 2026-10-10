@@ -586,3 +586,17 @@ describe('AnalyticsPanel', () => {
     expect(screen.getByText(/No recorded desk activity yet/i)).toBeInTheDocument();
   });
 });
+
+it('requires recorded evidence before demo identity decisions and passes it only after confirmation', async () => {
+  const user = userEvent.setup(), confirm = vi.fn();
+  render(<AccountVerificationModal studentVerifyToConfirm={{ student: { id: 22, full_name: 'Synthetic Alumni', student_id: 'ALU-DEMO', registration_proof_unavailable: true, registration_proof_reason: 'Lost records' }, action: 'review' }}
+    cancelAdminVerifyStudent={vi.fn()} confirmAdminVerifyStudent={confirm} actionLoading={false} setViewImageUrl={vi.fn()} />);
+  await user.click(screen.getByRole('button', { name: 'Verify', exact: true }));
+  expect(screen.getByRole('alert')).toHaveTextContent('Record the evidence');
+  expect(screen.queryByRole('dialog', { name: 'Verify Account' })).not.toBeInTheDocument();
+  await user.type(screen.getByLabelText('Identity Review Evidence / Decision Basis'), 'Synthetic Registrar record checked');
+  await user.click(screen.getByRole('button', { name: 'Verify', exact: true }));
+  expect(confirm).not.toHaveBeenCalled();
+  await user.click(within(screen.getByRole('dialog', { name: 'Verify Account' })).getByRole('button', { name: 'Verify Account' }));
+  expect(confirm).toHaveBeenCalledExactlyOnceWith('verify', 'Synthetic Registrar record checked');
+});

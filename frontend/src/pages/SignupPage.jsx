@@ -1,7 +1,11 @@
 import Button from '@/components/Button';
 import { INPUT_LIMITS } from '@/utils/inputLimits';
+import ReviewSummary from '@/components/ReviewSummary';
+import ProfileYearField from '@/components/ProfileYearField';
+import { studyYearErrors } from '@/utils/profileYears';
+import { getRegistrationOptions } from '@/services/authService';
 import ConfirmDialog from '@/components/ConfirmDialog'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import useAuth from '@/hooks/useAuth'
 import { getColleges } from '@/services/referenceService'
@@ -14,7 +18,9 @@ import { PASSWORD_REQUIREMENTS, validNewPassword } from '@/utils/passwordPolicy'
 
 export default function SignupPage() {
   const { register, loading } = useAuth()
-  const [formData, setFormData] = useState({ employeeId: '', fullName: '', email: '', phoneNumber: '', password: '', confirmPassword: '', userType: new URLSearchParams(window.location.search).get('applicant') === 'alumni' ? 'alumni' : 'student', college: '' })
+  const [formData, setFormData] = useState({ employeeId: '', fullName: '', email: '', phoneNumber: '', password: '', confirmPassword: '', userType: new URLSearchParams(window.location.search).get('applicant') === 'alumni' ? 'alumni' : 'student', college: '', year_started: '', graduation_year: '', proofUnavailable: false, proofReason: '' })
+  const [demoEnabled, setDemoEnabled] = useState(false)
+  const submitGuard = useRef(false)
   const [file, setFile] = useState(null)
   const [localError, setLocalError] = useState('')
   const [success, setSuccess] = useState('')
@@ -23,7 +29,7 @@ export default function SignupPage() {
   // Colleges are admin-managed reference data rather than a hardcoded list.
   const [colleges, setColleges] = useState([])
   useNotificationDismissal(() => setSuccess(''));
-  const ocr = useSignupOcr(file, formData.userType, result => setFormData(current => ({
+  const ocr = useSignupOcr(formData.proofUnavailable ? null : file, formData.userType, result => setFormData(current => ({
     ...current,
     employeeId: current.employeeId || (current.userType === 'alumni' ? result.alumni_id : result.student_id) || '',
     fullName: current.fullName || result.full_name || '',
@@ -32,6 +38,7 @@ export default function SignupPage() {
 
   useEffect(() => {
     let cancelled = false
+    getRegistrationOptions().then(options => { if (!cancelled) setDemoEnabled(options.proof_unavailable_demo_enabled === true) }).catch(() => {});
     getColleges()
       .then((data) => { if (!cancelled) setColleges(data.colleges || []) })
       .catch(() => { if (!cancelled) setColleges([]) })
@@ -53,7 +60,12 @@ export default function SignupPage() {
       return
     }
     if (!validNewPassword(formData.password)) { setLocalError(PASSWORD_REQUIREMENTS); return }
-    if (!file) {
+    if (formData.userType === 'alumni') {
+      const errors = studyYearErrors(formData, { required: true });
+      if (Object.keys(errors).length) { setLocalError(Object.values(errors)[0]); return; }
+    }
+    if (formData.proofUnavailable && !formData.proofReason.trim()) { setLocalError('Explain why your records or proof are unavailable.'); return; }
+    if (!file && !formData.proofUnavailable) {
       setLocalError('Please upload your proof of ID or Diploma.')
       return
     }
@@ -69,13 +81,17 @@ export default function SignupPage() {
       form.append('program', formData.program || '');
       const college = colleges.find(college => college.name === formData.college);
       if (college) form.append('college_id', String(college.id));
-      form.append('id_proof', file);
+      if (formData.userType === 'alumni') { form.append('year_started', formData.year_started); form.append('graduation_year', formData.graduation_year); }
+      if (formData.proofUnavailable && formData.userType === 'alumni' && demoEnabled) {
+        form.append('registration_proof_unavailable', 'true'); form.append('registration_proof_reason', formData.proofReason.trim());
+      } else if (file) form.append('id_proof', file);
 
     setRegistrationToConfirm(form)
   }
 
   const confirmRegistration = async () => {
-    if (!registrationToConfirm) return
+    if (!registrationToConfirm || submitGuard.current) return
+    submitGuard.current = true
     setLocalError('')
     try {
       const result = await register(registrationToConfirm)
@@ -86,15 +102,23 @@ export default function SignupPage() {
         (err.code === 'ECONNABORTED' || err.code === 'ETIMEDOUT'
           ? 'Registration took too long to respond. Your account may already be saved. Check Login or contact the Registrar before trying again.'
           : 'Registration failed. Check your connection and try again, or contact the Registrar.'))
-    }
+    } finally { submitGuard.current = false }
   }
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-800 flex flex-col items-center justify-center gap-6 px-4 py-8 sm:py-12 font-body relative overflow-hidden">
-      <ConfirmDialog open={!!registrationToConfirm} title="Confirm Registration"
+      <ConfirmDialog open={!!registrationToConfirm} title="Confirm Registration" presentation="review"
         message={['Submit your registration and proof of identity for review?', localError ? <span role="alert">{localError}</span> : null]}
         confirmLabel="Submit Registration" loading={loading} onConfirm={confirmRegistration}
-        onCancel={() => setRegistrationToConfirm(null)} />
+        onCancel={() => setRegistrationToConfirm(null)}>
+        {registrationToConfirm && <ReviewSummary entries={[
+          ['Name', registrationToConfirm.get('full_name')], ['ID Number', registrationToConfirm.get('employee_id')],
+          ['College', registrationToConfirm.get('course')], ['Email', registrationToConfirm.get('email')],
+          ...(registrationToConfirm.get('user_type') === 'alumni' ? [['Year Started', registrationToConfirm.get('year_started')], ['Year Graduated', registrationToConfirm.get('graduation_year')]] : []),
+          ['Proof', registrationToConfirm.get('registration_proof_unavailable') ? 'Unavailable — pending Admin review (demo)' : registrationToConfirm.get('id_proof')?.name],
+        ]} />}
+        {registrationToConfirm?.get('id_proof') instanceof File && <div className="mt-4"><FileUploadField label="Attached Proof" file={registrationToConfirm.get('id_proof')} allowReplace={false} compactPreview /></div>}
+      </ConfirmDialog>
       <div className="absolute top-[-10%] left-[-5%] w-[40vw] h-[40vw] rounded-full bg-pine-500/5 blur-[100px] pointer-events-none"></div>
       <div className="absolute bottom-[-10%] right-[-5%] w-[30vw] h-[30vw] rounded-full bg-blue-500/5 dark:bg-blue-500/5 blur-[100px] pointer-events-none"></div>
 
@@ -125,7 +149,7 @@ export default function SignupPage() {
 
             <div className="flex flex-col gap-1.5">
               <label className="trace-label ml-1">Account Type *</label>
-              <select value={formData.userType} onChange={(e) => setFormData({...formData, userType: e.target.value, employeeId: ''})} className="trace-control w-full appearance-none cursor-pointer">
+              <select value={formData.userType} onChange={(e) => setFormData({...formData, userType: e.target.value, employeeId: '', proofUnavailable: false})} className="trace-control w-full appearance-none cursor-pointer">
                 <option value="student">Current Student</option>
                 <option value="alumni">Alumni</option>
               </select>
@@ -151,6 +175,12 @@ export default function SignupPage() {
             <label className="trace-label block">Program/Course
               <input maxLength={150} value={formData.program || ''} onChange={event => setFormData({ ...formData, program: event.target.value })} placeholder="e.g. BS Information Technology" className="trace-control mt-2 w-full" />
             </label>
+
+            {formData.userType === 'alumni' && <section className="trace-form-grid rounded-lg bg-gray-50 p-4 dark:bg-gray-800" aria-label="Alumni study years">
+              <ProfileYearField field="year_started" label="Year Started" required value={formData.year_started} disabled={loading} onChange={value => setFormData({ ...formData, year_started: value })} />
+              <ProfileYearField field="graduation_year" label="Year Graduated" required value={formData.graduation_year} disabled={loading} onChange={value => setFormData({ ...formData, graduation_year: value })} />
+              <p className="col-span-full text-xs text-gray-600 dark:text-gray-300">Enter these once. Graduation must be within 10 years of starting. Saved years are reused for requests; corrections need Admin review.</p>
+            </section>}
 
             <div className="flex flex-col gap-1.5">
               <label className="trace-label ml-1">Full Name *</label>
@@ -196,16 +226,29 @@ export default function SignupPage() {
               </div>
             </div>
 
-            <div className="flex flex-col gap-1.5">
-              <label className="trace-label ml-1">Upload Proof (ID / Diploma) *</label>
-              <FileUploadField label="Proof of ID / Diploma" file={file} onChange={setFile} accept=".pdf,.png,.jpg,.jpeg" disabled={loading} />
+            {formData.userType === 'alumni' && demoEnabled && <section className="space-y-3 rounded-lg border border-amber-200 bg-amber-50 p-4 dark:border-amber-800 dark:bg-amber-950">
+              <label className="flex items-start gap-3 text-sm font-semibold">
+                <input type="checkbox" className="trace-choice mt-1" checked={formData.proofUnavailable} disabled={loading}
+                  onChange={event => setFormData({ ...formData, proofUnavailable: event.target.checked })} />
+                Records / proof unavailable (defense demonstration)
+              </label>
+              <p className="text-xs leading-relaxed">For alumni with lost or unavailable records, including S.Y. 2018 and earlier. Your application stays pending until Admin verifies your identity. Contact the Registrar with your ID for review follow-up.</p>
+              {formData.proofUnavailable && <label className="trace-label">Explain Missing Proof
+                <textarea className="trace-control mt-2" required maxLength={500} value={formData.proofReason} disabled={loading}
+                  onChange={event => setFormData({ ...formData, proofReason: event.target.value })} />
+              </label>}
+            </section>}
+
+            {!formData.proofUnavailable && <div className="flex flex-col gap-1.5">
+              <p className="trace-label ml-1">Upload Proof (ID / Diploma) *</p>
+              <FileUploadField showLabel={false} label="Proof of ID / Diploma" file={file} onChange={setFile} accept=".pdf,.png,.jpg,.jpeg" disabled={loading} />
               <Button type="button" onClick={ocr.readId} disabled={!file || ocr.reading || loading}
                 className="trace-button trace-button-info self-start">
                 {ocr.reading ? 'Reading ID…' : 'Read ID'}
               </Button>
               {ocr.message && <p role="status" className="text-sm text-blue-800 dark:text-blue-300 select-text">{ocr.message}</p>}
               <p className="text-xs text-gray-400 dark:text-gray-400 ml-1 mt-1">Please attach a clear photo of your Student ID or Diploma for verification.</p>
-            </div>
+            </div>}
 
             <Button type="submit" disabled={loading || ocr.reading} className="trace-button-lift trace-action mt-4 w-full py-4 bg-pine-600 enabled:hover:bg-pine-700 disabled:opacity-70 text-white rounded-full font-bold transition-colors shadow-sm flex items-center justify-center gap-2">
               {loading ? 'Creating...' : 'Create Account'}

@@ -4,11 +4,12 @@ import RequestMessagesPanel from '@/components/RequestMessagesPanel';
 import { getProfileCompletion } from '@/utils/profileCompletion';
 import FeeBreakdown from '@/components/FeeBreakdown';
 import { INPUT_LIMITS } from '@/utils/inputLimits';
-import FileUploadField from '@/components/FileUploadField';
 import { useState } from 'react';
 import NewRequestModal from '@/features/student/components/NewRequestModal';
 import LiveTrackingModal from '@/features/student/components/LiveTrackingModal';
 import FloatingSupportChat from '@/features/student/components/FloatingSupportChat';
+import ReviewSummary from '@/components/ReviewSummary';
+import FileUploadField from '@/components/FileUploadField';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import MiniSparkline from '@/components/MiniSparkline';
 import ModalShell from '@/components/ModalShell';
@@ -529,14 +530,23 @@ export default function StudentDashboard({ user, currentTab, setViewImageUrl }) 
           />
         )}
 
-        <ConfirmDialog open={!!submissionToConfirm}
+        <ConfirmDialog open={!!submissionToConfirm} presentation={submissionToConfirm?.kind === 'request' ? 'review' : 'compact'}
           title={submissionToConfirm?.kind === 'payment' ? 'Confirm Payment Submission' : 'Confirm Document Request'}
           message={submissionToConfirm?.kind === 'payment'
             ? `Submit your ${submissionToConfirm.methodName} proof for ${formatPeso(submissionToConfirm.total)}?`
             : `Submit ${submissionToConfirm?.count || 0} document${submissionToConfirm?.count === 1 ? '' : 's'} as one request?`}
           confirmLabel={submissionToConfirm?.kind === 'payment' ? 'Confirm Payment' : 'Confirm Request'}
           loading={actionLoading} loadingLabel="Submitting…"
-          onConfirm={confirmStudentSubmission} onCancel={cancelStudentSubmission} />
+          onConfirm={confirmStudentSubmission} onCancel={cancelStudentSubmission}>
+          {submissionToConfirm?.kind === 'request' && <>
+            <ReviewSummary entries={submissionToConfirm.summary || []} />
+            {submissionToConfirm.attachments?.length > 0 && <section className="mt-4" aria-label="Attached Files">
+              <h4 className="trace-label mb-3">Attached Files</h4>
+              <div className="grid gap-3 sm:grid-cols-2">{submissionToConfirm.attachments.map(({ label, file }) =>
+                <FileUploadField key={label} label={label} file={file} allowReplace={false} compactPreview />)}</div>
+            </section>}
+          </>}
+        </ConfirmDialog>
 
         <ConfirmDialog
           open={!!cancelRequestIdToConfirm}

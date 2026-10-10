@@ -22,7 +22,7 @@ function Field({ label, value }) {
  * Renders identically from both AdminDashboard (view-only — no onEdit/
  * onToggleActive passed) and MaintenancePanel (full staff mutation).
  */
-export default function UserDetailModal({ open, onClose, user, onEdit, onToggleActive, saving, viewerId }) {
+export default function UserDetailModal({ open, onClose, user, onEdit, onToggleActive, saving, viewerId, onCorrectStudyYears }) {
   if (!user) return null;
 
   const isStudent = user.role === 'student';
@@ -41,6 +41,7 @@ export default function UserDetailModal({ open, onClose, user, onEdit, onToggleA
       footer={
         <div className="space-y-3">
           <div className="flex flex-col sm:flex-row gap-3">
+            {isStudent && onCorrectStudyYears && <Button type="button" onClick={onCorrectStudyYears} className="trace-button trace-button-info flex-1">Correct Study Years</Button>}
             {onEdit && <Button
               type="button"
               onClick={onEdit}
@@ -110,6 +111,7 @@ export default function UserDetailModal({ open, onClose, user, onEdit, onToggleA
           <Field label="Home Address" value={user.home_address} />
           <Field label="Enrollment Status" value={user.enrollment_status} />
           <Field label="Study Load" value={user.study_load} />
+          <Field label="Year Started" value={user.year_started} />
           <Field label="PLP/College Year Graduated" value={user.graduation_year} />
           <Field label="Last Attendance Year" value={user.last_attendance_year} />
           <Field label="Transfer Student" value={user.is_transfer_student ? 'Yes' : 'No'} />

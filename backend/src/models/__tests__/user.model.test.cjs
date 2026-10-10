@@ -44,14 +44,15 @@ it('checks three distinct prior hashes without counting repeated current-passwor
   expect(sql).toContain('LIMIT 3'); expect(params).toEqual([3, 'current-hash']);
 });
 
-it('writes graduation and attendance into separate parameterized columns', async () => {
+it('preserves locked study years during ordinary parameterized profile writes', async () => {
   const executor = { query: vi.fn().mockResolvedValue([{}]) };
   await model.upsertProfile(3, { graduation_year: '2002', last_attendance_year: '1980' }, executor);
   const [sql, params] = executor.query.mock.calls[0];
-  expect(sql).toContain('home_address, graduation_year, last_attendance_year');
-  expect(sql).toContain('graduation_year = VALUES(graduation_year)');
+  expect(sql).toContain('home_address, last_attendance_year');
+  expect(sql).not.toContain('graduation_year');
+  expect(sql).not.toContain('year_started');
   expect(sql.match(/\?/g)).toHaveLength(params.length);
-  expect(params.slice(8, 10)).toEqual(['2002', '1980']);
+  expect(params[8]).toBe('1980');
 });
 it('includes both year meanings in staff student lookup without exposing credentials', async () => {
   const executor = { query: vi.fn().mockResolvedValue([[]]) };

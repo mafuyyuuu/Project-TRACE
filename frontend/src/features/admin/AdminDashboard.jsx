@@ -1,4 +1,5 @@
 import Button from '@/components/Button';
+import StudyYearsCorrectionModal from '@/features/admin/components/StudyYearsCorrectionModal';
 import { forecastCeiling } from '@/utils/forecastScale';
 import { USER_TYPE_LABELS } from '@/utils/userLabels';
 import AdminTemplatesPanel from './components/AdminTemplatesPanel';
@@ -26,6 +27,7 @@ import AccountVerificationModal from './components/AccountVerificationModal';
  * Registrar admin: ML forecasts, AI insights, account verification, users, and audit logs.
  */
 export default function AdminDashboard({ user, currentTab, setViewImageUrl, reviewAccountId, reviewNavigationKey }) {
+  const [studyCorrectionTarget, setStudyCorrectionTarget] = useState(null);
   const [viewProfileId, setViewProfileId] = useState(null);
 
   const {
@@ -475,6 +477,7 @@ export default function AdminDashboard({ user, currentTab, setViewImageUrl, revi
                   onClose={() => setSelectedUser(null)}
                   user={selectedUser}
                   viewerId={user.id}
+                  onCorrectStudyYears={user.role === 'admin' && selectedUser?.role === 'student' ? () => setStudyCorrectionTarget(selectedUser) : undefined}
                 />
               </div>
             )}
@@ -531,6 +534,9 @@ export default function AdminDashboard({ user, currentTab, setViewImageUrl, revi
         forecastFilter={forecastFilter}
         setForecastFilter={setForecastFilter}
       />
+
+      {studyCorrectionTarget && <StudyYearsCorrectionModal key={studyCorrectionTarget.id} target={studyCorrectionTarget}
+        onClose={() => setStudyCorrectionTarget(null)} onSaved={() => { setStudyCorrectionTarget(null); setSelectedUser(null); }} />}
 
       <AccountVerificationModal key={studentVerifyToConfirm?.student?.id || 'none'}
         studentVerifyToConfirm={studentVerifyToConfirm}

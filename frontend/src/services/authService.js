@@ -74,8 +74,8 @@ export async function getPendingStudents() {
  * @param {string} userId
  * @param {string} action - 'verify' or 'reject'
  */
-export async function verifyStudent(userId, action) {
-  const { data } = await api.post(`/auth/verify-student/${userId}`, { action })
+export async function verifyStudent(userId, action, evidenceBasis) {
+  const { data } = await api.post(`/auth/verify-student/${userId}`, { action, ...(evidenceBasis === undefined ? {} : { evidence_basis: evidenceBasis }) })
   return data
 }
 
@@ -146,5 +146,14 @@ export async function getSecurityLogs(signal) {
 export async function endOtherSessions() {
   const { data } = await api.post('/auth/logout-all', { preserve_current: true }, { timeout: 15000 });
   if (!data?.token || !data.user) throw new Error('Could not confirm session change. Log in again.');
+  return data;
+}
+
+export async function getRegistrationOptions() {
+  const { data } = await api.get('/auth/registration-options');
+  return data;
+}
+export async function correctStudyYears(userId, payload) {
+  const { data } = await api.put(`/auth/student/${userId}/study-years`, payload);
   return data;
 }
