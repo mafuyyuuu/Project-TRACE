@@ -1,3 +1,5 @@
+import QueueTabs from '@/components/QueueTabs';
+import QueuePanel from '@/components/QueuePanel';
 import Button from '@/components/Button';
 import ProgramsPanel from './ProgramsPanel';
 import SupportingDocumentsPanel from './SupportingDocumentsPanel';
@@ -123,7 +125,7 @@ export default function MaintenancePanel({ user, currentTab }) {
 
       <div className="trace-page">
         <div>
-          <h2 className="trace-page-title">
+          <h2 className="trace-page-title break-words">
             System <span className="text-[#15803d] dark:text-green-300">Maintenance</span>
           </h2>
           <p className="trace-page-description">
@@ -133,21 +135,8 @@ export default function MaintenancePanel({ user, currentTab }) {
         </div>
 
         {/* Section switcher */}
-      <div className="flex flex-wrap gap-2 border-b border-gray-200 dark:border-gray-700">
-          {SECTIONS.map((s) => (
-            <Button
-              key={s.key}
-              onClick={() => { setSection(s.key); resetForm(); }}
-              className={`trace-tab rounded-t-xl  ${
-                section === s.key
-                  ? 'bg-white dark:bg-gray-900 border border-b-white border-gray-200 dark:border-gray-700 text-[#15803d] dark:text-green-300 -mb-px'
-                  : 'text-gray-400 dark:text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'
-              }`}
-            >
-              {s.label}{!['programs','supportingDocuments'].includes(s.key) && ` (${(s.key === 'staff' ? m.accounts : m[s.key]).length})`}
-            </Button>
-          ))}
-        </div>
+      <QueueTabs idPrefix="admin-maintenance" label="Maintenance sections" showZeroCounts tabs={SECTIONS.map(item => ({...item,count:['programs','supportingDocuments'].includes(item.key) ? undefined : (item.key === 'staff' ? m.accounts : m[item.key]).length}))} activeKey={section} onChange={key => { setSection(key); resetForm(); }} />
+        <QueuePanel idPrefix="admin-maintenance" activeKey={section} className="space-y-6">
 
         {section === 'programs' && <ProgramsPanel colleges={m.colleges} />}
         {section === 'supportingDocuments' && <SupportingDocumentsPanel />}
@@ -493,6 +482,7 @@ export default function MaintenancePanel({ user, currentTab }) {
           </div>
         )}
 
+        </QueuePanel>
         <ConfirmDialog
           open={!!m.activeToggleToConfirm}
           title={

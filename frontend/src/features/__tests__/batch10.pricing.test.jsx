@@ -51,7 +51,7 @@ describe('Admin fee schedule editor', () => {
   it('preserves extras, adds a complete college override and saves only after confirmation', async () => {
     const user = userEvent.setup();
     render(<MaintenancePanel user={{ role: 'admin' }} currentTab="admin-maintenance" />);
-    await user.click(screen.getByRole('button', { name: /^Document Types/ }));
+    await user.click(screen.getByRole('tab', { name: /^Document Types/ }));
     await user.click(screen.getByRole('button', { name: 'Edit' }));
     expect(screen.getByLabelText('Rental Fee (₱)')).toHaveValue(20);
     expect(screen.getByLabelText('Item name')).toHaveValue('Certification');

@@ -1,3 +1,4 @@
+import RequestStaff from '@/components/RequestStaff';
 import Button from '@/components/Button';
 import { INPUT_LIMITS } from '@/utils/inputLimits';
 import RequestMessagesPanel from '@/components/RequestMessagesPanel';
@@ -7,6 +8,7 @@ import AuthedFilePreview from '@/components/AuthedFilePreview';
 function DetailPanel({ selectedDoc, evalStudentId, evalStudentName, evalDocType }) {
   return (
     <div className="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl p-5 mb-6 font-mono text-[11px] text-gray-600 dark:text-gray-300 space-y-2">
+      <RequestStaff document={selectedDoc} />
       <div className="flex flex-wrap justify-between gap-x-3 gap-y-1"><span>Tracking ID</span><span className="font-bold text-gray-950 dark:text-gray-100 select-text">#{selectedDoc.tracking_number || selectedDoc.id}</span></div>
       <div className="flex flex-wrap justify-between gap-x-3 gap-y-1"><span>Student ID</span><span className="font-bold text-gray-950 dark:text-gray-100">{evalStudentId || 'N/A'}</span></div>
       <div className="flex flex-wrap justify-between gap-x-3 gap-y-1"><span>Student Name</span><span className="font-bold text-gray-950 dark:text-gray-100">{evalStudentName || 'Unknown'}</span></div>

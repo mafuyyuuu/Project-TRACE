@@ -2,6 +2,8 @@ const { pool } = require('../src/config/db');
 
 // Read-only deployment preflight. This checks presence, not data or SQL compatibility.
 const requirements = [
+  ['documents', ['routing_college_id', 'routing_college_name'], 'migrate_request_intake_scope.js'],
+  ['request_attachment_requirements', ['blocks_intake'], 'migrate_request_intake_scope.js'],
   ['users', ['id', 'student_id', 'password_hash', 'is_active', 'must_change_password'], 'base schema: see docs/ENV_SETUP_GUIDE.md'],
   ['users', ['token_version', 'login_otp', 'login_otp_expires', 'pending_email'], 'migrate_batch8.js'],
   ['users', ['email_verified_at'], 'migrate_email_verification.js'],

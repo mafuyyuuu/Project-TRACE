@@ -29,10 +29,12 @@ export function RequirementBubble({ row,user,readOnly,onAction,ticketId }) {
   if(!row) return <p className="text-sm">Requirement details are loading. Retry conversation if they remain unavailable.</p>;
   return <div className="space-y-2">
     <h4 className="font-bold break-words">{row.label}</h4>
+    {Number(row.blocks_intake) === 1 && !row.superseded_at && <p className="text-sm font-semibold text-amber-900 dark:text-amber-200">Intake clearance requirement · {row.status === 'accepted' ? 'Cleared' : 'Routing blocked until accepted'}</p>}
     <p className="whitespace-pre-wrap break-words select-text">{row.instructions}</p>
     <p className="text-sm">Requested by {row.requested_by_name || 'Registrar'} · {new Date(row.created_at).toLocaleString('en-PH',{timeZone:'Asia/Manila'})} (Manila)</p>
     <p className="font-semibold">{row.superseded_at ? 'Replaced — retained history' : {requested:'Awaiting upload',uploaded:'Submitted — awaiting review',accepted:'Accepted',rejected:'Rejected — upload a corrected copy'}[row.status]}</p>
     {row.review_notes && <p className="whitespace-pre-wrap break-words">Review: {row.review_notes}</p>}
+    {row.reviewed_by_name && <p className="text-sm">Reviewed by {row.reviewed_by_name}</p>}
     {row.file_path && <AuthedFilePreview path={row.file_path} alt={row.label} iframeTitle={row.label} className="max-h-40 max-w-full object-contain" />}
     <RequirementHistory key={`${ticketId || row.document_id}:${row.id}`} row={row} ticketId={ticketId} />
     {!readOnly && !row.superseded_at && user.role==='student' && ['requested','rejected'].includes(row.status) && <Button type="button" onClick={() => onAction(row)} className="trace-button trace-button-secondary">Upload file for {row.label}</Button>}

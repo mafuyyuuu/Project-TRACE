@@ -1,9 +1,12 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Button from '@/components/Button';
 import useRequestAttachments from '@/hooks/useRequestAttachments';
 import SupportRequirementDialog, { RequirementBubble } from '@/components/SupportRequirement';
-export default function RequestAttachments({ documentId,user }) {
+export default function RequestAttachments({ documentId,user,onIntakeState }) {
   const state=useRequestAttachments(documentId);
+  useEffect(() => {
+    onIntakeState?.({ ready: !state.loading && !state.error, blocked: state.rows.some(row => Number(row.blocks_intake) === 1 && !row.superseded_at && row.status !== 'accepted') });
+  }, [onIntakeState, state.loading, state.error, state.rows]);
   const [selection,setSelection]=useState(null);
   const registrar=user.role==='admin' || ['Window 1','Receiving Desk','Secretary'].includes(user.desk_assignment);
   return <section aria-label="Case-specific attachments" className="min-w-0 space-y-3">

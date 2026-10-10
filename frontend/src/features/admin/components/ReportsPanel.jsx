@@ -1,3 +1,4 @@
+import QueueTabs from '@/components/QueueTabs';
 import Button from '@/components/Button';
 import ExportDropdown from '@/components/ExportDropdown';
 import { INPUT_LIMITS } from '@/utils/inputLimits';
@@ -81,13 +82,8 @@ export default function ReportsPanel({ user, currentTab, initialRecordSet = '' }
           </div>
         </div>
 
-        {isSecretary && <div className="flex flex-wrap gap-3" role="group" aria-label="Record views">
-          {[['all', 'All records'], ['cleared', 'Secretary-cleared'], ['completed', 'Completed only']].map(([view, label]) => {
-            const selected = view === 'cleared' ? r.filters.recordSet === 'secretary-cleared'
-              : view === 'completed' ? r.filters.status === STATUS.COMPLETED
-              : !r.filters.recordSet && !r.filters.status;
-            return <Button key={view} type="button" aria-pressed={selected} onClick={() => r.chooseRecordView(view)} className={`trace-tab ${selected ? 'bg-[#15803d] text-white' : 'bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700'}`}>{label}</Button>;
-          })}
+        {isSecretary && <div className="flex flex-wrap gap-3" >
+          <QueueTabs semantics="filters" label="Record views" idPrefix="report-record-views" tabs={[{key:'all',label:'All records'},{key:'cleared',label:'Secretary-cleared'},{key:'completed',label:'Completed only'}]} activeKey={r.filters.recordSet === 'secretary-cleared' ? 'cleared' : r.filters.status === STATUS.COMPLETED ? 'completed' : !r.filters.recordSet && !r.filters.status ? 'all' : null} onChange={r.chooseRecordView} />
           <p className="w-full text-xs text-gray-500 dark:text-gray-400">Secretary-cleared includes Ready for Pick-up and Completed. All exports are limited to your assigned college; student exports use their category rather than the document filters.</p>
         </div>}
 

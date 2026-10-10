@@ -1,3 +1,6 @@
+const assignments = require('./requestAssignment.service');
+const attachmentRequirements = require('../models/requestAttachment.model');
+const { documentCollegeScope } = require('../models/documentCollegeScope');
 const { pool } = require('../config/db');
 const { yearError } = require('../utils/profileYears');
 const { getProfileCompletion } = require('../utils/profileCompletion');
@@ -382,51 +385,21 @@ async function listDocuments(user, query) {
       // second is actionable.
       conditions.push('d.current_status IN (?, ?)');
       params.push(STATUS.PENDING_STUDENT_PAYMENT, STATUS.PENDING_FINANCE_VERIFICATION);
-    } else if (desk === 'Secretary') {
-      // Four working queues plus the tail, so a secretary can still see what
-      // they released rather than having documents vanish at handoff.
-      conditions.push('d.current_status IN (?, ?, ?, ?, ?, ?)');
-      params.push(
-        STATUS.PENDING_SEC_EVALUATION,
-        STATUS.SEC_PROCESSING,
-        STATUS.PAID_PENDING_SEC_RELEASE,
-        STATUS.SEC_OR_VERIFIED,
-        STATUS.READY_FOR_RELEASE,
-        STATUS.COMPLETED
-      );
-
-      // College segregation, plus n8n's routing decision layered on top.
-      //
-      // A document explicitly assigned to this secretary always shows, and one
-      // assigned to a *different* secretary is hidden — that is what makes the
-      // n8n routing decision load-bearing rather than decorative.
-      //
-      // Two deliberate limits. Unassigned documents fall back to the college
-      // filter, so the ~10,000 records that predate routing (and anything
-      // filed while n8n is stopped) stay visible. And an assignment to a
-      // non-Secretary desk is ignored here, because the workflow also routes
-      // TOR/Diploma to Window 1 at intake — honouring that would delete those
-      // documents from the secretary queue they still have to pass through.
-      const secUser = await userModel.findCourseById(user.id);
-      const secretaryCollegeId = secUser[0]?.college_id;
-      const collegeSql = secretaryCollegeId
-        ? 'd.student_id IN (SELECT student_id FROM users WHERE college_id = ? OR (college_id IS NULL AND course = ?))'
-        :
-        secUser.length > 0 && secUser[0].course
-          ? 'd.student_id IN (SELECT student_id FROM users WHERE course = ?)'
-          : '1 = 1';
-
-      conditions.push(
-        `(d.assigned_clerk_id = ?
-          OR (${collegeSql}
-              AND (d.assigned_clerk_id IS NULL
-                   OR d.assigned_clerk_id NOT IN
-                      (SELECT id FROM users WHERE desk_assignment = 'Secretary'))))`
-      );
-      params.push(user.id);
-      if (secretaryCollegeId) params.push(secretaryCollegeId);
-      if (collegeSql !== '1 = 1') {
-        params.push(secUser[0].course);
+    }
+    // Finance retains its payment queues even with a caller-supplied filter.
+    if (desk === 'Finance' && status) {
+      conditions.push('d.current_status IN (?, ?)');
+      params.push(STATUS.PENDING_STUDENT_PAYMENT, STATUS.PENDING_FINANCE_VERIFICATION);
+    }
+    // Apply college scope independently of a caller's status filter. An explicit
+    // assignment never overrides college ownership, including historical rows.
+    if (desk === 'Secretary') {
+      const [account] = await userModel.findCourseById(user.id);
+      if (!account?.college_id && !account?.course) conditions.push('1 = 0');
+      else {
+        const scope = documentCollegeScope({ collegeId: account.college_id, collegeName: account.course });
+        conditions.push(scope.condition);
+        params.push(...scope.params);
       }
     }
     // Window 1 sees the entire system queue — no extra condition.
@@ -441,6 +414,15 @@ async function listDocuments(user, query) {
   return { documents, total, page, limit, totalPages: Math.ceil(total / limit) };
 }
 
+async function requestDetail(user, documentId) {
+  const [document] = await documentModel.findById(documentId);
+  if (!document) throw notFound('Document not found.');
+  await authorizeMessage(user, document);
+  const processor = document.assigned_clerk_id ? (await userModel.findById(document.assigned_clerk_id))[0] : null;
+  return { document: { ...document, assigned_staff_name: processor?.full_name || null, assigned_staff_desk: processor?.desk_assignment || null },
+    step_logs: await stepLogModel.findByDocumentId(documentId) };
+}
+
 async function trackByTrackingNumber(trackingNumber) {
   const docRows = await documentModel.findByTrackingNumber(trackingNumber);
   if (docRows.length === 0) {
@@ -450,7 +432,10 @@ async function trackByTrackingNumber(trackingNumber) {
   const document = docRows[0];
   const step_logs = await stepLogModel.findByDocumentId(document.id);
 
-  return { document, step_logs };
+  return { document: { tracking_number: document.tracking_number, document_type: document.document_type,
+    current_status: document.current_status, estimated_ready_date: document.estimated_ready_date, created_at: document.created_at },
+    step_logs: step_logs.map(row => ({ action_taken: row.action_taken, from_status: row.from_status, to_status: row.to_status,
+      timestamp_started: row.timestamp_started, timestamp_completed: row.timestamp_completed })) };
 }
 
 // ---------------------------------------------------------------------------
@@ -602,31 +587,27 @@ async function getActivityLogs(user) {
 
 /** Internal endpoint used by n8n to assign a document to a named clerk. */
 async function assignDocument({ document_id, assigned_clerk_employee_id }) {
-  if (!document_id || !assigned_clerk_employee_id) {
-    throw badRequest('Missing required fields.');
-  }
-
-  const clerkRows = await userModel.findClerkByEmployeeId(assigned_clerk_employee_id);
-  if (clerkRows.length === 0) {
-    throw notFound(`Clerk ${assigned_clerk_employee_id} not found.`);
-  }
-
-  const [updateResult] = await documentModel.updateAssignedClerk(document_id, clerkRows[0].id);
-  if (updateResult.affectedRows === 0) {
-    throw notFound('Document not found.');
-  }
-
-  await stepLogModel.insert({
-    document_id,
-    clerk_id: null,
-    action_taken: 'routed',
-    // Routing assigns a desk; it does not advance the document itself.
-    from_status: STATUS.PENDING_SEC_EVALUATION,
-    to_status: STATUS.PENDING_SEC_EVALUATION,
-    notes: `Auto-routed to Clerk ${assigned_clerk_employee_id} by n8n`,
-  });
-
-  return { message: 'Document successfully assigned.' };
+  if (!document_id || !assigned_clerk_employee_id) throw badRequest('Missing required fields.');
+  const connection = await pool.getConnection();
+  try {
+    await connection.beginTransaction();
+    const [doc] = await documentModel.findByIdForUpdate(document_id, connection);
+    if (!doc) throw notFound('Document not found.');
+    if (doc.current_status !== STATUS.PENDING_SEC_EVALUATION) throw badRequest('Automatic routing is only available after intake.');
+    const [target] = await userModel.findClerkByEmployeeId(assigned_clerk_employee_id, connection);
+    if (!target || target.role !== 'clerk' || target.desk_assignment !== 'Secretary' || !Number(target.is_active)) throw forbidden('Choose an active College Secretary.');
+    await assignments.assertSecretaryScope(target, doc, connection);
+    if (doc.assigned_clerk_id) {
+      if (Number(doc.assigned_clerk_id) !== Number(target.id)) throw badRequest('This case has an assigned processor. Admin must explicitly reassign it.');
+    } else {
+      await documentModel.updateAssignedClerk(document_id, target.id, connection);
+      await stepLogModel.insert({ document_id, clerk_id: null, action_taken: 'routed', from_status: doc.current_status,
+        to_status: doc.current_status, notes: `Auto-routed to Clerk ${assigned_clerk_employee_id} within college ${doc.routing_college_id || 'verified profile'}.` }, connection);
+    }
+    await connection.commit();
+    return { message: 'Document successfully assigned.' };
+  } catch (error) { await connection.rollback(); throw error; }
+  finally { connection.release(); }
 }
 
 /**
@@ -755,6 +736,7 @@ async function verifyPayment(user, documentId, { action, notes, or_number, or_da
     }
 
     doc = docs[0];
+    await assignments.assertAssignedProcessor(user, doc, connection);
     if (action === 'approve') {
       if (!deferred && !or_number && !doc.or_number) throw badRequest('Enter the Official Receipt number or choose Later.');
       if (!doc.or_number && !deferred && timing.afterCutoff) throw badRequest('The 4:00 PM Manila cut-off has passed. Choose Later for OR issuance.');
@@ -769,6 +751,7 @@ async function verifyPayment(user, documentId, { action, notes, or_number, or_da
     // document in the group. Each row then routes independently from here.
     const groupId = doc.request_group_id || doc.tracking_number;
     const groupDocs = await documentModel.findByRequestGroupForUpdate(groupId, connection);
+    for (const groupDoc of groupDocs) await assignments.assertAssignedProcessor(user, groupDoc, connection);
     if (groupDocs.some(row => row.current_status !== STATUS.PENDING_FINANCE_VERIFICATION || row.payment_status === 'PAID')) throw badRequest('All documents in the request must be awaiting payment verification.');
 
     const [result] = await documentModel.updatePaymentVerificationForGroup(
@@ -909,7 +892,7 @@ async function intakeDocument(user, documentId, { action, notes, original_issued
   }
 
   const connection = await pool.getConnection();
-  let doc;
+  let doc, routingCollege;
 
   try {
     await connection.beginTransaction();
@@ -919,12 +902,17 @@ async function intakeDocument(user, documentId, { action, notes, original_issued
       throw notFound('Document not found.');
     }
     doc = docs[0];
+    await assignments.assertAssignedProcessor(user, doc, connection);
 
     if (doc.current_status !== STATUS.PENDING_W1_INTAKE) {
       throw badRequest('This request is not in the intake queue.');
     }
 
     if (action === 'approve') {
+      const requirements = await attachmentRequirements.list(documentId, connection);
+      if (requirements.some(row => Number(row.blocks_intake) === 1 && !row.superseded_at && row.status !== 'accepted')) throw badRequest('Review and accept every flagged intake requirement before routing.');
+      routingCollege = await assignments.collegeForStudent(doc.student_id, connection);
+      await documentModel.updateRoutingCollege(documentId, routingCollege, connection);
       const type = await documentPolicy.assertDocument(doc, { executor: connection, allowUnidentified: true });
       if (documentPolicy.enabled(type.requires_attachment) && !doc.file_path && !file) {
         throw badRequest('Attach the required supporting document before approving intake.');
@@ -940,6 +928,7 @@ async function intakeDocument(user, documentId, { action, notes, original_issued
       }
       assertTransition(doc.current_status, STATUS.PENDING_SEC_EVALUATION);
       await documentModel.updateStatus(documentId, STATUS.PENDING_SEC_EVALUATION, connection);
+      await documentModel.updateAssignedClerk(documentId, null, connection);
     } else if (!notes) {
       // Returning without a reason gives the student nothing to act on, and the
       // status does not move — so the note is the entire message.
@@ -959,7 +948,7 @@ async function intakeDocument(user, documentId, { action, notes, original_issued
         // A return keeps the document where it is: intake is the first desk, so
         // there is no earlier queue to send it back to.
         to_status: action === 'approve' ? STATUS.PENDING_SEC_EVALUATION : STATUS.PENDING_W1_INTAKE,
-        notes: notes || `Intake checked at Window 1 by ${user.full_name}.`,
+        notes: `${notes || `Intake checked at Window 1 by ${user.full_name}.`}${routingCollege ? ` Routing college: ${routingCollege.id} (${routingCollege.name}).` : ''}`,
       },
       connection
     );
@@ -987,10 +976,10 @@ async function intakeDocument(user, documentId, { action, notes, original_issued
   }
 
   if (action === 'approve') {
-    // Only now does the college matter. n8n reads the short code (CCS, CON, …)
-    // to resolve the SEC-<code>001 account; a student with no course falls
-    // through to the workflow's own fallback.
-    const { course, collegeCode } = await resolveCollege(doc.student_id);
+    // Route from the saved, validated college. n8n may suggest an active
+    // same-college Secretary; the callback cannot overwrite an Admin owner
+    // or fall back to an out-of-scope processor.
+    const course = routingCollege.name, collegeCode = routingCollege.short_code || null;
     await n8n.triggerDocumentRouting({
       document_id: doc.id,
       tracking_number: doc.tracking_number,
@@ -1056,6 +1045,7 @@ async function acceptForProcessing(user, documentId, body) {
       throw notFound('Document not found.');
     }
     doc = docs[0];
+    await assignments.assertSecretaryScope(user, doc, connection, { assigned: true });
 
     // Rejecting sends it back one desk, to the counter that accepted the
     // paperwork in the first place.
@@ -1064,17 +1054,23 @@ async function acceptForProcessing(user, documentId, body) {
     if (document_type && document_type !== doc.document_type && documentPolicy.isRetired(document_type)) {
       throw badRequest(documentPolicy.RETIREMENT_REASON);
     }
+    if (student_id && student_id !== doc.student_id) {
+      await assignments.assertSecretaryScope(user, { ...doc, student_id, routing_college_id: null }, connection);
+      await documentModel.updateRoutingCollege(documentId, await assignments.collegeForStudent(student_id, connection), connection);
+    }
     const newStatus = action === 'approve' ? STATUS.SEC_PROCESSING : STATUS.PENDING_W1_INTAKE;
     assertTransition(doc.current_status, newStatus);
     if (action === 'approve') await documentPolicy.assertDocument(doc, {
       studentId: student_id || doc.student_id, documentType: document_type || doc.document_type, executor: connection,
     });
 
+    if (action === 'approve' && (!doc.assigned_clerk_id || Number(doc.assigned_clerk_id) !== Number(user.id))) await documentModel.updateAssignedClerk(documentId, user.id, connection);
     await documentModel.updateEvaluation(
       documentId, newStatus, student_id, student_name, document_type,
       action === 'approve' ? estimated_ready_date : null,
       connection
     );
+    if (action === 'reject') await documentModel.updateAssignedClerk(documentId, null, connection);
     const correctedStudent = student_id || doc.student_id, correctedType = document_type || doc.document_type;
     if (correctedStudent && (!doc.document_sequence_number || correctedStudent !== doc.student_id || correctedType !== doc.document_type)) {
       await requestSequences.setDocumentSequence(documentId, await requestSequences.allocate(correctedStudent, correctedType, connection), connection);
@@ -1151,6 +1147,8 @@ async function priceDocument(user, documentId, { page_count, pricing_notes, conf
       throw notFound('Document not found.');
     }
     doc = docs[0];
+    await assignments.assertSecretaryScope(user, doc, connection, { assigned: true });
+    await documentModel.updateAssignedClerk(documentId, user.id, connection);
 
     if (doc.current_status !== STATUS.SEC_PROCESSING) {
       throw badRequest('Only a document being processed can be priced.');
@@ -1294,6 +1292,8 @@ async function verifyOfficialReceipt(user, documentId, { notes, physical_receipt
       throw notFound('Document not found.');
     }
     doc = docs[0];
+    await assignments.assertSecretaryScope(user, doc, connection, { assigned: true });
+    await documentModel.updateAssignedClerk(documentId, user.id, connection);
 
     assertTransition(doc.current_status, STATUS.SEC_OR_VERIFIED);
     if (doc.payment_status !== 'PAID' || !doc.or_number?.trim()) throw badRequest('Wait for Finance to clear payment and issue the OR.');
@@ -1346,6 +1346,7 @@ async function confirmHandoff(user, documentId, { notes }) {
       throw notFound('Document not found.');
     }
     doc = docs[0];
+    await assignments.assertSecretaryScope(user, doc, connection, { assigned: true });
 
     assertTransition(doc.current_status, STATUS.READY_FOR_RELEASE);
     if (doc.payment_status !== 'PAID') {
@@ -1355,6 +1356,7 @@ async function confirmHandoff(user, documentId, { notes }) {
     }
 
     await documentModel.updateStatus(documentId, STATUS.READY_FOR_RELEASE, connection);
+    await documentModel.updateAssignedClerk(documentId, null, connection);
 
     await stepLogModel.insert(
       {
@@ -1451,9 +1453,11 @@ async function logWalkInPayment(user, documentId, { or_number, or_date, notes, d
     await connection.beginTransaction();
     [doc] = await documentModel.findByIdForUpdate(documentId, connection);
     if (!doc) throw notFound('Document request not found.');
+    await assignments.assertAssignedProcessor(user, doc, connection);
     if (doc.current_status !== STATUS.PENDING_STUDENT_PAYMENT) throw badRequest('This request is not awaiting payment.');
     const groupId = doc.request_group_id || doc.tracking_number;
     const group = await documentModel.findByRequestGroupForUpdate(groupId, connection);
+    for (const item of group) await assignments.assertAssignedProcessor(user, item, connection);
     if (group.some(row => row.current_status !== STATUS.PENDING_STUDENT_PAYMENT || row.payment_status === 'PAID')) throw badRequest('All documents in the request must be awaiting payment.');
     const [result] = await documentModel.updateWalkInPaymentForGroup(groupId, {
       orNumber: deferred ? null : or_number.trim(), orDate: deferred ? null : (or_date || timing.today),
@@ -1494,6 +1498,7 @@ async function releaseDocument(user, documentId, { notes } = {}) {
     }
 
     doc = docs[0];
+    await assignments.assertAssignedProcessor(user, doc, connection);
 
     assertTransition(doc.current_status, STATUS.COMPLETED);
     await documentModel.markCompleted(documentId, connection);
@@ -1601,8 +1606,10 @@ async function uploadDeferredOR(user, documentId, file, { or_number, or_date } =
     await connection.beginTransaction();
     [doc] = await documentModel.findByIdForUpdate(documentId, connection);
     if (!doc) throw notFound('Document not found.');
+    await assignments.assertAssignedProcessor(user, doc, connection);
     const groupId = doc.request_group_id || doc.tracking_number;
     const group = await documentModel.findByRequestGroupForUpdate(groupId, connection);
+    for (const item of group) await assignments.assertAssignedProcessor(user, item, connection);
     if (doc.payment_status !== 'PAID' || group.some(row => row.payment_status !== 'PAID')) throw badRequest('Finance must clear this payment before issuing its OR.');
     if (doc.official_receipt_path || group.some(row => row.official_receipt_path)) throw badRequest('An OR copy is already published. It cannot be replaced here.');
     let number = doc.or_number, date = doc.or_date;
@@ -1654,12 +1661,7 @@ async function authorizeMessage(user, doc, executor = pool) {
     const [owner] = await userModel.findStudentIdById(user.id, executor);
     if (!owner || doc.student_id !== owner.student_id) throw forbidden('You can only message about your own requests.');
   } else if (desk === 'Secretary') {
-    const [account] = await userModel.findCourseById(user.id, executor);
-    const [student] = await userModel.findStudentCourseByStudentId(doc.student_id, executor);
-    const matches = account?.college_id
-      ? Number(account.college_id) === Number(student?.college_id) || (!student?.college_id && account.course && account.course === student?.course)
-      : account?.course && account.course === student?.course;
-    if (!matches) throw forbidden('You can only access messages for your college.');
+    await assignments.assertSecretaryScope(user, doc, executor);
   }
   return desk;
 }
@@ -1729,6 +1731,7 @@ async function sendMessage(user, documentId, body = {}) {
 module.exports = {
   messageScope,
   authorizeMessage,
+  requestDetail,
   messageThreads,
   getMessages,
   sendMessage,

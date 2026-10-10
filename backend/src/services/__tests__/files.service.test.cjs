@@ -56,6 +56,11 @@ describe('resolveSafePath — path traversal defence', () => {
 });
 
 describe('file authorization', () => {
+  it('denies a Secretary another college’s ordinary document or receipt file', async () => {
+    documentModel.findByAttachedFilename.mockResolvedValue([{id:11,student_id:'STU-001',routing_college_id:2}]);
+    vi.spyOn(userModel,'findCourseById').mockResolvedValue([{college_id:1}]);
+    expect(await statusOf(getFilePathForUser({id:5,role:'clerk',desk_assignment:'Secretary'},'other-receipt.png'))).toBe(403);
+  });
   it('allows a student their case attachment and denies another student', async () => {
     attachments.fileOwner.mockResolvedValue({ id: 11, student_id: 'STU-001' });
     expect(await statusOf(getFilePathForUser(STUDENT, 'case.pdf'))).toBe(404);

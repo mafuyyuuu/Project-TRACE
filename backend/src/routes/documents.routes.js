@@ -22,6 +22,10 @@ router.get('/messages/threads', authenticate, documentsController.messageThreads
 const financeController = require('../controllers/finance.controller');
 router.get('/finance/transactions', authenticate, financeController.transactions);
 router.get('/finance/transactions/export', authenticate, financeController.exportTransactions);
+router.get('/:id/detail', authenticate, documentsController.detail);
+router.get('/:id/assignment', authenticate, documentsController.assignmentContext);
+router.post('/:id/assignment', authenticate, documentsController.reassign);
+router.put('/:id/routing-college', authenticate, documentsController.reconcileCollege);
 
 // Public tracking lookup (no auth — students track by tracking number).
 router.get('/:trackingNumber', documentsController.track);

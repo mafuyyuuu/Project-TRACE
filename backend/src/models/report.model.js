@@ -1,5 +1,6 @@
 const { pool } = require('../config/db');
 const { STATUS, LEGACY_STATUS } = require('../utils/documentStatus');
+const { documentCollegeScope } = require('./documentCollegeScope');
 
 /**
  * Status literals for the aggregates below.
@@ -69,9 +70,9 @@ function buildDocumentFilters({ dateFrom, dateTo, status, statuses, documentType
     params.push(studentId);
   }
 
-  const scope = collegeScope({ collegeId, collegeName }, 'scoped_student');
+  const scope = documentCollegeScope({ collegeId, collegeName });
   if (scope.condition) {
-    conditions.push(`d.student_id IN (SELECT scoped_student.student_id FROM users scoped_student WHERE scoped_student.role = 'student' AND ${scope.condition})`);
+    conditions.push(scope.condition);
     params.push(...scope.params);
   }
 

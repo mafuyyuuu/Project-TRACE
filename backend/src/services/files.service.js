@@ -46,6 +46,17 @@ async function assertCanRead(user, filename) {
     await require('./documents.service').authorizeMessage(user, attachment);
     return;
   }
+  if (user.role === 'clerk' && user.desk_assignment === 'Secretary') {
+    const docs = await documentModel.findByAttachedFilename(filename);
+    if (docs.length) {
+      await require('./documents.service').authorizeMessage(user, docs[0]);
+      return;
+    }
+    // Registration proof is reviewed by Admin. Keep a Secretary's own avatar.
+    const avatar = await userModel.findByProfilePictureFilename(filename);
+    if (avatar.some(row => Number(row.id) === Number(user.id))) return;
+    throw forbidden('You do not have access to this file.');
+  }
   if (user.role === 'clerk' || user.role === 'admin') return;
 
   // Cheapest check first, and it needs no student_id: an avatar is readable

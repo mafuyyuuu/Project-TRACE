@@ -1,3 +1,5 @@
+import QueuePanel from '@/components/QueuePanel';
+import QueueTabs from '@/components/QueueTabs';
 import Button from '@/components/Button';
 import ProgressFill from '@/components/ProgressFill';
 import RequestMessagesPanel from '@/components/RequestMessagesPanel';
@@ -326,10 +328,8 @@ export default function StudentDashboard({ user, currentTab, setViewImageUrl }) 
         {/* 1.2. STUDENT PORTAL - REQUEST HISTORY */}
         {['request-history', 'payment-history', 'history'].includes(currentTab) && <section className="space-y-5">
           <h2 className="trace-page-title">History</h2>
-          <div className="flex flex-wrap gap-3" aria-label="History filters">
-            {['all', 'payments'].map(filter => <Button key={filter} type="button" aria-pressed={historyFilter === filter} onClick={() => setHistoryView({ tab: currentTab, filter })} className={`trace-tab rounded-xl  ${historyFilter === filter ? 'bg-[#15803d] text-white' : 'bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700'}`}>{filter === 'all' ? 'All Requests' : 'Payments'}</Button>)}
-          </div>
-          <div className="trace-section trace-section-body overflow-x-auto max-h-[60vh]">
+          <QueueTabs semantics="filters" label="History filters" idPrefix="student-history" tabs={[{key:'all',label:'All Requests'},{key:'payments',label:'Payments'}]} activeKey={historyFilter} onChange={filter => setHistoryView({ tab: currentTab, filter })} />
+          <QueuePanel idPrefix="student-history" activeKey={historyFilter} semantics="filters" className="trace-section trace-section-body overflow-x-auto max-h-[60vh]">
             <table className="w-full table-fixed min-w-[61.25rem] text-left text-xs">
               <thead className="sticky top-0 bg-white dark:bg-gray-900 z-10"><tr>{['Requested', 'Tracking', 'Document', 'Request Status', 'Amount', 'Payment Status', 'Payment Reference', 'Receipt'].map(label => <th key={label} className="px-3 py-3">{label}</th>)}</tr></thead>
               <tbody>{documents.filter(doc => historyFilter === 'all' || doc.payment_status === 'PAID' || doc.gcash_reference_no).map(doc => <tr key={doc.id} className="border-t border-gray-100 dark:border-gray-700">
@@ -346,7 +346,7 @@ export default function StudentDashboard({ user, currentTab, setViewImageUrl }) 
               </tr>)}</tbody>
             </table>
             {documents.filter(doc => historyFilter === 'all' || doc.payment_status === 'PAID' || doc.gcash_reference_no).length === 0 && <p className="p-6 text-sm text-gray-500 dark:text-gray-400">No records match this filter.</p>}
-          </div>
+          </QueuePanel>
         </section>}
 
         {/* 1.4. NEW REQUEST MODAL */}
@@ -397,22 +397,7 @@ export default function StudentDashboard({ user, currentTab, setViewImageUrl }) 
               <p className="text-xs text-gray-400 dark:text-gray-400 mb-6 font-semibold">One payment for {selectedPaymentDocuments.length} {selectedPaymentDocuments.length === 1 ? 'document' : 'documents'}</p>
 
               {/* Payment method picker */}
-              <div className="flex flex-wrap gap-2 mb-6">
-                {paymentMethods.map((m) => (
-                  <Button
-                    key={m.code}
-                    type="button"
-                    onClick={() => setSelectedMethod(m.code)}
-                    className={`trace-tab rounded-xl border  ${
-                      selectedMethod === m.code
-                        ? 'bg-[#15803d] border-[#15803d] text-white shadow-sm'
-                        : 'bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800'
-                    }`}
-                  >
-                    {m.name}
-                  </Button>
-                ))}
-              </div>
+              <div className="mb-6"><QueueTabs semantics="filters" label="Payment method" idPrefix="student-payment-method" tabs={paymentMethods.map(method => ({key:method.code,label:method.name}))} activeKey={selectedMethod} onChange={setSelectedMethod} /></div>
 
               <div className="border-2 border-dashed border-[#15803d]/40 bg-gray-50/50 dark:bg-gray-800/50 p-6 rounded-2xl flex flex-col items-center gap-4 mb-6 text-center">
                 {selectedMethod === 'gcash' ? (

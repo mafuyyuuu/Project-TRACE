@@ -7,6 +7,8 @@ import FinanceVerificationModal from '@/features/finance/components/FinanceVerif
 import WalkInPaymentModal from '@/features/finance/components/WalkInPaymentModal';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import QueueTabs from '@/components/QueueTabs';
+import QueuePanel from '@/components/QueuePanel';
+import RequestStaff from '@/components/RequestStaff';
 import { formatPeso } from '@/utils/pricing';
 import { getStatusLabel } from '@/utils/documentStatus';
 import useFinanceDashboard from '@/features/finance/useFinanceDashboard';
@@ -92,7 +94,7 @@ function FinanceOverview({ user, setViewImageUrl }) {
         </div>
 
         {/* Queue Tabs — one table visible at a time instead of two stacked */}
-        <QueueTabs
+        <QueueTabs idPrefix="finance-queue"
           tabs={[
             { key: 'awaiting-payment', label: 'Awaiting Payment', count: awaitingPaymentQueue.length },
             { key: 'verification', label: 'Verification Queue', count: verificationQueue.length },
@@ -100,11 +102,12 @@ function FinanceOverview({ user, setViewImageUrl }) {
           activeKey={activeQueueTab}
           onChange={setActiveQueueTab}
         />
+        <QueuePanel idPrefix="finance-queue" activeKey={activeQueueTab} className="mt-4">
 
         {/* 1 · Billed, waiting on the student. Read-only, except that a student
             can walk up with the printed slip and pay at the counter. */}
         {activeQueueTab === 'awaiting-payment' && (
-        <div className="trace-section trace-motion-context overflow-hidden mt-6">
+        <div className="trace-section overflow-hidden">
           <div className="trace-section-header border-gray-100 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800/50">
             <div>
               <h3 className="trace-section-title uppercase tracking-wider">1 · AWAITING PAYMENT</h3>
@@ -137,7 +140,7 @@ function FinanceOverview({ user, setViewImageUrl }) {
                           <Button type="button" disabled={!doc.student_id} onClick={() => setViewProfileId(doc.student_id)} className="trace-action text-sm font-bold text-blue-700 dark:text-blue-300 hover:underline text-left focus-visible:ring-2 focus-visible:ring-blue-500">{doc.student_name || 'Unknown Student'}</Button>
                           <div className="text-xs font-mono text-gray-400 dark:text-gray-400 mt-0.5 select-text break-words">{doc.student_id || 'ID Pending'}</div>
                         </td>
-                        <td className="py-4 text-xs font-bold text-gray-600 dark:text-gray-300">{doc.document_type}</td>
+                        <td className="py-4 text-xs font-bold text-gray-600 dark:text-gray-300">{doc.document_type}<RequestStaff document={doc} /></td>
                         <td className="py-4 text-xs font-bold text-gray-800 dark:text-gray-100 font-mono">{formatPeso(doc.amount)}</td>
                         <td className="py-4 text-right pr-4 min-w-[200px]"><div className="flex flex-wrap justify-end gap-2 items-center">
 
@@ -166,7 +169,7 @@ function FinanceOverview({ user, setViewImageUrl }) {
 
         {/* Verification Queue Table */}
         {activeQueueTab === 'verification' && (
-        <div className="trace-section trace-motion-context overflow-hidden mt-6">
+        <div className="trace-section overflow-hidden">
           <div className="trace-section-header border-gray-100 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800/50">
             <h3 className="trace-section-title uppercase tracking-wider">2 · VERIFICATION QUEUE</h3>
             <span className="text-xs text-gray-500 dark:text-gray-400 font-semibold whitespace-nowrap">
@@ -197,7 +200,7 @@ function FinanceOverview({ user, setViewImageUrl }) {
                           <Button type="button" disabled={!doc.student_id} onClick={() => setViewProfileId(doc.student_id)} className="trace-action text-sm font-bold text-blue-700 dark:text-blue-300 hover:underline text-left focus-visible:ring-2 focus-visible:ring-blue-500">{doc.student_name || 'Unknown Student'}</Button>
                           <div className="text-xs font-mono text-gray-400 dark:text-gray-400 mt-0.5 select-text break-words">{doc.student_id || 'ID Pending'}</div>
                         </td>
-                        <td className="py-4 text-xs font-bold text-gray-600 dark:text-gray-300">{doc.document_type}</td>
+                        <td className="py-4 text-xs font-bold text-gray-600 dark:text-gray-300">{doc.document_type}<RequestStaff document={doc} /></td>
                         <td className="py-4 text-xs font-bold text-gray-800 dark:text-gray-100 font-mono">{formatPeso(doc.amount)}</td>
                         <td className="py-4 text-xs font-semibold">
                           {doc.payment_channel === 'walk_in'
@@ -231,7 +234,8 @@ function FinanceOverview({ user, setViewImageUrl }) {
         </div>
         )}
 
-        {/* 2.1 FINANCE VERIFICATION MODAL */}
+        </QueuePanel>
+{/* 2.1 FINANCE VERIFICATION MODAL */}
         {activeModal === 'verify-pay' && selectedDoc && (
           <FinanceVerificationModal
             user={user}

@@ -73,13 +73,14 @@ function findByTrackingNumber(trackingNumber, executor = pool) {
  */
 function listWithFilters(conditions, params, limit, offset, executor = pool) {
   // A same-status intake note must not restart the wait. Secretary returns do.
-  let query = `SELECT d.*, student.program,
+  let query = `SELECT d.*, student.program, processor.full_name AS assigned_staff_name, processor.desk_assignment AS assigned_staff_desk,
     CASE WHEN d.current_status = 'PENDING_W1_INTAKE' THEN COALESCE(
       (SELECT MAX(intake.timestamp_started) FROM step_logs intake
        WHERE intake.document_id = d.id AND intake.to_status = 'PENDING_W1_INTAKE'
        AND (intake.from_status IS NULL OR intake.from_status <> intake.to_status)), d.created_at)
     END AS intake_entered_at
-    FROM documents d LEFT JOIN users student ON student.student_id = d.student_id AND student.role = 'student'`;
+    FROM documents d LEFT JOIN users student ON student.student_id = d.student_id AND student.role = 'student'
+    LEFT JOIN users processor ON processor.id = d.assigned_clerk_id`;
   if (conditions.length > 0) query += ' WHERE ' + conditions.join(' AND ');
   query += ' ORDER BY d.created_at DESC LIMIT ? OFFSET ?';
   return executor.query(query, [...params, limit, offset]).then(([rows]) => pricingModel.enrichDocuments(shapePricing(rows), executor));
@@ -97,11 +98,15 @@ function updateOcrData(documentId, ocr, executor = pool) {
       ocr_raw_text = ?,
       ocr_extracted_data = ?,
       ocr_confidence_score = ?,
-      student_id = COALESCE(?, student_id),
-      document_type = COALESCE(?, document_type)
+      student_id = CASE WHEN current_status = 'PENDING_W1_INTAKE' AND student_id IS NULL THEN ? ELSE student_id END,
+      document_type = COALESCE(document_type, ?)
      WHERE id = ?`,
     [ocr.raw_text, ocr.extracted_data_json, ocr.confidence, ocr.student_id, ocr.form_type, documentId]
   );
+}
+
+function updateRoutingCollege(documentId, college, executor = pool) {
+  return executor.query('UPDATE documents SET routing_college_id = ?, routing_college_name = ? WHERE id = ?', [college.id, college.name, documentId]);
 }
 
 function updateAssignedClerk(documentId, clerkId, executor = pool) {
@@ -239,7 +244,7 @@ function findByAttachedFilename(filename, executor = pool) {
   const like = `%${filename}`;
   return executor
     .query(
-      `SELECT id, student_id FROM documents
+      `SELECT id, student_id, routing_college_id FROM documents
        WHERE file_path LIKE ? OR receipt_image_path LIKE ? OR official_receipt_path LIKE ?
        LIMIT 1`,
       [like, like, like]
@@ -464,6 +469,7 @@ module.exports = {
   countWithFilters,
   updateOcrData,
   updateAssignedClerk,
+  updateRoutingCollege,
   updateEvaluation,
   markCompleted,
   deleteById,

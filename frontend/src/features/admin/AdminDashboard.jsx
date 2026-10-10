@@ -1,3 +1,5 @@
+import RequestAssignmentModal from '@/features/admin/components/RequestAssignmentModal';
+import RequestStaff from '@/components/RequestStaff';
 import Button from '@/components/Button';
 import StudyYearsCorrectionModal from '@/features/admin/components/StudyYearsCorrectionModal';
 import { forecastCeiling } from '@/utils/forecastScale';
@@ -27,6 +29,7 @@ import AccountVerificationModal from './components/AccountVerificationModal';
  * Registrar admin: ML forecasts, AI insights, account verification, users, and audit logs.
  */
 export default function AdminDashboard({ user, currentTab, setViewImageUrl, reviewAccountId, reviewNavigationKey }) {
+  const [assignmentTarget, setAssignmentTarget] = useState(null);
   const [studyCorrectionTarget, setStudyCorrectionTarget] = useState(null);
   const [viewProfileId, setViewProfileId] = useState(null);
 
@@ -36,6 +39,7 @@ export default function AdminDashboard({ user, currentTab, setViewImageUrl, revi
     dismissNotification,
     error,
     documents,
+    loadDashboardData,
     dashStats,
     forecastData,
     aiInsights,
@@ -79,6 +83,7 @@ export default function AdminDashboard({ user, currentTab, setViewImageUrl, revi
 
   return (
     <>
+      {assignmentTarget && <RequestAssignmentModal key={assignmentTarget.id} document={assignmentTarget} onClose={() => setAssignmentTarget(null)} onSaved={() => { setAssignmentTarget(null); void loadDashboardData(); }} />}
       <DashboardAlerts success={success} error={error} onDismiss={dismissNotification} />
             {currentTab === 'dashboard' && (
               <div className="trace-page">
@@ -372,13 +377,14 @@ export default function AdminDashboard({ user, currentTab, setViewImageUrl, revi
                       {documents.filter(doc => adminDocFilter === 'All' || doc.document_type === adminDocFilter).length === 0 ? (
                         <div className="text-center py-12 text-gray-400 dark:text-gray-400 font-medium">No documents match the current filter.</div>
                       ) : (
-                        <table className="w-full text-left border-collapse table-fixed min-w-[42.5rem]">
+                        <table className="w-full text-left border-collapse table-fixed min-w-[60rem]">
                           <thead className="sticky top-0 bg-white dark:bg-gray-900 z-10">
                             <tr className="text-gray-400 dark:text-gray-400 text-[10px] uppercase tracking-widest border-b border-gray-100 dark:border-gray-700">
                               <th className="pb-4 font-bold pl-4">Tracking ID</th>
                               <th className="pb-4 font-bold">Student</th>
                               <th className="pb-4 font-bold">Document Type</th>
                               <th className="pb-4 font-bold">Status</th>
+                              <th className="pb-4 font-bold">Staff / Handoff</th>
                               <th className="pb-4 font-bold">Date Updated</th>
                               <th className="pb-4 font-bold text-right pr-4">Attachment</th>
                             </tr>
@@ -401,6 +407,7 @@ export default function AdminDashboard({ user, currentTab, setViewImageUrl, revi
                                       {getStatusLabel(doc.current_status)}
                                     </span>
                                   </td>
+                                  <td className="py-4"><RequestStaff document={doc} /><Button type="button" onClick={() => setAssignmentTarget(doc)} className="trace-action underline mt-2">Assign staff</Button></td>
                                   <td className="py-4 text-xs font-semibold text-gray-400 dark:text-gray-400">
                                     {new Date(doc.updated_at).toLocaleDateString()} {new Date(doc.updated_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
                                   </td>

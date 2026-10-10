@@ -1,3 +1,4 @@
+import RequestStaff from '@/components/RequestStaff';
 import Button from '@/components/Button';
 import FeeBreakdown from '@/components/FeeBreakdown';
 import { INPUT_LIMITS } from '@/utils/inputLimits';
@@ -63,6 +64,7 @@ export default function FinanceVerificationModal({
       <p className="text-xs text-gray-400 dark:text-gray-400 mt-1 font-semibold pb-5 mb-6 border-b border-gray-100 dark:border-gray-700">Review and verify the student's payment receipt.</p>
 
       {/* Gray detail panel */}
+      <RequestStaff document={selectedDoc} />
       <div className="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl p-5 my-4 font-mono text-[11px] text-gray-600 dark:text-gray-300 space-y-2">
         <div className="flex flex-wrap justify-between gap-x-3 gap-y-1"><span>Name</span><span className="font-bold text-gray-950 dark:text-gray-100 select-text break-words">{selectedDoc.student_name || 'Unknown'}</span></div>
         <div className="flex flex-wrap justify-between gap-x-3 gap-y-1"><span>Program/Course for OR</span><span className="font-bold select-text break-words">{selectedDoc.program || 'Not entered'}</span></div>

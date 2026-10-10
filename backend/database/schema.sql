@@ -158,6 +158,8 @@ CREATE TABLE IF NOT EXISTS documents (
   estimated_ready_date DATE,
   payment_status ENUM('UNPAID', 'PAID') DEFAULT 'UNPAID',
   assigned_clerk_id INT,
+  routing_college_id INT NULL,
+  routing_college_name VARCHAR(255) NULL,
   file_path VARCHAR(500),
   receipt_image_path VARCHAR(500),
   is_same_day BOOLEAN NOT NULL DEFAULT FALSE,
@@ -394,7 +396,7 @@ CREATE TABLE IF NOT EXISTS supporting_document_types (
 
 CREATE TABLE IF NOT EXISTS request_attachment_requirements (
     id INT AUTO_INCREMENT PRIMARY KEY, document_id INT NOT NULL, label VARCHAR(255) NOT NULL,
-    instructions VARCHAR(2000) NOT NULL, status ENUM('requested','uploaded','accepted','rejected') NOT NULL DEFAULT 'requested',
+    instructions VARCHAR(2000) NOT NULL, blocks_intake BOOLEAN NOT NULL DEFAULT FALSE, status ENUM('requested','uploaded','accepted','rejected') NOT NULL DEFAULT 'requested',
     catalog_id INT NULL, identity_key VARCHAR(100) NULL, replacement_of INT NULL, superseded_at TIMESTAMP NULL,
     requested_by INT NOT NULL, reviewed_by INT NULL, review_notes VARCHAR(2000) NULL,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, reviewed_at TIMESTAMP NULL,

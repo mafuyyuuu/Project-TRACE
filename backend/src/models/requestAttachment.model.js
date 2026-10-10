@@ -23,7 +23,7 @@ async function lock(id, documentId, executor) {
   return rows[0];
 }
 async function create(documentId, userId, label, instructions, executor, identity) {
-  const [result] = await executor.query('INSERT INTO request_attachment_requirements (document_id, requested_by, label, instructions,catalog_id,identity_key,replacement_of) VALUES (?, ?, ?, ?,?,?,?)', [documentId, userId, label, instructions,identity.catalog_id,identity.identity_key,identity.replacement_of || null]);
+  const [result] = await executor.query('INSERT INTO request_attachment_requirements (document_id, requested_by, label, instructions,catalog_id,identity_key,replacement_of,blocks_intake) VALUES (?, ?, ?, ?,?,?,?,?)', [documentId, userId, label, instructions,identity.catalog_id,identity.identity_key,identity.replacement_of || null, Boolean(identity.blocks_intake)]);
   return result.insertId;
 }
 function supersede(id, executor) { return executor.query('UPDATE request_attachment_requirements SET superseded_at=CURRENT_TIMESTAMP WHERE id=?',[id]); }

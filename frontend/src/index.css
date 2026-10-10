@@ -48,6 +48,10 @@
   .trace-label-inverse { @apply text-white dark:text-white; }
   .trace-form-grid { @apply grid grid-cols-[repeat(auto-fit,minmax(min(100%,14rem),1fr))] gap-4; }
   .trace-tab { @apply inline-flex min-h-11 max-w-full items-center justify-center gap-2 px-4 py-3 text-sm font-semibold leading-normal text-center whitespace-normal break-words transition-colors disabled:cursor-not-allowed disabled:opacity-60; }
+  .trace-tab-group { @apply flex w-fit max-w-full flex-wrap gap-1 rounded-3xl bg-gray-100 p-1.5 dark:bg-gray-800 sm:rounded-full; }
+  .trace-pill { @apply min-w-0 rounded-full; }
+  .trace-pill-active { @apply bg-pine-600 text-white shadow-sm dark:bg-pine-600 dark:text-white; }
+  .trace-pill-inactive { @apply text-gray-700 enabled:hover:bg-green-100 enabled:hover:text-pine-700 dark:text-gray-200 dark:enabled:hover:bg-green-950 dark:enabled:hover:text-green-100; }
   .trace-page { @apply min-w-0 space-y-6; }
   .trace-page-header { @apply flex min-w-0 flex-col flex-wrap items-start justify-between gap-4 sm:flex-row; }
   .trace-page-header > * { @apply min-w-0 max-w-full; }

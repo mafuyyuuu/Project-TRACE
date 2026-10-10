@@ -116,7 +116,7 @@ it('edits audience, fees and college restrictions only after a confirmed save', 
   const user = userEvent.setup();
   render(<MaintenancePanel user={ADMIN} currentTab="admin-maintenance" />);
   await screen.findByText('System');
-  await user.click(screen.getByRole('button', { name: /Document Types/ }));
+  await user.click(screen.getByRole('tab', { name: /Document Types/ }));
   const row = screen.getByText('Transcript of Records').closest('tr');
   await user.click(within(row).getByRole('button', { name: 'Edit' }));
   await user.selectOptions(screen.getByRole('option', { name: 'Alumni Only' }).parentElement, 'alumni');
@@ -139,7 +139,7 @@ it.each([true, false])('keeps document-type active=%s actions confirmed, cancell
   maintenanceService.setDocumentTypeActive.mockImplementation(() => new Promise(resolve => { finish = resolve; }));
   const user = userEvent.setup();
   render(<MaintenancePanel user={ADMIN} currentTab="admin-maintenance" />);
-  await user.click(await screen.findByRole('button', { name: /Document Types/ }));
+  await user.click(await screen.findByRole('tab', { name: /Document Types/ }));
   const row = (await screen.findByText('Transcript of Records')).closest('tr');
   const label = active ? 'Deactivate' : 'Restore';
   await user.click(within(row).getByRole('button', { name: label }));
@@ -284,7 +284,7 @@ describe('MaintenancePanel', () => {
   it('preserves a college draft after cancelling and creates it only after confirmation', async () => {
     const user = userEvent.setup();
     await renderPanel();
-    await user.click(screen.getByRole('button', { name: /Colleges/ }));
+    await user.click(screen.getByRole('tab', { name: /Colleges/ }));
     const name = screen.getByPlaceholderText('College name *');
     await user.type(name, 'College of Engineering');
     await user.type(screen.getByPlaceholderText('Short code (e.g. CCS)'), 'COE');
@@ -300,7 +300,7 @@ describe('MaintenancePanel', () => {
   it('confirms a document type before sending its configured defaults', async () => {
     const user = userEvent.setup();
     await renderPanel();
-    await user.click(screen.getByRole('button', { name: /Document Types/ }));
+    await user.click(screen.getByRole('tab', { name: /Document Types/ }));
     await user.type(screen.getByPlaceholderText('Name *'), 'Certification');
     await user.type(screen.getByPlaceholderText('Base fee (₱)'), '50');
     await user.click(screen.getByRole('button', { name: 'Create Type' }));
@@ -314,7 +314,7 @@ describe('MaintenancePanel', () => {
   it('switches to the document types section', async () => {
     const user = userEvent.setup();
     await renderPanel();
-    await user.click(await screen.findByRole('button', { name: /Document Types/ }));
+    await user.click(await screen.findByRole('tab', { name: /Document Types/ }));
     expect(await screen.findByText('Transcript of Records')).toBeInTheDocument();
     expect(screen.getByText(/cannot be renamed/i)).toBeInTheDocument();
   });
@@ -322,7 +322,7 @@ describe('MaintenancePanel', () => {
   it('switches to the payment methods section and shows both active and inactive rows', async () => {
     const user = userEvent.setup();
     await renderPanel();
-    await user.click(await screen.findByRole('button', { name: /Payment Methods/ }));
+    await user.click(await screen.findByRole('tab', { name: /Payment Methods/ }));
     expect(await screen.findByText('GCash')).toBeInTheDocument();
     expect(screen.getByText('Over-the-Counter (Cashier)')).toBeInTheDocument();
     expect(screen.getByText('Active')).toBeInTheDocument();
@@ -332,7 +332,7 @@ describe('MaintenancePanel', () => {
   it('creates a payment method with the entered code and name', async () => {
     const user = userEvent.setup();
     await renderPanel();
-    await user.click(await screen.findByRole('button', { name: /Payment Methods/ }));
+    await user.click(await screen.findByRole('tab', { name: /Payment Methods/ }));
 
     await user.type(screen.getByPlaceholderText(/Code \*/), 'paymaya');
     await user.type(screen.getByPlaceholderText(/Display name/), 'PayMaya');
@@ -350,7 +350,7 @@ describe('MaintenancePanel', () => {
   it('deactivates a payment method rather than deleting it', async () => {
     const user = userEvent.setup();
     await renderPanel();
-    await user.click(await screen.findByRole('button', { name: /Payment Methods/ }));
+    await user.click(await screen.findByRole('tab', { name: /Payment Methods/ }));
 
     const row = (await screen.findByText('GCash')).closest('tr');
     await user.click(within(row).getByRole('button', { name: /deactivate/i }));

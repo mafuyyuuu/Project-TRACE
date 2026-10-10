@@ -39,6 +39,12 @@ beforeEach(() => {
 it('has no universal required attachments on an ordinary request', async () => {
   await expect(service.list(student, 11)).resolves.toMatchObject({ requirements: [] });
 });
+it('makes an explicit intake requirement blocking and retains its flag on replacement', async () => {
+  documents.findByIdForUpdate.mockResolvedValue([{...doc,current_status:'PENDING_W1_INTAKE'}]);
+  await service.mutate(clerk, 11, 'request', null, {catalog_id:2,instructions:'Exit clearance required for this request.'});
+  expect(model.create).toHaveBeenCalledWith(11,4,'Prior school record',expect.any(String),tx,expect.objectContaining({blocks_intake:true}));
+  expect(model.event).toHaveBeenCalledWith(expect.objectContaining({blocks_intake:true}),4,'requested',tx);
+});
 it.each([student, { id: 7, role: 'clerk', desk_assignment: 'Finance' }])('limits requesting/reviewing to Registrar staff', async user => {
   await expect(service.mutate(user, 11, 'request', null, { catalog_id:2, instructions: 'Please submit this case record.' })).rejects.toMatchObject({ status: 403 });
   expect(pool.getConnection).not.toHaveBeenCalled();

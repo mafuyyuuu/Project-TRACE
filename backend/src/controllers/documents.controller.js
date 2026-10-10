@@ -1,4 +1,22 @@
 const documentsService = require('../services/documents.service');
+const assignments = require('../services/requestAssignment.service');
+
+async function detail(req, res) {
+  try { res.json(await documentsService.requestDetail(req.user, req.params.id)); }
+  catch (err) { fail(res, err, 'Request detail error', 'Failed to load request.'); }
+}
+async function assignmentContext(req, res) {
+  try { res.json(await assignments.context(req.user, req.params.id)); }
+  catch (err) { fail(res, err, 'Assignment context error', 'Failed to load assignment.'); }
+}
+async function reassign(req, res) {
+  try { res.json(await assignments.reassign(req.user, req.params.id, req.body)); }
+  catch (err) { fail(res, err, 'Request reassignment error', 'Failed to reassign request.'); }
+}
+async function reconcileCollege(req, res) {
+  try { res.json(await assignments.reconcileCollege(req.user, req.params.id, req.body)); }
+  catch (err) { fail(res, err, 'College reconciliation error', 'Failed to reconcile college.'); }
+}
 
 /**
  * Thin HTTP layer for /api/documents. Pipeline logic lives in
@@ -195,6 +213,7 @@ async function sendMessage(req, res) {
 }
 
 module.exports = {
+  detail, assignmentContext, reassign, reconcileCollege,
   messageThreads,
   getMessages,
   sendMessage,

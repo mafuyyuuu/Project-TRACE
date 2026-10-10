@@ -6,6 +6,8 @@ import PaymentStubModal from '@/features/secretary/components/PaymentStubModal';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import ReceiptVerificationModal from '@/features/secretary/components/ReceiptVerificationModal';
 import QueueTabs from '@/components/QueueTabs';
+import QueuePanel from '@/components/QueuePanel';
+import RequestStaff from '@/components/RequestStaff';
 import MiniSparkline from '@/components/MiniSparkline';
 import GradApplicationReviewPanel from '@/features/graduate/components/GradApplicationReviewPanel';
 import { getStatusLabel } from '@/utils/documentStatus';
@@ -154,7 +156,7 @@ export default function SecretaryDashboard({ user, currentTab, setViewImageUrl }
             </div>
 
             {/* Queue Tabs — one table visible at a time instead of three stacked */}
-            <QueueTabs
+            <QueueTabs idPrefix="secretary-queue"
               tabs={[
                 { key: 'evaluation', label: 'Initial Evaluation', count: evaluationQueue.length },
                 { key: 'processing', label: 'Processing & Pricing', count: processingQueue.length },
@@ -164,9 +166,10 @@ export default function SecretaryDashboard({ user, currentTab, setViewImageUrl }
               activeKey={activeQueueTab}
               onChange={setActiveQueueTab}
             />
+            <QueuePanel idPrefix="secretary-queue" activeKey={activeQueueTab} className="mt-4">
 
             {activeQueueTab === 'evaluation' && (
-            <div className="trace-section trace-motion-context overflow-hidden mt-6">
+            <div className="trace-section overflow-hidden">
               <div className="trace-section-header border-gray-100 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800/50">
                 <h3 className="trace-section-title uppercase tracking-wider">1 · INITIAL EVALUATION</h3>
                 <p className="text-[11px] text-gray-500 dark:text-gray-400 font-medium mt-1">Check the request, then give the student a date to expect it by.</p>
@@ -193,7 +196,7 @@ export default function SecretaryDashboard({ user, currentTab, setViewImageUrl }
                               <Button type="button" disabled={!doc.student_id} onClick={() => setViewProfileId(doc.student_id)} className="trace-action font-bold text-blue-700 dark:text-blue-300 hover:underline text-left focus-visible:ring-2 focus-visible:ring-blue-500">{doc.student_name || 'Unresolved Student'}</Button>
                               <div className="text-xs font-mono text-gray-400 dark:text-gray-400 mt-0.5">#{doc.tracking_number ? doc.tracking_number.slice(0, 10).toUpperCase() : doc.id}</div>
                             </td>
-                            <td className="py-4 text-xs font-bold text-gray-600 dark:text-gray-300">{doc.document_sequence_number || doc.document_type || 'Transcript of Records'}</td>
+                            <td className="py-4 text-xs font-bold text-gray-600 dark:text-gray-300">{doc.document_sequence_number || doc.document_type || 'Transcript of Records'}<RequestStaff document={doc} /></td>
                             <td className="py-4 text-xs text-gray-400 dark:text-gray-400">{getRelativeTime(doc.created_at)}</td>
                             <td className="py-4">
                               {/* Nothing here is paid yet — under this pipeline the student is
@@ -229,7 +232,7 @@ export default function SecretaryDashboard({ user, currentTab, setViewImageUrl }
             {/* 2 · Printed and awaiting a price. The student is only billed
                 once every document in their request has one. */}
             {activeQueueTab === 'processing' && (
-            <div className="trace-section trace-motion-context overflow-hidden mt-6">
+            <div className="trace-section overflow-hidden">
               <div className="trace-section-header border-gray-100 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800/50">
                 <h3 className="trace-section-title uppercase tracking-wider">2 · PROCESSING &amp; PRICING</h3>
                 <p className="text-[11px] text-gray-500 dark:text-gray-400 font-medium mt-1">Print the document, then set what it costs. The request is billed once every document in it is priced.</p>
@@ -262,7 +265,7 @@ export default function SecretaryDashboard({ user, currentTab, setViewImageUrl }
                                 <Button type="button" disabled={!doc.student_id} onClick={() => setViewProfileId(doc.student_id)} className="trace-action font-bold text-blue-700 dark:text-blue-300 hover:underline text-left focus-visible:ring-2 focus-visible:ring-blue-500">{doc.student_name || 'Unresolved Student'}</Button>
                                 <div className="text-xs font-mono text-gray-400 dark:text-gray-400 mt-0.5">#{doc.tracking_number ? doc.tracking_number.slice(0, 10).toUpperCase() : doc.id}</div>
                               </td>
-                              <td className="py-4 text-xs font-bold text-gray-600 dark:text-gray-300">{doc.document_sequence_number || doc.document_type}</td>
+                              <td className="py-4 text-xs font-bold text-gray-600 dark:text-gray-300">{doc.document_sequence_number || doc.document_type}<RequestStaff document={doc} /></td>
                               <td className="py-4 text-xs font-semibold">
                                 {due
                                   ? <span className={overdue ? 'text-red-600 dark:text-red-300' : 'text-gray-500 dark:text-gray-400'}>
@@ -301,7 +304,7 @@ export default function SecretaryDashboard({ user, currentTab, setViewImageUrl }
 
             {/* 3 · Paid, waiting on a paperwork check before handoff. */}
             {activeQueueTab === 'or-verification' && (
-            <div className="trace-section trace-motion-context overflow-hidden mt-6">
+            <div className="trace-section overflow-hidden">
               <div className="trace-section-header border-gray-100 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800/50">
                 <h3 className="trace-section-title uppercase tracking-wider">3 · OR VERIFICATION</h3>
                 <p className="text-[11px] text-gray-500 dark:text-gray-400 font-medium mt-1">Finance has confirmed the payment. Check the Official Receipt is present and the number looks right before handoff.</p>
@@ -327,7 +330,7 @@ export default function SecretaryDashboard({ user, currentTab, setViewImageUrl }
                               <Button type="button" disabled={!doc.student_id} onClick={() => setViewProfileId(doc.student_id)} className="trace-action font-bold text-blue-700 dark:text-blue-300 hover:underline text-left focus-visible:ring-2 focus-visible:ring-blue-500">{doc.student_name || 'Unresolved Student'}</Button>
                               <div className="text-xs font-mono text-gray-400 dark:text-gray-400 mt-0.5">#{doc.tracking_number ? doc.tracking_number.slice(0, 10).toUpperCase() : doc.id}</div>
                             </td>
-                            <td className="py-4 text-xs font-bold text-gray-600 dark:text-gray-300">{doc.document_sequence_number || doc.document_type}</td>
+                            <td className="py-4 text-xs font-bold text-gray-600 dark:text-gray-300">{doc.document_sequence_number || doc.document_type}<RequestStaff document={doc} /></td>
                             <td className="py-4 text-xs font-mono">
                               <span className="font-bold text-gray-700 dark:text-gray-300">{doc.or_number || 'None on file'}</span>
                               {doc.official_receipt_path && (
@@ -360,7 +363,7 @@ export default function SecretaryDashboard({ user, currentTab, setViewImageUrl }
 
             {/* 4 · Paid and waiting to physically change hands. */}
             {activeQueueTab === 'handoff' && (
-            <div className="trace-section trace-motion-context overflow-hidden mt-6">
+            <div className="trace-section overflow-hidden">
               <div className="trace-section-header border-gray-100 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800/50">
                 <h3 className="trace-section-title uppercase tracking-wider">4 · FINAL HANDOFF</h3>
                 <p className="text-[11px] text-gray-500 dark:text-gray-400 font-medium mt-1">Paid and signed. Confirm once the printed document is physically at Window 1.</p>
@@ -386,7 +389,7 @@ export default function SecretaryDashboard({ user, currentTab, setViewImageUrl }
                               <Button type="button" disabled={!doc.student_id} onClick={() => setViewProfileId(doc.student_id)} className="trace-action font-bold text-blue-700 dark:text-blue-300 hover:underline text-left focus-visible:ring-2 focus-visible:ring-blue-500">{doc.student_name || 'Unresolved Student'}</Button>
                               <div className="text-xs font-mono text-gray-400 dark:text-gray-400 mt-0.5">#{doc.tracking_number ? doc.tracking_number.slice(0, 10).toUpperCase() : doc.id}</div>
                             </td>
-                            <td className="py-4 text-xs font-bold text-gray-600 dark:text-gray-300">{doc.document_sequence_number || doc.document_type}</td>
+                            <td className="py-4 text-xs font-bold text-gray-600 dark:text-gray-300">{doc.document_sequence_number || doc.document_type}<RequestStaff document={doc} /></td>
                             <td className="py-4 text-xs font-mono">
                               <span className="font-bold text-[#15803d] dark:text-green-300">{formatPeso(doc.amount)}</span>
                               <span className="text-gray-400 dark:text-gray-400 ml-2">{doc.or_number || (doc.payment_channel === 'digital' ? 'online' : '')}</span>
@@ -409,6 +412,7 @@ export default function SecretaryDashboard({ user, currentTab, setViewImageUrl }
               </div>
             </div>
             )}
+          </QueuePanel>
           </>
         )}
 

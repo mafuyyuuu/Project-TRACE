@@ -135,12 +135,16 @@ beforeEach(() => {
   vi.spyOn(stepLogModel, 'deleteByDocumentId').mockResolvedValue([{}]);
 
   vi.spyOn(userModel, 'findStudentIdById').mockResolvedValue([{ student_id: 'STU-001' }]);
-  vi.spyOn(userModel, 'findCourseById').mockResolvedValue([]);
+  vi.spyOn(userModel, 'findCourseById').mockResolvedValue([{ college_id: 1, course: 'College of Computer Studies' }]);
+  vi.spyOn(referenceModel, 'findCollegeById').mockResolvedValue([{ id: 1, name: 'College of Computer Studies', short_code: 'CCS', is_active: 1 }]);
+  vi.spyOn(require('../../models/requestAttachment.model'), 'list').mockResolvedValue([]);
+  vi.spyOn(documentModel, 'updateRoutingCollege').mockResolvedValue([{ affectedRows: 1 }]);
+  vi.spyOn(documentModel, 'updateAssignedClerk').mockResolvedValue([{ affectedRows: 1 }]);
   vi.spyOn(userModel, 'findFinanceClerks').mockResolvedValue([]);
   vi.spyOn(userModel, 'findSecretaryClerks').mockResolvedValue([]);
   vi.spyOn(userModel, 'findWindow1Clerks').mockResolvedValue([]);
   vi.spyOn(userModel, 'findStudentContactByStudentId').mockResolvedValue([]);
-  vi.spyOn(userModel, 'findStudentCourseByStudentId').mockResolvedValue([]);
+  vi.spyOn(userModel, 'findStudentCourseByStudentId').mockResolvedValue([{ college_id: 1, course: 'College of Computer Studies' }]);
 
   vi.spyOn(n8n, 'triggerDocumentRouting').mockResolvedValue(undefined);
 
@@ -896,6 +900,33 @@ describe('intakeDocument — Window 1 checks the paperwork', () => {
     current_status: STATUS.PENDING_W1_INTAKE,
   };
 
+  it.each(['requested', 'uploaded', 'rejected'])('blocks routing while explicitly flagged clearance is %s', async status => {
+    documentModel.findByIdForUpdate.mockResolvedValue([filed]);
+    require('../../models/requestAttachment.model').list.mockResolvedValue([{ blocks_intake: 1, status }]);
+    await expect(service.intakeDocument(WINDOW1, 5, {action:'approve'}, null)).rejects.toThrow(/flagged intake/);
+    expect(documentModel.updateStatus).not.toHaveBeenCalled();
+    expect(n8n.triggerDocumentRouting).not.toHaveBeenCalled();
+    expect(connection.rollback).toHaveBeenCalledOnce();
+  });
+
+  it('routes only after acceptance, preserves replaced history and saves the verified college', async () => {
+    documentModel.findByIdForUpdate.mockResolvedValue([filed]);
+    require('../../models/requestAttachment.model').list.mockResolvedValue([
+      { blocks_intake: 1, status: 'accepted' }, { blocks_intake: 1, status: 'rejected', superseded_at: '2026-10-01' },
+      { blocks_intake: 0, status: 'requested' },
+    ]);
+    await service.intakeDocument(WINDOW1, 5, {action:'approve', college_id:999}, null);
+    expect(documentModel.updateRoutingCollege).toHaveBeenCalledWith(5, expect.objectContaining({id:1}), connection);
+    expect(stepLogModel.insert).toHaveBeenCalledWith(expect.objectContaining({ notes: expect.stringContaining('Routing college: 1') }), connection);
+  });
+
+  it('keeps missing former-college requests at intake for reconciliation', async () => {
+    documentModel.findByIdForUpdate.mockResolvedValue([filed]);
+    userModel.findStudentCourseByStudentId.mockResolvedValue([{ college_id:null, course:null }]);
+    await expect(service.intakeDocument(WINDOW1, 5, {action:'approve'}, null)).rejects.toThrow(/reconcile/);
+    expect(documentModel.updateStatus).not.toHaveBeenCalled();
+  });
+
   it.each([['a student', STUDENT], ['Finance', FINANCE], ['the Secretary', SECRETARY]])(
     'rejects %s',
     async (_label, user) => {
@@ -936,7 +967,7 @@ describe('intakeDocument — Window 1 checks the paperwork', () => {
   it('only asks n8n for a desk once a human has cleared the paperwork', async () => {
     documentModel.findByIdForUpdate.mockResolvedValue([filed]);
     userModel.findStudentCourseByStudentId.mockResolvedValue([{ course: 'College of Computer Studies' }]);
-    referenceModel.findCollegeByName = vi.fn().mockResolvedValue([{ name: 'College of Computer Studies', short_code: 'CCS' }]);
+    referenceModel.findCollegeByName = vi.fn().mockResolvedValue([{ id: 1, name: 'College of Computer Studies', short_code: 'CCS', is_active: 1 }]);
 
     await service.intakeDocument(WINDOW1, 5, { action: 'approve' }, null);
     expect(n8n.triggerDocumentRouting).toHaveBeenCalledWith(
@@ -1102,56 +1133,26 @@ describe('listDocuments — role scoping', () => {
     expect(params).toContain(STATUS.PENDING_FINANCE_VERIFICATION);
   });
 
-  it("scopes a Secretary to their own college's students", async () => {
-    userModel.findCourseById.mockResolvedValue([{ course: 'College of Computer Studies' }]);
+  it.each([{}, {status: STATUS.PENDING_W1_INTAKE}])('scopes Secretary lists independently of status filters (%j)', async query => {
+    await service.listDocuments(SECRETARY, query);
+    expect(conditionsFrom()).toContain('COALESCE(d.routing_college_id');
+    expect(conditionsFrom()).toContain('WHERE is_active = TRUE AND id = ?');
+    expect(documentModel.listWithFilters.mock.calls[0][1]).toContain(1);
+    expect(conditionsFrom()).not.toContain('assigned_clerk_id = ?');
+  });
+
+  it('allows a legacy named college only through an active reference mapping', async () => {
+    userModel.findCourseById.mockResolvedValue([{course: 'College of Computer Studies'}]);
     await service.listDocuments(SECRETARY, {});
-    expect(conditionsFrom()).toContain('SELECT student_id FROM users WHERE course = ?');
+    expect(conditionsFrom()).toContain('WHERE is_active = TRUE AND name = ?');
     expect(documentModel.listWithFilters.mock.calls[0][1]).toContain('College of Computer Studies');
   });
 
-  it('shows a Secretary a document n8n assigned to them', async () => {
-    userModel.findCourseById.mockResolvedValue([{ course: 'College of Computer Studies' }]);
-    await service.listDocuments(SECRETARY, {});
-    expect(conditionsFrom()).toContain('assigned_clerk_id = ?');
-    expect(documentModel.listWithFilters.mock.calls[0][1]).toContain(SECRETARY.id);
-  });
-
-  it('still shows a Secretary unassigned documents from their college', async () => {
-    // The ~10,000 records that predate n8n routing all have a NULL
-    // assigned_clerk_id. If routing became the only filter they would vanish
-    // from every queue in the system.
-    userModel.findCourseById.mockResolvedValue([{ course: 'College of Computer Studies' }]);
-    await service.listDocuments(SECRETARY, {});
-    expect(conditionsFrom()).toContain('assigned_clerk_id IS NULL');
-  });
-
-  it('hides from a Secretary only documents routed to a *different* Secretary', async () => {
-    // An assignment to Window 1 or the Registrar must not remove a document
-    // from the secretary queue it still has to pass through.
-    userModel.findCourseById.mockResolvedValue([{ course: 'College of Computer Studies' }]);
-    await service.listDocuments(SECRETARY, {});
-    expect(conditionsFrom()).toContain(
-      "assigned_clerk_id NOT IN\n                      (SELECT id FROM users WHERE desk_assignment = 'Secretary')"
-    );
-  });
-
-  it('falls back to every college for a Secretary with no college on record', async () => {
+  it('fails closed for a Secretary with no college assignment', async () => {
     userModel.findCourseById.mockResolvedValue([{ course: null }]);
     await service.listDocuments(SECRETARY, {});
-    const conditions = conditionsFrom();
-    expect(conditions).toContain('1 = 1');
-    expect(conditions).not.toContain('SELECT student_id FROM users WHERE course = ?');
-    // The bound params are the six queue statuses and the clerk id, and
-    // nothing else: no course value is appended when there is no college.
-    expect(documentModel.listWithFilters.mock.calls[0][1]).toEqual([
-      STATUS.PENDING_SEC_EVALUATION,
-      STATUS.SEC_PROCESSING,
-      STATUS.PAID_PENDING_SEC_RELEASE,
-      STATUS.SEC_OR_VERIFIED,
-      STATUS.READY_FOR_RELEASE,
-      STATUS.COMPLETED,
-      SECRETARY.id,
-    ]);
+    expect(conditionsFrom()).toContain('1 = 0');
+    expect(conditionsFrom()).not.toContain('1 = 1');
   });
 
   it('gives Window 1 the whole queue', async () => {

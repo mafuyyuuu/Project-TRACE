@@ -15,6 +15,14 @@ function Queues() {
 }
 
 describe('QueueTabs keyboard navigation', () => {
+  it('uses pressed native buttons for filters and associates tabs with their panel', () => {
+    const {rerender} = render(<QueueTabs tabs={tabs} activeKey="pending" onChange={() => {}} semantics="filters" label="History filters" idPrefix="history" />);
+    expect(screen.getByRole('group',{name:'History filters'})).toBeInTheDocument();
+    expect(screen.queryByRole('tablist')).not.toBeInTheDocument();
+    expect(screen.getByRole('button',{name:/Pending/})).toHaveAttribute('aria-pressed','true');
+    rerender(<QueueTabs tabs={tabs} activeKey="pending" onChange={() => {}} idPrefix="desk" />);
+    expect(screen.getByRole('tab',{name:/Pending/})).toHaveAttribute('aria-controls','desk-panel');
+  });
   it('moves selection and focus with arrows, wrapping at both ends', () => {
     render(<Queues />);
     const controls = screen.getAllByRole('tab');

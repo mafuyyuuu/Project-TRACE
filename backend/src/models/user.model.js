@@ -125,7 +125,7 @@ function findStudentIdById(userId, executor = pool) {
 
 function findCourseById(userId, executor = pool) {
   return executor
-    .query('SELECT COALESCE(c.name, u.course) AS course, u.college_id FROM users u LEFT JOIN colleges c ON c.id = u.college_id WHERE u.id = ?', [userId])
+    .query('SELECT c.name AS course, c.id AS college_id FROM users u LEFT JOIN colleges c ON (c.id = u.college_id OR (u.college_id IS NULL AND c.name = u.course)) AND c.is_active = TRUE WHERE u.id = ?', [userId])
     .then(([rows]) => rows);
 }
 
@@ -163,13 +163,13 @@ function findStudentContactByStudentId(studentId, executor = pool) {
 
 function findClerkByEmployeeId(employeeId, executor = pool) {
   return executor
-    .query('SELECT id FROM users WHERE student_id = ?', [employeeId])
+    .query("SELECT id, role, desk_assignment, is_active, college_id, course FROM users WHERE student_id = ? AND role = 'clerk' AND is_active = TRUE", [employeeId])
     .then(([rows]) => rows);
 }
 
 function findStudentCourseByStudentId(studentId, executor = pool) {
   return executor
-    .query('SELECT course, college_id FROM users WHERE student_id = ?', [studentId])
+    .query("SELECT u.course, u.college_id FROM users u WHERE u.student_id = ? AND u.role = 'student'", [studentId])
     .then(([rows]) => rows);
 }
 

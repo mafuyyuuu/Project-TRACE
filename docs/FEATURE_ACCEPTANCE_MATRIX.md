@@ -9,6 +9,12 @@ Use these statuses precisely:
 - **Pending evidence / policy**: a physical device, live delivery, restore exercise or institutional decision is still needed.
 - **Discontinued / superseded**: the user explicitly ended the investigation or approved a replacement requirement.
 
+## Revision 2 — newer fixes
+
+| Guide issues | Status and evidence |
+| --- | --- |
+| TRACE-55/56/57/67/68 — intake requirements, shared queue pills, own-college scope and backup staff | Implemented / recorded local checks: [Batch 8 walkthrough](BATCH8_ACCEPTANCE.md), screenshots, security regressions and responsive browser checks. Admin-only reassignment is the approved policy. Preserving migration, matched rollout, real notification delivery and physical-device acceptance remain deployment work. |
+
 ## Shared presentation and account pages
 
 | Requested feature | Status and evidence location |

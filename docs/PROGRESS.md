@@ -1,3 +1,13 @@
+## Revision 2 Batch 8 — Intake / College Scope / Staff Assignment — 2026-10-10
+
+Implements TRACE-55/56/57/67/68 from the newer guide. Explicit catalog-based intake requirements block routing until accepted; saved college routing scope governs own-college Secretary lists, reports/exports, details, actions and files. Alumni route to their recorded former college. Admin alone can confirm and audit eligible backup assignments within the current desk/college, with stale-save protection. Missing legacy scope can be reconciled from institutional records without rewriting saved snapshots or closed history. Existing payment/OR prerequisites and physical handoff remain. Shared QueueTabs/QueuePanel align pills, keyboard semantics, spacing and visible context/hover motion across roles, with reduced motion.
+
+Verification: the full backend suite passes 1,357 tests; the full frontend suite passes 871 tests, plus focused regressions added for the final reconciliation path. Lint/build and whitespace checks pass. Synthetic Chromium covers 56 layout cases, enlarged text, both themes, context motion, fixed hover targets and reduced motion. Screenshots, causes, reproduction and deployment limits are in [BATCH8_ACCEPTANCE.md](BATCH8_ACCEPTANCE.md).
+
+The additive intake-scope migration has not run on a live database. Matching API/frontend rollout and live acceptance remain required. Publication is to `dev` only; no merge to main or deployment is included. The next guide batch is Batch 9 (Reports & Export).
+
+---
+
 ## Revision 2 Batch 7 — Alumni / Request Forms — 2026-10-10
 
 Implements the new-fixes guide's TRACE-52/53/54/75/76: persisted one-time alumni study years, saved read-only Year Started in requests with Year Ended removed, Admin corrections with transactional before/after audit, duplicate attachment-label cleanup, pending alumni proof-unavailable defense demo, and independent inline Reset Password eye icons. Figma references are New Request 85:1514, detailed confirmation 177:691 and compact confirmation 183:741; the selected approach uses detailed review for forms and compact confirmation for simple decisions. Approved pricing, multi-document intake, identity/email/request gates and historical request details remain.
