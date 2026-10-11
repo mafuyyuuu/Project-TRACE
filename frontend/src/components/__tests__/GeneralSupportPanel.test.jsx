@@ -13,6 +13,13 @@ const desk = {id:7,role:'clerk',desk_assignment:'Window 1'};
 const ticket = {id:11,subject:'Synthetic help',state:'FAQ_ASSISTANCE',student_user_id:3,category:'general',read_only:false};
 const settings = {weekdays:[1,2,3,4],open_minute:480,close_minute:960,closed_dates:[],warning_minutes:3,timeout_minutes:5};
 const read = (changes = {}) => ({ticket:{...ticket,...changes},messages:[],next_cursor:null,window:{open:true},queue:{position:1,available_clerks:0,message:'Waiting for available staff'}});
+it.each(['IN_PROGRESS','RESOLVED'])('keeps Admin operational support read-only in %s even with old API flags',async state => {
+ api.getTicket.mockResolvedValue(read({state,read_only:false}));
+ render(<RequestMessagesPanel user={{id:9,role:'admin'}} />);await screen.findByText(/Operational support is read-only/);
+ expect(screen.queryByRole('button',{name:'New linked ticket'})).not.toBeInTheDocument();
+ expect(screen.queryByLabelText('Message')).not.toBeInTheDocument();
+ for(const name of ['Reopen ticket','Resolve ticket','Request student reply','Awaiting student']) expect(screen.queryByRole('button',{name})).not.toBeInTheDocument();
+});
 beforeEach(() => {
   vi.clearAllMocks(); Element.prototype.scrollIntoView=vi.fn();
   window.history.replaceState(null,'','/dashboard?tab=messages&ticket=11');

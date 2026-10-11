@@ -10,6 +10,18 @@ const student={id:3,role:'student',is_active:1,email_verified_at:new Date(),full
 const clerk={id:4,role:'clerk',desk_assignment:'Window 1',is_active:1};
 const ticket={id:11,student_user_id:3,student_id:'SYNTHETIC-3',category:'general',document_id:null,state:'FAQ_ASSISTANCE'};
 const key='synthetic-retry-key-0001';
+it('allows Admin to monitor operational history but denies every conversation mutation',async () => {
+ const admin={id:9,role:'admin',is_active:1};model.actor.mockResolvedValue(admin);
+ model.ticket.mockResolvedValue({...ticket,state:'IN_PROGRESS'});
+ await expect(service.read(admin,11)).resolves.toMatchObject({ticket:{read_only:true},monitor_only:true});
+ await expect(service.list(admin)).resolves.toMatchObject({tickets:[{read_only:true}]});
+ await expect(service.create(admin,{subject:'Help',document_id:7,client_key:key})).rejects.toMatchObject({status:403});
+ await expect(service.send(admin,11,{message:'Hi',client_key:key})).rejects.toMatchObject({status:403});
+ await expect(service.assertSendAccess(admin,11)).rejects.toMatchObject({status:403});
+ for(const action of ['escalate','resolve','reopen','await_student','request_reply']) await expect(service.action(admin,11,{action,client_key:key})).rejects.toMatchObject({status:403});
+ expect(model.send).not.toHaveBeenCalled();expect(model.update).not.toHaveBeenCalled();expect(model.create).not.toHaveBeenCalled();
+ await expect(service.getSettings(admin)).resolves.toMatchObject({can_manage:true});
+});
 let tx;
 beforeEach(()=>{
  tx={query:vi.fn(),beginTransaction:vi.fn(),commit:vi.fn(),rollback:vi.fn(),release:vi.fn()};

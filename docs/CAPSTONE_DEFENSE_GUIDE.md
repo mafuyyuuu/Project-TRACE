@@ -133,7 +133,7 @@ flowchart LR
     style I fill:#10b981,color:#fff
 ```
 
-**Why pricing follows preparation.** Page-based types use the actual printed-page count; flat-fee types use their configured rule. Admin manages rates and college overrides, Secretary records actual pages, and the server computes and saves the itemized final charge. Filing shows rates only, not an estimated total. TOR uses Year Started/Year Ended; study years do not imply pages. The old design charged a fee up front and hoped it matched; this one bills what
+**Why pricing follows preparation.** Page-based types use the actual printed-page count; flat-fee types use their configured rule. Admin manages rates and college overrides, Secretary records actual pages, and the server computes and saves the itemized final charge. Filing shows rates only, not an estimated total. TOR uses saved Year Started, without a request Year Ended; study years do not imply pages. The old design charged a fee up front and hoped it matched; this one bills what
 the document actually cost. It also means a student never pays for something the office later finds
 it cannot issue.
 
@@ -724,3 +724,9 @@ See [README workflow walkthrough](../README.md#main-workflows) for the screensho
 ## Revision 2 Batch 11 — explaining Support Analytics
 
 Show the [account-free analytics walkthrough](../README.md#main-workflows) and distinguish ticket service from document turnaround. Point out imported-cohort exclusions, escalation numerator/denominator, explicit FAQ resolution, historical backlog cutoff and service versus wall minutes. Explain that missing samples are not zero and that assignment/response episodes are volume measures, not staff rankings. The interface follows the Admin Figma card hierarchy while using recorded values rather than mock trend graphics. Screenshots use synthetic responses; do not present them as real institutional outcomes or a deployed update. No new migration is required.
+
+## Revision 2 Batch 13 — internal staff assistance
+
+Demonstrate Finance, Secretary or Window 1 opening **Internal Assistance → New concern**, confirming a category and text concern, then an Admin claiming and replying. Show Await staff reply, a creator response retaining the assignment, resolution with a note, and retained history on reopening. A second staff account cannot read the creator's ticket; an unassigned Admin can monitor but cannot reply until claiming. Admin monitors student Support without intervening. This queue is asynchronous, text-only and separate from student support hours, files, queue metrics and AI insight inputs.
+
+Use the [README screenshots and walkthrough](../README.md#internal-assistance-walkthrough) for account-free review. These are synthetic local UI examples, not proof of live notification delivery or database contention. The matching migration/API/frontend must be deployed before demonstrating the feature. Ordinary staff messaging connections remain a later scope, as specified in SYSTEM_WORKFLOWS.

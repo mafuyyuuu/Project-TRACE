@@ -354,3 +354,40 @@ Support reporting remains a read-only path: role-authorized report endpoint → 
 ## Managed Finance receipts
 
 See the [README navigation walkthrough and screenshots](../README.md#finance-receipt-walkthrough) for Finance's Official Receipts / History workspace. Confirmed 50-number packs reserve the supplied format; finalized verification or deferred issuance saves one immutable payment/cashier snapshot and consumes one number. Preview, upload and reprint consume none. Copy uploads are protected JPEG/PNG/PDF files up to 5 MB. Stale serials require refresh/review; retry keys and unique serial/group constraints protect repeated requests. Pack changes, issue, copy, print-request, reprint, void and calibration actions are audited. Historical manual OR records remain intact. New issuance/voiding stops before Secretary verification/handoff; later copy uploads preserve the existing payment and document stage. Unknown paper geometry requires saved calibration and a blank-paper printer test. Apply the preserving `migrate_receipt_packs.js` before the matching API/frontend; see the [deployment ledger](DEPLOYMENT_CHECKLIST.md).
+
+
+## Internal assistance and future conversation categories
+
+Window 1 (including its Receiving Desk alias), Finance and College Secretary staff use **Internal Assistance → New concern** to ask Admin for help. Categories are Account access, System issue, Workflow question and Other concern. Staff see only tickets they created; college/desk colleagues do not automatically share those private concerns. All active Admins can inspect the internal queue; only the assigned Admin replies and manages its lifecycle. Admin claims an unassigned ticket, or explicitly takes over from an inactive/no-longer-Admin assignee. There is no student owner, document link, attachment import, FAQ bot, estimated wait or Window 1 service-hours limit on this asynchronous queue.
+
+| State/action | Behavior |
+| --- | --- |
+| Queued | Concern awaits Admin assignment; the creator may add details. |
+| Claim | Admin confirms assignment; state becomes In progress and the claim timestamp is recorded. |
+| Await staff reply | Assigned Admin confirms Awaiting staff; assignment remains. A creator reply returns it to In progress. |
+| Resolve concern | Assigned Admin enters a required resolution note and confirms. Resolution timestamp and prior messages/events remain. |
+| Reopen concern | Creator or assigned Admin confirms. The concern returns to Queued without an assignee; previous resolutions remain in history. |
+
+Save/lifecycle actions use shared confirmation dialogs; Send/Enter sends directly with duplicate guards and retained retry keys/drafts on failure. Action versions reject stale claims/resolutions after another accepted write. Internal lists use newest-ticket-first cursor ordering, server-side state/category filters and local search of loaded subject/creator/assignee metadata. History uses chronological messages and older-message cursors. Notifications contain only a generic ticket update and reach the creator (Admin action), assigned active Admin (creator action), or active Admin queue when unassigned. Internal tickets do not enter student support analytics or AI cohorts.
+
+Admin **operational** support is read-only: existing tickets/messages/authorized files remain visible; opening student tickets, sending, escalating, resolving, reopening, reply-window actions and case-specific supporting-document requests/reviews through chat are denied. Global supporting-document catalogs, support settings and analytics retain their separate administrative permissions. Other desk document-processing permissions remain intact.
+
+### Deferred operational-chat permission specification — TRACE-78
+
+This matrix describes the later ordinary recipient-connection phase; it does not create recipient pickers, ordinary message APIs or new send permissions now. Existing case-linked tickets retain their desk/college access except for the explicit Admin monitoring restriction above.
+
+| Actor | Planned ordinary recipients | Restrictions |
+| --- | --- | --- |
+| Window 1 | Students and authorized staff | No ordinary Admin conversation; no self-recipient. |
+| Finance | Authorized staff | No students, Admin or self as ordinary recipients. |
+| College Secretary | Authorized staff | No students, Admin or self as ordinary recipients; college-sensitive access must be specified before wiring. |
+| Admin | Monitor authorized operational conversations | Read-only; no send, edit or intervention. Staff concerns use internal tickets. |
+
+| Category | Current/future placement | Sorting and indicators |
+| --- | --- | --- |
+| Student support | Existing Support FAQ/general ticket queue | Existing student support queue policy and loaded metadata; do not fabricate presence/unread/read receipts. |
+| Case-linked conversations | Existing authorized tickets within Support and the evaluation discussion panel | Retained chronological history, request context and desk/college scope. |
+| Staff coordination | Deferred separate staff category in the later connections phase | Require server-side recipient eligibility, stable ordering and an authoritative per-user read cursor before unread badges. |
+| Internal assistance | Separate Internal Assistance navigation/workspace and tables | Newest ticket first; server state/category filtering; chronological history. No unread badge because no read cursor is recorded. |
+
+Before the deferred phase, confirm how existing Finance/Secretary case-linked student messaging is distinguished from prohibited **ordinary** direct student chat, whether Secretary staff coordination is college-scoped, and how monitored records are retained. The later connection implementation requires a separate user instruction; this revision neither relaxes current access nor silently connects all accounts.

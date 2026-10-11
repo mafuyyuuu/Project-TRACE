@@ -39,9 +39,9 @@ describe('navItemsForUser', () => {
   it.each([
     ['student', STUDENT, ['dashboard', 'history', 'messages', 'help']],
     ['alumnus', ALUMNI, ['dashboard', 'history', 'messages', 'graduate-application', 'help']],
-    ['secretary', SECRETARY, ['dashboard', 'reports', 'messages', 'grad-applications', 'help']],
-    ['window 1', WINDOW1, ['dashboard', 'tracking-desk', 'messages', 'reports', 'help']],
-    ['finance', FINANCE, ['dashboard', 'transactions', 'messages', 'help']],
+    ['secretary', SECRETARY, ['dashboard', 'reports', 'messages', 'internal-assistance', 'grad-applications', 'help']],
+    ['window 1', WINDOW1, ['dashboard', 'tracking-desk', 'messages', 'internal-assistance', 'reports', 'help']],
+    ['finance', FINANCE, ['dashboard', 'transactions', 'messages', 'internal-assistance', 'help']],
   ])('gives a %s their own tabs', (_label, user, expected) => {
     expect(navItemsForUser(user).map((i) => i.tab)).toEqual(expected);
   });
@@ -56,6 +56,7 @@ describe('navItemsForUser', () => {
       'dashboard',
       'admin-tracker',
       'messages',
+      'internal-assistance',
       'admin-logs',
       'admin-security',
       'admin-reports',
@@ -79,7 +80,7 @@ describe('navItemsForUser', () => {
     expect(groups.more).toHaveLength(Math.max(0, tabs.length - 6));
   });
   it('keeps daily Finance transactions in Main and admin configuration available', () => {
-    expect(navGroupsForUser(FINANCE).main.map(item => item.tab)).toEqual(['dashboard', 'transactions', 'messages', 'help']);
+    expect(navGroupsForUser(FINANCE).main.map(item => item.tab)).toEqual(['dashboard', 'transactions', 'messages', 'internal-assistance', 'help']);
     expect(navGroupsForUser(ADMIN).main.map(item => item.tab)).toContain('admin-maintenance');
   });
 });
@@ -107,7 +108,7 @@ describe('SidebarNav', () => {
     const main = screen.getByRole('navigation', { name: 'Main navigation' });
     expect(within(main).getAllByRole('link')).toHaveLength(6);
     expect([...main.querySelectorAll('a, button')].at(6)).toBe(screen.getByRole('button', { name: 'More' }));
-    expect(within(main).getByRole('link', { name: 'Security Logs' })).toBeInTheDocument();
+    expect(within(main).getByRole('link', { name: 'Internal Assistance' })).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'More' }));
     const more = screen.getByRole('navigation', { name: 'More navigation' });
     expect(within(more).getAllByRole('link')).toHaveLength(navItemsForUser(ADMIN).length - 6);
@@ -203,7 +204,7 @@ describe('SidebarNav', () => {
     renderNav({ user: ADMIN, showLabels: true, onNavigate });
     screen.getByRole('button', { name: 'More' }).focus();
     await keyboard.keyboard('{Enter}');
-    expect(screen.getByRole('link', { name: 'Reports & Export' })).toHaveFocus();
+    expect(screen.getByRole('link', { name: 'Security Logs' })).toHaveFocus();
     screen.getByRole('button', { name: 'Back to main' }).focus();
     await keyboard.keyboard(' ');
     expect(screen.getByRole('link', { name: 'Dashboard' })).toHaveFocus();

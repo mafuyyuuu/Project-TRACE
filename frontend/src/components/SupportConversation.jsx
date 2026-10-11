@@ -37,8 +37,8 @@ export default function SupportConversation({ ticketId,user,topics,onTicketChang
   }, [chat.messages,chat.loadingOlder]);
   useLayoutEffect(() => { if (active && autoFocusConversation && !chat.loading) composer.current?.focus({preventScroll:true}); }, [active,autoFocusConversation,chat.loading]);
   const staff = user.role !== 'student', windowClerk = ['Window 1','Receiving Desk'].includes(user.desk_assignment);
-  const registrar = user.role === 'admin' || windowClerk || user.desk_assignment === 'Secretary';
-  const canSend = ticket && !ticket.read_only && !(windowClerk && (ticket.state !== 'IN_PROGRESS' || Number(ticket.assigned_to) !== Number(user.id))) && !(staff && ticket.state === 'FAQ_ASSISTANCE') && !(windowClerk && chat.data?.window?.open===false);
+  const registrar = user.role !== 'admin' && (windowClerk || user.desk_assignment === 'Secretary');
+  const canSend = user.role !== 'admin' && ticket && !ticket.read_only && !(windowClerk && (ticket.state !== 'IN_PROGRESS' || Number(ticket.assigned_to) !== Number(user.id))) && !(staff && ticket.state === 'FAQ_ASSISTANCE') && !(windowClerk && chat.data?.window?.open===false);
   const stage = action => setStaged({...action,client_key:crypto.randomUUID()});
   const selectFiles = event => {
     const selected = [...event.target.files]; event.target.value = '';
@@ -53,7 +53,7 @@ export default function SupportConversation({ ticketId,user,topics,onTicketChang
         {ticket && <p className="select-text break-words text-xs text-gray-600 dark:text-gray-300">Ticket #{ticket.id} · {labels[ticket.state]}{ticket.tracking_number && ` · ${ticket.tracking_number}`}{ticket.clerk_name && ` · ${ticket.clerk_name}`}</p>}</div></div>
         {ticket?.document_id && ticket.tracking_number && <Button type="button" aria-haspopup="dialog" onClick={()=>setShowCase(true)} className="trace-button trace-button-secondary" title="View this ticket’s authorized request and supporting documents">Open linked case</Button>}
       </div>
-      {ticket?.read_only && <p className="text-sm font-semibold">Read-only history{ticket.state === 'RESOLVED' ? ' — ticket resolved.' : ' — document case closed.'}</p>}
+      {(user.role === 'admin' || ticket?.read_only) && <p className="text-sm font-semibold">Read-only history{user.role === 'admin' ? ' — Admin monitoring.' : ticket.state === 'RESOLVED' ? ' — ticket resolved.' : ' — document case closed.'}</p>}
       {ticket && <details open className="text-sm"><summary className="cursor-pointer py-1 font-semibold focus-visible:outline">Ticket actions</summary>
       <div className="flex flex-wrap gap-2">
         {!compact && user.role === 'student' && ticket.state === 'FAQ_ASSISTANCE' && <Button type="button" disabled={chat.busy} onClick={() => stage({action:'escalate'})} className="trace-button trace-button-primary">Talk to staff</Button>}
@@ -62,7 +62,7 @@ export default function SupportConversation({ ticketId,user,topics,onTicketChang
           <Button type="button" disabled={chat.busy || Boolean(ticket.reply_requested_at)} onClick={() => stage({action:'request_reply'})} className="trace-button trace-button-secondary">Request student reply</Button>
           <Button type="button" disabled={chat.busy} onClick={() => stage({action:'await_student'})} className="trace-button trace-button-secondary">Awaiting student</Button>
         </>}
-        {ticket.state === 'RESOLVED' && user.desk_assignment!=='Finance' && (!ticket.document_id ? ticket.category !== 'linked' : PIPELINE.includes(ticket.current_status) && ticket.current_status!=='COMPLETED') && <Button type="button" disabled={chat.busy} onClick={() => stage({action:'reopen'})} className="trace-button trace-button-secondary">Reopen ticket</Button>}
+        {user.role !== 'admin' && ticket.state === 'RESOLVED' && user.desk_assignment!=='Finance' && (!ticket.document_id ? ticket.category !== 'linked' : PIPELINE.includes(ticket.current_status) && ticket.current_status!=='COMPLETED') && <Button type="button" disabled={chat.busy} onClick={() => stage({action:'reopen'})} className="trace-button trace-button-secondary">Reopen ticket</Button>}
       </div>
       </details>}
   </>;
@@ -93,7 +93,7 @@ export default function SupportConversation({ ticketId,user,topics,onTicketChang
         <article className={`trace-support-bubble ${row.kind === 'system' || row.kind === 'requirement' ? 'trace-support-bubble-system' : Number(row.sender_id) === Number(user.id) ? 'trace-support-bubble-outgoing' : ''}`}>
         <p className="font-semibold">{row.kind === 'system' ? 'TRACE' : Number(row.sender_id) === Number(user.id) ? 'You' : row.sender_name || 'Registrar'}</p>
         <p className="select-text whitespace-pre-wrap break-words [overflow-wrap:anywhere]">{row.message}</p>
-        {row.kind==='requirement' && <RequirementBubble ticketId={ticketId} row={row.requirement} user={user} readOnly={ticket?.read_only} onAction={setRequirement} />}
+        {row.kind==='requirement' && <RequirementBubble ticketId={ticketId} row={row.requirement} user={user} readOnly={user.role === 'admin' || ticket?.read_only} onAction={setRequirement} />}
         {row.files?.map(file => <SupportFile key={file.id} file={file} />)}
         {row.metadata?.faq_topic_id && ticket?.state === 'FAQ_ASSISTANCE' && user.role === 'student' && <div className="flex flex-wrap gap-2">
           <Button type="button" disabled={chat.busy} onClick={() => void chat.faq({topic_id:row.metadata.faq_topic_id,action:'helpful',client_key:crypto.randomUUID()})} className="trace-button trace-button-secondary">Helpful</Button>

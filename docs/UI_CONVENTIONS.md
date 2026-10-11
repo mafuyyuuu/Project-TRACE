@@ -117,3 +117,8 @@ Use `QueueTabs` with a matching `QueuePanel` and a stable `idPrefix` for actual 
 ## Revision 2 Batch 11 — support analytics
 
 SupportAnalytics applies the Admin Figma dashboard (93:663) card hierarchy to recorded support metrics: rounded shared surfaces, prominent tabular values and soft sage/pine context strips. Use stationary `trace-card-info`, not whole-card controls. `trace-analytics-*` styles provide readable missing-value text, period context, tally panels and borderless semantic tables. All statistical columns remain in keyboard-focusable, contained scrollers with opaque sticky headers. Keep report formulas, denominators, imported distinctions and historical cutoff context; do not copy Figma mock graphs or baseline percentage changes. No additional entrance/hover animation or decorative asset is introduced.
+
+
+### Internal assistance workspace
+
+InternalAssistanceWorkspace reuses the main support frame (260:3301) proportions, shared ticket/avatar/icon components, pine-green outgoing bubbles, gray context panel and rounded composer. Ticket rows use the shared selected contrast and fixed-target lift; controls use Button and shared ModalShell/ConfirmDialog. Required concern category, creator/assigned Admin context and resolution notes adapt the live workflow rather than copying student mock records. The mobile drawer preserves the conversation and shared focus handling. Ordinary recipient/presence/unread connections remain deferred.

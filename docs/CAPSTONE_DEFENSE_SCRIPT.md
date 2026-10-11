@@ -88,7 +88,7 @@ The floating tutorial highlights actual controls; the question mark replays it. 
 
 *(Action: Select Transcript of Records from the dropdown)*
 
-"...TOR asks for **Year Started and Year Ended**, together with copies. Filing shows the configured per-page rate and applicable extra charges, **without an estimated total**. Study years do not determine printed pages; the final itemized amount appears after preparation and server pricing.
+"...TOR displays the saved **Year Started** read-only, together with copies; Year Ended is not requested. Filing shows the configured per-page rate and applicable extra charges, **without an estimated total**. Study years do not determine printed pages; the final itemized amount appears after preparation and server pricing.
 
 That is the single most important design decision in our system, so let me explain it before we go further. For page-based documents, the final charge needs the actual printed-page count. Admin manages the fee schedule, Secretary records the pages and the server calculates the amount. Flat-fee types follow their configured rule. The old way was to charge a fee up front and hope it matched. Ours does the work first and bills what the document actually cost. It also means a student never pays for something the office later finds it cannot issue."
 
@@ -249,3 +249,13 @@ See [README workflow walkthrough](../README.md#main-workflows) for the screensho
 “Here, Support Analytics reports ticket service separately from document processing. These cards summarize recorded ticket volume, escalations, backlog, FAQ actions and staff episodes. Each card includes its cohort or denominator. The statistical table keeps median, p90, samples and missing measurements in minutes. No data does not mean zero, and service time excludes the Awaiting Student pause while wall time includes it. These demonstration records are synthetic; they illustrate the interface rather than measured institutional results.”
 
 [Walkthrough and screenshots](../README.md#main-workflows).
+
+## Optional internal-assistance demonstration — matching deployed revision only
+
+*(Action: Finance opens Internal Assistance, creates a synthetic concern and confirms. Admin opens the private queue and confirms Claim ticket.)*
+
+“Staff concerns use a separate ticket queue. Each creator sees only their own concerns; Admin must claim a ticket before replying or managing it. Student Support remains visible to Admin for monitoring, without intervention. This asynchronous queue does not import student files or feed student support analytics.”
+
+*(Action: Admin selects Await staff reply; Finance replies; Admin resolves with a note. Show retained history and confirm reopening.)*
+
+“The assigned Admin is retained while awaiting the staff response. Resolution needs a recorded note, and reopening preserves history while returning the concern to the queue. Ordinary staff chat connections remain deferred. We distinguish these local checks from acceptance on the deployed database and devices.”

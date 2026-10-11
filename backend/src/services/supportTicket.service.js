@@ -31,6 +31,7 @@ async function authorize(actor, ticket, executor = pool) {
   return ticket;
 }
 const readOnly = ticket => ticket.state === 'RESOLVED' || (ticket.category === 'linked' && (!ticket.document_id || isCaseReadOnly(ticket.current_status)));
+function operationalWriter(actor) { if (actor.role === 'admin') throw forbidden('Admin monitors operational support read-only. Use Internal assistance for staff concerns.'); }
 function writable(ticket) { if (ticket.category === 'linked' && !ticket.document_id) throw badRequest('This document case was cancelled. History is read-only.'); if (ticket.document_id) assertCaseWritable(ticket.current_status); if (ticket.state === 'RESOLVED') throw badRequest('This ticket is resolved. Reopen it before sending.'); }
 async function transaction(user, work, serialize = false) {
   for (let attempt = 0; ; attempt++) {
@@ -68,7 +69,7 @@ async function list(user, query = {}) {
   const actor = await currentActor(user);
   const [where,params] = await scope(actor);
   const result = await model.list(where,params,cursor(query.before));
-  return { ...result,tickets:result.tickets.map(ticket => ({ ...ticket,read_only:Boolean(readOnly(ticket)) })) };
+  return { ...result,tickets:result.tickets.map(ticket => ({ ...ticket,read_only:actor.role === 'admin' || Boolean(readOnly(ticket)) })) };
 }
 async function resolveContext(user,query = {}) {
   const actor=await currentActor(user);
@@ -93,7 +94,7 @@ async function read(user, ticketId, query = {}) {
   const history = await model.history(ticket.id,cursor(query.before));
   const requirements = ticket.document_id && history.messages.some(message => message.kind==='requirement') ? await require('../models/requestAttachment.model').list(ticket.document_id) : [];
   history.messages = history.messages.map(message => message.kind==='requirement' ? {...message,requirement:requirements.find(row => row.id===Number(message.metadata?.requirement_id)) || message.metadata?.snapshot} : message);
-  return { queue,ticket:{ ...ticket,read_only:Boolean(readOnly(ticket)) },...history, window:liveWindow(new Date(),settings) };
+  return { queue,ticket:{ ...ticket,read_only:actor.role === 'admin' || Boolean(readOnly(ticket)) },...history, monitor_only:actor.role === 'admin', window:liveWindow(new Date(),settings) };
 }
 async function create(user, body = {}) {
   const documentId = body.document_id ? id(body.document_id) : null;
@@ -101,6 +102,7 @@ async function create(user, body = {}) {
   if (!subject || subject.length > 255) throw badRequest('Enter a ticket subject of 1–255 characters.');
   const retryKey = key(body.client_key), hash = digest({ documentId,subject });
   return transaction(user,async (connection,actor,settings) => {
+    operationalWriter(actor);
     if (actor.role !== 'student' && !documentId) throw forbidden('Staff may open authorized linked cases; students create general tickets.');
     const prior = await model.eventExists(`${actor.id}:${retryKey}`,connection);
     if (prior) { const data = parse(prior.data); if (data?.hash !== hash || prior.event_type !== 'created') throw badRequest('This retry key belongs to a different action.'); return authorize(actor,await model.ticket(prior.ticket_id,connection),connection); }
@@ -135,6 +137,7 @@ async function send(user, ticketId, body = {}, files = []) {
   if ((!text && !files.length) || text.length > 2000) throw badRequest('Enter a message up to 2000 characters or attach a file.');
   const retryKey = key(body.client_key), hash = digest({text,files:files.map(file => ({name:file.originalname,size:file.size,hash:file.content_hash}))});
   const result = await transaction(user,async (connection,actor,settings) => {
+    operationalWriter(actor);
     const ticket = await authorize(actor,await model.ticket(id(ticketId),connection,true),connection);
     await model.actor(actor.id,connection,true);
     const prior = await model.priorSend(actor.id,retryKey,connection);
@@ -179,6 +182,7 @@ async function action(user,ticketId,body = {}) {
   if (!allowed.includes(action)) throw badRequest('Choose a valid support action.');
   const hash = digest({ticketId:id(ticketId),action});
   const result = await transaction(user,async (connection,actor,settings) => {
+    operationalWriter(actor);
     const ticket = await authorize(actor,await model.ticket(id(ticketId),connection,true),connection);
     await settleTicket(ticket,connection,settings);
     const prior = await model.eventExists(`${actor.id}:${retryKey}`,connection);
@@ -311,6 +315,7 @@ async function queueStatus(ticket,settings) {
 }
 async function assertSendAccess(user,ticketId) {
   const actor=await currentActor(user), ticket=await authorize(actor,await model.ticket(id(ticketId)));
+  operationalWriter(actor);
   // Authorize before accepting multipart bytes. The transaction checks writable
   // state after checking its retry key, so a previously accepted send can be
   // acknowledged after resolution. Failed/new uploads are cleaned up.

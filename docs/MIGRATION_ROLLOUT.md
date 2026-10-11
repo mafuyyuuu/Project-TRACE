@@ -11,6 +11,7 @@ The user's October 1 logs confirm completion of the earlier 18 incremental scrip
 | `migrate_verification_reason.js` | Nullable `users.verification_reason` for stored OCR/Admin review reasons | Adds only when missing; preserves stored reasons. |
 | `migrate_onboarding_guides.js` | `onboarding_guides` for per-account tour state | Creates only when absent; preserves shown markers. |
 | `migrate_graduation_year.js` | Nullable `student_profiles.graduation_year`, separate from attendance | Adds only when missing; no copying, backfill or historical rewrites. |
+| `migrate_internal_assistance.js` | Separate internal staff/Admin tickets, messages and retry/audit events | Additive/rerunnable; imports no student support or files. Requires existing users; matching API/frontend. |
 | `migrate_receipt_packs.js` | Shared 50-number packs, permanent serial reservations, issued snapshots, receipt audit and print calibration | Additive/rerunnable; reserves no serials until Finance confirms a pack. Run after Finance receipt columns and intake/assignment prerequisites. |
 | `migrate_request_intake_scope.js` | Saved routing college and explicit intake-blocking requirements | Additive and rerunnable; no historical backfill. Run after request attachments and Support requirements. |
 | `migrate_alumni_study_years.js` | Saved Year Started, first-confirmed timestamp, proof-review demo markers and audit tables | Additive and rerunnable; keeps existing graduation/attendance/request values. Run after student profiles and graduation-year prerequisites. |
@@ -18,7 +19,7 @@ The user's October 1 logs confirm completion of the earlier 18 incremental scrip
 
 `migrate_program.js` is a prerequisite already confirmed in the 18-script run. `migrate_password_history.js` is the preserving scripted equivalent of the manual table repair already confirmed; it is not a new missing-table requirement. Either may be rerun explicitly if its prerequisite status is uncertain. The latest UI/motion/report/status changes, password-reset lookup fix and Admin same-day browser trust introduce no additional database migration. Keep the existing MFA encryption key.
 
-Audit findings: the full incremental list has **30** scripts, all exist and its dependencies are ordered; the short follow-up path includes the Program catalog and separate graduation year. Older data migrations are not all passive no-ops: `migrate_8b.js` backfills college mappings/enforces policy flags and `migrate_registrar_policy.js` writes catalog repeat/walk-in rules. Do not rerun those just for a UI or Program-catalog deployment.
+Audit findings: the full incremental list has **31** scripts, all exist and its dependencies are ordered; the short follow-up path includes the Program catalog and separate graduation year. Older data migrations are not all passive no-ops: `migrate_8b.js` backfills college mappings/enforces policy flags and `migrate_registrar_policy.js` writes catalog repeat/walk-in rules. Do not rerun those just for a UI or Program-catalog deployment.
 
 The existing `check_schema.js` checks selected column presence, not every SQL type/index/foreign key or data row. The fresh-schema audit found an omitted `password_resets` definition. It is now included in `schema.sql`, with a separate preserving `migrate_password_resets.js` for existing databases. Existing reset tokens are retained. The full checker still does not prove every type/index or transaction. If live metadata reports a base table missing, stop for a targeted preserving repair rather than rerunning that broad migration or importing the fresh schema.
 
@@ -77,7 +78,7 @@ Require no `MISSING` entries, no constraint/capacity error and a zero exit statu
 
 These changes add **no database migration**. The registration QR remains a generated frontend link; Finance reuses existing transaction/receipt APIs; intake waits derive from existing `step_logs` transitions, excluding same-status notes, with creation as the legacy fallback. Rebuild/recreate the backend for that timestamp projection and deploy the matching frontend for the compact QR/preview, dedicated Finance page, View OR, From/To labels and shared motion repair. Do not re-import schema, reseed, regenerate the MFA key, or rerun old policy-writing migrations for this UI batch.
 
-If the latest Support rollout has **not** been applied, the pending named follow-ups are still the five commands in [Support ticket rollout](#support-ticket-rollout): `migrate_password_resets.js`, `migrate_payment_methods.js`, `migrate_graduation_year.js`, `migrate_support_tickets.js`, `migrate_support_requirements.js`, then `check_schema.js`. The first two preserving base-table scripts may find existing tables. The earlier October 5 reason/onboarding/program migrations are already confirmed; do not mistake this new UI work for a requirement to rerun all 30 scripts.
+If the latest Support rollout has **not** been applied, the pending named follow-ups are still the five commands in [Support ticket rollout](#support-ticket-rollout): `migrate_password_resets.js`, `migrate_payment_methods.js`, `migrate_graduation_year.js`, `migrate_support_tickets.js`, `migrate_support_requirements.js`, then `check_schema.js`. The first two preserving base-table scripts may find existing tables. The earlier October 5 reason/onboarding/program migrations are already confirmed; do not mistake this new UI work for a requirement to rerun all 31 scripts.
 
 If those five follow-ups already passed, use the normal fresh-backup, review/merge, pull, backend build/recreate and matching frontend deployment steps; run `check_schema.js` to check the current image against the current database. No AI rebuild is necessary for TRACE-42–47 or motion alone; the separate Support insights rollout does require its matching AI image.
 
@@ -450,7 +451,8 @@ trace_migrate_rollout() {
     migrate_support_tickets.js \
     migrate_support_requirements.js \
     migrate_request_intake_scope.js \
-    migrate_receipt_packs.js
+    migrate_receipt_packs.js \
+    migrate_internal_assistance.js
   do
     printf '\nApplying %s\n' "$TRACE_MIGRATION_FILE"
     if ! docker compose run --rm --no-deps -T backend node "database/$TRACE_MIGRATION_FILE"; then
@@ -465,7 +467,7 @@ trace_migrate_rollout
 
 Require **`Schema presence check passed.`** The check reads `information_schema`; it validates selected critical table/column presence, not every definition, index, constraint, rate, data row or live transaction. If it lists a named migration, investigate that script's output. Password history now has its own explicit migration, added after the user's first 18-script run exposed that base-table gap. If the check says `base schema`, such as missing `grad_applications` or core users fields, keep writers stopped and share the non-secret check output for a targeted preserving repair. Do not import the full schema or reseed to fill the gap.
 
-The profile/Maintenance/OCR follow-up adds `migrate_verification_reason.js`. The guided-tour follow-up adds `migrate_onboarding_guides.js`; the linked-program follow-up adds `migrate_program_catalog.js`; the year-field repair adds `migrate_graduation_year.js` (30 scripts in the complete list, including the Revision 2 Batch 7 alumni study-year and Batch 8 intake-scope migrations). For a server that already passed the earlier rollout, apply only these new migrations that have not been applied; do not rerun data migrations solely for these follow-ups. Build both backend and ai-engine if deploying the OCR changes: OCR imports a new pure text-matching module included in the AI Dockerfile. The email-button/tour changes require a backend rebuild and matching frontend; they add no AI changes. Historical OCR reasons remain unknown. The guide migration creates an empty table and preserves existing display state; students registered on the updated backend receive an automatic tour; clerk/Admin accounts enroll lazily on their first eligible guide check. All supported roles can replay using the question mark. Deploy the matching frontend after migration/check/runtime update. Inspect real image outcomes separately; normalization tests do not prove document authenticity or actual OCR accuracy.
+The profile/Maintenance/OCR follow-up adds `migrate_verification_reason.js`. The guided-tour follow-up adds `migrate_onboarding_guides.js`; the linked-program follow-up adds `migrate_program_catalog.js`; the year-field repair adds `migrate_graduation_year.js` (31 scripts in the complete list, including the Revision 2 Batch 7 alumni study-year and Batch 8 intake-scope migrations). For a server that already passed the earlier rollout, apply only these new migrations that have not been applied; do not rerun data migrations solely for these follow-ups. Build both backend and ai-engine if deploying the OCR changes: OCR imports a new pure text-matching module included in the AI Dockerfile. The email-button/tour changes require a backend rebuild and matching frontend; they add no AI changes. Historical OCR reasons remain unknown. The guide migration creates an empty table and preserves existing display state; students registered on the updated backend receive an automatic tour; clerk/Admin accounts enroll lazily on their first eligible guide check. All supported roles can replay using the question mark. Deploy the matching frontend after migration/check/runtime update. Inspect real image outcomes separately; normalization tests do not prove document authenticity or actual OCR accuracy.
 
 MySQL DDL can commit before a later command fails. Do not assume a failed script changed nothing; inspect the error before rerunning or restoring. A rollback may require coordinated restoration of database, uploads, configuration and matching code, not just a Git checkout.
 
@@ -557,7 +559,7 @@ Reconcile unresolved legacy colleges explicitly using Admin's evidence-based con
 
 ## Revision 2 Batch 9 — Reports & Export
 
-No new migration or environment variable. Reporting uses existing catalog, fee-schedule, receipt/payment-method and Batch 8 routing columns. Use the matching API/frontend, run the read-only schema preflight and verify a filtered CSV on staging. The 30-script preserving order above is unchanged. See [DEPLOYMENT_CHECKLIST.md](DEPLOYMENT_CHECKLIST.md) for the consolidated batch ledger, pending-by-this-work scripts and final rollout steps; do not rerun older data migrations solely for this UI update.
+No new migration or environment variable. Reporting uses existing catalog, fee-schedule, receipt/payment-method and Batch 8 routing columns. Use the matching API/frontend, run the read-only schema preflight and verify a filtered CSV on staging. The 31-script preserving order above is unchanged. See [DEPLOYMENT_CHECKLIST.md](DEPLOYMENT_CHECKLIST.md) for the consolidated batch ledger, pending-by-this-work scripts and final rollout steps; do not rerun older data migrations solely for this UI update.
 
 
 ## Revision 2 Batch 10 — Support / Messaging UI
@@ -582,3 +584,17 @@ docker compose run --rm --no-deps -T backend node database/check_schema.js
 This creates five empty receipt tables plus the singleton control row and adds a full leading `documents.or_number` index if missing, keeping historical-conflict locking off unrelated receipt numbers. No historical OR, student record or paid payment is rewritten; no paper pack is activated. Start the matching API/frontend only after preflight. Finance must confirm the actual first paper serial and the segment to increment before new managed issuance. All 50 numbers are reserved permanently, including unused numbers from an early replacement. Historical manual OR records remain available.
 
 Rehearse two concurrent cashiers, stale displayed serials, lost-response retries, receipt 50/51, deferred issuance, copy upload, reprinting, void/replacement before Secretary verification and protection of completed requests on staging. Unit tests/mock locking do not establish live MySQL contention behavior. Paper dimensions are illustrative defaults; configure and test data-only alignment at 100% scale on blank paper for the actual printer. No new environment variable, dependency or AI/n8n change is required. This work does not apply the migration or deploy production.
+
+
+## Internal assistance — preserving rollout
+
+After the backup and stopped-writer steps above, build the matching backend and apply the missing additive migration:
+
+```bash
+docker compose run --rm --no-deps -T backend node database/migrate_internal_assistance.js
+docker compose run --rm --no-deps -T backend node database/check_schema.js
+```
+
+This creates three empty internal-assistance tables with creator/assignee foreign keys, cursor indexes and actor/retry-key uniqueness. It leaves student support, message attachments, service clocks and support analytics untouched. No student data is imported or automatically linked. Existing deployments must use the preserving migration, rather than importing the fresh schema/seed. No new environment variable, dependency, AI change or n8n import is required. Deploy the API and frontend together; Admin operational support is read-only after this update while support configuration/analytics remain available.
+
+On staging, use two active Admin accounts and distinct desk accounts to verify competing claims, stale actions, creator-only reads, inactive-assignee takeover, resolution notes, reopening and private notification recipients. Verify students and unsupported desks receive access denial and Admin cannot create/send/manage student tickets or request/review their supporting documents through chat. Unit tests use model/lock simulations; live MySQL contention and notification delivery still require staging validation. Ordinary staff coordination/recipient connections remain deferred. [README walkthrough](../README.md#internal-assistance-walkthrough) contains synthetic screenshots and navigation. This work does not run the migration or deploy production.

@@ -61,7 +61,9 @@ it('voids before Secretary verification, preserves payment and refuses a finaliz
 });
 it('rolls back issuance if audit storage fails',async()=>{model.audit.mockRejectedValue(new Error('Audit failed'));await expect(service.issue(user,11,body)).rejects.toThrow('Audit failed');expect(connection.commit).not.toHaveBeenCalled();expect(connection.rollback).toHaveBeenCalledOnce();expect(connection.release).toHaveBeenCalledOnce();});
 it('serializes competing cashiers at the pack boundary and requires the stale cashier to review the next number',async()=>{
- vi.useRealTimers();let held=null,tail=Promise.resolve();
+ // Promise-based lock simulation needs no real timer; retain the controlled
+ // business-hours clock so this regression also runs after the OR cutoff.
+ let held=null,tail=Promise.resolve();
  model.control.mockImplementation(async(executor,lock)=>{if(lock&&held!==executor){const previous=tail;let release;tail=new Promise(resolve=>release=resolve);await previous;held=executor;executor.releaseLock=()=>{held=null;release();};}return {active_pack_id:1,version:2};});
  pool.getConnection.mockImplementation(async()=>({beginTransaction:vi.fn(),commit:vi.fn(),rollback:vi.fn(),release(){this.releaseLock?.();}}));
  pack.consumed=48;const otherGroup=[{...group[0],id:12,request_group_id:'DEMO-OTHER'}];documents.findByIdForUpdate.mockImplementation(async id=>id===11?group:otherGroup);model.group.mockImplementation(async id=>id==='DEMO-GROUP'?group:otherGroup);

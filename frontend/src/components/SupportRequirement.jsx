@@ -38,8 +38,8 @@ export function RequirementBubble({ row,user,readOnly,onAction,ticketId }) {
     {row.file_path && <AuthedFilePreview path={row.file_path} alt={row.label} iframeTitle={row.label} className="max-h-40 max-w-full object-contain" />}
     <RequirementHistory key={`${ticketId || row.document_id}:${row.id}`} row={row} ticketId={ticketId} />
     {!readOnly && !row.superseded_at && user.role==='student' && ['requested','rejected'].includes(row.status) && <Button type="button" onClick={() => onAction(row)} className="trace-button trace-button-secondary">Upload file for {row.label}</Button>}
-    {!readOnly && !row.superseded_at && (user.role==='admin' || ['Window 1','Receiving Desk','Secretary'].includes(user.desk_assignment)) && row.status==='uploaded' && <Button type="button" onClick={() => onAction(row)} className="trace-button trace-button-secondary">Review {row.label}</Button>}
-    {!readOnly && !row.superseded_at && (user.role==='admin' || ['Window 1','Receiving Desk','Secretary'].includes(user.desk_assignment)) && <Button type="button" onClick={() => onAction({...row,replacement:true})} className="trace-button trace-button-secondary">Request replacement</Button>}
+    {!readOnly && !row.superseded_at && (user.role !== 'admin' && ['Window 1','Receiving Desk','Secretary'].includes(user.desk_assignment)) && row.status==='uploaded' && <Button type="button" onClick={() => onAction(row)} className="trace-button trace-button-secondary">Review {row.label}</Button>}
+    {!readOnly && !row.superseded_at && (user.role !== 'admin' && ['Window 1','Receiving Desk','Secretary'].includes(user.desk_assignment)) && <Button type="button" onClick={() => onAction({...row,replacement:true})} className="trace-button trace-button-secondary">Request replacement</Button>}
   </div>;
 }
 

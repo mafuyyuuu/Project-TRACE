@@ -106,7 +106,7 @@ Your old address stays active until the new one is verified. Change email and pa
 
 1. Open the dashboard and select **New Request**.
 2. Choose an available document and the number of copies. Add other document types if needed.
-3. Complete the document's fields. For TOR, enter **Year Started** and **Year Ended**.
+3. Complete the document's fields. TOR displays saved **Year Started** read-only and does not ask for Year Ended. Complete missing profile years first; ask Admin for a confirmed-year correction.
 4. Check any attachment instructions and select a file only when required.
 5. Review the details, submit and confirm. Keep the request's tracking number.
 
@@ -232,9 +232,9 @@ Choose **Filters** beside the title. Edit the draft in **Filters & Export**, the
 1. Open **Dashboard** for **Awaiting Payment** and **Verification Queue**. Transactions are a separate sidebar page. Use **Awaiting Payment** for counter payments. Record the actual payment details, review the bill, then save and confirm. Logging a payment does not clear it.
 2. Use **Verification Queue** to compare payment references and evidence against the actual payment records. OCR is an aid; check its output yourself.
 3. Confirm verified payment, or give a clear reason when rejecting it.
-4. Record the actual OR details, or choose **Later** when issuance must be deferred. Payment clearance sends an acknowledgment while the OR is pending.
-5. Use the receipt actions to issue/publish the actual OR with its number, issue date and digital copy. Give the physical receipt to Secretary for release with the document. Existing recorded OR numbers remain unchanged.
-6. Open **Transactions & OR Copies** in the sidebar. Set **From**, **To** and **OR status**; both dates are inclusive and interpreted in Asia/Manila. Choose **Export** beside the title for filtered CSV. Each request group appears once with its total. **View OR** in Actions opens an available digital receipt through authenticated access. **Upload OR copy** means an OR number exists but its copy is pending; **Issue OR & upload** means issuance is pending. Existing Reports/Export links open this same page. The view shows elapsed time awaiting an OR when a clearance timestamp exists.
+4. Use **Input Issuance Number** to configure and confirm the first 50-number paper pack when none is active. Review the generated read-only serial before verified issuance, or choose **Later** to defer. Payment clearance sends an acknowledgment while the OR is pending.
+5. Use **Official Receipts / History** beside verification to inspect issued snapshots, upload receipt copies or request printing/reprinting. Deferred issuance allocates the next serial only when confirmed. After 50 numbers, confirm a new pack; uploads and reprints consume none. Give the physical receipt to Secretary for release with the document. Historical recorded OR numbers remain unchanged.
+6. Open **Transactions & OR Copies** in the sidebar. Set **From**, **To** and **OR status**; both dates are inclusive and interpreted in Asia/Manila. Choose **Filters**, apply the draft filters and use **Export CSV** inside the shared modal. Each request group appears once with its total. **View OR** in Actions opens an available digital receipt through authenticated access. **Upload OR copy** means an OR number exists but its copy is pending; **Issue OR & upload** means issuance is pending. Existing Reports/Export links open this same page. The view shows elapsed time awaiting an OR when a clearance timestamp exists.
 
 New same-day OR issuance closes at **exactly 4:00 PM Manila time**. Deferred issuance is not a promised next-day deadline. Finance can upload a retained copy later without re-verifying an already cleared payment.
 
@@ -317,3 +317,12 @@ Read New Tickets separately from imported tickets. Escalations show the recorded
 ## Managed Finance receipts
 
 See the [README navigation walkthrough and screenshots](../README.md#finance-receipt-walkthrough) for Finance's Official Receipts / History workspace. Confirmed 50-number packs reserve the supplied format; finalized verification or deferred issuance saves one immutable payment/cashier snapshot and consumes one number. Preview, upload and reprint consume none. Copy uploads are protected JPEG/PNG/PDF files up to 5 MB. Stale serials require refresh/review; retry keys and unique serial/group constraints protect repeated requests. Pack changes, issue, copy, print-request, reprint, void and calibration actions are audited. Historical manual OR records remain intact. New issuance/voiding stops before Secretary verification/handoff; later copy uploads preserve the existing payment and document stage. Unknown paper geometry requires saved calibration and a blank-paper printer test. Apply the preserving `migrate_receipt_packs.js` before the matching API/frontend; see the [deployment ledger](DEPLOYMENT_CHECKLIST.md).
+
+
+## Staff-to-Admin internal assistance
+
+Window 1, Finance and College Secretaries open **Internal Assistance** from the sidebar or mobile navigation. Select **New concern**, enter a subject, category and explanation, then review and confirm. Only the creator and Admin can read this private concern; do not copy student identity files or private conversations into it. State/category filters search the authorized queue; the search field covers loaded ticket metadata.
+
+Admin selects a queued concern and confirms **Claim ticket** before replying. The assigned Admin may await a staff reply, resume handling or resolve with a mandatory note. Staff replies resume an awaiting concern without removing its Admin assignment. Resolved tickets preserve conversation/resolution history; creator or assigned Admin may confirm reopening into the queue. An open ticket assigned to an inactive/no-longer-Admin account offers an explicit takeover action to another Admin. A stale confirmation requires refreshing and reviewing again.
+
+Send works directly; failed sends retain the draft. Ticket changes require confirmation, and cancelling preserves the underlying form. On small screens, **Internal tickets** opens the ticket drawer; select a ticket or use **Back to conversation**. Student Support is a separate workspace; Admin can monitor its authorized history but cannot reply or change that conversation. See the [README walkthrough](../README.md#internal-assistance-walkthrough) for synthetic screenshots and local testing accounts.

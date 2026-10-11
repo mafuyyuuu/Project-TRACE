@@ -8,14 +8,14 @@ const { assertCaseWritable } = require('../utils/supportCase');
 const catalog = require('../models/supportingDocument.model');
 const tickets = require('./supportTicket.service');
 function registrar(user) {
-  if (user.role !== 'admin' && !(user.role === 'clerk' && ['Window 1', 'Receiving Desk', 'Secretary'].includes(user.desk_assignment))) throw forbidden('Only Registrar staff can request or review pertinent documents.');
+  if (!(user.role === 'clerk' && ['Window 1', 'Receiving Desk', 'Secretary'].includes(user.desk_assignment))) throw forbidden('Only Registrar desk staff can request or review pertinent documents. Admin monitors support read-only.');
 }
 async function list(user, documentId) {
   user = await tickets.currentActor(user);
   const [doc] = await documents.findById(documentId);
   if (!doc) throw notFound('Request not found.');
   await access.authorizeMessage(user, doc);
-  return { requirements: await model.list(documentId), types:(await catalog.list()).filter(row => row.is_active), read_only:require('../utils/supportCase').isCaseReadOnly(doc.current_status) };
+  return { requirements: await model.list(documentId), types:(await catalog.list()).filter(row => row.is_active), read_only:user.role === 'admin' || require('../utils/supportCase').isCaseReadOnly(doc.current_status) };
 }
 async function mutate(user, documentId, kind, requirementId, body = {}, file) {
   if (!['request', 'upload', 'review'].includes(kind)) throw badRequest('Unknown attachment action.');

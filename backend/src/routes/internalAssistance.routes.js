@@ -1,0 +1,10 @@
+const router = require('express').Router();
+const { authenticate } = require('../middlewares/auth.middleware');
+const controller = require('../controllers/internalAssistance.controller');
+router.use(authenticate);
+router.get('/',controller.list);
+router.post('/',controller.create);
+router.get('/:id',controller.read);
+router.post('/:id/messages',controller.send);
+router.post('/:id/actions',controller.change);
+module.exports = router;

@@ -2,6 +2,9 @@ const { pool } = require('../src/config/db');
 
 // Read-only deployment preflight. This checks presence, not data or SQL compatibility.
 const requirements = [
+  ['internal_assistance_tickets',['created_by','creator_desk','category','state','assigned_to','version','claimed_at','resolved_at'],'migrate_internal_assistance.js'],
+  ['internal_assistance_messages',['ticket_id','sender_id','kind','message','created_at'],'migrate_internal_assistance.js'],
+  ['internal_assistance_events',['ticket_id','actor_id','event_type','client_key','payload_hash','message_id','data'],'migrate_internal_assistance.js'],
   ['finance_receipt_control',['id','active_pack_id','print_config','version'],'migrate_receipt_packs.js'],
   ['finance_receipt_packs',['id','pattern','start_serial','consumed','active','created_by'],'migrate_receipt_packs.js'],
   ['finance_issued_receipts',['id','request_group_id','active_group','serial','client_key','snapshot','state','copy_path'],'migrate_receipt_packs.js'],

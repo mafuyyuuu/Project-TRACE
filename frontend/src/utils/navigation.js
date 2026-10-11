@@ -73,6 +73,9 @@ function roleNavItems(user) {
 
 export function navItemsForUser(user) {
   const items = roleNavItems(user);
+  if (user?.role === 'admin' || user?.role === 'clerk' && ['Window 1','Receiving Desk','Secretary','Finance'].includes(user.desk_assignment)) {
+    items.splice(3,0,{tab:'internal-assistance',to:'/dashboard?tab=internal-assistance',label:'Internal Assistance',icon:'assistance'});
+  }
   return user?.role ? [...items, { tab: 'help', to: '/dashboard?tab=help', label: 'Help / FAQ', icon: 'book', group: 'more' }] : items;
 }
 
