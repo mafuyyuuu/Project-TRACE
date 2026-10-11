@@ -68,6 +68,8 @@ utils/         # Backend helper functions (AppError)
 - **Student progress rows:** use consistent horizontal cell padding and middle alignment. Give the progress bar flexible width, reserve space for the percentage, and render wrapping status text inside an inline-flex chip. Keep date/time on distinct lines and contain narrow-screen scrolling within the table card.
 - **Dashboard feedback uses acknowledgment dialogs.** Render `DashboardAlerts` with hook-owned `success`/`error` and an `onDismiss` callback that clears both. Messages dismiss on OK, Escape, backdrop, navigation, internal queue/security/maintenance tab changes, or leaving the browser tab; do not restore timed toasts or native `alert()`. The shell's `feedback` layer sits above forms and confirmations, with its own pinned OK footer. Only the topmost dialog handles focus and Escape; dismissal restores focus and preserves the underlying draft. Existing field validation and profile-save/authentication feedback stay inline.
 
+- **Support-success exception (Revision 2 TRACE-63):** successful ticket/availability/settings actions use dismissible, polite stacked toasts outside conversation layout, as requested in the newer guide. They do not expire automatically; navigation/browser-tab dismissal remains. Errors stay inline or inside the action confirmation. Other dashboard feedback continues to use DashboardAlerts, and save/submission confirmations remain mandatory.
+
 ## ⚙️ Backend (Node.js + Express)
 
 - **Architecture:** Strict route → controller → service → model flow. A route never contains logic; a controller never contains SQL; a model never contains business rules.

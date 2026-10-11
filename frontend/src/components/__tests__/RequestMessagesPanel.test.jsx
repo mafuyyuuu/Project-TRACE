@@ -1,14 +1,14 @@
 import { it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import RequestMessagesPanel from '@/components/RequestMessagesPanel';
-const state = vi.hoisted(() => ({ tickets:[],cursor:null,loading:false,error:'',notice:'',settings:null,topics:[],selected:'',setSelected:vi.fn(),busy:false,execute:vi.fn(),refresh:vi.fn(),retry:vi.fn() }));
+const state = vi.hoisted(() => ({ tickets:[],cursor:null,loading:false,error:'',feedback:{notices:[],notify:vi.fn(),dismiss:vi.fn(),dismissAll:vi.fn()},settings:null,topics:[],selected:'',setSelected:vi.fn(),busy:false,execute:vi.fn(),refresh:vi.fn(),retry:vi.fn() }));
 vi.mock('@/hooks/useSupportTickets', () => ({ default: () => state }));
 vi.mock('@/hooks/useSupportRequestChoices', () => ({ default: () => ({rows:[],hasMore:false,error:'',busy:false}) }));
 vi.mock('@/components/SupportConversation', () => ({ default: ({ticketId}) => <div>Ticket conversation {ticketId}</div> }));
 beforeEach(() => { Object.assign(state,{tickets:[],cursor:null,selected:'',error:'',settings:null}); vi.clearAllMocks(); });
 it('offers a general ticket without requiring a document and removes obsolete tabs/page buttons', () => {
   render(<RequestMessagesPanel user={{id:3,role:'student'}} />);
-  expect(screen.getByText(/Choose New ticket for FAQ assistance/)).toBeInTheDocument();
+  expect(screen.getByText(/without a document request/)).toBeInTheDocument();
   expect(screen.getByRole('button',{name:'New ticket'})).toBeInTheDocument();
   expect(screen.queryByRole('button',{name:'General support'})).not.toBeInTheDocument();
   expect(screen.queryByRole('button',{name:/Previous|Next/})).not.toBeInTheDocument();

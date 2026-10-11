@@ -1081,3 +1081,10 @@ No new environment variables. Existing databases need `node backend/database/mig
 ## Revision 2 Batch 9 — Reports & Export
 
 No schema or environment changes in Batch 9. Deploy the matching API/frontend after the previously required migrations. [DEPLOYMENT_CHECKLIST.md](DEPLOYMENT_CHECKLIST.md) is the consolidated migration ledger to review before the final deployment; [BATCH9_ACCEPTANCE.md](BATCH9_ACCEPTANCE.md) records the filter semantics and changed shared CSV contract.
+
+
+## Revision 2 Batch 10 — Support / Messaging UI
+
+Support now follows the main TRACE Figma two-column layout, with aligned readable ticket rows, local search of loaded authorized metadata, contextual linked-case viewing, a labeled confirmed availability switch and a primary Window 1 claim action. Success feedback uses dismissible toasts; failures and confirmations remain in context. The compact widget preserves drafts across close/reopen. Digital evaluation separates discussion into a side panel or a mobile view without discarding either draft. Existing ticket/desk/college authorization, FAQ/reply/requirement actions, service hours and queue assignment remain; no new staff chat connection or unsupported presence/read/unread data is added.
+
+See [BATCH10_ACCEPTANCE.md](BATCH10_ACCEPTANCE.md) for the screenshots, walkthrough and local evidence. Batch 10 adds **no migration or environment variable**; [DEPLOYMENT_CHECKLIST.md](DEPLOYMENT_CHECKLIST.md) tracks required earlier migrations. These are repository changes for dev, not a claim that the live site is updated.

@@ -9,7 +9,8 @@ Updated with each completed batch. This tracks the **newer fixes guide**, not th
 | 7 — Alumni / Request Forms | `backend/database/migrate_alumni_study_years.js` | Existing users/student profiles; `migrate_student_profiles.js`, `migrate_graduation_year.js` | Not applied by this work. Adds study-year confirmation, proof-review demo markers and audit tables; preserves graduation, attendance and request history. |
 | 8 — Intake / Staff Scope | `backend/database/migrate_request_intake_scope.js` | Existing documents; `migrate_request_attachments.js`, `migrate_support_requirements.js` and their ticket/catalog prerequisites | Not applied by this work. Adds nullable routing-college snapshots and `blocks_intake` default false; no historical backfill/reclassification. |
 | 9 — Reports & Export | **None** | Batch 8 routing columns plus existing fee-schedule and Finance receipt/payment-method columns | API/frontend changes only. Uses existing reference catalogs, receipt fields and pricing snapshots. Deploy the matching API/frontend together. |
-| 10 and later | Record when implemented | Determine from actual code changes | Not implemented by this entry; do not invent or run future migrations. |
+| 10 — Support / Messaging UI | **None** | Existing support tickets, archive/requirements/catalog and Batch 8 intake scope | Frontend-only presentation changes; existing ticket/desk/college permissions remain. |
+| 11 and later | Record when implemented | Determine from actual code changes | Not implemented by this entry; do not invent or run future migrations. |
 
 The earlier `migrate_batch8.js` is a different historical base migration. It is **not** the Revision 2 Batch 8 migration above. Existing databases need preserving migration scripts, not a fresh schema or seed import.
 
@@ -26,7 +27,7 @@ docker compose run --rm --no-deps -T backend node database/migrate_request_intak
 docker compose run --rm --no-deps -T backend node database/check_schema.js
 ```
 
-5. Start the matching backend and publish the matching frontend after successful preflight. These three batches require no new environment variables, AI rebuild or n8n workflow re-import. Proof-unavailable registration remains disabled in production; do not enable the defense-only path there.
+5. Start the matching backend and publish the matching frontend after successful preflight. These four batches require no new environment variables, AI rebuild or n8n workflow re-import. Proof-unavailable registration remains disabled in production; do not enable the defense-only path there.
 6. Verify live account/college routing, a flagged clearance through acceptance, same-college staff assignment and physical handoff, then report filters and CSV row counts. Verify expected notifications and actual phone/keyboard behavior separately. Record the applied scripts, commit and acceptance results here when confirmed.
 
 ## Acceptance references
@@ -34,6 +35,7 @@ docker compose run --rm --no-deps -T backend node database/check_schema.js
 - [Batch 7](BATCH7_ACCEPTANCE.md): alumni saved years, Admin corrections and the isolated identity-review demo.
 - [Batch 8](BATCH8_ACCEPTANCE.md): clearance, college scope, assignment and shared tabs.
 - [Batch 9](BATCH9_ACCEPTANCE.md): draft filters, authorized reporting, CSV contract and synthetic sample.
+- [Batch 10](BATCH10_ACCEPTANCE.md): Figma chat/workspace/evaluation layouts and persistent drafts, with existing ticket permissions.
 - [Environment setup](ENV_SETUP_GUIDE.md) and [preserving rollout](MIGRATION_ROLLOUT.md): deployment commands, prerequisites and limits of schema preflight.
 
 A passing presence check does not prove every index/type, restored backup, production delivery or institutional evidence-policy decision. Unit/browser checks recorded in each batch are local acceptance evidence, not a claim that the live site already runs the update.

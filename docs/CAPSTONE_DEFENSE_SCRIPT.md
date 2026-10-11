@@ -236,3 +236,10 @@ The next evaluation priorities are live acceptance, a restore rehearsal, measure
 Thank you very much for your time, your attention, and the opportunity to present our research. We now warmly open the floor to the panel for any questions, and we can gladly navigate through the system if you wish to see any specific features."
 
 *(All 3 speakers stand ready. Keep the `ADMIN001` dashboard open in the background browser so you can easily show logs, registered users, or specific features if the panelists ask "Can you show me how...?")*
+
+
+## Revision 2 Batch 10 — Support / Messaging UI
+
+Support now follows the main TRACE Figma two-column layout, with aligned readable ticket rows, local search of loaded authorized metadata, contextual linked-case viewing, a labeled confirmed availability switch and a primary Window 1 claim action. Success feedback uses dismissible toasts; failures and confirmations remain in context. The compact widget preserves drafts across close/reopen. Digital evaluation separates discussion into a side panel or a mobile view without discarding either draft. Existing ticket/desk/college authorization, FAQ/reply/requirement actions, service hours and queue assignment remain; no new staff chat connection or unsupported presence/read/unread data is added.
+
+See [BATCH10_ACCEPTANCE.md](BATCH10_ACCEPTANCE.md) for the screenshots, walkthrough and local evidence. Batch 10 adds **no migration or environment variable**; [DEPLOYMENT_CHECKLIST.md](DEPLOYMENT_CHECKLIST.md) tracks required earlier migrations. These are repository changes for dev, not a claim that the live site is updated.

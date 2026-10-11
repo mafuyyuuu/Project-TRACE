@@ -713,3 +713,10 @@ Do not freeze up during the demo! Keep these on a sticky note next to your lapto
 
 **If asked “Are uploaded files guaranteed safe?”**
 > “Uploads have limits, actual content parsing, random filenames and authenticated ticket ownership checks. Failed/retried temporary files are cleaned up. These controls reduce exposure but do not constitute antivirus scanning or a legal-compliance certification.”
+
+
+## Revision 2 Batch 10 — Support / Messaging UI
+
+Support now follows the main TRACE Figma two-column layout, with aligned readable ticket rows, local search of loaded authorized metadata, contextual linked-case viewing, a labeled confirmed availability switch and a primary Window 1 claim action. Success feedback uses dismissible toasts; failures and confirmations remain in context. The compact widget preserves drafts across close/reopen. Digital evaluation separates discussion into a side panel or a mobile view without discarding either draft. Existing ticket/desk/college authorization, FAQ/reply/requirement actions, service hours and queue assignment remain; no new staff chat connection or unsupported presence/read/unread data is added.
+
+See [BATCH10_ACCEPTANCE.md](BATCH10_ACCEPTANCE.md) for the screenshots, walkthrough and local evidence. Batch 10 adds **no migration or environment variable**; [DEPLOYMENT_CHECKLIST.md](DEPLOYMENT_CHECKLIST.md) tracks required earlier migrations. These are repository changes for dev, not a claim that the live site is updated.

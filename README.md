@@ -30,6 +30,8 @@ TRACE gives students a document request and tracking portal, while Window 1, Col
 
 [Shared report filters](docs/batch9-filters-light.png) · [Report overview](docs/batch9-report-overview-light.png) · [Phone filters / dark mode](docs/batch9-filters-mobile-dark.png) · [Synthetic CSV sample](docs/batch9-report-sample.csv). The [Batch 9 walkthrough](docs/BATCH9_ACCEPTANCE.md) explains draft filtering, role scope and complete exports; it needs no account.
 
+[Support workspace](docs/batch10-support-workspace-light.png) · [Compact empty state](docs/batch10-widget-empty-light.png) · [Phone chat / dark mode](docs/batch10-widget-mobile-dark.png) · [Evaluation and discussion](docs/batch10-evaluation-light.png). The [Batch 10 walkthrough](docs/BATCH10_ACCEPTANCE.md) shows the Figma-based layouts and real ticket capabilities without an account.
+
 ### Contribution highlighted in this update
 
 The current UI consistency work extends the shared Tailwind control system across the five role portals: reusable field/button states, aligned section headings, responsive form grids and shared modal chrome. It fixes omitted button base styles and a profile retry action that could submit its surrounding form, while preserving the existing desk permissions and processing logic. The visual foundations follow the main [TRACE Figma design](https://www.figma.com/design/78A3HTREQ86GIN9ZxvDBSv/TRACE-Draft?node-id=0-1), with accessible mobile, dark-mode and reduced-motion adaptations. This describes this update's concrete contribution; it does not attribute the whole group project's work to one author.
@@ -42,7 +44,7 @@ Revision 2 Batch 9 adds a shared Filters & Export modal, draft/applied filter st
 
 For code review, start with [UI conventions](docs/UI_CONVENTIONS.md), [shared Tailwind styles](frontend/src/index.css), [ModalShell](frontend/src/components/ModalShell.jsx) and the [profile retry regression check](frontend/src/components/__tests__/AcademicProfileFields.test.jsx). For the full desk sequence and user actions, see [System workflows](docs/SYSTEM_WORKFLOWS.md) and [User manual](docs/USER_MANUAL.md).
 
-Deployment setup and rollout checkpoints are documented in [`docs/DEPLOYMENT_GUIDE.md`](docs/DEPLOYMENT_GUIDE.md) and [`docs/PROGRESS.md`](docs/PROGRESS.md). The live site and the latest `dev` changes can differ; review and validate branch changes before promoting them. Code follows the layered structure in [`docs/CODING_PREFERENCES.md`](docs/CODING_PREFERENCES.md).
+Deployment setup and rollout checkpoints are documented in [`docs/DEPLOYMENT_GUIDE.md`](docs/DEPLOYMENT_GUIDE.md) and [`docs/PROGRESS.md`](docs/PROGRESS.md). The latest UI work also implements the main TRACE Figma support workspace, compact chat and separate evaluation discussion, preserving existing ticket authorization and retry-safe messaging. The live site and the latest `dev` changes can differ; review and validate branch changes before promoting them. Code follows the layered structure in [`docs/CODING_PREFERENCES.md`](docs/CODING_PREFERENCES.md).
 
 ---
 

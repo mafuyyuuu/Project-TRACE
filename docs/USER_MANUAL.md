@@ -300,3 +300,10 @@ The catalog starts empty. Add only approved programs; TRACE does not infer a pro
 ## Revision 2 report/export update
 
 All report roles use the same Filters & Export modal. Name matching is a literal case-insensitive substring; student ID is exact. College/Department maps to the College catalog. Secretary scope is enforced on the server. Finance dates describe payment clearance and select complete request groups; its CSV contains one row per document in those groups, with per-document amounts. Other document exports use one row per matching document. Shared CSV timestamps include +08:00, money is numeric PHP and blank values are not invented. A document export above 10,000 rows asks for narrower filters. See [BATCH9_ACCEPTANCE.md](BATCH9_ACCEPTANCE.md) and the [deployment checklist](DEPLOYMENT_CHECKLIST.md).
+
+
+## Revision 2 Batch 10 — Support / Messaging UI
+
+Support now follows the main TRACE Figma two-column layout, with aligned readable ticket rows, local search of loaded authorized metadata, contextual linked-case viewing, a labeled confirmed availability switch and a primary Window 1 claim action. Success feedback uses dismissible toasts; failures and confirmations remain in context. The compact widget preserves drafts across close/reopen. Digital evaluation separates discussion into a side panel or a mobile view without discarding either draft. Existing ticket/desk/college authorization, FAQ/reply/requirement actions, service hours and queue assignment remain; no new staff chat connection or unsupported presence/read/unread data is added.
+
+See [BATCH10_ACCEPTANCE.md](BATCH10_ACCEPTANCE.md) for the screenshots, walkthrough and local evidence. Batch 10 adds **no migration or environment variable**; [DEPLOYMENT_CHECKLIST.md](DEPLOYMENT_CHECKLIST.md) tracks required earlier migrations. These are repository changes for dev, not a claim that the live site is updated.

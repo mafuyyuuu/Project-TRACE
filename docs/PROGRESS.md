@@ -1,3 +1,23 @@
+## Revision 2 Batch 10 — Support / Messaging UI — completion — 2026-10-11
+
+TRACE-61/62/63/64/65/66 now use the main TRACE Figma conversation layout and local original illustration/icons. Shared rows fix selection contrast/alignment; header controls distinguish confirmed availability, primary FCFS claiming and creation. Linked-case viewing sits in selected context. Local search covers loaded authorized ticket metadata, with no invented unread/presence/read/snippet data. Success toasts stack outside layout; errors and confirmation behavior remain. Full/compact conversations preserve FAQ, reply clocks, protected files, requirements, cursor history and retry-safe sends. The compact widget retains drafts across close/reopen and restores focus; digital evaluation separates persistent form/discussion panels with a mobile switch and pinned decisions.
+
+Verification: 876 frontend tests in 94 files pass, followed by 26 final focused regressions. Existing backend support/attachment regressions pass 31 tests in 2 files. Lint/build/whitespace checks pass; 64 mocked Chromium role/theme/width cases plus 200% text, drawer keyboard focus/restoration, independent scrolling, composer reachability, reduced motion and local assets pass. Screenshots and walkthrough are in [BATCH10_ACCEPTANCE.md](BATCH10_ACCEPTANCE.md). No live database, physical-phone or delivery claim is made.
+
+No new migration, environment variable, API contract, dependency or staff chat connection. [DEPLOYMENT_CHECKLIST.md](DEPLOYMENT_CHECKLIST.md) records Batch 10 as None and retains previous migration prerequisites. Publication is to dev only; no main merge, live migration or deployment. Next: newer guide Batch 11, Support Analytics (TRACE-69/70).
+
+---
+
+## Revision 2 Batch 10 — Support / Messaging UI — findings — 2026-10-11
+
+Scope: TRACE-61/62/63/64/65/66. Inspected the main TRACE Figma workspace (260:3301) and compact empty/conversation frames (254:987, 258:1093), plus the three supplied reference images. Staff chat connections remain deferred; this batch preserves the existing ticket/desk/college rules.
+
+Findings before edits: SupportWorkspace uses centered trace-button markup for every queue row and its selected aria-pressed secondary styles conflict with the pale surface. The header mixes availability, queue claiming, creation and administration; “Open linked case” opens a new-ticket form. Action notices occupy the list layout. SupportConversation already has protected attachments, reply/FAQ/requirements actions, cursor history and duplicate-safe sends, but mixes queue/hours notices with context and uses broad card-like messages. SecretaryEvaluationModal embeds a 70dvh support workspace below form fields, making one long scroll. FloatingSupportChat lacks Escape/focus restoration and discards drafts on close. The API has no unread/read-receipt/presence or last-message snippet fields; local search will clearly search loaded authorized ticket metadata and show real status/context instead of fabricated message metadata. No new backend capability or DDL is planned.
+
+Findings recorded before source edits; implementation and final evidence are recorded above. Publication remains dev only; no main merge, live migration or deployment.
+
+---
+
 ## Revision 2 Batch 9 — Reports & Export — 2026-10-11
 
 TRACE-58/59/60: all report/export configuration now uses the shared Filters & Export modal across Admin, Window 1, Secretary and Finance. Draft/Apply/Reset/Cancel semantics prevent keystrokes from changing reports; current-scope/pending/error guards protect exports. Student ID/name, authoritative college and document type filters are validated server-side and share row/KPI/export scope. Secretary filters cannot expand its assigned college. The shared 36-column document CSV uses complete filtered sets, explicit Manila timestamps, numeric PHP values, recorded fees and safe formula/RFC quoting; oversized document exports refuse rather than truncate. Finance retains complete payment groups on screen and exports one row per document in those groups. Separate student-category exports retain their own row unit and apply identity/college filters.

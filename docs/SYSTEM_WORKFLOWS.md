@@ -339,3 +339,10 @@ stateDiagram-v2
 Staff-opened linked cases and imported histories begin Queued. One unresolved general ticket per student and one live ticket per Window 1 clerk are enforced by locks and database uniqueness. Closed/cancelled document cases remain read-only regardless of support state. FAQ is maintained text; human/live support phrases and Talk to staff escalate the same ticket. Defaults are Mon–Thu 08:00–16:00 Manila; explicit response clocks pause outside hours and retain their starting settings. Availability/position are durable; ETA requires observed handling samples and available capacity.
 
 The composer stays below an independently scrolling history. Ticket/message/requirement cursors keep older records reachable. Approved supporting-document IDs prevent ordinary duplicates, while rejected uploads and explicit replacements preserve versions/events. Cancellation retains history and private file authorization. See [USER_MANUAL.md](USER_MANUAL.md#6-get-support-and-submit-case-documents) for user steps and [SUPPORT_DESIGN.md](SUPPORT_DESIGN.md) for metrics/permissions.
+
+
+## Revision 2 Batch 10 — Support / Messaging UI
+
+Support now follows the main TRACE Figma two-column layout, with aligned readable ticket rows, local search of loaded authorized metadata, contextual linked-case viewing, a labeled confirmed availability switch and a primary Window 1 claim action. Success feedback uses dismissible toasts; failures and confirmations remain in context. The compact widget preserves drafts across close/reopen. Digital evaluation separates discussion into a side panel or a mobile view without discarding either draft. Existing ticket/desk/college authorization, FAQ/reply/requirement actions, service hours and queue assignment remain; no new staff chat connection or unsupported presence/read/unread data is added.
+
+See [BATCH10_ACCEPTANCE.md](BATCH10_ACCEPTANCE.md) for the screenshots, walkthrough and local evidence. Batch 10 adds **no migration or environment variable**; [DEPLOYMENT_CHECKLIST.md](DEPLOYMENT_CHECKLIST.md) tracks required earlier migrations. These are repository changes for dev, not a claim that the live site is updated.

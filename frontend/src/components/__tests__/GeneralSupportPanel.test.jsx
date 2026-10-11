@@ -6,6 +6,7 @@ import * as api from '@/services/supportTicketsService';
 import { getMessageThreads } from '@/services/documentMessagesService';
 vi.mock('@/services/supportTicketsService', () => ({getTickets:vi.fn(),getTicket:vi.fn(),getSupportSettings:vi.fn(),getSupportFaq:vi.fn(),createTicket:vi.fn(),sendTicketMessage:vi.fn(),ticketAction:vi.fn(),ticketFaq:vi.fn(),claimSupportTicket:vi.fn(),setSupportAvailability:vi.fn(),saveSupportSettings:vi.fn()}));
 vi.mock('@/services/documentMessagesService', () => ({getMessageThreads:vi.fn()}));
+vi.mock('@/components/RequestAttachments',()=>({default:({documentId})=><div aria-label="Synthetic linked attachments">Authorized case {documentId}</div>}));
 vi.mock('@/services/realtimeService', () => ({onNotification:vi.fn(() => () => {})}));
 const student = {id:3,role:'student',full_name:'Synthetic student'};
 const desk = {id:7,role:'clerk',desk_assignment:'Window 1'};
@@ -100,4 +101,93 @@ it('reaches older capped ticket and message pages without Previous/Next controls
  expect(api.getTickets).toHaveBeenCalledWith(11,expect.any(AbortSignal));
  expect(api.getTicket).toHaveBeenCalledWith('11',80,expect.any(AbortSignal));
  expect(screen.queryByRole('button',{name:/^(Previous|Next)$/})).not.toBeInTheDocument();
+});
+it('confirms availability before saving and announces success outside the queue', async () => {
+  render(<RequestMessagesPanel user={desk} />);
+  const availability = await screen.findByRole('switch',{name:'Live support availability'});
+  expect(availability).toHaveAttribute('aria-checked','false');
+  expect(screen.getByRole('button',{name:'Claim oldest ticket'})).toBeDisabled();
+  api.setSupportAvailability.mockResolvedValue({available:true});
+  api.getSupportSettings.mockResolvedValue({settings,can_manage:false,available:true});
+  fireEvent.click(availability);
+  expect(api.setSupportAvailability).not.toHaveBeenCalled();
+  fireEvent.click(screen.getByRole('button',{name:'Confirm'}));
+  const notification = await screen.findByRole('complementary',{name:'Support action notifications'});
+  expect(notification).toHaveTextContent('Live support availability: Available.');
+  expect(notification.closest('[aria-label="Support workspace"]')).toBeNull();
+  expect(screen.queryByText('Support action saved.')).not.toBeInTheDocument();
+  expect(availability).toHaveAttribute('aria-checked','true');
+  fireEvent.click(screen.getByRole('button',{name:'Dismiss Live support availability: Available.'}));
+  expect(screen.queryByRole('complementary',{name:'Support action notifications'})).not.toBeInTheDocument();
+});
+it('keeps a failed availability action in its confirmation without a success toast', async () => {
+  render(<RequestMessagesPanel user={desk} />);
+  api.setSupportAvailability.mockRejectedValue({response:{data:{error:'Synthetic save failed'}}});
+  fireEvent.click(await screen.findByRole('switch',{name:'Live support availability'}));
+  fireEvent.click(screen.getByRole('button',{name:'Confirm'}));
+  expect(await screen.findByRole('dialog',{name:'Confirm Support Action'})).toHaveTextContent('Synthetic save failed');
+  expect(screen.queryByRole('complementary',{name:'Support action notifications'})).not.toBeInTheDocument();
+});
+it('searches only loaded authorized ticket metadata without another server request', async () => {
+  api.getTickets.mockResolvedValue({tickets:[ticket,{...ticket,id:12,subject:'Receipt question',student_name:'Synthetic Alvarez',tracking_number:'SYN-RECEIPT'}],next_cursor:11});
+  render(<RequestMessagesPanel user={student} />);
+  await screen.findByRole('button',{name:/Receipt question/});
+  const calls=api.getTickets.mock.calls.length;
+  fireEvent.change(screen.getByRole('searchbox',{name:'Search loaded tickets'}),{target:{value:'Alvarez'}});
+  expect(screen.getByRole('button',{name:/Receipt question/})).toBeInTheDocument();
+  expect(screen.queryByRole('button',{name:/#11 Synthetic help/})).not.toBeInTheDocument();
+  expect(api.getTickets).toHaveBeenCalledTimes(calls);
+  expect(screen.getByRole('button',{name:'Load older tickets'})).toBeInTheDocument();
+});
+it('keeps the widget message and file drafts across Escape and reopen, restoring launcher focus', async () => {
+  render(<FloatingSupportChat user={student} />);
+  const launcher=screen.getByRole('button',{name:'Open registrar support'}); launcher.focus();fireEvent.click(launcher);
+  const input=await screen.findByLabelText('Message');fireEvent.change(input,{target:{value:'Keep this draft'}});
+  fireEvent.change(screen.getByLabelText('Attach chat files'),{target:{files:[new File(['synthetic'],'retained.pdf',{type:'application/pdf'})]}});
+  fireEvent.keyDown(document,{key:'Escape'});
+  expect(screen.queryByRole('region',{name:'Window 1 support'})).not.toBeInTheDocument();
+  expect(screen.getByRole('button',{name:'Open registrar support'})).toHaveFocus();
+  fireEvent.click(screen.getByRole('button',{name:'Open registrar support'}));
+  expect(await screen.findByLabelText('Message')).toHaveValue('Keep this draft');
+  expect(screen.getByRole('button',{name:'Remove retained.pdf'})).toBeInTheDocument();
+  expect(api.sendTicketMessage).not.toHaveBeenCalled();
+});
+it('lets a ticket confirmation consume Escape before closing the compact widget', async () => {
+  render(<FloatingSupportChat user={student} />);fireEvent.click(screen.getByRole('button',{name:'Open registrar support'}));
+  fireEvent.click(await screen.findByRole('button',{name:'Talk to staff'}));
+  fireEvent.keyDown(document,{key:'Escape'});
+  expect(screen.queryByRole('dialog',{name:'Confirm Support Action'})).not.toBeInTheDocument();
+  expect(screen.getByRole('region',{name:'Window 1 support'})).toBeInTheDocument();
+  expect(api.ticketAction).not.toHaveBeenCalled();
+});
+it('keeps ticket timestamps and date separators real and separates queue notices from context', async () => {
+  api.getTicket.mockResolvedValue({...read({state:'QUEUED'}),messages:[{id:1,sender_id:3,message:'Synthetic dated message',created_at:'2026-10-10T17:10:00Z'}],window:{open:false,next_opens_at:'2026-10-12T00:00:00Z'}});
+  render(<RequestMessagesPanel user={student} />);
+  expect(await screen.findByText('October 11, 2026 · Manila')).toBeInTheDocument();
+  expect(screen.getByRole('complementary',{name:'Support hours and queue'})).toHaveTextContent('Next opening');
+  expect(screen.getByLabelText('Ticket context and actions')).not.toHaveTextContent('Next opening');
+  expect(screen.queryByText('Sent')).not.toBeInTheDocument();
+});
+
+it('opens the selected linked case context without creating another ticket', async () => {
+ api.getTicket.mockResolvedValue(read({category:'linked',document_id:42,tracking_number:'SYN-42',document_type:'Diploma'}));
+ render(<RequestMessagesPanel user={student} />);
+ fireEvent.click(await screen.findByRole('button',{name:'Open linked case'}));
+ expect(await screen.findByRole('dialog',{name:'Linked request'})).toHaveTextContent('SYN-42');
+ expect(screen.getByLabelText('Synthetic linked attachments')).toHaveTextContent('Authorized case 42');
+ expect(api.createTicket).not.toHaveBeenCalled();
+});
+it('stacks consecutive successful actions and dismisses them on navigation', async () => {
+ render(<RequestMessagesPanel user={desk} />);
+ const availability=await screen.findByRole('switch',{name:'Live support availability'});
+ api.setSupportAvailability.mockResolvedValue({available:true});
+ api.getSupportSettings.mockResolvedValue({settings,can_manage:false,available:true});
+ fireEvent.click(availability);fireEvent.click(screen.getByRole('button',{name:'Confirm'}));
+ await screen.findByRole('button',{name:'Dismiss Live support availability: Available.'});
+ api.getSupportSettings.mockResolvedValue({settings,can_manage:false,available:false});
+ fireEvent.click(availability);fireEvent.click(screen.getByRole('button',{name:'Confirm'}));
+ expect(await screen.findByRole('button',{name:'Dismiss Live support availability: Unavailable.'})).toBeInTheDocument();
+ expect(screen.getByRole('button',{name:'Dismiss Live support availability: Available.'})).toBeInTheDocument();
+ fireEvent(window,new Event('trace:notification-navigation'));
+ expect(screen.queryByRole('complementary',{name:'Support action notifications'})).not.toBeInTheDocument();
 });

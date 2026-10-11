@@ -391,3 +391,10 @@ Ticket list/history use bounded ID cursors (20/50 rows). Requirement history has
 Multipart chat writes authorize before upload and validate at most 3 × 5 MB JPEG/PNG/PDF files by actual parser/decode, bounded workers and queue, before transactional acceptance. Failed/duplicate files are removed; accepted files are random-named, private/no-store/nosniff and scoped to the ticket. Case requirements retain their separate 10 MB allowance. Content parsing is not antivirus scanning.
 
 Metrics are available to Admin/Window 1 at `/metrics`, with strict dates, bounded datasets, median/p90, denominators and missing values. Aggregated support insight payloads go to the existing Flask `/ai/support-insights`; no raw chats, identities or credentials are sent. This is descriptive rule-based advice, distinct from the document forecast/Random Forest prototype. See [SUPPORT_DESIGN.md](SUPPORT_DESIGN.md), [SUPPORT_VALIDATION.md](SUPPORT_VALIDATION.md) and the rollout guide for explicit migrations and measured scope.
+
+
+## Revision 2 Batch 10 — Support / Messaging UI
+
+Support now follows the main TRACE Figma two-column layout, with aligned readable ticket rows, local search of loaded authorized metadata, contextual linked-case viewing, a labeled confirmed availability switch and a primary Window 1 claim action. Success feedback uses dismissible toasts; failures and confirmations remain in context. The compact widget preserves drafts across close/reopen. Digital evaluation separates discussion into a side panel or a mobile view without discarding either draft. Existing ticket/desk/college authorization, FAQ/reply/requirement actions, service hours and queue assignment remain; no new staff chat connection or unsupported presence/read/unread data is added.
+
+See [BATCH10_ACCEPTANCE.md](BATCH10_ACCEPTANCE.md) for the screenshots, walkthrough and local evidence. Batch 10 adds **no migration or environment variable**; [DEPLOYMENT_CHECKLIST.md](DEPLOYMENT_CHECKLIST.md) tracks required earlier migrations. These are repository changes for dev, not a claim that the live site is updated.

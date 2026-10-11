@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import * as service from '@/services/supportTicketsService';
+import useSupportFeedback from '@/hooks/useSupportFeedback';
 import { onNotification } from '@/services/realtimeService';
 const message = (error, fallback) => error.response?.data?.error || fallback;
 const merge = (old, incoming) => [...new Map([...old, ...incoming].map(row => [String(row.id), row])).values()].sort((a,b) => Number(b.id)-Number(a.id));
@@ -8,7 +9,8 @@ export default function useSupportTickets(user,initialDocumentId) {
   const [loading,setLoading] = useState(true), [error,setError] = useState('');
   const [settings,setSettings] = useState(null), [topics,setTopics] = useState([]);
   const [selected,setSelected] = useState(() => new URLSearchParams(window.location.search).get('ticket') || '');
-  const [busy,setBusy] = useState(false), [notice,setNotice] = useState('');
+  const [busy,setBusy] = useState(false);
+  const feedback = useSupportFeedback();
   const owner = useRef(null), read = useRef(null), pending = useRef(false), initial = useRef(true);
   const refresh = useCallback(async (before = null) => {
     if (!owner.current || read.current) return;
@@ -48,7 +50,7 @@ export default function useSupportTickets(user,initialDocumentId) {
   },[user.id,initialDocumentId]);
   const execute = async action => {
     if (pending.current) return false;
-    const identity = owner.current; pending.current = true; setBusy(true); setError(''); setNotice('');
+    const identity = owner.current; pending.current = true; setBusy(true); setError('');
     try {
       const result = await (action.kind === 'create' ? service.createTicket(action.payload)
         : action.kind === 'claim' ? service.claimSupportTicket()
@@ -56,10 +58,10 @@ export default function useSupportTickets(user,initialDocumentId) {
         : service.saveSupportSettings(action.settings));
       if (owner.current !== identity) return true;
       if (result?.id) { setTickets(previous => merge(previous,[result])); setSelected(String(result.id)); }
-      setNotice(action.kind === 'claim' && !result?.id ? 'No eligible ticket is waiting.' : 'Support action saved.');
+      feedback.notify(action.kind === 'claim' ? result?.id ? `Ticket #${result.id} is ready for you.` : 'No eligible ticket is waiting.' : action.kind === 'availability' ? `Live support availability: ${action.available ? 'Available' : 'Unavailable'}.` : action.kind === 'create' ? `Ticket #${result.id} opened.` : 'Support settings saved.');
       await refresh(); await loadContext(); return true;
     } catch (err) { if (identity === owner.current) setError(message(err,'Could not confirm saving. Keep your draft and retry.')); return false; }
     finally { pending.current = false; if (identity === owner.current) setBusy(false); }
   };
-  return { tickets,cursor,loading,error,settings,topics,selected,setSelected,busy,notice,execute,refresh, retry: () => { void refresh(); void loadContext(); } };
+  return { tickets,cursor,loading,error,settings,topics,selected,setSelected,busy,feedback,execute,refresh, retry: () => { void refresh(); void loadContext(); } };
 }

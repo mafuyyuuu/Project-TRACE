@@ -556,3 +556,10 @@ Reconcile unresolved legacy colleges explicitly using Admin's evidence-based con
 ## Revision 2 Batch 9 — Reports & Export
 
 No new migration or environment variable. Reporting uses existing catalog, fee-schedule, receipt/payment-method and Batch 8 routing columns. Use the matching API/frontend, run the read-only schema preflight and verify a filtered CSV on staging. The 29-script preserving order above is unchanged. See [DEPLOYMENT_CHECKLIST.md](DEPLOYMENT_CHECKLIST.md) for the consolidated batch ledger, pending-by-this-work scripts and final rollout steps; do not rerun older data migrations solely for this UI update.
+
+
+## Revision 2 Batch 10 — Support / Messaging UI
+
+Support now follows the main TRACE Figma two-column layout, with aligned readable ticket rows, local search of loaded authorized metadata, contextual linked-case viewing, a labeled confirmed availability switch and a primary Window 1 claim action. Success feedback uses dismissible toasts; failures and confirmations remain in context. The compact widget preserves drafts across close/reopen. Digital evaluation separates discussion into a side panel or a mobile view without discarding either draft. Existing ticket/desk/college authorization, FAQ/reply/requirement actions, service hours and queue assignment remain; no new staff chat connection or unsupported presence/read/unread data is added.
+
+See [BATCH10_ACCEPTANCE.md](BATCH10_ACCEPTANCE.md) for the screenshots, walkthrough and local evidence. Batch 10 adds **no migration or environment variable**; [DEPLOYMENT_CHECKLIST.md](DEPLOYMENT_CHECKLIST.md) tracks required earlier migrations. These are repository changes for dev, not a claim that the live site is updated.
