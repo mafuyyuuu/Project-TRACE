@@ -199,7 +199,7 @@ export default function AnalyticsPanel({ user, currentTab }) {
             </table>
           </div>
         </div>
-        <div className="trace-section trace-section-body"><SupportAnalytics /></div>
+        <SupportAnalytics />
       </div>
     </>
   );

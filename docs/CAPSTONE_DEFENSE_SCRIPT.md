@@ -243,3 +243,9 @@ Thank you very much for your time, your attention, and the opportunity to presen
 Support now follows the main TRACE Figma two-column layout, with aligned readable ticket rows, local search of loaded authorized metadata, contextual linked-case viewing, a labeled confirmed availability switch and a primary Window 1 claim action. Success feedback uses dismissible toasts; failures and confirmations remain in context. The compact widget preserves drafts across close/reopen. Digital evaluation separates discussion into a side panel or a mobile view without discarding either draft. Existing ticket/desk/college authorization, FAQ/reply/requirement actions, service hours and queue assignment remain; no new staff chat connection or unsupported presence/read/unread data is added.
 
 See [BATCH10_ACCEPTANCE.md](BATCH10_ACCEPTANCE.md) for the screenshots, walkthrough and local evidence. Batch 10 adds **no migration or environment variable**; [DEPLOYMENT_CHECKLIST.md](DEPLOYMENT_CHECKLIST.md) tracks required earlier migrations. These are repository changes for dev, not a claim that the live site is updated.
+
+## Revision 2 Batch 11 — short analytics walkthrough
+
+“Here, Support Analytics reports ticket service separately from document processing. These cards summarize recorded ticket volume, escalations, backlog, FAQ actions and staff episodes. Each card includes its cohort or denominator. The statistical table keeps median, p90, samples and missing measurements in minutes. No data does not mean zero, and service time excludes the Awaiting Student pause while wall time includes it. These demonstration records are synthetic; they illustrate the interface rather than measured institutional results.”
+
+[Walkthrough and screenshots](BATCH11_ACCEPTANCE.md).

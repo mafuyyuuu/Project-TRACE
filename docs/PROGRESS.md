@@ -1,3 +1,21 @@
+## Revision 2 Batch 11 — Support Analytics — completion — 2026-10-11
+
+TRACE-69/70 now use the Admin Figma dashboard (93:663) card hierarchy for six recorded support KPI summaries, detailed categories/backlog and borderless semantic duration/FAQ/workload tables. Reporting period, imported-cohort exclusions, FAQ denominators, historical cutoff, service/wall minutes, episode counts and missing-versus-zero distinctions remain. Tables have contained scrolling, aligned values and readable No data; the parent no longer nests the whole view inside another card. Date drafts stay explicit Apply, and refresh failures retain labeled previous results for retry. Backend/AI calculations, endpoints and permissions are unchanged.
+
+Local verification: full frontend suite passes 887 tests in 95 files; final focused analytics suite passes 10 tests in 2 files. Existing backend metric/report regressions pass 15 tests in 2 files. Lint, production/PWA build and whitespace checks pass. Chromium passes 80 state/width/theme/text-size cases, plus keyboard scrolling/focus, No data contrast, stationary informational hover, reduced motion and draft/error/retry checks. Screenshots and an account-free walkthrough are in [BATCH11_ACCEPTANCE.md](BATCH11_ACCEPTANCE.md); synthetic checks do not establish live metric outcomes or physical-phone acceptance.
+
+No new migration, environment variable, API contract or dependency. [DEPLOYMENT_CHECKLIST.md](DEPLOYMENT_CHECKLIST.md) records Batch 11 as None and retains previous prerequisites. Publication remains dev only; no main merge, live migration or deployment. Next: newer guide Batch 12, Finance Receipts.
+
+---
+
+## Revision 2 Batch 11 — Support Analytics — inspection and implementation — 2026-10-11
+
+TRACE-69/70 from the newer guide. Inspection found `SupportAnalytics.jsx` using scattered plain-text FAQ/category/backlog summaries and a boxed duration table, plus a surrounding AnalyticsPanel card duplicating its container. The existing API already supplies cohorts, FAQ denominators, historical backlog, service/wall durations, imported distinctions and workload episodes. The Admin Figma dashboard (93:663) supplies rounded white cards, a label/value/context hierarchy and soft green context strips; it has no dedicated Support Analytics frame. Decorative mock trends, baseline percentages and unrelated dashboard assets are outside this presentation scope.
+
+Implementation now groups recorded summaries into six KPI cards, categories/backlog tally panels and semantic, borderless duration/FAQ/workload tables. Date drafts remain explicit Apply; previous loaded period is labeled during refresh/failure; failures stay inline with retry. Measurement notes, units, missing-vs-zero, authorization and backend/AI definitions remain. No migration, API contract, environment variable or new dependency is planned. The inspection/implementation record is retained here; completion and verification are recorded above. No live database or deployment action.
+
+---
+
 ## Revision 2 Batch 10 — Support / Messaging UI — completion — 2026-10-11
 
 TRACE-61/62/63/64/65/66 now use the main TRACE Figma conversation layout and local original illustration/icons. Shared rows fix selection contrast/alignment; header controls distinguish confirmed availability, primary FCFS claiming and creation. Linked-case viewing sits in selected context. Local search covers loaded authorized ticket metadata, with no invented unread/presence/read/snippet data. Success toasts stack outside layout; errors and confirmation behavior remain. Full/compact conversations preserve FAQ, reply clocks, protected files, requirements, cursor history and retry-safe sends. The compact widget retains drafts across close/reopen and restores focus; digital evaluation separates persistent form/discussion panels with a mobile switch and pinned decisions.

@@ -113,3 +113,7 @@ The request reference shows a single-document select and estimated amount. TRACE
 ## Queue tabs and filters — Revision 2 Batch 8
 
 Use `QueueTabs` with a matching `QueuePanel` and a stable `idPrefix` for actual tab/tabpanel navigation. Use `semantics="filters"` for a button group that filters the same region. Preserve role-specific statuses, counts and action handlers. Put controls and the queue inside a `space-y-4` section for the shared 16 px gap; allow labels/counts to wrap. QueuePanel uses shared context motion keyed by the selected tab so reused DOM still animates; do not combine it with a competing CSS entrance transform or remount forms merely to animate them. Reduced motion removes the transition. Use shared pill classes rather than local capsule recipes.
+
+## Revision 2 Batch 11 — support analytics
+
+SupportAnalytics applies the Admin Figma dashboard (93:663) card hierarchy to recorded support metrics: rounded shared surfaces, prominent tabular values and soft sage/pine context strips. Use stationary `trace-card-info`, not whole-card controls. `trace-analytics-*` styles provide readable missing-value text, period context, tally panels and borderless semantic tables. All statistical columns remain in keyboard-focusable, contained scrollers with opaque sticky headers. Keep report formulas, denominators, imported distinctions and historical cutoff context; do not copy Figma mock graphs or baseline percentage changes. No additional entrance/hover animation or decorative asset is introduced.
