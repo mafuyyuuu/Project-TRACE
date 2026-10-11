@@ -37,6 +37,7 @@ vi.mock('@/services/authService', () => ({
 }));
 
 vi.mock('@/services/reportsService', () => ({
+  getReportFilterOptions: vi.fn().mockResolvedValue({colleges:[{id:4,name:'Synthetic College'}],document_types:[{id:1,name:'Diploma',is_active:1}],college_locked:false}),
   getAnalytics: vi.fn().mockResolvedValue({}),
   getDocumentReport: vi.fn(), exportStudentsCsv: vi.fn(), exportDocumentsCsv: vi.fn(),
 }));
@@ -442,11 +443,14 @@ it('keeps the old Secretary Completed Logs tab as a cleared-records alias, with 
   await screen.findByText(record.document_sequence_number);
   expect(screen.getByRole('heading', { name: 'Records & Export' })).toBeInTheDocument();
   expect(reportsService.getDocumentReport).toHaveBeenLastCalledWith({ recordSet: 'secretary-cleared', page: 1, limit: 25 });
+  await userEvent.click(screen.getByRole('button',{name:'Filters'}));
   expect(screen.getByRole('button', { name: 'Secretary-cleared' })).toHaveAttribute('aria-pressed', 'true');
   expect(screen.getAllByRole('columnheader')).toHaveLength(8);
+  await userEvent.click(screen.getByRole('button',{name:'Cancel'}));
   await userEvent.click(screen.getByRole('button', { name: DOC.student_name }));
   await waitFor(() => expect(authService.lookupStudent).toHaveBeenCalledWith(DOC.student_id, expect.anything()));
   rerender(<SecretaryDashboard user={USERS.secretary} currentTab="reports" />);
   await waitFor(() => expect(reportsService.getDocumentReport).toHaveBeenLastCalledWith({ page: 1, limit: 25 }));
+  await userEvent.click(screen.getByRole('button',{name:'Filters'}));
   expect(screen.getByRole('button', { name: 'All records' })).toHaveAttribute('aria-pressed', 'true');
 });

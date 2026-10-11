@@ -13,6 +13,7 @@ Use these statuses precisely:
 
 | Guide issues | Status and evidence |
 | --- | --- |
+| TRACE-58/59/60 — shared Filters modal, identity/college filters and complete CSV | Implemented / recorded local checks: [Batch 9 walkthrough](BATCH9_ACCEPTANCE.md), synthetic CSV, unit/browser checks. No new migration; staging row counts and physical-device acceptance remain pending. [Deployment ledger](DEPLOYMENT_CHECKLIST.md). |
 | TRACE-55/56/57/67/68 — intake requirements, shared queue pills, own-college scope and backup staff | Implemented / recorded local checks: [Batch 8 walkthrough](BATCH8_ACCEPTANCE.md), screenshots, security regressions and responsive browser checks. Admin-only reassignment is the approved policy. Preserving migration, matched rollout, real notification delivery and physical-device acceptance remain deployment work. |
 
 ## Shared presentation and account pages

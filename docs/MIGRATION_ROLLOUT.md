@@ -552,3 +552,7 @@ docker compose run --rm --no-deps -T backend node database/check_schema.js
 The migration adds `documents.routing_college_id`, `documents.routing_college_name` and `request_attachment_requirements.blocks_intake`. The last column defaults to false; historical requirements are not reclassified. Existing profiles/requests/history are not backfilled or normalized. Do not import schema.sql or seed.sql. Deploy the matching API/frontend after successful migration and preflight. No additional AI or n8n workflow import is needed for this batch.
 
 Reconcile unresolved legacy colleges explicitly using Admin's evidence-based confirmation. Existing routing snapshots and closed history stay protected. Test own-college lists/details/files/actions, a blocking intake requirement through acceptance, stale assignment rejection and physical handoff in staging. [BATCH8_ACCEPTANCE.md](BATCH8_ACCEPTANCE.md) records local evidence; no live migration/deployment was performed by the agent.
+
+## Revision 2 Batch 9 — Reports & Export
+
+No new migration or environment variable. Reporting uses existing catalog, fee-schedule, receipt/payment-method and Batch 8 routing columns. Use the matching API/frontend, run the read-only schema preflight and verify a filtered CSV on staging. The 29-script preserving order above is unchanged. See [DEPLOYMENT_CHECKLIST.md](DEPLOYMENT_CHECKLIST.md) for the consolidated batch ledger, pending-by-this-work scripts and final rollout steps; do not rerun older data migrations solely for this UI update.

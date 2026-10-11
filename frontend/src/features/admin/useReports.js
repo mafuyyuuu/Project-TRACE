@@ -1,5 +1,5 @@
 import useViewportPagination from '@/hooks/useViewportPagination';
-import { STATUS } from '@/utils/documentStatus';
+import { EMPTY_REPORT_FILTERS } from '@/utils/reportFilters';
 import { useState, useEffect, useCallback, useRef } from 'react';
 import {
   getDocumentReport,
@@ -8,14 +8,7 @@ import {
   exportDocumentsCsv,
 } from '@/services/reportsService';
 
-const EMPTY_FILTERS = {
-  dateFrom: '',
-  dateTo: '',
-  status: '',
-  documentType: '',
-  paymentStatus: '',
-  recordSet: '',
-};
+const EMPTY_FILTERS = EMPTY_REPORT_FILTERS;
 
 /**
  * Reporting and efficiency analytics for the Registrar.
@@ -33,6 +26,7 @@ export default function useReports(user, currentTab, initialRecordSet = '') {
   const [settledScope, setSettledScope] = useState(null);
   const loadSequence = useRef(0);
   const [exporting, setExporting] = useState('');
+  const exportPending = useRef(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
@@ -59,7 +53,7 @@ export default function useReports(user, currentTab, initialRecordSet = '') {
       try {
         const [r, a] = await Promise.allSettled([
           getDocumentReport({ ...nextFilters, page: nextPage, limit: pagination.pageSize }),
-          getAnalytics(nextFilters),
+          currentTab === 'admin-analytics' ? getAnalytics(nextFilters) : Promise.resolve(null),
         ]);
 
         if (sequence !== loadSequence.current) return;
@@ -77,7 +71,7 @@ export default function useReports(user, currentTab, initialRecordSet = '') {
     },
     // activeFilters is derived from `filters`, which is the real dependency.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [page, filters, pagination.pageSize]
+    [page, filters, pagination.pageSize, currentTab]
   );
 
   useEffect(() => {
@@ -85,37 +79,16 @@ export default function useReports(user, currentTab, initialRecordSet = '') {
     return () => { loadSequence.current += 1; };
   }, [isActive, load]);
 
-  const applyFilters = useCallback(() => {
-    setSettledScope(null);
-    setError('');
-    setPage(1);
-    load(1);
-  }, [load]);
-
-  const resetFilters = useCallback(() => {
-    setSettledScope(null);
-    setFilters(EMPTY_FILTERS);
-    setPage(1);
-    setError('');
-    load(1, {});
-  }, [load]);
-
-  const updateFilter = useCallback((key, value) => {
-    setFilters((current) => ({ ...current, [key]: value, ...(key === 'status' ? { recordSet: '' } : {}) }));
-  }, []);
-
-  const chooseRecordView = useCallback(view => {
-    setPage(1);
-    setFilters(current => ({ ...current, recordSet: view === 'cleared' ? 'secretary-cleared' : '', status: view === 'completed' ? STATUS.COMPLETED : '' }));
+  const applyFilters = useCallback(next => {
+    setSettledScope(null); setError(''); setPage(1); setFilters({...EMPTY_FILTERS,...next});
   }, []);
 
   const goToPage = useCallback(
     (nextPage) => {
       setSettledScope(null);
       setPage(nextPage);
-      load(nextPage);
     },
-    [load]
+    []
   );
 
   /**
@@ -123,19 +96,21 @@ export default function useReports(user, currentTab, initialRecordSet = '') {
    */
   const downloadStudents = useCallback(
     async (category) => {
-      setExporting(category);
+      if(exportPending.current || !report || refreshing) return;
+      exportPending.current=true; setExporting(category);
       try {
-        const filename = await exportStudentsCsv(category);
+        const filename = await exportStudentsCsv(category, activeFilters);
         setSuccess(`Exported ${filename}`);
         setError('');
-      } catch {
-        setError('Export failed.');
+      } catch (err) {
+        setError(err.response?.data?.error || 'Export failed.');
         setSuccess('');
       } finally {
-        setExporting('');
+        exportPending.current=false; setExporting('');
       }
     },
-    []
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [filters,report,refreshing]
   );
 
   const downloadDocuments = useCallback(async () => {
@@ -143,23 +118,24 @@ export default function useReports(user, currentTab, initialRecordSet = '') {
       setError('Wait for the current report to load before exporting. Apply Filters to retry if loading failed.');
       return;
     }
-    setExporting('documents');
+    if(exportPending.current) return;
+    exportPending.current=true; setExporting('documents');
     try {
       const filename = await exportDocumentsCsv(activeFilters);
       setSuccess(`Exported ${filename}`);
       setError('');
-    } catch {
-      setError('Export failed.');
+    } catch (err) {
+      setError(err.response?.data?.error || 'Export failed.');
       setSuccess('');
     } finally {
-      setExporting('');
+      exportPending.current=false; setExporting('');
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filters, report, refreshing]);
 
   return {
     tableRef: pagination.containerRef,
-    filters, updateFilter, chooseRecordView, applyFilters, resetFilters,
+    filters, applyFilters,
     report, analytics, page, goToPage,
     loading, refreshing, exporting, error, success,
     dismissNotification,

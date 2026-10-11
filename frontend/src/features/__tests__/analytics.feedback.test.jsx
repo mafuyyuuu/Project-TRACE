@@ -4,6 +4,7 @@ import AnalyticsPanel from '@/features/admin/components/AnalyticsPanel';
 import * as reportsService from '@/services/reportsService';
 
 vi.mock('@/services/reportsService', () => ({
+  getReportFilterOptions: vi.fn().mockResolvedValue({colleges:[{id:4,name:'Synthetic College'}],document_types:[{id:1,name:'Diploma',is_active:1}],college_locked:false}),
   getDocumentReport: vi.fn(),
   getAnalytics: vi.fn(),
   exportStudentsCsv: vi.fn(),

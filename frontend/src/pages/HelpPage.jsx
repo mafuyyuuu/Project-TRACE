@@ -29,7 +29,7 @@ export default function HelpPage({ user }) {
     ['Which ID do alumni use?', 'New alumni register and sign in with their Alumni ID. Existing alumni keep their current login identifier. If OCR cannot extract the Alumni ID, enter it manually.'],
     ['Why must I complete the Graduate Application?', 'Submit the Graduate Application before using the other alumni features. Its fields come from the Registrar’s configured form.']);
   if (['Window 1', 'Secretary'].includes(desk)) entries.unshift(
-    ['How do I export records?', 'Open Reports & Export, apply filters, select an export option, then choose Export. The document export follows the current filters.'],
+    ['How do I export records?', 'Open Reports & Export, choose Filters, edit the draft and Apply Filters. Select the dataset inside that modal and choose Export CSV. Cancel preserves the applied report; Reset clears only the draft. Document exports follow all applied filters; student datasets use ID/name/college filters.'],
   );
   if (user?.role === 'admin' || ['Window 1', 'Secretary', 'Finance'].includes(desk)) entries.unshift(
     ['How do I view a student’s full profile?', 'Choose the student’s name in a request or report list. The profile includes saved personal and educational details. Names without a resolved identifier cannot open a profile.'],
@@ -45,14 +45,14 @@ export default function HelpPage({ user }) {
   if (desk === 'Finance') entries.unshift(
     ['How do I record counter payments?', 'Record payment details and the actual Official Receipt number, or choose Later to defer issuance, then confirm. Receipt OCR is an aid; check its values yourself. New same-day OR issuance closes at 4:00 PM Manila time. Payment clearance sends an acknowledgment while the OR is pending.'],
     ['Can I issue or upload the receipt later?', 'Yes. Deferred OR upload requires the actual receipt number, issue date and digital copy. An existing recorded OR keeps its number. Students receive the digital copy when published; the issued receipt accompanies the document at release. Transactions & OR Copies shows elapsed time waiting for an OR, without promising an issue deadline.'],
-    ['How do I export Finance transactions?', 'Open the separate Transactions & OR Copies page. From/To are inclusive Manila dates. Filter by date and receipt state, use View OR for available private copies, then choose Export for CSV. A request with multiple documents appears once with its total payment.'],
+    ['How do I export Finance transactions?', 'Open Transactions & OR Copies and choose Filters. Apply the draft identity, college, document, inclusive Manila payment dates and OR-state filters; choose Export CSV inside the modal. The table shows complete payment groups, while CSV contains every document in those groups with per-document amounts. View OR still opens available private copies.'],
   );
   if (user?.role === 'admin') entries.unshift(
     ['Can I restore Good Moral or change the Diploma fee?', 'Good Moral types are retired and cannot be restored or edited. Historical requests remain on record. Diploma starts with a ₱250 reissue default; its configured fee remains editable and the Secretary sets the final amount.'],
     ['How do I set document availability and fees?', 'In System Maintenance → Document Types, choose Edit, set the fee, student/alumni/both audience and allowed colleges, then Save Changes and confirm. No selected colleges means all. Review unknown college assignments in Accounts. Counter types CTC, 2nd Copy of COR, 2nd Copy of OGR and CAV start as inactive fee drafts; review fees and requirements before activating.'],
     ['Where do I manage accounts?', 'Open System Maintenance → Accounts. Review account details and edit the supported fields. IDs remain read-only. Staff deactivation and temporary-password controls retain their existing permissions.'],
     ['How do I review pending registrations?', 'Use Account Verification → Review, inspect the proof, choose Verify or Reject, then confirm the decision. Pending registrations also appear in the notification bell.'],
-    ['How do I export records?', 'Open Reports & Export, apply filters, select an export option, then choose Export. The document export follows the current filters.'],
+    ['How do I export records?', 'Open Reports & Export, choose Filters, edit the draft and Apply Filters. Select the dataset inside that modal and choose Export CSV. Cancel preserves the applied report; Reset clears only the draft. Document exports follow all applied filters; student datasets use ID/name/college filters.'],
   );
   return <section className="trace-page w-full pb-6" aria-label="User Manual / FAQ">
     <h1 className="trace-page-title">User Manual / FAQ</h1>

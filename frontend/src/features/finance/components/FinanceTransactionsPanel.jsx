@@ -1,30 +1,30 @@
 import Button from '@/components/Button';
-import ExportDropdown from '@/components/ExportDropdown';
+import {useState} from 'react';
+import ReportFiltersModal from '@/components/ReportFiltersModal';
+import useReportFilterOptions from '@/hooks/useReportFilterOptions';
+import {EMPTY_FINANCE_FILTERS,appliedFilterSummary} from '@/utils/reportFilters';
 import { formatPeso } from '@/utils/pricing';
 import { formatDateTime } from '@/utils/formatters';
 import { receiptWait } from '@/utils/receiptTiming';
 export default function FinanceTransactionsPanel({ state, onUpload, onProfile, onViewReceipt }) {
+  const [filtersOpen,setFiltersOpen]=useState(false);
+  const reference=useReportFilterOptions(filtersOpen);
   return <section className="space-y-4 min-w-0" aria-label="Finance transactions and export">
     <div className="flex flex-wrap items-center justify-between gap-3">
-      <h2 className="trace-page-title">Transactions & OR Copies</h2>
+      <h2 className="trace-page-title min-w-0 max-w-full break-words">Transactions & OR Copies</h2>
       <div className="trace-actions ml-auto">
         <Button type="button" onClick={state.refresh} disabled={state.loading} className="trace-button trace-button-secondary">Refresh</Button>
-        <ExportDropdown exporting={state.exporting} options={[{ key: 'transactions', label: 'Filtered Finance transactions (CSV)' }]} onSelect={state.exportCsv} />
+        <Button type="button" className="trace-button trace-button-primary" onClick={()=>setFiltersOpen(true)}>Filters</Button>
       </div>
     </div>
     <p className="text-sm">Payment acknowledgment is separate from the Official Receipt. At or after 4:00 PM Manila time, new OR issuance is deferred. Waiting time is informational; no fixed issue deadline is promised.</p>
-    <div className="flex flex-wrap gap-3">
-      <label className="trace-label min-w-0 max-w-full">From<input type="date" value={state.filters.from} onChange={e => state.updateFilter('from', e.target.value)} className="trace-control block max-w-full" /></label>
-      <label className="trace-label min-w-0 max-w-full">To<input type="date" value={state.filters.to} onChange={e => state.updateFilter('to', e.target.value)} className="trace-control block max-w-full" /></label>
-      <label className="trace-label min-w-0 max-w-full">OR status<select value={state.filters.receipt} onChange={e => state.updateFilter('receipt', e.target.value)} className="trace-control block max-w-full">
-        <option value="all">All</option><option value="pending">Issuance pending</option><option value="copy-pending">Digital copy pending</option><option value="issued">Issued</option>
-      </select></label>
-    </div>
+    <p className="trace-page-description select-text" aria-label="Applied filters">{appliedFilterSummary(state.filters,reference.options)}</p>
+    {filtersOpen && <ReportFiltersModal filters={state.filters} defaults={EMPTY_FINANCE_FILTERS} options={reference.options} optionsLoading={reference.loading} optionsError={reference.error} onRetryOptions={reference.retry} onApply={state.applyFilters} onClose={()=>setFiltersOpen(false)} onExport={state.exportCsv} exporting={state.exporting} exportReady={!state.loading&&!state.loadFailed} finance error={state.error}/>}
     {state.error && <div role="alert" className="text-red-700 dark:text-red-300">{state.error} <Button type="button" onClick={state.refresh} className="trace-action underline">Retry</Button></div>}
-    {state.loading ? <p role="status">Loading payments…</p> : <>
+    {state.loading ? <p role="status">Loading payments…</p> : state.loadFailed ? null : <>
       <p className="font-bold">{state.total} cleared requests · {formatPeso(state.amount)}</p>
-      {!state.transactions.length ? <p>No cleared payments match these filters.</p> : <div className="overflow-x-auto rounded-xl border border-gray-200 dark:border-gray-700">
-        <table className="w-full min-w-[780px] text-sm text-left"><thead><tr className="bg-gray-50 dark:bg-gray-800">{['Request / documents', 'Student', 'Payment cleared', 'Paid amount', 'OR status', 'Actions'].map(label => <th key={label} className="p-3">{label}</th>)}</tr></thead>
+      {!state.transactions.length ? <p>No cleared payments match these filters.</p> : <div className="max-h-[60vh] overflow-y-auto overflow-x-auto rounded-xl border border-gray-200 dark:border-gray-700">
+        <table className="w-full min-w-[780px] text-sm text-left"><thead className="sticky top-0 bg-white dark:bg-gray-900 z-10"><tr className="bg-gray-50 dark:bg-gray-800">{['Request / documents', 'Student', 'Payment cleared', 'Paid amount', 'OR status', 'Actions'].map(label => <th key={label} className="p-3">{label}</th>)}</tr></thead>
           <tbody>{state.transactions.map(row => <tr key={row.request_group_id} className="border-t border-gray-200 dark:border-gray-700">
             <td className="p-3 select-text break-words">{row.request_group_id}<div>#{row.tracking_number}</div><div>{row.document_type}</div></td>
             <td className="p-3"><Button type="button" onClick={() => onProfile(row.student_id)} disabled={!row.student_id} className="trace-action text-blue-700 dark:text-blue-300 underline text-left">{row.student_name || row.student_id}</Button></td>

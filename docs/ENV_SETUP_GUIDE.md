@@ -1077,3 +1077,7 @@ Apply the additive [alumni study-year migration](MIGRATION_ROLLOUT.md#revision-2
 ## Revision 2 Batch 8 — intake and college scope
 
 No new environment variables. Existing databases need `node backend/database/migrate_request_intake_scope.js` after the request-attachment and Support-requirement prerequisites, followed by `node backend/database/check_schema.js`, before the matching backend/frontend start. It adds routing snapshots and the explicit intake-block flag without backfilling historical rows. Follow [MIGRATION_ROLLOUT.md](MIGRATION_ROLLOUT.md) for preserving deployment and [BATCH8_ACCEPTANCE.md](BATCH8_ACCEPTANCE.md) for workflows, screenshots and limits. The agent has not run this migration against a live database.
+
+## Revision 2 Batch 9 — Reports & Export
+
+No schema or environment changes in Batch 9. Deploy the matching API/frontend after the previously required migrations. [DEPLOYMENT_CHECKLIST.md](DEPLOYMENT_CHECKLIST.md) is the consolidated migration ledger to review before the final deployment; [BATCH9_ACCEPTANCE.md](BATCH9_ACCEPTANCE.md) records the filter semantics and changed shared CSV contract.

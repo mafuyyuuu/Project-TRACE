@@ -5,6 +5,7 @@
  * whole table when the Registrar asked for one month — so the tests assert the
  * filters actually reach the query.
  */
+const referenceModel = require('../../models/referenceData.model');
 const reportModel = require('../../models/report.model');
 const userModel = require('../../models/user.model');
 const service = require('../reports.service');
@@ -17,6 +18,8 @@ const statusOf = (p) => p.then(() => undefined, (e) => e.status);
 const messageOf = (p) => p.then(() => '', (e) => e.message);
 
 beforeEach(() => {
+  vi.spyOn(referenceModel,'findCollegeById').mockResolvedValue([{id:4,name:'College Four',is_active:1}]);
+  vi.spyOn(referenceModel,'findDocumentTypeByName').mockResolvedValue([{name:'Diploma'}]);
   vi.spyOn(userModel, 'findCourseById').mockResolvedValue([{ college_id: 4, course: 'College Four' }]);
   vi.spyOn(reportModel, 'listDocumentsForReport').mockResolvedValue([]);
   vi.spyOn(reportModel, 'countDocumentsForReport').mockResolvedValue(0);
@@ -36,7 +39,7 @@ beforeEach(() => {
 describe('Secretary records workspace', () => {
   const secretary = { id: 8, role: 'clerk', desk_assignment: 'Secretary' };
   it('uses the assigned college and Ready + Completed for list, KPI and filtered CSV', async () => {
-    const query = { recordSet: 'secretary-cleared', dateFrom: '2026-10-01', paymentStatus: 'PAID', collegeId: 999 };
+    const query = { recordSet: 'secretary-cleared', dateFrom: '2026-10-01', paymentStatus: 'PAID', collegeId: 4 };
     await service.getDocumentReport(secretary, query);
     await service.exportDocumentsCsv(secretary, query);
     const filters = reportModel.listDocumentsForReport.mock.calls[0][0];
@@ -97,19 +100,19 @@ describe('document report filters', () => {
   it('passes every supplied filter through to the query', async () => {
     await service.getDocumentReport(ADMIN, {
       dateFrom: '2026-08-01', dateTo: '2026-08-31',
-      status: 'completed', documentType: 'Diploma', paymentStatus: 'PAID',
+      status: 'COMPLETED', documentType: 'Diploma', paymentStatus: 'PAID',
     });
     expect(reportModel.listDocumentsForReport).toHaveBeenCalledWith(
       expect.objectContaining({
         dateFrom: '2026-08-01', dateTo: '2026-08-31',
-        status: 'completed', documentType: 'Diploma', paymentStatus: 'PAID',
+        status: 'COMPLETED', documentType: 'Diploma', paymentStatus: 'PAID',
       }),
       expect.any(Object)
     );
   });
 
   it('filters the summary by exactly the same slice as the rows', async () => {
-    await service.getDocumentReport(ADMIN, { status: 'completed' });
+    await service.getDocumentReport(ADMIN, { status: 'COMPLETED' });
     const rowFilters = reportModel.listDocumentsForReport.mock.calls[0][0];
     const summaryFilters = reportModel.summariseDocuments.mock.calls[0][0];
     expect(summaryFilters).toEqual(rowFilters);
@@ -199,16 +202,16 @@ describe('student CSV export', () => {
 
 describe('document CSV export', () => {
   it('applies the same filters as the on-screen report', async () => {
-    await service.exportDocumentsCsv(ADMIN, { status: 'completed', dateFrom: '2026-08-01' });
+    await service.exportDocumentsCsv(ADMIN, { status: 'COMPLETED', dateFrom: '2026-08-01' });
     expect(reportModel.listDocumentsForReport).toHaveBeenCalledWith(
-      expect.objectContaining({ status: 'completed', dateFrom: '2026-08-01' }),
+      expect.objectContaining({ status: 'COMPLETED', dateFrom: '2026-08-01' }),
       expect.any(Object)
     );
   });
 
   it('caps the export rather than serialising the whole table', async () => {
     await service.exportDocumentsCsv(ADMIN, {});
-    expect(reportModel.listDocumentsForReport.mock.calls[0][1].limit).toBe(10000);
+    expect(reportModel.listDocumentsForReport.mock.calls[0][1].limit).toBe(10001);
   });
 
   it('validates dates before running the query', async () => {

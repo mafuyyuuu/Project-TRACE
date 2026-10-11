@@ -1,3 +1,11 @@
+## Revision 2 Batch 9 — Reports & Export — 2026-10-11
+
+TRACE-58/59/60: all report/export configuration now uses the shared Filters & Export modal across Admin, Window 1, Secretary and Finance. Draft/Apply/Reset/Cancel semantics prevent keystrokes from changing reports; current-scope/pending/error guards protect exports. Student ID/name, authoritative college and document type filters are validated server-side and share row/KPI/export scope. Secretary filters cannot expand its assigned college. The shared 36-column document CSV uses complete filtered sets, explicit Manila timestamps, numeric PHP values, recorded fees and safe formula/RFC quoting; oversized document exports refuse rather than truncate. Finance retains complete payment groups on screen and exports one row per document in those groups. Separate student-category exports retain their own row unit and apply identity/college filters.
+
+Local checks: 1,374 backend / 866 frontend tests pass, followed by 49 focused final regressions; lint/build and whitespace checks pass. Responsive synthetic browser evidence and the sample CSV are in [BATCH9_ACCEPTANCE.md](BATCH9_ACCEPTANCE.md). No new migration in this batch; [DEPLOYMENT_CHECKLIST.md](DEPLOYMENT_CHECKLIST.md) consolidates Batch 7/8 migrations and prerequisites for the final rollout. No live migration, merge to main or deployment is included. Next: newer guide Batch 10 (Support / Messaging UI).
+
+---
+
 ## Revision 2 Batch 8 — Intake / College Scope / Staff Assignment — 2026-10-10
 
 Implements TRACE-55/56/57/67/68 from the newer guide. Explicit catalog-based intake requirements block routing until accepted; saved college routing scope governs own-college Secretary lists, reports/exports, details, actions and files. Alumni route to their recorded former college. Admin alone can confirm and audit eligible backup assignments within the current desk/college, with stale-save protection. Missing legacy scope can be reconciled from institutional records without rewriting saved snapshots or closed history. Existing payment/OR prerequisites and physical handoff remain. Shared QueueTabs/QueuePanel align pills, keyboard semantics, spacing and visible context/hover motion across roles, with reduced motion.

@@ -1,30 +1,15 @@
-import QueueTabs from '@/components/QueueTabs';
+import ReportFiltersModal from '@/components/ReportFiltersModal';
+import useReportFilterOptions from '@/hooks/useReportFilterOptions';
+import { EMPTY_REPORT_FILTERS, appliedFilterSummary } from '@/utils/reportFilters';
 import Button from '@/components/Button';
-import ExportDropdown from '@/components/ExportDropdown';
-import { INPUT_LIMITS } from '@/utils/inputLimits';
 import { useId, useState } from 'react';
 import StudentProfileModal from '@/components/StudentProfileModal';
 import { formatDateTime } from '@/utils/formatters';
 import useReports from '@/features/admin/useReports';
 import DashboardLoading from '@/components/DashboardLoading';
 import DashboardAlerts from '@/components/DashboardAlerts';
-import { getStatusLabel, getStatusTone, PIPELINE, LEGACY_STATUS, STATUS } from '@/utils/documentStatus';
+import { getStatusLabel, getStatusTone } from '@/utils/documentStatus';
 import { formatPeso } from '@/utils/pricing';
-
-// The live pipeline, plus the terminals only pre-refactor records can hold —
-// those rows still exist and an admin filtering reports has to be able to
-// reach them.
-const STATUSES = [...PIPELINE, LEGACY_STATUS.REJECTED, LEGACY_STATUS.APPROVED];
-
-const EXPORT_CATEGORIES = [
-  { key: 'active', label: 'Active Students', hint: 'Currently enrolled' },
-  { key: 'alumni', label: 'Graduates / Alumni', hint: 'Enrollment status: graduated' },
-  { key: 'others', label: 'Others', hint: 'Dropouts and transferees' },
-  { key: 'all', label: 'All Students', hint: 'Every student record' },
-];
-
-const inputClass =
-  "trace-control w-full";
 
 function StatCard({ label, value, tone = 'default' }) {
   const tones = {
@@ -52,7 +37,8 @@ export default function ReportsPanel({ user, currentTab, initialRecordSet = '' }
   const { tableRef, ...r } = useReports(user, currentTab, initialRecordSet);
   const isSecretary = user?.role === 'clerk' && user.desk_assignment === 'Secretary';
   const [viewProfileId, setViewProfileId] = useState(null);
-  const filtersId = useId();
+  const [filtersOpen,setFiltersOpen]=useState(false);
+  const reference=useReportFilterOptions(filtersOpen);
   const recordsId = useId();
 
   if (r.loading) return <DashboardLoading />;
@@ -76,67 +62,12 @@ export default function ReportsPanel({ user, currentTab, initialRecordSet = '' }
             </p>
           </div>
           <div className="ml-auto">
-            <ExportDropdown exporting={r.exporting}
-              options={[{ key: 'documents', label: 'Filtered document records (CSV)' }, ...EXPORT_CATEGORIES.map(c => ({ key: c.key, label: `${c.label} (CSV)` }))]}
-              onSelect={key => key === 'documents' ? r.downloadDocuments() : r.downloadStudents(key)} />
+            <Button type="button" className="trace-button trace-button-primary" onClick={()=>setFiltersOpen(true)}>Filters</Button>
           </div>
         </div>
 
-        {isSecretary && <div className="flex flex-wrap gap-3" >
-          <QueueTabs semantics="filters" label="Record views" idPrefix="report-record-views" tabs={[{key:'all',label:'All records'},{key:'cleared',label:'Secretary-cleared'},{key:'completed',label:'Completed only'}]} activeKey={r.filters.recordSet === 'secretary-cleared' ? 'cleared' : r.filters.status === STATUS.COMPLETED ? 'completed' : !r.filters.recordSet && !r.filters.status ? 'all' : null} onChange={r.chooseRecordView} />
-          <p className="w-full text-xs text-gray-500 dark:text-gray-400">Secretary-cleared includes Ready for Pick-up and Completed. All exports are limited to your assigned college; student exports use their category rather than the document filters.</p>
-        </div>}
-
-        {/* Filters */}
-        <section className="trace-section trace-section-body" aria-labelledby={filtersId}>
-          <h3 id={filtersId} className="text-sm font-bold text-gray-900 dark:text-gray-100 mb-4">Filters</h3>
-          <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-3">
-            <div className="flex flex-col gap-1.5">
-              <label className="trace-label">From</label>
-              <input type="date" className={inputClass} value={r.filters.dateFrom}
-                onChange={(e) => r.updateFilter('dateFrom', e.target.value)} />
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <label className="trace-label">To</label>
-              <input type="date" className={inputClass} value={r.filters.dateTo}
-                onChange={(e) => r.updateFilter('dateTo', e.target.value)} />
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <label className="trace-label">Status</label>
-              <select className={`${inputClass} cursor-pointer`} value={r.filters.status}
-                onChange={(e) => r.updateFilter('status', e.target.value)}>
-                <option value="">{r.filters.recordSet ? 'Secretary-cleared' : 'All statuses'}</option>
-                {STATUSES.map((s) => <option key={s} value={s}>{getStatusLabel(s)}</option>)}
-              </select>
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <label className="trace-label">Document Type</label>
-              <input maxLength={INPUT_LIMITS.referenceName} className={inputClass} placeholder="e.g. Diploma" value={r.filters.documentType}
-                onChange={(e) => r.updateFilter('documentType', e.target.value)} />
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <label className="trace-label">Payment</label>
-              <select className={`${inputClass} cursor-pointer`} value={r.filters.paymentStatus}
-                onChange={(e) => r.updateFilter('paymentStatus', e.target.value)}>
-                <option value="">Any</option>
-                <option value="PAID">Paid</option>
-                <option value="UNPAID">Unpaid</option>
-              </select>
-            </div>
-          </div>
-
-          <div className="flex flex-wrap gap-3 mt-4 pt-4 border-t border-gray-100 dark:border-gray-700">
-            <Button onClick={r.applyFilters}
-              className="trace-button trace-button-primary">
-              Apply Filters
-            </Button>
-            <Button onClick={r.resetFilters}
-              className="trace-button trace-button-secondary">
-              Reset
-            </Button>
-
-          </div>
-        </section>
+        <p className="trace-page-description select-text" aria-label="Applied filters">{appliedFilterSummary(r.filters,reference.options)}{isSecretary?' · Assigned college only':''}</p>
+        {filtersOpen && <ReportFiltersModal filters={r.filters} defaults={EMPTY_REPORT_FILTERS} options={reference.options} optionsLoading={reference.loading} optionsError={reference.error} onRetryOptions={reference.retry} onApply={r.applyFilters} onClose={()=>setFiltersOpen(false)} onExport={dataset=>dataset==='documents'?r.downloadDocuments():r.downloadStudents(dataset)} exporting={r.exporting} exportReady={Boolean(r.report)&&!r.refreshing} secretary={isSecretary} error={r.error}/>}
 
         {/* Summary for the current filter slice */}
         <section aria-label="Report summary" aria-busy={r.refreshing} className="grid [grid-template-columns:repeat(auto-fit,minmax(min(100%,9rem),1fr))] gap-4">
@@ -181,7 +112,7 @@ export default function ReportsPanel({ user, currentTab, initialRecordSet = '' }
                     <td className="py-3 px-5 break-all text-[11px] font-mono text-gray-700 dark:text-gray-300">{d.tracking_number}</td>
                     <td className="py-3">
                       <Button type="button" disabled={!d.student_id} onClick={() => setViewProfileId(d.student_id)} className="trace-action text-xs font-bold text-blue-700 dark:text-blue-300 hover:underline select-text break-words text-left focus-visible:ring-2 focus-visible:ring-blue-500">{d.student_name || '—'}</Button>
-                      <div className="text-[10px] text-gray-400 dark:text-gray-400 font-mono select-text break-words">{d.student_id || '—'}</div>
+                      <div className="text-[10px] text-gray-400 dark:text-gray-400 font-mono select-text break-words">{d.student_id || '—'}</div><div className="text-xs text-gray-500 dark:text-gray-400 break-words">{d.course || 'College not recorded'}</div>
                     </td>
                     <td className="py-3 pr-2 break-words text-xs text-gray-600 dark:text-gray-300">{d.document_type || '—'}{isSecretary && d.document_sequence_number && <div className="mt-1 font-semibold">{d.document_sequence_number}</div>}</td>
                     <td className="py-3 pr-2 break-words text-xs"><span className={`inline-flex max-w-full rounded-full px-2 py-1 font-semibold ${getStatusTone(d.current_status)}`}>{getStatusLabel(d.current_status)}</span></td>

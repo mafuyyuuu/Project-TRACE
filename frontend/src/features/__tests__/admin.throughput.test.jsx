@@ -16,7 +16,8 @@ vi.mock('@/services/authService', () => ({
   getUsers: vi.fn().mockResolvedValue({ users: [] }),
   verifyStudent: vi.fn(),
 }));
-vi.mock('@/services/reportsService', () => ({ getAnalytics: vi.fn() }));
+vi.mock('@/services/reportsService', () => ({
+  getReportFilterOptions: vi.fn().mockResolvedValue({colleges:[{id:4,name:'Synthetic College'}],document_types:[{id:1,name:'Diploma',is_active:1}],college_locked:false}), getAnalytics: vi.fn() }));
 // Give the real charts a size; jsdom has no layout/ResizeObserver measurements.
 vi.mock('recharts', async () => ({
   ...await vi.importActual('recharts'),

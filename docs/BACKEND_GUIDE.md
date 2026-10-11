@@ -94,14 +94,15 @@ the Admin and Secretary dashboards.
 | `GET/POST /api/maintenance/document-types`, `PUT /:id`, `PATCH /:id/active` | Document type CRUD |
 | `GET/POST /api/maintenance/colleges`, `PUT /:id`, `PATCH /:id/active` | College CRUD |
 | `GET/POST /api/maintenance/payment-methods`, `PUT /:id`, `PATCH /:id/active` | Payment method CRUD |
+| `GET /api/reports/filter-options` | Authoritative college/document catalogs; Secretary college locked |
 | `GET /api/reports/documents` | Filtered report + summary + breakdowns |
 | `GET /api/reports/analytics` | Efficiency metrics |
 | `GET /api/reports/export/students.csv?category=` | active \| alumni \| others \| all |
 | `GET /api/reports/export/documents.csv` | The filtered report as CSV |
 
-**Reporting.** `report.model.js` builds every WHERE clause from fixed column names with parameterised values — no user input reaches SQL text, and `groupDocumentsBy` whitelists its column because that one is interpolated. Rows, summary and export share one filter object so they can never disagree. Page size is capped at 1000 and exports at 10,000 rows.
+**Reporting.** `report.model.js` builds every WHERE clause from fixed column names with parameterised values — no user input reaches SQL text, and `groupDocumentsBy` whitelists its column because that one is interpolated. Rows, summary and export share one filter object so they can never disagree. Page size is capped at 1000. Document exports read a 10,001st sentinel and reject selections above 10,000 documents rather than truncate. Revision 2 Batch 9 validates exact student ID, literal case-insensitive name substring, catalog college/document type and Manila calendar-day bounds in `reportFilters.service.js`; the Secretary’s assigned college remains authoritative. Finance retains complete paid request groups for its screen and expands every paid document in matching groups into the same 36-column CSV. Separate student-category exports apply identity/college filters only. See [BATCH9_ACCEPTANCE.md](BATCH9_ACCEPTANCE.md) for the exact field contract and [DEPLOYMENT_CHECKLIST.md](DEPLOYMENT_CHECKLIST.md) for rollout dependencies; Batch 9 adds no DDL.
 
-**CSV.** `utils/csv.js` is hand-written: it quotes fields containing commas/quotes/newlines, doubles embedded quotes, and prefixes values starting with `=`, `+`, `-` or `@` to stop spreadsheets executing user-supplied text as a formula. The controller prepends a UTF-8 BOM so Excel renders accented names correctly.
+**CSV.** `utils/csv.js` is hand-written: it quotes fields containing commas/quotes/newlines, doubles embedded quotes, and guards leading control characters and whitespace-prefixed `=`, `+`, `-` or `@` to stop spreadsheets executing user-supplied text as a formula. Document CSV fields use a fixed whitelist, numeric PHP amounts, saved fee lines and explicit Manila timestamps; credentials, private messages and uploaded file paths are excluded. The controller prepends a UTF-8 BOM so Excel renders accented names correctly.
 
 **Analytics.** All figures derive from `step_logs`, so any number can be traced to a recorded desk action. Per-clerk output is volume and actions only — never a computed score — because desks differ in difficulty.
 

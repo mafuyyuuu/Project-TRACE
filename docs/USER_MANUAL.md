@@ -225,7 +225,7 @@ Receipt verification and handoff are separate actions. Finance alone clears paym
 
 The page keeps Filters, summary cards and Records in that order. Records show requested/updated dates, full tracking numbers, clickable student names, document request labels, actual statuses, payment and amounts. Scroll inside the table on narrow screens and use its page controls for more records. **Last Updated** is the recorded update time, not a separate approval timestamp.
 
-Choose **Export** beside the title. **Filtered document records (CSV)** uses the current document filters; the four student CSV options use their account categories. Every Secretary export is limited to the assigned college. An account without a college assignment must ask Admin to correct its assignment before viewing or exporting records.
+Choose **Filters** beside the title. Edit the draft in **Filters & Export**, then **Apply Filters**. Reset clears only the draft; Cancel preserves the applied report. **Export CSV** uses the applied scope. Filtered document records use all document filters; student categories use their account category plus applied ID/name/college filters. Every Secretary export is limited to the assigned college. An account without a college assignment must ask Admin to correct its assignment before viewing or exporting records.
 
 ## 10. Finance tasks
 
@@ -296,3 +296,7 @@ Read confirmations before saving or making desk decisions. Cancel keeps the draf
 5. To replace a name or college association, add the approved replacement and deactivate the old entry. Duplicate names within the same college are rejected; restore an existing inactive entry instead.
 
 The catalog starts empty. Add only approved programs; TRACE does not infer a program list from student-entered text. Students and alumni use these choices in Edit Profile; registration's existing manual entry is unchanged.
+
+## Revision 2 report/export update
+
+All report roles use the same Filters & Export modal. Name matching is a literal case-insensitive substring; student ID is exact. College/Department maps to the College catalog. Secretary scope is enforced on the server. Finance dates describe payment clearance and select complete request groups; its CSV contains one row per document in those groups, with per-document amounts. Other document exports use one row per matching document. Shared CSV timestamps include +08:00, money is numeric PHP and blank values are not invented. A document export above 10,000 rows asks for narrower filters. See [BATCH9_ACCEPTANCE.md](BATCH9_ACCEPTANCE.md) and the [deployment checklist](DEPLOYMENT_CHECKLIST.md).

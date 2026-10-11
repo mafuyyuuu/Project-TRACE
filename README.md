@@ -28,6 +28,8 @@ TRACE gives students a document request and tracking portal, while Window 1, Col
 
 [Window 1 queue](docs/batch8-window1-queue-light.png) · [Clearance review](docs/batch8-intake-clearance-light.png) · [Admin staff assignment](docs/batch8-staff-assignment-light.png) · [Secretary on mobile](docs/batch8-secretary-mobile-dark.png). The [Batch 8 walkthrough](docs/BATCH8_ACCEPTANCE.md) explains college-scoped access, explicit clearance review, backup assignment and physical handoff using synthetic records.
 
+[Shared report filters](docs/batch9-filters-light.png) · [Report overview](docs/batch9-report-overview-light.png) · [Phone filters / dark mode](docs/batch9-filters-mobile-dark.png) · [Synthetic CSV sample](docs/batch9-report-sample.csv). The [Batch 9 walkthrough](docs/BATCH9_ACCEPTANCE.md) explains draft filtering, role scope and complete exports; it needs no account.
+
 ### Contribution highlighted in this update
 
 The current UI consistency work extends the shared Tailwind control system across the five role portals: reusable field/button states, aligned section headings, responsive form grids and shared modal chrome. It fixes omitted button base styles and a profile retry action that could submit its surrounding form, while preserving the existing desk permissions and processing logic. The visual foundations follow the main [TRACE Figma design](https://www.figma.com/design/78A3HTREQ86GIN9ZxvDBSv/TRACE-Draft?node-id=0-1), with accessible mobile, dark-mode and reduced-motion adaptations. This describes this update's concrete contribution; it does not attribute the whole group project's work to one author.
@@ -35,6 +37,8 @@ The current UI consistency work extends the shared Tailwind control system acros
 The Revision 2 Batch 7 contribution also adds one-time alumni study years, server-authoritative request reuse, audited Admin corrections, pending proof-unavailable registration for an isolated defense demo, concise attachment labels and independent password visibility icons. It follows the Figma form/confirmation references while retaining the existing pricing and desk workflow. The additive database migration must precede the paired API/frontend rollout; the demo identity path is disabled in production.
 
 Revision 2 Batch 8 adds case-specific intake clearance gates, saved college routing scope, audited Admin-only backup assignment and shared accessible queue tabs with visible context motion. It preserves desk/payment/OR prerequisites and adds security regressions for cross-college access, stale assignments and public tracking. These contributions are documented with screenshots and migration limits in the walkthrough above.
+
+Revision 2 Batch 9 adds a shared Filters & Export modal, draft/applied filter state, authoritative identity/college/type filtering and one consistent authorized document CSV contract. It also detects oversized exports and keeps Finance payment totals intact. The [consolidated deployment checklist](docs/DEPLOYMENT_CHECKLIST.md) records every new batch’s migrations and prerequisites for the final rollout.
 
 For code review, start with [UI conventions](docs/UI_CONVENTIONS.md), [shared Tailwind styles](frontend/src/index.css), [ModalShell](frontend/src/components/ModalShell.jsx) and the [profile retry regression check](frontend/src/components/__tests__/AcademicProfileFields.test.jsx). For the full desk sequence and user actions, see [System workflows](docs/SYSTEM_WORKFLOWS.md) and [User manual](docs/USER_MANUAL.md).
 

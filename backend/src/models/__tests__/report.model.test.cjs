@@ -22,7 +22,7 @@ it('uses the same parameterized college and cleared-status filters for lists, co
   expect(where).toContain('COALESCE(d.routing_college_id');
   expect(where).toContain('COUNT(*) = 1');
   expect(where).toContain('colleges WHERE is_active = TRUE AND id = ?');
-  expect(params).toEqual(['2026-10-01', 'READY_FOR_RELEASE', 'COMPLETED', 'PAID', 4]);
+  expect(params).toEqual([Date.parse('2026-10-01T00:00:00+08:00')/1000, 'READY_FOR_RELEASE', 'COMPLETED', 'PAID', 4]);
   const executor = { query: vi.fn().mockResolvedValue([[{ total: 0 }]]) };
   await model.listDocumentsForReport(filters, { limit: 25, offset: 25 }, executor);
   await model.countDocumentsForReport(filters, executor);

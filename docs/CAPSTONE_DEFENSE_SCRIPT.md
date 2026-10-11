@@ -196,7 +196,7 @@ When Ana claims her Transcript, the clerk clicks Release. That closes the reques
 
 *(Action: Briefly show System Maintenance, Templates, Security Logs and Reports & Export.)*
 
-“Admin maintains Registrar-approved programs, document availability and fee schedules. Templates provide isolated previews; Security contains authenticator settings and account activity. Reports place Export beside the header, then Filters, KPI summaries and Records. We preserve role permissions while using shared controls, dark mode, readable status colors and enlarged text.”
+“Admin maintains Registrar-approved programs, document availability and fee schedules. Templates provide isolated previews; Security contains authenticator settings and account activity. Reports place Filters beside the header. It opens the shared configuration modal with draft filters, Apply and Export CSV; KPI summaries and Records stay on the main page. Show student ID/name, college and document type filters, then reconcile the exported document count and amount. Secretary reports remain locked to their college; Finance keeps grouped payments on screen and expands their documents in the shared CSV. We preserve role permissions while using shared controls, dark mode, readable status colors and enlarged text.”
 
 *(Action: If demonstrated, open only the messaging feature verified on this deployment.)*
 
