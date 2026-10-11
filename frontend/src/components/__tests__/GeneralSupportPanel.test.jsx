@@ -20,6 +20,18 @@ it.each(['IN_PROGRESS','RESOLVED'])('keeps Admin operational support read-only i
  expect(screen.queryByLabelText('Message')).not.toBeInTheDocument();
  for(const name of ['Reopen ticket','Resolve ticket','Request student reply','Awaiting student']) expect(screen.queryByRole('button',{name})).not.toBeInTheDocument();
 });
+it('follows a student ticket notification on the mounted panel while retaining a new-ticket form draft',async()=>{
+  const {rerender}=render(<RequestMessagesPanel user={student}/>);
+  await waitFor(()=>expect(api.getTicket).toHaveBeenCalledWith('11',null,expect.any(AbortSignal)));
+  fireEvent.click(screen.getByRole('button',{name:'New ticket'}));
+  const input=screen.getByLabelText('Subject');fireEvent.change(input,{target:{value:'Retain this form draft'}});
+  api.getTicket.mockResolvedValue({...read(),ticket:{...ticket,id:18,subject:'New notification ticket'}});
+  window.history.replaceState(null,'','/dashboard?tab=messages&ticket=18');
+  rerender(<RequestMessagesPanel user={student}/>);
+  await waitFor(()=>expect(api.getTicket).toHaveBeenCalledWith('18',null,expect.any(AbortSignal)));
+  expect(screen.getByLabelText('Subject')).toBe(input);
+  expect(input).toHaveValue('Retain this form draft');
+});
 beforeEach(() => {
   vi.clearAllMocks(); Element.prototype.scrollIntoView=vi.fn();
   window.history.replaceState(null,'','/dashboard?tab=messages&ticket=11');

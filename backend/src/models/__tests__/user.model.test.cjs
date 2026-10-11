@@ -1,4 +1,12 @@
 const model = require('../user.model');
+it('routes Window 1 workflow notifications to active staff under both desk labels', async () => {
+  const rows=[{id:6},{id:7}],executor={query:vi.fn().mockResolvedValue([rows])};
+  await expect(model.findWindow1Clerks(executor)).resolves.toEqual(rows);
+  const [sql]=executor.query.mock.calls[0];
+  expect(sql).toContain("role = 'clerk'");
+  expect(sql).toContain("desk_assignment IN ('Window 1', 'Receiving Desk')");
+  expect(sql).toContain('is_active = TRUE');
+});
 it.each(['STU2024001', 'FINANCE001', 'student@plp.edu.ph'])('resolves active student/staff/email identifiers with parameterized lookup: %s', async identifier => {
   const rows = [{ id: 3, email: 'registered@plp.edu.ph' }];
   const executor = { query: vi.fn().mockResolvedValue([rows]) };

@@ -147,6 +147,8 @@ For walk-ins, **CTC, 2nd Copy of COR, 2nd Copy of OGR and CAV** qualify for same
 
 General tickets do not require a document request. New alumni still complete the Graduate Application before dashboard access. Request-linked tickets require ownership and verified email. Only the selected ticket is highlighted; older tickets/messages remain reachable through **Load older** controls, without Previous/Next pages.
 
+Notification links open the indicated ticket in the existing Support screen; an unfinished new-ticket form stays intact. College Secretary case conversations follow the request’s college recorded at routing. Changing a student’s profile college does not move that routed case. If your staff assignment or access changes, only currently authorized conversations remain visible after refresh.
+
 ### Live hours and waiting
 
 Defaults are **Monday–Thursday, 8:00 AM–4:00 PM Asia/Manila**. Friday–Sunday and configured closed dates are outside live hours. FAQ access, ticket submission and history remain available; Window 1 live claims and replies pause. Queue position is retained when you leave. Declared available capacity is not a promise that a clerk is online. A wait range appears only with sufficient observed handling data and available capacity; otherwise TRACE says **Waiting for available staff**.
@@ -198,6 +200,8 @@ Detail dialogs use a short entry and exit; page/tab switches use a brief fade an
 Use Tab to move between controls, Enter/Space to activate them, and Escape to close eligible dialogs. Queue tabs support arrow keys, Home and End. Names, IDs, tracking numbers and notes can be selected and copied.
 
 ## 8. Window 1 tasks
+
+Accounts labeled **Receiving Desk** use the same Window 1 workspace and intake/release rules. Another clerk’s assigned request still requires explicit Admin reassignment before you can process it.
 
 - **Intake:** open the request, inspect the applicant and required paperwork, then confirm routing to Secretary. To return it, enter clear correction notes and confirm the return.
 - **Walk-ins:** use Manual Entry or the authorized scanning flow, review all entered/OCR values, then submit and confirm. Record original/photocopy checks for eligible same-day types.

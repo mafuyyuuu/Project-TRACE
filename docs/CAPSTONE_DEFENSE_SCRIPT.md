@@ -269,3 +269,5 @@ See [README workflow walkthrough](../README.md#main-workflows) for the screensho
 *(Action: Switch conversation categories and return to a drafted message. Show Admin monitoring the staff history without a composer.)*
 
 “Category switches preserve drafts. Accepted message retries reuse the recorded message rather than duplicating it. Admin can monitor operational discussions but cannot intervene; staff concerns needing an Admin reply use Internal Assistance. These screenshots/local checks are separate from verification on the deployed database and devices.”
+
+Integration demonstration note: Receiving Desk is Window 1’s legacy label, not another processing role. An assigned case cannot be taken over by changing the label. Linked case conversation access follows the college saved at routing. Open another notification while Support is already visible to show selection changes without restarting the workspace. Do not claim live delivery or migration completion from this local demonstration.

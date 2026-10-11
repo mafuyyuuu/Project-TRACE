@@ -83,6 +83,20 @@ it.each(['Window 1','Finance'])('honors a named %s backup without granting a dif
   await expect(service.assertAssignedProcessor(actor,{...doc,assigned_clerk_id:8})).rejects.toThrow(/reassign/);
   await expect(service.assertAssignedProcessor(actor,{...doc,assigned_clerk_id:2})).resolves.toBeUndefined();
 });
+it.each([['Window 1','Receiving Desk'],['Receiving Desk','Window 1']])('keeps assignment binding for a %s processor and %s colleague', async (ownerDesk,actorDesk) => {
+  users.findById.mockResolvedValue([{id:8,role:'clerk',desk_assignment:ownerDesk}]);
+  const actor={id:2,role:'clerk',desk_assignment:actorDesk};
+  await expect(service.assertAssignedProcessor(actor,{...doc,assigned_clerk_id:8})).rejects.toMatchObject({status:403});
+  await expect(service.assertAssignedProcessor(actor,{...doc,assigned_clerk_id:2})).resolves.toBeUndefined();
+});
+it.each(['PENDING_W1_INTAKE','READY_FOR_RELEASE'])('includes active Receiving Desk staff in Admin backups for %s', async current_status => {
+  const receiving={id:6,role:'clerk',desk_assignment:'Receiving Desk',full_name:'Synthetic Receiving Clerk',is_active:1};
+  users.listStaff.mockResolvedValue([receiving,{...receiving,id:7,is_active:0},{...secretary,id:8},{...receiving,id:9,role:'student'}]);
+  documents.findByIdForUpdate.mockResolvedValue([{...doc,current_status}]);
+  await service.reassign(admin,9,{...payload,staff_id:6,expected_status:current_status});
+  expect(documents.updateAssignedClerk).toHaveBeenCalledWith(9,6,tx);
+  expect(logs.insert).toHaveBeenCalledWith(expect.objectContaining({to_status:current_status,action_taken:'staff_reassigned'}),tx);
+});
 it('makes duplicate routing idempotent and never overwrites an Admin assignment', async () => {
   documents.findByIdForUpdate.mockResolvedValue([{ ...doc, assigned_clerk_id: 2 }]);
   await documentsService.assignDocument({ document_id: 9, assigned_clerk_employee_id: 'SEC-SYN001' });

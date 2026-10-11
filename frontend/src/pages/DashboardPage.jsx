@@ -33,7 +33,7 @@ export default function DashboardPage() {
   const isStudent = user?.role === 'student';
   const isAlumni = isStudent && user?.user_type === 'alumni';
   const isFinance = user?.role === 'clerk' && user?.desk_assignment === 'Finance';
-  const isWindow1 = user?.role === 'clerk' && user?.desk_assignment === 'Window 1';
+  const isWindow1 = user?.role === 'clerk' && ['Window 1', 'Receiving Desk'].includes(user?.desk_assignment);
   const isSecretary = user?.role === 'clerk' && user?.desk_assignment === 'Secretary';
   const isAdmin = user?.role === 'admin';
 

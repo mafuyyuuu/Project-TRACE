@@ -1,4 +1,5 @@
 const assignments = require('./requestAssignment.service');
+const { canonicalDesk } = require('../utils/deskAssignment');
 const attachmentRequirements = require('../models/requestAttachment.model');
 const { documentCollegeScope } = require('../models/documentCollegeScope');
 const { pool } = require('../config/db');
@@ -886,7 +887,7 @@ async function notifyStudent(studentId, { title, message, type, alsoSmsAndEmail 
  * once keeps the check identical everywhere rather than subtly drifting.
  */
 function requireDesk(user, desk, message) {
-  if (user.role !== 'clerk' || user.desk_assignment !== desk) {
+  if (user.role !== 'clerk' || canonicalDesk(user.desk_assignment) !== desk) {
     throw forbidden(message);
   }
 }
@@ -1670,13 +1671,15 @@ function messageDesk(user) {
   throw forbidden('This account cannot access request messages.');
 }
 
-async function messageScope(user, executor = pool) {
+async function messageScope(user, executor = pool, { includeCancelledSupport = false } = {}) {
   const desk = messageDesk(user);
   if (desk === 'student') return { conditions: ['student.id = ?'], params: [user.id], side: 'student' };
   if (desk === 'Secretary') {
     const [account] = await userModel.findCourseById(user.id, executor);
-    if (account?.college_id) return { conditions: ['(student.college_id = ? OR (student.college_id IS NULL AND student.course = ?))'], params: [account.college_id, account.course], side: 'staff' };
-    if (account?.course) return { conditions: ['student.course = ?'], params: [account.course], side: 'staff' };
+    if (account?.college_id || account?.course) {
+      const scope = documentCollegeScope({ collegeId: account.college_id, collegeName: account.course, includeCancelledSupport });
+      return { conditions: [scope.condition], params: scope.params, side: 'staff' };
+    }
     throw forbidden('A college assignment is required to access student messages.');
   }
   return { conditions: [], params: [], side: 'staff' };

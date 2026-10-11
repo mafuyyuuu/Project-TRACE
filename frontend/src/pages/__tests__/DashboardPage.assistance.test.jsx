@@ -18,6 +18,12 @@ vi.mock('@/components/ForcePasswordChange',() => ({default:() => <p>Change tempo
 vi.mock('@/components/ImageViewerModal',() => ({default:() => null}));
 vi.mock('@/pages/HelpPage',() => ({default:() => null}));
 const mount = () => render(<MemoryRouter initialEntries={['/dashboard?tab=internal-assistance']}><DashboardPage /></MemoryRouter>);
+it('renders the normal Window 1 workspace for Receiving Desk accounts',()=>{
+  auth.user={id:4,role:'clerk',desk_assignment:'Receiving Desk'};
+  render(<MemoryRouter initialEntries={['/dashboard']}><DashboardPage/></MemoryRouter>);
+  expect(screen.getByText('Window dashboard')).toBeInTheDocument();
+  expect(MessagingWorkspace).not.toHaveBeenCalled();
+});
 beforeEach(() => vi.clearAllMocks());
 it.each(['Window 1','Receiving Desk','Secretary','Finance'])('routes authorized %s staff to assistance',desk_assignment => {
   auth.user={id:4,role:'clerk',desk_assignment};mount();expect(screen.getByText('Internal workspace')).toBeInTheDocument();

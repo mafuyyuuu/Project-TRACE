@@ -6,6 +6,7 @@ const { pool } = require('../config/db');
 const { STATUS } = require('../utils/documentStatus');
 const { badRequest, forbidden, notFound } = require('../utils/AppError');
 const { isCaseReadOnly } = require('../utils/supportCase');
+const { canonicalDesk } = require('../utils/deskAssignment');
 
 function processingDesk(status) {
   if ([STATUS.PENDING_W1_INTAKE, STATUS.READY_FOR_RELEASE].includes(status)) return 'Window 1';
@@ -41,7 +42,7 @@ async function assertSecretaryScope(user, doc, executor = pool, { assigned = fal
 async function assertAssignedProcessor(user, doc, executor = pool) {
   if (!doc.assigned_clerk_id || Number(doc.assigned_clerk_id) === Number(user.id)) return;
   const [owner] = await users.findById(doc.assigned_clerk_id, executor);
-  if (owner?.desk_assignment === user.desk_assignment) throw forbidden('This request belongs to another processor. Ask Admin to reassign it before acting.');
+  if (canonicalDesk(owner?.desk_assignment) === canonicalDesk(user.desk_assignment)) throw forbidden('This request belongs to another processor. Ask Admin to reassign it before acting.');
 }
 
 async function eligibleStaff(doc, executor = pool) {
@@ -50,12 +51,12 @@ async function eligibleStaff(doc, executor = pool) {
   const staff = await users.listStaff({ includeInactive: false }, executor);
   const college = desk === 'Secretary' ? (doc.routing_college_id ? { id: doc.routing_college_id } : await collegeForStudent(doc.student_id, executor)) : null;
   const eligible = [];
-  for (const person of staff.filter(person => person.role === 'clerk' && person.desk_assignment === desk && Number(person.is_active) === 1)) {
+  for (const person of staff.filter(person => person.role === 'clerk' && canonicalDesk(person.desk_assignment) === desk && Number(person.is_active) === 1)) {
     if (desk === 'Secretary') {
       const [account] = await users.findCourseById(person.id, executor);
       if (!account?.college_id || Number(account.college_id) !== Number(college.id)) continue;
     }
-    eligible.push({ id: person.id, full_name: person.full_name, desk_assignment: desk });
+    eligible.push({ id: person.id, full_name: person.full_name, desk_assignment: person.desk_assignment });
   }
   return eligible;
 }

@@ -84,6 +84,33 @@ it('rechecks the Secretary assigned college for linked history',async()=>{
  users.findStudentCourseByStudentId.mockResolvedValue([{college_id:2}]);
  await expect(service.read(actor,11)).rejects.toMatchObject({status:403});expect(model.history).not.toHaveBeenCalled();
 });
+it('authorizes linked history by the saved routing college rather than a changed student profile',async()=>{
+ const actor={...clerk,desk_assignment:'Secretary'};model.actor.mockResolvedValue(actor);
+ model.ticket.mockResolvedValue({...ticket,document_id:7,category:'linked',routing_college_id:1,current_status:'SEC_PROCESSING'});
+ users.findStudentCourseByStudentId.mockResolvedValue([{college_id:2}]);
+ await expect(service.read(actor,11)).resolves.toMatchObject({ticket:{routing_college_id:1}});
+ users.findCourseById.mockResolvedValue([{college_id:2}]);
+ model.history.mockClear();
+ await expect(service.read(actor,11)).rejects.toMatchObject({status:403});
+ expect(model.history).not.toHaveBeenCalled();
+});
+it('uses routing snapshots in the Secretary list and an opaque marker for authoritative scope changes',async()=>{
+ const actor={...clerk,desk_assignment:'Secretary'};model.actor.mockResolvedValue(actor);
+ const first=await service.list(actor);
+ const [where,params]=model.list.mock.calls[0];
+ expect(where).toContain("t.category='linked'");expect(where).toContain('d.routing_college_id');
+ expect(where).toContain('FROM users student');expect(where).toContain('student.student_id = COALESCE(d.student_id, u.student_id)');
+ expect(params).toEqual([1]);expect(first.access_scope).toMatch(/^[a-f0-9]{64}$/);
+ users.findCourseById.mockResolvedValue([{college_id:2}]);
+ expect((await service.list(actor)).access_scope).not.toBe(first.access_scope);
+});
+it('retains cancelled linked history for the authorized profile college when its document snapshot no longer exists',async()=>{
+ const actor={...clerk,desk_assignment:'Secretary'};model.actor.mockResolvedValue(actor);
+ model.ticket.mockResolvedValue({...ticket,category:'linked',document_id:null});
+ await expect(service.read(actor,11)).resolves.toMatchObject({ticket:{read_only:true}});
+ users.findStudentCourseByStudentId.mockResolvedValue([{college_id:2}]);
+ await expect(service.read(actor,11)).rejects.toMatchObject({status:403});
+});
 it('permits Finance linked read access without general access or management',async()=>{
  const actor={...clerk,desk_assignment:'Finance'};model.actor.mockResolvedValue(actor);
  model.ticket.mockResolvedValue({...ticket,document_id:7,category:'linked',state:'IN_PROGRESS',current_status:'SEC_PROCESSING'});

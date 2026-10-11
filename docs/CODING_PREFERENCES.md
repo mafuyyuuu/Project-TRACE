@@ -194,8 +194,8 @@ utils/         # Backend helper functions (AppError)
   number looks right before releasing the document. It is a deliberate, narrow exception that sits
   close to the authority split above, so it is held to the same rule by never writing
   `payment_status` itself: that stays exclusively `verifyPayment()`'s. Approving `verifyPayment()`
-  now also requires an `or_number` — typed in for a digital payment, already on file for a walk-in.
-- **Physical OR now, digital copy later.** Finance hands the original Official Receipt to the Secretary and may upload its retained copy later from **Transactions & OR Copies**. Missing `official_receipt_path` must not block payment verification, handoff, or release. Secretary verification requires the recorded OR number and either an uploaded copy to inspect or explicit physical-inspection acknowledgment; record that inspection through the existing `notes` payload. A later upload updates the existing receipt-copy fields without re-verifying payment or changing the pipeline. These inspection prerequisites are currently UI guards, not new server enforcement.
+  may use an issued OR or explicitly defer issuance with Later. Secretary cannot verify the receipt or hand off until Finance has issued and recorded the OR.
+- **Physical OR now, digital copy later.** Finance hands the original Official Receipt to the Secretary and may upload its retained copy later from **Transactions & OR Copies**. Missing `official_receipt_path` must not block payment verification, handoff, or release. Secretary verification requires the recorded OR number and either an uploaded copy to inspect or explicit physical-inspection acknowledgment; send literal `physical_receipt_checked: true` for physical inspection and retain any review notes. The server enforces paid status, a recorded OR and uploaded-copy/physical-inspection prerequisites before verification. A later upload updates the existing receipt-copy fields without re-verifying payment or changing the pipeline.
 - **OCR never records a payment on its own.** `/ocr/receipt` fills the walk-in form's fields; the
   clerk confirms them before saving. A misread amount here is a money error, which is precisely where
   a human check earns its cost.
@@ -239,6 +239,12 @@ utils/         # Backend helper functions (AppError)
 - Keep `utils/profileCompletion.js` in backend/frontend synchronized. Completion is derived from saved required fields, including conditional alumni/transfer/maiden-name requirements, with explicit string/number boolean normalization. Student role determines eligibility; a legacy staff user_type must not gate staff.
 - Refresh authoritative `getMe` data after successful non-password profile writes before updating completion caches. Preserve dirty drafts during background refresh; report refresh failures separately from failed saves. The API must independently enforce completion under the filing transaction before writes.
 
+
+## Cross-feature routing and notification conventions
+
+- Receiving Desk is the legacy Window 1 label. Normalize it when checking desk authority, processor ownership and backup eligibility; preserve the saved account label. Neither label bypasses another processor’s assignment.
+- Linked Support and authorized legacy message history use the existing request routing-college snapshot, matching request processing and document reports. Use the verified student profile only when no snapshot exists; cancelled ticket history with no surviving document uses its authorized profile fallback.
+- Pass changing notification queries into mounted Support workspaces. Explicit ticket links take precedence and abort obsolete context lookups. Discard cached tickets when the server’s opaque access scope changes and protected conversation history when reads return 403/404. Preserve local drafts and previously loaded data for ordinary temporary failures.
 
 ## Living documentation
 

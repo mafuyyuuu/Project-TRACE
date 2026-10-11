@@ -147,7 +147,7 @@ function findSecretaryClerks(course, executor = pool) {
 
 function findWindow1Clerks(executor = pool) {
   return executor
-    .query('SELECT id FROM users WHERE role = "clerk" AND desk_assignment = "Window 1"')
+    .query("SELECT id FROM users WHERE role = 'clerk' AND desk_assignment IN ('Window 1', 'Receiving Desk') AND is_active = TRUE")
     .then(([rows]) => rows);
 }
 

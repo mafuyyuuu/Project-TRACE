@@ -940,6 +940,13 @@ describe('intakeDocument — Window 1 checks the paperwork', () => {
     expect(documentModel.updateStatus).toHaveBeenCalledWith(5, STATUS.PENDING_SEC_EVALUATION, connection);
   });
 
+  it('accepts the Receiving Desk alias and keeps the same college-routing checks', async () => {
+    documentModel.findByIdForUpdate.mockResolvedValue([filed]);
+    await service.intakeDocument({...WINDOW1,desk_assignment:'Receiving Desk'},5,{action:'approve'},null);
+    expect(documentModel.updateStatus).toHaveBeenCalledWith(5,STATUS.PENDING_SEC_EVALUATION,connection);
+    expect(documentModel.updateRoutingCollege).toHaveBeenCalledWith(5,expect.objectContaining({id:1}),connection);
+  });
+
   it('requires issuance evidence before recording an original or routing', async () => {
     documentModel.findByIdForUpdate.mockResolvedValue([filed]);
     expect(await statusOf(service.intakeDocument(WINDOW1, 5, { action: 'approve', original_issued: 'true' }, null))).toBe(400);
@@ -1062,6 +1069,17 @@ describe('releaseDocument — Window 1 only', () => {
     expect(notifications.dispatchStudentAlert).toHaveBeenCalledWith(
       expect.objectContaining({ alsoSmsAndEmail: true })
     );
+  });
+
+  it('allows Receiving Desk to release only a document already ready at Window 1', async () => {
+    const actor={...WINDOW1,desk_assignment:'Receiving Desk'};
+    documentModel.findByIdForUpdate.mockResolvedValue([{id:5,student_id:'STU-001',current_status:STATUS.READY_FOR_RELEASE}]);
+    await service.releaseDocument(actor,5);
+    expect(documentModel.markCompleted).toHaveBeenCalledWith(5,connection);
+    documentModel.markCompleted.mockClear();
+    documentModel.findByIdForUpdate.mockResolvedValue([{id:5,current_status:STATUS.PAID_PENDING_SEC_RELEASE}]);
+    await expect(service.releaseDocument(actor,5)).rejects.toMatchObject({status:400});
+    expect(documentModel.markCompleted).not.toHaveBeenCalled();
   });
 });
 

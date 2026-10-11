@@ -22,8 +22,8 @@ function SettingsForm({ config,onStage,busy }) {
     <p className="text-sm">Warning must come before timeout. The explicit Request student reply action starts the clock; ordinary staff messages do not. Timeout releases the clerk and moves the ticket to Awaiting student, never Resolved.</p>
   </form>;
 }
-export default function SupportWorkspace({user,initialDocumentId,requestedTicket,compact = false,active = true,autoFocusConversation = true}) {
-  const state = useSupportTickets(user,initialDocumentId,requestedTicket), choices = useSupportRequestChoices(user);
+export default function SupportWorkspace({user,initialDocumentId,requestedTicket = new URLSearchParams(window.location.search).get('ticket'),requestedSupport = new URLSearchParams(window.location.search).get('support'),compact = false,active = true,autoFocusConversation = true}) {
+  const state = useSupportTickets(user,initialDocumentId,requestedTicket,requestedSupport), choices = useSupportRequestChoices(user);
   const [form,setForm] = useState(null), [subject,setSubject] = useState(''), [documentId,setDocumentId] = useState(initialDocumentId ? String(initialDocumentId) : '');
   const [staged,setStaged] = useState(null), [showTickets,setShowTickets]=useState(false);
   const [query,setQuery] = useState('');

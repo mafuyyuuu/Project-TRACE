@@ -62,6 +62,8 @@ Finance dashboard → **Official Receipts / History**, beside Verification. The 
 
 Student Support remains separate and is read-only for Admin; settings and analytics retain administrative controls. No student messages or identity files are imported into internal concerns. Staff-to-staff connections are now available in **Support → Staff coordination**; the [implemented permission matrix](docs/SYSTEM_WORKFLOWS.md#implemented-operational-chat-connections--trace-78-follow-up) describes their scope. The [migration ledger](docs/DEPLOYMENT_CHECKLIST.md) records the unapplied `migrate_internal_assistance.js` script. Use the local seed accounts below for testing; these screenshots do not establish live deployment or notification delivery.
 
+Support notification links also select another ticket while the workspace is open, preserving new-ticket form drafts. Linked case conversations follow the request’s saved routing college; the Receiving Desk label uses Window 1’s existing intake/release rules and assignment protections.
+
 ### Staff coordination walkthrough
 
 1. Sign in with a local Window 1, Finance or Secretary test account and open **Support → Staff coordination**.

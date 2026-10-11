@@ -19,7 +19,10 @@ export default function useSupportConversation(ticketId, onNotice) {
       setData(result); setMessages(previous => merge(previous,result.messages));
       if (initial.current || before) setCursor(result.next_cursor);
       initial.current = false; setReadError(''); return true;
-    } catch (err) { if (owner === lifetime.current && !controller.signal.aborted) setReadError(failure(err,'Could not load this ticket. Retry conversation.')); return false; }
+    } catch (err) { if (owner === lifetime.current && !controller.signal.aborted) {
+      if([403,404].includes(err.response?.status)){setData(null);setMessages([]);setCursor(null);initial.current=true;}
+      setReadError(failure(err,'Could not load this ticket. Retry conversation.'));
+    } return false; }
     finally { if (read.current === controller) read.current = null; if (owner === lifetime.current && !controller.signal.aborted) { setLoading(false); setLoadingOlder(false); } }
   }, [ticketId]);
   useEffect(() => {

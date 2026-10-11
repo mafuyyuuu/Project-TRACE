@@ -26,7 +26,7 @@ async function authorize(actor, ticket, executor = pool) {
     if (ticket.student_user_id !== actor.id) throw forbidden('You can only access your own support tickets.');
   } else if (!managed(actor)) {
     if (ticket.category !== 'linked') throw forbidden('General support is handled by Window 1.');
-    await access.authorizeMessage(actor, { student_id: ticket.student_id }, executor);
+    await access.authorizeMessage(actor, { student_id: ticket.student_id, routing_college_id: ticket.routing_college_id }, executor);
   }
   return ticket;
 }
@@ -62,14 +62,14 @@ async function scope(actor) {
   if (actor.role === 'student') return ['t.student_user_id=?',[actor.id]];
   if (managed(actor)) return ['1=1',[]];
   if (actor.desk_assignment === 'Finance') return ["t.category='linked'",[]];
-  const filter = await access.messageScope(actor);
-  return [`t.category='linked' AND ${filter.conditions.join(' AND ').replaceAll('student.', 'u.')}`,filter.params];
+  const filter = await access.messageScope(actor,pool,{includeCancelledSupport:true});
+  return [`t.category='linked' AND ${filter.conditions.join(' AND ')}`,filter.params];
 }
 async function list(user, query = {}) {
   const actor = await currentActor(user);
   const [where,params] = await scope(actor);
   const result = await model.list(where,params,cursor(query.before));
-  return { ...result,tickets:result.tickets.map(ticket => ({ ...ticket,read_only:actor.role === 'admin' || Boolean(readOnly(ticket)) })) };
+  return { ...result,access_scope:digest([actor.id,actor.role,actor.desk_assignment,where,params]),tickets:result.tickets.map(ticket => ({ ...ticket,read_only:actor.role === 'admin' || Boolean(readOnly(ticket)) })) };
 }
 async function resolveContext(user,query = {}) {
   const actor=await currentActor(user);
