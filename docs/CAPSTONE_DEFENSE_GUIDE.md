@@ -239,6 +239,9 @@ This expands the original core-table diagram with the current profile, catalog, 
 ```mermaid
 erDiagram
     users ||--o{ support_tickets : "owns / handles"
+    users ||--o{ staff_conversations : "participant pair"
+    staff_conversations ||--o{ staff_conversation_messages : "retained history"
+    staff_conversations ||--o{ staff_conversation_events : "retry audit"
     documents |o--o{ support_tickets : "optional case link"
     support_tickets ||--o{ support_ticket_messages : "conversation"
     support_ticket_messages ||--o{ support_ticket_files : "private attachments"
@@ -729,4 +732,10 @@ Show the [account-free analytics walkthrough](../README.md#main-workflows) and d
 
 Demonstrate Finance, Secretary or Window 1 opening **Internal Assistance → New concern**, confirming a category and text concern, then an Admin claiming and replying. Show Await staff reply, a creator response retaining the assignment, resolution with a note, and retained history on reopening. A second staff account cannot read the creator's ticket; an unassigned Admin can monitor but cannot reply until claiming. Admin monitors student Support without intervening. This queue is asynchronous, text-only and separate from student support hours, files, queue metrics and AI insight inputs.
 
-Use the [README screenshots and walkthrough](../README.md#internal-assistance-walkthrough) for account-free review. These are synthetic local UI examples, not proof of live notification delivery or database contention. The matching migration/API/frontend must be deployed before demonstrating the feature. Ordinary staff messaging connections remain a later scope, as specified in SYSTEM_WORKFLOWS.
+Use the [README screenshots and walkthrough](../README.md#internal-assistance-walkthrough) for account-free review. These are synthetic local UI examples, not proof of live notification delivery or database contention. The matching migration/API/frontend must be deployed before demonstrating the feature. The subsequent authorized staff connections are described below and in SYSTEM_WORKFLOWS.
+
+## Additional chat connections — demonstration
+
+On the matching deployed revision, show **Support → Staff coordination → New conversation**, the eligible recipient directory, confirmation of a first message and reuse of an existing pair thread. Show a subsequent direct Send, retained older history and draft preservation across categories. Explain that students remain in Window 1 Support tickets; Finance/Secretary case discussions keep their existing authorized context. Secretary peers are college-scoped, while Window 1/Finance coordination grants no new college record access. Admin monitors staff discussions read-only and replies only through assigned Internal Assistance concerns.
+
+The [README screenshots/walkthrough](../README.md#staff-coordination-walkthrough) use synthetic actual-component records. Sorted account locks, unique pair/scope keys and durable message retry events are implemented; local unit/model simulations do not establish live MySQL contention or delivery. The preserving staff migration is separate from student/internal support storage and metrics. TRACE-78 connections were initially deferred and are now implemented following the user's explicit authorization.

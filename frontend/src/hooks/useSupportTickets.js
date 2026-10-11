@@ -4,7 +4,7 @@ import useSupportFeedback from '@/hooks/useSupportFeedback';
 import { onNotification } from '@/services/realtimeService';
 const message = (error, fallback) => error.response?.data?.error || fallback;
 const merge = (old, incoming) => [...new Map([...old, ...incoming].map(row => [String(row.id), row])).values()].sort((a,b) => Number(b.id)-Number(a.id));
-export default function useSupportTickets(user,initialDocumentId) {
+export default function useSupportTickets(user,initialDocumentId,requestedTicket) {
   const [tickets,setTickets] = useState([]), [cursor,setCursor] = useState(null);
   const [loading,setLoading] = useState(true), [error,setError] = useState('');
   const [settings,setSettings] = useState(null), [topics,setTopics] = useState([]);
@@ -12,6 +12,7 @@ export default function useSupportTickets(user,initialDocumentId) {
   const [busy,setBusy] = useState(false);
   const feedback = useSupportFeedback();
   const owner = useRef(null), read = useRef(null), pending = useRef(false), initial = useRef(true);
+  useEffect(()=>{let active=true;if(requestedTicket)queueMicrotask(()=>{if(active)setSelected(String(requestedTicket));});return()=>{active=false;};},[requestedTicket]);
   const refresh = useCallback(async (before = null) => {
     if (!owner.current || read.current) return;
     const identity = owner.current, controller = new AbortController(); read.current = controller;

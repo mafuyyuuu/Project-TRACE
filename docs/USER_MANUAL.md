@@ -13,7 +13,7 @@ The public Login/welcome, registration, password recovery, email verification an
 - [Use the first-login tutorial](#3-use-the-first-login-tutorial)
 - [Complete your profile and verify email](#4-complete-your-profile-and-verify-email)
 - [Request, pay for and collect documents](#5-request-pay-for-and-collect-documents)
-- [Message Window 1 and submit case attachments](#6-message-window-1-and-submit-case-attachments)
+- [Message Window 1 and submit case attachments](#6-get-support-and-submit-case-documents)
 - [Set up security and larger text](#7-set-up-security-and-larger-text)
 - [Window 1 tasks](#8-window-1-tasks)
 - [College Secretary tasks](#9-college-secretary-tasks)
@@ -326,3 +326,9 @@ Window 1, Finance and College Secretaries open **Internal Assistance** from the 
 Admin selects a queued concern and confirms **Claim ticket** before replying. The assigned Admin may await a staff reply, resume handling or resolve with a mandatory note. Staff replies resume an awaiting concern without removing its Admin assignment. Resolved tickets preserve conversation/resolution history; creator or assigned Admin may confirm reopening into the queue. An open ticket assigned to an inactive/no-longer-Admin account offers an explicit takeover action to another Admin. A stale confirmation requires refreshing and reviewing again.
 
 Send works directly; failed sends retain the draft. Ticket changes require confirmation, and cancelling preserves the underlying form. On small screens, **Internal tickets** opens the ticket drawer; select a ticket or use **Back to conversation**. Student Support is a separate workspace; Admin can monitor its authorized history but cannot reply or change that conversation. See the [README walkthrough](../README.md#internal-assistance-walkthrough) for synthetic screenshots and local testing accounts.
+
+## Staff coordination conversations
+
+Open **Support → Staff coordination**. Window 1/Receiving Desk, Finance and Secretary staff select **New conversation**, search by name or desk, select an eligible colleague, enter a first message, then review/confirm. The existing conversation for that pair/college scope is reused. Send or Enter posts subsequent messages directly; failed sends keep their drafts for retry. Select a conversation from the list, or use **Staff conversations** on a phone. Load older messages retrieves retained history; switching conversation categories preserves drafts in the visited category workspaces.
+
+The directory excludes students, Admin, self and unavailable/unsupported staff. Secretary peers must share the same active college; Window 1/Finance can coordinate with the relevant Secretary without gaining access to another college's student requests. Changed or inactive assignments may make a thread read-only or inaccessible to the changed Secretary. Admin monitors operational history and cannot start/send in staff conversations. Admin replies to staff concerns through the separately assigned **Internal assistance** ticket. Student↔Window 1 support stays ticket-based; existing authorized Finance/Secretary case discussions remain case-linked. No online, unread or read-receipt indicator is implied. See the [README walkthrough](../README.md#staff-coordination-walkthrough).

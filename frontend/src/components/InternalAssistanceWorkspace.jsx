@@ -8,7 +8,7 @@ import { supportDay,supportTime } from '@/utils/supportPresentation';
 import useInternalAssistance,{useInternalConversation} from '@/hooks/useInternalAssistance';
 import useMotion from '@/hooks/useMotion';
 const labels = {QUEUED:'Queued',IN_PROGRESS:'In progress',AWAITING_STAFF:'Awaiting staff',RESOLVED:'Resolved'};
-function InternalConversation({ticketId,user,onNotice,onChanged}) {
+function InternalConversation({ticketId,user,onNotice,onChanged,active=true}) {
   const chat = useInternalConversation(ticketId,user,onNotice,onChanged), ticket = chat.data?.ticket;
   const [staged,setStaged] = useState(null), [resolving,setResolving] = useState(false), [note,setNote] = useState('');
   const history = useRef(null), pinned = useRef(true), older = useRef(null);
@@ -59,19 +59,19 @@ function InternalConversation({ticketId,user,onNotice,onChanged}) {
       </form>}
       <p className="text-xs text-gray-600 dark:text-gray-300">Private staff assistance. Student conversations and identity attachments are not linked here.</p>
     </footer>
-    <ModalShell open={resolving} onClose={() => {if (!chat.busy) setResolving(false);}} title="Resolve Internal Concern" footer={<Button type="submit" form="internal-resolution" disabled={chat.busy || !note.trim()} className="trace-button trace-button-primary">Review resolution</Button>}>
+    <ModalShell open={active&&resolving} onClose={() => {if (!chat.busy) setResolving(false);}} title="Resolve Internal Concern" footer={<Button type="submit" form="internal-resolution" disabled={chat.busy || !note.trim()} className="trace-button trace-button-primary">Review resolution</Button>}>
       <form id="internal-resolution" onSubmit={event => {event.preventDefault();stage('resolve',{note:note.trim()});}} className="space-y-3">
         <p className="text-sm">Explain what was done. The resolution and conversation remain in history.</p>
         <label className="trace-label block">Resolution note<textarea required maxLength={2000} value={note} onChange={event => setNote(event.target.value)} disabled={chat.busy} className="trace-control mt-1 w-full" /></label>
       </form>
     </ModalShell>
-    <ConfirmDialog open={Boolean(staged)} title="Confirm Internal Assistance Action" message={`Save ${staged?.action?.replaceAll('_',' ')} for internal ticket #${ticketId}?`} loading={chat.busy} onCancel={() => {if (!chat.busy) setStaged(null);}} onConfirm={async () => {if (await chat.change(staged)) {setStaged(null);setResolving(false);setNote('');}}}>
+    <ConfirmDialog open={active&&Boolean(staged)} title="Confirm Internal Assistance Action" message={`Save ${staged?.action?.replaceAll('_',' ')} for internal ticket #${ticketId}?`} loading={chat.busy} onCancel={() => {if (!chat.busy) setStaged(null);}} onConfirm={async () => {if (await chat.change(staged)) {setStaged(null);setResolving(false);setNote('');}}}>
       {staged?.note && <p className="mt-3 select-text whitespace-pre-wrap break-words text-sm">{staged.note}</p>}
       {chat.error && <p role="alert" className="trace-inline-error mt-3 text-sm">{chat.error}</p>}
     </ConfirmDialog>
   </section>;
 }
-export default function InternalAssistanceWorkspace({user,requestedTicket}) {
+export default function InternalAssistanceWorkspace({user,requestedTicket,active=true}) {
   const [stateFilter,setStateFilter] = useState(''), [categoryFilter,setCategoryFilter] = useState(''), [query,setQuery] = useState('');
   const state = useInternalAssistance(user,stateFilter,categoryFilter,requestedTicket);
   const [showTickets,setShowTickets] = useState(false), [creating,setCreating] = useState(false), [staged,setStaged] = useState(null);
@@ -101,10 +101,10 @@ export default function InternalAssistanceWorkspace({user,requestedTicket}) {
     {state.error && <p role="alert" className="trace-inline-error text-sm">{state.error} <Button type="button" onClick={() => void state.refresh()} className="trace-action underline">Retry internal assistance</Button></p>}
     <div className="grid h-[75dvh] min-h-96 min-w-0 grid-cols-[minmax(0,1fr)] overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-900 lg:grid-cols-[minmax(16rem,1fr)_minmax(0,2.4fr)]">
       <aside className="hidden min-h-0 min-w-0 border-r border-gray-200 dark:border-gray-700 lg:block">{list}</aside>
-      {state.selected ? <InternalConversation key={`${user.id}:${state.selected}`} ticketId={state.selected} user={user} onNotice={state.feedback.notify} onChanged={() => void state.refresh()} /> : <div className="flex min-w-0 flex-col items-center justify-center gap-3 p-5 text-center"><h3 className="font-bold">Select an internal ticket.</h3><p className="text-sm">{user.role === 'admin' ? 'Review the queue, then claim a concern to help its creator.' : 'Open a concern or select your retained assistance history.'}</p></div>}
+      {state.selected ? <InternalConversation key={`${user.id}:${state.selected}`} ticketId={state.selected} user={user} onNotice={state.feedback.notify} onChanged={() => void state.refresh()} active={active} /> : <div className="flex min-w-0 flex-col items-center justify-center gap-3 p-5 text-center"><h3 className="font-bold">Select an internal ticket.</h3><p className="text-sm">{user.role === 'admin' ? 'Review the queue, then claim a concern to help its creator.' : 'Open a concern or select your retained assistance history.'}</p></div>}
     </div>
-    <ModalShell open={showTickets} onClose={() => setShowTickets(false)} title="Internal Tickets" panelClassName="trace-modal-panel max-w-sm h-[80dvh]" bodyClassName="min-h-0 flex-1 overflow-hidden" footer={<Button type="button" onClick={() => setShowTickets(false)} className="trace-button trace-button-secondary w-full">Back to conversation</Button>}>{list}</ModalShell>
-    <ModalShell open={creating} onClose={() => {if (!state.busy) setCreating(false);}} busy={state.busy} title="New Internal Concern" footer={<Button type="submit" form="internal-create" disabled={state.busy} className="trace-button trace-button-primary">Review concern</Button>}>
+    <ModalShell open={active&&showTickets} onClose={() => setShowTickets(false)} title="Internal Tickets" panelClassName="trace-modal-panel max-w-sm h-[80dvh]" bodyClassName="min-h-0 flex-1 overflow-hidden" footer={<Button type="button" onClick={() => setShowTickets(false)} className="trace-button trace-button-secondary w-full">Back to conversation</Button>}>{list}</ModalShell>
+    <ModalShell open={active&&creating} onClose={() => {if (!state.busy) setCreating(false);}} busy={state.busy} title="New Internal Concern" footer={<Button type="submit" form="internal-create" disabled={state.busy} className="trace-button trace-button-primary">Review concern</Button>}>
       <form id="internal-create" onSubmit={event => {event.preventDefault();setStaged({subject:subject.trim(),category,description:description.trim(),client_key:crypto.randomUUID()});}} className="space-y-4">
         <p className="text-sm">Describe the staff concern without copying student identity files or private conversations. This creates an asynchronous assistance ticket, separate from live student support.</p>
         <label className="trace-label block">Subject<input required maxLength={255} value={subject} onChange={event => setSubject(event.target.value)} disabled={state.busy} className="trace-control mt-1 w-full" /></label>
@@ -112,9 +112,9 @@ export default function InternalAssistanceWorkspace({user,requestedTicket}) {
         <label className="trace-label block">Concern<textarea required maxLength={2000} value={description} onChange={event => setDescription(event.target.value)} disabled={state.busy} className="trace-control mt-1 w-full" /></label>
       </form>
     </ModalShell>
-    <ConfirmDialog open={Boolean(staged)} title="Submit Internal Concern?" message="Create this private ticket for Admin assistance?" loading={state.busy} onCancel={() => {if (!state.busy) setStaged(null);}} onConfirm={async () => {if (await state.create(staged)) {setStaged(null);setCreating(false);setSubject('');setDescription('');}}}>
+    <ConfirmDialog open={active&&Boolean(staged)} title="Submit Internal Concern?" message="Create this private ticket for Admin assistance?" loading={state.busy} onCancel={() => {if (!state.busy) setStaged(null);}} onConfirm={async () => {if (await state.create(staged)) {setStaged(null);setCreating(false);setSubject('');setDescription('');}}}>
       <p className="mt-3 select-text break-words font-semibold">{staged?.subject}</p>{state.error && <p role="alert" className="trace-inline-error mt-3 text-sm">{state.error}</p>}
     </ConfirmDialog>
-    <SupportToasts notices={state.feedback.notices} onDismiss={state.feedback.dismiss} onDismissAll={state.feedback.dismissAll} />
+    {active&&<SupportToasts notices={state.feedback.notices} onDismiss={state.feedback.dismiss} onDismissAll={state.feedback.dismissAll} />}
   </section>;
 }

@@ -258,4 +258,14 @@ See [README workflow walkthrough](../README.md#main-workflows) for the screensho
 
 *(Action: Admin selects Await staff reply; Finance replies; Admin resolves with a note. Show retained history and confirm reopening.)*
 
-“The assigned Admin is retained while awaiting the staff response. Resolution needs a recorded note, and reopening preserves history while returning the concern to the queue. Ordinary staff chat connections remain deferred. We distinguish these local checks from acceptance on the deployed database and devices.”
+“The assigned Admin is retained while awaiting the staff response. Resolution needs a recorded note, and reopening preserves history while returning the concern to the queue. Ordinary staff chat was initially deferred; the authorized implementation is demonstrated below. We distinguish these local checks from acceptance on the deployed database and devices.”
+
+## Additional staff coordination demonstration — matching deployed revision
+
+*(Action: Finance opens Support → Staff coordination, searches for a Secretary, enters a first message and confirms. Show the message in the Secretary account and reply.)*
+
+“Staff now coordinate in a separate conversation category. The server selects eligible active desk recipients; students, Admin and self are excluded. Secretaries coordinate with peers from their own college and with Window 1 or Finance, without gaining cross-college student-record access. Existing student assistance remains in Support tickets.”
+
+*(Action: Switch conversation categories and return to a drafted message. Show Admin monitoring the staff history without a composer.)*
+
+“Category switches preserve drafts. Accepted message retries reuse the recorded message rather than duplicating it. Admin can monitor operational discussions but cannot intervene; staff concerns needing an Admin reply use Internal Assistance. These screenshots/local checks are separate from verification on the deployed database and devices.”

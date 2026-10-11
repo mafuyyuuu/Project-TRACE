@@ -122,3 +122,7 @@ SupportAnalytics applies the Admin Figma dashboard (93:663) card hierarchy to re
 ### Internal assistance workspace
 
 InternalAssistanceWorkspace reuses the main support frame (260:3301) proportions, shared ticket/avatar/icon components, pine-green outgoing bubbles, gray context panel and rounded composer. Ticket rows use the shared selected contrast and fixed-target lift; controls use Button and shared ModalShell/ConfirmDialog. Required concern category, creator/assigned Admin context and resolution notes adapt the live workflow rather than copying student mock records. The mobile drawer preserves the conversation and shared focus handling. Ordinary recipient/presence/unread connections remain deferred.
+
+## Staff coordination and messaging categories
+
+The additional staff workspace follows the main Figma messaging frame (260:3301) using existing Support visuals, intrinsic-size local icons, dynamic participant initials, readable aligned ticket-style rows, independently scrolling history and the rounded pinned composer. Shared QueueTabs group support, staff coordination and internal assistance; visited workspaces retain drafts. ModalShell and ConfirmDialog own recipient selection and first-message confirmation; subsequent Send is direct with pending guards. Active-category gating prevents hidden dialogs/toasts taking over another category. Mobile uses the shared conversation drawer; dark/reduced-motion/200% text adaptations preserve controls. No placeholder presence/read/unread marks are shown.

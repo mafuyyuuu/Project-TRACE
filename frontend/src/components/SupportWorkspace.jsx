@@ -22,8 +22,8 @@ function SettingsForm({ config,onStage,busy }) {
     <p className="text-sm">Warning must come before timeout. The explicit Request student reply action starts the clock; ordinary staff messages do not. Timeout releases the clerk and moves the ticket to Awaiting student, never Resolved.</p>
   </form>;
 }
-export default function SupportWorkspace({user,initialDocumentId,compact = false,active = true,autoFocusConversation = true}) {
-  const state = useSupportTickets(user,initialDocumentId), choices = useSupportRequestChoices(user);
+export default function SupportWorkspace({user,initialDocumentId,requestedTicket,compact = false,active = true,autoFocusConversation = true}) {
+  const state = useSupportTickets(user,initialDocumentId,requestedTicket), choices = useSupportRequestChoices(user);
   const [form,setForm] = useState(null), [subject,setSubject] = useState(''), [documentId,setDocumentId] = useState(initialDocumentId ? String(initialDocumentId) : '');
   const [staged,setStaged] = useState(null), [showTickets,setShowTickets]=useState(false);
   const [query,setQuery] = useState('');
@@ -71,7 +71,7 @@ export default function SupportWorkspace({user,initialDocumentId,compact = false
       <div className="h-full min-h-0 min-w-0">{state.selected ? <SupportConversation key={`${user.id}:${state.selected}`} ticketId={state.selected} user={user} topics={state.topics} onTicketChanged={state.refresh} onNotice={state.feedback.notify} active={active} autoFocusConversation={autoFocusConversation} compact={compact} /> : <SupportEmptyState student={user.role==='student'} monitor={user.role==='admin'} />}</div>
     </div>
     <ModalShell open={active && showTickets} onClose={() => setShowTickets(false)} title="Support tickets" bodyClassName="min-h-0 flex-1 overflow-hidden" panelClassName="trace-modal-panel max-w-sm h-[80dvh]" footer={<Button type="button" onClick={()=>setShowTickets(false)} className="trace-button trace-button-secondary w-full">Back to conversation</Button>}>{ticketList}</ModalShell>
-    <SupportToasts notices={state.feedback.notices} onDismiss={state.feedback.dismiss} onDismissAll={state.feedback.dismissAll} />
+    {active&&<SupportToasts notices={state.feedback.notices} onDismiss={state.feedback.dismiss} onDismissAll={state.feedback.dismissAll} />}
     <ModalShell open={active && Boolean(form)} onClose={() => { if (!state.busy) setForm(null); }} title={form === 'settings' ? 'Support Settings' : form==='analytics' ? 'Support Analytics' : 'New Support Ticket'} busy={state.busy} footer={form==='analytics' ? <Button type="button" onClick={()=>setForm(null)} className="trace-button trace-button-secondary">Close</Button> : <Button type="submit" form={form === 'settings' ? 'support-settings-form' : 'support-create-form'} disabled={state.busy} className="trace-button trace-button-primary">Review and save</Button>}>
       {form==='analytics' && <SupportAnalytics />}
       {form === 'settings' && state.settings && <SettingsForm key="settings" config={state.settings.settings} onStage={stage} busy={state.busy} />}

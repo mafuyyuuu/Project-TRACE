@@ -356,7 +356,7 @@ Support reporting remains a read-only path: role-authorized report endpoint → 
 See the [README navigation walkthrough and screenshots](../README.md#finance-receipt-walkthrough) for Finance's Official Receipts / History workspace. Confirmed 50-number packs reserve the supplied format; finalized verification or deferred issuance saves one immutable payment/cashier snapshot and consumes one number. Preview, upload and reprint consume none. Copy uploads are protected JPEG/PNG/PDF files up to 5 MB. Stale serials require refresh/review; retry keys and unique serial/group constraints protect repeated requests. Pack changes, issue, copy, print-request, reprint, void and calibration actions are audited. Historical manual OR records remain intact. New issuance/voiding stops before Secretary verification/handoff; later copy uploads preserve the existing payment and document stage. Unknown paper geometry requires saved calibration and a blank-paper printer test. Apply the preserving `migrate_receipt_packs.js` before the matching API/frontend; see the [deployment ledger](DEPLOYMENT_CHECKLIST.md).
 
 
-## Internal assistance and future conversation categories
+## Internal assistance and conversation categories
 
 Window 1 (including its Receiving Desk alias), Finance and College Secretary staff use **Internal Assistance → New concern** to ask Admin for help. Categories are Account access, System issue, Workflow question and Other concern. Staff see only tickets they created; college/desk colleagues do not automatically share those private concerns. All active Admins can inspect the internal queue; only the assigned Admin replies and manages its lifecycle. Admin claims an unassigned ticket, or explicitly takes over from an inactive/no-longer-Admin assignee. There is no student owner, document link, attachment import, FAQ bot, estimated wait or Window 1 service-hours limit on this asynchronous queue.
 
@@ -372,22 +372,19 @@ Save/lifecycle actions use shared confirmation dialogs; Send/Enter sends directl
 
 Admin **operational** support is read-only: existing tickets/messages/authorized files remain visible; opening student tickets, sending, escalating, resolving, reopening, reply-window actions and case-specific supporting-document requests/reviews through chat are denied. Global supporting-document catalogs, support settings and analytics retain their separate administrative permissions. Other desk document-processing permissions remain intact.
 
-### Deferred operational-chat permission specification — TRACE-78
+### Implemented operational-chat connections — TRACE-78 follow-up
 
-This matrix describes the later ordinary recipient-connection phase; it does not create recipient pickers, ordinary message APIs or new send permissions now. Existing case-linked tickets retain their desk/college access except for the explicit Admin monitoring restriction above.
+The user authorized the connection phase after Batch 13. **Support → Staff coordination** now has a server-filtered recipient picker and retained one-to-one staff threads. Supported ordinary recipients are active Window 1/Receiving Desk, Finance and College Secretary accounts. Self, students, Admin and unsupported desks are excluded. Student↔Window 1 communication stays in the existing FAQ/ticket workflow; this does not create a way around live assignment or reply policies. Existing Finance/Secretary case-linked student discussions retain their separate document/college authorization and are not ordinary direct student recipients.
 
-| Actor | Planned ordinary recipients | Restrictions |
+| Actor | Implemented path | Scope |
 | --- | --- | --- |
-| Window 1 | Students and authorized staff | No ordinary Admin conversation; no self-recipient. |
-| Finance | Authorized staff | No students, Admin or self as ordinary recipients. |
-| College Secretary | Authorized staff | No students, Admin or self as ordinary recipients; college-sensitive access must be specified before wiring. |
-| Admin | Monitor authorized operational conversations | Read-only; no send, edit or intervention. Staff concerns use internal tickets. |
+| Window 1 / Receiving Desk | Student/case Support plus Staff coordination | Student tickets retain queue rules; ordinary recipients are authorized desk staff. |
+| Finance | Authorized case-linked discussions plus Staff coordination | No ordinary student/Admin/self recipients; document/payment permissions unchanged. |
+| College Secretary | Authorized case-linked discussions plus Staff coordination | Active resolved college required; Secretary peers must share that college. Window 1/Finance coordination records the Secretary's college scope. No cross-college request access is granted. |
+| Admin | Operational ticket/staff history monitoring | Read-only; no ordinary recipient picker, conversation creation or send. Replies remain confined to assigned Internal Assistance tickets. |
 
-| Category | Current/future placement | Sorting and indicators |
-| --- | --- | --- |
-| Student support | Existing Support FAQ/general ticket queue | Existing student support queue policy and loaded metadata; do not fabricate presence/unread/read receipts. |
-| Case-linked conversations | Existing authorized tickets within Support and the evaluation discussion panel | Retained chronological history, request context and desk/college scope. |
-| Staff coordination | Deferred separate staff category in the later connections phase | Require server-side recipient eligibility, stable ordering and an authoritative per-user read cursor before unread badges. |
-| Internal assistance | Separate Internal Assistance navigation/workspace and tables | Newest ticket first; server state/category filtering; chronological history. No unread badge because no read cursor is recorded. |
+Support navigation groups **Student & case support** (case-linked only for Finance/Secretary), **Staff coordination**, and **Internal assistance**. Within Support the existing ticket category/context distinguishes general help from linked cases. Visited category workspaces retain drafts across switching, shared dialogs appear only for the active category, and notification query changes select their requested conversation. Lists are bounded ID-cursor pages in newest-conversation-first order; search of loaded conversations is labeled. Recipient search covers the server's authorized directory. No presence, unread badge or read-receipt state is fabricated.
 
-Before the deferred phase, confirm how existing Finance/Secretary case-linked student messaging is distinguished from prohibited **ordinary** direct student chat, whether Secretary staff coordination is college-scoped, and how monitored records are retained. The later connection implementation requires a separate user instruction; this revision neither relaxes current access nor silently connects all accounts.
+The separate staff tables contain no automatic student/document/file import and are excluded from student Support analytics/AI. Participant IDs and college scope are server-derived; sorted participant locks serialize pair creation, a unique pair/scope key reuses the conversation, and unique actor/retry audit keys make accepted first messages and sends repeatable without duplication. First-message creation requires confirmation; Send/Enter is direct with synchronous duplicate guards and durable retry keys. Failed actions preserve drafts; an accepted send followed by a refresh error stays accepted. Missed history pages are bridged after reconnect. Messages and events are retained; no deletion or reassignment endpoint is added.
+
+Every API call rereads active roles/college scope. Only participants or active Admin monitors read a thread. A Secretary who moves college cannot read the old scoped thread; remaining authorized participants retain read-only history when a peer becomes unavailable or changes scope. New valid college assignments use a separately scoped conversation. UI refresh clears cached rows/history when access is revoked or authoritative scope changes. Recipient notifications contain only a generic conversation reference and private deep link, and delivery failures do not undo messages.

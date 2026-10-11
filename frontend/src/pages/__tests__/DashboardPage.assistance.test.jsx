@@ -3,9 +3,11 @@ import {render,screen} from '@testing-library/react';
 import {MemoryRouter} from 'react-router-dom';
 import DashboardPage from '@/pages/DashboardPage';
 import InternalAssistanceWorkspace from '@/components/InternalAssistanceWorkspace';
+import MessagingWorkspace from '@/components/MessagingWorkspace';
 const auth = vi.hoisted(() => ({user:null}));
 vi.mock('@/hooks/useAuth',() => ({default:() => auth}));
 vi.mock('@/components/InternalAssistanceWorkspace',() => ({default:vi.fn(() => <p>Internal workspace</p>)}));
+vi.mock('@/components/MessagingWorkspace',()=>({default:vi.fn(()=> <p>Messaging categories</p>)}));
 vi.mock('@/features/student/StudentDashboard',() => ({default:() => <p>Student dashboard</p>}));
 vi.mock('@/features/finance/FinanceDashboard',() => ({default:() => <p>Finance dashboard</p>}));
 vi.mock('@/features/secretary/SecretaryDashboard',() => ({default:() => <p>Secretary dashboard</p>}));
@@ -31,4 +33,13 @@ it.each([{id:3,role:'student'},{id:4,role:'clerk',desk_assignment:'Other'}])('do
 });
 it('retains the temporary-password gate before staff assistance',() => {
   auth.user={id:9,role:'admin',must_change_password:true};mount();expect(screen.getByText('Change temporary password')).toBeInTheDocument();expect(InternalAssistanceWorkspace).not.toHaveBeenCalled();
+});
+it.each(['Window 1','Receiving Desk','Secretary','Finance','Admin'])('routes %s to the categorized messaging workspace',desk=>{
+  auth.user=desk==='Admin'?{id:9,role:'admin'}:{id:4,role:'clerk',desk_assignment:desk};
+  render(<MemoryRouter initialEntries={['/dashboard?tab=messages&category=staff&conversation=21']}><DashboardPage/></MemoryRouter>);
+  expect(screen.getByText('Messaging categories')).toBeInTheDocument();
+});
+it.each([{id:3,role:'student'},{id:4,role:'clerk',desk_assignment:'Other'},{id:9,role:'admin',must_change_password:true}])('does not mount staff messaging for an unauthorized or gated account',user=>{
+  auth.user=user;render(<MemoryRouter initialEntries={['/dashboard?tab=messages&category=staff']}><DashboardPage/></MemoryRouter>);
+  expect(MessagingWorkspace).not.toHaveBeenCalled();
 });

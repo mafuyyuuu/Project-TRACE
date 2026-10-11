@@ -1092,3 +1092,7 @@ See [README workflow walkthrough](../README.md#main-workflows) for the screensho
 ## Revision 2 Batch 11 — deployment requirements
 
 Support Analytics KPI/table changes add no environment variable, dependency or migration. Build the frontend normally against the existing support-report API; no AI rebuild or n8n re-import is needed for this batch. The earlier alumni/intake migrations and all existing support prerequisites remain tracked in [DEPLOYMENT_CHECKLIST.md](DEPLOYMENT_CHECKLIST.md). No live database or deployment action was performed. [Local acceptance](../README.md#main-workflows).
+
+## Additional staff chat connections
+
+No environment variables/dependencies or AI/n8n changes are introduced. Build the matching backend/frontend and apply only missing preserving prerequisites plus `database/migrate_staff_conversations.js`, followed by the read-only schema checker, using [MIGRATION_ROLLOUT.md](MIGRATION_ROLLOUT.md). The [deployment checklist](DEPLOYMENT_CHECKLIST.md) records the new script as unapplied. Existing user/college tables are required; no account or college data is seeded. Confirm actual active staff college assignments and notification delivery on staging. Do not import fresh schema or seed data into an existing server.
