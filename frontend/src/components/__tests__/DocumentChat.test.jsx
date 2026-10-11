@@ -36,7 +36,7 @@ describe('Direct document messages', () => {
     api.get.mockResolvedValueOnce({ data: [...rows, { id: 3, sender_id: 9, message: 'Following reply', created_at: '2026-10-01' }] });
     fireEvent(window, new Event('focus'));
     await screen.findByText('Following reply');
-    expect(history.scrollTop).toBe(1000);
+    await waitFor(() => expect(history.scrollTop).toBe(1000));
   });
 
   it.each(['Enter', 'Send'])('submits immediately using %s without confirmation', async method => {

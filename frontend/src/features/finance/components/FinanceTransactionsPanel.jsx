@@ -6,12 +6,12 @@ import {EMPTY_FINANCE_FILTERS,appliedFilterSummary} from '@/utils/reportFilters'
 import { formatPeso } from '@/utils/pricing';
 import { formatDateTime } from '@/utils/formatters';
 import { receiptWait } from '@/utils/receiptTiming';
-export default function FinanceTransactionsPanel({ state, onUpload, onProfile, onViewReceipt }) {
+export default function FinanceTransactionsPanel({ state, onUpload, onProfile, onViewReceipt, onPrint }) {
   const [filtersOpen,setFiltersOpen]=useState(false);
   const reference=useReportFilterOptions(filtersOpen);
   return <section className="space-y-4 min-w-0" aria-label="Finance transactions and export">
     <div className="flex flex-wrap items-center justify-between gap-3">
-      <h2 className="trace-page-title min-w-0 max-w-full break-words">Transactions & OR Copies</h2>
+      <h2 className="trace-page-title min-w-0 max-w-full break-words">Official Receipts / History</h2>
       <div className="trace-actions ml-auto">
         <Button type="button" onClick={state.refresh} disabled={state.loading} className="trace-button trace-button-secondary">Refresh</Button>
         <Button type="button" className="trace-button trace-button-primary" onClick={()=>setFiltersOpen(true)}>Filters</Button>
@@ -30,10 +30,10 @@ export default function FinanceTransactionsPanel({ state, onUpload, onProfile, o
             <td className="p-3"><Button type="button" onClick={() => onProfile(row.student_id)} disabled={!row.student_id} className="trace-action text-blue-700 dark:text-blue-300 underline text-left">{row.student_name || row.student_id}</Button></td>
             <td className="p-3">{row.payment_cleared_at ? formatDateTime(row.payment_cleared_at) : 'Historical date not recorded'}</td>
             <td className="p-3">{formatPeso(row.amount)}</td>
-            <td className="p-3">{!row.or_number ? <><strong>Issuance pending</strong><div>{receiptWait(row.payment_cleared_at, state.now)}</div>{row.or_earliest_issue_date && <div>Earliest eligible date: {row.or_earliest_issue_date}</div>}</> : <><span className="select-text">{row.or_number}</span><div>{row.official_receipt_path ? 'Digital OR available' : 'Issued; digital copy pending'}</div></>}</td>
-            <td className="p-3">{row.official_receipt_path
+            <td className="p-3">{!row.or_number ? <><strong>Issuance pending</strong><div>{receiptWait(row.payment_cleared_at, state.now)}</div>{row.or_earliest_issue_date && <div>Earliest eligible date: {row.or_earliest_issue_date}</div>}</> : <><div className="flex flex-wrap items-center gap-2"><span className="font-mono select-text">{row.or_number}</span>{row.receipt_id && <Button type="button" onClick={()=>onPrint(row.receipt_id)} className="trace-button trace-button-secondary">Print / View</Button>}</div><div className="text-xs">{row.cashier_name && `Cashier: ${row.cashier_name} · `}{row.or_date || ''}</div><div>{row.official_receipt_path ? 'Digital OR available' : 'Issued; digital copy pending'}</div></>}</td>
+            <td className="p-3"><div className="flex flex-wrap gap-2">{row.official_receipt_path
               ? <Button type="button" onClick={() => onViewReceipt(row.official_receipt_path)} className="trace-button trace-button-secondary">View OR</Button>
-              : <Button type="button" disabled={state.uploadingReceipt} onClick={() => onUpload(row)} className="trace-button trace-button-secondary">{row.or_number ? 'Upload OR copy' : 'Issue OR & upload'}</Button>}</td>
+              : <Button type="button" disabled={state.uploadingReceipt} onClick={() => onUpload(row)} className="trace-button trace-button-secondary">{row.or_number ? 'Upload OR copy' : 'Issue Official Receipt'}</Button>}</div></td>
           </tr>)}</tbody>
         </table>
       </div>}

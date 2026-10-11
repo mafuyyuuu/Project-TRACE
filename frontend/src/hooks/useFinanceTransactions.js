@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { exportFinanceTransactions, getFinanceTransactions } from '@/services/financeService';
+import {uploadReceiptCopy} from '@/services/receiptService';
 import { uploadDeferredOR } from '@/services/documentsService';
 import { EMPTY_FINANCE_FILTERS } from '@/utils/reportFilters';
 import useElapsedClock from '@/hooks/useElapsedClock';
@@ -12,6 +13,7 @@ export default function useFinanceTransactions() {
   const now = useElapsedClock();
   const [uploadingReceipt, setUploadingReceipt] = useState(false);
   const [receiptFeedback, setReceiptFeedback] = useState({ success: '', error: '' });
+  const [uploadProgress,setUploadProgress]=useState(null);
   const uploadingRef = useRef(false);
   const exportingRef = useRef(false);
   const alive = useRef(true);
@@ -33,7 +35,9 @@ export default function useFinanceTransactions() {
     setUploadingReceipt(true);
     dismissReceiptFeedback();
     try {
-      await uploadDeferredOR(doc.id, file, metadata);
+      setUploadProgress(0);
+      if(doc.receipt_id)await uploadReceiptCopy(doc.receipt_id,file,setUploadProgress);
+      else await uploadDeferredOR(doc.id, file, metadata);
       if (alive.current) {
         setReceiptFeedback({ success: 'Official Receipt copy uploaded. The document stage is unchanged.', error: '' });
         refresh();
@@ -61,5 +65,5 @@ export default function useFinanceTransactions() {
     finally { exportingRef.current = false; if (alive.current) setExporting(false); }
   };
   return { ...data, loadFailed, filters, applyFilters, page, setPage, loading: loadedKey !== requestKey, error, exporting, exportCsv, refresh, now,
-    uploadingReceipt, receiptFeedback, dismissReceiptFeedback, uploadReceipt };
+    uploadProgress, uploadingReceipt, receiptFeedback, dismissReceiptFeedback, uploadReceipt };
 }

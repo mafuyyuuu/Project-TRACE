@@ -137,4 +137,12 @@ function supportMessageUpload(req, res, next) {
       ? badRequest('Attach at most 3 JPEG, PNG or PDF files, 5 MB each, with your message.') : error);
   });
 }
-module.exports = { supportMessageUpload, supportUpload, idProofUpload, signupOcrUpload, documentUpload, pertinentUpload, profilePictureUpload, UPLOAD_DIR };
+const receiptUpload = multer({
+ storage:documentStorage,limits:{fileSize:5*1024*1024,files:1},
+ fileFilter:(req,file,cb)=>{
+  const types={'.jpg':'image/jpeg','.jpeg':'image/jpeg','.png':'image/png','.pdf':'application/pdf'};
+  const valid=types[path.extname(file.originalname).toLowerCase()]===file.mimetype;
+  cb(valid?null:badRequest('Receipt copies must be JPEG, PNG or PDF, at most 5 MB.'),valid);
+ },
+});
+module.exports = { receiptUpload, supportMessageUpload, supportUpload, idProofUpload, signupOcrUpload, documentUpload, pertinentUpload, profilePictureUpload, UPLOAD_DIR };

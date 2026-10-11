@@ -2,6 +2,11 @@ const { pool } = require('../src/config/db');
 
 // Read-only deployment preflight. This checks presence, not data or SQL compatibility.
 const requirements = [
+  ['finance_receipt_control',['id','active_pack_id','print_config','version'],'migrate_receipt_packs.js'],
+  ['finance_receipt_packs',['id','pattern','start_serial','consumed','active','created_by'],'migrate_receipt_packs.js'],
+  ['finance_issued_receipts',['id','request_group_id','active_group','serial','client_key','snapshot','state','copy_path'],'migrate_receipt_packs.js'],
+  ['finance_receipt_serials',['serial','pack_id','position','receipt_id','state'],'migrate_receipt_packs.js'],
+  ['finance_receipt_events',['id','receipt_id','event_type','actor_id','data'],'migrate_receipt_packs.js'],
   ['documents', ['routing_college_id', 'routing_college_name'], 'migrate_request_intake_scope.js'],
   ['request_attachment_requirements', ['blocks_intake'], 'migrate_request_intake_scope.js'],
   ['users', ['id', 'student_id', 'password_hash', 'is_active', 'must_change_password'], 'base schema: see docs/ENV_SETUP_GUIDE.md'],

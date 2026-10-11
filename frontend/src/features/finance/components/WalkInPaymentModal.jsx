@@ -73,6 +73,7 @@ export default function WalkInPaymentModal({
         <input type="checkbox" checked={counterDeferred} disabled={scanning || actionLoading} onChange={e => setCounterDeferred?.(e.target.checked)} className="trace-choice mt-1 shrink-0" />
         Later — record the counter payment with OR issuance pending. Required for new ORs at or after 4:00 PM Manila time.
       </label>
+      {!counterDeferred && <p className="text-xs mb-3">Historical paper receipt entry only. New managed receipts are numbered when Finance verifies this payment; leave Later selected for that workflow.</p>}
       <div className="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl p-5 mb-6 font-mono text-[11px] text-gray-600 dark:text-gray-300 space-y-2">
         <div className="flex flex-wrap justify-between gap-x-3 gap-y-1"><span>Student</span><span className="font-bold text-gray-950 dark:text-gray-100 select-text break-words">{selectedDoc.student_name || selectedDoc.student_id}</span></div>
         <div className="flex flex-wrap justify-between gap-x-3 gap-y-1"><span>Tracking ID</span><span className="font-bold text-gray-950 dark:text-gray-100 select-text">#{selectedDoc.tracking_number}</span></div>

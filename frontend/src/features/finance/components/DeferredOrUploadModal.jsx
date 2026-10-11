@@ -9,7 +9,7 @@ export default function DeferredOrUploadModal({
   selectedDoc,
   setActiveModal,
   handleDeferredUpload,
-  actionLoading
+  actionLoading, uploadProgress
 }) {
   const [orFile, setOrFile] = useState(null);
   const [fileToConfirm, setFileToConfirm] = useState(null);
@@ -25,7 +25,7 @@ export default function DeferredOrUploadModal({
 
   return (
     <>
-    <ModalShell open={true} onClose={() => setActiveModal(null)} title="Upload Deferred OR"
+    <ModalShell open={true} onClose={() => setActiveModal(null)} title="Attach Official Receipt Copy" closeOnBackdrop={!actionLoading} closeOnEsc={!actionLoading}
       footer={
         <div className="flex flex-col sm:flex-row justify-end gap-3">
           <Button type="button" disabled={actionLoading} onClick={() => setActiveModal(null)}
@@ -51,9 +51,10 @@ export default function DeferredOrUploadModal({
           <label htmlFor="deferred-or-file" className="trace-label">
             Official POS Receipt
           </label>
-          <FileUploadField id="deferred-or-file" label="Official Receipt scan" file={orFile} path={selectedDoc?.official_receipt_path} onChange={setOrFile} disabled={actionLoading} />
+          <FileUploadField maxBytes={5 * 1024 * 1024} accept="image/jpeg,image/png,application/pdf" id="deferred-or-file" label="Official Receipt scan" file={orFile} path={selectedDoc?.official_receipt_path} onChange={setOrFile} disabled={actionLoading} />
         </div>
 
+        {actionLoading && <p role="status">{uploadProgress == null ? 'Publishing receipt…' : uploadProgress<100 ? `Uploading ${uploadProgress}%` : 'Upload sent; saving receipt…'}</p>}
       </form>
     </ModalShell>
     <ConfirmDialog open={!!fileToConfirm} title="Upload Official Receipt Copy"

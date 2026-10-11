@@ -11,33 +11,36 @@ Updated with each completed batch. This tracks the **newer fixes guide**, not th
 | 9 — Reports & Export | **None** | Batch 8 routing columns plus existing fee-schedule and Finance receipt/payment-method columns | API/frontend changes only. Uses existing reference catalogs, receipt fields and pricing snapshots. Deploy the matching API/frontend together. |
 | 10 — Support / Messaging UI | **None** | Existing support tickets, archive/requirements/catalog and Batch 8 intake scope | Frontend-only presentation changes; existing ticket/desk/college permissions remain. |
 | 11 — Support Analytics | **None** | Existing support reports and ticket audit/calendar history | Frontend-only KPI/table presentation. Report formulas, cohorts, role authorization and AI inputs are unchanged. |
-| 12 and later | Record when implemented | Determine from actual code changes | Not implemented by this entry; do not invent or run future migrations. |
+| 12 — Finance Receipts | `backend/database/migrate_receipt_packs.js` | Existing grouped documents/payment/OR columns from `migrate_finance_receipts.js`; Batch 8 scope and assignment support | Not applied by this work. Creates InnoDB pack/control/reservation/issued-snapshot/audit tables and an empty control row; adds a full leading OR-number index when missing. Preserves historical ORs; activates no pack and rewrites no payments. Matching API/frontend required. |
+| 13 and later | Record when implemented | Determine from actual code changes | Not implemented by this entry; do not invent or run future migrations. |
 
 The earlier `migrate_batch8.js` is a different historical base migration. It is **not** the Revision 2 Batch 8 migration above. Existing databases need preserving migration scripts, not a fresh schema or seed import.
 
 ## Before the final deployment
 
 1. Review this ledger again after all requested batches. Pin the tested commit. Work is pushed to `dev`; no merge to main or automatic deployment is included.
-2. Confirm the server's already-applied migrations and inspect the read-only schema check. Use the complete **29-script** dependency order in [MIGRATION_ROLLOUT.md](MIGRATION_ROLLOUT.md) only to identify missing prerequisites; do not rerun historical data migrations merely for a UI update.
+2. Confirm the server's already-applied migrations and inspect the read-only schema check. Use the complete **30-script** dependency order in [MIGRATION_ROLLOUT.md](MIGRATION_ROLLOUT.md) only to identify missing prerequisites; do not rerun historical data migrations merely for a UI update.
 3. Follow the rollout guide's off-server database/uploads backup, restore check and writer-stop steps. Build/use the matching backend image that actually includes the new scripts.
 4. If every earlier prerequisite is already installed, apply these new scripts in order, stopping on any failure:
 
 ```bash
 docker compose run --rm --no-deps -T backend node database/migrate_alumni_study_years.js
 docker compose run --rm --no-deps -T backend node database/migrate_request_intake_scope.js
+docker compose run --rm --no-deps -T backend node database/migrate_receipt_packs.js
 docker compose run --rm --no-deps -T backend node database/check_schema.js
 ```
 
-5. Start the matching backend and publish the matching frontend after successful preflight. These five batches require no new environment variables, AI rebuild or n8n workflow re-import. Proof-unavailable registration remains disabled in production; do not enable the defense-only path there.
-6. Verify live account/college routing, a flagged clearance through acceptance, same-college staff assignment and physical handoff, then report filters and CSV row counts. Verify expected notifications and actual phone/keyboard behavior separately. Record the applied scripts, commit and acceptance results here when confirmed.
+5. Start the matching backend and publish the matching frontend after successful preflight. Batches 7–12 require no new environment variables, AI rebuild or n8n workflow re-import. Proof-unavailable registration remains disabled in production; do not enable the defense-only path there.
+6. On staging, verify concurrent cashier issuance, the 50th/51st boundary, lost-response retry, deferred issuance, exact-receipt copy upload, pre-handoff void/replacement and printer alignment on blank paper. Then verify live account/college routing, a flagged clearance through acceptance, same-college staff assignment and physical handoff, then report filters and CSV row counts. Verify expected notifications and actual phone/keyboard behavior separately. Record the applied scripts, commit and acceptance results here when confirmed.
 
-## Acceptance references
+## Walkthrough and rollout references
 
-- [Batch 7](BATCH7_ACCEPTANCE.md): alumni saved years, Admin corrections and the isolated identity-review demo.
-- [Batch 8](BATCH8_ACCEPTANCE.md): clearance, college scope, assignment and shared tabs.
-- [Batch 9](BATCH9_ACCEPTANCE.md): draft filters, authorized reporting, CSV contract and synthetic sample.
-- [Batch 10](BATCH10_ACCEPTANCE.md): Figma chat/workspace/evaluation layouts and persistent drafts, with existing ticket permissions.
-- [Batch 11](BATCH11_ACCEPTANCE.md): support KPI cards, statistical tables, honest missing values and report retry feedback.
+- [Batch 7](../README.md#main-workflows): alumni saved years, Admin corrections and the isolated identity-review demo.
+- [Batch 8](../README.md#main-workflows): clearance, college scope, assignment and shared tabs.
+- [Batch 9](../README.md#main-workflows): draft filters, authorized reporting, CSV contract and synthetic sample.
+- [Batch 10](../README.md#main-workflows): Figma chat/workspace/evaluation layouts and persistent drafts, with existing ticket permissions.
+- [Batch 11](../README.md#main-workflows): support KPI cards, statistical tables, honest missing values and report retry feedback.
+- [Finance receipts](../README.md#finance-receipt-walkthrough): configure 50-number packs, final issuance, copy upload, reprint and demo printer calibration.
 - [Environment setup](ENV_SETUP_GUIDE.md) and [preserving rollout](MIGRATION_ROLLOUT.md): deployment commands, prerequisites and limits of schema preflight.
 
-A passing presence check does not prove every index/type, restored backup, production delivery or institutional evidence-policy decision. Unit/browser checks recorded in each batch are local acceptance evidence, not a claim that the live site already runs the update.
+A passing presence check does not prove every index/type, restored backup, production delivery or institutional evidence-policy decision. Recorded unit/browser checks are local verification evidence, not a claim that the live site already runs the update.

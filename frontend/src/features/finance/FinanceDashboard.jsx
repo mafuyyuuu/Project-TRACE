@@ -98,11 +98,13 @@ function FinanceOverview({ user, setViewImageUrl }) {
           tabs={[
             { key: 'awaiting-payment', label: 'Awaiting Payment', count: awaitingPaymentQueue.length },
             { key: 'verification', label: 'Verification Queue', count: verificationQueue.length },
+            { key: 'official-receipts', label: 'Official Receipts / History' },
           ]}
           activeKey={activeQueueTab}
           onChange={setActiveQueueTab}
         />
         <QueuePanel idPrefix="finance-queue" activeKey={activeQueueTab} className="mt-4">
+        {activeQueueTab === 'official-receipts' && <FinanceTransactionsWorkspace setViewImageUrl={setViewImageUrl} />}
 
         {/* 1 · Billed, waiting on the student. Read-only, except that a student
             can walk up with the printed slip and pay at the counter. */}
@@ -281,8 +283,8 @@ function FinanceOverview({ user, setViewImageUrl }) {
           message={
             financeVerifyToConfirm
               ? financeVerifyToConfirm.action === 'approve'
-                ? `Confirm this payment for ${selectedDoc?.document_type} is verified? This marks the request paid.`
-                : `Reject this payment for ${selectedDoc?.document_type}? The student will need to resubmit.`
+                ? `Confirm this payment for ${financeVerifyToConfirm.documentType} is verified? This marks the request paid. ${financeVerifyToConfirm.usePack ? `Issue ${financeVerifyToConfirm.expected_serial} to ${financeVerifyToConfirm.payor_name}; consume one serial.` : financeVerifyToConfirm.deferred ? 'OR issuance stays pending.' : 'Keep the recorded OR.'}`
+                : `Reject this payment for ${financeVerifyToConfirm.documentType}? The student will need to resubmit.`
               : ''
           }
           variant={financeVerifyToConfirm?.action === 'approve' ? 'neutral' : 'destructive'}

@@ -191,6 +191,7 @@ CREATE TABLE IF NOT EXISTS documents (
   checkout_url VARCHAR(500),
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  KEY idx_documents_or_number (or_number),
   FOREIGN KEY (assigned_clerk_id) REFERENCES users(id) ON DELETE SET NULL,
   FOREIGN KEY (priced_by_clerk_id) REFERENCES users(id) ON DELETE SET NULL,
   FOREIGN KEY (logged_by_clerk_id) REFERENCES users(id) ON DELETE SET NULL
@@ -563,3 +564,40 @@ CREATE TABLE IF NOT EXISTS account_review_events (
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE RESTRICT,
     FOREIGN KEY (reviewer_id) REFERENCES users(id) ON DELETE RESTRICT
   ) ENGINE=InnoDB;
+
+-- Managed Finance receipt packs; historical ORs remain unchanged.
+CREATE TABLE IF NOT EXISTS finance_receipt_packs (
+ id BIGINT AUTO_INCREMENT PRIMARY KEY, pattern JSON NOT NULL, start_serial VARCHAR(100) NOT NULL,
+ consumed TINYINT UNSIGNED NOT NULL DEFAULT 0, active BOOLEAN NOT NULL DEFAULT TRUE,
+ created_by INT NOT NULL, replacement_reason VARCHAR(2000) NULL,
+ created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, archived_at TIMESTAMP NULL
+ ) ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS finance_receipt_control (
+ id INT PRIMARY KEY, active_pack_id BIGINT NULL, print_config JSON NULL, version INT NOT NULL DEFAULT 0
+ ) ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS finance_issued_receipts (
+ id BIGINT AUTO_INCREMENT PRIMARY KEY, request_group_id VARCHAR(100) NOT NULL,
+ active_group VARCHAR(100) NULL, document_id INT NOT NULL, pack_id BIGINT NOT NULL,
+ serial VARCHAR(100) NOT NULL, client_key VARCHAR(64) NOT NULL, snapshot JSON NOT NULL,
+ state VARCHAR(16) NOT NULL DEFAULT 'ISSUED', cashier_id INT NOT NULL, issue_date DATE NOT NULL,
+ copy_path VARCHAR(255) NULL, void_reason VARCHAR(2000) NULL,
+ created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ UNIQUE KEY receipt_serial (serial), UNIQUE KEY receipt_retry_key (client_key),
+ UNIQUE KEY receipt_active_group (active_group), KEY receipt_group_history (request_group_id,id)
+ ) ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS finance_receipt_serials (
+ serial VARCHAR(100) PRIMARY KEY, pack_id BIGINT NOT NULL, position TINYINT UNSIGNED NOT NULL,
+ receipt_id BIGINT NULL, state VARCHAR(16) NOT NULL DEFAULT 'RESERVED',
+ UNIQUE KEY pack_position (pack_id,position)
+ ) ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS finance_receipt_events (
+ id BIGINT AUTO_INCREMENT PRIMARY KEY, pack_id BIGINT NULL, receipt_id BIGINT NULL,
+ actor_id INT NOT NULL, event_type VARCHAR(40) NOT NULL, data JSON NOT NULL,
+ created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, KEY receipt_event_history (receipt_id,id)
+ ) ENGINE=InnoDB;
+
+INSERT IGNORE INTO finance_receipt_control (id) VALUES (1);

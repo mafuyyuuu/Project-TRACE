@@ -22,17 +22,32 @@ TRACE gives students a document request and tracking portal, while Window 1, Col
 
 **A typical request, in about one minute:** imagine a student requesting a TOR and a Diploma. The student submits both in one request; Window 1 reviews the submission and routes it. The Secretary evaluates and prepares each document, then records the final charges. Once the group is fully priced, one verified payment covers it. The Secretary checks the receipt paperwork, Window 1 receives the documents, and the request reaches Completed when the student collects them. The student can inspect tracking throughout and open a support ticket if assistance is needed.
 
-### Screenshots — synthetic records
+### Screenshots and navigation — synthetic records
 
-[New Request](docs/batch7-request-light.png) · [Request confirmation](docs/batch7-confirmation-light.png) · [Phone / dark mode](docs/batch7-request-mobile-dark.png). These screenshots use synthetic account and attachment data; they demonstrate the current `dev` UI without requiring an account. See the [Batch 7 walkthrough and acceptance notes](docs/BATCH7_ACCEPTANCE.md) for registration, saved-year reuse, Admin corrections and the defense-only identity-review path.
+These screenshots use synthetic records from the actual React components with mocked API responses. No account is needed to view them. They show repository UI, rather than confirming that the live site has been updated.
 
-[Window 1 queue](docs/batch8-window1-queue-light.png) · [Clearance review](docs/batch8-intake-clearance-light.png) · [Admin staff assignment](docs/batch8-staff-assignment-light.png) · [Secretary on mobile](docs/batch8-secretary-mobile-dark.png). The [Batch 8 walkthrough](docs/BATCH8_ACCEPTANCE.md) explains college-scoped access, explicit clearance review, backup assignment and physical handoff using synthetic records.
+| Workflow | Where to navigate | Screenshots |
+| --- | --- | --- |
+| Student request | Student dashboard → New Request → choose documents and attachments → review confirmation. Alumni reuse saved Year Started; requests have no Year Ended field. | [Request form](docs/batch7-request-light.png) · [Confirmation](docs/batch7-confirmation-light.png) · [Phone / dark mode](docs/batch7-request-mobile-dark.png) |
+| Intake and clearance | Window 1 → Intake → open a request → review requirements before routing. Blocking clearance must be accepted before routing. | [Queue](docs/batch8-window1-queue-light.png) · [Clearance review](docs/batch8-intake-clearance-light.png) |
+| Assignment and college scope | Admin tracker → Assign Staff → review eligible staff and confirm with a reason. Secretary queues show requests within the authorized college. | [Assignment](docs/batch8-staff-assignment-light.png) · [Secretary on mobile](docs/batch8-secretary-mobile-dark.png) |
+| Reports and CSV | Reports & Export → Filters → select student ID/name, college and document filters → Apply → export authorized records. Finance exports preserve payment groups. | [Filters](docs/batch9-filters-light.png) · [Overview](docs/batch9-report-overview-light.png) · [Phone / dark mode](docs/batch9-filters-mobile-dark.png) · [Sample CSV](docs/batch9-report-sample.csv) |
+| Support and discussion | Open Support → select a ticket to read its conversation. In Digital Request Evaluation, open the separate discussion panel. | [Support workspace](docs/batch10-support-workspace-light.png) · [Empty state](docs/batch10-widget-empty-light.png) · [Phone chat](docs/batch10-widget-mobile-dark.png) · [Evaluation discussion](docs/batch10-evaluation-light.png) |
+| Support Analytics | Admin → Support Analytics → select the measured period → inspect KPI cards and duration tables. Missing samples display as unavailable, rather than zero. | [Analytics](docs/batch11-support-analytics-light.png) · [Phone / dark mode](docs/batch11-support-analytics-mobile-dark.png) · [Empty period](docs/batch11-support-analytics-empty.png) |
 
-[Shared report filters](docs/batch9-filters-light.png) · [Report overview](docs/batch9-report-overview-light.png) · [Phone filters / dark mode](docs/batch9-filters-mobile-dark.png) · [Synthetic CSV sample](docs/batch9-report-sample.csv). The [Batch 9 walkthrough](docs/BATCH9_ACCEPTANCE.md) explains draft filtering, role scope and complete exports; it needs no account.
+For hands-on local testing, use the [seed accounts below](#-test-accounts--credentials) after completing setup. Required migrations are tracked in the [consolidated deployment checklist](docs/DEPLOYMENT_CHECKLIST.md).
 
-[Support workspace](docs/batch10-support-workspace-light.png) · [Compact empty state](docs/batch10-widget-empty-light.png) · [Phone chat / dark mode](docs/batch10-widget-mobile-dark.png) · [Evaluation and discussion](docs/batch10-evaluation-light.png). The [Batch 10 walkthrough](docs/BATCH10_ACCEPTANCE.md) shows the Figma-based layouts and real ticket capabilities without an account.
+### Finance receipt walkthrough
 
-[Support Analytics](docs/batch11-support-analytics-light.png) · [Phone analytics / dark mode](docs/batch11-support-analytics-mobile-dark.png) · [Empty measured period](docs/batch11-support-analytics-empty.png). The [Batch 11 walkthrough](docs/BATCH11_ACCEPTANCE.md) explains the KPI cards, service-time metrics and missing-versus-zero values without an account.
+Finance dashboard → **Official Receipts / History**, beside Verification. The Transactions sidebar route opens the same workspace.
+
+1. Select **Input Issuance Number**, enter the complete first paper serial, and choose its numeric segment when necessary. Review the first three and 50th numbers, then confirm activation. For example, `2026-00001` with its second segment selected ends at `2026-00050`.
+2. In **Verification Queue → Review**, inspect the payment, read-only next number and payor name. Confirm approval to issue one receipt; choose **Later** to clear payment with issuance pending. Counter payment logging defaults to pending issuance; its separate verification consumes the number.
+3. For an already-cleared payment with no OR, select **Issue Official Receipt** in the history workspace and confirm its reviewed name/number. **Upload OR copy** attaches a JPEG, PNG or PDF (at most 5 MB) to that exact receipt; upload progress and retry preserve the selected file without issuing another receipt.
+4. Select **Print / View** beside the issued serial. Full layout supports the defense walkthrough; **Data only** targets preprinted paper. Reprinting uses the same saved details and number. **Printer calibration** saves paper size, margins and global offsets; test on blank paper first. Physical printer success is not confirmed by the app.
+5. After 50 issues, use **Change Issuance Number** for the next pack. Early replacement needs a reason; unused/voided numbers are never recycled. Expand receipt/pack history to inspect snapshots or request an audited void before Secretary OR verification and handoff. Voiding preserves the paid payment; a replacement consumes a new serial.
+
+[Receipt history](docs/finance-receipt-history.png) · [Mobile issuance / dark mode](docs/finance-receipt-issue-mobile.png) · [Receipt print preview](docs/finance-receipt-print-preview.png). These are synthetic screenshots, not physical-printer validation or a live deployment. The [migration ledger](docs/DEPLOYMENT_CHECKLIST.md) records `migrate_receipt_packs.js` for the eventual deployment; it has not been applied by this work.
 
 ### Contribution highlighted in this update
 
@@ -212,7 +227,9 @@ node backend/audit.js       # walks a document through all five desks
 ---
 
 ## 🔐 Test Accounts / Credentials
-**The password for ALL accounts is: `trace2024`**
+These are **local fresh-install seed accounts** from `backend/database/seed.sql`. Their seed password is **`trace2024`**; this is not a verified password for the live site. Do not import the seed into an existing database to obtain these accounts.
+
+Staff login still requires its configured authentication factor. For email OTP, configure a test mailbox and delivery settings for the local account; the seeded `@trace.edu` addresses are examples. Complete required profile, identity and email checks before exercising student request workflows. Authentication requirements remain in place.
 
 | Role | ID | Name | College / Description |
 | :--- | :--- | :--- | :--- |

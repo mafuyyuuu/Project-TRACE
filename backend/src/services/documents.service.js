@@ -706,11 +706,11 @@ async function submitPayment(user, documentId, { gcash_reference_no, payment_met
  * separate: no document is released as paid without Finance saying so
  * (docs/CODING_PREFERENCES.md).
  *
- * Approving requires the Official Receipt number, same as logWalkInPayment —
- * a walk-in already has one from the counter and the clerk just confirms it,
- * but a digital payment had none recorded anywhere until now.
+ * Managed approval allocates one reserved serial in this same transaction.
+ * Later records payment acknowledgment without issuance; historical paper
+ * ORs keep their recorded number.
  */
-async function verifyPayment(user, documentId, { action, notes, or_number, or_date, defer_or }, file) {
+async function verifyPayment(user, documentId, { action, notes, or_number, or_date, defer_or, use_pack, ...packBody }, file) {
   if (user.role !== 'clerk' || user.desk_assignment !== 'Finance') {
     throw forbidden('Only Finance Clerks can verify payments.');
   }
@@ -718,6 +718,9 @@ async function verifyPayment(user, documentId, { action, notes, or_number, or_da
     throw badRequest('Invalid action. Must be approve or reject.');
   }
   const deferred = defer_or === true || defer_or === 'true';
+  const managed = use_pack === true || use_pack === 'true';
+  const receipts = require('./receiptPack.service');
+  if (managed && (deferred || or_number || or_date || file)) throw badRequest('Managed issuance uses the saved pack and today’s date. Upload its copy afterward.');
   const { receiptWindow, validReceiptDate } = require('../utils/receiptTiming');
   const clearedAt = new Date();
   const timing = receiptWindow(clearedAt);
@@ -726,6 +729,7 @@ async function verifyPayment(user, documentId, { action, notes, or_number, or_da
   const connection = await pool.getConnection();
   let doc;
   let clearedCount = 0;
+  let issuedReceipt = null;
 
   try {
     await connection.beginTransaction();
@@ -737,8 +741,18 @@ async function verifyPayment(user, documentId, { action, notes, or_number, or_da
 
     doc = docs[0];
     await assignments.assertAssignedProcessor(user, doc, connection);
+    if (managed && action === 'approve' && doc.payment_status === 'PAID') {
+      const group = await require('../models/receiptPack.model').group(doc.request_group_id || doc.tracking_number, connection);
+      for (const item of group) await assignments.assertAssignedProcessor(user, item, connection);
+      await require('../models/receiptPack.model').control(connection, true);
+      const existingReceipt = await require('../models/receiptPack.model').current(doc.request_group_id || doc.tracking_number, connection, true);
+      if (!existingReceipt) throw badRequest('This payment is already cleared. Use deferred receipt issuance from Official Receipts / History.');
+      issuedReceipt = await receipts.allocate(user, group, connection, packBody);
+      await connection.commit();
+      return { message:'Payment already verified.', documents_covered:group.length, receipt:issuedReceipt };
+    }
     if (action === 'approve') {
-      if (!deferred && !or_number && !doc.or_number) throw badRequest('Enter the Official Receipt number or choose Later.');
+      if (!managed && !deferred && !or_number && !doc.or_number) throw badRequest('Enter the Official Receipt number or choose Later.');
       if (!doc.or_number && !deferred && timing.afterCutoff) throw badRequest('The 4:00 PM Manila cut-off has passed. Choose Later for OR issuance.');
       if (or_date && (!validReceiptDate(or_date) || or_date !== timing.today) && !doc.or_number) throw badRequest('A new OR must use today’s Manila issue date.');
       if (doc.or_number && or_number && doc.or_number !== String(or_number).trim()) throw badRequest('The recorded OR number cannot be changed during payment clearance.');
@@ -754,12 +768,14 @@ async function verifyPayment(user, documentId, { action, notes, or_number, or_da
     for (const groupDoc of groupDocs) await assignments.assertAssignedProcessor(user, groupDoc, connection);
     if (groupDocs.some(row => row.current_status !== STATUS.PENDING_FINANCE_VERIFICATION || row.payment_status === 'PAID')) throw badRequest('All documents in the request must be awaiting payment verification.');
 
+    if (action === 'approve' && managed) issuedReceipt = await receipts.allocate(user, groupDocs, connection, packBody);
+    if (action === 'approve' && !managed && !deferred && or_number && !doc.or_number) await receipts.assertLegacyNumber(or_number, groupId, connection);
     const [result] = await documentModel.updatePaymentVerificationForGroup(
       groupId, newStatus, paymentStatus,
       {
         officialReceiptPath,
-        orNumber: action === 'approve' && !deferred ? (or_number?.trim() || doc.or_number || null) : null,
-        orDate: action === 'approve' && !deferred ? (or_date || (doc.or_number ? null : timing.today)) : null,
+        orNumber: issuedReceipt?.serial || (action === 'approve' && !deferred ? (or_number?.trim() || doc.or_number || null) : null),
+        orDate: issuedReceipt?.snapshot.issue_date || (action === 'approve' && !deferred ? (or_date || (doc.or_number ? null : timing.today)) : null),
         clearedAt: action === 'approve' ? clearedAt : null,
         earliestDate: action === 'approve' && !doc.or_number ? timing.earliestDate : null,
       },
@@ -814,6 +830,7 @@ async function verifyPayment(user, documentId, { action, notes, or_number, or_da
   return {
     message: `Payment successfully ${action === 'approve' ? 'verified' : 'rejected'}.`,
     documents_covered: clearedCount,
+    receipt: issuedReceipt,
   };
 }
 
@@ -1469,6 +1486,7 @@ async function logWalkInPayment(user, documentId, { or_number, or_date, notes, d
       action_taken: 'walk_in_payment_logged', from_status: STATUS.PENDING_STUDENT_PAYMENT,
       to_status: STATUS.PENDING_FINANCE_VERIFICATION, notes: notes || (deferred ? 'Counter payment recorded; OR issuance later.' : `Counter payment recorded against OR ${or_number}.`),
     }, connection);
+    if (!deferred && or_number) await require('./receiptPack.service').assertLegacyNumber(or_number, doc.request_group_id || doc.tracking_number, connection);
     await connection.commit();
   } catch (error) { await connection.rollback(); throw error; }
   finally { connection.release(); }
@@ -1622,9 +1640,18 @@ async function uploadDeferredOR(user, documentId, file, { or_number, or_date } =
       if (date > timing.today || (earliest && date < earliest)) throw badRequest('OR date must be on or after its earliest eligible issue date and cannot be in the future.');
     }
     if (group.some(row => row.or_number && row.or_number !== number)) throw badRequest('The request has inconsistent OR records. Ask Admin to investigate.');
+    const receiptModel = require('../models/receiptPack.model');
+    const managedReceipt = await receiptModel.current(groupId, connection, true);
+    if (managedReceipt) {
+      await require('./receiptPack.service').validateFile(file);
+      if (managedReceipt.serial !== number || managedReceipt.copy_path) throw badRequest('The managed receipt changed. Refresh to review.');
+      await receiptModel.publish(managedReceipt.id, path, connection);
+      await receiptModel.audit('copy_uploaded', user.id, {path}, connection, managedReceipt.pack_id, managedReceipt.id);
+    }
     const [published] = await documentModel.publishOfficialReceipt(groupId, { path, number, date }, connection);
     if (published.affectedRows !== (group.length || 1)) throw badRequest('The OR record changed. Refresh before retrying.');
     await stepLogModel.insert({ document_id: doc.id, clerk_id: user.id, action_taken: 'official_receipt_published', from_status: doc.current_status, to_status: doc.current_status, notes: `OR ${number} issued; digital copy published.` }, connection);
+    if (!doc.or_number && or_number) await require('./receiptPack.service').assertLegacyNumber(or_number, doc.request_group_id || doc.tracking_number, connection);
     await connection.commit();
   } catch (error) { await connection.rollback(); throw error; }
   finally { connection.release(); }

@@ -6,8 +6,8 @@ const grouped = `SELECT COALESCE(d.request_group_id, d.tracking_number) AS reque
   COUNT(*) AS documents_covered, SUM(d.amount) AS amount, MIN(d.payment_cleared_at) AS payment_cleared_at, UNIX_TIMESTAMP(MIN(d.payment_cleared_at)) AS cleared_epoch,
   MIN(d.or_number) AS or_number, DATE_FORMAT(MIN(d.or_date), '%Y-%m-%d') AS or_date,
   DATE_FORMAT(MAX(d.or_earliest_issue_date), '%Y-%m-%d') AS or_earliest_issue_date,
-  MIN(d.official_receipt_path) AS official_receipt_path, MIN(d.payment_channel) AS payment_channel
-  FROM documents d LEFT JOIN users student ON student.student_id = d.student_id AND student.role = 'student' WHERE d.payment_status = 'PAID'
+  MIN(d.official_receipt_path) AS official_receipt_path, MIN(d.payment_channel) AS payment_channel, MIN(receipt.id) AS receipt_id, MIN(receipt.snapshot->>'$.cashier_name') AS cashier_name
+  FROM documents d LEFT JOIN users student ON student.student_id = d.student_id AND student.role = 'student' LEFT JOIN finance_issued_receipts receipt ON receipt.active_group=COALESCE(d.request_group_id,d.tracking_number) WHERE d.payment_status = 'PAID'
   GROUP BY COALESCE(d.request_group_id, d.tracking_number)`;
 function groupQuery(filters) {
   const {where: match,params} = reports.buildDocumentFilters({studentId:filters.studentId,studentName:filters.studentName,documentType:filters.documentType,collegeId:filters.collegeId,collegeName:filters.collegeName});

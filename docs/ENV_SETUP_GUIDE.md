@@ -1076,19 +1076,19 @@ Apply the additive [alumni study-year migration](MIGRATION_ROLLOUT.md#revision-2
 
 ## Revision 2 Batch 8 — intake and college scope
 
-No new environment variables. Existing databases need `node backend/database/migrate_request_intake_scope.js` after the request-attachment and Support-requirement prerequisites, followed by `node backend/database/check_schema.js`, before the matching backend/frontend start. It adds routing snapshots and the explicit intake-block flag without backfilling historical rows. Follow [MIGRATION_ROLLOUT.md](MIGRATION_ROLLOUT.md) for preserving deployment and [BATCH8_ACCEPTANCE.md](BATCH8_ACCEPTANCE.md) for workflows, screenshots and limits. The agent has not run this migration against a live database.
+No new environment variables. Existing databases need `node backend/database/migrate_request_intake_scope.js` after the request-attachment and Support-requirement prerequisites, followed by `node backend/database/check_schema.js`, before the matching backend/frontend start. It adds routing snapshots and the explicit intake-block flag without backfilling historical rows. Follow [MIGRATION_ROLLOUT.md](MIGRATION_ROLLOUT.md) for preserving deployment and [README workflow walkthrough](../README.md#main-workflows) for workflows, screenshots and limits. The agent has not run this migration against a live database.
 
 ## Revision 2 Batch 9 — Reports & Export
 
-No schema or environment changes in Batch 9. Deploy the matching API/frontend after the previously required migrations. [DEPLOYMENT_CHECKLIST.md](DEPLOYMENT_CHECKLIST.md) is the consolidated migration ledger to review before the final deployment; [BATCH9_ACCEPTANCE.md](BATCH9_ACCEPTANCE.md) records the filter semantics and changed shared CSV contract.
+No schema or environment changes in Batch 9. Deploy the matching API/frontend after the previously required migrations. [DEPLOYMENT_CHECKLIST.md](DEPLOYMENT_CHECKLIST.md) is the consolidated migration ledger to review before the final deployment; [README workflow walkthrough](../README.md#main-workflows) records the filter semantics and changed shared CSV contract.
 
 
 ## Revision 2 Batch 10 — Support / Messaging UI
 
 Support now follows the main TRACE Figma two-column layout, with aligned readable ticket rows, local search of loaded authorized metadata, contextual linked-case viewing, a labeled confirmed availability switch and a primary Window 1 claim action. Success feedback uses dismissible toasts; failures and confirmations remain in context. The compact widget preserves drafts across close/reopen. Digital evaluation separates discussion into a side panel or a mobile view without discarding either draft. Existing ticket/desk/college authorization, FAQ/reply/requirement actions, service hours and queue assignment remain; no new staff chat connection or unsupported presence/read/unread data is added.
 
-See [BATCH10_ACCEPTANCE.md](BATCH10_ACCEPTANCE.md) for the screenshots, walkthrough and local evidence. Batch 10 adds **no migration or environment variable**; [DEPLOYMENT_CHECKLIST.md](DEPLOYMENT_CHECKLIST.md) tracks required earlier migrations. These are repository changes for dev, not a claim that the live site is updated.
+See [README workflow walkthrough](../README.md#main-workflows) for the screenshots, walkthrough and local evidence. Batch 10 adds **no migration or environment variable**; [DEPLOYMENT_CHECKLIST.md](DEPLOYMENT_CHECKLIST.md) tracks required earlier migrations. These are repository changes for dev, not a claim that the live site is updated.
 
 ## Revision 2 Batch 11 — deployment requirements
 
-Support Analytics KPI/table changes add no environment variable, dependency or migration. Build the frontend normally against the existing support-report API; no AI rebuild or n8n re-import is needed for this batch. The earlier alumni/intake migrations and all existing support prerequisites remain tracked in [DEPLOYMENT_CHECKLIST.md](DEPLOYMENT_CHECKLIST.md). No live database or deployment action was performed. [Local acceptance](BATCH11_ACCEPTANCE.md).
+Support Analytics KPI/table changes add no environment variable, dependency or migration. Build the frontend normally against the existing support-report API; no AI rebuild or n8n re-import is needed for this batch. The earlier alumni/intake migrations and all existing support prerequisites remain tracked in [DEPLOYMENT_CHECKLIST.md](DEPLOYMENT_CHECKLIST.md). No live database or deployment action was performed. [Local acceptance](../README.md#main-workflows).
