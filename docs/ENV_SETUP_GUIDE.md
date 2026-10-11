@@ -363,12 +363,15 @@ VITE_API_URL=
 mysql -u root -p -e "CREATE DATABASE trace_db;"
 mysql -u root -p trace_db < backend/database/schema.sql
 mysql -u root -p trace_db < backend/database/seed.sql
-node backend/database/migration.js
+node backend/database/check_schema.js
 ```
 
-`migration.js` reads `backend/.env` through the same `env.js`, so it must be filled in first. Run it
-**after** the seed — the seven per-college secretaries (`SEC-CCS001` … `SEC-CBA001`) are created by
-the migration, not by `seed.sql`.
+These commands are for a fresh isolated local database only. The current schema already defines
+the required fields, and `seed.sql` includes all seven demo Secretary accounts. The read-only
+preflight reads `backend/.env`, which must be configured first. Admin must configure the approved
+college/program catalogs and staff assignments. For an existing database, use
+[the preserving rollout](MIGRATION_ROLLOUT.md) instead of importing schema/seed or running the
+broad historical migration, which can rewrite existing desk assignments and catalog policy.
 
 ### 6.4 n8n (standalone container)
 
@@ -450,12 +453,14 @@ to `0` (nothing proxies you locally), and `API_DOMAIN`/`ACME_EMAIL` are unused u
 ```bash
 docker compose config --quiet        # silent = valid; complains = a required secret is missing
 docker compose up -d --build
-docker compose exec backend node database/migration.js
+docker compose exec backend node database/check_schema.js
 ```
 
 `schema.sql` and `seed.sql` run automatically the first time the MySQL volume is created (via
 `/docker-entrypoint-initdb.d`, which only fires on an empty data directory, so it never re-runs
-against real data). The migration adds everything since.
+against real data). This recipe is for an empty local installation with demo accounts; the
+read-only checker confirms required field presence. Existing installations need only the
+reviewed missing preserving migrations in [the consolidated ledger](DEPLOYMENT_CHECKLIST.md).
 
 > Running the standalone n8n container from §6.4? It holds port 5678 and the compose one won't start.
 > `docker stop n8n` first.
@@ -518,6 +523,15 @@ SMTP_FROM=your.address@gmail.com
 `VITE_API_URL` in this file applies **only** to the optional `local-frontend` compose profile (a
 single-box deployment where nginx also serves the SPA). With Vercel hosting the frontend it stays
 blank — the Vercel dashboard value is the one that counts.
+
+With `--profile local-frontend` and blank `VITE_API_URL`, Nginx forwards `/api` and `/socket.io`
+to `backend:3300`, retaining authentication, query strings, upload bodies and WebSocket upgrades.
+The application enforces its per-file limits; the proxy streams uploads without imposing a
+separate aggregate file limit. Set the backend's `FRONTEND_URL` to the intended browser origin
+when using an allowlist and retain the correct proxy-hop count (one for this Nginx path).
+Rebuild/recreate the frontend image to load Nginx changes; changing build arguments also requires
+a rebuild. Verify `/api/health` returns JSON through port 8080 and the authenticated Socket.IO
+connection upgrades successfully. Vercel's separate build-time API origin is unaffected.
 
 ### 8.3 In Vercel
 
@@ -584,12 +598,13 @@ docker compose config | grep -A3 DB_SSL_CA
 ### Schema on a managed database
 
 The `/docker-entrypoint-initdb.d` auto-seed only applies to the bundled container. On a managed
-database you load the schema yourself, then migrate:
+empty database you load the schema yourself, then run the read-only preflight. The following seed
+is for an isolated demo only; do not seed a live institutional database with public demo accounts:
 
 ```bash
 mysql -h <DB_HOST> -P <DB_PORT> -u <DB_USER> -p --ssl-mode=REQUIRED trace_db < backend/database/schema.sql
 mysql -h <DB_HOST> -P <DB_PORT> -u <DB_USER> -p --ssl-mode=REQUIRED trace_db < backend/database/seed.sql
-docker compose exec backend node database/migration.js
+docker compose exec backend node database/check_schema.js
 ```
 
 ---

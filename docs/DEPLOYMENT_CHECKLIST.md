@@ -19,6 +19,27 @@ The cross-batch integration follow-up adds **no migration or environment variabl
 
 The earlier `migrate_batch8.js` is a different historical base migration. It is **not** the Revision 2 Batch 8 migration above. Existing databases need preserving migration scripts, not a fresh schema or seed import.
 
+## Local readiness evidence — 2026-10-11
+
+An isolated MySQL 8.0.46 rehearsal passed **11 checks**: fresh-schema preflight, incremental
+application of all five new scripts after removing only their objects from a prerequisite-complete
+synthetic baseline, preserved historical accounts/years/fees/ORs/requirements, nonblocking new
+defaults and an empty Finance control. Two reruns preserved all thirteen populated new tables,
+including print configuration and audits. Real service calls verified concurrent opposite-direction
+staff creation produces one thread, replay adds no duplicate, Admin reads without writing, and
+linked-support SQL follows the saved routing college after a profile change (cancelled history
+uses its authorized profile fallback). These checks do not inspect or migrate the live database,
+prove compatibility with every historical schema variant, or replace backup/restore and staging
+acceptance. All five production migrations remain unapplied by this work.
+
+The optional Docker frontend previously served SPA HTML for API paths and could not forward
+Socket.IO. Its Nginx configuration now proxies both to the Compose backend. **11 real Nginx checks**
+passed for syntax, request/auth/query/body forwarding, multipart upload, private response/error
+headers, API 404 behavior, SPA deep links, asset caching, WebSocket and polling-to-WebSocket upgrade.
+Rebuild the optional frontend image and verify the actual container stack on staging; Docker
+containers and live infrastructure were not started here. This repair adds no migration or
+environment variable and does not change Vercel hosting.
+
 ## Before the final deployment
 
 1. Review this ledger again after all requested batches. Pin the tested commit. Work is pushed to `dev`; no merge to main or automatic deployment is included.

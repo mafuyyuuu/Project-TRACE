@@ -290,12 +290,16 @@ backend lives beside it. That also keeps Socket.IO on a real process and uploads
 ```bash
 cp .env.example .env          # then fill in JWT_SECRET, WEBHOOK_SECRET and DB_PASSWORD
 docker compose up -d --build
-docker compose exec backend node database/migration.js
+docker compose exec backend node database/check_schema.js
 ```
 
 See [`docs/ENV_SETUP_GUIDE.md` §7](docs/ENV_SETUP_GUIDE.md#7-the-docker-stack-locally) for what goes
 in that `.env`. `schema.sql` and `seed.sql` apply automatically the first time the MySQL volume is
-created; the migration adds the later columns. Compose **refuses to start** without `JWT_SECRET` and
+created on an empty local database; the read-only preflight checks the required schema. Use these
+demo seeds only for local evaluation. Existing installations must follow the
+[consolidated migration ledger](docs/DEPLOYMENT_CHECKLIST.md) and
+[preserving rollout guide](docs/MIGRATION_ROLLOUT.md), without importing the schema/seed or
+running the broad historical migration as an upgrade shortcut. Compose **refuses to start** without `JWT_SECRET` and
 `WEBHOOK_SECRET` rather than falling back to a default.
 
 If you already run the standalone `n8n` container from the setup above, it holds port 5678 and the
@@ -303,14 +307,18 @@ compose one will not start. Stop it first (`docker stop n8n`) or drop the `n8n` 
 compose file.
 
 Add `--profile local-frontend` to also serve the built SPA (port 8080) — only needed for a
-single-box deployment; with Vercel hosting the frontend, leave it out.
+single-box deployment; with Vercel hosting the frontend, leave it out. Keep the profile's
+`VITE_API_URL` blank to use its Nginx proxy for `/api` and `/socket.io`, including authenticated
+uploads and WebSocket upgrades. SPA refresh/reset links and hashed-asset caching remain available.
 
 ### Deploying
 
 1. **Provision the VM** and install Docker. On an ARM host (e.g. Oracle Cloud Ampere) images build
    for `linux/arm64` — verified working: PyTorch ships aarch64 wheels and Prophet's Stan binary
    compiles.
-2. **Bring up MySQL and the backend**, then run the migration. Confirm `GET /api/health` returns
+2. **Bring up MySQL and the backend**, following the preserving rollout guide for an existing
+   database and applying only reviewed missing migrations before restarting writers. Run the
+   read-only schema preflight. Confirm `GET /api/health` returns
    200 — it runs a real `SELECT 1` and answers **503** if the database is unreachable.
 3. **Put HTTPS in front of it.** This is not optional: a browser on `https://…vercel.app` refuses to
    call an `http://` backend (mixed content). Caddy with automatic Let's Encrypt is the least work,

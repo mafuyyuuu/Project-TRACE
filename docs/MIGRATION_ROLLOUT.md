@@ -4,6 +4,13 @@ Use this guide to update the existing `~/Project-TRACE` server with bundled MySQ
 
 ## Current migration audit — 2026-10-06
 
+The 2026-10-11 local readiness follow-up rehearsed the five Revision 2 additive migrations and
+two reruns on isolated MySQL 8.0.46 with synthetic records. Historical data, saved receipt format
+and populated audit/chat tables survived; real staff pair concurrency/retry/Admin monitoring and
+routed-college support SQL checks passed. See [the consolidated readiness evidence](DEPLOYMENT_CHECKLIST.md#local-readiness-evidence--2026-10-11).
+This is local evidence only: confirm actual server prerequisites, backup/restore, schema variants
+and staging behavior before production. No live migration was applied by the follow-up.
+
 The user's October 1 logs confirm completion of the earlier 18 incremental scripts and an equivalent manual creation of `password_history`, followed by a passing schema check. These are historical confirmations, not a read of the database today. The October 5 server output confirms the verification-reason, onboarding-guide and program-catalog migrations below completed, followed by a passing schema check and public API health response. The new graduation-year migration has not yet been deployed.
 
 | Follow-up script (status stated above) | Purpose | Rerun behavior |

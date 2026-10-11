@@ -1,3 +1,30 @@
+## Deployment readiness — optional Docker frontend and migration rehearsal — 2026-10-11
+
+After publishing the integration review, the user authorized continuing while they rest. The next readiness audit confirms backend image packaging includes database scripts, application startup does not execute migrations, and README/docs links resolve. It found the optional local-frontend Compose profile builds with blank VITE_API_URL for same-origin requests, but frontend/nginx.conf has no API or Socket.IO proxy. The Dockerfile says that proxy exists. Login/API calls therefore fall into the SPA response, and WebSocket upgrades cannot reach the backend. Repair this optional profile’s proxy and verify real HTTP/multipart/WebSocket behavior against an isolated synthetic backend if a local Nginx runtime is available. Preserve SPA deep links and static caching. This does not change Vercel’s separately configured API origin, live infrastructure, stored records or migration requirements.
+
+The same audit found older README/environment quick-start commands still invoke the broad historical migration after importing the now-complete fresh schema, despite the preserving rollout guide explicitly rejecting that shortcut for existing installations. Use the read-only schema preflight in fresh-install recipes and direct existing installations to the consolidated preserving ledger. Do not execute the broad migration or alter production data.
+
+Implemented the same-origin API/Socket.IO proxy with complete URI/query/auth/body forwarding,
+streamed multipart requests, explicit WebSocket headers and a 75-second read timeout. Backend
+Multer still owns per-file limits; SPA deep links and static caching remain. No Vercel, application,
+dependency, environment or schema change. README/environment fresh-install recipes now use
+read-only preflight; seed.sql already includes the seven Secretary demo accounts. Existing
+installations are directed to the preserving rollout rather than broad historical data updates.
+
+Validation: **11 real Nginx checks pass**, including >15 MiB multi-file upload, private bytes/errors,
+JSON API 404, REST headers/body/query, SPA/reset deep links, immutable assets and both direct
+WebSocket and polling upgrade. **11 isolated MySQL 8.0.46 checks pass**: complete fresh schema,
+five incremental migrations, unchanged synthetic historical accounts/years/fees/OR/requirements,
+nullable/nonblocking defaults, no automatic pack activation, two preserving reruns across thirteen
+populated tables and saved print format. Actual staff service calls verify simultaneous pair
+creation, idempotent replay and Admin read-only monitoring; actual linked-support SQL follows saved
+routing college after a profile change and authorized cancelled-history fallback. Initial QA
+connection failed because the prior test server was in another execution network; the final
+server and checks ran together and shut down cleanly. No production database, mail, Docker stack
+or deployment was used. The preceding full suites remain **1,501 backend / 953 frontend tests**;
+this follow-up changes only Nginx and docs. Production migrations remain unapplied, with genuine
+staging delivery/receipt contention/printer/phone and backup restoration still required.
+
 ## Cross-batch integration review — completion — 2026-10-11
 
 Support now follows student/legacy ticket and general-context notification changes on a mounted screen. Explicit ticket links take priority; obsolete context lookups are aborted and cannot overwrite selection. An actual-component browser check confirms that a new-ticket form draft survives notification selection changes.
