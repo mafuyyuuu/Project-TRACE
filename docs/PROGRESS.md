@@ -1,3 +1,18 @@
+## Cloud migration confirmation; runtime readiness pending — 2026-10-12
+
+The user's cloud SSH output confirms `trace_db` and an initial presence check reporting only the
+five Revision 2 follow-ups. All five actual CLIs then printed successful completion in ledger
+order; final `check_schema.js` passed. Updated the consolidated ledger from cloud-pending to
+cloud-applied based on these user-provided logs. No direct SSH or record inspection by the agent,
+additional migration, application code change, main merge or frontend release is claimed.
+
+The user recreated backend and restarted AI/n8n. Their immediate container listing shows backend
+up two seconds with health starting, followed by an internal curl connection refusal on port
+3300. This may be initial startup timing; readiness is unconfirmed. Next steps are retry status
+and internal/public health, then recent backend logs if unavailable. Migration reruns are not
+needed for this health check. Keep final merge/frontend release pending runtime health and
+matching workflow acceptance. Backup waiver for the current early test rollout remains recorded.
+
 ## Isolated test migration application — 2026-10-12
 
 The user authorized applying the five recorded migrations to a staging/test database. No external
