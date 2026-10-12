@@ -49,7 +49,7 @@ it('uses the structured identity endpoint with a bounded call and manual fallbac
   vi.stubGlobal('fetch', fetchMock);
   const pending = service.extractIdentity({ path: '/unused/proof', mimetype: 'image/png', originalname: 'proof.png' });
   expect(fetchMock.mock.calls[0][0]).toMatch(/\/ocr\/identity$/);
-  await vi.advanceTimersByTimeAsync(15000);
-  expect(await pending).toBeNull();
+  await vi.advanceTimersByTimeAsync(30000);
+  expect(await pending).toEqual({success:false,failure_reason:'timeout'});
   expect(vi.getTimerCount()).toBe(0);
 });

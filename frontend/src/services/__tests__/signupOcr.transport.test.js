@@ -13,6 +13,7 @@ it('sends the chosen ID as a multipart file through the real Axios transformatio
     expect(config.data.get('id_proof')).toBe(file);
     expect(config.headers.get('Content-Type')).toBe('multipart/form-data');
     expect(config.signal).toBe(controller.signal);
+    expect(config.timeout).toBe(40000);
     return { data: { full_name: 'Synthetic Student' }, status: 200, headers: {}, config };
   });
   api.defaults.adapter = adapter;

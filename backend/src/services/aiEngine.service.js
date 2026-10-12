@@ -17,9 +17,9 @@ function buildFormData(file, fieldName = 'document') {
   return form;
 }
 
-async function requestJson(url, options) {
+async function requestJson(url, options, timeoutMs = 15000) {
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), 15000);
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
     const response = await fetch(url, { ...options, signal: controller.signal });
     if (!response.ok) throw new Error(`AI engine returned HTTP ${response.status}`);
@@ -85,9 +85,11 @@ async function extractReceipt(file) {
 /** Prophet 7-day volume forecast. Returns null when unavailable (caller falls back). */
 async function extractIdentity(file) {
   try {
-    return await requestJson(`${env.AI_ENGINE_URL}/ocr/identity`, { method: 'POST', body: buildFormData(file) });
-  } catch {
-    return null;
+    return await requestJson(`${env.AI_ENGINE_URL}/ocr/identity`, { method: 'POST', body: buildFormData(file) }, 30000);
+  } catch (error) {
+    const failure_reason = error.name === 'AbortError' ? 'timeout' : 'unavailable';
+    console.warn(`Identity reader failed: ${failure_reason}.`);
+    return { success: false, failure_reason };
   }
 }
 

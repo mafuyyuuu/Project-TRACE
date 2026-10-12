@@ -1150,3 +1150,20 @@ cloud/main promotion remains separate. See the consolidated deployment ledger.
 ## Finance name fields — 2026-10-12
 
 This Finance workflow update needs one additional preserving migration, `migrate_student_name_parts.js`, after existing student profiles. The previous five follow-ups remain cloud-applied. Use the updated backend image, pause writers, run the new migration and `check_schema.js`, then start the matching backend/frontend; see [the consolidated ledger](DEPLOYMENT_CHECKLIST.md#finance-name-field-rollout--additional-migration-2026-10-12). Names remain nullable until students confirm matching first/middle/last parts. Existing Full Name and receipt snapshots are not split or rewritten. No environment variable, dependency, AI change or n8n import is added. Full runtime validation and cloud execution are pending, not completed by this disconnected session.
+
+
+## ID-reader reliability follow-up — 2026-10-12
+
+Read ID now uses an identity-specific original-image pass, preserving OCR fragments as lines. When an identifier is found, it skips preprocessing; otherwise a second pass may fill missing fields. Conflicting fallback values remain blank. Label/value pairs, separate name-part labels, same-line explicit fields and spaced Unicode numeric dashes are supported. Unlabelled names are never split or guessed. Only explicitly labelled first/middle/last fields may fill empty signup controls; manual edits are retained.
+
+The backend exposes safe timeout, unavailable, no-text/no-fields and processing categories instead of one generic failure. Identity calls have a 30-second cap; the browser allows 40 seconds including upload/transport. Other AI request deadlines and automatic registration verification are unchanged. Successful reads are reused only in the current form for the same File object/account type; failures stay retryable and selecting another file/type discards stale work. Temporary scans are always deleted and raw OCR text is not returned by the signup API.
+
+Deploy matching frontend/backend/**AI engine** code. Restarting the existing AI container does not replace its image with updated OCR code; build the new AI image from the reviewed release checkout. This follow-up adds no migration, dependency or environment variable. The separately pending Finance `migrate_student_name_parts.js` still must precede the matching backend release.
+
+Available verification: JavaScript services/hook handlers executed with in-memory file/network/React-hook fixtures, plus syntax checks. Native Python/Vitest/build/browser, real JPEG/PNG accuracy, latency and cloud-container verification remain pending because the coding environment is disconnected and no failing ID image was supplied. Focused Python parser/pipeline tests use fake readers and require no EasyOCR model download:
+
+```bash
+python3 -m unittest discover -s ai-engine -p 'test_identity*.py'
+```
+
+These unit tests verify parsing/conditional passes; they do not establish real image accuracy or a measured speedup. Validate an actual failing photo separately on the rebuilt engine. For cloud diagnostics, health alone does not prove the identity route is installed: a read-only GET to `http://ai-engine:5005/ocr/identity` from backend should return 405 when the POST route exists; 404 means that route is absent in the running image. The agent has not accessed the cloud container.

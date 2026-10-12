@@ -34,6 +34,9 @@ export default function SignupPage() {
     ...current,
     employeeId: current.employeeId || (current.userType === 'alumni' ? result.alumni_id : result.student_id) || '',
     fullName: current.fullName || result.full_name || '',
+    first_name: current.first_name || result.first_name || '',
+    middle_name: current.middle_name || result.middle_name || '',
+    last_name: current.last_name || result.last_name || '',
     college: current.college || colleges.find(college => college.id === result.college_id)?.name || '',
   })));
 
@@ -195,7 +198,7 @@ export default function SignupPage() {
                   value={formData[field]} onChange={event => setFormData({ ...formData, [field]:event.target.value })} className="trace-control mt-2 w-full" />
               </label>)}
               <label className="trace-label block">Full Name<input type="text" readOnly value={fullName} placeholder="Juan Dela Cruz" className="trace-control mt-2 w-full" /></label>
-              {formData.fullName && <p className="text-sm select-text">Name read from proof: {formData.fullName}. Confirm its first, middle and last parts above; OCR does not guess name boundaries.</p>}
+              {formData.fullName && <p className="text-sm select-text">Name read from proof: {formData.fullName}. Review its first, middle and last parts above. OCR fills only explicitly labelled name parts; it does not guess name boundaries.</p>}
             </section>
 
             <div className="flex flex-col gap-1.5">

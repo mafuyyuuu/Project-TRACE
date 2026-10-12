@@ -45,3 +45,31 @@ it('leaves manual entry available after extraction failure', async () => {
   expect(result.current.reading).toBe(false);
   expect(extracted).not.toHaveBeenCalled();
 });
+
+it('guards duplicate reads before React rerenders and reuses only successful results',async()=>{
+ let finish;extractSignupId.mockImplementation(()=>new Promise(resolve=>{finish=resolve;}));
+ const file=new File(['id'],'id.png'),extracted=vi.fn();
+ const {result}=renderHook(()=>useSignupOcr(file,'student',extracted));
+ let first,second;act(()=>{first=result.current.readId();second=result.current.readId();});
+ expect(extractSignupId).toHaveBeenCalledOnce();
+ await act(async()=>{finish({success:true,student_id:'23-00939',message:'Review.'});await Promise.all([first,second]);});
+ await act(async()=>result.current.readId());
+ expect(extractSignupId).toHaveBeenCalledOnce();expect(extracted).toHaveBeenCalledTimes(2);
+});
+it('permits retry after failure and surfaces a browser timeout separately',async()=>{
+ extractSignupId.mockRejectedValueOnce({code:'ECONNABORTED'});
+ const file=new File(['id'],'id.png');
+ const {result}=renderHook(()=>useSignupOcr(file,'student',vi.fn()));
+ await act(async()=>result.current.readId());expect(result.current.message).toMatch(/took too long/);
+ extractSignupId.mockResolvedValueOnce({success:true,student_id:'23-00939'});
+ await act(async()=>result.current.readId());expect(extractSignupId).toHaveBeenCalledTimes(2);
+});
+
+it('uses the latest extraction callback when the catalog/form changes during a scan',async()=>{
+ let finish;extractSignupId.mockImplementation(()=>new Promise(resolve=>{finish=resolve;}));
+ const file=new File(['id'],'id.png'),first=vi.fn(),latest=vi.fn();
+ const {result,rerender}=renderHook(({callback})=>useSignupOcr(file,'student',callback),{initialProps:{callback:first}});
+ let pending;act(()=>{pending=result.current.readId();});rerender({callback:latest});
+ await act(async()=>{finish({success:true,student_id:'23-00939'});await pending;});
+ expect(first).not.toHaveBeenCalled();expect(latest).toHaveBeenCalledOnce();
+});

@@ -27,7 +27,7 @@ it('returns only supported fields and matches a college exactly', async () => {
 it('rejects missing proof and does not truncate overlength OCR fields', async () => {
   await expect(extractIdentity(null)).rejects.toMatchObject({ status: 400 });
   ai.extractIdentity.mockResolvedValue({ success: true, extracted_data: { alumni_id: 'X'.repeat(51) } });
-  expect((await extractIdentity(file)).alumni_id).toBeNull();
+  expect(await extractIdentity(file)).toMatchObject({success:false,failure_reason:'no_fields'});
 });
 
 it('rejects executable upload types and bounds both OCR and retained proof uploads', () => {
@@ -39,4 +39,17 @@ it('rejects executable upload types and bounds both OCR and retained proof uploa
   expect(callback).toHaveBeenCalledWith(expect.objectContaining({ status: 400 }), false);
   signupOcrUpload.fileFilter({}, { originalname: 'proof.png', mimetype: 'image/png' }, callback);
   expect(callback).toHaveBeenLastCalledWith(null, true);
+});
+
+it.each(['timeout','unavailable','no_text','no_fields','engine_failure','invalid_image'])('returns a safe specific %s reason without raw OCR text',async failure_reason=>{
+ ai.extractIdentity.mockResolvedValue({success:false,failure_reason,raw_text:'private data'});
+ const result=await extractIdentity(file);expect(result).toMatchObject({success:false,failure_reason});expect(result.message).toMatch(/manually/);expect(result).not.toHaveProperty('raw_text');
+ expect(fs.unlink).toHaveBeenCalledWith(file.path);
+});
+it('accepts only explicitly extracted name parts and an active exact college ignoring case',async()=>{
+ ai.extractIdentity.mockResolvedValue({success:true,extracted_data:{first_name:'Ana Maria',last_name:'Dela Cruz',college_name:'COLLEGE A'}});
+ refs.findCollegeByName.mockResolvedValue([{id:2,name:'College A',is_active:'1'}]);
+ expect(await extractIdentity(file)).toMatchObject({first_name:'Ana Maria',last_name:'Dela Cruz',college_id:2});
+ refs.findCollegeByName.mockResolvedValue([{id:2,name:'College A',is_active:'0'}]);
+ expect((await extractIdentity(file)).college_id).toBeNull();
 });

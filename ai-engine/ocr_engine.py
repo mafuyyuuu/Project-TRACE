@@ -129,12 +129,51 @@ def extract_text(filepath):
 
 
 def process_identity(filepath):
+    """Try the original once; only preprocess when no identifier is found.
+
+    Preserve OCR fragments as lines for label/value parsing. Select fields,
+    not text length, and discard conflicting fallback values.
+    """
+    original = {}
+    ambiguous = set()
+    text_found = False
+    scan_failed = False
     try:
-        data = parse_identity_data(extract_text(filepath))
-        return {'success': any(data.values()), 'extracted_data': data}
-    except Exception:
-        logger.warning('Identity OCR unavailable; manual entry is required.')
-        return {'success': False, 'extracted_data': {}}
+        original_text = "\n".join(reader.readtext(filepath, detail=0)).strip()
+        text_found = bool(original_text)
+        parsed = parse_identity_data(original_text, include_ambiguity=True)
+        original = parsed['fields']
+        ambiguous.update(parsed['ambiguous_fields'])
+        if original.get('student_id') or original.get('alumni_id'):
+            return {'success': True, 'extracted_data': original}
+    except Exception as error:
+        scan_failed = True
+        logger.warning('Original identity scan failed: %s', type(error).__name__)
+
+    try:
+        processed = preprocess_image(filepath)
+        processed_text = "\n".join(reader.readtext(processed, detail=0)).strip()
+        text_found = text_found or bool(processed_text)
+        parsed = parse_identity_data(processed_text, include_ambiguity=True)
+        fallback = parsed['fields']
+        ambiguous.update(parsed['ambiguous_fields'])
+        merged = {}
+        for field in ('student_id', 'alumni_id', 'full_name', 'first_name', 'middle_name', 'last_name', 'college_name'):
+            first, second = original.get(field), fallback.get(field)
+            if field in ambiguous or first and second and first.casefold() != second.casefold():
+                merged[field] = None
+            else:
+                merged[field] = first or second
+        if any(merged.values()):
+            return {'success': True, 'extracted_data': merged}
+        return {'success': False, 'extracted_data': merged,
+                'failure_reason': 'ambiguous' if ambiguous else 'no_fields' if text_found else 'no_text'}
+    except Exception as error:
+        logger.warning('Fallback identity scan failed: %s', type(error).__name__)
+        if any(original.values()):
+            return {'success': True, 'extracted_data': original}
+        return {'success': False, 'extracted_data': {},
+                'failure_reason': 'engine_failure' if scan_failed else 'invalid_image'}
 
 
 def parse_student_data(raw_text):

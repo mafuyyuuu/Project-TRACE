@@ -86,7 +86,7 @@ describe('Account submission confirmations', () => {
     await user.type(screen.getByLabelText('Last Name *'), 'Name');
     await user.upload(container.querySelector('input[type=file]'), new File(['proof'], 'id.png', { type: 'image/png' }));
     expect(api.post).not.toHaveBeenCalled();
-    api.post.mockResolvedValueOnce({ data: { success: true, alumni_id: 'ALU1234567', student_id: 'STU1234567', full_name: 'OCR Name', college_id: 1 } });
+    api.post.mockResolvedValueOnce({ data: { success: true, alumni_id: 'ALU1234567', student_id: 'STU1234567', full_name: 'OCR Name', first_name:'OCR', last_name:'Name', college_id: 1 } });
     await user.click(screen.getByRole('button', { name: 'Read ID' }));
     await waitFor(() => expect(screen.getByPlaceholderText('Enter your Alumni ID')).toHaveValue('ALU1234567'));
     expect(name).toHaveValue('Manual Name');
