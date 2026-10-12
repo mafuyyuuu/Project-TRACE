@@ -1,0 +1,80 @@
+import {act,renderHook,waitFor} from '@testing-library/react';
+import {beforeEach,expect,it,vi} from 'vitest';
+import useSupportTickets from '@/hooks/useSupportTickets';
+import * as service from '@/services/supportTicketsService';
+vi.mock('@/services/supportTicketsService',()=>({getTickets:vi.fn(),getSupportSettings:vi.fn(),getSupportFaq:vi.fn(),resolveSupportContext:vi.fn()}));
+vi.mock('@/services/realtimeService',()=>({onNotification:vi.fn(()=>()=>{})}));
+const user={id:3,role:'student'};
+const ticket=id=>({id,subject:'Synthetic support',state:'QUEUED'});
+const mount=props=>renderHook(({documentId,ticketId,supportId})=>useSupportTickets(user,documentId,ticketId,supportId),{initialProps:props});
+beforeEach(()=>{
+  vi.clearAllMocks();window.history.replaceState(null,'','/dashboard?tab=messages');
+  service.getTickets.mockResolvedValue({tickets:[],next_cursor:null});
+  service.getSupportSettings.mockResolvedValue({});service.getSupportFaq.mockResolvedValue([]);
+  service.resolveSupportContext.mockResolvedValue(ticket(7));
+});
+it('follows successive ticket notifications and preserves manual selection between route changes',async()=>{
+  const {result,rerender}=mount({ticketId:'11'});
+  expect(result.current.selected).toBe('11');
+  act(()=>result.current.setSelected('12'));
+  expect(result.current.selected).toBe('12');
+  rerender({ticketId:'18'});
+  await waitFor(()=>expect(result.current.selected).toBe('18'));
+  expect(service.resolveSupportContext).not.toHaveBeenCalled();
+});
+it('resolves successive general-support links on the mounted screen',async()=>{
+  service.resolveSupportContext.mockResolvedValueOnce(ticket(7)).mockResolvedValueOnce(ticket(9));
+  const {result,rerender}=mount({supportId:'3'});
+  await waitFor(()=>expect(result.current.selected).toBe('7'));
+  rerender({supportId:'5'});
+  await waitFor(()=>expect(result.current.selected).toBe('9'));
+  expect(service.resolveSupportContext).toHaveBeenLastCalledWith({student_user_id:'5'},expect.any(AbortSignal));
+});
+it('prioritizes an explicit ticket over document and general context',async()=>{
+  const {result}=mount({ticketId:'18',documentId:'42',supportId:'3'});
+  await waitFor(()=>expect(result.current.loading).toBe(false));
+  expect(result.current.selected).toBe('18');
+  expect(service.resolveSupportContext).not.toHaveBeenCalled();
+});
+it('aborts an old document lookup so it cannot overwrite a later ticket notification',async()=>{
+  let resolve;
+  service.resolveSupportContext.mockReturnValueOnce(new Promise(done=>{resolve=done;}));
+  const {result,rerender}=mount({documentId:'42'});
+  const signal=service.resolveSupportContext.mock.calls[0][1];
+  rerender({ticketId:'18'});
+  await waitFor(()=>expect(result.current.selected).toBe('18'));
+  expect(signal.aborted).toBe(true);
+  await act(async()=>resolve(ticket(7)));
+  expect(result.current.selected).toBe('18');
+  expect(result.current.tickets.some(row=>row.id===7)).toBe(false);
+});
+it('ignores an obsolete general-context error after navigation',async()=>{
+  let reject;
+  service.resolveSupportContext.mockReturnValueOnce(new Promise((_,fail)=>{reject=fail;}));
+  const {result,rerender}=mount({supportId:'3'});
+  rerender({ticketId:'18'});
+  await act(async()=>reject(new Error('Old lookup failed')));
+  expect(result.current.error).toBe('');
+  expect(result.current.selected).toBe('18');
+});
+it('discards cached ticket rows and selection when authoritative college or desk scope changes',async()=>{
+  service.getTickets.mockResolvedValueOnce({tickets:[ticket(11)],next_cursor:11,access_scope:'old-scope'})
+    .mockResolvedValueOnce({tickets:[ticket(18)],next_cursor:null,access_scope:'new-scope'});
+  const {result}=mount({ticketId:'11'});
+  await waitFor(()=>expect(result.current.tickets).toHaveLength(1));
+  await act(async()=>result.current.refresh());
+  expect(result.current.tickets.map(row=>row.id)).toEqual([18]);
+  expect(result.current.selected).toBe('');expect(result.current.cursor).toBeNull();
+});
+it('clears cached rows on denied access but retains them on a temporary failure',async()=>{
+  service.getTickets.mockResolvedValueOnce({tickets:[ticket(11)],next_cursor:11,access_scope:'scope'});
+  const {result}=mount({ticketId:'11'});
+  await waitFor(()=>expect(result.current.tickets).toHaveLength(1));
+  service.getTickets.mockRejectedValueOnce({response:{status:503}});
+  await act(async()=>result.current.refresh());
+  expect(result.current.tickets.map(row=>row.id)).toEqual([11]);expect(result.current.selected).toBe('11');
+  service.getTickets.mockRejectedValueOnce({response:{status:403,data:{error:'Access revoked'}}});
+  await act(async()=>result.current.refresh());
+  expect(result.current.tickets).toEqual([]);expect(result.current.selected).toBe('');expect(result.current.cursor).toBeNull();
+  expect(result.current.error).toBe('Access revoked');
+});

@@ -1,3 +1,4 @@
+import Button from '@/components/Button';
 import { useState } from 'react';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import useStaffAuthenticatorSetup from '@/hooks/useStaffAuthenticatorSetup';
@@ -16,10 +17,10 @@ export default function StaffAuthenticatorSetup({ user }) {
       <p className="text-sm">For staff ID <strong>{setup.result.staff_id}</strong>. Expires {new Date(setup.result.expires_at).toLocaleTimeString('en-PH')}.</p>
       <code aria-label="Private staff setup code" className="block select-text break-all text-sm">{setup.result.setup_code}</code>
       <p className="text-sm">Ask the clerk to open <a href="/staff-setup" target="_blank" rel="noopener noreferrer" className="underline">{window.location.origin}/staff-setup</a> on their device. Enter their own ID/password and this code, then enroll their app. The code is shown here once; closing this account hides it.</p>
-      <button type="button" onClick={setup.discard} className="rounded-xl border px-3 py-2 text-sm">Hide setup code</button>
+      <Button type="button" onClick={setup.discard} className="trace-button trace-button-secondary">Hide setup code</Button>
     </> : <>
-      <label className="block text-sm">Your Admin password<input aria-label="Admin password for staff setup" autoComplete="current-password" type="password" value={password} onChange={event => setPassword(event.target.value)} disabled={setup.busy} className="mt-2 block w-full rounded-xl border bg-white dark:bg-gray-900 p-3" /></label>
-      <button type="button" disabled={!password || setup.busy} onClick={() => setConfirming(true)} className="rounded-xl border px-3 py-2 text-sm disabled:opacity-50">Issue private setup code</button>
+      <label className="trace-label block">Your Admin password<input aria-label="Admin password for staff setup" autoComplete="current-password" type="password" value={password} onChange={event => setPassword(event.target.value)} disabled={setup.busy} className="trace-control mt-2 block w-full" /></label>
+      <Button type="button" disabled={!password || setup.busy} onClick={() => setConfirming(true)} className="trace-button trace-button-secondary">Issue private setup code</Button>
     </>}
     <ConfirmDialog open={confirming} title="Issue Staff Setup Code" message={`Issue a ten-minute initial authenticator setup code for ${user.full_name} (${user.student_id})? Any older setup code will stop working.`}
       confirmLabel="Issue setup code" loading={setup.busy} onConfirm={issue} onCancel={() => setConfirming(false)}>

@@ -71,6 +71,13 @@ describe('getWaitTime', () => {
     [30 * MINUTE, '30 mins'],
     [1 * HOUR, '1 hr'],
     [5 * HOUR, '5 hrs'],
+    [DAY - 1, '23 hrs'],
+    [DAY, '1 day'],
+    [6 * DAY, '6 days'],
+    [7 * DAY - 1, '6 days'],
+    [7 * DAY, '1 week'],
+    [187 * HOUR, '1 week'],
+    [14 * DAY, '2 weeks'],
   ])('renders %i ms of waiting as "%s"', (elapsed, expected) => {
     freezeClock();
     expect(getWaitTime(ago(elapsed))).toBe(expected);
@@ -79,5 +86,11 @@ describe('getWaitTime', () => {
   it('omits the "ago" suffix used by getRelativeTime, since this is a duration', () => {
     freezeClock();
     expect(getWaitTime(ago(5 * MINUTE))).not.toContain('ago');
+  });
+  it('handles invalid values, future clock skew and a supplied display clock', () => {
+    expect(getWaitTime('invalid')).toBe('—');
+    expect(getWaitTime('2026-10-06T00:00:00Z', NaN)).toBe('—');
+    expect(getWaitTime('2026-10-06T00:01:00Z', Date.parse('2026-10-06T00:00:00Z'))).toBe('< 1 min');
+    expect(getWaitTime('2026-10-05T00:00:00Z', Date.parse('2026-10-06T00:00:00Z'))).toBe('1 day');
   });
 });

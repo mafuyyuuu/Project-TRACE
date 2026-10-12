@@ -38,3 +38,8 @@ it('identifies the exact missing pricing, messaging and template schema reported
   expect(missing).toContainEqual({ field: 'document_fee_schedules.fee_items', migration: 'migrate_fee_schedules.js' });
   expect(missing).toContainEqual({ field: 'request_attachment_uploads.file_path', migration: 'migrate_request_attachments.js' });
 });
+
+it('requires the preserving graduation migration when only the new column is missing', async () => {
+  const rows = requirements.flatMap(([table, columns]) => columns.filter(column => !(table === 'student_profiles' && column === 'graduation_year')).map(column => ({ TABLE_NAME: table, COLUMN_NAME: column })));
+  expect(await check({ query: vi.fn().mockResolvedValue([rows]) })).toEqual([{ field: 'student_profiles.graduation_year', migration: 'migrate_graduation_year.js' }]);
+});

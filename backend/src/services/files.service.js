@@ -37,10 +37,25 @@ function resolveSafePath(requested) {
  * own request, their own registration ID proof, and their own avatar.
  */
 async function assertCanRead(user, filename) {
+  if (filename.startsWith('support-') || await require('../models/supportTicket.model').fileOwner(filename)) {
+    await require('./supportTicket.service').assertFileRead(user,filename);
+    return;
+  }
   const attachment = await require('../models/requestAttachment.model').fileOwner(filename);
   if (attachment) {
     await require('./documents.service').authorizeMessage(user, attachment);
     return;
+  }
+  if (user.role === 'clerk' && user.desk_assignment === 'Secretary') {
+    const docs = await documentModel.findByAttachedFilename(filename);
+    if (docs.length) {
+      await require('./documents.service').authorizeMessage(user, docs[0]);
+      return;
+    }
+    // Registration proof is reviewed by Admin. Keep a Secretary's own avatar.
+    const avatar = await userModel.findByProfilePictureFilename(filename);
+    if (avatar.some(row => Number(row.id) === Number(user.id))) return;
+    throw forbidden('You do not have access to this file.');
   }
   if (user.role === 'clerk' || user.role === 'admin') return;
 

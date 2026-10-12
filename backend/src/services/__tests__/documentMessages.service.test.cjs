@@ -7,7 +7,7 @@ const service = require('../documents.service');
 const student = { id: 3, role: 'student', full_name: 'Student' };
 const w1 = { id: 4, role: 'clerk', desk_assignment: 'Window 1' };
 const secretary = { id: 5, role: 'clerk', desk_assignment: 'Secretary' };
-const doc = { id: 11, student_id: 'STU-001', tracking_number: 'TRC-TEST', document_type: 'TOR' };
+const doc = { id: 11, student_id: 'STU-001', tracking_number: 'TRC-TEST', document_type: 'TOR', current_status: 'SEC_PROCESSING' };
 let connection;
 beforeEach(() => {
   connection = { beginTransaction: vi.fn(), commit: vi.fn(), rollback: vi.fn(), release: vi.fn() };
@@ -78,5 +78,20 @@ it('scopes and caps thread pagination on the server', async () => {
   await service.messageThreads(student, { page: '-1', limit: '9000' });
   expect(messages.threadList).toHaveBeenCalledWith(['student.id = ?'], [3], 1, 50, 'student');
   await service.messageThreads(secretary);
-  expect(messages.countThreads).toHaveBeenLastCalledWith([expect.stringContaining('student.college_id')], [1, 'Engineering']);
+  expect(messages.countThreads).toHaveBeenLastCalledWith([expect.stringContaining('d.routing_college_id')], [1]);
+});
+it('keeps routed legacy history in its saved college after the student profile changes',async()=>{
+  documents.findById.mockResolvedValue([{...doc,routing_college_id:1}]);
+  users.findStudentCourseByStudentId.mockResolvedValue([{college_id:2,course:'Nursing'}]);
+  await expect(service.getMessages(secretary,11)).resolves.toEqual([{id:19,message:'Hello'}]);
+  users.findCourseById.mockResolvedValue([{college_id:2,course:'Nursing'}]);
+  await expect(service.getMessages(secretary,11)).rejects.toMatchObject({status:403});
+});
+
+it.each(['COMPLETED', 'REJECTED', 'APPROVED', 'unexpected'])('retains readable %s history but refuses new messages under the document lock', async current_status => {
+  documents.findById.mockResolvedValue([{ ...doc, current_status }]);
+  documents.findByIdForUpdate.mockResolvedValue([{ ...doc, current_status }]);
+  await expect(service.getMessages(student, 11)).resolves.toEqual([{ id: 19, message: 'Hello' }]);
+  await expect(service.sendMessage(student, 11, { message: 'Hello' })).rejects.toMatchObject({ status: 400 });
+  expect(messages.insert).not.toHaveBeenCalled(); expect(connection.rollback).toHaveBeenCalledOnce();
 });

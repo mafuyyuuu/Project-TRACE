@@ -7,6 +7,15 @@ export default {
   theme: {
     extend: {
       colors: {
+        'trace': {
+          emerald: '#168f55',
+          sage: '#7fbf9e',
+          canvas: '#f4f6f8',
+          surface: '#ffffff',
+          ink: '#1a202c',
+          muted: '#8a94a6',
+          field: '#f1f1f1',
+        },
         'camp-blue': {
           50: '#e8f6fd',
           100: '#c5e8fa',
@@ -45,22 +54,22 @@ export default {
       },
       fontFamily: {
         body: ['Inter', 'sans-serif'],
-        display: ['Poppins', 'Inter', 'sans-serif'],
+        display: ['Inter', 'sans-serif'],
         mono: ['JetBrains Mono', 'monospace'],
       },
       keyframes: {
         'slide-up': {
-          '0%': { transform: 'translateY(1rem)', opacity: '0' },
+          '0%': { transform: 'translateY(var(--trace-motion-drill-distance))', opacity: 'var(--trace-motion-opacity)' },
           '100%': { transform: 'translateY(0)', opacity: '1' },
         },
         'fade-in': {
-          '0%': { opacity: '0' },
+          '0%': { opacity: 'var(--trace-motion-opacity)' },
           '100%': { opacity: '1' },
         },
       },
       animation: {
-        'slide-up': 'slide-up 0.2s cubic-bezier(0.2, 0, 0, 1)',
-        'fade-in': 'fade-in 0.2s cubic-bezier(0.2, 0, 0, 1)',
+        'slide-up': 'slide-up var(--trace-motion-drill-duration) var(--trace-motion-easing)',
+        'fade-in': 'fade-in var(--trace-motion-context-duration) var(--trace-motion-easing)',
       }
     },
   },

@@ -52,6 +52,7 @@ services:
       DB_SSL_CA: ${DB_SSL_CA:-}
       # Keep under the managed database's per-account connection cap.
       DB_POOL_LIMIT: ${DB_POOL_LIMIT:-10}
+      DB_POOL_QUEUE_LIMIT: ${DB_POOL_QUEUE_LIMIT:-200}
       JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required}
       MFA_ENCRYPTION_KEY: ${MFA_ENCRYPTION_KEY:-}
       WEBHOOK_SECRET: ${WEBHOOK_SECRET:?WEBHOOK_SECRET is required}

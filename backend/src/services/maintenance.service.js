@@ -23,7 +23,7 @@ const { badRequest, forbidden, notFound } = require('../utils/AppError');
 
 const VALID_DESKS = ['Finance', 'Window 1', 'Secretary', 'Admin Office', 'Receiving Desk', 'Records Desk'];
 const VALID_ROLES = ['clerk', 'admin'];
-const MIN_PASSWORD_LENGTH = 8;
+const { validatePassword } = require('../utils/passwordPolicy');
 
 function assertAdmin(user) {
   if (!user || user.role !== 'admin') {
@@ -255,9 +255,7 @@ async function createStaff(user, data) {
 
   if (!employee_id || !employee_id.trim()) throw badRequest('Employee ID is required.');
   if (!full_name || !full_name.trim()) throw badRequest('Full name is required.');
-  if (!password || password.length < MIN_PASSWORD_LENGTH) {
-    throw badRequest(`Temporary password must be at least ${MIN_PASSWORD_LENGTH} characters.`);
-  }
+  validatePassword(password);
   if (!VALID_ROLES.includes(role)) throw badRequest("Role must be 'clerk' or 'admin'.");
   if (role === 'clerk' && !VALID_DESKS.includes(desk_assignment)) {
     throw badRequest(`Desk assignment must be one of: ${VALID_DESKS.join(', ')}.`);
@@ -338,9 +336,7 @@ async function updateStaff(user, id, data) {
   // Resetting a password re-arms the forced change, so the new temporary value
   // is again single-use.
   if (data.password) {
-    if (data.password.length < MIN_PASSWORD_LENGTH) {
-      throw badRequest(`Temporary password must be at least ${MIN_PASSWORD_LENGTH} characters.`);
-    }
+    validatePassword(data.password);
     fields.password_hash = await bcrypt.hash(data.password, 10);
     fields.must_change_password = true;
   }

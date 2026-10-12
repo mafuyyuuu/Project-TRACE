@@ -1,8 +1,12 @@
+import RequestStaff from '@/components/RequestStaff';
+import Button from '@/components/Button';
 import FeeBreakdown from '@/components/FeeBreakdown';
 import { INPUT_LIMITS } from '@/utils/inputLimits';
 import FileUploadField from '@/components/FileUploadField';
-import DocumentChat from '@/components/DocumentChat';
-import { useState } from 'react';
+import RequestMessagesPanel from '@/components/RequestMessagesPanel';
+import { useRef, useState } from 'react';
+import useReceiptPack from '@/hooks/useReceiptPack';
+import ReceiptPackControl from './ReceiptPackControl';
 import ModalShell from '@/components/ModalShell';
 import AuthedFilePreview from '@/components/AuthedFilePreview';
 import { formatPeso } from '@/utils/pricing';
@@ -19,15 +23,17 @@ export default function FinanceVerificationModal({
   paymentMethods = [],
 }) {
   const [financeReceiptFile, setFinanceReceiptFile] = useState(null);
-  // Walk-in documents already carry an OR number from logWalkInPayment; a
-  // digital payment has none until Finance types it in here.
-  const [orNumber, setOrNumber] = useState(selectedDoc?.or_number || '');
-  const [orDate, setOrDate] = useState('');
+  // Preserve historical paper ORs. New receipts use the shared read-only pack serial.
+  const [orNumber] = useState(selectedDoc?.or_number || '');
+  const pack=useReceiptPack();
+  const retryKey=useRef(crypto.randomUUID());
+  const [payorName,setPayorName]=useState(selectedDoc?.student_name || '');
   const [deferred, setDeferred] = useState(false);
 
   if (!selectedDoc) return null;
 
-  const canVerify = deferred || Boolean(orNumber.trim());
+  const managed = !selectedDoc.or_number && !deferred;
+  const canVerify = deferred || Boolean(selectedDoc.or_number) || Boolean(pack.state?.pack?.next_serial && payorName.trim());
   // documents.payment_method defaults to 'gcash' for rows predating the
   // column — matching document.model.js's own default.
   const method = paymentMethods.find((m) => m.code === (selectedDoc.payment_method || 'gcash'));
@@ -42,28 +48,27 @@ export default function FinanceVerificationModal({
       maxWidth="max-w-xl"
       footer={
         <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-          <button
+          <Button
             onClick={() => handleFinanceVerify('reject', null)}
             disabled={actionLoading}
-            className="w-full sm:w-1/2 py-3 rounded-xl font-bold text-xs shadow-md transition-all text-center uppercase tracking-wider bg-red-600 dark:bg-red-600 hover:bg-red-700 dark:hover:bg-red-700 text-white disabled:opacity-50"
+            className="trace-button trace-button-danger w-full sm:w-1/2 text-center"
           >
             Reject Payment
-          </button>
-          <button
-            onClick={() => handleFinanceVerify('approve', deferred ? null : financeReceiptFile, deferred ? '' : orNumber.trim(), { deferred, orDate: deferred ? '' : orDate })}
+          </Button>
+          <Button
+            onClick={() => handleFinanceVerify('approve', deferred || managed ? null : financeReceiptFile, deferred || managed ? '' : orNumber.trim(), { deferred, usePack:managed, expected_pack_id:managed?pack.state?.pack?.id:undefined,expected_serial:managed?pack.state?.pack?.next_serial:undefined,payor_name:payorName.trim(),client_key:retryKey.current })}
             disabled={actionLoading || !canVerify}
-            className={`w-full sm:w-1/2 py-3 rounded-xl font-bold text-xs shadow-md transition-all text-center uppercase tracking-wider ${
-              !canVerify ? 'bg-gray-300 dark:bg-gray-700 text-gray-500 dark:text-gray-400 cursor-not-allowed' : 'bg-[#15803d] hover:bg-[#166534] text-white'
-            }`}
+            className="trace-button trace-button-primary w-full sm:flex-1"
           >
             Verify Payment
-          </button>
+          </Button>
         </div>
       }
     >
       <p className="text-xs text-gray-400 dark:text-gray-400 mt-1 font-semibold pb-5 mb-6 border-b border-gray-100 dark:border-gray-700">Review and verify the student's payment receipt.</p>
 
       {/* Gray detail panel */}
+      <RequestStaff document={selectedDoc} />
       <div className="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl p-5 my-4 font-mono text-[11px] text-gray-600 dark:text-gray-300 space-y-2">
         <div className="flex flex-wrap justify-between gap-x-3 gap-y-1"><span>Name</span><span className="font-bold text-gray-950 dark:text-gray-100 select-text break-words">{selectedDoc.student_name || 'Unknown'}</span></div>
         <div className="flex flex-wrap justify-between gap-x-3 gap-y-1"><span>Program/Course for OR</span><span className="font-bold select-text break-words">{selectedDoc.program || 'Not entered'}</span></div>
@@ -99,7 +104,7 @@ export default function FinanceVerificationModal({
               path={selectedDoc.receipt_image_path}
               alt="Payment Receipt"
               iframeTitle="PDF Receipt"
-              className="w-full h-full object-contain hover:scale-105 transition-transform"
+              className="w-full h-full object-contain"
               onClick={() => setViewImageUrl(selectedDoc.receipt_image_path)}
               wrapperClassName="cursor-zoom-in w-full h-full flex items-center justify-center"
             />
@@ -113,51 +118,39 @@ export default function FinanceVerificationModal({
         </div>
 
         {!selectedDoc.or_number && <label className="flex items-start gap-3 text-sm font-semibold">
-          <input type="checkbox" checked={deferred} onChange={e => setDeferred(e.target.checked)} className="mt-1 shrink-0" />
+          <input type="checkbox" checked={deferred} onChange={e => setDeferred(e.target.checked)} className="trace-choice mt-1 shrink-0" />
           Later — clear payment now; issue the Official Receipt later
         </label>}
         {!deferred && <>
-        <div className="flex flex-col gap-2">
-          <label htmlFor="finance-verify-or-number" className="text-[10px] font-bold text-red-600 dark:text-red-300 uppercase tracking-widest flex items-center gap-1">
-            Official Receipt Number <span className="text-red-500 dark:text-red-300">*</span>
-          </label>
-          <input maxLength={INPUT_LIMITS.receiptNumber}
-            id="finance-verify-or-number"
-            type="text"
-            disabled={Boolean(selectedDoc.or_number)}
-            value={orNumber}
-            onChange={(e) => setOrNumber(e.target.value)}
-            placeholder="e.g. OR-2026-00123"
-            className="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-3 text-xs font-bold font-mono focus:ring-2 focus:ring-[#15803d]/20 focus:bg-white dark:focus:bg-gray-900 outline-none transition-all"
-          />
-        </div>
-
-        {!selectedDoc.or_number && <label className="block text-sm font-semibold">OR issue date (Manila)
-          <input type="date" value={orDate} onChange={e => setOrDate(e.target.value)} className="block w-full border rounded-xl p-3 bg-transparent" />
-          <span className="text-xs font-normal">Blank uses today’s Manila date; server enforces the 4:00 PM cut-off.</span>
-        </label>}
-        <div className="flex flex-col gap-2">
+        {managed ? <div className="space-y-4">
+          <ReceiptPackControl packState={pack.state} onChanged={pack.refresh}/>
+          <Button type="button" onClick={pack.refresh} className="trace-button trace-button-secondary">Refresh next number</Button>
+          {pack.error&&<p role="alert" className="text-red-700 dark:text-red-300">{pack.error}</p>}
+          <label className="trace-label block">Payor name — Last, First M.I.<input maxLength={255} value={payorName} onChange={e=>setPayorName(e.target.value)} className="trace-control block w-full"/><span className="text-xs">Review the name before issuance. The account profile stays unchanged.</span></label>
+          <p className="text-xs">Approval issues this number and saves the cashier/payment snapshot. Print or upload the copy from Official Receipts / History.</p>
+        </div> : <label className="trace-label block">Recorded Official Receipt Number<input id="finance-verify-or-number" readOnly value={orNumber} className="trace-control w-full font-mono"/></label>}
+        {!managed && <div className="flex flex-col gap-2">
           <label className="text-[10px] font-bold text-red-600 dark:text-red-300 uppercase tracking-widest flex items-center gap-1">
             Attach Official POS Receipt <span className="text-gray-400 dark:text-gray-400 font-normal normal-case">(Optional - upload later if deferred)</span>
           </label>
           <FileUploadField label="Official Receipt copy (optional)" file={financeReceiptFile} path={selectedDoc.official_receipt_path} onChange={setFinanceReceiptFile} maxBytes={5 * 1024 * 1024} />
-        </div>
+        </div>}
         </>}
       </div>
 
       <div className="flex flex-col gap-1.5 mt-4">
-        <label className="text-[10px] font-bold text-gray-800 dark:text-gray-100 uppercase tracking-widest">Clerk Notes / Remarks</label>
+        <label className="trace-label">Clerk Notes / Remarks</label>
         <textarea maxLength={INPUT_LIMITS.notes}
           value={clerkNotes}
           onChange={(e) => setClerkNotes(e.target.value)}
           placeholder="Add notes (required for rejection)..."
           rows={2}
-          className="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-3 text-xs font-semibold focus:ring-2 focus:ring-[#15803d]/20 focus:bg-white dark:focus:bg-gray-900 outline-none transition-all resize-none"
+          className="trace-control w-full resize-none"
         />
       </div>
       <div className="flex flex-col gap-1.5 mt-4 border-t border-gray-100 dark:border-gray-700 pt-4">
-        <label className="text-[10px] font-bold text-gray-800 dark:text-gray-100 uppercase tracking-widest">Discussion</label>
-        <DocumentChat documentId={selectedDoc.id} user={user} />
+        <label className="trace-label">Discussion</label>
+        <div className="h-[70dvh] min-h-96"><RequestMessagesPanel initialDocumentId={selectedDoc.id} user={user} compact /></div>
       </div>
     </ModalShell>
   );

@@ -1,4 +1,5 @@
 import useAuthedFile, { toFilename } from '@/hooks/useAuthedFile';
+import Button from '@/components/Button';
 
 /**
  * Renders a protected upload (receipt, scanned form, ID proof), picking an
@@ -43,13 +44,9 @@ export default function AuthedFilePreview({
   if (!onClick) return image;
 
   return (
-    <div role="button" tabIndex={0} aria-label={`Open ${alt}`} onClick={onClick} onKeyDown={(event) => {
-      if (event.key === 'Enter' || event.key === ' ') {
-        event.preventDefault();
-        onClick(event);
-      }
-    }} className={wrapperClassName}>
+    <Button type="button" aria-label={`Open ${alt}`} onClick={onClick}
+      className={`trace-card-interactive trace-card-inset ${wrapperClassName}`}>
       {image}
-    </div>
+    </Button>
   );
 }

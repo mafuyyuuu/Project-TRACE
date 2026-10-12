@@ -13,12 +13,12 @@ function roleNavItems(user) {
     const items = [
       { tab: 'dashboard', to: '/dashboard', label: 'Dashboard', icon: 'dashboard' },
       { tab: 'history', to: '/dashboard?tab=history', label: 'History', icon: 'document' },
-      { tab: 'messages', to: '/dashboard?tab=messages', label: 'Messages & Attachments', icon: 'message' },
+      { tab: 'messages', to: '/dashboard?tab=messages', label: 'Support', icon: 'message' },
     ];
     // Only an alumnus can file the Graduate Application — a regular student
     // never sees the tab at all, not even to navigate to it directly.
     if (user?.user_type === 'alumni') {
-      items.push({ tab: 'graduate-application', to: '/dashboard?tab=graduate-application', label: 'Graduate Application', icon: 'cap' });
+      items.push({ tab: 'graduate-application', to: '/dashboard?tab=graduate-application', label: 'Graduate Application', icon: 'cap', group: 'more' });
     }
     return items;
   }
@@ -26,10 +26,9 @@ function roleNavItems(user) {
   if (user?.role === 'clerk' && user?.desk_assignment === 'Secretary') {
     return [
       { tab: 'dashboard', to: '/dashboard', label: 'Dashboard', icon: 'dashboard' },
-      { tab: 'completed-logs', to: '/dashboard?tab=completed-logs', label: 'Completed Logs', icon: 'checklist' },
-      { tab: 'messages', to: '/dashboard?tab=messages', label: 'Messages & Attachments', icon: 'message' },
-      { tab: 'grad-applications', to: '/dashboard?tab=grad-applications', label: 'Graduate Applications', icon: 'cap' },
-      { tab: 'reports', to: '/dashboard?tab=reports', label: 'Reports & Export', icon: 'report' },
+      { tab: 'reports', to: '/dashboard?tab=reports', label: 'Records & Export', icon: 'report' },
+      { tab: 'messages', to: '/dashboard?tab=messages', label: 'Support', icon: 'message' },
+      { tab: 'grad-applications', to: '/dashboard?tab=grad-applications', label: 'Graduate Applications', icon: 'cap', group: 'more' },
     ];
   }
 
@@ -37,8 +36,8 @@ function roleNavItems(user) {
     return [
       { tab: 'dashboard', to: '/dashboard', label: 'Workspace Dashboard', icon: 'dashboard' },
       { tab: 'tracking-desk', to: '/dashboard?tab=tracking-desk', label: 'Tracking Desk', icon: 'users' },
-      { tab: 'messages', to: '/dashboard?tab=messages', label: 'Messages & Attachments', icon: 'message' },
-      { tab: 'reports', to: '/dashboard?tab=reports', label: 'Reports & Export', icon: 'report' },
+      { tab: 'messages', to: '/dashboard?tab=messages', label: 'Support', icon: 'message' },
+      { tab: 'reports', to: '/dashboard?tab=reports', label: 'Reports & Export', icon: 'report', group: 'more' },
     ];
   }
 
@@ -46,13 +45,13 @@ function roleNavItems(user) {
     return [
       { tab: 'dashboard', to: '/dashboard', label: 'Dashboard', icon: 'dashboard' },
       { tab: 'admin-tracker', to: '/dashboard?tab=admin-tracker', label: 'Document Tracker', icon: 'document' },
-      { tab: 'messages', to: '/dashboard?tab=messages', label: 'Messages & Attachments', icon: 'message' },
-      { tab: 'admin-logs', to: '/dashboard?tab=admin-logs', label: 'Activity Logs', icon: 'checklist' },
-      { tab: 'admin-security', to: '/dashboard?tab=admin-security', label: 'Security Logs', icon: 'shield' },
-      { tab: 'admin-reports', to: '/dashboard?tab=admin-reports', label: 'Reports & Export', icon: 'report' },
-      { tab: 'admin-analytics', to: '/dashboard?tab=admin-analytics', label: 'Efficiency Analytics', icon: 'bolt' },
-      { tab: 'admin-grad-applications', to: '/dashboard?tab=admin-grad-applications', label: 'Graduate Applications', icon: 'cap' },
-      { tab: 'admin-templates', to: '/dashboard?tab=admin-templates', label: 'Templates', icon: 'template' },
+      { tab: 'messages', to: '/dashboard?tab=messages', label: 'Support', icon: 'message' },
+      { tab: 'admin-logs', to: '/dashboard?tab=admin-logs', label: 'Activity Logs', icon: 'checklist', group: 'more' },
+      { tab: 'admin-security', to: '/dashboard?tab=admin-security', label: 'Security Logs', icon: 'shield', group: 'more' },
+      { tab: 'admin-reports', to: '/dashboard?tab=admin-reports', label: 'Reports & Export', icon: 'report', group: 'more' },
+      { tab: 'admin-analytics', to: '/dashboard?tab=admin-analytics', label: 'Efficiency Analytics', icon: 'bolt', group: 'more' },
+      { tab: 'admin-grad-applications', to: '/dashboard?tab=admin-grad-applications', label: 'Graduate Applications', icon: 'cap', group: 'more' },
+      { tab: 'admin-templates', to: '/dashboard?tab=admin-templates', label: 'Templates', icon: 'template', group: 'more' },
       { tab: 'admin-maintenance', to: '/dashboard?tab=admin-maintenance', label: 'System Maintenance', icon: 'wrench' },
     ];
   }
@@ -60,7 +59,8 @@ function roleNavItems(user) {
   if (user?.role === 'clerk' && user?.desk_assignment === 'Finance') {
     return [
       { tab: 'dashboard', to: '/dashboard', label: 'Dashboard', icon: 'dashboard' },
-      { tab: 'reports', to: '/dashboard?tab=reports', label: 'Transactions & Export', icon: 'report' },
+      { tab: 'transactions', to: '/dashboard?tab=transactions', label: 'Transactions & OR Copies', icon: 'report' },
+      { tab: 'messages', to: '/dashboard?tab=messages', label: 'Support', icon: 'message' },
     ];
   }
   // Other desks get the dashboard alone.
@@ -73,5 +73,25 @@ function roleNavItems(user) {
 
 export function navItemsForUser(user) {
   const items = roleNavItems(user);
-  return user?.role ? [...items, { tab: 'help', to: '/dashboard?tab=help', label: 'Help / FAQ', icon: 'book' }] : items;
+  if (user?.role === 'admin' || user?.role === 'clerk' && ['Window 1','Receiving Desk','Secretary','Finance'].includes(user.desk_assignment)) {
+    items.splice(3,0,{tab:'internal-assistance',to:'/dashboard?tab=internal-assistance',label:'Internal Assistance',icon:'assistance'});
+  }
+  return user?.role ? [...items, { tab: 'help', to: '/dashboard?tab=help', label: 'Help / FAQ', icon: 'book', group: 'more' }] : items;
+}
+
+export function navGroupsForUser(user) {
+  const items = navItemsForUser(user);
+  // Keep six daily-work destinations visible; More is the seventh control
+  // only when at least seven destinations are available.
+  const ordered = [...items.filter(item => item.group !== 'more'), ...items.filter(item => item.group === 'more')];
+  return {
+    main: ordered.slice(0, 6),
+    more: ordered.slice(6),
+  };
+}
+
+/** Keep the old Secretary deep link active within the combined workspace. */
+export function canonicalTabForUser(user, tab) {
+  if (user?.role === 'clerk' && user.desk_assignment === 'Finance' && ['reports', 'export', 'exports'].includes(tab)) return 'transactions';
+  return user?.role === 'clerk' && user.desk_assignment === 'Secretary' && tab === 'completed-logs' ? 'reports' : tab;
 }

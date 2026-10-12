@@ -26,6 +26,7 @@ const authenticator = require('../authenticator.service');
 const emailVerification = require('../emailVerification.service');
 const onboarding = require('../../models/onboarding.model');
 const passwordResetModel = require('../../models/passwordReset.model');
+const notifications = require('../notification.service');
 let credentialConnection;
 
 const statusOf = (promise) => promise.then(() => undefined, (err) => err.status);
@@ -49,11 +50,12 @@ const verifiedStudent = () => ({
 });
 
 beforeEach(() => {
+  vi.spyOn(notifications, 'sendEmail').mockResolvedValue({ ok: true });
   vi.spyOn(onboarding, 'enroll').mockResolvedValue([{}]);
   vi.spyOn(passwordResetModel, 'invalidateAllForUser').mockResolvedValue([{}]);
   vi.spyOn(emailVerification, 'issue').mockResolvedValue({ email_sent: true, message: 'Link sent.', pending_email: 'new@example.test', email_verification_required: true });
   vi.spyOn(authenticator, 'isEnabled').mockResolvedValue(false);
-  credentialConnection = { beginTransaction: vi.fn(), commit: vi.fn(), rollback: vi.fn(), release: vi.fn() };
+  credentialConnection = { query: vi.fn().mockResolvedValue([{}]), beginTransaction: vi.fn(), commit: vi.fn(), rollback: vi.fn(), release: vi.fn() };
   vi.spyOn(pool, 'getConnection').mockResolvedValue(credentialConnection);
   vi.spyOn(trustedBrowserModel, 'lockAccount').mockImplementation(async () => ({ id: 3, is_active: 1, token_version: 0, password_hash: passwordHash }));
   vi.spyOn(trustedBrowser, 'isTrusted').mockResolvedValue(false);
@@ -71,6 +73,7 @@ beforeEach(() => {
   vi.spyOn(userModel, 'getProfileById').mockResolvedValue([]);
   vi.spyOn(userModel, 'findStudentBasicInfo').mockResolvedValue([]);
   vi.spyOn(userModel, 'updateProfile').mockResolvedValue(true);
+  vi.spyOn(userModel, 'upsertProfile').mockResolvedValue([{}]);
   vi.spyOn(userModel, 'findProfilePictureById').mockResolvedValue([{ profile_picture: null }]);
 
   vi.spyOn(userModel, 'getLoginSecurity').mockResolvedValue([]);
@@ -96,6 +99,12 @@ beforeEach(() => {
 });
 
 describe('login', () => {
+  it('sends a Finance email challenge only to the active account address, never its pending address or SMTP sender', async () => {
+    userModel.findActiveByStudentId.mockResolvedValue([{ ...verifiedStudent(), role: 'clerk',
+      email: 'finance-active@example.test', pending_email: 'finance-pending@example.test', desk_assignment: 'Finance' }]);
+    await service.login({ employee_id: 'FIN', password: 'Trace2024!' });
+    expect(notifications.sendEmail).toHaveBeenCalledExactlyOnceWith('finance-active@example.test', 'Project TRACE Login Verification', expect.any(String));
+  });
   it('uses the enrolled app instead of sending an email code', async () => {
     const user = { ...verifiedStudent(), is_active: 1, token_version: 0 };
     userModel.findActiveByStudentId.mockResolvedValue([user]);
@@ -103,6 +112,7 @@ describe('login', () => {
     vi.spyOn(authenticator, 'challenge').mockResolvedValue({ requires_2fa: true, mfa_method: 'authenticator' });
     expect(await service.login({ employee_id: 'STU-001', password: 'Trace2024!' })).toHaveProperty('mfa_method', 'authenticator');
     expect(userModel.updateEmailOTP).not.toHaveBeenCalled();
+    expect(notifications.sendEmail).not.toHaveBeenCalled();
   });
   it('never lets an old email challenge bypass a newly enrolled authenticator', async () => {
     const user = { ...verifiedStudent(), is_active: 1, token_version: 0, login_otp: '123456', login_otp_expires: new Date(Date.now() + 60000) };
@@ -231,6 +241,38 @@ describe('clerk MFA browser policy', () => {
     await service.verify2FA(result.temp_token, '123456', null, null, true);
     expect(trustedBrowser.issue).not.toHaveBeenCalled();
   });
+  it('offers Admin app trust, skips the app only with valid password/personal proof, and keeps shared mode protected', async () => {
+    const admin = { ...clerk(), role: 'admin' };
+    userModel.findActiveByStudentId.mockResolvedValue([admin]);
+    authenticator.isEnabled.mockResolvedValue(true);
+    vi.spyOn(authenticator, 'challenge').mockResolvedValue({ requires_2fa: true, can_trust_browser: true });
+    await expect(service.login(credentials)).resolves.toMatchObject({ requires_2fa: true, can_trust_browser: true });
+    expect(authenticator.challenge).toHaveBeenCalledWith(admin, true);
+    trustedBrowser.isTrusted.mockResolvedValue(true);
+    await expect(service.login({ ...credentials, shared_computer: false }, null, null, 'proof')).resolves.toHaveProperty('token');
+    expect(trustedBrowser.isTrusted).toHaveBeenCalledWith(admin, 'proof', false);
+    trustedBrowser.isTrusted.mockClear();
+    await expect(service.login({ ...credentials, password: 'wrong', shared_computer: false })).rejects.toMatchObject({ status: 401 });
+    expect(trustedBrowser.isTrusted).not.toHaveBeenCalled();
+    await expect(service.login({ ...credentials, shared_computer: true })).resolves.toMatchObject({ requires_2fa: true });
+    expect(trustedBrowser.isTrusted).not.toHaveBeenCalled();
+  });
+  it.each([false, true])('issues Admin app trust only after successful factor verification and explicit choice: %s', async choice => {
+    vi.spyOn(authenticator, 'verifyChallenge').mockResolvedValue({ ...clerk(), role: 'admin' });
+    trustedBrowser.issue.mockResolvedValue({ value: 'synthetic-proof', expiresAt: 1000 });
+    const token = challenge({ mfa_method: 'authenticator', can_trust_browser: true });
+    const result = await service.verify2FA(token, '123456', null, null, choice);
+    if (choice) {
+      expect(trustedBrowser.issue).toHaveBeenCalledWith(3, 0);
+      expect(authenticator.verifyChallenge.mock.invocationCallOrder[0]).toBeLessThan(trustedBrowser.issue.mock.invocationCallOrder[0]);
+      expect(result).toHaveProperty('browserTrust');
+    } else expect(trustedBrowser.issue).not.toHaveBeenCalled();
+  });
+  it('does not grant Admin trust on a failed app factor', async () => {
+    vi.spyOn(authenticator, 'verifyChallenge').mockRejectedValue(Object.assign(new Error('Invalid code'), { status: 401 }));
+    await expect(service.verify2FA(challenge({ mfa_method: 'authenticator', can_trust_browser: true }), '123456', null, null, true)).rejects.toMatchObject({ status: 401 });
+    expect(trustedBrowser.issue).not.toHaveBeenCalled();
+  });
 
   it.each([undefined, true, 'false', 0])('requires clerk OTP in default/shared mode %s even with a cookie', async shared_computer => {
     userModel.findActiveByStudentId.mockResolvedValue([clerk()]);
@@ -354,10 +396,23 @@ describe('register', () => {
     phone_number: '+639', password: 'Trace2024!', course: 'CCS',
   };
   const file = { path: '/tmp/id.jpg', originalname: 'id.jpg', mimetype: 'image/jpeg' };
+  it('keeps the signup email but postpones its verification link to Profile', async () => {
+    const result = await service.register(body, file);
+    expect(userModel.createUser).toHaveBeenCalledWith(expect.objectContaining({ email: body.email }), credentialConnection);
+    expect(emailVerification.issue).not.toHaveBeenCalled();
+    expect(result).toMatchObject({ email_verification_required: true, email_sent: false });
+    expect(result.message).toContain('Verify beside Email Address');
+    expect(result.message).not.toContain('could not be delivered');
+  });
 
   it('stores the separate program without replacing college assignment', async () => {
     await service.register({ ...body, program: ' BS Information Technology ' }, file);
-    expect(userModel.createUser).toHaveBeenCalledWith(expect.objectContaining({ program: 'BS Information Technology', course: 'CCS' }));
+    expect(userModel.createUser).toHaveBeenCalledWith(expect.objectContaining({ program: 'BS Information Technology', course: 'CCS' }), credentialConnection);
+  });
+  it('accepts underscore as the only special character at signup', async () => {
+    await service.register({ ...body, password: 'Trace_2026' }, file);
+    const stored = userModel.createUser.mock.calls[0][0].password_hash;
+    expect(await bcrypt.compare('Trace_2026', stored)).toBe(true);
   });
   it('rejects an oversized program before account creation', async () => {
     await expect(service.register({ ...body, program: 'x'.repeat(151) }, file)).rejects.toMatchObject({ status: 400 });
@@ -374,39 +429,41 @@ describe('register', () => {
     expect(await statusOf(service.register(body, file))).toBe(400);
   });
 
-  it('lets a rejected applicant re-register, clearing the old row first', async () => {
+  it('lets a rejected applicant resubmit the same account while retaining its history', async () => {
     userModel.findExistingByStudentId.mockResolvedValue([{ id: 12, verification_status: 'rejected' }]);
+    userModel.getProfileById.mockResolvedValue([{ id: 12, role: 'student', verification_status: 'rejected' }]);
     await service.register(body, file);
-    expect(userModel.deleteById).toHaveBeenCalledWith(12);
-    expect(userModel.createUser).toHaveBeenCalled();
-    expect(onboarding.enroll).toHaveBeenCalledExactlyOnceWith(1);
+    expect(userModel.deleteById).not.toHaveBeenCalled();
+    expect(userModel.createUser).not.toHaveBeenCalled();
+    expect(userModel.updateProfile).toHaveBeenCalledWith(12, expect.objectContaining({ student_id: body.employee_id }), credentialConnection);
+    expect(onboarding.enroll).toHaveBeenCalledExactlyOnceWith(12, credentialConnection);
   });
 
   it('auto-verifies when the AI confirms the ID', async () => {
     aiEngine.verifyIdDocument.mockResolvedValue({ verified: true, reason: 'matched' });
     const res = await service.register(body, file);
-    expect(userModel.createUser).toHaveBeenCalledWith(expect.objectContaining({ verification_status: 'verified' }));
+    expect(userModel.createUser).toHaveBeenCalledWith(expect.objectContaining({ verification_status: 'verified' }), credentialConnection);
     expect(res.message).toMatch(/automatically verified/i);
   });
 
   it('leaves the account pending when the AI cannot confirm', async () => {
     aiEngine.verifyIdDocument.mockResolvedValue({ verified: false, reason: 'no match' });
     const res = await service.register(body, file);
-    expect(userModel.createUser).toHaveBeenCalledWith(expect.objectContaining({ verification_status: 'pending' }));
+    expect(userModel.createUser).toHaveBeenCalledWith(expect.objectContaining({ verification_status: 'pending' }), credentialConnection);
     expect(res.message).toMatch(/administrator verification/i);
   });
 
   it('leaves the account pending when the AI engine is unreachable', async () => {
     aiEngine.verifyIdDocument.mockResolvedValue(null);
     await service.register(body, file);
-    expect(userModel.createUser).toHaveBeenCalledWith(expect.objectContaining({ verification_status: 'pending' }));
+    expect(userModel.createUser).toHaveBeenCalledWith(expect.objectContaining({ verification_status: 'pending' }), credentialConnection);
   });
 
   it('stores and returns a review reason without calling a genuine but unreadable proof fake', async () => {
     aiEngine.verifyIdDocument.mockResolvedValue({ verified: false, reason: 'School name and Student ID found, but College did not match.' });
     const result = await service.register(body, file);
     expect(result.verification_reason).toContain('could not confirm the selected college');
-    expect(userModel.createUser).toHaveBeenCalledWith(expect.objectContaining({ verification_status: 'pending', verification_reason: result.verification_reason }));
+    expect(userModel.createUser).toHaveBeenCalledWith(expect.objectContaining({ verification_status: 'pending', verification_reason: result.verification_reason }), credentialConnection);
     expect(result.verification_reason).not.toMatch(/fake|fraud|counterfeit|rejected/);
   });
 
@@ -445,8 +502,9 @@ describe('admin-only guards', () => {
   });
 
   it.each([['verify', 'verified'], ['reject', 'rejected']])('maps %s to %s', async (action, expected) => {
+    userModel.getProfileById.mockResolvedValue([{ id: 3, role: 'student', verification_status: 'pending' }]);
     await service.verifyStudentAccount(ADMIN, 3, action);
-    expect(userModel.setVerificationStatus).toHaveBeenCalledWith(3, expected);
+    expect(userModel.setVerificationStatus).toHaveBeenCalledWith(3, expected, credentialConnection);
   });
 
   it('404s when the target student does not exist', async () => {
@@ -475,6 +533,16 @@ describe('updateProfile', () => {
     expect(fields.password_hash).toBeDefined();
     expect(fields.password_hash).not.toBe('newpw');
     expect(fields).not.toHaveProperty('password');
+  });
+  it('accepts underscore in a password change and still refuses current-password reuse', async () => {
+    await service.updateProfile(3, { password: 'Newpassword_2026', current_password: 'Trace2024!' });
+    const fields = userModel.updateProfile.mock.calls[0][1];
+    expect(await bcrypt.compare('Newpassword_2026', fields.password_hash)).toBe(true);
+    userModel.updateProfile.mockClear();
+    const hash = await bcrypt.hash('Newpassword_2026', 4);
+    userModel.findActiveByStudentId.mockResolvedValue([{ password_hash: hash }]);
+    await expect(service.updateProfile(3, { password: 'Newpassword_2026', current_password: 'Newpassword_2026' })).rejects.toThrow('current password');
+    expect(userModel.updateProfile).not.toHaveBeenCalled();
   });
 
   it('only writes the fields actually supplied', async () => {
@@ -591,8 +659,8 @@ describe('Batch 8b identity and staff profile boundary', () => {
     expect(values).toEqual(['STU1']);
   });
   it('stores the submitted Alumni ID and explicit college without rewriting existing identifiers', async () => {
-    await service.register({ employee_id: 'ALU1234567', email: 'alumni@example.test', user_type: 'alumni', full_name: 'Ana Reyes', phone_number: '09123456789', password: 'Trace2024!', college_id: '2' }, { path: '/proof.png' });
-    expect(userModel.createUser).toHaveBeenCalledWith(expect.objectContaining({ student_id: 'ALU1234567', user_type: 'alumni', college_id: 2, course: 'College A' }));
+    await service.register({ employee_id: 'ALU1234567', email: 'alumni@example.test', user_type: 'alumni', year_started: '2020', graduation_year: '2024', full_name: 'Ana Reyes', phone_number: '09123456789', password: 'Trace2024!', college_id: '2' }, { path: '/proof.png' });
+    expect(userModel.createUser).toHaveBeenCalledWith(expect.objectContaining({ student_id: 'ALU1234567', user_type: 'alumni', college_id: 2, course: 'College A' }), credentialConnection);
   });
   it('rejects student and unknown desk access before querying another profile', async () => {
     await expect(service.lookupStudent('STU1', { role: 'student' })).rejects.toMatchObject({ status: 403 });
@@ -633,5 +701,111 @@ describe('server-side logout', () => {
   it('does not let an old session obtain a replacement after revocation', async () => {
     await expect(service.logoutAll(3, true, 4)).rejects.toMatchObject({ status: 401 });
     expect(userModel.incrementTokenVersion).not.toHaveBeenCalled();
+  });
+});
+
+describe('graduation years before profile mutations', () => {
+  beforeEach(() => userModel.getProfileById.mockResolvedValue([{ id: 3, role: 'student', user_type: 'alumni', email: 'old@example.test', last_attendance_year: 1980, elem_grad_year: 1970, jhs_grad_year: 1974, shs_grad_year: 1976 }]));
+  it.each(['-2020', '2020.5', '2e3', '2001', '9999', '202', ' 2024', 2024, ''])('rejects invalid alumni graduation before credential/email/contact/profile writes: %s', async graduation_year => {
+    expect(await statusOf(service.updateProfile(3, { graduation_year, phone_number: 'new', email: 'new@example.test', password: 'Newpassword_2026', current_password: 'any' }))).toBe(400);
+    expect(userModel.updateProfile).not.toHaveBeenCalled();
+    expect(userModel.upsertProfile).not.toHaveBeenCalled();
+    expect(emailVerification.issue).not.toHaveBeenCalled();
+    expect(pool.getConnection).not.toHaveBeenCalled();
+    expect(userModel.addPasswordHistory).not.toHaveBeenCalled();
+  });
+  it('saves confirmed graduation independently and preserves omitted historical attendance and school years', async () => {
+    await service.updateProfile(3, { year_started: '2002', graduation_year: '2010' });
+    expect(credentialConnection.query).toHaveBeenCalledWith(expect.stringContaining('INSERT INTO student_profiles'), [3, 2002, 2010]);
+    expect(userModel.upsertProfile).not.toHaveBeenCalled();
+  });
+  it('allows partial contact edits without copying attendance into graduation', async () => {
+    await service.updateProfile(3, { phone_number: 'new' });
+    expect(userModel.updateProfile).toHaveBeenCalledWith(3, { phone_number: 'new' }, credentialConnection);
+    expect(userModel.upsertProfile).not.toHaveBeenCalled();
+  });
+  it.each(['-1980', '1980.5', '1.98e3', '9999'])('rejects invalid school years: %s', async elem_grad_year => {
+    expect(await statusOf(service.updateProfile(3, { elem_grad_year }))).toBe(400);
+    expect(userModel.upsertProfile).not.toHaveBeenCalled();
+  });
+  it('allows current students to leave college graduation blank', async () => {
+    userModel.getProfileById.mockResolvedValue([{ id: 3, role: 'student', user_type: 'student' }]);
+    await service.updateProfile(3, { graduation_year: '', elem_grad_year: '1980' });
+    expect(userModel.upsertProfile).toHaveBeenCalledWith(3, expect.objectContaining({ elem_grad_year: '1980' }), credentialConnection);
+  });
+});
+
+describe('alumni proof-unavailable production registration', () => {
+  const originalMode = env.NODE_ENV;
+  const body = { employee_id: 'ALU-DEMO', full_name: 'Synthetic Alumni', email: 'synthetic@example.test', phone_number: '+639123456789', password: 'Trace2024!', user_type: 'alumni', course: 'CCS', year_started: '2010', graduation_year: '2014', registration_proof_unavailable: 'true', registration_proof_reason: 'Records unavailable; request Registrar review.' };
+  beforeEach(() => { env.NODE_ENV = 'production'; });
+  afterEach(() => { env.NODE_ENV = originalMode; });
+  it.each(['production','development','test'])('offers manual alumni review in %s without a demo flag', mode => {
+    env.NODE_ENV = mode;
+    expect(service.registrationOptions()).toEqual({ proof_unavailable_enabled: true });
+  });
+  it('never offers a proof bypass to current students', async () => {
+    await expect(service.register({ ...body, user_type: 'student' }, null)).rejects.toMatchObject({ status: 403 });
+    expect(userModel.createUser).not.toHaveBeenCalled();
+    expect(aiEngine.verifyIdDocument).not.toHaveBeenCalled();
+  });
+  it('still requires uploaded proof when a current student does not request the alumni exception', async () => {
+    await expect(service.register({ ...body, user_type:'student', registration_proof_unavailable:'false' },null)).rejects.toMatchObject({ status:400 });
+    expect(userModel.createUser).not.toHaveBeenCalled();
+  });
+  it('rejects an attached proof combined with missing-proof review before storing an account', async () => {
+    await expect(service.register(body,{path:'synthetic-unused-proof.png'})).rejects.toMatchObject({status:400});
+    expect(userModel.createUser).not.toHaveBeenCalled();expect(aiEngine.verifyIdDocument).not.toHaveBeenCalled();
+  });
+  it('always creates a pending account, saves the years atomically and skips AI for unavailable proof', async () => {
+    aiEngine.verifyIdDocument.mockResolvedValue({ verified: true });
+    const result = await service.register(body, null);
+    expect(result.verification_status).toBe('pending');
+    expect(aiEngine.verifyIdDocument).not.toHaveBeenCalled();
+    expect(userModel.createUser).toHaveBeenCalledWith(expect.objectContaining({ id_proof_path: null, registration_proof_unavailable: true, verification_status: 'pending' }), credentialConnection);
+    expect(credentialConnection.query).toHaveBeenCalledWith(expect.stringContaining('INSERT INTO student_profiles'), [1, 2010, 2014]);
+    expect(credentialConnection.commit).toHaveBeenCalledOnce();
+  });
+  it.each(['', 'x'.repeat(501)])('requires a bounded explanation', async registration_proof_reason => {
+    await expect(service.register({ ...body, registration_proof_reason }, null)).rejects.toMatchObject({ status: 400 });
+    expect(userModel.createUser).not.toHaveBeenCalled();
+  });
+  it('does not leave a half-created account if the initial year audit fails', async () => {
+    credentialConnection.query.mockRejectedValue(new Error('audit unavailable'));
+    await expect(service.register(body, null)).rejects.toThrow('audit unavailable');
+    expect(credentialConnection.commit).not.toHaveBeenCalled(); expect(credentialConnection.rollback).toHaveBeenCalledOnce();
+  });
+  it('requires evidence for approval and records reviewer, decision and evidence in one transaction', async () => {
+    userModel.getProfileById.mockResolvedValue([{ id: 3, role: 'student', user_type:'alumni', verification_status: 'pending', registration_proof_unavailable: true }]);
+    await expect(service.verifyStudentAccount({ id: 9, role: 'admin' }, 3, 'verify')).rejects.toMatchObject({ status: 400 });
+    expect(userModel.setVerificationStatus).not.toHaveBeenCalled();
+    await service.verifyStudentAccount({ id: 9, role: 'admin' }, 3, 'verify', 'Synthetic Registrar record checked');
+    expect(credentialConnection.query).toHaveBeenCalledWith(expect.stringContaining('INSERT INTO account_review_events'), [3, 9, 'verified', 'Synthetic Registrar record checked']);
+    expect(credentialConnection.commit).toHaveBeenCalledOnce();
+  });
+  it('does not approve a malformed current-student missing-proof record', async () => {
+    userModel.getProfileById.mockResolvedValue([{ id: 3, role: 'student', user_type:'student', verification_status: 'pending', registration_proof_unavailable: true }]);
+    await expect(service.verifyStudentAccount({ id: 9, role: 'admin' }, 3, 'verify', 'Evidence')).rejects.toMatchObject({ status: 403 });
+    expect(userModel.setVerificationStatus).not.toHaveBeenCalled();
+  });
+  it('keeps identity decisions atomic when the evidence audit fails', async () => {
+    userModel.getProfileById.mockResolvedValue([{id:3,role:'student',user_type:'alumni',verification_status:'pending',registration_proof_unavailable:true}]);
+    credentialConnection.query.mockRejectedValueOnce(new Error('review audit unavailable'));
+    await expect(service.verifyStudentAccount({id:9,role:'admin'},3,'verify','Registrar checked')).rejects.toThrow('review audit unavailable');
+    expect(credentialConnection.commit).not.toHaveBeenCalled();expect(credentialConnection.rollback).toHaveBeenCalledOnce();
+  });
+  it.each(['student','clerk'])('does not let %s approve a missing-proof applicant', async role => {
+    await expect(service.verifyStudentAccount({id:9,role},3,'verify','Claimed evidence')).rejects.toMatchObject({status:403});
+    expect(userModel.setVerificationStatus).not.toHaveBeenCalled();
+  });
+  it('does not issue a login token to a pending missing-proof alumni', async () => {
+    userModel.findActiveByStudentId.mockResolvedValue([{...verifiedStudent(),user_type:'alumni',verification_status:'pending',registration_proof_unavailable:1,id_proof_path:null}]);
+    await expect(service.login({employee_id:'ALU-DEMO',password:'Trace2024!'})).rejects.toMatchObject({status:403});
+  });
+  it('lets an approved alumni log in without checking for historical document uploads', async () => {
+    userModel.findActiveByStudentId.mockResolvedValue([{ ...verifiedStudent(), user_type: 'alumni', year_started: 2010, graduation_year: 2014, id_proof_path: null }]);
+    const result = await service.login({ employee_id: 'ALU-DEMO', password: 'Trace2024!' });
+    expect(result.user).toMatchObject({ year_started: 2010, graduation_year: 2014 });
+    expect(result.token).toBeDefined();
   });
 });

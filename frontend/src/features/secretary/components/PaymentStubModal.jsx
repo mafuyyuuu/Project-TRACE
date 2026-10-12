@@ -1,3 +1,4 @@
+import Button from '@/components/Button';
 import FeeBreakdown from '@/components/FeeBreakdown';
 import usePaymentSlip from '@/hooks/usePaymentSlip';
 import ModalShell from '@/components/ModalShell';
@@ -42,32 +43,32 @@ export default function PaymentStubModal({ selectedDoc, groupDocs, setActiveModa
       onClose={() => setActiveModal(null)}
       title={null}
       maxWidth="max-w-md"
-      backdropClassName="absolute inset-0 bg-gray-900/60 backdrop-blur-md print-hide transition-opacity duration-200"
-      panelClassName="bg-white rounded-3xl shadow-2xl w-full max-w-md max-h-[calc(100dvh-2rem)] z-10 border border-gray-100 relative animate-slide-up flex flex-col overflow-hidden print-slip"
-      closeButtonClassName="absolute top-4 right-4 w-8 h-8 rounded-full flex items-center justify-center text-gray-400 hover:bg-gray-100 print-hide"
+      backdropClassName="absolute inset-0 bg-gray-900/60 backdrop-blur-md print-hide transition-opacity"
+      panelClassName="bg-white rounded-3xl shadow-2xl w-full max-w-md max-h-[calc(100dvh-2rem)] z-10 border border-gray-100 relative flex flex-col overflow-hidden print-slip"
+      closeButtonClassName="trace-button-lift absolute top-4 right-4 w-8 h-8 rounded-full flex items-center justify-center text-gray-400 hover:bg-gray-100 print-hide"
       bodyClassName="flex-1 overflow-y-auto px-6 sm:px-8 pt-6 sm:pt-8"
       footerClassName="shrink-0 px-6 sm:px-8 pb-6 sm:pb-8 pt-6 print-hide"
       footer={
         <div className="flex flex-col sm:flex-row gap-3">
-          <button
+          <Button
             onClick={() => setActiveModal(null)}
-            className="flex-1 px-5 py-3 rounded-2xl text-xs font-bold border border-gray-200 text-gray-700 hover:bg-gray-50 transition-colors"
+            className="trace-button trace-button-secondary flex-1"
           >
             Close
-          </button>
-          <button
+          </Button>
+          <Button
             type="button" onClick={() => setTimeout(() => window.print(), 100)}
-            className="flex-1 px-5 py-3 rounded-2xl text-xs font-bold bg-gray-900 hover:bg-gray-800 text-white shadow-sm transition-colors"
+            className="trace-button trace-button-secondary flex-1"
           >
             Print Slip
-          </button>
+          </Button>
         </div>
       }
     >
 {printHtml ? (
         <>
         <div className="space-y-3 py-4 border-b border-dashed border-gray-300">
-          <h3 className="text-lg font-bold">TRACE · Order of Payment</h3>
+          <h3 className="trace-section-title">TRACE · Order of Payment</h3>
           {qrSvg && <div className="mx-auto w-[132px]" dangerouslySetInnerHTML={{ __html: qrSvg }} />}
           <p className="text-center font-mono font-bold select-text">{tracking}</p>
           <p className="text-sm break-words">Program/Course: {selectedDoc.program || 'Not entered'}</p>

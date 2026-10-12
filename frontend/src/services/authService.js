@@ -74,8 +74,8 @@ export async function getPendingStudents() {
  * @param {string} userId
  * @param {string} action - 'verify' or 'reject'
  */
-export async function verifyStudent(userId, action) {
-  const { data } = await api.post(`/auth/verify-student/${userId}`, { action })
+export async function verifyStudent(userId, action, evidenceBasis) {
+  const { data } = await api.post(`/auth/verify-student/${userId}`, { action, ...(evidenceBasis === undefined ? {} : { evidence_basis: evidenceBasis }) })
   return data
 }
 
@@ -103,7 +103,7 @@ export async function lookupStudent(studentId, options = {}) {
  * @param {string} identifier Student/Staff ID or email address.
  */
 export async function forgotPassword(identifier) {
-  const { data } = await api.post('/auth/forgot-password', { identifier })
+  const { data } = await api.post('/auth/forgot-password', { identifier }, { timeout: 60000 })
   return data
 }
 
@@ -124,7 +124,9 @@ export async function verify2FA(payload) {
 export async function extractSignupId(file, options = {}) {
   const form = new FormData();
   form.append('id_proof', file);
-  const { data } = await api.post('/ai/extract-id', form, options);
+  const { data } = await api.post('/ai/extract-id', form, {
+    ...options, headers: { ...options.headers, 'Content-Type': 'multipart/form-data' },
+  });
   return data;
 }
 export async function verifyEmailChange(otp) {
@@ -144,5 +146,14 @@ export async function getSecurityLogs(signal) {
 export async function endOtherSessions() {
   const { data } = await api.post('/auth/logout-all', { preserve_current: true }, { timeout: 15000 });
   if (!data?.token || !data.user) throw new Error('Could not confirm session change. Log in again.');
+  return data;
+}
+
+export async function getRegistrationOptions() {
+  const { data } = await api.get('/auth/registration-options');
+  return data;
+}
+export async function correctStudyYears(userId, payload) {
+  const { data } = await api.put(`/auth/student/${userId}/study-years`, payload);
   return data;
 }

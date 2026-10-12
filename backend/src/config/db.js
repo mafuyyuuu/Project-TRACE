@@ -28,7 +28,7 @@ const pool = mysql.createPool({
   connectionLimit: env.DB_POOL_LIMIT,
   // Bounded: with an unlimited queue, a slow database silently accumulates
   // pending requests in memory instead of failing fast.
-  queueLimit: 50,
+  queueLimit: env.DB_POOL_QUEUE_LIMIT,
   connectTimeout: 10000,
 });
 

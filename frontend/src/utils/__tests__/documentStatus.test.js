@@ -1,9 +1,12 @@
 import { describe, it, expect } from 'vitest';
+import backendStatus from '../../../../backend/src/utils/documentStatus.js';
 import {
   STATUS,
   PIPELINE,
   LEGACY_STATUS,
   getProgressVal,
+  getStatusCategory,
+  getStatusTone,
   getStatusLabel,
   getStageLabel,
   isAwaitingStudent,
@@ -13,6 +16,49 @@ import {
   getAttachmentLabel,
   getAttachmentHelper,
 } from '@/utils/documentStatus';
+
+describe('status presentation', () => {
+  it.each([
+    [STATUS.PENDING_W1_INTAKE, 'awaiting', 'amber'],
+    [STATUS.PENDING_SEC_EVALUATION, 'awaiting', 'amber'],
+    [STATUS.SEC_PROCESSING, 'processing', 'blue'],
+    [STATUS.PENDING_STUDENT_PAYMENT, 'awaiting', 'amber'],
+    [STATUS.PENDING_FINANCE_VERIFICATION, 'awaiting', 'amber'],
+    [STATUS.PAID_PENDING_SEC_RELEASE, 'awaiting', 'amber'],
+    [STATUS.SEC_OR_VERIFIED, 'processing', 'blue'],
+    [STATUS.READY_FOR_RELEASE, 'ready', 'green'],
+    [STATUS.COMPLETED, 'ready', 'green'],
+    [LEGACY_STATUS.APPROVED, 'processing', 'blue'],
+    [LEGACY_STATUS.REJECTED, 'rejected', 'red'],
+  ])('%s has a shared %s meaning with readable %s surfaces', (status, category, color) => {
+    expect(getStatusCategory(status)).toBe(category);
+    expect(backendStatus.getStatusCategory(status)).toBe(category);
+    expect(getStatusTone(status)).toContain(`bg-${color}-50`);
+    expect(getStatusTone(status)).toContain(`dark:bg-${color}-950`);
+    expect(getStatusTone(status)).toMatch(/dark:text-/);
+    expect(getStatusTone(status, 'local-override')).not.toContain('local-override');
+    expect(getStatusLabel(status)).not.toContain('_');
+  });
+
+  it('preserves rejection styling and separates legacy Approved from completed requests', () => {
+    expect(getStatusTone(LEGACY_STATUS.REJECTED)).toBe('bg-red-50 dark:bg-red-950/40 text-red-700 dark:text-red-300');
+    expect(getStatusTone(LEGACY_STATUS.APPROVED)).not.toBe(getStatusTone(STATUS.COMPLETED));
+    expect(getStatusTone(STATUS.COMPLETED)).toContain('text-pine-700');
+  });
+
+  it.each(['completed', 'approved', 'rejected', 'sec_processing'])('labels and colors historical lowercase %s consistently', status => {
+    expect(getStatusTone(status)).toBe(getStatusTone(status.toUpperCase()));
+    expect(getStatusLabel(status)).toBe(getStatusLabel(status.toUpperCase()));
+    expect(backendStatus.getStatusCategory(status)).toBe(getStatusCategory(status));
+  });
+
+  it.each([undefined, null, 'UNRECOGNIZED_STATUS'])('keeps unknown %s neutral without claiming a pending stage', status => {
+    expect(getStatusCategory(status)).toBe('unknown');
+    expect(backendStatus.getStatusCategory(status)).toBe('unknown');
+    expect(getStatusTone(status)).toContain('bg-gray-50');
+    expect(getStatusTone(status, 'caller-fallback')).toBe('caller-fallback');
+  });
+});
 
 describe('getProgressVal', () => {
   it('increases monotonically along the pipeline', () => {

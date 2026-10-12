@@ -292,7 +292,7 @@ describe('payment methods', () => {
 describe('staff accounts', () => {
   const valid = {
     employee_id: 'CLERK99', full_name: 'New Clerk',
-    password: 'temp-pass-1234', role: 'clerk', desk_assignment: 'Finance',
+    password: 'Temp_pass1234', role: 'clerk', desk_assignment: 'Finance',
   };
 
   it('creates one and forces a password change at first login', async () => {
@@ -315,6 +315,12 @@ describe('staff accounts', () => {
 
   it('rejects a short temporary password', async () => {
     expect(await statusOf(service.createStaff(ADMIN, { ...valid, password: 'short' }))).toBe(400);
+  });
+  it.each(['temporary123_', 'TEMPORARY123_', 'Temporary_only', 'Temporary123', 'Aa1_' + 'a'.repeat(61)])('rejects a noncompliant Admin password on creation and reset: %s', async password => {
+    await expect(service.createStaff(ADMIN, { ...valid, password })).rejects.toMatchObject({ status: 400 });
+    await expect(service.updateStaff(ADMIN, 5, { password })).rejects.toMatchObject({ status: 400 });
+    expect(userModel.createStaff).not.toHaveBeenCalled();
+    expect(userModel.updateStaff).not.toHaveBeenCalled();
   });
 
   it.each([['employee_id'], ['full_name']])('requires %s', async (field) => {
@@ -340,7 +346,7 @@ describe('staff accounts', () => {
   });
 
   it('re-arms the forced change when an admin resets a password', async () => {
-    await service.updateStaff(ADMIN, 5, { password: 'another-temp-1234' });
+    await service.updateStaff(ADMIN, 5, { password: 'Another_temp1234' });
     const fields = userModel.updateStaff.mock.calls[0][1];
     expect(fields.must_change_password).toBe(true);
     expect(fields.password_hash).toBeDefined();

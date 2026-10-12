@@ -110,4 +110,8 @@ async function getInsights() {
   }
 }
 
-module.exports = { verifyIdDocument, extractDocument, extractReceipt, extractIdentity, getForecast, getInsights };
+async function getSupportInsights(aggregates) {
+  try { return await requestJson(`${env.AI_ENGINE_URL}/ai/support-insights`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(aggregates)}); }
+  catch { return null; }
+}
+module.exports = { verifyIdDocument, extractDocument, extractReceipt, extractIdentity, getForecast, getInsights, getSupportInsights };

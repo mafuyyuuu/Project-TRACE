@@ -145,6 +145,17 @@ const STAGE_LABELS = {
   processing: 'Processing',
 };
 
+/** Semantic presentation groups mirrored in frontend; not transition/permission rules. */
+function getStatusCategory(status) {
+  const value = typeof status === 'string' ? status.toUpperCase() : status;
+  if ([STATUS.COMPLETED, STATUS.READY_FOR_RELEASE].includes(value)) return 'ready';
+  if ([STATUS.SEC_PROCESSING, STATUS.SEC_OR_VERIFIED, LEGACY_STATUS.APPROVED].includes(value)) return 'processing';
+  if (value === LEGACY_STATUS.REJECTED) return 'rejected';
+  if ([STATUS.PENDING_W1_INTAKE, STATUS.PENDING_SEC_EVALUATION, STATUS.PENDING_STUDENT_PAYMENT,
+    STATUS.PENDING_FINANCE_VERIFICATION, STATUS.PAID_PENDING_SEC_RELEASE].includes(value)) return 'awaiting';
+  return 'unknown';
+}
+
 /** True once a document can no longer move. */
 function isTerminal(status) {
   return (TRANSITIONS[status] || []).length === 0;
@@ -185,6 +196,7 @@ module.exports = {
   TRANSITIONS,
   LEGACY_STATUS_MAP,
   STAGE_LABELS,
+  getStatusCategory,
   isTerminal,
   canTransition,
   assertTransition,

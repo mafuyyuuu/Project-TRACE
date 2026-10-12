@@ -1,3 +1,4 @@
+import Button from '@/components/Button';
 import { INPUT_LIMITS } from '@/utils/inputLimits';
 import { useState } from 'react';
 import ConfirmDialog from '@/components/ConfirmDialog';
@@ -63,11 +64,11 @@ export default function ForcePasswordChange({ user, onChanged, onLogout }) {
   };
 
   const inputClass =
-    'w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-3 text-sm font-semibold outline-none focus:ring-2 focus:ring-[#15803d]/20 focus:bg-white dark:focus:bg-gray-900 transition-all';
+    "trace-control w-full";
 
   return (
     <div className="min-h-[70vh] flex items-center justify-center p-4">
-      <div className="bg-white dark:bg-gray-900 rounded-3xl shadow-xl border border-gray-200 dark:border-gray-700 w-full max-w-md p-8">
+      <div className="trace-section trace-section-body shadow-xl w-full max-w-md">
         <div className="w-12 h-12 rounded-2xl bg-amber-50 dark:bg-amber-950/40 border border-amber-100 dark:border-amber-800 flex items-center justify-center mb-5">
           <svg className="w-6 h-6 text-amber-600 dark:text-amber-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2"
@@ -83,11 +84,11 @@ export default function ForcePasswordChange({ user, onChanged, onLogout }) {
         </p>
 
         <form onSubmit={submit} className="space-y-4 mt-6">
-          <label className="block text-sm font-semibold">Current temporary password
+          <label className="trace-label block">Current temporary password
             <input type={showPassword ? 'text' : 'password'} autoComplete="current-password" value={currentPassword} onChange={event => setCurrentPassword(event.target.value)} className={inputClass} required />
           </label>
           <div className="flex flex-col gap-1.5">
-            <label htmlFor="new-password" className="text-[10px] font-bold text-gray-700 dark:text-gray-300 uppercase tracking-widest">
+            <label htmlFor="new-password" className="trace-label">
               New Password
             </label>
             <input maxLength={INPUT_LIMITS.password}
@@ -95,11 +96,11 @@ export default function ForcePasswordChange({ user, onChanged, onLogout }) {
               minLength={MIN_LENGTH} autoComplete="new-password"
               value={password} onChange={(e) => setPassword(e.target.value)}
             />
-            <p className="text-sm text-gray-500 dark:text-gray-400">At least {MIN_LENGTH} characters. Include uppercase, lowercase, a number and @$!%*?&. Other devices will be logged out.</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400">{PASSWORD_REQUIREMENTS} Other devices will be logged out.</p>
           </div>
 
           <div className="flex flex-col gap-1.5">
-            <label htmlFor="confirm-password" className="text-[10px] font-bold text-gray-700 dark:text-gray-300 uppercase tracking-widest">
+            <label htmlFor="confirm-password" className="trace-label">
               Confirm Password
             </label>
             <input maxLength={INPUT_LIMITS.password}
@@ -108,7 +109,7 @@ export default function ForcePasswordChange({ user, onChanged, onLogout }) {
               value={confirm} onChange={(e) => setConfirm(e.target.value)}
             />
           </div>
-          <button type="button" aria-pressed={showPassword} onClick={() => setShowPassword(value => !value)} className="border rounded-xl px-3 py-2 text-sm">{showPassword ? 'Hide passwords' : 'Show passwords'}</button>
+          <Button type="button" aria-pressed={showPassword} onClick={() => setShowPassword(value => !value)} className="trace-button trace-button-secondary">{showPassword ? 'Hide passwords' : 'Show passwords'}</Button>
 
           {(error || saveError) && (
             <p className="text-xs font-semibold text-red-600 dark:text-red-300 bg-red-50 dark:bg-red-950/40 border border-red-100 dark:border-red-800 rounded-xl p-3">
@@ -116,19 +117,19 @@ export default function ForcePasswordChange({ user, onChanged, onLogout }) {
             </p>
           )}
 
-          <button
+          <Button
             type="submit" disabled={saving}
-            className="w-full py-3 bg-[#15803d] hover:bg-[#166534] disabled:opacity-60 text-white rounded-xl text-xs font-bold uppercase tracking-wider transition-all"
+            className="trace-button trace-button-primary w-full"
           >
             {saving ? 'Saving...' : 'Set Password & Continue'}
-          </button>
+          </Button>
 
-          <button
+          <Button
             type="button" onClick={() => { setLogoutError(''); setConfirmingLogout(true); }}
-            className="w-full py-2 text-[11px] font-bold text-gray-400 dark:text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+            className="trace-action w-full py-2 text-[11px] font-bold text-gray-400 dark:text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
           >
             Sign out instead
-          </button>
+          </Button>
         </form>
       </div>
       <ConfirmDialog open={passwordToConfirm !== null} title="Confirm Password Change"

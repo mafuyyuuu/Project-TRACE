@@ -105,7 +105,7 @@ const STATUS_LABELS = {
 };
 
 export function getStatusLabel(status) {
-  return STATUS_LABELS[status] ?? status;
+  return STATUS_LABELS[status] ?? STATUS_LABELS[typeof status === 'string' ? status.toUpperCase() : status] ?? status;
 }
 
 /** Desk name for a status — used where the office, not the student, is reading. */
@@ -155,8 +155,23 @@ export function getAttachmentHelper(type) {
 export function isLegacyClosed(status) {
   return Object.values(LEGACY_STATUS).includes(status);
 }
-export function getStatusTone(status, fallback = 'bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300') {
-  if (status === LEGACY_STATUS.REJECTED || status === 'rejected') return 'bg-red-50 dark:bg-red-950/40 text-red-700 dark:text-red-300';
-  if (status === STATUS.COMPLETED || status === LEGACY_STATUS.APPROVED) return 'bg-emerald-50 dark:bg-emerald-950/40 text-green-700 dark:text-green-300';
-  return fallback;
+/** Semantic presentation groups only; never use these to permit workflow actions. */
+export function getStatusCategory(status) {
+  const value = typeof status === 'string' ? status.toUpperCase() : status;
+  if ([STATUS.COMPLETED, STATUS.READY_FOR_RELEASE].includes(value)) return 'ready';
+  if ([STATUS.SEC_PROCESSING, STATUS.SEC_OR_VERIFIED, LEGACY_STATUS.APPROVED].includes(value)) return 'processing';
+  if (value === LEGACY_STATUS.REJECTED) return 'rejected';
+  if ([STATUS.PENDING_W1_INTAKE, STATUS.PENDING_SEC_EVALUATION, STATUS.PENDING_STUDENT_PAYMENT,
+    STATUS.PENDING_FINANCE_VERIFICATION, STATUS.PAID_PENDING_SEC_RELEASE].includes(value)) return 'awaiting';
+  return 'unknown';
+}
+
+const STATUS_TONES = {
+  ready: 'bg-green-50 dark:bg-green-950 text-pine-700 dark:text-green-300',
+  awaiting: 'bg-amber-50 dark:bg-amber-950 text-amber-800 dark:text-amber-200',
+  processing: 'bg-blue-50 dark:bg-blue-950 text-blue-800 dark:text-blue-200',
+  rejected: 'bg-red-50 dark:bg-red-950/40 text-red-700 dark:text-red-300',
+};
+export function getStatusTone(status, fallback = 'bg-gray-50 dark:bg-gray-800 text-gray-700 dark:text-gray-300') {
+  return STATUS_TONES[getStatusCategory(status)] ?? fallback;
 }

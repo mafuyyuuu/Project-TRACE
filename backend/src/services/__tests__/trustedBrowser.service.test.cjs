@@ -11,6 +11,7 @@ beforeEach(() => {
   vi.spyOn(pool, 'getConnection').mockResolvedValue(connection);
   vi.spyOn(model, 'lockAccount').mockResolvedValue(clerk);
   vi.spyOn(model, 'findValid').mockResolvedValue(true);
+  vi.spyOn(model, 'hasActiveAuthenticator').mockResolvedValue(true);
   vi.spyOn(model, 'create').mockResolvedValue([{}]);
   vi.spyOn(console, 'warn').mockImplementation(() => {});
 });
@@ -37,10 +38,27 @@ it.each([undefined, true, 'false', 0])('requires OTP for shared or malformed mod
   expect(model.findValid).not.toHaveBeenCalled();
 });
 
-it.each(['admin', 'student'])('never grants or accepts trust for %s', async role => {
+it.each(['student', 'unknown'])('never grants or accepts trust for %s', async role => {
   expect(await trust.isTrusted({ ...clerk, role }, `${trust.COOKIE_NAME}=${secret}`, false)).toBe(false);
   model.lockAccount.mockResolvedValue({ ...clerk, role });
   expect(await trust.issue(7, 0)).toBe(null);
+  expect(model.create).not.toHaveBeenCalled();
+});
+it('grants an active Admin trust only while its enrolled app remains active under the account lock', async () => {
+  model.lockAccount.mockResolvedValue({ ...clerk, role: 'admin' });
+  expect(await trust.issue(7, 0)).toHaveProperty('value');
+  expect(model.hasActiveAuthenticator).toHaveBeenCalledWith(7, connection);
+  model.create.mockClear();
+  model.hasActiveAuthenticator.mockResolvedValue(false);
+  expect(await trust.issue(7, 0)).toBeNull();
+  expect(model.create).not.toHaveBeenCalled();
+});
+it('fails closed when an Admin app cannot be checked or the account version changes', async () => {
+  model.lockAccount.mockResolvedValue({ ...clerk, role: 'admin', token_version: 1 });
+  expect(await trust.issue(7, 0)).toBeNull();
+  model.lockAccount.mockResolvedValue({ ...clerk, role: 'admin' });
+  model.hasActiveAuthenticator.mockRejectedValue(new Error('storage unavailable'));
+  expect(await trust.issue(7, 0)).toBeNull();
   expect(model.create).not.toHaveBeenCalled();
 });
 
@@ -94,6 +112,8 @@ it('the real lookup SQL checks current role, activation, expiry and account vers
   const [sql, params] = executor.query.mock.calls[0];
   expect(sql).toMatch(/JOIN users/);
   expect(sql).toMatch(/u.role = 'clerk'/);
+  expect(sql).toContain("u.role = 'admin' AND EXISTS");
+  expect(sql).toContain('a.user_id = u.id AND a.active_secret IS NOT NULL');
   expect(sql).toMatch(/u.is_active = TRUE/);
   expect(sql).toMatch(/t.token_version = u.token_version/);
   expect(sql).toMatch(/t.expires_at_ms > \?/);

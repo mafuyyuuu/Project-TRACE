@@ -1,5 +1,16 @@
 const model = require('../../models/onboarding.model');
 const { start } = require('../onboarding.controller');
+it.each(['clerk', 'admin'])('enrolls %s once without resetting a previous display or using a body identity', async role => {
+  vi.spyOn(model, 'enroll').mockResolvedValue([{}]);
+  vi.spyOn(model, 'claim').mockResolvedValueOnce(true).mockResolvedValueOnce(false);
+  const res = { set: vi.fn().mockReturnThis(), json: vi.fn() };
+  const req = { user: { id: 7, role }, body: { user_id: 9 } };
+  await start(req, res); await start(req, res);
+  expect(model.enroll).toHaveBeenNthCalledWith(1, 7);
+  expect(model.claim).toHaveBeenNthCalledWith(1, 7);
+  expect(res.json).toHaveBeenNthCalledWith(1, { show_guide: true });
+  expect(res.json).toHaveBeenNthCalledWith(2, { show_guide: false });
+});
 it('claims only the authenticated account, ignoring caller-supplied identities', async () => {
   vi.spyOn(model, 'claim').mockResolvedValue(true);
   const res = { set: vi.fn().mockReturnThis(), json: vi.fn() };

@@ -30,7 +30,7 @@ async function documentReport(req, res) {
 
 async function exportStudents(req, res) {
   try {
-    const result = await reportsService.exportStudentsCsv(req.user, req.query.category || 'all');
+    const result = await reportsService.exportStudentsCsv(req.user, req.query.category || 'all', req.query);
     sendCsv(res, result);
   } catch (err) {
     fail(res, err, 'Student export error', 'Failed to export students.');
@@ -53,4 +53,9 @@ async function analytics(req, res) {
   }
 }
 
-module.exports = { documentReport, exportStudents, exportDocuments, analytics };
+async function filterOptions(req,res) {
+  try { res.json(await require('../services/reportFilters.service').options(req.user)); }
+  catch(err) { fail(res,err,'Report options error','Could not load report options.'); }
+}
+
+module.exports = { filterOptions, documentReport, exportStudents, exportDocuments, analytics };

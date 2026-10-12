@@ -5,7 +5,9 @@
  * whole table when the Registrar asked for one month — so the tests assert the
  * filters actually reach the query.
  */
+const referenceModel = require('../../models/referenceData.model');
 const reportModel = require('../../models/report.model');
+const userModel = require('../../models/user.model');
 const service = require('../reports.service');
 
 const ADMIN = { id: 7, role: 'admin' };
@@ -16,6 +18,9 @@ const statusOf = (p) => p.then(() => undefined, (e) => e.status);
 const messageOf = (p) => p.then(() => '', (e) => e.message);
 
 beforeEach(() => {
+  vi.spyOn(referenceModel,'findCollegeById').mockResolvedValue([{id:4,name:'College Four',is_active:1}]);
+  vi.spyOn(referenceModel,'findDocumentTypeByName').mockResolvedValue([{name:'Diploma'}]);
+  vi.spyOn(userModel, 'findCourseById').mockResolvedValue([{ college_id: 4, course: 'College Four' }]);
   vi.spyOn(reportModel, 'listDocumentsForReport').mockResolvedValue([]);
   vi.spyOn(reportModel, 'countDocumentsForReport').mockResolvedValue(0);
   vi.spyOn(reportModel, 'summariseDocuments').mockResolvedValue({
@@ -29,6 +34,48 @@ beforeEach(() => {
   });
   vi.spyOn(reportModel, 'throughputByDay').mockResolvedValue([]);
   vi.spyOn(reportModel, 'workloadByClerk').mockResolvedValue([]);
+});
+
+describe('Secretary records workspace', () => {
+  const secretary = { id: 8, role: 'clerk', desk_assignment: 'Secretary' };
+  it('uses the assigned college and Ready + Completed for list, KPI and filtered CSV', async () => {
+    const query = { recordSet: 'secretary-cleared', dateFrom: '2026-10-01', paymentStatus: 'PAID', collegeId: 4 };
+    await service.getDocumentReport(secretary, query);
+    await service.exportDocumentsCsv(secretary, query);
+    const filters = reportModel.listDocumentsForReport.mock.calls[0][0];
+    expect(filters).toEqual(expect.objectContaining({ collegeId: 4, collegeName: 'College Four', statuses: ['READY_FOR_RELEASE', 'COMPLETED'], dateFrom: '2026-10-01', paymentStatus: 'PAID' }));
+    expect(reportModel.listDocumentsForReport.mock.calls[1][0]).toEqual(filters);
+    expect(reportModel.countDocumentsForReport).toHaveBeenCalledWith(filters);
+    expect(reportModel.summariseDocuments).toHaveBeenCalledWith(filters);
+    expect(reportModel.groupDocumentsBy).toHaveBeenCalledWith('current_status', filters);
+  });
+  it('preserves document request labels in Secretary exports and scopes all student categories', async () => {
+    reportModel.listDocumentsForReport.mockResolvedValue([{ document_sequence_number: 'Diploma – Request No. 2' }]);
+    const result = await service.exportDocumentsCsv(secretary, { status: 'COMPLETED' });
+    expect(result.csv).toContain('Document Request');
+    expect(result.csv).toContain('Diploma – Request No. 2');
+    for (const bucket of ['active', 'alumni', 'others', 'all']) {
+      await service.exportStudentsCsv(secretary, bucket);
+      expect(reportModel.listStudentsForExport).toHaveBeenLastCalledWith(bucket, undefined, { collegeId: 4, collegeName: 'College Four' });
+    }
+  });
+  it('fails closed when the Secretary has no college assignment', async () => {
+    userModel.findCourseById.mockResolvedValue([]);
+    for (const call of [() => service.getDocumentReport(secretary), () => service.exportDocumentsCsv(secretary), () => service.exportStudentsCsv(secretary)]) expect(await statusOf(call())).toBe(403);
+    expect(reportModel.listDocumentsForReport).not.toHaveBeenCalled();
+    expect(reportModel.listStudentsForExport).not.toHaveBeenCalled();
+  });
+  it('keeps legacy course assignments scoped and other roles unchanged', async () => {
+    userModel.findCourseById.mockResolvedValue([{ course: 'Legacy College' }]);
+    await service.getDocumentReport(secretary);
+    expect(reportModel.listDocumentsForReport).toHaveBeenLastCalledWith(expect.objectContaining({ collegeId: null, collegeName: 'Legacy College' }), expect.any(Object));
+    await service.getDocumentReport(ADMIN);
+    expect(reportModel.listDocumentsForReport.mock.calls.at(-1)[0]).not.toHaveProperty('collegeId');
+  });
+  it('rejects unknown or conflicting record presets', async () => {
+    expect(await statusOf(service.getDocumentReport(secretary, { recordSet: 'invalid' }))).toBe(400);
+    expect(await statusOf(service.exportDocumentsCsv(secretary, { recordSet: 'secretary-cleared', status: 'COMPLETED' }))).toBe(400);
+  });
 });
 
 describe('access control', () => {
@@ -53,19 +100,19 @@ describe('document report filters', () => {
   it('passes every supplied filter through to the query', async () => {
     await service.getDocumentReport(ADMIN, {
       dateFrom: '2026-08-01', dateTo: '2026-08-31',
-      status: 'completed', documentType: 'Diploma', paymentStatus: 'PAID',
+      status: 'COMPLETED', documentType: 'Diploma', paymentStatus: 'PAID',
     });
     expect(reportModel.listDocumentsForReport).toHaveBeenCalledWith(
       expect.objectContaining({
         dateFrom: '2026-08-01', dateTo: '2026-08-31',
-        status: 'completed', documentType: 'Diploma', paymentStatus: 'PAID',
+        status: 'COMPLETED', documentType: 'Diploma', paymentStatus: 'PAID',
       }),
       expect.any(Object)
     );
   });
 
   it('filters the summary by exactly the same slice as the rows', async () => {
-    await service.getDocumentReport(ADMIN, { status: 'completed' });
+    await service.getDocumentReport(ADMIN, { status: 'COMPLETED' });
     const rowFilters = reportModel.listDocumentsForReport.mock.calls[0][0];
     const summaryFilters = reportModel.summariseDocuments.mock.calls[0][0];
     expect(summaryFilters).toEqual(rowFilters);
@@ -155,16 +202,16 @@ describe('student CSV export', () => {
 
 describe('document CSV export', () => {
   it('applies the same filters as the on-screen report', async () => {
-    await service.exportDocumentsCsv(ADMIN, { status: 'completed', dateFrom: '2026-08-01' });
+    await service.exportDocumentsCsv(ADMIN, { status: 'COMPLETED', dateFrom: '2026-08-01' });
     expect(reportModel.listDocumentsForReport).toHaveBeenCalledWith(
-      expect.objectContaining({ status: 'completed', dateFrom: '2026-08-01' }),
+      expect.objectContaining({ status: 'COMPLETED', dateFrom: '2026-08-01' }),
       expect.any(Object)
     );
   });
 
   it('caps the export rather than serialising the whole table', async () => {
     await service.exportDocumentsCsv(ADMIN, {});
-    expect(reportModel.listDocumentsForReport.mock.calls[0][1].limit).toBe(10000);
+    expect(reportModel.listDocumentsForReport.mock.calls[0][1].limit).toBe(10001);
   });
 
   it('validates dates before running the query', async () => {
@@ -244,5 +291,14 @@ describe('efficiency analytics', () => {
     await service.getEfficiencyAnalytics(ADMIN, range);
     expect(reportModel.turnaroundByDesk).toHaveBeenCalledWith(range);
     expect(reportModel.workloadByClerk).toHaveBeenCalledWith(range);
+  });
+
+  it.each([1, 2, 3])('preserves the complete workload dataset when document report page is %s', async page => {
+    const rows = [60, 30, 10].map((documents_handled, id) => ({ id, documents_handled: String(documents_handled) }));
+    reportModel.workloadByClerk.mockResolvedValue(rows);
+    const range = { dateFrom: '2026-10-01', dateTo: '2026-10-05' };
+    const res = await service.getEfficiencyAnalytics(ADMIN, { ...range, page, limit: 1 });
+    expect(reportModel.workloadByClerk).toHaveBeenCalledWith(range);
+    expect(res.workload_by_clerk.map(row => row.documents_handled)).toEqual([60, 30, 10]);
   });
 });

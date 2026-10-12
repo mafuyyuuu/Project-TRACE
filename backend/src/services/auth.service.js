@@ -1,13 +1,9 @@
+const { profileYearErrors, studyYearErrors } = require('../utils/profileYears');
 const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
 
-function validatePassword(password) {
-  const regex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
-  if (typeof password !== 'string' || Buffer.byteLength(password, 'utf8') > 64 || !regex.test(password)) {
-    throw badRequest('Password must be 8–64 characters and include uppercase, lowercase, number, and a special character (@$!%*?&).');
-  }
-}
+const { validatePassword } = require('../utils/passwordPolicy');
 
 async function checkPasswordHistory(userId, newPassword, executor = pool, currentHash) {
   if (currentHash && await bcrypt.compare(newPassword, currentHash)) throw badRequest('Choose a password different from your current password.');
@@ -23,7 +19,10 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const env = require('../config/env');
 const userModel = require('../models/user.model');
+const studyYears = require('./studyYears.service');
+const studyYearModel = require('../models/studyYears.model');
 const referenceModel = require('../models/referenceData.model');
+const programService = require('./program.service');
 const { pool } = require('../config/db');
 const notificationModel = require('../models/notification.model');
 const passwordResetModel = require('../models/passwordReset.model');
@@ -35,9 +34,12 @@ const onboarding = require('../models/onboarding.model');
 const aiEngine = require('./aiEngine.service');
 const { registrationVerification } = require('../utils/registrationVerification');
 const notifications = require('./notification.service');
-const sendAuthEmail = async ({ email, title, message }) => {
-  try { return await notifications.sendEmail(email, title, message); }
-  catch { return { ok: false }; }
+const { errorDetails } = require('../utils/emailDiagnostics');
+const sendAuthEmail = async ({ email, title, message, requestId, purpose }) => {
+  try {
+    return requestId ? await notifications.sendEmail(email, title, message, { requestId, purpose })
+      : await notifications.sendEmail(email, title, message);
+  } catch (error) { return { ok: false, outcome: 'smtp_failed', diagnostics: errorDetails(error) }; }
 };
 const { UPLOAD_DIR } = require('../middlewares/upload.middleware');
 const { badRequest, unauthorized, forbidden, notFound } = require('../utils/AppError');
@@ -55,7 +57,7 @@ function otpExpired(value) {
 
 function publicUser(user) {
   const fields = ['id', 'student_id', 'full_name', 'role', 'user_type', 'desk_assignment',
-    'course', 'program', 'college_id', 'email', 'email_verified_at', 'phone_number', 'profile_picture', 'verification_status'];
+    'course', 'program', 'college_id', 'email', 'email_verified_at', 'phone_number', 'profile_picture', 'verification_status', 'year_started', 'graduation_year', 'study_years_confirmed_at'];
   const result = Object.fromEntries(fields.map(key => [key, user[key] ?? null]));
   for (const key of ['profile_completed', 'must_change_password', 'has_grad_application']) {
     result[key] = Boolean(user[key]);
@@ -120,13 +122,13 @@ async function login({ employee_id, password, shared_computer = true }, ipAddres
 
   
   const isStaff = ['admin', 'clerk'].includes(user.role);
-  const trusted = user.role === 'clerk' && shared_computer === false
-    && await trustedBrowser.isTrusted(user, cookieHeader, shared_computer);
   const appEnabled = await authenticator.isEnabled(user.id);
+  const trusted = (user.role === 'clerk' || (user.role === 'admin' && appEnabled)) && shared_computer === false
+    && await trustedBrowser.isTrusted(user, cookieHeader, shared_computer);
   const requires2FA = (appEnabled || user.two_factor_enabled || isStaff) && !trusted;
 
   if (requires2FA) {
-    if (appEnabled) return authenticator.challenge(user, user.role === 'clerk');
+    if (appEnabled) return authenticator.challenge(user, isStaff);
     if (user.role === 'clerk' && !user.email?.trim()) return { requires_authenticator_setup: true };
     const otp = crypto.randomInt(100000, 1000000).toString();
     const expires = new Date(Date.now() + 5 * 60000); // 5 mins
@@ -191,13 +193,25 @@ async function getCurrentUser(userId) {
  * The AI engine attempts 3-point verification (school name, student ID,
  * course) on the uploaded ID; on a match the account is auto-verified,
  * otherwise it stays 'pending' for manual admin review. A previously
- * *rejected* student ID is deleted first so the student can re-register.
+ * *rejected* student ID reuses its original account and audit history on resubmission.
  */
 async function register(body, file) {
   const { employee_id, full_name, email, phone_number, password, user_type, course, college_id } = body;
   const program = readProgram(body.program);
   const registeredEmail = emailVerification.emailAddress(email);
   if (user_type && !['student', 'alumni'].includes(user_type)) throw badRequest('Invalid applicant type.');
+  const unavailable = body.registration_proof_unavailable === 'true';
+  if (unavailable && user_type !== 'alumni') {
+    throw forbidden('Only alumni can apply with unavailable proof.');
+  }
+  if (unavailable && file) throw badRequest('Choose uploaded proof or missing-proof review for this application.');
+  const proofReason = unavailable && typeof body.registration_proof_reason === 'string' ? body.registration_proof_reason.trim() : '';
+  if (unavailable && (!proofReason || proofReason.length > 500)) throw badRequest('Explain why proof is unavailable in at most 500 characters.');
+  const studyDraft = { year_started: body.year_started, graduation_year: body.graduation_year };
+  if (user_type === 'alumni') {
+    const errors = studyYearErrors(studyDraft, { required: true });
+    if (Object.keys(errors).length) throw badRequest(Object.values(errors)[0]);
+  }
   let collegeId = null;
   let collegeName = course;
   if (college_id !== undefined) {
@@ -213,46 +227,41 @@ async function register(body, file) {
   if (!employee_id || !full_name || !password || !phone_number) {
     throw badRequest('Student / Alumni ID, Name, Phone Number, and Password are required.');
   }
-  if (!file) {
+  if (!file && !unavailable) {
     throw badRequest('Proof of ID/Diploma is required for verification.');
   }
 
   const existing = await userModel.findExistingByStudentId(employee_id);
-  if (existing.length > 0) {
-    if (existing[0].verification_status === 'rejected') {
-      await userModel.deleteById(existing[0].id);
-    } else {
-      throw badRequest('This ID is already registered.');
-    }
-  }
-
+  if (existing.length && existing[0].verification_status !== 'rejected') throw badRequest('This ID is already registered.');
   validatePassword(password);
   const password_hash = await bcrypt.hash(password, 10);
-  const id_proof_path = file.path;
+  const id_proof_path = unavailable ? null : file.path;
+  const aiResult = unavailable ? null : await aiEngine.verifyIdDocument(file, { studentId: employee_id, course: collegeName });
+  const { verification_status, verification_reason } = unavailable
+    ? { verification_status: 'pending', verification_reason: 'Proof unavailable. Administrator identity review required.' }
+    : registrationVerification(aiResult);
+  const data = { student_id: employee_id, full_name, email: registeredEmail, phone_number, password_hash,
+    role: 'student', user_type, course: collegeName, program, college_id: collegeId, id_proof_path,
+    verification_status, verification_reason, registration_proof_unavailable: unavailable, registration_proof_reason: proofReason || null };
+  const connection = await pool.getConnection();
+  let created;
+  try {
+    await connection.beginTransaction();
+    if (existing.length) {
+      const [account] = await userModel.getProfileById(existing[0].id, connection, true);
+      if (!account || account.role !== 'student' || account.verification_status !== 'rejected') throw badRequest('This registration is no longer available for resubmission.');
+      if (user_type === 'alumni') await studyYears.completeLocked(account, studyDraft, connection);
+      await userModel.updateProfile(account.id, { ...data, token_version: (account.token_version || 0) + 1 }, connection);
+      created = { insertId: account.id };
+    } else {
+      [created] = await userModel.createUser(data, connection);
+      if (user_type === 'alumni') await studyYears.initialize(created.insertId, studyDraft, connection);
+    }
+    await onboarding.enroll(created.insertId, connection);
+    await connection.commit();
+  } catch (error) { await connection.rollback(); throw error; }
+  finally { connection.release(); }
 
-  const aiResult = await aiEngine.verifyIdDocument(file, { studentId: employee_id, course: collegeName });
-  const { verification_status, verification_reason } = registrationVerification(aiResult);
-
-  const [created] = await userModel.createUser({
-    student_id: employee_id,
-    full_name,
-    email: registeredEmail,
-    phone_number,
-    password_hash,
-    role: 'student',
-    user_type,
-    course: collegeName,
-    program,
-    college_id: collegeId,
-    id_proof_path,
-    verification_status,
-    verification_reason,
-  });
-
-  await onboarding.enroll(created.insertId);
-  let emailResult;
-  try { emailResult = await emailVerification.issue(created.insertId); }
-  catch { emailResult = { email_sent: false }; }
 
   if (verification_status === 'pending') {
     try {
@@ -264,14 +273,13 @@ async function register(body, file) {
     } catch (err) { console.warn('Registration notification unavailable:', err.message); }
   }
   return {
-    email_verification_required: true, email_sent: emailResult.email_sent,
+    email_verification_required: true, email_sent: false,
     verification_status,
     verification_reason,
     message: (verification_status === 'verified'
       ? 'Registration successful. Your account was automatically verified by AI!'
       : 'Registration successful. Please wait for administrator verification.')
-      + (emailResult.email_sent ? ' Open the email verification link in your inbox before requesting documents.'
-        : ' The email verification link could not be delivered. After account approval, sign in and use Verify Email to resend, or contact the Registrar.'),
+      + ' After account approval, sign in and open Edit Profile. Choose Verify beside Email Address and follow the email link before requesting documents.',
   };
 }
 
@@ -282,22 +290,30 @@ async function listPendingStudents(requestingUser) {
   return { pending_students: await userModel.listPendingStudents() };
 }
 
-async function verifyStudentAccount(requestingUser, userId, action) {
-  if (requestingUser.role !== 'admin') {
-    throw forbidden('Access denied. Admin role required.');
-  }
-  if (!['verify', 'reject'].includes(action)) {
-    throw badRequest('Invalid action. Must be verify or reject.');
-  }
+function registrationOptions() {
+  return { proof_unavailable_enabled: true };
+}
 
-  const newStatus = action === 'verify' ? 'verified' : 'rejected';
-  const [result] = await userModel.setVerificationStatus(userId, newStatus);
-
-  if (result.affectedRows === 0) {
-    throw notFound('Pending student user not found.');
-  }
-
-  return { message: `Student account successfully ${newStatus}.` };
+async function verifyStudentAccount(requestingUser, userId, action, evidenceBasis) {
+  if (requestingUser.role !== 'admin') throw forbidden('Access denied. Admin role required.');
+  if (!['verify', 'reject'].includes(action)) throw badRequest('Invalid action. Must be verify or reject.');
+  if (evidenceBasis !== undefined && (typeof evidenceBasis !== 'string' || evidenceBasis.trim().length > 1000)) throw badRequest('Review evidence must be text of at most 1000 characters.');
+  const basis = evidenceBasis?.trim() || '';
+  const connection = await pool.getConnection();
+  try {
+    await connection.beginTransaction();
+    const [account] = await userModel.getProfileById(userId, connection, true);
+    if (!account || account.role !== 'student' || account.verification_status !== 'pending') throw notFound('Pending student user not found.');
+    if (account.registration_proof_unavailable && action === 'verify' && account.user_type !== 'alumni') throw forbidden('Only alumni can be approved through missing-proof identity review.');
+    if (account.registration_proof_unavailable && !basis) throw badRequest('Record the evidence checked and the basis for this identity decision.');
+    const newStatus = action === 'verify' ? 'verified' : 'rejected';
+    const [result] = await userModel.setVerificationStatus(userId, newStatus, connection);
+    if (!result.affectedRows) throw notFound('Pending student user not found.');
+    await studyYearModel.review({ userId: account.id, actorId: requestingUser.id, decision: newStatus, basis }, connection);
+    await connection.commit();
+    return { message: `Student account successfully ${newStatus}.` };
+  } catch (error) { await connection.rollback(); throw error; }
+  finally { connection.release(); }
 }
 
 async function listAllUsers(requestingUser) {
@@ -326,7 +342,7 @@ function readProgram(value) {
   if (typeof value !== 'string' || value.trim().length > 150) throw badRequest('Program/Course must be text of at most 150 characters.');
   return value.trim() || null;
 }
-async function updateProfile(userId, { phone_number, email, course, program, password, current_password, ...profileFields }) {
+async function updateProfile(userId, { phone_number, email, course, college_id, program, password, current_password, ...profileFields }) {
   const fields = {};
   let verifiedPasswordHash;
   let changedSession;
@@ -334,6 +350,12 @@ async function updateProfile(userId, { phone_number, email, course, program, pas
   const users = await userModel.getProfileById(userId);
   if (!users || users.length === 0) throw notFound('User not found.');
   const currentUser = users[0];
+  studyYears.validateSelf(profileFields, currentUser);
+  const ordinaryYearFields = Object.fromEntries(Object.entries(profileFields).filter(([key]) => !['year_started', 'graduation_year'].includes(key)));
+  const yearErrors = profileYearErrors(ordinaryYearFields, currentUser, { onlyProvided: true });
+  if (Object.keys(yearErrors).length) throw badRequest(Object.values(yearErrors)[0]);
+  const academicDraft = { course, college_id, program };
+  const academic = await programService.profileFields(currentUser, academicDraft);
 
   const emailChanged = (email !== undefined && email !== '' && email !== currentUser.email);
   if (emailChanged && password) throw badRequest('Change your password and email separately so each verification can finish.');
@@ -363,9 +385,22 @@ async function updateProfile(userId, { phone_number, email, course, program, pas
   let emailResult;
   if (emailChanged) emailResult = await emailVerification.issue(userId, { email, current_password });
 
-  if (course !== undefined) fields.course = course;
-  if (program !== undefined) fields.program = readProgram(program);
+  Object.assign(fields, academic);
   
+  const profileKeys = ['extension_name', 'birth_date', 'place_of_birth', 'sex', 'civil_status', 'maiden_name', 'home_address', 'last_attendance_year', 'is_transfer_student', 'previous_school', 'elem_school', 'elem_grad_year', 'jhs_school', 'jhs_grad_year', 'shs_school', 'shs_grad_year'];
+  const hasProfileFields = profileKeys.some(key => profileFields[key] !== undefined);
+  const hasStudyFields = ['year_started', 'graduation_year'].some(key => Object.hasOwn(profileFields, key));
+  const writeProfile = async connection => {
+    const [fresh] = await userModel.getProfileById(userId, connection, true);
+    if (!fresh) throw notFound('User not found.');
+    if (Object.keys(academic).length) Object.assign(fields, await programService.profileFields(fresh, academicDraft, connection, true));
+    if (hasStudyFields) await studyYears.completeLocked(fresh, profileFields, connection);
+    if (Object.keys(fields).length) await userModel.updateProfile(userId, fields, connection);
+    if (hasProfileFields) {
+      const mergedProfile = Object.fromEntries(profileKeys.map(key => [key, profileFields[key] !== undefined ? profileFields[key] : fresh[key]]));
+      await userModel.upsertProfile(userId, mergedProfile, connection);
+    }
+  };
   if (password) {
     validatePassword(password);
     if (await bcrypt.compare(password, verifiedPasswordHash)) throw badRequest('Choose a password different from your current password.');
@@ -374,40 +409,19 @@ async function updateProfile(userId, { phone_number, email, course, program, pas
     const changedAccount = await writeCredentialsAndRevoke(userId, async connection => {
       await checkPasswordHistory(userId, password, connection, verifiedPasswordHash);
       await userModel.addPasswordHistory(userId, verifiedPasswordHash, connection);
-      await userModel.updateProfile(userId, fields, connection);
+      await writeProfile(connection);
       await userModel.addPasswordHistory(userId, fields.password_hash, connection);
       await userModel.logSecurityEvent(userId, 'PASSWORD_CHANGE', null, null, connection);
     }, verifiedPasswordHash);
     changedSession = createSession(changedAccount);
-    
-    // SEC-07 Email notification
-    
-    const userRows = await userModel.getProfileById(userId);
-
-    if (userRows[0] && userRows[0].email) {
-      if (sendAuthEmail) await sendAuthEmail({
-        email: userRows[0].email,
-        title: 'Password Changed',
-        message: `Your TRACE password changed and all previous sessions ended. If this was not you, secure your account at ${emailVerification.frontendUrl()}/forgot-password and contact the Registrar immediately.`
-      });
-    }
-  }
-
-  if (Object.keys(fields).length > 0 && !password) {
-    await userModel.updateProfile(userId, fields);
-  }
-
-  // Handle student profile fields (PROF-01)
-  const profileKeys = ['extension_name', 'birth_date', 'place_of_birth', 'sex', 'civil_status', 'maiden_name', 'home_address', 'last_attendance_year', 'is_transfer_student', 'previous_school', 'elem_school', 'elem_grad_year', 'jhs_school', 'jhs_grad_year', 'shs_school', 'shs_grad_year'];
-  const hasProfileFields = profileKeys.some(key => profileFields[key] !== undefined);
-  
-  if (hasProfileFields) {
-    await userModel.upsertProfile(userId, profileFields);
-  }
-
-  if (Object.keys(fields).length === 0 && !hasProfileFields && !emailChanged) {
-    throw badRequest('No fields to update.');
-  }
+    if (currentUser.email) await sendAuthEmail({ email: currentUser.email, title: 'Password Changed',
+      message: `Your TRACE password changed and all previous sessions ended. If this was not you, secure your account at ${emailVerification.frontendUrl()}/forgot-password and contact the Registrar immediately.` });
+  } else if (Object.keys(fields).length || hasProfileFields || hasStudyFields) {
+    const connection = await pool.getConnection();
+    try { await connection.beginTransaction(); await writeProfile(connection); await connection.commit(); }
+    catch (error) { await connection.rollback(); throw error; }
+    finally { connection.release(); }
+  } else if (!emailChanged) throw badRequest('No fields to update.');
 
   return { ...changedSession, ...emailResult, message: emailChanged ? `Profile saved. ${emailResult.message}` : password ? 'Password changed. Other devices were logged out. This browser remains signed in.' : 'Profile updated successfully.', password_changed: Boolean(password), email_verification_required: emailChanged, pending_email: emailChanged ? emailResult.pending_email : null };
 }
@@ -495,7 +509,7 @@ async function verify2FA(tempToken, otp, ipAddress, userAgent, trustBrowser = fa
   if (decoded.mfa_method === 'authenticator') {
     const user = await authenticator.verifyChallenge(decoded, { code: otp, recovery_code: recoveryCode });
     const result = createSession(user);
-    if (user.role === 'clerk' && decoded.can_trust_browser === true && trustBrowser === true) {
+    if (['clerk', 'admin'].includes(user.role) && decoded.can_trust_browser === true && trustBrowser === true) {
       const proof = await trustedBrowser.issue(user.id, decoded.token_version);
       if (proof) result.browserTrust = proof;
     }
@@ -599,53 +613,75 @@ async function logoutAll(userId, preserveCurrent = false, expectedVersion) {
   return result;
 }
 
+function resetFrontendOrigin() {
+  const configured = (env.FRONTEND_URL.split(',')[0] || '').trim();
+  if (!configured && env.NODE_ENV === 'production') return null;
+  try {
+    const url = new URL(configured || 'http://localhost:5273');
+    if (!['http:', 'https:'].includes(url.protocol) || url.username || url.password || url.search || url.hash || url.pathname !== '/') return null;
+    if (env.NODE_ENV === 'production' && (url.protocol !== 'https:' || ['localhost', '127.0.0.1', '[::1]'].includes(url.hostname))) return null;
+    return url.origin;
+  } catch { return null; }
+}
+
 async function requestPasswordReset({ identifier }) {
   if (!identifier || !String(identifier).trim()) {
     throw badRequest('Enter your Student ID / Staff ID or your email address.');
   }
 
+  const requestId = crypto.randomUUID();
   const generic = {
-    message:
-      'If that account exists, a password reset link has been sent to its registered email address.',
+    message: 'Password reset request received. If an active account matches, TRACE will attempt to send a reset link to its registered email address. Check Spam/Junk. If nothing arrives, contact the Registrar with the request reference below.',
+    request_id: requestId,
   };
+  const report = (outcome, diagnostics = {}) => {
+    const log = outcome === 'smtp_accepted' ? console.log : console.warn;
+    log('[Password reset]', JSON.stringify({ request_id: requestId, outcome, ...diagnostics }));
+    return generic;
+  };
+  const base = resetFrontendOrigin();
+  if (!base) return report('invalid_frontend_url');
 
-  const rows = await userModel.findActiveByStudentIdOrEmail(String(identifier).trim());
-  if (rows.length === 0) return generic;
-
-  let user = rows[0];
-
-  // No email on file means there is nowhere to send the link. Silently stop:
-  // saying so out loud would leak that the account exists.
-  if (!user.email) return generic;
-
-  const token = crypto.randomBytes(32).toString('hex');
-  const connection = await pool.getConnection();
+  let phase = 'lookup';
   try {
-    await connection.beginTransaction();
-    user = await trustedBrowserModel.lockAccount(user.id, connection);
-    if (!user?.is_active || !user.email) { await connection.commit(); return generic; }
-    // Serialize issuance against password changes, resets and other resends.
-    await passwordResetModel.invalidateAllForUser(user.id, connection);
-    await passwordResetModel.create({ user_id: user.id, token_hash: hashResetToken(token), expires_at: new Date(Date.now() + RESET_TOKEN_TTL_MS) }, connection);
-    await connection.commit();
-  } catch (error) { await connection.rollback(); throw error; }
-  finally { connection.release(); }
+    const rows = await userModel.findActiveByStudentIdOrEmail(String(identifier).trim());
+    if (rows.length === 0) return report('account_not_available');
+    let user = rows[0];
+    if (!user.email) return report('no_registered_email');
 
-  const base = (env.FRONTEND_URL.split(',')[0] || '').trim() || 'http://localhost:5273';
-  const link = `${base.replace(/\/$/, '')}/reset-password#token=${token}`;
+    phase = 'issuance';
+    const token = crypto.randomBytes(32).toString('hex');
+    const connection = await pool.getConnection();
+    try {
+      await connection.beginTransaction();
+      user = await trustedBrowserModel.lockAccount(user.id, connection);
+      if (!user?.is_active || !user.email) {
+        await connection.commit();
+        return report('account_not_available');
+      }
+      // Serialize issuance against password changes, resets and other resends.
+      await passwordResetModel.invalidateAllForUser(user.id, connection);
+      await passwordResetModel.create({ user_id: user.id, token_hash: hashResetToken(token), expires_at: new Date(Date.now() + RESET_TOKEN_TTL_MS) }, connection);
+      await connection.commit();
+    } catch (error) { await connection.rollback(); throw error; }
+    finally { connection.release(); }
 
-  const sent = await sendAuthEmail({
-    email: user.email,
-    title: 'Password reset request',
-    message: `Hi ${user.full_name ? user.full_name.split(',')[0] : 'there'},\n\n` +
-      `A password reset was requested for ${user.student_id}. Open the link below within the hour to choose a new password:\n\n` +
-      `${link}\n\n` +
-      `If you did not request this, you can ignore this email — your password will not change.`
-  });
-
-  if (!sent.ok) console.warn('[Password reset] Email not delivered. Check SMTP configuration.');
-
-  return generic;
+    phase = 'delivery';
+    const link = `${base}/reset-password#token=${token}`;
+    const sent = await sendAuthEmail({
+      email: user.email,
+      title: 'Password reset request',
+      message: `Hi ${user.full_name ? user.full_name.split(',')[0] : 'there'},\n\n` +
+        `A password reset was requested for ${user.student_id}. Open the link below within the hour to choose a new password:\n\n` +
+        `${link}\n\n` +
+        `If you did not request this, you can ignore this email — your password will not change.`,
+      requestId, purpose: 'password_reset',
+    });
+    // Never expose provider outcomes to this unauthenticated caller.
+    return report(sent?.ok ? 'smtp_accepted' : 'email_not_accepted', sent?.diagnostics);
+  } catch (error) {
+    return report(`${phase}_failed`, errorDetails(error));
+  }
 }
 
 /**
@@ -733,6 +769,7 @@ module.exports = {
   login,
   getCurrentUser,
   register,
+  registrationOptions,
   listPendingStudents,
   verifyStudentAccount,
   listAllUsers,

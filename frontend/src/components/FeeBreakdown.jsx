@@ -4,7 +4,7 @@ import { formatPeso } from '@/utils/pricing';
 export default function FeeBreakdown({ breakdown, amount, title }) {
   let saved = breakdown;
   if (typeof saved === 'string') { try { saved = JSON.parse(saved); } catch { saved = null; } }
-  if (!saved?.items) return <p className="text-xs text-gray-600 dark:text-gray-300">Recorded charge: {formatPeso(amount)}. Detailed calculation was not saved for this older record.</p>;
+  if (!saved?.items) return <p className="text-xs text-gray-700 dark:text-gray-200">Recorded charge: <span className="font-semibold text-gray-900 dark:text-gray-100">{formatPeso(amount)}</span>. Detailed calculation was not saved for this older record.</p>;
   return <section className="space-y-2 text-xs text-gray-700 dark:text-gray-200" aria-label={title || 'Fee calculation'}>
     <h4 className="font-bold">{title || 'How the Amount Was Worked Out'}</h4>
     <p>{saved.stage === 'estimate' ? 'Estimated charges — actual printed pages determine the final bill.' : 'Confirmed charges'} · {saved.source === 'college' ? 'College fee schedule' : 'Default fee schedule'}</p>

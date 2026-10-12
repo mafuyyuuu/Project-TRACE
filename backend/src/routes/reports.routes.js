@@ -6,6 +6,7 @@ const router = express.Router();
 
 router.use(authenticate);
 
+router.get('/filter-options', reportsController.filterOptions);
 router.get('/documents', reportsController.documentReport);
 router.get('/analytics', reportsController.analytics);
 

@@ -1,3 +1,5 @@
+import Button from '@/components/Button';
+import { PASSWORD_REQUIREMENTS, validNewPassword } from '@/utils/passwordPolicy';
 import { INPUT_LIMITS } from '@/utils/inputLimits';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import { useState } from 'react';
@@ -9,12 +11,12 @@ const TABS = [
 ];
 
 const inputClass =
-  'w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-2.5 text-xs font-semibold outline-none focus:ring-2 focus:ring-[#15803d]/20 focus:bg-white dark:focus:bg-gray-900 transition-all';
+  "trace-control w-full";
 const disabledInputClass =
-  'w-full bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-2.5 text-xs font-semibold text-gray-400 dark:text-gray-400 cursor-not-allowed';
+  "trace-control w-full cursor-not-allowed";
 
 function Label({ children }) {
-  return <label className="block text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">{children}</label>;
+  return <label className="trace-label block mb-1.5">{children}</label>;
 }
 
 function Note({ children }) {
@@ -32,6 +34,7 @@ function Note({ children }) {
  */
 export default function UserEditModal({ open, onClose, user, onSave, saving, colleges = [] }) {
   const [activeTab, setActiveTab] = useState('personal');
+  const [validationError, setValidationError] = useState('');
   const [editToConfirm, setEditToConfirm] = useState(null);
   const [fullName, setFullName] = useState(user?.full_name || '');
   const [phoneNumber, setPhoneNumber] = useState(user?.phone_number || '');
@@ -48,6 +51,8 @@ export default function UserEditModal({ open, onClose, user, onSave, saving, col
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (passwordMismatch) return;
+    if (newPassword && !validNewPassword(newPassword)) { setValidationError(PASSWORD_REQUIREMENTS); return; }
+    setValidationError('');
 
     const payload = {};
     if (fullName !== user.full_name) payload.full_name = fullName;
@@ -72,22 +77,22 @@ export default function UserEditModal({ open, onClose, user, onSave, saving, col
       maxWidth="max-w-xl"
       footer={
         <div className="flex flex-col sm:flex-row gap-3">
-          <button
+          <Button
             type="button"
             onClick={onClose}
             disabled={saving}
-            className="flex-1 px-5 py-3 rounded-2xl text-xs font-bold border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors disabled:opacity-50"
+            className="trace-button trace-button-secondary flex-1"
           >
             Cancel
-          </button>
-          <button
+          </Button>
+          <Button
             type="submit"
             form="edit-user-form"
             disabled={saving || passwordMismatch}
-            className="flex-1 px-5 py-3 rounded-2xl text-xs font-bold bg-[#15803d] hover:bg-[#166534] text-white shadow-sm disabled:opacity-50 transition-colors"
+            className="trace-button trace-button-primary flex-1"
           >
             {saving ? 'Saving…' : 'Save Changes'}
-          </button>
+          </Button>
         </div>
       }
     >
@@ -97,23 +102,24 @@ export default function UserEditModal({ open, onClose, user, onSave, saving, col
         onConfirm={async () => {
           if (await onSave(editToConfirm.id, editToConfirm.payload)) setEditToConfirm(null);
         }} />
-      <div className="flex gap-2 border-b border-gray-200 dark:border-gray-700 mb-6">
+      <div className="flex flex-wrap gap-2 border-b border-gray-200 dark:border-gray-700 mb-6">
         {TABS.map((t) => (
-          <button
+          <Button
             key={t.key}
             type="button"
             onClick={() => setActiveTab(t.key)}
-            className={`px-5 py-2.5 text-xs font-bold rounded-t-xl transition-colors ${
+            className={`trace-tab rounded-t-xl  ${
               activeTab === t.key
                 ? 'bg-white dark:bg-gray-900 border border-b-white border-gray-200 dark:border-gray-700 text-[#15803d] dark:text-green-300 -mb-px'
                 : 'text-gray-400 dark:text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'
             }`}
           >
             {t.label}
-          </button>
+          </Button>
         ))}
       </div>
 
+      {validationError && <p role="alert" className="text-sm text-red-600 dark:text-red-300 mb-3">{validationError}</p>}
       <form id="edit-user-form" onSubmit={handleSubmit} className="space-y-4">
         {activeTab === 'personal' && (
           <>
@@ -122,7 +128,7 @@ export default function UserEditModal({ open, onClose, user, onSave, saving, col
               <input maxLength={INPUT_LIMITS.name} className={inputClass} value={fullName} onChange={(e) => setFullName(e.target.value)} required />
             </div>
             <div>
-              <label className="block text-xs font-bold mb-2" htmlFor="edit-college">College / Department</label>
+              <label className="trace-label block mb-2" htmlFor="edit-college">College / Department</label>
               <select id="edit-college" className={inputClass} value={collegeId} onChange={e => setCollegeId(e.target.value)}>
                 <option value="">None</option>
                 {collegeId && !colleges.some(c => String(c.id) === String(collegeId)) && <option value={collegeId}>Current college ({collegeId})</option>}
@@ -130,7 +136,7 @@ export default function UserEditModal({ open, onClose, user, onSave, saving, col
               </select>
             </div>
             <div>
-              <label className="block text-xs font-bold mb-2" htmlFor="edit-program">Program</label>
+              <label className="trace-label block mb-2" htmlFor="edit-program">Program</label>
               <input maxLength={INPUT_LIMITS.program} id="edit-program" className={inputClass} value={course} onChange={e => setCourse(e.target.value)} />
             </div>
           </>
@@ -152,6 +158,7 @@ export default function UserEditModal({ open, onClose, user, onSave, saving, col
             {user.role !== 'student' && <>
             <div>
               <Label>New Password</Label>
+              <Note>{PASSWORD_REQUIREMENTS}</Note>
               <input maxLength={INPUT_LIMITS.password}
                 type="password"
                 className={inputClass}

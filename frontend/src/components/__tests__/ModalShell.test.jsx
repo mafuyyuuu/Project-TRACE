@@ -16,8 +16,8 @@ describe('ModalShell', () => {
     expect(container).not.toContainElement(dialog);
     const body = screen.getByText('Scrollable content').parentElement;
     const footer = screen.getByRole('button', { name: 'Save' }).parentElement;
-    expect(body).toHaveClass('min-h-0', 'overflow-y-auto');
-    expect(footer).toHaveClass('shrink-0');
+    expect(body).toHaveClass('trace-modal-body');
+    expect(footer).toHaveClass('trace-modal-footer');
     expect(body).not.toContainElement(footer);
     expect(footer.parentElement).toBe(body.parentElement);
   });

@@ -1,12 +1,15 @@
+import { useId, useRef, useState } from 'react';
+import RequestStaff from '@/components/RequestStaff';
+import Button from '@/components/Button';
 import { INPUT_LIMITS } from '@/utils/inputLimits';
-import DocumentChat from '@/components/DocumentChat';
-import RequestAttachments from '@/components/RequestAttachments';
+import RequestMessagesPanel from '@/components/RequestMessagesPanel';
 import ModalShell from '@/components/ModalShell';
 import AuthedFilePreview from '@/components/AuthedFilePreview';
 
 function DetailPanel({ selectedDoc, evalStudentId, evalStudentName, evalDocType }) {
   return (
     <div className="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl p-5 mb-6 font-mono text-[11px] text-gray-600 dark:text-gray-300 space-y-2">
+      <RequestStaff document={selectedDoc} />
       <div className="flex flex-wrap justify-between gap-x-3 gap-y-1"><span>Tracking ID</span><span className="font-bold text-gray-950 dark:text-gray-100 select-text">#{selectedDoc.tracking_number || selectedDoc.id}</span></div>
       <div className="flex flex-wrap justify-between gap-x-3 gap-y-1"><span>Student ID</span><span className="font-bold text-gray-950 dark:text-gray-100">{evalStudentId || 'N/A'}</span></div>
       <div className="flex flex-wrap justify-between gap-x-3 gap-y-1"><span>Student Name</span><span className="font-bold text-gray-950 dark:text-gray-100">{evalStudentName || 'Unknown'}</span></div>
@@ -16,7 +19,6 @@ function DetailPanel({ selectedDoc, evalStudentId, evalStudentName, evalDocType 
 }
 
 function EvaluationForm({
-  user,
   selectedDoc,
   evalStudentId,
   setEvalStudentId,
@@ -30,6 +32,7 @@ function EvaluationForm({
   documentTypes = [],
   setClerkNotes,
 }) {
+  const fieldId = useId();
   return (
     <div className="space-y-6 flex-1">
       {/* Confidence Score Panel */}
@@ -79,22 +82,22 @@ function EvaluationForm({
       )}
 
       <div className="space-y-4">
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="trace-form-grid">
           <div className="flex flex-col gap-1.5">
-            <label className="text-[10px] font-bold text-gray-800 dark:text-gray-100 uppercase tracking-widest">Student ID</label>
+            <label htmlFor={`${fieldId}-id`} className="trace-label">Student ID</label>
             <input maxLength={INPUT_LIMITS.id}
-              type="text"
+              id={`${fieldId}-id`} type="text"
               value={evalStudentId}
               onChange={(e) => setEvalStudentId(e.target.value)}
-              className="w-full p-3 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-xs font-semibold focus:ring-2 focus:ring-[#15803d]/20 outline-none"
+              className="trace-control w-full"
             />
           </div>
           <div className="flex flex-col gap-1.5">
-            <label className="text-[10px] font-bold text-gray-800 dark:text-gray-100 uppercase tracking-widest">Document Type</label>
-            <select
+            <label htmlFor={`${fieldId}-type`} className="trace-label">Document Type</label>
+            <select id={`${fieldId}-type`}
               value={evalDocType}
               onChange={(e) => setEvalDocType(e.target.value)}
-              className="w-full p-3 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-xs font-semibold focus:ring-2 focus:ring-[#15803d]/20 outline-none cursor-pointer"
+              className="trace-control w-full cursor-pointer"
             >
               {!documentTypes.some(type => type.name === evalDocType) && <option value={evalDocType}>{evalDocType}</option>}
               {documentTypes.map(type => <option key={type.id || type.name} value={type.name}>{type.name}</option>)}
@@ -103,25 +106,25 @@ function EvaluationForm({
         </div>
 
         <div className="flex flex-col gap-1.5">
-          <label className="text-[10px] font-bold text-gray-800 dark:text-gray-100 uppercase tracking-widest">Student Name</label>
+          <label htmlFor={`${fieldId}-name`} className="trace-label">Student Name</label>
           <input maxLength={INPUT_LIMITS.name}
-            type="text"
+            id={`${fieldId}-name`} type="text"
             value={evalStudentName}
             onChange={(e) => setEvalStudentName(e.target.value)}
-            className="w-full p-3 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-xs font-semibold focus:ring-2 focus:ring-[#15803d]/20 outline-none"
+            className="trace-control w-full"
           />
         </div>
 
         <div className="flex flex-col gap-1.5">
-          <label className="text-[10px] font-bold text-gray-800 dark:text-gray-100 uppercase tracking-widest">
+          <label htmlFor={`${fieldId}-ready`} className="trace-label">
             Ready By <span className="text-red-600 dark:text-red-300">*</span>
           </label>
           <input
-            type="date"
+            id={`${fieldId}-ready`} type="date"
             value={estimatedReadyDate || ''}
             onChange={(e) => setEstimatedReadyDate(e.target.value)}
             min={new Date().toISOString().split('T')[0]}
-            className="w-full p-3 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-xs font-semibold focus:ring-2 focus:ring-[#15803d]/20 outline-none"
+            className="trace-control w-full"
           />
           {/* The student is told this date, and the office is measured
               against it — so it is required to accept the work. */}
@@ -131,20 +134,16 @@ function EvaluationForm({
         </div>
 
         <div className="flex flex-col gap-1.5">
-          <label className="text-[10px] font-bold text-gray-800 dark:text-gray-100 uppercase tracking-widest">Secretary Notes</label>
-          <textarea maxLength={INPUT_LIMITS.notes}
+          <label htmlFor={`${fieldId}-notes`} className="trace-label">Secretary Notes</label>
+          <textarea id={`${fieldId}-notes`} maxLength={INPUT_LIMITS.notes}
             value={clerkNotes}
             onChange={(e) => setClerkNotes(e.target.value)}
             placeholder="Add any remarks...."
-            className="w-full p-3 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-xs font-semibold focus:ring-2 focus:ring-[#15803d]/20 outline-none h-24 resize-none"
+            className="trace-control w-full h-24 resize-none"
           />
         </div>
 
-        <div className="flex flex-col gap-1.5 pt-4 border-t border-gray-100 dark:border-gray-700">
-          <label className="text-[10px] font-bold text-gray-800 dark:text-gray-100 uppercase tracking-widest">Discussion</label>
-          <DocumentChat documentId={selectedDoc.id} user={user} />
-          <RequestAttachments key={selectedDoc.id} documentId={selectedDoc.id} user={user} />
-        </div>
+
       </div>
     </div>
   );
@@ -153,23 +152,43 @@ function EvaluationForm({
 
 function EvaluationActions({ handleSecretaryEvaluate, actionLoading }) {
   return (
-    <div className="flex items-center gap-3">
-      <button
+    <div className="trace-form-grid">
+      <Button
         onClick={() => handleSecretaryEvaluate('reject')}
         disabled={actionLoading}
-        className="w-1/2 py-3 rounded-xl font-bold text-xs shadow-md transition-all text-center uppercase tracking-wider bg-red-600 dark:bg-red-600 hover:bg-red-700 dark:hover:bg-red-700 text-white disabled:opacity-50"
+        className="trace-button trace-button-danger w-full text-center"
       >
         Return to Window 1
-      </button>
-      <button
+      </Button>
+      <Button
         onClick={() => handleSecretaryEvaluate('approve')}
         disabled={actionLoading}
-        className="w-1/2 py-3 bg-[#15803d] hover:bg-[#166534] text-white rounded-xl font-bold text-xs shadow-md transition-all text-center uppercase tracking-wider disabled:opacity-50"
+        className="trace-button trace-button-primary w-full text-center"
       >
         Accept for Processing
-      </button>
+      </Button>
     </div>
   );
+}
+
+function DigitalEvaluation({ user,formProps,handleSecretaryEvaluate,actionLoading,onClose }) {
+  const [discussionOpen,setDiscussionOpen] = useState(false);
+  const toggle = useRef(null), discussionId = useId();
+  return <ModalShell open onClose={() => {if(!actionLoading) onClose();}} busy={actionLoading} title="Digital Request Evaluation" panelClassName="trace-modal-panel max-w-6xl h-[85dvh]" bodyClassName="min-h-0 flex-1 overflow-hidden p-4 sm:p-6" footer={<EvaluationActions handleSecretaryEvaluate={handleSecretaryEvaluate} actionLoading={actionLoading} />}>
+    <div className="flex h-full min-h-0 flex-col gap-3">
+      <Button ref={toggle} type="button" aria-expanded={discussionOpen} aria-controls={discussionId} onClick={()=>{setDiscussionOpen(value=>!value);toggle.current?.focus({preventScroll:true});}} className="trace-button trace-button-secondary shrink-0 lg:hidden">{discussionOpen ? 'Back to evaluation' : 'Open discussion'}</Button>
+      <div className="grid min-h-0 flex-1 grid-cols-[minmax(0,1fr)] gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+        <section aria-label="Evaluation fields" className={`min-h-0 overflow-y-auto overscroll-contain pr-1 ${discussionOpen ? 'hidden lg:block' : ''}`}>
+          <p className="mb-4 text-sm text-gray-600 dark:text-gray-300">Evaluate and process the student's digital request. Discussion stays separate from these fields.</p>
+          <DetailPanel {...formProps} /><EvaluationForm {...formProps} />
+        </section>
+        <section id={discussionId} aria-label="Request discussion" className={`min-h-0 min-w-0 flex-col gap-3 rounded-2xl border border-gray-200 p-3 dark:border-gray-700 ${discussionOpen ? 'flex' : 'hidden lg:flex'}`}>
+          <h4 className="shrink-0 text-sm font-bold">Discussion · {formProps.selectedDoc.tracking_number || formProps.selectedDoc.id}</h4>
+          <div className="min-h-0 flex-1"><RequestMessagesPanel initialDocumentId={formProps.selectedDoc.id} user={user} compact autoFocusConversation={false} /></div>
+        </section>
+      </div>
+    </div>
+  </ModalShell>;
 }
 
 export default function SecretaryEvaluationModal({
@@ -188,33 +207,19 @@ export default function SecretaryEvaluationModal({
   actionLoading,
   setViewImageUrl,
   estimatedReadyDate,
-  setEstimatedReadyDate
+  setEstimatedReadyDate,
+  documentTypes = []
 }) {
   if (!selectedDoc) return null;
 
   const formProps = {
     selectedDoc, evalStudentId, setEvalStudentId, evalStudentName, setEvalStudentName,
-    evalDocType, setEvalDocType, estimatedReadyDate, setEstimatedReadyDate, clerkNotes, setClerkNotes, user,
+    evalDocType, setEvalDocType, estimatedReadyDate, setEstimatedReadyDate, clerkNotes, setClerkNotes, documentTypes,
   };
 
-  // Digital requests have no scan to preview — a single column fits ModalShell's
-  // standard title/body/footer slots directly.
+  // UI-only split: parent-owned evaluation drafts survive discussion changes.
   if (!selectedDoc.file_path) {
-    return (
-      <ModalShell
-        open={!!selectedDoc}
-        onClose={() => setActiveModal(null)}
-        title="Digital Request Evaluation"
-        maxWidth="max-w-xl"
-        footer={<EvaluationActions handleSecretaryEvaluate={handleSecretaryEvaluate} actionLoading={actionLoading} />}
-      >
-        <p className="text-xs text-gray-400 dark:text-gray-400 mt-1 font-semibold pb-5 mb-6 border-b border-gray-100 dark:border-gray-700">
-          Evaluate and process the student's digital request.
-        </p>
-        <DetailPanel selectedDoc={selectedDoc} evalStudentId={evalStudentId} evalStudentName={evalStudentName} evalDocType={evalDocType} />
-        <EvaluationForm {...formProps} />
-      </ModalShell>
-    );
+    return <DigitalEvaluation user={user} formProps={formProps} handleSecretaryEvaluate={handleSecretaryEvaluate} actionLoading={actionLoading} onClose={()=>setActiveModal(null)} />;
   }
 
   // Scanned documents get a split-screen: a preview column and a form column,
@@ -226,8 +231,8 @@ export default function SecretaryEvaluationModal({
       onClose={() => setActiveModal(null)}
       bare
       title="AI Data Extraction Review"
-      panelClassName="bg-white dark:bg-gray-900 rounded-3xl shadow-2xl w-full max-w-7xl h-[85vh] z-10 border border-gray-100 dark:border-gray-700 relative animate-slide-up flex flex-col lg:flex-row overflow-hidden"
-      closeButtonClassName="absolute top-4 right-4 w-8 h-8 rounded-full flex items-center justify-center text-gray-400 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 z-20"
+      panelClassName="bg-white dark:bg-gray-900 rounded-3xl shadow-2xl w-full max-w-7xl h-[85vh] z-10 border border-gray-100 dark:border-gray-700 relative flex flex-col lg:flex-row overflow-hidden"
+      closeButtonClassName="trace-button-lift absolute top-4 right-4 w-8 h-8 rounded-full flex items-center justify-center text-gray-400 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 z-20"
     >
       {/* Left: Original document scan preview */}
       <div className="lg:w-1/2 p-6 flex flex-col border-r border-gray-200 dark:border-gray-700 min-h-0 bg-gray-50/30 dark:bg-gray-800/30">
@@ -242,7 +247,7 @@ export default function SecretaryEvaluationModal({
             path={selectedDoc.file_path}
             alt="Scanned Document"
             iframeTitle="PDF Preview"
-            className="w-full h-full object-contain group-hover:scale-105 transition-transform"
+            className="w-full h-full object-contain"
             onClick={() => setViewImageUrl(selectedDoc.file_path)}
             wrapperClassName="cursor-zoom-in w-full h-full flex items-center justify-center group relative"
           />
@@ -259,6 +264,7 @@ export default function SecretaryEvaluationModal({
           </p>
           <DetailPanel selectedDoc={selectedDoc} evalStudentId={evalStudentId} evalStudentName={evalStudentName} evalDocType={evalDocType} />
           <EvaluationForm {...formProps} />
+          <section aria-label="Scanned request discussion" className="mt-6 h-[70dvh] min-h-96"><RequestMessagesPanel initialDocumentId={selectedDoc.id} user={user} compact autoFocusConversation={false} /></section>
         </div>
         <div className="shrink-0 px-6 sm:px-8 py-6 border-t border-gray-100 dark:border-gray-700">
           <EvaluationActions handleSecretaryEvaluate={handleSecretaryEvaluate} actionLoading={actionLoading} />

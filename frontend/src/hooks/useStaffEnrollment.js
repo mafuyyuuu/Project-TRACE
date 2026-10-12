@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import QRCode from 'qrcode';
 import { startStaffSetup, confirmStaffSetup } from '@/services/staffAuthenticatorSetupService';
-import { forgetClerkBrowserPreference } from '@/utils/clerkBrowserPreference';
+import { forgetBrowserTrustPreference } from '@/utils/browserTrustPreference';
 import { disconnectRealtime } from '@/services/realtimeService';
 export default function useStaffEnrollment() {
   const [setup, setSetup] = useState(null), [codes, setCodes] = useState([]);
@@ -19,7 +19,7 @@ export default function useStaffEnrollment() {
     try {
       const result = await (confirm ? confirmStaffSetup(payload) : startStaffSetup(payload));
       if (confirm) {
-        forgetClerkBrowserPreference(); disconnectRealtime();
+        forgetBrowserTrustPreference(); disconnectRealtime();
         localStorage.setItem('trace_token', result.token); localStorage.setItem('trace_user', JSON.stringify(result.user));
         if (mounted.current) { setCodes(result.recovery_codes); setSetup(null); setQr(''); }
       } else if (mounted.current) { setSetup(result); setQr(''); }

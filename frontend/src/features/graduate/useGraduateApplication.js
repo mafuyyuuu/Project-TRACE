@@ -1,3 +1,4 @@
+import { yearError } from '@/utils/profileYears';
 import { getMe } from '@/services/authService';
 import { useState, useEffect, useCallback } from 'react';
 import {
@@ -76,9 +77,12 @@ export default function useGraduateApplication(user) {
         return;
       }
 
+      const graduation = fields.find(field => field.field_key === 'year_graduated');
+      const problem = graduation && yearError(answers.year_graduated, { label: graduation.label, minimum: 2002, required: Boolean(graduation.is_required) });
+      if (problem) { setError(problem); return; }
       setAnswersToConfirm({ ...answers });
     },
-    [answers, missingRequired]
+    [answers, missingRequired, fields]
   );
 
   const confirmSubmission = useCallback(async () => {

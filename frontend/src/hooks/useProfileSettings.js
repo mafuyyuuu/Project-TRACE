@@ -1,3 +1,5 @@
+import { profileEditYearErrors } from '@/utils/profileYears';
+import { PASSWORD_REQUIREMENTS, validNewPassword } from '@/utils/passwordPolicy';
 import { useRef, useState } from 'react';
 import { updateProfile, uploadProfilePicture, getMe } from '@/services/authService';
 
@@ -12,6 +14,7 @@ function formFromUser(user) {
     phone_number: user?.phone_number || '',
     email: user?.pending_email || user?.email || '',
     program: user?.program || '',
+    college_id: user?.college_id ? String(user.college_id) : '',
     password: '',
     current_password: '',
     extension_name: user?.extension_name || '',
@@ -21,15 +24,17 @@ function formFromUser(user) {
     civil_status: user?.civil_status || '',
     maiden_name: user?.maiden_name || '',
     home_address: user?.home_address || '',
-    last_attendance_year: user?.last_attendance_year || '',
+    year_started: user?.year_started == null ? '' : String(user.year_started),
+    graduation_year: user?.graduation_year == null ? '' : String(user.graduation_year),
+    last_attendance_year: user?.last_attendance_year == null ? '' : String(user.last_attendance_year),
     is_transfer_student: isTransferStudent(user?.is_transfer_student),
     previous_school: user?.previous_school || '',
     elem_school: user?.elem_school || '',
-    elem_grad_year: user?.elem_grad_year || '',
+    elem_grad_year: user?.elem_grad_year == null ? '' : String(user.elem_grad_year),
     jhs_school: user?.jhs_school || '',
-    jhs_grad_year: user?.jhs_grad_year || '',
+    jhs_grad_year: user?.jhs_grad_year == null ? '' : String(user.jhs_grad_year),
     shs_school: user?.shs_school || '',
-    shs_grad_year: user?.shs_grad_year || '',
+    shs_grad_year: user?.shs_grad_year == null ? '' : String(user.shs_grad_year),
   };
 }
 
@@ -87,7 +92,7 @@ export default function useProfileSettings(user) {
   const setField = (field, value) => {
     if (field === 'email') verification.reset();
     setDirty(true);
-    setProfileData((current) => ({ ...current, [field]: value }));
+    setProfileData((current) => ({ ...current, [field]: value, ...(field === 'college_id' && String(value) !== String(current.college_id) ? { program: '' } : {}) }));
   };
 
   const readError = (err) =>
@@ -114,6 +119,14 @@ export default function useProfileSettings(user) {
   const saveProfile = async (e) => {
     if (e) e.preventDefault();
     if (savingRef.current) return false;
+    if (profileData.password && !validNewPassword(profileData.password)) { setError(PASSWORD_REQUIREMENTS); return false; }
+    const yearErrors = profileEditYearErrors(profileData, user);
+    if (Object.keys(yearErrors).length) { setError(Object.values(yearErrors)[0]); return false; }
+    const academicChanged = String(profileData.college_id || '') !== String(user?.college_id || '') || profileData.program !== (user?.program || '');
+    if (academicChanged && (!/^[1-9]\d*$/.test(profileData.college_id) || !profileData.program)) {
+      setError('Choose College and an active Program/Course belonging to it before saving.');
+      return false;
+    }
     savingRef.current = true;
     setSaving(true);
     setSuccess('');
@@ -142,7 +155,12 @@ export default function useProfileSettings(user) {
       // link (or claim the address changed) when saving unrelated profile fields.
       const payload = pendingEmail && profileData.email.trim().toLowerCase() === pendingEmail.toLowerCase()
         ? { ...profileData, email: user?.email || '' } : profileData;
-      const result = await updateProfile(payload);
+      const request = { ...payload };
+      for (const key of ['year_started', 'graduation_year']) {
+        if (String(request[key] ?? '') === String(user?.[key] ?? '')) delete request[key];
+      }
+      if (!academicChanged) { delete request.college_id; delete request.program; }
+      const result = await updateProfile(request);
       if (result?.token && result?.user) {
         localStorage.setItem('trace_token', result.token);
         disconnectRealtime();

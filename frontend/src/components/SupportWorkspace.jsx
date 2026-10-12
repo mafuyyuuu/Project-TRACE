@@ -1,0 +1,89 @@
+import { useState } from 'react';
+import Button from '@/components/Button';
+import ModalShell from '@/components/ModalShell';
+import ConfirmDialog from '@/components/ConfirmDialog';
+import SupportConversation from '@/components/SupportConversation';
+import SupportAnalytics from '@/components/SupportAnalytics';
+import SupportToasts from '@/components/SupportToasts';
+import { SupportIcon, SupportTicketRow, SupportEmptyState } from '@/components/SupportVisuals';
+import { ticketMatches } from '@/utils/supportPresentation';
+import useSupportTickets from '@/hooks/useSupportTickets';
+import useSupportRequestChoices from '@/hooks/useSupportRequestChoices';
+function SettingsForm({ config,onStage,busy }) {
+  const [draft,setDraft] = useState(() => ({...config,closed_dates:config.closed_dates.join('\n')}));
+  const time = minutes => `${String(Math.floor(minutes/60)).padStart(2,'0')}:${String(minutes%60).padStart(2,'0')}`;
+  const update = (name,value) => setDraft(previous => ({...previous,[name]:value}));
+  return <form id="support-settings-form" onSubmit={event => { event.preventDefault(); onStage({kind:'settings',settings:{...draft,closed_dates:draft.closed_dates.split(/\s+/).filter(Boolean)}}); }} className="space-y-4">
+    <p className="text-sm">Global settings affect live claims and future reply clocks. Existing clocks retain their starting settings. FAQ access and ticket submission stay available outside hours. All times use Asia/Manila.</p>
+    <fieldset><legend className="trace-label">Live Support Days</legend><div className="mt-2 flex flex-wrap gap-3">{['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'].map((day,index) => <label key={day} className="flex items-center gap-2 text-sm"><input type="checkbox" className="trace-choice" checked={draft.weekdays.includes(index)} disabled={busy} onChange={event => update('weekdays',event.target.checked ? [...draft.weekdays,index].sort() : draft.weekdays.filter(value => value !== index))} />{day}</label>)}</div></fieldset>
+    <div className="trace-form-grid">{[['open_minute','Opening Time'],['close_minute','Closing Time']].map(([name,label]) => <label key={name} className="trace-label">{label}<input required type="time" value={time(draft[name])} disabled={busy} onChange={event => { const [hours,minutes] = event.target.value.split(':').map(Number); update(name,hours*60+minutes); }} className="trace-control mt-1 w-full" /></label>)}</div>
+    <label className="trace-label block">Closed Dates<textarea value={draft.closed_dates} disabled={busy} onChange={event => update('closed_dates',event.target.value)} placeholder="YYYY-MM-DD, one date per line" className="trace-control mt-1 w-full" /></label>
+    <div className="trace-form-grid">{[['warning_minutes','Reply Warning (Service Minutes)'],['timeout_minutes','Reply Timeout (Service Minutes)']].map(([name,label]) => <label key={name} className="trace-label">{label}<input required type="number" min="1" max="60" step="1" value={draft[name]} disabled={busy} onChange={event => update(name,Number(event.target.value))} className="trace-control mt-1 w-full" /></label>)}</div>
+    <p className="text-sm">Warning must come before timeout. The explicit Request student reply action starts the clock; ordinary staff messages do not. Timeout releases the clerk and moves the ticket to Awaiting student, never Resolved.</p>
+  </form>;
+}
+export default function SupportWorkspace({user,initialDocumentId,requestedTicket = new URLSearchParams(window.location.search).get('ticket'),requestedSupport = new URLSearchParams(window.location.search).get('support'),compact = false,active = true,autoFocusConversation = true}) {
+  const state = useSupportTickets(user,initialDocumentId,requestedTicket,requestedSupport), choices = useSupportRequestChoices(user);
+  const [form,setForm] = useState(null), [subject,setSubject] = useState(''), [documentId,setDocumentId] = useState(initialDocumentId ? String(initialDocumentId) : '');
+  const [staged,setStaged] = useState(null), [showTickets,setShowTickets]=useState(false);
+  const [query,setQuery] = useState('');
+  const windowClerk = user.role === 'clerk' && ['Window 1','Receiving Desk'].includes(user.desk_assignment);
+  const canGeneral = ['student','admin'].includes(user.role) || windowClerk;
+  const stage = action => setStaged(action);
+  const ticketList = <div className="flex h-full min-h-0 flex-col">
+    <div className="shrink-0 space-y-3 p-4">
+      <label className="trace-label">Search loaded tickets<span className="mt-2 flex items-center gap-2 rounded-full border border-gray-300 bg-white px-3 dark:border-gray-600 dark:bg-gray-900"><SupportIcon name="search" /><input type="search" aria-label="Search loaded tickets" value={query} onChange={event => setQuery(event.target.value)} placeholder="Name, ticket or request…" maxLength={255} className="min-h-11 min-w-0 flex-1 rounded-full bg-transparent py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-green-600" /></span></label>
+      <p className="text-xs text-gray-600 dark:text-gray-300">Search covers loaded ticket titles, IDs, names and states. Load older tickets to search more history.</p>
+      <div className="border-b-2 border-pine-600 pb-2 text-sm font-bold">Tickets <span className="ml-2 rounded-full bg-green-50 px-2 py-1 text-xs text-green-900 dark:bg-green-950 dark:text-green-100">{state.tickets.filter(ticket => ticketMatches(ticket,query)).length} loaded</span></div>
+    </div>
+    <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain" aria-label="Support tickets">
+      {state.loading && <p role="status" className="p-4 text-sm">Loading tickets…</p>}
+      {!state.loading && !state.tickets.length && <p className="p-4 text-sm">No tickets yet.</p>}
+      {state.tickets.filter(ticket => ticketMatches(ticket,query)).map(ticket => <SupportTicketRow key={ticket.id} ticket={ticket} selected={String(ticket.id) === String(state.selected)} onSelect={() => {state.setSelected(String(ticket.id));setShowTickets(false);}} />)}
+      {!state.loading && state.tickets.length > 0 && !state.tickets.some(ticket => ticketMatches(ticket,query)) && <p role="status" className="p-4 text-sm">No loaded tickets match your search.</p>}
+      {state.cursor && <div className="p-4"><Button type="button" onClick={() => void state.refresh(state.cursor)} className="trace-button trace-button-secondary w-full">Load older tickets</Button></div>}
+    </div>
+  </div>;
+  return <section className="flex h-full min-h-0 min-w-0 flex-col gap-3" aria-label="Support workspace">
+    <header className="flex max-h-[30dvh] shrink-0 flex-wrap items-center justify-between gap-3 overflow-y-auto">
+      <h2 className={compact ? 'sr-only' : 'trace-page-title'}>Support</h2>
+      <div className="flex min-w-0 flex-wrap items-center gap-2">
+        <Button type="button" aria-haspopup="dialog" aria-expanded={showTickets} onClick={()=>setShowTickets(true)} className={`trace-button trace-button-secondary ${compact ? '' : 'lg:hidden'}`}>{compact ? 'Support actions' : 'Tickets'}{compact && <SupportIcon name="chevron" />}</Button>
+        {user.role !== 'admin' && <Button type="button" disabled={state.busy} onClick={() => setForm('create')} className={`trace-button ${user.role === 'student' ? 'trace-button-primary' : 'trace-button-secondary'}`}>{user.role==='student' ? 'New ticket' : 'New linked ticket'}{user.role==='student' && <SupportIcon name="plus" />}</Button>}
+        {windowClerk && <>
+          <Button type="button" disabled={state.busy || state.loading || !state.settings?.available} aria-describedby="support-claim-help" onClick={() => stage({kind:'claim'})} className="trace-button trace-button-primary"><SupportIcon name="ticket" />Claim oldest ticket</Button>
+          <label className="flex items-center gap-2 text-sm font-semibold">Live availability
+            <Button type="button" motion="feedback" role="switch" aria-label="Live support availability" aria-checked={Boolean(state.settings?.available)} aria-describedby="support-availability-help" disabled={state.busy || !state.settings} onClick={() => stage({kind:'availability',available:!state.settings.available})} className={`trace-button-lift relative inline-flex h-8 w-14 shrink-0 items-center rounded-full p-1 ${state.settings?.available ? 'bg-pine-600' : 'bg-gray-400 dark:bg-gray-600'}`}><span aria-hidden="true" className={`h-6 w-6 rounded-full bg-white shadow-sm transition-transform motion-reduce:transition-none ${state.settings?.available ? 'translate-x-6' : ''}`} /></Button>
+            <span className="text-xs">{state.settings ? state.settings.available ? 'Available' : 'Unavailable' : 'Loading…'}</span>
+          </label>
+        </>}
+        {state.settings?.can_manage && <Button type="button" onClick={() => setForm('settings')} className="trace-button trace-button-secondary">Support settings</Button>}
+        {state.settings?.can_manage && <Button type="button" onClick={() => setForm('analytics')} className="trace-button trace-button-secondary">Support analytics</Button>}
+      </div>
+      {windowClerk && <details className="w-full text-xs text-gray-600 dark:text-gray-300"><summary className="cursor-pointer py-1 focus-visible:outline">How live support works</summary><p id="support-claim-help" className="mt-1">Claim assigns the oldest eligible queued ticket or returns to your current live ticket. Window 1 handles one live conversation at a time, during configured support hours.</p><p id="support-availability-help" className="mt-1">Availability declares whether you can receive live work. Changing it requires confirmation and does not resolve or discard tickets.</p></details>}
+    </header>
+    {state.error && <p role="alert" className="trace-inline-error text-sm">{state.error} <Button type="button" onClick={state.retry} className="trace-action underline">Retry support</Button></p>}
+    {user.role === 'admin' && <p className="text-sm text-gray-600 dark:text-gray-300">Operational support is read-only for Admin. Staff concerns are handled separately in Internal assistance.</p>}
+    {!canGeneral && <p className="text-xs text-gray-600 dark:text-gray-300">Linked request tickets only. Your existing desk and college permissions apply.</p>}
+    {compact && !state.loading && !state.tickets.length && <p className="flex shrink-0 items-center gap-3 rounded-lg bg-green-100 p-3 text-xs font-semibold text-green-900 dark:bg-green-950 dark:text-green-100"><SupportIcon name="warning" />{user.role==='admin' ? 'No operational tickets are available to monitor.' : user.role==='student' ? 'No tickets yet. Choose New ticket for FAQ assistance or staff support.' : 'No tickets yet. Choose New linked ticket for an authorized request.'}</p>}
+    <div className={`min-h-0 min-w-0 ${compact ? 'flex-1' : 'grid h-[75dvh] min-h-96 grid-cols-[minmax(0,1fr)] overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-900 lg:grid-cols-[minmax(16rem,1fr)_minmax(0,2.4fr)]'}`}>
+      {!compact && <aside aria-label="Ticket list" className="hidden min-h-0 min-w-0 border-r border-gray-200 dark:border-gray-700 lg:block">{ticketList}</aside>}
+      <div className="h-full min-h-0 min-w-0">{state.selected ? <SupportConversation key={`${user.id}:${state.selected}`} ticketId={state.selected} user={user} topics={state.topics} onTicketChanged={state.refresh} onNotice={state.feedback.notify} active={active} autoFocusConversation={autoFocusConversation} compact={compact} /> : <SupportEmptyState student={user.role==='student'} monitor={user.role==='admin'} />}</div>
+    </div>
+    <ModalShell open={active && showTickets} onClose={() => setShowTickets(false)} title="Support tickets" bodyClassName="min-h-0 flex-1 overflow-hidden" panelClassName="trace-modal-panel max-w-sm h-[80dvh]" footer={<Button type="button" onClick={()=>setShowTickets(false)} className="trace-button trace-button-secondary w-full">Back to conversation</Button>}>{ticketList}</ModalShell>
+    {active&&<SupportToasts notices={state.feedback.notices} onDismiss={state.feedback.dismiss} onDismissAll={state.feedback.dismissAll} />}
+    <ModalShell open={active && Boolean(form)} onClose={() => { if (!state.busy) setForm(null); }} title={form === 'settings' ? 'Support Settings' : form==='analytics' ? 'Support Analytics' : 'New Support Ticket'} busy={state.busy} footer={form==='analytics' ? <Button type="button" onClick={()=>setForm(null)} className="trace-button trace-button-secondary">Close</Button> : <Button type="submit" form={form === 'settings' ? 'support-settings-form' : 'support-create-form'} disabled={state.busy} className="trace-button trace-button-primary">Review and save</Button>}>
+      {form==='analytics' && <SupportAnalytics />}
+      {form === 'settings' && state.settings && <SettingsForm key="settings" config={state.settings.settings} onStage={stage} busy={state.busy} />}
+      {form === 'create' && <form id="support-create-form" onSubmit={event => { event.preventDefault(); stage({kind:'create',payload:{subject:subject.trim(),document_id:documentId ? Number(documentId) : null,client_key:crypto.randomUUID()}}); }} className="space-y-4">
+        <p className="text-sm">{user.role==='student' ? 'Start with approved FAQ assistance. You can choose Talk to staff afterwards. An existing unresolved general ticket is reused.' : 'Choose an authorized open document case. Existing support is reused; a new case ticket enters the Registrar queue.'}</p>
+        <label className="trace-label block">Subject<input required maxLength={255} value={subject} onChange={event => setSubject(event.target.value)} disabled={state.busy} className="trace-control mt-1 w-full" /></label>
+        <label className="trace-label block">{user.role==='student' ? 'Linked Request (Optional)' : 'Linked Request'}<select required={user.role!=='student'} value={documentId} onChange={event => setDocumentId(event.target.value)} disabled={state.busy} className="trace-control mt-1 w-full"><option value="">{user.role==='student' ? 'General support — no document request' : 'Choose an open case'}</option>{choices.rows.map(row => <option key={row.id} value={row.id}>{row.tracking_number} · {row.document_type}</option>)}</select></label>
+        {choices.busy && <p role="status">Loading open requests…</p>}
+        {choices.error && <p role="alert">{choices.error} <Button type="button" onClick={choices.retry} className="trace-action underline">Retry request choices</Button></p>}
+        {choices.hasMore && <Button type="button" disabled={choices.busy} onClick={choices.more} className="trace-button trace-button-secondary">Load more request choices</Button>}
+      </form>}
+    </ModalShell>
+    <ConfirmDialog open={active && Boolean(staged)} title="Confirm Support Action" message={state.error || (staged?.kind === 'claim' ? 'Claim the oldest eligible queued ticket? You can have only one live conversation.' : 'Save this support action?')} loading={state.busy} onCancel={() => { if (!state.busy) setStaged(null); }} onConfirm={async () => { if (await state.execute(staged)) { if (['create','settings'].includes(staged.kind)) { setForm(null); setSubject(''); } setStaged(null); } }} />
+  </section>;
+}

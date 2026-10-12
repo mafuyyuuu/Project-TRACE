@@ -3,6 +3,7 @@ const nodemailer = require('nodemailer');
 const env = require('../config/env');
 const notificationModel = require('../models/notification.model');
 const realtime = require('../realtime');
+const { errorDetails, logEmailOutcome } = require('../utils/emailDiagnostics');
 
 /**
  * Multi-channel notification dispatch: in-app (bell icon), SMS (UniSMS), and
@@ -51,6 +52,10 @@ const transporter = isEmailConfigured()
       port: Number(env.SMTP_PORT) || 587,
       secure: Number(env.SMTP_PORT) === 465,
       auth: { user: env.SMTP_USER, pass: env.SMTP_PASS },
+      connectionTimeout: 10000,
+      greetingTimeout: 10000,
+      dnsTimeout: 10000,
+      socketTimeout: 20000,
     })
   : null;
 
@@ -84,7 +89,7 @@ async function verifyChannels() {
       status.email.ok = true;
       status.email.detail = `Connected to ${env.SMTP_HOST}.`;
     } catch (err) {
-      status.email.detail = `SMTP connection failed: ${err.message}`;
+      status.email.detail = `SMTP connection failed: ${JSON.stringify(errorDetails(err))}`;
     }
   }
 
@@ -171,16 +176,18 @@ function emailHtml(subject, text, action) {
   return `<html><body style="margin:0;background:#f3f4f6;font-family:Arial,sans-serif;color:#1f2937"><table role="presentation" width="100%" cellpadding="24"><tr><td><table role="presentation" width="100%" cellpadding="24" style="max-width:600px;margin:auto;background:#fff;border-radius:16px"><tr><td style="background:#15803d;color:#fff;font-size:28px;font-weight:bold">TRACE</td></tr><tr><td><h1 style="font-size:20px">${escapeHtml(subject)}</h1><p style="font-size:16px;line-height:1.6;white-space:pre-wrap">${require('./template.service').emailText(text, action)}</p><p style="color:#6b7280;font-size:12px">PLP Registrar · Project TRACE</p></td></tr></table></td></tr></table></body></html>`;
 }
 
-async function sendEmail(to, subject, text, { action } = {}) {
+async function sendEmail(to, subject, text, { action, requestId, purpose } = {}) {
+  const report = result => logEmailOutcome(result, { requestId, purpose });
   if (!isEmailConfigured()) {
-    return {
+    return report({
       ok: false,
       skipped: true,
+      outcome: 'unconfigured',
       reason: 'Email is not configured (set SMTP_HOST, SMTP_USER and SMTP_PASS in backend/.env).',
-    };
+    });
   }
   if (!to) {
-    return { ok: false, skipped: true, reason: 'No email address on file for this recipient.' };
+    return report({ ok: false, skipped: true, outcome: 'missing_recipient', reason: 'No email address on file for this recipient.' });
   }
 
   try {
@@ -193,18 +200,21 @@ async function sendEmail(to, subject, text, { action } = {}) {
         html = `<html><body style="font-family:${template.font_family};font-size:${template.font_size}"><h1>TRACE</h1>${templates.render(template.content, { SUBJECT: subject, MESSAGE: text }, true, action)}<p>PLP Registrar · Project TRACE</p></body></html>`;
       }
     } catch { /* Retain the branded default when template configuration is unavailable. */ }
-    await transporter.sendMail({
+    const info = await transporter.sendMail({
       from: `"TRACE Registrar" <${env.SMTP_FROM || env.SMTP_USER}>`,
       to,
       subject: 'TRACE: ' + subject,
       text,
       html,
     });
-    console.log(`✅ [Email] Email dispatched to ${to}`);
-    return { ok: true };
+    const diagnostics = {
+      accepted_count: Array.isArray(info?.accepted) ? info.accepted.length : 0,
+      rejected_count: Array.isArray(info?.rejected) ? info.rejected.length : 0,
+    };
+    if (!diagnostics.accepted_count) return report({ ok: false, outcome: 'smtp_rejected', diagnostics, reason: 'SMTP did not accept a recipient.' });
+    return report({ ok: true, outcome: 'smtp_accepted', diagnostics });
   } catch (err) {
-    console.error(`❌ [Email] Failed to send to ${to}: ${err.message}`);
-    return { ok: false, reason: err.message };
+    return report({ ok: false, outcome: 'smtp_failed', diagnostics: errorDetails(err), reason: 'Email could not be submitted to SMTP. Check the safe server diagnostics.' });
   }
 }
 

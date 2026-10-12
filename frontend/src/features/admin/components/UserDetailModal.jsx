@@ -1,6 +1,7 @@
+import Button from '@/components/Button';
 import ModalShell from '@/components/ModalShell';
 import UserAvatar from '@/components/UserAvatar';
-import FileUploadField from '@/components/FileUploadField';
+import RegistrationProof from '@/components/RegistrationProof';
 import { getUserLabel } from '@/utils/userLabels';
 import StaffAuthenticatorSetup from '@/features/admin/components/StaffAuthenticatorSetup';
 import RegistrationReviewNotice from '@/components/RegistrationReviewNotice';
@@ -21,7 +22,7 @@ function Field({ label, value }) {
  * Renders identically from both AdminDashboard (view-only — no onEdit/
  * onToggleActive passed) and MaintenancePanel (full staff mutation).
  */
-export default function UserDetailModal({ open, onClose, user, onEdit, onToggleActive, saving, viewerId }) {
+export default function UserDetailModal({ open, onClose, user, onEdit, onToggleActive, saving, viewerId, onCorrectStudyYears }) {
   if (!user) return null;
 
   const isStudent = user.role === 'student';
@@ -40,30 +41,31 @@ export default function UserDetailModal({ open, onClose, user, onEdit, onToggleA
       footer={
         <div className="space-y-3">
           <div className="flex flex-col sm:flex-row gap-3">
-            {onEdit && <button
+            {isStudent && onCorrectStudyYears && <Button type="button" onClick={onCorrectStudyYears} className="trace-button trace-button-info flex-1">Correct Study Years</Button>}
+            {onEdit && <Button
               type="button"
               onClick={onEdit}
               disabled={mutationDisabled || saving}
-              className="flex-1 px-5 py-3 rounded-2xl text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white shadow-sm disabled:opacity-50 transition-colors"
+              className="trace-button trace-button-info flex-1"
             >
               Edit User
-            </button>}
-            {onToggleActive && <button
+            </Button>}
+            {onToggleActive && <Button
               type="button"
               onClick={onToggleActive}
               disabled={isStudent || !onToggleActive || isSelf || saving}
               title={isSelf ? 'You cannot deactivate your own account' : ''}
-              className={`flex-1 px-5 py-3 rounded-2xl text-xs font-bold border transition-colors disabled:opacity-50 ${user.is_active ? 'border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 hover:bg-red-50 dark:hover:bg-red-950/40' : 'border-green-200 dark:border-green-800 text-green-700 dark:text-green-300 hover:bg-green-50 dark:hover:bg-green-950/40'}`}
+              className={`trace-button flex-1 ${user.is_active ? 'trace-button-danger' : 'trace-button-primary'}`}
             >
               {user.is_active ? 'Deactivate User' : 'Restore User'}
-            </button>}
-            <button
+            </Button>}
+            <Button
               type="button"
               onClick={onClose}
-              className="flex-1 px-5 py-3 rounded-2xl text-xs font-bold text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"
+              className="trace-button trace-button-secondary flex-1"
             >
               Close
-            </button>
+            </Button>
           </div>
         </div>
       }
@@ -109,16 +111,18 @@ export default function UserDetailModal({ open, onClose, user, onEdit, onToggleA
           <Field label="Home Address" value={user.home_address} />
           <Field label="Enrollment Status" value={user.enrollment_status} />
           <Field label="Study Load" value={user.study_load} />
+          <Field label="Year Started" value={user.year_started} />
+          <Field label="PLP/College Year Graduated" value={user.graduation_year} />
           <Field label="Last Attendance Year" value={user.last_attendance_year} />
           <Field label="Transfer Student" value={user.is_transfer_student ? 'Yes' : 'No'} />
           <Field label="Previous School" value={user.previous_school} />
           <Field label="Elementary School" value={user.elem_school} />
-          <Field label="Elementary Graduation" value={user.elem_grad_year} />
+          <Field label="Elementary Year Graduated" value={user.elem_grad_year} />
           <Field label="Junior High School" value={user.jhs_school} />
-          <Field label="Junior High Graduation" value={user.jhs_grad_year} />
+          <Field label="Junior High Year Graduated" value={user.jhs_grad_year} />
           <Field label="Senior High School" value={user.shs_school} />
-          <Field label="Senior High Graduation" value={user.shs_grad_year} />
-          <FileUploadField label="Registration identity proof" path={user.id_proof_path} allowReplace={false} />
+          <Field label="Senior High Year Graduated" value={user.shs_grad_year} />
+          <RegistrationProof path={user.id_proof_path} />
         </>}
       </div>
     </ModalShell>

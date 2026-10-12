@@ -1,6 +1,10 @@
 const reportModel = require('../models/report.model');
+const userModel = require('../models/user.model');
+const { STATUS } = require('../utils/documentStatus');
 const { toCsv, csvFilename } = require('../utils/csv');
 const { badRequest, forbidden } = require('../utils/AppError');
+const filterService = require('./reportFilters.service');
+const { documentCsv } = require('../utils/reportCsv');
 
 /**
  * Reporting, CSV export and efficiency analytics.
@@ -12,7 +16,7 @@ const { badRequest, forbidden } = require('../utils/AppError');
 
 const EXPORT_BUCKETS = ['active', 'alumni', 'others', 'all'];
 
-/** Staff-only: these views span every student's records. */
+/** Staff-only; Secretary record queries additionally require a college scope. */
 function assertStaff(user) {
   if (!user || (user.role !== 'admin' && user.role !== 'clerk')) {
     throw forbidden('Access denied.');
@@ -26,15 +30,19 @@ function num(value) {
 }
 
 /** Reject a malformed date rather than silently returning the whole table. */
-function validateDates({ dateFrom, dateTo }) {
-  for (const [label, value] of [['dateFrom', dateFrom], ['dateTo', dateTo]]) {
-    if (value && Number.isNaN(Date.parse(value))) {
-      throw badRequest(`Invalid ${label}. Use YYYY-MM-DD.`);
-    }
-  }
-  if (dateFrom && dateTo && new Date(dateFrom) > new Date(dateTo)) {
-    throw badRequest('dateFrom must be on or before dateTo.');
-  }
+function validateDates({ dateFrom, dateTo }) { filterService.dateRange(dateFrom, dateTo); }
+const secretaryScope = filterService.secretaryScope;
+
+async function documentFilters(user, query) {
+  filterService.validateDocumentState(query);
+  if (query.recordSet && query.recordSet !== 'secretary-cleared') throw badRequest('Unknown records filter.');
+  if (query.recordSet && query.status) throw badRequest('Choose either a records filter or a single status.');
+  return {
+    dateFrom: query.dateFrom, dateTo: query.dateTo, status: query.status,
+    ...(query.recordSet ? { statuses: [STATUS.READY_FOR_RELEASE, STATUS.COMPLETED] } : {}),
+    documentType: query.documentType, paymentStatus: query.paymentStatus, studentId: query.studentId,
+    ...await filterService.identity(user, query),
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -49,14 +57,7 @@ async function getDocumentReport(user, query = {}) {
   assertStaff(user);
   validateDates(query);
 
-  const filters = {
-    dateFrom: query.dateFrom,
-    dateTo: query.dateTo,
-    status: query.status,
-    documentType: query.documentType,
-    paymentStatus: query.paymentStatus,
-    studentId: query.studentId,
-  };
+  const filters = await documentFilters(user, query);
 
   const page = Math.max(parseInt(query.page) || 1, 1);
   const limit = Math.min(Math.max(parseInt(query.limit) || 100, 1), 1000);
@@ -110,34 +111,23 @@ const STUDENT_COLUMNS = [
   { key: 'created_at', label: 'Registered On' },
 ];
 
-const DOCUMENT_COLUMNS = [
-  { key: 'tracking_number', label: 'Tracking Number' },
-  { key: 'request_group_id', label: 'Request Group' },
-  { key: 'student_id', label: 'Student ID' },
-  { key: 'student_name', label: 'Student Name' },
-  { key: 'course', label: 'College' },
-  { key: 'document_type', label: 'Document Type' },
-  { key: 'current_status', label: 'Status' },
-  { key: 'payment_status', label: 'Payment' },
-  { key: 'amount', label: 'Amount' },
-  { key: 'copies', label: 'Copies' },
-  { key: 'created_at', label: 'Requested On' },
-  { key: 'updated_at', label: 'Last Updated' },
-];
-
 /**
  * Students in one bucket, as CSV.
  *
  * @param {string} bucket 'active' | 'alumni' | 'others' | 'all'
  * @returns {{filename: string, csv: string, rowCount: number}}
  */
-async function exportStudentsCsv(user, bucket = 'all') {
+async function exportStudentsCsv(user, bucket = 'all', query = {}) {
   assertStaff(user);
   if (!EXPORT_BUCKETS.includes(bucket)) {
     throw badRequest(`Unknown category. Use one of: ${EXPORT_BUCKETS.join(', ')}.`);
   }
 
-  const rows = await reportModel.listStudentsForExport(bucket);
+  const scope = await filterService.identity(user, {studentId:query.studentId,studentName:query.studentName,collegeId:query.collegeId});
+  const activeScope = Object.fromEntries(Object.entries(scope).filter(([,value])=>value !== undefined));
+  const rows = Object.keys(activeScope).length
+    ? await reportModel.listStudentsForExport(bucket, undefined, activeScope)
+    : await reportModel.listStudentsForExport(bucket);
   return {
     filename: csvFilename(`students-${bucket}`),
     csv: toCsv(STUDENT_COLUMNS, rows),
@@ -150,21 +140,15 @@ async function exportDocumentsCsv(user, query = {}) {
   assertStaff(user);
   validateDates(query);
 
-  const filters = {
-    dateFrom: query.dateFrom,
-    dateTo: query.dateTo,
-    status: query.status,
-    documentType: query.documentType,
-    paymentStatus: query.paymentStatus,
-  };
+  const filters = await documentFilters(user, query);
 
   // Export is capped rather than unbounded, so one click can't try to serialise
   // the entire table into memory.
-  const rows = await reportModel.listDocumentsForReport(filters, { limit: 10000, offset: 0 });
-  rows.forEach(r => { if (r.amount !== undefined) r.amount = '₱' + Number(r.amount).toFixed(2); });
+  const rows = await reportModel.listDocumentsForReport(filters, { limit: 10001, offset: 0 });
+  if (rows.length > 10000) throw badRequest('More than 10,000 documents match. Narrow the filters before exporting.');
   return {
     filename: csvFilename('documents-report'),
-    csv: toCsv(DOCUMENT_COLUMNS, rows),
+    csv: documentCsv(rows),
     rowCount: rows.length,
   };
 }

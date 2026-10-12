@@ -22,6 +22,22 @@ router.get('/messages/threads', authenticate, documentsController.messageThreads
 const financeController = require('../controllers/finance.controller');
 router.get('/finance/transactions', authenticate, financeController.transactions);
 router.get('/finance/transactions/export', authenticate, financeController.exportTransactions);
+const receiptController = require('../controllers/receiptPack.controller');
+const receiptAuth = [authenticate, receiptController.authorize];
+router.get('/finance/receipt-packs', ...receiptAuth, receiptController.state);
+router.post('/finance/receipt-packs/preview', ...receiptAuth, receiptController.preview);
+router.post('/finance/receipt-packs', ...receiptAuth, receiptController.configure);
+router.get('/finance/receipt-history', ...receiptAuth, receiptController.history);
+router.put('/finance/receipt-print-settings', ...receiptAuth, receiptController.savePrint);
+router.get('/finance/receipts/:receiptId', ...receiptAuth, receiptController.get);
+router.post('/finance/receipts/:receiptId/print', ...receiptAuth, receiptController.print);
+router.post('/finance/receipts/:receiptId/void', ...receiptAuth, receiptController.void);
+router.post('/finance/receipts/:receiptId/copy', ...receiptAuth, require('../middlewares/upload.middleware').receiptUpload.single('officialReceipt'), receiptController.upload);
+router.post('/finance/:documentId/issue-receipt', ...receiptAuth, receiptController.issue);
+router.get('/:id/detail', authenticate, documentsController.detail);
+router.get('/:id/assignment', authenticate, documentsController.assignmentContext);
+router.post('/:id/assignment', authenticate, documentsController.reassign);
+router.put('/:id/routing-college', authenticate, documentsController.reconcileCollege);
 
 // Public tracking lookup (no auth — students track by tracking number).
 router.get('/:trackingNumber', documentsController.track);
@@ -49,11 +65,12 @@ router.post('/:id/verify-or', authenticate, documentsController.verifyOfficialRe
 router.post('/:id/handoff', authenticate, documentsController.handoff);
 router.post('/:id/release', authenticate, documentsController.release);
 router.get('/:id/messages', authenticate, documentsController.getMessages);
-router.post('/:id/messages', authenticate, documentsController.sendMessage);
+router.post('/:id/messages', authenticate, require('../middlewares/legacyMessaging.middleware').readOnly);
 router.delete('/:id', authenticate, documentsController.cancel);
 
 const attachments = require('../controllers/requestAttachments.controller');
 router.get('/:id/attachments', authenticate, attachments.list);
+router.get('/:id/attachments/:requirementId/history', authenticate, attachments.history);
 router.post('/:id/attachments', authenticate, attachments.request);
 router.post('/:id/attachments/:requirementId/upload', authenticate, pertinentUpload.single('attachment'), attachments.upload);
 router.post('/:id/attachments/:requirementId/review', authenticate, attachments.review);

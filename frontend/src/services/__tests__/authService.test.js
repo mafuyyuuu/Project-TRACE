@@ -1,5 +1,5 @@
 import api from '@/services/api';
-import { login, verify2FA } from '@/services/authService';
+import { forgotPassword, login, verify2FA } from '@/services/authService';
 import { beforeEach, expect, it, vi } from 'vitest';
 vi.mock('@/services/api', () => ({ default: { post: vi.fn() } }));
 
@@ -26,4 +26,9 @@ it('passes the OTP challenge and explicit trust choice to verification', async (
   const payload = { temp_token: 'synthetic-challenge', otp: '123456', trust_browser: true };
   await verify2FA(payload);
   expect(api.post).toHaveBeenCalledExactlyOnceWith('/auth/verify-2fa', payload);
+});
+
+it('bounds the forgot-password wait while preserving its identifier payload', async () => {
+  await forgotPassword('FINANCE001');
+  expect(api.post).toHaveBeenCalledExactlyOnceWith('/auth/forgot-password', { identifier: 'FINANCE001' }, { timeout: 60000 });
 });

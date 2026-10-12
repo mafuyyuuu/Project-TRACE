@@ -31,7 +31,6 @@ export default function useAdminDashboard(user, currentTab, reviewAccountId, rev
   const [adminDocFilter, setAdminDocFilter] = useState('All');
   const [forecastFilter, setForecastFilter] = useState('All');
   const [adminUsers, setAdminUsers] = useState([]);
-  const [adminUsersFilter, setAdminUsersFilter] = useState('');
   const [adminUsersRoleFilter, setAdminUsersRoleFilter] = useState('All');
   const [adminLogs, setAdminLogs] = useState([]);
 
@@ -45,15 +44,10 @@ export default function useAdminDashboard(user, currentTab, reviewAccountId, rev
   const filteredAdminUsers = useMemo(
     () =>
       adminUsers.filter((u) => {
-        const q = adminUsersFilter.toLowerCase();
-        const matchesSearch =
-          u?.full_name?.toLowerCase().includes(q) ||
-          u?.student_id?.toLowerCase().includes(q) ||
-          u?.email?.toLowerCase().includes(q);
         const matchesRole = adminUsersRoleFilter === 'All' || u.role === adminUsersRoleFilter;
-        return matchesSearch && matchesRole;
+        return matchesRole;
       }),
-    [adminUsers, adminUsersFilter, adminUsersRoleFilter]
+    [adminUsers, adminUsersRoleFilter]
   );
 
   /**
@@ -122,13 +116,13 @@ export default function useAdminDashboard(user, currentTab, reviewAccountId, rev
     setStudentVerifyToConfirm({ student, action });
   }, []);
 
-  const confirmAdminVerifyStudent = useCallback(async (decision) => {
+  const confirmAdminVerifyStudent = useCallback(async (decision, evidenceBasis) => {
     if (!studentVerifyToConfirm) return;
     const { student } = studentVerifyToConfirm;
     const action = decision || studentVerifyToConfirm.action;
     if (!['verify', 'reject'].includes(action)) return;
 
-    const ok = await runAction(() => verifyStudent(student.id, action), {
+    const ok = await runAction(() => verifyStudent(student.id, action, evidenceBasis), {
       successMessage: `Student account registration successfully ${
         action === 'verify' ? 'verified' : 'rejected'
       }.`,
@@ -158,7 +152,7 @@ export default function useAdminDashboard(user, currentTab, reviewAccountId, rev
     adminDocPage: pagination.page, setAdminDocPage,
     adminDocFilter, setAdminDocFilter,
     forecastFilter, setForecastFilter,
-    adminUsers, adminUsersFilter, setAdminUsersFilter,
+    adminUsers,
     adminUsersRoleFilter, setAdminUsersRoleFilter,
     filteredAdminUsers,
     selectedUser, setSelectedUser,

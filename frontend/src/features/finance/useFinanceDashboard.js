@@ -1,8 +1,8 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import useDashboardCore from '@/hooks/useDashboardCore';
-import { verifyPayment, logWalkInPayment, scanReceipt, uploadDeferredOR } from '@/services/documentsService';
+import { verifyPayment, logWalkInPayment, scanReceipt } from '@/services/documentsService';
 import { getPaymentMethods } from '@/services/referenceService';
-import { STATUS, PIPELINE } from '@/utils/documentStatus';
+import { STATUS } from '@/utils/documentStatus';
 
 /**
  * Finance clerk: the desk money passes through, in two queues.
@@ -37,7 +37,7 @@ export default function useFinanceDashboard(user) {
   // Walk-in logging: what the clerk reads off the Official Receipt.
   const [orNumber, setOrNumber] = useState('');
   const [orDate, setOrDate] = useState('');
-  const [counterDeferred, setCounterDeferred] = useState(false);
+  const [counterDeferred, setCounterDeferred] = useState(true);
   const [orFile, setOrFile] = useState(null);
   const [scanning, setScanning] = useState(false);
   const [scanConfidence, setScanConfidence] = useState(null);
@@ -54,21 +54,6 @@ export default function useFinanceDashboard(user) {
     [documents]
   );
 
-  const transactionsQueue = useMemo(
-    () => documents.filter((doc) =>
-      PIPELINE.slice(PIPELINE.indexOf(STATUS.PAID_PENDING_SEC_RELEASE)).includes(doc.current_status)),
-    [documents]
-  );
-
-  const handleDeferredUpload = useCallback(async (doc, file, metadata) => {
-    const ok = await runAction(() => uploadDeferredOR(doc.id, file, metadata), {
-      successMessage: 'Official Receipt copy uploaded. The document stage is unchanged.',
-      errorMessage: 'Could not upload the Official Receipt copy.',
-    });
-    if (ok) setActiveModal(null);
-    return ok;
-  }, [runAction, setActiveModal]);
-
   /**
    * @param {'approve'|'reject'} action
    * @param {File} [file] optional official receipt to attach
@@ -77,24 +62,25 @@ export default function useFinanceDashboard(user) {
   const handleFinanceVerify = useCallback(
     (action, file, orNumber, metadata = {}) => {
       if (!selectedDoc) return;
-      setFinanceVerifyToConfirm({ action, file, orNumber, ...metadata });
+      setFinanceVerifyToConfirm({ documentId:selectedDoc.id, documentType:selectedDoc.document_type, notes:clerkNotes, action, file, orNumber, ...metadata });
     },
-    [selectedDoc]
+    [selectedDoc,clerkNotes]
   );
 
   const confirmFinanceVerify = useCallback(async () => {
     if (!financeVerifyToConfirm) return;
-    const { action, file, orNumber, orDate, deferred } = financeVerifyToConfirm;
+    const { documentId, notes, action, file, orNumber, orDate, deferred, usePack, ...packMetadata } = financeVerifyToConfirm;
 
     const formData = new FormData();
     formData.append('action', action);
-    formData.append('notes', clerkNotes);
+    formData.append('notes', notes);
+    if(usePack){formData.append('use_pack','true');for(const field of ['expected_pack_id','expected_serial','payor_name','client_key'])formData.append(field,packMetadata[field]);}
     if (deferred) formData.append('defer_or', 'true');
     if (orDate) formData.append('or_date', orDate);
     if (orNumber) formData.append('or_number', orNumber);
     if (file) formData.append('officialReceipt', file);
 
-    const ok = await runAction(() => verifyPayment(selectedDoc.id, formData), {
+    const ok = await runAction(() => verifyPayment(documentId, formData), {
       successMessage: `Payment reference successfully ${action === 'approve' ? 'approved' : 'rejected'}.`,
       errorMessage: 'Verification action failed.',
     });
@@ -104,7 +90,7 @@ export default function useFinanceDashboard(user) {
       setClerkNotes('');
       setFinanceVerifyToConfirm(null);
     }
-  }, [financeVerifyToConfirm, selectedDoc, clerkNotes, runAction, setActiveModal]);
+  }, [financeVerifyToConfirm, runAction, setActiveModal]);
 
   const cancelFinanceVerify = useCallback(() => {
     setFinanceVerifyToConfirm(null);
@@ -198,8 +184,6 @@ export default function useFinanceDashboard(user) {
     ...core,
     awaitingPaymentQueue,
     verificationQueue,
-    transactionsQueue,
-    handleDeferredUpload,
     clerkNotes, setClerkNotes,
     counterDeferred, setCounterDeferred,
     orNumber, setOrNumber,

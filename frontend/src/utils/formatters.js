@@ -25,12 +25,16 @@ export function getRelativeTime(dateStr) {
 }
 
 /** Elapsed wait time without the "ago" suffix, for queue tables. */
-export function getWaitTime(dateStr) {
+export function getWaitTime(dateStr, now = Date.now()) {
   if (!dateStr) return '—';
-  const diff = Math.round((Date.now() - new Date(dateStr).getTime()) / 60000);
+  const timestamp = new Date(dateStr).getTime();
+  if (!Number.isFinite(timestamp) || !Number.isFinite(now)) return '—';
+  const diff = Math.floor(Math.max(0, now - timestamp) / 60000);
   if (diff < 1) return '< 1 min';
   if (diff < 60) return `${diff} min${diff > 1 ? 's' : ''}`;
-  return `${Math.floor(diff / 60)} hr${Math.floor(diff / 60) > 1 ? 's' : ''}`;
+  if (diff < 1440) return `${Math.floor(diff / 60)} hr${Math.floor(diff / 60) > 1 ? 's' : ''}`;
+  if (diff < 10080) return `${Math.floor(diff / 1440)} day${Math.floor(diff / 1440) > 1 ? 's' : ''}`;
+  return `${Math.floor(diff / 10080)} week${Math.floor(diff / 10080) > 1 ? 's' : ''}`;
 }
 
 /** Minutes → a readable duration, since a desk can hold a document for days. */

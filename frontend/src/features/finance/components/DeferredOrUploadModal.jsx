@@ -1,3 +1,4 @@
+import Button from '@/components/Button';
 import { INPUT_LIMITS } from '@/utils/inputLimits';
 import FileUploadField from '@/components/FileUploadField';
 import { useState } from 'react';
@@ -8,7 +9,7 @@ export default function DeferredOrUploadModal({
   selectedDoc,
   setActiveModal,
   handleDeferredUpload,
-  actionLoading
+  actionLoading, uploadProgress
 }) {
   const [orFile, setOrFile] = useState(null);
   const [fileToConfirm, setFileToConfirm] = useState(null);
@@ -24,15 +25,15 @@ export default function DeferredOrUploadModal({
 
   return (
     <>
-    <ModalShell open={true} onClose={() => setActiveModal(null)} title="Upload Deferred OR"
+    <ModalShell open={true} onClose={() => setActiveModal(null)} title="Attach Official Receipt Copy" closeOnBackdrop={!actionLoading} closeOnEsc={!actionLoading}
       footer={
         <div className="flex flex-col sm:flex-row justify-end gap-3">
-          <button type="button" disabled={actionLoading} onClick={() => setActiveModal(null)}
-            className="px-4 py-2 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 text-xs font-bold">Cancel</button>
-          <button type="submit" form="deferred-or-form" disabled={actionLoading || !orFile}
-            className="px-4 py-2 bg-[#15803d] hover:bg-[#166534] text-white rounded-xl text-xs font-bold disabled:opacity-50">
+          <Button type="button" disabled={actionLoading} onClick={() => setActiveModal(null)}
+            className="trace-action px-4 py-2 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 text-xs font-bold">Cancel</Button>
+          <Button type="submit" form="deferred-or-form" disabled={actionLoading || !orFile}
+            className="trace-button trace-button-primary">
             {actionLoading ? 'Uploading...' : 'Upload Receipt'}
-          </button>
+          </Button>
         </div>
       }>
       <form id="deferred-or-form" onSubmit={handleSubmit} className="space-y-6">
@@ -43,16 +44,17 @@ export default function DeferredOrUploadModal({
         {!selectedDoc.or_number && <>
           <p className="text-sm">Issue the actual OR, upload its copy, and send it to Secretary for release with the document.</p>
           {selectedDoc.or_earliest_issue_date && <p className="text-sm">Earliest eligible issue date: {selectedDoc.or_earliest_issue_date}. This is not a promised deadline.</p>}
-          <label className="block text-sm font-semibold">OR number<input required maxLength={INPUT_LIMITS.receiptNumber} value={orNumber} onChange={e => setOrNumber(e.target.value)} className="block w-full border rounded-xl p-3 bg-transparent" /></label>
-          <label className="block text-sm font-semibold">Actual issue date (Manila)<input required type="date" value={orDate} onChange={e => setOrDate(e.target.value)} className="block w-full border rounded-xl p-3 bg-transparent" /></label>
+          <label className="trace-label block">OR number<input required maxLength={INPUT_LIMITS.receiptNumber} value={orNumber} onChange={e => setOrNumber(e.target.value)} className="trace-control block w-full" /></label>
+          <label className="trace-label block">Actual issue date (Manila)<input required type="date" value={orDate} onChange={e => setOrDate(e.target.value)} className="trace-control block w-full" /></label>
         </>}
         <div className="flex flex-col gap-2">
-          <label htmlFor="deferred-or-file" className="text-[10px] font-bold text-gray-800 dark:text-gray-100 uppercase tracking-widest">
+          <label htmlFor="deferred-or-file" className="trace-label">
             Official POS Receipt
           </label>
-          <FileUploadField id="deferred-or-file" label="Official Receipt scan" file={orFile} path={selectedDoc?.official_receipt_path} onChange={setOrFile} disabled={actionLoading} />
+          <FileUploadField maxBytes={5 * 1024 * 1024} accept="image/jpeg,image/png,application/pdf" id="deferred-or-file" label="Official Receipt scan" file={orFile} path={selectedDoc?.official_receipt_path} onChange={setOrFile} disabled={actionLoading} />
         </div>
 
+        {actionLoading && <p role="status">{uploadProgress == null ? 'Publishing receipt…' : uploadProgress<100 ? `Uploading ${uploadProgress}%` : 'Upload sent; saving receipt…'}</p>}
       </form>
     </ModalShell>
     <ConfirmDialog open={!!fileToConfirm} title="Upload Official Receipt Copy"

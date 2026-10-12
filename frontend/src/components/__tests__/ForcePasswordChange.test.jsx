@@ -49,7 +49,7 @@ describe('ForcePasswordChange', () => {
 
   it('states the length requirement up front', () => {
     setup();
-    expect(screen.getByText(/At least 8 characters/i)).toBeInTheDocument();
+    expect(screen.getByText(/at least 8 and no more than 64 characters/i)).toBeInTheDocument();
   });
 
   it('rejects mismatched confirmation', async () => {
@@ -64,13 +64,13 @@ describe('ForcePasswordChange', () => {
 
   it('submits the new password and signals completion', async () => {
     const { user, onChanged } = setup();
-    await user.type(screen.getByLabelText('New Password'), 'Goodpassword1!');
-    await user.type(screen.getByLabelText('Confirm Password'), 'Goodpassword1!');
+    await user.type(screen.getByLabelText('New Password'), 'Goodpassword1_');
+    await user.type(screen.getByLabelText('Confirm Password'), 'Goodpassword1_');
     await user.click(screen.getByRole('button', { name: /set password/i }));
     expect(updateProfile).not.toHaveBeenCalled();
     await user.click(screen.getByRole('button', { name: 'Change Password' }));
 
-    await waitFor(() => expect(updateProfile).toHaveBeenCalledWith({ password: 'Goodpassword1!', current_password: 'temporary-password' }));
+    await waitFor(() => expect(updateProfile).toHaveBeenCalledWith({ password: 'Goodpassword1_', current_password: 'temporary-password' }));
     expect(onChanged).toHaveBeenCalled();
     expect(localStorage.getItem('trace_token')).toBe('replacement-token');
   });

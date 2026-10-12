@@ -363,12 +363,15 @@ VITE_API_URL=
 mysql -u root -p -e "CREATE DATABASE trace_db;"
 mysql -u root -p trace_db < backend/database/schema.sql
 mysql -u root -p trace_db < backend/database/seed.sql
-node backend/database/migration.js
+node backend/database/check_schema.js
 ```
 
-`migration.js` reads `backend/.env` through the same `env.js`, so it must be filled in first. Run it
-**after** the seed — the seven per-college secretaries (`SEC-CCS001` … `SEC-CBA001`) are created by
-the migration, not by `seed.sql`.
+These commands are for a fresh isolated local database only. The current schema already defines
+the required fields, and `seed.sql` includes all seven demo Secretary accounts. The read-only
+preflight reads `backend/.env`, which must be configured first. Admin must configure the approved
+college/program catalogs and staff assignments. For an existing database, use
+[the preserving rollout](MIGRATION_ROLLOUT.md) instead of importing schema/seed or running the
+broad historical migration, which can rewrite existing desk assignments and catalog policy.
 
 ### 6.4 n8n (standalone container)
 
@@ -450,12 +453,14 @@ to `0` (nothing proxies you locally), and `API_DOMAIN`/`ACME_EMAIL` are unused u
 ```bash
 docker compose config --quiet        # silent = valid; complains = a required secret is missing
 docker compose up -d --build
-docker compose exec backend node database/migration.js
+docker compose exec backend node database/check_schema.js
 ```
 
 `schema.sql` and `seed.sql` run automatically the first time the MySQL volume is created (via
 `/docker-entrypoint-initdb.d`, which only fires on an empty data directory, so it never re-runs
-against real data). The migration adds everything since.
+against real data). This recipe is for an empty local installation with demo accounts; the
+read-only checker confirms required field presence. Existing installations need only the
+reviewed missing preserving migrations in [the consolidated ledger](DEPLOYMENT_CHECKLIST.md).
 
 > Running the standalone n8n container from §6.4? It holds port 5678 and the compose one won't start.
 > `docker stop n8n` first.
@@ -518,6 +523,15 @@ SMTP_FROM=your.address@gmail.com
 `VITE_API_URL` in this file applies **only** to the optional `local-frontend` compose profile (a
 single-box deployment where nginx also serves the SPA). With Vercel hosting the frontend it stays
 blank — the Vercel dashboard value is the one that counts.
+
+With `--profile local-frontend` and blank `VITE_API_URL`, Nginx forwards `/api` and `/socket.io`
+to `backend:3300`, retaining authentication, query strings, upload bodies and WebSocket upgrades.
+The application enforces its per-file limits; the proxy streams uploads without imposing a
+separate aggregate file limit. Set the backend's `FRONTEND_URL` to the intended browser origin
+when using an allowlist and retain the correct proxy-hop count (one for this Nginx path).
+Rebuild/recreate the frontend image to load Nginx changes; changing build arguments also requires
+a rebuild. Verify `/api/health` returns JSON through port 8080 and the authenticated Socket.IO
+connection upgrades successfully. Vercel's separate build-time API origin is unaffected.
 
 ### 8.3 In Vercel
 
@@ -584,12 +598,13 @@ docker compose config | grep -A3 DB_SSL_CA
 ### Schema on a managed database
 
 The `/docker-entrypoint-initdb.d` auto-seed only applies to the bundled container. On a managed
-database you load the schema yourself, then migrate:
+empty database you load the schema yourself, then run the read-only preflight. The following seed
+is for an isolated demo only; do not seed a live institutional database with public demo accounts:
 
 ```bash
 mysql -h <DB_HOST> -P <DB_PORT> -u <DB_USER> -p --ssl-mode=REQUIRED trace_db < backend/database/schema.sql
 mysql -h <DB_HOST> -P <DB_PORT> -u <DB_USER> -p --ssl-mode=REQUIRED trace_db < backend/database/seed.sql
-docker compose exec backend node database/migration.js
+docker compose exec backend node database/check_schema.js
 ```
 
 ---
@@ -789,7 +804,7 @@ The image rebuild includes the new migration script. Keep the verified database/
 
 Deploy the corresponding frontend import repair, then verify Admin Security Logs loads and an authorized student lookup succeeds. Check backend logs for missing-table errors. A health response checks connectivity only and does not establish profile lookup success. New Vercel deployment URLs still require the exact origin configuration below; production promotion remains separate.
 
-### Batch 10: Clerk browser-trust deployment
+### Batch 10: Staff browser-trust deployment
 
 After committing and pulling the approved revision into the server checkout, run these commands from its root, one at a time, stopping on failure:
 
@@ -806,10 +821,10 @@ Deploy the matching frontend. No new environment variables are required: keep `V
 
 Live acceptance, using authorized test accounts and without sharing credentials/cookie values:
 
-1. Admin receives OTP every login, including when personal mode is selected.
-2. A clerk in default shared mode always receives OTP and cannot choose browser trust. Shared mode also ignores and clears an earlier personal-browser cookie.
-3. A clerk selects personal mode by unchecking “This is a shared computer”, completes OTP and opts into “Trust this browser for today”. Confirm `trace_mfa_trust` is HttpOnly, host-only, scoped to `/api/auth` and expires at midnight Manila time. The raw value must not appear in JSON or logs.
-4. Ordinary logout, followed by another correct-password login with **personal mode selected again**, skips clerk OTP before expiry. An incorrect password never authenticates. Omitting personal mode intentionally forces OTP.
+1. Admin with an enrolled app receives an unchecked personal-browser trust choice on the app challenge. Admin email challenges remain ineligible.
+2. A clerk or eligible Admin with no current grant receives verification. The public login form has no shared-computer checkbox; Security → Browser verification can forget a grant.
+3. An eligible account checks “This is my personal browser — trust it for today” during verification and completes it successfully. Confirm `trace_mfa_trust` is HttpOnly, host-only, scoped to `/api/auth` and expires at midnight Manila time. The raw value must not appear in JSON or logs.
+4. Ordinary logout followed by correct-password login on the trusted browser skips the factor before expiry. An incorrect password never authenticates. Security’s shared-computer reset clears the preference and proof; an explicit shared-mode API login ignores and clears them.
 5. Missing/cleared/blocked cookie or midnight expiry requires OTP. If privacy rules block cross-site cookies, complete OTP normally; do not disable browser privacy controls. Server expiry uses epoch milliseconds and does not depend on a browser clock.
 6. Password change, password reset and logout-all revoke the old proof and older pending OTP challenges. Existing JWT sessions also expire, including the current one; sign in again. Repeat attempts with old proof/challenge must fail or require OTP. Confirm transaction failures leave credentials unchanged.
 7. Student/alumni optional 2FA is unchanged. Confirm existing new-browser notification recognition still works after full authentication and does not grant MFA trust.
@@ -876,7 +891,7 @@ Use synthetic authorized accounts for acceptance:
 8. Check Preferences at every size, on a narrow and desktop viewport: header wrapping, profile scroll/Save, expanded FAQ answers, table horizontal scroll and chart labels. Reset to 100% and check printing stays unchanged.
 9. Check migration and API logs without posting credentials or real student records. A health response confirms connectivity only; it does not establish real SQL transaction, printed-slip or role-flow acceptance.
 
-The pricing/payment authority split is retained. FIN-01–FIN-05, authenticator enrollment and general Window 1 support remain separate pending scopes. Text-size preferences, FAQ/photo UI and the approved profile-completion repair are implemented locally; live acceptance still requires the matching frontend/backend and explicit migrations.
+The pricing/payment authority split is retained. FIN-01–FIN-05 and authenticator enrollment were implemented in subsequent scopes. General support is now replaced by the unified ticket workspace; use the current Support rollout below. Text-size preferences, FAQ/photo UI and the approved profile-completion repair are implemented locally; live acceptance still requires the matching frontend/backend and explicit migrations.
 
 ## Batch 10 Authenticator, Sessions, Finance and Registrar Policy Rollout
 
@@ -904,13 +919,13 @@ The new tables use CREATE TABLE IF NOT EXISTS. Receipt columns are nullable; old
 Acceptance on the deployed system:
 
 - Every role can open Edit Profile → Security → Authenticator App. Test QR/manual enrollment, confirmation, one-time recovery-code display/download, app login and single-use recovery. Replayed/expired/pending challenges cannot access REST or Socket.IO, and email OTP cannot bypass an enrolled app.
-- Admin challenges each login. Clerk personal-browser trust expires at Manila midnight; a new/shared browser challenges. Enrolled students use app/recovery codes at login. Unenrolled students do not gain a new first-login email OTP requirement from this change.
+- Admin with an enrolled app and clerks can opt into personal-browser trust on their verification screen. Admin using email codes challenges every login. Trust expires at Manila midnight; a new/shared browser challenges. Enrolled students use app/recovery codes at login. Unenrolled students do not gain a new first-login email OTP requirement from this change.
 - Logout revokes this session on the server; a copied old token and its socket stop working. Logout other devices rotates the current session while invalidating other sessions. Staff deactivation stops REST/socket access and sends the owner notice; confirm real SMTP delivery separately.
 - Student messages appear in Window 1's inbox even before a clerk is assigned. Replies return to the owning student. Check notifications, unread counts, polling, stale-tab cancellation, failed sends preserving drafts and successful sends followed by failed refreshes without duplicate drafts.
 - Registrar requests a named attachment from Messages & Attachments; the student confirms a JPG/PNG/PDF upload (10 MB maximum). Review Accept or Request resubmission with notes. Verify other students and Secretaries from another college cannot read or upload the file, and an attachment action does not change the request stage.
 - Non-Honorable-Dismissal requests allow repeats and varying quantities; Honorable Dismissal retains one copy and no second active/completed request. CTC, 2nd Copy of COR, 2nd Copy of OGR and CAV receive a same-day eligibility marker only after the counter clerk checks both original and photocopy. No stage bypass or automatic deadline is implied.
 - At exactly 4:00 PM Manila, Finance must choose Later for a new same-day OR. Payment clearance immediately acknowledges payment; actual OR publication separately sends the digital-copy availability notice and routes to Secretary. On a later eligible day, use the actual number/date and preserve existing numbers. Secretary must inspect an issued OR or explicitly acknowledge physical inspection before handoff.
-- Finance Transactions & Export shows cleared payments once per request group, correct totals, receipt states and elapsed issuance wait. Check populated CSV filters, dates, peso amounts and spreadsheet-formula escaping. Historic unknown clearance times remain clearly unknown.
+- Finance Transactions & OR Copies shows cleared payments once per request group, correct totals, receipt states and elapsed issuance wait. Check populated CSV filters, dates, peso amounts and spreadsheet-formula escaping. Historic unknown clearance times remain clearly unknown.
 - Check 320/375/768/desktop widths, both themes and 100–200% text preferences with populated messages, attachments, Finance tables and authenticator settings. Synthetic browser/mocked tests do not establish real SQL concurrency, mail, cookies or physical-phone acceptance.
 
 The institution has not supplied the delay-notification threshold or an OR service deadline/holiday calendar. Automatic overdue alerts remain on hold. The final continuation below adds signup/email-change links and other reviewed account/document changes to these rollout steps.
@@ -938,6 +953,7 @@ docker compose run --rm --no-deps -T backend node database/migrate_request_attac
 docker compose run --rm --no-deps -T backend node database/migrate_document_messages.js
 docker compose run --rm --no-deps -T backend node database/migrate_templates.js
 docker compose run --rm --no-deps -T backend node database/migrate_program.js
+docker compose run --rm --no-deps -T backend node database/migrate_program_catalog.js
 docker compose run --rm --no-deps -T backend node database/migrate_email_verification.js
 docker compose run --rm --no-deps -T backend node database/migrate_support_messages.js
 docker compose run --rm --no-deps -T backend node database/migrate_request_sequences.js
@@ -1016,3 +1032,91 @@ docker compose run --rm --no-deps -T backend node database/check_schema.js
 ```
 
 Require the passing schema message before following the runtime restart/health instructions above. Do not rerun the whole migration list or import the full schema for this gap. The agent has not executed this SQL on the server.
+
+### Password-reset delivery diagnosis (Oct 5 repair)
+
+The reset account-lock query previously omitted the saved email/name/ID. A matching active account therefore returned the generic 200 response before issuing a token or invoking SMTP. Deploy the repaired backend model/service and updated frontend together after review/merge; rebuild/recreate the backend image. This repair adds no database migration. Docker already sets `NODE_ENV=production`; other production runners must set it too.
+
+Set the first comma-separated `FRONTEND_URL` value to the intended HTTPS frontend origin, with no path, query, fragment, credentials or localhost destination. Missing/unsafe production origins now stop issuance with `invalid_frontend_url` in server logs instead of emailing a localhost link. SMTP credentials remain server-only; Compose reads them from root `.env`, while a directly run backend reads `backend/.env`. Changing Compose environment values requires recreating the container. Do not print or share environment files.
+
+A completed Forgot Password request displays a random **Request reference**. Every outcome uses the same public response shape/message; neither a 200 nor that reference proves an account match or mailbox delivery. Match the reference to `[Password reset]` and `[Email]` records:
+
+```bash
+docker compose logs --since=10m --tail=150 backend
+```
+
+New records contain only reference/purpose/outcome and allowlisted error codes, SMTP command/reply number or recipient counts. They omit identifiers, recipient addresses, message bodies, reset links, token hashes, passwords and raw provider responses. Never enable Nodemailer `debug` for a reset investigation; it can log message content. Sanitise older-version logs before sharing.
+
+| Outcome | Operator action |
+| --- | --- |
+| `account_not_available` | Check the exact saved ID/email and active state privately; also covers an account becoming unavailable under its lock. Do not disclose existence through Forgot Password. |
+| `no_registered_email` | Review the saved active email privately. Email-free staff need Registrar-assisted recovery; a pending address is not the reset destination. |
+| `invalid_frontend_url` | Correct the first production frontend origin and recreate the backend before retrying. |
+| `lookup_failed` / `issuance_failed` | Inspect the safe database error code and reviewed schema/configuration. Run the existing schema check; do not reseed or import the whole schema as a repair. |
+| `unconfigured` | Configure real SMTP host/user/password in the environment used by that runner. |
+| `smtp_failed` + `EAUTH` / 535 | Check sender authentication and the provider's account/security policy. Never paste credentials or the raw provider reply. |
+| `smtp_failed` + `EDNS`, `ECONNECTION`, `ESOCKET` or `ETIMEDOUT` | Check host/port, DNS, server egress and TLS/network availability. Inactivity is bounded: DNS/connect/greeting 10 seconds each; socket 20 seconds. |
+| `smtp_rejected` or `EENVELOPE` / 550-class reply | Check the saved recipient and sender/recipient policy privately. |
+| `smtp_accepted` | The provider accepted submission, not necessarily inbox delivery. Check Spam/Junk, provider delivery records and sender bounce notices. |
+
+The request summary uses `email_not_accepted` for skipped/failed submission; its paired `[Email]` record provides the specific outcome. A 60-second frontend request timeout does not cancel a server send—an email may still arrive. Do not auto-retry; check the inbox and use only the newest one-hour, single-use link. A failure after token storage leaves an undisclosed hash that expires normally; it does not create a public recovery bypass. Reset completion retains account locking, history checks, token consumption and session revocation.
+
+Use a controlled test account/inbox for live acceptance after deployment: submit a student ID, staff ID and saved email; confirm each goes to the active saved address, not a pending address. Verify a newest link once, reject its replay/expiry, and confirm old sessions are revoked. Keep real SMTP acceptance and mailbox arrival as separate checks. Local tests and a synthetic SMTP server do not prove production delivery.
+
+### Registrar-approved Program catalog
+
+Follow [MIGRATION_ROLLOUT.md](MIGRATION_ROLLOUT.md) for the explicit `migrate_program_catalog.js` rollout. It requires existing colleges and users (including the separate `migrate_program.js` column), creates no guessed programs, and preserves saved academic values. Admin enters approved programs under System Maintenance → Programs. Student/alumni Edit Profile → Personal Info uses linked active College and Program/Course choices. Changing College clears the draft program; the API validates membership and saves the reference college id, canonical college display name and canonical program together. Unchanged historical/inactive entries remain readable and do not prevent unrelated saves. Programs have no destructive delete or rename; replace via approved addition and deactivation. No new environment variables.
+
+### Separate college graduation and attendance years
+
+For existing databases, apply `backend/database/migrate_graduation_year.js` from the rebuilt backend image, then `check_schema.js`, before recreating the API. Follow the backup and stopped-writer sequence in [MIGRATION_ROLLOUT.md](MIGRATION_ROLLOUT.md#graduation-year-follow-up). This adds a nullable `student_profiles.graduation_year`; attendance and school records are preserved with no inferred backfill. Alumni enter their confirmed college graduation year to complete their profile. Current students may leave college graduation blank; school graduation years remain required for completion. No new environment variable is needed. Do not import the fresh-install schema into an existing database.
+
+## Unified Support configuration and schema (October 6, 2026)
+
+Use [MIGRATION_ROLLOUT.md](MIGRATION_ROLLOUT.md#support-ticket-rollout) for the matched upgrade. The preserving follow-ups are `migrate_payment_methods.js`, `migrate_password_resets.js`, `migrate_support_tickets.js`, then `migrate_support_requirements.js`; include `migrate_graduation_year.js` if not yet applied. Earlier general/document messaging and request-attachment migrations are prerequisites. Stop writers during legacy import and never re-import the fresh schema into production. Keep the existing MFA key.
+
+`DB_POOL_QUEUE_LIMIT` defaults to 200, validated 1–1000. It bounds queued pool queries, with 10 database connections unchanged. Configure it in root `.env` for Compose or backend `.env` locally; it is documented in both examples. Measured local 100-user results do not establish production capacity. Support hours/calendar/warning/timeout are durable settings edited by Admin or Window 1, not browser timers or environment secrets. Approved FAQ text lives in backend `config/supportFaq.json`; Admin populates the empty supporting-document catalog.
+
+Build both backend (sharp/pdf-lib validators) and AI (support aggregate advice module), apply/check the migrations, start the matching API/AI, then promote the matching frontend. Validate ticket import counts/ownership privately, FCFS claims, timer recovery, protected attachments, read-only cases and role-scoped analytics. [SUPPORT_VALIDATION.md](SUPPORT_VALIDATION.md) separates local evidence from staging/physical-device acceptance.
+
+## Revision 2 Batch 7: alumni missing-proof identity review
+
+Alumni may choose Records / proof unavailable in production as well as local testing. The frontend
+reads `/api/auth/registration-options` (`proof_unavailable_enabled: true`) and hides the option if
+the endpoint is unavailable. No environment flag is needed; the former
+`ALUMNI_PROOF_UNAVAILABLE_DEMO_ENABLED` setting is obsolete and may be removed from existing local
+configuration. Keep `NODE_ENV=production` on the deployed backend.
+
+Applicants must provide their Alumni ID, college, study years and a reason of at most 500
+characters. Missing-proof registration always stays pending and skips OCR/automatic approval.
+Only Admin can decide the application, with recorded identity evidence and decision basis in the
+same transaction as approval/rejection. Current students still require uploaded proof. Approval
+does not remove profile, email-verification or Graduate-application request gates.
+
+This repair uses the existing [alumni study-year migration](MIGRATION_ROLLOUT.md#revision-2-batch-7--alumni-study-years-2026-10-10)
+and adds no migration, dependency or environment variable. The user's cloud output confirms that
+migration is already applied; do not rerun it solely for this repair. Rebuild/recreate the backend
+and publish the matching frontend. An older frontend may still hide the option until updated.
+
+## Revision 2 Batch 8 — intake and college scope
+
+No new environment variables. Existing databases need `node backend/database/migrate_request_intake_scope.js` after the request-attachment and Support-requirement prerequisites, followed by `node backend/database/check_schema.js`, before the matching backend/frontend start. It adds routing snapshots and the explicit intake-block flag without backfilling historical rows. Follow [MIGRATION_ROLLOUT.md](MIGRATION_ROLLOUT.md) for preserving deployment and [README workflow walkthrough](../README.md#main-workflows) for workflows, screenshots and limits. The agent has not run this migration against a live database.
+
+## Revision 2 Batch 9 — Reports & Export
+
+No schema or environment changes in Batch 9. Deploy the matching API/frontend after the previously required migrations. [DEPLOYMENT_CHECKLIST.md](DEPLOYMENT_CHECKLIST.md) is the consolidated migration ledger to review before the final deployment; [README workflow walkthrough](../README.md#main-workflows) records the filter semantics and changed shared CSV contract.
+
+
+## Revision 2 Batch 10 — Support / Messaging UI
+
+Support now follows the main TRACE Figma two-column layout, with aligned readable ticket rows, local search of loaded authorized metadata, contextual linked-case viewing, a labeled confirmed availability switch and a primary Window 1 claim action. Success feedback uses dismissible toasts; failures and confirmations remain in context. The compact widget preserves drafts across close/reopen. Digital evaluation separates discussion into a side panel or a mobile view without discarding either draft. Existing ticket/desk/college authorization, FAQ/reply/requirement actions, service hours and queue assignment remain; no new staff chat connection or unsupported presence/read/unread data is added.
+
+See [README workflow walkthrough](../README.md#main-workflows) for the screenshots, walkthrough and local evidence. Batch 10 adds **no migration or environment variable**; [DEPLOYMENT_CHECKLIST.md](DEPLOYMENT_CHECKLIST.md) tracks required earlier migrations. These are repository changes for dev, not a claim that the live site is updated.
+
+## Revision 2 Batch 11 — deployment requirements
+
+Support Analytics KPI/table changes add no environment variable, dependency or migration. Build the frontend normally against the existing support-report API; no AI rebuild or n8n re-import is needed for this batch. The earlier alumni/intake migrations and all existing support prerequisites remain tracked in [DEPLOYMENT_CHECKLIST.md](DEPLOYMENT_CHECKLIST.md). No live database or deployment action was performed. [Local acceptance](../README.md#main-workflows).
+
+## Additional staff chat connections
+
+No environment variables/dependencies or AI/n8n changes are introduced. Build the matching backend/frontend and apply only missing preserving prerequisites plus `database/migrate_staff_conversations.js`, followed by the read-only schema checker, using [MIGRATION_ROLLOUT.md](MIGRATION_ROLLOUT.md). The [deployment checklist](DEPLOYMENT_CHECKLIST.md) records the new script as unapplied. Existing user/college tables are required; no account or college data is seeded. Confirm actual active staff college assignments and notification delivery on staging. Do not import fresh schema or seed data into an existing server.

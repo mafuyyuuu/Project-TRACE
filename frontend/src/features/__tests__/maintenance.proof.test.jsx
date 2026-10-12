@@ -19,11 +19,18 @@ it('shows the account-list avatar and protected proof when a Maintenance card op
   expect(await screen.findByAltText('Synthetic Student')).toHaveAttribute('src', expect.stringContaining('blob:'));
   fireEvent.click(screen.getByTestId('user-card'));
   const modal = screen.getByRole('dialog', { name: 'Synthetic Student' });
-  expect(await within(modal).findByAltText('Registration identity proof preview')).toHaveAttribute('src', expect.stringContaining('blob:'));
+  expect(await within(modal).findByAltText('Registration Identity Proof preview')).toHaveAttribute('src', expect.stringContaining('blob:'));
   expect(api.get).toHaveBeenCalledWith('/files/avatar-test.jpg', { responseType: 'blob' });
   expect(api.get).toHaveBeenCalledWith('/files/proof-test.jpg', { responseType: 'blob' });
-  expect(within(modal).queryByLabelText('Registration identity proof', { selector: 'input' })).not.toBeInTheDocument();
+  expect(within(modal).queryByLabelText('Registration Identity Proof', { selector: 'input' })).not.toBeInTheDocument();
   expect(within(modal).getByRole('region', { name: 'Registration review reason' })).toHaveTextContent(account.verification_reason);
+  const preview = within(modal).getByRole('button', { name: 'Preview Registration Identity Proof' });
+  preview.focus(); fireEvent.click(preview);
+  const viewer = screen.getByRole('dialog', { name: 'Document preview' });
+  expect(await within(viewer).findByRole('link', { name: 'Download file' })).toHaveAttribute('download', 'proof-test.jpg');
+  fireEvent.keyDown(document, { key: 'Escape' });
+  expect(modal).toBeInTheDocument();
+  expect(preview).toHaveFocus();
 });
 it('labels legacy pending records as unknown rather than inventing an OCR finding', () => {
   render(<UserDetailModal open user={{ ...account, verification_reason: null }} onClose={() => {}} />);

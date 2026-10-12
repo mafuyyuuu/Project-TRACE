@@ -8,9 +8,23 @@ const {
   isTerminal,
   canTransition,
   assertTransition,
+  getStatusCategory,
 } = require('../documentStatus');
 
 const ALL = [...Object.values(STATUS), ...Object.values(LEGACY_STATUS)];
+
+describe('presentation categories do not change the pipeline', () => {
+  it('covers the agreed waiting, processing, release and rejection categories', () => {
+    expect(PIPELINE.map(getStatusCategory)).toEqual(['awaiting', 'awaiting', 'processing', 'awaiting', 'awaiting', 'awaiting', 'processing', 'ready', 'ready']);
+    expect(getStatusCategory(LEGACY_STATUS.APPROVED)).toBe('processing');
+    expect(getStatusCategory(LEGACY_STATUS.REJECTED)).toBe('rejected');
+    expect(getStatusCategory('completed')).toBe('ready');
+    expect(getStatusCategory('some_new_status')).toBe('unknown');
+    expect(getStatusCategory(null)).toBe('unknown');
+    expect(canTransition(LEGACY_STATUS.APPROVED, STATUS.COMPLETED)).toBe(false);
+    expect(canTransition(STATUS.READY_FOR_RELEASE, STATUS.COMPLETED)).toBe(true);
+  });
+});
 
 describe('pipeline shape', () => {
   it('runs from Window 1 intake to completion in nine steps', () => {

@@ -26,7 +26,7 @@ export default function ForecastModal({ open, onClose, forecastData, forecastFil
         <select
           value={forecastFilter}
           onChange={(e) => setForecastFilter(e.target.value)}
-          className="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl px-3 py-1.5 text-xs text-gray-700 dark:text-gray-300 font-bold cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors focus:outline-none focus:border-[#15803d]"
+          className="trace-control cursor-pointer"
         >
           <option value="All">All Documents</option>
           <option value="Transcript of Records">Transcript of Records</option>

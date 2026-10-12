@@ -1,3 +1,4 @@
+import Button from '@/components/Button';
 import { INPUT_LIMITS } from '@/utils/inputLimits';
 import ModalShell from '@/components/ModalShell';
 import ConfirmDialog from '@/components/ConfirmDialog';
@@ -27,8 +28,8 @@ function ApplicationsTable({ applications, onReview, onProfile, emptyMessage }) 
         {applications.map((a) => (
           <tr key={a.id} className="hover:bg-gray-50/30 dark:hover:bg-gray-800/30 group">
             <td className="py-4 pl-4">
-              <button type="button" disabled={!a.student_id} onClick={() => onProfile(a.student_id)}
-                className="font-bold text-blue-700 dark:text-blue-300 hover:underline select-text break-words text-left focus-visible:ring-2 focus-visible:ring-blue-500 disabled:text-gray-500">{a.full_name || 'Unknown'}</button>
+              <Button type="button" disabled={!a.student_id} onClick={() => onProfile(a.student_id)}
+                className="trace-action font-bold text-blue-700 dark:text-blue-300 hover:underline select-text break-words text-left focus-visible:ring-2 focus-visible:ring-blue-500 disabled:text-gray-500">{a.full_name || 'Unknown'}</Button>
               <div className="text-xs font-mono text-gray-400 dark:text-gray-400 mt-0.5 select-text break-words">{a.student_id}</div>
             </td>
             <td className="py-4 text-xs font-bold text-gray-600 dark:text-gray-300">{a.course || '—'}</td>
@@ -47,12 +48,12 @@ function ApplicationsTable({ applications, onReview, onProfile, emptyMessage }) 
               </span>
             </td>
             <td className="py-4 text-right pr-4">
-              <button
+              <Button
                 onClick={() => onReview(a)}
-                className="px-4 py-2 bg-[#15803d] hover:bg-[#166534] text-white rounded-xl text-xs font-bold shadow-sm transition-all ml-auto block"
+                className="trace-button trace-button-primary ml-auto block"
               >
                 Review
-              </button>
+              </Button>
             </td>
           </tr>
         ))}
@@ -108,14 +109,14 @@ export default function GradApplicationReviewPanel({ user, currentTab }) {
   const isDecided = selectedApplication?.status === 'approved' || selectedApplication?.status === 'rejected';
 
   return (
-    <div className="space-y-8 animate-fade-in">
+    <div className="trace-page">
       <StudentProfileModal open={!!viewProfileId} studentId={viewProfileId} onClose={() => setViewProfileId(null)} />
       <DashboardAlerts success={success} error={error} onDismiss={dismissNotification} dismissalKey={activeQueueTab} />
       <div>
-        <h2 className="text-2xl sm:text-3xl font-display font-black text-gray-900 dark:text-gray-100 tracking-tight">
+        <h2 className="trace-page-title">
           Graduate <span className="text-[#15803d] dark:text-green-300">Applications</span>
         </h2>
-        <p className="text-xs text-gray-400 dark:text-gray-400 mt-1 font-semibold">
+        <p className="trace-page-description">
           Review submissions from alumni requesting their Graduate Application.
         </p>
       </div>
@@ -130,7 +131,7 @@ export default function GradApplicationReviewPanel({ user, currentTab }) {
         onChange={setActiveQueueTab}
       />
 
-      <div key={activeQueueTab} className="animate-fade-in bg-white dark:bg-gray-900 rounded-3xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden mt-6">
+      <div key={activeQueueTab} className="trace-section trace-motion-context overflow-hidden mt-6">
         <div className="p-4 sm:p-6">
           <div className="max-h-[calc(100vh-280px)] overflow-y-auto overflow-x-auto">
             <ApplicationsTable
@@ -151,20 +152,20 @@ export default function GradApplicationReviewPanel({ user, currentTab }) {
         footer={
           !isDecided ? (
             <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-              <button
+              <Button
                 onClick={() => stageReview('rejected')}
                 disabled={actionLoading || !notes.trim()}
-                className="w-full sm:w-1/2 py-3 rounded-xl font-bold text-xs shadow-md transition-all text-center uppercase tracking-wider bg-red-600 dark:bg-red-600 hover:bg-red-700 dark:hover:bg-red-700 text-white disabled:opacity-50"
+                className="trace-button trace-button-danger w-full sm:w-1/2 text-center"
               >
                 Reject
-              </button>
-              <button
+              </Button>
+              <Button
                 onClick={() => stageReview('approved')}
                 disabled={actionLoading}
-                className="w-full sm:w-1/2 py-3 rounded-xl font-bold text-xs shadow-md transition-all text-center uppercase tracking-wider bg-[#15803d] hover:bg-[#166534] text-white disabled:opacity-50"
+                className="trace-button trace-button-primary w-full sm:w-1/2 text-center"
               >
                 Approve
-              </button>
+              </Button>
             </div>
           ) : null
         }
@@ -206,7 +207,7 @@ export default function GradApplicationReviewPanel({ user, currentTab }) {
             )}
 
             <div className="flex flex-col gap-1.5 mt-6">
-              <label className="text-[10px] font-bold text-gray-800 dark:text-gray-100 uppercase tracking-widest">
+              <label className="trace-label">
                 Notes <span className="text-gray-400 dark:text-gray-400 normal-case font-semibold">· required to reject</span>
               </label>
               <textarea maxLength={INPUT_LIMITS.notes}
@@ -215,7 +216,7 @@ export default function GradApplicationReviewPanel({ user, currentTab }) {
                 rows={2}
                 disabled={isDecided}
                 placeholder="Add notes (required for rejection)..."
-                className="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-3 text-xs font-semibold focus:ring-2 focus:ring-[#15803d]/20 focus:bg-white dark:focus:bg-gray-900 outline-none transition-all resize-none disabled:opacity-60"
+                className="trace-control w-full resize-none"
               />
             </div>
           </>

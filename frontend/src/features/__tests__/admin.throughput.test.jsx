@@ -16,7 +16,8 @@ vi.mock('@/services/authService', () => ({
   getUsers: vi.fn().mockResolvedValue({ users: [] }),
   verifyStudent: vi.fn(),
 }));
-vi.mock('@/services/reportsService', () => ({ getAnalytics: vi.fn() }));
+vi.mock('@/services/reportsService', () => ({
+  getReportFilterOptions: vi.fn().mockResolvedValue({colleges:[{id:4,name:'Synthetic College'}],document_types:[{id:1,name:'Diploma',is_active:1}],college_locked:false}), getAnalytics: vi.fn() }));
 // Give the real charts a size; jsdom has no layout/ResizeObserver measurements.
 vi.mock('recharts', async () => ({
   ...await vi.importActual('recharts'),
@@ -71,5 +72,19 @@ describe('System Throughput card', () => {
     expect(await within(card).findByText('< 1 min')).toBeInTheDocument();
     expect(within(card).queryByText('No completed requests yet')).not.toBeInTheDocument();
     expect(within(card).queryByRole('application')).not.toBeInTheDocument();
+  });
+
+  it('keeps a single measured day accessible and identifies neighboring curves as illustrative', async () => {
+    getAnalytics.mockResolvedValue({ end_to_end: { completed_count: 12, avg_minutes: 90 }, throughput: [{ date: '2026-09-30', completed: 12 }] });
+    const card = await renderCard();
+    expect(await within(card).findByText('1.5 hrs')).toBeInTheDocument();
+    fireEvent.focus(within(card).getByRole('application'));
+    await waitFor(() => expect(within(card).getByText('12 docs')).toBeVisible());
+    expect(within(card).getByText('2026-09-30')).toBeVisible();
+    for (const name of ['AI confidence average', 'Real-time backlog']) {
+      const neighbor = screen.getByRole('region', { name });
+      expect(within(neighbor).getByText('Illustrative trend')).toBeInTheDocument();
+      expect(within(neighbor).queryByText(/docs$/)).not.toBeInTheDocument();
+    }
   });
 });

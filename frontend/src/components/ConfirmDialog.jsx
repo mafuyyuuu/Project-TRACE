@@ -1,15 +1,17 @@
+import Button from '@/components/Button';
 import { useId, useRef } from 'react';
 import ModalShell from '@/components/ModalShell';
 
 /**
- * Replaces window.confirm() with an in-app dialog. Backdrop/Esc/close-button
+ * Replaces window.confirm() with an in-app dialog. Cancel/backdrop/Esc
  * dismissal are all suppressed while `loading` is true, so an in-flight
  * action can't be dismissed out from under itself.
  */
 export default function ConfirmDialog({
   open,
   children,
-  maxWidth = 'max-w-md',
+  maxWidth = 'max-w-[535px]',
+  presentation = 'compact',
   title,
   message,
   variant = 'neutral',
@@ -32,31 +34,34 @@ export default function ConfirmDialog({
       maxWidth={maxWidth}
       closeOnBackdrop={!loading}
       closeOnEsc={!loading}
-      showCloseButton={!loading}
+      showCloseButton={false}
+      headerClassName={`shrink-0 px-5 pt-6 pb-2 ${presentation === 'compact' ? 'text-center' : ''}`}
+      bodyClassName={`min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 pb-4 ${presentation === 'compact' ? 'text-center' : ''}`}
+      footerClassName="shrink-0 px-5 pb-6 pt-2"
       initialFocusRef={cancelButtonRef}
       descriptionId={descriptionId}
       busy={loading}
       footer={
-        <div className="flex flex-col sm:flex-row gap-3">
-          <button
+        <div className="mx-auto flex w-full max-w-[285px] flex-col sm:flex-row gap-2">
+          <Button
             type="button"
             ref={cancelButtonRef}
             onClick={onCancel}
             disabled={loading}
-            className="flex-1 px-5 py-3 rounded-2xl text-xs font-bold border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors disabled:opacity-50"
+            className="trace-button trace-button-secondary flex-1"
           >
             {cancelLabel}
-          </button>
-          <button
+          </Button>
+          <Button
             type="button"
             onClick={onConfirm}
             disabled={loading}
-            className={`flex-1 px-5 py-3 rounded-2xl text-xs font-bold text-white shadow-sm disabled:opacity-50 transition-colors ${
-              variant === 'destructive' ? 'bg-red-600 dark:bg-red-600 hover:bg-red-700 dark:hover:bg-red-700' : 'bg-[#15803d] hover:bg-[#166534]'
+            className={`trace-button flex-1 ${
+              variant === 'destructive' ? 'trace-button-danger' : 'trace-button-primary'
             }`}
           >
             {loading ? loadingLabel : confirmLabel}
-          </button>
+          </Button>
         </div>
       }
     >

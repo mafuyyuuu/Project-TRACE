@@ -1,5 +1,18 @@
 import api from '@/services/api'
 
+export async function getRequestAssignment(documentId, signal) {
+  const { data } = await api.get(`/documents/${documentId}/assignment`, { signal });
+  return data;
+}
+export async function reassignRequest(documentId, payload) {
+  const { data } = await api.post(`/documents/${documentId}/assignment`, payload);
+  return data;
+}
+export async function reconcileRequestCollege(documentId, payload) {
+  const { data } = await api.put(`/documents/${documentId}/routing-college`, payload);
+  return data;
+}
+
 /** Document pipeline, payment, and dashboard-analytics API calls. */
 
 /**

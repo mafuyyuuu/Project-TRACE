@@ -1,11 +1,14 @@
+import Button from '@/components/Button';
+import RequestMessagesPanel from '@/components/RequestMessagesPanel';
 import { useState } from 'react';
-import FinanceTransactionsPanel from '@/features/finance/components/FinanceTransactionsPanel';
-import useFinanceTransactions from '@/hooks/useFinanceTransactions';
+import FinanceTransactionsWorkspace from '@/features/finance/components/FinanceTransactionsWorkspace';
+import { canonicalTabForUser } from '@/utils/navigation';
 import FinanceVerificationModal from '@/features/finance/components/FinanceVerificationModal';
 import WalkInPaymentModal from '@/features/finance/components/WalkInPaymentModal';
 import ConfirmDialog from '@/components/ConfirmDialog';
-import DeferredOrUploadModal from './components/DeferredOrUploadModal';
 import QueueTabs from '@/components/QueueTabs';
+import QueuePanel from '@/components/QueuePanel';
+import RequestStaff from '@/components/RequestStaff';
 import { formatPeso } from '@/utils/pricing';
 import { getStatusLabel } from '@/utils/documentStatus';
 import useFinanceDashboard from '@/features/finance/useFinanceDashboard';
@@ -23,6 +26,13 @@ import PaymentStubModal from '@/features/secretary/components/PaymentStubModal';
  * only place in the system a document ever becomes PAID.
  */
 export default function FinanceDashboard({ user, setViewImageUrl, currentTab = 'dashboard' }) {
+  const tab = canonicalTabForUser(user, currentTab);
+  if (tab === 'messages') return <RequestMessagesPanel user={user} initialDocumentId={new URLSearchParams(window.location.search).get('document')} />;
+  if (tab === 'transactions') return <FinanceTransactionsWorkspace setViewImageUrl={setViewImageUrl} />;
+  return <FinanceOverview user={user} setViewImageUrl={setViewImageUrl} />;
+}
+
+function FinanceOverview({ user, setViewImageUrl }) {
   const [viewProfileId, setViewProfileId] = useState(null);
 
   const {
@@ -33,7 +43,6 @@ export default function FinanceDashboard({ user, setViewImageUrl, currentTab = '
     documents,
     awaitingPaymentQueue,
     verificationQueue,
-    handleDeferredUpload,
     actionLoading,
     clerkNotes,
     setClerkNotes,
@@ -60,26 +69,24 @@ export default function FinanceDashboard({ user, setViewImageUrl, currentTab = '
     paymentMethods,
   } = useFinanceDashboard(user);
 
-  const [queueTab, setActiveQueueTab] = useState('awaiting-payment');
-  const activeQueueTab = currentTab === 'reports' ? 'transactions' : queueTab;
-  const transactions = useFinanceTransactions();
+  const [activeQueueTab, setActiveQueueTab] = useState('awaiting-payment');
 
   const todayFormatted = todayLongDate();
 
-  if (loading && activeQueueTab !== 'transactions') return <DashboardLoading />;
+  if (loading) return <DashboardLoading />;
 
   return (
     <>
       <DashboardAlerts success={success} error={error} onDismiss={dismissNotification} dismissalKey={activeQueueTab} />
-      <div className="space-y-8 animate-fade-in">
+      <div className="trace-page">
         {/* Header */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+        <div className="trace-page-header">
           <div>
-            <h2 className="text-2xl sm:text-3xl font-display font-black text-gray-900 dark:text-gray-100 tracking-tight">
+            <h2 className="trace-page-title">
               Finance Office Command Center
             </h2>
           </div>
-          <div className="flex items-center gap-3 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-2xl px-5 py-2.5 shadow-sm">
+          <div className="trace-date">
             <span className="text-xs font-semibold text-gray-500 dark:text-gray-400">Today:</span>
             <span className="text-xs font-bold text-gray-800 dark:text-gray-100">{todayFormatted}</span>
             <svg className="w-4 h-4 text-gray-400 dark:text-gray-400 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
@@ -87,23 +94,25 @@ export default function FinanceDashboard({ user, setViewImageUrl, currentTab = '
         </div>
 
         {/* Queue Tabs — one table visible at a time instead of two stacked */}
-        <QueueTabs
+        <QueueTabs idPrefix="finance-queue"
           tabs={[
             { key: 'awaiting-payment', label: 'Awaiting Payment', count: awaitingPaymentQueue.length },
             { key: 'verification', label: 'Verification Queue', count: verificationQueue.length },
-            { key: 'transactions', label: 'Transactions & OR Copies', count: transactions.total },
+            { key: 'official-receipts', label: 'Official Receipts / History' },
           ]}
           activeKey={activeQueueTab}
           onChange={setActiveQueueTab}
         />
+        <QueuePanel idPrefix="finance-queue" activeKey={activeQueueTab} className="mt-4">
+        {activeQueueTab === 'official-receipts' && <FinanceTransactionsWorkspace setViewImageUrl={setViewImageUrl} />}
 
         {/* 1 · Billed, waiting on the student. Read-only, except that a student
             can walk up with the printed slip and pay at the counter. */}
         {activeQueueTab === 'awaiting-payment' && (
-        <div className="animate-fade-in bg-white dark:bg-gray-900 rounded-3xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden mt-6">
-          <div className="p-4 sm:p-6 border-b border-gray-100 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800/50 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
+        <div className="trace-section overflow-hidden">
+          <div className="trace-section-header border-gray-100 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800/50">
             <div>
-              <h3 className="font-bold text-gray-950 dark:text-gray-100 text-sm tracking-wider uppercase">1 · AWAITING PAYMENT</h3>
+              <h3 className="trace-section-title uppercase tracking-wider">1 · AWAITING PAYMENT</h3>
               <p className="text-[11px] text-gray-500 dark:text-gray-400 font-medium mt-1">Billed by the College Secretary. Log a payment here when the student pays at the counter.</p>
             </div>
             <span className="text-xs text-gray-500 dark:text-gray-400 font-semibold whitespace-nowrap">
@@ -130,25 +139,25 @@ export default function FinanceDashboard({ user, setViewImageUrl, currentTab = '
                       <tr key={doc.id} className="hover:bg-gray-50/30 dark:hover:bg-gray-800/30 group">
                         <td className="py-4 pl-4 font-mono text-xs font-semibold text-gray-500 dark:text-gray-400">#{doc.tracking_number ? doc.tracking_number.slice(0, 10).toUpperCase() : doc.id}</td>
                         <td className="py-4">
-                          <button type="button" disabled={!doc.student_id} onClick={() => setViewProfileId(doc.student_id)} className="text-sm font-bold text-blue-700 dark:text-blue-300 hover:underline text-left focus-visible:ring-2 focus-visible:ring-blue-500">{doc.student_name || 'Unknown Student'}</button>
+                          <Button type="button" disabled={!doc.student_id} onClick={() => setViewProfileId(doc.student_id)} className="trace-action text-sm font-bold text-blue-700 dark:text-blue-300 hover:underline text-left focus-visible:ring-2 focus-visible:ring-blue-500">{doc.student_name || 'Unknown Student'}</Button>
                           <div className="text-xs font-mono text-gray-400 dark:text-gray-400 mt-0.5 select-text break-words">{doc.student_id || 'ID Pending'}</div>
                         </td>
-                        <td className="py-4 text-xs font-bold text-gray-600 dark:text-gray-300">{doc.document_type}</td>
+                        <td className="py-4 text-xs font-bold text-gray-600 dark:text-gray-300">{doc.document_type}<RequestStaff document={doc} /></td>
                         <td className="py-4 text-xs font-bold text-gray-800 dark:text-gray-100 font-mono">{formatPeso(doc.amount)}</td>
                         <td className="py-4 text-right pr-4 min-w-[200px]"><div className="flex flex-wrap justify-end gap-2 items-center">
 
-                          <button
+                          <Button
                             onClick={() => { setSelectedDoc(doc); setActiveModal('payment-stub'); }}
-                            className="px-4 py-2 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-800 text-gray-800 dark:text-gray-100 rounded-xl text-xs font-bold shadow-sm transition-all block whitespace-nowrap shrink-0"
+                            className="trace-button trace-button-secondary block shrink-0"
                           >
                             View Slip
-                          </button>
-                          <button
+                          </Button>
+                          <Button
                             onClick={() => { setSelectedDoc(doc); setActiveModal('walk-in-payment'); }}
-                            className="px-4 py-2 bg-gray-900 dark:bg-gray-800 hover:bg-gray-800 dark:hover:bg-gray-800 text-white rounded-xl text-xs font-bold shadow-sm transition-all ml-auto block whitespace-nowrap shrink-0"
+                            className="trace-button trace-button-secondary ml-auto block shrink-0"
                           >
                             Log Counter Payment
-                          </button>
+                          </Button>
                         </div></td>
                       </tr>
                     ))}
@@ -162,9 +171,9 @@ export default function FinanceDashboard({ user, setViewImageUrl, currentTab = '
 
         {/* Verification Queue Table */}
         {activeQueueTab === 'verification' && (
-        <div className="animate-fade-in bg-white dark:bg-gray-900 rounded-3xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden mt-6">
-          <div className="p-4 sm:p-6 border-b border-gray-100 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800/50 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
-            <h3 className="font-bold text-gray-950 dark:text-gray-100 text-sm tracking-wider uppercase">2 · VERIFICATION QUEUE</h3>
+        <div className="trace-section overflow-hidden">
+          <div className="trace-section-header border-gray-100 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800/50">
+            <h3 className="trace-section-title uppercase tracking-wider">2 · VERIFICATION QUEUE</h3>
             <span className="text-xs text-gray-500 dark:text-gray-400 font-semibold whitespace-nowrap">
               Pending Request: <strong className="text-gray-900 dark:text-gray-100">{verificationQueue.length}</strong>
             </span>
@@ -190,10 +199,10 @@ export default function FinanceDashboard({ user, setViewImageUrl, currentTab = '
                       <tr key={doc.id} className="hover:bg-gray-50/30 dark:hover:bg-gray-800/30 group">
                         <td className="py-4 pl-4 font-mono text-xs font-semibold text-gray-500 dark:text-gray-400">#{doc.tracking_number ? doc.tracking_number.slice(0, 10).toUpperCase() : doc.id}</td>
                         <td className="py-4">
-                          <button type="button" disabled={!doc.student_id} onClick={() => setViewProfileId(doc.student_id)} className="text-sm font-bold text-blue-700 dark:text-blue-300 hover:underline text-left focus-visible:ring-2 focus-visible:ring-blue-500">{doc.student_name || 'Unknown Student'}</button>
+                          <Button type="button" disabled={!doc.student_id} onClick={() => setViewProfileId(doc.student_id)} className="trace-action text-sm font-bold text-blue-700 dark:text-blue-300 hover:underline text-left focus-visible:ring-2 focus-visible:ring-blue-500">{doc.student_name || 'Unknown Student'}</Button>
                           <div className="text-xs font-mono text-gray-400 dark:text-gray-400 mt-0.5 select-text break-words">{doc.student_id || 'ID Pending'}</div>
                         </td>
-                        <td className="py-4 text-xs font-bold text-gray-600 dark:text-gray-300">{doc.document_type}</td>
+                        <td className="py-4 text-xs font-bold text-gray-600 dark:text-gray-300">{doc.document_type}<RequestStaff document={doc} /></td>
                         <td className="py-4 text-xs font-bold text-gray-800 dark:text-gray-100 font-mono">{formatPeso(doc.amount)}</td>
                         <td className="py-4 text-xs font-semibold">
                           {doc.payment_channel === 'walk_in'
@@ -202,19 +211,19 @@ export default function FinanceDashboard({ user, setViewImageUrl, currentTab = '
                         </td>
                         <td className="py-4 text-right pr-4 min-w-[140px]"><div className="flex flex-wrap justify-end gap-2 items-center">
 
-                          <button
+                          <Button
                             onClick={() => { setSelectedDoc(doc); setActiveModal('payment-stub'); }}
-                            className="px-3 py-1.5 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-800 text-gray-800 dark:text-gray-100 rounded-lg text-[11px] font-bold shadow-sm transition-all whitespace-nowrap shrink-0"
+                            className="trace-button trace-button-secondary shrink-0"
                           >
                             Slip
-                          </button>
-                          <button
+                          </Button>
+                          <Button
                             onClick={() => { setSelectedDoc(doc); setActiveModal('verify-pay'); }}
-                            className="px-4 py-2 bg-[#15803d] hover:bg-[#166534] text-white rounded-xl text-xs font-bold shadow-sm transition-all flex items-center gap-1.5 ml-auto whitespace-nowrap shrink-0"
+                            className="trace-button trace-button-primary flex items-center gap-1.5 ml-auto shrink-0"
                           >
                             <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                             Review
-                          </button>
+                          </Button>
                         </div></td>
                       </tr>
                     ))}
@@ -227,15 +236,8 @@ export default function FinanceDashboard({ user, setViewImageUrl, currentTab = '
         </div>
         )}
 
-        
-        {activeQueueTab === 'transactions' && <FinanceTransactionsPanel state={transactions}
-          onProfile={setViewProfileId}
-          onUpload={doc => { setSelectedDoc(doc); setActiveModal('upload-or-later'); }}
-        />}
-
-        {/* Finance Receipt Verification Modal */}
-        {activeModal === 'upload-or-later' && selectedDoc && <DeferredOrUploadModal selectedDoc={selectedDoc} setActiveModal={setActiveModal} handleDeferredUpload={async (...args) => { const ok = await handleDeferredUpload(...args); if (ok) transactions.refresh(); return ok; }} actionLoading={actionLoading} />}
-        {/* 2.1 FINANCE VERIFICATION MODAL */}
+        </QueuePanel>
+{/* 2.1 FINANCE VERIFICATION MODAL */}
         {activeModal === 'verify-pay' && selectedDoc && (
           <FinanceVerificationModal
             user={user}
@@ -281,8 +283,8 @@ export default function FinanceDashboard({ user, setViewImageUrl, currentTab = '
           message={
             financeVerifyToConfirm
               ? financeVerifyToConfirm.action === 'approve'
-                ? `Confirm this payment for ${selectedDoc?.document_type} is verified? This marks the request paid.`
-                : `Reject this payment for ${selectedDoc?.document_type}? The student will need to resubmit.`
+                ? `Confirm this payment for ${financeVerifyToConfirm.documentType} is verified? This marks the request paid. ${financeVerifyToConfirm.usePack ? `Issue ${financeVerifyToConfirm.expected_serial} to ${financeVerifyToConfirm.payor_name}; consume one serial.` : financeVerifyToConfirm.deferred ? 'OR issuance stays pending.' : 'Keep the recorded OR.'}`
+                : `Reject this payment for ${financeVerifyToConfirm.documentType}? The student will need to resubmit.`
               : ''
           }
           variant={financeVerifyToConfirm?.action === 'approve' ? 'neutral' : 'destructive'}

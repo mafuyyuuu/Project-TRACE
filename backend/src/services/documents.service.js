@@ -1,4 +1,9 @@
+const assignments = require('./requestAssignment.service');
+const { canonicalDesk } = require('../utils/deskAssignment');
+const attachmentRequirements = require('../models/requestAttachment.model');
+const { documentCollegeScope } = require('../models/documentCollegeScope');
 const { pool } = require('../config/db');
+const { yearError } = require('../utils/profileYears');
 const { getProfileCompletion } = require('../utils/profileCompletion');
 const documentModel = require('../models/document.model');
 const requestSequences = require('../models/requestSequence.model');
@@ -121,17 +126,6 @@ async function uploadDocument(user, body, files) {
   const requested = parseRequestedItems(body);
   if (new Set(requested.map(item => item.document_type)).size !== requested.length) throw badRequest('Select each document type once and use its copies field for multiple copies.');
   for (const item of requested) {
-    const isTOR = ['Transcript of Records', 'Transcript of Records (TOR)'].includes(item.document_type);
-    const hasYears = item.year_started !== undefined || item.year_ended !== undefined;
-    if (isTOR && (hasYears || (user.role === 'student' && item.semesters === undefined))) {
-      const start = Number(item.year_started), end = Number(item.year_ended);
-      const currentYear = new Date(Date.now() + 8 * 60 * 60 * 1000).getUTCFullYear();
-      if (!Number.isInteger(start) || !Number.isInteger(end) || start < 1900 || end < start || end > currentYear) throw badRequest('Enter valid Year Started and Year Ended.');
-      let details;
-      try { details = JSON.parse(item.purpose || '{}'); } catch { details = { purpose: item.purpose }; }
-      if (!details || typeof details !== 'object' || Array.isArray(details)) details = { purpose: item.purpose };
-      item.purpose = JSON.stringify({ ...details, year_started: start, year_ended: end });
-    }
     const copies = Number(item.copies ?? 1);
     if (!Number.isInteger(copies) || copies < 1 || copies > 2147483647) throw badRequest('Copies must be a positive whole number within the supported range.');
   }
@@ -173,6 +167,25 @@ async function uploadDocument(user, body, files) {
       if (profile.user_type === 'alumni' && !profile.has_grad_application) throw forbidden('Submit your graduate application before requesting documents.');
       const completion = getProfileCompletion(profile);
       if (!completion.complete) throw forbidden(`Complete your profile before requesting documents. Missing: ${completion.missing.map(item => item.label).join(', ')}.`);
+      for (const item of requested) {
+        let details;
+        try { details = JSON.parse(item.purpose || '{}'); } catch { details = { purpose: item.purpose }; }
+        if (!details || typeof details !== 'object' || Array.isArray(details)) details = { purpose: item.purpose };
+        delete details.year_started; delete details.year_ended; delete details.year_graduated;
+        if (['Transcript of Records', 'Transcript of Records (TOR)'].includes(item.document_type)) {
+          const problem = yearError(String(profile.year_started ?? ''), { label: 'Year Started', minimum: 2002, required: true });
+          if (problem) throw badRequest(`${problem} Complete study years in Edit Profile, or ask Admin for a correction.`);
+          details.year_started = Number(profile.year_started);
+        }
+        if (['Diploma', 'Graduation Clearance'].includes(item.document_type)) {
+          const year = profile.user_type === 'alumni' ? profile.graduation_year : profile.graduation_year || profile.last_attendance_year;
+          const problem = yearError(String(year ?? ''), { label: 'Year Graduated / Last Attended', minimum: 2002, required: true });
+          if (problem) throw badRequest(`${problem} Complete your educational profile before requesting this document.`);
+          details.year_graduated = Number(year);
+        }
+        item.purpose = JSON.stringify(details);
+      }
+
     }
 
     const targetStudent = await documentPolicy.resolveStudent(student_id, connection, true);
@@ -373,51 +386,21 @@ async function listDocuments(user, query) {
       // second is actionable.
       conditions.push('d.current_status IN (?, ?)');
       params.push(STATUS.PENDING_STUDENT_PAYMENT, STATUS.PENDING_FINANCE_VERIFICATION);
-    } else if (desk === 'Secretary') {
-      // Four working queues plus the tail, so a secretary can still see what
-      // they released rather than having documents vanish at handoff.
-      conditions.push('d.current_status IN (?, ?, ?, ?, ?, ?)');
-      params.push(
-        STATUS.PENDING_SEC_EVALUATION,
-        STATUS.SEC_PROCESSING,
-        STATUS.PAID_PENDING_SEC_RELEASE,
-        STATUS.SEC_OR_VERIFIED,
-        STATUS.READY_FOR_RELEASE,
-        STATUS.COMPLETED
-      );
-
-      // College segregation, plus n8n's routing decision layered on top.
-      //
-      // A document explicitly assigned to this secretary always shows, and one
-      // assigned to a *different* secretary is hidden — that is what makes the
-      // n8n routing decision load-bearing rather than decorative.
-      //
-      // Two deliberate limits. Unassigned documents fall back to the college
-      // filter, so the ~10,000 records that predate routing (and anything
-      // filed while n8n is stopped) stay visible. And an assignment to a
-      // non-Secretary desk is ignored here, because the workflow also routes
-      // TOR/Diploma to Window 1 at intake — honouring that would delete those
-      // documents from the secretary queue they still have to pass through.
-      const secUser = await userModel.findCourseById(user.id);
-      const secretaryCollegeId = secUser[0]?.college_id;
-      const collegeSql = secretaryCollegeId
-        ? 'd.student_id IN (SELECT student_id FROM users WHERE college_id = ? OR (college_id IS NULL AND course = ?))'
-        :
-        secUser.length > 0 && secUser[0].course
-          ? 'd.student_id IN (SELECT student_id FROM users WHERE course = ?)'
-          : '1 = 1';
-
-      conditions.push(
-        `(d.assigned_clerk_id = ?
-          OR (${collegeSql}
-              AND (d.assigned_clerk_id IS NULL
-                   OR d.assigned_clerk_id NOT IN
-                      (SELECT id FROM users WHERE desk_assignment = 'Secretary'))))`
-      );
-      params.push(user.id);
-      if (secretaryCollegeId) params.push(secretaryCollegeId);
-      if (collegeSql !== '1 = 1') {
-        params.push(secUser[0].course);
+    }
+    // Finance retains its payment queues even with a caller-supplied filter.
+    if (desk === 'Finance' && status) {
+      conditions.push('d.current_status IN (?, ?)');
+      params.push(STATUS.PENDING_STUDENT_PAYMENT, STATUS.PENDING_FINANCE_VERIFICATION);
+    }
+    // Apply college scope independently of a caller's status filter. An explicit
+    // assignment never overrides college ownership, including historical rows.
+    if (desk === 'Secretary') {
+      const [account] = await userModel.findCourseById(user.id);
+      if (!account?.college_id && !account?.course) conditions.push('1 = 0');
+      else {
+        const scope = documentCollegeScope({ collegeId: account.college_id, collegeName: account.course });
+        conditions.push(scope.condition);
+        params.push(...scope.params);
       }
     }
     // Window 1 sees the entire system queue — no extra condition.
@@ -432,6 +415,15 @@ async function listDocuments(user, query) {
   return { documents, total, page, limit, totalPages: Math.ceil(total / limit) };
 }
 
+async function requestDetail(user, documentId) {
+  const [document] = await documentModel.findById(documentId);
+  if (!document) throw notFound('Document not found.');
+  await authorizeMessage(user, document);
+  const processor = document.assigned_clerk_id ? (await userModel.findById(document.assigned_clerk_id))[0] : null;
+  return { document: { ...document, assigned_staff_name: processor?.full_name || null, assigned_staff_desk: processor?.desk_assignment || null },
+    step_logs: await stepLogModel.findByDocumentId(documentId) };
+}
+
 async function trackByTrackingNumber(trackingNumber) {
   const docRows = await documentModel.findByTrackingNumber(trackingNumber);
   if (docRows.length === 0) {
@@ -441,7 +433,10 @@ async function trackByTrackingNumber(trackingNumber) {
   const document = docRows[0];
   const step_logs = await stepLogModel.findByDocumentId(document.id);
 
-  return { document, step_logs };
+  return { document: { tracking_number: document.tracking_number, document_type: document.document_type,
+    current_status: document.current_status, estimated_ready_date: document.estimated_ready_date, created_at: document.created_at },
+    step_logs: step_logs.map(row => ({ action_taken: row.action_taken, from_status: row.from_status, to_status: row.to_status,
+      timestamp_started: row.timestamp_started, timestamp_completed: row.timestamp_completed })) };
 }
 
 // ---------------------------------------------------------------------------
@@ -532,7 +527,7 @@ async function getForecast() {
  * Prescriptive queue insights from the Random Forest engine, falling back to
  * direct threshold checks against the live queue counts.
  */
-async function getInsights() {
+async function getDocumentInsights() {
   const aiData = await aiEngine.getInsights();
   if (aiData) return aiData;
 
@@ -575,6 +570,10 @@ async function getInsights() {
 
   return { insights, source: 'fallback' };
 }
+async function getInsights(user) {
+  const [documents,support]=await Promise.all([getDocumentInsights(),user?.role==='admin' ? require('./supportInsight.service').get(user) : []]);
+  return {...documents,insights:[...documents.insights,...support]};
+}
 
 async function getActivityLogs(user) {
   if (user.role !== 'admin') {
@@ -589,31 +588,27 @@ async function getActivityLogs(user) {
 
 /** Internal endpoint used by n8n to assign a document to a named clerk. */
 async function assignDocument({ document_id, assigned_clerk_employee_id }) {
-  if (!document_id || !assigned_clerk_employee_id) {
-    throw badRequest('Missing required fields.');
-  }
-
-  const clerkRows = await userModel.findClerkByEmployeeId(assigned_clerk_employee_id);
-  if (clerkRows.length === 0) {
-    throw notFound(`Clerk ${assigned_clerk_employee_id} not found.`);
-  }
-
-  const [updateResult] = await documentModel.updateAssignedClerk(document_id, clerkRows[0].id);
-  if (updateResult.affectedRows === 0) {
-    throw notFound('Document not found.');
-  }
-
-  await stepLogModel.insert({
-    document_id,
-    clerk_id: null,
-    action_taken: 'routed',
-    // Routing assigns a desk; it does not advance the document itself.
-    from_status: STATUS.PENDING_SEC_EVALUATION,
-    to_status: STATUS.PENDING_SEC_EVALUATION,
-    notes: `Auto-routed to Clerk ${assigned_clerk_employee_id} by n8n`,
-  });
-
-  return { message: 'Document successfully assigned.' };
+  if (!document_id || !assigned_clerk_employee_id) throw badRequest('Missing required fields.');
+  const connection = await pool.getConnection();
+  try {
+    await connection.beginTransaction();
+    const [doc] = await documentModel.findByIdForUpdate(document_id, connection);
+    if (!doc) throw notFound('Document not found.');
+    if (doc.current_status !== STATUS.PENDING_SEC_EVALUATION) throw badRequest('Automatic routing is only available after intake.');
+    const [target] = await userModel.findClerkByEmployeeId(assigned_clerk_employee_id, connection);
+    if (!target || target.role !== 'clerk' || target.desk_assignment !== 'Secretary' || !Number(target.is_active)) throw forbidden('Choose an active College Secretary.');
+    await assignments.assertSecretaryScope(target, doc, connection);
+    if (doc.assigned_clerk_id) {
+      if (Number(doc.assigned_clerk_id) !== Number(target.id)) throw badRequest('This case has an assigned processor. Admin must explicitly reassign it.');
+    } else {
+      await documentModel.updateAssignedClerk(document_id, target.id, connection);
+      await stepLogModel.insert({ document_id, clerk_id: null, action_taken: 'routed', from_status: doc.current_status,
+        to_status: doc.current_status, notes: `Auto-routed to Clerk ${assigned_clerk_employee_id} within college ${doc.routing_college_id || 'verified profile'}.` }, connection);
+    }
+    await connection.commit();
+    return { message: 'Document successfully assigned.' };
+  } catch (error) { await connection.rollback(); throw error; }
+  finally { connection.release(); }
 }
 
 /**
@@ -712,11 +707,11 @@ async function submitPayment(user, documentId, { gcash_reference_no, payment_met
  * separate: no document is released as paid without Finance saying so
  * (docs/CODING_PREFERENCES.md).
  *
- * Approving requires the Official Receipt number, same as logWalkInPayment —
- * a walk-in already has one from the counter and the clerk just confirms it,
- * but a digital payment had none recorded anywhere until now.
+ * Managed approval allocates one reserved serial in this same transaction.
+ * Later records payment acknowledgment without issuance; historical paper
+ * ORs keep their recorded number.
  */
-async function verifyPayment(user, documentId, { action, notes, or_number, or_date, defer_or }, file) {
+async function verifyPayment(user, documentId, { action, notes, or_number, or_date, defer_or, use_pack, ...packBody }, file) {
   if (user.role !== 'clerk' || user.desk_assignment !== 'Finance') {
     throw forbidden('Only Finance Clerks can verify payments.');
   }
@@ -724,6 +719,9 @@ async function verifyPayment(user, documentId, { action, notes, or_number, or_da
     throw badRequest('Invalid action. Must be approve or reject.');
   }
   const deferred = defer_or === true || defer_or === 'true';
+  const managed = use_pack === true || use_pack === 'true';
+  const receipts = require('./receiptPack.service');
+  if (managed && (deferred || or_number || or_date || file)) throw badRequest('Managed issuance uses the saved pack and today’s date. Upload its copy afterward.');
   const { receiptWindow, validReceiptDate } = require('../utils/receiptTiming');
   const clearedAt = new Date();
   const timing = receiptWindow(clearedAt);
@@ -732,6 +730,7 @@ async function verifyPayment(user, documentId, { action, notes, or_number, or_da
   const connection = await pool.getConnection();
   let doc;
   let clearedCount = 0;
+  let issuedReceipt = null;
 
   try {
     await connection.beginTransaction();
@@ -742,8 +741,19 @@ async function verifyPayment(user, documentId, { action, notes, or_number, or_da
     }
 
     doc = docs[0];
+    await assignments.assertAssignedProcessor(user, doc, connection);
+    if (managed && action === 'approve' && doc.payment_status === 'PAID') {
+      const group = await require('../models/receiptPack.model').group(doc.request_group_id || doc.tracking_number, connection);
+      for (const item of group) await assignments.assertAssignedProcessor(user, item, connection);
+      await require('../models/receiptPack.model').control(connection, true);
+      const existingReceipt = await require('../models/receiptPack.model').current(doc.request_group_id || doc.tracking_number, connection, true);
+      if (!existingReceipt) throw badRequest('This payment is already cleared. Use deferred receipt issuance from Official Receipts / History.');
+      issuedReceipt = await receipts.allocate(user, group, connection, packBody);
+      await connection.commit();
+      return { message:'Payment already verified.', documents_covered:group.length, receipt:issuedReceipt };
+    }
     if (action === 'approve') {
-      if (!deferred && !or_number && !doc.or_number) throw badRequest('Enter the Official Receipt number or choose Later.');
+      if (!managed && !deferred && !or_number && !doc.or_number) throw badRequest('Enter the Official Receipt number or choose Later.');
       if (!doc.or_number && !deferred && timing.afterCutoff) throw badRequest('The 4:00 PM Manila cut-off has passed. Choose Later for OR issuance.');
       if (or_date && (!validReceiptDate(or_date) || or_date !== timing.today) && !doc.or_number) throw badRequest('A new OR must use today’s Manila issue date.');
       if (doc.or_number && or_number && doc.or_number !== String(or_number).trim()) throw badRequest('The recorded OR number cannot be changed during payment clearance.');
@@ -756,14 +766,17 @@ async function verifyPayment(user, documentId, { action, notes, or_number, or_da
     // document in the group. Each row then routes independently from here.
     const groupId = doc.request_group_id || doc.tracking_number;
     const groupDocs = await documentModel.findByRequestGroupForUpdate(groupId, connection);
+    for (const groupDoc of groupDocs) await assignments.assertAssignedProcessor(user, groupDoc, connection);
     if (groupDocs.some(row => row.current_status !== STATUS.PENDING_FINANCE_VERIFICATION || row.payment_status === 'PAID')) throw badRequest('All documents in the request must be awaiting payment verification.');
 
+    if (action === 'approve' && managed) issuedReceipt = await receipts.allocate(user, groupDocs, connection, packBody);
+    if (action === 'approve' && !managed && !deferred && or_number && !doc.or_number) await receipts.assertLegacyNumber(or_number, groupId, connection);
     const [result] = await documentModel.updatePaymentVerificationForGroup(
       groupId, newStatus, paymentStatus,
       {
         officialReceiptPath,
-        orNumber: action === 'approve' && !deferred ? (or_number?.trim() || doc.or_number || null) : null,
-        orDate: action === 'approve' && !deferred ? (or_date || (doc.or_number ? null : timing.today)) : null,
+        orNumber: issuedReceipt?.serial || (action === 'approve' && !deferred ? (or_number?.trim() || doc.or_number || null) : null),
+        orDate: issuedReceipt?.snapshot.issue_date || (action === 'approve' && !deferred ? (or_date || (doc.or_number ? null : timing.today)) : null),
         clearedAt: action === 'approve' ? clearedAt : null,
         earliestDate: action === 'approve' && !doc.or_number ? timing.earliestDate : null,
       },
@@ -818,6 +831,7 @@ async function verifyPayment(user, documentId, { action, notes, or_number, or_da
   return {
     message: `Payment successfully ${action === 'approve' ? 'verified' : 'rejected'}.`,
     documents_covered: clearedCount,
+    receipt: issuedReceipt,
   };
 }
 
@@ -873,7 +887,7 @@ async function notifyStudent(studentId, { title, message, type, alsoSmsAndEmail 
  * once keeps the check identical everywhere rather than subtly drifting.
  */
 function requireDesk(user, desk, message) {
-  if (user.role !== 'clerk' || user.desk_assignment !== desk) {
+  if (user.role !== 'clerk' || canonicalDesk(user.desk_assignment) !== desk) {
     throw forbidden(message);
   }
 }
@@ -896,7 +910,7 @@ async function intakeDocument(user, documentId, { action, notes, original_issued
   }
 
   const connection = await pool.getConnection();
-  let doc;
+  let doc, routingCollege;
 
   try {
     await connection.beginTransaction();
@@ -906,12 +920,17 @@ async function intakeDocument(user, documentId, { action, notes, original_issued
       throw notFound('Document not found.');
     }
     doc = docs[0];
+    await assignments.assertAssignedProcessor(user, doc, connection);
 
     if (doc.current_status !== STATUS.PENDING_W1_INTAKE) {
       throw badRequest('This request is not in the intake queue.');
     }
 
     if (action === 'approve') {
+      const requirements = await attachmentRequirements.list(documentId, connection);
+      if (requirements.some(row => Number(row.blocks_intake) === 1 && !row.superseded_at && row.status !== 'accepted')) throw badRequest('Review and accept every flagged intake requirement before routing.');
+      routingCollege = await assignments.collegeForStudent(doc.student_id, connection);
+      await documentModel.updateRoutingCollege(documentId, routingCollege, connection);
       const type = await documentPolicy.assertDocument(doc, { executor: connection, allowUnidentified: true });
       if (documentPolicy.enabled(type.requires_attachment) && !doc.file_path && !file) {
         throw badRequest('Attach the required supporting document before approving intake.');
@@ -927,6 +946,7 @@ async function intakeDocument(user, documentId, { action, notes, original_issued
       }
       assertTransition(doc.current_status, STATUS.PENDING_SEC_EVALUATION);
       await documentModel.updateStatus(documentId, STATUS.PENDING_SEC_EVALUATION, connection);
+      await documentModel.updateAssignedClerk(documentId, null, connection);
     } else if (!notes) {
       // Returning without a reason gives the student nothing to act on, and the
       // status does not move — so the note is the entire message.
@@ -946,7 +966,7 @@ async function intakeDocument(user, documentId, { action, notes, original_issued
         // A return keeps the document where it is: intake is the first desk, so
         // there is no earlier queue to send it back to.
         to_status: action === 'approve' ? STATUS.PENDING_SEC_EVALUATION : STATUS.PENDING_W1_INTAKE,
-        notes: notes || `Intake checked at Window 1 by ${user.full_name}.`,
+        notes: `${notes || `Intake checked at Window 1 by ${user.full_name}.`}${routingCollege ? ` Routing college: ${routingCollege.id} (${routingCollege.name}).` : ''}`,
       },
       connection
     );
@@ -974,10 +994,10 @@ async function intakeDocument(user, documentId, { action, notes, original_issued
   }
 
   if (action === 'approve') {
-    // Only now does the college matter. n8n reads the short code (CCS, CON, …)
-    // to resolve the SEC-<code>001 account; a student with no course falls
-    // through to the workflow's own fallback.
-    const { course, collegeCode } = await resolveCollege(doc.student_id);
+    // Route from the saved, validated college. n8n may suggest an active
+    // same-college Secretary; the callback cannot overwrite an Admin owner
+    // or fall back to an out-of-scope processor.
+    const course = routingCollege.name, collegeCode = routingCollege.short_code || null;
     await n8n.triggerDocumentRouting({
       document_id: doc.id,
       tracking_number: doc.tracking_number,
@@ -1043,6 +1063,7 @@ async function acceptForProcessing(user, documentId, body) {
       throw notFound('Document not found.');
     }
     doc = docs[0];
+    await assignments.assertSecretaryScope(user, doc, connection, { assigned: true });
 
     // Rejecting sends it back one desk, to the counter that accepted the
     // paperwork in the first place.
@@ -1051,17 +1072,23 @@ async function acceptForProcessing(user, documentId, body) {
     if (document_type && document_type !== doc.document_type && documentPolicy.isRetired(document_type)) {
       throw badRequest(documentPolicy.RETIREMENT_REASON);
     }
+    if (student_id && student_id !== doc.student_id) {
+      await assignments.assertSecretaryScope(user, { ...doc, student_id, routing_college_id: null }, connection);
+      await documentModel.updateRoutingCollege(documentId, await assignments.collegeForStudent(student_id, connection), connection);
+    }
     const newStatus = action === 'approve' ? STATUS.SEC_PROCESSING : STATUS.PENDING_W1_INTAKE;
     assertTransition(doc.current_status, newStatus);
     if (action === 'approve') await documentPolicy.assertDocument(doc, {
       studentId: student_id || doc.student_id, documentType: document_type || doc.document_type, executor: connection,
     });
 
+    if (action === 'approve' && (!doc.assigned_clerk_id || Number(doc.assigned_clerk_id) !== Number(user.id))) await documentModel.updateAssignedClerk(documentId, user.id, connection);
     await documentModel.updateEvaluation(
       documentId, newStatus, student_id, student_name, document_type,
       action === 'approve' ? estimated_ready_date : null,
       connection
     );
+    if (action === 'reject') await documentModel.updateAssignedClerk(documentId, null, connection);
     const correctedStudent = student_id || doc.student_id, correctedType = document_type || doc.document_type;
     if (correctedStudent && (!doc.document_sequence_number || correctedStudent !== doc.student_id || correctedType !== doc.document_type)) {
       await requestSequences.setDocumentSequence(documentId, await requestSequences.allocate(correctedStudent, correctedType, connection), connection);
@@ -1138,6 +1165,8 @@ async function priceDocument(user, documentId, { page_count, pricing_notes, conf
       throw notFound('Document not found.');
     }
     doc = docs[0];
+    await assignments.assertSecretaryScope(user, doc, connection, { assigned: true });
+    await documentModel.updateAssignedClerk(documentId, user.id, connection);
 
     if (doc.current_status !== STATUS.SEC_PROCESSING) {
       throw badRequest('Only a document being processed can be priced.');
@@ -1281,6 +1310,8 @@ async function verifyOfficialReceipt(user, documentId, { notes, physical_receipt
       throw notFound('Document not found.');
     }
     doc = docs[0];
+    await assignments.assertSecretaryScope(user, doc, connection, { assigned: true });
+    await documentModel.updateAssignedClerk(documentId, user.id, connection);
 
     assertTransition(doc.current_status, STATUS.SEC_OR_VERIFIED);
     if (doc.payment_status !== 'PAID' || !doc.or_number?.trim()) throw badRequest('Wait for Finance to clear payment and issue the OR.');
@@ -1333,6 +1364,7 @@ async function confirmHandoff(user, documentId, { notes }) {
       throw notFound('Document not found.');
     }
     doc = docs[0];
+    await assignments.assertSecretaryScope(user, doc, connection, { assigned: true });
 
     assertTransition(doc.current_status, STATUS.READY_FOR_RELEASE);
     if (doc.payment_status !== 'PAID') {
@@ -1342,6 +1374,7 @@ async function confirmHandoff(user, documentId, { notes }) {
     }
 
     await documentModel.updateStatus(documentId, STATUS.READY_FOR_RELEASE, connection);
+    await documentModel.updateAssignedClerk(documentId, null, connection);
 
     await stepLogModel.insert(
       {
@@ -1438,9 +1471,11 @@ async function logWalkInPayment(user, documentId, { or_number, or_date, notes, d
     await connection.beginTransaction();
     [doc] = await documentModel.findByIdForUpdate(documentId, connection);
     if (!doc) throw notFound('Document request not found.');
+    await assignments.assertAssignedProcessor(user, doc, connection);
     if (doc.current_status !== STATUS.PENDING_STUDENT_PAYMENT) throw badRequest('This request is not awaiting payment.');
     const groupId = doc.request_group_id || doc.tracking_number;
     const group = await documentModel.findByRequestGroupForUpdate(groupId, connection);
+    for (const item of group) await assignments.assertAssignedProcessor(user, item, connection);
     if (group.some(row => row.current_status !== STATUS.PENDING_STUDENT_PAYMENT || row.payment_status === 'PAID')) throw badRequest('All documents in the request must be awaiting payment.');
     const [result] = await documentModel.updateWalkInPaymentForGroup(groupId, {
       orNumber: deferred ? null : or_number.trim(), orDate: deferred ? null : (or_date || timing.today),
@@ -1452,6 +1487,7 @@ async function logWalkInPayment(user, documentId, { or_number, or_date, notes, d
       action_taken: 'walk_in_payment_logged', from_status: STATUS.PENDING_STUDENT_PAYMENT,
       to_status: STATUS.PENDING_FINANCE_VERIFICATION, notes: notes || (deferred ? 'Counter payment recorded; OR issuance later.' : `Counter payment recorded against OR ${or_number}.`),
     }, connection);
+    if (!deferred && or_number) await require('./receiptPack.service').assertLegacyNumber(or_number, doc.request_group_id || doc.tracking_number, connection);
     await connection.commit();
   } catch (error) { await connection.rollback(); throw error; }
   finally { connection.release(); }
@@ -1481,6 +1517,7 @@ async function releaseDocument(user, documentId, { notes } = {}) {
     }
 
     doc = docs[0];
+    await assignments.assertAssignedProcessor(user, doc, connection);
 
     assertTransition(doc.current_status, STATUS.COMPLETED);
     await documentModel.markCompleted(documentId, connection);
@@ -1560,6 +1597,7 @@ async function cancelDocument(user, documentId) {
       throw badRequest('Cannot cancel a request that is already being processed.');
     }
 
+    await require('./supportArchive.service').archiveCase(documentId,connection);
     await stepLogModel.deleteByDocumentId(documentId, connection);
     await documentModel.deleteById(documentId, connection);
 
@@ -1587,8 +1625,10 @@ async function uploadDeferredOR(user, documentId, file, { or_number, or_date } =
     await connection.beginTransaction();
     [doc] = await documentModel.findByIdForUpdate(documentId, connection);
     if (!doc) throw notFound('Document not found.');
+    await assignments.assertAssignedProcessor(user, doc, connection);
     const groupId = doc.request_group_id || doc.tracking_number;
     const group = await documentModel.findByRequestGroupForUpdate(groupId, connection);
+    for (const item of group) await assignments.assertAssignedProcessor(user, item, connection);
     if (doc.payment_status !== 'PAID' || group.some(row => row.payment_status !== 'PAID')) throw badRequest('Finance must clear this payment before issuing its OR.');
     if (doc.official_receipt_path || group.some(row => row.official_receipt_path)) throw badRequest('An OR copy is already published. It cannot be replaced here.');
     let number = doc.or_number, date = doc.or_date;
@@ -1601,9 +1641,18 @@ async function uploadDeferredOR(user, documentId, file, { or_number, or_date } =
       if (date > timing.today || (earliest && date < earliest)) throw badRequest('OR date must be on or after its earliest eligible issue date and cannot be in the future.');
     }
     if (group.some(row => row.or_number && row.or_number !== number)) throw badRequest('The request has inconsistent OR records. Ask Admin to investigate.');
+    const receiptModel = require('../models/receiptPack.model');
+    const managedReceipt = await receiptModel.current(groupId, connection, true);
+    if (managedReceipt) {
+      await require('./receiptPack.service').validateFile(file);
+      if (managedReceipt.serial !== number || managedReceipt.copy_path) throw badRequest('The managed receipt changed. Refresh to review.');
+      await receiptModel.publish(managedReceipt.id, path, connection);
+      await receiptModel.audit('copy_uploaded', user.id, {path}, connection, managedReceipt.pack_id, managedReceipt.id);
+    }
     const [published] = await documentModel.publishOfficialReceipt(groupId, { path, number, date }, connection);
     if (published.affectedRows !== (group.length || 1)) throw badRequest('The OR record changed. Refresh before retrying.');
     await stepLogModel.insert({ document_id: doc.id, clerk_id: user.id, action_taken: 'official_receipt_published', from_status: doc.current_status, to_status: doc.current_status, notes: `OR ${number} issued; digital copy published.` }, connection);
+    if (!doc.or_number && or_number) await require('./receiptPack.service').assertLegacyNumber(or_number, doc.request_group_id || doc.tracking_number, connection);
     await connection.commit();
   } catch (error) { await connection.rollback(); throw error; }
   finally { connection.release(); }
@@ -1622,13 +1671,15 @@ function messageDesk(user) {
   throw forbidden('This account cannot access request messages.');
 }
 
-async function messageScope(user, executor = pool) {
+async function messageScope(user, executor = pool, { includeCancelledSupport = false } = {}) {
   const desk = messageDesk(user);
   if (desk === 'student') return { conditions: ['student.id = ?'], params: [user.id], side: 'student' };
   if (desk === 'Secretary') {
     const [account] = await userModel.findCourseById(user.id, executor);
-    if (account?.college_id) return { conditions: ['(student.college_id = ? OR (student.college_id IS NULL AND student.course = ?))'], params: [account.college_id, account.course], side: 'staff' };
-    if (account?.course) return { conditions: ['student.course = ?'], params: [account.course], side: 'staff' };
+    if (account?.college_id || account?.course) {
+      const scope = documentCollegeScope({ collegeId: account.college_id, collegeName: account.course, includeCancelledSupport });
+      return { conditions: [scope.condition], params: scope.params, side: 'staff' };
+    }
     throw forbidden('A college assignment is required to access student messages.');
   }
   return { conditions: [], params: [], side: 'staff' };
@@ -1640,12 +1691,7 @@ async function authorizeMessage(user, doc, executor = pool) {
     const [owner] = await userModel.findStudentIdById(user.id, executor);
     if (!owner || doc.student_id !== owner.student_id) throw forbidden('You can only message about your own requests.');
   } else if (desk === 'Secretary') {
-    const [account] = await userModel.findCourseById(user.id, executor);
-    const [student] = await userModel.findStudentCourseByStudentId(doc.student_id, executor);
-    const matches = account?.college_id
-      ? Number(account.college_id) === Number(student?.college_id) || (!student?.college_id && account.course && account.course === student?.course)
-      : account?.course && account.course === student?.course;
-    if (!matches) throw forbidden('You can only access messages for your college.');
+    await assignments.assertSecretaryScope(user, doc, executor);
   }
   return desk;
 }
@@ -1685,6 +1731,7 @@ async function sendMessage(user, documentId, body = {}) {
     [doc] = await documentModel.findByIdForUpdate(documentId, connection);
     if (!doc) throw notFound('Document not found.');
     await authorizeMessage(user, doc, connection);
+    require('../utils/supportCase').assertCaseWritable(doc.current_status);
     const [res] = await documentMessageModel.insert(documentId, user.id, message, connection);
     inserted = res.insertId;
     await connection.commit();
@@ -1712,7 +1759,9 @@ async function sendMessage(user, documentId, body = {}) {
 }
 
 module.exports = {
+  messageScope,
   authorizeMessage,
+  requestDetail,
   messageThreads,
   getMessages,
   sendMessage,

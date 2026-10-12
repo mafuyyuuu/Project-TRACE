@@ -74,7 +74,7 @@ export default function LiveTrackingModal({ selectedDoc, setActiveModal, getStat
           const log = selectedDoc.step_logs?.find(entry => entry.to_status === status);
           const timestamp = log?.timestamp_completed || log?.timestamp_started || (index === 0 ? selectedDoc.created_at : null);
           return <li key={status} aria-current={active ? 'step' : undefined} className="min-w-0 min-h-28 flex flex-col items-center text-center" style={{ gridRow: row + 1, gridColumn: col }}>
-            <span ref={node => { dotRefs.current[index] = node; }} data-tracker-node={status} className={`z-10 w-9 h-9 rounded-full border-2 flex items-center justify-center text-xs font-bold transition-colors duration-200 ${done ? 'bg-green-700 border-green-700 text-white' : active ? 'bg-blue-600 border-blue-600 text-white' : 'bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-600'}`}>{done ? '✓' : index + 1}</span>
+            <span ref={node => { dotRefs.current[index] = node; }} data-tracker-node={status} className={`z-10 w-9 h-9 rounded-full border-2 flex items-center justify-center text-xs font-bold transition-colors ${done ? 'bg-green-700 border-green-700 text-white' : active ? 'bg-blue-600 border-blue-600 text-white' : 'bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-600'}`}>{done ? '✓' : index + 1}</span>
             <span className="mt-2 text-xs font-bold leading-snug">{getStageLabel(status)}</span>
             {active && <span className="text-[10px] text-blue-700 dark:text-blue-300">In progress</span>}
             {timestamp && (done || active) && <time className="mt-1 text-[10px] text-gray-500 dark:text-gray-400">{new Date(timestamp).toLocaleDateString()}</time>}

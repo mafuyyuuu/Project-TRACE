@@ -1,4 +1,5 @@
 import api from '@/services/api'
+import { decodeCsvError } from '@/utils/csvDownloadError'
 
 /** Filtered reporting, CSV export and efficiency analytics. */
 
@@ -23,7 +24,9 @@ export async function getAnalytics(filters = {}) {
  * temporary object URL.
  */
 async function downloadCsv(path, params) {
-  const response = await api.get(path, { params, responseType: 'blob' })
+  let response
+  try {response = await api.get(path, { params, responseType: 'blob' })}
+  catch(error) {throw await decodeCsvError(error)}
 
   const disposition = response.headers['content-disposition'] || ''
   const match = disposition.match(/filename="?([^"]+)"?/)
@@ -44,10 +47,17 @@ async function downloadCsv(path, params) {
 /**
  * @param {'active'|'alumni'|'others'|'all'} category
  */
-export function exportStudentsCsv(category = 'all') {
-  return downloadCsv('/reports/export/students.csv', { category })
+export function exportStudentsCsv(category = 'all', filters = {}) {
+  const {studentId,studentName,collegeId}=filters;
+  return downloadCsv('/reports/export/students.csv', { category, studentId, studentName, collegeId })
 }
 
 export function exportDocumentsCsv(filters = {}) {
   return downloadCsv('/reports/export/documents.csv', filters)
+}
+
+export async function getReportFilterOptions(signal) {
+  const {data}=await api.get('/reports/filter-options',{signal});
+  if(!Array.isArray(data?.colleges)||!Array.isArray(data?.document_types)) throw new Error('Invalid report options response.');
+  return data;
 }

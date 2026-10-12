@@ -4,5 +4,5 @@ const controller = require('../controllers/supportMessage.controller');
 router.use(authenticate);
 router.get('/', controller.list);
 router.get('/:studentId/messages', controller.read);
-router.post('/:studentId/messages', controller.send);
+router.post('/:studentId/messages', require('../middlewares/legacyMessaging.middleware').readOnly);
 module.exports = router;

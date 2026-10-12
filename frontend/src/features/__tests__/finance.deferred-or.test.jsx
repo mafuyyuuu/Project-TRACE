@@ -6,6 +6,7 @@ import ReceiptVerificationModal from '@/features/secretary/components/ReceiptVer
 import useSecretaryDashboard from '@/features/secretary/useSecretaryDashboard';
 import * as documents from '@/services/documentsService';
 import { getFinanceTransactions } from '@/services/financeService';
+vi.mock('@/services/receiptService',()=>({receiptState:vi.fn().mockResolvedValue({version:0,pack:null,print_config:{width_mm:150,height_mm:290,margin_mm:5,offset_x_mm:0,offset_y_mm:0}}),receiptHistory:vi.fn().mockResolvedValue({receipts:[],packs:[]}),receiptError:error=>error.message||'Receipt action failed.'}));
 vi.mock('@/services/financeService', () => ({ getFinanceTransactions: vi.fn(), exportFinanceTransactions: vi.fn() }));
 import { STATUS } from '@/utils/documentStatus';
 
@@ -36,12 +37,44 @@ beforeEach(() => {
 });
 
 describe('Physical OR now, digital copy later', () => {
+  it.each(['transactions', 'reports', 'export', 'exports'])('opens %s as a dedicated workspace without dashboard queries or tabs', async currentTab => {
+    render(<FinanceDashboard user={FINANCE} currentTab={currentTab} setViewImageUrl={vi.fn()} />);
+    await screen.findByText('Issued; digital copy pending');
+    expect(screen.getByRole('heading', { name: 'Official Receipts / History' })).toBeInTheDocument();
+    expect(screen.queryByRole('tab')).not.toBeInTheDocument();
+    expect(documents.getDocuments).not.toHaveBeenCalled();
+    expect(documents.getDashboardStats).not.toHaveBeenCalled();
+    expect(getFinanceTransactions).toHaveBeenCalledOnce();
+  });
+  it('keeps Dashboard on payment work without fetching transactions', async () => {
+    render(<FinanceDashboard user={FINANCE} setViewImageUrl={vi.fn()} />);
+    await screen.findByRole('tab', { name: /Verification Queue/ });
+    expect(screen.getAllByRole('tab')).toHaveLength(3);
+    expect(getFinanceTransactions).not.toHaveBeenCalled();
+  });
+  it('uses View OR only for available private copies and leaves missing/deferred states meaningful', async () => {
+    const user = userEvent.setup(), view = vi.fn();
+    getFinanceTransactions.mockResolvedValue({ transactions: [
+      { ...DOC, official_receipt_path: '/app/uploads/synthetic-or.pdf' },
+      { ...DOC, id: 12, request_group_id: 'REQ-G2' },
+      { ...DOC, id: 13, request_group_id: 'REQ-G3', or_number: null },
+    ], total: 3, amount: 300 });
+    render(<FinanceDashboard user={FINANCE} currentTab="transactions" setViewImageUrl={view} />);
+    await user.click(await screen.findByRole('button', { name: 'View OR' }));
+    expect(view).toHaveBeenCalledExactlyOnceWith('/app/uploads/synthetic-or.pdf');
+    expect(screen.getByText('Issued; digital copy pending')).toBeInTheDocument();
+    expect(screen.getByRole('cell', { name: /Issuance pending/ })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Upload OR copy' })).toBeEnabled();
+    expect(screen.getByRole('button', { name: 'Issue Official Receipt' })).toBeEnabled();
+    expect(document.querySelector('a[href*="uploads"]')).toBeNull();
+  });
   it('disables receipt selection and OCR when counter issuance is deferred and omits a retained receipt draft', async () => {
     const user = userEvent.setup();
     documents.getDocuments.mockResolvedValue({ documents: [{ ...DOC, current_status: STATUS.PENDING_STUDENT_PAYMENT }] });
     documents.logWalkInPayment.mockResolvedValue({ documents_covered: 1 });
     render(<FinanceDashboard user={FINANCE} setViewImageUrl={vi.fn()} />);
     await user.click(await screen.findByRole('button', { name: 'Log Counter Payment' }));
+    await user.click(screen.getByRole('checkbox', { name: /Later/ }));
     const picker = screen.getByLabelText('Official Receipt copy · optional', { selector: 'input' });
     await user.upload(picker, new File(['copy'], 'counter.png', { type: 'image/png' }));
     await user.click(screen.getByRole('checkbox', { name: /Later/ }));
@@ -64,6 +97,7 @@ describe('Physical OR now, digital copy later', () => {
     documents.logWalkInPayment.mockResolvedValue({ documents_covered: 1 });
     render(<FinanceDashboard user={FINANCE} setViewImageUrl={vi.fn()} />);
     await user.click(await screen.findByRole('button', { name: 'Log Counter Payment' }));
+    await user.click(screen.getByRole('checkbox', { name: /Later/ }));
     const file = new File(['copy'], 'counter.png', { type: 'image/png' });
     await user.upload(screen.getByLabelText('Official Receipt copy · optional', { selector: 'input' }), file);
     expect(documents.scanReceipt).not.toHaveBeenCalled();
@@ -114,9 +148,10 @@ describe('Physical OR now, digital copy later', () => {
     const user = userEvent.setup();
     const completed = { ...DOC, current_status: STATUS.COMPLETED, payment_status: 'PAID' };
     documents.getDocuments.mockResolvedValue({ documents: [completed] });
-    render(<FinanceDashboard user={FINANCE} setViewImageUrl={vi.fn()} />);
-    await user.click(await screen.findByRole('tab', { name: /Transactions & OR Copies/ }));
-    expect(screen.getByRole('tab', { name: /Transactions & OR Copies/ })).toHaveTextContent('1');
+    render(<FinanceDashboard user={FINANCE} currentTab="transactions" setViewImageUrl={vi.fn()} />);
+    await screen.findByRole('heading', { name: 'Official Receipts / History' });
+    expect(await screen.findByText(/1 cleared requests/)).toBeInTheDocument();
+    expect(screen.queryByRole('tab')).not.toBeInTheDocument();
     expect(screen.getByText('Issued; digital copy pending')).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: 'Upload OR copy' }));
     const file = new File(['copy'], 'or-copy.png', { type: 'image/png' });
@@ -138,8 +173,8 @@ describe('Physical OR now, digital copy later', () => {
     const user = userEvent.setup();
     documents.getDocuments.mockResolvedValue({ documents: [{ ...DOC, current_status: STATUS.READY_FOR_RELEASE }] });
     documents.uploadDeferredOR.mockRejectedValue({ response: { data: { error: 'Upload unavailable.' } } });
-    render(<FinanceDashboard user={FINANCE} setViewImageUrl={vi.fn()} />);
-    await user.click(await screen.findByRole('tab', { name: /Transactions & OR Copies/ }));
+    render(<FinanceDashboard user={FINANCE} currentTab="transactions" setViewImageUrl={vi.fn()} />);
+    await screen.findByRole('heading', { name: 'Official Receipts / History' });
     await user.click(screen.getByRole('button', { name: 'Upload OR copy' }));
     await user.upload(screen.getByLabelText('Official POS Receipt'), new File(['copy'], 'or.png', { type: 'image/png' }));
     fireEvent.submit(screen.getByRole('button', { name: 'Upload Receipt' }).form);
