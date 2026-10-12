@@ -8,18 +8,20 @@ import { formatDateTime } from '@/utils/formatters';
 import { receiptWait } from '@/utils/receiptTiming';
 export default function FinanceTransactionsPanel({ state, onUpload, onProfile, onViewReceipt, onPrint }) {
   const [filtersOpen,setFiltersOpen]=useState(false);
-  const reference=useReportFilterOptions(filtersOpen);
+  const reference=useReportFilterOptions(true);
   return <section className="space-y-4 min-w-0" aria-label="Finance transactions and export">
     <div className="flex flex-wrap items-center justify-between gap-3">
       <h2 className="trace-page-title min-w-0 max-w-full break-words">Official Receipts / History</h2>
       <div className="trace-actions ml-auto">
-        <Button type="button" onClick={state.refresh} disabled={state.loading} className="trace-button trace-button-secondary">Refresh</Button>
-        <Button type="button" className="trace-button trace-button-primary" onClick={()=>setFiltersOpen(true)}>Filters</Button>
+        <Button type="button" className="trace-button trace-button-primary" onClick={()=>setFiltersOpen(true)}>Export</Button>
       </div>
     </div>
     <p className="text-sm">Payment acknowledgment is separate from the Official Receipt. At or after 4:00 PM Manila time, new OR issuance is deferred. Waiting time is informational; no fixed issue deadline is promised.</p>
-    <p className="trace-page-description select-text" aria-label="Applied filters">{appliedFilterSummary(state.filters,reference.options)}</p>
-    {filtersOpen && <ReportFiltersModal filters={state.filters} defaults={EMPTY_FINANCE_FILTERS} options={reference.options} optionsLoading={reference.loading} optionsError={reference.error} onRetryOptions={reference.retry} onApply={state.applyFilters} onClose={()=>setFiltersOpen(false)} onExport={state.exportCsv} exporting={state.exporting} exportReady={!state.loading&&!state.loadFailed} finance error={state.error}/>}
+    <div className="flex flex-wrap items-center justify-between gap-3">
+      <p className="trace-page-description select-text" aria-label="Applied filters">{appliedFilterSummary(state.filters,reference.options)}</p>
+      <Button type="button" onClick={state.refresh} disabled={state.loading} className="trace-button trace-button-secondary">Refresh</Button>
+    </div>
+    {<ReportFiltersModal inline exportOpen={filtersOpen} filters={state.filters} defaults={EMPTY_FINANCE_FILTERS} options={reference.options} optionsLoading={reference.loading} optionsError={reference.error} onRetryOptions={reference.retry} onApply={state.applyFilters} onClose={()=>setFiltersOpen(false)} onExport={state.exportCsv} exporting={state.exporting} exportReady={!state.loading&&!state.loadFailed} finance error={state.error}/>}
     {state.error && <div role="alert" className="text-red-700 dark:text-red-300">{state.error} <Button type="button" onClick={state.refresh} className="trace-action underline">Retry</Button></div>}
     {state.loading ? <p role="status">Loading payments…</p> : state.loadFailed ? null : <>
       <p className="font-bold">{state.total} cleared requests · {formatPeso(state.amount)}</p>

@@ -130,15 +130,14 @@ export default function AdminDashboard({ user, currentTab, setViewImageUrl, revi
                     </div>
                   </section>
 
-                  <section aria-label="AI confidence average" className="trace-section trace-card-info trace-section-body grid gap-3 lg:row-span-4 lg:grid-rows-subgrid">
-                    <span className="text-[10px] font-bold text-gray-400 dark:text-gray-400 uppercase tracking-widest block">AI Confidence Avg</span>
+                  <section aria-label="Scan field detection" className="trace-section trace-card-info trace-section-body grid gap-3 lg:row-span-4 lg:grid-rows-subgrid">
+                    <span className="text-[10px] font-bold text-gray-400 dark:text-gray-400 uppercase tracking-widest block">Scan Field Detection</span>
                     <span className="min-w-0 break-words text-2xl sm:text-3xl font-display font-black text-gray-900 dark:text-gray-100 block">{dashStats.avg_ocr_confidence > 0 ? dashStats.avg_ocr_confidence.toFixed(1) + '%' : '—'}</span>
                     <div className="min-w-0">
-                      <MiniSparkline trend="down" className="trace-kpi-sparkline" />
-                      <p className="text-[10px] font-bold text-gray-500 dark:text-gray-400 mt-2">Illustrative trend</p>
+                      <div className="trace-kpi-sparkline flex items-center"><p className="text-xs text-gray-600 dark:text-gray-300">Expected fields: Student ID, name and document type.</p></div>
                     </div>
                     <div className="self-start bg-[#15803d] rounded-xl px-4 py-2 text-[10px] font-medium text-white w-full leading-snug">
-                      Average extraction accuracy across all scans
+                      Average share of expected fields detected. This does not measure AI accuracy or correctness.
                     </div>
                   </section>
 

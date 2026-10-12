@@ -437,3 +437,26 @@ Run `database/migrate_staff_conversations.js` only through the consolidated roll
 Receiving Desk and Window 1 share intake/release authority and processor-ownership checks. Admin backup lists include active accounts under either label, and Window 1 workflow notifications use both. Stored labels and college restrictions remain intact.
 
 Linked ticket list/history/file authorization uses the existing document routing_college_id. Unsnapshotted rows use the verified student college; cancelled ticket history with no document uses its authorized profile fallback. The shared SQL scope keeps its own correlated student alias. Support lists return an opaque access_scope digest of authoritative role/desk/filter scope. The frontend clears cached rows/selection when it changes and clears protected conversation context/history on 403/404 reads, while retaining local drafts and ordinary temporary-error data. Changing ticket/general notification links are reactive, explicit ticket links take priority, and aborted lookups cannot overwrite the latest selection. No additional DDL or environment variable is required.
+
+
+## Admin functional review — 2026-10-12
+
+`PATCH /api/maintenance/users/:id/active` accepts a boolean status for Admin-managed student,
+alumni, clerk and Admin accounts. The locked transaction updates is_active and increments the
+existing token_version, clears pending email OTP and records a security audit. Self-deactivation,
+invalid IDs/statuses and non-Admin callers are rejected. Audit failure rolls back the mutation;
+realtime sessions disconnect after commit. The legacy staff endpoint remains staff-only. No
+academic, verification, request, payment or history row is deleted/reclassified.
+
+Report identity filters accept studentSearch (maximum 255 characters): exact student ID OR literal
+case-insensitive name substring, parenthesized within the authoritative college scope. Legacy
+studentId/studentName remain valid. Documents, counts, summaries and exports share the predicate;
+student exports apply identity/college scope and Finance selects complete paid groups before
+expanding their document rows. CSV formats fee lines and structured purpose as readable labelled
+text and timestamps as YYYY-MM-DD HH:mm:ss in Asia/Manila. Stored JSON, numeric amounts, formula
+protection/escaping, private-field exclusions and the 10,000-row export cap remain. No migration,
+new dependency or environment variable is required.
+
+The fresh-install schema includes `documents.payment_channel`, already present in the historical
+Phase 19 migration and required by document/Finance report SQL. This template correction adds no
+new migration or automatic alteration of existing databases.

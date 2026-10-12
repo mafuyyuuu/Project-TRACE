@@ -58,6 +58,7 @@ export default function DashboardPage() {
 
   if (currentTab === 'help') return <HelpPage user={user} />;
   if (currentTab === 'messages' && (isAdmin || user?.role === 'clerk' && ['Window 1','Receiving Desk','Finance','Secretary'].includes(user.desk_assignment))) return <MessagingWorkspace key={`${user.id}:${user.role}:${user.desk_assignment}`} user={user} />;
+  if (currentTab === 'internal-assistance' && isAdmin) return <MessagingWorkspace key={`${user.id}:${user.role}:${user.desk_assignment}`} user={user} initialCategory="internal" />;
   if (currentTab === 'internal-assistance' && (isAdmin || user?.role === 'clerk' && ['Window 1','Receiving Desk','Finance','Secretary'].includes(user.desk_assignment))) return <InternalAssistanceWorkspace key={`${user.id}:${user.role}:${user.desk_assignment}`} user={user} requestedTicket={searchParams.get('internalTicket')} />;
 
   return (

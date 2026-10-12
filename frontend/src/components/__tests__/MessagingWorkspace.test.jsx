@@ -3,7 +3,7 @@ import {fireEvent,render,screen} from '@testing-library/react';
 import {MemoryRouter} from 'react-router-dom';
 import MessagingWorkspace from '@/components/MessagingWorkspace';
 vi.mock('@/components/SupportWorkspace',()=>({default:({requestedTicket})=><p>Support ticket {requestedTicket}</p>}));
-vi.mock('@/components/InternalAssistanceWorkspace',()=>({default:()=> <p>Internal ticket workspace</p>}));
+vi.mock('@/components/InternalAssistanceWorkspace',()=>({default:({requestedTicket})=> <p>Internal ticket workspace {requestedTicket}</p>}));
 vi.mock('@/components/StaffCoordinationWorkspace',()=>({default:({requestedConversation})=><label>Staff draft<input defaultValue=""/>Conversation {requestedConversation}</label>}));
 const mount=(user,entry='/dashboard?tab=messages')=>render(<MemoryRouter initialEntries={[entry]}><MessagingWorkspace user={user}/></MemoryRouter>);
 it('groups student/case support, staff coordination and internal assistance for Window 1',()=>{
@@ -14,4 +14,9 @@ it('labels Finance support as case-linked and preserves staff drafts across cate
 });
 it('passes support notification ticket identifiers to the existing workflow',()=>{
   mount({id:9,role:'admin'},'/dashboard?tab=messages&ticket=18');expect(screen.getByText('Support ticket 18')).toBeInTheDocument();
+});
+it('retains legacy Admin internal ticket links inside the combined Support categories',()=>{
+ render(<MemoryRouter initialEntries={['/dashboard?tab=internal-assistance&internalTicket=29']}><MessagingWorkspace user={{id:9,role:'admin'}} initialCategory="internal"/></MemoryRouter>);
+ expect(screen.getByRole('tab',{name:'Internal assistance'})).toHaveAttribute('aria-selected','true');
+ expect(screen.getByText('Internal ticket workspace 29')).toBeVisible();
 });

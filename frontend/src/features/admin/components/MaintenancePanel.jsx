@@ -19,6 +19,7 @@ import ConfirmDialog from '@/components/ConfirmDialog';
 const DESKS = ['Finance', 'Window 1', 'Secretary', 'Admin Office', 'Receiving Desk', 'Records Desk'];
 const TOGGLE_KIND_LABELS = {
   staff: 'User',
+  student: 'Student / Alumni Account',
   documentType: 'Document Type',
   college: 'College',
   paymentMethod: 'Payment Method',
@@ -72,7 +73,7 @@ export default function MaintenancePanel({ user, currentTab }) {
 
   const filteredStaff = (m.accounts || m.staff).filter((s) => {
     const matchesRole = staffRoleFilter === 'All' || s.role === staffRoleFilter;
-    const matchesDesk = staffDeskFilter === 'All' || s.desk_assignment === staffDeskFilter;
+    const matchesDesk = ['student','admin'].includes(staffRoleFilter) || staffDeskFilter === 'All' || s.desk_assignment === staffDeskFilter;
     return matchesRole && matchesDesk;
   });
 
@@ -148,7 +149,7 @@ export default function MaintenancePanel({ user, currentTab }) {
               users={filteredStaff}
               onSelectUser={m.setSelectedUser}
               roleFilter={staffRoleFilter}
-              onRoleFilterChange={setStaffRoleFilter}
+              onRoleFilterChange={role=>{setStaffRoleFilter(role);setStaffDeskFilter('All');}}
               roleOptions={[
                 { value: 'All', label: 'All Roles' },
                 { value: 'student', label: 'Student / Alumni' },
@@ -156,7 +157,7 @@ export default function MaintenancePanel({ user, currentTab }) {
                 { value: 'admin', label: 'Administrator' },
               ]}
               deskFilter={staffDeskFilter}
-              onDeskFilterChange={setStaffDeskFilter}
+              onDeskFilterChange={['student','admin'].includes(staffRoleFilter)?undefined:setStaffDeskFilter}
               deskOptions={[{ value: 'All', label: 'All Desks' }, ...DESKS.map((d) => ({ value: d, label: d }))]}
               onAddUser={() => m.setAddingUser(true)}
             />
@@ -168,7 +169,7 @@ export default function MaintenancePanel({ user, currentTab }) {
               viewerId={user.id}
               saving={m.saving}
               onEdit={() => m.setEditingUser(m.selectedUser)}
-              onToggleActive={m.selectedUser?.role === 'student' ? undefined : () => m.handleToggleActive(m.selectedUser)}
+              onToggleActive={() => m.handleToggleActive(m.selectedUser)}
             />
 
             <UserEditModal
@@ -493,8 +494,8 @@ export default function MaintenancePanel({ user, currentTab }) {
           message={
             m.activeToggleToConfirm
               ? m.activeToggleToConfirm.active
-                ? `Deactivate "${m.activeToggleToConfirm.label}"? It will be hidden from new requests, but existing records are unaffected.`
-                : `Restore "${m.activeToggleToConfirm.label}"? It will be available again for new requests.`
+                ? m.activeToggleToConfirm.kind==='student' || m.activeToggleToConfirm.kind==='staff' ? `Deactivate "${m.activeToggleToConfirm.label}"? Sign-in and existing sessions will be blocked. Requests and history are preserved.` : `Deactivate "${m.activeToggleToConfirm.label}"? It will be hidden from new requests, but existing records are unaffected.`
+                : m.activeToggleToConfirm.kind==='student' || m.activeToggleToConfirm.kind==='staff' ? `Restore "${m.activeToggleToConfirm.label}"? Sign-in will be available again. Existing verification requirements still apply.` : `Restore "${m.activeToggleToConfirm.label}"? It will be available again for new requests.`
               : ''
           }
           variant={m.activeToggleToConfirm?.active ? 'destructive' : 'neutral'}

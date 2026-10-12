@@ -112,3 +112,17 @@ docker compose run --rm --no-deps -T backend node database/check_schema.js
 A passing presence check does not prove every index/type, restored backup, production delivery or institutional evidence-policy decision. Recorded unit/browser checks are local verification evidence, not a claim that the live site already runs the update.
 
 - [Staff coordination](../README.md#staff-coordination-walkthrough): recipient connections, pair history, Admin monitoring and draft-preserving categories.
+
+
+## Admin functional review — no additional migration
+
+The current Admin review changes duplicate navigation/analytics views, truthful scan metric wording,
+Admin-managed student/alumni account status, relevant account filters, shared visible report
+filters with Student ID / Name search, and readable CSV fee/purpose/date output. It uses existing
+status/version/audit/report fields; all five previously confirmed cloud migrations remain complete.
+The fresh-install template includes the existing Phase 19 payment_channel column; this adds no
+new migration for installed databases.
+Deploy matching backend/frontend after the dev update; no AI rebuild, n8n import or new environment
+setting is needed. Verify deactivation/restoration with actual accounts, old-session denial, retained
+request/history, Secretary scope, complete Finance groups and CSV counts. Cosmetic icon/compact
+layout changes are deferred to the user's forthcoming Figma redesign. Main is not merged by this work.

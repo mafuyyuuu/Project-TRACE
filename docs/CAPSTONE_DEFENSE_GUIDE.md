@@ -702,7 +702,7 @@ Do not freeze up during the demo! Keep these on a sticky note next to your lapto
 | **College & Program** | Admin enters Registrar-approved programs. College and Program are linked selections; college display name, college_id and program are separate values. School graduation may predate 2002; PLP graduation starts at 2002 and is distinct from last attendance. |
 | **MFA & sessions** | Security appears in each profile. Authenticator QR setup and hashed recovery codes are implemented; Admin-assisted staff enrollment is controlled. Optional Admin personal-browser trust follows successful MFA and expires at the next Manila midnight; browser privacy can prevent persistence. |
 | **Fees & OR** | Admin schedules/college overrides → Secretary actual pages → server final breakdown. Extras apply once per document type; grouped payment waits for every item to be priced. Deferred OR sends acknowledgment first; 4:00 PM is outside same-day issuance, and elapsed age is not an issuance promise. |
-| **Presentation & records** | Shared light/dark controls, 100–200% text, role tours and Main/More navigation are implemented. More is seventh after six page destinations. Reports use a header Filters button → shared draft/Apply/export modal, with KPIs and Records on the main page. Secretary exports remain college-scoped. Finance preserves whole payment groups and exports their documents using the shared 36-column contract. Screenshots, a synthetic CSV and local verification limits are in [README workflow walkthrough](../README.md#main-workflows). |
+| **Presentation & records** | Shared light/dark controls, 100–200% text, role tours and Main/More navigation are implemented. More is seventh after six page destinations. Reports show shared visible draft filters and Apply, with a header Export action for dataset/CSV options. KPIs and Records remain on the main page. Secretary exports remain college-scoped. Finance preserves whole payment groups and exports their documents using the shared 36-column contract. Screenshots, a synthetic CSV and local verification limits are in [README workflow walkthrough](../README.md#main-workflows). |
 | **Support redesign** | Unified FAQ-first tickets, FCFS one-live-ticket assignment, Manila calendars/reply timers, private files, requirement replacements/history, metrics and aggregate advice are implemented locally. Demonstrate the matched deployed revision only; use SUPPORT_VALIDATION for measured scope. |
 
 > 🧪 **Evidence reminder:** State which commit/environment was tested. Demo data, a healthy container, a passing suite and a successful live workflow are different kinds of evidence. Do not claim recognition accuracy, model accuracy, guaranteed notification delivery or legal compliance from a screenshot.
@@ -746,3 +746,19 @@ On the matching deployed revision, show **Support → Staff coordination → New
 The [README screenshots/walkthrough](../README.md#staff-coordination-walkthrough) use synthetic actual-component records. Sorted account locks, unique pair/scope keys and durable message retry events are implemented; local unit/model simulations do not establish live MySQL contention or delivery. The preserving staff migration is separate from student/internal support storage and metrics. TRACE-78 connections were initially deferred and are now implemented following the user's explicit authorization.
 
 The integration review aligns Receiving Desk with Window 1 authority, retains named processor assignments across both labels, and scopes linked case conversations by the saved routing college. Demonstrate two successive notification links on an open Support screen; changing access clears protected cached history. These are locally tested repository behaviors, with genuine account/college changes and notification delivery still requiring staging verification.
+
+
+## Admin functional review walkthrough — 2026-10-12
+
+Open **Support → Internal assistance** for staff concerns; Admin monitors operational student
+conversations without replying. In **Efficiency Analytics**, switch between **Document
+Efficiency** and **Support Analytics**; these use separate sources and reporting views.
+**Scan Field Detection** is the average percentage of expected fields detected in scans,
+not verified AI accuracy. In **System Maintenance → Accounts**, choose Students, open a
+student/alumni and review the deactivate/reactivate confirmation. History and identity
+verification remain; deactivation invalidates existing sessions. In any reporting role,
+edit visible **Student ID / Name** and other filters, choose **Apply Filters**, then
+**Export → Export CSV**. Fee and purpose details are readable; timestamps retain exact
+Manila date/time. Secretary college scope and Finance complete payment groups remain.
+This follow-up adds no migration. Screenshots use synthetic records; live deployment and
+actual service outcomes are verified separately. Cosmetic redesign awaits the next Figma.

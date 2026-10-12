@@ -4,12 +4,12 @@ import QueueTabs from '@/components/QueueTabs';
 import SupportWorkspace from '@/components/SupportWorkspace';
 import StaffCoordinationWorkspace from '@/components/StaffCoordinationWorkspace';
 import InternalAssistanceWorkspace from '@/components/InternalAssistanceWorkspace';
-export default function MessagingWorkspace({user}) {
-  const [params,setParams]=useSearchParams(),category=params.get('category'),active=category==='staff'?'staff':category==='internal'?'internal':'support';
+export default function MessagingWorkspace({user,initialCategory='support'}) {
+  const [params,setParams]=useSearchParams(),category=params.get('category') || initialCategory,active=category==='staff'?'staff':category==='internal'?'internal':'support';
   const [visited,setVisited]=useState(()=>new Set([active]));
   useEffect(()=>{queueMicrotask(()=>setVisited(previous=>previous.has(active)?previous:new Set([...previous,active])));},[active]);
   const windowClerk=['Window 1','Receiving Desk'].includes(user.desk_assignment),canGeneral=user.role==='admin'||windowClerk;
-  const change=next=>{const query=new URLSearchParams(params);query.set('category',next);for(const key of ['ticket','document','support','conversation','internalTicket'])query.delete(key);setParams(query);};
+  const change=next=>{const query=new URLSearchParams(params);query.set('tab','messages');query.set('category',next);for(const key of ['ticket','document','support','conversation','internalTicket'])query.delete(key);setParams(query);};
   return <section className="min-w-0 space-y-5" aria-label="Messaging categories">
     <QueueTabs idPrefix="message-category" label="Conversation categories" activeKey={active} onChange={change} tabs={[{key:'support',label:canGeneral?'Student & case support':'Case-linked conversations'},{key:'staff',label:'Staff coordination'},{key:'internal',label:'Internal assistance'}]}/>
     <div id="message-category-panel" role="tabpanel" aria-labelledby={`message-category-${active}`}>

@@ -100,6 +100,7 @@ describe('admin-only access', () => {
     listStaff: (u) => service.listStaff(u),
     createStaff: (u) => service.createStaff(u, { employee_id: 'X' }),
     setStaffActive: (u) => service.setStaffActive(u, 5, false),
+    setAccountActive: u => service.setAccountActive(u,3,false),
     listPaymentMethods: (u) => service.listPaymentMethods(u),
     createPaymentMethod: (u) => service.createPaymentMethod(u, { code: 'x', name: 'X' }),
     setPaymentMethodActive: (u) => service.setPaymentMethodActive(u, 1, false),
@@ -111,6 +112,33 @@ describe('admin-only access', () => {
 
   it.each(Object.keys(calls))('%s rejects a student', async (name) => {
     expect(await statusOf(calls[name](STUDENT))).toBe(403);
+  });
+});
+
+describe('student and alumni account status',()=>{
+  it.each(['student','alumni'])('deactivates %s access with version revocation and an atomic audit, without editing records',async user_type=>{
+    vi.spyOn(userModel,'updateProfile');
+    vi.spyOn(require('../../models/trustedBrowser.model'),'lockAccount').mockResolvedValue({id:3,role:'student',user_type,is_active:1});
+    await service.setAccountActive(ADMIN,3,false);
+    expect(userModel.setUserActive).toHaveBeenCalledWith(3,false,expect.any(Object));
+    expect(userModel.logSecurityEvent).toHaveBeenCalledWith(ADMIN.id,'ACCOUNT_DEACTIVATED:3',null,null,expect.any(Object));
+    expect(userModel.updateProfile).not.toHaveBeenCalled();
+  });
+  it('keeps the legacy staff endpoint limited to staff',async()=>{
+    vi.spyOn(require('../../models/trustedBrowser.model'),'lockAccount').mockResolvedValue({id:3,role:'student'});
+    expect(await statusOf(service.setStaffActive(ADMIN,3,false))).toBe(404);
+    expect(userModel.setUserActive).not.toHaveBeenCalled();
+  });
+  it('rolls back status when the account audit cannot be saved',async()=>{
+    const connection={beginTransaction:vi.fn(),commit:vi.fn(),rollback:vi.fn(),release:vi.fn()};
+    vi.spyOn(pool,'getConnection').mockResolvedValue(connection);
+    vi.spyOn(require('../../models/trustedBrowser.model'),'lockAccount').mockResolvedValue({id:3,role:'student'});
+    userModel.logSecurityEvent.mockRejectedValueOnce(new Error('audit unavailable'));
+    await expect(service.setAccountActive(ADMIN,3,false)).rejects.toThrow('audit unavailable');
+    expect(connection.commit).not.toHaveBeenCalled();expect(connection.rollback).toHaveBeenCalledOnce();
+  });
+  it.each(['bad',0,'3x'])('rejects invalid account id %s before querying',async id=>{
+    expect(await statusOf(service.setAccountActive(ADMIN,id,false))).toBe(400);expect(userModel.setUserActive).not.toHaveBeenCalled();
   });
 });
 

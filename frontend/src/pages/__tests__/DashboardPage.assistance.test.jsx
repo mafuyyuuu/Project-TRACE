@@ -28,11 +28,11 @@ beforeEach(() => vi.clearAllMocks());
 it.each(['Window 1','Receiving Desk','Secretary','Finance'])('routes authorized %s staff to assistance',desk_assignment => {
   auth.user={id:4,role:'clerk',desk_assignment};mount();expect(screen.getByText('Internal workspace')).toBeInTheDocument();
 });
-it('routes Admin to assistance',() => {auth.user={id:9,role:'admin'};mount();expect(screen.getByText('Internal workspace')).toBeInTheDocument();});
+it('routes legacy Admin assistance links to the internal Support category',() => {auth.user={id:9,role:'admin'};mount();expect(MessagingWorkspace).toHaveBeenCalledWith(expect.objectContaining({initialCategory:'internal'}),undefined);expect(InternalAssistanceWorkspace).not.toHaveBeenCalled();});
 it('passes notification ticket queries to the mounted workspace',() => {
   auth.user={id:9,role:'admin'};
   render(<MemoryRouter initialEntries={['/dashboard?tab=internal-assistance&internalTicket=29']}><DashboardPage /></MemoryRouter>);
-  expect(InternalAssistanceWorkspace).toHaveBeenCalledWith(expect.objectContaining({requestedTicket:'29'}),undefined);
+  expect(MessagingWorkspace).toHaveBeenCalledWith(expect.objectContaining({initialCategory:'internal'}),undefined);
 });
 it.each([{id:3,role:'student'},{id:4,role:'clerk',desk_assignment:'Other'}])('does not mount assistance for a forced unauthorized URL',user => {
   auth.user=user;mount();expect(InternalAssistanceWorkspace).not.toHaveBeenCalled();

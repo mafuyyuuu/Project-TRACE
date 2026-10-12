@@ -53,7 +53,7 @@ export default function UserDetailModal({ open, onClose, user, onEdit, onToggleA
             {onToggleActive && <Button
               type="button"
               onClick={onToggleActive}
-              disabled={isStudent || !onToggleActive || isSelf || saving}
+              disabled={!onToggleActive || isSelf || saving}
               title={isSelf ? 'You cannot deactivate your own account' : ''}
               className={`trace-button flex-1 ${user.is_active ? 'trace-button-danger' : 'trace-button-primary'}`}
             >

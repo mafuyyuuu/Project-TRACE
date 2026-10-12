@@ -177,6 +177,7 @@ CREATE TABLE IF NOT EXISTS documents (
   ocr_extracted_data JSON,
   payment_reference_id VARCHAR(255),
   gcash_reference_no VARCHAR(255),
+  payment_channel VARCHAR(20) NULL,
   amount DECIMAL(10,2) DEFAULT 150.00,
   -- The basis for the amount. The Secretary prices from the printed output, so
   -- an amount without these is an unexplainable charge.

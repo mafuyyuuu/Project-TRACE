@@ -73,7 +73,7 @@ function roleNavItems(user) {
 
 export function navItemsForUser(user) {
   const items = roleNavItems(user);
-  if (user?.role === 'admin' || user?.role === 'clerk' && ['Window 1','Receiving Desk','Secretary','Finance'].includes(user.desk_assignment)) {
+  if (user?.role === 'clerk' && ['Window 1','Receiving Desk','Secretary','Finance'].includes(user.desk_assignment)) {
     items.splice(3,0,{tab:'internal-assistance',to:'/dashboard?tab=internal-assistance',label:'Internal Assistance',icon:'assistance'});
   }
   return user?.role ? [...items, { tab: 'help', to: '/dashboard?tab=help', label: 'Help / FAQ', icon: 'book', group: 'more' }] : items;
@@ -92,6 +92,7 @@ export function navGroupsForUser(user) {
 
 /** Keep the old Secretary deep link active within the combined workspace. */
 export function canonicalTabForUser(user, tab) {
+  if (user?.role === 'admin' && tab === 'internal-assistance') return 'messages';
   if (user?.role === 'clerk' && user.desk_assignment === 'Finance' && ['reports', 'export', 'exports'].includes(tab)) return 'transactions';
   return user?.role === 'clerk' && user.desk_assignment === 'Secretary' && tab === 'completed-logs' ? 'reports' : tab;
 }

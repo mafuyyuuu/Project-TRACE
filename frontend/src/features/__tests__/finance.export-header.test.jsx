@@ -26,13 +26,13 @@ it('exports Finance CSV with current filters and retains pending, failure and do
   const user = userEvent.setup();
   render(<Panel />);
   await waitFor(() => expect(screen.queryByText('Loading payments…')).not.toBeInTheDocument());
-  await user.click(screen.getByRole('button',{name:'Filters'}));
   fireEvent.change(screen.getByLabelText('Payment cleared From'),{target:{value:'2026-10-01'}});
   fireEvent.change(screen.getByLabelText('Payment cleared To'),{target:{value:'2026-10-05'}});
   await user.selectOptions(screen.getByLabelText('OR status'), 'pending');
   let reject;
   exportFinanceTransactions.mockReturnValueOnce(new Promise((_, fail) => { reject = fail; }));
   await user.click(screen.getByRole('button',{name:'Apply Filters'}));
+  await user.click(screen.getByRole('button',{name:'Export',exact:true}));
   await waitFor(()=>expect(screen.getByRole('button',{name:'Export CSV'})).toBeEnabled());
   await user.click(screen.getByRole('button',{name:'Export CSV'}));
   expect(exportFinanceTransactions).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({ from: '2026-10-01', to: '2026-10-05', receipt: 'pending' }));
@@ -51,12 +51,12 @@ it('exports Finance CSV with current filters and retains pending, failure and do
 it('hides stale transactions and blocks export after a newly applied scope fails',async()=>{
   getFinanceTransactions.mockResolvedValue({transactions:[{id:1,request_group_id:'SYN-OLD',tracking_number:'TRC-OLD',student_name:'Old scope student',student_id:'SYN-OLD',amount:100,payment_cleared_at:null,or_number:'SYN-OR',official_receipt_path:'/uploads/synthetic.pdf'}],total:1,amount:100});
   render(<Panel/>);await screen.findByText('Old scope student');
-  await userEvent.click(screen.getByRole('button',{name:'Filters'}));
-  await userEvent.type(screen.getByLabelText('Student name'),'New scope');
+  await userEvent.type(screen.getByLabelText('Student ID / Name'),'New scope');
   getFinanceTransactions.mockRejectedValueOnce(new Error('synthetic failure'));
   await userEvent.click(screen.getByRole('button',{name:'Apply Filters'}));
   await waitFor(()=>expect(screen.getAllByRole('alert')[0]).toHaveTextContent('Could not load Finance transactions.'));
   expect(screen.queryByText('Old scope student')).not.toBeInTheDocument();
+  await userEvent.click(screen.getByRole('button',{name:'Export',exact:true}));
   expect(screen.getByRole('button',{name:'Export CSV'})).toBeDisabled();
   expect(exportFinanceTransactions).not.toHaveBeenCalled();
 });

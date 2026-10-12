@@ -20,7 +20,8 @@ it.each(['Window 1','Secretary','Finance'])('adds a distinct staff assistance de
 });
 it('excludes students and unsupported desks from assistance navigation',() => {
   for(const user of [{role:'student'},{role:'clerk',desk_assignment:'Other'}]) expect(navItemsForUser(user).some(row => row.tab === 'internal-assistance')).toBe(false);
-  expect(navItemsForUser(admin).some(row => row.tab === 'internal-assistance')).toBe(true);
+  expect(navItemsForUser(admin).some(row => row.tab === 'internal-assistance')).toBe(false);
+  expect(navItemsForUser(admin).some(row => row.tab === 'messages')).toBe(true);
 });
 it('confirms concern creation, preserves cancelled drafts and sends no student context',async () => {
   render(<InternalAssistanceWorkspace user={staff} />);await screen.findByLabelText('Internal message');

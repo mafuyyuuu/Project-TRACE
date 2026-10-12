@@ -229,7 +229,7 @@ Receipt verification and handoff are separate actions. Finance alone clears paym
 
 The page keeps Filters, summary cards and Records in that order. Records show requested/updated dates, full tracking numbers, clickable student names, document request labels, actual statuses, payment and amounts. Scroll inside the table on narrow screens and use its page controls for more records. **Last Updated** is the recorded update time, not a separate approval timestamp.
 
-Choose **Filters** beside the title. Edit the draft in **Filters & Export**, then **Apply Filters**. Reset clears only the draft; Cancel preserves the applied report. **Export CSV** uses the applied scope. Filtered document records use all document filters; student categories use their account category plus applied ID/name/college filters. Every Secretary export is limited to the assigned college. An account without a college assignment must ask Admin to correct its assignment before viewing or exporting records.
+Edit the visible draft filters, then choose **Apply Filters**. **Student ID / Name** matches an exact ID or part of a name. Reset clears only the draft. Choose **Export** at the upper right to select the dataset and **Export CSV**; closing Export keeps the draft and applied report. Filtered document records use all document filters; student categories use their account category plus applied ID/name/college filters. Every Secretary export is limited to the assigned college. An account without a college assignment must ask Admin to correct its assignment before viewing or exporting records.
 
 ## 10. Finance tasks
 
@@ -238,7 +238,7 @@ Choose **Filters** beside the title. Edit the draft in **Filters & Export**, the
 3. Confirm verified payment, or give a clear reason when rejecting it.
 4. Use **Input Issuance Number** to configure and confirm the first 50-number paper pack when none is active. Review the generated read-only serial before verified issuance, or choose **Later** to defer. Payment clearance sends an acknowledgment while the OR is pending.
 5. Use **Official Receipts / History** beside verification to inspect issued snapshots, upload receipt copies or request printing/reprinting. Deferred issuance allocates the next serial only when confirmed. After 50 numbers, confirm a new pack; uploads and reprints consume none. Give the physical receipt to Secretary for release with the document. Historical recorded OR numbers remain unchanged.
-6. Open **Transactions & OR Copies** in the sidebar. Set **From**, **To** and **OR status**; both dates are inclusive and interpreted in Asia/Manila. Choose **Filters**, apply the draft filters and use **Export CSV** inside the shared modal. Each request group appears once with its total. **View OR** in Actions opens an available digital receipt through authenticated access. **Upload OR copy** means an OR number exists but its copy is pending; **Issue OR & upload** means issuance is pending. Existing Reports/Export links open this same page. The view shows elapsed time awaiting an OR when a clearance timestamp exists.
+6. Open **Transactions & OR Copies** in the sidebar. Set **From**, **To** and **OR status**; both dates are inclusive and interpreted in Asia/Manila. Apply the visible draft filters, then choose **Export → Export CSV**. Each request group appears once with its total. **View OR** in Actions opens an available digital receipt through authenticated access. **Upload OR copy** means an OR number exists but its copy is pending; **Issue OR & upload** means issuance is pending. Existing Reports/Export links open this same page. The view shows elapsed time awaiting an OR when a clearance timestamp exists.
 
 New same-day OR issuance closes at **exactly 4:00 PM Manila time**. Deferred issuance is not a promised next-day deadline. Finance can upload a retained copy later without re-verifying an already cleared payment.
 
@@ -303,7 +303,7 @@ The catalog starts empty. Add only approved programs; TRACE does not infer a pro
 
 ## Revision 2 report/export update
 
-All report roles use the same Filters & Export modal. Name matching is a literal case-insensitive substring; student ID is exact. College/Department maps to the College catalog. Secretary scope is enforced on the server. Finance dates describe payment clearance and select complete request groups; its CSV contains one row per document in those groups, with per-document amounts. Other document exports use one row per matching document. Shared CSV timestamps include +08:00, money is numeric PHP and blank values are not invented. A document export above 10,000 rows asks for narrower filters. See [README workflow walkthrough](../README.md#main-workflows) and the [deployment checklist](DEPLOYMENT_CHECKLIST.md).
+All report roles use the same visible draft filters and a separate Export configuration dialog. Name matching is a literal case-insensitive substring; student ID is exact. College/Department maps to the College catalog. Secretary scope is enforced on the server. Finance dates describe payment clearance and select complete request groups; its CSV contains one row per document in those groups, with per-document amounts. Other document exports use one row per matching document. CSV timestamps show exact Manila date/time as YYYY-MM-DD HH:mm:ss. Fee Breakdown and structured Purpose are readable labelled text; original request details remain stored unchanged. Money is numeric PHP and blank values are not invented. A document export above 10,000 rows asks for narrower filters. See [README workflow walkthrough](../README.md#main-workflows) and the [deployment checklist](DEPLOYMENT_CHECKLIST.md).
 
 
 ## Revision 2 Batch 10 — Support / Messaging UI
@@ -314,7 +314,7 @@ See [README workflow walkthrough](../README.md#main-workflows) for the screensho
 
 ## Revision 2 Batch 11 — reading Support Analytics
 
-In Admin → Efficiency Analytics, the Support Analytics section shows ticket metrics separately from document turnaround. Edit From/Through, then choose Apply period. The date strip shows the actually loaded Manila period; its ending instant is exclusive. The default remains the most recent 30 days. During refresh/failure, previous results are labeled and the draft dates remain available for retry.
+In Admin → Efficiency Analytics, choose the Support Analytics subtab to show ticket metrics separately from document turnaround. Edit From/Through, then choose Apply period. The date strip shows the actually loaded Manila period; its ending instant is exclusive. The default remains the most recent 30 days. During refresh/failure, previous results are labeled and the draft dates remain available for retry.
 
 Read New Tickets separately from imported tickets. Escalations show the recorded creation-cohort numerator/denominator; FAQ views, helpful-or-not-helpful responses and explicit resolutions are separate actions. Backlog is the historical state at cutoff, not the current queue. Assigned and responded workload values count episodes rather than distinct people/tickets. Duration values remain minutes; service time excludes Awaiting Student while wall time includes it. No data means no recorded measurement, and differs from a measured zero. Use the table’s horizontal scroller on small screens; keyboard users can focus it and use arrow keys. See [screenshots and walkthrough](../README.md#main-workflows).
 
@@ -336,3 +336,18 @@ Send works directly; failed sends retain the draft. Ticket changes require confi
 Open **Support → Staff coordination**. Window 1/Receiving Desk, Finance and Secretary staff select **New conversation**, search by name or desk, select an eligible colleague, enter a first message, then review/confirm. The existing conversation for that pair/college scope is reused. Send or Enter posts subsequent messages directly; failed sends keep their drafts for retry. Select a conversation from the list, or use **Staff conversations** on a phone. Load older messages retrieves retained history; switching conversation categories preserves drafts in the visited category workspaces.
 
 The directory excludes students, Admin, self and unavailable/unsupported staff. Secretary peers must share the same active college; Window 1/Finance can coordinate with the relevant Secretary without gaining access to another college's student requests. Changed or inactive assignments may make a thread read-only or inaccessible to the changed Secretary. Admin monitors operational history and cannot start/send in staff conversations. Admin replies to staff concerns through the separately assigned **Internal assistance** ticket. Student↔Window 1 support stays ticket-based; existing authorized Finance/Secretary case discussions remain case-linked. No online, unread or read-receipt indicator is implied. See the [README walkthrough](../README.md#staff-coordination-walkthrough).
+
+
+## Admin account and analytics follow-up
+
+In **System Maintenance → Accounts**, select Student / Alumni to hide unrelated desk filters.
+Open the account, choose **Deactivate User** and confirm. This blocks sign-in and revokes sessions
+while preserving requests, payment/history, academic status and identity-verification status.
+**Restore User** also requires confirmation; identity/email/profile requirements still apply.
+Admin cannot deactivate their own account.
+
+In **Efficiency Analytics**, choose **Document Efficiency** or **Support Analytics**. Each view
+loads independently; switching retains the visited support period draft. Admin has no duplicate
+Support Analytics button in Support and no separate Internal Assistance sidebar entry; older
+internal-ticket links open the same concern under Support. **Scan Field Detection** describes
+expected fields found by OCR, not measured AI accuracy or verified text correctness.

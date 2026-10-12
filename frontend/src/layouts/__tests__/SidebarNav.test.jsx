@@ -56,7 +56,6 @@ describe('navItemsForUser', () => {
       'dashboard',
       'admin-tracker',
       'messages',
-      'internal-assistance',
       'admin-logs',
       'admin-security',
       'admin-reports',
@@ -108,7 +107,8 @@ describe('SidebarNav', () => {
     const main = screen.getByRole('navigation', { name: 'Main navigation' });
     expect(within(main).getAllByRole('link')).toHaveLength(6);
     expect([...main.querySelectorAll('a, button')].at(6)).toBe(screen.getByRole('button', { name: 'More' }));
-    expect(within(main).getByRole('link', { name: 'Internal Assistance' })).toBeInTheDocument();
+    expect(within(main).queryByRole('link', { name: 'Internal Assistance' })).not.toBeInTheDocument();
+    expect(within(main).getByRole('link', { name: 'Support' })).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'More' }));
     const more = screen.getByRole('navigation', { name: 'More navigation' });
     expect(within(more).getAllByRole('link')).toHaveLength(navItemsForUser(ADMIN).length - 6);
@@ -204,7 +204,7 @@ describe('SidebarNav', () => {
     renderNav({ user: ADMIN, showLabels: true, onNavigate });
     screen.getByRole('button', { name: 'More' }).focus();
     await keyboard.keyboard('{Enter}');
-    expect(screen.getByRole('link', { name: 'Security Logs' })).toHaveFocus();
+    expect(screen.getByRole('link', { name: navGroupsForUser(ADMIN).more[0].label })).toHaveFocus();
     screen.getByRole('button', { name: 'Back to main' }).focus();
     await keyboard.keyboard(' ');
     expect(screen.getByRole('link', { name: 'Dashboard' })).toHaveFocus();

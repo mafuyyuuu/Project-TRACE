@@ -201,7 +201,7 @@ When Ana claims her Transcript, the clerk clicks Release. That closes the reques
 
 *(Action: Briefly show System Maintenance, Templates, Security Logs and Reports & Export.)*
 
-“Admin maintains Registrar-approved programs, document availability and fee schedules. Templates provide isolated previews; Security contains authenticator settings and account activity. Reports place Filters beside the header. It opens the shared configuration modal with draft filters, Apply and Export CSV; KPI summaries and Records stay on the main page. Show student ID/name, college and document type filters, then reconcile the exported document count and amount. Secretary reports remain locked to their college; Finance keeps grouped payments on screen and expands their documents in the shared CSV. We preserve role permissions while using shared controls, dark mode, readable status colors and enlarged text.”
+“Admin maintains Registrar-approved programs, document availability and fee schedules. Templates provide isolated previews; Security contains authenticator settings and account activity. Reports show visible draft filters and Apply. Export at the upper right opens dataset/CSV options; KPI summaries and Records stay on the main page. Show student ID/name, college and document type filters, then reconcile the exported document count and amount. Secretary reports remain locked to their college; Finance keeps grouped payments on screen and expands their documents in the shared CSV. We preserve role permissions while using shared controls, dark mode, readable status colors and enlarged text.”
 
 *(Action: If demonstrated, open only the messaging feature verified on this deployment.)*
 
@@ -276,3 +276,19 @@ See [README workflow walkthrough](../README.md#main-workflows) for the screensho
 “Category switches preserve drafts. Accepted message retries reuse the recorded message rather than duplicating it. Admin can monitor operational discussions but cannot intervene; staff concerns needing an Admin reply use Internal Assistance. These screenshots/local checks are separate from verification on the deployed database and devices.”
 
 Integration demonstration note: Receiving Desk is Window 1’s legacy label, not another processing role. An assigned case cannot be taken over by changing the label. Linked case conversation access follows the college saved at routing. Open another notification while Support is already visible to show selection changes without restarting the workspace. Do not claim live delivery or migration completion from this local demonstration.
+
+
+## Admin functional review walkthrough — 2026-10-12
+
+Open **Support → Internal assistance** for staff concerns; Admin monitors operational student
+conversations without replying. In **Efficiency Analytics**, switch between **Document
+Efficiency** and **Support Analytics**; these use separate sources and reporting views.
+**Scan Field Detection** is the average percentage of expected fields detected in scans,
+not verified AI accuracy. In **System Maintenance → Accounts**, choose Students, open a
+student/alumni and review the deactivate/reactivate confirmation. History and identity
+verification remain; deactivation invalidates existing sessions. In any reporting role,
+edit visible **Student ID / Name** and other filters, choose **Apply Filters**, then
+**Export → Export CSV**. Fee and purpose details are readable; timestamps retain exact
+Manila date/time. Secretary college scope and Finance complete payment groups remain.
+This follow-up adds no migration. Screenshots use synthetic records; live deployment and
+actual service outcomes are verified separately. Cosmetic redesign awaits the next Figma.

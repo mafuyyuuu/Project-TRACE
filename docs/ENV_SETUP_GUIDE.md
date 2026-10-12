@@ -1120,3 +1120,16 @@ Support Analytics KPI/table changes add no environment variable, dependency or m
 ## Additional staff chat connections
 
 No environment variables/dependencies or AI/n8n changes are introduced. Build the matching backend/frontend and apply only missing preserving prerequisites plus `database/migrate_staff_conversations.js`, followed by the read-only schema checker, using [MIGRATION_ROLLOUT.md](MIGRATION_ROLLOUT.md). The [deployment checklist](DEPLOYMENT_CHECKLIST.md) records the new script as unapplied. Existing user/college tables are required; no account or college data is seeded. Confirm actual active staff college assignments and notification delivery on staging. Do not import fresh schema or seed data into an existing server.
+
+
+## Admin functional review — 2026-10-12
+
+This follow-up requires no new migration, environment variable, dependency or AI/n8n change.
+The fresh-install schema now includes payment_channel, already supplied to older installations
+by the historical Phase 19 migration; existing installed databases are not changed here.
+Use matching API/frontend versions for `/maintenance/users/:id/active` and the shared
+`studentSearch` report filter. The five earlier preserving migrations are confirmed applied
+from the user's SSH output; do not rerun them for these changes. Admin's Internal assistance
+now opens inside Support and Efficiency Analytics has independent document/support views.
+Scan Field Detection describes expected-field coverage, not verified accuracy. See the
+[consolidated deployment checklist](DEPLOYMENT_CHECKLIST.md) for rollout state.

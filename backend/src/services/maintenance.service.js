@@ -361,11 +361,12 @@ async function updateStaff(user, id, data) {
 }
 
 /**
- * Deactivate or restore a staff account. Accounts are never deleted — their id
- * appears throughout `step_logs` as the clerk who handled a document.
+ * Deactivate or restore an account without deleting its identity or history.
+ * The legacy staff endpoint additionally restricts the target to staff roles.
  */
-async function setStaffActive(user, id, isActive) {
+async function setAccountActive(user, id, isActive, staffOnly = false) {
   assertAdmin(user);
+  if (!/^[1-9]\d*$/.test(String(id)) || !Number.isSafeInteger(Number(id))) throw badRequest('Choose a valid account.');
   if (typeof isActive !== 'boolean') throw badRequest('Choose activate or deactivate.');
   if (!isActive && Number(id) === Number(user.id)) throw badRequest('You cannot deactivate your own account.');
   const connection = await pool.getConnection();
@@ -373,7 +374,7 @@ async function setStaffActive(user, id, isActive) {
   try {
     await connection.beginTransaction();
     account = await accountLock.lockAccount(id, connection);
-    if (!account || !VALID_ROLES.includes(account.role)) throw notFound('Staff account not found.');
+    if (!account || !(staffOnly ? VALID_ROLES : ['student',...VALID_ROLES]).includes(account.role)) throw notFound('Account not found.');
     await userModel.setUserActive(id, isActive, connection);
     await userModel.clearEmailOTP(id, connection);
     await userModel.logSecurityEvent(user.id, `${isActive ? 'ACCOUNT_REACTIVATED' : 'ACCOUNT_DEACTIVATED'}:${id}`, null, null, connection);
@@ -384,10 +385,11 @@ async function setStaffActive(user, id, isActive) {
   try {
     const [owner] = await userModel.findById(id);
     if (owner?.email) await notifications.sendEmail(owner.email, isActive ? 'Account Reactivated' : 'Account Deactivated',
-      `Your TRACE staff account was ${isActive ? 'reactivated' : 'deactivated'} by an administrator. If you did not expect this, contact the registrar administrator.`);
+      `Your TRACE account was ${isActive ? 'reactivated' : 'deactivated'} by an administrator. If you did not expect this, contact the registrar administrator.`);
   } catch { console.warn('Account status notification unavailable.'); }
-  return { message: isActive ? 'Staff account reactivated.' : 'Staff account deactivated.' };
+  return { message: isActive ? 'Account reactivated.' : 'Account deactivated.' };
 }
+function setStaffActive(user,id,isActive) { return setAccountActive(user,id,isActive,true); }
 
 // ---------------------------------------------------------------------------
 // Payment methods
@@ -456,6 +458,6 @@ module.exports = {
   VALID_ROLES,
   listColleges, createCollege, updateCollege, setCollegeActive,
   listDocumentTypes, createDocumentType, updateDocumentType, setDocumentTypeActive,
-  listStaff, createStaff, updateStaff, setStaffActive,
+  listStaff, createStaff, updateStaff, setStaffActive, setAccountActive,
   listPaymentMethods, createPaymentMethod, updatePaymentMethod, setPaymentMethodActive,
 };

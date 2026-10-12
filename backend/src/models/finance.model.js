@@ -10,7 +10,7 @@ const grouped = `SELECT COALESCE(d.request_group_id, d.tracking_number) AS reque
   FROM documents d LEFT JOIN users student ON student.student_id = d.student_id AND student.role = 'student' LEFT JOIN finance_issued_receipts receipt ON receipt.active_group=COALESCE(d.request_group_id,d.tracking_number) WHERE d.payment_status = 'PAID'
   GROUP BY COALESCE(d.request_group_id, d.tracking_number)`;
 function groupQuery(filters) {
-  const {where: match,params} = reports.buildDocumentFilters({studentId:filters.studentId,studentName:filters.studentName,documentType:filters.documentType,collegeId:filters.collegeId,collegeName:filters.collegeName});
+  const {where: match,params} = reports.buildDocumentFilters({studentSearch:filters.studentSearch,studentId:filters.studentId,studentName:filters.studentName,documentType:filters.documentType,collegeId:filters.collegeId,collegeName:filters.collegeName});
   // Match a complete paid request group; never display a partial payment.
   return {sql: !match ? grouped : grouped.replace("WHERE d.payment_status = 'PAID'", `WHERE d.payment_status = 'PAID' AND COALESCE(d.request_group_id,d.tracking_number) IN (SELECT COALESCE(d.request_group_id,d.tracking_number) FROM documents d ${match} AND d.payment_status='PAID')`),params};
 }

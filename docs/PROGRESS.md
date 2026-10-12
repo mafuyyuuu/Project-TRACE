@@ -1,3 +1,75 @@
+## Comprehensive Admin functional review — completion — 2026-10-12
+
+Admin now reaches Internal assistance through Support, with legacy internal-ticket URLs mapped
+into that workspace and category drafts retained. The duplicate Admin Support analytics action
+is removed. Efficiency Analytics has independent Document Efficiency/Support Analytics views;
+direct Support links do not wait for document data and switching preserves the reporting draft.
+Scan Field Detection explains expected-field coverage instead of presenting the parser ratio as
+verified accuracy. Student/alumni accounts now have confirmed Admin-only deactivate/reactivate
+through the existing account lock, atomic status/version/audit transaction and socket revocation.
+Identity, enrollment and request history are preserved; restoration retains other login gates.
+Student/Admin role filters hide irrelevant desks and clear a stale desk selection.
+
+All reporting roles use visible draft filters with combined Student ID / Name and a header Export
+action. Export uses applied filters and is blocked for dirty/loading/failed scopes. Search is a
+parenthesized exact ID or literal name match within the existing college restriction. Finance
+continues selecting complete paid groups before expanding document CSV rows. Fees and structured
+purpose details become readable text; date/time includes seconds in Manila, without ISO syntax.
+Numeric amounts, the 36-column contract, private exclusions and spreadsheet escaping remain.
+Also repaired the Receiving Desk alias's inactive report hook. Real SQL verification found the
+fresh schema omitted payment_channel even though the historical Phase 19 migration and reporting
+SQL already require it; added that existing nullable column to the fresh-install template. This
+is not a new cloud migration. Existing installation data and migration scripts are unchanged.
+
+Final full suites: **1,522 backend tests / 116 files**, **959 frontend tests / 104 files**;
+frontend lint, production/PWA build and whitespace checks pass. **Nine real MySQL checks** pass
+on isolated synthetic local data: scoped document/student search, literal wildcard handling,
+status/version/history preservation, audited restoration, complete Finance groups/readable CSV,
+exact student-registration timestamps, and fresh-schema import/preflight/document/Finance reads.
+No cloud database, actual users, uploaded proof or external mail was used. **32 report browser
+configurations** pass across four role portals, four widths and two themes, with applied export
+scope, dirty blocking, retained drafts, acknowledgments and keyboard containment; four additional
+320px/200% text and reduced-motion checks pass. **16 analytics browser configurations** pass at
+100/200% text, with independent direct Support loading and retained dates. No browser page errors.
+Three synthetic actual-component screenshots were visually inspected; the existing README and
+CSV sample are updated. No separate batch acceptance Markdown was created.
+
+The existing five cloud migrations and internal health remain confirmed from the user's SSH
+output. This follow-up needs **no additional migration**, dependency/environment change, AI
+rebuild or n8n import. Publication is to **dev only**; main is not merged and cloud/frontend
+release is not performed here. Cosmetic icons, tracker/compact filter styling and the whole-system
+redesign are deferred until the user's new Figma reference. Living Help/manual/workflow/backend/
+environment/defense/deployment guides are synchronized with these functional changes.
+
+## Comprehensive Admin review — findings before edits — 2026-10-12
+
+The user requested four new Admin-focused batches while retaining the main Figma/shared modal
+styles. They confirmed Reports & Export should restore visible filters consistently across all
+report roles, merge Student ID/Name search, and keep Export at the upper right. Both Fee Breakdown
+and Purpose currently show structured JSON; timestamps need readable exact Manila date/time.
+No main merge is authorized by this review; publish verified changes to dev only.
+
+Scope steering: the user is preparing a new Figma redesign for the entire system and requested
+functionality first. Defer icon/button styling, tracker layout and compact filter restyling until
+that reference arrives. Removed the provisional icon/compact-row presentation changes. Continue
+duplicate navigation removal, independent analytics views, truthful metric wording, account
+deactivation/reactivation and relevant filters, combined report search and readable CSV. Existing
+shared controls/modals remain. Visible report filters are treated as the expressly requested
+workflow placement change, with no new design language.
+
+Inspection finds Admin navigation adds Internal Assistance although Support already hosts it;
+SupportWorkspace exposes another Admin analytics modal, and AnalyticsPanel stacks support below
+document metrics and blocks both behind document loading/errors. Consolidate Admin entry points,
+retain old notification links and drafts, and provide independent Document Efficiency/Support
+Analytics subtabs. Tracker/attachment actions are underlined text, and the OCR KPI falsely calls a
+field-detection ratio accuracy. The parser counts detected ID/name/form type, not validated model
+accuracy. Maintenance passes no student status callback and its backend status handler accepts
+staff only; add audited student/alumni deactivate/reactivate with existing session revocation,
+confirmation and record preservation. Compact context-appropriate filters and narrow-screen rows.
+Report CSV explicitly JSON-serializes fee lines and emits ISO Manila timestamps; inspect Purpose
+structure before formatting it, preserving stored details and CSV escaping/formula protection.
+Use shared controls; keep desk/college/report access and all existing legal workflow gates.
+
 ## Production alumni missing-proof registration — completion — 2026-10-12
 
 Removed the demo-only runtime and Admin-review gates and replaced the registration-options

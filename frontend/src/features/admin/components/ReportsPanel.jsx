@@ -38,7 +38,7 @@ export default function ReportsPanel({ user, currentTab, initialRecordSet = '' }
   const isSecretary = user?.role === 'clerk' && user.desk_assignment === 'Secretary';
   const [viewProfileId, setViewProfileId] = useState(null);
   const [filtersOpen,setFiltersOpen]=useState(false);
-  const reference=useReportFilterOptions(filtersOpen);
+  const reference=useReportFilterOptions(true);
   const recordsId = useId();
 
   if (r.loading) return <DashboardLoading />;
@@ -62,12 +62,12 @@ export default function ReportsPanel({ user, currentTab, initialRecordSet = '' }
             </p>
           </div>
           <div className="ml-auto">
-            <Button type="button" className="trace-button trace-button-primary" onClick={()=>setFiltersOpen(true)}>Filters</Button>
+            <Button type="button" className="trace-button trace-button-primary" onClick={()=>setFiltersOpen(true)}>Export</Button>
           </div>
         </div>
 
         <p className="trace-page-description select-text" aria-label="Applied filters">{appliedFilterSummary(r.filters,reference.options)}{isSecretary?' · Assigned college only':''}</p>
-        {filtersOpen && <ReportFiltersModal filters={r.filters} defaults={EMPTY_REPORT_FILTERS} options={reference.options} optionsLoading={reference.loading} optionsError={reference.error} onRetryOptions={reference.retry} onApply={r.applyFilters} onClose={()=>setFiltersOpen(false)} onExport={dataset=>dataset==='documents'?r.downloadDocuments():r.downloadStudents(dataset)} exporting={r.exporting} exportReady={Boolean(r.report)&&!r.refreshing} secretary={isSecretary} error={r.error}/>}
+        {<ReportFiltersModal inline exportOpen={filtersOpen} filters={r.filters} defaults={EMPTY_REPORT_FILTERS} options={reference.options} optionsLoading={reference.loading} optionsError={reference.error} onRetryOptions={reference.retry} onApply={r.applyFilters} onClose={()=>setFiltersOpen(false)} onExport={dataset=>dataset==='documents'?r.downloadDocuments():r.downloadStudents(dataset)} exporting={r.exporting} exportReady={Boolean(r.report)&&!r.refreshing} secretary={isSecretary} error={r.error}/>}
 
         {/* Summary for the current filter slice */}
         <section aria-label="Report summary" aria-busy={r.refreshing} className="grid [grid-template-columns:repeat(auto-fit,minmax(min(100%,9rem),1fr))] gap-4">

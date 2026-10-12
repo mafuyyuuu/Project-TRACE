@@ -48,8 +48,8 @@ async function downloadCsv(path, params) {
  * @param {'active'|'alumni'|'others'|'all'} category
  */
 export function exportStudentsCsv(category = 'all', filters = {}) {
-  const {studentId,studentName,collegeId}=filters;
-  return downloadCsv('/reports/export/students.csv', { category, studentId, studentName, collegeId })
+  const {studentSearch,studentId,studentName,collegeId}=filters;
+  return downloadCsv('/reports/export/students.csv', { category, studentSearch, studentId, studentName, collegeId })
 }
 
 export function exportDocumentsCsv(filters = {}) {

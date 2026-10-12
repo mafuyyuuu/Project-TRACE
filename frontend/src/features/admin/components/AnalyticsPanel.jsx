@@ -6,6 +6,9 @@ import SupportAnalytics from '@/components/SupportAnalytics';
 import ProgressFill from '@/components/ProgressFill';
 import { formatDuration } from '@/utils/formatters';
 import { getWorkloadShares } from '@/utils/workloadShare';
+import {useEffect,useState} from 'react';
+import {useSearchParams} from 'react-router-dom';
+import QueueTabs from '@/components/QueueTabs';
 
 function MetricCard({ label, value, sub, tone = 'default' }) {
   const tones = { default: 'text-gray-900 dark:text-gray-100', good: 'text-[#15803d] dark:text-green-300', warn: 'text-amber-600 dark:text-amber-300' };
@@ -24,7 +27,7 @@ function MetricCard({ label, value, sub, tone = 'default' }) {
  * Every figure derives from the `step_logs` audit trail, so anything shown here
  * can be traced back to a recorded desk action.
  */
-export default function AnalyticsPanel({ user, currentTab }) {
+function DocumentAnalytics({ user, currentTab }) {
   const r = useReports(user, currentTab);
 
   if (r.loading) return <DashboardLoading />;
@@ -43,14 +46,6 @@ export default function AnalyticsPanel({ user, currentTab }) {
       <DashboardAlerts success={r.success} error={r.error} onDismiss={r.dismissNotification} />
 
       <div className="trace-page">
-        <div>
-          <h2 className="trace-page-title">
-            Efficiency <span className="text-[#15803d] dark:text-green-300">Analytics</span>
-          </h2>
-          <p className="trace-page-description">
-            Processing times and turnaround, computed from the document audit trail.
-          </p>
-        </div>
 
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <MetricCard
@@ -199,8 +194,28 @@ export default function AnalyticsPanel({ user, currentTab }) {
             </table>
           </div>
         </div>
-        <SupportAnalytics />
       </div>
     </>
   );
+}
+
+export default function AnalyticsPanel({user,currentTab}) {
+  const [params,setParams]=useSearchParams();
+  const active=params.get('analytics')==='support'?'support':'documents';
+  const [visited,setVisited]=useState(()=>new Set([active]));
+  useEffect(()=>{queueMicrotask(()=>setVisited(previous=>previous.has(active)?previous:new Set([...previous,active])));},[active]);
+  const change=next=>{
+    setVisited(previous=>new Set([...previous,next]));
+    const query=new URLSearchParams(params);query.set('analytics',next);setParams(query);
+  };
+  return <section className="trace-page min-w-0">
+    <header><h2 className="trace-page-title">Efficiency <span className="text-[#15803d] dark:text-green-300">Analytics</span></h2>
+      <p className="trace-page-description">{active==='support'?'Ticket service and support workload, measured separately from document processing.':'Processing times and turnaround from the document audit trail.'}</p>
+    </header>
+    <QueueTabs idPrefix="admin-analytics-view" label="Analytics views" activeKey={active} onChange={change} tabs={[{key:'documents',label:'Document Efficiency'},{key:'support',label:'Support Analytics'}]}/>
+    <div id="admin-analytics-view-panel" role="tabpanel" aria-labelledby={`admin-analytics-view-${active}`} className="min-w-0">
+      <div hidden={active!=='documents'}>{(active==='documents'||visited.has('documents'))&&<DocumentAnalytics user={user} currentTab={active==='documents'?currentTab:''}/>}</div>
+      <div hidden={active!=='support'}>{(active==='support'||visited.has('support'))&&<SupportAnalytics/>}</div>
+    </div>
+  </section>;
 }

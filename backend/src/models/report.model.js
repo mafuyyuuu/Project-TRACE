@@ -58,7 +58,7 @@ function collegeScope({ collegeId, collegeName } = {}, alias) {
   return { condition: '', params: [] };
 }
 
-function buildDocumentFilters({ dateFrom, dateTo, status, statuses, documentType, paymentStatus, studentId, studentName, collegeId, collegeName } = {}) {
+function buildDocumentFilters({ dateFrom, dateTo, status, statuses, documentType, paymentStatus, studentSearch, studentId, studentName, collegeId, collegeName } = {}) {
   const conditions = [];
   const params = [];
 
@@ -92,6 +92,7 @@ function buildDocumentFilters({ dateFrom, dateTo, status, statuses, documentType
   }
 
   if (studentName) { conditions.push("LOWER(d.student_name) LIKE LOWER(?) ESCAPE '!'"); params.push(literalNamePattern(studentName)); }
+  if (studentSearch) {conditions.push("(d.student_id = ? OR LOWER(d.student_name) LIKE LOWER(?) ESCAPE '!')");params.push(studentSearch,literalNamePattern(studentSearch));}
 
   const scope = documentCollegeScope({ collegeId, collegeName });
   if (scope.condition) {
@@ -178,12 +179,13 @@ function listStudentsForExport(bucket, executor = pool, filters = {}) {
   const extra = [], extraParams = [];
   if(filters.studentId) {extra.push('u.student_id = ?');extraParams.push(filters.studentId);}
   if(filters.studentName) {extra.push("LOWER(u.full_name) LIKE LOWER(?) ESCAPE '!'");extraParams.push(literalNamePattern(filters.studentName));}
+  if(filters.studentSearch) {extra.push("(u.student_id = ? OR LOWER(u.full_name) LIKE LOWER(?) ESCAPE '!')");extraParams.push(filters.studentSearch,literalNamePattern(filters.studentSearch));}
 
   return executor
     .query(
       `SELECT u.student_id, u.full_name, u.email, u.phone_number, u.course,
               u.enrollment_status, u.study_load, u.user_type, u.verification_status,
-              u.created_at,
+              u.created_at, UNIX_TIMESTAMP(u.created_at) AS created_at_epoch,
               COUNT(d.id) AS total_requests,
               SUM(d.current_status = ${SQL_COMPLETED}) AS completed_requests
        FROM users u

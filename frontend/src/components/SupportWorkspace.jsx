@@ -58,7 +58,7 @@ export default function SupportWorkspace({user,initialDocumentId,requestedTicket
           </label>
         </>}
         {state.settings?.can_manage && <Button type="button" onClick={() => setForm('settings')} className="trace-button trace-button-secondary">Support settings</Button>}
-        {state.settings?.can_manage && <Button type="button" onClick={() => setForm('analytics')} className="trace-button trace-button-secondary">Support analytics</Button>}
+        {windowClerk && state.settings?.can_manage && <Button type="button" onClick={() => setForm('analytics')} className="trace-button trace-button-secondary">Support analytics</Button>}
       </div>
       {windowClerk && <details className="w-full text-xs text-gray-600 dark:text-gray-300"><summary className="cursor-pointer py-1 focus-visible:outline">How live support works</summary><p id="support-claim-help" className="mt-1">Claim assigns the oldest eligible queued ticket or returns to your current live ticket. Window 1 handles one live conversation at a time, during configured support hours.</p><p id="support-availability-help" className="mt-1">Availability declares whether you can receive live work. Changing it requires confirmation and does not resolve or discard tickets.</p></details>}
     </header>

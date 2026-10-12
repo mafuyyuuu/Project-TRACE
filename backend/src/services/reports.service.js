@@ -4,7 +4,7 @@ const { STATUS } = require('../utils/documentStatus');
 const { toCsv, csvFilename } = require('../utils/csv');
 const { badRequest, forbidden } = require('../utils/AppError');
 const filterService = require('./reportFilters.service');
-const { documentCsv } = require('../utils/reportCsv');
+const { documentCsv,manilaTimestamp } = require('../utils/reportCsv');
 
 /**
  * Reporting, CSV export and efficiency analytics.
@@ -108,7 +108,7 @@ const STUDENT_COLUMNS = [
   { key: 'verification_status', label: 'Verification' },
   { key: 'total_requests', label: 'Total Requests' },
   { key: 'completed_requests', label: 'Completed Requests' },
-  { key: 'created_at', label: 'Registered On' },
+  { key: 'created_at', label: 'Registered On (Manila)' },
 ];
 
 /**
@@ -123,14 +123,14 @@ async function exportStudentsCsv(user, bucket = 'all', query = {}) {
     throw badRequest(`Unknown category. Use one of: ${EXPORT_BUCKETS.join(', ')}.`);
   }
 
-  const scope = await filterService.identity(user, {studentId:query.studentId,studentName:query.studentName,collegeId:query.collegeId});
+  const scope = await filterService.identity(user, {studentSearch:query.studentSearch,studentId:query.studentId,studentName:query.studentName,collegeId:query.collegeId});
   const activeScope = Object.fromEntries(Object.entries(scope).filter(([,value])=>value !== undefined));
   const rows = Object.keys(activeScope).length
     ? await reportModel.listStudentsForExport(bucket, undefined, activeScope)
     : await reportModel.listStudentsForExport(bucket);
   return {
     filename: csvFilename(`students-${bucket}`),
-    csv: toCsv(STUDENT_COLUMNS, rows),
+    csv: toCsv(STUDENT_COLUMNS, rows.map(row=>({...row,created_at:row.created_at_epoch!=null?manilaTimestamp(Number(row.created_at_epoch)*1000):manilaTimestamp(row.created_at)}))),
     rowCount: rows.length,
   };
 }
