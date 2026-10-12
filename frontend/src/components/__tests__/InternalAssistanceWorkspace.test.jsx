@@ -15,8 +15,10 @@ beforeEach(() => {
   api.readTicket.mockResolvedValue({ticket,messages:[],next_cursor:null});
   api.createTicket.mockResolvedValue({ticket});api.sendMessage.mockResolvedValue({sent:true,message_id:21});api.changeTicket.mockResolvedValue({ticket});
 });
-it.each(['Window 1','Secretary','Finance'])('adds a distinct staff assistance destination for %s',desk_assignment => {
-  expect(navItemsForUser({...staff,desk_assignment})).toContainEqual(expect.objectContaining({tab:'internal-assistance',icon:'assistance'}));
+it.each(['Window 1','Receiving Desk','Secretary','Finance'])('keeps %s assistance under Support without a duplicate destination',desk_assignment => {
+  const items=navItemsForUser({...staff,desk_assignment});
+  expect(items.some(row=>row.tab==='internal-assistance')).toBe(false);
+  expect(items.some(row=>row.tab==='messages')).toBe(true);
 });
 it('excludes students and unsupported desks from assistance navigation',() => {
   for(const user of [{role:'student'},{role:'clerk',desk_assignment:'Other'}]) expect(navItemsForUser(user).some(row => row.tab === 'internal-assistance')).toBe(false);

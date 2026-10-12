@@ -736,7 +736,7 @@ Show the [account-free analytics walkthrough](../README.md#main-workflows) and d
 
 ## Revision 2 Batch 13 — internal staff assistance
 
-Demonstrate Finance, Secretary or Window 1 opening **Internal Assistance → New concern**, confirming a category and text concern, then an Admin claiming and replying. Show Await staff reply, a creator response retaining the assignment, resolution with a note, and retained history on reopening. A second staff account cannot read the creator's ticket; an unassigned Admin can monitor but cannot reply until claiming. Admin monitors student Support without intervening. This queue is asynchronous, text-only and separate from student support hours, files, queue metrics and AI insight inputs.
+Demonstrate Finance, Secretary or Window 1 opening **Support → Internal assistance → New concern**, confirming a category and text concern, then an Admin claiming and replying. Show Await staff reply, a creator response retaining the assignment, resolution with a note, and retained history on reopening. A second staff account cannot read the creator's ticket; an unassigned Admin can monitor but cannot reply until claiming. Admin monitors student Support without intervening. This queue is asynchronous, text-only and separate from student support hours, files, queue metrics and AI insight inputs.
 
 Use the [README screenshots and walkthrough](../README.md#internal-assistance-walkthrough) for account-free review. These are synthetic local UI examples, not proof of live notification delivery or database contention. The matching migration/API/frontend must be deployed before demonstrating the feature. The subsequent authorized staff connections are described below and in SYSTEM_WORKFLOWS.
 

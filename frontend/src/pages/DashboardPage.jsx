@@ -10,7 +10,6 @@ import Window1Dashboard from '@/features/window1/Window1Dashboard';
 import SecretaryDashboard from '@/features/secretary/SecretaryDashboard';
 import AdminDashboard from '@/features/admin/AdminDashboard';
 import GraduateApplication from '@/features/graduate/GraduateApplication';
-import InternalAssistanceWorkspace from '@/components/InternalAssistanceWorkspace';
 import MessagingWorkspace from '@/components/MessagingWorkspace';
 
 /**
@@ -58,8 +57,7 @@ export default function DashboardPage() {
 
   if (currentTab === 'help') return <HelpPage user={user} />;
   if (currentTab === 'messages' && (isAdmin || user?.role === 'clerk' && ['Window 1','Receiving Desk','Finance','Secretary'].includes(user.desk_assignment))) return <MessagingWorkspace key={`${user.id}:${user.role}:${user.desk_assignment}`} user={user} />;
-  if (currentTab === 'internal-assistance' && isAdmin) return <MessagingWorkspace key={`${user.id}:${user.role}:${user.desk_assignment}`} user={user} initialCategory="internal" />;
-  if (currentTab === 'internal-assistance' && (isAdmin || user?.role === 'clerk' && ['Window 1','Receiving Desk','Finance','Secretary'].includes(user.desk_assignment))) return <InternalAssistanceWorkspace key={`${user.id}:${user.role}:${user.desk_assignment}`} user={user} requestedTicket={searchParams.get('internalTicket')} />;
+  if (currentTab === 'internal-assistance' && (isAdmin || isWindow1 || isFinance || isSecretary)) return <MessagingWorkspace key={`${user.id}:${user.role}:${user.desk_assignment}`} user={user} initialCategory="internal" />;
 
   return (
     <div className="space-y-8 relative pb-16">

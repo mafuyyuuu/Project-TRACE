@@ -39,9 +39,9 @@ describe('navItemsForUser', () => {
   it.each([
     ['student', STUDENT, ['dashboard', 'history', 'messages', 'help']],
     ['alumnus', ALUMNI, ['dashboard', 'history', 'messages', 'graduate-application', 'help']],
-    ['secretary', SECRETARY, ['dashboard', 'reports', 'messages', 'internal-assistance', 'grad-applications', 'help']],
-    ['window 1', WINDOW1, ['dashboard', 'tracking-desk', 'messages', 'internal-assistance', 'reports', 'help']],
-    ['finance', FINANCE, ['dashboard', 'transactions', 'messages', 'internal-assistance', 'help']],
+    ['secretary', SECRETARY, ['dashboard', 'reports', 'messages', 'grad-applications', 'help']],
+    ['window 1', WINDOW1, ['dashboard', 'tracking-desk', 'messages', 'reports', 'help']],
+    ['finance', FINANCE, ['dashboard', 'transactions', 'messages', 'help']],
   ])('gives a %s their own tabs', (_label, user, expected) => {
     expect(navItemsForUser(user).map((i) => i.tab)).toEqual(expected);
   });
@@ -79,12 +79,19 @@ describe('navItemsForUser', () => {
     expect(groups.more).toHaveLength(Math.max(0, tabs.length - 6));
   });
   it('keeps daily Finance transactions in Main and admin configuration available', () => {
-    expect(navGroupsForUser(FINANCE).main.map(item => item.tab)).toEqual(['dashboard', 'transactions', 'messages', 'internal-assistance', 'help']);
+    expect(navGroupsForUser(FINANCE).main.map(item => item.tab)).toEqual(['dashboard', 'transactions', 'messages', 'help']);
     expect(navGroupsForUser(ADMIN).main.map(item => item.tab)).toContain('admin-maintenance');
   });
 });
 
 describe('SidebarNav', () => {
+  it.each([WINDOW1,RECEIVING,FINANCE,SECRETARY,ADMIN].flatMap(user=>[[user,false],[user,true]]))('highlights Support for legacy assistance in either navigation presentation', (user,showLabels) => {
+    renderNav({user,showLabels,tab:'internal-assistance'});
+    expect(screen.getByRole('link',{name:'Support'})).toHaveAttribute('aria-current','page');
+    expect(screen.queryByRole('link',{name:'Internal Assistance'})).not.toBeInTheDocument();
+    expect(canonicalTabForUser(user,'internal-assistance')).toBe('messages');
+  });
+
   it.each(['transactions', 'reports', 'export', 'exports'])('keeps Finance %s deep links active on the one transactions destination', tab => {
     renderNav({ user: FINANCE, tab, showLabels: true });
     const link = screen.getByRole('link', { name: 'Transactions & OR Copies' });

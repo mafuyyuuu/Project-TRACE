@@ -1,3 +1,46 @@
+## Staff internal-assistance navigation — completion — 2026-10-12
+
+Removed the separate Internal Assistance destination for Window 1/Receiving Desk, Finance and
+College Secretary. Each role now opens the existing Support → Internal assistance category,
+matching Admin. Legacy tab=internal-assistance links render the same MessagingWorkspace with
+initialCategory=internal; the existing internalTicket query reaches the requested concern and
+Support is the selected sidebar/drawer destination. Removed DashboardPage's unused standalone
+import/route. Category keys/draft preservation, onboarding targets, account gates, staff creator
+privacy and assigned-Admin authority remain intact; no backend or visual styling change.
+
+Executed **88 assertions against the actual navigation utility** in the available JavaScript
+runtime: supported-role destination removal, Support uniqueness, legacy mapping, stable menu
+partitions and preservation of other destinations/role mappings. Reviewed the real route and
+MessagingWorkspace ticket-query wiring and confirmed onboarding already targets Support.
+Added/updated React regressions for all four desk labels, Admin, labelled/icon navigation,
+requested internal ticket selection, forced unauthorized URLs and temporary-password gates.
+Changed-line whitespace review passes. **These React tests were not run**: the selected coding
+environment is disconnected and no terminal/runtime is available. Lint/build, browser screenshots,
+physical-device and live-deployment checks remain pending; prior suite counts are not claimed
+for this patch.
+
+Updated existing README navigation, Help, User Manual, System Workflows, defense walkthroughs and
+the consolidated deployment ledger. **No migration, dependency or environment change**; only the
+matching frontend must be published for this follow-up. Publication is to dev, without main merge,
+cloud deployment or per-batch acceptance Markdown. The prior AI update's separate rebuild
+requirement remains recorded and is not executed here.
+
+## Staff internal-assistance navigation — findings before edits — 2026-10-12
+
+The user reports Window 1's duplicate Internal Assistance destination and extends the review to
+Finance and College Secretary. The shared navigation inserts a separate entry for all supported
+clerks, although MessagingWorkspace already contains the same Internal assistance category.
+Admin already maps old internal-ticket links into that categorized workspace; staff still open
+the standalone component. Remove duplicate entries for Window 1/Receiving Desk, Finance and
+Secretary and extend the existing legacy-link route/active Support mapping to all of them.
+Retain ticket queries, category drafts, account gates and creator/assigned-Admin permissions.
+This is a frontend navigation change, without new schema, design or migration.
+
+The selected coding environment is offline and exposes no terminal/runtime tools. Proceed with
+a pinned dev source read and small GitHub patch, execute the real navigation utility in the
+available JavaScript runtime, and add React regression tests. React/Vitest, lint/build and browser
+execution remain unverified until a coding environment reconnects. No new acceptance Markdown.
+
 ## Admin document insights and narrow tables — completion — 2026-10-12
 
 Replaced unsupported Optimal Performance/System Normal claims with an authoritative Node queue

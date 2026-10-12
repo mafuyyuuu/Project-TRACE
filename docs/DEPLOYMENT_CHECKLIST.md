@@ -137,3 +137,13 @@ New Node rejects the legacy AI success contract and uses full-stage local counts
 is older/unreachable. Validate processing/payment-only queues, unknown statuses, prototype
 labelling, snapshot refresh/failure and wrapped Admin tables before promoting the release.
 Dev publication does not perform a main merge, cloud rebuild or deployment.
+
+
+## Staff assistance navigation — 2026-10-12
+
+**Migration: none.** Frontend-only navigation/routing change: Window 1/Receiving Desk, Finance
+and College Secretary open Internal assistance inside Support, matching Admin. Existing ticket
+links remain readable in that category. Account gates and all backend ticket permissions remain.
+Publish the matching frontend when promoting dev; no backend/AI rebuild or new setting is needed
+for this follow-up. React tests/build/browser verification is pending because the coding
+environment is disconnected. Main merge and live deployment remain separate.

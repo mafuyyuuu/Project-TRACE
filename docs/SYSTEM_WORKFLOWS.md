@@ -361,7 +361,7 @@ See the [README navigation walkthrough and screenshots](../README.md#finance-rec
 
 ## Internal assistance and conversation categories
 
-Window 1 (including its Receiving Desk alias), Finance and College Secretary staff use **Internal Assistance → New concern** to ask Admin for help. Categories are Account access, System issue, Workflow question and Other concern. Staff see only tickets they created; college/desk colleagues do not automatically share those private concerns. All active Admins can inspect the internal queue; only the assigned Admin replies and manages its lifecycle. Admin claims an unassigned ticket, or explicitly takes over from an inactive/no-longer-Admin assignee. There is no student owner, document link, attachment import, FAQ bot, estimated wait or Window 1 service-hours limit on this asynchronous queue.
+Window 1 (including its Receiving Desk alias), Finance and College Secretary staff use **Support → Internal assistance → New concern** to ask Admin for help. These desks have no separate Internal Assistance navigation entry; older internal-ticket links open the requested concern inside Support. Categories are Account access, System issue, Workflow question and Other concern. Staff see only tickets they created; college/desk colleagues do not automatically share those private concerns. All active Admins can inspect the internal queue; only the assigned Admin replies and manages its lifecycle. Admin claims an unassigned ticket, or explicitly takes over from an inactive/no-longer-Admin assignee. There is no student owner, document link, attachment import, FAQ bot, estimated wait or Window 1 service-hours limit on this asynchronous queue.
 
 | State/action | Behavior |
 | --- | --- |

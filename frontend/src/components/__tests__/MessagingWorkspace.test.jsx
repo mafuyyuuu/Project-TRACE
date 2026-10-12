@@ -15,8 +15,8 @@ it('labels Finance support as case-linked and preserves staff drafts across cate
 it('passes support notification ticket identifiers to the existing workflow',()=>{
   mount({id:9,role:'admin'},'/dashboard?tab=messages&ticket=18');expect(screen.getByText('Support ticket 18')).toBeInTheDocument();
 });
-it('retains legacy Admin internal ticket links inside the combined Support categories',()=>{
- render(<MemoryRouter initialEntries={['/dashboard?tab=internal-assistance&internalTicket=29']}><MessagingWorkspace user={{id:9,role:'admin'}} initialCategory="internal"/></MemoryRouter>);
+it.each([{id:9,role:'admin'},...['Window 1','Receiving Desk','Finance','Secretary'].map(desk_assignment=>({id:4,role:'clerk',desk_assignment}))])('retains legacy internal ticket links inside the combined Support categories for $role/$desk_assignment',user=>{
+ render(<MemoryRouter initialEntries={['/dashboard?tab=internal-assistance&internalTicket=29']}><MessagingWorkspace user={user} initialCategory="internal"/></MemoryRouter>);
  expect(screen.getByRole('tab',{name:'Internal assistance'})).toHaveAttribute('aria-selected','true');
  expect(screen.getByText('Internal ticket workspace 29')).toBeVisible();
 });

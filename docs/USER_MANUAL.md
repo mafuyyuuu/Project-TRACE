@@ -325,7 +325,7 @@ See the [README navigation walkthrough and screenshots](../README.md#finance-rec
 
 ## Staff-to-Admin internal assistance
 
-Window 1, Finance and College Secretaries open **Internal Assistance** from the sidebar or mobile navigation. Select **New concern**, enter a subject, category and explanation, then review and confirm. Only the creator and Admin can read this private concern; do not copy student identity files or private conversations into it. State/category filters search the authorized queue; the search field covers loaded ticket metadata.
+Window 1 (including Receiving Desk), Finance and College Secretaries open **Support → Internal assistance** from the sidebar or mobile navigation. There is no separate Internal Assistance destination. Older internal-ticket links still open the requested concern inside Support. Select **New concern**, enter a subject, category and explanation, then review and confirm. Only the creator and Admin can read this private concern; do not copy student identity files or private conversations into it. State/category filters search the authorized queue; the search field covers loaded ticket metadata.
 
 Admin selects a queued concern and confirms **Claim ticket** before replying. The assigned Admin may await a staff reply, resume handling or resolve with a mandatory note. Staff replies resume an awaiting concern without removing its Admin assignment. Resolved tickets preserve conversation/resolution history; creator or assigned Admin may confirm reopening into the queue. An open ticket assigned to an inactive/no-longer-Admin account offers an explicit takeover action to another Admin. A stale confirmation requires refreshing and reviewing again.
 

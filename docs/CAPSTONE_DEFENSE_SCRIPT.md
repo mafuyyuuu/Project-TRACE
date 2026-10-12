@@ -257,7 +257,7 @@ See [README workflow walkthrough](../README.md#main-workflows) for the screensho
 
 ## Optional internal-assistance demonstration — matching deployed revision only
 
-*(Action: Finance opens Internal Assistance, creates a synthetic concern and confirms. Admin opens the private queue and confirms Claim ticket.)*
+*(Action: A desk clerk opens Support → Internal assistance, creates a synthetic concern and confirms. Admin opens the private queue and confirms Claim ticket.)*
 
 “Staff concerns use a separate ticket queue. Each creator sees only their own concerns; Admin must claim a ticket before replying or managing it. Student Support remains visible to Admin for monitoring, without intervention. This asynchronous queue does not import student files or feed student support analytics.”
 
