@@ -351,3 +351,25 @@ loads independently; switching retains the visited support period draft. Admin h
 Support Analytics button in Support and no separate Internal Assistance sidebar entry; older
 internal-ticket links open the same concern under Support. **Scan Field Detection** describes
 expected fields found by OCR, not measured AI accuracy or verified text correctness.
+
+
+## Admin workload insights and narrow tables — 2026-10-12
+
+Dashboard → **AI Insights** shows a snapshot of all eight active document stages, including
+preparation, payment waits, verification and handoff. Completed/rejected/approved legacy history
+is excluded. Unrecognized statuses are reported separately for review. Workflow actions today
+use the full Manila day and are not distinct requests. Queue size does not prove a bottleneck,
+efficiency or staff capacity. Evaluation above 5 and pickup above 3 trigger existing advisory
+count checks; these are not institutional delay targets. Experimental Random Forest suggestions
+use three inputs and four coded examples, with no validated staffing/delay accuracy.
+
+Read the **Snapshot** time and choose **Refresh insights** for current data. During refresh, old
+results are identified; on failure they are replaced with an unavailable state rather than a
+performance conclusion. Compare measured document waits in Efficiency Analytics. No insight
+reassigns staff, sends messages or changes requests automatically.
+
+Account Verification, System-Wide Tracker and Activity Logs keep stable column widths. Full
+values wrap inside each cell; document type and tracking number occupy separate lines in logs.
+On a phone, swipe horizontally within the table, or focus its scrolling region and use arrow
+keys. Enlarged text retains the full data. This repair uses the current design; the upcoming
+whole-system Figma redesign remains separate. See the README screenshots for synthetic examples.

@@ -523,52 +523,15 @@ async function getForecast() {
   return { forecast, source: 'fallback' };
 }
 
-/**
- * Prescriptive queue insights from the Random Forest engine, falling back to
- * direct threshold checks against the live queue counts.
- */
+/** Read every active stage; optional model output never decides measured efficiency. */
 async function getDocumentInsights() {
-  const aiData = await aiEngine.getInsights();
-  if (aiData) return aiData;
-
-  const [pendingSec, pendingRelease, todayVolume] = await Promise.all([
-    documentModel.countByStatus(STATUS.PENDING_SEC_EVALUATION),
-    documentModel.countByStatus(STATUS.READY_FOR_RELEASE),
-    documentModel.countStepLogsToday(),
+  const { snapshot, buildInsights, prototypePrediction } = require('../utils/documentInsights');
+  const [queues, todayActions] = await Promise.all([
+    documentModel.insightQueueCounts(), documentModel.countStepLogsToday(),
   ]);
-
-  const insights = [];
-
-  if (pendingSec > 5) {
-    insights.push({
-      type: 'warning',
-      title: 'Secretary Queue Alert',
-      message: `There are ${pendingSec} documents pending secretary evaluation. Consider prioritizing the evaluation queue to prevent bottleneck delays.`,
-    });
-  }
-  if (pendingRelease > 3) {
-    insights.push({
-      type: 'action',
-      title: 'Release Desk Advisory',
-      message: `${pendingRelease} documents are ready for student pickup at Window 1. Notify students via SMS to reduce queue wait times.`,
-    });
-  }
-  if (todayVolume > 20) {
-    insights.push({
-      type: 'warning',
-      title: 'High Volume Day',
-      message: `${todayVolume} document actions logged today. This is higher than average. Consider deploying additional clerk resources.`,
-    });
-  }
-
-  if (insights.length === 0) {
-    insights.push(
-      { type: 'info', title: 'System Normal', message: 'All queues are operating within normal parameters. No prescriptive actions needed at this time.' },
-      { type: 'action', title: 'Optimization Tip', message: 'Current throughput is healthy. Run mock_data_gen.py to seed historical data and enable more accurate Prophet forecasting.' }
-    );
-  }
-
-  return { insights, source: 'fallback' };
+  const data = snapshot(queues, todayActions);
+  const model = await aiEngine.getInsights(data);
+  return { insights: buildInsights(data, prototypePrediction(model)), source: 'queue_snapshot', snapshot: data };
 }
 async function getInsights(user) {
   const [documents,support]=await Promise.all([getDocumentInsights(),user?.role==='admin' ? require('./supportInsight.service').get(user) : []]);

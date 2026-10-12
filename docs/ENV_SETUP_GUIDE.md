@@ -1133,3 +1133,15 @@ from the user's SSH output; do not rerun them for these changes. Admin's Interna
 now opens inside Support and Efficiency Analytics has independent document/support views.
 Scan Field Detection describes expected-field coverage, not verified accuracy. See the
 [consolidated deployment checklist](DEPLOYMENT_CHECKLIST.md) for rollout state.
+
+
+## Admin all-stage insights and table repair — 2026-10-12
+
+No database migration or new environment/dependency is required. Release matching backend and
+frontend and rebuild **ai-engine** because its recommendation endpoint now accepts aggregate
+POST snapshots and its Dockerfile includes document_insights.py. An old/unreachable AI service
+causes a local complete-queue fallback, without unsupported optimal-performance claims. GET
+compatibility also avoids such claims. No OCR models, Prophet inputs, n8n import or credentials
+change. Verify nonempty Secretary processing/student waits, unknown status review, snapshot
+refresh/failure and Admin tables at phone widths and enlarged text. This work publishes to dev;
+cloud/main promotion remains separate. See the consolidated deployment ledger.

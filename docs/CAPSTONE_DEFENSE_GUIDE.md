@@ -53,7 +53,7 @@ graph TB
         OCR["POST /ocr/extract<br/>EasyOCR (PyTorch)"]
         VERIFY["POST /ocr/verify<br/>Identity Text Checks"]
         FORECAST["GET /forecast<br/>Prophet (7-Day)"]
-        INSIGHTS["GET /ai/recommend<br/>Document prototype"]
+        INSIGHTS["POST /ai/recommend<br/>Aggregate document prototype"]
         SUPPORTAI["POST /ai/support-insights<br/>Aggregate rule-based advice"]
     end
 
@@ -73,7 +73,7 @@ graph TB
     UI <-->|"Private Socket.IO notifications"| PROXY
     PROXY --> API
     ROUTES -->|"Authorized file access"| FILES
-    FORECAST & INSIGHTS -->|"Aggregate database reads"| DB
+    FORECAST -->|"Daily workflow-event reads"| DB
     API --> AUTH --> ROUTES
     ROUTES -->|"SQL Queries"| DB
     DB --- USERS & DOCS & LOGS & NOTIFS & TICKETS
@@ -149,7 +149,7 @@ flowchart TB
         SCAN["📄 Scanned Document<br/>(Image File)"]
         IDPHOTO["🪪 Student ID Photo<br/>(Registration Upload)"]
         STEPLOGS["📊 Daily COUNT of step_logs<br/>(Events, not distinct requests)"]
-        QUEUES["📋 Evaluation + release queue counts<br/>Today’s step-log count"]
+        QUEUES["📋 All-stage queue snapshot from Node<br/>Manila-day workflow actions"]
     end
 
     subgraph "Python Flask AI Engine"
@@ -161,7 +161,7 @@ flowchart TB
             PROPHET["GET /forecast<br/>Time-Series Model"]
         end
         subgraph "Module C: Random Forest (Scikit-Learn)"
-            RF["GET /ai/recommend<br/>4-example prototype classifier<br/>+ queue thresholds"]
+            RF["POST /ai/recommend<br/>4-example prototype classifier<br/>Explicitly unvalidated"]
         end
     end
 
@@ -169,13 +169,14 @@ flowchart TB
         EXTRACTED["Extracted Text +<br/>confidence_score"]
         VERIFIED["Text-match result<br/>+ review reason"]
         FORECAST_OUT["7-Day Workflow-Event Forecast<br/>Nonnegative integer predictions"]
-        ALERTS["Prescriptive Alerts<br/>(e.g. 'Secretary Backlog')"]
+        ALERTS["Queue snapshot + experimental advice<br/>(No efficiency confirmation)"]
     end
 
     SCAN --> OCR_EXTRACT --> EXTRACTED
     IDPHOTO --> OCR_VERIFY --> VERIFIED
     STEPLOGS --> PROPHET --> FORECAST_OUT
     QUEUES --> RF --> ALERTS
+    QUEUES -->|"Observed counts; local fallback"| ALERTS
 
     EXTRACTED -->|"Saved to documents<br/>ocr_extracted_data"| DB[("MySQL")]
     VERIFIED -->|"Sets ai_verified<br/>or ai_flagged"| DB
@@ -507,7 +508,7 @@ in an atomic audit. Current students still upload proof. Read ID fills empty ID/
 only after the applicant selects it, with manual review before submission.
 | **Why EasyOCR over Tesseract?** | EasyOCR is the OCR dependency currently integrated into Flask. We use its pretrained text recognition with local parsing and manual review. We have not performed a comparative accuracy benchmark and do not claim that another OCR engine is inherently unsuitable. |
 | **Why Prophet over ARIMA or LSTM?** | Prophet is the implemented time-series prototype. It fits daily step-log counts and returns seven predictions. Model choice and seasonality need held-out evaluation; seeded data and a plausible chart do not establish forecast reliability. |
-| **Why Random Forest over a simple threshold/rule-based system?** | The current prototype combines a ten-tree classifier fitted to four coded examples with direct queue thresholds. Its three inputs are evaluation count, release count and today’s step-log count. Learned staffing optimization, weekday effects and validated accuracy are not implemented. |
+| **Why Random Forest over a simple threshold/rule-based system?** | Node provides full-stage observed counts and transparent queue-review thresholds. The optional ten-tree classifier still uses evaluation, release and Manila-day action counts fitted to four coded examples. It is labelled experimental and cannot confirm efficiency, optimal staffing or measured delays. |
 | **Why Flask over FastAPI?** | Flask hosts the current OCR/model endpoints. The team retains the existing request/response implementation and Gunicorn deployment; no comparative overhead or cold-start benchmark is claimed. |
 
 ### E. Workflow Orchestration — n8n
@@ -554,8 +555,8 @@ Your panel will heavily scrutinize the "AI" part of your title. Here is exactly 
 *   **Data source:** "The model is trained on historical timestamps from the `step_logs` table — every time a document moves through the pipeline, that timestamp becomes training data."
 
 ### C. The Administrative Insights (Random Forest)
-*   **What it does:** Generates prescriptive UI alerts (e.g., "Secretary Queue Alert: 5 documents pending — consider redistributing workload").
-*   **How to defend it:** "We utilized a **Random Forest** classification algorithm via Scikit-Learn to analyze current queue metrics (evaluation-queue count, release-queue count and today’s step-log count). It currently fits four coded examples and supplements classification with queue thresholds. These advisory outputs are a prototype, not validated staffing predictions."
+*   **What it does:** Shows every active document queue with snapshot time and count-based review signals. Evaluation above 5 and pickup above 3 are advisory thresholds, not institutional capacity targets.
+*   **How to defend it:** "We utilized a **Random Forest** classification algorithm via Scikit-Learn to analyze current queue metrics (evaluation-queue count, release-queue count and today’s step-log count). It currently fits four coded examples. Node separately counts every active stage; low classifier output never confirms optimal performance. Experimental suggestions and count thresholds require human review alongside measured document waits."
 
 ---
 
@@ -611,7 +612,7 @@ Your panel will heavily scrutinize the "AI" part of your title. Here is exactly 
 > "EasyOCR supplies pretrained neural text recognition. TRACE then uses parsing and text-matching rules to extract and compare fields. The AI component and the application’s matching rules are different parts; neither proves document authenticity or ownership."
 
 **Q10: What is Random Forest and why is it suitable for your recommendations engine?**
-> "Random Forest combines decision trees. Our current implementation uses ten trees fitted to four coded examples, with three count features and direct thresholds. It does not include time of day, weekday, clerk availability or a validated staffing dataset; recommendations are labelled advisory prototype outputs."
+> "Random Forest combines decision trees. Our current implementation uses ten trees fitted to four coded examples, with three count features and direct thresholds. It does not include time of day, weekday, clerk availability or a validated staffing dataset; recommendations are labelled experimental prototype outputs. The all-stage snapshot is measured queue data, and neither an empty queue nor classifier class 0 confirms efficiency."
 
 ### 🔐 Security & Data Privacy Questions
 
@@ -664,7 +665,7 @@ Your panel will heavily scrutinize the "AI" part of your title. Here is exactly 
 > "PROGRESS records the executed Vitest regression suites, lint/build and synthetic browser checks with their limitations. The correct desk order is intake → evaluation/preparation/pricing → payment/Finance → OR inspection/handoff → release. Local mocks and emulation do not prove external mail delivery, physical-phone behavior, model accuracy or production load capacity. We report only checks actually performed."
 
 **Q25: Where does your mock data come from?**
-> "ai-engine/mock_data_gen.py generates synthetic step-log history for demonstration. It is not a study of real institutional demand. Forecasting uses the daily event aggregates; the Random Forest training examples are four separately coded rows. Never seed synthetic history into production merely to make the chart look convincing."
+> "ai-engine/mock_data_gen.py generates synthetic step-log history for demonstration. It is not a study of real institutional demand. Forecasting uses the daily event aggregates; the Random Forest training examples remain four separately coded rows, clearly labelled unvalidated in the workload advisory. Never seed synthetic history into production merely to make the chart look convincing."
 
 ---
 
@@ -762,3 +763,15 @@ edit visible **Student ID / Name** and other filters, choose **Apply Filters**, 
 Manila date/time. Secretary college scope and Finance complete payment groups remain.
 This follow-up adds no migration. Screenshots use synthetic records; live deployment and
 actual service outcomes are verified separately. Cosmetic redesign awaits the next Figma.
+
+
+## Admin insight/table repair demonstration — 2026-10-12
+
+Show a Secretary-processing or student-payment queue with evaluation/release at zero. The
+workload card still reports those outstanding documents and does not claim Optimal Performance.
+Inspect the snapshot timestamp and choose Refresh insights. Explain that active document volume
+counts differ from Manila-day step actions; recorded delays require duration evidence. The
+experimental model only uses its three count inputs and is not trained on institutional outcomes.
+Show Activity Logs at phone width: full document type, tracking number and action are separate
+wrapped values inside a horizontally scrollable table. Existing approvals and desk rules remain.
+No migration is added; rollout needs matching backend/frontend and an AI image rebuild.

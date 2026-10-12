@@ -126,3 +126,14 @@ Deploy matching backend/frontend after the dev update; no AI rebuild, n8n import
 setting is needed. Verify deactivation/restoration with actual accounts, old-session denial, retained
 request/history, Secretary scope, complete Finance groups and CSV counts. Cosmetic icon/compact
 layout changes are deferred to the user's forthcoming Figma redesign. Main is not merged by this work.
+
+
+## Admin queue insight / table follow-up — 2026-10-12
+
+**Migration: none.** Deploy matching Node/frontend and rebuild ai-engine for aggregate POST
+classification and the new packaged document_insights.py helper. The existing five migrations
+remain cloud-applied. No new environment or dependency, OCR model download change or n8n import.
+New Node rejects the legacy AI success contract and uses full-stage local counts if the engine
+is older/unreachable. Validate processing/payment-only queues, unknown statuses, prototype
+labelling, snapshot refresh/failure and wrapped Admin tables before promoting the release.
+Dev publication does not perform a main merge, cloud rebuild or deployment.

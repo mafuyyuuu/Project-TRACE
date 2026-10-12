@@ -128,6 +128,7 @@ beforeEach(() => {
   vi.spyOn(documentModel, 'countWithFilters').mockResolvedValue(0);
   vi.spyOn(documentModel, 'listWithFilters').mockResolvedValue([]);
   vi.spyOn(documentModel, 'countByStatus').mockResolvedValue(0);
+  vi.spyOn(documentModel, 'insightQueueCounts').mockResolvedValue([]);
   vi.spyOn(documentModel, 'countStepLogsToday').mockResolvedValue(0);
   vi.spyOn(documentModel, 'forecastFallbackRows').mockResolvedValue([]);
 
@@ -1207,18 +1208,38 @@ describe('AI-engine fallbacks', () => {
     expect((await service.getForecast()).source).toBe('prophet');
   });
 
-  it('reports optimal performance when queues are short', async () => {
+  it('reports an empty queue without claiming measured efficiency', async () => {
     vi.spyOn(aiEngine, 'getInsights').mockResolvedValue(null);
     const res = await service.getInsights();
-    expect(res.source).toBe('fallback');
-    expect(res.insights.some((i) => i.title === 'System Normal')).toBe(true);
+    expect(res.source).toBe('queue_snapshot');
+    expect(res.insights[0].title).toBe('Document workload: no active pipeline documents');
+    expect(JSON.stringify(res.insights)).not.toMatch(/Optimal Performance|operating efficiently|System Normal|throughput is healthy|higher than average/i);
+  });
+
+  it('ignores legacy optimal advice and sends only full-stage aggregates to the model', async () => {
+    vi.spyOn(aiEngine, 'getInsights').mockResolvedValue({ insights: [{ title: 'AI Insight: Optimal Performance', message: 'Random Forest analysis confirms system operating efficiently.' }], source: 'random_forest' });
+    documentModel.insightQueueCounts.mockResolvedValue([{current_status:STATUS.SEC_PROCESSING,count:60},{current_status:STATUS.PENDING_STUDENT_PAYMENT,count:25}]);
+    const result = await service.getInsights();
+    expect(result.insights[0].title).toBe('Document workload: 85 outstanding');
+    expect(result.insights[0].message).toContain('Secretary Processing: 60');
+    expect(result.insights[0].message).toContain('Awaiting Student Payment: 25');
+    expect(result.insights[0].message).toContain('Queue size alone does not establish efficiency');
+    expect(JSON.stringify(result)).not.toContain('Optimal Performance');
+    const [payload]=aiEngine.getInsights.mock.calls[0];
+    expect(Object.keys(payload).sort()).toEqual(['as_of','counts','today_actions','unclassified']);
+    expect(Object.keys(payload.counts)).toHaveLength(8);
+  });
+
+  it('does not fabricate an empty queue when the aggregate read fails', async () => {
+    vi.spyOn(aiEngine, 'getInsights').mockResolvedValue(null);
+    documentModel.insightQueueCounts.mockRejectedValue(new Error('queue unavailable'));
+    await expect(service.getInsights()).rejects.toThrow('queue unavailable');
+    expect(aiEngine.getInsights).not.toHaveBeenCalled();
   });
 
   it('raises a bottleneck warning when the Secretary queue is long', async () => {
     vi.spyOn(aiEngine, 'getInsights').mockResolvedValue(null);
-    documentModel.countByStatus.mockImplementation(async (status) =>
-      status === STATUS.PENDING_SEC_EVALUATION ? 8 : 0
-    );
+    documentModel.insightQueueCounts.mockResolvedValue([{current_status:STATUS.PENDING_SEC_EVALUATION,count:8}]);
     const res = await service.getInsights();
     expect(res.insights.some((i) => /Secretary Queue Alert/i.test(i.title))).toBe(true);
   });

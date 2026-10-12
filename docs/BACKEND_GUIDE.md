@@ -12,7 +12,7 @@ Project TRACE uses a decoupled architecture for maximum flexibility and performa
      - `POST /ocr/extract`: Used for reading uploaded document requests (e.g., Clearance forms).
      - `POST /ocr/verify`: Used during registration to read the uploaded Student ID/Diploma. Returns `{ verified: boolean, reason: string }` if it finds the school name and matching student ID.
      - `GET /forecast`: Uses Facebook Prophet ML to return a 7-day volume forecast based on historical logs.
-     - `GET /ai/recommend`: Uses a Random Forest heuristic to generate prescriptive system insights based on current queue metrics.
+     - `POST /ai/recommend`: Accepts only aggregate full-stage queue counts, unclassified count, Manila-day action count and snapshot time. Returns an explicitly unvalidated Random Forest prototype classification; GET remains a legacy compatibility read.
    - **Data Flow:** The Node.js server acts as an API gateway, proxying AI requests to Flask and returning combined JSON to the frontend.
 3. **n8n (Routing Engine):** Handles the conditional logic and workflow automation (e.g., routing documents from Window 1 to the Secretary and back) using webhooks.
 4. **MySQL (Database):** The relational, single-source-of-truth database.
@@ -299,7 +299,7 @@ caller never had to prove they control.
 ### Dashboard & Analytics Endpoints (New)
 - `GET /api/documents/stats`: Returns KPI metrics (backlogs, processed today, avg time).
 - `GET /api/documents/stats/forecast`: Proxies to Flask AI engine to retrieve the 7-day volume forecast using Prophet.
-- `GET /api/documents/stats/insights`: Proxies to Flask AI engine to retrieve Random Forest heuristics and alert recommendations.
+- `GET /api/documents/stats/insights`: Builds an authoritative all-stage queue snapshot in Node, optionally posts counts to Flask for prototype classification, and combines locally controlled document advice with authorized support aggregates.
 
 
 ## Batch 8 Backend/API Repairs
@@ -460,3 +460,22 @@ new dependency or environment variable is required.
 The fresh-install schema includes `documents.payment_channel`, already present in the historical
 Phase 19 migration and required by document/Finance report SQL. This template correction adds no
 new migration or automatic alteration of existing databases.
+
+
+## Document insights accuracy and contract — 2026-10-12
+
+`document.model.insightQueueCounts` groups every status in one read. `documentInsights.snapshot`
+derives active stages from PIPELINE, excludes known terminal history and reports unknown rows
+separately. Today’s action query uses explicit Manila-day epoch bounds. The optional AI request
+contains no identities, documents, messages or files. Node always builds its own observed-count
+summary; only an integer class 0–3 with source `random_forest_prototype`, four training samples
+and `validated: false` enables a clearly experimental note. Unsupported old AI payloads and
+AI outages use the same local snapshot. Database failure does not fabricate zero queues.
+
+Flask validates the exact aggregate keys, all eight stage keys, nonnegative integer counts, an
+explicit timestamp zone and the 16 KB limit before classification. The four coded training rows
+and ten-tree model remain a prototype; prediction 0 never means validated optimal performance.
+Class notes are suppressed when the corresponding queue is empty. Queue thresholds 5/3 are
+descriptive review signals, not measured capacity or institutional SLAs. Support/Prophet/OCR
+contracts and processing permissions remain intact. Rebuild AI to package document_insights.py
+and release matching Node/frontend; no migration, dependency or environment addition is needed.

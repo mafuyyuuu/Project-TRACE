@@ -230,9 +230,17 @@ function forecastFallbackRows(executor = pool) {
     .then(([rows]) => rows);
 }
 
+/** Aggregate counts only: no student identity or private record is sent to AI. */
+function insightQueueCounts(executor = pool) {
+  return executor.query('SELECT current_status, COUNT(*) AS count FROM documents GROUP BY current_status')
+    .then(([rows]) => rows);
+}
+
 function countStepLogsToday(executor = pool) {
+  const day = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Manila', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
+  const from = Date.parse(`${day}T00:00:00+08:00`) / 1000;
   return executor
-    .query('SELECT COUNT(*) as count FROM step_logs WHERE DATE(timestamp_started) = CURDATE()')
+    .query('SELECT COUNT(*) as count FROM step_logs WHERE UNIX_TIMESTAMP(timestamp_started) >= ? AND UNIX_TIMESTAMP(timestamp_started) < ?', [from, from + 86400])
     .then(([rows]) => rows[0].count || 0);
 }
 
@@ -482,4 +490,5 @@ module.exports = {
   countCompletedToday,
   forecastFallbackRows,
   countStepLogsToday,
+  insightQueueCounts,
 };

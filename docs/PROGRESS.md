@@ -1,3 +1,68 @@
+## Admin document insights and narrow tables — completion — 2026-10-12
+
+Replaced unsupported Optimal Performance/System Normal claims with an authoritative Node queue
+snapshot across every active PIPELINE stage. Known terminal history is excluded; unknown statuses
+are counted separately for review. Today’s workflow actions use explicit full Manila-day bounds
+and are distinguished from distinct requests. Count size alone makes no efficiency, delay or
+capacity conclusion. Existing evaluation >5 and pickup >3 checks are labelled advisory thresholds.
+Optional Random Forest remains a ten-tree/four-coded-example prototype: only its explicit
+unvalidated integer class enables experimental review text, never a success/performance claim.
+Node builds its own messages and ignores old unsupported AI response contracts. Flask accepts
+validated aggregate-only POST input; compatibility GET also counts every stage. Support insight
+formulas, Prophet/OCR, document state changes and existing permissions are untouched.
+
+Added snapshot times, guarded read-only Refresh insights and honest stale/loading/failure states.
+Failed refresh replaces prior advice instead of leaving it apparently current. Admin verification,
+tracker and audit tables have stable Tailwind column widths, full-value wrapping, separate log
+tracking lines and contained keyboard-accessible horizontal scrolling. Tracker shows the complete
+tracking identifier. A real browser stress case exposed an additional unconstrained student-name
+button; constrained it to its cell and retained click/profile behavior. Existing row pagination,
+buttons and main design remain; no whole-system Figma restyling was introduced.
+
+Final **1,538 backend tests / 117 files** and **961 frontend tests / 104 files** pass, plus lint,
+production/PWA build, Python compilation and **11 document/support Python unit tests**. Isolated
+execution of the actual Flask route with real Flask/RandomForest and a synthetic DB stand-in passes
+**five HTTP checks**, including POST-without-DB, legacy GET, strict payloads and size limit.
+**Twenty Node/Python advisory parity cases** pass. **Four real MySQL/HTTP checks** in the retained
+isolated synthetic test database verify all-stage reads, legacy response rejection, aggregate-only
+prototype requests and equality with the existing backlog count. No cloud database, actual users,
+mail, proof or OCR/model download was used. Full Docker image build/startup was not performed;
+verified its explicit COPY now packages the helper and all listed sources exist.
+
+**48 browser configurations** pass for all three Admin tables at 320/375/768/1440 px, both themes
+and 100/200% text. Full values stay within cells and horizontal scrolling is contained; keyboard
+scrolling works where needed. Insight refresh failure removes prior workload advice. No page
+errors. Three representative actual-component screenshots with synthetic responses were visually
+inspected and added to the existing README. Living Help/manual/workflow/backend/setup/deployment
+and defense docs, including aggregate-flow diagrams, reflect the new contract and limits.
+
+**No additional migration, dependency or environment setting.** Matching backend/frontend and an
+AI image rebuild are needed when deploying because app.py imports document_insights.py and Node
+posts the aggregate snapshot. An old/unreachable AI service uses complete local advice safely.
+Existing five cloud migrations remain complete. Publication targets dev only, without main merge,
+cloud deployment, n8n import, external messages or per-batch acceptance Markdown.
+
+## Admin document insights and narrow tables — findings before edits — 2026-10-12
+
+The user reports Optimal Performance despite many outstanding documents and attaches an Activity
+Logs screenshot where document type/tracking text overlaps the Action column. They request fixes
+within the current design while their new Figma redesign is being prepared; dev only, no main
+merge or deployment. Inspection finds ai-engine/app.py checks only Secretary evaluation/release
+and today's step-action count, fits Random Forest on four hard-coded samples, and treats absence
+of warnings as confirmed efficiency. The Node fallback repeats the two-stage blind spot, calls
+step-action volume higher than average without a baseline, and recommends seeding mock history.
+Replace these unsupported production claims with read-only complete pipeline queue aggregates,
+transparent advisory rules and explicit limits: outstanding volume does not prove delay/capacity.
+Use the same live aggregate for optional AI formatting and local fallback; reject old unsupported
+AI contracts during staggered rollout. Keep Prophet, OCR and support insight definitions intact.
+
+Admin activity logs use table-fixed/whitespace-nowrap with equal narrow columns and put tracking
+beside the document type. Account review and tracker tables have similar unbounded text cells.
+Use explicit stable widths, full-value wrapping and contained keyboard-accessible table scrollers
+for Admin tables; preserve original actions, roles, row pagination and current shared styling.
+Record screenshots in the existing README and migration/setup notes in the consolidated guides,
+without per-batch acceptance Markdown or a database migration.
+
 ## Comprehensive Admin functional review — completion — 2026-10-12
 
 Admin now reaches Internal assistance through Support, with legacy internal-ticket URLs mapped

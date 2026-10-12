@@ -47,6 +47,9 @@
   .trace-label { @apply block text-sm font-semibold leading-normal text-gray-700 dark:text-gray-200; }
   .trace-label-inverse { @apply text-white dark:text-white; }
   .trace-form-grid { @apply grid grid-cols-[repeat(auto-fit,minmax(min(100%,14rem),1fr))] gap-4; }
+  .trace-table-scroll { @apply min-w-0 max-w-full overflow-auto focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-pine-600 dark:focus-visible:outline-green-400; }
+  .trace-data-table { @apply w-full table-fixed border-collapse text-left; }
+  .trace-data-table th, .trace-data-table td { @apply align-top whitespace-normal px-3; overflow-wrap: anywhere; }
   .trace-tab { @apply inline-flex min-h-11 max-w-full items-center justify-center gap-2 px-4 py-3 text-sm font-semibold leading-normal text-center whitespace-normal break-words transition-colors disabled:cursor-not-allowed disabled:opacity-60; }
   .trace-tab-group { @apply flex w-fit max-w-full flex-wrap gap-1 rounded-3xl bg-gray-100 p-1.5 dark:bg-gray-800 sm:rounded-full; }
   .trace-pill { @apply min-w-0 rounded-full; }

@@ -11,7 +11,7 @@ import { useState } from 'react';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import MiniSparkline from '@/components/MiniSparkline';
 import useAdminDashboard from '@/features/admin/useAdminDashboard';
-import { todayLongDate, formatDuration } from '@/utils/formatters';
+import { todayLongDate, formatDuration, formatDateTime } from '@/utils/formatters';
 import { getStatusTone, getStatusLabel } from '@/utils/documentStatus';
 import DashboardAlerts from '@/components/DashboardAlerts';
 import DashboardLoading from '@/components/DashboardLoading';
@@ -42,7 +42,7 @@ export default function AdminDashboard({ user, currentTab, setViewImageUrl, revi
     loadDashboardData,
     dashStats,
     forecastData,
-    aiInsights,
+    aiInsights, insightsLoading, refreshInsights,
     pendingStudents,
     analyticsSummary,
     activeModal,
@@ -251,9 +251,11 @@ export default function AdminDashboard({ user, currentTab, setViewImageUrl, revi
                   <section aria-labelledby="ai-insights-heading" className="trace-section trace-section-body lg:col-span-1 flex flex-col justify-between h-full min-h-[380px]">
                     <div>
                       <h3 id="ai-insights-heading" className="trace-section-title">AI INSIGHTS</h3>
-                      <p className="text-xs text-gray-600 dark:text-gray-300 mt-1">Document model advice and measured support trends. Recommendations require review.</p>
+                      <p className="text-xs text-gray-600 dark:text-gray-300 mt-1">Document queue snapshots and measured support trends. Model recommendations are experimental and require review.</p>
                     </div>
 
+                    <div className="mt-3"><Button type="button" onClick={refreshInsights} disabled={insightsLoading} className="trace-button trace-button-secondary">{insightsLoading ? 'Refreshing insights…' : 'Refresh insights'}</Button></div>
+                    {insightsLoading && aiInsights.length > 0 && <p role="status" className="mt-2 text-xs text-gray-600 dark:text-gray-300">Refreshing; cards below show the previous snapshot.</p>}
                     <div className="flex flex-col gap-4 mt-6">
                       {aiInsights && aiInsights.length > 0 ? (
                         aiInsights.map((insight, idx) => (
@@ -269,6 +271,7 @@ export default function AdminDashboard({ user, currentTab, setViewImageUrl, revi
                             </h4>
                             <div className="text-xs leading-relaxed font-medium">
                               {insight.message}
+                              {insight.as_of && <p className="mt-2">Snapshot: {formatDateTime(insight.as_of)} Manila · {insight.method === 'random_forest_prototype' ? 'Experimental classification; unvalidated' : 'Observed queue counts; not a performance forecast'}</p>}
                               {insight.period && <p className="mt-2">{new Date(insight.period.from).toLocaleDateString('en-PH',{timeZone:'Asia/Manila'})}–{new Date(insight.period.to_exclusive).toLocaleDateString('en-PH',{timeZone:'Asia/Manila'})} · {insight.sample_size} observations · {insight.method==='aggregate_rules' ? 'Aggregate rules; descriptive, not a forecast' : 'Advisory'}</p>}
                             </div>
                           </article>
@@ -291,11 +294,12 @@ export default function AdminDashboard({ user, currentTab, setViewImageUrl, revi
                     </span>
                   </div>
                   <div className="p-4 sm:p-6">
-                    <div className="max-h-[calc(100vh-280px)] overflow-y-auto overflow-x-auto">
+                    <div role="region" aria-label="Account verification table" tabIndex={0} className="trace-table-scroll max-h-[calc(100vh-280px)]">
                       {pendingStudents.length === 0 ? (
                         <div className="text-center py-12 text-gray-400 dark:text-gray-400 font-medium">No pending student accounts requiring manual validation.</div>
                       ) : (
-                        <table className="w-full text-left border-collapse table-fixed min-w-[680px]">
+                        <table aria-label="Account verification requests" className="trace-data-table min-w-[69rem]">
+                          <colgroup>{['w-[10rem]','w-[9rem]','w-[13rem]','w-[16rem]','w-[13rem]','w-[8rem]'].map((width,index)=><col key={index} className={width}/>)}</colgroup>
                           <thead className="sticky top-0 bg-white dark:bg-gray-900 z-10">
                             <tr className="text-gray-400 dark:text-gray-400 text-[10px] uppercase tracking-widest border-b border-gray-100 dark:border-gray-700">
                               <th className="pb-4 font-bold pl-4 font-mono">Student ID</th>
@@ -372,11 +376,12 @@ export default function AdminDashboard({ user, currentTab, setViewImageUrl, revi
                     </div>
                   </div>
                   <div className="p-4 sm:p-6">
-                    <div ref={tableRef} className="max-h-[calc(100vh-280px)] overflow-y-auto overflow-x-auto">
+                    <div ref={tableRef} role="region" aria-label="System-wide document tracker table" tabIndex={0} className="trace-table-scroll max-h-[calc(100vh-280px)]">
                       {documents.filter(doc => adminDocFilter === 'All' || doc.document_type === adminDocFilter).length === 0 ? (
                         <div className="text-center py-12 text-gray-400 dark:text-gray-400 font-medium">No documents match the current filter.</div>
                       ) : (
-                        <table className="w-full text-left border-collapse table-fixed min-w-[60rem]">
+                        <table aria-label="System-wide document tracker" className="trace-data-table min-w-[85rem]">
+                          <colgroup>{['w-[11rem]','w-[13rem]','w-[14rem]','w-[12rem]','w-[15rem]','w-[11rem]','w-[9rem]'].map((width,index)=><col key={index} className={width}/>)}</colgroup>
                           <thead className="sticky top-0 bg-white dark:bg-gray-900 z-10">
                             <tr className="text-gray-400 dark:text-gray-400 text-[10px] uppercase tracking-widest border-b border-gray-100 dark:border-gray-700">
                               <th className="pb-4 font-bold pl-4">Tracking ID</th>
@@ -395,12 +400,12 @@ export default function AdminDashboard({ user, currentTab, setViewImageUrl, revi
                               .map(doc => (
                                 <tr key={doc.id} className="hover:bg-gray-50/30 dark:hover:bg-gray-800/30">
                                   <td className="py-4 pl-4 font-mono text-xs font-bold text-gray-900 dark:text-gray-100">
-                                    #{doc.tracking_number ? doc.tracking_number.slice(0, 10).toUpperCase() : doc.id}
+                                    #{doc.tracking_number ? doc.tracking_number : doc.id}
                                   </td>
-                                  <td className="py-4 text-sm font-bold"><Button type="button" disabled={!doc.student_id} onClick={() => setViewProfileId(doc.student_id)} className="trace-action text-blue-700 dark:text-blue-300 hover:underline text-left break-words focus-visible:ring-2 focus-visible:ring-blue-500 disabled:text-gray-500">{doc.student_name || doc.student_id || 'Unknown'}</Button></td>
+                                  <td className="py-4 text-sm font-bold"><Button type="button" disabled={!doc.student_id} onClick={() => setViewProfileId(doc.student_id)} className="trace-action block min-w-0 max-w-full text-blue-700 dark:text-blue-300 hover:underline text-left [overflow-wrap:anywhere] focus-visible:ring-2 focus-visible:ring-blue-500 disabled:text-gray-500">{doc.student_name || doc.student_id || 'Unknown'}</Button></td>
                                   <td className="py-4 text-xs font-bold text-gray-600 dark:text-gray-300">{doc.document_sequence_number || doc.document_type}</td>
                                   <td className="py-4">
-                                    <span className={`inline-flex max-w-full px-3 py-1 text-[10px] leading-normal font-black rounded-full uppercase tracking-wider ${
+                                    <span className={`inline-flex max-w-full whitespace-normal break-words px-3 py-1 text-[10px] leading-normal font-black rounded-full uppercase tracking-wider ${
                                       getStatusTone(doc.current_status)
                                     }`}>
                                       {getStatusLabel(doc.current_status)}
@@ -499,8 +504,10 @@ export default function AdminDashboard({ user, currentTab, setViewImageUrl, revi
                     <h3 className="trace-section-title">System-Wide Audit Log</h3>
                   </div>
                   <div className="p-4 sm:p-6">
-                    <div className="max-h-[calc(100vh-280px)] overflow-y-auto overflow-x-auto">
-                      <table className="w-full text-left border-collapse table-fixed whitespace-nowrap min-w-[42.5rem]">
+                    <p className="trace-page-description mb-3">Full log values wrap within each column. Scroll horizontally on a smaller screen to read all columns.</p>
+                    <div role="region" aria-label="Activity log table" tabIndex={0} className="trace-table-scroll max-h-[calc(100vh-280px)]">
+                      <table aria-label="System-wide audit log" className="trace-data-table min-w-[65rem]">
+                        <colgroup>{['w-[11rem]','w-[16rem]','w-[13rem]','w-[13rem]','w-[12rem]'].map((width,index)=><col key={index} className={width}/>)}</colgroup>
                         <thead className="sticky top-0 bg-white dark:bg-gray-900 z-10">
                           <tr className="text-xs uppercase tracking-widest text-gray-400 dark:text-gray-400 border-b border-gray-100 dark:border-gray-700">
                             <th className="pb-4 font-bold pl-4">Timestamp</th>
@@ -513,8 +520,8 @@ export default function AdminDashboard({ user, currentTab, setViewImageUrl, revi
                         <tbody className="divide-y divide-gray-50 dark:divide-gray-700">
                           {adminLogs.map(log => (
                             <tr key={log.id} className="hover:bg-gray-50/30 dark:hover:bg-gray-800/30">
-                              <td className="py-4 pl-4 text-xs font-semibold text-gray-500 dark:text-gray-400">{new Date(log.timestamp_started).toLocaleString()}</td>
-                              <td className="py-4 text-sm font-bold text-gray-900 dark:text-gray-100">{log.document_type || 'Unknown'} <span className="text-gray-400 dark:text-gray-400 font-mono text-xs">#{log.tracking_number || 'N/A'}</span></td>
+                              <td className="py-4 pl-4 text-xs font-semibold text-gray-500 dark:text-gray-400">{formatDateTime(log.timestamp_started)}</td>
+                              <td className="py-4 text-sm font-bold text-gray-900 dark:text-gray-100"><span className="block">{log.document_type || 'Unknown'}</span><span className="mt-1 block text-gray-500 dark:text-gray-400 font-mono text-xs">#{log.tracking_number || 'N/A'}</span></td>
                               <td className="py-4 text-sm text-gray-600 dark:text-gray-300 capitalize">{log.step_name ? log.step_name.replace(/_/g, ' ') : 'System Action'}</td>
                               <td className="py-4 text-sm text-gray-600 dark:text-gray-300">{log.user_name || 'System'}</td>
                               <td className="py-4">

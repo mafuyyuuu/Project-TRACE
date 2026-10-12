@@ -261,7 +261,7 @@ runs whether the file came from the student or the counter.
 * **Role:** Overseer and Optimizer.
 * **Workflow:**
   1. Does not handle individual documents.
-  2. Monitors the **AI Insights Panel** (Random Forest) for queue bottlenecks (e.g., "Warning: Secretary queue is backing up").
+  2. Monitors **AI Insights** for observed all-stage document counts and explicitly experimental model suggestions. Counts alone do not establish delay, capacity or optimal performance.
   3. Uses **Predictive Analytics** (Prophet ML) to forecast 7-day document volume, allowing the admin to schedule more clerks on predicted busy days.
   4. Manages **System Maintenance → Accounts** and the separate **Account Verification** review queue, verifying or rejecting the accounts
      that failed automatic AI verification at registration (section 0a), and administering staff
@@ -401,3 +401,15 @@ Admin's Support hosts operational tickets, staff coordination and Internal assis
 notification links remain valid. Efficiency Analytics separates document and support metrics into
 independent views instead of stacking them. Account deactivation is an access change, not a
 request cancellation or enrollment-status change; its version increment and audit commit together.
+
+
+## Admin workload snapshot and responsive audit tables
+
+Document insight counts cover each active pipeline stage, separating student waits from staff
+work and flagging unknown statuses. Advisory thresholds do not change the processing state
+machine or automatically assign/send. The prototype classifier uses only evaluation, release
+and Manila-day action counts and remains unvalidated. Node controls the count-based messages
+and ignores legacy optimal-performance payloads. Admin can refresh and inspect the snapshot
+time; failed refreshes make no current performance conclusion. Support metrics stay separate.
+Audit, account-verification and tracker tables wrap full values within fixed columns and retain
+contained keyboard/touch scrolling. Role, document actions and pagination are unchanged.

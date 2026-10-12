@@ -1,4 +1,18 @@
 const model = require('../document.model');
+it('reads every document status for insights rather than only evaluation/release', async () => {
+  const executor = { query: vi.fn().mockResolvedValue([[{ current_status: 'SEC_PROCESSING', count: 60 }]]) };
+  await expect(model.insightQueueCounts(executor)).resolves.toEqual([{ current_status: 'SEC_PROCESSING', count: 60 }]);
+  expect(executor.query.mock.calls[0][0]).toBe('SELECT current_status, COUNT(*) AS count FROM documents GROUP BY current_status');
+});
+it('counts workflow actions within the whole Manila day regardless of process timezone', async () => {
+  vi.useFakeTimers({ toFake: ['Date'] });
+  try {
+    vi.setSystemTime(new Date('2026-10-11T17:00:00Z'));
+    const executor = { query: vi.fn().mockResolvedValue([[{ count: 7 }]]) };
+    expect(await model.countStepLogsToday(executor)).toBe(7);
+    expect(executor.query.mock.calls[0][1]).toEqual([Date.parse('2026-10-11T16:00:00Z') / 1000, Date.parse('2026-10-12T16:00:00Z') / 1000]);
+  } finally { vi.useRealTimers(); }
+});
 it('retains identified ownership and requested type when OCR finishes after intake', async () => {
   const executor = {query:vi.fn().mockResolvedValue([{}])};
   await model.updateOcrData(9,{student_id:'EXTRACTED-OTHER',form_type:'Extracted type'},executor);

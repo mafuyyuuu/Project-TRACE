@@ -100,10 +100,10 @@ async function getForecast() {
   }
 }
 
-/** Random Forest prescriptive insights. Returns null when unavailable. */
-async function getInsights() {
+/** Optional prototype classification of authoritative aggregate queue counts. */
+async function getInsights(snapshot) {
   try {
-    return await requestJson(`${env.AI_ENGINE_URL}/ai/recommend`, { method: 'GET' });
+    return await requestJson(`${env.AI_ENGINE_URL}/ai/recommend`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(snapshot) });
   } catch (err) {
     console.error(`AI insights fetch failed at ${env.AI_ENGINE_URL}/ai/recommend:`, err.message);
     return null;

@@ -1,5 +1,15 @@
 const fs = require('fs');
 const service = require('../aiEngine.service');
+it('posts only the supplied aggregate snapshot for prototype classification', async () => {
+  const payload = { counts: { SEC_PROCESSING: 60 }, today_actions: 5, unclassified: 0, as_of: '2026-10-12T00:00:00Z' };
+  const fetchMock = vi.fn().mockResolvedValue({ ok: true, json: async () => ({ prediction: 0, source: 'random_forest_prototype', training_samples: 4, validated: false }) });
+  vi.stubGlobal('fetch', fetchMock);
+  expect((await service.getInsights(payload)).source).toBe('random_forest_prototype');
+  const [url, options] = fetchMock.mock.calls[0];
+  expect(url).toMatch(/\/ai\/recommend$/);
+  expect(options.method).toBe('POST');
+  expect(JSON.parse(options.body)).toEqual(payload);
+});
 
 beforeEach(() => { vi.spyOn(console, 'warn').mockImplementation(() => {}); vi.spyOn(console, 'error').mockImplementation(() => {}); });
 afterEach(() => { vi.useRealTimers(); vi.unstubAllGlobals(); });
