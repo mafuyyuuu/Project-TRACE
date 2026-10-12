@@ -1,23 +1,49 @@
 # Consolidated deployment checklist — Revision 2
 
-Updated with each completed batch. This tracks the **newer fixes guide**, not the earlier numbered migrations. No database migration or production deployment has been performed by the agent during these batches. Confirm actual server state before deciding which scripts are pending.
+Updated with each completed batch. This tracks the **newer fixes guide**, not the earlier numbered migrations. The five follow-up migrations were applied to an isolated local test database on 2026-10-12. No cloud migration or production deployment has been performed by the agent. Confirm actual server state before deciding which scripts are pending.
 
 ## Migration ledger
 
 | Revision 2 batch | New migration | Prerequisites | Status / preserving behavior |
 | --- | --- | --- | --- |
-| 7 — Alumni / Request Forms | `backend/database/migrate_alumni_study_years.js` | Existing users/student profiles; `migrate_student_profiles.js`, `migrate_graduation_year.js` | Not applied by this work. Adds study-year confirmation, proof-review demo markers and audit tables; preserves graduation, attendance and request history. |
-| 8 — Intake / Staff Scope | `backend/database/migrate_request_intake_scope.js` | Existing documents; `migrate_request_attachments.js`, `migrate_support_requirements.js` and their ticket/catalog prerequisites | Not applied by this work. Adds nullable routing-college snapshots and `blocks_intake` default false; no historical backfill/reclassification. |
+| 7 — Alumni / Request Forms | `backend/database/migrate_alumni_study_years.js` | Existing users/student profiles; `migrate_student_profiles.js`, `migrate_graduation_year.js` | Local test applied 2026-10-12; cloud pending. Adds study-year confirmation, proof-review demo markers and audit tables; preserves graduation, attendance and request history. |
+| 8 — Intake / Staff Scope | `backend/database/migrate_request_intake_scope.js` | Existing documents; `migrate_request_attachments.js`, `migrate_support_requirements.js` and their ticket/catalog prerequisites | Local test applied 2026-10-12; cloud pending. Adds nullable routing-college snapshots and `blocks_intake` default false; no historical backfill/reclassification. |
 | 9 — Reports & Export | **None** | Batch 8 routing columns plus existing fee-schedule and Finance receipt/payment-method columns | API/frontend changes only. Uses existing reference catalogs, receipt fields and pricing snapshots. Deploy the matching API/frontend together. |
 | 10 — Support / Messaging UI | **None** | Existing support tickets, archive/requirements/catalog and Batch 8 intake scope | Frontend-only presentation changes; existing ticket/desk/college permissions remain. |
 | 11 — Support Analytics | **None** | Existing support reports and ticket audit/calendar history | Frontend-only KPI/table presentation. Report formulas, cohorts, role authorization and AI inputs are unchanged. |
-| 12 — Finance Receipts | `backend/database/migrate_receipt_packs.js` | Existing grouped documents/payment/OR columns from `migrate_finance_receipts.js`; Batch 8 scope and assignment support | Not applied by this work. Creates InnoDB pack/control/reservation/issued-snapshot/audit tables and an empty control row; adds a full leading OR-number index when missing. Preserves historical ORs; activates no pack and rewrites no payments. Matching API/frontend required. |
-| 13 — Internal Assistance | `backend/database/migrate_internal_assistance.js` | Existing users and active desk/Admin accounts; existing support schema remains separate | Not applied by this work. Creates three empty InnoDB internal ticket/message/event tables; imports no student tickets or attachments. Matching API/frontend required; Admin operational support becomes read-only. |
-| Additional chat connections — TRACE-78 follow-up | `backend/database/migrate_staff_conversations.js` | Existing users/colleges, supported active desk accounts; separate support/internal prerequisites for their existing categories | Not applied by this work. Creates three empty InnoDB staff conversation/message/retry-event tables with pair uniqueness; imports no student/internal messages or files. Deploy matching API/frontend. |
+| 12 — Finance Receipts | `backend/database/migrate_receipt_packs.js` | Existing grouped documents/payment/OR columns from `migrate_finance_receipts.js`; Batch 8 scope and assignment support | Local test applied 2026-10-12; cloud pending. Creates InnoDB pack/control/reservation/issued-snapshot/audit tables and an empty control row; adds a full leading OR-number index when missing. Preserves historical ORs; activates no pack and rewrites no payments. Matching API/frontend required. |
+| 13 — Internal Assistance | `backend/database/migrate_internal_assistance.js` | Existing users and active desk/Admin accounts; existing support schema remains separate | Local test applied 2026-10-12; cloud pending. Creates three empty InnoDB internal ticket/message/event tables; imports no student tickets or attachments. Matching API/frontend required; Admin operational support becomes read-only. |
+| Additional chat connections — TRACE-78 follow-up | `backend/database/migrate_staff_conversations.js` | Existing users/colleges, supported active desk accounts; separate support/internal prerequisites for their existing categories | Local test applied 2026-10-12; cloud pending. Creates three empty InnoDB staff conversation/message/retry-event tables with pair uniqueness; imports no student/internal messages or files. Deploy matching API/frontend. |
 
 The cross-batch integration follow-up adds **no migration or environment variable**. Deploy the matching API/frontend to include routing-college chat scope, access-cache clearing, reactive notification links and consistent Receiving Desk authority. On staging, change a student’s profile college after routing, confirm old/new Secretary access, revoke staff access, follow two notification links on an open screen, and verify assignment enforcement between Window 1 and Receiving Desk.
 
 The earlier `migrate_batch8.js` is a different historical base migration. It is **not** the Revision 2 Batch 8 migration above. Existing databases need preserving migration scripts, not a fresh schema or seed import.
+
+## Local test application — 2026-10-12
+
+All five scripts above were applied, in the listed order, through their actual Node CLIs against
+`trace_staging_test_20261012` on isolated local MySQL 8.0.46, using code commit
+`281179fdf1f8ce757023a85065a1449b5a931280`. The target was a new synthetic database prepared with
+all earlier schema prerequisites; it was not a copy of the live database or an existing cloud
+staging service. Before mutation, preflight reported only fields belonging to these five scripts.
+A logical baseline backup was restored into the separate `trace_staging_restore_20261012`
+database; schema and records matched across all **41** baseline tables.
+
+All five CLIs exited successfully and the final read-only `check_schema.js` passed with **zero
+missing fields**. The test now has **54** tables, including all thirteen new InnoDB tables.
+Every pre-existing record retained its original values, including synthetic graduation/attendance
+years, saved fees, historical OR and clearance. New routing/study-year values remain nullable,
+historical clearance remains nonblocking, and the leading full OR-number index exists. Receipt
+control has one empty row; no pack, receipt, ticket, conversation or audit was imported/activated
+by migration. The local server was shut down cleanly and its test data retained for follow-up
+checks in this workspace. No application, Docker stack or cloud service was deployed.
+
+**Cloud remains pending.** The agent has no SSH connection to the user's server. Cloud application
+must be performed in the user's SSH session after confirming actual prerequisites, stopped writers
+and the preserving rollout steps below. The user waived mandatory backups for the current early
+test rollout because the system has no major data yet; the local restore check above is already
+complete and creates no additional user task. Local synthetic success does not establish live
+data/schema compatibility or complete role-workflow acceptance.
 
 ## Local readiness evidence — 2026-10-11
 
@@ -44,7 +70,7 @@ environment variable and does not change Vercel hosting.
 
 1. Review this ledger again after all requested batches. Pin the tested commit. Work is pushed to `dev`; no merge to main or automatic deployment is included.
 2. Confirm the server's already-applied migrations and inspect the read-only schema check. Use the complete **32-script** dependency order in [MIGRATION_ROLLOUT.md](MIGRATION_ROLLOUT.md) only to identify missing prerequisites; do not rerun historical data migrations merely for a UI update.
-3. Follow the rollout guide's off-server database/uploads backup, restore check and writer-stop steps. Build/use the matching backend image that actually includes the new scripts.
+3. For the current early test rollout, the user has waived the backup/restore step because the system has no major data yet. Keep the writer-stop and prerequisite checks. For a later live rollout with important records, use the rollout guide's database/uploads backup and restore steps. Build/use the matching backend image that actually includes the new scripts.
 4. If every earlier prerequisite is already installed, apply these new scripts in order, stopping on any failure:
 
 ```bash

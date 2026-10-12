@@ -1,3 +1,33 @@
+## Isolated test migration application — 2026-10-12
+
+The user authorized applying the five recorded migrations to a staging/test database. No external
+staging or SSH database connection is available in the workspace, so the work used a separate
+local MySQL 8.0.46 test target with synthetic records. The user then asked who performs cloud
+migrations; clarified that local application is performed here, while cloud commands still run
+through the user's SSH session. No production or existing external staging connection was used.
+
+Prepared `trace_staging_test_20261012` with the current schema's earlier prerequisites and only
+the five new migrations omitted. Refused to recreate an existing target. Initial preflight
+confirmed that all reported gaps belonged to those five scripts. A baseline logical backup was
+restored into a separate local database with identical DDL/records across **41** tables. Applied
+the five actual CLI entry points in ledger order using code commit `281179f`; all exited zero,
+then the complete read-only schema CLI passed with zero missing fields. The final target has
+**54** tables, including thirteen new InnoDB tables. All existing synthetic records were unchanged;
+saved fees, historical OR, graduation/attendance years and clearance survived. Nullable routing/
+study-year defaults, nonblocking historical clearance and the full leading OR-number index were
+verified; no automatic pack activation or ticket/conversation/audit import occurred.
+
+Recorded **11** passing checkpoints, script hashes/completion times, baseline and migrated logical
+backups in the local test workspace; shut the isolated server down cleanly and retained its data.
+Updated the existing consolidated ledger to distinguish local-applied from cloud-pending. This is
+database operations/documentation only, with no runtime code/dependency/environment change,
+per-batch acceptance Markdown, main merge or deployment. All five cloud migrations remain pending;
+real role-workflow acceptance, delivery and phone/printer checks remain separate. The user waived
+mandatory backup/restore steps for the current early test rollout because the system has no major
+data yet. Recorded this preference in the consolidated checklist; prerequisite checks, preserving
+migrations and writer-stop checks remain. The already-completed local restore check needs no
+additional user action.
+
 ## Deployment readiness — optional Docker frontend and migration rehearsal — 2026-10-11
 
 After publishing the integration review, the user authorized continuing while they rest. The next readiness audit confirms backend image packaging includes database scripts, application startup does not execute migrations, and README/docs links resolve. It found the optional local-frontend Compose profile builds with blank VITE_API_URL for same-origin requests, but frontend/nginx.conf has no API or Socket.IO proxy. The Dockerfile says that proxy exists. Login/API calls therefore fall into the SPA response, and WebSocket upgrades cannot reach the backend. Repair this optional profile’s proxy and verify real HTTP/multipart/WebSocket behavior against an isolated synthetic backend if a local Nginx runtime is available. Preserve SPA deep links and static caching. This does not change Vercel’s separately configured API origin, live infrastructure, stored records or migration requirements.
