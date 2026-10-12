@@ -56,6 +56,21 @@ class IdentityOcrTests(unittest.TestCase):
             self.reader.readtext.return_value = []
             self.assertEqual(self.engine.process_identity('synthetic.png')['failure_reason'], 'no_text')
 
+    def test_printed_layout_stays_on_original_fast_path(self):
+        self.reader.readtext.return_value = [
+            'PAMANTASAN NG', 'LUNGSOD NG PASIG',
+            'COLLEGE OF', 'COMPUTER STUDIES',
+            'DELA CRUZ, ANA M.,', '24-54321',
+        ]
+        with patch.object(self.engine, 'preprocess_image') as preprocess:
+            result = self.engine.process_identity('synthetic.png')
+        self.assertTrue(result['success'])
+        self.assertEqual(result['extracted_data']['full_name'], 'DELA CRUZ, ANA M.')
+        self.assertEqual(result['extracted_data']['college_name'], 'COLLEGE OF COMPUTER STUDIES')
+        self.assertIsNone(result['extracted_data']['middle_name'])
+        self.reader.readtext.assert_called_once_with('synthetic.png', detail=0)
+        preprocess.assert_not_called()
+
 
 if __name__ == '__main__':
     unittest.main()

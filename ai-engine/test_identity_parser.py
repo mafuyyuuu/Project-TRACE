@@ -26,7 +26,6 @@ class IdentityParserTests(unittest.TestCase):
         self.assertEqual(data['student_id'], '23-00939')
 
 
-
     def test_separate_label_and_value_lines(self):
         data = parse_identity_data('Student ID\n23-00939\nFull Name\nAna Maria Dela Cruz\nCollege\nCollege A')
         self.assertEqual(data['student_id'], '23-00939')
@@ -56,6 +55,61 @@ class IdentityParserTests(unittest.TestCase):
     def test_fragmented_unlabeled_number(self):
         self.assertEqual(parse_identity_data('23\n–\n00939')['student_id'], '23-00939')
 
+
+    def test_printed_plp_layout_keeps_review_name_without_guessing_parts(self):
+        text = ('PAMANTASAN NG\nLUNGSOD NG PASIG\n'
+                'COLLEGE OF\nCOMPUTER STUDIES\nBSIT 1B\n'
+                'DELA CRUZ, ANA M.,\n24-54321')
+        data = parse_identity_data(text)
+        self.assertEqual(data['student_id'], '24-54321')
+        self.assertEqual(data['full_name'], 'DELA CRUZ, ANA M.')
+        self.assertEqual(data['college_name'], 'COLLEGE OF COMPUTER STUDIES')
+        for field in ('first_name', 'middle_name', 'last_name'):
+            self.assertIsNone(data[field])
+
+    def test_natural_college_heading_on_one_line(self):
+        data = parse_identity_data('COLLEGE OF COMPUTER STUDIES\n24-54321')
+        self.assertEqual(data['college_name'], 'COLLEGE OF COMPUTER STUDIES')
+
+    def test_college_heading_in_three_fragments(self):
+        data = parse_identity_data('COLLEGE\nOF\nCOMPUTER STUDIES\n24-54321')
+        self.assertEqual(data['college_name'], 'COLLEGE OF COMPUTER STUDIES')
+
+    def test_incomplete_college_heading_is_not_the_value_of(self):
+        data = parse_identity_data('COLLEGE OF\n24-54321')
+        self.assertIsNone(data['college_name'])
+        self.assertEqual(data['student_id'], '24-54321')
+        labeled = parse_identity_data('COLLEGE OF\nNAME\nExample Student\n24-54321')
+        self.assertIsNone(labeled['college_name'])
+
+    def test_multiple_college_headings_remain_ambiguous(self):
+        parsed = parse_identity_data('COLLEGE OF ARTS\nCOLLEGE OF SCIENCE', include_ambiguity=True)
+        self.assertIsNone(parsed['fields']['college_name'])
+        self.assertIn('college_name', parsed['ambiguous_fields'])
+
+    def test_unlabeled_name_requires_school_header_and_adjacent_id(self):
+        self.assertIsNone(parse_identity_data('DELA CRUZ, ANA M.\n24-54321')['full_name'])
+        data = parse_identity_data('PAMANTASAN NG LUNGSOD NG PASIG\n'
+                                   'DELA CRUZ, ANA M.\nOTHER TEXT\n24-54321')
+        self.assertIsNone(data['full_name'])
+
+    def test_ambiguous_student_ids_do_not_select_a_printed_name(self):
+        data = parse_identity_data('PAMANTASAN NG LUNGSOD NG PASIG\n'
+                                   'DELA CRUZ, ANA M.\n24-54321\n24-12345')
+        self.assertIsNone(data['student_id'])
+        self.assertIsNone(data['full_name'])
+
+    def test_competing_adjacent_names_stay_blank(self):
+        parsed = parse_identity_data('PAMANTASAN NG LUNGSOD NG PASIG\n'
+                                     'DELA CRUZ, ANA M.\n24-54321\nREYES, MARIA S.',
+                                     include_ambiguity=True)
+        self.assertIsNone(parsed['fields']['full_name'])
+        self.assertIn('full_name', parsed['ambiguous_fields'])
+
+    def test_explicit_name_takes_precedence_over_printed_hint(self):
+        data = parse_identity_data('PAMANTASAN NG LUNGSOD NG PASIG\n'
+                                   'Name: Confirmed Example\nDELA CRUZ, ANA M.\n24-54321')
+        self.assertEqual(data['full_name'], 'Confirmed Example')
 
 if __name__ == '__main__':
     unittest.main()

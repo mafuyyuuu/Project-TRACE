@@ -1,4 +1,4 @@
-"""Conservative, line-aware ID parsing; never guess unlabeled names."""
+"""Conservative ID parsing; printed layouts provide hints, never name parts."""
 import re
 
 STUDENT_LABEL = r'student\s*(?:i\.?d\.?(?:\s*(?:no\.?|number))?|no\.?|number)'
@@ -53,11 +53,53 @@ def parse_identity_data(raw_text, include_ambiguity=False):
         values = [value for value in labeled_values(label)
                   if len(value) <= 255 and re.fullmatch(r"[\w ,.'\-]+", value, re.UNICODE) and not re.search(r'\d', value)]
         return unique(values, field)
+    student_id = identifier(STUDENT_LABEL, r'\b(?:STU\d{7}|\d{2}-\d{4,6}|(?:19|20)\d{2}-\d{5})\b', 'student_id')
     name = name_value(NAME_LABEL, 'full_name')
+
+    # A PLP card prints a comma-format name beside its standalone student
+    # number without a Name label. Keep that entire line as a review hint;
+    # a middle initial is not a middle name and must never be expanded.
+    school_header = re.search(r'\bpamantasan\s+ng\s+lungsod\s+ng\s+pasig\b', text, re.I)
+    if school_header and student_id and not name and not labeled_values(NAME_LABEL) and 'full_name' not in ambiguous:
+        candidates = []
+        word_group = r"[^\W\d_]+(?:[ .'\-]+[^\W\d_]+)*"
+        printed_name = word_group + r'\s*,\s*' + word_group + r'\.?\s*,?'
+        for index, line in enumerate(lines):
+            if line.casefold() != student_id.casefold():
+                continue
+            for neighbor in (index - 1, index + 1):
+                if 0 <= neighbor < len(lines):
+                    candidate = lines[neighbor]
+                    if len(candidate) <= 255 and re.fullmatch(printed_name, candidate, re.UNICODE):
+                        candidates.append(candidate.rstrip(', ').strip())
+        name = unique(candidates, 'full_name')
     first, middle, last = name_value(FIRST_LABEL, 'first_name'), name_value(MIDDLE_LABEL, 'middle_name'), name_value(LAST_LABEL, 'last_name')
-    colleges = [value for value in labeled_values(COLLEGE_LABEL) if len(value) <= 150]
+    # COLLEGE OF is a heading, not a College label with the value OF.
+    # Join only an incomplete heading, not arbitrary neighboring ID text.
+    colleges = []
+    for index, line in enumerate(lines):
+        if re.match(r'^college\s+of\b', line, re.I) or re.fullmatch(r'college', line, re.I):
+            heading = line
+            for offset in range(3):
+                if re.fullmatch(r'college(?:\s+of)?', heading, re.I):
+                    next_index = index + offset + 1
+                    if next_index >= len(lines):
+                        break
+                    following = lines[next_index]
+                    if re.match(r'^' + ALL_LABELS + r'(?:\s*[:#]|$)', following, re.I):
+                        break
+                    if not re.fullmatch(r"[A-Za-z &'()\-]+", following):
+                        break
+                    heading += ' ' + following
+                if re.fullmatch(r"college\s+of\s+[A-Za-z &'()\-]+", heading, re.I) and len(heading) <= 150:
+                    colleges.append(heading)
+                    break
+    # Exclude natural headings when collecting conventional College labels.
+    for value in labeled_values(COLLEGE_LABEL):
+        if len(value) <= 150 and not re.match(r'^of(?:\s|$)', value, re.I):
+            colleges.append(value)
     data = {
-        'student_id': identifier(STUDENT_LABEL, r'\b(?:STU\d{7}|\d{2}-\d{4,6}|(?:19|20)\d{2}-\d{5})\b', 'student_id'),
+        'student_id': student_id,
         'alumni_id': identifier(ALUMNI_LABEL, r'\bALU\d{7}\b', 'alumni_id'),
         'full_name': name,
         'first_name': first,

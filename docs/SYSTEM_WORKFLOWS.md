@@ -443,3 +443,10 @@ python3 -m unittest discover -s ai-engine -p 'test_identity*.py'
 ```
 
 These unit tests verify parsing/conditional passes; they do not establish real image accuracy or a measured speedup. Validate an actual failing photo separately on the rebuilt engine. For cloud diagnostics, health alone does not prove the identity route is installed: a read-only GET to `http://ai-engine:5005/ocr/identity` from backend should return 405 when the POST route exists; 404 means that route is absent in the running image. The agent has not accessed the cloud container.
+
+
+### Printed school-ID layout hints — 2026-10-13
+
+Read ID recognizes natural **COLLEGE OF** headings, including headings split into two or three OCR fragments. The backend still maps only an exact active college catalog name. A readable PLP header, a unique standalone supported student number, and an adjacent comma-format name may provide a **Name read from proof** hint. This hint does not populate first/middle/last name parts or expand initials; the student confirms these manually. Other printed names remain unguessed, ambiguous candidates stay blank, and existing entered values are preserved.
+
+This parser-only follow-up adds no database migration or dependency and requires rebuilding the AI-engine image from the matching release. The attachment was inspected visually, not run through EasyOCR. Synthetic parser/pipeline regressions are prepared; execution and real-photo latency/recognition verification remain pending while the coding environment is disconnected. A readable ID number already matches the previous parser: a complete failure still requires checking the rebuilt engine's recognition output and the safe failure category.
