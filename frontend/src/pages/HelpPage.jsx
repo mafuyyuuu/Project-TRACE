@@ -34,6 +34,7 @@ export default function HelpPage({ user }) {
     ['What is the Diploma reissue fee?', 'The default is ₱250. Admin may configure a different fee, and the Secretary sets the final amount before payment.'],
     ['How do uploads work?', 'Picking a file creates a local preview. Upload happens when you confirm Save or Submit. Already submitted supporting files cannot be replaced through a general student replacement action.'],
     ['How do I read my ID and view the saved proof?', 'During signup, select your account type and proof, then choose Read ID. Check the extracted fields and enter missing details manually. In Edit Profile, select Preview on your saved proof to enlarge it. Download from the card or preview; Close or Escape returns to your profile. The saved proof is read-only.'],
+    ['Can alumni register if their proof is unavailable?', 'Yes. Select Alumni, choose Records / proof unavailable, enter your Alumni ID, college and study years, and explain the missing proof. Your account stays pending until Admin checks alternative identity evidence and records a decision. Current students still upload proof. Approval does not replace email verification or the alumni Graduate Application.'],
   );
   if (user?.role === 'student' && user?.user_type === 'alumni') entries.unshift(
     ['Which ID do alumni use?', 'New alumni register and sign in with their Alumni ID. Existing alumni keep their current login identifier. If OCR cannot extract the Alumni ID, enter it manually.'],

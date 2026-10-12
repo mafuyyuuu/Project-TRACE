@@ -26,7 +26,7 @@ beforeEach(() => {
   auth.login.mockResolvedValue(undefined);
   auth.register.mockResolvedValue({ message: 'Registration received.' });
   api.post.mockResolvedValue({ data: { success: false } });
-  api.get.mockResolvedValue({ data: { proof_unavailable_demo_enabled: false } });
+  api.get.mockResolvedValue({ data: { proof_unavailable_enabled: false } });
 });
 afterEach(() => vi.useRealTimers());
 const renderPage = (page, path = '/') => render(<MemoryRouter initialEntries={[path]}>{page}</MemoryRouter>);
@@ -432,8 +432,8 @@ it('hides proof-unavailable signup when disabled and keeps alumni study fields d
   expect(screen.queryByRole('checkbox', { name: /proof unavailable/ })).not.toBeInTheDocument();
 });
 
-it('reviews demo alumni signup without proof, preserves the draft on cancel and sends years only on confirmation', async () => {
-  api.get.mockResolvedValue({ data: { proof_unavailable_demo_enabled: true } });
+it('reviews alumni signup without proof, preserves the draft on cancel and sends years only on confirmation', async () => {
+  api.get.mockResolvedValue({ data: { proof_unavailable_enabled: true } });
   const user = userEvent.setup();
   const { container } = renderPage(<SignupPage />);
   await screen.findByRole('option', { name: 'Engineering' });
@@ -450,6 +450,9 @@ it('reviews demo alumni signup without proof, preserves the draft on cancel and 
   fireEvent.submit(container.querySelector('form'));
   const review = screen.getByRole('dialog', { name: 'Confirm Registration' });
   expect(review).toHaveTextContent('2010'); expect(review).toHaveTextContent('2014');
+  expect(review).toHaveTextContent('Unavailable — pending Admin identity review');
+  expect(review).toHaveTextContent('Records unavailable; Registrar review requested.');
+  expect(review).not.toHaveTextContent('(demo)');
   expect(review).not.toHaveTextContent('Trace_2026'); expect(auth.register).not.toHaveBeenCalled();
   await user.click(within(review).getByRole('button', { name: 'Cancel' }));
   expect(screen.getByLabelText('Year Started *')).toHaveValue('2010');
@@ -459,4 +462,19 @@ it('reviews demo alumni signup without proof, preserves the draft on cancel and 
   const payload = auth.register.mock.calls[0][0];
   expect(payload.get('year_started')).toBe('2010'); expect(payload.get('graduation_year')).toBe('2014');
   expect(payload.get('registration_proof_unavailable')).toBe('true'); expect(payload.has('id_proof')).toBe(false);
+});
+
+it('restores mandatory student proof when switching away from an alumni missing-proof draft', async () => {
+  api.get.mockResolvedValue({data:{proof_unavailable_enabled:true}});
+  const user=userEvent.setup(),{container}=renderPage(<SignupPage/>);
+  await screen.findByRole('option',{name:'Engineering'});
+  fireEvent.change(container.querySelector('select'),{target:{value:'alumni'}});
+  await user.click(await screen.findByRole('checkbox',{name:/Records \/ proof unavailable/}));
+  await user.type(screen.getByLabelText('Explain Missing Proof'),'Lost records');
+  fireEvent.change(container.querySelector('select'),{target:{value:'student'}});
+  expect(screen.queryByRole('checkbox',{name:/proof unavailable/})).not.toBeInTheDocument();
+  expect(screen.queryByLabelText('Explain Missing Proof')).not.toBeInTheDocument();
+  expect(screen.getByRole('button',{name:'Read ID'})).toBeInTheDocument();
+  expect(screen.getByText('Upload Proof (ID / Diploma) *')).toBeInTheDocument();
+  expect(auth.register).not.toHaveBeenCalled();
 });

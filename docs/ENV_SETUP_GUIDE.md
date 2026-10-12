@@ -1079,15 +1079,24 @@ Use [MIGRATION_ROLLOUT.md](MIGRATION_ROLLOUT.md#support-ticket-rollout) for the 
 
 Build both backend (sharp/pdf-lib validators) and AI (support aggregate advice module), apply/check the migrations, start the matching API/AI, then promote the matching frontend. Validate ticket import counts/ownership privately, FCFS claims, timer recovery, protected attachments, read-only cases and role-scoped analytics. [SUPPORT_VALIDATION.md](SUPPORT_VALIDATION.md) separates local evidence from staging/physical-device acceptance.
 
-## Revision 2 Batch 7: alumni proof-unavailable defense option
+## Revision 2 Batch 7: alumni missing-proof identity review
 
-| Variable | Default | Meaning |
-| --- | --- | --- |
-| `ALUMNI_PROOF_UNAVAILABLE_DEMO_ENABLED` | `false` | Enables alumni-only registration without proof in a nonproduction defense demo. Only the literal value `true` enables it. Ignored in production. |
+Alumni may choose Records / proof unavailable in production as well as local testing. The frontend
+reads `/api/auth/registration-options` (`proof_unavailable_enabled: true`) and hides the option if
+the endpoint is unavailable. No environment flag is needed; the former
+`ALUMNI_PROOF_UNAVAILABLE_DEMO_ENABLED` setting is obsolete and may be removed from existing local
+configuration. Keep `NODE_ENV=production` on the deployed backend.
 
-For a local defense rehearsal, use an isolated synthetic database and set the flag in `backend/.env`, then restart the local API. The frontend reads `/api/auth/registration-options` and safely hides the option when it is disabled or unavailable. It always submits missing-proof applicants as pending; Admin must record the checked identity evidence and decision basis before approval. Approval does not remove the separate profile, email-verification or Graduate-application gates for requests. The standard production Docker image sets `NODE_ENV=production` and cannot activate this demo option.
+Applicants must provide their Alumni ID, college, study years and a reason of at most 500
+characters. Missing-proof registration always stays pending and skips OCR/automatic approval.
+Only Admin can decide the application, with recorded identity evidence and decision basis in the
+same transaction as approval/rejection. Current students still require uploaded proof. Approval
+does not remove profile, email-verification or Graduate-application request gates.
 
-Apply the additive [alumni study-year migration](MIGRATION_ROLLOUT.md#revision-2-batch-7--alumni-study-years-2026-10-10) before using the updated API. Existing profiles retain NULL missing years until supplied once; saved values can only be corrected by Admin with an audit reason. No production proof-unavailable evidence policy is enabled by this release.
+This repair uses the existing [alumni study-year migration](MIGRATION_ROLLOUT.md#revision-2-batch-7--alumni-study-years-2026-10-10)
+and adds no migration, dependency or environment variable. The user's cloud output confirms that
+migration is already applied; do not rerun it solely for this repair. Rebuild/recreate the backend
+and publish the matching frontend. An older frontend may still hide the option until updated.
 
 ## Revision 2 Batch 8 — intake and college scope
 

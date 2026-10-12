@@ -1,3 +1,50 @@
+## Production alumni missing-proof registration — completion — 2026-10-12
+
+Removed the demo-only runtime and Admin-review gates and replaced the registration-options
+contract with proof_unavailable_enabled. Alumni can explicitly apply with unavailable proof and
+a bounded reason in production. Registration always stores a pending account without a proof
+file or AI approval; contradictory proof attachment plus missing-proof marker is rejected before
+account creation. Current students still upload proof, and a malformed current-student exception
+cannot be approved. Only Admin decides with recorded evidence/basis; the existing audit and
+identity decision commit together. Pending login, profile/email/request gates and uploaded-proof
+Read ID remain unchanged. Removed the obsolete demo environment setting and UI copy. Confirmation
+includes the missing-proof reason, preserves cancelled/failed drafts and keeps shared modal styles.
+
+Validation: final full **1,508 backend tests / 115 files**, **954 frontend tests / 103 files**,
+lint, production/PWA build and whitespace checks pass. An auto-approval mutation fails the new
+pending-account regression; restored source passes the focused suite. **Seven real MySQL service
+checks** in production mode on the isolated synthetic local test database pass: enabled options,
+current-student denial, saved pending account/years/reason, denied pending login, required review
+evidence, actual atomic approval/audit and approved login with zero historical documents. Email
+ownership remains unverified after identity approval. No production data, external mail or real
+proof was used. **16 browser configurations / 32 signup-confirmation screen checks** pass at
+320/375/768/1440 px, both themes and 100/200% text; checks cover contained layout, trapped Tab,
+Escape/draft preservation, restored student proof and one synthetic multipart submission without
+attachment. No page errors. New README screenshots were visually inspected after exit animation
+settled. The initial browser package was incomplete and reconstructed from its pinned package;
+test selectors were corrected to the actual Create Account button and synthetic-email text.
+
+Updated living Help/manual/workflow/backend/environment/defense/rollout docs and the consolidated
+ledger. Cloud migrations and internal backend/database health are confirmed from the user's SSH
+output. This follow-up adds **no migration**, dependency, AI/n8n change or environment variable.
+The repaired backend and matching frontend still need publication on the cloud; main remains
+unmerged. Work is published to dev only, with no per-batch acceptance Markdown.
+
+## Production alumni missing-proof registration — findings before edits — 2026-10-12
+
+The user confirmed a successful cloud internal /api/health response with database ok after all
+five migrations. The earlier connection refusal was initial startup timing. Main merge, matching
+frontend release, public health and full workflow acceptance are still unconfirmed.
+
+Before final release, the user asked why alumni still require proof. The implemented register,
+registration-options and Admin-review gates hard-disable missing-proof applications in production,
+and signup/Admin UI calls the flow a defense demo. This does not satisfy the intended final alumni
+workflow. Enable an alumni-only missing-proof application with a bounded reason in production,
+always pending, no OCR/automatic verification, and Admin-only transactional decision/evidence audit.
+Keep current-student proof, identifier/study-year validation, pending login denial, email/profile/
+request gates and uploaded-proof OCR intact. Remove the obsolete demo setting/copy; use existing
+cloud-applied columns/tables, with no new migration or permissive identity auto-approval.
+
 ## Cloud migration confirmation; runtime readiness pending — 2026-10-12
 
 The user's cloud SSH output confirms `trace_db` and an initial presence check reporting only the

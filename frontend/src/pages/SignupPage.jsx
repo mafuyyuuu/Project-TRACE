@@ -19,7 +19,7 @@ import { PASSWORD_REQUIREMENTS, validNewPassword } from '@/utils/passwordPolicy'
 export default function SignupPage() {
   const { register, loading } = useAuth()
   const [formData, setFormData] = useState({ employeeId: '', fullName: '', email: '', phoneNumber: '', password: '', confirmPassword: '', userType: new URLSearchParams(window.location.search).get('applicant') === 'alumni' ? 'alumni' : 'student', college: '', year_started: '', graduation_year: '', proofUnavailable: false, proofReason: '' })
-  const [demoEnabled, setDemoEnabled] = useState(false)
+  const [proofUnavailableEnabled, setProofUnavailableEnabled] = useState(false)
   const submitGuard = useRef(false)
   const [file, setFile] = useState(null)
   const [localError, setLocalError] = useState('')
@@ -38,7 +38,7 @@ export default function SignupPage() {
 
   useEffect(() => {
     let cancelled = false
-    getRegistrationOptions().then(options => { if (!cancelled) setDemoEnabled(options.proof_unavailable_demo_enabled === true) }).catch(() => {});
+    getRegistrationOptions().then(options => { if (!cancelled) setProofUnavailableEnabled(options.proof_unavailable_enabled === true) }).catch(() => {});
     getColleges()
       .then((data) => { if (!cancelled) setColleges(data.colleges || []) })
       .catch(() => { if (!cancelled) setColleges([]) })
@@ -82,7 +82,7 @@ export default function SignupPage() {
       const college = colleges.find(college => college.name === formData.college);
       if (college) form.append('college_id', String(college.id));
       if (formData.userType === 'alumni') { form.append('year_started', formData.year_started); form.append('graduation_year', formData.graduation_year); }
-      if (formData.proofUnavailable && formData.userType === 'alumni' && demoEnabled) {
+      if (formData.proofUnavailable && formData.userType === 'alumni' && proofUnavailableEnabled) {
         form.append('registration_proof_unavailable', 'true'); form.append('registration_proof_reason', formData.proofReason.trim());
       } else if (file) form.append('id_proof', file);
 
@@ -108,14 +108,15 @@ export default function SignupPage() {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-800 flex flex-col items-center justify-center gap-6 px-4 py-8 sm:py-12 font-body relative overflow-hidden">
       <ConfirmDialog open={!!registrationToConfirm} title="Confirm Registration" presentation="review"
-        message={['Submit your registration and proof of identity for review?', localError ? <span role="alert">{localError}</span> : null]}
+        message={['Submit your registration for identity review?', localError ? <span role="alert">{localError}</span> : null]}
         confirmLabel="Submit Registration" loading={loading} onConfirm={confirmRegistration}
         onCancel={() => setRegistrationToConfirm(null)}>
         {registrationToConfirm && <ReviewSummary entries={[
           ['Name', registrationToConfirm.get('full_name')], ['ID Number', registrationToConfirm.get('employee_id')],
           ['College', registrationToConfirm.get('course')], ['Email', registrationToConfirm.get('email')],
           ...(registrationToConfirm.get('user_type') === 'alumni' ? [['Year Started', registrationToConfirm.get('year_started')], ['Year Graduated', registrationToConfirm.get('graduation_year')]] : []),
-          ['Proof', registrationToConfirm.get('registration_proof_unavailable') ? 'Unavailable — pending Admin review (demo)' : registrationToConfirm.get('id_proof')?.name],
+          ['Proof', registrationToConfirm.get('registration_proof_unavailable') ? 'Unavailable — pending Admin identity review' : registrationToConfirm.get('id_proof')?.name],
+          ...(registrationToConfirm.get('registration_proof_unavailable') ? [['Missing Proof Reason', registrationToConfirm.get('registration_proof_reason')]] : []),
         ]} />}
         {registrationToConfirm?.get('id_proof') instanceof File && <div className="mt-4"><FileUploadField label="Attached Proof" file={registrationToConfirm.get('id_proof')} allowReplace={false} compactPreview /></div>}
       </ConfirmDialog>
@@ -226,11 +227,11 @@ export default function SignupPage() {
               </div>
             </div>
 
-            {formData.userType === 'alumni' && demoEnabled && <section className="space-y-3 rounded-lg border border-amber-200 bg-amber-50 p-4 dark:border-amber-800 dark:bg-amber-950">
+            {formData.userType === 'alumni' && proofUnavailableEnabled && <section className="space-y-3 rounded-lg border border-amber-200 bg-amber-50 p-4 dark:border-amber-800 dark:bg-amber-950">
               <label className="flex items-start gap-3 text-sm font-semibold">
                 <input type="checkbox" className="trace-choice mt-1" checked={formData.proofUnavailable} disabled={loading}
                   onChange={event => setFormData({ ...formData, proofUnavailable: event.target.checked })} />
-                Records / proof unavailable (defense demonstration)
+                Records / proof unavailable
               </label>
               <p className="text-xs leading-relaxed">For alumni with lost or unavailable records, including S.Y. 2018 and earlier. Your application stays pending until Admin verifies your identity. Contact the Registrar with your ID for review follow-up.</p>
               {formData.proofUnavailable && <label className="trace-label">Explain Missing Proof

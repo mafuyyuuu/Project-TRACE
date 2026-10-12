@@ -78,6 +78,11 @@ We will now transition to the Live System Demo to show you exactly how these tec
 
 "Before filing a request, a student creates an account with an email and identity proof. Read ID suggests fields from readable text; the student checks them and enters missing information manually. The registration check compares school, identifier and college text. An inconclusive result stays pending for Admin review with a reason. This assists identity review; it cannot prove that an ID is genuine or that it belongs to the uploader."
 
+"An alumnus with lost or unavailable proof can choose Records / proof unavailable and explain why.
+That account stays pending, without an OCR check, until Admin records the alternative identity
+evidence and decision. This is available in the production build; current students still upload
+proof. We demonstrate it using synthetic records only."
+
 *(Action: Admin quickly verifies the account. Log in as Student)*
 
 "Once identity review is complete, the student fills the required saved profile and verifies email through the Profile button and a one-click inbox link. New alumni first submit the configured Graduate Application. Identity approval, email ownership and login MFA are separate checks.

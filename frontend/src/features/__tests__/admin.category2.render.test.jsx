@@ -493,10 +493,12 @@ describe('AnalyticsPanel', () => {
   });
 });
 
-it('requires recorded evidence before demo identity decisions and passes it only after confirmation', async () => {
+it('requires recorded evidence before missing-proof identity decisions and passes it only after confirmation', async () => {
   const user = userEvent.setup(), confirm = vi.fn();
   render(<AccountVerificationModal studentVerifyToConfirm={{ student: { id: 22, full_name: 'Synthetic Alumni', student_id: 'ALU-DEMO', registration_proof_unavailable: true, registration_proof_reason: 'Lost records' }, action: 'review' }}
     cancelAdminVerifyStudent={vi.fn()} confirmAdminVerifyStudent={confirm} actionLoading={false} setViewImageUrl={vi.fn()} />);
+  expect(screen.getByRole('heading',{name:'Proof Unavailable · Identity Review'})).toBeInTheDocument();
+  expect(screen.queryByText(/Defense Demo/)).not.toBeInTheDocument();
   await user.click(screen.getByRole('button', { name: 'Verify', exact: true }));
   expect(screen.getByRole('alert')).toHaveTextContent('Record the evidence');
   expect(screen.queryByRole('dialog', { name: 'Verify Account' })).not.toBeInTheDocument();

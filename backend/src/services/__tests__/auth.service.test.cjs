@@ -735,28 +735,29 @@ describe('graduation years before profile mutations', () => {
   });
 });
 
-describe('alumni proof-unavailable defense demo', () => {
-  const originalDemo = env.ALUMNI_PROOF_UNAVAILABLE_DEMO_ENABLED, originalMode = env.NODE_ENV;
+describe('alumni proof-unavailable production registration', () => {
+  const originalMode = env.NODE_ENV;
   const body = { employee_id: 'ALU-DEMO', full_name: 'Synthetic Alumni', email: 'synthetic@example.test', phone_number: '+639123456789', password: 'Trace2024!', user_type: 'alumni', course: 'CCS', year_started: '2010', graduation_year: '2014', registration_proof_unavailable: 'true', registration_proof_reason: 'Records unavailable; request Registrar review.' };
-  beforeEach(() => { env.ALUMNI_PROOF_UNAVAILABLE_DEMO_ENABLED = false; env.NODE_ENV = 'test'; });
-  afterEach(() => { env.ALUMNI_PROOF_UNAVAILABLE_DEMO_ENABLED = originalDemo; env.NODE_ENV = originalMode; });
-  it('defaults to disabled and rejects a forged opt-in before creating an account', async () => {
-    expect(service.registrationOptions()).toEqual({ proof_unavailable_demo_enabled: false });
-    await expect(service.register(body, null)).rejects.toMatchObject({ status: 403 });
-    expect(userModel.createUser).not.toHaveBeenCalled();
-  });
-  it('is forcibly disabled in production even with an enabled flag', async () => {
-    env.ALUMNI_PROOF_UNAVAILABLE_DEMO_ENABLED = true; env.NODE_ENV = 'production';
-    expect(service.registrationOptions().proof_unavailable_demo_enabled).toBe(false);
-    await expect(service.register(body, null)).rejects.toMatchObject({ status: 403 });
+  beforeEach(() => { env.NODE_ENV = 'production'; });
+  afterEach(() => { env.NODE_ENV = originalMode; });
+  it.each(['production','development','test'])('offers manual alumni review in %s without a demo flag', mode => {
+    env.NODE_ENV = mode;
+    expect(service.registrationOptions()).toEqual({ proof_unavailable_enabled: true });
   });
   it('never offers a proof bypass to current students', async () => {
-    env.ALUMNI_PROOF_UNAVAILABLE_DEMO_ENABLED = true;
     await expect(service.register({ ...body, user_type: 'student' }, null)).rejects.toMatchObject({ status: 403 });
     expect(userModel.createUser).not.toHaveBeenCalled();
+    expect(aiEngine.verifyIdDocument).not.toHaveBeenCalled();
+  });
+  it('still requires uploaded proof when a current student does not request the alumni exception', async () => {
+    await expect(service.register({ ...body, user_type:'student', registration_proof_unavailable:'false' },null)).rejects.toMatchObject({ status:400 });
+    expect(userModel.createUser).not.toHaveBeenCalled();
+  });
+  it('rejects an attached proof combined with missing-proof review before storing an account', async () => {
+    await expect(service.register(body,{path:'synthetic-unused-proof.png'})).rejects.toMatchObject({status:400});
+    expect(userModel.createUser).not.toHaveBeenCalled();expect(aiEngine.verifyIdDocument).not.toHaveBeenCalled();
   });
   it('always creates a pending account, saves the years atomically and skips AI for unavailable proof', async () => {
-    env.ALUMNI_PROOF_UNAVAILABLE_DEMO_ENABLED = true;
     aiEngine.verifyIdDocument.mockResolvedValue({ verified: true });
     const result = await service.register(body, null);
     expect(result.verification_status).toBe('pending');
@@ -766,28 +767,40 @@ describe('alumni proof-unavailable defense demo', () => {
     expect(credentialConnection.commit).toHaveBeenCalledOnce();
   });
   it.each(['', 'x'.repeat(501)])('requires a bounded explanation', async registration_proof_reason => {
-    env.ALUMNI_PROOF_UNAVAILABLE_DEMO_ENABLED = true;
     await expect(service.register({ ...body, registration_proof_reason }, null)).rejects.toMatchObject({ status: 400 });
     expect(userModel.createUser).not.toHaveBeenCalled();
   });
   it('does not leave a half-created account if the initial year audit fails', async () => {
-    env.ALUMNI_PROOF_UNAVAILABLE_DEMO_ENABLED = true;
     credentialConnection.query.mockRejectedValue(new Error('audit unavailable'));
     await expect(service.register(body, null)).rejects.toThrow('audit unavailable');
     expect(credentialConnection.commit).not.toHaveBeenCalled(); expect(credentialConnection.rollback).toHaveBeenCalledOnce();
   });
   it('requires evidence for approval and records reviewer, decision and evidence in one transaction', async () => {
-    env.ALUMNI_PROOF_UNAVAILABLE_DEMO_ENABLED = true;
-    userModel.getProfileById.mockResolvedValue([{ id: 3, role: 'student', verification_status: 'pending', registration_proof_unavailable: true }]);
+    userModel.getProfileById.mockResolvedValue([{ id: 3, role: 'student', user_type:'alumni', verification_status: 'pending', registration_proof_unavailable: true }]);
     await expect(service.verifyStudentAccount({ id: 9, role: 'admin' }, 3, 'verify')).rejects.toMatchObject({ status: 400 });
     expect(userModel.setVerificationStatus).not.toHaveBeenCalled();
     await service.verifyStudentAccount({ id: 9, role: 'admin' }, 3, 'verify', 'Synthetic Registrar record checked');
     expect(credentialConnection.query).toHaveBeenCalledWith(expect.stringContaining('INSERT INTO account_review_events'), [3, 9, 'verified', 'Synthetic Registrar record checked']);
+    expect(credentialConnection.commit).toHaveBeenCalledOnce();
   });
-  it('blocks proof-unavailable approval when the demo is disabled', async () => {
-    userModel.getProfileById.mockResolvedValue([{ id: 3, role: 'student', verification_status: 'pending', registration_proof_unavailable: true }]);
+  it('does not approve a malformed current-student missing-proof record', async () => {
+    userModel.getProfileById.mockResolvedValue([{ id: 3, role: 'student', user_type:'student', verification_status: 'pending', registration_proof_unavailable: true }]);
     await expect(service.verifyStudentAccount({ id: 9, role: 'admin' }, 3, 'verify', 'Evidence')).rejects.toMatchObject({ status: 403 });
     expect(userModel.setVerificationStatus).not.toHaveBeenCalled();
+  });
+  it('keeps identity decisions atomic when the evidence audit fails', async () => {
+    userModel.getProfileById.mockResolvedValue([{id:3,role:'student',user_type:'alumni',verification_status:'pending',registration_proof_unavailable:true}]);
+    credentialConnection.query.mockRejectedValueOnce(new Error('review audit unavailable'));
+    await expect(service.verifyStudentAccount({id:9,role:'admin'},3,'verify','Registrar checked')).rejects.toThrow('review audit unavailable');
+    expect(credentialConnection.commit).not.toHaveBeenCalled();expect(credentialConnection.rollback).toHaveBeenCalledOnce();
+  });
+  it.each(['student','clerk'])('does not let %s approve a missing-proof applicant', async role => {
+    await expect(service.verifyStudentAccount({id:9,role},3,'verify','Claimed evidence')).rejects.toMatchObject({status:403});
+    expect(userModel.setVerificationStatus).not.toHaveBeenCalled();
+  });
+  it('does not issue a login token to a pending missing-proof alumni', async () => {
+    userModel.findActiveByStudentId.mockResolvedValue([{...verifiedStudent(),user_type:'alumni',verification_status:'pending',registration_proof_unavailable:1,id_proof_path:null}]);
+    await expect(service.login({employee_id:'ALU-DEMO',password:'Trace2024!'})).rejects.toMatchObject({status:403});
   });
   it('lets an approved alumni log in without checking for historical document uploads', async () => {
     userModel.findActiveByStudentId.mockResolvedValue([{ ...verifiedStudent(), user_type: 'alumni', year_started: 2010, graduation_year: 2014, id_proof_path: null }]);

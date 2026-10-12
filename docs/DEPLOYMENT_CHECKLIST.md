@@ -1,12 +1,12 @@
 # Consolidated deployment checklist — Revision 2
 
-Updated with each completed batch. This tracks the **newer fixes guide**, not the earlier numbered migrations. The five follow-up migrations were applied to an isolated local test database on 2026-10-12. The user’s cloud SSH output confirms all five scripts and final schema check passed on the same date. The agent did not access SSH. Backend startup/health remains unconfirmed; no main merge or frontend release is recorded.
+Updated with each completed batch. This tracks the **newer fixes guide**, not the earlier numbered migrations. The five follow-up migrations were applied to an isolated local test database on 2026-10-12. The user’s cloud SSH output confirms all five scripts and final schema check passed on the same date. The agent did not access SSH. The user subsequently confirmed internal backend health and database ok; no main merge or frontend release is recorded.
 
 ## Migration ledger
 
 | Revision 2 batch | New migration | Prerequisites | Status / preserving behavior |
 | --- | --- | --- | --- |
-| 7 — Alumni / Request Forms | `backend/database/migrate_alumni_study_years.js` | Existing users/student profiles; `migrate_student_profiles.js`, `migrate_graduation_year.js` | Local test and cloud applied 2026-10-12 (cloud confirmed by user SSH output). Adds study-year confirmation, proof-review demo markers and audit tables; preserves graduation, attendance and request history. |
+| 7 — Alumni / Request Forms | `backend/database/migrate_alumni_study_years.js` | Existing users/student profiles; `migrate_student_profiles.js`, `migrate_graduation_year.js` | Local test and cloud applied 2026-10-12 (cloud confirmed by user SSH output). Adds study-year confirmation, proof-review markers and audit tables; preserves graduation, attendance and request history. |
 | 8 — Intake / Staff Scope | `backend/database/migrate_request_intake_scope.js` | Existing documents; `migrate_request_attachments.js`, `migrate_support_requirements.js` and their ticket/catalog prerequisites | Local test and cloud applied 2026-10-12 (cloud confirmed by user SSH output). Adds nullable routing-college snapshots and `blocks_intake` default false; no historical backfill/reclassification. |
 | 9 — Reports & Export | **None** | Batch 8 routing columns plus existing fee-schedule and Finance receipt/payment-method columns | API/frontend changes only. Uses existing reference catalogs, receipt fields and pricing snapshots. Deploy the matching API/frontend together. |
 | 10 — Support / Messaging UI | **None** | Existing support tickets, archive/requirements/catalog and Batch 8 intake scope | Frontend-only presentation changes; existing ticket/desk/college permissions remain. |
@@ -38,7 +38,7 @@ control has one empty row; no pack, receipt, ticket, conversation or audit was i
 by migration. The local server was shut down cleanly and its test data retained for follow-up
 checks in this workspace. No application, Docker stack or cloud service was deployed.
 
-## Cloud application confirmed; runtime health pending — 2026-10-12
+## Cloud migrations and internal backend health confirmed — 2026-10-12
 
 The user's SSH output from the cloud host confirms database `trace_db`, a preflight listing only
 these five follow-ups, successful completion of all five actual migration CLIs in order, and
@@ -46,11 +46,12 @@ these five follow-ups, successful completion of all five actual migration CLIs i
 This is user-provided execution evidence, not a direct database inspection by the agent; full
 schema/data compatibility and workflow acceptance are separate checks.
 
-The backend was recreated and AI/n8n restarted. The immediately following container listing showed
-the backend up for two seconds with health starting; its internal curl could not yet connect to
-port 3300. This does not establish a startup failure or successful readiness. Retry container
-status and internal/public health; if connection still fails, inspect recent backend logs before
-main merge/frontend publication. Do not rerun migrations merely for this startup check.
+The backend was recreated and AI/n8n restarted. The initial curl ran while health was starting
+and could not yet connect. A subsequent user-provided internal /api/health response at
+2026-10-12T03:33:42.643Z confirmed status ok and database ok. Backend/database readiness is now
+confirmed; public HTTPS, AI/provider behavior and full workflow acceptance remain separate. Do
+not rerun migrations for this startup timing. The production alumni missing-proof follow-up uses
+existing applied schema and needs only a matching backend/frontend rebuild, with no new migration.
 
 The agent has no SSH connection to the server. The user waived mandatory backups for the current
 early test rollout because the system has no major data yet; the completed local restore check
@@ -94,12 +95,12 @@ docker compose run --rm --no-deps -T backend node database/migrate_staff_convers
 docker compose run --rm --no-deps -T backend node database/check_schema.js
 ```
 
-5. Start the matching backend and publish the matching frontend after successful preflight. Batches 7–13 and the chat-connection follow-up require no new environment variables, AI rebuild or n8n workflow re-import. Proof-unavailable registration remains disabled in production; do not enable the defense-only path there.
+5. Start the matching backend and publish the matching frontend after successful preflight. Batches 7–13 and the chat-connection follow-up require no new environment variables, AI rebuild or n8n workflow re-import. The production alumni missing-proof follow-up always remains pending Admin identity review; it adds no migration or environment variable and requires the matching API/frontend.
 6. On staging, verify staff directory exclusions, same-college Secretary peers, unrelated-user read denial, read-only Admin monitoring, simultaneous opposite-direction pair creation, lost-response retries, changed-college/revoked access, retained history, private notifications and category draft preservation. Then verify creator-only internal concerns, competing Admin claims, stale resolution rejection, awaiting-staff return, retained resolution/reopen history and Admin operational read-only access. Internal notifications stay private to the creator/assigned Admin or the Admin queue. Then verify concurrent cashier issuance, the 50th/51st boundary, lost-response retry, deferred issuance, exact-receipt copy upload, pre-handoff void/replacement and printer alignment on blank paper. Then verify live account/college routing, a flagged clearance through acceptance, same-college staff assignment and physical handoff, then report filters and CSV row counts. Verify expected notifications and actual phone/keyboard behavior separately. Record the applied scripts, commit and acceptance results here when confirmed.
 
 ## Walkthrough and rollout references
 
-- [Batch 7](../README.md#main-workflows): alumni saved years, Admin corrections and the isolated identity-review demo.
+- [Batch 7](../README.md#main-workflows): alumni saved years, Admin corrections and audited missing-proof identity review.
 - [Batch 8](../README.md#main-workflows): clearance, college scope, assignment and shared tabs.
 - [Batch 9](../README.md#main-workflows): draft filters, authorized reporting, CSV contract and synthetic sample.
 - [Batch 10](../README.md#main-workflows): Figma chat/workspace/evaluation layouts and persistent drafts, with existing ticket permissions.

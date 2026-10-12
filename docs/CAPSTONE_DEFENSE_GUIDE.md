@@ -500,6 +500,11 @@ This section covers **what** each technology is, **how** it is used in our syste
 |:---|:---|
 | **What it is** | A dedicated Python microservice exposing REST endpoints for OCR text extraction, document verification, volume forecasting, and prescriptive recommendations. |
 | **How we use it** | Express proxies /ocr/identity for Read ID, /ocr/verify for registration text checks, /ocr/extract for intake and /ocr/receipt for Finance, plus /forecast and /ai/recommend. Staff review suggestions; AI is not an identity-authenticity authority. |
+
+Alumni with unavailable proof may apply with a reason in the production build. Their accounts
+remain pending and skip OCR; Admin records checked alternative identity evidence and the decision
+in an atomic audit. Current students still upload proof. Read ID fills empty ID/name/college fields
+only after the applicant selects it, with manual review before submission.
 | **Why EasyOCR over Tesseract?** | EasyOCR is the OCR dependency currently integrated into Flask. We use its pretrained text recognition with local parsing and manual review. We have not performed a comparative accuracy benchmark and do not claim that another OCR engine is inherently unsuitable. |
 | **Why Prophet over ARIMA or LSTM?** | Prophet is the implemented time-series prototype. It fits daily step-log counts and returns seven predictions. Model choice and seasonality need held-out evaluation; seeded data and a plausible chart do not establish forecast reliability. |
 | **Why Random Forest over a simple threshold/rule-based system?** | The current prototype combines a ten-tree classifier fitted to four coded examples with direct queue thresholds. Its three inputs are evaluation count, release count and today’s step-log count. Learned staffing optimization, weekday effects and validated accuracy are not implemented. |

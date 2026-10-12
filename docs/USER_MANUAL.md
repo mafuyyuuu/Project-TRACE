@@ -41,7 +41,7 @@ The public Login/welcome, registration, password recovery, email verification an
 
 1. From Login, open registration and choose **Student** or **Alumni**.
 2. Enter the requested identity, contact, college and Program/Course details. Use an email inbox you can open; any valid email domain is accepted.
-3. Select the requested ID or diploma proof. You may choose **Read ID** to fill missing fields, then check the result yourself. Unreadable fields can be entered manually.
+3. Select the requested ID or diploma proof. You may choose **Read ID** to fill missing fields, then check the result yourself. Unreadable fields can be entered manually. Alumni with unavailable proof can instead select **Records / proof unavailable** and explain why; their application stays pending until Admin checks alternative identity evidence and records a decision. Current students still upload proof.
 4. Review the form, select **Submit Registration**, then confirm. File selection and Read ID do not submit the account.
 5. Follow the displayed success or review instructions. If the account is pending review, wait for Admin's decision.
 6. After approval, sign in and open **Edit Profile → Personal Info**. Select **Verify** beside Email Address, then select **Verify Email** in your inbox. Signup saves the address without sending this ownership link automatically. Requests stay blocked until verification succeeds.

@@ -16,7 +16,10 @@ Everything in section 1 onward assumes the person is already signed in. This is 
 ### 0a. Student Registration & AI Identity Verification
 - Students sign up with their Student ID, name and password, and **must declare whether they are a
   current student or an alumnus**.
-- **Proof of identity:** they upload a valid Student ID or Diploma during registration.
+- **Proof of identity:** current students upload a valid Student ID or Diploma. Alumni can upload
+  proof or choose Records / proof unavailable and explain why it is unavailable. This exception
+  works in production and always remains pending until Admin records checked identity evidence
+  and an approval/rejection decision; no OCR or automatic verification occurs without proof.
 - **AI auto-verification:** the Flask AI engine runs a **3-point check** on the upload — school name,
   student ID and course must all appear in the OCR text. All three matching verifies the account
   automatically.
@@ -151,7 +154,7 @@ runs whether the file came from the student or the counter.
 
 ### A. Transcript of Records (TOR) & Diploma
 * **Requirements:** None (optional attachments only).
-* **Workflow:** Standard pipeline. TOR records Year Started/Year Ended. Filing displays the configured per-page rate, not an estimate; Secretary enters actual printed pages and the server computes the final fee from the saved schedule.
+* **Workflow:** Standard pipeline. TOR reuses the saved Year Started without a request Year Ended field. Filing displays the configured per-page rate, not an estimate; Secretary enters actual printed pages and the server computes the final fee from the saved schedule.
 
 ### B. Honorable Dismissal
 * **Requirement:** A "Validated Clearance" — uploaded by the student, or scanned at Window 1.

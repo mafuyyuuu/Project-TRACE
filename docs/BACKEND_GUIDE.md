@@ -323,6 +323,15 @@ Before the approved Batch 10 browser-trust addition below, Admin and clerk accou
 
 ## Batch 8b Policy and Signup OCR Contracts
 
+The production alumni missing-proof follow-up exposes `proof_unavailable_enabled: true` from
+`GET /api/auth/registration-options`. Only explicit alumni applications may submit
+`registration_proof_unavailable=true` with a bounded reason. The account is always pending,
+stores no uploaded proof and skips AI verification. Admin approval validates alumni eligibility
+and records evidence/decision in the same locked transaction; audit failure rolls back the
+decision. Current-student proof, pending login denial and downstream email/profile/request gates
+remain. This removes the former demo-only setting and uses existing study-year/review schema;
+no new migration or environment variable is added.
+
 - Run `node backend/database/migrate_8b.js` explicitly before this version reads document reference data. The policy columns belong to `document_types`, not `colleges`. The junction table contains unique `(document_type_id, college_id)` pairs. The main manual migration command also invokes this migration; API startup does not.
 - Document-type create/update accepts `available_to` (`student`, `alumni`, `both`), `is_repeatable`, `is_walk_in`, `requires_original`, `registrar_attachment_rule`, `is_same_day`, and `allowed_college_ids` (positive integer array). Omission preserves existing restrictions; an empty array clears restrictions. Settings and junction changes commit/rollback together. Honorable Dismissal cannot be made repeatable through the API.
 - `GET /api/reference/document-types` adds normalized policy flags, allowed-college IDs, and a student-specific `unavailable_reason`. Eligibility checks also run during filing and desk approval, so forging a dropdown value cannot bypass them. Requested copies are validated and retained for trusted server final pricing; filing shows rates without an estimated total. The target user is locked during the prior-request check. Secretary pricing remains final.

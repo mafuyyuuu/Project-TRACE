@@ -549,7 +549,12 @@ docker compose run --rm --no-deps -T backend node database/check_schema.js
 
 Older installations first need `migrate_student_profiles.js` and `migrate_graduation_year.js`, plus the other outstanding prerequisites identified by schema preflight. The additive migration leaves Year Started and its confirmation timestamp NULL on existing profiles; it never infers them from attendance/graduation or rewrites historical document JSON. Existing alumni sign in and complete missing study years in Edit Profile. Saved values require an Admin correction reason; each correction and identity-review decision commits with its audit record. Keep the audit tables when restoring or upgrading.
 
-`ALUMNI_PROOF_UNAVAILABLE_DEMO_ENABLED=false` is the default. The optional proof-unavailable path is for a nonproduction defense database only and is forced off when `NODE_ENV=production`; do not enable or import demo applicants into production. No proof-unavailable production evidence policy has been approved. Ordinary proof registration, pending identity review, email verification and document access checks remain in place.
+The 2026-10-12 follow-up makes missing-proof registration available to alumni in production,
+always pending manual Admin identity review with recorded evidence/decision basis. Current
+students still require proof; OCR is skipped when no proof is supplied. No demo setting is needed
+and the former `ALUMNI_PROOF_UNAVAILABLE_DEMO_ENABLED` is obsolete. This uses the already-applied
+study-year/review fields and audits, with no new migration. Rebuild/recreate the matching backend
+and publish the matching frontend; preserve email/profile/request gates and production mode.
 
 Acceptance and synthetic screenshots are in [README workflow walkthrough](../README.md#main-workflows). This change was tested locally with mocked database/API responses; no live migration or deployment was performed.
 

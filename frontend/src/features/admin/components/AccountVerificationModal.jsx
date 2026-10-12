@@ -36,13 +36,13 @@ export default function AccountVerificationModal({
     >
       <div className="grid min-w-0 gap-4 lg:grid-cols-2 lg:gap-6">
         {student.registration_proof_unavailable ? <section className="trace-section trace-section-body space-y-3">
-          <h4 className="trace-section-title">Proof Unavailable · Defense Demo</h4>
+          <h4 className="trace-section-title">Proof Unavailable · Identity Review</h4>
           <p className="text-sm select-text">{student.registration_proof_reason}</p>
-          <p className="text-sm text-gray-600 dark:text-gray-300">No uploaded proof. Check alternative identity evidence and record the decision basis before approval. Production activation requires the institution's evidence policy.</p>
+          <p className="text-sm text-gray-600 dark:text-gray-300">No uploaded proof. Check alternative identity evidence and record what was checked and the decision basis before approval.</p>
         </section> : <RegistrationProof path={student.id_proof_path} label="ID Proof" onPreview={setViewImageUrl} />}
         <div className="min-w-0">
           <p className="text-xs text-gray-400 dark:text-gray-400 mt-1 font-semibold pb-5 mb-6 border-b border-gray-100 dark:border-gray-700">
-            Check the identity proof and account details, then choose a decision.
+            Check the available identity evidence and account details, then choose a decision.
           </p>
 
           <div className="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl p-5 mb-6 font-mono text-[11px] text-gray-600 dark:text-gray-300 space-y-2">

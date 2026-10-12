@@ -201,9 +201,10 @@ async function register(body, file) {
   const registeredEmail = emailVerification.emailAddress(email);
   if (user_type && !['student', 'alumni'].includes(user_type)) throw badRequest('Invalid applicant type.');
   const unavailable = body.registration_proof_unavailable === 'true';
-  if (unavailable && (user_type !== 'alumni' || !registrationOptions().proof_unavailable_demo_enabled)) {
-    throw forbidden('Proof-unavailable registration is available only in the enabled alumni defense demonstration.');
+  if (unavailable && user_type !== 'alumni') {
+    throw forbidden('Only alumni can apply with unavailable proof.');
   }
+  if (unavailable && file) throw badRequest('Choose uploaded proof or missing-proof review for this application.');
   const proofReason = unavailable && typeof body.registration_proof_reason === 'string' ? body.registration_proof_reason.trim() : '';
   if (unavailable && (!proofReason || proofReason.length > 500)) throw badRequest('Explain why proof is unavailable in at most 500 characters.');
   const studyDraft = { year_started: body.year_started, graduation_year: body.graduation_year };
@@ -237,7 +238,7 @@ async function register(body, file) {
   const id_proof_path = unavailable ? null : file.path;
   const aiResult = unavailable ? null : await aiEngine.verifyIdDocument(file, { studentId: employee_id, course: collegeName });
   const { verification_status, verification_reason } = unavailable
-    ? { verification_status: 'pending', verification_reason: 'Proof unavailable. Administrator identity review required (defense demonstration).' }
+    ? { verification_status: 'pending', verification_reason: 'Proof unavailable. Administrator identity review required.' }
     : registrationVerification(aiResult);
   const data = { student_id: employee_id, full_name, email: registeredEmail, phone_number, password_hash,
     role: 'student', user_type, course: collegeName, program, college_id: collegeId, id_proof_path,
@@ -290,7 +291,7 @@ async function listPendingStudents(requestingUser) {
 }
 
 function registrationOptions() {
-  return { proof_unavailable_demo_enabled: env.NODE_ENV !== 'production' && env.ALUMNI_PROOF_UNAVAILABLE_DEMO_ENABLED === true };
+  return { proof_unavailable_enabled: true };
 }
 
 async function verifyStudentAccount(requestingUser, userId, action, evidenceBasis) {
@@ -303,7 +304,7 @@ async function verifyStudentAccount(requestingUser, userId, action, evidenceBasi
     await connection.beginTransaction();
     const [account] = await userModel.getProfileById(userId, connection, true);
     if (!account || account.role !== 'student' || account.verification_status !== 'pending') throw notFound('Pending student user not found.');
-    if (account.registration_proof_unavailable && action === 'verify' && !registrationOptions().proof_unavailable_demo_enabled) throw forbidden('This proof-unavailable review is limited to the enabled defense demonstration.');
+    if (account.registration_proof_unavailable && action === 'verify' && account.user_type !== 'alumni') throw forbidden('Only alumni can be approved through missing-proof identity review.');
     if (account.registration_proof_unavailable && !basis) throw badRequest('Record the evidence checked and the basis for this identity decision.');
     const newStatus = action === 'verify' ? 'verified' : 'rejected';
     const [result] = await userModel.setVerificationStatus(userId, newStatus, connection);
