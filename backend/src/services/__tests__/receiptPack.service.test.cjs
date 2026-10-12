@@ -15,7 +15,7 @@ beforeEach(()=>{
  connection={beginTransaction:vi.fn(),commit:vi.fn(),rollback:vi.fn(),release:vi.fn()};
  pack={id:1,active:1,consumed:0,pattern:packPattern('2026-00001',1).pattern};
  vi.spyOn(pool,'getConnection').mockResolvedValue(connection);
- vi.spyOn(users,'findById').mockResolvedValue([user]);vi.spyOn(users,'findActiveByStudentId').mockResolvedValue([]);
+ vi.spyOn(users,'findById').mockResolvedValue([user]);vi.spyOn(users,'findActiveByStudentId').mockResolvedValue([]);vi.spyOn(users,'findReceiptName').mockResolvedValue([]);
  vi.spyOn(documents,'findByIdForUpdate').mockResolvedValue(group);vi.spyOn(assignments,'assertAssignedProcessor').mockResolvedValue();
  for(const name of ['audit','activate','publish','voidReceipt','writeGroup','savePrint'])vi.spyOn(model,name).mockResolvedValue(1);
  vi.spyOn(model,'control').mockResolvedValue({active_pack_id:1,version:2});vi.spyOn(model,'pack').mockImplementation(async()=>({...pack}));
@@ -35,14 +35,14 @@ it('keeps a successful retry on its existing number and rejects a key belonging 
 it('issues the 50th serial and rejects the 51st without consuming or committing a new receipt',async()=>{
  pack.consumed=49;await service.issue(user,11,{...body,expected_serial:'2026-00050'});expect(pack.consumed).toBe(50);await expect(service.issue(user,11,{...body,client_key:'demo-retry-0000000002',expected_serial:'2026-00051'})).rejects.toThrow('next 50');expect(model.insertReceipt).toHaveBeenCalledOnce();expect(connection.rollback).toHaveBeenCalledOnce();
 });
-it('rejects a stale displayed number, inactive staff, overlapping pack and early replacement without reason',async()=>{
+it('rejects a stale displayed number, inactive staff, and inactive staff, while pack replacement preserves an audit without a reason input',async()=>{
  await expect(service.issue(user,11,{...body,expected_serial:'2026-00002'})).rejects.toThrow('changed');expect(model.insertReceipt).not.toHaveBeenCalled();
- await expect(service.configure(user,{start_serial:'2026-00101',segment:1,version:2})).rejects.toThrow('reason');
- model.available.mockResolvedValue(false);await expect(service.configure(user,{start_serial:'2026-00101',segment:1,version:2,reason:'Damaged remaining paper'})).rejects.toThrow('overlaps');
+ await service.configure(user,{start_serial:'2026-00101',end_serial:'2026-00150',version:2});expect(model.audit).toHaveBeenCalledWith('pack_activated',4,expect.objectContaining({archived_unused:50,reason:'Paper pack replaced by Finance; unused serials remain reserved.'}),connection,1);
+ model.available.mockResolvedValue(false);await expect(service.configure(user,{start_serial:'2026-00101',end_serial:'2026-00150',version:2,reason:'Damaged remaining paper'})).rejects.toThrow('overlaps');
  users.findById.mockResolvedValue([{...user,is_active:0}]);await expect(service.state(user)).rejects.toMatchObject({status:403});
 });
-it('archives unused numbers with reason, and cannot reuse a managed number through legacy entry',async()=>{
- await service.configure(user,{start_serial:'2026-00101',segment:1,version:2,reason:'Damaged paper'});expect(model.audit).toHaveBeenCalledWith('pack_activated',4,expect.objectContaining({archived_unused:50,reason:'Damaged paper'}),connection,1);
+it('archives unused numbers with a structured reason, and cannot reuse a managed number through legacy entry',async()=>{
+ await service.configure(user,{start_serial:'2026-00101',end_serial:'2026-00150',version:2,reason:'Damaged paper'});expect(model.audit).toHaveBeenCalledWith('pack_activated',4,expect.objectContaining({archived_unused:50,reason:'Paper pack replaced by Finance; unused serials remain reserved.'}),connection,1);
  model.reserved.mockResolvedValue(true);await expect(service.assertLegacyNumber('2026-00001','A',connection)).rejects.toThrow('managed');
 });
 it('does not allocate after cutoff or before whole payment clearance',async()=>{
@@ -79,4 +79,16 @@ it('rejects file signature mismatches and preserves an exact receipt upload with
   expect(await service.upload(user,3,file)).toMatchObject({success:true,copy_path:'/uploads/synthetic-demo.pdf'});expect(model.insertReceipt).not.toHaveBeenCalled();expect(model.publish).toHaveBeenCalledWith(3,'/uploads/synthetic-demo.pdf',connection);
   model.get.mockResolvedValue({...receipt,copy_path:'/uploads/already.pdf'});await expect(service.upload(user,3,file)).rejects.toThrow('already has a copy');
  }finally{await fs.rm(dir,{recursive:true,force:true});}
+});
+
+it('uses the saved student name parts and ignores a supplied payor override',async()=>{
+ users.findReceiptName.mockResolvedValue([{full_name:'Demo Maria De la Cruz',first_name:'Demo',middle_name:'Maria',last_name:'De la Cruz'}]);
+ model.group.mockResolvedValue([{...group[0],student_name:'Demo Maria De la Cruz'}]);
+ const result=await service.issue(user,11,{...body,payor_name:'Another Person'});
+ expect(result.snapshot.payor_name).toBe('De la Cruz, Demo M.');
+ expect(result.snapshot.saved_student_name).toBe('Demo Maria De la Cruz');
+});
+it('rejects a range that does not contain exactly fifty paper numbers without archiving the old pack',async()=>{
+ await expect(service.configure(user,{start_serial:'2026-00101',end_serial:'2026-00149',version:2})).rejects.toThrow('exactly 50');
+ expect(model.activate).not.toHaveBeenCalled();expect(model.audit).not.toHaveBeenCalled();
 });

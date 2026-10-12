@@ -618,3 +618,21 @@ On staging, use two active Admin accounts and distinct desk accounts to verify c
 After reviewing which prerequisites are already installed, stop writers and use the matching backend image to run `node database/migrate_staff_conversations.js`, then `node database/check_schema.js`. The new script only creates three isolated InnoDB tables, unique pair/scope and retry keys, and history indexes; it never seeds users/threads, imports messages, rewrites student/internal history or runs automatically. `scope_college_id=0` denotes a global-desk pair; a positive recorded scope is required when a Secretary participates. The complete dependency order now contains 32 scripts, not a requirement to rerun old data migrations.
 
 Deploy matching API/frontend. No environment variable, dependency, AI rebuild or n8n re-import is added. Verify directory and thread permissions with actual active accounts; test simultaneous pair opens, retry replay and rollback on staging MySQL, changed/deactivated participant access, Secretary college changes, private notification delivery and actual phone keyboard behavior. Existing student Support, internal assistance and receipt migrations remain separate prerequisites. See [README walkthrough](../README.md#staff-coordination-walkthrough) and [DEPLOYMENT_CHECKLIST.md](DEPLOYMENT_CHECKLIST.md). No live migration or deployment was performed by this work.
+
+
+## Finance name-field rollout — additional migration, 2026-10-12
+
+The five previous follow-up migrations are confirmed cloud-applied. This Finance review adds **one new migration**: `migrate_student_name_parts.js`. Do not rerun the five merely for this update. Existing users/student_profiles remain prerequisites; fields are nullable and no existing name or issued snapshot is rewritten.
+
+After code review and validation, use the intended release checkout/image that includes this script. Pause backend/AI/n8n writers using the existing rollout procedure, build the matching backend image, then run one command at a time and stop on failure:
+
+```bash
+docker compose run --rm --no-deps -T backend node database/migrate_student_name_parts.js
+docker compose run --rm --no-deps -T backend node database/check_schema.js
+```
+
+Start the matching backend/frontend only after schema presence passes. Retain existing database/volume contents and MFA/JWT keys. No new dependency, environment variable, AI image change or n8n re-import is required for this Finance follow-up. The current early-data backup waiver remains; follow the usual preservation procedure when deploying populated installations.
+
+Verify on staging: students confirm name parts with compound given/surnames and an optional middle name; mismatch is refused and Full Name stays intact. New OR names follow confirmed parts, old receipt reprints preserve their snapshots. Configure/replace an exactly 50-paper range; test stale cashier and exhausted pack, immediate copy vs Later, 3:59/4:00 PM Manila, reprint and later upload. Confirm History has no export/configuration block and Finance's shared reports/CSV are independent.
+
+**Status:** prepared in source, not cloud-applied. Full Vitest/lint/build/browser/MySQL checks cannot run while the coding environment is disconnected. The existing screenshots show older receipt controls; update them through a connected browser before treating them as this review's UI evidence.

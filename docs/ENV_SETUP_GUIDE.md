@@ -1145,3 +1145,8 @@ compatibility also avoids such claims. No OCR models, Prophet inputs, n8n import
 change. Verify nonempty Secretary processing/student waits, unknown status review, snapshot
 refresh/failure and Admin tables at phone widths and enlarged text. This work publishes to dev;
 cloud/main promotion remains separate. See the consolidated deployment ledger.
+
+
+## Finance name fields — 2026-10-12
+
+This Finance workflow update needs one additional preserving migration, `migrate_student_name_parts.js`, after existing student profiles. The previous five follow-ups remain cloud-applied. Use the updated backend image, pause writers, run the new migration and `check_schema.js`, then start the matching backend/frontend; see [the consolidated ledger](DEPLOYMENT_CHECKLIST.md#finance-name-field-rollout--additional-migration-2026-10-12). Names remain nullable until students confirm matching first/middle/last parts. Existing Full Name and receipt snapshots are not split or rewritten. No environment variable, dependency, AI change or n8n import is added. Full runtime validation and cloud execution are pending, not completed by this disconnected session.

@@ -15,13 +15,15 @@ Updated with each completed batch. This tracks the **newer fixes guide**, not th
 | 13 — Internal Assistance | `backend/database/migrate_internal_assistance.js` | Existing users and active desk/Admin accounts; existing support schema remains separate | Local test and cloud applied 2026-10-12 (cloud confirmed by user SSH output). Creates three empty InnoDB internal ticket/message/event tables; imports no student tickets or attachments. Matching API/frontend required; Admin operational support becomes read-only. |
 | Additional chat connections — TRACE-78 follow-up | `backend/database/migrate_staff_conversations.js` | Existing users/colleges, supported active desk accounts; separate support/internal prerequisites for their existing categories | Local test and cloud applied 2026-10-12 (cloud confirmed by user SSH output). Creates three empty InnoDB staff conversation/message/retry-event tables with pair uniqueness; imports no student/internal messages or files. Deploy matching API/frontend. |
 
+| Finance workflow follow-up — 2026-10-12 | `backend/database/migrate_student_name_parts.js` | Existing users/student profiles; the five earlier follow-up migrations remain applied | Prepared; NOT applied to cloud or tested on MySQL in this disconnected session. Adds nullable first/middle/last profile fields, preserving existing Full Name, requests and issued receipt snapshots. No guessed backfill, reseed or new table. Matching API/frontend required. |
+
 The cross-batch integration follow-up adds **no migration or environment variable**. Deploy the matching API/frontend to include routing-college chat scope, access-cache clearing, reactive notification links and consistent Receiving Desk authority. On staging, change a student’s profile college after routing, confirm old/new Secretary access, revoke staff access, follow two notification links on an open screen, and verify assignment enforcement between Window 1 and Receiving Desk.
 
 The earlier `migrate_batch8.js` is a different historical base migration. It is **not** the Revision 2 Batch 8 migration above. Existing databases need preserving migration scripts, not a fresh schema or seed import.
 
 ## Local test application — 2026-10-12
 
-All five scripts above were applied, in the listed order, through their actual Node CLIs against
+The five original follow-up scripts were applied, in the listed order, through their actual Node CLIs against
 `trace_staging_test_20261012` on isolated local MySQL 8.0.46, using code commit
 `281179fdf1f8ce757023a85065a1449b5a931280`. The target was a new synthetic database prepared with
 all earlier schema prerequisites; it was not a copy of the live database or an existing cloud
@@ -42,7 +44,7 @@ checks in this workspace. No application, Docker stack or cloud service was depl
 
 The user's SSH output from the cloud host confirms database `trace_db`, a preflight listing only
 these five follow-ups, successful completion of all five actual migration CLIs in order, and
-`Schema presence check passed.` No additional migration is currently indicated by that check.
+`Schema presence check passed.` No additional migration was indicated by that earlier version of the check. The later Finance name-field change below adds a new pending migration.
 This is user-provided execution evidence, not a direct database inspection by the agent; full
 schema/data compatibility and workflow acceptance are separate checks.
 
@@ -147,3 +149,21 @@ links remain readable in that category. Account gates and all backend ticket per
 Publish the matching frontend when promoting dev; no backend/AI rebuild or new setting is needed
 for this follow-up. React tests/build/browser verification is pending because the coding
 environment is disconnected. Main merge and live deployment remain separate.
+
+
+## Finance name-field rollout — additional migration, 2026-10-12
+
+The five previous follow-up migrations are confirmed cloud-applied. This Finance review adds **one new migration**: `migrate_student_name_parts.js`. Do not rerun the five merely for this update. Existing users/student_profiles remain prerequisites; fields are nullable and no existing name or issued snapshot is rewritten.
+
+After code review and validation, use the intended release checkout/image that includes this script. Pause backend/AI/n8n writers using the existing rollout procedure, build the matching backend image, then run one command at a time and stop on failure:
+
+```bash
+docker compose run --rm --no-deps -T backend node database/migrate_student_name_parts.js
+docker compose run --rm --no-deps -T backend node database/check_schema.js
+```
+
+Start the matching backend/frontend only after schema presence passes. Retain existing database/volume contents and MFA/JWT keys. No new dependency, environment variable, AI image change or n8n re-import is required for this Finance follow-up. The user's waiver of backup for the current early-data rollout remains; this change does not introduce another approval flow.
+
+Verify on staging: students confirm name parts with compound given/surnames and an optional middle name; mismatch is refused and Full Name stays intact. New OR names follow confirmed parts, old receipt reprints preserve their snapshots. Configure/replace an exactly 50-paper range; test stale cashier and exhausted pack, immediate copy vs Later, 3:59/4:00 PM Manila, reprint and later upload. Confirm History has no export/configuration block and Finance's shared reports/CSV are independent.
+
+**Status:** prepared in source, not cloud-applied. Full Vitest/lint/build/browser/MySQL checks cannot run while the coding environment is disconnected. The existing screenshots show older receipt controls; update them through a connected browser before treating them as this review's UI evidence.

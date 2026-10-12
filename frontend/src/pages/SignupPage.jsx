@@ -1,3 +1,4 @@
+import { fullNameFromParts, namePartsError } from '@/utils/receiptStudentName';
 import Button from '@/components/Button';
 import { INPUT_LIMITS } from '@/utils/inputLimits';
 import ReviewSummary from '@/components/ReviewSummary';
@@ -18,7 +19,7 @@ import { PASSWORD_REQUIREMENTS, validNewPassword } from '@/utils/passwordPolicy'
 
 export default function SignupPage() {
   const { register, loading } = useAuth()
-  const [formData, setFormData] = useState({ employeeId: '', fullName: '', email: '', phoneNumber: '', password: '', confirmPassword: '', userType: new URLSearchParams(window.location.search).get('applicant') === 'alumni' ? 'alumni' : 'student', college: '', year_started: '', graduation_year: '', proofUnavailable: false, proofReason: '' })
+  const [formData, setFormData] = useState({ employeeId: '', fullName: '', first_name: '', middle_name: '', last_name: '', email: '', phoneNumber: '', password: '', confirmPassword: '', userType: new URLSearchParams(window.location.search).get('applicant') === 'alumni' ? 'alumni' : 'student', college: '', year_started: '', graduation_year: '', proofUnavailable: false, proofReason: '' })
   const [proofUnavailableEnabled, setProofUnavailableEnabled] = useState(false)
   const submitGuard = useRef(false)
   const [file, setFile] = useState(null)
@@ -47,14 +48,17 @@ export default function SignupPage() {
   const [showConfirm, setShowConfirm] = useState(false)
   const navigate = useNavigate()
 
+  const fullName = fullNameFromParts(formData);
   const handleSubmit = async (e) => {
     e.preventDefault()
     setLocalError('')
     setSuccess('')
-    if (!formData.employeeId.trim() || !formData.fullName.trim() || !formData.email.trim() || !formData.password.trim() || !formData.phoneNumber.trim() || !formData.college) {
+    if (!formData.employeeId.trim() || !formData.first_name.trim() || !formData.last_name.trim() || !formData.email.trim() || !formData.password.trim() || !formData.phoneNumber.trim() || !formData.college) {
       setLocalError('Please fill out all required fields.')
       return
     }
+    const nameError = namePartsError(formData, { full_name:fullName });
+    if (nameError || fullName.length > INPUT_LIMITS.name) { setLocalError(nameError || 'Full Name must be at most 255 characters.'); return; }
     if (formData.password !== formData.confirmPassword) {
       setLocalError('Passwords do not match.')
       return
@@ -72,7 +76,8 @@ export default function SignupPage() {
     
       const form = new FormData();
       form.append('employee_id', formData.employeeId.trim());
-      form.append('full_name', formData.fullName.trim());
+      form.append('full_name', fullName);
+      for (const field of ['first_name', 'middle_name', 'last_name']) form.append(field, formData[field].trim());
       form.append('email', formData.email.trim());
       form.append('phone_number', formData.phoneNumber.trim());
       form.append('password', formData.password);
@@ -183,10 +188,15 @@ export default function SignupPage() {
               <p className="col-span-full text-xs text-gray-600 dark:text-gray-300">Enter these once. Graduation must be within 10 years of starting. Saved years are reused for requests; corrections need Admin review.</p>
             </section>}
 
-            <div className="flex flex-col gap-1.5">
-              <label className="trace-label ml-1">Full Name *</label>
-              <input maxLength={INPUT_LIMITS.name} type="text" placeholder="Juan Dela Cruz" value={formData.fullName} onChange={(e) => setFormData({...formData, fullName: e.target.value})} className="trace-control w-full" />
-            </div>
+            <section className="space-y-3" aria-label="Student name">
+              <p className="text-xs">Enter compound given names and surnames together. Your Full Name is assembled automatically; Finance uses the saved parts on receipts.</p>
+              {[['first_name', 'First Name *'], ['middle_name', 'Middle Name (optional)'], ['last_name', 'Last Name *']].map(([field, label]) => <label key={field} className="trace-label block" htmlFor={`signup-${field}`}>{label}
+                <input id={`signup-${field}`} required={field !== 'middle_name'} maxLength={INPUT_LIMITS.name} disabled={loading}
+                  value={formData[field]} onChange={event => setFormData({ ...formData, [field]:event.target.value })} className="trace-control mt-2 w-full" />
+              </label>)}
+              <label className="trace-label block">Full Name<input type="text" readOnly value={fullName} placeholder="Juan Dela Cruz" className="trace-control mt-2 w-full" /></label>
+              {formData.fullName && <p className="text-sm select-text">Name read from proof: {formData.fullName}. Confirm its first, middle and last parts above; OCR does not guess name boundaries.</p>}
+            </section>
 
             <div className="flex flex-col gap-1.5">
               <label className="trace-label ml-1">Email Address *</label>

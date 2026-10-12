@@ -1,4 +1,5 @@
 const { badRequest } = require('./AppError');
+const { receiptStudentName } = require('./receiptStudentName');
 const ones = ['Zero','One','Two','Three','Four','Five','Six','Seven','Eight','Nine','Ten','Eleven','Twelve','Thirteen','Fourteen','Fifteen','Sixteen','Seventeen','Eighteen','Nineteen'];
 const tens = ['','','Twenty','Thirty','Forty','Fifty','Sixty','Seventy','Eighty','Ninety'];
 function wholeWords(value) {
@@ -18,9 +19,9 @@ function cents(value) {
 function amountWords(amount) {
   return `${wholeWords(Math.floor(amount / 100))} Pesos and ${String(amount % 100).padStart(2, '0')}/100`;
 }
-function snapshot(group, user, serial, date, payorName) {
+function snapshot(group, user, serial, date) {
   if (!group.length || group.some(row => row.student_id !== group[0].student_id)) throw badRequest('The receipt group has inconsistent student records.');
-  const name = typeof payorName === 'string' ? payorName.trim() : group[0].student_name;
+  const name = receiptStudentName(group[0]);
   if (!name || name.length > 255) throw badRequest('Review the receipt payor name.');
   const items = group.map(row => ({ document_id: row.id, document_type: row.document_type, amount_centavos: cents(row.amount), fund_code: '', account_code: '' }));
   const total = items.reduce((sum, item) => sum + item.amount_centavos, 0);

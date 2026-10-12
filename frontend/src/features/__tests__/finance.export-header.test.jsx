@@ -1,62 +1,52 @@
-import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { beforeEach, afterEach, expect, it, vi } from 'vitest';
+import { render, screen, waitFor, within } from '@testing-library/react';
+import { beforeEach, expect, it, vi } from 'vitest';
 import userEvent from '@testing-library/user-event';
+import FinanceDashboard from '@/features/finance/FinanceDashboard';
 import FinanceTransactionsPanel from '@/features/finance/components/FinanceTransactionsPanel';
-import useFinanceTransactions from '@/hooks/useFinanceTransactions';
-import { exportFinanceTransactions, getFinanceTransactions } from '@/services/financeService';
-
-vi.mock('@/services/reportsService',()=>({getReportFilterOptions:vi.fn().mockResolvedValue({colleges:[],document_types:[],college_locked:false})}));
-vi.mock('@/services/financeService', () => ({ getFinanceTransactions: vi.fn(), exportFinanceTransactions: vi.fn() }));
-function Panel() {
-  const state = useFinanceTransactions();
-  return <FinanceTransactionsPanel state={state} onUpload={vi.fn()} onProfile={vi.fn()} />;
-}
-let downloads;
-beforeEach(() => {
-  vi.clearAllMocks();
-  downloads = [];
-  getFinanceTransactions.mockResolvedValue({ transactions: [], total: 0, amount: 0 });
-  vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:synthetic-csv');
-  vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => {});
-  vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(function () { downloads.push({ href: this.href, filename: this.download }); });
+import * as reports from '@/services/reportsService';
+import { EMPTY_FINANCE_FILTERS } from '@/utils/reportFilters';
+vi.mock('@/services/reportsService',()=>({
+ getReportFilterOptions:vi.fn().mockResolvedValue({colleges:[],document_types:[],college_locked:false}),
+ getDocumentReport:vi.fn(),getAnalytics:vi.fn(),exportDocumentsCsv:vi.fn(),exportStudentsCsv:vi.fn()
+}));
+const user={role:'clerk',desk_assignment:'Finance'};
+beforeEach(()=>{
+ vi.clearAllMocks();
+ reports.getDocumentReport.mockResolvedValue({documents:[],page:1,totalPages:1,total:0,summary:{total:0,completed:0,rejected:0,paid:0,revenue:0}});
+ reports.exportDocumentsCsv.mockResolvedValue('synthetic.csv');
 });
-afterEach(() => { vi.restoreAllMocks(); });
-
-it('exports Finance CSV with current filters and retains pending, failure and download behavior', async () => {
-  const user = userEvent.setup();
-  render(<Panel />);
-  await waitFor(() => expect(screen.queryByText('Loading payments…')).not.toBeInTheDocument());
-  fireEvent.change(screen.getByLabelText('Payment cleared From'),{target:{value:'2026-10-01'}});
-  fireEvent.change(screen.getByLabelText('Payment cleared To'),{target:{value:'2026-10-05'}});
-  await user.selectOptions(screen.getByLabelText('OR status'), 'pending');
-  let reject;
-  exportFinanceTransactions.mockReturnValueOnce(new Promise((_, fail) => { reject = fail; }));
-  await user.click(screen.getByRole('button',{name:'Apply Filters'}));
-  await user.click(screen.getByRole('button',{name:'Export',exact:true}));
-  await waitFor(()=>expect(screen.getByRole('button',{name:'Export CSV'})).toBeEnabled());
-  await user.click(screen.getByRole('button',{name:'Export CSV'}));
-  expect(exportFinanceTransactions).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({ from: '2026-10-01', to: '2026-10-05', receipt: 'pending' }));
-  expect(screen.getByRole('button', { name: 'Exporting…' })).toBeDisabled();
-  await user.click(screen.getByRole('button', { name: 'Exporting…' }));
-  expect(exportFinanceTransactions).toHaveBeenCalledTimes(1);
-  await act(async () => reject(new Error('synthetic failure')));
-  expect(screen.getAllByRole('alert')[0]).toHaveTextContent('Could not export. Narrow the date range or try again.');
-  expect(downloads).toHaveLength(0);
-  exportFinanceTransactions.mockResolvedValue(new Blob(['synthetic CSV'], { type: 'text/csv' }));
-  await user.click(screen.getByRole('button', {name:'Export CSV'}));
-  await waitFor(() => expect(downloads).toEqual([{ href: 'blob:synthetic-csv', filename: 'trace-finance-transactions.csv' }]));
-  expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+it.each(['reports','export','exports'])('opens Finance %s in the same reports workspace as other staff',async tab=>{
+ render(<FinanceDashboard user={user} currentTab={tab} setViewImageUrl={vi.fn()}/>);
+ await screen.findByRole('heading',{name:'Reports & Export'});
+ expect(screen.getByLabelText('Student ID / Name')).toBeInTheDocument();expect(screen.getByLabelText('College / Department')).toBeInTheDocument();
+ expect(screen.queryByRole('heading',{name:'Payment History'})).not.toBeInTheDocument();
+ await userEvent.click(screen.getByRole('button',{name:'Export',exact:true}));
+ expect(within(screen.getByRole('dialog',{name:'Export'})).getByLabelText('Dataset').options).toHaveLength(5);
+ expect(reports.getAnalytics).not.toHaveBeenCalled();
 });
-
-it('hides stale transactions and blocks export after a newly applied scope fails',async()=>{
-  getFinanceTransactions.mockResolvedValue({transactions:[{id:1,request_group_id:'SYN-OLD',tracking_number:'TRC-OLD',student_name:'Old scope student',student_id:'SYN-OLD',amount:100,payment_cleared_at:null,or_number:'SYN-OR',official_receipt_path:'/uploads/synthetic.pdf'}],total:1,amount:100});
-  render(<Panel/>);await screen.findByText('Old scope student');
-  await userEvent.type(screen.getByLabelText('Student ID / Name'),'New scope');
-  getFinanceTransactions.mockRejectedValueOnce(new Error('synthetic failure'));
-  await userEvent.click(screen.getByRole('button',{name:'Apply Filters'}));
-  await waitFor(()=>expect(screen.getAllByRole('alert')[0]).toHaveTextContent('Could not load Finance transactions.'));
-  expect(screen.queryByText('Old scope student')).not.toBeInTheDocument();
-  await userEvent.click(screen.getByRole('button',{name:'Export',exact:true}));
-  expect(screen.getByRole('button',{name:'Export CSV'})).toBeDisabled();
-  expect(exportFinanceTransactions).not.toHaveBeenCalled();
+it('exports only the applied Finance report filters',async()=>{
+ render(<FinanceDashboard user={user} currentTab="reports" setViewImageUrl={vi.fn()}/>);
+ await screen.findByRole('heading',{name:'Reports & Export'});
+ await userEvent.type(screen.getByLabelText('Student ID / Name'),'SYN-001');
+ await userEvent.selectOptions(screen.getByLabelText('Payment'),'PAID');
+ await userEvent.click(screen.getByRole('button',{name:'Apply Filters'}));
+ await waitFor(()=>expect(reports.getDocumentReport).toHaveBeenLastCalledWith(expect.objectContaining({studentSearch:'SYN-001',paymentStatus:'PAID'})));
+ await userEvent.click(screen.getByRole('button',{name:'Export',exact:true}));
+ await waitFor(()=>expect(screen.getByRole('button',{name:'Export CSV'})).toBeEnabled());
+ await userEvent.click(screen.getByRole('button',{name:'Export CSV'}));
+ await waitFor(()=>expect(reports.exportDocumentsCsv).toHaveBeenCalledExactlyOnceWith({studentSearch:'SYN-001',paymentStatus:'PAID'}));
+});
+it('History has only payment filters, copy actions and a live waiting indicator',async()=>{
+ const now=Date.parse('2026-10-12T04:00:00Z');
+ render(<FinanceTransactionsPanel state={{
+ filters:EMPTY_FINANCE_FILTERS,applyFilters:vi.fn(),refresh:vi.fn(),transactions:[
+ {request_group_id:'SYN-1',id:1,student_name:'Synthetic Student',student_id:'SYN-001',or_number:'DEMO00001',amount:100,payment_cleared_at:'2026-10-10T03:00:00Z'},
+ {request_group_id:'SYN-2',id:2,student_name:'Second Student',or_number:'DEMO00002',amount:100,official_receipt_path:'/uploads/synthetic.pdf'}
+ ],loading:false,total:2,amount:200,now,page:1,setPage:vi.fn()
+ }} onUpload={vi.fn()} onProfile={vi.fn()} onViewReceipt={vi.fn()}/>);
+ await waitFor(()=>expect(screen.getByRole('button',{name:'Apply Filters'})).toBeEnabled());
+ expect(screen.getByRole('heading',{name:'Payment History'})).toBeInTheDocument();
+ expect(screen.getByRole('button',{name:'Upload OR'})).toBeInTheDocument();expect(screen.getByRole('button',{name:'View OR'})).toBeInTheDocument();
+ expect(screen.getByText('2d 1h 0m waiting for OR copy')).toBeInTheDocument();
+ expect(screen.queryByRole('button',{name:/Export/})).not.toBeInTheDocument();expect(screen.queryByLabelText('Official Receipt issuance number')).not.toBeInTheDocument();
 });

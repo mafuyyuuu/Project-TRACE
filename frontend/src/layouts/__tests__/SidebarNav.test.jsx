@@ -41,7 +41,7 @@ describe('navItemsForUser', () => {
     ['alumnus', ALUMNI, ['dashboard', 'history', 'messages', 'graduate-application', 'help']],
     ['secretary', SECRETARY, ['dashboard', 'reports', 'messages', 'grad-applications', 'help']],
     ['window 1', WINDOW1, ['dashboard', 'tracking-desk', 'messages', 'reports', 'help']],
-    ['finance', FINANCE, ['dashboard', 'transactions', 'messages', 'help']],
+    ['finance', FINANCE, ['dashboard', 'reports', 'messages', 'help']],
   ])('gives a %s their own tabs', (_label, user, expected) => {
     expect(navItemsForUser(user).map((i) => i.tab)).toEqual(expected);
   });
@@ -78,8 +78,8 @@ describe('navItemsForUser', () => {
     expect(groups.main).toHaveLength(Math.min(6, tabs.length));
     expect(groups.more).toHaveLength(Math.max(0, tabs.length - 6));
   });
-  it('keeps daily Finance transactions in Main and admin configuration available', () => {
-    expect(navGroupsForUser(FINANCE).main.map(item => item.tab)).toEqual(['dashboard', 'transactions', 'messages', 'help']);
+  it('keeps Finance reports in Main and admin configuration available', () => {
+    expect(navGroupsForUser(FINANCE).main.map(item => item.tab)).toEqual(['dashboard', 'reports', 'messages', 'help']);
     expect(navGroupsForUser(ADMIN).main.map(item => item.tab)).toContain('admin-maintenance');
   });
 });
@@ -92,12 +92,12 @@ describe('SidebarNav', () => {
     expect(canonicalTabForUser(user,'internal-assistance')).toBe('messages');
   });
 
-  it.each(['transactions', 'reports', 'export', 'exports'])('keeps Finance %s deep links active on the one transactions destination', tab => {
+  it.each(['reports', 'export', 'exports'])('keeps Finance %s deep links active on Reports & Export', tab => {
     renderNav({ user: FINANCE, tab, showLabels: true });
-    const link = screen.getByRole('link', { name: 'Transactions & OR Copies' });
+    const link = screen.getByRole('link', { name: 'Reports & Export' });
     expect(link).toHaveAttribute('aria-current', 'page');
-    expect(link).toHaveAttribute('href', '/dashboard?tab=transactions');
-    expect(canonicalTabForUser(FINANCE, tab)).toBe('transactions');
+    expect(link).toHaveAttribute('href', '/dashboard?tab=reports');
+    expect(canonicalTabForUser(FINANCE, tab)).toBe('reports');
     expect(canonicalTabForUser(WINDOW1, 'reports')).toBe('reports');
   });
   it.each([STUDENT, ALUMNI, SECRETARY, WINDOW1, RECEIVING, FINANCE])('shows every destination directly without More for $role/$desk_assignment', user => {

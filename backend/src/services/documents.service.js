@@ -674,7 +674,7 @@ async function submitPayment(user, documentId, { gcash_reference_no, payment_met
  * Later records payment acknowledgment without issuance; historical paper
  * ORs keep their recorded number.
  */
-async function verifyPayment(user, documentId, { action, notes, or_number, or_date, defer_or, use_pack, ...packBody }, file) {
+async function verifyPayment(user, documentId, { action, notes, or_number, or_date, defer_or, defer_copy, use_pack, ...packBody }, file) {
   if (user.role !== 'clerk' || user.desk_assignment !== 'Finance') {
     throw forbidden('Only Finance Clerks can verify payments.');
   }
@@ -684,11 +684,14 @@ async function verifyPayment(user, documentId, { action, notes, or_number, or_da
   const deferred = defer_or === true || defer_or === 'true';
   const managed = use_pack === true || use_pack === 'true';
   const receipts = require('./receiptPack.service');
-  if (managed && (deferred || or_number || or_date || file)) throw badRequest('Managed issuance uses the saved pack and today’s date. Upload its copy afterward.');
+  const copyLater = defer_copy === true || defer_copy === 'true';
+  if (managed && (deferred || or_number || or_date)) throw badRequest('Managed issuance uses the saved pack and today’s date.');
+  if (copyLater && file) throw badRequest('Choose an immediate copy upload or upload later, not both.');
+  if (managed && action === 'approve' && file) await receipts.validateFile(file);
   const { receiptWindow, validReceiptDate } = require('../utils/receiptTiming');
   const clearedAt = new Date();
   const timing = receiptWindow(clearedAt);
-  if (deferred && (file || or_number || or_date)) throw badRequest('Clear the OR details when choosing Later.');
+  if (deferred && (file || or_number || or_date)) throw badRequest('OR issuance is deferred; upload its copy after a number has been issued.');
   const officialReceiptPath = action === 'approve' && file ? `/uploads/${file.filename}` : null;
   const connection = await pool.getConnection();
   let doc;
@@ -732,7 +735,8 @@ async function verifyPayment(user, documentId, { action, notes, or_number, or_da
     for (const groupDoc of groupDocs) await assignments.assertAssignedProcessor(user, groupDoc, connection);
     if (groupDocs.some(row => row.current_status !== STATUS.PENDING_FINANCE_VERIFICATION || row.payment_status === 'PAID')) throw badRequest('All documents in the request must be awaiting payment verification.');
 
-    if (action === 'approve' && managed) issuedReceipt = await receipts.allocate(user, groupDocs, connection, packBody);
+    if (action === 'approve' && managed) issuedReceipt = await receipts.allocate(user, groupDocs, connection, packBody, officialReceiptPath);
+    if (action === 'approve' && managed && copyLater && !issuedReceipt.copy_path) await require('../models/receiptPack.model').audit('copy_deferred', user.id, { request_group_id:groupId, during_verification:true }, connection, issuedReceipt.pack_id, issuedReceipt.id);
     if (action === 'approve' && !managed && !deferred && or_number && !doc.or_number) await receipts.assertLegacyNumber(or_number, groupId, connection);
     const [result] = await documentModel.updatePaymentVerificationForGroup(
       groupId, newStatus, paymentStatus,

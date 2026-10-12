@@ -98,6 +98,9 @@ CREATE TABLE IF NOT EXISTS trusted_browsers (
 
 CREATE TABLE IF NOT EXISTS student_profiles (
   user_id INT PRIMARY KEY,
+  first_name VARCHAR(255) NULL,
+  middle_name VARCHAR(255) NULL,
+  last_name VARCHAR(255) NULL,
   extension_name VARCHAR(20),
   birth_date DATE,
   place_of_birth VARCHAR(255),

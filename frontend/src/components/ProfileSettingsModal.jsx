@@ -1,3 +1,4 @@
+import { namePartsError, receiptStudentName } from '@/utils/receiptStudentName';
 import ProfileYearField from '@/components/ProfileYearField';
 import { profileEditYearErrors } from '@/utils/profileYears';
 import AcademicProfileFields from '@/components/AcademicProfileFields';
@@ -52,6 +53,7 @@ export default function ProfileSettingsModal({
   const [activeTab, setActiveTab] = useState(initialTab);
   useMotion(tabContentRef, activeTab, 'context', { initial: false });
   const [yearFocus, setYearFocus] = useState(null);
+  const receiptNameError = user?.role === 'student' ? namePartsError(profileData, user) : '';
   const editYearErrors = profileEditYearErrors(profileData, user);
   useEffect(() => {
     if (activeTab === 'educational' && yearFocus) document.getElementById(`profile-${yearFocus.field}`)?.focus();
@@ -88,6 +90,7 @@ export default function ProfileSettingsModal({
       return;
     }
     setPasswordError('');
+    if (receiptNameError && isStudent) { setActiveTab('personal'); return; }
     const invalidYear = Object.keys(editYearErrors)[0];
     if (invalidYear && isStudent) {
       setActiveTab('educational');
@@ -173,7 +176,7 @@ export default function ProfileSettingsModal({
       <ConfirmDialog open={!!confirmation}
         title={confirmation === 'email' ? 'Verify Email Address' : confirmation === 'profile' ? 'Confirm Profile Save' : confirmation === 'browser' ? 'Use Shared-Computer Verification' : 'Log Out Other Devices'}
         message={confirmation === 'profile'
-          ? ['Save your profile changes and selected picture?', error ? <span role="alert">{error}</span> : null]
+          ? ['Save your profile changes and selected picture?', isStudent && profileData.first_name && profileData.last_name ? `Name on new receipts: ${receiptStudentName({ ...user, ...profileData })}` : null, error ? <span role="alert">{error}</span> : null]
           : confirmation === 'email' ? [`Send a verification link to ${emailDraft?.email}? Your current address stays active until verified. Other profile changes will remain unsaved.`, verificationError ? <span role="alert">{verificationError}</span> : null]
           : confirmation === 'browser' ? 'Forget the personal-browser preference here? Your next login will require verification. This keeps your current session open.' : 'Log out of all other active sessions?'}
         confirmLabel={confirmation === 'email' ? 'Send Verification Link' : confirmation === 'profile' ? 'Save Profile' : confirmation === 'browser' ? 'Use Shared Verification' : 'Log Out Other Devices'}
@@ -296,6 +299,20 @@ export default function ProfileSettingsModal({
 
               {isStudent && (
                 <>
+                  <section className="space-y-3" aria-label="Name on Official Receipts">
+                    <h4 className="trace-section-title">Name on Official Receipts</h4>
+                    <p className="text-sm select-text">Saved Full Name: {user.full_name}</p>
+                    <p className="text-xs">Confirm the parts of your saved name once. Finance uses them automatically as Last name, First name M.I. Existing receipts retain their original names. Keep compound given names and surnames together; leave Middle Name blank if you have none.</p>
+                    <div className="trace-form-grid">
+                      {[['first_name', 'First Name'], ['middle_name', 'Middle Name (optional)'], ['last_name', 'Last Name']].map(([field, label]) => <div key={field}>
+                        <label className="trace-label block mb-2" htmlFor={`profile-${field}`}>{label}</label>
+                        <input id={`profile-${field}`} value={profileData[field] || ''} maxLength={INPUT_LIMITS.name} disabled={saving}
+                          aria-invalid={receiptNameError ? true : undefined} aria-describedby={receiptNameError ? 'profile-receipt-name-error' : undefined}
+                          onChange={event => setField(field, event.target.value)} className="trace-control w-full" />
+                      </div>)}
+                    </div>
+                    {receiptNameError ? <p id="profile-receipt-name-error" role="alert" className="trace-inline-error">{receiptNameError}</p> : profileData.first_name && profileData.last_name ? <p className="text-sm select-text">New receipt name: {receiptStudentName({ ...user, ...profileData })}</p> : <p className="text-xs">Your existing Full Name will be used until these parts are confirmed.</p>}
+                  </section>
                   <AcademicProfileFields user={user} profileData={profileData} setField={setField} busy={saving} />
                   <div className="trace-form-grid">
                     <div>

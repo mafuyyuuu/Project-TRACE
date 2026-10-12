@@ -5,7 +5,7 @@ const users = require('../models/user.model');
 const documents = require('../models/document.model');
 const assignments = require('./requestAssignment.service');
 const { badRequest, forbidden, notFound } = require('../utils/AppError');
-const { packPattern, serialAt } = require('../utils/receiptSerial');
+const { packRange, serialAt } = require('../utils/receiptSerial');
 const { snapshot, printConfig, DEFAULT_PRINT } = require('../utils/receiptSnapshot');
 const { receiptWindow } = require('../utils/receiptTiming');
 const { STATUS } = require('../utils/documentStatus');
@@ -28,14 +28,14 @@ async function state(user) {
  const pack=control.active_pack_id ? await model.pack(control.active_pack_id) : null;
  return {version:control.version,pack:pack ? {...pack,next_serial:Number(pack.consumed)<50 ? serialAt(pack.pattern,Number(pack.consumed)) : null,last_serial:serialAt(pack.pattern,49)} : null,print_config:control.print_config ? printConfig(typeof control.print_config==='string'?JSON.parse(control.print_config):control.print_config) : DEFAULT_PRINT};
 }
-async function preview(user,body) {await actor(user);const result=packPattern(body.start_serial,body.segment);return {pattern:result.pattern,first:result.first,last:result.last,count:50};}
+async function preview(user,body) {await actor(user);const result=packRange(body.start_serial,body.end_serial);return {pattern:result.pattern,first:result.first,last:result.last,count:50};}
 async function configure(user,body) {
- const pattern=packPattern(body.start_serial,body.segment);
+ const pattern=packRange(body.start_serial,body.end_serial);
  return transaction(async connection=>{
   const saved=await actor(user,connection),control=await model.control(connection,true);
   if(!control || Number(body.version)!==Number(control.version))throw badRequest('The pack configuration changed. Refresh before confirming.');
   const old=control.active_pack_id ? await model.pack(control.active_pack_id,connection,true) : null;
-  const replacement=old && Number(old.consumed)<50 ? reason(body.reason) : (body.reason ? reason(body.reason) : 'Previous pack exhausted.');
+  const replacement = !old ? 'Initial paper pack.' : Number(old.consumed) < 50 ? 'Paper pack replaced by Finance; unused serials remain reserved.' : 'Previous pack exhausted.';
   if(!await model.available(pattern.serials,connection))throw badRequest('This range overlaps reserved or historical receipt numbers. Use a different paper pack.');
   const id=await model.activate(pattern.pattern,pattern.serials,saved.id,replacement,old?.id,connection);
   await model.audit('pack_activated',saved.id,{previous_pack:old?.id || null,start:pattern.serials[0],last:pattern.last,reason:replacement,archived_unused:old?50-Number(old.consumed):0},connection,id);
@@ -59,9 +59,12 @@ async function allocate(user,group,connection,body,filePath=null) {
  // Legacy issuance also takes the control lock; check actual documents before consuming.
  if(await model.numberConflict(serial,groupId,connection))throw badRequest('This serial already exists in historical documents. Replace the pack.');
  const date=receiptWindow().today;
- const snap=snapshot(group,saved,serial,date,body.payor_name);
+ const [student] = group[0].student_id ? await users.findReceiptName(group[0].student_id, connection) : [];
+ const receiptGroup = group.map(row => ({ ...row, ...(student ? { full_name:student.full_name, first_name:student.first_name, middle_name:student.middle_name, last_name:student.last_name, extension_name:student.extension_name } : {}) }));
+ const snap=snapshot(receiptGroup,saved,serial,date);
  const receipt=await model.insertReceipt({group:groupId,document_id:group[0].id,pack,serial,client_key:retryKey,snapshot:snap,copy_path:filePath},connection);
  await model.audit('receipt_issued',saved.id,{serial,documents:group.map(row=>row.id)},connection,pack.id,receipt.id);
+ if (filePath) await model.audit('copy_uploaded',saved.id,{path:filePath,during_verification:true},connection,pack.id,receipt.id);
  return receipt;
 }
 async function assertLegacyNumber(number,group,connection) {

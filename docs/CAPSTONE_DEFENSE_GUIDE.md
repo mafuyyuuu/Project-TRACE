@@ -206,7 +206,7 @@ flowchart LR
     subgraph "💰 Finance Clerk"
         F1["View Payment Verification Queue"]
         F2["Approve / Reject Payments"]
-        F3["Review Proof / Issue or Defer OR<br/>Separate Transactions & OR Copies<br/>Private OR Preview + Filtered Export"]
+        F3["Review Proof / Issue or Defer OR<br/>Separate Payment History<br/>Private OR Preview + Filtered Export"]
     end
 
     subgraph "📜 College Secretary"
@@ -775,3 +775,16 @@ experimental model only uses its three count inputs and is not trained on instit
 Show Activity Logs at phone width: full document type, tracking number and action are separate
 wrapped values inside a horizontally scrollable table. Existing approvals and desk rules remain.
 No migration is added; rollout needs matching backend/frontend and an AI image rebuild.
+
+
+### Finance workflow follow-up — 2026-10-12
+
+Finance pack setup/replacement uses first and last serial bounds that imply exactly 50 consecutive numbers. The server infers the changing numeric block and preserves zero padding/literals; replacement is audited without a clerk reason input. All previous reserved serials remain unavailable. Pack activation creates no receipt. Confirmed eligible payment verification automatically issues one OR and snapshots saved student identity/cashier/payment; Later defers the copy only. An immediate copy is validated and published atomically with clearance and issuance. The 4 PM Manila cutoff remains; explicit after-cutoff issuance can be completed from Payment History on an eligible later date. Printing/reprinting never allocates. Duplicate uploads on verification retry are discarded while the original published file is retained.
+
+Verification owns receipt settings, printer calibration and receipt/pack audits. Payment History contains shared history filters, grouped cleared payments, View OR / Upload OR and missing-copy elapsed time; the exceptional Issue pending OR action prevents after-cutoff or historical payments from being stranded. History has no export/configuration block. Finance Reports & Export uses the same shared report component/API as the other roles, including applied-scope safeguards and readable CSV. Review contains no Discussion module; Support remains available.
+
+Additive `migrate_student_name_parts.js` adds nullable first/middle/last profile fields and does not split old names or rewrite `users.full_name`, request names or issued snapshots. Students confirm matching identity parts in Edit Profile with the existing Save confirmation; the API validates against the saved full name under the profile lock and logs confirmation. Finance takes saved parts from the identified student, ignores client payor overrides and preserves unsplit historical names. New snapshots print Last name, First name M.I. Historical receipts keep their original name. Existing print fields/order remain; exact physical alignment still requires the original receipt reference and printer calibration.
+
+Verification in this disconnected session covers source parsing and actual service/helper execution with in-memory model fixtures. Full Vitest, build/lint, browser and MySQL checks are pending; prepared source is not evidence of cloud deployment. See the consolidated [migration ledger](DEPLOYMENT_CHECKLIST.md) and [README walkthrough](../README.md#finance-receipt-walkthrough).
+
+New signup collects first/middle/last fields, builds Full Name automatically and saves parts with the account in the registration transaction. Existing accounts confirm their unsplit names in Edit Profile; legacy API clients that send only Full Name remain supported. Read ID retains a detected full-name hint, fills other eligible empty fields and never guesses compound name boundaries. The new form requires first/last before confirmation; middle remains optional.

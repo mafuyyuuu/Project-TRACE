@@ -3,7 +3,10 @@ import Button from '@/components/Button';
 import FeeBreakdown from '@/components/FeeBreakdown';
 import { INPUT_LIMITS } from '@/utils/inputLimits';
 import FileUploadField from '@/components/FileUploadField';
-import RequestMessagesPanel from '@/components/RequestMessagesPanel';
+import ReceiptPreviewModal from './ReceiptPreviewModal';
+import useElapsedClock from '@/hooks/useElapsedClock';
+import { receiptWindow } from '@/utils/receiptTiming';
+import { receiptStudentName } from '@/utils/receiptStudentName';
 import { useRef, useState } from 'react';
 import useReceiptPack from '@/hooks/useReceiptPack';
 import ReceiptPackControl from './ReceiptPackControl';
@@ -12,7 +15,7 @@ import AuthedFilePreview from '@/components/AuthedFilePreview';
 import { formatPeso } from '@/utils/pricing';
 
 export default function FinanceVerificationModal({
-  user,
+  verifiedReceipt = null,
   setActiveModal,
   selectedDoc,
   setViewImageUrl,
@@ -27,13 +30,16 @@ export default function FinanceVerificationModal({
   const [orNumber] = useState(selectedDoc?.or_number || '');
   const pack=useReceiptPack();
   const retryKey=useRef(crypto.randomUUID());
-  const [payorName,setPayorName]=useState(selectedDoc?.student_name || '');
-  const [deferred, setDeferred] = useState(false);
+  const [uploadLater, setUploadLater] = useState(false);
+  const [printOpen, setPrintOpen] = useState(false);
+  const now = useElapsedClock();
+  const payorName = receiptStudentName(selectedDoc);
+  const deferred = !selectedDoc?.or_number && !verifiedReceipt && receiptWindow(new Date(now)).afterCutoff;
 
   if (!selectedDoc) return null;
 
-  const managed = !selectedDoc.or_number && !deferred;
-  const canVerify = deferred || Boolean(selectedDoc.or_number) || Boolean(pack.state?.pack?.next_serial && payorName.trim());
+  const managed = !selectedDoc.or_number && !verifiedReceipt && !deferred;
+  const canVerify = !verifiedReceipt && (deferred || Boolean(selectedDoc.or_number) || Boolean(pack.state?.pack?.next_serial && payorName));
   // documents.payment_method defaults to 'gcash' for rows predating the
   // column — matching document.model.js's own default.
   const method = paymentMethods.find((m) => m.code === (selectedDoc.payment_method || 'gcash'));
@@ -41,6 +47,7 @@ export default function FinanceVerificationModal({
   const referenceLabel = method?.reference_label || 'Reference Number';
 
   return (
+    <>
     <ModalShell
       open={!!selectedDoc}
       onClose={() => setActiveModal(null)}
@@ -49,18 +56,18 @@ export default function FinanceVerificationModal({
       footer={
         <div className="flex flex-col sm:flex-row sm:items-center gap-3">
           <Button
-            onClick={() => handleFinanceVerify('reject', null)}
+            onClick={() => verifiedReceipt ? setActiveModal(null) : handleFinanceVerify('reject', null)}
             disabled={actionLoading}
             className="trace-button trace-button-danger w-full sm:w-1/2 text-center"
           >
-            Reject Payment
+            {verifiedReceipt ? 'Close' : 'Reject Payment'}
           </Button>
           <Button
-            onClick={() => handleFinanceVerify('approve', deferred || managed ? null : financeReceiptFile, deferred || managed ? '' : orNumber.trim(), { deferred, usePack:managed, expected_pack_id:managed?pack.state?.pack?.id:undefined,expected_serial:managed?pack.state?.pack?.next_serial:undefined,payor_name:payorName.trim(),client_key:retryKey.current })}
+            onClick={() => handleFinanceVerify('approve', deferred || uploadLater ? null : financeReceiptFile, deferred || managed ? '' : orNumber.trim(), { deferred, uploadLater, usePack:managed, expected_pack_id:managed?pack.state?.pack?.id:undefined,expected_serial:managed?pack.state?.pack?.next_serial:undefined,client_key:retryKey.current, refreshPack:pack.refresh })}
             disabled={actionLoading || !canVerify}
             className="trace-button trace-button-primary w-full sm:flex-1"
           >
-            Verify Payment
+            {verifiedReceipt ? 'Payment Verified' : 'Verify Payment'}
           </Button>
         </div>
       }
@@ -90,7 +97,7 @@ export default function FinanceVerificationModal({
         <div className="bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 text-amber-800 dark:text-amber-300 text-xs p-3 rounded-lg font-semibold flex items-start gap-2 mb-4">
           <svg className="w-4 h-4 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
           <p>
-            Clear payment now and acknowledge it to the student. Choose Later if the OR has not been issued. At or after 4:00 PM Manila time, new same-day OR issuance is deferred. Secretary waits for the issued OR and releases it together with the document.
+            Choose Later to upload the physical Official Receipt copy afterward. Its number is still issued when payment is verified. At or after 4:00 PM Manila time, new OR issuance remains pending until an eligible date; this is separate from uploading a copy.
           </p>
         </div>
 
@@ -117,30 +124,35 @@ export default function FinanceVerificationModal({
           {referenceLabel}: <span className="font-mono text-gray-600 dark:text-gray-300 font-bold">{selectedDoc.gcash_reference_no || 'None'}</span>
         </div>
 
-        {!selectedDoc.or_number && <label className="flex items-start gap-3 text-sm font-semibold">
-          <input type="checkbox" checked={deferred} onChange={e => setDeferred(e.target.checked)} className="trace-choice mt-1 shrink-0" />
-          Later — clear payment now; issue the Official Receipt later
+
+        {!verifiedReceipt && <label className="flex items-start gap-3 text-sm font-semibold">
+          <input type="checkbox" checked={uploadLater} disabled={actionLoading} onChange={event => setUploadLater(event.target.checked)} className="trace-choice mt-1 shrink-0" />
+          Later — upload the physical OR copy later
         </label>}
-        {!deferred && <>
-        {managed ? <div className="space-y-4">
-          <ReceiptPackControl packState={pack.state} onChanged={pack.refresh}/>
-          <Button type="button" onClick={pack.refresh} className="trace-button trace-button-secondary">Refresh next number</Button>
-          {pack.error&&<p role="alert" className="text-red-700 dark:text-red-300">{pack.error}</p>}
-          <label className="trace-label block">Payor name — Last, First M.I.<input maxLength={255} value={payorName} onChange={e=>setPayorName(e.target.value)} className="trace-control block w-full"/><span className="text-xs">Review the name before issuance. The account profile stays unchanged.</span></label>
-          <p className="text-xs">Approval issues this number and saves the cashier/payment snapshot. Print or upload the copy from Official Receipts / History.</p>
-        </div> : <label className="trace-label block">Recorded Official Receipt Number<input id="finance-verify-or-number" readOnly value={orNumber} className="trace-control w-full font-mono"/></label>}
-        {!managed && <div className="flex flex-col gap-2">
-          <label className="text-[10px] font-bold text-red-600 dark:text-red-300 uppercase tracking-widest flex items-center gap-1">
-            Attach Official POS Receipt <span className="text-gray-400 dark:text-gray-400 font-normal normal-case">(Optional - upload later if deferred)</span>
-          </label>
-          <FileUploadField label="Official Receipt copy (optional)" file={financeReceiptFile} path={selectedDoc.official_receipt_path} onChange={setFinanceReceiptFile} maxBytes={5 * 1024 * 1024} />
+        {deferred && <p role="status" className="text-sm text-amber-800 dark:text-amber-300">The 4 PM Manila issuance cutoff has passed. Payment can be cleared now; its OR must be issued on a later eligible date. No number will be consumed by this verification.</p>}
+        {verifiedReceipt || selectedDoc.or_number ? <div className="space-y-2">
+          <label className="trace-label block" htmlFor="finance-verify-or-number">Recorded Official Receipt Number</label>
+          <div className="flex flex-wrap items-center gap-2">
+            <input id="finance-verify-or-number" readOnly value={verifiedReceipt?.serial || orNumber} className="trace-control min-w-0 flex-1 font-mono" />
+            <Button type="button" disabled={!verifiedReceipt || !pack.state} title={!verifiedReceipt ? 'Printing is available for receipts saved through TRACE.' : undefined} onClick={() => setPrintOpen(true)} className="trace-button trace-button-secondary">Print</Button>
+          </div>
+          {verifiedReceipt && <p role="status" className="text-sm">Payment verified. This saved number is ready to print; printing does not use another number.</p>}
+        </div> : <div className="space-y-3">
+          <ReceiptPackControl packState={pack.state} onChanged={pack.refresh} printControl={<Button type="button" disabled title="Verify payment to save this receipt before printing." className="trace-button trace-button-secondary">Print</Button>} />
+          <p className="text-xs">The next number updates automatically after issuance. Save the receipt by verifying payment, then print beside its recorded number.</p>
         </div>}
-        </>}
+        {pack.error && <p role="alert" className="trace-inline-error">{pack.error}</p>}
+        <p className="text-sm select-text"><span className="font-semibold">Student / Payor:</span> {verifiedReceipt?.snapshot.payor_name || payorName || 'Student name not recorded'}</p>
+        <div className="flex flex-col gap-2">
+          <FileUploadField label="Official Receipt copy (optional)" file={financeReceiptFile} path={verifiedReceipt?.copy_path || selectedDoc.official_receipt_path} onChange={setFinanceReceiptFile} disabled={actionLoading || uploadLater || deferred || Boolean(verifiedReceipt)} maxBytes={5 * 1024 * 1024} />
+          <p className="text-xs">Upload now, or choose Later and use Upload OR in Payment History. Missing a digital copy does not remove the recorded OR number.</p>
+        </div>
       </div>
 
       <div className="flex flex-col gap-1.5 mt-4">
         <label className="trace-label">Clerk Notes / Remarks</label>
         <textarea maxLength={INPUT_LIMITS.notes}
+          disabled={actionLoading || Boolean(verifiedReceipt)}
           value={clerkNotes}
           onChange={(e) => setClerkNotes(e.target.value)}
           placeholder="Add notes (required for rejection)..."
@@ -148,10 +160,8 @@ export default function FinanceVerificationModal({
           className="trace-control w-full resize-none"
         />
       </div>
-      <div className="flex flex-col gap-1.5 mt-4 border-t border-gray-100 dark:border-gray-700 pt-4">
-        <label className="trace-label">Discussion</label>
-        <div className="h-[70dvh] min-h-96"><RequestMessagesPanel initialDocumentId={selectedDoc.id} user={user} compact /></div>
-      </div>
     </ModalShell>
+    {printOpen && verifiedReceipt && pack.state && <ReceiptPreviewModal receipt={verifiedReceipt} config={pack.state.print_config} onClose={() => setPrintOpen(false)} />}
+    </>
   );
 }

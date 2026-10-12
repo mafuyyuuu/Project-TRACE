@@ -5,7 +5,7 @@ import QueueTabs from '@/components/QueueTabs';
 import { PIPELINE, LEGACY_STATUS, getStatusLabel } from '@/utils/documentStatus';
 
 /** Shared presentation; draft filters are local until explicitly applied. */
-export default function ReportFiltersModal({ filters, defaults, options, optionsLoading, optionsError, onRetryOptions, onApply, onClose, onExport, exporting, exportReady, finance = false, secretary = false, error = '', inline = false, exportOpen = false }) {
+export default function ReportFiltersModal({ filters, defaults, options, optionsLoading, optionsError, onRetryOptions, onApply, onClose, onExport, exporting, exportReady, finance = false, secretary = false, error = '', inline = false, exportOpen = false, history = false }) {
   const [draft,setDraft] = useState({...filters}), [dataset,setDataset] = useState('documents'), [validation,setValidation] = useState('');
   const prefix=useId();
   const update=(key,value)=>{setValidation('');setDraft(current=>({...current,[key]:value,...(key==='status'?{recordSet:''}:{})}));};
@@ -18,7 +18,7 @@ export default function ReportFiltersModal({ filters, defaults, options, options
   const field=(key,label,control)=><div className="trace-field min-w-0"><label htmlFor={`${prefix}-${key}`} className="trace-label">{label}</label>{control(`${prefix}-${key}`)}</div>;
   const applyControl=<Button type="button" className="trace-button trace-button-primary" onClick={apply} disabled={Boolean(exporting)||optionsLoading||Boolean(optionsError)}>Apply Filters</Button>;
   const filterBody=<div className="space-y-4">
-      <p className="trace-page-description">Edit a draft, then Apply Filters to update the report. Reset clears only the draft; exports use the applied report.</p>
+      <p className="trace-page-description">{history ? 'Apply filters to search payment history. Reset clears the draft.' : 'Edit a draft, then Apply Filters to update the report. Reset clears only the draft; exports use the applied report.'}</p>
       {optionsLoading && <p role="status">Loading filter options…</p>}
       {optionsError && <div role="alert" className="trace-inline-error">{optionsError} <Button type="button" className="trace-action underline" onClick={onRetryOptions}>Retry options</Button></div>}
       {(validation||error) && <p role="alert" className="trace-inline-error">{validation||error}</p>}
@@ -46,10 +46,10 @@ export default function ReportFiltersModal({ filters, defaults, options, options
         <Button type="button" className="trace-button trace-button-primary w-full" disabled={dirty||!exportReady||Boolean(exporting)||optionsLoading||Boolean(optionsError)} onClick={()=>onExport(dataset)}>{exporting?'Exporting…':'Export CSV'}</Button>
       </section>;
   return <>
-    {inline&&<section aria-label="Report filters" className="trace-section trace-section-body">{filterBody}</section>}
-    <ModalShell open={inline?exportOpen:true} title={inline?'Export':'Filters & Export'} maxWidth="max-w-[535px]" onClose={onClose} busy={Boolean(exporting)} showCloseButton={!exporting} closeOnEsc={!exporting} closeOnBackdrop={!exporting}
+    {inline&&<section aria-label={history ? 'History filters' : 'Report filters'} className="trace-section trace-section-body">{filterBody}</section>}
+    {!history && <ModalShell open={inline?exportOpen:true} title={inline?'Export':'Filters & Export'} maxWidth="max-w-[535px]" onClose={onClose} busy={Boolean(exporting)} showCloseButton={!exporting} closeOnEsc={!exporting} closeOnBackdrop={!exporting}
       footer={<div className="flex flex-wrap justify-end gap-2"><Button type="button" className="trace-button trace-button-secondary" onClick={onClose} disabled={Boolean(exporting)}>{inline?'Close export':'Cancel'}</Button>{!inline&&applyControl}</div>}>
       {!inline&&filterBody}{exportBody}
-    </ModalShell>
+    </ModalShell>}
   </>;
 }

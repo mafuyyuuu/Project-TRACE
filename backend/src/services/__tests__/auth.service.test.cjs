@@ -396,6 +396,19 @@ describe('register', () => {
     phone_number: '+639', password: 'Trace2024!', course: 'CCS',
   };
   const file = { path: '/tmp/id.jpg', originalname: 'id.jpg', mimetype: 'image/jpeg' };
+  it('stores new name parts with the automatically assembled Full Name in the account transaction', async () => {
+    vi.spyOn(userModel,'saveNameParts').mockResolvedValue();
+    vi.spyOn(userModel,'logSecurityEvent').mockResolvedValue();
+    await service.register({...body,full_name:'Ana Maria Dela Cruz',first_name:'Ana',middle_name:'Maria',last_name:'Dela Cruz'},file);
+    expect(userModel.createUser).toHaveBeenCalledWith(expect.objectContaining({full_name:'Ana Maria Dela Cruz'}),credentialConnection);
+    expect(userModel.saveNameParts).toHaveBeenCalledExactlyOnceWith(1,{first_name:'Ana',middle_name:'Maria',last_name:'Dela Cruz'},credentialConnection);
+    expect(userModel.logSecurityEvent).toHaveBeenCalledWith(1,'RECEIPT_NAME_CONFIRMED',null,null,credentialConnection);
+  });
+  it('requires both new name parts and rejects conflicting Full Name before account creation', async () => {
+    await expect(service.register({...body,first_name:'Ana'},file)).rejects.toMatchObject({status:400});
+    await expect(service.register({...body,first_name:'Ana',last_name:'Reyes'},file)).rejects.toMatchObject({status:400});
+    expect(userModel.createUser).not.toHaveBeenCalled();
+  });
   it('keeps the signup email but postpones its verification link to Profile', async () => {
     const result = await service.register(body, file);
     expect(userModel.createUser).toHaveBeenCalledWith(expect.objectContaining({ email: body.email }), credentialConnection);

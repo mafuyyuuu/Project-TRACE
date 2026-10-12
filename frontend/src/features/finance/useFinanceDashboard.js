@@ -20,6 +20,7 @@ export default function useFinanceDashboard(user) {
   const { documents, runAction, selectedDoc, setActiveModal, triggerNotification } = core;
 
   const [clerkNotes, setClerkNotes] = useState('');
+  const [verifiedReceipt, setVerifiedReceipt] = useState(null);
 
   // The real per-method reference label/name, so the verification modal
   // doesn't assume every payment is GCash.
@@ -69,24 +70,32 @@ export default function useFinanceDashboard(user) {
 
   const confirmFinanceVerify = useCallback(async () => {
     if (!financeVerifyToConfirm) return;
-    const { documentId, notes, action, file, orNumber, orDate, deferred, usePack, ...packMetadata } = financeVerifyToConfirm;
+    const { documentId, notes, action, file, orNumber, orDate, deferred, uploadLater, usePack, refreshPack, ...packMetadata } = financeVerifyToConfirm;
 
     const formData = new FormData();
     formData.append('action', action);
     formData.append('notes', notes);
-    if(usePack){formData.append('use_pack','true');for(const field of ['expected_pack_id','expected_serial','payor_name','client_key'])formData.append(field,packMetadata[field]);}
+    if(usePack){formData.append('use_pack','true');for(const field of ['expected_pack_id','expected_serial','client_key'])formData.append(field,packMetadata[field]);}
     if (deferred) formData.append('defer_or', 'true');
+    if (uploadLater) formData.append('defer_copy', 'true');
     if (orDate) formData.append('or_date', orDate);
     if (orNumber) formData.append('or_number', orNumber);
     if (file) formData.append('officialReceipt', file);
 
-    const ok = await runAction(() => verifyPayment(documentId, formData), {
+    let savedReceipt = null;
+    const ok = await runAction(async () => {
+      const result = await verifyPayment(documentId, formData);
+      savedReceipt = result.receipt || null;
+      return result;
+    }, {
       successMessage: `Payment reference successfully ${action === 'approve' ? 'approved' : 'rejected'}.`,
       errorMessage: 'Verification action failed.',
     });
 
+    refreshPack?.();
     if (ok) {
-      setActiveModal(null);
+      setVerifiedReceipt(savedReceipt);
+      if (!savedReceipt) setActiveModal(null);
       setClerkNotes('');
       setFinanceVerifyToConfirm(null);
     }
@@ -185,6 +194,7 @@ export default function useFinanceDashboard(user) {
     awaitingPaymentQueue,
     verificationQueue,
     clerkNotes, setClerkNotes,
+    verifiedReceipt, setVerifiedReceipt,
     counterDeferred, setCounterDeferred,
     orNumber, setOrNumber,
     orDate, setOrDate,

@@ -73,13 +73,14 @@ function findByTrackingNumber(trackingNumber, executor = pool) {
  */
 function listWithFilters(conditions, params, limit, offset, executor = pool) {
   // A same-status intake note must not restart the wait. Secretary returns do.
-  let query = `SELECT d.*, student.program, processor.full_name AS assigned_staff_name, processor.desk_assignment AS assigned_staff_desk,
+  let query = `SELECT d.*, COALESCE(NULLIF(d.student_name, ''), student.full_name) AS student_name, student.program, student_profile.first_name, student_profile.middle_name, student_profile.last_name, student_profile.extension_name, processor.full_name AS assigned_staff_name, processor.desk_assignment AS assigned_staff_desk,
     CASE WHEN d.current_status = 'PENDING_W1_INTAKE' THEN COALESCE(
       (SELECT MAX(intake.timestamp_started) FROM step_logs intake
        WHERE intake.document_id = d.id AND intake.to_status = 'PENDING_W1_INTAKE'
        AND (intake.from_status IS NULL OR intake.from_status <> intake.to_status)), d.created_at)
     END AS intake_entered_at
     FROM documents d LEFT JOIN users student ON student.student_id = d.student_id AND student.role = 'student'
+    LEFT JOIN student_profiles student_profile ON student_profile.user_id = student.id
     LEFT JOIN users processor ON processor.id = d.assigned_clerk_id`;
   if (conditions.length > 0) query += ' WHERE ' + conditions.join(' AND ');
   query += ' ORDER BY d.created_at DESC LIMIT ? OFFSET ?';

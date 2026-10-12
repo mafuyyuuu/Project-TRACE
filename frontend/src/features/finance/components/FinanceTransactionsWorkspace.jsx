@@ -8,7 +8,6 @@ import DeferredOrUploadModal from '@/features/finance/components/DeferredOrUploa
 import useReceiptPack from '@/hooks/useReceiptPack';
 import ReceiptIssueModal from './ReceiptIssueModal';
 import ReceiptPreviewModal from './ReceiptPreviewModal';
-import ReceiptTools from './ReceiptTools';
 import {receiptError} from '@/services/receiptService';
 import useReceiptActions from '@/hooks/useReceiptActions';
 /** Transactions has its own data and receipt actions, independent of desk queues. */
@@ -24,7 +23,6 @@ export default function FinanceTransactionsWorkspace({ setViewImageUrl }) {
   return <div className="trace-page">
     <DashboardAlerts success={state.receiptFeedback.success} error={state.receiptFeedback.error} onDismiss={state.dismissReceiptFeedback} />
     {receiptErrorMessage&&<p role="alert" className="text-red-700 dark:text-red-300">{receiptErrorMessage}</p>}
-    <ReceiptTools pack={pack} onPreview={setPreview} onChanged={refresh}/>
     <FinanceTransactionsPanel state={state} onProfile={setStudentId} onUpload={row=>row.or_number?setSelectedDoc(row):setIssue(row)} onPrint={showReceipt} onViewReceipt={setViewImageUrl} />
     {issue&&<ReceiptIssueModal key={issue.id} document={issue} onClose={()=>setIssue(null)} onIssued={receipt=>{setIssue(null);setPreview(receipt);refresh();}}/>}
     {preview&&pack.state&&<ReceiptPreviewModal key={preview.id} receipt={preview} config={pack.state.print_config} onClose={()=>setPreview(null)}/>}

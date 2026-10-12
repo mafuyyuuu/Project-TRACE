@@ -28,8 +28,8 @@ beforeEach(() => {
   service.exportStudentsCsv.mockResolvedValue('students.csv');
 });
 
-it('loads and exports the shared report for the Receiving Desk alias of Window 1', async () => {
-  const { result } = renderHook(() => useReports({ role: 'clerk', desk_assignment: 'Receiving Desk' }, 'reports'));
+it.each(['Receiving Desk','Finance'])('loads and exports the shared report for %s', async desk_assignment => {
+  const { result } = renderHook(() => useReports({ role: 'clerk', desk_assignment }, 'reports'));
   await waitFor(() => expect(result.current.loading).toBe(false));
   act(() => result.current.applyFilters({ studentSearch: 'SYN-001' }));
   await waitFor(() => expect(service.getDocumentReport).toHaveBeenLastCalledWith(expect.objectContaining({ studentSearch: 'SYN-001' })));

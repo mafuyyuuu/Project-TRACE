@@ -82,7 +82,8 @@ describe('Account submission confirmations', () => {
     await screen.findByRole('option', { name: 'Engineering' });
     fireEvent.change(container.querySelector('select'), { target: { value: 'alumni' } });
     const name = screen.getByPlaceholderText('Juan Dela Cruz');
-    await user.type(name, 'Manual Name');
+    await user.type(screen.getByLabelText('First Name *'), 'Manual');
+    await user.type(screen.getByLabelText('Last Name *'), 'Name');
     await user.upload(container.querySelector('input[type=file]'), new File(['proof'], 'id.png', { type: 'image/png' }));
     expect(api.post).not.toHaveBeenCalled();
     api.post.mockResolvedValueOnce({ data: { success: true, alumni_id: 'ALU1234567', student_id: 'STU1234567', full_name: 'OCR Name', college_id: 1 } });
@@ -335,8 +336,9 @@ describe('Account submission confirmations', () => {
     await screen.findByRole('option', { name: 'Engineering' });
     fireEvent.change(container.querySelectorAll('select')[1], { target: { value: 'Engineering' } });
     const inputs = container.querySelectorAll('input');
-    const values = ['STU-001', 'BS Engineering', 'Ana Reyes', 'ana@example.test', '09171234567', 'Password123_', 'Password123_'];
-    values.forEach((value, index) => fireEvent.change(inputs[index], { target: { value } }));
+    for (const [placeholder, value] of [['e.g. 23-00123','STU-001'],['e.g. BS Information Technology','BS Engineering'],['juan@plp.edu.ph','ana@example.test'],['09123456789','09171234567'],['Create a password','Password123_'],['Confirm your password','Password123_']]) fireEvent.change(screen.getByPlaceholderText(placeholder), {target:{value}});
+    fireEvent.change(screen.getByLabelText('First Name *'), {target:{value:'Ana'}});
+    fireEvent.change(screen.getByLabelText('Last Name *'), {target:{value:'Reyes'}});
     const proof = new File(['proof'], 'id.png', { type: 'image/png' });
     const picker = container.querySelector('input[type=file]');
     await user.upload(picker, proof);
@@ -350,6 +352,7 @@ describe('Account submission confirmations', () => {
     await waitFor(() => expect(auth.register).toHaveBeenCalledOnce());
     const payload = auth.register.mock.calls[0][0];
     expect(payload.get('employee_id')).toBe('STU-001');
+    expect(payload.get('full_name')).toBe('Ana Reyes');expect(payload.get('first_name')).toBe('Ana');expect(payload.get('middle_name')).toBe('');expect(payload.get('last_name')).toBe('Reyes');
     expect(payload.get('course')).toBe('Engineering');
     expect(payload.get('college_id')).toBe('1');
     expect(payload.get('program')).toBe('BS Engineering');
@@ -441,9 +444,11 @@ it('reviews alumni signup without proof, preserves the draft on cancel and sends
   await user.click(await screen.findByRole('checkbox', { name: /Records \/ proof unavailable/ }));
   expect(screen.queryByRole('button', { name: 'Read ID' })).not.toBeInTheDocument();
   fireEvent.change(container.querySelectorAll('select')[1], { target: { value: 'Engineering' } });
-  for (const [placeholder, value] of [['Enter your Alumni ID', 'ALU-DEMO'], ['Juan Dela Cruz', 'Synthetic Alumni'], ['juan@plp.edu.ph', 'demo@example.test'], ['09123456789', '09123456789'], ['Create a password', 'Trace_2026'], ['Confirm your password', 'Trace_2026']]) {
+  for (const [placeholder, value] of [['Enter your Alumni ID', 'ALU-DEMO'], ['juan@plp.edu.ph', 'demo@example.test'], ['09123456789', '09123456789'], ['Create a password', 'Trace_2026'], ['Confirm your password', 'Trace_2026']]) {
     fireEvent.change(screen.getByPlaceholderText(placeholder), { target: { value } });
   }
+  fireEvent.change(screen.getByLabelText('First Name *'), {target:{value:'Synthetic'}});
+  fireEvent.change(screen.getByLabelText('Last Name *'), {target:{value:'Alumni'}});
   fireEvent.change(screen.getByLabelText('Year Started *'), { target: { value: '2010' } });
   fireEvent.change(screen.getByLabelText('Year Graduated *'), { target: { value: '2014' } });
   fireEvent.change(screen.getByLabelText('Explain Missing Proof'), { target: { value: 'Records unavailable; Registrar review requested.' } });
