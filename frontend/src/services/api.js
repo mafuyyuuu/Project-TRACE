@@ -13,9 +13,7 @@ import axios from 'axios'
 const api = axios.create({
   baseURL: `${import.meta.env.VITE_API_URL ?? ''}/api`,
   withCredentials: true,
-  headers: {
-    'Content-Type': 'application/json',
-  },
+  // Let Axios encode objects as JSON and the browser add FormData boundaries.
 })
 
 const activityKey = Symbol('traceApiActivity')
