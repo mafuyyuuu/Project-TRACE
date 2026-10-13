@@ -1,4 +1,5 @@
 const PROFILE_YEAR_FIELDS = {
+  year_started: { label: 'Year Started', minimum: 2002 },
   graduation_year: { label: 'PLP/College Year Graduated', minimum: 2002 },
   last_attendance_year: { label: 'Last Attendance Year', minimum: 1000 },
   elem_grad_year: { label: 'Elementary Year Graduated', minimum: 1000 },
@@ -22,15 +23,46 @@ function yearError(value, { label, minimum = 1000, required = false }, now = new
   return '';
 }
 
+function studyYearErrors(draft, { required = false, now = new Date() } = {}) {
+  const errors = {};
+  for (const field of ['year_started', 'graduation_year']) {
+    const error = yearError(draft[field], { ...PROFILE_YEAR_FIELDS[field], required: required || (field === 'year_started' && Boolean(draft.graduation_year)) }, now);
+    if (error) errors[field] = error;
+  }
+  if (!Object.keys(errors).length && draft.year_started && draft.graduation_year) {
+    const gap = Number(draft.graduation_year) - Number(draft.year_started);
+    if (gap < 0) errors.graduation_year = 'Year Graduated cannot precede Year Started.';
+    else if (gap > 10) errors.graduation_year = 'The study-year gap cannot exceed 10 years.';
+  }
+  return errors;
+}
+
 function profileYearErrors(draft, account, { onlyProvided = false, now = new Date() } = {}) {
   const errors = {};
   for (const [field, definition] of Object.entries(PROFILE_YEAR_FIELDS)) {
     if (onlyProvided && !Object.hasOwn(draft, field)) continue;
-    const required = field === 'graduation_year' && account?.role === 'student' && account.user_type === 'alumni';
+    const required = ['year_started', 'graduation_year'].includes(field) && account?.role === 'student' && account.user_type === 'alumni';
     const error = yearError(draft[field], { ...definition, required }, now);
     if (error) errors[field] = error;
   }
   return errors;
 }
 
-export { PROFILE_YEAR_FIELDS, manilaYear, yearError, profileYearErrors };
+export { PROFILE_YEAR_FIELDS, manilaYear, yearError, studyYearErrors, profileYearErrors };
+
+export function profileEditYearErrors(draft, account) {
+  const errors = profileYearErrors(draft, account);
+  const fields = ['year_started', 'graduation_year'];
+  const unchanged = fields.every(key => String(draft[key] ?? '') === String(account?.[key] ?? ''));
+  if (unchanged) {
+    for (const key of fields) if (account?.[key] != null && account[key] !== '') delete errors[key];
+  } else {
+    Object.assign(errors, studyYearErrors(draft, { required: account?.role === 'student' && account.user_type === 'alumni' }));
+    for (const key of fields) {
+      if (account?.[key] != null && account[key] !== '' && String(draft[key] ?? '') !== String(account[key])) {
+        errors[key] = 'Saved study years can only be corrected by an authorized administrator.';
+      }
+    }
+  }
+  return errors;
+}

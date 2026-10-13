@@ -58,12 +58,6 @@ const proofOptions = {
   },
 };
 const idProofUpload = multer({ storage: idProofStorage, ...proofOptions });
-const temporaryIdStorage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, UPLOAD_DIR),
-  filename: (req, file, cb) => cb(null, 'ocr-temp-' + crypto.randomBytes(16).toString('hex') + path.extname(file.originalname).toLowerCase()),
-});
-const signupOcrUpload = multer({ storage: temporaryIdStorage, ...proofOptions });
-
 const documentUpload = multer({
   storage: documentStorage,
   limits: { fileSize: 10 * 1024 * 1024 }, // 10 MB limit
@@ -137,4 +131,12 @@ function supportMessageUpload(req, res, next) {
       ? badRequest('Attach at most 3 JPEG, PNG or PDF files, 5 MB each, with your message.') : error);
   });
 }
-module.exports = { supportMessageUpload, supportUpload, idProofUpload, signupOcrUpload, documentUpload, pertinentUpload, profilePictureUpload, UPLOAD_DIR };
+const receiptUpload = multer({
+ storage:documentStorage,limits:{fileSize:5*1024*1024,files:1},
+ fileFilter:(req,file,cb)=>{
+  const types={'.jpg':'image/jpeg','.jpeg':'image/jpeg','.png':'image/png','.pdf':'application/pdf'};
+  const valid=types[path.extname(file.originalname).toLowerCase()]===file.mimetype;
+  cb(valid?null:badRequest('Receipt copies must be JPEG, PNG or PDF, at most 5 MB.'),valid);
+ },
+});
+module.exports = { receiptUpload, supportMessageUpload, supportUpload, idProofUpload, documentUpload, pertinentUpload, profilePictureUpload, UPLOAD_DIR };

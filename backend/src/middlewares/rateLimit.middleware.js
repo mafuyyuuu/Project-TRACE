@@ -50,8 +50,4 @@ const apiLimiter = rateLimit({
   message: { error: 'Too many requests. Please slow down.' },
 });
 
-const signupOcrLimiter = rateLimit({
-  windowMs: 60 * 60 * 1000, limit: 20, standardHeaders: 'draft-7', legacyHeaders: false,
-  message: { error: 'Too many ID scans. Enter the details manually or try again later.' },
-});
-module.exports = { loginLimiter, registerLimiter, passwordResetLimiter, apiLimiter, signupOcrLimiter };
+module.exports = { loginLimiter, registerLimiter, passwordResetLimiter, apiLimiter };

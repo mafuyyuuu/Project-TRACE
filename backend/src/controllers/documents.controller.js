@@ -1,4 +1,26 @@
 const documentsService = require('../services/documents.service');
+const assignments = require('../services/requestAssignment.service');
+const fs = require('fs/promises');
+async function discardReceiptUpload(file) {
+  if (file?.path) await fs.unlink(file.path).catch(() => {});
+}
+
+async function detail(req, res) {
+  try { res.json(await documentsService.requestDetail(req.user, req.params.id)); }
+  catch (err) { fail(res, err, 'Request detail error', 'Failed to load request.'); }
+}
+async function assignmentContext(req, res) {
+  try { res.json(await assignments.context(req.user, req.params.id)); }
+  catch (err) { fail(res, err, 'Assignment context error', 'Failed to load assignment.'); }
+}
+async function reassign(req, res) {
+  try { res.json(await assignments.reassign(req.user, req.params.id, req.body)); }
+  catch (err) { fail(res, err, 'Request reassignment error', 'Failed to reassign request.'); }
+}
+async function reconcileCollege(req, res) {
+  try { res.json(await assignments.reconcileCollege(req.user, req.params.id, req.body)); }
+  catch (err) { fail(res, err, 'College reconciliation error', 'Failed to reconcile college.'); }
+}
 
 /**
  * Thin HTTP layer for /api/documents. Pipeline logic lives in
@@ -83,9 +105,16 @@ async function submitPayment(req, res) {
 }
 
 async function verifyPayment(req, res) {
+  let saved = false;
   try {
-    res.json(await documentsService.verifyPayment(req.user, req.params.id, req.body, req.file));
+    const result = await documentsService.verifyPayment(req.user, req.params.id, req.body, req.file);
+    saved = true;
+    // A successful retry returns the original copy. Discard only the fresh,
+    // unpublished upload, never the file referenced by the saved receipt.
+    if (req.file && result.receipt && result.receipt.copy_path !== `/uploads/${req.file.filename}`) await discardReceiptUpload(req.file);
+    res.json(result);
   } catch (err) {
+    if (!saved) await discardReceiptUpload(req.file);
     fail(res, err, 'Verify payment error', 'Failed to process payment verification.');
   }
 }
@@ -195,6 +224,7 @@ async function sendMessage(req, res) {
 }
 
 module.exports = {
+  detail, assignmentContext, reassign, reconcileCollege,
   messageThreads,
   getMessages,
   sendMessage,

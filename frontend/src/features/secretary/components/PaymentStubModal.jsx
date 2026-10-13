@@ -68,7 +68,7 @@ export default function PaymentStubModal({ selectedDoc, groupDocs, setActiveModa
 {printHtml ? (
         <>
         <div className="space-y-3 py-4 border-b border-dashed border-gray-300">
-          <h3 className="text-lg font-bold">TRACE · Order of Payment</h3>
+          <h3 className="trace-section-title">TRACE · Order of Payment</h3>
           {qrSvg && <div className="mx-auto w-[132px]" dangerouslySetInnerHTML={{ __html: qrSvg }} />}
           <p className="text-center font-mono font-bold select-text">{tracking}</p>
           <p className="text-sm break-words">Program/Course: {selectedDoc.program || 'Not entered'}</p>

@@ -1,3 +1,434 @@
+## Staff internal-assistance navigation — completion — 2026-10-12
+
+Removed the separate Internal Assistance destination for Window 1/Receiving Desk, Finance and
+College Secretary. Each role now opens the existing Support → Internal assistance category,
+matching Admin. Legacy tab=internal-assistance links render the same MessagingWorkspace with
+initialCategory=internal; the existing internalTicket query reaches the requested concern and
+Support is the selected sidebar/drawer destination. Removed DashboardPage's unused standalone
+import/route. Category keys/draft preservation, onboarding targets, account gates, staff creator
+privacy and assigned-Admin authority remain intact; no backend or visual styling change.
+
+Executed **88 assertions against the actual navigation utility** in the available JavaScript
+runtime: supported-role destination removal, Support uniqueness, legacy mapping, stable menu
+partitions and preservation of other destinations/role mappings. Reviewed the real route and
+MessagingWorkspace ticket-query wiring and confirmed onboarding already targets Support.
+Added/updated React regressions for all four desk labels, Admin, labelled/icon navigation,
+requested internal ticket selection, forced unauthorized URLs and temporary-password gates.
+Changed-line whitespace review passes. **These React tests were not run**: the selected coding
+environment is disconnected and no terminal/runtime is available. Lint/build, browser screenshots,
+physical-device and live-deployment checks remain pending; prior suite counts are not claimed
+for this patch.
+
+Updated existing README navigation, Help, User Manual, System Workflows, defense walkthroughs and
+the consolidated deployment ledger. **No migration, dependency or environment change**; only the
+matching frontend must be published for this follow-up. Publication is to dev, without main merge,
+cloud deployment or per-batch acceptance Markdown. The prior AI update's separate rebuild
+requirement remains recorded and is not executed here.
+
+## Staff internal-assistance navigation — findings before edits — 2026-10-12
+
+The user reports Window 1's duplicate Internal Assistance destination and extends the review to
+Finance and College Secretary. The shared navigation inserts a separate entry for all supported
+clerks, although MessagingWorkspace already contains the same Internal assistance category.
+Admin already maps old internal-ticket links into that categorized workspace; staff still open
+the standalone component. Remove duplicate entries for Window 1/Receiving Desk, Finance and
+Secretary and extend the existing legacy-link route/active Support mapping to all of them.
+Retain ticket queries, category drafts, account gates and creator/assigned-Admin permissions.
+This is a frontend navigation change, without new schema, design or migration.
+
+The selected coding environment is offline and exposes no terminal/runtime tools. Proceed with
+a pinned dev source read and small GitHub patch, execute the real navigation utility in the
+available JavaScript runtime, and add React regression tests. React/Vitest, lint/build and browser
+execution remain unverified until a coding environment reconnects. No new acceptance Markdown.
+
+## Admin document insights and narrow tables — completion — 2026-10-12
+
+Replaced unsupported Optimal Performance/System Normal claims with an authoritative Node queue
+snapshot across every active PIPELINE stage. Known terminal history is excluded; unknown statuses
+are counted separately for review. Today’s workflow actions use explicit full Manila-day bounds
+and are distinguished from distinct requests. Count size alone makes no efficiency, delay or
+capacity conclusion. Existing evaluation >5 and pickup >3 checks are labelled advisory thresholds.
+Optional Random Forest remains a ten-tree/four-coded-example prototype: only its explicit
+unvalidated integer class enables experimental review text, never a success/performance claim.
+Node builds its own messages and ignores old unsupported AI response contracts. Flask accepts
+validated aggregate-only POST input; compatibility GET also counts every stage. Support insight
+formulas, Prophet/OCR, document state changes and existing permissions are untouched.
+
+Added snapshot times, guarded read-only Refresh insights and honest stale/loading/failure states.
+Failed refresh replaces prior advice instead of leaving it apparently current. Admin verification,
+tracker and audit tables have stable Tailwind column widths, full-value wrapping, separate log
+tracking lines and contained keyboard-accessible horizontal scrolling. Tracker shows the complete
+tracking identifier. A real browser stress case exposed an additional unconstrained student-name
+button; constrained it to its cell and retained click/profile behavior. Existing row pagination,
+buttons and main design remain; no whole-system Figma restyling was introduced.
+
+Final **1,538 backend tests / 117 files** and **961 frontend tests / 104 files** pass, plus lint,
+production/PWA build, Python compilation and **11 document/support Python unit tests**. Isolated
+execution of the actual Flask route with real Flask/RandomForest and a synthetic DB stand-in passes
+**five HTTP checks**, including POST-without-DB, legacy GET, strict payloads and size limit.
+**Twenty Node/Python advisory parity cases** pass. **Four real MySQL/HTTP checks** in the retained
+isolated synthetic test database verify all-stage reads, legacy response rejection, aggregate-only
+prototype requests and equality with the existing backlog count. No cloud database, actual users,
+mail, proof or OCR/model download was used. Full Docker image build/startup was not performed;
+verified its explicit COPY now packages the helper and all listed sources exist.
+
+**48 browser configurations** pass for all three Admin tables at 320/375/768/1440 px, both themes
+and 100/200% text. Full values stay within cells and horizontal scrolling is contained; keyboard
+scrolling works where needed. Insight refresh failure removes prior workload advice. No page
+errors. Three representative actual-component screenshots with synthetic responses were visually
+inspected and added to the existing README. Living Help/manual/workflow/backend/setup/deployment
+and defense docs, including aggregate-flow diagrams, reflect the new contract and limits.
+
+**No additional migration, dependency or environment setting.** Matching backend/frontend and an
+AI image rebuild are needed when deploying because app.py imports document_insights.py and Node
+posts the aggregate snapshot. An old/unreachable AI service uses complete local advice safely.
+Existing five cloud migrations remain complete. Publication targets dev only, without main merge,
+cloud deployment, n8n import, external messages or per-batch acceptance Markdown.
+
+## Admin document insights and narrow tables — findings before edits — 2026-10-12
+
+The user reports Optimal Performance despite many outstanding documents and attaches an Activity
+Logs screenshot where document type/tracking text overlaps the Action column. They request fixes
+within the current design while their new Figma redesign is being prepared; dev only, no main
+merge or deployment. Inspection finds ai-engine/app.py checks only Secretary evaluation/release
+and today's step-action count, fits Random Forest on four hard-coded samples, and treats absence
+of warnings as confirmed efficiency. The Node fallback repeats the two-stage blind spot, calls
+step-action volume higher than average without a baseline, and recommends seeding mock history.
+Replace these unsupported production claims with read-only complete pipeline queue aggregates,
+transparent advisory rules and explicit limits: outstanding volume does not prove delay/capacity.
+Use the same live aggregate for optional AI formatting and local fallback; reject old unsupported
+AI contracts during staggered rollout. Keep Prophet, OCR and support insight definitions intact.
+
+Admin activity logs use table-fixed/whitespace-nowrap with equal narrow columns and put tracking
+beside the document type. Account review and tracker tables have similar unbounded text cells.
+Use explicit stable widths, full-value wrapping and contained keyboard-accessible table scrollers
+for Admin tables; preserve original actions, roles, row pagination and current shared styling.
+Record screenshots in the existing README and migration/setup notes in the consolidated guides,
+without per-batch acceptance Markdown or a database migration.
+
+## Comprehensive Admin functional review — completion — 2026-10-12
+
+Admin now reaches Internal assistance through Support, with legacy internal-ticket URLs mapped
+into that workspace and category drafts retained. The duplicate Admin Support analytics action
+is removed. Efficiency Analytics has independent Document Efficiency/Support Analytics views;
+direct Support links do not wait for document data and switching preserves the reporting draft.
+Scan Field Detection explains expected-field coverage instead of presenting the parser ratio as
+verified accuracy. Student/alumni accounts now have confirmed Admin-only deactivate/reactivate
+through the existing account lock, atomic status/version/audit transaction and socket revocation.
+Identity, enrollment and request history are preserved; restoration retains other login gates.
+Student/Admin role filters hide irrelevant desks and clear a stale desk selection.
+
+All reporting roles use visible draft filters with combined Student ID / Name and a header Export
+action. Export uses applied filters and is blocked for dirty/loading/failed scopes. Search is a
+parenthesized exact ID or literal name match within the existing college restriction. Finance
+continues selecting complete paid groups before expanding document CSV rows. Fees and structured
+purpose details become readable text; date/time includes seconds in Manila, without ISO syntax.
+Numeric amounts, the 36-column contract, private exclusions and spreadsheet escaping remain.
+Also repaired the Receiving Desk alias's inactive report hook. Real SQL verification found the
+fresh schema omitted payment_channel even though the historical Phase 19 migration and reporting
+SQL already require it; added that existing nullable column to the fresh-install template. This
+is not a new cloud migration. Existing installation data and migration scripts are unchanged.
+
+Final full suites: **1,522 backend tests / 116 files**, **959 frontend tests / 104 files**;
+frontend lint, production/PWA build and whitespace checks pass. **Nine real MySQL checks** pass
+on isolated synthetic local data: scoped document/student search, literal wildcard handling,
+status/version/history preservation, audited restoration, complete Finance groups/readable CSV,
+exact student-registration timestamps, and fresh-schema import/preflight/document/Finance reads.
+No cloud database, actual users, uploaded proof or external mail was used. **32 report browser
+configurations** pass across four role portals, four widths and two themes, with applied export
+scope, dirty blocking, retained drafts, acknowledgments and keyboard containment; four additional
+320px/200% text and reduced-motion checks pass. **16 analytics browser configurations** pass at
+100/200% text, with independent direct Support loading and retained dates. No browser page errors.
+Three synthetic actual-component screenshots were visually inspected; the existing README and
+CSV sample are updated. No separate batch acceptance Markdown was created.
+
+The existing five cloud migrations and internal health remain confirmed from the user's SSH
+output. This follow-up needs **no additional migration**, dependency/environment change, AI
+rebuild or n8n import. Publication is to **dev only**; main is not merged and cloud/frontend
+release is not performed here. Cosmetic icons, tracker/compact filter styling and the whole-system
+redesign are deferred until the user's new Figma reference. Living Help/manual/workflow/backend/
+environment/defense/deployment guides are synchronized with these functional changes.
+
+## Comprehensive Admin review — findings before edits — 2026-10-12
+
+The user requested four new Admin-focused batches while retaining the main Figma/shared modal
+styles. They confirmed Reports & Export should restore visible filters consistently across all
+report roles, merge Student ID/Name search, and keep Export at the upper right. Both Fee Breakdown
+and Purpose currently show structured JSON; timestamps need readable exact Manila date/time.
+No main merge is authorized by this review; publish verified changes to dev only.
+
+Scope steering: the user is preparing a new Figma redesign for the entire system and requested
+functionality first. Defer icon/button styling, tracker layout and compact filter restyling until
+that reference arrives. Removed the provisional icon/compact-row presentation changes. Continue
+duplicate navigation removal, independent analytics views, truthful metric wording, account
+deactivation/reactivation and relevant filters, combined report search and readable CSV. Existing
+shared controls/modals remain. Visible report filters are treated as the expressly requested
+workflow placement change, with no new design language.
+
+Inspection finds Admin navigation adds Internal Assistance although Support already hosts it;
+SupportWorkspace exposes another Admin analytics modal, and AnalyticsPanel stacks support below
+document metrics and blocks both behind document loading/errors. Consolidate Admin entry points,
+retain old notification links and drafts, and provide independent Document Efficiency/Support
+Analytics subtabs. Tracker/attachment actions are underlined text, and the OCR KPI falsely calls a
+field-detection ratio accuracy. The parser counts detected ID/name/form type, not validated model
+accuracy. Maintenance passes no student status callback and its backend status handler accepts
+staff only; add audited student/alumni deactivate/reactivate with existing session revocation,
+confirmation and record preservation. Compact context-appropriate filters and narrow-screen rows.
+Report CSV explicitly JSON-serializes fee lines and emits ISO Manila timestamps; inspect Purpose
+structure before formatting it, preserving stored details and CSV escaping/formula protection.
+Use shared controls; keep desk/college/report access and all existing legal workflow gates.
+
+## Production alumni missing-proof registration — completion — 2026-10-12
+
+Removed the demo-only runtime and Admin-review gates and replaced the registration-options
+contract with proof_unavailable_enabled. Alumni can explicitly apply with unavailable proof and
+a bounded reason in production. Registration always stores a pending account without a proof
+file or AI approval; contradictory proof attachment plus missing-proof marker is rejected before
+account creation. Current students still upload proof, and a malformed current-student exception
+cannot be approved. Only Admin decides with recorded evidence/basis; the existing audit and
+identity decision commit together. Pending login, profile/email/request gates and uploaded-proof
+Read ID remain unchanged. Removed the obsolete demo environment setting and UI copy. Confirmation
+includes the missing-proof reason, preserves cancelled/failed drafts and keeps shared modal styles.
+
+Validation: final full **1,508 backend tests / 115 files**, **954 frontend tests / 103 files**,
+lint, production/PWA build and whitespace checks pass. An auto-approval mutation fails the new
+pending-account regression; restored source passes the focused suite. **Seven real MySQL service
+checks** in production mode on the isolated synthetic local test database pass: enabled options,
+current-student denial, saved pending account/years/reason, denied pending login, required review
+evidence, actual atomic approval/audit and approved login with zero historical documents. Email
+ownership remains unverified after identity approval. No production data, external mail or real
+proof was used. **16 browser configurations / 32 signup-confirmation screen checks** pass at
+320/375/768/1440 px, both themes and 100/200% text; checks cover contained layout, trapped Tab,
+Escape/draft preservation, restored student proof and one synthetic multipart submission without
+attachment. No page errors. New README screenshots were visually inspected after exit animation
+settled. The initial browser package was incomplete and reconstructed from its pinned package;
+test selectors were corrected to the actual Create Account button and synthetic-email text.
+
+Updated living Help/manual/workflow/backend/environment/defense/rollout docs and the consolidated
+ledger. Cloud migrations and internal backend/database health are confirmed from the user's SSH
+output. This follow-up adds **no migration**, dependency, AI/n8n change or environment variable.
+The repaired backend and matching frontend still need publication on the cloud; main remains
+unmerged. Work is published to dev only, with no per-batch acceptance Markdown.
+
+## Production alumni missing-proof registration — findings before edits — 2026-10-12
+
+The user confirmed a successful cloud internal /api/health response with database ok after all
+five migrations. The earlier connection refusal was initial startup timing. Main merge, matching
+frontend release, public health and full workflow acceptance are still unconfirmed.
+
+Before final release, the user asked why alumni still require proof. The implemented register,
+registration-options and Admin-review gates hard-disable missing-proof applications in production,
+and signup/Admin UI calls the flow a defense demo. This does not satisfy the intended final alumni
+workflow. Enable an alumni-only missing-proof application with a bounded reason in production,
+always pending, no OCR/automatic verification, and Admin-only transactional decision/evidence audit.
+Keep current-student proof, identifier/study-year validation, pending login denial, email/profile/
+request gates and uploaded-proof OCR intact. Remove the obsolete demo setting/copy; use existing
+cloud-applied columns/tables, with no new migration or permissive identity auto-approval.
+
+## Cloud migration confirmation; runtime readiness pending — 2026-10-12
+
+The user's cloud SSH output confirms `trace_db` and an initial presence check reporting only the
+five Revision 2 follow-ups. All five actual CLIs then printed successful completion in ledger
+order; final `check_schema.js` passed. Updated the consolidated ledger from cloud-pending to
+cloud-applied based on these user-provided logs. No direct SSH or record inspection by the agent,
+additional migration, application code change, main merge or frontend release is claimed.
+
+The user recreated backend and restarted AI/n8n. Their immediate container listing shows backend
+up two seconds with health starting, followed by an internal curl connection refusal on port
+3300. This may be initial startup timing; readiness is unconfirmed. Next steps are retry status
+and internal/public health, then recent backend logs if unavailable. Migration reruns are not
+needed for this health check. Keep final merge/frontend release pending runtime health and
+matching workflow acceptance. Backup waiver for the current early test rollout remains recorded.
+
+## Isolated test migration application — 2026-10-12
+
+The user authorized applying the five recorded migrations to a staging/test database. No external
+staging or SSH database connection is available in the workspace, so the work used a separate
+local MySQL 8.0.46 test target with synthetic records. The user then asked who performs cloud
+migrations; clarified that local application is performed here, while cloud commands still run
+through the user's SSH session. No production or existing external staging connection was used.
+
+Prepared `trace_staging_test_20261012` with the current schema's earlier prerequisites and only
+the five new migrations omitted. Refused to recreate an existing target. Initial preflight
+confirmed that all reported gaps belonged to those five scripts. A baseline logical backup was
+restored into a separate local database with identical DDL/records across **41** tables. Applied
+the five actual CLI entry points in ledger order using code commit `281179f`; all exited zero,
+then the complete read-only schema CLI passed with zero missing fields. The final target has
+**54** tables, including thirteen new InnoDB tables. All existing synthetic records were unchanged;
+saved fees, historical OR, graduation/attendance years and clearance survived. Nullable routing/
+study-year defaults, nonblocking historical clearance and the full leading OR-number index were
+verified; no automatic pack activation or ticket/conversation/audit import occurred.
+
+Recorded **11** passing checkpoints, script hashes/completion times, baseline and migrated logical
+backups in the local test workspace; shut the isolated server down cleanly and retained its data.
+Updated the existing consolidated ledger to distinguish local-applied from cloud-pending. This is
+database operations/documentation only, with no runtime code/dependency/environment change,
+per-batch acceptance Markdown, main merge or deployment. All five cloud migrations remain pending;
+real role-workflow acceptance, delivery and phone/printer checks remain separate. The user waived
+mandatory backup/restore steps for the current early test rollout because the system has no major
+data yet. Recorded this preference in the consolidated checklist; prerequisite checks, preserving
+migrations and writer-stop checks remain. The already-completed local restore check needs no
+additional user action.
+
+## Deployment readiness — optional Docker frontend and migration rehearsal — 2026-10-11
+
+After publishing the integration review, the user authorized continuing while they rest. The next readiness audit confirms backend image packaging includes database scripts, application startup does not execute migrations, and README/docs links resolve. It found the optional local-frontend Compose profile builds with blank VITE_API_URL for same-origin requests, but frontend/nginx.conf has no API or Socket.IO proxy. The Dockerfile says that proxy exists. Login/API calls therefore fall into the SPA response, and WebSocket upgrades cannot reach the backend. Repair this optional profile’s proxy and verify real HTTP/multipart/WebSocket behavior against an isolated synthetic backend if a local Nginx runtime is available. Preserve SPA deep links and static caching. This does not change Vercel’s separately configured API origin, live infrastructure, stored records or migration requirements.
+
+The same audit found older README/environment quick-start commands still invoke the broad historical migration after importing the now-complete fresh schema, despite the preserving rollout guide explicitly rejecting that shortcut for existing installations. Use the read-only schema preflight in fresh-install recipes and direct existing installations to the consolidated preserving ledger. Do not execute the broad migration or alter production data.
+
+Implemented the same-origin API/Socket.IO proxy with complete URI/query/auth/body forwarding,
+streamed multipart requests, explicit WebSocket headers and a 75-second read timeout. Backend
+Multer still owns per-file limits; SPA deep links and static caching remain. No Vercel, application,
+dependency, environment or schema change. README/environment fresh-install recipes now use
+read-only preflight; seed.sql already includes the seven Secretary demo accounts. Existing
+installations are directed to the preserving rollout rather than broad historical data updates.
+
+Validation: **11 real Nginx checks pass**, including >15 MiB multi-file upload, private bytes/errors,
+JSON API 404, REST headers/body/query, SPA/reset deep links, immutable assets and both direct
+WebSocket and polling upgrade. **11 isolated MySQL 8.0.46 checks pass**: complete fresh schema,
+five incremental migrations, unchanged synthetic historical accounts/years/fees/OR/requirements,
+nullable/nonblocking defaults, no automatic pack activation, two preserving reruns across thirteen
+populated tables and saved print format. Actual staff service calls verify simultaneous pair
+creation, idempotent replay and Admin read-only monitoring; actual linked-support SQL follows saved
+routing college after a profile change and authorized cancelled-history fallback. Initial QA
+connection failed because the prior test server was in another execution network; the final
+server and checks ran together and shut down cleanly. No production database, mail, Docker stack
+or deployment was used. The preceding full suites remain **1,501 backend / 953 frontend tests**;
+this follow-up changes only Nginx and docs. Production migrations remain unapplied, with genuine
+staging delivery/receipt contention/printer/phone and backup restoration still required.
+
+## Cross-batch integration review — completion — 2026-10-11
+
+Support now follows student/legacy ticket and general-context notification changes on a mounted screen. Explicit ticket links take priority; obsolete context lookups are aborted and cannot overwrite selection. An actual-component browser check confirms that a new-ticket form draft survives notification selection changes.
+
+Receiving Desk now renders the normal Window 1 dashboard, passes the existing intake/release guards, appears among active Admin backup candidates and receives Window 1 workflow notifications. Canonical desk comparison keeps another processor’s assignment binding across Window 1/Receiving Desk labels. Stored identities, college restrictions and legal transitions are unchanged.
+
+Linked ticket list/history/file authorization and authorized legacy chat history now honor the existing routing_college_id, matching desk processing and reports. Unsnapshotted records fall back to the verified student profile; cancelled ticket history without a surviving document retains its authorized profile-based scope. Shared SQL keeps its correlated student alias. An opaque authoritative list-scope digest lets the frontend discard cached rows/selection after college/desk scope changes. Denied 403/404 reads clear protected conversation context/history; local drafts and data during ordinary temporary errors are retained.
+
+Validation: full **1,501 backend tests / 115 files**, **953 frontend tests / 103 files**, lint, production/PWA build and whitespace checks pass. **Eight Chromium actual-component notification/draft cases** cover 320/375/768/1440 px in both themes, plus denied-history/composer clearing and changed-scope selection clearing; no page errors or writes. Temporarily restoring the old desk-label and missing-routing-snapshot logic makes the new security regressions fail; the fixes were restored before full verification. The migration audit confirms **32** unique existing scripts, ordered relevant prerequisites and all **13** new-migration table definitions present in fresh schema. **181** README/docs local links resolve. No new migration, dependency or environment variable; the five Revision 2 follow-up migrations remain unapplied. Genuine MySQL contention, delivery, printer and phone checks remain staging work. Publication is dev only, without merge or deployment.
+
+## Cross-batch integration review — findings before fixes — 2026-10-11
+
+The user authorized continuing after the additional chat connections. The review found that the student/legacy RequestMessagesPanel never forwards notification ticket changes to useSupportTickets, whose initial selection reads the URL only once. General-support context changes also lack a reactive dependency, and an in-flight document-context lookup can overwrite a later explicit ticket selection. Follow route queries without remounting drafts and abort obsolete context lookups; explicit ticket links take precedence.
+
+The application already treats Receiving Desk as the Window 1 alias for navigation, walk-in filing, support and staff coordination. DashboardPage nevertheless renders no normal dashboard for that alias, document intake/release requires the literal Window 1 label, backup selection omits Receiving Desk, and assignment enforcement compares the two raw labels as different desks. Normalize the alias at these boundaries without changing stored identities, college scope, document stages or ownership. Another processor's assignment must remain binding across both labels. Window 1 workflow notifications should include active staff using either label.
+
+A further boundary check found linked support list/history authorization still derives only from the current student profile, omitting the saved routing_college_id added in Batch 8. Use that existing routing snapshot for case conversations and the legacy read-only history, with profile fallback only for unsnapshotted rows. Support lists also merge old rows across changed authoritative college/desk scope, and conversation read failures leave protected cached content visible. Add an opaque authoritative scope marker and discard cached rows/history on changed scope or denied reads; preserve local drafts and ordinary temporary-error behavior.
+
+Review the consolidated migration order and affected workflow documentation. No new migration, environment variable, Figma theme, per-batch acceptance document, merge or deployment is proposed. Local mocked regressions cannot substitute for real MySQL, delivery, printer and phone staging checks.
+
+## Additional operational chat connections — completion — 2026-10-11
+
+Following the user's explicit authorization, the previously deferred TRACE-78 connections are implemented. Support now groups student/case tickets, staff coordination and internal assistance. Window 1's student communication retains its existing ticket/FAQ/queue flow; Finance/Secretary case discussions keep existing document/college access. Ordinary staff recipients are active Window 1/Receiving Desk, Finance and Secretary accounts; students, Admin, self and unsupported desks are excluded. Secretary peers must share an active resolved college; a Secretary's college is snapshotted for coordination with global desks. No new cross-college request access or student attachments are imported.
+
+Separate preserving staff conversation/message/event tables enforce unique participant-pair/college scope and actor retry keys. Sorted account locks precede pair/thread writes; first-message creation and sends commit message/audit/update together, with bounded deadlock retries. First-message review/cancel/failure retains the same retry key until content/recipient changes or acceptance; direct Send has a synchronous duplicate guard and retains failed drafts. Accepted sends survive failed refreshes and notifications. Staff participants alone read a thread; active Admin monitors all operational staff history but cannot pick recipients, open conversations or send. Changed/inactive peers make retained history read-only; a changed Secretary loses old-college access. Refreshed authoritative scope or access denial clears cached protected history. History pagination bridges missed middle pages after reconnect, and notification query changes open the requested conversation.
+
+The workspace reuses the main Figma messaging hierarchy (260:3301), local Support icon assets at intrinsic size, dynamic initials, shared QueueTabs/ModalShell/ConfirmDialog and success toasts. Visited categories preserve drafts; inactive category dialogs/toasts do not appear. A browser check found Staff Coordination's heading overflow at 320 px/200% text; using the shared page-header layout with wrapping fixes it. No fabricated presence, read-receipt or unread marks. Staff conversations remain separate from student support metrics/AI and Internal Assistance authority.
+
+Validation: **1,488 backend tests / 114 files**, **941 frontend tests / 101 files**, final focused UI checks, lint, production/PWA build and whitespace checks pass. **48 Chromium actual-component layout cases** cover staff/Admin/unavailable-peer, 320/375/768/1440 px, both themes and 100–200% text. Additional checks cover composer reachability, Admin read-only rendering, drawer Tab containment/Escape, category draft retention, cancelled first-message confirmation, enlarged mobile create controls, reduced motion and visible asset loading/geometry. Screenshot fixtures are synthetic. Transaction tests simulate opposite-direction concurrent opens, retries and rollback; no live MySQL concurrency, actual phone, delivery or production outcome is claimed.
+
+README screenshots/walkthrough/local seed credentials and living Help/manual/workflow/backend/environment/defense docs are updated. No per-batch acceptance file. New `migrate_staff_conversations.js` is additive/rerunnable, with matching fresh schema/checker entries; the consolidated rollout now lists **32 existing scripts**, with matching staff DDL and separate metrics sources verified. It creates no accounts/conversations and imports no student/internal history. All new migrations remain **unapplied**; no dependency/environment/AI/n8n change, main merge or deployment. Publication is **dev only**. This completes the authorized additional recipient-connection phase.
+
+---
+
+## Additional operational chat connections — inspection — 2026-10-11
+
+User explicitly authorized implementing TRACE-78's previously deferred connections after Batch 13. Existing Support already provides Window 1↔student ticket communication and college-scoped case discussions; it has no staff recipient directory or pair conversation store. Internal Assistance is already a separate creator/Admin queue. Implement additional staff coordination without bypassing student tickets, importing student files or expanding Secretary request access. Reuse the main Figma messaging frame (260:3301), shared controls/modal confirmations and supported desk identities. Fresh active staff/college checks must govern directory, list, detail and writes; Admin monitors operational staff conversations read-only. Recipient pairs should reuse one thread within their recorded college scope, with durable retries, bounded history and generic private notifications. No fictional presence/read indicators or per-batch acceptance document. Record the new preserving migration in the consolidated rollout before publication.
+
+---
+
+## Revision 2 Batch 13 — Internal Assistance — completion and integration review — 2026-10-11
+
+TRACE-77/78 are the final entries in the newer 13-batch guide. Inspection found no separate private staff-to-Admin ticket store or lifecycle, and operational support still allowed Admin intervention. The existing Figma Support frame (260:3301) provides the two-column ticket/conversation hierarchy, but no dedicated internal-assistance frame. This implementation reuses that hierarchy, shared confirmation/modal styles, readable aligned cards and toasts rather than adding a new visual theme.
+
+Window 1 (including Receiving Desk), Secretary and Finance now create their own text-only concerns in Internal Assistance. Fresh active account/desk authorization scopes staff to their own tickets; active Admins inspect the queue, claim before replying, and only the assignee manages awaiting-staff, resume and mandatory-note resolution. Staff replies retain assignment and resume handling. Creator or assigned Admin may reopen into the unassigned queue with retained history. Explicit takeover is restricted to an open concern whose assignee is inactive or no longer Admin. Ticket locks arbitrate competing Admins; actor locks, durable retry hashes/keys and version checks protect duplicate/stale actions. Failed sends retain drafts and retry keys; post-commit private notifications do not import concern text or student files.
+
+Admin operational student support is now read-only in API and UI, including case-specific attachment mutations. Global catalogs, support settings and analytics remain administratively accessible. Internal tickets, messages and events are stored separately and excluded from existing student support metrics/AI. TRACE-78 remains a documented matrix/category specification: no new ordinary recipient connections, presence or read/unread claims were implemented.
+
+Local verification: full backend suite passes **1,449 tests / 111 files**; final full frontend suite passes **919 tests / 99 files**, with 22 focused internal-workspace/routing checks. Lint, production/PWA build and whitespace checks pass; the existing bundle-size advisory remains. Earlier Chromium verification passed **48 actual-component** staff/assigned-Admin/unassigned-Admin width/theme/100–200% text cases, plus drawer keyboard focus/Escape, cancelled-draft preservation, resolution confirmation and reduced-motion checks. Screenshots use synthetic records and are linked with navigation and local seed credentials in README. Mocked transactions and local browser checks do not establish live MySQL contention, notification delivery, physical-phone or printer acceptance.
+
+The bounded integration review found notification links changed the query without updating the already-mounted internal conversation; the route now passes its ticket query and the hook follows it, with regression tests. It also corrected stale Year Ended, export-button and manual-OR walkthrough copy in the living Help/manual/backend/defense guides. All **31** ordered migration scripts exist, relevant dependencies precede the new scripts, internal migration DDL matches fresh schema, and README/docs local file links resolve. The consolidated deployment ledger includes `migrate_internal_assistance.js` and all earlier pending migrations; none were applied. No separate acceptance Markdown, new dependency/environment variable, main merge or deployment. Publication remains **dev only**. The newer numbered guide is complete; ordinary chat connections remain deferred pending their separately agreed scope.
+
+---
+
+## Revision 2 Batch 12 — Finance Receipts — completion — 2026-10-11
+
+TRACE-71/72/73/74 now add the Official Receipts / History pill beside Finance verification, a shared configurable 50-number paper pack, permanent serial reservations, immutable issued snapshots and receipt-specific copy uploads. Finance chooses the numeric segment of a complete serial and confirms the first three/50th preview. Issuance runs under document/control/pack locks with serial, active-group and retry-key uniqueness; managed payment approval commits clearance and issuance together. Later remains payment acknowledgment without OR issuance. Stale displayed serials require refresh/review, successful retries reuse the issued receipt, and the 51st issuance requires a new pack. Early replacement needs a reason and never recycles unused numbers. Existing historical manual receipts remain intact and cannot use reserved managed serials.
+
+The reviewed payor name preserves the original profile name; saved amounts use integer centavos, recorded payment references and the authenticated cashier. Copy validation checks JPEG/PNG/PDF size and content; uploads, previews and reprints allocate no numbers. Print requests/reprints, copy publication, pack changes, calibration and pre-Secretary voids are audited. Voids preserve paid payments while consuming the original number permanently. Printing uses the saved snapshot in a sandboxed iframe with full/demo and data-only modes, saved paper/margin/offset settings and an overflow guard. Unknown printer geometry is explicitly illustrative; physical success/alignment remains a real-printer check. Groups beyond the supported 12-item print layout require review rather than clipped printing.
+
+Local verification: full backend suite passes 1,410 tests in 108 files; frontend suite passes 895 tests in 97 files. Lint and production/PWA build pass. Chromium passes 64 actual component mode/width/theme/100–200% text cases, plus draft-preserving pack preview/cancel and reduced motion, with no page errors. The existing chat-scroll assertion now waits for its asynchronous effect rather than checking immediately after message text renders. Tests cover permissions, rollback, lost-response retry, stale serials, modeled competing cashiers at 49/50, the 51st issue, pack overlap/replacement, content validation, exact copy publication, print audit and void/handoff gates. These mocked/unit checks do not establish live MySQL contention, notification delivery or physical-printer acceptance.
+
+Screenshots, navigation and local seed testing credentials are consolidated in [README.md](../README.md#finance-receipt-walkthrough). Per user instruction, the five old per-batch acceptance Markdown files and the obsolete Batch 8b plan are removed; related links point to the README. The consolidated progress and deployment records remain. New preserving migration: `backend/database/migrate_receipt_packs.js`, with a preserving OR-number index, fresh-schema and read-only preflight entries. [DEPLOYMENT_CHECKLIST.md](DEPLOYMENT_CHECKLIST.md) records it as not applied and the complete rollout order now has 30 scripts. No new dependency/environment variable, live migration, main merge or deployment. Publication is dev only.
+
+---
+
+## Revision 2 Batch 11 — Support Analytics — completion — 2026-10-11
+
+TRACE-69/70 now use the Admin Figma dashboard (93:663) card hierarchy for six recorded support KPI summaries, detailed categories/backlog and borderless semantic duration/FAQ/workload tables. Reporting period, imported-cohort exclusions, FAQ denominators, historical cutoff, service/wall minutes, episode counts and missing-versus-zero distinctions remain. Tables have contained scrolling, aligned values and readable No data; the parent no longer nests the whole view inside another card. Date drafts stay explicit Apply, and refresh failures retain labeled previous results for retry. Backend/AI calculations, endpoints and permissions are unchanged.
+
+Local verification: full frontend suite passes 887 tests in 95 files; final focused analytics suite passes 10 tests in 2 files. Existing backend metric/report regressions pass 15 tests in 2 files. Lint, production/PWA build and whitespace checks pass. Chromium passes 80 state/width/theme/text-size cases, plus keyboard scrolling/focus, No data contrast, stationary informational hover, reduced motion and draft/error/retry checks. Screenshots and an account-free walkthrough are in [README workflow walkthrough](../README.md#main-workflows); synthetic checks do not establish live metric outcomes or physical-phone acceptance.
+
+No new migration, environment variable, API contract or dependency. [DEPLOYMENT_CHECKLIST.md](DEPLOYMENT_CHECKLIST.md) records Batch 11 as None and retains previous prerequisites. Publication remains dev only; no main merge, live migration or deployment. Next: newer guide Batch 12, Finance Receipts.
+
+---
+
+## Revision 2 Batch 11 — Support Analytics — inspection and implementation — 2026-10-11
+
+TRACE-69/70 from the newer guide. Inspection found `SupportAnalytics.jsx` using scattered plain-text FAQ/category/backlog summaries and a boxed duration table, plus a surrounding AnalyticsPanel card duplicating its container. The existing API already supplies cohorts, FAQ denominators, historical backlog, service/wall durations, imported distinctions and workload episodes. The Admin Figma dashboard (93:663) supplies rounded white cards, a label/value/context hierarchy and soft green context strips; it has no dedicated Support Analytics frame. Decorative mock trends, baseline percentages and unrelated dashboard assets are outside this presentation scope.
+
+Implementation now groups recorded summaries into six KPI cards, categories/backlog tally panels and semantic, borderless duration/FAQ/workload tables. Date drafts remain explicit Apply; previous loaded period is labeled during refresh/failure; failures stay inline with retry. Measurement notes, units, missing-vs-zero, authorization and backend/AI definitions remain. No migration, API contract, environment variable or new dependency is planned. The inspection/implementation record is retained here; completion and verification are recorded above. No live database or deployment action.
+
+---
+
+## Revision 2 Batch 10 — Support / Messaging UI — completion — 2026-10-11
+
+TRACE-61/62/63/64/65/66 now use the main TRACE Figma conversation layout and local original illustration/icons. Shared rows fix selection contrast/alignment; header controls distinguish confirmed availability, primary FCFS claiming and creation. Linked-case viewing sits in selected context. Local search covers loaded authorized ticket metadata, with no invented unread/presence/read/snippet data. Success toasts stack outside layout; errors and confirmation behavior remain. Full/compact conversations preserve FAQ, reply clocks, protected files, requirements, cursor history and retry-safe sends. The compact widget retains drafts across close/reopen and restores focus; digital evaluation separates persistent form/discussion panels with a mobile switch and pinned decisions.
+
+Verification: 876 frontend tests in 94 files pass, followed by 26 final focused regressions. Existing backend support/attachment regressions pass 31 tests in 2 files. Lint/build/whitespace checks pass; 64 mocked Chromium role/theme/width cases plus 200% text, drawer keyboard focus/restoration, independent scrolling, composer reachability, reduced motion and local assets pass. Screenshots and walkthrough are in [README workflow walkthrough](../README.md#main-workflows). No live database, physical-phone or delivery claim is made.
+
+No new migration, environment variable, API contract, dependency or staff chat connection. [DEPLOYMENT_CHECKLIST.md](DEPLOYMENT_CHECKLIST.md) records Batch 10 as None and retains previous migration prerequisites. Publication is to dev only; no main merge, live migration or deployment. Next: newer guide Batch 11, Support Analytics (TRACE-69/70).
+
+---
+
+## Revision 2 Batch 10 — Support / Messaging UI — findings — 2026-10-11
+
+Scope: TRACE-61/62/63/64/65/66. Inspected the main TRACE Figma workspace (260:3301) and compact empty/conversation frames (254:987, 258:1093), plus the three supplied reference images. Staff chat connections remain deferred; this batch preserves the existing ticket/desk/college rules.
+
+Findings before edits: SupportWorkspace uses centered trace-button markup for every queue row and its selected aria-pressed secondary styles conflict with the pale surface. The header mixes availability, queue claiming, creation and administration; “Open linked case” opens a new-ticket form. Action notices occupy the list layout. SupportConversation already has protected attachments, reply/FAQ/requirements actions, cursor history and duplicate-safe sends, but mixes queue/hours notices with context and uses broad card-like messages. SecretaryEvaluationModal embeds a 70dvh support workspace below form fields, making one long scroll. FloatingSupportChat lacks Escape/focus restoration and discards drafts on close. The API has no unread/read-receipt/presence or last-message snippet fields; local search will clearly search loaded authorized ticket metadata and show real status/context instead of fabricated message metadata. No new backend capability or DDL is planned.
+
+Findings recorded before source edits; implementation and final evidence are recorded above. Publication remains dev only; no main merge, live migration or deployment.
+
+---
+
+## Revision 2 Batch 9 — Reports & Export — 2026-10-11
+
+TRACE-58/59/60: all report/export configuration now uses the shared Filters & Export modal across Admin, Window 1, Secretary and Finance. Draft/Apply/Reset/Cancel semantics prevent keystrokes from changing reports; current-scope/pending/error guards protect exports. Student ID/name, authoritative college and document type filters are validated server-side and share row/KPI/export scope. Secretary filters cannot expand its assigned college. The shared 36-column document CSV uses complete filtered sets, explicit Manila timestamps, numeric PHP values, recorded fees and safe formula/RFC quoting; oversized document exports refuse rather than truncate. Finance retains complete payment groups on screen and exports one row per document in those groups. Separate student-category exports retain their own row unit and apply identity/college filters.
+
+Local checks: 1,374 backend / 866 frontend tests pass, followed by 49 focused final regressions; lint/build and whitespace checks pass. Responsive synthetic browser evidence and the sample CSV are in [README workflow walkthrough](../README.md#main-workflows). No new migration in this batch; [DEPLOYMENT_CHECKLIST.md](DEPLOYMENT_CHECKLIST.md) consolidates Batch 7/8 migrations and prerequisites for the final rollout. No live migration, merge to main or deployment is included. Next: newer guide Batch 10 (Support / Messaging UI).
+
+---
+
+## Revision 2 Batch 8 — Intake / College Scope / Staff Assignment — 2026-10-10
+
+Implements TRACE-55/56/57/67/68 from the newer guide. Explicit catalog-based intake requirements block routing until accepted; saved college routing scope governs own-college Secretary lists, reports/exports, details, actions and files. Alumni route to their recorded former college. Admin alone can confirm and audit eligible backup assignments within the current desk/college, with stale-save protection. Missing legacy scope can be reconciled from institutional records without rewriting saved snapshots or closed history. Existing payment/OR prerequisites and physical handoff remain. Shared QueueTabs/QueuePanel align pills, keyboard semantics, spacing and visible context/hover motion across roles, with reduced motion.
+
+Verification: the full backend suite passes 1,357 tests; the full frontend suite passes 871 tests, plus focused regressions added for the final reconciliation path. Lint/build and whitespace checks pass. Synthetic Chromium covers 56 layout cases, enlarged text, both themes, context motion, fixed hover targets and reduced motion. Screenshots, causes, reproduction and deployment limits are in [README workflow walkthrough](../README.md#main-workflows).
+
+The additive intake-scope migration has not run on a live database. Matching API/frontend rollout and live acceptance remain required. Publication is to `dev` only; no merge to main or deployment is included. The next guide batch is Batch 9 (Reports & Export).
+
+---
+
+## Revision 2 Batch 7 — Alumni / Request Forms — 2026-10-10
+
+Implements the new-fixes guide's TRACE-52/53/54/75/76: persisted one-time alumni study years, saved read-only Year Started in requests with Year Ended removed, Admin corrections with transactional before/after audit, duplicate attachment-label cleanup, pending alumni proof-unavailable defense demo, and independent inline Reset Password eye icons. Figma references are New Request 85:1514, detailed confirmation 177:691 and compact confirmation 183:741; the selected approach uses detailed review for forms and compact confirmation for simple decisions. Approved pricing, multi-document intake, identity/email/request gates and historical request details remain.
+
+Verification: backend **1,323**, frontend **866** tests pass; lint/build pass. Synthetic Chromium checks cover six form/dialog types at four widths in both themes (**48 cases**), plus 200% text/reduced-motion/keyboard checks. Screenshots and reproduction are in [README workflow walkthrough](../README.md#main-workflows). The older guide Batches 1–6 are separate; this is Batch 7 of the user's newer fixes, not another whole-app/shared-control pass.
+
+The additive alumni migration has **not** run against a live database; matching API/frontend rollout is required. Proof-unavailable registration defaults off, is blocked in production, and still awaits institution evidence-policy approval for any production version. Rejected applicants now reuse their original account instead of deleting audit/history. Existing historical years are not normalized on unrelated profile saves. No merge to main or deployment is included; the authorized publication target is `dev` only. The next guide batch is Batch 8 (intake/staff request access).
+
+---
+
 # Project TRACE Progress Report
 
 Current request-by-request index: [FEATURE_ACCEPTANCE_MATRIX.md](FEATURE_ACCEPTANCE_MATRIX.md). The Support redesign has its own [implementation checklist](SUPPORT_IMPLEMENTATION_CHECKLIST.md); incomplete features are not accepted merely because another feature passed.
@@ -1888,3 +2319,107 @@ Implemented all six: the compact registration card now shares Upload Document's 
 Motion follow-up from the user's live observation: the original 0.84 opacity/0.99 scale/4–8 px entry made changes hard to see. The local browser also reproduced no visual exit for an open=false portal: layout cleanup measured after removal. Callback-ref detachment now captures the sanitized visual before removal, shared by ModalShell, drawer and floating Support. Normal motion now uses 220 ms context/continuity, 250 ms drill, 200 ms exit, 0.6 entry opacity/0.96 drill scale and 8/12 px context/drill movement. Immediate focus/state, inert visual exits, bounded cleanup, rapid reopening and reduced-motion cancellation remain. A full-suite check also exposed a first-visible-code timing race in recovery-code Copy; its code-scope lifetime now commits before paint, retaining duplicate/unmount/privacy guards. A first-publication regression covers it without logging codes. Explicitly private authenticator regions, including QR/manual secrets and recovery-code text, are excluded from exit copies.
 
 Validation: **1,283 backend tests / 97 suites** and **851 frontend tests / 89 suites pass**; final focused recovery/Finance checks, frontend lint (no warnings), build and whitespace checks pass. The existing bundle-size advisory remains. **204 synthetic browser checks pass** at 320/375/768/1280 px, both themes, 100%/200% text and normal/reduced motion, covering QR placement/preview/focus, Finance aliases/view-specific fetching/private OR preview, context/continuity/drill entry/exit and exit cleanup. Real OpenCV decodes the generated registration destination at 160/256/512/768 px. An isolated fresh MySQL test verifies Secretary-return entry, same-status note exclusion, legacy creation fallback and null projection outside intake, using the driver's local-time interpretation. Screenshots of desktop Window 1 and mobile dark enlarged Finance were inspected; fixtures use synthetic records and standalone navigation, not production. Two legacy transaction-tab assertions were updated for the dedicated page; the recovery timing regression now passes the full suite. No new migration/dependency/AI change, production write, commit, push or deployment. All 27 named incremental rollout scripts were checked to exist; the five earlier pending Support/year/base-table follow-ups remain separate from this batch. Manual, Help, workflow/backend/environment guides, detailed defense guide/script, motion policy, acceptance matrix and rollout instructions were updated without replacing their existing format.
+
+
+## 2026-10-12 — Finance receipt workflow review (implementation in progress)
+
+Findings before edits: Review treats Later as deferred issuance and conditionally removes both number controls and the copy picker. Managed verification rejects all uploaded copies; pack setup requires the clerk to choose a numeric segment. History mixes pack administration and exports; Finance reports URLs alias to History. Student names are stored as one unstructured full_name, so compound given/surnames cannot be reliably inferred.
+
+Scope: Later defers the copy while preserving issuance during eligible hours; retain the existing 4 PM Manila issuance cutoff as an explicitly separate state. First/last pack bounds must describe exactly 50 contiguous serials, with unchanged literals and zero padding. Remove replacement-reason entry but retain structured audit and permanently reserved unused numbers. Save before print and preserve immutable historical snapshots. Separate payment History from the shared Reports & Export workspace. Use saved student identity; preserve ambiguous legacy names rather than guess name parts.
+
+Verification limitation: the coding environment is disconnected. Source and pure-JavaScript checks can run through GitHub/in-memory execution; React, Vitest, MySQL, browser, lint and production build require the environment to reconnect. No cloud deployment or main merge is authorized in this change.
+
+
+Implementation prepared: Later keeps number/upload presentation while deferring only publication of the copy during eligible hours. The user explicitly reaffirmed the existing 4 PM cutoff and automatic receipt generation on verified payment; Print beside the saved number reads its immutable snapshot. Managed verification now accepts a validated immediate copy and saves/audits it in the same transaction as clearance and issuance. Pack setup/replacement infer the changing digit block from first/last bounds of exactly 50; replacement retains an audit without free-text reason. Stale actions refresh number state and require a new confirmation. Review no longer has a Discussion or editable payor field. History is grouped cleared payments with copy actions/waits and shared visible filters, retaining a recovery issuance action for cutoff/historical OR-pending payments; exports/settings moved into their separate report/verification locations.
+
+The user's name-storage follow-up led to an additive nullable first/middle/last migration and confirmed profile entry, without guessed historical backfill. API writes validate against the saved identity under the profile lock and are audited; Finance trusts saved identity instead of supplied payor overrides. Old full/request names and immutable issued snapshots remain unchanged. Name formatting and timing utilities are mirrored. Migration ledger/rollout/environment/manual/Help/defense/workflow documentation and tour destinations were updated; no per-batch acceptance Markdown was added.
+
+Available verification: actual backend receipt/payment/profile services executed in V8 against in-memory model/file fixtures (47 assertions), covering Later issuance, immediate copies, file/payload rejection, retry identity, stale serials, 4 PM cutoff/later issuance, print retry, 50th/51st boundary, early replacement/reservation, student identity and additive/rerunnable migration. This is not MySQL or Vitest execution. JavaScript/JSX/CJS sources are parsed with Acorn plus its JSX plugin, without adding a project dependency. Focused backend/frontend regression tests were prepared for the new contracts. Full npm tests, lint/build, live contention, browser/screenshots and cloud migration/deployment remain pending due to the disconnected coding environment. Changes are for dev only; no main merge or live deployment.
+
+New signup collects first/middle/last fields, builds Full Name automatically and saves parts with the account in the registration transaction. Existing accounts confirm their unsplit names in Edit Profile; legacy API clients that send only Full Name remain supported. Read ID retains a detected full-name hint, fills other eligible empty fields and never guesses compound name boundaries. The new form requires first/last before confirmation; middle remains optional.
+
+Final available checks: 47 actual service/migration assertions and 54 helper/parity/navigation assertions passed in V8; Acorn/JSX parsed 48 source/test files and resolved 165 changed-frontend imports. These are explicitly not full Vitest/build/MySQL/browser runs. The existing receipt HTML/layout module was left unchanged. Legacy single-name records that exceed the formatted name cap retain the full saved name rather than being truncated.
+
+
+## 2026-10-12 — Read ID failures and speed investigation (findings before edits)
+
+The user reports clear JPEG/PNG IDs ending with Cannot read this ID. Source findings: identity extraction invokes the shared two-pass extractor unconditionally; it joins OCR fragments with spaces while identity_parser requires labelled line boundaries. The extractor chooses the longer text rather than fields, so preprocessing noise can discard a clearer original. The Node AI client aborts all calls after 15 seconds and extractIdentity swallows causes into null; Signup maps all failures to the same message. Repeat reads can duplicate CPU work. No failing image, cloud log, benchmark or connected Python/browser runtime has been inspected, so these are code defects and plausible causes, not a confirmed diagnosis of the user's particular photo.
+
+Plan: identity-only original-first OCR with a conditional preprocessing fallback, line-aware conservative labels and field-based merge, explicit safe failure categories, a bounded 30-second identity call and 40-second browser allowance, duplicate guard and memory-only reuse of successful reads. Keep saved proof, registration verification, ownership, manual entry and temporary scan cleanup intact. Other receipt/document extraction remains unchanged. No new dependency or migration is planned; matching AI/backend/frontend rebuild will be needed.
+
+
+## ID-reader reliability follow-up — 2026-10-12
+
+Read ID now uses an identity-specific original-image pass, preserving OCR fragments as lines. When an identifier is found, it skips preprocessing; otherwise a second pass may fill missing fields. Conflicting fallback values remain blank. Label/value pairs, separate name-part labels, same-line explicit fields and spaced Unicode numeric dashes are supported. Unlabelled names are never split or guessed. Only explicitly labelled first/middle/last fields may fill empty signup controls; manual edits are retained.
+
+The backend exposes safe timeout, unavailable, no-text/no-fields and processing categories instead of one generic failure. Identity calls have a 30-second cap; the browser allows 40 seconds including upload/transport. Other AI request deadlines and automatic registration verification are unchanged. Successful reads are reused only in the current form for the same File object/account type; failures stay retryable and selecting another file/type discards stale work. Temporary scans are always deleted and raw OCR text is not returned by the signup API.
+
+Deploy matching frontend/backend/**AI engine** code. Restarting the existing AI container does not replace its image with updated OCR code; build the new AI image from the reviewed release checkout. This follow-up adds no migration, dependency or environment variable. The separately pending Finance `migrate_student_name_parts.js` still must precede the matching backend release.
+
+Available verification: JavaScript services/hook handlers executed with in-memory file/network/React-hook fixtures, plus syntax checks. Native Python/Vitest/build/browser, real JPEG/PNG accuracy, latency and cloud-container verification remain pending because the coding environment is disconnected and no failing ID image was supplied. Focused Python parser/pipeline tests use fake readers and require no EasyOCR model download:
+
+```bash
+python3 -m unittest discover -s ai-engine -p 'test_identity*.py'
+```
+
+These unit tests verify parsing/conditional passes; they do not establish real image accuracy or a measured speedup. Validate an actual failing photo separately on the rebuilt engine. For cloud diagnostics, health alone does not prove the identity route is installed: a read-only GET to `http://ai-engine:5005/ocr/identity` from backend should return 405 when the POST route exists; 404 means that route is absent in the running image. The agent has not accessed the cloud container.
+
+Available verification completed for this follow-up: 34 assertions executed against the actual JavaScript AI client, signup sanitization/cleanup and hook handlers using in-memory file/network/React-hook fixtures. Checks cover the scoped 30-second AI deadline, unchanged other deadlines, safe failure categories, temporary cleanup, active exact college matching, duplicate guards, cache reuse, retry and stale-result discard. JavaScript/JSX/CJS syntax checks passed. Python parser/conditional-reader and Vitest transport/hook regressions were prepared but could not run here. Native Python/Vitest/build/browser, actual failing JPEG/PNG, CPU timings and the running cloud image remain unverified. Ambiguity from the original is preserved even if fallback sees only one candidate; parsing does not guess names or correct ID characters. Finance is already pushed to dev as 8cbe9ba; this reader follow-up is a separate dev-only commit with no migration or dependency change.
+
+
+## 2026-10-13 — Submitted ID layout follow-up (findings before edits)
+
+The user supplied a school ID photo in chat. Visual inspection shows an unlabelled year-prefixed hyphenated student number, an adjacent uppercase comma-format name, and a two-line college heading. The current student-number fallback already accepts this format, so the layout does not explain a complete extraction failure if EasyOCR actually detects the number. Source-confirmed gaps: natural COLLEGE OF headings are treated as labelled College values (yielding OF or OF plus a suffix), and unlabelled names are ignored. The attachment has not been processed with EasyOCR: the coding environment remains disconnected. No recognition output, deployed-image version or measured latency is available.
+
+Scope: recognize natural one-/two-/three-fragment COLLEGE OF headings; allow a full-name review hint only for a readable PLP header, a unique standalone supported student number, and an adjacent comma-format name. Never infer first/middle/last parts or expand a middle initial. Ambiguities remain blank. Use synthetic fixtures only; do not commit the supplied photo, its name or its ID. No schema, API, automatic registration verification, model or preprocessing change is needed.
+
+
+Implemented in source: natural college headings preserve their complete wording; the restricted PLP adjacent comma-name layout supplies only a full-name review hint. The existing standalone student-number fallback and original-first fast path are unchanged. Added nine synthetic parser regressions and one fake-reader pipeline regression for this layout, absent context, explicit-name precedence and ambiguous identifiers/names/colleges. No actual record/image appears in fixtures or guides.
+
+Verification limitation: no Python, EasyOCR, browser, full npm check or real-photo benchmark was executed. Source review and committed-file parity checks are available through GitHub while the runtime is offline. No measured speed or recognition-success claim is made. Publishing source to dev does not update the running cloud image; no main merge, migration or deployment performed.
+
+## 2026-10-13 — Connected-runtime ID / Finance follow-up (findings before edits)
+
+The clean local checkout resumed at 795e201 and was fast-forwarded to the already pushed dev head 88e3d63. The user confirms Print is being tried before Verify Payment and has not confirmed rebuilding the latest deployed images. Current ReceiptPackControl already has only first/last numbers and no replacement-reason control; an old frontend remains a plausible explanation for that reported field. Print before payment verification is intentionally blocked because pack configuration reserves numbers without creating a payment receipt. Make this prerequisite visible and exercise the saved-receipt enablement path; do not allocate a receipt or print an unsaved number by bypassing Finance approval.
+
+Native identity regressions now execute: one failure exposes duplicate interpretation of a separate College label followed by College A. The value is reread as another College label, causing false ambiguity. Track consumed label/value lines within each field scan. A Finance regression also needs its file input query scoped to input rather than the identically labelled upload section. The previous ID attachment is not present in the local uploads and two filename searches did not retrieve it; real-photo recognition remains unverified. No new migration is required for this follow-up, and the separately recorded student-name migration remains pending unless user-applied.
+
+
+Validation completed in the connected environment: 1,578 backend tests / 122 suites and 993 frontend tests / 105 suites pass. Frontend lint and production build pass (existing large-chunk advisory retained). Twenty-five native identity parser/fake-reader pipeline tests and five registration-text tests pass. The full frontend run exposed one stale onboarding fixture still targeting the removed Finance transactions navigation item; it now checks the actual Reports & Export mobile link without changing tour behavior.
+
+Eight isolated Chromium cases at 320/375/768/1280 px in both themes verify the real Finance dashboard: Print disabled before approval with visible guidance; first/last pack fields without a reason; confirmed Later payment saves once even when its queue row disappears; Print opens the immutable receipt; Print / Reprint submits one audit before invoking a stubbed browser print function. No page exceptions or page-width overflow. The mobile dark preview screenshot was inspected internally. These use synthetic records and intercepted local APIs, not live credentials, MySQL or a physical printer. The actual submitted ID bytes are unavailable in this resumed environment, so no real EasyOCR/image latency result is claimed. No live migrations/deployment/main merge performed; publish this follow-up only to dev.
+
+## 2026-10-13 — Resumed ID timeout follow-up
+
+GitHub `dev` was still at `da2bba9`; the later timeout/wording changes from the previous conversation were not published. This follow-up bounds the identity detector canvas to 1280 pixels, keeps original-first parsing and ambiguity handling, and skips the second scan when the first has consumed 20 seconds. Each Gunicorn worker allows one identity scan at a time; competing ID reads return a safe retry/manual-entry message. This guard applies to ID reads within a worker, not a global cross-worker queue. Native OCR calls are not forcibly interrupted.
+
+The identity-only backend deadline is 60 seconds and the browser deadline is 75 seconds. Other AI endpoints retain their existing deadlines. Backend request timing, Flask upload timing, and original/fallback OCR stage logs distinguish where a read is waiting without logging recognized ID text. Signup, saved profile proof and Admin attachment labels now use Proof of ID; other Diploma document catalog labels remain intact.
+
+Validation: all 1,579 backend tests pass. The frontend run passes 993 tests and exposes one old 40-second transport assertion; that assertion is updated for the new deadline and the affected transport/service tests pass on rerun (994 frontend tests in total). Forty-six Python unit tests pass, including slow-pass fallback prevention, partial field preservation, worker busy handling/release and log privacy. Frontend lint and production build pass with the existing chunk-size advisory. A real EasyOCR/Flask request using a generated synthetic image extracts its expected student ID in 6.19 seconds on this machine. Broad unittest discovery also imports the separate manual `test_ocr.py` tool and initially fails on the read-only default model cache; the real-route check uses a writable external model cache and verified EasyOCR model downloads. No actual user photo, live VM, provider delivery or physical printer was tested.
+
+Deploy from the updated `dev` checkout: pull with `git pull --ff-only origin dev`, build with `docker compose build backend ai-engine`, then recreate with `docker compose up -d --no-deps --force-recreate backend ai-engine`. Deploy the matching frontend separately. Recreating containers alone reuses old images. This follow-up adds no migration, dependency or environment variable; the previously recorded student-name migration remains necessary if still pending. Retry Read ID and inspect both backend and AI-engine logs for the timing markers. The original failing JPG is still unavailable here, so its accuracy and latency remain unverified.
+
+## 2026-10-13 — revised student/alumni request catalog
+
+Implemented the user's supplied request list as 38 selectable options: five Honorable Dismissal/Transcript sets, purpose-specific TOR options, per-page and fixed-price certificates/copies, CHED-CAV with independently counted CTC pages, and a requestable Underload Units option with a blank fee pending Admin confirmation. Combined duplicate COR entries and deactivated the six BSN/Nursing options per user clarification. Kept Masters dismissal at the explicitly supplied ₱100/page. Transfer Copy of Grade is ₱50/page; standalone Copy of Grades is ₱100/page. No unspecified rate was invented.
+
+The new preserving `migrate_request_catalog.js` registers metadata/rules, deactivates superseded catalog rows, and installs the new live prices/component schedules once. Existing requests and issued fee/receipt snapshots retain their records; reruns preserve later Admin edits. Secretary pricing accepts independent page counts for each included component. The existing Honorable Dismissal quantity/nonrepeatable policy now covers all five sets and historical dismissal requests. A blank-fee request cannot be billed until Admin configures a rate and the Secretary explicitly reviews current rates. See [REQUEST_CATALOG.md](REQUEST_CATALOG.md) for the complete catalog and required rollout.
+
+Validation: isolated MySQL 8 accepted the current fresh schema and seed, applied the 38-option catalog in order, deactivated an existing Nursing option, preserved historical document amounts and an issued receipt snapshot, loaded component rates through the real reference/pricing models, and verified blank-fee confirmation plus idempotent reruns preserving Admin edits. Full JavaScript runs and affected-suite reruns cover 1,608 backend and 1,034 frontend tests. New regressions cover individual set totals, independent pages, page-count validation, frontend/backend parity, pending-fee billing, one COR option, Nursing exclusion, dismissal restrictions, migration rollback, and historical preservation. Frontend lint/build pass. No live production database or deployment was modified.
+
+## 2026-10-13 — remove signup autofill, preserve proof checks and expose alumni review
+
+Per user request, removed Read ID from signup and deleted its hook, API helper, anonymous scan route/controller/service, temporary Multer storage/limiter, Python identity parser/pipeline and dedicated tests. The proof upload, manual identity/name inputs, confirmation flow, registration verification, and document/receipt OCR remain. Alumni always receive Records / proof unavailable, with an explanation and manual Admin review; this no longer depends on a capability request that could silently hide it. Only Student shows an asterisk on the upload label. The server continues rejecting missing proof for students, incomplete missing-proof reasons, and uploaded-proof/missing-proof combinations.
+
+Investigated automatic proof verification separately: the old path always scanned twice, chose the longest output even when it lacked the correct fields, and used a 15-second transport deadline. Verification now scans the original with a bounded detector canvas first, preserves a successful match, and uses an independent preprocessed fallback within its budget. The selected college must be present; there is no fuzzy ID substitution, combining incomplete scans, or automatic approval when a check is inconclusive. The backend proof deadline is 45 seconds and timeout reasons are stored as safe fixed explanations. Timing logs contain no ID text. This checks visible field consistency, not physical authenticity, and does not bulk-approve existing pending accounts.
+
+Validation: 1,598 backend and 1,026 frontend tests in full runs, followed by affected frontend checks after the always-visible alumni change; 24 Python unit tests cover original-first success, fallback matching, mismatch/pending, independent passes, budget and log privacy. Frontend lint/build pass. Functional HTTP checks confirm the removed Node route returns 404 without creating a temporary upload. Real EasyOCR/Flask checks on a generated synthetic proof verify matching fields in 7.57 seconds and keep a wrong entered ID pending; the removed Python autofill route returns 404. The actual user photos remain unavailable as files here and were not processed. No live account or deployment was changed. Deploy the matching frontend/backend/AI engine; no new migration is introduced.
+
+
+## 2026-10-13 — preserve multipart upload files
+
+Diagnosis: the supporting-document upload returned Choose the pertinent document to upload, meaning Multer received no file. The shared Axios client forced application/json, while supporting-document, Support-message and deferred-receipt services supplied FormData without overriding that header. A local Axios/XHR-to-Multer reproduction returned 400 for all three file paths while ordinary JSON succeeded.
+
+Removed the shared forced content type. Axios still serializes ordinary objects as JSON, and browser FormData now carries the generated multipart boundary and file bytes. No file-validation, authorization, confirmation, duplicate-submission or request-activity rule changes. Added standalone local HTTP regressions inspecting actual XHR multipart bodies, filenames, content type, file bytes and companion metadata, plus ordinary JSON and bearer-token preservation. Fixtures are synthetic transport bytes, not real records or file-validity checks; the tests require no backend dependency installation.
+
+Validation: all 1,030 frontend tests / 105 suites pass, including the four transport regressions. Frontend lint and production build pass with the existing bundle-size advisory. The 38 focused backend attachment/file-validation tests and four attachment-hook tests also pass. No production upload or record was changed. Deploy the frontend from the matching dev commit on Vercel and retry the chosen attachment; this fix requires no backend/AI rebuild, migration or environment-variable change.

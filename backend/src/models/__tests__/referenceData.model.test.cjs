@@ -32,7 +32,7 @@ it('includes extra rates on reads and preserves zero fees on writes', async () =
   await model.listDocumentTypes({}, executor);
   expect(executor.query.mock.calls[0][0]).toContain('rental_fee, special_fee');
   await model.updateDocumentType(1, { rental_fee: 0, special_fee: 10 }, executor);
-  expect(executor.query.mock.calls.at(-1)[1].slice(-3)).toEqual([0, 10, 1]);
+  expect(executor.query.mock.calls.at(-1)[1].slice(-4)).toEqual([0, 10, null, 1]);
 });
 it('locks document types in a stable order when capturing rates', async () => {
   const executor = { query: vi.fn().mockResolvedValue([[]]) };

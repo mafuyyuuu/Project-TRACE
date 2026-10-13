@@ -1,0 +1,10 @@
+const router = require('express').Router();
+const {authenticate} = require('../middlewares/auth.middleware');
+const controller = require('../controllers/staffConversation.controller');
+router.use(authenticate);
+router.get('/recipients',controller.recipients);
+router.get('/',controller.list);
+router.post('/',controller.open);
+router.get('/:id',controller.read);
+router.post('/:id/messages',controller.send);
+module.exports = router;

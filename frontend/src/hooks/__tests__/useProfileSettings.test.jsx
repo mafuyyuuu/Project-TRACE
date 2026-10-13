@@ -300,7 +300,7 @@ it('omits unchanged legacy academic fields while saving unrelated profile change
 });
 
 it('rejects invalid years before any staged photo or profile write and retains drafts', async () => {
-  const user = { ...USER, role: 'student', user_type: 'alumni' };
+  const user = { ...USER, role: 'student', user_type: 'alumni', year_started: 2020 };
   const { result } = renderHook(() => useProfileSettings(user));
   act(() => { result.current.setField('graduation_year', '2.026e3'); result.current.changeAvatar(new File(['x'], 'draft.png')); });
   await act(async () => expect(await result.current.saveProfile()).toBe(false));
@@ -309,14 +309,33 @@ it('rejects invalid years before any staged photo or profile write and retains d
   expect(result.current.avatarFile).not.toBeNull();
   expect(updateProfile).not.toHaveBeenCalled(); expect(uploadProfilePicture).not.toHaveBeenCalled();
 });
-it('reads saved integer years as exact draft strings and persists separate graduation without changing attendance', async () => {
-  const user = { ...USER, role: 'student', user_type: 'alumni', last_attendance_year: 1980, elem_grad_year: 1970, graduation_year: 2002 };
+it('fills missing alumni study years once without changing historical attendance', async () => {
+  const user = { ...USER, role: 'student', user_type: 'alumni', last_attendance_year: 1980, elem_grad_year: 1970, graduation_year: null, year_started: null };
+  getMe.mockResolvedValue({ user: { ...user, year_started: 2020, graduation_year: 2024 } });
   const { result, unmount } = renderHook(() => useProfileSettings(user));
-  expect(result.current.profileData).toMatchObject({ graduation_year: '2002', last_attendance_year: '1980', elem_grad_year: '1970' });
-  act(() => result.current.setField('graduation_year', '2024'));
+  expect(result.current.profileData).toMatchObject({ graduation_year: '', year_started: '', last_attendance_year: '1980', elem_grad_year: '1970' });
+  act(() => { result.current.setField('year_started', '2020'); result.current.setField('graduation_year', '2024'); });
   await act(async () => expect(await result.current.saveProfile()).toBe(true));
   expect(updateProfile).toHaveBeenCalledWith(expect.objectContaining({ graduation_year: '2024', last_attendance_year: '1980', elem_grad_year: '1970' }));
   const saved = JSON.parse(localStorage.getItem('trace_user')); unmount();
   const reopened = renderHook(() => useProfileSettings(saved));
   expect(reopened.result.current.profileData).toMatchObject({ graduation_year: '2024', last_attendance_year: '1980', elem_grad_year: '1970' });
+});
+
+it('rejects an attempted self-correction before uploading a staged photo', async () => {
+  const account = { ...USER, role: 'student', user_type: 'alumni', year_started: 2020, graduation_year: 2024 };
+  const { result } = renderHook(() => useProfileSettings(account));
+  act(() => { result.current.setField('graduation_year', '2025'); result.current.changeAvatar(new File(['x'], 'draft.png')); });
+  await act(async () => expect(await result.current.saveProfile()).toBe(false));
+  expect(result.current.error).toContain('authorized administrator');
+  expect(updateProfile).not.toHaveBeenCalled(); expect(uploadProfilePicture).not.toHaveBeenCalled();
+});
+it('allows unrelated profile saves to retain locked historical years', async () => {
+  const account = { ...USER, role: 'student', user_type: 'alumni', year_started: 1995, graduation_year: 1999 };
+  updateProfile.mockResolvedValue({ message: 'Saved' }); getMe.mockResolvedValue({ user: account });
+  const { result } = renderHook(() => useProfileSettings(account));
+  act(() => result.current.setField('phone_number', 'synthetic'));
+  await act(async () => expect(await result.current.saveProfile()).toBe(true));
+  expect(updateProfile.mock.calls[0][0]).not.toHaveProperty('year_started');
+  expect(updateProfile.mock.calls[0][0]).not.toHaveProperty('graduation_year');
 });

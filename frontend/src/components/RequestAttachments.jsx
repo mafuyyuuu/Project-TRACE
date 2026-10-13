@@ -1,13 +1,16 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Button from '@/components/Button';
 import useRequestAttachments from '@/hooks/useRequestAttachments';
 import SupportRequirementDialog, { RequirementBubble } from '@/components/SupportRequirement';
-export default function RequestAttachments({ documentId,user }) {
+export default function RequestAttachments({ documentId,user,onIntakeState }) {
   const state=useRequestAttachments(documentId);
+  useEffect(() => {
+    onIntakeState?.({ ready: !state.loading && !state.error, blocked: state.rows.some(row => Number(row.blocks_intake) === 1 && !row.superseded_at && row.status !== 'accepted') });
+  }, [onIntakeState, state.loading, state.error, state.rows]);
   const [selection,setSelection]=useState(null);
-  const registrar=user.role==='admin' || ['Window 1','Receiving Desk','Secretary'].includes(user.desk_assignment);
+  const registrar=user.role !== 'admin' && ['Window 1','Receiving Desk','Secretary'].includes(user.desk_assignment);
   return <section aria-label="Case-specific attachments" className="min-w-0 space-y-3">
-    <div className="flex flex-wrap items-center justify-between gap-3"><h3 className="font-bold text-lg">Supporting Documents</h3><Button type="button" onClick={state.refresh} className="trace-action underline">Refresh attachments</Button></div>
+    <div className="flex flex-wrap items-center justify-between gap-3"><h3 className="trace-section-title">Supporting Documents</h3><Button type="button" onClick={state.refresh} className="trace-action underline">Refresh attachments</Button></div>
     {state.loading && <p role="status">Loading attachments…</p>}
     {state.error && <p role="alert" className="trace-inline-error">{state.error}</p>}
     {!state.loading && !state.rows.length && <p className="text-sm">No additional documents requested for this case.</p>}

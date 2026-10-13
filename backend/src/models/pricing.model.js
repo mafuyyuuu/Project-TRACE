@@ -30,7 +30,10 @@ async function saveSchedules(typeId, { fee_items, college_fee_schedules }, execu
   }
 }
 async function enrichDocuments(documents, executor = pool) {
-  const old = documents.filter(doc => !doc.priced_at && !doc.pricing_snapshot);
+  const old = documents.filter(doc => {
+    const snapshot = typeof doc.pricing_snapshot === 'string' ? JSON.parse(doc.pricing_snapshot) : doc.pricing_snapshot;
+    return !doc.priced_at && (!snapshot || snapshot.fee_pending);
+  });
   if (!old.length) return documents;
   const [rows] = await executor.query(`SELECT d.id AS document_id, t.*, u.college_id AS pricing_college_id
     FROM documents d JOIN document_types t ON t.name = d.document_type

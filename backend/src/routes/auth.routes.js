@@ -24,6 +24,8 @@ router.post('/logout', authenticate, authController.logout);
 router.post('/logout-all', authenticate, authController.logoutAll);
 router.get('/security-logs', authenticate, authController.getSecurityLogs);
 router.get('/global-security-logs', authenticate, requireRole('admin'), authController.getGlobalSecurityLogs);
+router.get('/registration-options', authController.registrationOptions);
+router.put('/student/:id/study-years', authenticate, requireRole('admin'), authController.correctStudyYears);
 router.post('/register', registerLimiter, idProofUpload.single('id_proof'), authController.register);
 const emailVerification = require('../controllers/emailVerification.controller');
 router.post('/email-verification/resend', authenticate, passwordResetLimiter, emailVerification.resend);

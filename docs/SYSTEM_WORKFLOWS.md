@@ -16,7 +16,10 @@ Everything in section 1 onward assumes the person is already signed in. This is 
 ### 0a. Student Registration & AI Identity Verification
 - Students sign up with their Student ID, name and password, and **must declare whether they are a
   current student or an alumnus**.
-- **Proof of identity:** they upload a valid Student ID or Diploma during registration.
+- **Proof of identity:** current students upload a valid Student ID or Diploma. Alumni can upload
+  proof or choose Records / proof unavailable and explain why it is unavailable. This exception
+  works in production and always remains pending until Admin records checked identity evidence
+  and an approval/rejection decision; no OCR or automatic verification occurs without proof.
 - **AI auto-verification:** the Flask AI engine runs a **3-point check** on the upload — school name,
   student ID and course must all appear in the OCR text. All three matching verifies the account
   automatically.
@@ -119,9 +122,9 @@ clear it: it moves to the same verification queue an online payment would.
 
 ### Payment acknowledgment, OR issuance and digital copy
 
-Finance may enter the issued OR details or choose Later to defer issuance. Payment clearance immediately sends a payment acknowledgment; an acknowledgment is not an Official Receipt. The actual digital OR is distributed when issued and routed to Secretary for inspection before handoff/release. A physical issued OR can be inspected while Finance's digital retained copy is still pending.
+Finance keeps historical issued OR details; new pack receipts are generated automatically on confirmed verification. Later defers only the uploaded copy during eligible issuing hours. After the existing 4 PM cutoff, issuance is explicitly pending. Payment clearance immediately sends a payment acknowledgment; an acknowledgment is not an Official Receipt. The actual digital OR is distributed when issued and routed to Secretary for inspection before handoff/release. A physical issued OR can be inspected while Finance's digital retained copy is still pending.
 
-At exactly 4:00 PM Asia/Manila, new same-day OR issuance closes. Deferred receipts have an earliest next-calendar-date value; this is not a working-day/holiday calendar or a promised issuance deadline. Finance sees elapsed time waiting for an OR in Transactions & OR Copies. Publishing a later copy does not repeat payment verification or change document stages.
+At exactly 4:00 PM Asia/Manila, new same-day OR issuance closes. Deferred receipts have an earliest next-calendar-date value; this is not a working-day/holiday calendar or a promised issuance deadline. Finance sees elapsed time waiting for an OR in Payment History. Publishing a later copy does not repeat payment verification or change document stages.
 
 Secretary's receipt check requires the recorded OR and either an uploaded copy or an explicit physical-inspection acknowledgment. It is distinct from Finance's money decision. Refer to current service validation rather than historical Batch 4 UI-only descriptions.
 
@@ -151,7 +154,7 @@ runs whether the file came from the student or the counter.
 
 ### A. Transcript of Records (TOR) & Diploma
 * **Requirements:** None (optional attachments only).
-* **Workflow:** Standard pipeline. TOR records Year Started/Year Ended. Filing displays the configured per-page rate, not an estimate; Secretary enters actual printed pages and the server computes the final fee from the saved schedule.
+* **Workflow:** Standard pipeline. TOR reuses the saved Year Started without a request Year Ended field. Filing displays the configured per-page rate, not an estimate; Secretary enters actual printed pages and the server computes the final fee from the saved schedule.
 
 ### B. Honorable Dismissal
 * **Requirement:** A "Validated Clearance" — uploaded by the student, or scanned at Window 1.
@@ -203,7 +206,7 @@ runs whether the file came from the student or the counter.
      number, amount and date, then confirm each field by eye. Works with the AI engine stopped: the
      form falls back to manual entry, because a student is standing at the counter either way.
   3. **Verification Queue** — the actionable one. Compare the proof against the Finance Office's own
-     records and approve or reject. Finance may record the issued OR or defer issuance with Later. Clearing payment is what sets
+     records and approve or reject. Finance retains historical ORs or automatically issues the next pack number on confirmed verification. Later defers the digital copy; issuance deferral is the explicit after-cutoff exception. Clearing payment is what sets
      `payment_status = PAID` and returns the document to the Secretary for an OR check before handoff;
      rejecting sends it back to the student with the reason.
 
@@ -258,7 +261,7 @@ runs whether the file came from the student or the counter.
 * **Role:** Overseer and Optimizer.
 * **Workflow:**
   1. Does not handle individual documents.
-  2. Monitors the **AI Insights Panel** (Random Forest) for queue bottlenecks (e.g., "Warning: Secretary queue is backing up").
+  2. Monitors **AI Insights** for observed all-stage document counts and explicitly experimental model suggestions. Counts alone do not establish delay, capacity or optimal performance.
   3. Uses **Predictive Analytics** (Prophet ML) to forecast 7-day document volume, allowing the admin to schedule more clerks on predicted busy days.
   4. Manages **System Maintenance → Accounts** and the separate **Account Verification** review queue, verifying or rejecting the accounts
      that failed automatic AI verification at registration (section 0a), and administering staff
@@ -286,7 +289,7 @@ Admin account edits are restricted to full name, email, phone, course/program, a
 
 Window 1 shares an Intake/Release workspace beside the upload card. Intake notes and confirmation remain required for return; release shows attachment information alongside request details. Finance hands the physical OR to Secretary and may upload its retained copy later. Receipt selection is local, OCR runs on **Read Receipt**, and recording still requires confirmation. No new return-to-Secretary route or digital-attachment release prerequisite was introduced.
 
-Students share one History table with request/payment filters. Reports retain API pagination and filter-aware machine-readable CSV; only on-screen timestamps/amounts are formatted. Existing paginated Window 1 queues/tracking, Admin tracker, and Reports use measured viewport row capacities. Finance and Secretary queues and account card grids do not gain pagination. The forecast card/modal share one zero-based scale with headroom, calculated from the unfiltered seven-day data.
+Students share one History table with request/payment filters. Reports retain API pagination. Shared visible filters keep edits local until Apply; Reset clears only the draft. The separate Export dialog uses the applied scope and retains unsubmitted filter edits on close. Student ID / Name performs exact ID or literal case-insensitive name matching. Identity/college/document/date filters drive rows, KPIs and complete document exports, with Secretary scope independently enforced by the API. The shared 36-column CSV uses numeric PHP amounts and exact readable Manila date/time; Finance uses the shared reports page for document/student exports; its separate Payment History groups paid requests. The existing Finance-specific CSV API still expands matching complete payment groups into document rows for older API callers. Student-category exports remain a separate identity dataset. See [README workflow walkthrough](../README.md#main-workflows) for the contract and local evidence. Existing paginated Window 1 queues/tracking, Admin tracker, and Reports use measured viewport row capacities. Finance and Secretary queues and account card grids do not gain pagination. The forecast card/modal share one zero-based scale with headroom, calculated from the unfiltered seven-day data.
 
 The pipeline order/vocabulary is unchanged. Mobile tracker nodes derive from `PIPELINE`; desktop remains horizontal. Legacy APPROVED/REJECTED records stay outside the active pipeline with zero active progress; rejection has a red status treatment. Help/FAQ reflects the user manual, and **Preferences** contains appearance controls; the avatar opens **Edit Profile**.
 
@@ -339,3 +342,95 @@ stateDiagram-v2
 Staff-opened linked cases and imported histories begin Queued. One unresolved general ticket per student and one live ticket per Window 1 clerk are enforced by locks and database uniqueness. Closed/cancelled document cases remain read-only regardless of support state. FAQ is maintained text; human/live support phrases and Talk to staff escalate the same ticket. Defaults are Mon–Thu 08:00–16:00 Manila; explicit response clocks pause outside hours and retain their starting settings. Availability/position are durable; ETA requires observed handling samples and available capacity.
 
 The composer stays below an independently scrolling history. Ticket/message/requirement cursors keep older records reachable. Approved supporting-document IDs prevent ordinary duplicates, while rejected uploads and explicit replacements preserve versions/events. Cancellation retains history and private file authorization. See [USER_MANUAL.md](USER_MANUAL.md#6-get-support-and-submit-case-documents) for user steps and [SUPPORT_DESIGN.md](SUPPORT_DESIGN.md) for metrics/permissions.
+
+
+## Revision 2 Batch 10 — Support / Messaging UI
+
+Support now follows the main TRACE Figma two-column layout, with aligned readable ticket rows, local search of loaded authorized metadata, contextual linked-case viewing, a labeled confirmed availability switch and a primary Window 1 claim action. Success feedback uses dismissible toasts; failures and confirmations remain in context. The compact widget preserves drafts across close/reopen. Digital evaluation separates discussion into a side panel or a mobile view without discarding either draft. Existing ticket/desk/college authorization, FAQ/reply/requirement actions, service hours and queue assignment remain; no new staff chat connection or unsupported presence/read/unread data is added.
+
+See [README workflow walkthrough](../README.md#main-workflows) for the screenshots, walkthrough and local evidence. Batch 10 adds **no migration or environment variable**; [DEPLOYMENT_CHECKLIST.md](DEPLOYMENT_CHECKLIST.md) tracks required earlier migrations. These are repository changes for dev, not a claim that the live site is updated.
+
+## Revision 2 Batch 11 — support reporting presentation
+
+Support reporting remains a read-only path: role-authorized report endpoint → existing support audit/calendar aggregation → frontend hook → KPI cards and semantic tables. Date fields are local drafts until Apply. Previous loaded results and their actual period remain labeled during refresh/error; successful retry replaces them. No claim, queue, ticket, document, receipt or AI workflow is changed. Metrics retain imported exclusions, explicit FAQ denominators, cutoff backlog, service/wall minutes and episode counts. [Batch 11 evidence](../README.md#main-workflows).
+
+## Managed Finance receipts
+
+See the [README navigation walkthrough and screenshots](../README.md#finance-receipt-walkthrough) for Finance's Payment History workspace. Confirmed 50-number packs reserve the supplied format; finalized verification or deferred issuance saves one immutable payment/cashier snapshot and consumes one number. Preview, upload and reprint consume none. Copy uploads are protected JPEG/PNG/PDF files up to 5 MB. Stale serials require refresh/review; retry keys and unique serial/group constraints protect repeated requests. Pack changes, issue, copy, print-request, reprint, void and calibration actions are audited. Historical manual OR records remain intact. New issuance/voiding stops before Secretary verification/handoff; later copy uploads preserve the existing payment and document stage. Unknown paper geometry requires saved calibration and a blank-paper printer test. Apply the preserving `migrate_receipt_packs.js` before the matching API/frontend; see the [deployment ledger](DEPLOYMENT_CHECKLIST.md).
+
+
+## Internal assistance and conversation categories
+
+Window 1 (including its Receiving Desk alias), Finance and College Secretary staff use **Support → Internal assistance → New concern** to ask Admin for help. These desks have no separate Internal Assistance navigation entry; older internal-ticket links open the requested concern inside Support. Categories are Account access, System issue, Workflow question and Other concern. Staff see only tickets they created; college/desk colleagues do not automatically share those private concerns. All active Admins can inspect the internal queue; only the assigned Admin replies and manages its lifecycle. Admin claims an unassigned ticket, or explicitly takes over from an inactive/no-longer-Admin assignee. There is no student owner, document link, attachment import, FAQ bot, estimated wait or Window 1 service-hours limit on this asynchronous queue.
+
+| State/action | Behavior |
+| --- | --- |
+| Queued | Concern awaits Admin assignment; the creator may add details. |
+| Claim | Admin confirms assignment; state becomes In progress and the claim timestamp is recorded. |
+| Await staff reply | Assigned Admin confirms Awaiting staff; assignment remains. A creator reply returns it to In progress. |
+| Resolve concern | Assigned Admin enters a required resolution note and confirms. Resolution timestamp and prior messages/events remain. |
+| Reopen concern | Creator or assigned Admin confirms. The concern returns to Queued without an assignee; previous resolutions remain in history. |
+
+Save/lifecycle actions use shared confirmation dialogs; Send/Enter sends directly with duplicate guards and retained retry keys/drafts on failure. Action versions reject stale claims/resolutions after another accepted write. Internal lists use newest-ticket-first cursor ordering, server-side state/category filters and local search of loaded subject/creator/assignee metadata. History uses chronological messages and older-message cursors. Notifications contain only a generic ticket update and reach the creator (Admin action), assigned active Admin (creator action), or active Admin queue when unassigned. Internal tickets do not enter student support analytics or AI cohorts.
+
+Admin **operational** support is read-only: existing tickets/messages/authorized files remain visible; opening student tickets, sending, escalating, resolving, reopening, reply-window actions and case-specific supporting-document requests/reviews through chat are denied. Global supporting-document catalogs, support settings and analytics retain their separate administrative permissions. Other desk document-processing permissions remain intact.
+
+### Implemented operational-chat connections — TRACE-78 follow-up
+
+The user authorized the connection phase after Batch 13. **Support → Staff coordination** now has a server-filtered recipient picker and retained one-to-one staff threads. Supported ordinary recipients are active Window 1/Receiving Desk, Finance and College Secretary accounts. Self, students, Admin and unsupported desks are excluded. Student↔Window 1 communication stays in the existing FAQ/ticket workflow; this does not create a way around live assignment or reply policies. Existing Finance/Secretary case-linked student discussions retain their separate document/college authorization and are not ordinary direct student recipients.
+
+| Actor | Implemented path | Scope |
+| --- | --- | --- |
+| Window 1 / Receiving Desk | Student/case Support plus Staff coordination | Student tickets retain queue rules; ordinary recipients are authorized desk staff. |
+| Finance | Authorized case-linked discussions plus Staff coordination | No ordinary student/Admin/self recipients; document/payment permissions unchanged. |
+| College Secretary | Authorized case-linked discussions plus Staff coordination | Active resolved college required; Secretary peers must share that college. Window 1/Finance coordination records the Secretary's college scope. No cross-college request access is granted. |
+| Admin | Operational ticket/staff history monitoring | Read-only; no ordinary recipient picker, conversation creation or send. Replies remain confined to assigned Internal Assistance tickets. |
+
+Support navigation groups **Student & case support** (case-linked only for Finance/Secretary), **Staff coordination**, and **Internal assistance**. Within Support the existing ticket category/context distinguishes general help from linked cases. Visited category workspaces retain drafts across switching, shared dialogs appear only for the active category, and notification query changes select their requested conversation. Lists are bounded ID-cursor pages in newest-conversation-first order; search of loaded conversations is labeled. Recipient search covers the server's authorized directory. No presence, unread badge or read-receipt state is fabricated.
+
+The separate staff tables contain no automatic student/document/file import and are excluded from student Support analytics/AI. Participant IDs and college scope are server-derived; sorted participant locks serialize pair creation, a unique pair/scope key reuses the conversation, and unique actor/retry audit keys make accepted first messages and sends repeatable without duplication. First-message creation requires confirmation; Send/Enter is direct with synchronous duplicate guards and durable retry keys. Failed actions preserve drafts; an accepted send followed by a refresh error stays accepted. Missed history pages are bridged after reconnect. Messages and events are retained; no deletion or reassignment endpoint is added.
+
+Every API call rereads active roles/college scope. Only participants or active Admin monitors read a thread. A Secretary who moves college cannot read the old scoped thread; remaining authorized participants retain read-only history when a peer becomes unavailable or changes scope. New valid college assignments use a separately scoped conversation. UI refresh clears cached rows/history when access is revoked or authoritative scope changes. Recipient notifications contain only a generic conversation reference and private deep link, and delivery failures do not undo messages.
+
+### Integration follow-through
+
+Receiving Desk is the existing Window 1 alias for normal dashboard, intake, release, active backups and notifications. A request assigned to one clerk remains protected from a different clerk under either label. College restrictions and legal stages still apply. Linked Support list/history follows the saved request routing college, matching desk processing; profile fallback applies only without a surviving snapshot. Cancelled history with no document retains its authorized profile-based read scope. Notification links select the indicated ticket on an already-open screen without resetting new-ticket drafts; a later explicit ticket cancels any older context lookup. Refreshed scope changes or denied history reads clear protected cached content. These integration fixes add no migration, metric or AI input.
+
+
+Admin's Support hosts operational tickets, staff coordination and Internal assistance; old internal
+notification links remain valid. Efficiency Analytics separates document and support metrics into
+independent views instead of stacking them. Account deactivation is an access change, not a
+request cancellation or enrollment-status change; its version increment and audit commit together.
+
+
+## Admin workload snapshot and responsive audit tables
+
+Document insight counts cover each active pipeline stage, separating student waits from staff
+work and flagging unknown statuses. Advisory thresholds do not change the processing state
+machine or automatically assign/send. The prototype classifier uses only evaluation, release
+and Manila-day action counts and remains unvalidated. Node controls the count-based messages
+and ignores legacy optimal-performance payloads. Admin can refresh and inspect the snapshot
+time; failed refreshes make no current performance conclusion. Support metrics stay separate.
+Audit, account-verification and tracker tables wrap full values within fixed columns and retain
+contained keyboard/touch scrolling. Role, document actions and pagination are unchanged.
+
+
+### Finance workflow follow-up — 2026-10-12
+
+Finance pack setup/replacement uses first and last serial bounds that imply exactly 50 consecutive numbers. The server infers the changing numeric block and preserves zero padding/literals; replacement is audited without a clerk reason input. All previous reserved serials remain unavailable. Pack activation creates no receipt. Confirmed eligible payment verification automatically issues one OR and snapshots saved student identity/cashier/payment; Later defers the copy only. An immediate copy is validated and published atomically with clearance and issuance. The 4 PM Manila cutoff remains; explicit after-cutoff issuance can be completed from Payment History on an eligible later date. Printing/reprinting never allocates. Duplicate uploads on verification retry are discarded while the original published file is retained.
+
+Verification owns receipt settings, printer calibration and receipt/pack audits. Payment History contains shared history filters, grouped cleared payments, View OR / Upload OR and missing-copy elapsed time; the exceptional Issue pending OR action prevents after-cutoff or historical payments from being stranded. History has no export/configuration block. Finance Reports & Export uses the same shared report component/API as the other roles, including applied-scope safeguards and readable CSV. Review contains no Discussion module; Support remains available.
+
+Additive `migrate_student_name_parts.js` adds nullable first/middle/last profile fields and does not split old names or rewrite `users.full_name`, request names or issued snapshots. Students confirm matching identity parts in Edit Profile with the existing Save confirmation; the API validates against the saved full name under the profile lock and logs confirmation. Finance takes saved parts from the identified student, ignores client payor overrides and preserves unsplit historical names. New snapshots print Last name, First name M.I. Historical receipts keep their original name. Existing print fields/order remain; exact physical alignment still requires the original receipt reference and printer calibration.
+
+Verification in this disconnected session covers source parsing and actual service/helper execution with in-memory model fixtures. Full Vitest, build/lint, browser and MySQL checks are pending; prepared source is not evidence of cloud deployment. See the consolidated [migration ledger](DEPLOYMENT_CHECKLIST.md) and [README walkthrough](../README.md#finance-receipt-walkthrough).
+
+New signup collects first/middle/last fields, builds Full Name automatically and saves parts with the account in the registration transaction. Existing accounts confirm their unsplit names in Edit Profile; legacy API clients that send only Full Name remain supported. Signup identity fields are entered manually; Full Name is built from the supplied name parts. The new form requires first/last before confirmation; middle remains optional.
+
+## Signup and proof verification — October 13, 2026
+
+Signup uses manually entered identity fields. The pre-submit Read ID autofill and its supporting endpoints, parser and temporary uploads are removed. Current students upload proof. Alumni always see Records / proof unavailable; choosing it requires an explanation and submits for Admin identity review without an uploaded file. Removing signup autofill does not disable the post-submission proof check.
+
+The retained `/ocr/verify` route checks readable school, exact identifier and selected college text on the original image first. A successful pass cannot be replaced by a longer unsuccessful scan. A bounded fallback checks the processed image independently; it does not combine incomplete scans. Registration proof calls allow 45 seconds; unrelated AI calls retain their deadlines. A timeout/mismatch remains pending with a safe explanation. This matches text and cannot establish the physical ID's authenticity. Already-pending accounts still need Admin review; deployment does not bulk-approve them.
+
+Rebuild/recreate both backend and AI engine from the matching `dev` revision, then deploy the matching frontend. No new migration is required for this signup change. The request-catalog migration from the preceding release remains a separate prerequisite if not applied. Use `python -m unittest test_registration_verification test_proof_ocr` from `ai-engine` for the proof-check regressions. `/api/ai/extract-id` and `/ocr/identity` should now return 404.

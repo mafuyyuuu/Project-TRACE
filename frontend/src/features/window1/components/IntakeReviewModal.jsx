@@ -1,4 +1,7 @@
 import Button from '@/components/Button';
+import { useCallback, useState } from 'react';
+import RequestAttachments from '@/components/RequestAttachments';
+import RequestStaff from '@/components/RequestStaff';
 import { INPUT_LIMITS } from '@/utils/inputLimits';
 import FileUploadField from '@/components/FileUploadField';
 import ModalShell from '@/components/ModalShell';
@@ -25,7 +28,10 @@ export default function IntakeReviewModal({
   intakeFile,
   setIntakeFile,
   documentTypes = [], documentTypesLoading = false,
+  user,
 }) {
+  const [requirements, setRequirements] = useState({ ready: false, blocked: false });
+  const updateRequirements = useCallback(next => setRequirements(previous => previous.ready === next.ready && previous.blocked === next.blocked ? previous : next), []);
   if (!selectedDoc) return null;
 
   const policy = documentTypes.find(type => type.name === selectedDoc.document_type);
@@ -40,7 +46,7 @@ export default function IntakeReviewModal({
       open={!!selectedDoc}
       onClose={() => setActiveModal(null)}
       title="Intake Check"
-      maxWidth="w-[90vw] sm:w-full max-w-xl"
+      maxWidth="max-w-[535px]"
       footer={
         <div className="flex flex-col sm:flex-row gap-3">
           <Button
@@ -52,7 +58,7 @@ export default function IntakeReviewModal({
           </Button>
           <Button
             onClick={() => handleIntake('approve')}
-            disabled={actionLoading}
+            disabled={actionLoading || missingRequired || !requirements.ready || requirements.blocked}
             className="trace-button trace-button-primary flex-1"
           >
             {actionLoading ? 'Routing…' : 'Route to Secretary'}
@@ -63,6 +69,7 @@ export default function IntakeReviewModal({
       <p className="text-xs text-gray-400 dark:text-gray-400 mt-1 font-semibold pb-5 mb-6 border-b border-gray-100 dark:border-gray-700">
         Confirm the paperwork, then route to the College Secretary.
       </p>
+      <RequestStaff document={selectedDoc} />
 
       <div className="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl p-5 my-4 font-mono text-[11px] text-gray-600 dark:text-gray-300 space-y-2">
         <div className="flex flex-wrap justify-between gap-x-3 gap-y-1"><span>Name</span><span className="font-bold text-gray-950 dark:text-gray-100 select-text break-words">{selectedDoc.student_name || 'Unknown'}</span></div>
@@ -128,6 +135,12 @@ export default function IntakeReviewModal({
           <p className="text-xs text-gray-500 dark:text-gray-400">Record your evidence in Notes. This records issuance history for request numbering; presenting an original for a walk-in is a separate check.</p>
         </div>
       )}
+
+      {user && <div className="my-5 space-y-3 border-t border-gray-200 pt-5 dark:border-gray-700">
+        <p className="text-sm text-gray-600 dark:text-gray-300">Flag a specific clearance or missing document only when this request needs it. Explain what the student must submit. Every requirement requested here must be accepted before routing.</p>
+        <RequestAttachments documentId={selectedDoc.id} user={user} onIntakeState={updateRequirements} />
+        {requirements.blocked && <p role="status" className="text-sm font-semibold text-amber-900 dark:text-amber-200">Routing is awaiting clearance review. Review submitted files above; request resubmission if they need correction.</p>}
+      </div>}
 
         <label className="trace-label block">
           <span className="text-[10px] font-bold text-gray-800 dark:text-gray-100 uppercase tracking-widest block mb-2">

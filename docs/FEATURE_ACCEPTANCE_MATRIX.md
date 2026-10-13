@@ -9,6 +9,16 @@ Use these statuses precisely:
 - **Pending evidence / policy**: a physical device, live delivery, restore exercise or institutional decision is still needed.
 - **Discontinued / superseded**: the user explicitly ended the investigation or approved a replacement requirement.
 
+## Revision 2 — newer fixes
+
+| Guide issues | Status and evidence |
+| --- | --- |
+| Revision 2 TRACE-71/72/73/74 — Finance receipts | Implemented locally: shared 50-number packs, transactional issuance, immutable snapshots, copy upload/history and calibrated demo printing. [README walkthrough](../README.md#finance-receipt-walkthrough); preserving `migrate_receipt_packs.js` remains unapplied. Live MySQL/physical-printer acceptance remains pending. |
+| Revision 2 TRACE-69/70 — Support Analytics | Implemented locally; KPI cards and borderless statistical tables preserve the existing report definitions. See [README workflow walkthrough](../README.md#main-workflows) for tests, screenshots, responsive checks and limitations. No new migration. |
+| Revision 2 TRACE-61/62/63/64/65/66 — Support / Messaging UI | Implemented locally; 876 frontend tests and 31 backend support regressions pass. See [README workflow walkthrough](../README.md#main-workflows) for Figma references, screenshots, browser verification and limits. No new migration or staff chat connection. |
+| TRACE-58/59/60 — shared Filters modal, identity/college filters and complete CSV | Implemented / recorded local checks: [Batch 9 walkthrough](../README.md#main-workflows), synthetic CSV, unit/browser checks. No new migration; staging row counts and physical-device acceptance remain pending. [Deployment ledger](DEPLOYMENT_CHECKLIST.md). |
+| TRACE-55/56/57/67/68 — intake requirements, shared queue pills, own-college scope and backup staff | Implemented / recorded local checks: [Batch 8 walkthrough](../README.md#main-workflows), screenshots, security regressions and responsive browser checks. Admin-only reassignment is the approved policy. Preserving migration, matched rollout, real notification delivery and physical-device acceptance remain deployment work. |
+
 ## Shared presentation and account pages
 
 | Requested feature | Status and evidence location |
@@ -49,7 +59,7 @@ Use these statuses precisely:
 | College and Program dropdowns; Admin manages approved catalog | Implemented / recorded checks: linked catalog round. Admin must populate Registrar-approved programs; no invented list |
 | Separate PLP/college graduation and attendance years; exact four digits | Implemented / recorded checks: Graduation year labels and validation. College 2002–current Manila year; older school years allowed; college optional for current students, required for alumni; school years required; old attendance not reclassified |
 | Registration proof framing, protected preview/download and Admin review images | Implemented / recorded checks: Registration proof framing and Maintenance image repair; no public identity URLs or real-ID fixtures |
-| Read ID recognizes the selected local proof; program visible in Admin review | Implemented / recorded checks: multipart and safe Program/College projection repair |
+| Manual signup, uploaded-proof verification and always-visible alumni missing-proof review; Program visible to Admin | Read ID autofill removed; proof matching and pending review retained |
 | OCR false flags show a reason and retain human review | Implemented / recorded checks: OCR follow-up/verification-reason migration. Text matching and extraction do not prove authenticity; real image accuracy remains pending evidence |
 | Finance OTP arrived at unrelated inbox | **Discontinued by user** after saved-recipient boolean check. No live delivery cause or repair is claimed |
 | SEC-01 expansion | **Design/sign-off required before any new implementation**, per the user's acceptance rule |

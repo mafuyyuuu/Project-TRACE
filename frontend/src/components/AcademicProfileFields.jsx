@@ -26,7 +26,7 @@ export default function AcademicProfileFields({ user, profileData, setField, bus
         </select>
       </label>
       <div className="col-span-full text-sm text-gray-600 dark:text-gray-300" id="academic-reference-help">
-        {loading ? <p role="status">Loading College and Program choices…</p> : error ? <><p role="alert">{error}</p><Button className="trace-button-secondary mt-2" onClick={retry} disabled={busy}>Retry Choices</Button></> : <>
+        {loading ? <p role="status">Loading College and Program choices…</p> : error ? <><p role="alert" className="trace-inline-error">{error}</p><Button type="button" className="trace-button trace-button-secondary mt-2" onClick={retry} disabled={busy}>Retry Choices</Button></> : <>
           <p>Choose College first, then its Registrar-approved Program/Course. Changing College clears the program selection.</p>
           {collegeId && !options.length && <p className="mt-1">No active programs are available for this college. Ask Admin to add the Registrar-approved program before changing these selections.</p>}
           {(legacyProgram || legacyCollege || (!collegeId && user.course)) && <p className="mt-1">Your recorded academic details stay saved until you choose a valid replacement. You can still save other profile fields.</p>}

@@ -8,14 +8,14 @@ const { assertCaseWritable } = require('../utils/supportCase');
 const catalog = require('../models/supportingDocument.model');
 const tickets = require('./supportTicket.service');
 function registrar(user) {
-  if (user.role !== 'admin' && !(user.role === 'clerk' && ['Window 1', 'Receiving Desk', 'Secretary'].includes(user.desk_assignment))) throw forbidden('Only Registrar staff can request or review pertinent documents.');
+  if (!(user.role === 'clerk' && ['Window 1', 'Receiving Desk', 'Secretary'].includes(user.desk_assignment))) throw forbidden('Only Registrar desk staff can request or review pertinent documents. Admin monitors support read-only.');
 }
 async function list(user, documentId) {
   user = await tickets.currentActor(user);
   const [doc] = await documents.findById(documentId);
   if (!doc) throw notFound('Request not found.');
   await access.authorizeMessage(user, doc);
-  return { requirements: await model.list(documentId), types:(await catalog.list()).filter(row => row.is_active), read_only:require('../utils/supportCase').isCaseReadOnly(doc.current_status) };
+  return { requirements: await model.list(documentId), types:(await catalog.list()).filter(row => row.is_active), read_only:user.role === 'admin' || require('../utils/supportCase').isCaseReadOnly(doc.current_status) };
 }
 async function mutate(user, documentId, kind, requirementId, body = {}, file) {
   if (!['request', 'upload', 'review'].includes(kind)) throw badRequest('Unknown attachment action.');
@@ -46,7 +46,7 @@ async function mutate(user, documentId, kind, requirementId, body = {}, file) {
       if (body.replacement_of && (!previous || (previous.catalog_id && previous.identity_key!==identity) || previous.superseded_at)) throw badRequest('Choose the current requirement of this document type for replacement.');
       if(rows.some(row => row.identity_key===identity && !row.superseded_at && row.status!=='rejected' && row.id!==previous?.id)) throw badRequest('This document is already requested, submitted or accepted. Use explicit replacement with instructions.');
       if(previous) await model.supersede(previous.id,connection);
-      const requirementId = await model.create(documentId,user.id,type.name,body.instructions.trim(),connection,{catalog_id:type.id,identity_key:identity,replacement_of:previous?.id});
+      const requirementId = await model.create(documentId,user.id,type.name,body.instructions.trim(),connection,{catalog_id:type.id,identity_key:identity,replacement_of:previous?.id,blocks_intake:doc.current_status==='PENDING_W1_INTAKE' || Boolean(previous?.blocks_intake)});
       if(!await require('../models/supportTicket.model').linked(documentId,connection)) {
         const owners=await require('../models/user.model').findStudentForPolicy(doc.student_id,connection);
         if(owners.length!==1) throw badRequest('This case ownership requires Admin review.');
@@ -55,7 +55,7 @@ async function mutate(user, documentId, kind, requirementId, body = {}, file) {
         await ticketModel.update(ticketId,{state:'QUEUED',queued_at:new Date()},connection);
         await ticketModel.event(ticketId,user.id,'created',require('crypto').randomUUID(),{via:'attachment_request',calendar:await ticketModel.settings(connection)},connection);
       }
-      const row = {id:requirementId,document_id:documentId,label:type.name,instructions:body.instructions.trim(),status:'requested',requested_by:user.id,catalog_id:type.id,identity_key:identity,replacement_of:previous?.id || null};
+      const row = {id:requirementId,document_id:documentId,label:type.name,instructions:body.instructions.trim(),status:'requested',requested_by:user.id,catalog_id:type.id,identity_key:identity,replacement_of:previous?.id || null,blocks_intake:doc.current_status==='PENDING_W1_INTAKE' || Boolean(previous?.blocks_intake)};
       await model.event(row,user.id,previous ? 'replacement_requested' : 'requested',connection);
       await model.bubble(row,connection);
     } else {

@@ -34,7 +34,7 @@ function listDocumentTypes({ includeInactive = false } = {}, executor = pool) {
   const where = includeInactive ? '' : ' WHERE is_active = TRUE';
   return executor
     .query(
-      `SELECT id, name, base_fee, rental_fee, special_fee, fee_rule, requires_attachment,
+      `SELECT id, name, base_fee, rental_fee, special_fee, fee_rule, catalog_description, base_label, fee_pending, requires_attachment,
               attachment_label, attachment_helper, is_active, sort_order, available_to, is_repeatable, is_walk_in, requires_original, registrar_attachment_rule, is_same_day, ${TYPE_COLLEGES}
        FROM document_types${where} ORDER BY sort_order, name`
     )
@@ -44,7 +44,7 @@ function listDocumentTypes({ includeInactive = false } = {}, executor = pool) {
 function findDocumentTypeByName(name, executor = pool) {
   return executor
     .query(
-      `SELECT id, name, base_fee, rental_fee, special_fee, fee_rule, requires_attachment,
+      `SELECT id, name, base_fee, rental_fee, special_fee, fee_rule, catalog_description, base_label, fee_pending, requires_attachment,
               attachment_label, attachment_helper, is_active, available_to, is_repeatable, is_walk_in, requires_original, registrar_attachment_rule, is_same_day, ${TYPE_COLLEGES}
        FROM document_types WHERE name = ?`,
       [name]
@@ -131,12 +131,13 @@ function updateDocumentType(id, data, executor = pool) {
        available_to = COALESCE(?, available_to), is_repeatable = COALESCE(?, is_repeatable),
        is_walk_in = COALESCE(?, is_walk_in), requires_original = COALESCE(?, requires_original),
        registrar_attachment_rule = COALESCE(?, registrar_attachment_rule), is_same_day = COALESCE(?, is_same_day),
-       rental_fee = COALESCE(?, rental_fee), special_fee = COALESCE(?, special_fee)
+       rental_fee = COALESCE(?, rental_fee), special_fee = COALESCE(?, special_fee),
+       fee_pending = CASE WHEN ? IS NOT NULL THEN FALSE ELSE fee_pending END
      WHERE id = ?`,
     [name ?? null, base_fee ?? null, fee_rule ?? null,
      requires_attachment ?? null, attachment_label ?? null,
      attachment_helper ?? null, sort_order ?? null, available_to ?? null, is_repeatable ?? null,
-     is_walk_in ?? null, requires_original ?? null, registrar_attachment_rule ?? null, is_same_day ?? null, rental_fee ?? null, special_fee ?? null, id]
+     is_walk_in ?? null, requires_original ?? null, registrar_attachment_rule ?? null, is_same_day ?? null, rental_fee ?? null, special_fee ?? null, base_fee ?? null, id]
   );
 }
 

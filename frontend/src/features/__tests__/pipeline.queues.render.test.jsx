@@ -279,7 +279,7 @@ describe('Finance — awaiting payment, then verification', () => {
     const verification = screen.getByRole('tab', { name: /verification queue/i });
     expect(within(awaiting).getByText('1')).toHaveClass('rounded-full');
     expect(within(verification).getByText('1')).toHaveClass('rounded-full');
-    expect(screen.getAllByRole('tab')).toHaveLength(2);
+    expect(screen.getAllByRole('tab')).toHaveLength(3);
     expect(screen.getAllByRole('table')).toHaveLength(1);
   });
 
@@ -299,7 +299,7 @@ describe('Finance — awaiting payment, then verification', () => {
     await renderDashboard(<FinanceDashboard user={USERS.finance} setViewImageUrl={vi.fn()} />);
     const awaiting = screen.getByRole('tab', { name: /awaiting payment/i });
     awaiting.focus();
-    await user.keyboard('{End}');
+    await user.keyboard('{ArrowRight}');
     const verification = screen.getByRole('tab', { name: /verification queue/i });
     expect(verification).toHaveFocus();
     expect(verification).toHaveAttribute('aria-selected', 'true');

@@ -7,6 +7,7 @@ import * as service from '@/services/reportsService';
 import { STATUS } from '@/utils/documentStatus';
 
 vi.mock('@/services/reportsService', () => ({
+  getReportFilterOptions: vi.fn().mockResolvedValue({colleges:[{id:4,name:'Synthetic College'}],document_types:[{id:1,name:'Diploma',is_active:1}],college_locked:false}),
   getDocumentReport: vi.fn(), getAnalytics: vi.fn(), exportStudentsCsv: vi.fn(), exportDocumentsCsv: vi.fn(),
 }));
 const ADMIN = { role: 'admin' };
@@ -27,19 +28,25 @@ beforeEach(() => {
   service.exportStudentsCsv.mockResolvedValue('students.csv');
 });
 
+it.each(['Receiving Desk','Finance'])('loads and exports the shared report for %s', async desk_assignment => {
+  const { result } = renderHook(() => useReports({ role: 'clerk', desk_assignment }, 'reports'));
+  await waitFor(() => expect(result.current.loading).toBe(false));
+  act(() => result.current.applyFilters({ studentSearch: 'SYN-001' }));
+  await waitFor(() => expect(service.getDocumentReport).toHaveBeenLastCalledWith(expect.objectContaining({ studentSearch: 'SYN-001' })));
+  await waitFor(() => expect(result.current.refreshing).toBe(false));
+  await act(async () => result.current.downloadDocuments());
+  expect(service.exportDocumentsCsv).toHaveBeenCalledExactlyOnceWith({ studentSearch: 'SYN-001' });
+  expect(service.getAnalytics).not.toHaveBeenCalled();
+});
+
 it('keeps KPI and table scope together across reversed responses and exports only the current loaded filters', async () => {
   const { result } = renderHook(() => useReports(ADMIN, 'admin-reports'));
   await waitFor(() => expect(result.current.loading).toBe(false));
   const old = deferred(), current = deferred();
   service.getDocumentReport.mockReturnValueOnce(old.promise).mockReturnValueOnce(current.promise);
-  act(() => result.current.updateFilter('status', STATUS.COMPLETED));
+  act(() => result.current.applyFilters({status:STATUS.COMPLETED}));
   expect(result.current.report).toBeNull();
-  act(() => {
-    result.current.updateFilter('paymentStatus', 'PAID');
-    result.current.updateFilter('dateFrom', '2026-10-01');
-    result.current.updateFilter('dateTo', '2026-10-05');
-    result.current.updateFilter('documentType', 'Diploma');
-  });
+  act(() => result.current.applyFilters({status:STATUS.COMPLETED,paymentStatus:'PAID',dateFrom:'2026-10-01',dateTo:'2026-10-05',documentType:'Diploma'}));
   await act(async () => result.current.downloadDocuments());
   expect(service.exportDocumentsCsv).not.toHaveBeenCalled();
   expect(result.current.error).toMatch(/Wait for the current report/);
@@ -62,8 +69,8 @@ it('ignores an earlier failure without clearing the newer report or showing its 
   await waitFor(() => expect(result.current.loading).toBe(false));
   const old = deferred();
   service.getDocumentReport.mockReturnValueOnce(old.promise).mockResolvedValueOnce(data('Latest', 3));
-  act(() => result.current.updateFilter('status', STATUS.COMPLETED));
-  act(() => result.current.updateFilter('paymentStatus', 'PAID'));
+  act(() => result.current.applyFilters({status:STATUS.COMPLETED}));
+  act(() => result.current.applyFilters({status:STATUS.COMPLETED,paymentStatus:'PAID'}));
   await waitFor(() => expect(result.current.report?.summary.total).toBe(3));
   await act(async () => old.reject(new Error('old failure')));
   expect(result.current.error).toBe('');
@@ -77,7 +84,8 @@ it('preserves filter, KPI and Records positions during refresh/failure and offer
   const request = deferred();
   service.getDocumentReport.mockReturnValueOnce(request.promise);
   await user.selectOptions(screen.getByDisplayValue('All statuses'), STATUS.COMPLETED);
-  expect(screen.getByRole('region', { name: 'Filters' }).nextElementSibling).toBe(screen.getByRole('region', { name: 'Report summary' }));
+  await user.click(screen.getByRole('button',{name:'Apply Filters'}));
+  expect(screen.getByRole('region', { name: 'Report summary' }).nextElementSibling).toBe(screen.getByRole('region', { name: 'Records' }));
   expect(screen.getByRole('status')).toHaveTextContent('Updating report…');
   expect(screen.queryByText('Initial', { selector: 'button' })).not.toBeInTheDocument();
   expect(within(screen.getByRole('region', { name: 'Report summary' })).getAllByText('—')).toHaveLength(5);
@@ -96,20 +104,20 @@ it('preserves paging, Apply/Reset and category-wide student exports', async () =
   service.getDocumentReport.mockImplementation(async filters => data('Scoped', 60, filters.page));
   const { result } = renderHook(() => useReports(ADMIN, 'admin-reports'));
   await waitFor(() => expect(result.current.loading).toBe(false));
-  act(() => result.current.updateFilter('paymentStatus', 'UNPAID'));
+  act(() => result.current.applyFilters({paymentStatus:'UNPAID'}));
   await waitFor(() => expect(result.current.report).not.toBeNull());
   act(() => result.current.goToPage(2));
   await waitFor(() => expect(result.current.report?.page).toBe(2));
   expect(service.getDocumentReport).toHaveBeenLastCalledWith(expect.objectContaining({ paymentStatus: 'UNPAID', page: 2 }));
-  act(() => result.current.applyFilters());
+  act(() => result.current.applyFilters(result.current.filters));
   await waitFor(() => expect(result.current.report?.page).toBe(1));
-  act(() => result.current.resetFilters());
+  act(() => result.current.applyFilters({}));
   await waitFor(() => expect(result.current.report).not.toBeNull());
   expect(service.getDocumentReport).toHaveBeenLastCalledWith({ page: 1, limit: 25 });
   await act(async () => result.current.downloadDocuments());
   expect(service.exportDocumentsCsv).toHaveBeenCalledWith({});
   await act(async () => result.current.downloadStudents('alumni'));
-  expect(service.exportStudentsCsv).toHaveBeenCalledWith('alumni');
+  expect(service.exportStudentsCsv).toHaveBeenCalledWith('alumni',{});
 });
 
 it('loads the legacy Secretary-cleared view and keeps export, paging and explicit Completed-only filters aligned', async () => {
@@ -122,14 +130,14 @@ it('loads the legacy Secretary-cleared view and keeps export, paging and explici
   await waitFor(() => expect(result.current.report?.page).toBe(2));
   await act(async () => result.current.downloadDocuments());
   expect(service.exportDocumentsCsv).toHaveBeenLastCalledWith({ recordSet: 'secretary-cleared' });
-  act(() => result.current.chooseRecordView('completed'));
+  act(() => result.current.applyFilters({status:STATUS.COMPLETED}));
   await waitFor(() => expect(result.current.report?.page).toBe(1));
   expect(service.getDocumentReport).toHaveBeenLastCalledWith({ status: STATUS.COMPLETED, page: 1, limit: 25 });
-  act(() => result.current.chooseRecordView('all'));
+  act(() => result.current.applyFilters({}));
   await waitFor(() => expect(result.current.report).not.toBeNull());
   expect(service.getDocumentReport).toHaveBeenLastCalledWith({ page: 1, limit: 25 });
-  act(() => result.current.chooseRecordView('cleared'));
-  act(() => result.current.updateFilter('status', STATUS.SEC_PROCESSING));
+  act(() => result.current.applyFilters({recordSet:'secretary-cleared'}));
+  act(() => result.current.applyFilters({status:STATUS.SEC_PROCESSING}));
   await waitFor(() => expect(result.current.report).not.toBeNull());
   expect(service.getDocumentReport).toHaveBeenLastCalledWith({ status: STATUS.SEC_PROCESSING, page: 1, limit: 25 });
 });
@@ -147,8 +155,9 @@ it('preserves Secretary record fields and profile actions in the combined worksp
   expect(screen.getByRole('button', { name: 'College Student' })).toBeEnabled();
   expect(screen.getAllByRole('columnheader')).toHaveLength(8);
   await user.click(screen.getByRole('button', { name: 'Completed only' }));
+  await user.click(screen.getByRole('button',{name:'Apply Filters'}));
   await waitFor(() => expect(service.getDocumentReport).toHaveBeenLastCalledWith(expect.objectContaining({ status: STATUS.COMPLETED })));
   expect(screen.getByRole('button', { name: 'Completed only' })).toHaveAttribute('aria-pressed', 'true');
-  await user.click(screen.getByRole('button', { name: 'Export' }));
-  expect(screen.getByRole('group', { name: 'Export options' }).querySelectorAll('button')).toHaveLength(5);
+  await user.click(screen.getByRole('button', { name: 'Export', exact: true }));
+  expect(screen.getByLabelText('Dataset').querySelectorAll('option')).toHaveLength(5);
 });

@@ -48,6 +48,8 @@ CREATE TABLE IF NOT EXISTS users (
   study_load ENUM('regular', 'irregular') NOT NULL DEFAULT 'regular',
   desk_assignment VARCHAR(100),
   id_proof_path VARCHAR(500),
+  registration_proof_unavailable BOOLEAN NOT NULL DEFAULT FALSE,
+  registration_proof_reason VARCHAR(500) NULL,
   -- Uploaded avatar filename. Served through the authenticated /api/files
   -- route like every other upload, never from a public static path.
   profile_picture VARCHAR(500),
@@ -96,6 +98,9 @@ CREATE TABLE IF NOT EXISTS trusted_browsers (
 
 CREATE TABLE IF NOT EXISTS student_profiles (
   user_id INT PRIMARY KEY,
+  first_name VARCHAR(255) NULL,
+  middle_name VARCHAR(255) NULL,
+  last_name VARCHAR(255) NULL,
   extension_name VARCHAR(20),
   birth_date DATE,
   place_of_birth VARCHAR(255),
@@ -104,6 +109,8 @@ CREATE TABLE IF NOT EXISTS student_profiles (
   maiden_name VARCHAR(255),
   home_address VARCHAR(500),
   graduation_year INT NULL,
+  year_started INT NULL,
+  study_years_confirmed_at DATETIME NULL,
   last_attendance_year INT,
   is_transfer_student BOOLEAN DEFAULT FALSE,
   previous_school VARCHAR(255),
@@ -154,6 +161,8 @@ CREATE TABLE IF NOT EXISTS documents (
   estimated_ready_date DATE,
   payment_status ENUM('UNPAID', 'PAID') DEFAULT 'UNPAID',
   assigned_clerk_id INT,
+  routing_college_id INT NULL,
+  routing_college_name VARCHAR(255) NULL,
   file_path VARCHAR(500),
   receipt_image_path VARCHAR(500),
   is_same_day BOOLEAN NOT NULL DEFAULT FALSE,
@@ -171,6 +180,7 @@ CREATE TABLE IF NOT EXISTS documents (
   ocr_extracted_data JSON,
   payment_reference_id VARCHAR(255),
   gcash_reference_no VARCHAR(255),
+  payment_channel VARCHAR(20) NULL,
   amount DECIMAL(10,2) DEFAULT 150.00,
   -- The basis for the amount. The Secretary prices from the printed output, so
   -- an amount without these is an unexplainable charge.
@@ -185,6 +195,7 @@ CREATE TABLE IF NOT EXISTS documents (
   checkout_url VARCHAR(500),
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  KEY idx_documents_or_number (or_number),
   FOREIGN KEY (assigned_clerk_id) REFERENCES users(id) ON DELETE SET NULL,
   FOREIGN KEY (priced_by_clerk_id) REFERENCES users(id) ON DELETE SET NULL,
   FOREIGN KEY (logged_by_clerk_id) REFERENCES users(id) ON DELETE SET NULL
@@ -238,7 +249,10 @@ CREATE TABLE IF NOT EXISTS document_types (
   base_fee DECIMAL(10,2) NOT NULL DEFAULT 50.00,
   rental_fee DECIMAL(10,2) NOT NULL DEFAULT 0.00,
   special_fee DECIMAL(10,2) NOT NULL DEFAULT 0.00,
-  fee_rule ENUM('flat', 'per_semester_block') NOT NULL DEFAULT 'flat',
+  fee_rule ENUM('flat', 'per_semester_block', 'per_page') NOT NULL DEFAULT 'flat',
+  catalog_description VARCHAR(500) NULL,
+  base_label VARCHAR(100) NULL,
+  fee_pending BOOLEAN NOT NULL DEFAULT FALSE,
   requires_attachment BOOLEAN NOT NULL DEFAULT FALSE,
   attachment_label VARCHAR(255) NULL,
   attachment_helper VARCHAR(255) NULL,
@@ -328,7 +342,7 @@ CREATE TABLE IF NOT EXISTS document_fee_schedules (
   college_id INT NULL,
   college_key INT GENERATED ALWAYS AS (IFNULL(college_id, 0)) STORED,
   base_fee DECIMAL(10,2) NULL,
-  fee_rule ENUM('flat', 'per_semester_block') NULL,
+  fee_rule ENUM('flat', 'per_semester_block', 'per_page') NULL,
   rental_fee DECIMAL(10,2) NOT NULL DEFAULT 0,
   special_fee DECIMAL(10,2) NOT NULL DEFAULT 0,
   fee_items JSON NOT NULL,
@@ -390,7 +404,7 @@ CREATE TABLE IF NOT EXISTS supporting_document_types (
 
 CREATE TABLE IF NOT EXISTS request_attachment_requirements (
     id INT AUTO_INCREMENT PRIMARY KEY, document_id INT NOT NULL, label VARCHAR(255) NOT NULL,
-    instructions VARCHAR(2000) NOT NULL, status ENUM('requested','uploaded','accepted','rejected') NOT NULL DEFAULT 'requested',
+    instructions VARCHAR(2000) NOT NULL, blocks_intake BOOLEAN NOT NULL DEFAULT FALSE, status ENUM('requested','uploaded','accepted','rejected') NOT NULL DEFAULT 'requested',
     catalog_id INT NULL, identity_key VARCHAR(100) NULL, replacement_of INT NULL, superseded_at TIMESTAMP NULL,
     requested_by INT NOT NULL, reviewed_by INT NULL, review_notes VARCHAR(2000) NULL,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, reviewed_at TIMESTAMP NULL,
@@ -540,3 +554,117 @@ CREATE TABLE IF NOT EXISTS payment_methods (
   is_active BOOLEAN NOT NULL DEFAULT TRUE, sort_order INT NOT NULL DEFAULT 0,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS study_year_events (
+    id INT AUTO_INCREMENT PRIMARY KEY, user_id INT NOT NULL, actor_id INT NOT NULL,
+    event_type ENUM('initial', 'correction') NOT NULL, previous_values JSON NOT NULL, saved_values JSON NOT NULL,
+    reason VARCHAR(1000) NOT NULL, created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    INDEX study_year_events_user (user_id, id),
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE RESTRICT,
+    FOREIGN KEY (actor_id) REFERENCES users(id) ON DELETE RESTRICT
+  ) ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS account_review_events (
+    id INT AUTO_INCREMENT PRIMARY KEY, user_id INT NOT NULL, reviewer_id INT NOT NULL,
+    decision ENUM('verified', 'rejected') NOT NULL, evidence_basis VARCHAR(1000) NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE RESTRICT,
+    FOREIGN KEY (reviewer_id) REFERENCES users(id) ON DELETE RESTRICT
+  ) ENGINE=InnoDB;
+
+-- Managed Finance receipt packs; historical ORs remain unchanged.
+CREATE TABLE IF NOT EXISTS finance_receipt_packs (
+ id BIGINT AUTO_INCREMENT PRIMARY KEY, pattern JSON NOT NULL, start_serial VARCHAR(100) NOT NULL,
+ consumed TINYINT UNSIGNED NOT NULL DEFAULT 0, active BOOLEAN NOT NULL DEFAULT TRUE,
+ created_by INT NOT NULL, replacement_reason VARCHAR(2000) NULL,
+ created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, archived_at TIMESTAMP NULL
+ ) ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS finance_receipt_control (
+ id INT PRIMARY KEY, active_pack_id BIGINT NULL, print_config JSON NULL, version INT NOT NULL DEFAULT 0
+ ) ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS finance_issued_receipts (
+ id BIGINT AUTO_INCREMENT PRIMARY KEY, request_group_id VARCHAR(100) NOT NULL,
+ active_group VARCHAR(100) NULL, document_id INT NOT NULL, pack_id BIGINT NOT NULL,
+ serial VARCHAR(100) NOT NULL, client_key VARCHAR(64) NOT NULL, snapshot JSON NOT NULL,
+ state VARCHAR(16) NOT NULL DEFAULT 'ISSUED', cashier_id INT NOT NULL, issue_date DATE NOT NULL,
+ copy_path VARCHAR(255) NULL, void_reason VARCHAR(2000) NULL,
+ created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ UNIQUE KEY receipt_serial (serial), UNIQUE KEY receipt_retry_key (client_key),
+ UNIQUE KEY receipt_active_group (active_group), KEY receipt_group_history (request_group_id,id)
+ ) ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS finance_receipt_serials (
+ serial VARCHAR(100) PRIMARY KEY, pack_id BIGINT NOT NULL, position TINYINT UNSIGNED NOT NULL,
+ receipt_id BIGINT NULL, state VARCHAR(16) NOT NULL DEFAULT 'RESERVED',
+ UNIQUE KEY pack_position (pack_id,position)
+ ) ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS finance_receipt_events (
+ id BIGINT AUTO_INCREMENT PRIMARY KEY, pack_id BIGINT NULL, receipt_id BIGINT NULL,
+ actor_id INT NOT NULL, event_type VARCHAR(40) NOT NULL, data JSON NOT NULL,
+ created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, KEY receipt_event_history (receipt_id,id)
+ ) ENGINE=InnoDB;
+
+INSERT IGNORE INTO finance_receipt_control (id) VALUES (1);
+
+-- Isolated staff-to-Admin assistance; no student-support import.
+CREATE TABLE IF NOT EXISTS internal_assistance_tickets (
+    id INT AUTO_INCREMENT PRIMARY KEY, created_by INT NOT NULL,
+    creator_desk VARCHAR(100) NOT NULL, subject VARCHAR(255) NOT NULL,
+    category VARCHAR(40) NOT NULL, state ENUM('QUEUED','IN_PROGRESS','AWAITING_STAFF','RESOLVED') NOT NULL DEFAULT 'QUEUED',
+    assigned_to INT NULL, version INT UNSIGNED NOT NULL DEFAULT 0,
+    created_at DATETIME(3) NOT NULL, updated_at DATETIME(3) NOT NULL,
+    claimed_at DATETIME(3) NULL, resolved_at DATETIME(3) NULL,
+    CONSTRAINT internal_creator FOREIGN KEY (created_by) REFERENCES users(id),
+    CONSTRAINT internal_admin FOREIGN KEY (assigned_to) REFERENCES users(id),
+    KEY internal_owner_cursor (created_by,id), KEY internal_queue_cursor (state,category,id)
+  ) ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS internal_assistance_messages (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY, ticket_id INT NOT NULL, sender_id INT NULL,
+    kind ENUM('message','system') NOT NULL DEFAULT 'message', message VARCHAR(2000) NOT NULL,
+    created_at DATETIME(3) NOT NULL,
+    CONSTRAINT internal_message_ticket FOREIGN KEY (ticket_id) REFERENCES internal_assistance_tickets(id),
+    CONSTRAINT internal_message_sender FOREIGN KEY (sender_id) REFERENCES users(id),
+    KEY internal_history_cursor (ticket_id,id)
+  ) ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS internal_assistance_events (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY, ticket_id INT NOT NULL, actor_id INT NOT NULL,
+    event_type VARCHAR(40) NOT NULL, client_key VARCHAR(64) NOT NULL, payload_hash CHAR(64) NOT NULL,
+    message_id BIGINT NULL, data JSON NOT NULL, created_at DATETIME(3) NOT NULL,
+    CONSTRAINT internal_event_ticket FOREIGN KEY (ticket_id) REFERENCES internal_assistance_tickets(id),
+    CONSTRAINT internal_event_actor FOREIGN KEY (actor_id) REFERENCES users(id),
+    UNIQUE KEY internal_actor_retry (actor_id,client_key), KEY internal_event_history (ticket_id,id)
+  ) ENGINE=InnoDB;
+
+-- Additional operational staff coordination; separate from student support.
+CREATE TABLE IF NOT EXISTS staff_conversations (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    participant_low INT NOT NULL, participant_high INT NOT NULL,
+    scope_college_id INT NOT NULL DEFAULT 0,
+    created_at DATETIME(3) NOT NULL, updated_at DATETIME(3) NOT NULL,
+    CONSTRAINT staff_chat_low FOREIGN KEY (participant_low) REFERENCES users(id),
+    CONSTRAINT staff_chat_high FOREIGN KEY (participant_high) REFERENCES users(id),
+    UNIQUE KEY staff_chat_pair (participant_low,participant_high,scope_college_id),
+    KEY staff_chat_low_cursor (participant_low,id), KEY staff_chat_high_cursor (participant_high,id)
+  ) ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS staff_conversation_messages (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY, conversation_id INT NOT NULL,
+    sender_id INT NOT NULL, message VARCHAR(2000) NOT NULL, created_at DATETIME(3) NOT NULL,
+    CONSTRAINT staff_chat_message_thread FOREIGN KEY (conversation_id) REFERENCES staff_conversations(id),
+    CONSTRAINT staff_chat_message_sender FOREIGN KEY (sender_id) REFERENCES users(id),
+    KEY staff_chat_history (conversation_id,id)
+  ) ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS staff_conversation_events (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY, conversation_id INT NOT NULL, actor_id INT NOT NULL,
+    event_type VARCHAR(20) NOT NULL, client_key VARCHAR(64) NOT NULL,
+    payload_hash CHAR(64) NOT NULL, message_id BIGINT NOT NULL, created_at DATETIME(3) NOT NULL,
+    CONSTRAINT staff_chat_event_thread FOREIGN KEY (conversation_id) REFERENCES staff_conversations(id),
+    CONSTRAINT staff_chat_event_actor FOREIGN KEY (actor_id) REFERENCES users(id),
+    UNIQUE KEY staff_chat_retry (actor_id,client_key), KEY staff_chat_events (conversation_id,id)
+  ) ENGINE=InnoDB;

@@ -20,7 +20,7 @@ function escapeCell(value) {
 
   let str = value instanceof Date ? value.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : String(value);
 
-  if (/^[=+\-@\t\r]/.test(str)) {
+  if (/^(?:[\t\r\n]|\s*[=+\-@])/.test(str)) {
     str = `'${str}`;
   }
 

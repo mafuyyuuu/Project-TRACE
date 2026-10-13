@@ -1,7 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { STATUS, LEGACY_STATUS, getStatusLabel } from '@/utils/documentStatus';
-import { render, renderHook, act, screen, waitFor, within } from '@testing-library/react';
+import { render, renderHook, fireEvent, act, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import {MemoryRouter} from 'react-router-dom';
 
 /**
  * Category 2 admin panels: Maintenance CRUD, Reports/Export, and Analytics.
@@ -22,13 +23,14 @@ vi.mock('@/services/documentsService', () => ({
 }));
 
 vi.mock('@/services/maintenanceService', () => ({
-  getStaff: vi.fn(), createStaff: vi.fn(), updateStaff: vi.fn(), setStaffActive: vi.fn(),
+  getStaff: vi.fn(), createStaff: vi.fn(), updateStaff: vi.fn(), setStaffActive: vi.fn(), setAccountActive:vi.fn(),
   getDocumentTypes: vi.fn(), createDocumentType: vi.fn(), updateDocumentType: vi.fn(), setDocumentTypeActive: vi.fn(),
   getColleges: vi.fn(), createCollege: vi.fn(), updateCollege: vi.fn(), setCollegeActive: vi.fn(),
   getPaymentMethods: vi.fn(), createPaymentMethod: vi.fn(), updatePaymentMethod: vi.fn(), setPaymentMethodActive: vi.fn(),
 }));
 
 vi.mock('@/services/reportsService', () => ({
+  getReportFilterOptions: vi.fn().mockResolvedValue({colleges:[{id:4,name:'Synthetic College'}],document_types:[{id:1,name:'Diploma',is_active:1}],college_locked:false}),
   getDocumentReport: vi.fn(), getAnalytics: vi.fn(),
   exportStudentsCsv: vi.fn(), exportDocumentsCsv: vi.fn(),
 }));
@@ -99,6 +101,7 @@ beforeEach(() => {
   maintenanceService.getPaymentMethods.mockResolvedValue({ payment_methods: PAYMENT_METHODS });
   maintenanceService.createStaff.mockResolvedValue({ message: 'Staff account created.' });
   maintenanceService.setStaffActive.mockResolvedValue({ message: 'Staff account deactivated.' });
+  maintenanceService.setAccountActive.mockResolvedValue({message:'Account deactivated.'});
   maintenanceService.setDocumentTypeActive.mockResolvedValue({ message: 'Document type deactivated.' });
   maintenanceService.createPaymentMethod.mockResolvedValue({ message: 'Payment method created.' });
   maintenanceService.createCollege.mockResolvedValue({ message: 'College created.' });
@@ -116,7 +119,7 @@ it('edits audience, fees and college restrictions only after a confirmed save', 
   const user = userEvent.setup();
   render(<MaintenancePanel user={ADMIN} currentTab="admin-maintenance" />);
   await screen.findByText('System');
-  await user.click(screen.getByRole('button', { name: /Document Types/ }));
+  await user.click(screen.getByRole('tab', { name: /Document Types/ }));
   const row = screen.getByText('Transcript of Records').closest('tr');
   await user.click(within(row).getByRole('button', { name: 'Edit' }));
   await user.selectOptions(screen.getByRole('option', { name: 'Alumni Only' }).parentElement, 'alumni');
@@ -139,7 +142,7 @@ it.each([true, false])('keeps document-type active=%s actions confirmed, cancell
   maintenanceService.setDocumentTypeActive.mockImplementation(() => new Promise(resolve => { finish = resolve; }));
   const user = userEvent.setup();
   render(<MaintenancePanel user={ADMIN} currentTab="admin-maintenance" />);
-  await user.click(await screen.findByRole('button', { name: /Document Types/ }));
+  await user.click(await screen.findByRole('tab', { name: /Document Types/ }));
   const row = (await screen.findByText('Transcript of Records')).closest('tr');
   const label = active ? 'Deactivate' : 'Restore';
   await user.click(within(row).getByRole('button', { name: label }));
@@ -201,6 +204,18 @@ describe('MaintenancePanel', () => {
     await settle();
     return utils;
   };
+  it('hides desk choices for students and confirms deactivation through the account endpoint',async()=>{
+    const student={id:3,role:'student',user_type:'alumni',student_id:'ALU-3',full_name:'Synthetic Alumni',is_active:1};
+    getUsers.mockResolvedValue({users:[...STAFF,student]});await renderPanel();
+    await userEvent.selectOptions(screen.getByLabelText('Staff desk'),'Finance');
+    await userEvent.selectOptions(screen.getByLabelText('Account role'),'student');
+    expect(screen.queryByLabelText('Staff desk')).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button',{name:/Synthetic Alumni/}));
+    const control=screen.getByRole('button',{name:'Deactivate User'});expect(control).toBeEnabled();await userEvent.click(control);
+    expect(maintenanceService.setAccountActive).not.toHaveBeenCalled();
+    await userEvent.click(within(screen.getByRole('dialog',{name:'Deactivate Student / Alumni Account'})).getByRole('button',{name:'Deactivate',exact:true}));
+    await waitFor(()=>expect(maintenanceService.setAccountActive).toHaveBeenCalledExactlyOnceWith(3,false));
+  });
 
   it('loads all four entity lists', async () => {
     await renderPanel();
@@ -284,7 +299,7 @@ describe('MaintenancePanel', () => {
   it('preserves a college draft after cancelling and creates it only after confirmation', async () => {
     const user = userEvent.setup();
     await renderPanel();
-    await user.click(screen.getByRole('button', { name: /Colleges/ }));
+    await user.click(screen.getByRole('tab', { name: /Colleges/ }));
     const name = screen.getByPlaceholderText('College name *');
     await user.type(name, 'College of Engineering');
     await user.type(screen.getByPlaceholderText('Short code (e.g. CCS)'), 'COE');
@@ -300,7 +315,7 @@ describe('MaintenancePanel', () => {
   it('confirms a document type before sending its configured defaults', async () => {
     const user = userEvent.setup();
     await renderPanel();
-    await user.click(screen.getByRole('button', { name: /Document Types/ }));
+    await user.click(screen.getByRole('tab', { name: /Document Types/ }));
     await user.type(screen.getByPlaceholderText('Name *'), 'Certification');
     await user.type(screen.getByPlaceholderText('Base fee (₱)'), '50');
     await user.click(screen.getByRole('button', { name: 'Create Type' }));
@@ -314,7 +329,7 @@ describe('MaintenancePanel', () => {
   it('switches to the document types section', async () => {
     const user = userEvent.setup();
     await renderPanel();
-    await user.click(await screen.findByRole('button', { name: /Document Types/ }));
+    await user.click(await screen.findByRole('tab', { name: /Document Types/ }));
     expect(await screen.findByText('Transcript of Records')).toBeInTheDocument();
     expect(screen.getByText(/cannot be renamed/i)).toBeInTheDocument();
   });
@@ -322,7 +337,7 @@ describe('MaintenancePanel', () => {
   it('switches to the payment methods section and shows both active and inactive rows', async () => {
     const user = userEvent.setup();
     await renderPanel();
-    await user.click(await screen.findByRole('button', { name: /Payment Methods/ }));
+    await user.click(await screen.findByRole('tab', { name: /Payment Methods/ }));
     expect(await screen.findByText('GCash')).toBeInTheDocument();
     expect(screen.getByText('Over-the-Counter (Cashier)')).toBeInTheDocument();
     expect(screen.getByText('Active')).toBeInTheDocument();
@@ -332,7 +347,7 @@ describe('MaintenancePanel', () => {
   it('creates a payment method with the entered code and name', async () => {
     const user = userEvent.setup();
     await renderPanel();
-    await user.click(await screen.findByRole('button', { name: /Payment Methods/ }));
+    await user.click(await screen.findByRole('tab', { name: /Payment Methods/ }));
 
     await user.type(screen.getByPlaceholderText(/Code \*/), 'paymaya');
     await user.type(screen.getByPlaceholderText(/Display name/), 'PayMaya');
@@ -350,7 +365,7 @@ describe('MaintenancePanel', () => {
   it('deactivates a payment method rather than deleting it', async () => {
     const user = userEvent.setup();
     await renderPanel();
-    await user.click(await screen.findByRole('button', { name: /Payment Methods/ }));
+    await user.click(await screen.findByRole('tab', { name: /Payment Methods/ }));
 
     const row = (await screen.findByText('GCash')).closest('tr');
     await user.click(within(row).getByRole('button', { name: /deactivate/i }));
@@ -365,155 +380,58 @@ describe('MaintenancePanel', () => {
 });
 
 describe('ReportsPanel', () => {
-  const renderPanel = async () => {
-    const utils = render(<ReportsPanel user={ADMIN} currentTab="admin-reports" />);
-    await settle();
-    return utils;
-  };
-
-  it('loads the report on mount', async () => {
-    await renderPanel();
-    await waitFor(() => expect(reportsService.getDocumentReport).toHaveBeenCalled());
-  });
-
-  it.each([
-    ['Admin', ADMIN, 'admin-reports'],
-    ['Window 1', { role: 'clerk', desk_assignment: 'Window 1' }, 'reports'],
-    ['Secretary', { role: 'clerk', desk_assignment: 'Secretary' }, 'reports'],
-  ])('uses shared status badges in %s reports without changing payment meanings', async (_, account, tab) => {
-    const examples = [[STATUS.PENDING_STUDENT_PAYMENT, 'amber'], [STATUS.SEC_PROCESSING, 'blue'],
-      [STATUS.READY_FOR_RELEASE, 'green'], [STATUS.COMPLETED, 'green'], [LEGACY_STATUS.APPROVED, 'blue'], [LEGACY_STATUS.REJECTED, 'red']];
-    reportsService.getDocumentReport.mockResolvedValue({ ...REPORT, documents: examples.map(([status], index) => ({ ...REPORT.documents[0], id: index, current_status: status })) });
-    render(<ReportsPanel user={account} currentTab={tab} />);
-    const table = await screen.findByRole('table');
-    for (const [status, color] of examples) {
-      const badge = within(table).getByText(getStatusLabel(status));
-      expect(badge).toHaveClass(`bg-${color}-50`, 'rounded-full');
-    }
+  it.each(['Admin','Window 1','Secretary'])('preserves shared status and payment badges for %s',async role=>{
+    const examples=[[STATUS.PENDING_STUDENT_PAYMENT,'amber'],[STATUS.SEC_PROCESSING,'blue'],[STATUS.READY_FOR_RELEASE,'green'],[STATUS.COMPLETED,'green'],[LEGACY_STATUS.APPROVED,'blue'],[LEGACY_STATUS.REJECTED,'red']];
+    reportsService.getDocumentReport.mockResolvedValue({...REPORT,documents:examples.map(([status],index)=>({...REPORT.documents[0],id:index,current_status:status}))});
+    render(<ReportsPanel user={role==='Admin'?ADMIN:{role:'clerk',desk_assignment:role}} currentTab={role==='Admin'?'admin-reports':'reports'}/>);
+    const table=await screen.findByRole('table');
+    for(const [status,tone] of examples)expect(within(table).getByText(getStatusLabel(status))).toHaveClass(`bg-${tone}-50`,'rounded-full');
     expect(within(table).getAllByText('PAID')).toHaveLength(examples.length);
   });
-
-  it.each([
-    ['Admin', ADMIN, 'admin-reports'],
-    ['Window 1', { role: 'clerk', desk_assignment: 'Window 1' }, 'reports'],
-    ['Secretary', { role: 'clerk', desk_assignment: 'Secretary' }, 'reports'],
-  ])('keeps %s reports ordered Filters, KPIs, Records with one header export', async (_, account, tab) => {
-    render(<ReportsPanel user={account} currentTab={tab} />);
-    const filters = await screen.findByRole('region', { name: 'Filters' });
-    const summary = screen.getByRole('region', { name: 'Report summary' });
-    const records = screen.getByRole('region', { name: 'Records' });
-    expect(filters.nextElementSibling).toBe(summary);
-    expect(summary.nextElementSibling).toBe(records);
-    expect(screen.getAllByRole('button', { name: 'Export' })).toHaveLength(1);
-    expect(screen.getByRole('button', { name: 'Export' }).closest('.trace-page-header')).toBeInTheDocument();
-    expect(within(summary).getByText('Revenue')).toBeInTheDocument();
-    expect(within(records).getAllByRole('columnheader').map(header => header.textContent)).toEqual([
-      'Requested On', 'Last Updated', 'Tracking', 'Student', 'Document', 'Status', 'Payment', 'Amount',
-    ]);
+  const renderPanel = async (account=ADMIN,tab='admin-reports') => {
+    render(<ReportsPanel user={account} currentTab={tab}/>);await screen.findByText('TRC-AAA');
+  };
+  const open = async () => {await userEvent.click(screen.getByRole('button',{name:'Export',exact:true}));return screen.getByRole('dialog',{name:'Export'});};
+  it('shows visible report filters with export configuration behind the header action',async()=>{
+    await renderPanel();expect(screen.getByLabelText('Student ID / Name')).toBeVisible();expect(screen.queryByLabelText('Dataset')).not.toBeInTheDocument();
+    expect(screen.getAllByRole('columnheader')).toHaveLength(8);
   });
-
-  it('shows the summary for the current slice', async () => {
-    await renderPanel();
-    // "Records"/"Completed"/"₱50.00" each appear in both the summary cards and
-    // the table below, so assert on the labels unique to the summary. "Rejected"
-    // now also names an option in the status filter, so exclude <option> nodes
-    // rather than matching on the bare text.
-    expect(await screen.findByText('Revenue')).toBeInTheDocument();
-    expect(
-      screen.getByText('Rejected', { selector: ':not(option)' })
-    ).toBeInTheDocument();
-    // the revenue figure renders (twice: summary card and row amount)
-    expect(screen.getAllByText('₱50.00').length).toBeGreaterThan(0);
+  it.each([['Admin',ADMIN,'admin-reports'],['Window 1',{role:'clerk',desk_assignment:'Window 1'},'reports'],['Secretary',{role:'clerk',desk_assignment:'Secretary'},'reports']])('uses inline filters and the same header Export action for %s',async(_,account,tab)=>{
+    await renderPanel(account,tab);expect(screen.getByRole('button',{name:'Export',exact:true}).closest('.trace-page-header')).toBeInTheDocument();
+    expect(screen.getByLabelText('College / Department')).toBeVisible();const dialog=await open();expect(within(dialog).getByLabelText('Dataset')).toBeInTheDocument();expect(within(dialog).queryByLabelText('Student ID / Name')).not.toBeInTheDocument();
+    expect(within(dialog).getByRole('button',{name:'Export CSV'})).toBeEnabled();
   });
-
-  it('lists the filtered records', async () => {
-    await renderPanel();
-    expect(await screen.findByText('TRC-AAA')).toBeInTheDocument();
-    expect(screen.getByText('Ana Reyes')).toBeInTheDocument();
+  it('retains unapplied search on export close and exports the applied snapshot only',async()=>{
+    await renderPanel();const calls=reportsService.getDocumentReport.mock.calls.length;
+    await userEvent.type(screen.getByLabelText('Student ID / Name'),'Ana');expect(reportsService.getDocumentReport).toHaveBeenCalledTimes(calls);
+    await open();expect(screen.getByRole('button',{name:'Export CSV'})).toBeDisabled();await userEvent.click(screen.getByRole('button',{name:'Close export',exact:true}));
+    expect(screen.getByLabelText('Student ID / Name')).toHaveValue('Ana');await userEvent.click(screen.getByRole('button',{name:'Apply Filters'}));
+    await waitFor(()=>expect(reportsService.getDocumentReport).toHaveBeenLastCalledWith(expect.objectContaining({studentSearch:'Ana'})));
+    await open();await waitFor(()=>expect(screen.getByRole('button',{name:'Export CSV'})).toBeEnabled());await userEvent.click(screen.getByRole('button',{name:'Export CSV'}));
+    expect(reportsService.exportDocumentsCsv).toHaveBeenCalledWith({studentSearch:'Ana'});
   });
-
-  it('sends the chosen filters when applied', async () => {
-    const user = userEvent.setup();
-    await renderPanel();
-
-    await user.selectOptions(await screen.findByDisplayValue('All statuses'), STATUS.COMPLETED);
-    await user.click(screen.getByRole('button', { name: /apply filters/i }));
-
-    await waitFor(() =>
-      expect(reportsService.getDocumentReport).toHaveBeenLastCalledWith(
-        expect.objectContaining({ status: STATUS.COMPLETED })
-      )
-    );
+  it('resets only the draft and retains every student export dataset',async()=>{
+    await renderPanel();await userEvent.type(screen.getByLabelText('Student ID / Name'),'SYN-1');const calls=reportsService.getDocumentReport.mock.calls.length;
+    await userEvent.click(screen.getByRole('button',{name:'Reset draft'}));expect(screen.getByLabelText('Student ID / Name')).toHaveValue('');expect(reportsService.getDocumentReport).toHaveBeenCalledTimes(calls);
+    await open();for(const label of ['Active Students','Graduates / Alumni','Others','All Students'])expect(screen.getByRole('option',{name:label})).toBeInTheDocument();
+    await userEvent.selectOptions(screen.getByLabelText('Dataset'),'alumni');await userEvent.click(screen.getByRole('button',{name:'Export CSV'}));expect(reportsService.exportStudentsCsv).toHaveBeenCalledWith('alumni',{});
   });
-
-  it('offers all four student export categories', async () => {
-    await renderPanel();
-    await userEvent.click(screen.getByRole('button', { name: 'Export' }));
-    expect(await screen.findByText('Active Students (CSV)')).toBeInTheDocument();
-    expect(screen.getByText('Graduates / Alumni (CSV)')).toBeInTheDocument();
-    expect(screen.getByText('Others (CSV)')).toBeInTheDocument();
-    expect(screen.getByText('All Students (CSV)')).toBeInTheDocument();
+  it('blocks invalid date ranges before applying',async()=>{
+    await renderPanel();fireEvent.change(screen.getByLabelText('From'),{target:{value:'2026-10-10'}});fireEvent.change(screen.getByLabelText('To'),{target:{value:'2026-10-01'}});
+    const calls=reportsService.getDocumentReport.mock.calls.length;await userEvent.click(screen.getByRole('button',{name:'Apply Filters'}));expect(screen.getByRole('alert')).toHaveTextContent('From must be on or before To.');expect(reportsService.getDocumentReport).toHaveBeenCalledTimes(calls);
   });
-
-  it('exports the selected student category', async () => {
-    const user = userEvent.setup();
-    await renderPanel();
-    await user.click(screen.getByRole('button', { name: 'Export' }));
-    await user.click(screen.getByRole('button', { name: 'Graduates / Alumni (CSV)' }));
-    await waitFor(() => expect(reportsService.exportStudentsCsv).toHaveBeenCalledWith('alumni'));
-  });
-
-  it('exports documents using the same filters shown on screen', async () => {
-    const user = userEvent.setup();
-    await renderPanel();
-
-    await user.selectOptions(await screen.findByDisplayValue('All statuses'), STATUS.COMPLETED);
-    await user.click(screen.getByRole('button', { name: 'Export' }));
-    await user.click(screen.getByRole('button', { name: 'Filtered document records (CSV)' }));
-
-    await waitFor(() =>
-      expect(reportsService.exportDocumentsCsv).toHaveBeenCalledWith(
-        expect.objectContaining({ status: STATUS.COMPLETED })
-      )
-    );
-  });
-
-  it('says so when nothing matches', async () => {
-    reportsService.getDocumentReport.mockResolvedValue({ ...REPORT, documents: [], total: 0, totalPages: 0 });
-    await renderPanel();
-    expect(await screen.findByText(/No records match these filters/i)).toBeInTheDocument();
-  });
-
-  it.each(['Window 1', 'Secretary'])('keeps the header exports available to %s', async desk => {
-    render(<ReportsPanel user={{ role: 'clerk', desk_assignment: desk }} currentTab="reports" />);
-    const trigger = await screen.findByRole('button', { name: 'Export' });
-    expect(trigger.closest('.trace-page-header')).toContainElement(screen.getByRole('heading', { name: desk === 'Secretary' ? 'Records & Export' : 'Reports & Export' }));
-    expect(screen.queryByRole('combobox', { name: 'Export options' })).not.toBeInTheDocument();
-    await userEvent.click(trigger);
-    expect(screen.getByRole('group', { name: 'Export options' })).toContainElement(screen.getByRole('button', { name: 'All Students (CSV)' }));
-  });
-
-  it('disables export while downloading and preserves failure feedback and retry', async () => {
-    const user = userEvent.setup();
-    let reject;
-    reportsService.exportDocumentsCsv.mockReturnValueOnce(new Promise((_, fail) => { reject = fail; }));
-    await renderPanel();
-    await user.click(screen.getByRole('button', { name: 'Export' }));
-    await user.click(screen.getByRole('button', { name: 'Filtered document records (CSV)' }));
-    expect(screen.getByRole('button', { name: 'Exporting…' })).toBeDisabled();
-    expect(screen.queryByRole('group', { name: 'Export options' })).not.toBeInTheDocument();
-    await act(async () => reject(new Error('unavailable')));
-    expect(await screen.findByRole('dialog', { name: 'Attention Needed' })).toHaveTextContent('Export failed.');
-    await user.click(screen.getByRole('button', { name: 'OK' }));
-    await user.click(screen.getByRole('button', { name: 'Export' }));
-    await user.click(screen.getByRole('button', { name: 'Filtered document records (CSV)' }));
-    expect(reportsService.exportDocumentsCsv).toHaveBeenCalledTimes(2);
+  it('blocks duplicate export and retains export configuration after a failed attempt',async()=>{
+    let reject;reportsService.exportDocumentsCsv.mockReturnValueOnce(new Promise((_,fail)=>{reject=fail;}));await renderPanel();await open();
+    await userEvent.click(screen.getByRole('button',{name:'Export CSV'}));expect(screen.getByRole('button',{name:'Exporting…'})).toBeDisabled();
+    await act(async()=>reject(new Error('unavailable')));expect(await screen.findByRole('dialog',{name:'Attention Needed'})).toHaveTextContent('Export failed.');
+    await userEvent.click(screen.getByRole('button',{name:'OK'}));expect(screen.getByRole('dialog',{name:'Export'})).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button',{name:'Export CSV'}));expect(reportsService.exportDocumentsCsv).toHaveBeenCalledTimes(2);
   });
 });
 
 describe('AnalyticsPanel', () => {
   const renderPanel = async () => {
-    const utils = render(<AnalyticsPanel user={ADMIN} currentTab="admin-analytics" />);
+    const utils = render(<MemoryRouter><AnalyticsPanel user={ADMIN} currentTab="admin-analytics" /></MemoryRouter>);
     await settle();
     return utils;
   };
@@ -585,4 +503,20 @@ describe('AnalyticsPanel', () => {
     expect(await screen.findByText(/Not enough history yet/i)).toBeInTheDocument();
     expect(screen.getByText(/No recorded desk activity yet/i)).toBeInTheDocument();
   });
+});
+
+it('requires recorded evidence before missing-proof identity decisions and passes it only after confirmation', async () => {
+  const user = userEvent.setup(), confirm = vi.fn();
+  render(<AccountVerificationModal studentVerifyToConfirm={{ student: { id: 22, full_name: 'Synthetic Alumni', student_id: 'ALU-DEMO', registration_proof_unavailable: true, registration_proof_reason: 'Lost records' }, action: 'review' }}
+    cancelAdminVerifyStudent={vi.fn()} confirmAdminVerifyStudent={confirm} actionLoading={false} setViewImageUrl={vi.fn()} />);
+  expect(screen.getByRole('heading',{name:'Proof Unavailable · Identity Review'})).toBeInTheDocument();
+  expect(screen.queryByText(/Defense Demo/)).not.toBeInTheDocument();
+  await user.click(screen.getByRole('button', { name: 'Verify', exact: true }));
+  expect(screen.getByRole('alert')).toHaveTextContent('Record the evidence');
+  expect(screen.queryByRole('dialog', { name: 'Verify Account' })).not.toBeInTheDocument();
+  await user.type(screen.getByLabelText('Identity Review Evidence / Decision Basis'), 'Synthetic Registrar record checked');
+  await user.click(screen.getByRole('button', { name: 'Verify', exact: true }));
+  expect(confirm).not.toHaveBeenCalled();
+  await user.click(within(screen.getByRole('dialog', { name: 'Verify Account' })).getByRole('button', { name: 'Verify Account' }));
+  expect(confirm).toHaveBeenCalledExactlyOnceWith('verify', 'Synthetic Registrar record checked');
 });

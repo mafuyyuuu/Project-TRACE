@@ -363,12 +363,15 @@ VITE_API_URL=
 mysql -u root -p -e "CREATE DATABASE trace_db;"
 mysql -u root -p trace_db < backend/database/schema.sql
 mysql -u root -p trace_db < backend/database/seed.sql
-node backend/database/migration.js
+node backend/database/check_schema.js
 ```
 
-`migration.js` reads `backend/.env` through the same `env.js`, so it must be filled in first. Run it
-**after** the seed — the seven per-college secretaries (`SEC-CCS001` … `SEC-CBA001`) are created by
-the migration, not by `seed.sql`.
+These commands are for a fresh isolated local database only. The current schema already defines
+the required fields, and `seed.sql` includes all seven demo Secretary accounts. The read-only
+preflight reads `backend/.env`, which must be configured first. Admin must configure the approved
+college/program catalogs and staff assignments. For an existing database, use
+[the preserving rollout](MIGRATION_ROLLOUT.md) instead of importing schema/seed or running the
+broad historical migration, which can rewrite existing desk assignments and catalog policy.
 
 ### 6.4 n8n (standalone container)
 
@@ -450,12 +453,14 @@ to `0` (nothing proxies you locally), and `API_DOMAIN`/`ACME_EMAIL` are unused u
 ```bash
 docker compose config --quiet        # silent = valid; complains = a required secret is missing
 docker compose up -d --build
-docker compose exec backend node database/migration.js
+docker compose exec backend node database/check_schema.js
 ```
 
 `schema.sql` and `seed.sql` run automatically the first time the MySQL volume is created (via
 `/docker-entrypoint-initdb.d`, which only fires on an empty data directory, so it never re-runs
-against real data). The migration adds everything since.
+against real data). This recipe is for an empty local installation with demo accounts; the
+read-only checker confirms required field presence. Existing installations need only the
+reviewed missing preserving migrations in [the consolidated ledger](DEPLOYMENT_CHECKLIST.md).
 
 > Running the standalone n8n container from §6.4? It holds port 5678 and the compose one won't start.
 > `docker stop n8n` first.
@@ -518,6 +523,15 @@ SMTP_FROM=your.address@gmail.com
 `VITE_API_URL` in this file applies **only** to the optional `local-frontend` compose profile (a
 single-box deployment where nginx also serves the SPA). With Vercel hosting the frontend it stays
 blank — the Vercel dashboard value is the one that counts.
+
+With `--profile local-frontend` and blank `VITE_API_URL`, Nginx forwards `/api` and `/socket.io`
+to `backend:3300`, retaining authentication, query strings, upload bodies and WebSocket upgrades.
+The application enforces its per-file limits; the proxy streams uploads without imposing a
+separate aggregate file limit. Set the backend's `FRONTEND_URL` to the intended browser origin
+when using an allowlist and retain the correct proxy-hop count (one for this Nginx path).
+Rebuild/recreate the frontend image to load Nginx changes; changing build arguments also requires
+a rebuild. Verify `/api/health` returns JSON through port 8080 and the authenticated Socket.IO
+connection upgrades successfully. Vercel's separate build-time API origin is unaffected.
 
 ### 8.3 In Vercel
 
@@ -584,12 +598,13 @@ docker compose config | grep -A3 DB_SSL_CA
 ### Schema on a managed database
 
 The `/docker-entrypoint-initdb.d` auto-seed only applies to the bundled container. On a managed
-database you load the schema yourself, then migrate:
+empty database you load the schema yourself, then run the read-only preflight. The following seed
+is for an isolated demo only; do not seed a live institutional database with public demo accounts:
 
 ```bash
 mysql -h <DB_HOST> -P <DB_PORT> -u <DB_USER> -p --ssl-mode=REQUIRED trace_db < backend/database/schema.sql
 mysql -h <DB_HOST> -P <DB_PORT> -u <DB_USER> -p --ssl-mode=REQUIRED trace_db < backend/database/seed.sql
-docker compose exec backend node database/migration.js
+docker compose exec backend node database/check_schema.js
 ```
 
 ---
@@ -843,7 +858,7 @@ node backend/database/migrate_8b.js
 
 This adds policy columns to `document_types`, creates `document_type_colleges`, reconciles `users.college_id`/its foreign key, backfills only byte-exact college-name matches, enforces Honorable Dismissal's nonrepeat flag, and inserts four missing counter types as **inactive, zero-fee drafts**. Existing type records/fees/activation are preserved. Unmatched college assignments remain null for Admin review. Legacy policy columns previously placed on `colleges` are not dropped. Fresh schema imports now create colleges before users. DDL may commit independently in MySQL; errors other than a duplicate column propagate, and the migration can be rerun after resolving them. No migration was applied during implementation.
 
-Deploy the backend/schema and frontend together, and rebuild the separate AI-engine container for `/ocr/identity` and its parser. Imports do not execute the 8b migration, and the API does not migrate on startup. Admin must review fees and activate the counter drafts; zero is a placeholder, not an approved charge. The photocopy policy remains pending.
+Deploy the backend/schema and frontend together, and rebuild the separate AI-engine container for the retained post-submission `/ocr/verify` proof check. Signup autofill is removed. Imports do not execute the 8b migration, and the API does not migrate on startup. Admin must review fees and activate the counter drafts; zero is a placeholder, not an approved charge. The photocopy policy remains pending.
 
 Before live acceptance, verify new alumni login identifiers and saved college IDs, exact-only legacy backfill, forged/cross-college/counter-only requests, simultaneous Honorable Dismissal attempts, cancellation retry, protected profile/proof access, and rollback on a failed college-restriction write against MySQL. Test genuine ID/diploma images against the engine, including timeout/manual fallback and temporary-file cleanup. PDF upload acceptance does not guarantee OCR extraction. Synthetic browser/API and mocked tests do not establish live database/OCR acceptance, and desktop emulation does not replace a physical phone.
 
@@ -1063,3 +1078,83 @@ Use [MIGRATION_ROLLOUT.md](MIGRATION_ROLLOUT.md#support-ticket-rollout) for the 
 `DB_POOL_QUEUE_LIMIT` defaults to 200, validated 1–1000. It bounds queued pool queries, with 10 database connections unchanged. Configure it in root `.env` for Compose or backend `.env` locally; it is documented in both examples. Measured local 100-user results do not establish production capacity. Support hours/calendar/warning/timeout are durable settings edited by Admin or Window 1, not browser timers or environment secrets. Approved FAQ text lives in backend `config/supportFaq.json`; Admin populates the empty supporting-document catalog.
 
 Build both backend (sharp/pdf-lib validators) and AI (support aggregate advice module), apply/check the migrations, start the matching API/AI, then promote the matching frontend. Validate ticket import counts/ownership privately, FCFS claims, timer recovery, protected attachments, read-only cases and role-scoped analytics. [SUPPORT_VALIDATION.md](SUPPORT_VALIDATION.md) separates local evidence from staging/physical-device acceptance.
+
+## Revision 2 Batch 7: alumni missing-proof identity review
+
+Alumni may choose Records / proof unavailable in production as well as local testing. The frontend
+reads `/api/auth/registration-options` (`proof_unavailable_enabled: true`) and hides the option if
+the endpoint is unavailable. No environment flag is needed; the former
+`ALUMNI_PROOF_UNAVAILABLE_DEMO_ENABLED` setting is obsolete and may be removed from existing local
+configuration. Keep `NODE_ENV=production` on the deployed backend.
+
+Applicants must provide their Alumni ID, college, study years and a reason of at most 500
+characters. Missing-proof registration always stays pending and skips OCR/automatic approval.
+Only Admin can decide the application, with recorded identity evidence and decision basis in the
+same transaction as approval/rejection. Current students still require uploaded proof. Approval
+does not remove profile, email-verification or Graduate-application request gates.
+
+This repair uses the existing [alumni study-year migration](MIGRATION_ROLLOUT.md#revision-2-batch-7--alumni-study-years-2026-10-10)
+and adds no migration, dependency or environment variable. The user's cloud output confirms that
+migration is already applied; do not rerun it solely for this repair. Rebuild/recreate the backend
+and publish the matching frontend. An older frontend may still hide the option until updated.
+
+## Revision 2 Batch 8 — intake and college scope
+
+No new environment variables. Existing databases need `node backend/database/migrate_request_intake_scope.js` after the request-attachment and Support-requirement prerequisites, followed by `node backend/database/check_schema.js`, before the matching backend/frontend start. It adds routing snapshots and the explicit intake-block flag without backfilling historical rows. Follow [MIGRATION_ROLLOUT.md](MIGRATION_ROLLOUT.md) for preserving deployment and [README workflow walkthrough](../README.md#main-workflows) for workflows, screenshots and limits. The agent has not run this migration against a live database.
+
+## Revision 2 Batch 9 — Reports & Export
+
+No schema or environment changes in Batch 9. Deploy the matching API/frontend after the previously required migrations. [DEPLOYMENT_CHECKLIST.md](DEPLOYMENT_CHECKLIST.md) is the consolidated migration ledger to review before the final deployment; [README workflow walkthrough](../README.md#main-workflows) records the filter semantics and changed shared CSV contract.
+
+
+## Revision 2 Batch 10 — Support / Messaging UI
+
+Support now follows the main TRACE Figma two-column layout, with aligned readable ticket rows, local search of loaded authorized metadata, contextual linked-case viewing, a labeled confirmed availability switch and a primary Window 1 claim action. Success feedback uses dismissible toasts; failures and confirmations remain in context. The compact widget preserves drafts across close/reopen. Digital evaluation separates discussion into a side panel or a mobile view without discarding either draft. Existing ticket/desk/college authorization, FAQ/reply/requirement actions, service hours and queue assignment remain; no new staff chat connection or unsupported presence/read/unread data is added.
+
+See [README workflow walkthrough](../README.md#main-workflows) for the screenshots, walkthrough and local evidence. Batch 10 adds **no migration or environment variable**; [DEPLOYMENT_CHECKLIST.md](DEPLOYMENT_CHECKLIST.md) tracks required earlier migrations. These are repository changes for dev, not a claim that the live site is updated.
+
+## Revision 2 Batch 11 — deployment requirements
+
+Support Analytics KPI/table changes add no environment variable, dependency or migration. Build the frontend normally against the existing support-report API; no AI rebuild or n8n re-import is needed for this batch. The earlier alumni/intake migrations and all existing support prerequisites remain tracked in [DEPLOYMENT_CHECKLIST.md](DEPLOYMENT_CHECKLIST.md). No live database or deployment action was performed. [Local acceptance](../README.md#main-workflows).
+
+## Additional staff chat connections
+
+No environment variables/dependencies or AI/n8n changes are introduced. Build the matching backend/frontend and apply only missing preserving prerequisites plus `database/migrate_staff_conversations.js`, followed by the read-only schema checker, using [MIGRATION_ROLLOUT.md](MIGRATION_ROLLOUT.md). The [deployment checklist](DEPLOYMENT_CHECKLIST.md) records the new script as unapplied. Existing user/college tables are required; no account or college data is seeded. Confirm actual active staff college assignments and notification delivery on staging. Do not import fresh schema or seed data into an existing server.
+
+
+## Admin functional review — 2026-10-12
+
+This follow-up requires no new migration, environment variable, dependency or AI/n8n change.
+The fresh-install schema now includes payment_channel, already supplied to older installations
+by the historical Phase 19 migration; existing installed databases are not changed here.
+Use matching API/frontend versions for `/maintenance/users/:id/active` and the shared
+`studentSearch` report filter. The five earlier preserving migrations are confirmed applied
+from the user's SSH output; do not rerun them for these changes. Admin's Internal assistance
+now opens inside Support and Efficiency Analytics has independent document/support views.
+Scan Field Detection describes expected-field coverage, not verified accuracy. See the
+[consolidated deployment checklist](DEPLOYMENT_CHECKLIST.md) for rollout state.
+
+
+## Admin all-stage insights and table repair — 2026-10-12
+
+No database migration or new environment/dependency is required. Release matching backend and
+frontend and rebuild **ai-engine** because its recommendation endpoint now accepts aggregate
+POST snapshots and its Dockerfile includes document_insights.py. An old/unreachable AI service
+causes a local complete-queue fallback, without unsupported optimal-performance claims. GET
+compatibility also avoids such claims. No OCR models, Prophet inputs, n8n import or credentials
+change. Verify nonempty Secretary processing/student waits, unknown status review, snapshot
+refresh/failure and Admin tables at phone widths and enlarged text. This work publishes to dev;
+cloud/main promotion remains separate. See the consolidated deployment ledger.
+
+
+## Finance name fields — 2026-10-12
+
+This Finance workflow update needs one additional preserving migration, `migrate_student_name_parts.js`, after existing student profiles. The previous five follow-ups remain cloud-applied. Use the updated backend image, pause writers, run the new migration and `check_schema.js`, then start the matching backend/frontend; see [the consolidated ledger](DEPLOYMENT_CHECKLIST.md#finance-name-field-rollout--additional-migration-2026-10-12). Names remain nullable until students confirm matching first/middle/last parts. Existing Full Name and receipt snapshots are not split or rewritten. No environment variable, dependency, AI change or n8n import is added. Full runtime validation and cloud execution are pending, not completed by this disconnected session.
+
+## Signup and proof verification — October 13, 2026
+
+Signup uses manually entered identity fields. The pre-submit Read ID autofill and its supporting endpoints, parser and temporary uploads are removed. Current students upload proof. Alumni always see Records / proof unavailable; choosing it requires an explanation and submits for Admin identity review without an uploaded file. Removing signup autofill does not disable the post-submission proof check.
+
+The retained `/ocr/verify` route checks readable school, exact identifier and selected college text on the original image first. A successful pass cannot be replaced by a longer unsuccessful scan. A bounded fallback checks the processed image independently; it does not combine incomplete scans. Registration proof calls allow 45 seconds; unrelated AI calls retain their deadlines. A timeout/mismatch remains pending with a safe explanation. This matches text and cannot establish the physical ID's authenticity. Already-pending accounts still need Admin review; deployment does not bulk-approve them.
+
+Rebuild/recreate both backend and AI engine from the matching `dev` revision, then deploy the matching frontend. No new migration is required for this signup change. The request-catalog migration from the preceding release remains a separate prerequisite if not applied. Use `python -m unittest test_registration_verification test_proof_ocr` from `ai-engine` for the proof-check regressions. `/api/ai/extract-id` and `/ocr/identity` should now return 404.

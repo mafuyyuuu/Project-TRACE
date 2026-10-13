@@ -1,5 +1,6 @@
+import { namePartsError, receiptStudentName } from '@/utils/receiptStudentName';
 import ProfileYearField from '@/components/ProfileYearField';
-import { profileYearErrors } from '@/utils/profileYears';
+import { profileEditYearErrors } from '@/utils/profileYears';
 import AcademicProfileFields from '@/components/AcademicProfileFields';
 import Button from '@/components/Button';
 import { PASSWORD_REQUIREMENTS, validNewPassword } from '@/utils/passwordPolicy';
@@ -52,6 +53,8 @@ export default function ProfileSettingsModal({
   const [activeTab, setActiveTab] = useState(initialTab);
   useMotion(tabContentRef, activeTab, 'context', { initial: false });
   const [yearFocus, setYearFocus] = useState(null);
+  const receiptNameError = user?.role === 'student' ? namePartsError(profileData, user) : '';
+  const editYearErrors = profileEditYearErrors(profileData, user);
   useEffect(() => {
     if (activeTab === 'educational' && yearFocus) document.getElementById(`profile-${yearFocus.field}`)?.focus();
   }, [activeTab, yearFocus]);
@@ -87,7 +90,8 @@ export default function ProfileSettingsModal({
       return;
     }
     setPasswordError('');
-    const invalidYear = Object.keys(profileYearErrors(profileData, user))[0];
+    if (receiptNameError && isStudent) { setActiveTab('personal'); return; }
+    const invalidYear = Object.keys(editYearErrors)[0];
     if (invalidYear && isStudent) {
       setActiveTab('educational');
       setYearFocus({ field: invalidYear });
@@ -172,7 +176,7 @@ export default function ProfileSettingsModal({
       <ConfirmDialog open={!!confirmation}
         title={confirmation === 'email' ? 'Verify Email Address' : confirmation === 'profile' ? 'Confirm Profile Save' : confirmation === 'browser' ? 'Use Shared-Computer Verification' : 'Log Out Other Devices'}
         message={confirmation === 'profile'
-          ? ['Save your profile changes and selected picture?', error ? <span role="alert">{error}</span> : null]
+          ? ['Save your profile changes and selected picture?', isStudent && profileData.first_name && profileData.last_name ? `Name on new receipts: ${receiptStudentName({ ...user, ...profileData })}` : null, error ? <span role="alert">{error}</span> : null]
           : confirmation === 'email' ? [`Send a verification link to ${emailDraft?.email}? Your current address stays active until verified. Other profile changes will remain unsaved.`, verificationError ? <span role="alert">{verificationError}</span> : null]
           : confirmation === 'browser' ? 'Forget the personal-browser preference here? Your next login will require verification. This keeps your current session open.' : 'Log out of all other active sessions?'}
         confirmLabel={confirmation === 'email' ? 'Send Verification Link' : confirmation === 'profile' ? 'Save Profile' : confirmation === 'browser' ? 'Use Shared Verification' : 'Log Out Other Devices'}
@@ -221,7 +225,7 @@ export default function ProfileSettingsModal({
         </div>
         
         <FileUploadField pickerOnly label="Profile picture" inputRef={fileInputRef} file={avatarFile} onChange={onAvatarChange} accept="image/jpeg,image/png,image/webp" maxBytes={2 * 1024 * 1024} disabled={saving} />
-        {user?.role === 'student' && <RegistrationProof label={user.user_type === 'alumni' ? 'Registration Identity / Diploma Proof' : 'Registration ID Proof'} path={user.id_proof_path} />}
+        {user?.role === 'student' && <RegistrationProof label="Proof of ID" path={user.id_proof_path} />}
         {/* Tabs */}
         {isStudent ? (
           <div className="flex flex-wrap gap-3 sm:gap-6 border-b border-gray-100 dark:border-gray-700 px-2 mt-2">
@@ -295,6 +299,20 @@ export default function ProfileSettingsModal({
 
               {isStudent && (
                 <>
+                  <section className="space-y-3" aria-label="Name on Official Receipts">
+                    <h4 className="trace-section-title">Name on Official Receipts</h4>
+                    <p className="text-sm select-text">Saved Full Name: {user.full_name}</p>
+                    <p className="text-xs">Confirm the parts of your saved name once. Finance uses them automatically as Last name, First name M.I. Existing receipts retain their original names. Keep compound given names and surnames together; leave Middle Name blank if you have none.</p>
+                    <div className="trace-form-grid">
+                      {[['first_name', 'First Name'], ['middle_name', 'Middle Name (optional)'], ['last_name', 'Last Name']].map(([field, label]) => <div key={field}>
+                        <label className="trace-label block mb-2" htmlFor={`profile-${field}`}>{label}</label>
+                        <input id={`profile-${field}`} value={profileData[field] || ''} maxLength={INPUT_LIMITS.name} disabled={saving}
+                          aria-invalid={receiptNameError ? true : undefined} aria-describedby={receiptNameError ? 'profile-receipt-name-error' : undefined}
+                          onChange={event => setField(field, event.target.value)} className="trace-control w-full" />
+                      </div>)}
+                    </div>
+                    {receiptNameError ? <p id="profile-receipt-name-error" role="alert" className="trace-inline-error">{receiptNameError}</p> : profileData.first_name && profileData.last_name ? <p className="text-sm select-text">New receipt name: {receiptStudentName({ ...user, ...profileData })}</p> : <p className="text-xs">Your existing Full Name will be used until these parts are confirmed.</p>}
+                  </section>
                   <AcademicProfileFields user={user} profileData={profileData} setField={setField} busy={saving} />
                   <div className="trace-form-grid">
                     <div>
@@ -437,14 +455,17 @@ export default function ProfileSettingsModal({
             <div className="space-y-6">
               
               <div className="trace-section trace-section-body trace-form-grid">
-                <ProfileYearField field="graduation_year" value={profileData.graduation_year}
+                <ProfileYearField field="year_started" value={profileData.year_started} error={editYearErrors.year_started}
+                  required={user?.user_type === 'alumni'} missing={missingByField.has('year_started')}
+                  readOnly={user?.year_started != null && user.year_started !== ''} disabled={saving} onChange={value => setField('year_started', value)} />
+                <ProfileYearField field="graduation_year" value={profileData.graduation_year} error={editYearErrors.graduation_year}
                   required={user?.user_type === 'alumni'} missing={missingByField.has('graduation_year')}
-                  disabled={saving} onChange={value => setField('graduation_year', value)} />
+                  readOnly={user?.graduation_year != null && user.graduation_year !== ''} disabled={saving} onChange={value => setField('graduation_year', value)} />
                 <ProfileYearField field="last_attendance_year" value={profileData.last_attendance_year}
                   disabled={saving} onChange={value => setField('last_attendance_year', value)} />
                 <div>
                   <label htmlFor="profile-transfer" className="trace-label block mb-2">Transfer Student?</label>
-                  <select id="profile-transfer" value={profileData.is_transfer_student ? 'yes' : 'no'} onChange={(e) => setField('is_transfer_student', e.target.value === 'yes')} className="trace-control w-full border-none">
+                  <select id="profile-transfer" value={profileData.is_transfer_student ? 'yes' : 'no'} onChange={(e) => setField('is_transfer_student', e.target.value === 'yes')} className="trace-control">
                     <option value="no">No</option>
                     <option value="yes">Yes</option>
                   </select>

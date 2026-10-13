@@ -10,7 +10,6 @@ const referenceRoutes = require('./routes/referenceData.routes');
 const gradApplicationRoutes = require('./routes/gradApplication.routes');
 const maintenanceRoutes = require('./routes/maintenance.routes');
 const reportRoutes = require('./routes/reports.routes');
-const aiRoutes = require('./routes/ai.routes');
 const templateRoutes = require('./routes/templates.routes');
 const errorHandler = require('./middlewares/errorHandler.middleware');
 const env = require('./config/env');
@@ -70,9 +69,10 @@ app.use('/api/reference', referenceRoutes);
 app.use('/api/grad-applications', gradApplicationRoutes);
 app.use('/api/maintenance', maintenanceRoutes);
 app.use('/api/reports', reportRoutes);
-app.use('/api/ai', aiRoutes);
 app.use('/api/templates', templateRoutes);
 app.use('/api/support/tickets', require('./routes/supportTicket.routes'));
+app.use('/api/internal-assistance', require('./routes/internalAssistance.routes'));
+app.use('/api/staff-conversations', require('./routes/staffConversation.routes'));
 app.use('/api/support', require('./routes/support.routes'));
 
 // Must be registered last.

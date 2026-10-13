@@ -1,5 +1,5 @@
 import { it, expect } from 'vitest';
-import { PROFILE_YEAR_FIELDS, yearError, profileYearErrors, manilaYear } from '../profileYears';
+import { PROFILE_YEAR_FIELDS, yearError, studyYearErrors, profileYearErrors, manilaYear } from '../profileYears';
 const NOW = new Date('2026-10-05T00:00:00Z');
 const COLLEGE = PROFILE_YEAR_FIELDS.graduation_year;
 it.each(['-2020', '2020.5', '2e3', '2.026e3', '202', '20265', 'abcd', '+2020', ' 2020', '2020 ', '２０２０', '0000', 2020])('rejects malformed draft %s without normalizing it', value => {
@@ -26,4 +26,16 @@ it('requires only college graduation for alumni drafts while allowing partial co
   expect(profileYearErrors({ graduation_year: '' }, { role: 'student', user_type: 'student' }, { now: NOW })).toEqual({});
   expect(profileYearErrors({ graduation_year: '' }, { role: 'clerk', user_type: 'alumni' }, { now: NOW })).toEqual({});
   expect(profileYearErrors({}, alumni, { onlyProvided: true, now: NOW })).toEqual({});
+});
+
+it.each([['2002', '2012'], ['2020', '2020'], ['2020', '2026']])('accepts a study interval within ten years: %s–%s', (year_started, graduation_year) => {
+  expect(studyYearErrors({ year_started, graduation_year }, { required: true, now: NOW })).toEqual({});
+});
+it.each([['2002', '2013'], ['2024', '2020']])('rejects an overlong or reversed study interval: %s–%s', (year_started, graduation_year) => {
+  expect(studyYearErrors({ year_started, graduation_year }, { required: true, now: NOW })).toHaveProperty('graduation_year');
+});
+it('allows blank optional current-student years but requires both alumni years', () => {
+  expect(studyYearErrors({ year_started: '', graduation_year: '' }, { now: NOW })).toEqual({});
+  expect(Object.keys(studyYearErrors({}, { required: true, now: NOW }))).toEqual(['year_started', 'graduation_year']);
+  expect(studyYearErrors({ graduation_year: '2024' }, { now: NOW })).toHaveProperty('year_started');
 });

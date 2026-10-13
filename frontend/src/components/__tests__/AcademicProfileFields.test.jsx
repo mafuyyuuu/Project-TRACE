@@ -37,10 +37,12 @@ it('preserves a historical unmatched program and explains an empty catalog', asy
 });
 it('preserves drafts during load failure and provides a usable retry', async () => {
   getPrograms.mockRejectedValueOnce(new Error('offline'));
-  render(<Lab />);
+  const submit = vi.fn(event => event.preventDefault());
+  render(<form onSubmit={submit}><Lab /></form>);
   expect(await screen.findByRole('alert')).toHaveTextContent('could not be loaded');
   expect(screen.getByLabelText('Program/Course')).toHaveValue('Program A');
   fireEvent.click(screen.getByRole('button', { name: 'Retry Choices' }));
+  expect(submit).not.toHaveBeenCalled();
   await waitFor(() => expect(screen.getByLabelText('College')).toBeEnabled());
   expect(screen.queryByRole('alert')).not.toBeInTheDocument();
 });

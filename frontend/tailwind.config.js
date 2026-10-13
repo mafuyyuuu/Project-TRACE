@@ -7,6 +7,15 @@ export default {
   theme: {
     extend: {
       colors: {
+        'trace': {
+          emerald: '#168f55',
+          sage: '#7fbf9e',
+          canvas: '#f4f6f8',
+          surface: '#ffffff',
+          ink: '#1a202c',
+          muted: '#8a94a6',
+          field: '#f1f1f1',
+        },
         'camp-blue': {
           50: '#e8f6fd',
           100: '#c5e8fa',
@@ -45,7 +54,7 @@ export default {
       },
       fontFamily: {
         body: ['Inter', 'sans-serif'],
-        display: ['Poppins', 'Inter', 'sans-serif'],
+        display: ['Inter', 'sans-serif'],
         mono: ['JetBrains Mono', 'monospace'],
       },
       keyframes: {

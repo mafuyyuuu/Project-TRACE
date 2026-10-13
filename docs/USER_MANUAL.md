@@ -13,7 +13,7 @@ The public Login/welcome, registration, password recovery, email verification an
 - [Use the first-login tutorial](#3-use-the-first-login-tutorial)
 - [Complete your profile and verify email](#4-complete-your-profile-and-verify-email)
 - [Request, pay for and collect documents](#5-request-pay-for-and-collect-documents)
-- [Message Window 1 and submit case attachments](#6-message-window-1-and-submit-case-attachments)
+- [Message Window 1 and submit case attachments](#6-get-support-and-submit-case-documents)
 - [Set up security and larger text](#7-set-up-security-and-larger-text)
 - [Window 1 tasks](#8-window-1-tasks)
 - [College Secretary tasks](#9-college-secretary-tasks)
@@ -41,8 +41,8 @@ The public Login/welcome, registration, password recovery, email verification an
 
 1. From Login, open registration and choose **Student** or **Alumni**.
 2. Enter the requested identity, contact, college and Program/Course details. Use an email inbox you can open; any valid email domain is accepted.
-3. Select the requested ID or diploma proof. You may choose **Read ID** to fill missing fields, then check the result yourself. Unreadable fields can be entered manually.
-4. Review the form, select **Submit Registration**, then confirm. File selection and Read ID do not submit the account.
+3. Upload proof of ID. Alumni without proof can select **Records / proof unavailable**, explain why, and submit for Admin identity review. Students still upload proof. This alumni choice is always available without a separate options request.
+4. Review the form, select **Submit Registration**, then confirm. File selection does not submit the account.
 5. Follow the displayed success or review instructions. If the account is pending review, wait for Admin's decision.
 6. After approval, sign in and open **Edit Profile → Personal Info**. Select **Verify** beside Email Address, then select **Verify Email** in your inbox. Signup saves the address without sending this ownership link automatically. Requests stay blocked until verification succeeds.
 
@@ -106,7 +106,7 @@ Your old address stays active until the new one is verified. Change email and pa
 
 1. Open the dashboard and select **New Request**.
 2. Choose an available document and the number of copies. Add other document types if needed.
-3. Complete the document's fields. For TOR, enter **Year Started** and **Year Ended**.
+3. Complete the document's fields. TOR displays saved **Year Started** read-only and does not ask for Year Ended. Complete missing profile years first; ask Admin for a confirmed-year correction.
 4. Check any attachment instructions and select a file only when required.
 5. Review the details, submit and confirm. Keep the request's tracking number.
 
@@ -146,6 +146,8 @@ For walk-ins, **CTC, 2nd Copy of COR, 2nd Copy of OGR and CAV** qualify for same
 5. Use **Message** and Send/Enter. Sending is immediate; wait for completion before retrying. A failed send keeps its draft/files. Only one unresolved general ticket is allowed; opening another returns to the existing one.
 
 General tickets do not require a document request. New alumni still complete the Graduate Application before dashboard access. Request-linked tickets require ownership and verified email. Only the selected ticket is highlighted; older tickets/messages remain reachable through **Load older** controls, without Previous/Next pages.
+
+Notification links open the indicated ticket in the existing Support screen; an unfinished new-ticket form stays intact. College Secretary case conversations follow the request’s college recorded at routing. Changing a student’s profile college does not move that routed case. If your staff assignment or access changes, only currently authorized conversations remain visible after refresh.
 
 ### Live hours and waiting
 
@@ -191,13 +193,15 @@ Clerks and Admin can choose **Browser verification → Use shared-computer verif
 
 The header's theme button also switches light/dark mode. On phones, use the top-left menu for navigation. Long forms scroll inside their dialogs; wide tables/charts scroll inside their cards. Printed documents keep their original size.
 
-Navigation shows up to six destinations in **Main**, with daily work first. When your account has additional destinations, the four-square **More** button appears seventh and opens the remaining pages; choose **Back to main** to return. Accounts with six or fewer destinations show all their pages directly, including **Help / FAQ**, without More. Secretary's **Records & Export** and Finance's **Transactions & OR Copies** remain in Main. **Preferences** and **Logout** are available in both sets and do not count toward the six destinations. Opening a direct link reveals the correct set and marks its current page. On a short screen you can scroll the navigation with touch, a wheel/trackpad or keyboard even though its scrollbar is hidden; Tab still reaches every control.
+Navigation shows up to six destinations in **Main**, with daily work first. When your account has additional destinations, the four-square **More** button appears seventh and opens the remaining pages; choose **Back to main** to return. Accounts with six or fewer destinations show all their pages directly, including **Help / FAQ**, without More. Secretary's **Records & Export** and Finance's **Reports & Export** remain in Main. **Preferences** and **Logout** are available in both sets and do not count toward the six destinations. Opening a direct link reveals the correct set and marks its current page. On a short screen you can scroll the navigation with touch, a wheel/trackpad or keyboard even though its scrollbar is hidden; Tab still reaches every control.
 
 Detail dialogs use a short entry and exit; page/tab switches use a brief fade and movement, and FAQ changes emphasize the same card. Operating-system reduced motion removes these movements. Focus and state changes remain immediate.
 
 Use Tab to move between controls, Enter/Space to activate them, and Escape to close eligible dialogs. Queue tabs support arrow keys, Home and End. Names, IDs, tracking numbers and notes can be selected and copied.
 
 ## 8. Window 1 tasks
+
+Accounts labeled **Receiving Desk** use the same Window 1 workspace and intake/release rules. Another clerk’s assigned request still requires explicit Admin reassignment before you can process it.
 
 - **Intake:** open the request, inspect the applicant and required paperwork, then confirm routing to Secretary. To return it, enter clear correction notes and confirm the return.
 - **Walk-ins:** use Manual Entry or the authorized scanning flow, review all entered/OCR values, then submit and confirm. Record original/photocopy checks for eligible same-day types.
@@ -225,18 +229,21 @@ Receipt verification and handoff are separate actions. Finance alone clears paym
 
 The page keeps Filters, summary cards and Records in that order. Records show requested/updated dates, full tracking numbers, clickable student names, document request labels, actual statuses, payment and amounts. Scroll inside the table on narrow screens and use its page controls for more records. **Last Updated** is the recorded update time, not a separate approval timestamp.
 
-Choose **Export** beside the title. **Filtered document records (CSV)** uses the current document filters; the four student CSV options use their account categories. Every Secretary export is limited to the assigned college. An account without a college assignment must ask Admin to correct its assignment before viewing or exporting records.
+Edit the visible draft filters, then choose **Apply Filters**. **Student ID / Name** matches an exact ID or part of a name. Reset clears only the draft. Choose **Export** at the upper right to select the dataset and **Export CSV**; closing Export keeps the draft and applied report. Filtered document records use all document filters; student categories use their account category plus applied ID/name/college filters. Every Secretary export is limited to the assigned college. An account without a college assignment must ask Admin to correct its assignment before viewing or exporting records.
 
 ## 10. Finance tasks
 
-1. Open **Dashboard** for **Awaiting Payment** and **Verification Queue**. Transactions are a separate sidebar page. Use **Awaiting Payment** for counter payments. Record the actual payment details, review the bill, then save and confirm. Logging a payment does not clear it.
-2. Use **Verification Queue** to compare payment references and evidence against the actual payment records. OCR is an aid; check its output yourself.
-3. Confirm verified payment, or give a clear reason when rejecting it.
-4. Record the actual OR details, or choose **Later** when issuance must be deferred. Payment clearance sends an acknowledgment while the OR is pending.
-5. Use the receipt actions to issue/publish the actual OR with its number, issue date and digital copy. Give the physical receipt to Secretary for release with the document. Existing recorded OR numbers remain unchanged.
-6. Open **Transactions & OR Copies** in the sidebar. Set **From**, **To** and **OR status**; both dates are inclusive and interpreted in Asia/Manila. Choose **Export** beside the title for filtered CSV. Each request group appears once with its total. **View OR** in Actions opens an available digital receipt through authenticated access. **Upload OR copy** means an OR number exists but its copy is pending; **Issue OR & upload** means issuance is pending. Existing Reports/Export links open this same page. The view shows elapsed time awaiting an OR when a clearance timestamp exists.
+1. Use **Awaiting Payment** to log a counter payment; logging does not clear it. Use **Verification Queue → Review** to check evidence and approve/reject with confirmation.
+2. In Review, configure the pack with its **First issuance number** and **Last issuance number**. They must cover exactly 50 consecutive papers. Example: `2026-00001` to `2026-00050`. Numeric-segment selection, manual number refresh and replacement-reason entry are removed.
+3. The student/payor comes from the saved request and confirmed profile name parts. Finance does not type it again. **Later** defers only the digital copy during issuing hours. OR controls stay visible; selecting Later retains a local file draft but does not publish it.
+4. Confirm **Verify Payment** to automatically save the next OR and clear the whole request payment. Before verification, **Print** is disabled: configuring a paper pack only reserves numbers. After confirmation saves the receipt, the saved number stays visible with **Print** enabled beside it. Printing/reprinting uses the saved snapshot and consumes no number. An immediate copy is saved in the payment/issuance transaction.
+5. The existing cutoff remains **exactly 4 PM Manila time**. After cutoff, verification explicitly acknowledges payment with OR issuance pending. **Payment History → Issue pending OR** completes this exception on a later eligible date, before Secretary inspection/handoff. This is separate from the Later copy choice; no next-day deadline is promised.
+6. **Payment History** beside verification lists cleared request payments only. Apply its shared Student ID / Name, college, document, payment-clearance dates and OR-status filters. **View OR** opens a private published copy; **Upload OR** attaches a pending copy. The live wait indicates elapsed time since payment clearance without a copy. History contains no Export or pack-configuration block. The legacy transactions link still opens History.
+7. **Verification Queue → Receipt settings** holds pack/snapshot history, printer calibration and audited voiding before Secretary verification/handoff. **Replace paper pack** and **Change Issuance Number** use the same two range fields. Unused and voided numbers cannot be recycled.
+8. **Reports & Export** is a separate sidebar page using the same visible filters, totals, records and upper-right Export dialog as other reporting roles. It provides shared document/student datasets. Its From/To fields describe request dates; History dates describe payment clearance.
+9. Use **Support** for conversations; Review has no Discussion panel. Give the issued physical OR to Secretary for inspection and release with the document; its copy may be uploaded later without repeating payment clearance.
 
-New same-day OR issuance closes at **exactly 4:00 PM Manila time**. Deferred issuance is not a promised next-day deadline. Finance can upload a retained copy later without re-verifying an already cleared payment.
+Students can confirm their first, middle and last names under **Edit Profile → Personal Info → Name on Official Receipts**. Existing Full Name and historical receipts are preserved. Confirming name parts does not change the words of the registered identity; contact the Registrar for an identity correction. New receipts use **Last name, First name M.I.** when parts are confirmed, otherwise the original full name remains.
 
 ## 11. Admin tasks
 
@@ -296,3 +303,86 @@ Read confirmations before saving or making desk decisions. Cancel keeps the draf
 5. To replace a name or college association, add the approved replacement and deactivate the old entry. Duplicate names within the same college are rejected; restore an existing inactive entry instead.
 
 The catalog starts empty. Add only approved programs; TRACE does not infer a program list from student-entered text. Students and alumni use these choices in Edit Profile; registration's existing manual entry is unchanged.
+
+## Revision 2 report/export update
+
+All report roles use the same visible draft filters and a separate Export configuration dialog. Name matching is a literal case-insensitive substring; student ID is exact. College/Department maps to the College catalog. Secretary scope is enforced on the server. Finance uses the same request-date filters and shared document/student datasets as other report roles. Its Payment History is a separate grouped view using payment-clearance dates. Document exports use one row per matching document. CSV timestamps show exact Manila date/time as YYYY-MM-DD HH:mm:ss. Fee Breakdown and structured Purpose are readable labelled text; original request details remain stored unchanged. Money is numeric PHP and blank values are not invented. A document export above 10,000 rows asks for narrower filters. See [README workflow walkthrough](../README.md#main-workflows) and the [deployment checklist](DEPLOYMENT_CHECKLIST.md).
+
+
+## Revision 2 Batch 10 — Support / Messaging UI
+
+Support now follows the main TRACE Figma two-column layout, with aligned readable ticket rows, local search of loaded authorized metadata, contextual linked-case viewing, a labeled confirmed availability switch and a primary Window 1 claim action. Success feedback uses dismissible toasts; failures and confirmations remain in context. The compact widget preserves drafts across close/reopen. Digital evaluation separates discussion into a side panel or a mobile view without discarding either draft. Existing ticket/desk/college authorization, FAQ/reply/requirement actions, service hours and queue assignment remain; no new staff chat connection or unsupported presence/read/unread data is added.
+
+See [README workflow walkthrough](../README.md#main-workflows) for the screenshots, walkthrough and local evidence. Batch 10 adds **no migration or environment variable**; [DEPLOYMENT_CHECKLIST.md](DEPLOYMENT_CHECKLIST.md) tracks required earlier migrations. These are repository changes for dev, not a claim that the live site is updated.
+
+## Revision 2 Batch 11 — reading Support Analytics
+
+In Admin → Efficiency Analytics, choose the Support Analytics subtab to show ticket metrics separately from document turnaround. Edit From/Through, then choose Apply period. The date strip shows the actually loaded Manila period; its ending instant is exclusive. The default remains the most recent 30 days. During refresh/failure, previous results are labeled and the draft dates remain available for retry.
+
+Read New Tickets separately from imported tickets. Escalations show the recorded creation-cohort numerator/denominator; FAQ views, helpful-or-not-helpful responses and explicit resolutions are separate actions. Backlog is the historical state at cutoff, not the current queue. Assigned and responded workload values count episodes rather than distinct people/tickets. Duration values remain minutes; service time excludes Awaiting Student while wall time includes it. No data means no recorded measurement, and differs from a measured zero. Use the table’s horizontal scroller on small screens; keyboard users can focus it and use arrow keys. See [screenshots and walkthrough](../README.md#main-workflows).
+
+## Managed Finance receipts
+
+See the [README navigation walkthrough and screenshots](../README.md#finance-receipt-walkthrough) for Finance's Payment History workspace. Confirmed 50-number packs reserve the supplied format; finalized verification or deferred issuance saves one immutable payment/cashier snapshot and consumes one number. Preview, upload and reprint consume none. Copy uploads are protected JPEG/PNG/PDF files up to 5 MB. Stale serials automatically refresh after a failed action; cancel and review the new number before confirming; retry keys and unique serial/group constraints protect repeated requests. Pack changes, issue, copy, print-request, reprint, void and calibration actions are audited. Historical manual OR records remain intact. New issuance/voiding stops before Secretary verification/handoff; later copy uploads preserve the existing payment and document stage. Unknown paper geometry requires saved calibration and a blank-paper printer test. Apply the preserving `migrate_receipt_packs.js` before the matching API/frontend; see the [deployment ledger](DEPLOYMENT_CHECKLIST.md).
+
+
+## Staff-to-Admin internal assistance
+
+Window 1 (including Receiving Desk), Finance and College Secretaries open **Support → Internal assistance** from the sidebar or mobile navigation. There is no separate Internal Assistance destination. Older internal-ticket links still open the requested concern inside Support. Select **New concern**, enter a subject, category and explanation, then review and confirm. Only the creator and Admin can read this private concern; do not copy student identity files or private conversations into it. State/category filters search the authorized queue; the search field covers loaded ticket metadata.
+
+Admin selects a queued concern and confirms **Claim ticket** before replying. The assigned Admin may await a staff reply, resume handling or resolve with a mandatory note. Staff replies resume an awaiting concern without removing its Admin assignment. Resolved tickets preserve conversation/resolution history; creator or assigned Admin may confirm reopening into the queue. An open ticket assigned to an inactive/no-longer-Admin account offers an explicit takeover action to another Admin. A stale confirmation requires refreshing and reviewing again.
+
+Send works directly; failed sends retain the draft. Ticket changes require confirmation, and cancelling preserves the underlying form. On small screens, **Internal tickets** opens the ticket drawer; select a ticket or use **Back to conversation**. Student Support is a separate workspace; Admin can monitor its authorized history but cannot reply or change that conversation. See the [README walkthrough](../README.md#internal-assistance-walkthrough) for synthetic screenshots and local testing accounts.
+
+## Staff coordination conversations
+
+Open **Support → Staff coordination**. Window 1/Receiving Desk, Finance and Secretary staff select **New conversation**, search by name or desk, select an eligible colleague, enter a first message, then review/confirm. The existing conversation for that pair/college scope is reused. Send or Enter posts subsequent messages directly; failed sends keep their drafts for retry. Select a conversation from the list, or use **Staff conversations** on a phone. Load older messages retrieves retained history; switching conversation categories preserves drafts in the visited category workspaces.
+
+The directory excludes students, Admin, self and unavailable/unsupported staff. Secretary peers must share the same active college; Window 1/Finance can coordinate with the relevant Secretary without gaining access to another college's student requests. Changed or inactive assignments may make a thread read-only or inaccessible to the changed Secretary. Admin monitors operational history and cannot start/send in staff conversations. Admin replies to staff concerns through the separately assigned **Internal assistance** ticket. Student↔Window 1 support stays ticket-based; existing authorized Finance/Secretary case discussions remain case-linked. No online, unread or read-receipt indicator is implied. See the [README walkthrough](../README.md#staff-coordination-walkthrough).
+
+
+## Admin account and analytics follow-up
+
+In **System Maintenance → Accounts**, select Student / Alumni to hide unrelated desk filters.
+Open the account, choose **Deactivate User** and confirm. This blocks sign-in and revokes sessions
+while preserving requests, payment/history, academic status and identity-verification status.
+**Restore User** also requires confirmation; identity/email/profile requirements still apply.
+Admin cannot deactivate their own account.
+
+In **Efficiency Analytics**, choose **Document Efficiency** or **Support Analytics**. Each view
+loads independently; switching retains the visited support period draft. Admin has no duplicate
+Support Analytics button in Support and no separate Internal Assistance sidebar entry; older
+internal-ticket links open the same concern under Support. **Scan Field Detection** describes
+expected fields found by OCR, not measured AI accuracy or verified text correctness.
+
+
+## Admin workload insights and narrow tables — 2026-10-12
+
+Dashboard → **AI Insights** shows a snapshot of all eight active document stages, including
+preparation, payment waits, verification and handoff. Completed/rejected/approved legacy history
+is excluded. Unrecognized statuses are reported separately for review. Workflow actions today
+use the full Manila day and are not distinct requests. Queue size does not prove a bottleneck,
+efficiency or staff capacity. Evaluation above 5 and pickup above 3 trigger existing advisory
+count checks; these are not institutional delay targets. Experimental Random Forest suggestions
+use three inputs and four coded examples, with no validated staffing/delay accuracy.
+
+Read the **Snapshot** time and choose **Refresh insights** for current data. During refresh, old
+results are identified; on failure they are replaced with an unavailable state rather than a
+performance conclusion. Compare measured document waits in Efficiency Analytics. No insight
+reassigns staff, sends messages or changes requests automatically.
+
+Account Verification, System-Wide Tracker and Activity Logs keep stable column widths. Full
+values wrap inside each cell; document type and tracking number occupy separate lines in logs.
+On a phone, swipe horizontally within the table, or focus its scrolling region and use arrow
+keys. Enlarged text retains the full data. This repair uses the current design; the upcoming
+whole-system Figma redesign remains separate. See the README screenshots for synthetic examples.
+
+New signup collects first/middle/last fields, builds Full Name automatically and saves parts with the account in the registration transaction. Existing accounts confirm their unsplit names in Edit Profile; legacy API clients that send only Full Name remain supported. Signup identity fields are entered manually; Full Name is built from the supplied name parts. The new form requires first/last before confirmation; middle remains optional.
+
+## Signup and proof verification — October 13, 2026
+
+Signup uses manually entered identity fields. The pre-submit Read ID autofill and its supporting endpoints, parser and temporary uploads are removed. Current students upload proof. Alumni always see Records / proof unavailable; choosing it requires an explanation and submits for Admin identity review without an uploaded file. Removing signup autofill does not disable the post-submission proof check.
+
+The retained `/ocr/verify` route checks readable school, exact identifier and selected college text on the original image first. A successful pass cannot be replaced by a longer unsuccessful scan. A bounded fallback checks the processed image independently; it does not combine incomplete scans. Registration proof calls allow 45 seconds; unrelated AI calls retain their deadlines. A timeout/mismatch remains pending with a safe explanation. This matches text and cannot establish the physical ID's authenticity. Already-pending accounts still need Admin review; deployment does not bulk-approve them.
+
+Rebuild/recreate both backend and AI engine from the matching `dev` revision, then deploy the matching frontend. No new migration is required for this signup change. The request-catalog migration from the preceding release remains a separate prerequisite if not applied. Use `python -m unittest test_registration_verification test_proof_ocr` from `ai-engine` for the proof-check regressions. `/api/ai/extract-id` and `/ocr/identity` should now return 404.

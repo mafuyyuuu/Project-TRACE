@@ -1,3 +1,5 @@
+import QueueTabs from '@/components/QueueTabs';
+import QueuePanel from '@/components/QueuePanel';
 import Button from '@/components/Button';
 import ProgramsPanel from './ProgramsPanel';
 import SupportingDocumentsPanel from './SupportingDocumentsPanel';
@@ -17,6 +19,7 @@ import ConfirmDialog from '@/components/ConfirmDialog';
 const DESKS = ['Finance', 'Window 1', 'Secretary', 'Admin Office', 'Receiving Desk', 'Records Desk'];
 const TOGGLE_KIND_LABELS = {
   staff: 'User',
+  student: 'Student / Alumni Account',
   documentType: 'Document Type',
   college: 'College',
   paymentMethod: 'Payment Method',
@@ -70,7 +73,7 @@ export default function MaintenancePanel({ user, currentTab }) {
 
   const filteredStaff = (m.accounts || m.staff).filter((s) => {
     const matchesRole = staffRoleFilter === 'All' || s.role === staffRoleFilter;
-    const matchesDesk = staffDeskFilter === 'All' || s.desk_assignment === staffDeskFilter;
+    const matchesDesk = ['student','admin'].includes(staffRoleFilter) || staffDeskFilter === 'All' || s.desk_assignment === staffDeskFilter;
     return matchesRole && matchesDesk;
   });
 
@@ -78,7 +81,7 @@ export default function MaintenancePanel({ user, currentTab }) {
     e.preventDefault();
     setSaveToConfirm({ method: editingTypeId ? 'updateDocumentType' : 'createDocumentType', id: editingTypeId, label: 'Document Type', payload: {
       name: form.dt_name,
-      base_fee: form.dt_fee,
+      ...(editingTypeId && form.dt_fee === '' ? {} : { base_fee: form.dt_fee }),
       rental_fee: form.dt_rental_fee ?? 0, special_fee: form.dt_special_fee ?? 0,
       fee_items: form.dt_fee_items || [], college_fee_schedules: form.dt_fee_schedules || [],
       fee_rule: form.dt_rule || 'flat',
@@ -123,7 +126,7 @@ export default function MaintenancePanel({ user, currentTab }) {
 
       <div className="trace-page">
         <div>
-          <h2 className="trace-page-title">
+          <h2 className="trace-page-title break-words">
             System <span className="text-[#15803d] dark:text-green-300">Maintenance</span>
           </h2>
           <p className="trace-page-description">
@@ -133,21 +136,8 @@ export default function MaintenancePanel({ user, currentTab }) {
         </div>
 
         {/* Section switcher */}
-      <div className="flex flex-wrap gap-2 border-b border-gray-200 dark:border-gray-700">
-          {SECTIONS.map((s) => (
-            <Button
-              key={s.key}
-              onClick={() => { setSection(s.key); resetForm(); }}
-              className={`trace-tab rounded-t-xl  ${
-                section === s.key
-                  ? 'bg-white dark:bg-gray-900 border border-b-white border-gray-200 dark:border-gray-700 text-[#15803d] dark:text-green-300 -mb-px'
-                  : 'text-gray-400 dark:text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'
-              }`}
-            >
-              {s.label}{!['programs','supportingDocuments'].includes(s.key) && ` (${(s.key === 'staff' ? m.accounts : m[s.key]).length})`}
-            </Button>
-          ))}
-        </div>
+      <QueueTabs idPrefix="admin-maintenance" label="Maintenance sections" showZeroCounts tabs={SECTIONS.map(item => ({...item,count:['programs','supportingDocuments'].includes(item.key) ? undefined : (item.key === 'staff' ? m.accounts : m[item.key]).length}))} activeKey={section} onChange={key => { setSection(key); resetForm(); }} />
+        <QueuePanel idPrefix="admin-maintenance" activeKey={section} className="space-y-6">
 
         {section === 'programs' && <ProgramsPanel colleges={m.colleges} />}
         {section === 'supportingDocuments' && <SupportingDocumentsPanel />}
@@ -159,7 +149,7 @@ export default function MaintenancePanel({ user, currentTab }) {
               users={filteredStaff}
               onSelectUser={m.setSelectedUser}
               roleFilter={staffRoleFilter}
-              onRoleFilterChange={setStaffRoleFilter}
+              onRoleFilterChange={role=>{setStaffRoleFilter(role);setStaffDeskFilter('All');}}
               roleOptions={[
                 { value: 'All', label: 'All Roles' },
                 { value: 'student', label: 'Student / Alumni' },
@@ -167,7 +157,7 @@ export default function MaintenancePanel({ user, currentTab }) {
                 { value: 'admin', label: 'Administrator' },
               ]}
               deskFilter={staffDeskFilter}
-              onDeskFilterChange={setStaffDeskFilter}
+              onDeskFilterChange={['student','admin'].includes(staffRoleFilter)?undefined:setStaffDeskFilter}
               deskOptions={[{ value: 'All', label: 'All Desks' }, ...DESKS.map((d) => ({ value: d, label: d }))]}
               onAddUser={() => m.setAddingUser(true)}
             />
@@ -179,7 +169,7 @@ export default function MaintenancePanel({ user, currentTab }) {
               viewerId={user.id}
               saving={m.saving}
               onEdit={() => m.setEditingUser(m.selectedUser)}
-              onToggleActive={m.selectedUser?.role === 'student' ? undefined : () => m.handleToggleActive(m.selectedUser)}
+              onToggleActive={() => m.handleToggleActive(m.selectedUser)}
             />
 
             <UserEditModal
@@ -215,7 +205,8 @@ export default function MaintenancePanel({ user, currentTab }) {
               <select className={`${inputClass} cursor-pointer`} value={form.dt_rule || 'flat'}
                 onChange={(e) => set('dt_rule', e.target.value)}>
                 <option value="flat">Flat fee per copy</option>
-                <option value="per_semester_block">Per printed page per copy</option>
+                <option value="per_semester_block">Legacy page estimate (semester blocks)</option>
+                <option value="per_page">Per printed page per copy</option>
               </select>
 
               <FeeScheduleEditor colleges={m.colleges} value={{ rental_fee: form.dt_rental_fee ?? 0, special_fee: form.dt_special_fee ?? 0,
@@ -309,10 +300,10 @@ export default function MaintenancePanel({ user, currentTab }) {
                         <td className="py-3 px-5 text-xs font-bold text-gray-900 dark:text-gray-100">{d.name}<span className="block text-[10px] text-blue-700 dark:text-blue-300">{d.available_to || 'both'} · {d.is_repeatable ? 'Repeatable' : 'One active/completed request'}{d.is_walk_in ? ' · Counter only' : ''}</span>
                           {!d.is_active && Number(d.base_fee) === 0 && <span className="block text-[10px] text-amber-700 dark:text-amber-300">Draft: configure fee before activation</span>}</td>
                         <td className="py-3 text-xs text-gray-600 dark:text-gray-300">
-                          ₱{Number(d.base_fee).toFixed(2)}
+                          {d.fee_pending ? 'Fee not set' : `₱${Number(d.base_fee).toFixed(2)}`}
                           <span className="block text-[10px]">{(d.college_fee_schedules || []).length} college overrides · {(d.fee_items || []).length} named fees · Rental ₱{Number(d.rental_fee || 0).toFixed(2)} · Special ₱{Number(d.special_fee || 0).toFixed(2)}</span>
                           {d.name === 'Diploma' && <span className="text-[10px] text-gray-500 dark:text-gray-400 block">Reissue Fee · Secretary sets final amount</span>}
-                          {d.fee_rule === 'per_semester_block' && (
+                          {['per_semester_block', 'per_page'].includes(d.fee_rule) && (
                             <span className="text-[9px] text-gray-400 dark:text-gray-400 block">per page per copy</span>
                           )}
                         </td>
@@ -323,7 +314,7 @@ export default function MaintenancePanel({ user, currentTab }) {
                           <div className="trace-actions justify-end">
                             <Button type="button" disabled={d.is_retired} onClick={() => {
                               setEditingTypeId(d.id);
-                              setForm({ dt_name: d.name, dt_fee: d.base_fee, dt_rule: d.fee_rule,
+                              setForm({ dt_name: d.name, dt_fee: d.fee_pending ? '' : d.base_fee, dt_rule: d.fee_rule,
                                 dt_rental_fee: d.rental_fee ?? 0, dt_special_fee: d.special_fee ?? 0, dt_fee_items: d.fee_items || [], dt_fee_schedules: d.college_fee_schedules || [],
                                 dt_attach: Boolean(d.requires_attachment), dt_label: d.attachment_label,
                                 dt_available_to: d.available_to || 'both', dt_is_repeatable: Boolean(d.is_repeatable),
@@ -493,6 +484,7 @@ export default function MaintenancePanel({ user, currentTab }) {
           </div>
         )}
 
+        </QueuePanel>
         <ConfirmDialog
           open={!!m.activeToggleToConfirm}
           title={
@@ -503,8 +495,8 @@ export default function MaintenancePanel({ user, currentTab }) {
           message={
             m.activeToggleToConfirm
               ? m.activeToggleToConfirm.active
-                ? `Deactivate "${m.activeToggleToConfirm.label}"? It will be hidden from new requests, but existing records are unaffected.`
-                : `Restore "${m.activeToggleToConfirm.label}"? It will be available again for new requests.`
+                ? m.activeToggleToConfirm.kind==='student' || m.activeToggleToConfirm.kind==='staff' ? `Deactivate "${m.activeToggleToConfirm.label}"? Sign-in and existing sessions will be blocked. Requests and history are preserved.` : `Deactivate "${m.activeToggleToConfirm.label}"? It will be hidden from new requests, but existing records are unaffected.`
+                : m.activeToggleToConfirm.kind==='student' || m.activeToggleToConfirm.kind==='staff' ? `Restore "${m.activeToggleToConfirm.label}"? Sign-in will be available again. Existing verification requirements still apply.` : `Restore "${m.activeToggleToConfirm.label}"? It will be available again for new requests.`
               : ''
           }
           variant={m.activeToggleToConfirm?.active ? 'destructive' : 'neutral'}

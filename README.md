@@ -3,7 +3,108 @@ Tracking, Routing, and Automated Credential Engine for the PLP Registrar.
 
 This repository contains the complete end-to-end system for tracking and auto-routing document flows, featuring a **manual GCash receipt payment verification pipeline** to comply with school accounting requirements.
 
-> **Current Phase:** 🟢 Deployment-Ready — every phase through 17 is complete; **Phase 18 (Go Live)** is outstanding and needs an account and a machine, not code. See [`docs/PROGRESS.md`](docs/PROGRESS.md). The frontend is fully wired to live AI APIs, machine learning forecasts, and SMS notifications, and the codebase follows the layered structure documented in [`docs/CODING_PREFERENCES.md`](docs/CODING_PREFERENCES.md).
+## Project walkthrough — no account needed
+
+**[Open the live TRACE site](https://project-trace-two.vercel.app) — login required.** The authenticated portals use role-specific accounts; the walkthrough below lets you evaluate the project without signing in. This is a group capstone project, and the descriptions reflect implemented repository workflows rather than a promise that every external service is currently online.
+
+TRACE gives students a document request and tracking portal, while Window 1, College Secretaries, Finance and the Registrar Admin each receive a desk-specific workspace. The stack is React/Vite and Tailwind, Express/Node, MySQL, Socket.IO, a Flask AI engine and an n8n routing workflow.
+
+### Main workflows
+
+| Workflow | What the user sees | What the system does |
+| --- | --- | --- |
+| Registration and profile | Students/alumni register, submit identity evidence, complete their profile and verify email. Staff use Admin-created accounts. | OCR assists with evidence checks; inconclusive accounts go to staff review. Profile completion and identity/email verification are separate checks. |
+| Student request | Choose one or more document types, copies and required attachments; receive individual tracking numbers and follow progress. | Creates a request group, sends it to Window 1 intake and keeps document routing independent within the group. |
+| Intake and college processing | Window 1 reviews an online or walk-in submission; the College Secretary evaluates, prepares and prices the document. | Records desk decisions and assignment, supports OCR-assisted intake and calculates applicable final charges from the configured fee rules. |
+| Payment and release | The student submits payment proof or pays at the counter. Finance verifies payment; Secretary checks the OR paperwork and hands the document to Window 1 for release. | Grouped payment covers the priced request; authorized desk transitions and audit history record each step through completion. |
+| Support | Students open a support ticket, consult approved FAQs and request staff assistance. Staff work within their authorized ticket/case scope. | Maintains ticket conversations, attachments and service-hour/queue state. Support analytics measure ticket service separately from document turnaround. |
+| Staff coordination | Authorized desk staff select a colleague and converse; Admin monitors read-only. | Reuses scoped pair conversations, enforces recipient eligibility and protects accepted-message retries. |
+| Internal assistance | Window 1, Finance and Secretary staff submit private categorized concerns; Admin claims and resolves them. | Separate ticket/message/audit storage, creator-only staff access, assigned Admin replies and retained resolution/reopen history. Admin monitors operational support read-only. |
+| Administration and reports | Admin reviews accounts, maintains catalogs/templates, inspects analytics and exports records. Authorized staff also use scoped reports. | Keeps role/college access rules, configured fees and report filters in the existing service/model layers. |
+
+**A typical request, in about one minute:** imagine a student requesting a TOR and a Diploma. The student submits both in one request; Window 1 reviews the submission and routes it. The Secretary evaluates and prepares each document, then records the final charges. Once the group is fully priced, one verified payment covers it. The Secretary checks the receipt paperwork, Window 1 receives the documents, and the request reaches Completed when the student collects them. The student can inspect tracking throughout and open a support ticket if assistance is needed.
+
+### Screenshots and navigation — synthetic records
+
+These screenshots use synthetic records from the actual React components with mocked API responses. No account is needed to view them. They show repository UI, rather than confirming that the live site has been updated.
+
+| Workflow | Where to navigate | Screenshots |
+| --- | --- | --- |
+| Alumni without proof | Registration → Alumni → Records / proof unavailable → enter a reason → review and confirm. Account stays pending until Admin records checked identity evidence and a decision. Current students still upload proof. | [Phone signup](docs/alumni-missing-proof-signup.png) · [Confirmation](docs/alumni-missing-proof-review.png) |
+| Student request | Student dashboard → New Request → choose documents and attachments → review confirmation. Alumni reuse saved Year Started; requests have no Year Ended field. | [Request form](docs/batch7-request-light.png) · [Confirmation](docs/batch7-confirmation-light.png) · [Phone / dark mode](docs/batch7-request-mobile-dark.png) |
+| Intake and clearance | Window 1 → Intake → open a request → review requirements before routing. Blocking clearance must be accepted before routing. | [Queue](docs/batch8-window1-queue-light.png) · [Clearance review](docs/batch8-intake-clearance-light.png) |
+| Assignment and college scope | Admin tracker → Assign Staff → review eligible staff and confirm with a reason. Secretary queues show requests within the authorized college. | [Assignment](docs/batch8-staff-assignment-light.png) · [Secretary on mobile](docs/batch8-secretary-mobile-dark.png) |
+| Reports and CSV | Reports & Export → edit the visible Student ID / Name, college and document filters → Apply Filters → Export → Export CSV. Finance uses the same reporting workspace; Payment History remains grouped by cleared request. | [Visible filters](docs/admin-review-reports.png) · [Phone / dark mode](docs/admin-review-reports-mobile.png) · [Sample CSV](docs/batch9-report-sample.csv) |
+| Support and discussion | Open Support → select a ticket to read its conversation. In Digital Request Evaluation, open the separate discussion panel. | [Support workspace](docs/batch10-support-workspace-light.png) · [Empty state](docs/batch10-widget-empty-light.png) · [Phone chat](docs/batch10-widget-mobile-dark.png) · [Evaluation discussion](docs/batch10-evaluation-light.png) |
+| Staff coordination | Support → Staff coordination → New conversation → select an eligible colleague → review first message and confirm. | [Desktop](docs/staff-coordination-workspace.png) · [Phone / dark mode](docs/staff-coordination-mobile.png) |
+| Internal assistance | Staff → Support → Internal assistance → New concern → review and confirm. Admin → Support → Internal assistance → select and claim → reply or resolve with a note. | [Admin workspace](docs/internal-assistance-workspace.png) · [Staff on mobile / dark mode](docs/internal-assistance-mobile.png) |
+| Admin workload and logs | Dashboard → AI Insights → inspect all-stage counts and snapshot time → Refresh insights. Activity Logs → scroll inside the table; full document/tracking/action values wrap separately. Pending count alone does not prove a delay. | [Workload snapshot](docs/admin-workload-insights.png) · [Audit table](docs/admin-audit-wrapping.png) · [Phone / dark mode](docs/admin-audit-mobile.png) |
+| Support Analytics | Admin → Efficiency Analytics → Support Analytics → select the measured period → inspect KPI cards and duration tables. Missing samples display as unavailable, rather than zero. | [Analytics views](docs/admin-review-analytics.png) · [Phone / dark mode](docs/batch11-support-analytics-mobile-dark.png) · [Empty period](docs/batch11-support-analytics-empty.png) |
+
+For hands-on local testing, use the [seed accounts below](#-test-accounts--credentials) after completing setup. Required migrations are tracked in the [consolidated deployment checklist](docs/DEPLOYMENT_CHECKLIST.md).
+
+### Finance receipt walkthrough
+
+Finance dashboard → **Verification Queue** to clear payments; **Payment History** beside it to manage copies. **Reports & Export** is a separate sidebar page shared with the other reporting roles.
+
+1. In **Review → Input Issuance Number**, enter **First issuance number** and **Last issuance number**, for example `2026-00001` and `2026-00050`. Review and confirm the 50-paper range. No receipt is issued just by setting up a pack.
+2. Review the student's payment proof and the read-only next number. Finance does not re-enter the payor. Confirm **Verify Payment** to automatically save the receipt and consume one number. **Later — upload the physical OR copy later** keeps the number/control visible; it defers only the uploaded copy during eligible issuing hours. An immediate copy is saved with the receipt and payment in one transaction.
+3. **Print** beside the saved number opens the immutable receipt preview. There is no separate receipt Save step. Printing/reprinting consumes no number. The format retains date/issuance, student ID/name, document amounts/total, amount in words, payment reference and cashier. **Data only** targets preprinted paper. **Verification Queue → Receipt settings → Printer calibration** retains paper dimensions, margins and offsets; exact alignment needs the actual reference image and a blank-paper printer test.
+4. In **Payment History**, use the shared visible filters, **View OR** for an uploaded copy or **Upload OR** for a pending copy. Elapsed time is measured from recorded payment clearance. After the existing **4 PM Manila cutoff**, verification explicitly clears payment with issuance pending; use **Issue pending OR** on a later eligible date before Secretary inspection/handoff. No issuance deadline is promised. Historical clearance timestamps remain unknown when absent.
+5. After 50 issues, use **Change Issuance Number** for the next pack. **Replace paper pack** also asks only for its first and last numbers. Replacement stays audited; unused/voided numbers remain reserved. Receipt settings retain pack/snapshot history, calibration and audited voiding before Secretary verification/handoff.
+6. New registrations enter First/Middle/Last names; Full Name is assembled automatically. Existing accounts use **Student → Edit Profile → Personal Info → Name on Official Receipts** confirms first, middle and last names once, preserving compound names. Fields must describe the existing saved identity. New receipts use **Last name, First name M.I.**; unsplit legacy names and already-issued snapshots stay intact. Apply the additional `migrate_student_name_parts.js` before starting the matching API/frontend.
+7. **Reports & Export** uses the same visible filters, summary, records and upper-right Export dialog as Admin/Window 1/Secretary. It exports the shared document/student datasets. Payment History contains no export or pack setup block. The older transactions URL still opens History; export/reports links open the reports page.
+
+[Prior receipt-history screenshot](docs/finance-receipt-history.png) · [Prior mobile issuance screenshot](docs/finance-receipt-issue-mobile.png) · [Receipt print preview](docs/finance-receipt-print-preview.png). The first two show the earlier controls; updated screenshots and full browser/Vitest/build/database checks await a connected coding environment. In-memory service checks and JSX syntax checks are documented in PROGRESS, separately from deployment. See the [migration ledger](docs/DEPLOYMENT_CHECKLIST.md).
+
+### Signup and proof review
+
+Enter identity fields manually and upload proof of ID. Alumni can instead choose **Records / proof unavailable** and explain why; they remain pending for Admin review. Automatic proof checks run after registration confirmation and still match school, exact ID and selected college text. The pre-submit Read ID autofill has been removed.
+
+### Internal assistance walkthrough
+
+1. Sign in as Window 1, Finance or a College Secretary, then open **Support → Internal assistance → New concern**. Choose a category, describe the concern and review/confirm submission. The ticket is private to its creator and Admin.
+2. Admin opens **Support → Internal assistance**, filters the queue by state/category, selects the concern and confirms **Claim ticket**. The assigned Admin can reply; other Admins can monitor. Staff can add details before and after the claim.
+3. Admin can confirm **Await staff reply** while retaining assignment. When the creator replies, handling resumes. **Resolve concern** requires a resolution note and confirmation; the conversation and resolution stay readable.
+4. Creator or assigned Admin can confirm **Reopen concern** to return it to the queue. A different Admin may take over an open ticket only if its assigned Admin is inactive or no longer an Admin.
+
+Student Support remains separate and is read-only for Admin; settings and analytics retain administrative controls. No student messages or identity files are imported into internal concerns. Staff-to-staff connections are now available in **Support → Staff coordination**; the [implemented permission matrix](docs/SYSTEM_WORKFLOWS.md#implemented-operational-chat-connections--trace-78-follow-up) describes their scope. The [migration ledger](docs/DEPLOYMENT_CHECKLIST.md) records `migrate_internal_assistance.js`, confirmed cloud-applied by the user’s 2026-10-12 SSH output. Use the local seed accounts below for testing; these screenshots do not establish live deployment or notification delivery.
+
+Support notification links also select another ticket while the workspace is open, preserving new-ticket form drafts. Linked case conversations follow the request’s saved routing college; the Receiving Desk label uses Window 1’s existing intake/release rules and assignment protections.
+
+### Staff coordination walkthrough
+
+1. Sign in with a local Window 1, Finance or Secretary test account and open **Support → Staff coordination**.
+2. Choose **New conversation**, search the authorized staff directory by name/desk, select a colleague and enter the first message. Review and confirm. Existing conversations with the same pair/college scope are reused.
+3. Select the conversation and use **Send** or Enter for subsequent messages. A failed send keeps the draft for retry. **Staff conversations** opens the list on a phone; Load older messages retrieves retained history.
+4. Switch between support, staff coordination and internal assistance without discarding category drafts. Student support stays ticket-based. Secretary peers are restricted to the same college; students, Admin and self are excluded from ordinary recipients.
+5. Admin opens the same Staff coordination category to monitor history, with no composer or creation controls. Staff concerns needing an Admin reply use **Internal assistance**.
+
+[Desktop](docs/staff-coordination-workspace.png) and [mobile dark mode](docs/staff-coordination-mobile.png) are synthetic actual-component screenshots. Local seed credentials remain below; matching API/frontend versions must be deployed before live use. The preserving `migrate_staff_conversations.js` is confirmed cloud-applied by the user’s 2026-10-12 SSH output and tracked in the consolidated ledger.
+
+### Contribution highlighted in this update
+
+The current UI consistency work extends the shared Tailwind control system across the five role portals: reusable field/button states, aligned section headings, responsive form grids and shared modal chrome. It fixes omitted button base styles and a profile retry action that could submit its surrounding form, while preserving the existing desk permissions and processing logic. The visual foundations follow the main [TRACE Figma design](https://www.figma.com/design/78A3HTREQ86GIN9ZxvDBSv/TRACE-Draft?node-id=0-1), with accessible mobile, dark-mode and reduced-motion adaptations. This describes this update's concrete contribution; it does not attribute the whole group project's work to one author.
+
+The Revision 2 Batch 7 contribution also adds one-time alumni study years, server-authoritative request reuse, audited Admin corrections, pending alumni registration when proof is unavailable, concise attachment labels and independent password visibility icons. The production follow-up permits alumni-only missing-proof applications with a reason, always pending an audited Admin identity decision; current students still upload proof. It follows the Figma form/confirmation references while retaining the existing pricing and desk workflow. The existing additive migration must precede the paired API/frontend rollout; the follow-up adds no new migration or environment setting.
+
+Revision 2 Batch 8 adds case-specific intake clearance gates, saved college routing scope, audited Admin-only backup assignment and shared accessible queue tabs with visible context motion. It preserves desk/payment/OR prerequisites and adds security regressions for cross-college access, stale assignments and public tracking. These contributions are documented with screenshots and migration limits in the walkthrough above.
+
+Revision 2 Batch 9 adds shared report filtering and export configuration, draft/applied filter state, authoritative identity/college/type filtering and one consistent authorized document CSV contract. The Admin follow-up restores visible filters with combined Student ID / Name search and a separate Export action; CSV shows readable fee/purpose details and exact Manila date/time. It also detects oversized exports and keeps Finance payment totals intact. The [consolidated deployment checklist](docs/DEPLOYMENT_CHECKLIST.md) records every new batch’s migrations and prerequisites for the final rollout.
+
+Revision 2 Batch 11 aligns Support Analytics with TRACE’s Admin card hierarchy and pine-green context strips, replaces boxed statistical rows with spacious semantic tables, and preserves recorded metric definitions, FAQ denominators and historical cutoff states. It adds responsive and report-retry regressions without changing backend calculations or adding a migration.
+
+Revision 2 Batch 13 adds isolated staff-to-Admin assistance with creator privacy, atomic Admin claims, stale-action protection, retry-safe sends, mandatory resolution notes and retained history. It closes Admin intervention paths in operational support and records the ordinary-chat permission matrix, subsequently implemented in the follow-up below. The README walkthrough and consolidated migration ledger replace per-batch acceptance files.
+
+The additional chat contribution implements TRACE-78 recipient connections with active role/college authorization, isolated staff messages/audit storage, retry-safe pair reuse and a Figma-aligned workspace. It preserves student tickets, case processing and Admin internal-ticket authority.
+
+The Admin functional review consolidates Internal assistance under Support, preserves legacy notification links, separates Document Efficiency and Support Analytics, and enables confirmed, audited student/alumni deactivation and reactivation without deleting history. Scan Field Detection describes the OCR parser’s expected-field coverage, rather than model accuracy. Shared report search and human-readable CSV retain college restrictions, payment-group totals and spreadsheet escaping. No new migration is required; cosmetic redesign awaits the forthcoming Figma.
+
+The Admin insights follow-up replaces unsupported optimal-performance claims with observed counts across every active document stage. Random Forest remains a clearly labelled, unvalidated four-example prototype; full queue facts and advisory thresholds work without it. Snapshot times, manual refresh and honest failure states prevent stale advice from appearing current. Admin audit, verification and tracker tables preserve full values with stable columns, wrapping and keyboard-accessible horizontal scrolling. No database migration is added; deploy matching backend/frontend and rebuild the AI image for its updated aggregate contract.
+
+For code review, start with [UI conventions](docs/UI_CONVENTIONS.md), [shared Tailwind styles](frontend/src/index.css), [ModalShell](frontend/src/components/ModalShell.jsx) and the [profile retry regression check](frontend/src/components/__tests__/AcademicProfileFields.test.jsx). For the full desk sequence and user actions, see [System workflows](docs/SYSTEM_WORKFLOWS.md) and [User manual](docs/USER_MANUAL.md).
+
+Deployment setup and rollout checkpoints are documented in [`docs/DEPLOYMENT_GUIDE.md`](docs/DEPLOYMENT_GUIDE.md) and [`docs/PROGRESS.md`](docs/PROGRESS.md). The latest UI work also implements the main TRACE Figma support workspace, compact chat and separate evaluation discussion, preserving existing ticket authorization and retry-safe messaging. The live site and the latest `dev` changes can differ; review and validate branch changes before promoting them. Code follows the layered structure in [`docs/CODING_PREFERENCES.md`](docs/CODING_PREFERENCES.md).
 
 ---
 
@@ -167,7 +268,9 @@ node backend/audit.js       # walks a document through all five desks
 ---
 
 ## 🔐 Test Accounts / Credentials
-**The password for ALL accounts is: `trace2024`**
+These are **local fresh-install seed accounts** from `backend/database/seed.sql`. Their seed password is **`trace2024`**; this is not a verified password for the live site. Do not import the seed into an existing database to obtain these accounts.
+
+Staff login still requires its configured authentication factor. For email OTP, configure a test mailbox and delivery settings for the local account; the seeded `@trace.edu` addresses are examples. Complete required profile, identity and email checks before exercising student request workflows. Authentication requirements remain in place.
 
 | Role | ID | Name | College / Description |
 | :--- | :--- | :--- | :--- |
@@ -199,12 +302,16 @@ backend lives beside it. That also keeps Socket.IO on a real process and uploads
 ```bash
 cp .env.example .env          # then fill in JWT_SECRET, WEBHOOK_SECRET and DB_PASSWORD
 docker compose up -d --build
-docker compose exec backend node database/migration.js
+docker compose exec backend node database/check_schema.js
 ```
 
 See [`docs/ENV_SETUP_GUIDE.md` §7](docs/ENV_SETUP_GUIDE.md#7-the-docker-stack-locally) for what goes
 in that `.env`. `schema.sql` and `seed.sql` apply automatically the first time the MySQL volume is
-created; the migration adds the later columns. Compose **refuses to start** without `JWT_SECRET` and
+created on an empty local database; the read-only preflight checks the required schema. Use these
+demo seeds only for local evaluation. Existing installations must follow the
+[consolidated migration ledger](docs/DEPLOYMENT_CHECKLIST.md) and
+[preserving rollout guide](docs/MIGRATION_ROLLOUT.md), without importing the schema/seed or
+running the broad historical migration as an upgrade shortcut. Compose **refuses to start** without `JWT_SECRET` and
 `WEBHOOK_SECRET` rather than falling back to a default.
 
 If you already run the standalone `n8n` container from the setup above, it holds port 5678 and the
@@ -212,14 +319,18 @@ compose one will not start. Stop it first (`docker stop n8n`) or drop the `n8n` 
 compose file.
 
 Add `--profile local-frontend` to also serve the built SPA (port 8080) — only needed for a
-single-box deployment; with Vercel hosting the frontend, leave it out.
+single-box deployment; with Vercel hosting the frontend, leave it out. Keep the profile's
+`VITE_API_URL` blank to use its Nginx proxy for `/api` and `/socket.io`, including authenticated
+uploads and WebSocket upgrades. SPA refresh/reset links and hashed-asset caching remain available.
 
 ### Deploying
 
 1. **Provision the VM** and install Docker. On an ARM host (e.g. Oracle Cloud Ampere) images build
    for `linux/arm64` — verified working: PyTorch ships aarch64 wheels and Prophet's Stan binary
    compiles.
-2. **Bring up MySQL and the backend**, then run the migration. Confirm `GET /api/health` returns
+2. **Bring up MySQL and the backend**, following the preserving rollout guide for an existing
+   database and applying only reviewed missing migrations before restarting writers. Run the
+   read-only schema preflight. Confirm `GET /api/health` returns
    200 — it runs a real `SELECT 1` and answers **503** if the database is unreachable.
 3. **Put HTTPS in front of it.** This is not optional: a browser on `https://…vercel.app` refuses to
    call an `http://` backend (mixed content). Caddy with automatic Let's Encrypt is the least work,

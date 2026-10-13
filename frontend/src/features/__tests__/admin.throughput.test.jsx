@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import AdminDashboard from '@/features/admin/AdminDashboard';
 import { getAnalytics } from '@/services/reportsService';
+import { getInsights, getActivityLogs } from '@/services/documentsService';
 
 vi.mock('@/services/documentsService', () => ({
   getDocuments: vi.fn().mockResolvedValue({ documents: [] }),
@@ -16,7 +17,8 @@ vi.mock('@/services/authService', () => ({
   getUsers: vi.fn().mockResolvedValue({ users: [] }),
   verifyStudent: vi.fn(),
 }));
-vi.mock('@/services/reportsService', () => ({ getAnalytics: vi.fn() }));
+vi.mock('@/services/reportsService', () => ({
+  getReportFilterOptions: vi.fn().mockResolvedValue({colleges:[{id:4,name:'Synthetic College'}],document_types:[{id:1,name:'Diploma',is_active:1}],college_locked:false}), getAnalytics: vi.fn() }));
 // Give the real charts a size; jsdom has no layout/ResizeObserver measurements.
 vi.mock('recharts', async () => ({
   ...await vi.importActual('recharts'),
@@ -28,6 +30,7 @@ const DAYS = [{ date: '2026-09-28', completed: 3 }, { date: '2026-09-29', comple
 beforeEach(() => {
   vi.clearAllMocks();
   getAnalytics.mockResolvedValue({ end_to_end: { completed_count: 8, avg_minutes: 45 }, throughput: DAYS });
+  getInsights.mockResolvedValue({ insights: [{ type: 'info', title: 'Document workload: 60 outstanding', message: 'Secretary Processing: 60. Queue size alone does not establish efficiency.', as_of: '2026-10-12T00:00:00Z', method: 'queue_snapshot' }] });
 });
 async function renderCard() {
   render(<AdminDashboard user={ADMIN} currentTab="dashboard" setViewImageUrl={vi.fn()} />);
@@ -80,10 +83,35 @@ describe('System Throughput card', () => {
     fireEvent.focus(within(card).getByRole('application'));
     await waitFor(() => expect(within(card).getByText('12 docs')).toBeVisible());
     expect(within(card).getByText('2026-09-30')).toBeVisible();
-    for (const name of ['AI confidence average', 'Real-time backlog']) {
+    const detection=screen.getByRole('region',{name:'Scan field detection'});
+    expect(within(detection).getByText(/does not measure AI accuracy/)).toBeInTheDocument();
+    expect(within(detection).queryByText('Illustrative trend')).not.toBeInTheDocument();
+    for (const name of ['Real-time backlog']) {
       const neighbor = screen.getByRole('region', { name });
       expect(within(neighbor).getByText('Illustrative trend')).toBeInTheDocument();
       expect(within(neighbor).queryByText(/docs$/)).not.toBeInTheDocument();
     }
   });
+});
+
+it('labels the current queue snapshot and clears stale advice when Refresh insights fails', async () => {
+  await renderCard();
+  expect(await screen.findByText('Document workload: 60 outstanding')).toBeVisible();
+  expect(screen.getByText(/Observed queue counts; not a performance forecast/)).toBeVisible();
+  getInsights.mockRejectedValueOnce(new Error('snapshot unavailable'));
+  fireEvent.click(screen.getByRole('button', { name: 'Refresh insights' }));
+  expect(await screen.findByText('Insights unavailable')).toBeVisible();
+  expect(screen.queryByText('Document workload: 60 outstanding')).not.toBeInTheDocument();
+  expect(screen.getByText(/No current queue or performance conclusion is inferred/)).toBeVisible();
+});
+
+it('keeps the full document, tracking and action values in separate audit-log cells', async () => {
+  getActivityLogs.mockResolvedValueOnce({ logs: [{ id: 1, timestamp_started: '2026-10-12T00:00:00Z', document_type: 'Graduation Clearance', tracking_number: 'TRC-8D74321-LONG-SYNTHETIC-TRACKING', step_name: 'payment_submitted', user_name: 'Synthetic Registrar Clerk', status: 'PENDING_FINANCE_VERIFICATION' }] });
+  render(<AdminDashboard user={ADMIN} currentTab="admin-logs" setViewImageUrl={vi.fn()} />);
+  const table = await screen.findByRole('table', { name: 'System-wide audit log' });
+  const document = await within(table).findByText('Graduation Clearance');
+  expect(document.closest('td')).toContainElement(within(table).getByText('#TRC-8D74321-LONG-SYNTHETIC-TRACKING'));
+  expect(within(table).getByText('payment submitted').closest('td')).not.toBe(document.closest('td'));
+  const scroller = screen.getByRole('region', { name: 'Activity log table' });
+  scroller.focus(); expect(scroller).toHaveFocus();
 });

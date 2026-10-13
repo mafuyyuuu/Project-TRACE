@@ -1,4 +1,7 @@
+import RequestAssignmentModal from '@/features/admin/components/RequestAssignmentModal';
+import RequestStaff from '@/components/RequestStaff';
 import Button from '@/components/Button';
+import StudyYearsCorrectionModal from '@/features/admin/components/StudyYearsCorrectionModal';
 import { forecastCeiling } from '@/utils/forecastScale';
 import { USER_TYPE_LABELS } from '@/utils/userLabels';
 import AdminTemplatesPanel from './components/AdminTemplatesPanel';
@@ -8,7 +11,7 @@ import { useState } from 'react';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import MiniSparkline from '@/components/MiniSparkline';
 import useAdminDashboard from '@/features/admin/useAdminDashboard';
-import { todayLongDate, formatDuration } from '@/utils/formatters';
+import { todayLongDate, formatDuration, formatDateTime } from '@/utils/formatters';
 import { getStatusTone, getStatusLabel } from '@/utils/documentStatus';
 import DashboardAlerts from '@/components/DashboardAlerts';
 import DashboardLoading from '@/components/DashboardLoading';
@@ -26,6 +29,8 @@ import AccountVerificationModal from './components/AccountVerificationModal';
  * Registrar admin: ML forecasts, AI insights, account verification, users, and audit logs.
  */
 export default function AdminDashboard({ user, currentTab, setViewImageUrl, reviewAccountId, reviewNavigationKey }) {
+  const [assignmentTarget, setAssignmentTarget] = useState(null);
+  const [studyCorrectionTarget, setStudyCorrectionTarget] = useState(null);
   const [viewProfileId, setViewProfileId] = useState(null);
 
   const {
@@ -34,9 +39,10 @@ export default function AdminDashboard({ user, currentTab, setViewImageUrl, revi
     dismissNotification,
     error,
     documents,
+    loadDashboardData,
     dashStats,
     forecastData,
-    aiInsights,
+    aiInsights, insightsLoading, refreshInsights,
     pendingStudents,
     analyticsSummary,
     activeModal,
@@ -77,6 +83,7 @@ export default function AdminDashboard({ user, currentTab, setViewImageUrl, revi
 
   return (
     <>
+      {assignmentTarget && <RequestAssignmentModal key={assignmentTarget.id} document={assignmentTarget} onClose={() => setAssignmentTarget(null)} onSaved={() => { setAssignmentTarget(null); void loadDashboardData(); }} />}
       <DashboardAlerts success={success} error={error} onDismiss={dismissNotification} />
             {currentTab === 'dashboard' && (
               <div className="trace-page">
@@ -123,15 +130,14 @@ export default function AdminDashboard({ user, currentTab, setViewImageUrl, revi
                     </div>
                   </section>
 
-                  <section aria-label="AI confidence average" className="trace-section trace-card-info trace-section-body grid gap-3 lg:row-span-4 lg:grid-rows-subgrid">
-                    <span className="text-[10px] font-bold text-gray-400 dark:text-gray-400 uppercase tracking-widest block">AI Confidence Avg</span>
+                  <section aria-label="Scan field detection" className="trace-section trace-card-info trace-section-body grid gap-3 lg:row-span-4 lg:grid-rows-subgrid">
+                    <span className="text-[10px] font-bold text-gray-400 dark:text-gray-400 uppercase tracking-widest block">Scan Field Detection</span>
                     <span className="min-w-0 break-words text-2xl sm:text-3xl font-display font-black text-gray-900 dark:text-gray-100 block">{dashStats.avg_ocr_confidence > 0 ? dashStats.avg_ocr_confidence.toFixed(1) + '%' : '—'}</span>
                     <div className="min-w-0">
-                      <MiniSparkline trend="down" className="trace-kpi-sparkline" />
-                      <p className="text-[10px] font-bold text-gray-500 dark:text-gray-400 mt-2">Illustrative trend</p>
+                      <div className="trace-kpi-sparkline flex items-center"><p className="text-xs text-gray-600 dark:text-gray-300">Expected fields: Student ID, name and document type.</p></div>
                     </div>
                     <div className="self-start bg-[#15803d] rounded-xl px-4 py-2 text-[10px] font-medium text-white w-full leading-snug">
-                      Average extraction accuracy across all scans
+                      Average share of expected fields detected. This does not measure AI accuracy or correctness.
                     </div>
                   </section>
 
@@ -156,7 +162,7 @@ export default function AdminDashboard({ user, currentTab, setViewImageUrl, revi
                   <div className="trace-section trace-section-body lg:col-span-2 md:flex flex-col min-h-[380px]">
                     <div className="flex flex-col sm:flex-row justify-between sm:items-start gap-3 mb-6">
                       <div>
-                        <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100">7-Day Volume Forecast</h3>
+                        <h3 className="trace-section-title">7-Day Volume Forecast</h3>
                         <p className="text-xs text-gray-400 dark:text-gray-400 font-medium">Predicted incoming document volume via Prophet ML.</p>
                       </div>
                       <div className="flex min-w-0 max-w-full items-center gap-2">
@@ -244,10 +250,12 @@ export default function AdminDashboard({ user, currentTab, setViewImageUrl, revi
                   {/* Admin Insights Panel */}
                   <section aria-labelledby="ai-insights-heading" className="trace-section trace-section-body lg:col-span-1 flex flex-col justify-between h-full min-h-[380px]">
                     <div>
-                      <h3 id="ai-insights-heading" className="text-lg font-bold text-gray-900 dark:text-gray-100">AI INSIGHTS</h3>
-                      <p className="text-xs text-gray-600 dark:text-gray-300 mt-1">Document model advice and measured support trends. Recommendations require review.</p>
+                      <h3 id="ai-insights-heading" className="trace-section-title">AI INSIGHTS</h3>
+                      <p className="text-xs text-gray-600 dark:text-gray-300 mt-1">Document queue snapshots and measured support trends. Model recommendations are experimental and require review.</p>
                     </div>
 
+                    <div className="mt-3"><Button type="button" onClick={refreshInsights} disabled={insightsLoading} className="trace-button trace-button-secondary">{insightsLoading ? 'Refreshing insights…' : 'Refresh insights'}</Button></div>
+                    {insightsLoading && aiInsights.length > 0 && <p role="status" className="mt-2 text-xs text-gray-600 dark:text-gray-300">Refreshing; cards below show the previous snapshot.</p>}
                     <div className="flex flex-col gap-4 mt-6">
                       {aiInsights && aiInsights.length > 0 ? (
                         aiInsights.map((insight, idx) => (
@@ -263,6 +271,7 @@ export default function AdminDashboard({ user, currentTab, setViewImageUrl, revi
                             </h4>
                             <div className="text-xs leading-relaxed font-medium">
                               {insight.message}
+                              {insight.as_of && <p className="mt-2">Snapshot: {formatDateTime(insight.as_of)} Manila · {insight.method === 'random_forest_prototype' ? 'Experimental classification; unvalidated' : 'Observed queue counts; not a performance forecast'}</p>}
                               {insight.period && <p className="mt-2">{new Date(insight.period.from).toLocaleDateString('en-PH',{timeZone:'Asia/Manila'})}–{new Date(insight.period.to_exclusive).toLocaleDateString('en-PH',{timeZone:'Asia/Manila'})} · {insight.sample_size} observations · {insight.method==='aggregate_rules' ? 'Aggregate rules; descriptive, not a forecast' : 'Advisory'}</p>}
                             </div>
                           </article>
@@ -279,17 +288,18 @@ export default function AdminDashboard({ user, currentTab, setViewImageUrl, revi
                 {/* Student Account Verification dashboard */}
                 <div className="trace-section overflow-hidden">
                   <div className="trace-section-header border-gray-100 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800/50 flex-wrap">
-                    <h3 id="tutorial-account-review" className="min-w-0 max-w-full font-bold text-gray-900 dark:text-gray-100 text-lg">Account Verification</h3>
+                    <h3 id="tutorial-account-review" className="trace-section-title max-w-full">Account Verification</h3>
                     <span className="bg-amber-100 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-wider">
                       {pendingStudents.length} Account Verification Requests
                     </span>
                   </div>
                   <div className="p-4 sm:p-6">
-                    <div className="max-h-[calc(100vh-280px)] overflow-y-auto overflow-x-auto">
+                    <div role="region" aria-label="Account verification table" tabIndex={0} className="trace-table-scroll max-h-[calc(100vh-280px)]">
                       {pendingStudents.length === 0 ? (
                         <div className="text-center py-12 text-gray-400 dark:text-gray-400 font-medium">No pending student accounts requiring manual validation.</div>
                       ) : (
-                        <table className="w-full text-left border-collapse table-fixed min-w-[680px]">
+                        <table aria-label="Account verification requests" className="trace-data-table min-w-[69rem]">
+                          <colgroup>{['w-[10rem]','w-[9rem]','w-[13rem]','w-[16rem]','w-[13rem]','w-[8rem]'].map((width,index)=><col key={index} className={width}/>)}</colgroup>
                           <thead className="sticky top-0 bg-white dark:bg-gray-900 z-10">
                             <tr className="text-gray-400 dark:text-gray-400 text-[10px] uppercase tracking-widest border-b border-gray-100 dark:border-gray-700">
                               <th className="pb-4 font-bold pl-4 font-mono">Student ID</th>
@@ -313,7 +323,7 @@ export default function AdminDashboard({ user, currentTab, setViewImageUrl, revi
                                       onClick={() => setViewImageUrl(student.id_proof_path)}
                                       className="trace-action text-xs text-indigo-600 dark:text-indigo-300 font-bold hover:underline flex items-center gap-1"
                                     >
-                                      <svg className="w-3.5 h-3.5 inline-block mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" /></svg>View ID / Diploma Attachment
+                                      <svg className="w-3.5 h-3.5 inline-block mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" /></svg>View Proof of ID Attachment
                                     </Button>
                                   ) : (
                                     <span className="text-xs text-gray-400 dark:text-gray-400 italic">No proof uploaded</span>
@@ -347,7 +357,7 @@ export default function AdminDashboard({ user, currentTab, setViewImageUrl, revi
                 {/* All Documents Tracker */}
                 <div className="trace-section overflow-hidden">
                   <div className="trace-section-header border-gray-100 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800/50">
-                    <h3 className="font-bold text-gray-900 dark:text-gray-100 text-lg">System-Wide Document Tracker</h3>
+                    <h3 className="trace-section-title">System-Wide Document Tracker</h3>
                     <div className="flex items-center gap-2">
                       <span className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest">Filter:</span>
                       <select
@@ -366,17 +376,19 @@ export default function AdminDashboard({ user, currentTab, setViewImageUrl, revi
                     </div>
                   </div>
                   <div className="p-4 sm:p-6">
-                    <div ref={tableRef} className="max-h-[calc(100vh-280px)] overflow-y-auto overflow-x-auto">
+                    <div ref={tableRef} role="region" aria-label="System-wide document tracker table" tabIndex={0} className="trace-table-scroll max-h-[calc(100vh-280px)]">
                       {documents.filter(doc => adminDocFilter === 'All' || doc.document_type === adminDocFilter).length === 0 ? (
                         <div className="text-center py-12 text-gray-400 dark:text-gray-400 font-medium">No documents match the current filter.</div>
                       ) : (
-                        <table className="w-full text-left border-collapse table-fixed min-w-[42.5rem]">
+                        <table aria-label="System-wide document tracker" className="trace-data-table min-w-[85rem]">
+                          <colgroup>{['w-[11rem]','w-[13rem]','w-[14rem]','w-[12rem]','w-[15rem]','w-[11rem]','w-[9rem]'].map((width,index)=><col key={index} className={width}/>)}</colgroup>
                           <thead className="sticky top-0 bg-white dark:bg-gray-900 z-10">
                             <tr className="text-gray-400 dark:text-gray-400 text-[10px] uppercase tracking-widest border-b border-gray-100 dark:border-gray-700">
                               <th className="pb-4 font-bold pl-4">Tracking ID</th>
                               <th className="pb-4 font-bold">Student</th>
                               <th className="pb-4 font-bold">Document Type</th>
                               <th className="pb-4 font-bold">Status</th>
+                              <th className="pb-4 font-bold">Staff / Handoff</th>
                               <th className="pb-4 font-bold">Date Updated</th>
                               <th className="pb-4 font-bold text-right pr-4">Attachment</th>
                             </tr>
@@ -388,17 +400,18 @@ export default function AdminDashboard({ user, currentTab, setViewImageUrl, revi
                               .map(doc => (
                                 <tr key={doc.id} className="hover:bg-gray-50/30 dark:hover:bg-gray-800/30">
                                   <td className="py-4 pl-4 font-mono text-xs font-bold text-gray-900 dark:text-gray-100">
-                                    #{doc.tracking_number ? doc.tracking_number.slice(0, 10).toUpperCase() : doc.id}
+                                    #{doc.tracking_number ? doc.tracking_number : doc.id}
                                   </td>
-                                  <td className="py-4 text-sm font-bold"><Button type="button" disabled={!doc.student_id} onClick={() => setViewProfileId(doc.student_id)} className="trace-action text-blue-700 dark:text-blue-300 hover:underline text-left break-words focus-visible:ring-2 focus-visible:ring-blue-500 disabled:text-gray-500">{doc.student_name || doc.student_id || 'Unknown'}</Button></td>
+                                  <td className="py-4 text-sm font-bold"><Button type="button" disabled={!doc.student_id} onClick={() => setViewProfileId(doc.student_id)} className="trace-action block min-w-0 max-w-full text-blue-700 dark:text-blue-300 hover:underline text-left [overflow-wrap:anywhere] focus-visible:ring-2 focus-visible:ring-blue-500 disabled:text-gray-500">{doc.student_name || doc.student_id || 'Unknown'}</Button></td>
                                   <td className="py-4 text-xs font-bold text-gray-600 dark:text-gray-300">{doc.document_sequence_number || doc.document_type}</td>
                                   <td className="py-4">
-                                    <span className={`inline-flex max-w-full px-3 py-1 text-[10px] leading-normal font-black rounded-full uppercase tracking-wider ${
+                                    <span className={`inline-flex max-w-full whitespace-normal break-words px-3 py-1 text-[10px] leading-normal font-black rounded-full uppercase tracking-wider ${
                                       getStatusTone(doc.current_status)
                                     }`}>
                                       {getStatusLabel(doc.current_status)}
                                     </span>
                                   </td>
+                                  <td className="py-4"><RequestStaff document={doc} /><Button type="button" onClick={() => setAssignmentTarget(doc)} className="trace-action underline mt-2">Assign staff</Button></td>
                                   <td className="py-4 text-xs font-semibold text-gray-400 dark:text-gray-400">
                                     {new Date(doc.updated_at).toLocaleDateString()} {new Date(doc.updated_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
                                   </td>
@@ -475,6 +488,7 @@ export default function AdminDashboard({ user, currentTab, setViewImageUrl, revi
                   onClose={() => setSelectedUser(null)}
                   user={selectedUser}
                   viewerId={user.id}
+                  onCorrectStudyYears={user.role === 'admin' && selectedUser?.role === 'student' ? () => setStudyCorrectionTarget(selectedUser) : undefined}
                 />
               </div>
             )}
@@ -487,11 +501,13 @@ export default function AdminDashboard({ user, currentTab, setViewImageUrl, revi
                 </div>
                 <div className="trace-section overflow-hidden">
                   <div className="trace-section-header border-gray-100 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800/50">
-                    <h3 className="font-bold text-gray-900 dark:text-gray-100 text-lg">System-Wide Audit Log</h3>
+                    <h3 className="trace-section-title">System-Wide Audit Log</h3>
                   </div>
                   <div className="p-4 sm:p-6">
-                    <div className="max-h-[calc(100vh-280px)] overflow-y-auto overflow-x-auto">
-                      <table className="w-full text-left border-collapse table-fixed whitespace-nowrap min-w-[42.5rem]">
+                    <p className="trace-page-description mb-3">Full log values wrap within each column. Scroll horizontally on a smaller screen to read all columns.</p>
+                    <div role="region" aria-label="Activity log table" tabIndex={0} className="trace-table-scroll max-h-[calc(100vh-280px)]">
+                      <table aria-label="System-wide audit log" className="trace-data-table min-w-[65rem]">
+                        <colgroup>{['w-[11rem]','w-[16rem]','w-[13rem]','w-[13rem]','w-[12rem]'].map((width,index)=><col key={index} className={width}/>)}</colgroup>
                         <thead className="sticky top-0 bg-white dark:bg-gray-900 z-10">
                           <tr className="text-xs uppercase tracking-widest text-gray-400 dark:text-gray-400 border-b border-gray-100 dark:border-gray-700">
                             <th className="pb-4 font-bold pl-4">Timestamp</th>
@@ -504,8 +520,8 @@ export default function AdminDashboard({ user, currentTab, setViewImageUrl, revi
                         <tbody className="divide-y divide-gray-50 dark:divide-gray-700">
                           {adminLogs.map(log => (
                             <tr key={log.id} className="hover:bg-gray-50/30 dark:hover:bg-gray-800/30">
-                              <td className="py-4 pl-4 text-xs font-semibold text-gray-500 dark:text-gray-400">{new Date(log.timestamp_started).toLocaleString()}</td>
-                              <td className="py-4 text-sm font-bold text-gray-900 dark:text-gray-100">{log.document_type || 'Unknown'} <span className="text-gray-400 dark:text-gray-400 font-mono text-xs">#{log.tracking_number || 'N/A'}</span></td>
+                              <td className="py-4 pl-4 text-xs font-semibold text-gray-500 dark:text-gray-400">{formatDateTime(log.timestamp_started)}</td>
+                              <td className="py-4 text-sm font-bold text-gray-900 dark:text-gray-100"><span className="block">{log.document_type || 'Unknown'}</span><span className="mt-1 block text-gray-500 dark:text-gray-400 font-mono text-xs">#{log.tracking_number || 'N/A'}</span></td>
                               <td className="py-4 text-sm text-gray-600 dark:text-gray-300 capitalize">{log.step_name ? log.step_name.replace(/_/g, ' ') : 'System Action'}</td>
                               <td className="py-4 text-sm text-gray-600 dark:text-gray-300">{log.user_name || 'System'}</td>
                               <td className="py-4">
@@ -531,6 +547,9 @@ export default function AdminDashboard({ user, currentTab, setViewImageUrl, revi
         forecastFilter={forecastFilter}
         setForecastFilter={setForecastFilter}
       />
+
+      {studyCorrectionTarget && <StudyYearsCorrectionModal key={studyCorrectionTarget.id} target={studyCorrectionTarget}
+        onClose={() => setStudyCorrectionTarget(null)} onSaved={() => { setStudyCorrectionTarget(null); setSelectedUser(null); }} />}
 
       <AccountVerificationModal key={studentVerifyToConfirm?.student?.id || 'none'}
         studentVerifyToConfirm={studentVerifyToConfirm}

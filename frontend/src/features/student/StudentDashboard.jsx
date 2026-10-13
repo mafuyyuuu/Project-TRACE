@@ -1,14 +1,17 @@
+import QueuePanel from '@/components/QueuePanel';
+import QueueTabs from '@/components/QueueTabs';
 import Button from '@/components/Button';
 import ProgressFill from '@/components/ProgressFill';
 import RequestMessagesPanel from '@/components/RequestMessagesPanel';
 import { getProfileCompletion } from '@/utils/profileCompletion';
 import FeeBreakdown from '@/components/FeeBreakdown';
 import { INPUT_LIMITS } from '@/utils/inputLimits';
-import FileUploadField from '@/components/FileUploadField';
 import { useState } from 'react';
 import NewRequestModal from '@/features/student/components/NewRequestModal';
 import LiveTrackingModal from '@/features/student/components/LiveTrackingModal';
 import FloatingSupportChat from '@/features/student/components/FloatingSupportChat';
+import ReviewSummary from '@/components/ReviewSummary';
+import FileUploadField from '@/components/FileUploadField';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import MiniSparkline from '@/components/MiniSparkline';
 import ModalShell from '@/components/ModalShell';
@@ -221,7 +224,7 @@ export default function StudentDashboard({ user, currentTab, setViewImageUrl }) 
             {/* Active Requests Card Table */}
             <div className="trace-section overflow-hidden mt-8">
               <div id="tutorial-requests" className="trace-section-header border-gray-100 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800/50">
-                <h3 className="font-bold text-gray-900 dark:text-gray-100 text-lg">ACTIVE REQUESTS</h3>
+                <h3 className="trace-section-title">ACTIVE REQUESTS</h3>
                 <Button onClick={loadDashboardData} className="trace-action text-xs text-[#15803d] dark:text-green-300 font-bold hover:underline inline-flex items-center gap-1"><svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.992 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182" /></svg> Refresh</Button>
               </div>
               <div className="p-4 sm:p-6">
@@ -325,10 +328,8 @@ export default function StudentDashboard({ user, currentTab, setViewImageUrl }) 
         {/* 1.2. STUDENT PORTAL - REQUEST HISTORY */}
         {['request-history', 'payment-history', 'history'].includes(currentTab) && <section className="space-y-5">
           <h2 className="trace-page-title">History</h2>
-          <div className="flex flex-wrap gap-3" aria-label="History filters">
-            {['all', 'payments'].map(filter => <Button key={filter} type="button" aria-pressed={historyFilter === filter} onClick={() => setHistoryView({ tab: currentTab, filter })} className={`trace-tab rounded-xl  ${historyFilter === filter ? 'bg-[#15803d] text-white' : 'bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700'}`}>{filter === 'all' ? 'All Requests' : 'Payments'}</Button>)}
-          </div>
-          <div className="trace-section trace-section-body overflow-x-auto max-h-[60vh]">
+          <QueueTabs semantics="filters" label="History filters" idPrefix="student-history" tabs={[{key:'all',label:'All Requests'},{key:'payments',label:'Payments'}]} activeKey={historyFilter} onChange={filter => setHistoryView({ tab: currentTab, filter })} />
+          <QueuePanel idPrefix="student-history" activeKey={historyFilter} semantics="filters" className="trace-section trace-section-body overflow-x-auto max-h-[60vh]">
             <table className="w-full table-fixed min-w-[61.25rem] text-left text-xs">
               <thead className="sticky top-0 bg-white dark:bg-gray-900 z-10"><tr>{['Requested', 'Tracking', 'Document', 'Request Status', 'Amount', 'Payment Status', 'Payment Reference', 'Receipt'].map(label => <th key={label} className="px-3 py-3">{label}</th>)}</tr></thead>
               <tbody>{documents.filter(doc => historyFilter === 'all' || doc.payment_status === 'PAID' || doc.gcash_reference_no).map(doc => <tr key={doc.id} className="border-t border-gray-100 dark:border-gray-700">
@@ -345,7 +346,7 @@ export default function StudentDashboard({ user, currentTab, setViewImageUrl }) 
               </tr>)}</tbody>
             </table>
             {documents.filter(doc => historyFilter === 'all' || doc.payment_status === 'PAID' || doc.gcash_reference_no).length === 0 && <p className="p-6 text-sm text-gray-500 dark:text-gray-400">No records match this filter.</p>}
-          </div>
+          </QueuePanel>
         </section>}
 
         {/* 1.4. NEW REQUEST MODAL */}
@@ -396,22 +397,7 @@ export default function StudentDashboard({ user, currentTab, setViewImageUrl }) 
               <p className="text-xs text-gray-400 dark:text-gray-400 mb-6 font-semibold">One payment for {selectedPaymentDocuments.length} {selectedPaymentDocuments.length === 1 ? 'document' : 'documents'}</p>
 
               {/* Payment method picker */}
-              <div className="flex flex-wrap gap-2 mb-6">
-                {paymentMethods.map((m) => (
-                  <Button
-                    key={m.code}
-                    type="button"
-                    onClick={() => setSelectedMethod(m.code)}
-                    className={`trace-tab rounded-xl border  ${
-                      selectedMethod === m.code
-                        ? 'bg-[#15803d] border-[#15803d] text-white shadow-sm'
-                        : 'bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800'
-                    }`}
-                  >
-                    {m.name}
-                  </Button>
-                ))}
-              </div>
+              <div className="mb-6"><QueueTabs semantics="filters" label="Payment method" idPrefix="student-payment-method" tabs={paymentMethods.map(method => ({key:method.code,label:method.name}))} activeKey={selectedMethod} onChange={setSelectedMethod} /></div>
 
               <div className="border-2 border-dashed border-[#15803d]/40 bg-gray-50/50 dark:bg-gray-800/50 p-6 rounded-2xl flex flex-col items-center gap-4 mb-6 text-center">
                 {selectedMethod === 'gcash' ? (
@@ -529,14 +515,23 @@ export default function StudentDashboard({ user, currentTab, setViewImageUrl }) 
           />
         )}
 
-        <ConfirmDialog open={!!submissionToConfirm}
+        <ConfirmDialog open={!!submissionToConfirm} presentation={submissionToConfirm?.kind === 'request' ? 'review' : 'compact'}
           title={submissionToConfirm?.kind === 'payment' ? 'Confirm Payment Submission' : 'Confirm Document Request'}
           message={submissionToConfirm?.kind === 'payment'
             ? `Submit your ${submissionToConfirm.methodName} proof for ${formatPeso(submissionToConfirm.total)}?`
             : `Submit ${submissionToConfirm?.count || 0} document${submissionToConfirm?.count === 1 ? '' : 's'} as one request?`}
           confirmLabel={submissionToConfirm?.kind === 'payment' ? 'Confirm Payment' : 'Confirm Request'}
           loading={actionLoading} loadingLabel="Submitting…"
-          onConfirm={confirmStudentSubmission} onCancel={cancelStudentSubmission} />
+          onConfirm={confirmStudentSubmission} onCancel={cancelStudentSubmission}>
+          {submissionToConfirm?.kind === 'request' && <>
+            <ReviewSummary entries={submissionToConfirm.summary || []} />
+            {submissionToConfirm.attachments?.length > 0 && <section className="mt-4" aria-label="Attached Files">
+              <h4 className="trace-label mb-3">Attached Files</h4>
+              <div className="grid gap-3 sm:grid-cols-2">{submissionToConfirm.attachments.map(({ label, file }) =>
+                <FileUploadField key={label} label={label} file={file} allowReplace={false} compactPreview />)}</div>
+            </section>}
+          </>}
+        </ConfirmDialog>
 
         <ConfirmDialog
           open={!!cancelRequestIdToConfirm}

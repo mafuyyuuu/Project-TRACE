@@ -24,7 +24,7 @@ beforeEach(() => {
 it('keeps retired historical entries visible with inaccessible edit and restore actions', async () => {
   const user = userEvent.setup();
   render(<MaintenancePanel user={{ id: 1, role: 'admin' }} currentTab="maintenance" />);
-  await user.click(screen.getByRole('button', { name: /^Document Types/ }));
+  await user.click(screen.getByRole('tab', { name: /^Document Types/ }));
   const row = screen.getByText('Certificate of Good Moral').closest('tr');
   expect(within(row).getByText('Unavailable for new requests; history retained.')).toBeInTheDocument();
   expect(within(row).getByRole('button', { name: 'Edit' })).toBeDisabled();
@@ -37,7 +37,7 @@ it('keeps retired historical entries visible with inaccessible edit and restore 
 it('labels the Diploma fee and preserves its editable, confirmed save flow', async () => {
   const user = userEvent.setup();
   render(<MaintenancePanel user={{ id: 1, role: 'admin' }} currentTab="maintenance" />);
-  await user.click(screen.getByRole('button', { name: /^Document Types/ }));
+  await user.click(screen.getByRole('tab', { name: /^Document Types/ }));
   const row = screen.getByText('Diploma').closest('tr');
   expect(row).toHaveTextContent('₱250.00');
   expect(row).toHaveTextContent('Reissue Fee · Secretary sets final amount');

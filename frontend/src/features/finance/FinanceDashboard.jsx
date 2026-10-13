@@ -1,12 +1,16 @@
 import Button from '@/components/Button';
 import RequestMessagesPanel from '@/components/RequestMessagesPanel';
 import { useState } from 'react';
+import ReportsPanel from '@/features/admin/components/ReportsPanel';
+import ReceiptManagementWorkspace from '@/features/finance/components/ReceiptManagementWorkspace';
 import FinanceTransactionsWorkspace from '@/features/finance/components/FinanceTransactionsWorkspace';
 import { canonicalTabForUser } from '@/utils/navigation';
 import FinanceVerificationModal from '@/features/finance/components/FinanceVerificationModal';
 import WalkInPaymentModal from '@/features/finance/components/WalkInPaymentModal';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import QueueTabs from '@/components/QueueTabs';
+import QueuePanel from '@/components/QueuePanel';
+import RequestStaff from '@/components/RequestStaff';
 import { formatPeso } from '@/utils/pricing';
 import { getStatusLabel } from '@/utils/documentStatus';
 import useFinanceDashboard from '@/features/finance/useFinanceDashboard';
@@ -26,6 +30,7 @@ import PaymentStubModal from '@/features/secretary/components/PaymentStubModal';
 export default function FinanceDashboard({ user, setViewImageUrl, currentTab = 'dashboard' }) {
   const tab = canonicalTabForUser(user, currentTab);
   if (tab === 'messages') return <RequestMessagesPanel user={user} initialDocumentId={new URLSearchParams(window.location.search).get('document')} />;
+  if (tab === 'reports') return <ReportsPanel user={user} currentTab="reports" />;
   if (tab === 'transactions') return <FinanceTransactionsWorkspace setViewImageUrl={setViewImageUrl} />;
   return <FinanceOverview user={user} setViewImageUrl={setViewImageUrl} />;
 }
@@ -43,6 +48,7 @@ function FinanceOverview({ user, setViewImageUrl }) {
     verificationQueue,
     actionLoading,
     clerkNotes,
+    verifiedReceipt, setVerifiedReceipt,
     setClerkNotes,
     counterDeferred, setCounterDeferred,
     orNumber, setOrNumber,
@@ -92,22 +98,25 @@ function FinanceOverview({ user, setViewImageUrl }) {
         </div>
 
         {/* Queue Tabs — one table visible at a time instead of two stacked */}
-        <QueueTabs
+        <QueueTabs idPrefix="finance-queue"
           tabs={[
             { key: 'awaiting-payment', label: 'Awaiting Payment', count: awaitingPaymentQueue.length },
             { key: 'verification', label: 'Verification Queue', count: verificationQueue.length },
+            { key: 'official-receipts', label: 'Payment History' },
           ]}
           activeKey={activeQueueTab}
           onChange={setActiveQueueTab}
         />
+        <QueuePanel idPrefix="finance-queue" activeKey={activeQueueTab} className="mt-4">
+        {activeQueueTab === 'official-receipts' && <FinanceTransactionsWorkspace setViewImageUrl={setViewImageUrl} />}
 
         {/* 1 · Billed, waiting on the student. Read-only, except that a student
             can walk up with the printed slip and pay at the counter. */}
         {activeQueueTab === 'awaiting-payment' && (
-        <div className="trace-section trace-motion-context overflow-hidden mt-6">
+        <div className="trace-section overflow-hidden">
           <div className="trace-section-header border-gray-100 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800/50">
             <div>
-              <h3 className="font-bold text-gray-950 dark:text-gray-100 text-sm tracking-wider uppercase">1 · AWAITING PAYMENT</h3>
+              <h3 className="trace-section-title uppercase tracking-wider">1 · AWAITING PAYMENT</h3>
               <p className="text-[11px] text-gray-500 dark:text-gray-400 font-medium mt-1">Billed by the College Secretary. Log a payment here when the student pays at the counter.</p>
             </div>
             <span className="text-xs text-gray-500 dark:text-gray-400 font-semibold whitespace-nowrap">
@@ -137,7 +146,7 @@ function FinanceOverview({ user, setViewImageUrl }) {
                           <Button type="button" disabled={!doc.student_id} onClick={() => setViewProfileId(doc.student_id)} className="trace-action text-sm font-bold text-blue-700 dark:text-blue-300 hover:underline text-left focus-visible:ring-2 focus-visible:ring-blue-500">{doc.student_name || 'Unknown Student'}</Button>
                           <div className="text-xs font-mono text-gray-400 dark:text-gray-400 mt-0.5 select-text break-words">{doc.student_id || 'ID Pending'}</div>
                         </td>
-                        <td className="py-4 text-xs font-bold text-gray-600 dark:text-gray-300">{doc.document_type}</td>
+                        <td className="py-4 text-xs font-bold text-gray-600 dark:text-gray-300">{doc.document_type}<RequestStaff document={doc} /></td>
                         <td className="py-4 text-xs font-bold text-gray-800 dark:text-gray-100 font-mono">{formatPeso(doc.amount)}</td>
                         <td className="py-4 text-right pr-4 min-w-[200px]"><div className="flex flex-wrap justify-end gap-2 items-center">
 
@@ -166,9 +175,12 @@ function FinanceOverview({ user, setViewImageUrl }) {
 
         {/* Verification Queue Table */}
         {activeQueueTab === 'verification' && (
-        <div className="trace-section trace-motion-context overflow-hidden mt-6">
+        <div className="trace-section overflow-hidden">
           <div className="trace-section-header border-gray-100 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800/50">
-            <h3 className="font-bold text-gray-950 dark:text-gray-100 text-sm tracking-wider uppercase">2 · VERIFICATION QUEUE</h3>
+            <div className="flex flex-wrap items-center gap-3">
+              <h3 className="trace-section-title uppercase tracking-wider">2 · VERIFICATION QUEUE</h3>
+              <Button type="button" className="trace-button trace-button-secondary" onClick={() => setActiveModal('receipt-management')}>Receipt settings</Button>
+            </div>
             <span className="text-xs text-gray-500 dark:text-gray-400 font-semibold whitespace-nowrap">
               Pending Request: <strong className="text-gray-900 dark:text-gray-100">{verificationQueue.length}</strong>
             </span>
@@ -197,7 +209,7 @@ function FinanceOverview({ user, setViewImageUrl }) {
                           <Button type="button" disabled={!doc.student_id} onClick={() => setViewProfileId(doc.student_id)} className="trace-action text-sm font-bold text-blue-700 dark:text-blue-300 hover:underline text-left focus-visible:ring-2 focus-visible:ring-blue-500">{doc.student_name || 'Unknown Student'}</Button>
                           <div className="text-xs font-mono text-gray-400 dark:text-gray-400 mt-0.5 select-text break-words">{doc.student_id || 'ID Pending'}</div>
                         </td>
-                        <td className="py-4 text-xs font-bold text-gray-600 dark:text-gray-300">{doc.document_type}</td>
+                        <td className="py-4 text-xs font-bold text-gray-600 dark:text-gray-300">{doc.document_type}<RequestStaff document={doc} /></td>
                         <td className="py-4 text-xs font-bold text-gray-800 dark:text-gray-100 font-mono">{formatPeso(doc.amount)}</td>
                         <td className="py-4 text-xs font-semibold">
                           {doc.payment_channel === 'walk_in'
@@ -213,7 +225,7 @@ function FinanceOverview({ user, setViewImageUrl }) {
                             Slip
                           </Button>
                           <Button
-                            onClick={() => { setSelectedDoc(doc); setActiveModal('verify-pay'); }}
+                            onClick={() => { setVerifiedReceipt(null); setSelectedDoc(doc); setActiveModal('verify-pay'); }}
                             className="trace-button trace-button-primary flex items-center gap-1.5 ml-auto shrink-0"
                           >
                             <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
@@ -231,10 +243,13 @@ function FinanceOverview({ user, setViewImageUrl }) {
         </div>
         )}
 
-        {/* 2.1 FINANCE VERIFICATION MODAL */}
+        </QueuePanel>
+{activeModal === 'receipt-management' && <ReceiptManagementWorkspace onClose={() => setActiveModal(null)} />}
+{/* 2.1 FINANCE VERIFICATION MODAL */}
         {activeModal === 'verify-pay' && selectedDoc && (
           <FinanceVerificationModal
-            user={user}
+            key={selectedDoc.id}
+            verifiedReceipt={verifiedReceipt}
             selectedDoc={selectedDoc}
             setActiveModal={setActiveModal}
             getStatusLabel={getStatusLabel}
@@ -277,8 +292,8 @@ function FinanceOverview({ user, setViewImageUrl }) {
           message={
             financeVerifyToConfirm
               ? financeVerifyToConfirm.action === 'approve'
-                ? `Confirm this payment for ${selectedDoc?.document_type} is verified? This marks the request paid.`
-                : `Reject this payment for ${selectedDoc?.document_type}? The student will need to resubmit.`
+                ? `Confirm this payment for ${financeVerifyToConfirm.documentType} is verified? This marks the request paid. ${financeVerifyToConfirm.usePack ? `Issue ${financeVerifyToConfirm.expected_serial} to the student; consume one serial.` : financeVerifyToConfirm.deferred ? 'OR issuance stays pending.' : 'Keep the recorded OR.'} ${financeVerifyToConfirm.uploadLater ? 'Upload its digital copy later from Payment History.' : financeVerifyToConfirm.file ? 'Save the selected digital copy with this verification.' : 'Its digital copy can be uploaded from Payment History.'}`
+                : `Reject this payment for ${financeVerifyToConfirm.documentType}? The student will need to resubmit.`
               : ''
           }
           variant={financeVerifyToConfirm?.action === 'approve' ? 'neutral' : 'destructive'}

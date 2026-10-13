@@ -60,7 +60,7 @@ I will now return the floor to [Speaker 2 Name] to explain how we built a system
 
 First, the Presentation Layer is our React Web App. It serves as the primary interface for students to submit requests and for registrar personnel to process them.
 
-Second, the Application Layer acts as our core engine. A Node.js backend handles the primary requests, while an independent Python Flask microservice powers our AI. This includes using EasyOCR for data extraction and identity verification, and utilizing n8n for rule-based workflow routing. This layer also provides prototype analytics, using Prophet for workflow-event forecasting and Random Forest plus thresholds for queue insights.
+Second, the Application Layer acts as our core engine. A Node.js backend handles the primary requests, while an independent Python Flask microservice powers our AI. This includes using EasyOCR for data extraction and identity verification, and utilizing n8n for rule-based workflow routing. This layer also provides prototype analytics, using Prophet for workflow-event forecasting and observed all-stage queue snapshots plus an explicitly experimental Random Forest advisory.
 
 Finally, the Data Layer utilizes a MySQL database. It acts as our single source of truth, securely storing request records, payment statuses, and step logs. Together, these layers allow the system to output automated tracking, actionable workload forecasts, and intelligent process recommendations.
 
@@ -76,7 +76,12 @@ We will now transition to the Live System Demo to show you exactly how these tec
 
 *(Action: Navigate to Registration Page)*
 
-"Before filing a request, a student creates an account with an email and identity proof. Read ID suggests fields from readable text; the student checks them and enters missing information manually. The registration check compares school, identifier and college text. An inconclusive result stays pending for Admin review with a reason. This assists identity review; it cannot prove that an ID is genuine or that it belongs to the uploader."
+"Before filing a request, a student creates an account with an email and identity proof. The student enters identity details manually and uploads proof. The registration check compares school, identifier and college text. An inconclusive result stays pending for Admin review with a reason. This assists identity review; it cannot prove that an ID is genuine or that it belongs to the uploader."
+
+"An alumnus with lost or unavailable proof can choose Records / proof unavailable and explain why.
+That account stays pending, without an OCR check, until Admin records the alternative identity
+evidence and decision. This is available in the production build; current students still upload
+proof. We demonstrate it using synthetic records only."
 
 *(Action: Admin quickly verifies the account. Log in as Student)*
 
@@ -88,7 +93,7 @@ The floating tutorial highlights actual controls; the question mark replays it. 
 
 *(Action: Select Transcript of Records from the dropdown)*
 
-"...TOR asks for **Year Started and Year Ended**, together with copies. Filing shows the configured per-page rate and applicable extra charges, **without an estimated total**. Study years do not determine printed pages; the final itemized amount appears after preparation and server pricing.
+"...TOR displays the saved **Year Started** read-only, together with copies; Year Ended is not requested. Filing shows the configured per-page rate and applicable extra charges, **without an estimated total**. Study years do not determine printed pages; the final itemized amount appears after preparation and server pricing.
 
 That is the single most important design decision in our system, so let me explain it before we go further. For page-based documents, the final charge needs the actual printed-page count. Admin manages the fee schedule, Secretary records the pages and the server calculates the amount. Flat-fee types follow their configured rule. The old way was to charge a fee up front and hope it matched. Ours does the work first and bills what the document actually cost. It also means a student never pays for something the office later finds it cannot issue."
 
@@ -154,7 +159,7 @@ Two things worth noting. It deliberately takes the *largest* figure on the recei
 
 *Crucially*: that click is the **only** place in our entire codebase that marks a document as PAID. The Secretary sets the price; Finance confirms the money. One person cannot do both, and that separation is what makes the money trail auditable.
 
-Finance can clear payment while the OR is pending: the student receives an acknowledgment, then the digital OR when published. At exactly 4:00 PM Manila time, new same-day issuance closes. The current earliest-date rule uses the next calendar date, not a holiday calendar or a promised issuance time. The dedicated **Transactions & OR Copies** sidebar page keeps paid records separate from these dashboard queues. Its **From/To** filters still use inclusive Manila dates. **View OR** opens an available private copy; missing or deferred copies keep their own states and upload actions. **Export** uses the current filters. Elapsed receipt waiting time is informational.
+Finance can clear payment while the OR is pending: the student receives an acknowledgment, then the digital OR when published. At exactly 4:00 PM Manila time, new same-day issuance closes. The current earliest-date rule uses the next calendar date, not a holiday calendar or a promised issuance time. The dedicated **Payment History** sidebar page keeps paid records separate from these dashboard queues. Its **From/To** filters still use inclusive Manila dates. **View OR** opens an available private copy; missing or deferred copies keep their own states and upload actions. **Export** uses the current filters. Elapsed receipt waiting time is informational.
 
 For the release demonstration we will use an issued synthetic OR. Back to [Speaker 3 Name] for receipt inspection and handoff."
 
@@ -196,7 +201,7 @@ When Ana claims her Transcript, the clerk clicks Release. That closes the reques
 
 *(Action: Briefly show System Maintenance, Templates, Security Logs and Reports & Export.)*
 
-“Admin maintains Registrar-approved programs, document availability and fee schedules. Templates provide isolated previews; Security contains authenticator settings and account activity. Reports place Export beside the header, then Filters, KPI summaries and Records. We preserve role permissions while using shared controls, dark mode, readable status colors and enlarged text.”
+“Admin maintains Registrar-approved programs, document availability and fee schedules. Templates provide isolated previews; Security contains authenticator settings and account activity. Reports show visible draft filters and Apply. Export at the upper right opens dataset/CSV options; KPI summaries and Records stay on the main page. Show student ID/name, college and document type filters, then reconcile the exported document count and amount. Secretary reports remain locked to their college; Finance keeps grouped payments on screen and expands their documents in the shared CSV. We preserve role permissions while using shared controls, dark mode, readable status colors and enlarged text.”
 
 *(Action: If demonstrated, open only the messaging feature verified on this deployment.)*
 
@@ -212,7 +217,7 @@ When Ana claims her Transcript, the clerk clicks Release. That closes the reques
 
 First, you'll see this line chart. This is generated by a **Prophet forecasting model**. It fits daily counts of step-log events and returns seven nonnegative integer predictions. Multiple events can belong to one document, so this is a workload-event proxy rather than a distinct-request forecast. The API does not return uncertainty bounds. Staffing use requires sufficient real history and held-out evaluation; a plausible line is not proof of accuracy.
 
-Second, below the chart, we have the **AI Insights Panel**. This uses a **Random Forest classification algorithm**. It uses evaluation-queue count, release-queue count and today’s step-log count. The current prototype fits four coded examples and applies queue thresholds. Its recommendations are advisory; it has not established a learned 40% trend, optimal staffing or validated prediction accuracy.
+Second, the **AI Insights Panel** shows observed counts across every active document stage, including preparation and student-payment waits. We read its Manila snapshot time and can use Refresh insights. Pending volume alone does not establish efficiency or delays; actual waits belong in Efficiency Analytics. The optional **Random Forest** prototype uses evaluation count, release count and today’s workflow actions, fitted to four coded examples. Its experimental advice and count thresholds require review; it cannot confirm Optimal Performance or validated staffing accuracy. On a phone, audit/tracker tables wrap full values in separate columns and scroll within the table.
 
 Finally, we also utilize our AI during the very first step: Student Account Registration. When a student signs up and uploads their PLP ID, our OCR engine runs a strict **3-point cross-match verification**. It visually reads the ID and verifies:
 1. The Institution Name (PLP).
@@ -236,3 +241,67 @@ The next evaluation priorities are live acceptance, a restore rehearsal, measure
 Thank you very much for your time, your attention, and the opportunity to present our research. We now warmly open the floor to the panel for any questions, and we can gladly navigate through the system if you wish to see any specific features."
 
 *(All 3 speakers stand ready. Keep the `ADMIN001` dashboard open in the background browser so you can easily show logs, registered users, or specific features if the panelists ask "Can you show me how...?")*
+
+
+## Revision 2 Batch 10 — Support / Messaging UI
+
+Support now follows the main TRACE Figma two-column layout, with aligned readable ticket rows, local search of loaded authorized metadata, contextual linked-case viewing, a labeled confirmed availability switch and a primary Window 1 claim action. Success feedback uses dismissible toasts; failures and confirmations remain in context. The compact widget preserves drafts across close/reopen. Digital evaluation separates discussion into a side panel or a mobile view without discarding either draft. Existing ticket/desk/college authorization, FAQ/reply/requirement actions, service hours and queue assignment remain; no new staff chat connection or unsupported presence/read/unread data is added.
+
+See [README workflow walkthrough](../README.md#main-workflows) for the screenshots, walkthrough and local evidence. Batch 10 adds **no migration or environment variable**; [DEPLOYMENT_CHECKLIST.md](DEPLOYMENT_CHECKLIST.md) tracks required earlier migrations. These are repository changes for dev, not a claim that the live site is updated.
+
+## Revision 2 Batch 11 — short analytics walkthrough
+
+“Here, Support Analytics reports ticket service separately from document processing. These cards summarize recorded ticket volume, escalations, backlog, FAQ actions and staff episodes. Each card includes its cohort or denominator. The statistical table keeps median, p90, samples and missing measurements in minutes. No data does not mean zero, and service time excludes the Awaiting Student pause while wall time includes it. These demonstration records are synthetic; they illustrate the interface rather than measured institutional results.”
+
+[Walkthrough and screenshots](../README.md#main-workflows).
+
+## Optional internal-assistance demonstration — matching deployed revision only
+
+*(Action: A desk clerk opens Support → Internal assistance, creates a synthetic concern and confirms. Admin opens the private queue and confirms Claim ticket.)*
+
+“Staff concerns use a separate ticket queue. Each creator sees only their own concerns; Admin must claim a ticket before replying or managing it. Student Support remains visible to Admin for monitoring, without intervention. This asynchronous queue does not import student files or feed student support analytics.”
+
+*(Action: Admin selects Await staff reply; Finance replies; Admin resolves with a note. Show retained history and confirm reopening.)*
+
+“The assigned Admin is retained while awaiting the staff response. Resolution needs a recorded note, and reopening preserves history while returning the concern to the queue. Ordinary staff chat was initially deferred; the authorized implementation is demonstrated below. We distinguish these local checks from acceptance on the deployed database and devices.”
+
+## Additional staff coordination demonstration — matching deployed revision
+
+*(Action: Finance opens Support → Staff coordination, searches for a Secretary, enters a first message and confirms. Show the message in the Secretary account and reply.)*
+
+“Staff now coordinate in a separate conversation category. The server selects eligible active desk recipients; students, Admin and self are excluded. Secretaries coordinate with peers from their own college and with Window 1 or Finance, without gaining cross-college student-record access. Existing student assistance remains in Support tickets.”
+
+*(Action: Switch conversation categories and return to a drafted message. Show Admin monitoring the staff history without a composer.)*
+
+“Category switches preserve drafts. Accepted message retries reuse the recorded message rather than duplicating it. Admin can monitor operational discussions but cannot intervene; staff concerns needing an Admin reply use Internal Assistance. These screenshots/local checks are separate from verification on the deployed database and devices.”
+
+Integration demonstration note: Receiving Desk is Window 1’s legacy label, not another processing role. An assigned case cannot be taken over by changing the label. Linked case conversation access follows the college saved at routing. Open another notification while Support is already visible to show selection changes without restarting the workspace. Do not claim live delivery or migration completion from this local demonstration.
+
+
+## Admin functional review walkthrough — 2026-10-12
+
+Open **Support → Internal assistance** for staff concerns; Admin monitors operational student
+conversations without replying. In **Efficiency Analytics**, switch between **Document
+Efficiency** and **Support Analytics**; these use separate sources and reporting views.
+**Scan Field Detection** is the average percentage of expected fields detected in scans,
+not verified AI accuracy. In **System Maintenance → Accounts**, choose Students, open a
+student/alumni and review the deactivate/reactivate confirmation. History and identity
+verification remain; deactivation invalidates existing sessions. In any reporting role,
+edit visible **Student ID / Name** and other filters, choose **Apply Filters**, then
+**Export → Export CSV**. Fee and purpose details are readable; timestamps retain exact
+Manila date/time. Secretary college scope and Finance complete payment groups remain.
+This follow-up adds no migration. Screenshots use synthetic records; live deployment and
+actual service outcomes are verified separately. Cosmetic redesign awaits the next Figma.
+
+
+### Finance workflow follow-up — 2026-10-12
+
+Finance pack setup/replacement uses first and last serial bounds that imply exactly 50 consecutive numbers. The server infers the changing numeric block and preserves zero padding/literals; replacement is audited without a clerk reason input. All previous reserved serials remain unavailable. Pack activation creates no receipt. Confirmed eligible payment verification automatically issues one OR and snapshots saved student identity/cashier/payment; Later defers the copy only. An immediate copy is validated and published atomically with clearance and issuance. The 4 PM Manila cutoff remains; explicit after-cutoff issuance can be completed from Payment History on an eligible later date. Printing/reprinting never allocates. Duplicate uploads on verification retry are discarded while the original published file is retained.
+
+Verification owns receipt settings, printer calibration and receipt/pack audits. Payment History contains shared history filters, grouped cleared payments, View OR / Upload OR and missing-copy elapsed time; the exceptional Issue pending OR action prevents after-cutoff or historical payments from being stranded. History has no export/configuration block. Finance Reports & Export uses the same shared report component/API as the other roles, including applied-scope safeguards and readable CSV. Review contains no Discussion module; Support remains available.
+
+Additive `migrate_student_name_parts.js` adds nullable first/middle/last profile fields and does not split old names or rewrite `users.full_name`, request names or issued snapshots. Students confirm matching identity parts in Edit Profile with the existing Save confirmation; the API validates against the saved full name under the profile lock and logs confirmation. Finance takes saved parts from the identified student, ignores client payor overrides and preserves unsplit historical names. New snapshots print Last name, First name M.I. Historical receipts keep their original name. Existing print fields/order remain; exact physical alignment still requires the original receipt reference and printer calibration.
+
+Verification in this disconnected session covers source parsing and actual service/helper execution with in-memory model fixtures. Full Vitest, build/lint, browser and MySQL checks are pending; prepared source is not evidence of cloud deployment. See the consolidated [migration ledger](DEPLOYMENT_CHECKLIST.md) and [README walkthrough](../README.md#finance-receipt-walkthrough).
+
+New signup collects first/middle/last fields, builds Full Name automatically and saves parts with the account in the registration transaction. Existing accounts confirm their unsplit names in Edit Profile; legacy API clients that send only Full Name remain supported. Read ID retains a detected full-name hint, fills other eligible empty fields and never guesses compound name boundaries. The new form requires first/last before confirmation; middle remains optional.

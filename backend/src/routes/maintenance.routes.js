@@ -27,6 +27,7 @@ router.patch('/document-types/:id/active', maintenanceController.setDocumentType
 
 // Approved profile-only admin editing for every account type.
 router.put('/users/:id', maintenanceController.updateAccount);
+router.patch('/users/:id/active', maintenanceController.setAccountActive);
 
 // Staff
 router.get('/staff', maintenanceController.listStaff);

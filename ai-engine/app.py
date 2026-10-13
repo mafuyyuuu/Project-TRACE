@@ -19,13 +19,15 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 from dotenv import load_dotenv
 
-from ocr_engine import process_document, verify_id_document, process_receipt, process_identity
+from ocr_engine import process_document, verify_id_document, process_receipt
 import pandas as pd
 from prophet import Prophet
 import mysql.connector
 from sklearn.ensemble import RandomForestClassifier
 import numpy as np
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
+from zoneinfo import ZoneInfo
+from document_insights import validate_snapshot, snapshot_from_rows, build_document_insights
 # ---------------------------------------------------------------------------
 # Configuration
 # ---------------------------------------------------------------------------
@@ -166,68 +168,43 @@ def forecast():
         return jsonify({'error': str(e)}), 500
 
 
-@app.route('/ai/recommend', methods=['GET'])
+@app.route('/ai/recommend', methods=['GET', 'POST'])
 def ai_recommend():
     try:
-        with db_connection() as conn:
-            cursor = conn.cursor(dictionary=True)
+        if request.method == 'POST':
+            if request.content_length and request.content_length > 16384:
+                return jsonify({'error': 'Aggregate payload too large.'}), 413
+            data = validate_snapshot(request.get_json(silent=True))
+        else:
+            # Compatibility for an older gateway: still report every queue and
+            # never label a low classifier result as confirmed efficiency.
+            now = datetime.now(timezone.utc)
+            midnight = now.astimezone(ZoneInfo('Asia/Manila')).replace(hour=0, minute=0, second=0, microsecond=0)
+            with db_connection() as conn:
+                cursor = conn.cursor(dictionary=True)
+                try:
+                    cursor.execute('SELECT current_status, COUNT(*) AS count FROM documents GROUP BY current_status')
+                    rows = cursor.fetchall()
+                    cursor.execute('SELECT COUNT(*) AS count FROM step_logs WHERE UNIX_TIMESTAMP(timestamp_started) >= %s AND UNIX_TIMESTAMP(timestamp_started) < %s',
+                                   (int(midnight.timestamp()), int((midnight + timedelta(days=1)).timestamp())))
+                    data = snapshot_from_rows(rows, cursor.fetchone()['count'], now.isoformat())
+                finally:
+                    cursor.close()
 
-            # Status vocabulary is defined in backend/src/utils/documentStatus.js.
-            # This service reads the same table directly, so it has to be kept in
-            # step by hand - there is no shared module across the language split.
-            cursor.execute("SELECT COUNT(*) as c FROM documents WHERE current_status = 'PENDING_SEC_EVALUATION'")
-            pending_sec = cursor.fetchone()['c']
-
-            cursor.execute("SELECT COUNT(*) as c FROM documents WHERE current_status = 'READY_FOR_RELEASE'")
-            pending_release = cursor.fetchone()['c']
-
-            cursor.execute("SELECT COUNT(*) as c FROM step_logs WHERE DATE(timestamp_started) = CURDATE()")
-            today_vol = cursor.fetchone()['c']
-
-        X_train = np.array([
-            [1, 0, 5],    # Low load
-            [10, 2, 25],  # High sec queue
-            [2, 10, 15],  # High release queue
-            [15, 10, 50]  # Overloaded
-        ])
-        y_train = np.array([0, 1, 2, 3]) 
-        
+        # Existing demonstration classifier, explicitly unvalidated. The full
+        # workload summary is derived from observed counts, not this prediction.
+        X_train = np.array([[1, 0, 5], [10, 2, 25], [2, 10, 15], [15, 10, 50]])
+        y_train = np.array([0, 1, 2, 3])
         clf = RandomForestClassifier(n_estimators=10, random_state=42)
         clf.fit(X_train, y_train)
-        
-        prediction = clf.predict([[pending_sec, pending_release, today_vol]])[0]
-        
-        insights = []
-        if prediction == 1 or pending_sec > 5:
-            insights.append({
-                'type': 'warning',
-                'title': 'AI Insight: Secretary Bottleneck Detected',
-                'message': f'Random Forest classifier detected high evaluation queue ({pending_sec} docs). Consider assigning extra staff.'
-            })
-        if prediction == 2 or pending_release > 3:
-            insights.append({
-                'type': 'action',
-                'title': 'AI Insight: Release Queue Buildup',
-                'message': f'Window 1 is overloaded with {pending_release} unreleased documents. Dispatch SMS reminders.'
-            })
-        if prediction == 3:
-            insights.append({
-                'type': 'warning',
-                'title': 'AI Insight: System Overloaded',
-                'message': f'Critical load: {today_vol} transactions today. Expected delays.'
-            })
-            
-        if len(insights) == 0:
-            insights.append({
-                'type': 'info',
-                'title': 'AI Insight: Optimal Performance',
-                'message': 'Random Forest analysis confirms system operating efficiently.'
-            })
-
-        return jsonify({'insights': insights, 'source': 'random_forest'})
+        prediction = int(clf.predict([[data['counts']['PENDING_SEC_EVALUATION'], data['counts']['READY_FOR_RELEASE'], data['today_actions']]])[0])
+        return jsonify({'insights': build_document_insights(data, prediction), 'prediction': prediction,
+                        'source': 'random_forest_prototype', 'training_samples': 4, 'validated': False})
+    except (ValueError, TypeError, KeyError, AttributeError):
+        return jsonify({'error': 'Invalid document aggregates.'}), 400
     except Exception as e:
-        logger.error(f"Insights error: {str(e)}")
-        return jsonify({'error': str(e)}), 500
+        logger.error('Document insights unavailable: %s', type(e).__name__)
+        return jsonify({'error': 'Document insights unavailable.'}), 500
 
 
 @app.route('/ai/support-insights', methods=['POST'])
@@ -239,23 +216,6 @@ def support_insights():
         return jsonify({'insights': build_support_insights(request.get_json(silent=True)), 'source': 'aggregate_rules'})
     except (ValueError, TypeError, KeyError, AttributeError):
         return jsonify({'error': 'Invalid support aggregates.'}), 400
-
-
-@app.route('/ocr/identity', methods=['POST'])
-def ocr_identity():
-    file = request.files.get('document')
-    if not file or not allowed_file(file.filename):
-        return jsonify({'success': False, 'error': 'Choose a supported ID image.'}), 400
-    temp_path = None
-    try:
-        _, ext = os.path.splitext(file.filename)
-        fd, temp_path = tempfile.mkstemp(suffix=ext)
-        os.close(fd)
-        file.save(temp_path)
-        return jsonify(process_identity(temp_path))
-    finally:
-        if temp_path and os.path.exists(temp_path):
-            os.remove(temp_path)
 
 
 @app.route('/ocr/extract', methods=['POST'])

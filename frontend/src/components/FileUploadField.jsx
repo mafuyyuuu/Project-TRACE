@@ -3,7 +3,7 @@ import useAuthedFile from '@/hooks/useAuthedFile';
 import { formatFileSize } from '@/utils/formatters';
 
 /** Local drafts upload only through the parent form's confirmed Save/Submit. */
-export default function FileUploadField({ label = 'Attachment', file, path, onChange, accept = 'image/*,application/pdf', maxBytes = 10 * 1024 * 1024, disabled = false, inputRef, id, allowReplace = true, pickerOnly = false }) {
+export default function FileUploadField({ label = 'Attachment', file, path, onChange, accept = 'image/*,application/pdf', maxBytes = 10 * 1024 * 1024, disabled = false, inputRef, id, allowReplace = true, pickerOnly = false, showLabel = true, compactPreview = false }) {
   const generatedId = useId();
   const inputId = id || generatedId;
   const [local, setLocal] = useState({ file: null, url: null });
@@ -37,12 +37,12 @@ export default function FileUploadField({ label = 'Attachment', file, path, onCh
     {error && <p role="alert" className="mb-3 text-sm text-red-700 dark:text-red-300">{error}</p>}
   </>;
   return <section className="min-w-0 space-y-2 rounded-xl border border-gray-200 dark:border-gray-700 p-3" aria-label={label}>
-    {allowReplace && onChange ? <label htmlFor={inputId} className="trace-label block">{label}
-      <input id={inputId} ref={inputRef} type="file" accept={accept} disabled={disabled} onChange={select} className="trace-file block w-full mt-2" />
+    {allowReplace && onChange ? <label htmlFor={inputId} className="trace-label block">{showLabel && <span>{label}</span>}
+      <input id={inputId} ref={inputRef} type="file" aria-label={showLabel ? undefined : label} accept={accept} disabled={disabled} onChange={select} className={`trace-file block w-full ${showLabel ? 'mt-2' : ''}`}  />
     </label> : <h4 className="text-xs font-bold">{label}</h4>}
     {filename && <p className="text-xs break-all select-text" role="status">{file ? 'Selected: ' : 'Uploaded: '}{filename}{file && ` (${formatFileSize(file.size)})`}</p>}
-    {file && <p className="text-xs text-gray-500 dark:text-gray-400">Selected locally. Save or submit the form to upload; select another file to replace this draft.</p>}
-    {url && (pdf ? <iframe src={url} title={`${label} preview`} className="w-full h-48 rounded-lg" /> : <img src={url} alt={`${label} preview`} className="w-full max-h-48 object-contain rounded-lg" />)}
+    {file && <p className="text-xs text-gray-500 dark:text-gray-400">{allowReplace ? 'Selected locally. Save or submit the form to upload; select another file to replace this draft.' : 'Selected locally. Uploaded only after you confirm.'}</p>}
+    {url && (pdf ? <iframe src={url} title={`${label} preview`} className="w-full h-48 rounded-lg" /> : <img src={url} alt={`${label} preview`} className={compactPreview ? "h-20 w-20 object-contain rounded-lg" : "w-full max-h-48 object-contain rounded-lg"} />)}
     {!file && url && <a href={url} download={filename} className="inline-block text-xs font-bold text-green-700 dark:text-green-300 underline">Download uploaded file</a>}
     {(error || stored.error) && <p role="alert" className="text-sm text-red-700 dark:text-red-300">{error || stored.error}</p>}
     {!file && stored.loading && <p role="status" className="text-xs">Loading uploaded file…</p>}

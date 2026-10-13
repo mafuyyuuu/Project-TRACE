@@ -59,7 +59,7 @@ function roleNavItems(user) {
   if (user?.role === 'clerk' && user?.desk_assignment === 'Finance') {
     return [
       { tab: 'dashboard', to: '/dashboard', label: 'Dashboard', icon: 'dashboard' },
-      { tab: 'transactions', to: '/dashboard?tab=transactions', label: 'Transactions & OR Copies', icon: 'report' },
+      { tab: 'reports', to: '/dashboard?tab=reports', label: 'Reports & Export', icon: 'report' },
       { tab: 'messages', to: '/dashboard?tab=messages', label: 'Support', icon: 'message' },
     ];
   }
@@ -87,8 +87,9 @@ export function navGroupsForUser(user) {
   };
 }
 
-/** Keep the old Secretary deep link active within the combined workspace. */
+/** Keep legacy assistance and Secretary links active within their combined workspaces. */
 export function canonicalTabForUser(user, tab) {
-  if (user?.role === 'clerk' && user.desk_assignment === 'Finance' && ['reports', 'export', 'exports'].includes(tab)) return 'transactions';
+  if (tab === 'internal-assistance' && (user?.role === 'admin' || user?.role === 'clerk' && ['Window 1','Receiving Desk','Secretary','Finance'].includes(user.desk_assignment))) return 'messages';
+  if (user?.role === 'clerk' && user.desk_assignment === 'Finance' && ['export', 'exports'].includes(tab)) return 'reports';
   return user?.role === 'clerk' && user.desk_assignment === 'Secretary' && tab === 'completed-logs' ? 'reports' : tab;
 }

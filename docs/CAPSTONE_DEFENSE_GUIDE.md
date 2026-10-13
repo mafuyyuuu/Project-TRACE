@@ -53,7 +53,7 @@ graph TB
         OCR["POST /ocr/extract<br/>EasyOCR (PyTorch)"]
         VERIFY["POST /ocr/verify<br/>Identity Text Checks"]
         FORECAST["GET /forecast<br/>Prophet (7-Day)"]
-        INSIGHTS["GET /ai/recommend<br/>Document prototype"]
+        INSIGHTS["POST /ai/recommend<br/>Aggregate document prototype"]
         SUPPORTAI["POST /ai/support-insights<br/>Aggregate rule-based advice"]
     end
 
@@ -73,7 +73,7 @@ graph TB
     UI <-->|"Private Socket.IO notifications"| PROXY
     PROXY --> API
     ROUTES -->|"Authorized file access"| FILES
-    FORECAST & INSIGHTS -->|"Aggregate database reads"| DB
+    FORECAST -->|"Daily workflow-event reads"| DB
     API --> AUTH --> ROUTES
     ROUTES -->|"SQL Queries"| DB
     DB --- USERS & DOCS & LOGS & NOTIFS & TICKETS
@@ -133,7 +133,7 @@ flowchart LR
     style I fill:#10b981,color:#fff
 ```
 
-**Why pricing follows preparation.** Page-based types use the actual printed-page count; flat-fee types use their configured rule. Admin manages rates and college overrides, Secretary records actual pages, and the server computes and saves the itemized final charge. Filing shows rates only, not an estimated total. TOR uses Year Started/Year Ended; study years do not imply pages. The old design charged a fee up front and hoped it matched; this one bills what
+**Why pricing follows preparation.** Page-based types use the actual printed-page count; flat-fee types use their configured rule. Admin manages rates and college overrides, Secretary records actual pages, and the server computes and saves the itemized final charge. Filing shows rates only, not an estimated total. TOR uses saved Year Started, without a request Year Ended; study years do not imply pages. The old design charged a fee up front and hoped it matched; this one bills what
 the document actually cost. It also means a student never pays for something the office later finds
 it cannot issue.
 
@@ -149,7 +149,7 @@ flowchart TB
         SCAN["📄 Scanned Document<br/>(Image File)"]
         IDPHOTO["🪪 Student ID Photo<br/>(Registration Upload)"]
         STEPLOGS["📊 Daily COUNT of step_logs<br/>(Events, not distinct requests)"]
-        QUEUES["📋 Evaluation + release queue counts<br/>Today’s step-log count"]
+        QUEUES["📋 All-stage queue snapshot from Node<br/>Manila-day workflow actions"]
     end
 
     subgraph "Python Flask AI Engine"
@@ -161,7 +161,7 @@ flowchart TB
             PROPHET["GET /forecast<br/>Time-Series Model"]
         end
         subgraph "Module C: Random Forest (Scikit-Learn)"
-            RF["GET /ai/recommend<br/>4-example prototype classifier<br/>+ queue thresholds"]
+            RF["POST /ai/recommend<br/>4-example prototype classifier<br/>Explicitly unvalidated"]
         end
     end
 
@@ -169,13 +169,14 @@ flowchart TB
         EXTRACTED["Extracted Text +<br/>confidence_score"]
         VERIFIED["Text-match result<br/>+ review reason"]
         FORECAST_OUT["7-Day Workflow-Event Forecast<br/>Nonnegative integer predictions"]
-        ALERTS["Prescriptive Alerts<br/>(e.g. 'Secretary Backlog')"]
+        ALERTS["Queue snapshot + experimental advice<br/>(No efficiency confirmation)"]
     end
 
     SCAN --> OCR_EXTRACT --> EXTRACTED
     IDPHOTO --> OCR_VERIFY --> VERIFIED
     STEPLOGS --> PROPHET --> FORECAST_OUT
     QUEUES --> RF --> ALERTS
+    QUEUES -->|"Observed counts; local fallback"| ALERTS
 
     EXTRACTED -->|"Saved to documents<br/>ocr_extracted_data"| DB[("MySQL")]
     VERIFIED -->|"Sets ai_verified<br/>or ai_flagged"| DB
@@ -205,7 +206,7 @@ flowchart LR
     subgraph "💰 Finance Clerk"
         F1["View Payment Verification Queue"]
         F2["Approve / Reject Payments"]
-        F3["Review Proof / Issue or Defer OR<br/>Separate Transactions & OR Copies<br/>Private OR Preview + Filtered Export"]
+        F3["Review Proof / Issue or Defer OR<br/>Separate Payment History<br/>Private OR Preview + Filtered Export"]
     end
 
     subgraph "📜 College Secretary"
@@ -239,6 +240,9 @@ This expands the original core-table diagram with the current profile, catalog, 
 ```mermaid
 erDiagram
     users ||--o{ support_tickets : "owns / handles"
+    users ||--o{ staff_conversations : "participant pair"
+    staff_conversations ||--o{ staff_conversation_messages : "retained history"
+    staff_conversations ||--o{ staff_conversation_events : "retry audit"
     documents |o--o{ support_tickets : "optional case link"
     support_tickets ||--o{ support_ticket_messages : "conversation"
     support_ticket_messages ||--o{ support_ticket_files : "private attachments"
@@ -496,10 +500,15 @@ This section covers **what** each technology is, **how** it is used in our syste
 | Aspect | Detail |
 |:---|:---|
 | **What it is** | A dedicated Python microservice exposing REST endpoints for OCR text extraction, document verification, volume forecasting, and prescriptive recommendations. |
-| **How we use it** | Express proxies /ocr/identity for Read ID, /ocr/verify for registration text checks, /ocr/extract for intake and /ocr/receipt for Finance, plus /forecast and /ai/recommend. Staff review suggestions; AI is not an identity-authenticity authority. |
+| **How we use it** | Express uses /ocr/verify for post-submission registration text checks, /ocr/extract for intake and /ocr/receipt for Finance, plus /forecast and /ai/recommend. Staff review suggestions; AI is not an identity-authenticity authority. |
+
+Alumni with unavailable proof may apply with a reason in the production build. Their accounts
+remain pending and skip OCR; Admin records checked alternative identity evidence and the decision
+in an atomic audit. Current students still upload proof. Identity details are entered manually
+and reviewed before the registration is confirmed.
 | **Why EasyOCR over Tesseract?** | EasyOCR is the OCR dependency currently integrated into Flask. We use its pretrained text recognition with local parsing and manual review. We have not performed a comparative accuracy benchmark and do not claim that another OCR engine is inherently unsuitable. |
 | **Why Prophet over ARIMA or LSTM?** | Prophet is the implemented time-series prototype. It fits daily step-log counts and returns seven predictions. Model choice and seasonality need held-out evaluation; seeded data and a plausible chart do not establish forecast reliability. |
-| **Why Random Forest over a simple threshold/rule-based system?** | The current prototype combines a ten-tree classifier fitted to four coded examples with direct queue thresholds. Its three inputs are evaluation count, release count and today’s step-log count. Learned staffing optimization, weekday effects and validated accuracy are not implemented. |
+| **Why Random Forest over a simple threshold/rule-based system?** | Node provides full-stage observed counts and transparent queue-review thresholds. The optional ten-tree classifier still uses evaluation, release and Manila-day action counts fitted to four coded examples. It is labelled experimental and cannot confirm efficiency, optimal staffing or measured delays. |
 | **Why Flask over FastAPI?** | Flask hosts the current OCR/model endpoints. The team retains the existing request/response implementation and Gunicorn deployment; no comparative overhead or cold-start benchmark is claimed. |
 
 ### E. Workflow Orchestration — n8n
@@ -546,8 +555,8 @@ Your panel will heavily scrutinize the "AI" part of your title. Here is exactly 
 *   **Data source:** "The model is trained on historical timestamps from the `step_logs` table — every time a document moves through the pipeline, that timestamp becomes training data."
 
 ### C. The Administrative Insights (Random Forest)
-*   **What it does:** Generates prescriptive UI alerts (e.g., "Secretary Queue Alert: 5 documents pending — consider redistributing workload").
-*   **How to defend it:** "We utilized a **Random Forest** classification algorithm via Scikit-Learn to analyze current queue metrics (evaluation-queue count, release-queue count and today’s step-log count). It currently fits four coded examples and supplements classification with queue thresholds. These advisory outputs are a prototype, not validated staffing predictions."
+*   **What it does:** Shows every active document queue with snapshot time and count-based review signals. Evaluation above 5 and pickup above 3 are advisory thresholds, not institutional capacity targets.
+*   **How to defend it:** "We utilized a **Random Forest** classification algorithm via Scikit-Learn to analyze current queue metrics (evaluation-queue count, release-queue count and today’s step-log count). It currently fits four coded examples. Node separately counts every active stage; low classifier output never confirms optimal performance. Experimental suggestions and count thresholds require human review alongside measured document waits."
 
 ---
 
@@ -603,7 +612,7 @@ Your panel will heavily scrutinize the "AI" part of your title. Here is exactly 
 > "EasyOCR supplies pretrained neural text recognition. TRACE then uses parsing and text-matching rules to extract and compare fields. The AI component and the application’s matching rules are different parts; neither proves document authenticity or ownership."
 
 **Q10: What is Random Forest and why is it suitable for your recommendations engine?**
-> "Random Forest combines decision trees. Our current implementation uses ten trees fitted to four coded examples, with three count features and direct thresholds. It does not include time of day, weekday, clerk availability or a validated staffing dataset; recommendations are labelled advisory prototype outputs."
+> "Random Forest combines decision trees. Our current implementation uses ten trees fitted to four coded examples, with three count features and direct thresholds. It does not include time of day, weekday, clerk availability or a validated staffing dataset; recommendations are labelled experimental prototype outputs. The all-stage snapshot is measured queue data, and neither an empty queue nor classifier class 0 confirms efficiency."
 
 ### 🔐 Security & Data Privacy Questions
 
@@ -656,7 +665,7 @@ Your panel will heavily scrutinize the "AI" part of your title. Here is exactly 
 > "PROGRESS records the executed Vitest regression suites, lint/build and synthetic browser checks with their limitations. The correct desk order is intake → evaluation/preparation/pricing → payment/Finance → OR inspection/handoff → release. Local mocks and emulation do not prove external mail delivery, physical-phone behavior, model accuracy or production load capacity. We report only checks actually performed."
 
 **Q25: Where does your mock data come from?**
-> "ai-engine/mock_data_gen.py generates synthetic step-log history for demonstration. It is not a study of real institutional demand. Forecasting uses the daily event aggregates; the Random Forest training examples are four separately coded rows. Never seed synthetic history into production merely to make the chart look convincing."
+> "ai-engine/mock_data_gen.py generates synthetic step-log history for demonstration. It is not a study of real institutional demand. Forecasting uses the daily event aggregates; the Random Forest training examples remain four separately coded rows, clearly labelled unvalidated in the workload advisory. Never seed synthetic history into production merely to make the chart look convincing."
 
 ---
 
@@ -694,7 +703,7 @@ Do not freeze up during the demo! Keep these on a sticky note next to your lapto
 | **College & Program** | Admin enters Registrar-approved programs. College and Program are linked selections; college display name, college_id and program are separate values. School graduation may predate 2002; PLP graduation starts at 2002 and is distinct from last attendance. |
 | **MFA & sessions** | Security appears in each profile. Authenticator QR setup and hashed recovery codes are implemented; Admin-assisted staff enrollment is controlled. Optional Admin personal-browser trust follows successful MFA and expires at the next Manila midnight; browser privacy can prevent persistence. |
 | **Fees & OR** | Admin schedules/college overrides → Secretary actual pages → server final breakdown. Extras apply once per document type; grouped payment waits for every item to be priced. Deferred OR sends acknowledgment first; 4:00 PM is outside same-day issuance, and elapsed age is not an issuance promise. |
-| **Presentation & records** | Shared light/dark controls, 100–200% text, role tours and Main/More navigation are implemented. More is seventh after six page destinations. Reports use header Export and Filters → KPIs → Records; Secretary exports remain college-scoped. |
+| **Presentation & records** | Shared light/dark controls, 100–200% text, role tours and Main/More navigation are implemented. More is seventh after six page destinations. Reports show shared visible draft filters and Apply, with a header Export action for dataset/CSV options. KPIs and Records remain on the main page. Secretary exports remain college-scoped. Finance preserves whole payment groups and exports their documents using the shared 36-column contract. Screenshots, a synthetic CSV and local verification limits are in [README workflow walkthrough](../README.md#main-workflows). |
 | **Support redesign** | Unified FAQ-first tickets, FCFS one-live-ticket assignment, Manila calendars/reply timers, private files, requirement replacements/history, metrics and aggregate advice are implemented locally. Demonstrate the matched deployed revision only; use SUPPORT_VALIDATION for measured scope. |
 
 > 🧪 **Evidence reminder:** State which commit/environment was tested. Demo data, a healthy container, a passing suite and a successful live workflow are different kinds of evidence. Do not claim recognition accuracy, model accuracy, guaranteed notification delivery or legal compliance from a screenshot.
@@ -713,3 +722,69 @@ Do not freeze up during the demo! Keep these on a sticky note next to your lapto
 
 **If asked “Are uploaded files guaranteed safe?”**
 > “Uploads have limits, actual content parsing, random filenames and authenticated ticket ownership checks. Failed/retried temporary files are cleaned up. These controls reduce exposure but do not constitute antivirus scanning or a legal-compliance certification.”
+
+
+## Revision 2 Batch 10 — Support / Messaging UI
+
+Support now follows the main TRACE Figma two-column layout, with aligned readable ticket rows, local search of loaded authorized metadata, contextual linked-case viewing, a labeled confirmed availability switch and a primary Window 1 claim action. Success feedback uses dismissible toasts; failures and confirmations remain in context. The compact widget preserves drafts across close/reopen. Digital evaluation separates discussion into a side panel or a mobile view without discarding either draft. Existing ticket/desk/college authorization, FAQ/reply/requirement actions, service hours and queue assignment remain; no new staff chat connection or unsupported presence/read/unread data is added.
+
+See [README workflow walkthrough](../README.md#main-workflows) for the screenshots, walkthrough and local evidence. Batch 10 adds **no migration or environment variable**; [DEPLOYMENT_CHECKLIST.md](DEPLOYMENT_CHECKLIST.md) tracks required earlier migrations. These are repository changes for dev, not a claim that the live site is updated.
+
+## Revision 2 Batch 11 — explaining Support Analytics
+
+Show the [account-free analytics walkthrough](../README.md#main-workflows) and distinguish ticket service from document turnaround. Point out imported-cohort exclusions, escalation numerator/denominator, explicit FAQ resolution, historical backlog cutoff and service versus wall minutes. Explain that missing samples are not zero and that assignment/response episodes are volume measures, not staff rankings. The interface follows the Admin Figma card hierarchy while using recorded values rather than mock trend graphics. Screenshots use synthetic responses; do not present them as real institutional outcomes or a deployed update. No new migration is required.
+
+## Revision 2 Batch 13 — internal staff assistance
+
+Demonstrate Finance, Secretary or Window 1 opening **Support → Internal assistance → New concern**, confirming a category and text concern, then an Admin claiming and replying. Show Await staff reply, a creator response retaining the assignment, resolution with a note, and retained history on reopening. A second staff account cannot read the creator's ticket; an unassigned Admin can monitor but cannot reply until claiming. Admin monitors student Support without intervening. This queue is asynchronous, text-only and separate from student support hours, files, queue metrics and AI insight inputs.
+
+Use the [README screenshots and walkthrough](../README.md#internal-assistance-walkthrough) for account-free review. These are synthetic local UI examples, not proof of live notification delivery or database contention. The matching migration/API/frontend must be deployed before demonstrating the feature. The subsequent authorized staff connections are described below and in SYSTEM_WORKFLOWS.
+
+## Additional chat connections — demonstration
+
+On the matching deployed revision, show **Support → Staff coordination → New conversation**, the eligible recipient directory, confirmation of a first message and reuse of an existing pair thread. Show a subsequent direct Send, retained older history and draft preservation across categories. Explain that students remain in Window 1 Support tickets; Finance/Secretary case discussions keep their existing authorized context. Secretary peers are college-scoped, while Window 1/Finance coordination grants no new college record access. Admin monitors staff discussions read-only and replies only through assigned Internal Assistance concerns.
+
+The [README screenshots/walkthrough](../README.md#staff-coordination-walkthrough) use synthetic actual-component records. Sorted account locks, unique pair/scope keys and durable message retry events are implemented; local unit/model simulations do not establish live MySQL contention or delivery. The preserving staff migration is separate from student/internal support storage and metrics. TRACE-78 connections were initially deferred and are now implemented following the user's explicit authorization.
+
+The integration review aligns Receiving Desk with Window 1 authority, retains named processor assignments across both labels, and scopes linked case conversations by the saved routing college. Demonstrate two successive notification links on an open Support screen; changing access clears protected cached history. These are locally tested repository behaviors, with genuine account/college changes and notification delivery still requiring staging verification.
+
+
+## Admin functional review walkthrough — 2026-10-12
+
+Open **Support → Internal assistance** for staff concerns; Admin monitors operational student
+conversations without replying. In **Efficiency Analytics**, switch between **Document
+Efficiency** and **Support Analytics**; these use separate sources and reporting views.
+**Scan Field Detection** is the average percentage of expected fields detected in scans,
+not verified AI accuracy. In **System Maintenance → Accounts**, choose Students, open a
+student/alumni and review the deactivate/reactivate confirmation. History and identity
+verification remain; deactivation invalidates existing sessions. In any reporting role,
+edit visible **Student ID / Name** and other filters, choose **Apply Filters**, then
+**Export → Export CSV**. Fee and purpose details are readable; timestamps retain exact
+Manila date/time. Secretary college scope and Finance complete payment groups remain.
+This follow-up adds no migration. Screenshots use synthetic records; live deployment and
+actual service outcomes are verified separately. Cosmetic redesign awaits the next Figma.
+
+
+## Admin insight/table repair demonstration — 2026-10-12
+
+Show a Secretary-processing or student-payment queue with evaluation/release at zero. The
+workload card still reports those outstanding documents and does not claim Optimal Performance.
+Inspect the snapshot timestamp and choose Refresh insights. Explain that active document volume
+counts differ from Manila-day step actions; recorded delays require duration evidence. The
+experimental model only uses its three count inputs and is not trained on institutional outcomes.
+Show Activity Logs at phone width: full document type, tracking number and action are separate
+wrapped values inside a horizontally scrollable table. Existing approvals and desk rules remain.
+No migration is added; rollout needs matching backend/frontend and an AI image rebuild.
+
+
+### Finance workflow follow-up — 2026-10-12
+
+Finance pack setup/replacement uses first and last serial bounds that imply exactly 50 consecutive numbers. The server infers the changing numeric block and preserves zero padding/literals; replacement is audited without a clerk reason input. All previous reserved serials remain unavailable. Pack activation creates no receipt. Confirmed eligible payment verification automatically issues one OR and snapshots saved student identity/cashier/payment; Later defers the copy only. An immediate copy is validated and published atomically with clearance and issuance. The 4 PM Manila cutoff remains; explicit after-cutoff issuance can be completed from Payment History on an eligible later date. Printing/reprinting never allocates. Duplicate uploads on verification retry are discarded while the original published file is retained.
+
+Verification owns receipt settings, printer calibration and receipt/pack audits. Payment History contains shared history filters, grouped cleared payments, View OR / Upload OR and missing-copy elapsed time; the exceptional Issue pending OR action prevents after-cutoff or historical payments from being stranded. History has no export/configuration block. Finance Reports & Export uses the same shared report component/API as the other roles, including applied-scope safeguards and readable CSV. Review contains no Discussion module; Support remains available.
+
+Additive `migrate_student_name_parts.js` adds nullable first/middle/last profile fields and does not split old names or rewrite `users.full_name`, request names or issued snapshots. Students confirm matching identity parts in Edit Profile with the existing Save confirmation; the API validates against the saved full name under the profile lock and logs confirmation. Finance takes saved parts from the identified student, ignores client payor overrides and preserves unsplit historical names. New snapshots print Last name, First name M.I. Historical receipts keep their original name. Existing print fields/order remain; exact physical alignment still requires the original receipt reference and printer calibration.
+
+Verification in this disconnected session covers source parsing and actual service/helper execution with in-memory model fixtures. Full Vitest, build/lint, browser and MySQL checks are pending; prepared source is not evidence of cloud deployment. See the consolidated [migration ledger](DEPLOYMENT_CHECKLIST.md) and [README walkthrough](../README.md#finance-receipt-walkthrough).
+
+New signup collects first/middle/last fields, builds Full Name automatically and saves parts with the account in the registration transaction. Existing accounts confirm their unsplit names in Edit Profile; legacy API clients that send only Full Name remain supported. Identity fields are entered manually; Full Name follows the confirmed name parts. The new form requires first/last before confirmation; middle remains optional.

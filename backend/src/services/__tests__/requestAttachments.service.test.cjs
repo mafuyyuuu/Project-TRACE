@@ -13,6 +13,12 @@ const clerk = { id: 4, role: 'clerk', desk_assignment: 'Window 1' };
 const secretary = { id: 5, role: 'clerk', desk_assignment: 'Secretary' };
 const doc = { id: 11, student_id: 'TEST-1', tracking_number: 'TRC-TEST', current_status: 'SEC_PROCESSING' };
 const file = { filename: 'case.pdf', originalname: 'school-record.pdf' };
+it('keeps Admin attachment history visible while denying conversation intervention',async () => {
+ const admin={id:9,role:'admin'};
+ await expect(service.list(admin,11)).resolves.toMatchObject({read_only:true});
+ for(const kind of ['request','upload','review']) await expect(service.mutate(admin,11,kind,9,{catalog_id:2,instructions:'Demo',action:'accept'},file)).rejects.toMatchObject({status:403});
+ expect(pool.getConnection).not.toHaveBeenCalled();expect(model.create).not.toHaveBeenCalled();expect(model.upload).not.toHaveBeenCalled();expect(model.review).not.toHaveBeenCalled();
+});
 let tx;
 beforeEach(() => {
   tx = { query:vi.fn(), beginTransaction: vi.fn(), commit: vi.fn(), rollback: vi.fn(), release: vi.fn() };
@@ -38,6 +44,12 @@ beforeEach(() => {
 });
 it('has no universal required attachments on an ordinary request', async () => {
   await expect(service.list(student, 11)).resolves.toMatchObject({ requirements: [] });
+});
+it('makes an explicit intake requirement blocking and retains its flag on replacement', async () => {
+  documents.findByIdForUpdate.mockResolvedValue([{...doc,current_status:'PENDING_W1_INTAKE'}]);
+  await service.mutate(clerk, 11, 'request', null, {catalog_id:2,instructions:'Exit clearance required for this request.'});
+  expect(model.create).toHaveBeenCalledWith(11,4,'Prior school record',expect.any(String),tx,expect.objectContaining({blocks_intake:true}));
+  expect(model.event).toHaveBeenCalledWith(expect.objectContaining({blocks_intake:true}),4,'requested',tx);
 });
 it.each([student, { id: 7, role: 'clerk', desk_assignment: 'Finance' }])('limits requesting/reviewing to Registrar staff', async user => {
   await expect(service.mutate(user, 11, 'request', null, { catalog_id:2, instructions: 'Please submit this case record.' })).rejects.toMatchObject({ status: 403 });

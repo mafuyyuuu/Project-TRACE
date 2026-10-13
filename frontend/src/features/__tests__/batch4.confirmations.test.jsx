@@ -23,7 +23,7 @@ vi.mock('@/services/documentsService', () => ({
   confirmHandoff: vi.fn(), submitPayment: vi.fn(), cancelDocument: vi.fn(),
 }));
 vi.mock('@/services/api', () => ({ default: { get: vi.fn(), put: vi.fn() } }));
-const USER = { id: 4, full_name: 'Desk Officer' };
+const USER = { id: 4, full_name: 'Desk Officer', year_started: 2020, graduation_year: 2024 };
 const DOC = { id: 11, tracking_number: 'TRC-11', or_number: 'OR-101', current_status: STATUS.READY_FOR_RELEASE };
 
 beforeEach(() => {
@@ -161,7 +161,7 @@ describe('Desk and student submission gates', () => {
     await act(() => result.current.confirmStudentSubmission());
     const payload = documents.uploadDocument.mock.calls[0][0];
     expect(payload.get('document_0').name).toBe('proof.png');
-    expect(JSON.parse(payload.get('items'))[0].purpose).toBe(JSON.stringify({ purpose: 'Employment', year_started: 2020, year_ended: 2024 }));
+    expect(JSON.parse(payload.get('items'))[0].purpose).toBe(JSON.stringify({ purpose: 'Employment', year_started: 2020 }));
     expect(result.current.selections).toEqual({});
   });
 

@@ -3,6 +3,8 @@ const userModel = require('../models/user.model');
 const { STATUS } = require('../utils/documentStatus');
 const { toCsv, csvFilename } = require('../utils/csv');
 const { badRequest, forbidden } = require('../utils/AppError');
+const filterService = require('./reportFilters.service');
+const { documentCsv,manilaTimestamp } = require('../utils/reportCsv');
 
 /**
  * Reporting, CSV export and efficiency analytics.
@@ -28,32 +30,18 @@ function num(value) {
 }
 
 /** Reject a malformed date rather than silently returning the whole table. */
-function validateDates({ dateFrom, dateTo }) {
-  for (const [label, value] of [['dateFrom', dateFrom], ['dateTo', dateTo]]) {
-    if (value && Number.isNaN(Date.parse(value))) {
-      throw badRequest(`Invalid ${label}. Use YYYY-MM-DD.`);
-    }
-  }
-  if (dateFrom && dateTo && new Date(dateFrom) > new Date(dateTo)) {
-    throw badRequest('dateFrom must be on or before dateTo.');
-  }
-}
-
-async function secretaryScope(user) {
-  if (user.role !== 'clerk' || user.desk_assignment !== 'Secretary') return {};
-  const [account] = await userModel.findCourseById(user.id);
-  if (!account?.college_id && !account?.course) throw forbidden('A college assignment is required to view or export Secretary records.');
-  return { collegeId: account.college_id || null, collegeName: account.course || null };
-}
+function validateDates({ dateFrom, dateTo }) { filterService.dateRange(dateFrom, dateTo); }
+const secretaryScope = filterService.secretaryScope;
 
 async function documentFilters(user, query) {
+  filterService.validateDocumentState(query);
   if (query.recordSet && query.recordSet !== 'secretary-cleared') throw badRequest('Unknown records filter.');
   if (query.recordSet && query.status) throw badRequest('Choose either a records filter or a single status.');
   return {
     dateFrom: query.dateFrom, dateTo: query.dateTo, status: query.status,
     ...(query.recordSet ? { statuses: [STATUS.READY_FOR_RELEASE, STATUS.COMPLETED] } : {}),
     documentType: query.documentType, paymentStatus: query.paymentStatus, studentId: query.studentId,
-    ...await secretaryScope(user),
+    ...await filterService.identity(user, query),
   };
 }
 
@@ -120,22 +108,7 @@ const STUDENT_COLUMNS = [
   { key: 'verification_status', label: 'Verification' },
   { key: 'total_requests', label: 'Total Requests' },
   { key: 'completed_requests', label: 'Completed Requests' },
-  { key: 'created_at', label: 'Registered On' },
-];
-
-const DOCUMENT_COLUMNS = [
-  { key: 'tracking_number', label: 'Tracking Number' },
-  { key: 'request_group_id', label: 'Request Group' },
-  { key: 'student_id', label: 'Student ID' },
-  { key: 'student_name', label: 'Student Name' },
-  { key: 'course', label: 'College' },
-  { key: 'document_type', label: 'Document Type' },
-  { key: 'current_status', label: 'Status' },
-  { key: 'payment_status', label: 'Payment' },
-  { key: 'amount', label: 'Amount' },
-  { key: 'copies', label: 'Copies' },
-  { key: 'created_at', label: 'Requested On' },
-  { key: 'updated_at', label: 'Last Updated' },
+  { key: 'created_at', label: 'Registered On (Manila)' },
 ];
 
 /**
@@ -144,19 +117,20 @@ const DOCUMENT_COLUMNS = [
  * @param {string} bucket 'active' | 'alumni' | 'others' | 'all'
  * @returns {{filename: string, csv: string, rowCount: number}}
  */
-async function exportStudentsCsv(user, bucket = 'all') {
+async function exportStudentsCsv(user, bucket = 'all', query = {}) {
   assertStaff(user);
   if (!EXPORT_BUCKETS.includes(bucket)) {
     throw badRequest(`Unknown category. Use one of: ${EXPORT_BUCKETS.join(', ')}.`);
   }
 
-  const scope = await secretaryScope(user);
-  const rows = Object.keys(scope).length
-    ? await reportModel.listStudentsForExport(bucket, undefined, scope)
+  const scope = await filterService.identity(user, {studentSearch:query.studentSearch,studentId:query.studentId,studentName:query.studentName,collegeId:query.collegeId});
+  const activeScope = Object.fromEntries(Object.entries(scope).filter(([,value])=>value !== undefined));
+  const rows = Object.keys(activeScope).length
+    ? await reportModel.listStudentsForExport(bucket, undefined, activeScope)
     : await reportModel.listStudentsForExport(bucket);
   return {
     filename: csvFilename(`students-${bucket}`),
-    csv: toCsv(STUDENT_COLUMNS, rows),
+    csv: toCsv(STUDENT_COLUMNS, rows.map(row=>({...row,created_at:row.created_at_epoch!=null?manilaTimestamp(Number(row.created_at_epoch)*1000):manilaTimestamp(row.created_at)}))),
     rowCount: rows.length,
   };
 }
@@ -170,13 +144,11 @@ async function exportDocumentsCsv(user, query = {}) {
 
   // Export is capped rather than unbounded, so one click can't try to serialise
   // the entire table into memory.
-  const rows = await reportModel.listDocumentsForReport(filters, { limit: 10000, offset: 0 });
-  rows.forEach(r => { if (r.amount !== undefined) r.amount = '₱' + Number(r.amount).toFixed(2); });
+  const rows = await reportModel.listDocumentsForReport(filters, { limit: 10001, offset: 0 });
+  if (rows.length > 10000) throw badRequest('More than 10,000 documents match. Narrow the filters before exporting.');
   return {
     filename: csvFilename('documents-report'),
-    csv: toCsv(user.role === 'clerk' && user.desk_assignment === 'Secretary'
-      ? [...DOCUMENT_COLUMNS, { key: 'document_sequence_number', label: 'Document Request' }]
-      : DOCUMENT_COLUMNS, rows),
+    csv: documentCsv(rows),
     rowCount: rows.length,
   };
 }

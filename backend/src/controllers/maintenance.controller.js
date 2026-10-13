@@ -71,6 +71,10 @@ const setStaffActive = handler(
   (req) => maintenanceService.setStaffActive(req.user, req.params.id, req.body.is_active),
   { logLabel: 'Toggle staff error', fallback: 'Failed to update staff status.' }
 );
+const setAccountActive = handler(
+  req => maintenanceService.setAccountActive(req.user,req.params.id,req.body.is_active),
+  {logLabel:'Toggle account error',fallback:'Failed to update account status.'}
+);
 
 // -- Payment methods ----------------------------------------------------------
 const listPaymentMethods = handler((req) => maintenanceService.listPaymentMethods(req.user), {
@@ -97,6 +101,6 @@ module.exports = {
   updateAccount, listPrograms, createProgram, setProgramActive,
   listColleges, createCollege, updateCollege, setCollegeActive,
   listDocumentTypes, createDocumentType, updateDocumentType, setDocumentTypeActive,
-  listStaff, createStaff, updateStaff, setStaffActive,
+  listStaff, createStaff, updateStaff, setStaffActive, setAccountActive,
   listPaymentMethods, createPaymentMethod, updatePaymentMethod, setPaymentMethodActive,
 };

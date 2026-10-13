@@ -19,8 +19,8 @@ it('keeps personal and education tab indicators consistent with progress', () =>
 });
 it('requires separate alumni graduation, married female maiden name and transfer school conditionally', () => {
   const profile = { ...COMPLETE, user_type: 'alumni', sex: 'Female', civil_status: 'Married', is_transfer_student: 1 };
-  expect(getProfileCompletion(profile).missing.map(item => item.field)).toEqual(['maiden_name', 'graduation_year', 'previous_school']);
-  expect(getProfileCompletion({ ...profile, maiden_name: 'Name', graduation_year: 2024, previous_school: 'School' }).complete).toBe(true);
+  expect(getProfileCompletion(profile).missing.map(item => item.field)).toEqual(['maiden_name', 'year_started', 'graduation_year', 'previous_school']);
+  expect(getProfileCompletion({ ...profile, maiden_name: 'Name', year_started: 2020, graduation_year: 2024, previous_school: 'School' }).complete).toBe(true);
 });
 it.each([false, 0, '0', null, undefined])('does not require a transfer school for %s', value => {
   expect(isTransferStudent(value)).toBe(false);

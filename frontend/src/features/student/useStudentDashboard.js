@@ -1,3 +1,5 @@
+import { needsStudyYears, needsGraduationYear } from '@/utils/documentPolicy';
+import { yearError } from '@/utils/profileYears';
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import useDashboardCore from '@/hooks/useDashboardCore';
 import { uploadDocument, submitPayment, cancelDocument } from '@/services/documentsService';
@@ -122,7 +124,7 @@ export default function useStudentDashboard(user) {
       }
       return {
         ...current,
-        [name]: { copies: 1, year_started: '', year_ended: '', purpose: '', requestingSchool: '', yearGraduated: '', file: null },
+        [name]: { copies: 1, purpose: '', requestingSchool: '', file: null },
       };
     });
   }, []);
@@ -172,12 +174,11 @@ export default function useStudentDashboard(user) {
       }
 
       for (const name of names) {
-        if (!['Transcript of Records', 'Transcript of Records (TOR)'].includes(name)) continue;
-        const start = Number(selections[name].year_started), end = Number(selections[name].year_ended);
-        const currentYear = new Date().getFullYear();
-        if (!Number.isInteger(start) || !Number.isInteger(end) || start < 1900 || end < start || end > currentYear) {
-          triggerNotification('Enter valid Year Started and Year Ended; the end year must not precede the start year or be in the future.', 'error');
-          return;
+        const requiredYear = needsStudyYears(name) ? user.year_started
+          : needsGraduationYear(name) ? (user.user_type === 'alumni' ? user.graduation_year : user.graduation_year || user.last_attendance_year) : null;
+        if ((needsStudyYears(name) || needsGraduationYear(name))) {
+          const problem = yearError(String(requiredYear ?? ''), { label: needsStudyYears(name) ? 'Year Started' : 'Year Graduated / Last Attended', minimum: 2002, required: true });
+          if (problem) { triggerNotification(`${problem} Complete study years in Edit Profile, or ask Admin for a correction.`, 'error'); return; }
         }
       }
 
@@ -187,14 +188,12 @@ export default function useStudentDashboard(user) {
         const extra = {};
         if (selection.purpose) extra.purpose = selection.purpose;
         if (selection.requestingSchool) extra.requesting_school = selection.requestingSchool;
-        if (selection.yearGraduated) extra.year_graduated = selection.yearGraduated;
-        if (selection.year_started) extra.year_started = Number(selection.year_started);
-        if (selection.year_ended) extra.year_ended = Number(selection.year_ended);
+        if (needsStudyYears(name)) extra.year_started = Number(user.year_started);
+        if (needsGraduationYear(name)) extra.year_graduated = Number(user.user_type === 'alumni' ? user.graduation_year : user.graduation_year || user.last_attendance_year);
 
         return {
           document_type: name,
           copies: selection.copies,
-          year_started: selection.year_started || undefined, year_ended: selection.year_ended || undefined,
           purpose: JSON.stringify(extra),
         };
       });
@@ -207,7 +206,13 @@ export default function useStudentDashboard(user) {
         if (file) formData.append(`document_${index}`, file);
       });
 
-      setSubmissionToConfirm({ kind: 'request', payload: formData, count: names.length });
+      setSubmissionToConfirm({ kind: 'request', payload: formData, count: names.length, attachments: names.filter(name => selections[name].file).map(name => ({ label: name, file: selections[name].file })), summary: [
+        ['Name', user.full_name], ['Student ID', user.student_id],
+        ['Documents', names.map(name => `${name} × ${selections[name].copies}`).join('; ')],
+        ['Year Started', names.some(name => name.startsWith('Transcript')) ? String(user.year_started) : 'Not required'],
+        ...(names.some(name => needsGraduationYear(name)) ? [['Year Graduated', String(user.user_type === 'alumni' ? user.graduation_year : user.graduation_year || user.last_attendance_year)]] : []),
+        ['Attachments', names.map(name => selections[name].file?.name).filter(Boolean).join(', ') || 'None selected'],
+      ] });
     },
     [selections, user, triggerNotification]
   );

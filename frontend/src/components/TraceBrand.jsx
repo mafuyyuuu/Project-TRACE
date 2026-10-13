@@ -13,7 +13,7 @@ export default function TraceBrand({ large = false }) {
         <image href={TRACE_BRANDING.light} width={TRACE_BRANDING.width} height={TRACE_BRANDING.height} className="block dark:hidden" />
         <image href={TRACE_BRANDING.dark} width={TRACE_BRANDING.width} height={TRACE_BRANDING.height} className="hidden dark:block" />
       </svg>
-      <span className={`font-display font-black text-[#15803d] dark:text-green-300 tracking-widest uppercase ${large ? 'text-xl' : 'text-base sm:text-lg'}`}>TRACE</span>
+      <span className={`font-display font-black text-trace-emerald dark:text-green-300 tracking-widest uppercase ${large ? 'text-xl' : 'text-base sm:text-lg'}`}>TRACE</span>
     </span>
   )
 }

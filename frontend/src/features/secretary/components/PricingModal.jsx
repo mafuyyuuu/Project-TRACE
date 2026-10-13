@@ -24,6 +24,7 @@ export default function PricingModal({
   priceBreakdown, pricingError, priceNotes, setPriceNotes, confirmCurrentRates, setConfirmCurrentRates,
   pricePageCount,
   setPricePageCount,
+  priceFeePageCounts = {}, setPriceFeePageCounts,
   siblingsUnpriced,
 }) {
   if (!selectedDoc) return null;
@@ -63,13 +64,13 @@ export default function PricingModal({
         
         <div className="flex justify-between border-t border-gray-200/50 dark:border-gray-700/50 pt-2">
           <span>Base rate</span>
-          <span className="font-bold text-gray-500 dark:text-gray-400">{formatPeso(selectedDoc.pricing_schedule?.base_fee)}{selectedDoc.pricing_schedule?.fee_rule === 'per_semester_block' ? ' per printed page per copy' : ' per copy'}</span>
+          <span className="font-bold text-gray-500 dark:text-gray-400">{selectedDoc.pricing_schedule?.fee_pending ? 'Fee not set' : <>{formatPeso(selectedDoc.pricing_schedule?.base_fee)}{['per_semester_block', 'per_page'].includes(selectedDoc.pricing_schedule?.fee_rule) ? ' per printed page per copy' : ' per copy'}</>}</span>
         </div>
       </div>
 
       {/* Only actual printed pages determine the page-based charge. */}
       <p className="text-[11px] text-gray-500 dark:text-gray-400 -mt-3 mb-6 leading-relaxed">
-        Admin configures the rates. Enter the actual pages per copy; the server calculates the charge. Extra fees apply once per document type in this request.
+        Admin configures the rates. Enter the actual pages per copy; the server calculates the charge. Fixed extra fees apply once per request; page-based components use their own printed page counts.
       </p>
 
       <div className="space-y-5">
@@ -91,26 +92,22 @@ export default function PricingModal({
           </div>
         </label>
 
-        <label className="trace-label block">
-          <span className="text-[10px] font-bold text-gray-800 dark:text-gray-100 uppercase tracking-widest block mb-2">Pages printed per copy</span>
-          <input
-            type="number"
-            min="1"
-            value={pricePageCount}
-            onChange={(e) => setPricePageCount(e.target.value)}
-            placeholder="e.g. 8"
-            className="trace-control w-full"
-          />
-        </label>
-
-        
+        {(!selectedDoc.pricing_schedule?.fee_items?.some(item => item.fee_rule === 'per_page') || ['per_page', 'per_semester_block'].includes(selectedDoc.pricing_schedule?.fee_rule)) && <label className="trace-label block">
+          {selectedDoc.pricing_schedule?.base_label ? `${selectedDoc.pricing_schedule.base_label}: ` : ''}Pages printed per copy
+          <input type="number" min="1" step="1" value={pricePageCount} onChange={event => setPricePageCount(event.target.value)} className="trace-control w-full mt-1.5" />
+        </label>}
+        {(selectedDoc.pricing_schedule?.fee_items || []).filter(item => item.fee_rule === 'per_page').map(item => <label key={item.label} className="trace-label block">
+          {item.label}: Pages printed per copy
+          <input type="number" min="1" step="1" required value={priceFeePageCounts[item.label] || ''}
+            onChange={event => { const pages = event.target.value; setPriceFeePageCounts(previous => ({ ...previous, [item.label]: pages })); }} className="trace-control w-full mt-1.5" />
+        </label>)}
 
         {pricingError && <p role="status" className="text-xs text-amber-800 dark:text-amber-300">{pricingError}</p>}
         {priceBreakdown && <FeeBreakdown breakdown={priceBreakdown} />}
         <label className="trace-label block">Pricing note (optional)<textarea className="trace-control w-full" maxLength={Math.min(INPUT_LIMITS.notes, 1000)} value={priceNotes || ''} onChange={event => setPriceNotes(event.target.value)} /></label>
         {selectedDoc.pricing_requires_review && <label className="flex gap-2 text-xs text-amber-800 dark:text-amber-300">
           <input type="checkbox" checked={confirmCurrentRates} onChange={event => setConfirmCurrentRates(event.target.checked)} />
-          This older request has no saved fee schedule. I reviewed the current rates shown above.
+          This request has no confirmed fee schedule. I reviewed the current rates shown above.
         </label>}
         {siblingsUnpriced > 0 ? (
           <div className="bg-blue-50 dark:bg-blue-950/40 border border-blue-100 dark:border-blue-800 rounded-2xl p-4">

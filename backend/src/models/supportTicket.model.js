@@ -12,7 +12,7 @@ function query(executor, sql, values = []) {
 }
 
 const columns = `t.*,u.student_id,u.full_name AS student_name,u.college_id,u.course,
-  d.current_status,d.tracking_number,d.document_type,clerk.full_name AS clerk_name`;
+  d.current_status,d.tracking_number,d.document_type,d.routing_college_id,clerk.full_name AS clerk_name`;
 const joins = `FROM support_tickets t JOIN users u ON u.id=t.student_user_id
   LEFT JOIN documents d ON d.id=t.document_id LEFT JOIN users clerk ON clerk.id=t.assigned_to`;
 async function actor(id, executor = pool, lock = false) {

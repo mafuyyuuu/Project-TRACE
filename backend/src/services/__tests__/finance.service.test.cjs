@@ -7,6 +7,7 @@ beforeEach(() => {
   connection = { beginTransaction: vi.fn(), commit: vi.fn(), rollback: vi.fn(), release: vi.fn() };
   vi.spyOn(pool, 'getConnection').mockResolvedValue(connection);
   vi.spyOn(model, 'summary').mockResolvedValue({ total: 1, amount: 300 });
+  vi.spyOn(model,'exportDocuments').mockImplementation(async()=>model.list());
   vi.spyOn(model, 'list').mockResolvedValue([{ id: 1, request_group_id: 'REQ-1', student_name: '=HYPERLINK("bad")', amount: 300, documents_covered: 2, payment_cleared_at: '2026-10-01T01:00:00Z', or_number: null }]);
 });
 it.each([{ role: 'student' }, { role: 'admin' }, { role: 'clerk', desk_assignment: 'Secretary' }])('does not expose Finance payments or exports to other roles', async user => {
@@ -23,13 +24,13 @@ it.each([{ page: 1.2 }, { from: '2026-02-29' }, { from: '2026-10-02', to: '2026-
   await expect(service.transactions(FINANCE, query)).rejects.toMatchObject({ status: 400 });
   expect(model.list).not.toHaveBeenCalled();
 });
-it('exports actual groups, Manila dates, peso amounts and escaped formula text', async () => {
+it('exports documents of matching groups, Manila dates, numeric PHP amounts and escaped formula text', async () => {
   const result = await service.transactions(FINANCE, {}, true);
   expect(result.filename).toMatch(/^finance-transactions-.*\.csv$/);
-  expect(result.csv).toContain('₱300.00');
+  expect(result.csv).toContain('300.00');
   expect(result.csv).toContain("'=HYPERLINK");
   expect(result.csv).toContain('Issuance pending');
-  expect(model.list).toHaveBeenCalledWith(expect.any(Object), 10000, 0, connection);
+  expect(model.exportDocuments).toHaveBeenCalledWith(expect.any(Object), connection);
 });
 it('never silently truncates exports', async () => {
   model.summary.mockResolvedValue({ total: 10001, amount: 0 });

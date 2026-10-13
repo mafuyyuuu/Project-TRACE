@@ -23,6 +23,19 @@ export default function useAdminDashboard(user, currentTab, reviewAccountId, rev
   const reviewedNotification = useRef(null);
   const [forecastData, setForecastData] = useState([]);
   const [aiInsights, setAiInsights] = useState([]);
+  const [insightsLoading, setInsightsLoading] = useState(false);
+  const insightsPending = useRef(false);
+  const refreshInsights = useCallback(async () => {
+    if (insightsPending.current) return;
+    insightsPending.current = true; setInsightsLoading(true);
+    try {
+      const result = await getInsights();
+      if (!Array.isArray(result.insights) || !result.insights.length) throw new Error('No document advice returned.');
+      setAiInsights(result.insights);
+    } catch {
+      setAiInsights([{ type: 'info', title: 'Insights unavailable', message: 'Could not refresh the insight snapshot. No current queue or performance conclusion is inferred. Retry Refresh insights.' }]);
+    } finally { insightsPending.current = false; setInsightsLoading(false); }
+  }, []);
   const [pendingStudents, setPendingStudents] = useState([]);
   const [analyticsSummary, setAnalyticsSummary] = useState(null);
 
@@ -57,18 +70,15 @@ export default function useAdminDashboard(user, currentTab, reviewAccountId, rev
   const loadAdminData = useCallback(async () => {
     // Fetched in parallel; each settles independently so one outage cannot
     // blank the other panels.
-    const [forecast, insights, pending, analytics] = await Promise.allSettled([
+    const [forecast, pending, analytics] = await Promise.allSettled([
       getForecast(),
-      getInsights(),
       getPendingStudents(),
       getAnalytics(),
+      refreshInsights(),
     ]);
 
     if (forecast.status === 'fulfilled') setForecastData(forecast.value.forecast || []);
     else console.warn('Forecast unavailable');
-
-    if (insights.status === 'fulfilled') setAiInsights(insights.value.insights || []);
-    else console.warn('Insights unavailable');
 
     if (pending.status === 'fulfilled') {
       const applicants = pending.value.pending_students || [];
@@ -86,7 +96,7 @@ export default function useAdminDashboard(user, currentTab, reviewAccountId, rev
     // sparkline trend — same endpoint the Efficiency Analytics tab already uses.
     if (analytics.status === 'fulfilled') setAnalyticsSummary(analytics.value);
     else console.warn('Analytics summary unavailable');
-  }, [reviewAccountId, reviewNavigationKey]);
+  }, [reviewAccountId, reviewNavigationKey, refreshInsights]);
 
   useEffect(() => {
     // The fetch is async: every setState inside runs after an await, on a
@@ -116,13 +126,13 @@ export default function useAdminDashboard(user, currentTab, reviewAccountId, rev
     setStudentVerifyToConfirm({ student, action });
   }, []);
 
-  const confirmAdminVerifyStudent = useCallback(async (decision) => {
+  const confirmAdminVerifyStudent = useCallback(async (decision, evidenceBasis) => {
     if (!studentVerifyToConfirm) return;
     const { student } = studentVerifyToConfirm;
     const action = decision || studentVerifyToConfirm.action;
     if (!['verify', 'reject'].includes(action)) return;
 
-    const ok = await runAction(() => verifyStudent(student.id, action), {
+    const ok = await runAction(() => verifyStudent(student.id, action, evidenceBasis), {
       successMessage: `Student account registration successfully ${
         action === 'verify' ? 'verified' : 'rejected'
       }.`,
@@ -146,7 +156,7 @@ export default function useAdminDashboard(user, currentTab, reviewAccountId, rev
   return {
     ...core,
     forecastData,
-    aiInsights,
+    aiInsights, insightsLoading, refreshInsights,
     pendingStudents,
     analyticsSummary,
     adminDocPage: pagination.page, setAdminDocPage,

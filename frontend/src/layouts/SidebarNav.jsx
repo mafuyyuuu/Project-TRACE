@@ -23,6 +23,7 @@ import SidebarTooltip from '@/components/SidebarTooltip';
 
 // Each icon is a path set rather than a component so the list below stays readable.
 const ICONS = {
+  assistance: <><path strokeWidth="2" strokeLinejoin="round" d="M4 5h16v4a3 3 0 0 0 0 6v4H4v-4a3 3 0 0 0 0-6V5Z" /><path strokeWidth="2" strokeLinecap="round" d="M12 8v2m0 4v2" /></>,
   more: <><rect x="3" y="3" width="7" height="7" rx="1.5" strokeWidth="2" /><rect x="14" y="3" width="7" height="7" rx="1.5" strokeWidth="2" /><rect x="3" y="14" width="7" height="7" rx="1.5" strokeWidth="2" /><rect x="14" y="14" width="7" height="7" rx="1.5" strokeWidth="2" /></>,
   back: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="m12 5-7 7 7 7M5 12h15" />,
   message: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 11.5a8.5 8.5 0 0 1-8.5 8.5H4l-2 2v-8.5A8.5 8.5 0 0 1 10.5 5H19a2 2 0 0 1 2 2v4.5ZM7 10h9M7 14h6" />,

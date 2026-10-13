@@ -3,6 +3,8 @@ import ProgressFill from '@/components/ProgressFill';
 import RequestMessagesPanel from '@/components/RequestMessagesPanel';
 import FileUploadField from '@/components/FileUploadField';
 import QueueTabs from '@/components/QueueTabs';
+import QueuePanel from '@/components/QueuePanel';
+import RequestStaff from '@/components/RequestStaff';
 import AuthedFilePreview from '@/components/AuthedFilePreview';
 import { useState } from 'react';
 import HardwareScannerModal from '@/features/window1/components/HardwareScannerModal';
@@ -164,7 +166,7 @@ export default function Window1Dashboard({ user, currentTab, setViewImageUrl }) 
               <aside className="min-w-0 space-y-6">            <div className="trace-section trace-section-body flex flex-col justify-between">
               <div className="flex flex-col items-start gap-3">
                 <div>
-                  <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100">UPLOAD DOCUMENT</h3>
+                  <h3 className="trace-section-title">UPLOAD DOCUMENT</h3>
                   <p className="text-xs text-gray-400 dark:text-gray-400 mt-1">Upload physical papers to extract data via AI Engine.</p>
                 </div>
                 <Button
@@ -182,13 +184,14 @@ export default function Window1Dashboard({ user, currentTab, setViewImageUrl }) 
             </div>
                 <SubmissionQrPanel />
               </aside>
-              <section className="min-w-0">
-                <QueueTabs tabs={[{ key: 'intake', label: 'Intake', count: intakeQueue.length }, { key: 'release', label: 'Release', count: releaseQueue.length }]} activeKey={queueTab} onChange={setQueueTab} />
+              <section className="min-w-0 space-y-4">
+                <QueueTabs idPrefix="window1-queue" tabs={[{ key: 'intake', label: 'Intake', count: intakeQueue.length }, { key: 'release', label: 'Release', count: releaseQueue.length }]} activeKey={queueTab} onChange={setQueueTab} />
+                <QueuePanel idPrefix="window1-queue" activeKey={queueTab}>
                 {queueTab === 'intake' && <>            {/* Intake queue — the first human look at every request, online or walk-in */}
             <div className="trace-section overflow-hidden">
               <div className="trace-section-header border-gray-100 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800/50">
                 <div>
-                  <h3 className="font-bold text-gray-900 dark:text-gray-100 text-lg uppercase tracking-wider">INTAKE QUEUE</h3>
+                  <h3 className="trace-section-title uppercase tracking-wider">INTAKE QUEUE</h3>
                   <div className="flex items-center gap-4 mt-1 text-xs text-gray-500 dark:text-gray-400 font-medium">
                     <span>Awaiting Intake Check: <strong className="text-gray-900 dark:text-gray-100">{intakeQueue.length}</strong></span>
                     <span className="hidden sm:inline text-gray-400 dark:text-gray-400">Check the paperwork, then route to the College Secretary.</span>
@@ -223,7 +226,7 @@ export default function Window1Dashboard({ user, currentTab, setViewImageUrl }) 
                                 <Button type="button" disabled={!doc.student_id} onClick={() => setViewProfileId(doc.student_id)} className="trace-action text-sm font-bold text-blue-700 dark:text-blue-300 hover:underline text-left focus-visible:ring-2 focus-visible:ring-blue-500">{doc.student_name || 'Name Unresolved'}</Button>
                                 <div className="text-xs font-mono text-gray-400 dark:text-gray-400 mt-0.5 select-text break-words">{doc.student_id || 'ID Pending'}</div>
                               </td>
-                              <td className="py-4 text-xs font-bold text-gray-600 dark:text-gray-300">{doc.document_type}</td>
+                              <td className="py-4 text-xs font-bold text-gray-600 dark:text-gray-300">{doc.document_type}<RequestStaff document={doc} /></td>
                               <td className="py-4 text-xs font-semibold">
                                 {doc.file_path
                                   ? <span className="text-[#15803d] dark:text-green-300">Attached</span>
@@ -273,12 +276,12 @@ export default function Window1Dashboard({ user, currentTab, setViewImageUrl }) 
               </div>
             </div>
 
-</>}
+                </>}
                 {queueTab === 'release' && <>            {/* Active release queue card */}
             <div className="trace-section overflow-hidden">
               <div className="trace-section-header border-gray-100 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800/50">
                 <div>
-                  <h3 className="font-bold text-gray-900 dark:text-gray-100 text-lg uppercase tracking-wider">RELEASE DESK</h3>
+                  <h3 className="trace-section-title uppercase tracking-wider">RELEASE DESK</h3>
                   <div className="flex items-center gap-4 mt-1 text-xs text-gray-500 dark:text-gray-400 font-medium">
                     <span>Pending Student Pick-up: <strong className="text-gray-900 dark:text-gray-100">{dashStats.ready_window_1_count}</strong></span>
                     <span>Cleared by Secretary Today: <strong className="text-gray-900 dark:text-gray-100">{dashStats.cleared_by_secretary_today}</strong></span>
@@ -314,7 +317,7 @@ export default function Window1Dashboard({ user, currentTab, setViewImageUrl }) 
                                 <Button type="button" disabled={!doc.student_id} onClick={() => setViewProfileId(doc.student_id)} className="trace-action text-sm font-bold text-blue-700 dark:text-blue-300 hover:underline text-left focus-visible:ring-2 focus-visible:ring-blue-500">{doc.student_name || 'Name Unresolved'}</Button>
                                 <div className="text-xs font-mono text-gray-400 dark:text-gray-400 mt-0.5 select-text break-words">{doc.student_id || 'ID Pending'}</div>
                               </td>
-                              <td className="py-4 text-xs font-bold text-gray-600 dark:text-gray-300">{doc.document_type}</td>
+                              <td className="py-4 text-xs font-bold text-gray-600 dark:text-gray-300">{doc.document_type}<RequestStaff document={doc} /></td>
                               <td className="py-4 text-xs font-mono">
                                 {doc.or_number
                                   ? <span className="font-bold text-gray-700 dark:text-gray-300">{doc.or_number}</span>
@@ -372,7 +375,8 @@ export default function Window1Dashboard({ user, currentTab, setViewImageUrl }) 
                 </div>
               </div>
             </div></>}
-              </section>
+              </QueuePanel>
+            </section>
             </div>
           </>
         )}
@@ -397,7 +401,7 @@ export default function Window1Dashboard({ user, currentTab, setViewImageUrl }) 
             <div className="trace-section overflow-hidden mt-8">
               <div className="trace-section-header border-gray-100 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800/50">
                 <div>
-                  <h3 className="font-bold text-gray-900 dark:text-gray-100 text-lg uppercase tracking-wider">SYSTEM DOCUMENTS PROGRESS</h3>
+                  <h3 className="trace-section-title uppercase tracking-wider">SYSTEM DOCUMENTS PROGRESS</h3>
                   <p className="text-xs text-gray-400 dark:text-gray-400 mt-1">Live tracking of all active requested documents in the system.</p>
                 </div>
               </div>
@@ -547,7 +551,7 @@ export default function Window1Dashboard({ user, currentTab, setViewImageUrl }) 
       />
 
       {activeModal === 'intake-review' && selectedDoc && (
-        <IntakeReviewModal
+        <IntakeReviewModal key={selectedDoc.id} user={user}
           documentTypes={documentTypes} documentTypesLoading={documentTypesLoading}
           selectedDoc={selectedDoc}
           setActiveModal={setActiveModal}

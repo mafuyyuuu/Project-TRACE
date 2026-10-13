@@ -1,4 +1,9 @@
 const model = require('../report.model');
+it('groups ID-or-name search within college scope and escapes literal wildcard characters',()=>{
+ const {where,params}=model.buildDocumentFilters({studentSearch:'Ana%_',collegeId:4});
+ expect(where).toContain("(d.student_id = ? OR LOWER(d.student_name) LIKE LOWER(?) ESCAPE '!')");
+ expect(where).toContain('COALESCE(d.routing_college_id');expect(params).toContain('Ana%_');expect(params).toContain('%Ana!%!_%');expect(params).toContain(4);
+});
 
 it('returns every date-filtered staff workload row without paging the denominator', async () => {
   const rows = [60, 30, 10].map((documents_handled, id) => ({ id, documents_handled }));
@@ -18,10 +23,11 @@ it('uses the same parameterized college and cleared-status filters for lists, co
   const filters = { collegeId: 4, collegeName: 'College Four', statuses: ['READY_FOR_RELEASE', 'COMPLETED'], dateFrom: '2026-10-01', paymentStatus: 'PAID' };
   const { where, params } = model.buildDocumentFilters(filters);
   expect(where).toContain('d.current_status IN (?, ?)');
-  expect(where).toContain("scoped_student.role = 'student'");
-  expect(where).toContain('scoped_student.college_id = ?');
-  expect(where).toContain('scoped_student.college_id IS NULL AND scoped_student.course = ?');
-  expect(params).toEqual(['2026-10-01', 'READY_FOR_RELEASE', 'COMPLETED', 'PAID', 4, 'College Four']);
+  expect(where).toContain("student.role = 'student'");
+  expect(where).toContain('COALESCE(d.routing_college_id');
+  expect(where).toContain('COUNT(*) = 1');
+  expect(where).toContain('colleges WHERE is_active = TRUE AND id = ?');
+  expect(params).toEqual([Date.parse('2026-10-01T00:00:00+08:00')/1000, 'READY_FOR_RELEASE', 'COMPLETED', 'PAID', 4]);
   const executor = { query: vi.fn().mockResolvedValue([[{ total: 0 }]]) };
   await model.listDocumentsForReport(filters, { limit: 25, offset: 25 }, executor);
   await model.countDocumentsForReport(filters, executor);

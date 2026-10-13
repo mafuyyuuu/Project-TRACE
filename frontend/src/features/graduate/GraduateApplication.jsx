@@ -123,7 +123,7 @@ export default function GraduateApplication({ user }) {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {/* The form itself */}
           <div className="trace-section trace-section-body lg:col-span-2">
-            <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-1">Application Form</h3>
+            <h3 className="trace-section-title mb-1">Application Form</h3>
             <p className="text-xs text-gray-400 dark:text-gray-400 mb-6 pb-5 border-b border-gray-100 dark:border-gray-700">
               Fields marked <span className="text-red-500 dark:text-red-300">*</span> are required.
             </p>

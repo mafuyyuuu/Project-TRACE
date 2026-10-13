@@ -16,7 +16,7 @@ const pricingModel = require('../../models/pricing.model');
 const requestSequences = require('../../models/requestSequence.model');
 const service = require('../documents.service');
 
-const COMPLETE = { role: 'student', user_type: 'student', phone_number: '09123456789', email: 'student@example.test',
+const COMPLETE = { role: 'student', user_type: 'student', year_started: 2020, graduation_year: 2024, last_attendance_year: 2024, phone_number: '09123456789', email: 'student@example.test',
   birth_date: '2000-01-01', place_of_birth: 'City', sex: 'Male', civil_status: 'Single', home_address: 'Address',
   elem_school: 'Elementary', elem_grad_year: 2012, jhs_school: 'Junior High', jhs_grad_year: 2016,
   shs_school: 'Senior High', shs_grad_year: 2018 };
@@ -45,6 +45,13 @@ let connection;
 afterEach(() => vi.useRealTimers());
 
 describe('document-policy request enforcement', () => {
+  it('rejects two dismissal sets in the same request before opening a transaction', async () => {
+    await expect(service.uploadDocument(STUDENT, { items: [
+      { document_type: 'For Masters' }, { document_type: 'Transfer Credentials' },
+    ] }, [])).rejects.toThrow(/only one Honorable Dismissal/);
+    expect(connection.beginTransaction).not.toHaveBeenCalled();
+  });
+
   it.each([['true', 'true', true], ['true', 'false', false], ['false', 'true', false]])('records same-day eligibility only with both original and photocopy (%s/%s)', async (original_seen, photocopy_seen, eligible) => {
     const insert = vi.spyOn(documentModel, 'insert').mockResolvedValue([{ insertId: 9 }]);
     await service.uploadDocument(WINDOW1, { student_id: 'STU-001', document_type: 'CTC', copies: 3, original_seen, photocopy_seen }, []);
@@ -128,6 +135,7 @@ beforeEach(() => {
   vi.spyOn(documentModel, 'countWithFilters').mockResolvedValue(0);
   vi.spyOn(documentModel, 'listWithFilters').mockResolvedValue([]);
   vi.spyOn(documentModel, 'countByStatus').mockResolvedValue(0);
+  vi.spyOn(documentModel, 'insightQueueCounts').mockResolvedValue([]);
   vi.spyOn(documentModel, 'countStepLogsToday').mockResolvedValue(0);
   vi.spyOn(documentModel, 'forecastFallbackRows').mockResolvedValue([]);
 
@@ -135,12 +143,16 @@ beforeEach(() => {
   vi.spyOn(stepLogModel, 'deleteByDocumentId').mockResolvedValue([{}]);
 
   vi.spyOn(userModel, 'findStudentIdById').mockResolvedValue([{ student_id: 'STU-001' }]);
-  vi.spyOn(userModel, 'findCourseById').mockResolvedValue([]);
+  vi.spyOn(userModel, 'findCourseById').mockResolvedValue([{ college_id: 1, course: 'College of Computer Studies' }]);
+  vi.spyOn(referenceModel, 'findCollegeById').mockResolvedValue([{ id: 1, name: 'College of Computer Studies', short_code: 'CCS', is_active: 1 }]);
+  vi.spyOn(require('../../models/requestAttachment.model'), 'list').mockResolvedValue([]);
+  vi.spyOn(documentModel, 'updateRoutingCollege').mockResolvedValue([{ affectedRows: 1 }]);
+  vi.spyOn(documentModel, 'updateAssignedClerk').mockResolvedValue([{ affectedRows: 1 }]);
   vi.spyOn(userModel, 'findFinanceClerks').mockResolvedValue([]);
   vi.spyOn(userModel, 'findSecretaryClerks').mockResolvedValue([]);
   vi.spyOn(userModel, 'findWindow1Clerks').mockResolvedValue([]);
   vi.spyOn(userModel, 'findStudentContactByStudentId').mockResolvedValue([]);
-  vi.spyOn(userModel, 'findStudentCourseByStudentId').mockResolvedValue([]);
+  vi.spyOn(userModel, 'findStudentCourseByStudentId').mockResolvedValue([{ college_id: 1, course: 'College of Computer Studies' }]);
 
   vi.spyOn(n8n, 'triggerDocumentRouting').mockResolvedValue(undefined);
 
@@ -896,6 +908,33 @@ describe('intakeDocument — Window 1 checks the paperwork', () => {
     current_status: STATUS.PENDING_W1_INTAKE,
   };
 
+  it.each(['requested', 'uploaded', 'rejected'])('blocks routing while explicitly flagged clearance is %s', async status => {
+    documentModel.findByIdForUpdate.mockResolvedValue([filed]);
+    require('../../models/requestAttachment.model').list.mockResolvedValue([{ blocks_intake: 1, status }]);
+    await expect(service.intakeDocument(WINDOW1, 5, {action:'approve'}, null)).rejects.toThrow(/flagged intake/);
+    expect(documentModel.updateStatus).not.toHaveBeenCalled();
+    expect(n8n.triggerDocumentRouting).not.toHaveBeenCalled();
+    expect(connection.rollback).toHaveBeenCalledOnce();
+  });
+
+  it('routes only after acceptance, preserves replaced history and saves the verified college', async () => {
+    documentModel.findByIdForUpdate.mockResolvedValue([filed]);
+    require('../../models/requestAttachment.model').list.mockResolvedValue([
+      { blocks_intake: 1, status: 'accepted' }, { blocks_intake: 1, status: 'rejected', superseded_at: '2026-10-01' },
+      { blocks_intake: 0, status: 'requested' },
+    ]);
+    await service.intakeDocument(WINDOW1, 5, {action:'approve', college_id:999}, null);
+    expect(documentModel.updateRoutingCollege).toHaveBeenCalledWith(5, expect.objectContaining({id:1}), connection);
+    expect(stepLogModel.insert).toHaveBeenCalledWith(expect.objectContaining({ notes: expect.stringContaining('Routing college: 1') }), connection);
+  });
+
+  it('keeps missing former-college requests at intake for reconciliation', async () => {
+    documentModel.findByIdForUpdate.mockResolvedValue([filed]);
+    userModel.findStudentCourseByStudentId.mockResolvedValue([{ college_id:null, course:null }]);
+    await expect(service.intakeDocument(WINDOW1, 5, {action:'approve'}, null)).rejects.toThrow(/reconcile/);
+    expect(documentModel.updateStatus).not.toHaveBeenCalled();
+  });
+
   it.each([['a student', STUDENT], ['Finance', FINANCE], ['the Secretary', SECRETARY]])(
     'rejects %s',
     async (_label, user) => {
@@ -907,6 +946,13 @@ describe('intakeDocument — Window 1 checks the paperwork', () => {
     documentModel.findByIdForUpdate.mockResolvedValue([filed]);
     await service.intakeDocument(WINDOW1, 5, { action: 'approve' }, null);
     expect(documentModel.updateStatus).toHaveBeenCalledWith(5, STATUS.PENDING_SEC_EVALUATION, connection);
+  });
+
+  it('accepts the Receiving Desk alias and keeps the same college-routing checks', async () => {
+    documentModel.findByIdForUpdate.mockResolvedValue([filed]);
+    await service.intakeDocument({...WINDOW1,desk_assignment:'Receiving Desk'},5,{action:'approve'},null);
+    expect(documentModel.updateStatus).toHaveBeenCalledWith(5,STATUS.PENDING_SEC_EVALUATION,connection);
+    expect(documentModel.updateRoutingCollege).toHaveBeenCalledWith(5,expect.objectContaining({id:1}),connection);
   });
 
   it('requires issuance evidence before recording an original or routing', async () => {
@@ -936,7 +982,7 @@ describe('intakeDocument — Window 1 checks the paperwork', () => {
   it('only asks n8n for a desk once a human has cleared the paperwork', async () => {
     documentModel.findByIdForUpdate.mockResolvedValue([filed]);
     userModel.findStudentCourseByStudentId.mockResolvedValue([{ course: 'College of Computer Studies' }]);
-    referenceModel.findCollegeByName = vi.fn().mockResolvedValue([{ name: 'College of Computer Studies', short_code: 'CCS' }]);
+    referenceModel.findCollegeByName = vi.fn().mockResolvedValue([{ id: 1, name: 'College of Computer Studies', short_code: 'CCS', is_active: 1 }]);
 
     await service.intakeDocument(WINDOW1, 5, { action: 'approve' }, null);
     expect(n8n.triggerDocumentRouting).toHaveBeenCalledWith(
@@ -1032,6 +1078,17 @@ describe('releaseDocument — Window 1 only', () => {
       expect.objectContaining({ alsoSmsAndEmail: true })
     );
   });
+
+  it('allows Receiving Desk to release only a document already ready at Window 1', async () => {
+    const actor={...WINDOW1,desk_assignment:'Receiving Desk'};
+    documentModel.findByIdForUpdate.mockResolvedValue([{id:5,student_id:'STU-001',current_status:STATUS.READY_FOR_RELEASE}]);
+    await service.releaseDocument(actor,5);
+    expect(documentModel.markCompleted).toHaveBeenCalledWith(5,connection);
+    documentModel.markCompleted.mockClear();
+    documentModel.findByIdForUpdate.mockResolvedValue([{id:5,current_status:STATUS.PAID_PENDING_SEC_RELEASE}]);
+    await expect(service.releaseDocument(actor,5)).rejects.toMatchObject({status:400});
+    expect(documentModel.markCompleted).not.toHaveBeenCalled();
+  });
 });
 
 describe('cancelDocument — owner only, unpaid only', () => {
@@ -1102,56 +1159,26 @@ describe('listDocuments — role scoping', () => {
     expect(params).toContain(STATUS.PENDING_FINANCE_VERIFICATION);
   });
 
-  it("scopes a Secretary to their own college's students", async () => {
-    userModel.findCourseById.mockResolvedValue([{ course: 'College of Computer Studies' }]);
+  it.each([{}, {status: STATUS.PENDING_W1_INTAKE}])('scopes Secretary lists independently of status filters (%j)', async query => {
+    await service.listDocuments(SECRETARY, query);
+    expect(conditionsFrom()).toContain('COALESCE(d.routing_college_id');
+    expect(conditionsFrom()).toContain('WHERE is_active = TRUE AND id = ?');
+    expect(documentModel.listWithFilters.mock.calls[0][1]).toContain(1);
+    expect(conditionsFrom()).not.toContain('assigned_clerk_id = ?');
+  });
+
+  it('allows a legacy named college only through an active reference mapping', async () => {
+    userModel.findCourseById.mockResolvedValue([{course: 'College of Computer Studies'}]);
     await service.listDocuments(SECRETARY, {});
-    expect(conditionsFrom()).toContain('SELECT student_id FROM users WHERE course = ?');
+    expect(conditionsFrom()).toContain('WHERE is_active = TRUE AND name = ?');
     expect(documentModel.listWithFilters.mock.calls[0][1]).toContain('College of Computer Studies');
   });
 
-  it('shows a Secretary a document n8n assigned to them', async () => {
-    userModel.findCourseById.mockResolvedValue([{ course: 'College of Computer Studies' }]);
-    await service.listDocuments(SECRETARY, {});
-    expect(conditionsFrom()).toContain('assigned_clerk_id = ?');
-    expect(documentModel.listWithFilters.mock.calls[0][1]).toContain(SECRETARY.id);
-  });
-
-  it('still shows a Secretary unassigned documents from their college', async () => {
-    // The ~10,000 records that predate n8n routing all have a NULL
-    // assigned_clerk_id. If routing became the only filter they would vanish
-    // from every queue in the system.
-    userModel.findCourseById.mockResolvedValue([{ course: 'College of Computer Studies' }]);
-    await service.listDocuments(SECRETARY, {});
-    expect(conditionsFrom()).toContain('assigned_clerk_id IS NULL');
-  });
-
-  it('hides from a Secretary only documents routed to a *different* Secretary', async () => {
-    // An assignment to Window 1 or the Registrar must not remove a document
-    // from the secretary queue it still has to pass through.
-    userModel.findCourseById.mockResolvedValue([{ course: 'College of Computer Studies' }]);
-    await service.listDocuments(SECRETARY, {});
-    expect(conditionsFrom()).toContain(
-      "assigned_clerk_id NOT IN\n                      (SELECT id FROM users WHERE desk_assignment = 'Secretary')"
-    );
-  });
-
-  it('falls back to every college for a Secretary with no college on record', async () => {
+  it('fails closed for a Secretary with no college assignment', async () => {
     userModel.findCourseById.mockResolvedValue([{ course: null }]);
     await service.listDocuments(SECRETARY, {});
-    const conditions = conditionsFrom();
-    expect(conditions).toContain('1 = 1');
-    expect(conditions).not.toContain('SELECT student_id FROM users WHERE course = ?');
-    // The bound params are the six queue statuses and the clerk id, and
-    // nothing else: no course value is appended when there is no college.
-    expect(documentModel.listWithFilters.mock.calls[0][1]).toEqual([
-      STATUS.PENDING_SEC_EVALUATION,
-      STATUS.SEC_PROCESSING,
-      STATUS.PAID_PENDING_SEC_RELEASE,
-      STATUS.SEC_OR_VERIFIED,
-      STATUS.READY_FOR_RELEASE,
-      STATUS.COMPLETED,
-      SECRETARY.id,
-    ]);
+    expect(conditionsFrom()).toContain('1 = 0');
+    expect(conditionsFrom()).not.toContain('1 = 1');
   });
 
   it('gives Window 1 the whole queue', async () => {
@@ -1188,18 +1215,38 @@ describe('AI-engine fallbacks', () => {
     expect((await service.getForecast()).source).toBe('prophet');
   });
 
-  it('reports optimal performance when queues are short', async () => {
+  it('reports an empty queue without claiming measured efficiency', async () => {
     vi.spyOn(aiEngine, 'getInsights').mockResolvedValue(null);
     const res = await service.getInsights();
-    expect(res.source).toBe('fallback');
-    expect(res.insights.some((i) => i.title === 'System Normal')).toBe(true);
+    expect(res.source).toBe('queue_snapshot');
+    expect(res.insights[0].title).toBe('Document workload: no active pipeline documents');
+    expect(JSON.stringify(res.insights)).not.toMatch(/Optimal Performance|operating efficiently|System Normal|throughput is healthy|higher than average/i);
+  });
+
+  it('ignores legacy optimal advice and sends only full-stage aggregates to the model', async () => {
+    vi.spyOn(aiEngine, 'getInsights').mockResolvedValue({ insights: [{ title: 'AI Insight: Optimal Performance', message: 'Random Forest analysis confirms system operating efficiently.' }], source: 'random_forest' });
+    documentModel.insightQueueCounts.mockResolvedValue([{current_status:STATUS.SEC_PROCESSING,count:60},{current_status:STATUS.PENDING_STUDENT_PAYMENT,count:25}]);
+    const result = await service.getInsights();
+    expect(result.insights[0].title).toBe('Document workload: 85 outstanding');
+    expect(result.insights[0].message).toContain('Secretary Processing: 60');
+    expect(result.insights[0].message).toContain('Awaiting Student Payment: 25');
+    expect(result.insights[0].message).toContain('Queue size alone does not establish efficiency');
+    expect(JSON.stringify(result)).not.toContain('Optimal Performance');
+    const [payload]=aiEngine.getInsights.mock.calls[0];
+    expect(Object.keys(payload).sort()).toEqual(['as_of','counts','today_actions','unclassified']);
+    expect(Object.keys(payload.counts)).toHaveLength(8);
+  });
+
+  it('does not fabricate an empty queue when the aggregate read fails', async () => {
+    vi.spyOn(aiEngine, 'getInsights').mockResolvedValue(null);
+    documentModel.insightQueueCounts.mockRejectedValue(new Error('queue unavailable'));
+    await expect(service.getInsights()).rejects.toThrow('queue unavailable');
+    expect(aiEngine.getInsights).not.toHaveBeenCalled();
   });
 
   it('raises a bottleneck warning when the Secretary queue is long', async () => {
     vi.spyOn(aiEngine, 'getInsights').mockResolvedValue(null);
-    documentModel.countByStatus.mockImplementation(async (status) =>
-      status === STATUS.PENDING_SEC_EVALUATION ? 8 : 0
-    );
+    documentModel.insightQueueCounts.mockResolvedValue([{current_status:STATUS.PENDING_SEC_EVALUATION,count:8}]);
     const res = await service.getInsights();
     expect(res.insights.some((i) => /Secretary Queue Alert/i.test(i.title))).toBe(true);
   });
@@ -1229,12 +1276,35 @@ describe('saved fee schedules and final computation', () => {
     documentModel.findByIdForUpdate.mockResolvedValue([doc]); documentModel.findByRequestGroupForUpdate.mockResolvedValue([doc]);
     return doc;
   }
+  it('prices the transfer set from its saved component rates and records each page count', async () => {
+    const { REQUEST_CATALOG } = require('../../utils/requestCatalog');
+    const type = REQUEST_CATALOG.find(row => row.name === 'Transfer Credentials');
+    stage({ document_type: type.name, copies: 1, pricing_snapshot: { ...type, document_type: type.name } });
+    await service.priceDocument(SECRETARY, 5, { fee_page_counts: { 'Copy of Grade': 2, 'Transcript of Records': 3 }, amount: 1 });
+    expect(documentModel.updatePricing).toHaveBeenCalledWith(5, expect.objectContaining({ amount: 500,
+      feeBreakdown: expect.objectContaining({ items: expect.arrayContaining([
+        expect.objectContaining({ label: 'Copy of Grade', pages_per_copy: 2, amount: 100 }),
+        expect.objectContaining({ label: 'Transcript of Records', pages_per_copy: 3, amount: 300 }),
+      ]) }) }), connection);
+  });
   it('ignores forged amounts and rates, uses the snapshot, and never clears payment', async () => {
     stage();
     await service.priceDocument(SECRETARY, 5, { page_count: 3, amount: 1, base_fee: 1, rental_fee: 0 });
     expect(documentModel.updatePricing).toHaveBeenCalledWith(5, expect.objectContaining({ amount: 660, pageCount: 3, pricingSnapshot: expect.objectContaining({ base_fee: 100 }), feeBreakdown: expect.objectContaining({ total: 660 }) }), connection);
     expect(referenceModel.findDocumentTypesByNames).not.toHaveBeenCalled();
     expect(documentModel.updatePaymentVerificationForGroup).not.toHaveBeenCalled();
+  });
+  it('does not bill a blank-fee snapshot without reviewed current rates', async () => {
+    stage({ document_type: 'Certificate of Underload Units', pricing_snapshot: { fee_pending: true, document_type: 'Certificate of Underload Units', base_fee: 0, fee_rule: 'flat' } });
+    await expect(service.priceDocument(SECRETARY, 5, {})).rejects.toThrow(/Review and confirm/);
+    expect(documentModel.markGroupPayable).not.toHaveBeenCalled();
+  });
+  it('adopts an Admin-confirmed fee only after Secretary review and preserves the original pending snapshot until pricing', async () => {
+    const name = 'Certificate of Underload Units';
+    stage({ document_type: name, pricing_snapshot: { fee_pending: true, document_type: name, base_fee: 0, fee_rule: 'flat' } });
+    referenceModel.findDocumentTypesByNames.mockResolvedValue([{ name, base_fee: 50, fee_rule: 'flat', fee_pending: 0 }]);
+    await service.priceDocument(SECRETARY, 5, { confirm_current_rates: true });
+    expect(documentModel.updatePricing).toHaveBeenCalledWith(5, expect.objectContaining({ amount: 100, pricingSnapshot: expect.objectContaining({ base_fee: 50 }) }), connection);
   });
   it('refuses missing pages for page-based pricing without billing', async () => {
     stage(); await expect(service.priceDocument(SECRETARY, 5, {})).rejects.toMatchObject({ status: 400 });
@@ -1281,12 +1351,13 @@ describe('TOR study years', () => {
   it('validates and stores years without using them as printed-page counts', async () => {
     await service.uploadDocument(STUDENT, { document_type: 'Transcript of Records', year_started: '2020', year_ended: '2024', copies: 1 }, []);
     const data = documentModel.insert.mock.calls[0][0];
-    expect(JSON.parse(data.purpose)).toEqual({ year_started: 2020, year_ended: 2024 });
+    expect(JSON.parse(data.purpose)).toEqual({ year_started: 2020 });
     expect(data.pricing_snapshot.fee_rule).toBe('per_semester_block');
     expect(data.page_count).toBeUndefined();
   });
-  it.each([['', '2024'], ['2025', '2024'], ['2020.5', '2024'], ['2020', '9999']])('rejects invalid years %s–%s at the server', async (year_started, year_ended) => {
-    await expect(service.uploadDocument(STUDENT, { document_type: 'Transcript of Records', year_started, year_ended }, [])).rejects.toMatchObject({ status: 400 });
+  it.each(['', '2001', '2020.5', '9999'])('rejects invalid saved Year Started %s at the server', async year_started => {
+    userModel.getProfileById.mockResolvedValue([{ ...COMPLETE, year_started }]);
+    await expect(service.uploadDocument(STUDENT, { document_type: 'Transcript of Records', year_started: '2020', year_ended: '2024' }, [])).rejects.toMatchObject({ status: 400 });
     expect(documentModel.insert).not.toHaveBeenCalled();
   });
 });
@@ -1362,4 +1433,11 @@ describe('deferred issuance and cut-off enforcement', () => {
     await expect(service.verifyOfficialReceipt(SECRETARY, 5, { physical_receipt_checked: true })).rejects.toThrow('issue the OR');
     expect(documentModel.updateOrVerification).not.toHaveBeenCalled();
   });
+});
+
+it('uses the locked saved year and discards forged start/end/graduation values from request payloads', async () => {
+  vi.spyOn(documentModel, 'insert').mockResolvedValue([{ insertId: 5 }]);
+  await service.uploadDocument(STUDENT, { document_type: 'Transcript of Records', year_started: '2099', year_ended: '-1', purpose: JSON.stringify({ purpose: 'Employment', year_started: 1990, year_ended: 1900, year_graduated: 1800 }) }, []);
+  expect(JSON.parse(documentModel.insert.mock.calls[0][0].purpose)).toEqual({ purpose: 'Employment', year_started: 2020 });
+  expect(userModel.getProfileById).toHaveBeenCalledWith(STUDENT.id, connection, true);
 });

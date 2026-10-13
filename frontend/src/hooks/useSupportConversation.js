@@ -3,11 +3,11 @@ import * as service from '@/services/supportTicketsService';
 import { onNotification } from '@/services/realtimeService';
 const merge = (old,incoming) => [...new Map([...old,...incoming].map(row => [String(row.id),row])).values()].sort((a,b) => Number(a.id)-Number(b.id));
 const failure = (error,fallback) => error.response?.data?.error || fallback;
-export default function useSupportConversation(ticketId) {
+export default function useSupportConversation(ticketId, onNotice) {
   const [data,setData] = useState(null), [messages,setMessages] = useState([]), [cursor,setCursor] = useState(null);
   const [loading,setLoading] = useState(true), [loadingOlder,setLoadingOlder] = useState(false);
   const [input,setInput] = useState(''), [files,setFiles] = useState([]), [busy,setBusy] = useState(false);
-  const [error,setError] = useState(''), [readError,setReadError]=useState(''), [notice,setNotice] = useState('');
+  const [error,setError] = useState(''), [readError,setReadError]=useState('');
   const lifetime = useRef(null), read = useRef(null), pending = useRef(false), initial = useRef(true), retry = useRef(null);
   const load = useCallback(async (before = null) => {
     if (!lifetime.current || read.current) return false;
@@ -19,7 +19,10 @@ export default function useSupportConversation(ticketId) {
       setData(result); setMessages(previous => merge(previous,result.messages));
       if (initial.current || before) setCursor(result.next_cursor);
       initial.current = false; setReadError(''); return true;
-    } catch (err) { if (owner === lifetime.current && !controller.signal.aborted) setReadError(failure(err,'Could not load this ticket. Retry conversation.')); return false; }
+    } catch (err) { if (owner === lifetime.current && !controller.signal.aborted) {
+      if([403,404].includes(err.response?.status)){setData(null);setMessages([]);setCursor(null);initial.current=true;}
+      setReadError(failure(err,'Could not load this ticket. Retry conversation.'));
+    } return false; }
     finally { if (read.current === controller) read.current = null; if (owner === lifetime.current && !controller.signal.aborted) { setLoading(false); setLoadingOlder(false); } }
   }, [ticketId]);
   useEffect(() => {
@@ -31,10 +34,10 @@ export default function useSupportConversation(ticketId) {
   }, [load]);
   const run = async operation => {
     if (pending.current) return false;
-    pending.current = true; const owner = lifetime.current; setBusy(true); setError(''); setNotice('');
+    pending.current = true; const owner = lifetime.current; setBusy(true); setError('');
     try {
       const result = await operation();
-      if (owner === lifetime.current) { setNotice('Saved.'); await load(); }
+      if (owner === lifetime.current) { await load(); }
       return result;
     } catch (err) { if (owner === lifetime.current) setError(failure(err,'Could not confirm saving. Keep your draft and retry with the same contents.')); return false; }
     finally { pending.current = false; if (owner === lifetime.current) setBusy(false); }
@@ -53,7 +56,7 @@ export default function useSupportConversation(ticketId) {
       return result;
     });
   };
-  const change = action => run(() => service.ticketAction(ticketId,action.action,action.client_key));
-  const faq = action => run(() => service.ticketFaq(ticketId,action.topic_id,action.action,action.client_key));
-  return { data,messages,cursor,loading,loadingOlder,input,setInput,files,setFiles,busy,error:error || readError,notice,send,change,faq,refresh:load };
+  const change = action => run(async () => { const result = await service.ticketAction(ticketId,action.action,action.client_key); onNotice?.(`Ticket ${action.action.replaceAll('_',' ')} saved.`); return result; });
+  const faq = action => run(async () => { const result = await service.ticketFaq(ticketId,action.topic_id,action.action,action.client_key); if(action.action === 'resolved') onNotice?.('FAQ resolution saved.'); return result; });
+  return { data,messages,cursor,loading,loadingOlder,input,setInput,files,setFiles,busy,error:error || readError,send,change,faq,refresh:load };
 }

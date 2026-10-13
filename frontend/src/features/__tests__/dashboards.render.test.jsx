@@ -37,6 +37,7 @@ vi.mock('@/services/authService', () => ({
 }));
 
 vi.mock('@/services/reportsService', () => ({
+  getReportFilterOptions: vi.fn().mockResolvedValue({colleges:[{id:4,name:'Synthetic College'}],document_types:[{id:1,name:'Diploma',is_active:1}],college_locked:false}),
   getAnalytics: vi.fn().mockResolvedValue({}),
   getDocumentReport: vi.fn(), exportStudentsCsv: vi.fn(), exportDocumentsCsv: vi.fn(),
 }));

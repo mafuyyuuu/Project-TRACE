@@ -6,10 +6,12 @@
  * Authentication failed" that looked like a code defect. An unconfigured
  * channel must now be reported and skipped, never attempted.
  */
+const { UniSmsClient } = require('@taliffsss/unisms');
 const notificationModel = require('../../models/notification.model');
 const service = require('../notification.service');
 
 beforeEach(() => {
+  vi.spyOn(UniSmsClient.prototype, 'send').mockRejectedValue(new Error('Synthetic provider failure'));
   vi.spyOn(notificationModel, 'create').mockResolvedValue([{ insertId: 1 }]);
   vi.spyOn(console, 'log').mockImplementation(() => {});
   vi.spyOn(console, 'error').mockImplementation(() => {});
@@ -62,8 +64,7 @@ describe('sendSms', () => {
 
   it('reports a provider failure without throwing', async () => {
     const res = await service.sendSms('+639171234567', 'Hello');
-    // The test key is not a live credential, so this fails — the point is that
-    // it returns a result rather than raising.
+    // The mocked provider fails without making a live network request.
     expect(res.ok).toBe(false);
     expect(typeof res.reason).toBe('string');
   });

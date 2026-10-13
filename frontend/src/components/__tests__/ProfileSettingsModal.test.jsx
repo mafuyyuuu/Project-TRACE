@@ -65,7 +65,7 @@ describe('ProfileSettingsModal', () => {
   it.each(['student', 'alumni'])('uses Title Case captions while retaining labelled required fields for %s', user_type => {
     render(<DraftProfile user={{ ...STUDENT, user_type }} draft={completeProfile} />);
     expect(screen.getByText('Profile Completion')).toBeInTheDocument();
-    expect(screen.getByRole('region', { name: user_type === 'alumni' ? 'Registration Identity / Diploma Proof' : 'Registration ID Proof' })).toBeInTheDocument();
+    expect(screen.getByRole('region', { name: user_type === 'alumni' ? 'Proof of ID' : 'Proof of ID' })).toBeInTheDocument();
     for (const label of ['Phone Number', 'Email Address', 'Birth Date', 'Place of Birth', 'Sex', 'Civil Status', 'Home Address']) {
       expect(screen.getByLabelText(`${label} *`)).toBeRequired();
     }
@@ -133,6 +133,7 @@ describe('ProfileSettingsModal', () => {
     expect(screen.getByLabelText(/Previous School/)).toHaveAccessibleDescription('Required: Previous School.');
     fireEvent.change(screen.getByLabelText('Transfer Student?'), { target: { value: 'no' } });
     expect(screen.queryByText('Required: Previous School.')).not.toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText(/^Year Started/), { target: { value: '2020' } });
     fireEvent.change(screen.getByLabelText(/^PLP\/College Year Graduated/), { target: { value: '2024' } });
     expect(screen.getByRole('button', { name: /^Educational Background$/ })).toBeInTheDocument();
   });
@@ -249,14 +250,14 @@ describe('ProfileSettingsModal', () => {
 
   it('surfaces the saved registration proof without a replacement control', () => {
     renderModal({ user: { ...STUDENT, user_type: 'alumni', id_proof_path: '/uploads/id.png' } });
-    const proof = screen.getByRole('region', { name: 'Registration Identity / Diploma Proof' });
+    const proof = screen.getByRole('region', { name: 'Proof of ID' });
     expect(proof).toHaveTextContent('Uploaded: id.png');
     expect(proof.querySelector('input[type=file]')).toBeNull();
   });
   it('opens the student saved proof with download and returns to Edit Profile on Escape', async () => {
     api.get.mockResolvedValueOnce({ data: new Blob(['SYNTHETIC TEST FILE'], { type: 'image/png' }) });
     renderModal({ user: { ...STUDENT, id_proof_path: '/uploads/proof-test.png' } });
-    const preview = await screen.findByRole('button', { name: 'Preview Registration ID Proof' });
+    const preview = await screen.findByRole('button', { name: 'Preview Proof of ID' });
     preview.focus(); fireEvent.click(preview);
     expect(screen.getByRole('dialog', { name: 'Document preview' })).toBeInTheDocument();
     fireEvent.keyDown(document, { key: 'Escape' });

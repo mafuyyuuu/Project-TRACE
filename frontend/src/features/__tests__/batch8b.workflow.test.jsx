@@ -19,7 +19,8 @@ vi.mock('@/services/referenceService', () => ({ getDocumentTypes: vi.fn(), getPa
 const { core } = vi.hoisted(() => ({ core: { documents: [], runAction: vi.fn(), triggerNotification: vi.fn(),
   setActiveModal: vi.fn(), selectedDoc: null, activeModal: null } }));
 vi.mock('@/hooks/useDashboardCore', () => ({ default: () => core }));
-vi.mock('@/services/reportsService', () => ({ getDocumentReport: vi.fn(), getAnalytics: vi.fn(), exportStudentsCsv: vi.fn(), exportDocumentsCsv: vi.fn() }));
+vi.mock('@/services/reportsService', () => ({
+  getReportFilterOptions: vi.fn().mockResolvedValue({colleges:[{id:4,name:'Synthetic College'}],document_types:[{id:1,name:'Diploma',is_active:1}],college_locked:false}), getDocumentReport: vi.fn(), getAnalytics: vi.fn(), exportStudentsCsv: vi.fn(), exportDocumentsCsv: vi.fn() }));
 beforeEach(() => {
   vi.clearAllMocks();
   getDocumentReport.mockResolvedValue({ documents: [], total: 0 });
@@ -97,10 +98,10 @@ describe('Batch 8b request policies and staff access', () => {
     expect(screen.queryByRole('option', { name: 'Diploma' })).not.toBeInTheDocument();
   });
 
-  it.each(['Window 1', 'Secretary'])('loads the shared report and analytics for %s', async desk => {
+  it.each(['Window 1', 'Secretary'])('loads the shared report without global analytics for %s', async desk => {
     renderHook(() => useReports({ role: 'clerk', desk_assignment: desk }, 'reports'));
     await waitFor(() => expect(getDocumentReport).toHaveBeenCalled());
-    expect(getAnalytics).toHaveBeenCalled();
+    expect(getAnalytics).not.toHaveBeenCalled();
   });
 
   it('renders the returned full profile without staff mutation buttons', async () => {

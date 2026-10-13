@@ -1,5 +1,6 @@
 const { pool } = require('../config/db');
 const { STATUS, LEGACY_STATUS } = require('../utils/documentStatus');
+const { documentCollegeScope } = require('./documentCollegeScope');
 
 /**
  * Status literals for the aggregates below.
@@ -9,6 +10,27 @@ const { STATUS, LEGACY_STATUS } = require('../utils/documentStatus');
  * array assembled by a filter builder, and prepending SELECT-clause parameters
  * to it is exactly how ordering bugs get introduced.
  */
+
+const DOCUMENT_REPORT_SELECT = `d.id, d.tracking_number, COALESCE(d.request_group_id,d.tracking_number) AS request_group_id, d.student_id, d.student_name,
+  d.document_type, d.document_sequence_number, d.current_status, d.payment_status, d.amount, d.copies, d.page_count, d.purpose,
+  JSON_UNQUOTE(JSON_EXTRACT(d.pricing_snapshot,'$.base_fee')) AS base_fee,
+  JSON_UNQUOTE(JSON_EXTRACT(d.pricing_snapshot,'$.rental_fee')) AS rental_fee,
+  JSON_UNQUOTE(JSON_EXTRACT(d.pricing_snapshot,'$.special_fee')) AS special_fee,
+  JSON_EXTRACT(d.fee_breakdown,'$.items') AS fee_lines,
+  d.created_at, d.updated_at, UNIX_TIMESTAMP(d.created_at) AS created_at_epoch, UNIX_TIMESTAMP(d.updated_at) AS updated_at_epoch,
+  DATE_FORMAT(d.estimated_ready_date,'%Y-%m-%d') AS estimated_ready_date,
+  COALESCE(d.routing_college_id,u.college_id,college.id) AS college_id, COALESCE(d.routing_college_name,college.name,u.course) AS course, u.program,
+  d.assigned_clerk_id, processor.full_name AS assigned_staff_name, processor.desk_assignment AS assigned_staff_desk,
+  d.priced_by_clerk_id, d.priced_at, UNIX_TIMESTAMP(d.priced_at) AS priced_at_epoch, d.payment_channel,
+  COALESCE(d.payment_reference_id,d.gcash_reference_no) AS payment_reference,
+  d.payment_cleared_at, UNIX_TIMESTAMP(d.payment_cleared_at) AS payment_cleared_at_epoch,
+  d.or_number, DATE_FORMAT(d.or_date,'%Y-%m-%d') AS or_date, d.or_uploaded_at, UNIX_TIMESTAMP(d.or_uploaded_at) AS or_uploaded_at_epoch,
+  d.official_receipt_path, d.logged_by_clerk_id`;
+const REPORT_JOINS = `LEFT JOIN users u ON u.id = (SELECT CASE WHEN COUNT(*)=1 THEN MAX(owner.id) END FROM users owner WHERE owner.student_id=d.student_id AND owner.role='student')
+  LEFT JOIN colleges college ON college.id=COALESCE(d.routing_college_id,u.college_id) OR (d.routing_college_id IS NULL AND u.college_id IS NULL AND college.name=u.course)
+  LEFT JOIN users processor ON processor.id=d.assigned_clerk_id`;
+function literalNamePattern(value) { return `%${value.replace(/[!%_]/g, char => `!${char}`)}%`; }
+
 const SQL_COMPLETED = `'${STATUS.COMPLETED}'`;
 const SQL_REJECTED = `'${LEGACY_STATUS.REJECTED}'`;
 
@@ -36,18 +58,18 @@ function collegeScope({ collegeId, collegeName } = {}, alias) {
   return { condition: '', params: [] };
 }
 
-function buildDocumentFilters({ dateFrom, dateTo, status, statuses, documentType, paymentStatus, studentId, collegeId, collegeName } = {}) {
+function buildDocumentFilters({ dateFrom, dateTo, status, statuses, documentType, paymentStatus, studentSearch, studentId, studentName, collegeId, collegeName } = {}) {
   const conditions = [];
   const params = [];
 
   if (dateFrom) {
-    conditions.push('d.created_at >= ?');
-    params.push(dateFrom);
+    conditions.push('UNIX_TIMESTAMP(d.created_at) >= ?');
+    params.push(Date.parse(`${dateFrom}T00:00:00+08:00`) / 1000);
   }
   if (dateTo) {
     // Inclusive of the whole end day, which is what a user picking a date means.
-    conditions.push('d.created_at < DATE_ADD(?, INTERVAL 1 DAY)');
-    params.push(dateTo);
+    conditions.push('UNIX_TIMESTAMP(d.created_at) < ?');
+    params.push(Date.parse(`${dateTo}T00:00:00+08:00`) / 1000 + 86400);
   }
   if (status) {
     conditions.push('d.current_status = ?');
@@ -69,9 +91,12 @@ function buildDocumentFilters({ dateFrom, dateTo, status, statuses, documentType
     params.push(studentId);
   }
 
-  const scope = collegeScope({ collegeId, collegeName }, 'scoped_student');
+  if (studentName) { conditions.push("LOWER(d.student_name) LIKE LOWER(?) ESCAPE '!'"); params.push(literalNamePattern(studentName)); }
+  if (studentSearch) {conditions.push("(d.student_id = ? OR LOWER(d.student_name) LIKE LOWER(?) ESCAPE '!')");params.push(studentSearch,literalNamePattern(studentSearch));}
+
+  const scope = documentCollegeScope({ collegeId, collegeName });
   if (scope.condition) {
-    conditions.push(`d.student_id IN (SELECT scoped_student.student_id FROM users scoped_student WHERE scoped_student.role = 'student' AND ${scope.condition})`);
+    conditions.push(scope.condition);
     params.push(...scope.params);
   }
 
@@ -82,11 +107,8 @@ function listDocumentsForReport(filters, { limit = 1000, offset = 0 } = {}, exec
   const { where, params } = buildDocumentFilters(filters);
   return executor
     .query(
-      `SELECT d.id, d.tracking_number, d.request_group_id, d.student_id, d.student_name,
-              d.document_type, d.document_sequence_number, d.current_status, d.payment_status, d.amount, d.copies,
-              d.created_at, d.updated_at, u.course
-       FROM documents d
-       LEFT JOIN users u ON u.student_id = d.student_id${where}
+      `SELECT ${DOCUMENT_REPORT_SELECT}
+       FROM documents d ${REPORT_JOINS}${where}
        ORDER BY d.created_at DESC
        LIMIT ? OFFSET ?`,
       [...params, limit, offset]
@@ -119,7 +141,7 @@ function summariseDocuments(filters, executor = pool) {
 
 function groupDocumentsBy(column, filters, executor = pool) {
   // Whitelisted: the column is interpolated, so it must never come from input.
-  const ALLOWED = { document_type: 'd.document_type', current_status: 'd.current_status', course: 'u.course' };
+  const ALLOWED = { document_type: 'd.document_type', current_status: 'd.current_status', course: 'COALESCE(d.routing_college_name,college.name,u.course)' };
   const col = ALLOWED[column];
   if (!col) throw new Error(`Unsupported grouping: ${column}`);
 
@@ -127,8 +149,7 @@ function groupDocumentsBy(column, filters, executor = pool) {
   return executor
     .query(
       `SELECT ${col} AS label, COUNT(*) AS count
-       FROM documents d
-       LEFT JOIN users u ON u.student_id = d.student_id${where}
+       FROM documents d ${REPORT_JOINS}${where}
        GROUP BY ${col} ORDER BY count DESC`,
       params
     )
@@ -155,20 +176,24 @@ function listStudentsForExport(bucket, executor = pool, filters = {}) {
   const clause = BUCKETS[bucket];
   if (!clause) throw new Error(`Unknown export bucket: ${bucket}`);
   const scope = collegeScope(filters, 'u');
+  const extra = [], extraParams = [];
+  if(filters.studentId) {extra.push('u.student_id = ?');extraParams.push(filters.studentId);}
+  if(filters.studentName) {extra.push("LOWER(u.full_name) LIKE LOWER(?) ESCAPE '!'");extraParams.push(literalNamePattern(filters.studentName));}
+  if(filters.studentSearch) {extra.push("(u.student_id = ? OR LOWER(u.full_name) LIKE LOWER(?) ESCAPE '!')");extraParams.push(filters.studentSearch,literalNamePattern(filters.studentSearch));}
 
   return executor
     .query(
       `SELECT u.student_id, u.full_name, u.email, u.phone_number, u.course,
               u.enrollment_status, u.study_load, u.user_type, u.verification_status,
-              u.created_at,
+              u.created_at, UNIX_TIMESTAMP(u.created_at) AS created_at_epoch,
               COUNT(d.id) AS total_requests,
               SUM(d.current_status = ${SQL_COMPLETED}) AS completed_requests
        FROM users u
        LEFT JOIN documents d ON d.student_id = u.student_id
-       WHERE u.role = 'student' AND ${clause}${scope.condition ? ` AND ${scope.condition}` : ''}
+       WHERE u.role = 'student' AND ${clause}${scope.condition ? ` AND ${scope.condition}` : ''}${extra.length ? ` AND ${extra.join(' AND ')}` : ''}
        GROUP BY u.id
        ORDER BY u.full_name`,
-      scope.params
+      [...scope.params,...extraParams]
     )
     .then(([rows]) => rows);
 }
@@ -290,7 +315,7 @@ function workloadByClerk({ dateFrom, dateTo } = {}, executor = pool) {
     .then(([rows]) => rows);
 }
 
-module.exports = {
+module.exports = { DOCUMENT_REPORT_SELECT, REPORT_JOINS, literalNamePattern,
   buildDocumentFilters,
   listDocumentsForReport,
   countDocumentsForReport,

@@ -42,9 +42,11 @@ function countByTypeAndStudent(documentType, studentId, executor = pool) {
 
 function countBlockingRequests(documentType, studentId, excludeId = null, executor = pool) {
   const { LEGACY_STATUS } = require('../utils/documentStatus');
+  const { includesDismissal, DISMISSAL_NAMES } = require('../utils/requestCatalog');
+  const names = includesDismissal(documentType) ? DISMISSAL_NAMES : [documentType];
   return executor.query(`SELECT COUNT(*) AS count FROM documents
-    WHERE document_type = ? AND student_id = ? AND COALESCE(current_status, '') <> ?
-    AND (? IS NULL OR id <> ?)`, [documentType, studentId, LEGACY_STATUS.REJECTED, excludeId, excludeId])
+    WHERE document_type IN (${names.map(() => '?').join(', ')}) AND student_id = ? AND COALESCE(current_status, '') <> ?
+    AND (? IS NULL OR id <> ?)`, [...names, studentId, LEGACY_STATUS.REJECTED, excludeId, excludeId])
     .then(([rows]) => Number(rows[0].count));
 }
 
@@ -73,13 +75,15 @@ function findByTrackingNumber(trackingNumber, executor = pool) {
  */
 function listWithFilters(conditions, params, limit, offset, executor = pool) {
   // A same-status intake note must not restart the wait. Secretary returns do.
-  let query = `SELECT d.*, student.program,
+  let query = `SELECT d.*, COALESCE(NULLIF(d.student_name, ''), student.full_name) AS student_name, student.program, student_profile.first_name, student_profile.middle_name, student_profile.last_name, student_profile.extension_name, processor.full_name AS assigned_staff_name, processor.desk_assignment AS assigned_staff_desk,
     CASE WHEN d.current_status = 'PENDING_W1_INTAKE' THEN COALESCE(
       (SELECT MAX(intake.timestamp_started) FROM step_logs intake
        WHERE intake.document_id = d.id AND intake.to_status = 'PENDING_W1_INTAKE'
        AND (intake.from_status IS NULL OR intake.from_status <> intake.to_status)), d.created_at)
     END AS intake_entered_at
-    FROM documents d LEFT JOIN users student ON student.student_id = d.student_id AND student.role = 'student'`;
+    FROM documents d LEFT JOIN users student ON student.student_id = d.student_id AND student.role = 'student'
+    LEFT JOIN student_profiles student_profile ON student_profile.user_id = student.id
+    LEFT JOIN users processor ON processor.id = d.assigned_clerk_id`;
   if (conditions.length > 0) query += ' WHERE ' + conditions.join(' AND ');
   query += ' ORDER BY d.created_at DESC LIMIT ? OFFSET ?';
   return executor.query(query, [...params, limit, offset]).then(([rows]) => pricingModel.enrichDocuments(shapePricing(rows), executor));
@@ -97,11 +101,15 @@ function updateOcrData(documentId, ocr, executor = pool) {
       ocr_raw_text = ?,
       ocr_extracted_data = ?,
       ocr_confidence_score = ?,
-      student_id = COALESCE(?, student_id),
-      document_type = COALESCE(?, document_type)
+      student_id = CASE WHEN current_status = 'PENDING_W1_INTAKE' AND student_id IS NULL THEN ? ELSE student_id END,
+      document_type = COALESCE(document_type, ?)
      WHERE id = ?`,
     [ocr.raw_text, ocr.extracted_data_json, ocr.confidence, ocr.student_id, ocr.form_type, documentId]
   );
+}
+
+function updateRoutingCollege(documentId, college, executor = pool) {
+  return executor.query('UPDATE documents SET routing_college_id = ?, routing_college_name = ? WHERE id = ?', [college.id, college.name, documentId]);
 }
 
 function updateAssignedClerk(documentId, clerkId, executor = pool) {
@@ -225,9 +233,17 @@ function forecastFallbackRows(executor = pool) {
     .then(([rows]) => rows);
 }
 
+/** Aggregate counts only: no student identity or private record is sent to AI. */
+function insightQueueCounts(executor = pool) {
+  return executor.query('SELECT current_status, COUNT(*) AS count FROM documents GROUP BY current_status')
+    .then(([rows]) => rows);
+}
+
 function countStepLogsToday(executor = pool) {
+  const day = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Manila', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
+  const from = Date.parse(`${day}T00:00:00+08:00`) / 1000;
   return executor
-    .query('SELECT COUNT(*) as count FROM step_logs WHERE DATE(timestamp_started) = CURDATE()')
+    .query('SELECT COUNT(*) as count FROM step_logs WHERE UNIX_TIMESTAMP(timestamp_started) >= ? AND UNIX_TIMESTAMP(timestamp_started) < ?', [from, from + 86400])
     .then(([rows]) => rows[0].count || 0);
 }
 
@@ -239,7 +255,7 @@ function findByAttachedFilename(filename, executor = pool) {
   const like = `%${filename}`;
   return executor
     .query(
-      `SELECT id, student_id FROM documents
+      `SELECT id, student_id, routing_college_id FROM documents
        WHERE file_path LIKE ? OR receipt_image_path LIKE ? OR official_receipt_path LIKE ?
        LIMIT 1`,
       [like, like, like]
@@ -464,6 +480,7 @@ module.exports = {
   countWithFilters,
   updateOcrData,
   updateAssignedClerk,
+  updateRoutingCollege,
   updateEvaluation,
   markCompleted,
   deleteById,
@@ -476,4 +493,5 @@ module.exports = {
   countCompletedToday,
   forecastFallbackRows,
   countStepLogsToday,
+  insightQueueCounts,
 };
