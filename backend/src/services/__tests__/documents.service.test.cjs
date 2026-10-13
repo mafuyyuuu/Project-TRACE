@@ -45,6 +45,13 @@ let connection;
 afterEach(() => vi.useRealTimers());
 
 describe('document-policy request enforcement', () => {
+  it('rejects two dismissal sets in the same request before opening a transaction', async () => {
+    await expect(service.uploadDocument(STUDENT, { items: [
+      { document_type: 'For Masters' }, { document_type: 'Transfer Credentials' },
+    ] }, [])).rejects.toThrow(/only one Honorable Dismissal/);
+    expect(connection.beginTransaction).not.toHaveBeenCalled();
+  });
+
   it.each([['true', 'true', true], ['true', 'false', false], ['false', 'true', false]])('records same-day eligibility only with both original and photocopy (%s/%s)', async (original_seen, photocopy_seen, eligible) => {
     const insert = vi.spyOn(documentModel, 'insert').mockResolvedValue([{ insertId: 9 }]);
     await service.uploadDocument(WINDOW1, { student_id: 'STU-001', document_type: 'CTC', copies: 3, original_seen, photocopy_seen }, []);
@@ -1269,12 +1276,35 @@ describe('saved fee schedules and final computation', () => {
     documentModel.findByIdForUpdate.mockResolvedValue([doc]); documentModel.findByRequestGroupForUpdate.mockResolvedValue([doc]);
     return doc;
   }
+  it('prices the transfer set from its saved component rates and records each page count', async () => {
+    const { REQUEST_CATALOG } = require('../../utils/requestCatalog');
+    const type = REQUEST_CATALOG.find(row => row.name === 'Transfer Credentials');
+    stage({ document_type: type.name, copies: 1, pricing_snapshot: { ...type, document_type: type.name } });
+    await service.priceDocument(SECRETARY, 5, { fee_page_counts: { 'Copy of Grade': 2, 'Transcript of Records': 3 }, amount: 1 });
+    expect(documentModel.updatePricing).toHaveBeenCalledWith(5, expect.objectContaining({ amount: 500,
+      feeBreakdown: expect.objectContaining({ items: expect.arrayContaining([
+        expect.objectContaining({ label: 'Copy of Grade', pages_per_copy: 2, amount: 100 }),
+        expect.objectContaining({ label: 'Transcript of Records', pages_per_copy: 3, amount: 300 }),
+      ]) }) }), connection);
+  });
   it('ignores forged amounts and rates, uses the snapshot, and never clears payment', async () => {
     stage();
     await service.priceDocument(SECRETARY, 5, { page_count: 3, amount: 1, base_fee: 1, rental_fee: 0 });
     expect(documentModel.updatePricing).toHaveBeenCalledWith(5, expect.objectContaining({ amount: 660, pageCount: 3, pricingSnapshot: expect.objectContaining({ base_fee: 100 }), feeBreakdown: expect.objectContaining({ total: 660 }) }), connection);
     expect(referenceModel.findDocumentTypesByNames).not.toHaveBeenCalled();
     expect(documentModel.updatePaymentVerificationForGroup).not.toHaveBeenCalled();
+  });
+  it('does not bill a blank-fee snapshot without reviewed current rates', async () => {
+    stage({ document_type: 'Certificate of Underload Units', pricing_snapshot: { fee_pending: true, document_type: 'Certificate of Underload Units', base_fee: 0, fee_rule: 'flat' } });
+    await expect(service.priceDocument(SECRETARY, 5, {})).rejects.toThrow(/Review and confirm/);
+    expect(documentModel.markGroupPayable).not.toHaveBeenCalled();
+  });
+  it('adopts an Admin-confirmed fee only after Secretary review and preserves the original pending snapshot until pricing', async () => {
+    const name = 'Certificate of Underload Units';
+    stage({ document_type: name, pricing_snapshot: { fee_pending: true, document_type: name, base_fee: 0, fee_rule: 'flat' } });
+    referenceModel.findDocumentTypesByNames.mockResolvedValue([{ name, base_fee: 50, fee_rule: 'flat', fee_pending: 0 }]);
+    await service.priceDocument(SECRETARY, 5, { confirm_current_rates: true });
+    expect(documentModel.updatePricing).toHaveBeenCalledWith(5, expect.objectContaining({ amount: 100, pricingSnapshot: expect.objectContaining({ base_fee: 50 }) }), connection);
   });
   it('refuses missing pages for page-based pricing without billing', async () => {
     stage(); await expect(service.priceDocument(SECRETARY, 5, {})).rejects.toMatchObject({ status: 400 });

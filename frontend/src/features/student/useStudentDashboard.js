@@ -1,3 +1,4 @@
+import { needsStudyYears, needsGraduationYear } from '@/utils/documentPolicy';
 import { yearError } from '@/utils/profileYears';
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import useDashboardCore from '@/hooks/useDashboardCore';
@@ -173,10 +174,10 @@ export default function useStudentDashboard(user) {
       }
 
       for (const name of names) {
-        const requiredYear = ['Transcript of Records', 'Transcript of Records (TOR)'].includes(name) ? user.year_started
-          : ['Diploma', 'Graduation Clearance'].includes(name) ? (user.user_type === 'alumni' ? user.graduation_year : user.graduation_year || user.last_attendance_year) : null;
-        if (['Transcript of Records', 'Transcript of Records (TOR)', 'Diploma', 'Graduation Clearance'].includes(name)) {
-          const problem = yearError(String(requiredYear ?? ''), { label: name.startsWith('Transcript') ? 'Year Started' : 'Year Graduated / Last Attended', minimum: 2002, required: true });
+        const requiredYear = needsStudyYears(name) ? user.year_started
+          : needsGraduationYear(name) ? (user.user_type === 'alumni' ? user.graduation_year : user.graduation_year || user.last_attendance_year) : null;
+        if ((needsStudyYears(name) || needsGraduationYear(name))) {
+          const problem = yearError(String(requiredYear ?? ''), { label: needsStudyYears(name) ? 'Year Started' : 'Year Graduated / Last Attended', minimum: 2002, required: true });
           if (problem) { triggerNotification(`${problem} Complete study years in Edit Profile, or ask Admin for a correction.`, 'error'); return; }
         }
       }
@@ -187,8 +188,8 @@ export default function useStudentDashboard(user) {
         const extra = {};
         if (selection.purpose) extra.purpose = selection.purpose;
         if (selection.requestingSchool) extra.requesting_school = selection.requestingSchool;
-        if (['Transcript of Records', 'Transcript of Records (TOR)'].includes(name)) extra.year_started = Number(user.year_started);
-        if (['Diploma', 'Graduation Clearance'].includes(name)) extra.year_graduated = Number(user.user_type === 'alumni' ? user.graduation_year : user.graduation_year || user.last_attendance_year);
+        if (needsStudyYears(name)) extra.year_started = Number(user.year_started);
+        if (needsGraduationYear(name)) extra.year_graduated = Number(user.user_type === 'alumni' ? user.graduation_year : user.graduation_year || user.last_attendance_year);
 
         return {
           document_type: name,
@@ -209,7 +210,7 @@ export default function useStudentDashboard(user) {
         ['Name', user.full_name], ['Student ID', user.student_id],
         ['Documents', names.map(name => `${name} × ${selections[name].copies}`).join('; ')],
         ['Year Started', names.some(name => name.startsWith('Transcript')) ? String(user.year_started) : 'Not required'],
-        ...(names.some(name => ['Diploma', 'Graduation Clearance'].includes(name)) ? [['Year Graduated', String(user.user_type === 'alumni' ? user.graduation_year : user.graduation_year || user.last_attendance_year)]] : []),
+        ...(names.some(name => needsGraduationYear(name)) ? [['Year Graduated', String(user.user_type === 'alumni' ? user.graduation_year : user.graduation_year || user.last_attendance_year)]] : []),
         ['Attachments', names.map(name => selections[name].file?.name).filter(Boolean).join(', ') || 'None selected'],
       ] });
     },

@@ -34,3 +34,13 @@ it('prepares current rates only for an unpriced legacy document, with explicit r
   expect(rows[0]).toMatchObject({ pricing_requires_review: true, pricing_schedule: { base_fee: 80, source: 'college' } });
   expect(rows[1]).toEqual({ id: 2, priced_at: '2026-01-01', amount: 100 });
 });
+
+it('offers reviewed current rates for a request originally filed with a blank fee without altering its snapshot', async () => {
+  const snapshot = { fee_pending: true, base_fee: 0 };
+  const executor = { query: vi.fn().mockResolvedValueOnce([[{ id: 7, document_id: 1, name: 'Certificate of Underload Units', base_fee: 50, fee_rule: 'flat', fee_pending: 0 }]])
+    .mockResolvedValueOnce([[]]) };
+  const [row] = await model.enrichDocuments([{ id: 1, pricing_snapshot: snapshot }], executor);
+  expect(row.pricing_schedule.base_fee).toBe(50);
+  expect(row.pricing_requires_review).toBe(true);
+  expect(row.pricing_snapshot).toBe(snapshot);
+});

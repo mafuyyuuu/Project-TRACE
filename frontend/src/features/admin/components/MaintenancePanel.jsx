@@ -81,7 +81,7 @@ export default function MaintenancePanel({ user, currentTab }) {
     e.preventDefault();
     setSaveToConfirm({ method: editingTypeId ? 'updateDocumentType' : 'createDocumentType', id: editingTypeId, label: 'Document Type', payload: {
       name: form.dt_name,
-      base_fee: form.dt_fee,
+      ...(editingTypeId && form.dt_fee === '' ? {} : { base_fee: form.dt_fee }),
       rental_fee: form.dt_rental_fee ?? 0, special_fee: form.dt_special_fee ?? 0,
       fee_items: form.dt_fee_items || [], college_fee_schedules: form.dt_fee_schedules || [],
       fee_rule: form.dt_rule || 'flat',
@@ -205,7 +205,8 @@ export default function MaintenancePanel({ user, currentTab }) {
               <select className={`${inputClass} cursor-pointer`} value={form.dt_rule || 'flat'}
                 onChange={(e) => set('dt_rule', e.target.value)}>
                 <option value="flat">Flat fee per copy</option>
-                <option value="per_semester_block">Per printed page per copy</option>
+                <option value="per_semester_block">Legacy page estimate (semester blocks)</option>
+                <option value="per_page">Per printed page per copy</option>
               </select>
 
               <FeeScheduleEditor colleges={m.colleges} value={{ rental_fee: form.dt_rental_fee ?? 0, special_fee: form.dt_special_fee ?? 0,
@@ -299,10 +300,10 @@ export default function MaintenancePanel({ user, currentTab }) {
                         <td className="py-3 px-5 text-xs font-bold text-gray-900 dark:text-gray-100">{d.name}<span className="block text-[10px] text-blue-700 dark:text-blue-300">{d.available_to || 'both'} · {d.is_repeatable ? 'Repeatable' : 'One active/completed request'}{d.is_walk_in ? ' · Counter only' : ''}</span>
                           {!d.is_active && Number(d.base_fee) === 0 && <span className="block text-[10px] text-amber-700 dark:text-amber-300">Draft: configure fee before activation</span>}</td>
                         <td className="py-3 text-xs text-gray-600 dark:text-gray-300">
-                          ₱{Number(d.base_fee).toFixed(2)}
+                          {d.fee_pending ? 'Fee not set' : `₱${Number(d.base_fee).toFixed(2)}`}
                           <span className="block text-[10px]">{(d.college_fee_schedules || []).length} college overrides · {(d.fee_items || []).length} named fees · Rental ₱{Number(d.rental_fee || 0).toFixed(2)} · Special ₱{Number(d.special_fee || 0).toFixed(2)}</span>
                           {d.name === 'Diploma' && <span className="text-[10px] text-gray-500 dark:text-gray-400 block">Reissue Fee · Secretary sets final amount</span>}
-                          {d.fee_rule === 'per_semester_block' && (
+                          {['per_semester_block', 'per_page'].includes(d.fee_rule) && (
                             <span className="text-[9px] text-gray-400 dark:text-gray-400 block">per page per copy</span>
                           )}
                         </td>
@@ -313,7 +314,7 @@ export default function MaintenancePanel({ user, currentTab }) {
                           <div className="trace-actions justify-end">
                             <Button type="button" disabled={d.is_retired} onClick={() => {
                               setEditingTypeId(d.id);
-                              setForm({ dt_name: d.name, dt_fee: d.base_fee, dt_rule: d.fee_rule,
+                              setForm({ dt_name: d.name, dt_fee: d.fee_pending ? '' : d.base_fee, dt_rule: d.fee_rule,
                                 dt_rental_fee: d.rental_fee ?? 0, dt_special_fee: d.special_fee ?? 0, dt_fee_items: d.fee_items || [], dt_fee_schedules: d.college_fee_schedules || [],
                                 dt_attach: Boolean(d.requires_attachment), dt_label: d.attachment_label,
                                 dt_available_to: d.available_to || 'both', dt_is_repeatable: Boolean(d.is_repeatable),

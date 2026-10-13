@@ -43,6 +43,7 @@ export default function useSecretaryDashboard(user) {
   const [priceNotes, setPriceNotes] = useState('');
   const [confirmCurrentRates, setConfirmCurrentRates] = useState(false);
   const [pricePageCount, setPricePageCount] = useState('');
+  const [priceFeePageCounts, setPriceFeePageCounts] = useState({});
 
   // The document staged for a handoff confirmation, or null when the dialog is closed.
   const [handoffToConfirm, setHandoffToConfirm] = useState(null);
@@ -50,7 +51,7 @@ export default function useSecretaryDashboard(user) {
   let priceBreakdown = null;
   let pricingError = '';
   if (selectedDoc?.pricing_schedule) {
-    try { priceBreakdown = calculateBreakdown(selectedDoc.pricing_schedule, { copies: selectedDoc.copies ?? 1, page_count: pricePageCount }, true); }
+    try { priceBreakdown = calculateBreakdown(selectedDoc.pricing_schedule, { copies: selectedDoc.copies ?? 1, page_count: pricePageCount, fee_page_counts: priceFeePageCounts }, true); }
     catch (err) { pricingError = err.message; }
   } else pricingError = 'A fee schedule is unavailable. Ask Admin to configure it, then refresh.';
   const priceAmount = priceBreakdown ? priceBreakdown.total.toFixed(2) : '';
@@ -169,6 +170,7 @@ export default function useSecretaryDashboard(user) {
       async () => {
         billedResult = await priceDocument(selectedDoc.id, {
           page_count: pricePageCount ? Number(pricePageCount) : null,
+          ...(Object.keys(priceFeePageCounts).length ? { fee_page_counts: priceFeePageCounts } : {}),
           pricing_notes: priceNotes, confirm_current_rates: confirmCurrentRates,
         });
         return billedResult;
@@ -188,7 +190,7 @@ export default function useSecretaryDashboard(user) {
       // student needs to carry to Finance. Otherwise close and pick up the next.
       setActiveModal(billedResult?.billed ? 'payment-stub' : null);
     }
-  }, [selectedDoc, pricePageCount, priceNotes, confirmCurrentRates, runAction, setActiveModal, core]);
+  }, [selectedDoc, pricePageCount, priceFeePageCounts, priceNotes, confirmCurrentRates, runAction, setActiveModal, core]);
 
   const cancelPriceDocument = useCallback(() => {
     setPricingToConfirm(false);
@@ -259,7 +261,7 @@ export default function useSecretaryDashboard(user) {
     estimatedReadyDate, setEstimatedReadyDate,
     priceAmount, priceBreakdown, pricingError,
     priceNotes, setPriceNotes, confirmCurrentRates, setConfirmCurrentRates,
-    pricePageCount, setPricePageCount,
+    pricePageCount, setPricePageCount, priceFeePageCounts, setPriceFeePageCounts,
     
     handleSecretaryEvaluate,
     evaluateActionToConfirm,

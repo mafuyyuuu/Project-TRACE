@@ -50,6 +50,7 @@ export default function SecretaryDashboard({ user, currentTab, setViewImageUrl }
     priceBreakdown, pricingError, priceNotes, setPriceNotes, confirmCurrentRates, setConfirmCurrentRates,
     pricePageCount,
     setPricePageCount,
+    priceFeePageCounts, setPriceFeePageCounts,
     handlePriceDocument,
     pricingToConfirm,
     confirmPriceDocument,
@@ -284,6 +285,7 @@ export default function SecretaryDashboard({ user, currentTab, setViewImageUrl }
                                     setSelectedDoc(doc);
                                     setPriceNotes(''); setConfirmCurrentRates(false);
                                     setPricePageCount(doc.page_count ? String(doc.page_count) : '');
+                                    setPriceFeePageCounts({});
                                     setActiveModal('price');
                                   }}
                                   className="trace-button trace-button-secondary ml-auto block"
@@ -457,6 +459,7 @@ export default function SecretaryDashboard({ user, currentTab, setViewImageUrl }
             confirmCurrentRates={confirmCurrentRates} setConfirmCurrentRates={setConfirmCurrentRates}
             pricePageCount={pricePageCount}
             setPricePageCount={setPricePageCount}
+            priceFeePageCounts={priceFeePageCounts} setPriceFeePageCounts={setPriceFeePageCounts}
             siblingsUnpriced={
               processingQueue.filter(
                 (d) => d.request_group_id === selectedDoc.request_group_id

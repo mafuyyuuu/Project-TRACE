@@ -172,8 +172,8 @@ async function createDocumentType(user, data) {
 
   const fee = data.base_fee === undefined ? (data.name.trim() === 'Diploma' ? 250 : 50) : Number(data.base_fee);
   if (!Number.isFinite(fee) || fee < 0) throw badRequest('Base fee must be a non-negative number.');
-  if (data.fee_rule && !['flat', 'per_semester_block'].includes(data.fee_rule)) {
-    throw badRequest("Fee rule must be 'flat' or 'per_semester_block'.");
+  if (data.fee_rule && !['flat', 'per_semester_block', 'per_page'].includes(data.fee_rule)) {
+    throw badRequest("Choose a flat or per-page fee rule.");
   }
 
   const existing = await referenceModel.findDocumentTypeByName(data.name.trim());
@@ -197,8 +197,8 @@ async function updateDocumentType(user, id, data) {
     const fee = Number(data.base_fee);
     if (!Number.isFinite(fee) || fee < 0) throw badRequest('Base fee must be a non-negative number.');
   }
-  if (data.fee_rule && !['flat', 'per_semester_block'].includes(data.fee_rule)) {
-    throw badRequest("Fee rule must be 'flat' or 'per_semester_block'.");
+  if (data.fee_rule && !['flat', 'per_semester_block', 'per_page'].includes(data.fee_rule)) {
+    throw badRequest("Choose a flat or per-page fee rule.");
   }
 
   // Renaming would strand every existing document that stores this name.

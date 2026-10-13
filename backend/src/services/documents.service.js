@@ -1,3 +1,4 @@
+const { needsStudyYears, needsGraduationYear, includesDismissal } = require('../utils/requestCatalog');
 const assignments = require('./requestAssignment.service');
 const { canonicalDesk } = require('../utils/deskAssignment');
 const attachmentRequirements = require('../models/requestAttachment.model');
@@ -124,6 +125,7 @@ async function uploadDocument(user, body, files) {
   const fileList = Array.isArray(files) ? files : files ? [files] : [];
 
   const requested = parseRequestedItems(body);
+  if (requested.filter(item => includesDismissal(item.document_type)).length > 1) throw badRequest('Choose only one Honorable Dismissal set per request.');
   if (new Set(requested.map(item => item.document_type)).size !== requested.length) throw badRequest('Select each document type once and use its copies field for multiple copies.');
   for (const item of requested) {
     const copies = Number(item.copies ?? 1);
@@ -172,12 +174,12 @@ async function uploadDocument(user, body, files) {
         try { details = JSON.parse(item.purpose || '{}'); } catch { details = { purpose: item.purpose }; }
         if (!details || typeof details !== 'object' || Array.isArray(details)) details = { purpose: item.purpose };
         delete details.year_started; delete details.year_ended; delete details.year_graduated;
-        if (['Transcript of Records', 'Transcript of Records (TOR)'].includes(item.document_type)) {
+        if (needsStudyYears(item.document_type)) {
           const problem = yearError(String(profile.year_started ?? ''), { label: 'Year Started', minimum: 2002, required: true });
           if (problem) throw badRequest(`${problem} Complete study years in Edit Profile, or ask Admin for a correction.`);
           details.year_started = Number(profile.year_started);
         }
-        if (['Diploma', 'Graduation Clearance'].includes(item.document_type)) {
+        if (needsGraduationYear(item.document_type)) {
           const year = profile.user_type === 'alumni' ? profile.graduation_year : profile.graduation_year || profile.last_attendance_year;
           const problem = yearError(String(year ?? ''), { label: 'Year Graduated / Last Attended', minimum: 2002, required: true });
           if (problem) throw badRequest(`${problem} Complete your educational profile before requesting this document.`);
@@ -1111,11 +1113,12 @@ async function acceptForProcessing(user, documentId, body) {
  * The Secretary sets the amount; only Finance can later call it PAID. Keeping
  * those two authorities apart is what makes the money trail auditable.
  */
-async function priceDocument(user, documentId, { page_count, pricing_notes, confirm_current_rates }) {
+async function priceDocument(user, documentId, { page_count, fee_page_counts, pricing_notes, confirm_current_rates }) {
   requireDesk(user, 'Secretary', 'Only College Secretaries can price documents.');
 
   if (pricing_notes !== undefined && (typeof pricing_notes !== 'string' || pricing_notes.length > 1000)) throw badRequest('Pricing note must be at most 1000 characters.');
   let priced, snapshot, breakdown, pageCount, basis;
+  let adoptedCurrentRates = false;
 
   const connection = await pool.getConnection();
   let doc;
@@ -1142,7 +1145,8 @@ async function priceDocument(user, documentId, { page_count, pricing_notes, conf
     if (doc.priced_at) throw badRequest('This document already has a confirmed price.');
     try {
       snapshot = typeof doc.pricing_snapshot === 'string' ? JSON.parse(doc.pricing_snapshot) : doc.pricing_snapshot;
-      if (!snapshot) {
+      if (!snapshot || snapshot.fee_pending) {
+        adoptedCurrentRates = snapshot?.fee_pending ? 'previously blank fee' : 'legacy request';
         if (confirm_current_rates !== true) throw badRequest('Review and confirm current rates for this older request.');
         const types = await pricingModel.attachSchedules(await referenceModel.findDocumentTypesByNames([doc.document_type], connection, true), connection);
         if (!types[0]) throw badRequest('Configure a fee schedule for this document before pricing.');
@@ -1152,10 +1156,10 @@ async function priceDocument(user, documentId, { page_count, pricing_notes, conf
       snapshot = normalizedSchedule(snapshot);
       if (snapshot.document_type !== doc.document_type) throw badRequest('The saved fee schedule does not match this document.');
       pageCount = page_count == null || page_count === '' ? null : positiveQuantity(page_count, 'Pages per copy');
-      breakdown = calculateBreakdown(snapshot, { copies: doc.copies ?? 1, page_count: pageCount }, true);
+      breakdown = calculateBreakdown(snapshot, { copies: doc.copies ?? 1, page_count: pageCount, fee_page_counts }, true);
       priced = breakdown.total;
       if (priced <= 0) throw badRequest('Configure a positive charge before billing this document.');
-      basis = `${doc.pricing_snapshot ? 'Saved request rates' : 'Current rates reviewed for legacy request'}: ${breakdown.items.map(item => `${item.label}: ${item.calculation} = ₱${item.amount.toFixed(2)}`).join('; ')}.${pricing_notes ? ` ${pricing_notes.trim()}` : ''}`;
+      basis = `${adoptedCurrentRates ? `Current rates reviewed for ${adoptedCurrentRates}` : 'Saved request rates'}: ${breakdown.items.map(item => `${item.label}: ${item.calculation} = ₱${item.amount.toFixed(2)}`).join('; ')}.${pricing_notes ? ` ${pricing_notes.trim()}` : ''}`;
     } catch (err) { if (err.status) throw err; throw badRequest(err.message); }
 
     groupId = doc.request_group_id || doc.tracking_number;

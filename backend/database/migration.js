@@ -713,6 +713,8 @@ async function migrate() {
 
     await require('./migrate_8b').migrate(pool);
     await require('./migrate_cn03_cn04').migrate(pool);
+    await require('./migrate_fee_schedules').migrate(pool);
+    await require('./migrate_request_catalog').migrate(pool);
     console.log('✅ Database migration completed successfully.');
     process.exit(0);
   } catch (err) {

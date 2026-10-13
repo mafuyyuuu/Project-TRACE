@@ -1,7 +1,7 @@
 import Button from '@/components/Button';
 import { yearError } from '@/utils/profileYears';
 import { INPUT_LIMITS } from '@/utils/inputLimits';
-import { isHonorableDismissal } from '@/utils/documentPolicy';
+import { isHonorableDismissal, needsStudyYears, needsGraduationYear, needsRequestingSchool } from '@/utils/documentPolicy';
 import FileUploadField from '@/components/FileUploadField';
 import ModalShell from '@/components/ModalShell';
 import { formatPeso } from '@/utils/pricing';
@@ -30,14 +30,8 @@ export default function NewRequestModal({
   const selectedNames = Object.keys(selections);
   const availableTypes = documentTypes.filter(t => !t.is_walk_in && ((t.available_to || 'both') === 'both' || t.available_to === (user.user_type || 'student')));
 
-  const needsStudyYears = name => ['Transcript of Records', 'Transcript of Records (TOR)'].includes(name);
-  const needsRequestingSchool = (name) =>
-    name === 'Transcript of Records' || name === 'Honorable Dismissal';
-  const needsYearGraduated = (name) =>
-    name === 'Graduation Clearance' || name === 'Diploma';
-
   const missingYears = selectedNames.some(name => (needsStudyYears(name) && yearError(String(user.year_started ?? ''), { label: 'Year Started', minimum: 2002, required: true }))
-    || (needsYearGraduated(name) && yearError(String((user.user_type === 'alumni' ? user.graduation_year : user.graduation_year || user.last_attendance_year) ?? ''), { label: 'Year Graduated', minimum: 2002, required: true })));
+    || (needsGraduationYear(name) && yearError(String((user.user_type === 'alumni' ? user.graduation_year : user.graduation_year || user.last_attendance_year) ?? ''), { label: 'Year Graduated', minimum: 2002, required: true })));
   const completeStudyYears = () => {
     setActiveModal(null);
     window.dispatchEvent(new CustomEvent('open-profile-settings', { detail: { section: 'educational' } }));
@@ -91,7 +85,7 @@ export default function NewRequestModal({
 
           <div className="flex flex-col gap-2">
             <label className="trace-label">
-              Documents Requested {selectedNames.length > 0 && `(${selectedNames.length} selected)`}
+              Please select your Request/s: * {selectedNames.length > 0 && `(${selectedNames.length} selected)`}
             </label>
 
             {documentTypesLoading ? (
@@ -104,21 +98,23 @@ export default function NewRequestModal({
               <div className="space-y-3 max-h-[22rem] overflow-y-auto pr-1">
                 {availableTypes.map((type) => {
                   const selection = selections[type.name];
+                  const anotherDismissal = isHonorableDismissal(type.name) && selectedNames.some(name => name !== type.name && isHonorableDismissal(name));
+                  const unavailable = type.unavailable_reason || (anotherDismissal ? 'Choose only one Honorable Dismissal set.' : null);
                   const isSelected = Boolean(selection);
                   const yearId = `request-start-${type.id ?? type.name.replace(/[^a-z0-9]+/gi, '-')}`;
 
                   return (
                     <div
                       key={type.name}
-                      data-card-disabled={Boolean(type.unavailable_reason) || undefined}
+                      data-card-disabled={Boolean(unavailable) || undefined}
                       className={`trace-card-controls trace-card-inset rounded-lg border transition-colors ${
                         isSelected ? 'border-[#15803d] bg-emerald-50/40 dark:bg-emerald-950/40' : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900'
                       }`}
                     >
-                      <label className={`flex flex-wrap items-start gap-3 p-4 ${type.unavailable_reason ? 'cursor-not-allowed' : 'cursor-pointer'}`}>
+                      <label className={`flex flex-wrap items-start gap-3 p-4 ${unavailable ? 'cursor-not-allowed' : 'cursor-pointer'}`}>
                         <input
                           type="checkbox"
-                          disabled={Boolean(type.unavailable_reason)}
+                          disabled={Boolean(unavailable)}
                           checked={isSelected}
                           onChange={() => toggleDocumentType(type.name)}
                           className="trace-choice w-4 h-4 accent-[#15803d] enabled:cursor-pointer disabled:cursor-not-allowed"
@@ -128,11 +124,13 @@ export default function NewRequestModal({
                           {type.name === 'Diploma' && <span className="ml-1 text-[10px] text-gray-500 dark:text-gray-400 font-normal italic">(Reissue Fee)</span>}
                         </span>
                         <span className="w-full sm:w-auto min-w-0 text-sm font-semibold text-[#15803d] dark:text-green-300">
-                          {formatPeso(type.base_fee)}
-                          <span className="text-[9px] text-gray-400 dark:text-gray-400 font-semibold">{type.fee_rule === 'per_semester_block' ? ' per printed page' : ' per copy'}</span>
+                          {type.fee_pending ? '' : <>{type.base_label && `${type.base_label}: `}{formatPeso(type.base_fee)}</>}
+                          <span className="text-[9px] text-gray-400 dark:text-gray-400 font-semibold">{type.fee_pending ? '' : ['per_semester_block', 'per_page'].includes(type.fee_rule) ? ' per printed page' : ' per copy'}</span>
                         </span>
                       </label>
-                      {type.unavailable_reason && <p className="px-4 pb-3 text-xs text-amber-800 dark:text-amber-300">{type.unavailable_reason}</p>}
+                      {type.catalog_description && <p className="px-4 pb-2 text-xs text-gray-600 dark:text-gray-300">{type.catalog_description}</p>}
+                      {(type.fee_items || []).map(item => <p key={item.label} className="px-4 pb-2 text-xs text-gray-600 dark:text-gray-300">{item.label}: {formatPeso(item.amount)}{item.fee_rule === 'per_page' ? ' per printed page per copy' : ' per request'}</p>)}
+                      {unavailable && <p className="px-4 pb-3 text-xs text-amber-800 dark:text-amber-300">{unavailable}</p>}
 
                       {isSelected && (
                         <div className="px-4 pb-4 pt-1 space-y-3 border-t border-emerald-100/70 dark:border-emerald-800/70">
@@ -165,7 +163,7 @@ export default function NewRequestModal({
                             </div>
                           )}
 
-                          {needsYearGraduated(type.name) && <label className="trace-label">
+                          {needsGraduationYear(type.name) && <label className="trace-label">
                             {user.user_type === 'alumni' ? 'Year Graduated' : 'Year Graduated / Last Attended'}
                             <input type="text" readOnly value={(user.user_type === 'alumni' ? user.graduation_year : user.graduation_year || user.last_attendance_year) ?? ''} className="trace-control mt-1.5" />
                           </label>}

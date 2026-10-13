@@ -42,9 +42,11 @@ function countByTypeAndStudent(documentType, studentId, executor = pool) {
 
 function countBlockingRequests(documentType, studentId, excludeId = null, executor = pool) {
   const { LEGACY_STATUS } = require('../utils/documentStatus');
+  const { includesDismissal, DISMISSAL_NAMES } = require('../utils/requestCatalog');
+  const names = includesDismissal(documentType) ? DISMISSAL_NAMES : [documentType];
   return executor.query(`SELECT COUNT(*) AS count FROM documents
-    WHERE document_type = ? AND student_id = ? AND COALESCE(current_status, '') <> ?
-    AND (? IS NULL OR id <> ?)`, [documentType, studentId, LEGACY_STATUS.REJECTED, excludeId, excludeId])
+    WHERE document_type IN (${names.map(() => '?').join(', ')}) AND student_id = ? AND COALESCE(current_status, '') <> ?
+    AND (? IS NULL OR id <> ?)`, [...names, studentId, LEGACY_STATUS.REJECTED, excludeId, excludeId])
     .then(([rows]) => Number(rows[0].count));
 }
 
