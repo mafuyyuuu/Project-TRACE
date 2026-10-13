@@ -500,12 +500,12 @@ This section covers **what** each technology is, **how** it is used in our syste
 | Aspect | Detail |
 |:---|:---|
 | **What it is** | A dedicated Python microservice exposing REST endpoints for OCR text extraction, document verification, volume forecasting, and prescriptive recommendations. |
-| **How we use it** | Express proxies /ocr/identity for Read ID, /ocr/verify for registration text checks, /ocr/extract for intake and /ocr/receipt for Finance, plus /forecast and /ai/recommend. Staff review suggestions; AI is not an identity-authenticity authority. |
+| **How we use it** | Express uses /ocr/verify for post-submission registration text checks, /ocr/extract for intake and /ocr/receipt for Finance, plus /forecast and /ai/recommend. Staff review suggestions; AI is not an identity-authenticity authority. |
 
 Alumni with unavailable proof may apply with a reason in the production build. Their accounts
 remain pending and skip OCR; Admin records checked alternative identity evidence and the decision
-in an atomic audit. Current students still upload proof. Read ID fills empty ID/name/college fields
-only after the applicant selects it, with manual review before submission.
+in an atomic audit. Current students still upload proof. Identity details are entered manually
+and reviewed before the registration is confirmed.
 | **Why EasyOCR over Tesseract?** | EasyOCR is the OCR dependency currently integrated into Flask. We use its pretrained text recognition with local parsing and manual review. We have not performed a comparative accuracy benchmark and do not claim that another OCR engine is inherently unsuitable. |
 | **Why Prophet over ARIMA or LSTM?** | Prophet is the implemented time-series prototype. It fits daily step-log counts and returns seven predictions. Model choice and seasonality need held-out evaluation; seeded data and a plausible chart do not establish forecast reliability. |
 | **Why Random Forest over a simple threshold/rule-based system?** | Node provides full-stage observed counts and transparent queue-review thresholds. The optional ten-tree classifier still uses evaluation, release and Manila-day action counts fitted to four coded examples. It is labelled experimental and cannot confirm efficiency, optimal staffing or measured delays. |
@@ -787,4 +787,4 @@ Additive `migrate_student_name_parts.js` adds nullable first/middle/last profile
 
 Verification in this disconnected session covers source parsing and actual service/helper execution with in-memory model fixtures. Full Vitest, build/lint, browser and MySQL checks are pending; prepared source is not evidence of cloud deployment. See the consolidated [migration ledger](DEPLOYMENT_CHECKLIST.md) and [README walkthrough](../README.md#finance-receipt-walkthrough).
 
-New signup collects first/middle/last fields, builds Full Name automatically and saves parts with the account in the registration transaction. Existing accounts confirm their unsplit names in Edit Profile; legacy API clients that send only Full Name remain supported. Read ID retains a detected full-name hint, fills other eligible empty fields and never guesses compound name boundaries. The new form requires first/last before confirmation; middle remains optional.
+New signup collects first/middle/last fields, builds Full Name automatically and saves parts with the account in the registration transaction. Existing accounts confirm their unsplit names in Edit Profile; legacy API clients that send only Full Name remain supported. Identity fields are entered manually; Full Name follows the confirmed name parts. The new form requires first/last before confirmation; middle remains optional.

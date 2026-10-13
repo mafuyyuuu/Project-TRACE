@@ -239,7 +239,7 @@ async function register(body, file) {
     throw badRequest('Student / Alumni ID, Name, Phone Number, and Password are required.');
   }
   if (!file && !unavailable) {
-    throw badRequest('Proof of ID/Diploma is required for verification.');
+    throw badRequest('Proof of ID is required for verification.');
   }
 
   const existing = await userModel.findExistingByStudentId(employee_id);

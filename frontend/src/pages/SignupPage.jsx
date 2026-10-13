@@ -4,7 +4,6 @@ import { INPUT_LIMITS } from '@/utils/inputLimits';
 import ReviewSummary from '@/components/ReviewSummary';
 import ProfileYearField from '@/components/ProfileYearField';
 import { studyYearErrors } from '@/utils/profileYears';
-import { getRegistrationOptions } from '@/services/authService';
 import ConfirmDialog from '@/components/ConfirmDialog'
 import { useState, useEffect, useRef } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
@@ -13,14 +12,12 @@ import { getColleges } from '@/services/referenceService'
 import ModalShell from '@/components/ModalShell'
 import PlpBrand from '@/components/PlpBrand'
 import FileUploadField from '@/components/FileUploadField'
-import useSignupOcr from '@/hooks/useSignupOcr'
 import useNotificationDismissal from '@/hooks/useNotificationDismissal'
 import { PASSWORD_REQUIREMENTS, validNewPassword } from '@/utils/passwordPolicy'
 
 export default function SignupPage() {
   const { register, loading } = useAuth()
-  const [formData, setFormData] = useState({ employeeId: '', fullName: '', first_name: '', middle_name: '', last_name: '', email: '', phoneNumber: '', password: '', confirmPassword: '', userType: new URLSearchParams(window.location.search).get('applicant') === 'alumni' ? 'alumni' : 'student', college: '', year_started: '', graduation_year: '', proofUnavailable: false, proofReason: '' })
-  const [proofUnavailableEnabled, setProofUnavailableEnabled] = useState(false)
+  const [formData, setFormData] = useState({ employeeId: '', first_name: '', middle_name: '', last_name: '', email: '', phoneNumber: '', password: '', confirmPassword: '', userType: new URLSearchParams(window.location.search).get('applicant') === 'alumni' ? 'alumni' : 'student', college: '', year_started: '', graduation_year: '', proofUnavailable: false, proofReason: '' })
   const submitGuard = useRef(false)
   const [file, setFile] = useState(null)
   const [localError, setLocalError] = useState('')
@@ -30,19 +27,9 @@ export default function SignupPage() {
   // Colleges are admin-managed reference data rather than a hardcoded list.
   const [colleges, setColleges] = useState([])
   useNotificationDismissal(() => setSuccess(''));
-  const ocr = useSignupOcr(formData.proofUnavailable ? null : file, formData.userType, result => setFormData(current => ({
-    ...current,
-    employeeId: current.employeeId || (current.userType === 'alumni' ? result.alumni_id : result.student_id) || '',
-    fullName: current.fullName || result.full_name || '',
-    first_name: current.first_name || result.first_name || '',
-    middle_name: current.middle_name || result.middle_name || '',
-    last_name: current.last_name || result.last_name || '',
-    college: current.college || colleges.find(college => college.id === result.college_id)?.name || '',
-  })));
 
   useEffect(() => {
     let cancelled = false
-    getRegistrationOptions().then(options => { if (!cancelled) setProofUnavailableEnabled(options.proof_unavailable_enabled === true) }).catch(() => {});
     getColleges()
       .then((data) => { if (!cancelled) setColleges(data.colleges || []) })
       .catch(() => { if (!cancelled) setColleges([]) })
@@ -90,7 +77,7 @@ export default function SignupPage() {
       const college = colleges.find(college => college.name === formData.college);
       if (college) form.append('college_id', String(college.id));
       if (formData.userType === 'alumni') { form.append('year_started', formData.year_started); form.append('graduation_year', formData.graduation_year); }
-      if (formData.proofUnavailable && formData.userType === 'alumni' && proofUnavailableEnabled) {
+      if (formData.proofUnavailable && formData.userType === 'alumni') {
         form.append('registration_proof_unavailable', 'true'); form.append('registration_proof_reason', formData.proofReason.trim());
       } else if (file) form.append('id_proof', file);
 
@@ -198,7 +185,6 @@ export default function SignupPage() {
                   value={formData[field]} onChange={event => setFormData({ ...formData, [field]:event.target.value })} className="trace-control mt-2 w-full" />
               </label>)}
               <label className="trace-label block">Full Name<input type="text" readOnly value={fullName} placeholder="Juan Dela Cruz" className="trace-control mt-2 w-full" /></label>
-              {formData.fullName && <p className="text-sm select-text">Name read from proof: {formData.fullName}. Review its first, middle and last parts above. OCR fills only explicitly labelled name parts; it does not guess name boundaries.</p>}
             </section>
 
             <div className="flex flex-col gap-1.5">
@@ -240,7 +226,7 @@ export default function SignupPage() {
               </div>
             </div>
 
-            {formData.userType === 'alumni' && proofUnavailableEnabled && <section className="space-y-3 rounded-lg border border-amber-200 bg-amber-50 p-4 dark:border-amber-800 dark:bg-amber-950">
+            {formData.userType === 'alumni' && <section className="space-y-3 rounded-lg border border-amber-200 bg-amber-50 p-4 dark:border-amber-800 dark:bg-amber-950">
               <label className="flex items-start gap-3 text-sm font-semibold">
                 <input type="checkbox" className="trace-choice mt-1" checked={formData.proofUnavailable} disabled={loading}
                   onChange={event => setFormData({ ...formData, proofUnavailable: event.target.checked })} />
@@ -254,17 +240,12 @@ export default function SignupPage() {
             </section>}
 
             {!formData.proofUnavailable && <div className="flex flex-col gap-1.5">
-              <p className="trace-label ml-1">Upload Proof of ID *</p>
+              <p className="trace-label ml-1">Upload Proof of ID{formData.userType === 'student' ? ' *' : ''}</p>
               <FileUploadField showLabel={false} label="Proof of ID" file={file} onChange={setFile} accept=".pdf,.png,.jpg,.jpeg" disabled={loading} />
-              <Button type="button" onClick={ocr.readId} disabled={!file || ocr.reading || loading}
-                className="trace-button trace-button-info self-start">
-                {ocr.reading ? 'Reading ID…' : 'Read ID'}
-              </Button>
-              {ocr.message && <p role="status" className="text-sm text-blue-800 dark:text-blue-300 select-text">{ocr.message}</p>}
-              <p className="text-xs text-gray-400 dark:text-gray-400 ml-1 mt-1">Please attach a clear photo of your Student ID for verification.</p>
+              <p className="text-xs text-gray-400 dark:text-gray-400 ml-1 mt-1">{formData.userType === 'alumni' ? 'Upload proof for verification, or select “Records / proof unavailable” above and explain why. Applications without proof need Admin identity review.' : 'Please attach a clear photo of your Student ID for verification.'}</p>
             </div>}
 
-            <Button type="submit" disabled={loading || ocr.reading} className="trace-button-lift trace-action mt-4 w-full py-4 bg-pine-600 enabled:hover:bg-pine-700 disabled:opacity-70 text-white rounded-full font-bold transition-colors shadow-sm flex items-center justify-center gap-2">
+            <Button type="submit" disabled={loading} className="trace-button-lift trace-action mt-4 w-full py-4 bg-pine-600 enabled:hover:bg-pine-700 disabled:opacity-70 text-white rounded-full font-bold transition-colors shadow-sm flex items-center justify-center gap-2">
               {loading ? 'Creating...' : 'Create Account'}
             </Button>
           </form>

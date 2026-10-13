@@ -76,7 +76,7 @@ We will now transition to the Live System Demo to show you exactly how these tec
 
 *(Action: Navigate to Registration Page)*
 
-"Before filing a request, a student creates an account with an email and identity proof. Read ID suggests fields from readable text; the student checks them and enters missing information manually. The registration check compares school, identifier and college text. An inconclusive result stays pending for Admin review with a reason. This assists identity review; it cannot prove that an ID is genuine or that it belongs to the uploader."
+"Before filing a request, a student creates an account with an email and identity proof. The student enters identity details manually and uploads proof. The registration check compares school, identifier and college text. An inconclusive result stays pending for Admin review with a reason. This assists identity review; it cannot prove that an ID is genuine or that it belongs to the uploader."
 
 "An alumnus with lost or unavailable proof can choose Records / proof unavailable and explain why.
 That account stays pending, without an OCR check, until Admin records the alternative identity

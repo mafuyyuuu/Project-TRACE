@@ -640,3 +640,19 @@ Verify on staging: students confirm name parts with compound given/surnames and 
 ## October 13 — revised request catalog
 
 The student/alumni request-list revision requires `migrate_request_catalog.js` from the matching backend image. Follow [REQUEST_CATALOG.md](REQUEST_CATALOG.md) for the complete rates, bundled page counts, deactivated Nursing options, blank Underload fee and deployment sequence. The preserving migration adds catalog metadata and the explicit `per_page` rule, replaces the live request catalog once under its ledger, and leaves historical document/receipt snapshots intact. Do not rerun broad legacy migrations to apply it. Run this new script before the latest schema check and API restart; publish the matching frontend after the API is ready.
+
+## October 13 — manual signup, retained proof verification and alumni missing-proof choice
+
+The pre-submit Read ID autofill is removed, including its frontend helper, temporary scan route and Python identity parser. Uploaded registration proofs are still checked after confirmation through `/ocr/verify`. Original-first checking preserves a successful school/exact-ID/selected-college match rather than selecting OCR output by text length; the registration proof deadline is 45 seconds. Unreadable/mismatched/unavailable checks remain pending for Admin review. Alumni always see Records / proof unavailable without a capability fetch; a reason is required, no proof file is sent, and the server keeps those accounts pending. Students still upload proof. Already-pending accounts are not automatically reclassified.
+
+This signup follow-up has no new migration. Keep the request-catalog migration from the preceding release applied, and rebuild both images from the matching `dev` checkout:
+
+```bash
+git pull --ff-only origin dev
+docker compose build backend ai-engine
+docker compose up -d --no-deps --force-recreate backend ai-engine
+docker compose ps
+curl -fsS http://localhost:3300/api/health
+```
+
+Deploy the matching frontend separately. Check that Read ID is absent, Alumni shows the missing-proof choice immediately, an explanation is required before confirmation, and Student still has mandatory proof. Confirm a test proof with matching fields and one with a wrong ID remain distinct; inspect backend/AI logs for registration-proof timing without posting ID text or real uploaded records. Neither a running container nor health alone proves an actual photo auto-verifies. Earlier Read ID rollout instructions are historical and superseded by this section.

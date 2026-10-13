@@ -57,11 +57,9 @@ Finance dashboard → **Verification Queue** to clear payments; **Payment Histor
 
 [Prior receipt-history screenshot](docs/finance-receipt-history.png) · [Prior mobile issuance screenshot](docs/finance-receipt-issue-mobile.png) · [Receipt print preview](docs/finance-receipt-print-preview.png). The first two show the earlier controls; updated screenshots and full browser/Vitest/build/database checks await a connected coding environment. In-memory service checks and JSX syntax checks are documented in PROGRESS, separately from deployment. See the [migration ledger](docs/DEPLOYMENT_CHECKLIST.md).
 
-### Read ID walkthrough
+### Signup and proof review
 
-Registration → choose the ID photo → **Read ID** → review the detected ID and explicitly labelled name parts. OCR fills only empty fields and never guesses how a single Full Name splits. Complete missing fields manually before reviewing registration. Repeat successful reads of the same selected file reuse the form's memory; changing files/types starts a fresh scan. Failures distinguish timeouts, unavailable reader and unrecognized fields.
-
-Source now tries the original image first and preprocesses only when needed. Real image accuracy/speed and Python/browser checks are still pending while the coding environment is disconnected. Deploy the matching AI/backend/frontend; restarting an old AI image does not install these changes. See the [reader verification notes](docs/DEPLOYMENT_CHECKLIST.md#id-reader-reliability-follow-up--2026-10-12). This OCR follow-up adds no migration; the Finance name-field migration remains separately pending.
+Enter identity fields manually and upload proof of ID. Alumni can instead choose **Records / proof unavailable** and explain why; they remain pending for Admin review. Automatic proof checks run after registration confirmation and still match school, exact ID and selected college text. The pre-submit Read ID autofill has been removed.
 
 ### Internal assistance walkthrough
 

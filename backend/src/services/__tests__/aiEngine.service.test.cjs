@@ -41,17 +41,21 @@ it('preserves registration fallback when verification is unavailable', async () 
   expect(await service.verifyIdDocument({ path: '/unused/proof', mimetype: 'image/png', originalname: 'proof.png' }, { studentId: 'STU-1', course: 'Engineering' })).toBeNull();
 });
 
-it('uses the structured identity endpoint with a bounded call and manual fallback', async () => {
+it.each(['connection', 'body'])('keeps proof verification active and bounds a stalled %s at 45 seconds', async phase => {
   vi.useFakeTimers();
-  vi.spyOn(fs, 'readFileSync').mockReturnValue(Buffer.from('proof'));
-  const fetchMock = vi.fn((_url, { signal }) => new Promise((_resolve, reject) =>
-    signal.addEventListener('abort', () => reject(new DOMException('Timeout', 'AbortError')))));
-  vi.stubGlobal('fetch', fetchMock);
-  const pending = service.extractIdentity({ path: '/unused/proof', mimetype: 'image/png', originalname: 'proof.png' });
-  expect(fetchMock.mock.calls[0][0]).toMatch(/\/ocr\/identity$/);
+  vi.spyOn(fs, 'readFileSync').mockReturnValue(Buffer.from('synthetic proof'));
+  vi.stubGlobal('fetch', vi.fn((_url, { signal }) => {
+    const stalled = () => new Promise((_resolve, reject) => signal.addEventListener('abort', () => reject(new DOMException('Timeout', 'AbortError'))));
+    return phase === 'connection' ? stalled() : Promise.resolve({ ok: true, json: stalled });
+  }));
+  const pending = service.verifyIdDocument({ path: '/unused/proof', mimetype: 'image/png', originalname: 'proof.png' }, { studentId: 'TEST-123', course: 'Test College' });
+  const [url, options] = fetch.mock.calls[0];
+  expect(url).toMatch(/\/ocr\/verify$/);
+  expect(options.body.get('student_id')).toBe('TEST-123');
+  expect(options.body.get('course')).toBe('Test College');
+  await vi.advanceTimersByTimeAsync(15000);
+  expect(options.signal.aborted).toBe(false);
   await vi.advanceTimersByTimeAsync(30000);
-  expect(fetchMock.mock.calls[0][1].signal.aborted).toBe(false);
-  await vi.advanceTimersByTimeAsync(30000);
-  expect(await pending).toEqual({success:false,failure_reason:'timeout'});
+  expect(await pending).toEqual({ verified: false, reason: 'Automatic verification timed out.' });
   expect(vi.getTimerCount()).toBe(0);
 });

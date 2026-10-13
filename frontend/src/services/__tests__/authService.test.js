@@ -1,5 +1,5 @@
 import api from '@/services/api';
-import { extractSignupId, forgotPassword, login, verify2FA } from '@/services/authService';
+import { forgotPassword, login, verify2FA } from '@/services/authService';
 import { beforeEach, expect, it, vi } from 'vitest';
 vi.mock('@/services/api', () => ({ default: { post: vi.fn() } }));
 
@@ -31,15 +31,4 @@ it('passes the OTP challenge and explicit trust choice to verification', async (
 it('bounds the forgot-password wait while preserving its identifier payload', async () => {
   await forgotPassword('FINANCE001');
   expect(api.post).toHaveBeenCalledExactlyOnceWith('/auth/forgot-password', { identifier: 'FINANCE001' }, { timeout: 60000 });
-});
-
-it('allows the server ID deadline to return its fallback before the browser times out', async () => {
-  const file = new File(['synthetic'], 'proof.png', { type: 'image/png' });
-  const controller = new AbortController();
-  await extractSignupId(file, { signal: controller.signal });
-  const [url, form, options] = api.post.mock.calls[0];
-  expect(url).toBe('/ai/extract-id');
-  expect(form.get('id_proof')).toBe(file);
-  expect(options.timeout).toBe(75000);
-  expect(options.signal).toBe(controller.signal);
 });

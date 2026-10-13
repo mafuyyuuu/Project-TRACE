@@ -169,22 +169,6 @@ Verify on staging: students confirm name parts with compound given/surnames and 
 **Status:** prepared in source, not cloud-applied. Full Vitest/lint/build/browser/MySQL checks cannot run while the coding environment is disconnected. The existing screenshots show older receipt controls; update them through a connected browser before treating them as this review's UI evidence.
 
 
-## ID-reader reliability follow-up — 2026-10-12
-
-Read ID now uses an identity-specific original-image pass, preserving OCR fragments as lines. When an identifier is found, it skips preprocessing; otherwise a second pass may fill missing fields. Conflicting fallback values remain blank. Label/value pairs, separate name-part labels, same-line explicit fields and spaced Unicode numeric dashes are supported. Unlabelled names are never split or guessed. Only explicitly labelled first/middle/last fields may fill empty signup controls; manual edits are retained.
-
-The backend exposes safe timeout, unavailable, no-text/no-fields and processing categories instead of one generic failure. Identity calls have a 30-second cap; the browser allows 40 seconds including upload/transport. Other AI request deadlines and automatic registration verification are unchanged. Successful reads are reused only in the current form for the same File object/account type; failures stay retryable and selecting another file/type discards stale work. Temporary scans are always deleted and raw OCR text is not returned by the signup API.
-
-Deploy matching frontend/backend/**AI engine** code. Restarting the existing AI container does not replace its image with updated OCR code; build the new AI image from the reviewed release checkout. This follow-up adds no migration, dependency or environment variable. The separately pending Finance `migrate_student_name_parts.js` still must precede the matching backend release.
-
-Available verification: JavaScript services/hook handlers executed with in-memory file/network/React-hook fixtures, plus syntax checks. Native Python/Vitest/build/browser, real JPEG/PNG accuracy, latency and cloud-container verification remain pending because the coding environment is disconnected and no failing ID image was supplied. Focused Python parser/pipeline tests use fake readers and require no EasyOCR model download:
-
-```bash
-python3 -m unittest discover -s ai-engine -p 'test_identity*.py'
-```
-
-These unit tests verify parsing/conditional passes; they do not establish real image accuracy or a measured speedup. Validate an actual failing photo separately on the rebuilt engine. For cloud diagnostics, health alone does not prove the identity route is installed: a read-only GET to `http://ai-engine:5005/ocr/identity` from backend should return 405 when the POST route exists; 404 means that route is absent in the running image. The agent has not accessed the cloud container.
-
 
 ## ID / Finance retest checkpoint — 2026-10-13
 
@@ -194,5 +178,11 @@ The current dev checkout passes 1,578 backend and 993 frontend tests, frontend l
 - Replace / Change Issuance Number asks only for first and last numbers. An old reason field indicates a frontend version to investigate; voiding an issued receipt still has a separate reason requirement.
 - Rebuild the matching backend and AI-engine images from the intended dev/release checkout and publish the matching frontend. Restarting old containers or pulling repository files alone does not install these fixes. A Vercel production deployment tracking main does not receive dev merely because dev was pushed; choose the matching dev preview for testing. No main merge or production promotion is performed by this work.
 - Apply the separately recorded nullable student-name migration before activating the matching backend if not yet applied. This follow-up adds no new migration and does not require rerunning the five previously applied migrations.
-- Compare running AI source with the checked-out source without sending any ID: run sha256sum ai-engine/identity_parser.py ai-engine/ocr_engine.py on the checkout and docker compose exec -T ai-engine sha256sum identity_parser.py ocr_engine.py inside the running image. Both file hashes should match. Health alone proves neither the source revision nor recognition quality.
-- Retest Read ID with the actual failing JPEG. Record its exact safe failure message: timeout, unavailable, no-text/no-fields, invalid image or ambiguity. Synthetic text parsing and fake readers cannot establish that the real photo was recognized. Do not put that photo or extracted identity in source/fixtures.
+
+## Signup and proof verification — October 13, 2026
+
+Signup uses manually entered identity fields. The pre-submit Read ID autofill and its supporting endpoints, parser and temporary uploads are removed. Current students upload proof. Alumni always see Records / proof unavailable; choosing it requires an explanation and submits for Admin identity review without an uploaded file. Removing signup autofill does not disable the post-submission proof check.
+
+The retained `/ocr/verify` route checks readable school, exact identifier and selected college text on the original image first. A successful pass cannot be replaced by a longer unsuccessful scan. A bounded fallback checks the processed image independently; it does not combine incomplete scans. Registration proof calls allow 45 seconds; unrelated AI calls retain their deadlines. A timeout/mismatch remains pending with a safe explanation. This matches text and cannot establish the physical ID's authenticity. Already-pending accounts still need Admin review; deployment does not bulk-approve them.
+
+Rebuild/recreate both backend and AI engine from the matching `dev` revision, then deploy the matching frontend. No new migration is required for this signup change. The request-catalog migration from the preceding release remains a separate prerequisite if not applied. Use `python -m unittest test_registration_verification test_proof_ocr` from `ai-engine` for the proof-check regressions. `/api/ai/extract-id` and `/ocr/identity` should now return 404.

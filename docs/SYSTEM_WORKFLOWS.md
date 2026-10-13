@@ -425,28 +425,12 @@ Additive `migrate_student_name_parts.js` adds nullable first/middle/last profile
 
 Verification in this disconnected session covers source parsing and actual service/helper execution with in-memory model fixtures. Full Vitest, build/lint, browser and MySQL checks are pending; prepared source is not evidence of cloud deployment. See the consolidated [migration ledger](DEPLOYMENT_CHECKLIST.md) and [README walkthrough](../README.md#finance-receipt-walkthrough).
 
-New signup collects first/middle/last fields, builds Full Name automatically and saves parts with the account in the registration transaction. Existing accounts confirm their unsplit names in Edit Profile; legacy API clients that send only Full Name remain supported. Read ID retains a detected full-name hint, fills other eligible empty fields and never guesses compound name boundaries. The new form requires first/last before confirmation; middle remains optional.
+New signup collects first/middle/last fields, builds Full Name automatically and saves parts with the account in the registration transaction. Existing accounts confirm their unsplit names in Edit Profile; legacy API clients that send only Full Name remain supported. Signup identity fields are entered manually; Full Name is built from the supplied name parts. The new form requires first/last before confirmation; middle remains optional.
 
+## Signup and proof verification — October 13, 2026
 
-## ID-reader reliability follow-up — 2026-10-12
+Signup uses manually entered identity fields. The pre-submit Read ID autofill and its supporting endpoints, parser and temporary uploads are removed. Current students upload proof. Alumni always see Records / proof unavailable; choosing it requires an explanation and submits for Admin identity review without an uploaded file. Removing signup autofill does not disable the post-submission proof check.
 
-Read ID now uses an identity-specific original-image pass, preserving OCR fragments as lines. When an identifier is found, it skips preprocessing; otherwise a second pass may fill missing fields. Conflicting fallback values remain blank. Label/value pairs, separate name-part labels, same-line explicit fields and spaced Unicode numeric dashes are supported. Unlabelled names are never split or guessed. Only explicitly labelled first/middle/last fields may fill empty signup controls; manual edits are retained.
+The retained `/ocr/verify` route checks readable school, exact identifier and selected college text on the original image first. A successful pass cannot be replaced by a longer unsuccessful scan. A bounded fallback checks the processed image independently; it does not combine incomplete scans. Registration proof calls allow 45 seconds; unrelated AI calls retain their deadlines. A timeout/mismatch remains pending with a safe explanation. This matches text and cannot establish the physical ID's authenticity. Already-pending accounts still need Admin review; deployment does not bulk-approve them.
 
-The backend exposes safe timeout, unavailable, no-text/no-fields and processing categories instead of one generic failure. Identity calls have a 30-second cap; the browser allows 40 seconds including upload/transport. Other AI request deadlines and automatic registration verification are unchanged. Successful reads are reused only in the current form for the same File object/account type; failures stay retryable and selecting another file/type discards stale work. Temporary scans are always deleted and raw OCR text is not returned by the signup API.
-
-Deploy matching frontend/backend/**AI engine** code. Restarting the existing AI container does not replace its image with updated OCR code; build the new AI image from the reviewed release checkout. This follow-up adds no migration, dependency or environment variable. The separately pending Finance `migrate_student_name_parts.js` still must precede the matching backend release.
-
-Available verification: JavaScript services/hook handlers executed with in-memory file/network/React-hook fixtures, plus syntax checks. Native Python/Vitest/build/browser, real JPEG/PNG accuracy, latency and cloud-container verification remain pending because the coding environment is disconnected and no failing ID image was supplied. Focused Python parser/pipeline tests use fake readers and require no EasyOCR model download:
-
-```bash
-python3 -m unittest discover -s ai-engine -p 'test_identity*.py'
-```
-
-These unit tests verify parsing/conditional passes; they do not establish real image accuracy or a measured speedup. Validate an actual failing photo separately on the rebuilt engine. For cloud diagnostics, health alone does not prove the identity route is installed: a read-only GET to `http://ai-engine:5005/ocr/identity` from backend should return 405 when the POST route exists; 404 means that route is absent in the running image. The agent has not accessed the cloud container.
-
-
-### Printed school-ID layout hints — 2026-10-13
-
-Read ID recognizes natural **COLLEGE OF** headings, including headings split into two or three OCR fragments. The backend still maps only an exact active college catalog name. A readable PLP header, a unique standalone supported student number, and an adjacent comma-format name may provide a **Name read from proof** hint. This hint does not populate first/middle/last name parts or expand initials; the student confirms these manually. Other printed names remain unguessed, ambiguous candidates stay blank, and existing entered values are preserved.
-
-This parser-only follow-up adds no database migration or dependency and requires rebuilding the AI-engine image from the matching release. The attachment was inspected visually, not run through EasyOCR. Synthetic parser/pipeline regressions are prepared; execution and real-photo latency/recognition verification remain pending while the coding environment is disconnected. A readable ID number already matches the previous parser: a complete failure still requires checking the rebuilt engine's recognition output and the safe failure category.
+Rebuild/recreate both backend and AI engine from the matching `dev` revision, then deploy the matching frontend. No new migration is required for this signup change. The request-catalog migration from the preceding release remains a separate prerequisite if not applied. Use `python -m unittest test_registration_verification test_proof_ocr` from `ai-engine` for the proof-check regressions. `/api/ai/extract-id` and `/ocr/identity` should now return 404.

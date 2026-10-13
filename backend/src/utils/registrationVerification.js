@@ -1,5 +1,7 @@
 // Persist only fixed explanations, never arbitrary engine output or raw ID text.
 const reasons = new Map([
+  ['Automatic verification timed out.', 'The automatic proof check took too long. Manual review is required.'],
+  ['Automatic verification unavailable.', 'The automatic proof check is unavailable. Manual review is required.'],
   ['No text could be extracted from the image.', 'OCR could not read text from the proof. Manual review is required.'],
   ['School name and Student ID found, but College did not match.', 'OCR read the school and student ID, but could not confirm the selected college. Manual review is required.'],
   ['School name and College found, but Student ID did not match.', 'OCR read the school and college, but could not confirm the entered student ID. Manual review is required.'],

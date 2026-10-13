@@ -22,6 +22,10 @@ class RegistrationVerificationTests(unittest.TestCase):
         self.assertFalse(verify_registration_text('helpLP 23-00261 College A', '23-00261', 'College A')['verified'])
         self.assertFalse(verify_registration_text('PLP College A', '', 'College A')['verified'])
 
+    def test_a_missing_selected_college_cannot_skip_the_college_check(self):
+        for college in [None, '', '   ']:
+            self.assertFalse(verify_registration_text('PLP 23-00261 College A', '23-00261', college)['verified'])
+
     def test_unreadable_text_is_inconclusive(self):
         result = verify_registration_text('', '23-00261', 'College A')
         self.assertEqual(result, {'verified': False, 'reason': 'No text could be extracted from the image.'})

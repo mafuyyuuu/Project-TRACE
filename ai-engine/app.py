@@ -13,14 +13,13 @@ import os
 import sys
 import logging
 import tempfile
-import time
 from contextlib import contextmanager
 
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 from dotenv import load_dotenv
 
-from ocr_engine import process_document, verify_id_document, process_receipt, process_identity
+from ocr_engine import process_document, verify_id_document, process_receipt
 import pandas as pd
 from prophet import Prophet
 import mysql.connector
@@ -217,27 +216,6 @@ def support_insights():
         return jsonify({'insights': build_support_insights(request.get_json(silent=True)), 'source': 'aggregate_rules'})
     except (ValueError, TypeError, KeyError, AttributeError):
         return jsonify({'error': 'Invalid support aggregates.'}), 400
-
-
-@app.route('/ocr/identity', methods=['POST'])
-def ocr_identity():
-    started = time.monotonic()
-    logger.info('Identity upload received bytes=%s', request.content_length)
-    file = request.files.get('document')
-    if not file or not allowed_file(file.filename):
-        return jsonify({'success': False, 'error': 'Choose a supported ID image.'}), 400
-    temp_path = None
-    try:
-        _, ext = os.path.splitext(file.filename)
-        fd, temp_path = tempfile.mkstemp(suffix=ext)
-        os.close(fd)
-        file.save(temp_path)
-        return jsonify(process_identity(temp_path))
-    finally:
-        if temp_path and os.path.exists(temp_path):
-            os.remove(temp_path)
-        logger.info('Identity upload finished elapsed_ms=%d',
-                    round((time.monotonic() - started) * 1000))
 
 
 @app.route('/ocr/extract', methods=['POST'])

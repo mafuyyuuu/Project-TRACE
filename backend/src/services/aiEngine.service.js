@@ -32,15 +32,20 @@ async function requestJson(url, options, timeoutMs = 15000) {
  * Returns { verified, reason } or null when the engine is unreachable.
  */
 async function verifyIdDocument(file, { studentId, course }) {
+  const started = Date.now();
+  console.info('Registration proof request started.');
   try {
     const form = buildFormData(file);
     form.append('student_id', studentId);
     if (course) form.append('course', course);
 
-    return await requestJson(`${env.AI_ENGINE_URL}/ocr/verify`, { method: 'POST', body: form });
+    const result = await requestJson(`${env.AI_ENGINE_URL}/ocr/verify`, { method: 'POST', body: form }, 45000);
+    console.info(`Registration proof request finished in ${Date.now() - started}ms; verified=${result?.verified === true}.`);
+    return result;
   } catch (err) {
     if (err.name === 'AbortError') {
-      console.warn('⚠️ AI verification timed out after 15s');
+      console.warn(`Registration proof request timed out after ${Date.now() - started}ms.`);
+      return { verified: false, reason: 'Automatic verification timed out.' };
     } else {
       console.warn('⚠️ AI verification unavailable:', err.message);
     }
@@ -83,20 +88,6 @@ async function extractReceipt(file) {
 }
 
 /** Prophet 7-day volume forecast. Returns null when unavailable (caller falls back). */
-async function extractIdentity(file) {
-  const started = Date.now();
-  console.info('Identity reader request started.');
-  try {
-    const result = await requestJson(`${env.AI_ENGINE_URL}/ocr/identity`, { method: 'POST', body: buildFormData(file) }, 60000);
-    console.info(`Identity reader request finished in ${Date.now() - started}ms; success=${result?.success === true}.`);
-    return result;
-  } catch (error) {
-    const failure_reason = error.name === 'AbortError' ? 'timeout' : 'unavailable';
-    console.warn(`Identity reader failed: ${failure_reason}; elapsed_ms=${Date.now() - started}.`);
-    return { success: false, failure_reason };
-  }
-}
-
 async function getForecast() {
   try {
     return await requestJson(`${env.AI_ENGINE_URL}/forecast`, { method: 'GET' });
@@ -120,4 +111,4 @@ async function getSupportInsights(aggregates) {
   try { return await requestJson(`${env.AI_ENGINE_URL}/ai/support-insights`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(aggregates)}); }
   catch { return null; }
 }
-module.exports = { verifyIdDocument, extractDocument, extractReceipt, extractIdentity, getForecast, getInsights, getSupportInsights };
+module.exports = { verifyIdDocument, extractDocument, extractReceipt, getForecast, getInsights, getSupportInsights };

@@ -17,7 +17,8 @@ def verify_registration_text(raw_text, expected_student_id, expected_course=None
     school = 'pamantasan ng lungsod ng pasig' in text or bool(re.search(r'\bplp\b', text))
     expected_id = normalize_text(expected_student_id)
     student_id = bool(expected_id and re.search(r'(?<![\w-])' + re.escape(expected_id) + r'(?![\w-])', text))
-    college = not expected_course or normalize_text(expected_course) in text
+    expected_college = normalize_text(expected_course)
+    college = bool(expected_college and expected_college in text)
     if school and student_id and college:
         return {'verified': True, 'reason': 'School name, Student ID, and College matched.'}
     if school and student_id and not college:

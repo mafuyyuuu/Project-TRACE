@@ -21,12 +21,10 @@ os.environ.setdefault('OMP_NUM_THREADS', '1')
 import re
 import logging
 import time
-import threading
 from datetime import date
 import easyocr
 import cv2
 import numpy as np
-from identity_parser import parse_identity_data
 from registration_verification import verify_registration_text
 
 logger = logging.getLogger(__name__)
@@ -34,13 +32,6 @@ logger = logging.getLogger(__name__)
 # Initialize the EasyOCR reader globally so the PyTorch model loads only once
 # gpu=False ensures it works on all hardware, though it can be enabled if available
 reader = easyocr.Reader(['en'], gpu=False)
-
-# Bound CPU detector work for ID photos and avoid competing ID scans within a
-# worker. Gunicorn workers each retain their own Reader and lock.
-IDENTITY_READ_OPTIONS = dict(detail=0, canvas_size=1280, mag_ratio=1)
-IDENTITY_FALLBACK_BUDGET_SECONDS = 20
-_identity_lock = threading.Lock()
-
 
 def preprocess_image(filepath):
     """
@@ -134,80 +125,6 @@ def extract_text(filepath):
     except Exception as e:
         logger.error("EasyOCR extraction failed for %s: %s", filepath, str(e))
         return ""
-
-
-def process_identity(filepath):
-    if not _identity_lock.acquire(blocking=False):
-        return {'success': False, 'extracted_data': {}, 'failure_reason': 'busy'}
-    started = time.monotonic()
-    logger.info('Identity OCR started')
-    try:
-        result = _process_identity(filepath, started)
-        logger.info('Identity OCR finished elapsed_ms=%d success=%s reason=%s',
-                    round((time.monotonic() - started) * 1000),
-                    result['success'], result.get('failure_reason', 'none'))
-        return result
-    finally:
-        _identity_lock.release()
-
-
-def _process_identity(filepath, started):
-    """Try the original once; only preprocess when no identifier is found.
-
-    Preserve OCR fragments as lines for label/value parsing. Select fields,
-    not text length, and discard conflicting fallback values.
-    """
-    original = {}
-    ambiguous = set()
-    text_found = False
-    scan_failed = False
-    try:
-        original_text = "\n".join(reader.readtext(filepath, **IDENTITY_READ_OPTIONS)).strip()
-        logger.info('Identity original pass finished elapsed_ms=%d',
-                    round((time.monotonic() - started) * 1000))
-        text_found = bool(original_text)
-        parsed = parse_identity_data(original_text, include_ambiguity=True)
-        original = parsed['fields']
-        ambiguous.update(parsed['ambiguous_fields'])
-        if original.get('student_id') or original.get('alumni_id'):
-            return {'success': True, 'extracted_data': original}
-    except Exception as error:
-        scan_failed = True
-        logger.warning('Original identity scan failed: %s', type(error).__name__)
-
-    # A native OCR call cannot be interrupted safely. Avoid starting another
-    # expensive pass when the first already consumed the fallback budget.
-    if time.monotonic() - started >= IDENTITY_FALLBACK_BUDGET_SECONDS:
-        if any(original.values()):
-            return {'success': True, 'extracted_data': original}
-        return {'success': False, 'extracted_data': {},
-                'failure_reason': 'ambiguous' if ambiguous else 'timeout'}
-
-    try:
-        logger.info('Identity fallback pass started')
-        processed = preprocess_image(filepath)
-        processed_text = "\n".join(reader.readtext(processed, **IDENTITY_READ_OPTIONS)).strip()
-        text_found = text_found or bool(processed_text)
-        parsed = parse_identity_data(processed_text, include_ambiguity=True)
-        fallback = parsed['fields']
-        ambiguous.update(parsed['ambiguous_fields'])
-        merged = {}
-        for field in ('student_id', 'alumni_id', 'full_name', 'first_name', 'middle_name', 'last_name', 'college_name'):
-            first, second = original.get(field), fallback.get(field)
-            if field in ambiguous or first and second and first.casefold() != second.casefold():
-                merged[field] = None
-            else:
-                merged[field] = first or second
-        if any(merged.values()):
-            return {'success': True, 'extracted_data': merged}
-        return {'success': False, 'extracted_data': merged,
-                'failure_reason': 'ambiguous' if ambiguous else 'no_fields' if text_found else 'no_text'}
-    except Exception as error:
-        logger.warning('Fallback identity scan failed: %s', type(error).__name__)
-        if any(original.values()):
-            return {'success': True, 'extracted_data': original}
-        return {'success': False, 'extracted_data': {},
-                'failure_reason': 'engine_failure' if scan_failed else 'invalid_image'}
 
 
 def parse_student_data(raw_text):
@@ -500,14 +417,42 @@ def process_document(filepath):
             'error': str(e),
         }
 
-def verify_id_document(filepath, expected_student_id, expected_course=""):
-    """
-    Match readable school/ID/college text for automatic registration checks.
-    An inconclusive result needs manual review; it does not establish authenticity.
-    """
-    try:
-        return verify_registration_text(extract_text(filepath), expected_student_id, expected_course)
+VERIFICATION_READ_OPTIONS = dict(detail=0, canvas_size=1280, mag_ratio=1)
+VERIFICATION_FALLBACK_BUDGET_SECONDS = 15
 
-    except Exception as e:
-        logger.error("Verification failed for %s: %s", filepath, str(e))
-        return {'verified': False, 'reason': f'Error during verification: {str(e)}'}
+
+def verify_id_document(filepath, expected_student_id, expected_course=""):
+    """Match each scan independently; never discard a successful field match.
+
+    School, exact identifier and selected college still have to match. This
+    checks readable text, not whether the physical ID is genuine.
+    """
+    started = time.monotonic()
+    original = None
+    logger.info('Registration proof check started')
+    try:
+        try:
+            text = "\n".join(reader.readtext(filepath, **VERIFICATION_READ_OPTIONS)).strip()
+            original = verify_registration_text(text, expected_student_id, expected_course)
+            logger.info('Registration original pass finished elapsed_ms=%d verified=%s reason=%s',
+                        round((time.monotonic() - started) * 1000), original['verified'], original['reason'])
+            if original['verified']:
+                return original
+        except Exception as error:
+            logger.warning('Registration original scan failed: %s', type(error).__name__)
+        if time.monotonic() - started >= VERIFICATION_FALLBACK_BUDGET_SECONDS:
+            logger.info('Registration fallback skipped: first pass consumed budget')
+            return original or {'verified': False, 'reason': 'Automatic verification timed out.'}
+        logger.info('Registration fallback pass started')
+        try:
+            processed = preprocess_image(filepath)
+            text = "\n".join(reader.readtext(processed, **VERIFICATION_READ_OPTIONS)).strip()
+            fallback = verify_registration_text(text, expected_student_id, expected_course)
+            if fallback['verified'] or not original or original['reason'] == 'No text could be extracted from the image.':
+                return fallback
+            return original
+        except Exception as error:
+            logger.warning('Registration fallback scan failed: %s', type(error).__name__)
+            return original or {'verified': False, 'reason': 'Automatic verification unavailable.'}
+    finally:
+        logger.info('Registration proof check finished elapsed_ms=%d', round((time.monotonic() - started) * 1000))

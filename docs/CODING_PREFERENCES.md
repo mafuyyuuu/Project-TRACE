@@ -215,7 +215,7 @@ utils/         # Backend helper functions (AppError)
 ## Batch 8b Account and Policy Conventions
 
 - **Preferences** opens appearance only; the avatar opens **Edit Profile**. Keep HelpPage/manual labels synchronized. Shared notification-dismissal handles route/browser/internal-tab changes without cancelling drafts or decisions.
-- Signup **Read ID** is read-only and explicit. Autofill only empty fields, abort/discard stale results, and keep manual fallback. New alumni use Alumni ID in the existing login identifier; preserve existing accounts. Never return raw OCR text or leave temporary scans behind.
+- Signup identity is entered manually; pre-submit Read ID autofill is removed. Preserve post-submission proof verification and pending/Admin review when checks are inconclusive. Alumni missing-proof review is always visible; only alumni can use it, and an explanation is required. Never return raw proof text.
 - Registration proofs already persist; surface them through existing protected preview/download. Full-profile lookup selects safe fields and requires an authorized staff desk. Do not add generic upload replacement rights.
 - Document policies belong to `document_types` and `document_type_colleges`. Save settings/junction rows atomically, enforce against the target student on the server, and lock the user during repeat checks. Exact college matches only; unknown mappings require Admin review.
 - Honorable Dismissal stays one copy and one active/completed request. Cancellation/terminal legacy rejection permits retry; a Secretary return to Intake stays active. Repeatable quantities multiply the base charge; filing displays rates only, and Secretary enters actual pages for the server-calculated final amount.
