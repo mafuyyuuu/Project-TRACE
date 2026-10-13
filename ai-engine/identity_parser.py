@@ -22,7 +22,10 @@ def parse_identity_data(raw_text, include_ambiguity=False):
 
     def labeled_values(labels):
         values = []
+        consumed = set()
         for index, line in enumerate(lines):
+            if index in consumed:
+                continue
             match = re.fullmatch(r'(?:' + labels + r')\s*[:#]\s*(.+)', line, re.I)
             if not match:
                 match = re.fullmatch(r'(?:' + labels + r')\s+(.+)', line, re.I)
@@ -32,6 +35,7 @@ def parse_identity_data(raw_text, include_ambiguity=False):
                 following = lines[index + 1]
                 if not re.match(r'^' + ALL_LABELS + r'(?:\s*[:#]|$)', following, re.I):
                     values.append(following)
+                    consumed.add(index + 1)
         return values
 
     def unique(values, field):

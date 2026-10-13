@@ -21,7 +21,7 @@ it('retains confirmation and the retry key on an ambiguous network failure',asyn
  const user=userEvent.setup(),issued=vi.fn();api.issueReceipt.mockRejectedValueOnce(new Error('Network unavailable.'));render(<ReceiptIssueModal document={doc} onClose={vi.fn()} onIssued={issued}/>);await screen.findByDisplayValue('DEMO00001');expect(screen.getByDisplayValue('DEMO00001')).toHaveAttribute('readonly');await user.click(screen.getByRole('button',{name:'Review Issuance'}));expect(api.issueReceipt).not.toHaveBeenCalled();await user.click(screen.getByRole('button',{name:'Issue Receipt'}));expect(await within(screen.getByRole('dialog',{name:'Confirm receipt issuance'})).findByRole('alert')).toHaveTextContent('Network unavailable.');const firstKey=api.issueReceipt.mock.calls[0][1].client_key;await user.click(screen.getByRole('button',{name:'Issue Receipt'}));await waitFor(()=>expect(issued).toHaveBeenCalledOnce());expect(api.issueReceipt.mock.calls[1][1].client_key).toBe(firstKey);
 });
 it('stages managed verification metadata, and Later preserves issuance and only defers the copy',async()=>{
- const user=userEvent.setup(),verify=vi.fn();render(<FinanceVerificationModal selectedDoc={doc} user={{role:'clerk'}} setActiveModal={vi.fn()} setViewImageUrl={vi.fn()} handleFinanceVerify={verify} clerkNotes="" setClerkNotes={vi.fn()}/>);await screen.findByDisplayValue('DEMO00001');await user.click(screen.getByRole('button',{name:'Verify Payment'}));expect(verify).toHaveBeenCalledWith('approve',null,'',expect.objectContaining({usePack:true,expected_serial:'DEMO00001',expected_pack_id:1}));await user.click(screen.getByRole('checkbox',{name:/Later/}));await user.click(screen.getByRole('button',{name:'Verify Payment'}));expect(verify.mock.calls[1][3]).toMatchObject({usePack:true,deferred:false,uploadLater:true});expect(screen.getByDisplayValue('DEMO00001')).toBeInTheDocument();expect(screen.getByLabelText('Official Receipt copy (optional)')).toBeDisabled();expect(screen.queryByLabelText(/Payor name/)).not.toBeInTheDocument();expect(screen.queryByText('Discussion')).not.toBeInTheDocument();
+ const user=userEvent.setup(),verify=vi.fn();render(<FinanceVerificationModal selectedDoc={doc} user={{role:'clerk'}} setActiveModal={vi.fn()} setViewImageUrl={vi.fn()} handleFinanceVerify={verify} clerkNotes="" setClerkNotes={vi.fn()}/>);await screen.findByDisplayValue('DEMO00001');await user.click(screen.getByRole('button',{name:'Verify Payment'}));expect(verify).toHaveBeenCalledWith('approve',null,'',expect.objectContaining({usePack:true,expected_serial:'DEMO00001',expected_pack_id:1}));await user.click(screen.getByRole('checkbox',{name:/Later/}));await user.click(screen.getByRole('button',{name:'Verify Payment'}));expect(verify.mock.calls[1][3]).toMatchObject({usePack:true,deferred:false,uploadLater:true});expect(screen.getByDisplayValue('DEMO00001')).toBeInTheDocument();expect(screen.getByLabelText('Official Receipt copy (optional)', {selector:'input'})).toBeDisabled();expect(screen.queryByLabelText(/Payor name/)).not.toBeInTheDocument();expect(screen.queryByText('Discussion')).not.toBeInTheDocument();
 });
 it('validates copy type/size and preserves a selected file after cancel',async()=>{
  const user=userEvent.setup(),upload=vi.fn();render(<DeferredOrUploadModal selectedDoc={{...doc,or_number:'DEMO00001',receipt_id:3}} setActiveModal={vi.fn()} handleDeferredUpload={upload}/>);
@@ -45,4 +45,13 @@ it('replacement uses first and last fields without refresh or replacement-reason
  await user.click(screen.getByRole('button',{name:'Replace paper pack'}));
  expect(screen.getByLabelText('First issuance number')).toBeInTheDocument();expect(screen.getByLabelText('Last issuance number')).toBeInTheDocument();
  expect(screen.queryByLabelText(/Reason for replacement/)).not.toBeInTheDocument();expect(screen.queryByRole('button',{name:/Refresh/})).not.toBeInTheDocument();
+});
+
+it('explains why the next number cannot be printed before verification', async()=>{
+ const verify=vi.fn();
+ render(<FinanceVerificationModal selectedDoc={doc} setActiveModal={vi.fn()} setViewImageUrl={vi.fn()} handleFinanceVerify={verify} clerkNotes="" setClerkNotes={vi.fn()}/>);
+ await screen.findByDisplayValue('DEMO00001');
+ expect(screen.getByRole('button',{name:'Print'})).toBeDisabled();
+ expect(screen.getByRole('status')).toHaveTextContent('Print becomes available after you confirm Verify Payment');
+ expect(verify).not.toHaveBeenCalled();
 });

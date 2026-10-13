@@ -238,3 +238,33 @@ it('Later retains pack issuance and sends only the copy-deferral flag', async ()
   expect(body.get('defer_copy')).toBe('true');expect(body.get('use_pack')).toBe('true');expect(body.get('expected_serial')).toBe('DEMO00001');
   expect(body.has('defer_or')).toBe(false); expect(body.has('officialReceipt')).toBe(false);expect(body.has('payor_name')).toBe(false);
 });
+
+
+it('enables Print in Review after confirmed managed payment, even when the queue row disappears', async () => {
+  const user = userEvent.setup();
+  const receipt = { id: 3, serial: 'DEMO00001', state: 'ISSUED', snapshot: {
+    payor_name: 'Reyes, Ana', items: [], total_centavos: 10000,
+    amount_words: 'One Hundred Pesos and 00/100', issue_date: '2026-10-13',
+  } };
+  receiptApi.receiptState.mockResolvedValueOnce({version:1,pack:{id:1,next_serial:'DEMO00001',last_serial:'DEMO00050',consumed:0},print_config:{width_mm:150,height_mm:290,margin_mm:5,offset_x_mm:0,offset_y_mm:0}});
+  documents.getDocuments.mockResolvedValueOnce({ documents: [{ ...DOC, or_number: null }] }).mockResolvedValue({ documents: [] });
+  documents.verifyPayment.mockResolvedValue({ message: 'Verified.', receipt });
+  render(<FinanceDashboard user={FINANCE} setViewImageUrl={vi.fn()} />);
+  await user.click(await screen.findByRole('tab', { name: /Verification Queue/ }));
+  await user.click(screen.getByRole('button', { name: 'Review' }));
+  await screen.findByDisplayValue('DEMO00001');
+  expect(screen.getByRole('button', { name: 'Print' })).toBeDisabled();
+  await user.click(screen.getByRole('checkbox', { name: /Later/ }));
+  await user.click(screen.getByRole('button', { name: 'Verify Payment' }));
+  expect(documents.verifyPayment).not.toHaveBeenCalled();
+  await user.click(within(screen.getByRole('dialog', { name: 'Verify Payment' })).getByRole('button', { name: 'Verify Payment' }));
+  await user.click(await screen.findByRole('button', { name: 'OK' }));
+  const modal = screen.getByRole('dialog', { name: 'Verification Details' });
+  await waitFor(() => expect(within(modal).getByRole('button', { name: 'Print' })).toBeEnabled());
+  expect(within(modal).getByLabelText('Recorded Official Receipt Number')).toHaveValue(receipt.serial);
+  expect(within(modal).getByRole('button', { name: 'Payment Verified' })).toBeDisabled();
+  await user.click(within(modal).getByRole('button', { name: 'Print' }));
+  expect(screen.getByTitle('Official Receipt print preview')).toBeInTheDocument();
+  expect(documents.verifyPayment).toHaveBeenCalledOnce();
+  expect(documents.verifyPayment.mock.calls[0][1].get('defer_copy')).toBe('true');
+});

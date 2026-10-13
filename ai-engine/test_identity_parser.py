@@ -110,6 +110,14 @@ class IdentityParserTests(unittest.TestCase):
         data = parse_identity_data('PAMANTASAN NG LUNGSOD NG PASIG\n'
                                    'Name: Confirmed Example\nDELA CRUZ, ANA M.\n24-54321')
         self.assertEqual(data['full_name'], 'Confirmed Example')
+    def test_value_starting_with_label_is_not_reinterpreted(self):
+        data = parse_identity_data('College\nCollege A\nName\nName Example')
+        self.assertEqual(data['college_name'], 'College A')
+        self.assertEqual(data['full_name'], 'Name Example')
+        conflict = parse_identity_data('College\nCollege A\nCollege: College B', include_ambiguity=True)
+        self.assertIsNone(conflict['fields']['college_name'])
+        self.assertIn('college_name', conflict['ambiguous_fields'])
+
 
 if __name__ == '__main__':
     unittest.main()

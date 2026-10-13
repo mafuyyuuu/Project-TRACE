@@ -139,7 +139,7 @@ export default function FinanceVerificationModal({
           {verifiedReceipt && <p role="status" className="text-sm">Payment verified. This saved number is ready to print; printing does not use another number.</p>}
         </div> : <div className="space-y-3">
           <ReceiptPackControl packState={pack.state} onChanged={pack.refresh} printControl={<Button type="button" disabled title="Verify payment to save this receipt before printing." className="trace-button trace-button-secondary">Print</Button>} />
-          <p className="text-xs">The next number updates automatically after issuance. Save the receipt by verifying payment, then print beside its recorded number.</p>
+          <p role="status" className="text-sm">Print becomes available after you confirm Verify Payment. Setting up the paper pack only reserves numbers; it does not issue this payment’s receipt.</p>
         </div>}
         {pack.error && <p role="alert" className="trace-inline-error">{pack.error}</p>}
         <p className="text-sm select-text"><span className="font-semibold">Student / Payor:</span> {verifiedReceipt?.snapshot.payor_name || payorName || 'Student name not recorded'}</p>
