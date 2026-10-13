@@ -15,12 +15,12 @@
  * them as formulas, which is a real injection vector when the data came from a
  * user-supplied name or purpose field.
  */
-function escapeCell(value) {
+function escapeCell(value, { text = false } = {}) {
   if (value === null || value === undefined) return '';
 
   let str = value instanceof Date ? value.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : String(value);
 
-  if (/^(?:[\t\r\n]|\s*[=+\-@])/.test(str)) {
+  if ((text && str !== '' && !str.startsWith("'")) || /^(?:[\t\r\n]|\s*[=+\-@])/.test(str)) {
     str = `'${str}`;
   }
 
@@ -39,7 +39,7 @@ function escapeCell(value) {
  */
 function toCsv(columns, rows) {
   const header = columns.map((c) => escapeCell(c.label)).join(',');
-  const body = rows.map((row) => columns.map((c) => escapeCell(row[c.key])).join(','));
+  const body = rows.map((row) => columns.map((c) => escapeCell(row[c.key], { text: c.text })).join(','));
   return [header, ...body].join('\r\n');
 }
 

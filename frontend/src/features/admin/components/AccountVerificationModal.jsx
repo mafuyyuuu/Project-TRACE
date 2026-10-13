@@ -17,8 +17,10 @@ export default function AccountVerificationModal({
   const [error, setError] = useState('');
   if (!studentVerifyToConfirm) return null;
   const { student } = studentVerifyToConfirm;
+  const proofUnavailable = student.registration_proof_unavailable === true
+    || student.registration_proof_unavailable === 1 || student.registration_proof_unavailable === '1';
   const choose = action => {
-    if (student.registration_proof_unavailable && !basis.trim()) { setError('Record the evidence checked and the basis for your identity decision.'); return; }
+    if (proofUnavailable && !basis.trim()) { setError('Record the evidence checked and the basis for your identity decision.'); return; }
     setError(''); setDecision({ action, basis: basis.trim() });
   };
 
@@ -35,7 +37,7 @@ export default function AccountVerificationModal({
       </div>}
     >
       <div className="grid min-w-0 gap-4 lg:grid-cols-2 lg:gap-6">
-        {student.registration_proof_unavailable ? <section className="trace-section trace-section-body space-y-3">
+        {proofUnavailable ? <section className="trace-section trace-section-body space-y-3">
           <h4 className="trace-section-title">Proof Unavailable · Identity Review</h4>
           <p className="text-sm select-text">{student.registration_proof_reason}</p>
           <p className="text-sm text-gray-600 dark:text-gray-300">No uploaded proof. Check alternative identity evidence and record what was checked and the decision basis before approval.</p>
@@ -53,7 +55,7 @@ export default function AccountVerificationModal({
             <div className="flex flex-wrap justify-between gap-x-3 gap-y-1"><span>Email</span><span className="font-bold text-gray-950 dark:text-gray-100 select-text break-words">{student.email || '—'}</span></div>
           </div>
           <RegistrationReviewNotice user={student} />
-          {student.registration_proof_unavailable && <label className="trace-label mt-4">Identity Review Evidence / Decision Basis
+          {proofUnavailable && <label className="trace-label mt-4">Identity Review Evidence / Decision Basis
             <textarea className="trace-control mt-2" required maxLength={1000} value={basis} disabled={actionLoading} onChange={event => setBasis(event.target.value)} />
           </label>}
           {error && <p role="alert" className="trace-error mt-3">{error}</p>}
@@ -62,7 +64,7 @@ export default function AccountVerificationModal({
       <ConfirmDialog open={!!decision} title={decision?.action === 'verify' ? 'Verify Account' : 'Reject Account'}
         message={`${decision?.action === 'verify' ? 'Verify' : 'Reject'} ${student.full_name}'s registration?`}
         variant={decision?.action === 'reject' ? 'destructive' : 'neutral'} confirmLabel={decision?.action === 'verify' ? 'Verify Account' : 'Reject Account'}
-        loading={actionLoading} onCancel={() => setDecision(null)} onConfirm={() => student.registration_proof_unavailable ? confirmAdminVerifyStudent(decision.action, decision.basis) : confirmAdminVerifyStudent(decision.action)} />
+        loading={actionLoading} onCancel={() => setDecision(null)} onConfirm={() => proofUnavailable ? confirmAdminVerifyStudent(decision.action, decision.basis) : confirmAdminVerifyStudent(decision.action)} />
     </ModalShell>
   );
 }

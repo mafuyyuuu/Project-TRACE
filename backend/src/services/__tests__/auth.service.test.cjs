@@ -393,9 +393,20 @@ describe('credential changes revoke MFA trust and pending challenges', () => {
 describe('register', () => {
   const body = {
     employee_id: 'STU-NEW', full_name: 'New Student', email: 'new@example.test',
-    phone_number: '+639', password: 'Trace2024!', course: 'CCS',
+    phone_number: '+639123456789', password: 'Trace2024!', course: 'CCS',
   };
   const file = { path: '/tmp/id.jpg', originalname: 'id.jpg', mimetype: 'image/jpeg' };
+  it.each([{ phone_number: '9'.repeat(500) }, { phone_number: '+12025550123' }, { employee_id: 'x'.repeat(51) },
+    { full_name: 'x'.repeat(256) }, { email: 'x'.repeat(256) }, { course: 'x'.repeat(151) }, { password: 'Trace_2026' + 'x'.repeat(64) }])
+  ('refuses invalid formats/limits before AI or account creation (%o)', async patch => {
+    await expect(service.register({ ...body, ...patch }, file)).rejects.toMatchObject({ status: 400 });
+    expect(aiEngine.verifyIdDocument).not.toHaveBeenCalled();
+    expect(userModel.createUser).not.toHaveBeenCalled();
+  });
+  it('stores complete Philippine phone numbers in one local text format', async () => {
+    await service.register(body, file);
+    expect(userModel.createUser).toHaveBeenCalledWith(expect.objectContaining({ phone_number: '09123456789' }), credentialConnection);
+  });
   it('stores new name parts with the automatically assembled Full Name in the account transaction', async () => {
     vi.spyOn(userModel,'saveNameParts').mockResolvedValue();
     vi.spyOn(userModel,'logSecurityEvent').mockResolvedValue();
@@ -559,8 +570,8 @@ describe('updateProfile', () => {
   });
 
   it('only writes the fields actually supplied', async () => {
-    await service.updateProfile(3, { phone_number: '+63999' });
-    expect(userModel.updateProfile.mock.calls[0][1]).toEqual({ phone_number: '+63999' });
+    await service.updateProfile(3, { phone_number: '09123456789' });
+    expect(userModel.updateProfile.mock.calls[0][1]).toEqual({ phone_number: '09123456789' });
   });
 });
 
@@ -733,8 +744,8 @@ describe('graduation years before profile mutations', () => {
     expect(userModel.upsertProfile).not.toHaveBeenCalled();
   });
   it('allows partial contact edits without copying attendance into graduation', async () => {
-    await service.updateProfile(3, { phone_number: 'new' });
-    expect(userModel.updateProfile).toHaveBeenCalledWith(3, { phone_number: 'new' }, credentialConnection);
+    await service.updateProfile(3, { phone_number: '09123456789' });
+    expect(userModel.updateProfile).toHaveBeenCalledWith(3, { phone_number: '09123456789' }, credentialConnection);
     expect(userModel.upsertProfile).not.toHaveBeenCalled();
   });
   it.each(['-1980', '1980.5', '1.98e3', '9999'])('rejects invalid school years: %s', async elem_grad_year => {

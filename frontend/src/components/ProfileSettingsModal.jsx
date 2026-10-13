@@ -1,3 +1,5 @@
+import PhoneInput from '@/components/PhoneInput';
+import { phoneNumberError } from '@/utils/phoneNumber';
 import { namePartsError, receiptStudentName } from '@/utils/receiptStudentName';
 import ProfileYearField from '@/components/ProfileYearField';
 import { profileEditYearErrors } from '@/utils/profileYears';
@@ -89,6 +91,8 @@ export default function ProfileSettingsModal({
       setPasswordError(PASSWORD_REQUIREMENTS);
       return;
     }
+    const phoneError = phoneNumberError(profileData.phone_number);
+    if (phoneError) { setPasswordError(phoneError); setActiveTab('personal'); return; }
     setPasswordError('');
     if (receiptNameError && isStudent) { setActiveTab('personal'); return; }
     const invalidYear = Object.keys(editYearErrors)[0];
@@ -280,7 +284,7 @@ export default function ProfileSettingsModal({
               <div className="trace-form-grid">
                 <div>
                   <label htmlFor="profile-phone_number" className="trace-label block mb-2">Phone Number <span className="text-red-500 dark:text-red-300">*</span></label>
-                  <input {...fieldDescription('phone_number')} maxLength={INPUT_LIMITS.phone} type="text" value={profileData.phone_number} onChange={(e) => setField('phone_number', e.target.value)} required className="trace-control w-full" />
+                  <PhoneInput {...fieldDescription('phone_number')} value={profileData.phone_number} onChange={(e) => setField('phone_number', e.target.value)} required className="trace-control w-full" />
                   {fieldWarning('phone_number')}
                 </div>
                 <div className="min-w-0 col-span-full">

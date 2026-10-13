@@ -165,7 +165,7 @@ describe('previous submissions', () => {
   });
 });
 
-it.each(['-2020', '2020.5', '2e3', '2001', '9999', '202'])('keeps invalid graduation drafts visible and blocks application confirmation: %s', async value => {
+it.each(['-202', '20.5', '2e3', '2001', '9999', '202'])('keeps invalid graduation drafts visible and blocks application confirmation: %s', async value => {
   const user = userEvent.setup();
   await renderForm();
   const input = screen.getByLabelText(/Year Graduated/);

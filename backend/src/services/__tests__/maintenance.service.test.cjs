@@ -91,6 +91,11 @@ beforeEach(() => {
 });
 
 describe('admin-only access', () => {
+  it.each([{ phone_number: '9'.repeat(500) }, { phone_number: '+12025550123' }, { full_name: 'x'.repeat(256) }])
+  ('refuses malformed staff contact writes before mutations (%o)', async fields => {
+    await expect(service.updateStaff(ADMIN, 5, fields)).rejects.toMatchObject({ status: 400 });
+    expect(userModel.updateStaff).not.toHaveBeenCalled();
+  });
   const calls = {
     listColleges: (u) => service.listColleges(u),
     createCollege: (u) => service.createCollege(u, { name: 'X' }),
@@ -424,7 +429,7 @@ describe('account editing — approved profile fields only', () => {
     await service.updateAccount(ADMIN, 5, { full_name: '  Ana Reyes ', email: 'ana@example.test', phone_number: '09123456789', course: 'BS IT', college_id: '1', role: 'admin', verification_status: 'verified', is_active: true });
     expect(userModel.updateProfile).toHaveBeenCalledExactlyOnceWith(5, { full_name: 'Ana Reyes', email: 'ana@example.test', phone_number: '09123456789', course: 'BS IT', college_id: 1 });
   });
-  it.each([{ full_name: '' }, { email: 'bad-email' }, { phone_number: '1'.repeat(21) }, { course: 'a'.repeat(101) }, { college_id: -1 }, { role: 'admin' }])('rejects invalid or unsupported edits (%o)', async fields => {
+  it.each([{ full_name: '' }, { email: 'bad-email' }, { phone_number: '1'.repeat(21) }, { course: 'a'.repeat(151) }, { college_id: -1 }, { role: 'admin' }])('rejects invalid or unsupported edits (%o)', async fields => {
     expect(await statusOf(service.updateAccount(ADMIN, 5, fields))).toBe(400);
     expect(userModel.updateProfile).not.toHaveBeenCalled();
   });

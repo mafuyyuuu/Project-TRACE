@@ -55,6 +55,11 @@ describe('escapeCell', () => {
 });
 
 describe('toCsv', () => {
+  it('marks phone digits as spreadsheet text without emitting a formula', () => {
+    const csv = toCsv([{ key: 'phone', label: 'Phone', text: true }], [{ phone: '09123456789' }, { phone: '+639123456789' }, { phone: '' }]);
+    expect(csv.split('\r\n')).toEqual(['Phone', "'09123456789", "'+639123456789", '']);
+    expect(csv).not.toContain('="');
+  });
   const columns = [
     { key: 'student_id', label: 'Student ID' },
     { key: 'full_name', label: 'Full Name' },

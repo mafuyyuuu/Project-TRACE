@@ -386,3 +386,25 @@ Signup uses manually entered identity fields. The pre-submit Read ID autofill an
 The retained `/ocr/verify` route checks readable school, exact identifier and selected college text on the original image first. A successful pass cannot be replaced by a longer unsuccessful scan. A bounded fallback checks the processed image independently; it does not combine incomplete scans. Registration proof calls allow 45 seconds; unrelated AI calls retain their deadlines. A timeout/mismatch remains pending with a safe explanation. This matches text and cannot establish the physical ID's authenticity. Already-pending accounts still need Admin review; deployment does not bulk-approve them.
 
 Rebuild/recreate both backend and AI engine from the matching `dev` revision, then deploy the matching frontend. No new migration is required for this signup change. The request-catalog migration from the preceding release remains a separate prerequisite if not applied. Use `python -m unittest test_registration_verification test_proof_ocr` from `ai-engine` for the proof-check regressions. `/api/ai/extract-id` and `/ocr/identity` should now return 404.
+
+
+## Field formats and entry limits (2026-10-13)
+
+Phone fields accept Philippine mobile numbers only: `09XXXXXXXXX` or `+639XXXXXXXXX`, without spaces or punctuation. New saved numbers use 11 local digits beginning with `09`. Short, foreign, alphabetic or oversized values must be corrected before saving. Existing records are not bulk rewritten. Phone CSV values include an apostrophe text marker to protect their leading zero; some spreadsheet readers display the marker, so import the Phone Number column as Text in those readers. This is text data, not a spreadsheet formula.
+
+| Field | Limit / format |
+|---|---|
+| Names, schools, birthplaces, emails and short answers | 255 characters |
+| Student/Alumni/Staff ID | 50 characters; preserve its identifier format |
+| Program/Course | 150 characters |
+| Name suffix / short code | 20 characters |
+| Home address | 500 characters |
+| Notes, messages and long answers | 2,000 characters; pricing notes keep their existing 1,000 limit |
+| New password / confirmation | 8–64 characters and the displayed uppercase/lowercase/number/special-character rules |
+| Years | Four digits and the existing allowed year ranges |
+| Copies / pages | Whole numbers, 1–2,147,483,647, subject to document rules and calculated amount limits; Honorable Dismissal stays one copy |
+| Fees | Ordinary non-negative decimals, at most two decimal places, maximum ₱99,999,999.99 |
+
+The form bounds entry and the server independently rejects invalid submitted values. Current/login passwords are not silently shortened. Invalid drafts remain available for correction. Dates and printer calibration retain their existing ranges.
+
+A clear uploaded ID can still stay pending if OCR cannot read the selected college accurately. Matching accepts spacing differences but retains every college letter, exact ID and school checks. Admin reviews inconclusive proofs. Pending does not mean fake or rejected; login remains denied until verification. The registration-review flag no longer displays a stray numeric zero.

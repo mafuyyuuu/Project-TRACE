@@ -56,6 +56,10 @@ describe('sendEmail', () => {
 });
 
 describe('sendSms', () => {
+  it('converts a saved local mobile number to the provider international format', async () => {
+    await service.sendSms('09123456789', 'Synthetic notification');
+    expect(UniSmsClient.prototype.send).toHaveBeenCalledWith(expect.objectContaining({ recipient: '+639123456789' }));
+  });
   it('skips when the recipient has no number and no fallback is set', async () => {
     const res = await service.sendSms('', 'Hello');
     expect(res).toMatchObject({ ok: false, skipped: true });

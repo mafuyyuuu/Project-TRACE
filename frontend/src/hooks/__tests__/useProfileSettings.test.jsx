@@ -9,6 +9,17 @@ vi.mock('@/services/authService', () => ({
 
 import { updateProfile, uploadProfilePicture, verifyEmailChange, getMe } from '@/services/authService';
 import useProfileSettings from '@/hooks/useProfileSettings';
+
+it.each(['9'.repeat(500), '+12025550123', '09123'])('keeps invalid phone drafts and avoids profile/avatar writes (%s)', async value => {
+  const { result } = renderHook(() => useProfileSettings(USER));
+  act(() => { result.current.setField('phone_number', value); result.current.changeAvatar(new File(['x'], 'draft.png')); });
+  await act(async () => expect(await result.current.saveProfile()).toBe(false));
+  expect(result.current.error).toContain('Philippine mobile');
+  expect(result.current.profileData.phone_number).toBe(value);
+  expect(result.current.avatarFile).not.toBeNull();
+  expect(updateProfile).not.toHaveBeenCalled();
+  expect(uploadProfilePicture).not.toHaveBeenCalled();
+});
 import { resendVerification } from '@/services/emailVerificationService';
 vi.mock('@/services/emailVerificationService', () => ({ resendVerification: vi.fn() }));
 
@@ -293,7 +304,7 @@ it('omits unchanged legacy academic fields while saving unrelated profile change
   const account = { ...USER, role: 'student', college_id: null, program: 'Recorded Program' };
   updateProfile.mockResolvedValue({ message: 'Saved' }); getMe.mockResolvedValue({ user: account });
   const { result } = renderHook(() => useProfileSettings(account));
-  act(() => result.current.setField('phone_number', 'synthetic'));
+  act(() => result.current.setField('phone_number', '09123456789'));
   await act(async () => result.current.saveProfile());
   const payload = updateProfile.mock.calls.at(-1)[0];
   expect(payload).not.toHaveProperty('college_id'); expect(payload).not.toHaveProperty('program');
@@ -334,7 +345,7 @@ it('allows unrelated profile saves to retain locked historical years', async () 
   const account = { ...USER, role: 'student', user_type: 'alumni', year_started: 1995, graduation_year: 1999 };
   updateProfile.mockResolvedValue({ message: 'Saved' }); getMe.mockResolvedValue({ user: account });
   const { result } = renderHook(() => useProfileSettings(account));
-  act(() => result.current.setField('phone_number', 'synthetic'));
+  act(() => result.current.setField('phone_number', '09123456789'));
   await act(async () => expect(await result.current.saveProfile()).toBe(true));
   expect(updateProfile.mock.calls[0][0]).not.toHaveProperty('year_started');
   expect(updateProfile.mock.calls[0][0]).not.toHaveProperty('graduation_year');

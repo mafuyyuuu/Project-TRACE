@@ -1,3 +1,4 @@
+import { normalizePhoneNumber, phoneNumberError } from '@/utils/phoneNumber';
 import { namePartsError } from '@/utils/receiptStudentName';
 import { profileEditYearErrors } from '@/utils/profileYears';
 import { PASSWORD_REQUIREMENTS, validNewPassword } from '@/utils/passwordPolicy';
@@ -124,6 +125,8 @@ export default function useProfileSettings(user) {
     if (e) e.preventDefault();
     if (savingRef.current) return false;
     if (profileData.password && !validNewPassword(profileData.password)) { setError(PASSWORD_REQUIREMENTS); return false; }
+    const phoneError = phoneNumberError(profileData.phone_number);
+    if (phoneError) { setError(phoneError); return false; }
     const nameError = user?.role === 'student' ? namePartsError(profileData, user) : '';
     if (nameError) { setError(nameError); return false; }
     const yearErrors = profileEditYearErrors(profileData, user);
@@ -161,7 +164,7 @@ export default function useProfileSettings(user) {
       // link (or claim the address changed) when saving unrelated profile fields.
       const payload = pendingEmail && profileData.email.trim().toLowerCase() === pendingEmail.toLowerCase()
         ? { ...profileData, email: user?.email || '' } : profileData;
-      const request = { ...payload };
+      const request = { ...payload, phone_number: normalizePhoneNumber(payload.phone_number) };
       for (const key of ['year_started', 'graduation_year']) {
         if (String(request[key] ?? '') === String(user?.[key] ?? '')) delete request[key];
       }
@@ -175,7 +178,7 @@ export default function useProfileSettings(user) {
         disconnectRealtime();
         patchStoredUser(result.user);
       }
-      patchStoredUser({ phone_number: payload.phone_number, ...(result?.email_verification_required ? {} : { email: payload.email }) });
+      patchStoredUser({ phone_number: request.phone_number, ...(result?.email_verification_required ? {} : { email: payload.email }) });
       if (result?.email_verification_required) setPendingEmail(result.pending_email || profileData.email);
       setProfileData((current) => ({ ...current, password: '', current_password: '' }));
       if (!profileData.password || result?.token) {

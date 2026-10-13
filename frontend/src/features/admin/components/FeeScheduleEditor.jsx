@@ -1,3 +1,5 @@
+import NumberInput from '@/components/NumberInput';
+import { NUMBER_LIMITS } from '@/utils/inputLimits';
 import Button from '@/components/Button';
 const emptySchedule = () => ({ base_fee: 0, fee_rule: 'flat', rental_fee: 0, special_fee: 0, fee_items: [] });
 const inputClass = "trace-control w-full";
@@ -8,7 +10,7 @@ function NamedItems({ items, onChange }) {
     {items.map((item, index) => <div key={index} className="flex flex-wrap items-end gap-2">
       <label className="min-w-0 flex-[1_1_12rem] text-xs">Item name<input className={inputClass} required maxLength={100} value={item.label}
         onChange={event => onChange(items.map((row, i) => i === index ? { ...row, label: event.target.value } : row))} /></label>
-      <label className="trace-label w-24">Item fee (₱)<input className={inputClass} required type="number" min="0" step="0.01" value={item.amount}
+      <label className="trace-label w-24">Item fee (₱)<NumberInput max={NUMBER_LIMITS.money} className={inputClass} required type="number" min="0" step="0.01" value={item.amount}
         onChange={event => onChange(items.map((row, i) => i === index ? { ...row, amount: event.target.value } : row))} /></label>
       <label className="trace-label min-w-0">Fee basis<select className={inputClass} value={item.fee_rule || 'flat'}
         onChange={event => onChange(items.map((row, i) => i === index ? { ...row, fee_rule: event.target.value } : row))}>
@@ -22,7 +24,7 @@ function NamedItems({ items, onChange }) {
 }
 function ExtraFees({ schedule, onChange }) {
   return <><div className="grid grid-cols-2 gap-2">{[['rental_fee', 'Rental Fee (₱)'], ['special_fee', 'Special Fee (₱)']].map(([key, label]) =>
-    <label key={key} className="trace-label">{label}<input className={inputClass} required type="number" min="0" step="0.01" value={schedule[key] ?? 0}
+    <label key={key} className="trace-label">{label}<NumberInput max={NUMBER_LIMITS.money} className={inputClass} required type="number" min="0" step="0.01" value={schedule[key] ?? 0}
       onChange={event => onChange({ ...schedule, [key]: event.target.value })} /></label>)}</div>
     <NamedItems items={schedule.fee_items || []} onChange={fee_items => onChange({ ...schedule, fee_items })} /></>;
 }
@@ -42,7 +44,7 @@ export default function FeeScheduleEditor({ value, colleges, onChange }) {
           onChange={event => updateOverride(index, { ...row, college_id: Number(event.target.value) })}>
           <option value="">Choose college</option>{colleges.map(college => <option key={college.id} value={college.id}>{college.name}</option>)}
         </select></label>
-        <label className="trace-label block">College base rate (₱)<input className={inputClass} required type="number" min="0" step="0.01" value={row.base_fee}
+        <label className="trace-label block">College base rate (₱)<NumberInput max={NUMBER_LIMITS.money} className={inputClass} required type="number" min="0" step="0.01" value={row.base_fee}
           onChange={event => updateOverride(index, { ...row, base_fee: event.target.value })} /></label>
         <label className="trace-label block">College fee basis<select className={inputClass} value={row.fee_rule}
           onChange={event => updateOverride(index, { ...row, fee_rule: event.target.value })}>

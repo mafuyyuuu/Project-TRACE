@@ -1,3 +1,4 @@
+import NumberInput from '@/components/NumberInput';
 import Button from '@/components/Button';
 import { isHonorableDismissal, isSameDayWalkInType } from '@/utils/documentPolicy';
 import { INPUT_LIMITS } from '@/utils/inputLimits';
@@ -113,7 +114,7 @@ export default function ManualInputModal({
             </div>
 
             <label className="flex flex-col gap-2 text-sm font-bold">Copies
-              <input name="copies" type="number" required min="1" max={isHonorableDismissal(docType) ? 1 : 2147483647} step="1" defaultValue="1" className="trace-control" />
+              <NumberInput name="copies" type="number" required min="1" max={isHonorableDismissal(docType) ? 1 : 2147483647} step="1" defaultValue="1" className="trace-control" />
             </label>
             {isSameDayWalkInType(docType) && <fieldset className="space-y-3 text-sm md:col-span-2">
               <legend className="font-bold">Walk-in same-day eligibility</legend>

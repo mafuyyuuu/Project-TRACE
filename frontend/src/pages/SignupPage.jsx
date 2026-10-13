@@ -1,3 +1,5 @@
+import PhoneInput from '@/components/PhoneInput';
+import { normalizePhoneNumber, phoneNumberError } from '@/utils/phoneNumber';
 import { fullNameFromParts, namePartsError } from '@/utils/receiptStudentName';
 import Button from '@/components/Button';
 import { INPUT_LIMITS } from '@/utils/inputLimits';
@@ -53,6 +55,8 @@ export default function SignupPage() {
       setLocalError('Passwords do not match.')
       return
     }
+    const phoneError = phoneNumberError(formData.phoneNumber);
+    if (phoneError) { setLocalError(phoneError); return; }
     if (!validNewPassword(formData.password)) { setLocalError(PASSWORD_REQUIREMENTS); return }
     if (formData.userType === 'alumni') {
       const errors = studyYearErrors(formData, { required: true });
@@ -69,7 +73,7 @@ export default function SignupPage() {
       form.append('full_name', fullName);
       for (const field of ['first_name', 'middle_name', 'last_name']) form.append(field, formData[field].trim());
       form.append('email', formData.email.trim());
-      form.append('phone_number', formData.phoneNumber.trim());
+      form.append('phone_number', normalizePhoneNumber(formData.phoneNumber));
       form.append('password', formData.password);
       form.append('user_type', formData.userType);
       form.append('course', formData.college);
@@ -195,7 +199,7 @@ export default function SignupPage() {
 
             <div className="flex flex-col gap-1.5">
               <label className="trace-label ml-1">Phone Number *</label>
-              <input type="tel" maxLength={INPUT_LIMITS.phone} placeholder="09123456789" value={formData.phoneNumber} onChange={(e) => setFormData({...formData, phoneNumber: e.target.value})} className="trace-control w-full" />
+              <PhoneInput value={formData.phoneNumber} onChange={(e) => setFormData({...formData, phoneNumber: e.target.value})} className="trace-control w-full" />
             </div>
 
             <div className="flex flex-col gap-1.5">

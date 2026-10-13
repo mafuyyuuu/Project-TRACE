@@ -1,3 +1,4 @@
+const { normalizePhoneNumber } = require('../utils/phoneNumber');
 const reportModel = require('../models/report.model');
 const userModel = require('../models/user.model');
 const { STATUS } = require('../utils/documentStatus');
@@ -100,7 +101,7 @@ const STUDENT_COLUMNS = [
   { key: 'student_id', label: 'Student ID' },
   { key: 'full_name', label: 'Full Name' },
   { key: 'email', label: 'Email' },
-  { key: 'phone_number', label: 'Phone Number' },
+  { key: 'phone_number', label: 'Phone Number', text: true },
   { key: 'course', label: 'College' },
   { key: 'enrollment_status', label: 'Enrollment Status' },
   { key: 'study_load', label: 'Study Load' },
@@ -130,7 +131,7 @@ async function exportStudentsCsv(user, bucket = 'all', query = {}) {
     : await reportModel.listStudentsForExport(bucket);
   return {
     filename: csvFilename(`students-${bucket}`),
-    csv: toCsv(STUDENT_COLUMNS, rows.map(row=>({...row,created_at:row.created_at_epoch!=null?manilaTimestamp(Number(row.created_at_epoch)*1000):manilaTimestamp(row.created_at)}))),
+    csv: toCsv(STUDENT_COLUMNS, rows.map(row=>({...row,phone_number:normalizePhoneNumber(row.phone_number) ?? row.phone_number,created_at:row.created_at_epoch!=null?manilaTimestamp(Number(row.created_at_epoch)*1000):manilaTimestamp(row.created_at)}))),
     rowCount: rows.length,
   };
 }

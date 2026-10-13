@@ -61,8 +61,8 @@ it('rejects missing ids and nonboolean toggle flags', async () => {
 it('preserves untouched historical values without needing the new catalog', async () => {
   expect(await service.profileFields(student, { program: student.program, college_id: '1' })).toEqual({});
   expect(model.findByName).not.toHaveBeenCalled(); expect(reference.findCollegeById).not.toHaveBeenCalled();
-  await auth.updateProfile(3, { phone_number: 'synthetic' });
-  expect(users.updateProfile).toHaveBeenCalledWith(3, { phone_number: 'synthetic' }, connection);
+  await auth.updateProfile(3, { phone_number: '09123456789' });
+  expect(users.updateProfile).toHaveBeenCalledWith(3, { phone_number: '09123456789' }, connection);
 });
 it('canonicalizes the three distinct academic fields from trusted reference data', async () => {
   expect(await service.profileFields(student, { college_id: '2', program: ' Approved Program ', course: 'forged' })).toEqual({ college_id: 2, course: 'New College', program: 'Approved Program' });

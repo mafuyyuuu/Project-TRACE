@@ -22,6 +22,6 @@ describe('Batch 8 presentation helpers', () => {
   });
   it('distinguishes a rejected legacy record', () => expect(getStatusTone(LEGACY_STATUS.REJECTED)).toContain('text-red-'));
   it('keeps approved credential and contact limits explicit', () => {
-    expect(INPUT_LIMITS).toMatchObject({ id: 50, phone: 20, email: 255, password: 64, notes: 2000 });
+    expect(INPUT_LIMITS).toMatchObject({ id: 50, phone: 13, email: 255, password: 64, notes: 2000 });
   });
 });

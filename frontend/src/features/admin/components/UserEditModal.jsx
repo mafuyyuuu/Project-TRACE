@@ -1,3 +1,5 @@
+import PhoneInput from '@/components/PhoneInput';
+import { normalizePhoneNumber, phoneNumberError } from '@/utils/phoneNumber';
 import Button from '@/components/Button';
 import { PASSWORD_REQUIREMENTS, validNewPassword } from '@/utils/passwordPolicy';
 import { INPUT_LIMITS } from '@/utils/inputLimits';
@@ -52,12 +54,14 @@ export default function UserEditModal({ open, onClose, user, onSave, saving, col
     e.preventDefault();
     if (passwordMismatch) return;
     if (newPassword && !validNewPassword(newPassword)) { setValidationError(PASSWORD_REQUIREMENTS); return; }
+    const phoneError = phoneNumberError(phoneNumber, { required: false });
+    if (phoneNumber !== (user.phone_number || '') && phoneError) { setValidationError(phoneError); return; }
     setValidationError('');
 
     const payload = {};
     if (fullName !== user.full_name) payload.full_name = fullName;
     if (email !== (user.email || '')) payload.email = email;
-    if (phoneNumber !== (user.phone_number || '')) payload.phone_number = phoneNumber;
+    if (phoneNumber !== (user.phone_number || '')) payload.phone_number = normalizePhoneNumber(phoneNumber) || '';
     if (user.role !== 'student' && newPassword) payload.password = newPassword;
     if (String(collegeId) !== String(user.college_id || '')) payload.college_id = collegeId ? Number(collegeId) : null;
     if (course !== (user.course || '')) payload.course = course;
@@ -152,7 +156,7 @@ export default function UserEditModal({ open, onClose, user, onSave, saving, col
 
             <div>
               <Label>Contact Number</Label>
-              <input maxLength={INPUT_LIMITS.phone} className={inputClass} value={phoneNumber} onChange={(e) => setPhoneNumber(e.target.value)} />
+              <PhoneInput className={inputClass} value={phoneNumber} onChange={(e) => setPhoneNumber(e.target.value)} />
             </div>
 
             {user.role !== 'student' && <>

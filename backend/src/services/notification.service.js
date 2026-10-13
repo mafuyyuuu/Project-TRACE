@@ -4,6 +4,7 @@ const env = require('../config/env');
 const notificationModel = require('../models/notification.model');
 const realtime = require('../realtime');
 const { errorDetails, logEmailOutcome } = require('../utils/emailDiagnostics');
+const { normalizePhoneNumber } = require('../utils/phoneNumber');
 
 /**
  * Multi-channel notification dispatch: in-app (bell icon), SMS (UniSMS), and
@@ -149,7 +150,9 @@ async function sendSms(phoneNumber, content) {
     return { ok: false, skipped: true, reason: 'SMS is not configured (UNISMS_SECRET_KEY missing).' };
   }
 
-  const targetPhone = phoneNumber || env.TEST_PHONE_NUMBER;
+  const savedPhone = phoneNumber || env.TEST_PHONE_NUMBER;
+  const localPhone = normalizePhoneNumber(savedPhone);
+  const targetPhone = localPhone ? `+63${localPhone.slice(1)}` : savedPhone;
   if (!targetPhone) {
     return { ok: false, skipped: true, reason: 'No phone number on file for this recipient.' };
   }

@@ -1,3 +1,4 @@
+import NumberInput from '@/components/NumberInput';
 import Button from '@/components/Button';
 import { yearError } from '@/utils/profileYears';
 import { INPUT_LIMITS } from '@/utils/inputLimits';
@@ -136,7 +137,7 @@ export default function NewRequestModal({
                         <div className="px-4 pb-4 pt-1 space-y-3 border-t border-emerald-100/70 dark:border-emerald-800/70">
                           <label className="trace-label flex flex-col gap-1.5">
                             Copies
-                            <input type="number" min="1" max={isHonorableDismissal(type.name) ? 1 : 2147483647} step="1" required
+                            <NumberInput type="number" min="1" max={isHonorableDismissal(type.name) ? 1 : 2147483647} step="1" required
                               value={selection.copies} onChange={e => updateSelection(type.name, { copies: e.target.value })}
                               className="trace-control w-full" />
                           </label>

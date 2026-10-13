@@ -305,3 +305,8 @@ Additive `migrate_student_name_parts.js` adds nullable first/middle/last profile
 Verification in this disconnected session covers source parsing and actual service/helper execution with in-memory model fixtures. Full Vitest, build/lint, browser and MySQL checks are pending; prepared source is not evidence of cloud deployment. See the consolidated [migration ledger](DEPLOYMENT_CHECKLIST.md) and [README walkthrough](../README.md#finance-receipt-walkthrough).
 
 New signup collects first/middle/last fields, builds Full Name automatically and saves parts with the account in the registration transaction. Existing accounts confirm their unsplit names in Edit Profile; legacy API clients that send only Full Name remain supported. Read ID retains a detected full-name hint, fills other eligible empty fields and never guesses compound name boundaries. The new form requires first/last before confirmation; middle remains optional.
+
+
+## 2026-10-13 — field limits and registration review
+
+Demonstrate the phone field stopping excess digits, rejecting an incomplete/foreign number, and saving 09/+639 equivalents consistently. Show bounded whole copies/pages, centavo fee precision, and server rejection when UI validation is bypassed. Import Phone Number as Text for spreadsheets that display the CSV marker. Explain that an inconclusive college read leaves signup pending and prevents login until Admin reviews it; spacing tolerance does not skip college or ID checks. The review no longer shows a stray zero. Do not claim real-photo accuracy or live SMS delivery from local synthetic tests.

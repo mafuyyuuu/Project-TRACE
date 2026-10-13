@@ -25,7 +25,7 @@ export default function StaffAuthenticatorSetupPage() {
       {!auth.setup ? <>
         <p className="text-sm">Ask Admin to check your identity and issue a private ten-minute setup code. Use your own staff password.</p>
         <label className="trace-label trace-label-inverse block">Staff ID<input required maxLength={50} autoComplete="username" value={id} disabled={auth.busy} onChange={event => setId(event.target.value)} className={inputClass} /></label>
-        <label className="trace-label trace-label-inverse block">Staff password<input required maxLength={64} type="password" autoComplete="current-password" value={password} disabled={auth.busy} onChange={event => setPassword(event.target.value)} className={inputClass} /></label>
+        <label className="trace-label trace-label-inverse block">Staff password<input required type="password" autoComplete="current-password" value={password} disabled={auth.busy} onChange={event => setPassword(event.target.value)} className={inputClass} /></label>
         <label className="trace-label trace-label-inverse block">Admin setup code<input required maxLength={64} autoComplete="off" value={setupCode} disabled={auth.busy} onChange={event => setSetupCode(event.target.value)} className={`${inputClass} font-mono`} /></label>
       </> : <>
         <p className="text-sm">Scan with your authenticator app, or enter the manual key below. Setup expires {new Date(auth.setup.expires_at).toLocaleTimeString('en-PH')}.</p>
