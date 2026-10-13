@@ -4,6 +4,7 @@ const referenceModel = require('../models/referenceData.model');
 const { badRequest } = require('../utils/AppError');
 
 const FAILURE_MESSAGES = {
+  busy: 'The ID reader is processing another image. Retry shortly, or enter the details manually.',
   timeout: 'Reading this ID took too long. Try a cropped photo showing the ID clearly, or enter the details manually.',
   unavailable: 'The ID reader is temporarily unavailable. Try again later, or enter the details manually.',
   no_text: 'No readable text was detected. Try an upright photo cropped to the ID, or enter the details manually.',

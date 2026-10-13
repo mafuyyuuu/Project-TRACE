@@ -41,7 +41,7 @@ it('rejects executable upload types and bounds both OCR and retained proof uploa
   expect(callback).toHaveBeenLastCalledWith(null, true);
 });
 
-it.each(['timeout','unavailable','no_text','no_fields','engine_failure','invalid_image'])('returns a safe specific %s reason without raw OCR text',async failure_reason=>{
+it.each(['busy','timeout','unavailable','no_text','no_fields','engine_failure','invalid_image'])('returns a safe specific %s reason without raw OCR text',async failure_reason=>{
  ai.extractIdentity.mockResolvedValue({success:false,failure_reason,raw_text:'private data'});
  const result=await extractIdentity(file);expect(result).toMatchObject({success:false,failure_reason});expect(result.message).toMatch(/manually/);expect(result).not.toHaveProperty('raw_text');
  expect(fs.unlink).toHaveBeenCalledWith(file.path);

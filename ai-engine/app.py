@@ -13,6 +13,7 @@ import os
 import sys
 import logging
 import tempfile
+import time
 from contextlib import contextmanager
 
 from flask import Flask, request, jsonify
@@ -220,6 +221,8 @@ def support_insights():
 
 @app.route('/ocr/identity', methods=['POST'])
 def ocr_identity():
+    started = time.monotonic()
+    logger.info('Identity upload received bytes=%s', request.content_length)
     file = request.files.get('document')
     if not file or not allowed_file(file.filename):
         return jsonify({'success': False, 'error': 'Choose a supported ID image.'}), 400
@@ -233,6 +236,8 @@ def ocr_identity():
     finally:
         if temp_path and os.path.exists(temp_path):
             os.remove(temp_path)
+        logger.info('Identity upload finished elapsed_ms=%d',
+                    round((time.monotonic() - started) * 1000))
 
 
 @app.route('/ocr/extract', methods=['POST'])

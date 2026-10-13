@@ -125,7 +125,7 @@ export async function extractSignupId(file, options = {}) {
   const form = new FormData();
   form.append('id_proof', file);
   const { data } = await api.post('/ai/extract-id', form, {
-    timeout: 40000, ...options, headers: { ...options.headers, 'Content-Type': 'multipart/form-data' },
+    timeout: 75000, ...options, headers: { ...options.headers, 'Content-Type': 'multipart/form-data' },
   });
   return data;
 }

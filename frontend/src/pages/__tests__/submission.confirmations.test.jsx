@@ -480,6 +480,6 @@ it('restores mandatory student proof when switching away from an alumni missing-
   expect(screen.queryByRole('checkbox',{name:/proof unavailable/})).not.toBeInTheDocument();
   expect(screen.queryByLabelText('Explain Missing Proof')).not.toBeInTheDocument();
   expect(screen.getByRole('button',{name:'Read ID'})).toBeInTheDocument();
-  expect(screen.getByText('Upload Proof (ID / Diploma) *')).toBeInTheDocument();
+  expect(screen.getByText('Upload Proof of ID *')).toBeInTheDocument();
   expect(auth.register).not.toHaveBeenCalled();
 });

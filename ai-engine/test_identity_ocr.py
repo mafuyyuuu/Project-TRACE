@@ -24,7 +24,7 @@ class IdentityOcrTests(unittest.TestCase):
             result = self.engine.process_identity('synthetic.png')
         self.assertTrue(result['success'])
         self.assertEqual(result['extracted_data']['full_name'], 'Ana Reyes')
-        self.reader.readtext.assert_called_once_with('synthetic.png', detail=0)
+        self.reader.readtext.assert_called_once_with('synthetic.png', detail=0, canvas_size=1280, mag_ratio=1)
         preprocess.assert_not_called()
 
     def test_fallback_keeps_original_fields_and_fills_missing_id(self):
@@ -68,8 +68,52 @@ class IdentityOcrTests(unittest.TestCase):
         self.assertEqual(result['extracted_data']['full_name'], 'DELA CRUZ, ANA M.')
         self.assertEqual(result['extracted_data']['college_name'], 'COLLEGE OF COMPUTER STUDIES')
         self.assertIsNone(result['extracted_data']['middle_name'])
-        self.reader.readtext.assert_called_once_with('synthetic.png', detail=0)
+        self.reader.readtext.assert_called_once_with('synthetic.png', detail=0, canvas_size=1280, mag_ratio=1)
         preprocess.assert_not_called()
+
+    def test_slow_original_does_not_start_another_scan(self):
+        self.reader.readtext.return_value = ['Registrar Office']
+        with patch.object(self.engine.time, 'monotonic', side_effect=[0, 21, 21, 21]), \
+                patch.object(self.engine, 'preprocess_image') as preprocess:
+            result = self.engine.process_identity('synthetic.png')
+        self.assertEqual(result['failure_reason'], 'timeout')
+        self.reader.readtext.assert_called_once()
+        preprocess.assert_not_called()
+
+    def test_slow_original_preserves_readable_fields(self):
+        self.reader.readtext.return_value = ['Full Name: Ana Reyes']
+        with patch.object(self.engine.time, 'monotonic', side_effect=[0, 21, 21, 21]), \
+                patch.object(self.engine, 'preprocess_image') as preprocess:
+            result = self.engine.process_identity('synthetic.png')
+        self.assertTrue(result['success'])
+        self.assertEqual(result['extracted_data']['full_name'], 'Ana Reyes')
+        preprocess.assert_not_called()
+
+    def test_concurrent_identity_scan_returns_busy_without_loading_image(self):
+        self.engine._identity_lock.acquire()
+        try:
+            result = self.engine.process_identity('synthetic.png')
+        finally:
+            self.engine._identity_lock.release()
+        self.assertEqual(result['failure_reason'], 'busy')
+        self.reader.readtext.assert_not_called()
+
+    def test_failed_scan_releases_worker_for_the_next_id(self):
+        self.reader.readtext.side_effect = RuntimeError('reader failed')
+        with patch.object(self.engine, 'preprocess_image', side_effect=ValueError('invalid')):
+            self.assertFalse(self.engine.process_identity('synthetic.png')['success'])
+        self.reader.readtext.side_effect = None
+        self.reader.readtext.return_value = ['Student ID: 23-00939']
+        self.assertTrue(self.engine.process_identity('synthetic.png')['success'])
+
+    def test_timing_logs_do_not_contain_read_id_text(self):
+        self.reader.readtext.return_value = ['Student ID: 23-00939', 'Full Name: Ana Reyes']
+        with self.assertLogs(self.engine.logger, level='INFO') as logs:
+            self.engine.process_identity('synthetic.png')
+        output = '\n'.join(logs.output)
+        self.assertIn('elapsed_ms=', output)
+        self.assertNotIn('23-00939', output)
+        self.assertNotIn('Ana Reyes', output)
 
 
 if __name__ == '__main__':

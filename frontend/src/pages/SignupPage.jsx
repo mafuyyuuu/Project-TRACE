@@ -73,7 +73,7 @@ export default function SignupPage() {
     }
     if (formData.proofUnavailable && !formData.proofReason.trim()) { setLocalError('Explain why your records or proof are unavailable.'); return; }
     if (!file && !formData.proofUnavailable) {
-      setLocalError('Please upload your proof of ID or Diploma.')
+      setLocalError('Please upload your proof of ID.')
       return
     }
     
@@ -254,14 +254,14 @@ export default function SignupPage() {
             </section>}
 
             {!formData.proofUnavailable && <div className="flex flex-col gap-1.5">
-              <p className="trace-label ml-1">Upload Proof (ID / Diploma) *</p>
-              <FileUploadField showLabel={false} label="Proof of ID / Diploma" file={file} onChange={setFile} accept=".pdf,.png,.jpg,.jpeg" disabled={loading} />
+              <p className="trace-label ml-1">Upload Proof of ID *</p>
+              <FileUploadField showLabel={false} label="Proof of ID" file={file} onChange={setFile} accept=".pdf,.png,.jpg,.jpeg" disabled={loading} />
               <Button type="button" onClick={ocr.readId} disabled={!file || ocr.reading || loading}
                 className="trace-button trace-button-info self-start">
                 {ocr.reading ? 'Reading ID…' : 'Read ID'}
               </Button>
               {ocr.message && <p role="status" className="text-sm text-blue-800 dark:text-blue-300 select-text">{ocr.message}</p>}
-              <p className="text-xs text-gray-400 dark:text-gray-400 ml-1 mt-1">Please attach a clear photo of your Student ID or Diploma for verification.</p>
+              <p className="text-xs text-gray-400 dark:text-gray-400 ml-1 mt-1">Please attach a clear photo of your Student ID for verification.</p>
             </div>}
 
             <Button type="submit" disabled={loading || ocr.reading} className="trace-button-lift trace-action mt-4 w-full py-4 bg-pine-600 enabled:hover:bg-pine-700 disabled:opacity-70 text-white rounded-full font-bold transition-colors shadow-sm flex items-center justify-center gap-2">

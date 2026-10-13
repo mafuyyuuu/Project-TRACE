@@ -84,11 +84,15 @@ async function extractReceipt(file) {
 
 /** Prophet 7-day volume forecast. Returns null when unavailable (caller falls back). */
 async function extractIdentity(file) {
+  const started = Date.now();
+  console.info('Identity reader request started.');
   try {
-    return await requestJson(`${env.AI_ENGINE_URL}/ocr/identity`, { method: 'POST', body: buildFormData(file) }, 30000);
+    const result = await requestJson(`${env.AI_ENGINE_URL}/ocr/identity`, { method: 'POST', body: buildFormData(file) }, 60000);
+    console.info(`Identity reader request finished in ${Date.now() - started}ms; success=${result?.success === true}.`);
+    return result;
   } catch (error) {
     const failure_reason = error.name === 'AbortError' ? 'timeout' : 'unavailable';
-    console.warn(`Identity reader failed: ${failure_reason}.`);
+    console.warn(`Identity reader failed: ${failure_reason}; elapsed_ms=${Date.now() - started}.`);
     return { success: false, failure_reason };
   }
 }

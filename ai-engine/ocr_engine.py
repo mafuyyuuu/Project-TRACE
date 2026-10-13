@@ -20,6 +20,8 @@ os.environ.setdefault('OMP_NUM_THREADS', '1')
 
 import re
 import logging
+import time
+import threading
 from datetime import date
 import easyocr
 import cv2
@@ -32,6 +34,12 @@ logger = logging.getLogger(__name__)
 # Initialize the EasyOCR reader globally so the PyTorch model loads only once
 # gpu=False ensures it works on all hardware, though it can be enabled if available
 reader = easyocr.Reader(['en'], gpu=False)
+
+# Bound CPU detector work for ID photos and avoid competing ID scans within a
+# worker. Gunicorn workers each retain their own Reader and lock.
+IDENTITY_READ_OPTIONS = dict(detail=0, canvas_size=1280, mag_ratio=1)
+IDENTITY_FALLBACK_BUDGET_SECONDS = 20
+_identity_lock = threading.Lock()
 
 
 def preprocess_image(filepath):
@@ -129,6 +137,21 @@ def extract_text(filepath):
 
 
 def process_identity(filepath):
+    if not _identity_lock.acquire(blocking=False):
+        return {'success': False, 'extracted_data': {}, 'failure_reason': 'busy'}
+    started = time.monotonic()
+    logger.info('Identity OCR started')
+    try:
+        result = _process_identity(filepath, started)
+        logger.info('Identity OCR finished elapsed_ms=%d success=%s reason=%s',
+                    round((time.monotonic() - started) * 1000),
+                    result['success'], result.get('failure_reason', 'none'))
+        return result
+    finally:
+        _identity_lock.release()
+
+
+def _process_identity(filepath, started):
     """Try the original once; only preprocess when no identifier is found.
 
     Preserve OCR fragments as lines for label/value parsing. Select fields,
@@ -139,7 +162,9 @@ def process_identity(filepath):
     text_found = False
     scan_failed = False
     try:
-        original_text = "\n".join(reader.readtext(filepath, detail=0)).strip()
+        original_text = "\n".join(reader.readtext(filepath, **IDENTITY_READ_OPTIONS)).strip()
+        logger.info('Identity original pass finished elapsed_ms=%d',
+                    round((time.monotonic() - started) * 1000))
         text_found = bool(original_text)
         parsed = parse_identity_data(original_text, include_ambiguity=True)
         original = parsed['fields']
@@ -150,9 +175,18 @@ def process_identity(filepath):
         scan_failed = True
         logger.warning('Original identity scan failed: %s', type(error).__name__)
 
+    # A native OCR call cannot be interrupted safely. Avoid starting another
+    # expensive pass when the first already consumed the fallback budget.
+    if time.monotonic() - started >= IDENTITY_FALLBACK_BUDGET_SECONDS:
+        if any(original.values()):
+            return {'success': True, 'extracted_data': original}
+        return {'success': False, 'extracted_data': {},
+                'failure_reason': 'ambiguous' if ambiguous else 'timeout'}
+
     try:
+        logger.info('Identity fallback pass started')
         processed = preprocess_image(filepath)
-        processed_text = "\n".join(reader.readtext(processed, detail=0)).strip()
+        processed_text = "\n".join(reader.readtext(processed, **IDENTITY_READ_OPTIONS)).strip()
         text_found = text_found or bool(processed_text)
         parsed = parse_identity_data(processed_text, include_ambiguity=True)
         fallback = parsed['fields']
