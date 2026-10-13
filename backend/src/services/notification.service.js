@@ -45,7 +45,8 @@ function isSmsConfigured() {
   return Boolean(env.UNISMS_SECRET_KEY && env.UNISMS_SECRET_KEY.trim());
 }
 
-const unismsClient = isSmsConfigured() ? new UniSmsClient(env.UNISMS_SECRET_KEY) : null;
+// A timed-out send may already have reached the provider; do not replay it.
+const unismsClient = isSmsConfigured() ? new UniSmsClient(env.UNISMS_SECRET_KEY, { maxRetries: 0 }) : null;
 
 const transporter = isEmailConfigured()
   ? nodemailer.createTransport({
@@ -77,8 +78,8 @@ async function verifyChannels() {
   } else {
     // UniSMS has no cheap connectivity probe, so configuration is as far as we
     // can check without actually sending a message.
-    status.sms.ok = true;
-    status.sms.detail = 'API key present.';
+    status.sms.ok = null;
+    status.sms.detail = 'API key present; provider acceptance and handset delivery are unverified.';
   }
 
   if (!status.email.configured) {
@@ -102,7 +103,7 @@ async function logChannelStatus() {
   const status = await verifyChannels();
   for (const [channel, s] of Object.entries(status)) {
     if (channel === 'in_app') continue;
-    const icon = s.ok ? '✅' : s.configured ? '❌' : '⚠️ ';
+    const icon = s.ok ? '✅' : s.ok === null ? 'ℹ️ ' : s.configured ? '❌' : '⚠️ ';
     console.log(`${icon} [${channel.toUpperCase()}] ${s.detail}`);
   }
   return status;
@@ -143,7 +144,8 @@ async function notifyInAppBulk(users, { title, message, type, actionUrl }, execu
 
 /**
  * @returns {{ok: boolean, skipped?: boolean, reason?: string}} so callers and
- * tests can tell "delivered" from "not configured" from "failed".
+ * tests can distinguish provider acceptance, missing configuration and failure.
+ * Provider acceptance does not establish handset delivery.
  */
 async function sendSms(phoneNumber, content) {
   if (!isSmsConfigured()) {
@@ -163,11 +165,15 @@ async function sendSms(phoneNumber, content) {
       content,
       senderId: env.UNISMS_SENDER_ID,
     });
-    console.log(`✅ [UniSMS] SMS dispatched to ${targetPhone}`);
-    return { ok: true };
+    console.log('[SMS] outcome=provider_accepted delivery=unverified');
+    return { ok: true, outcome: 'provider_accepted' };
   } catch (err) {
-    console.error(`❌ [UniSMS] Failed to send to ${targetPhone}: ${err.message}`);
-    return { ok: false, reason: err.message };
+    const status = Number(err?.statusCode);
+    const rejected = Number.isInteger(status) && status >= 400 && status < 500;
+    const code = Number.isInteger(status) ? `HTTP_${status}` : 'UNCONFIRMED';
+    const outcome = rejected ? 'provider_rejected' : 'unknown';
+    console.error(`[SMS] outcome=${outcome} code=${code}`);
+    return { ok: false, reason: rejected ? `SMS provider rejected the request (${code}).` : 'SMS provider acceptance could not be confirmed.', outcome, code };
   }
 }
 

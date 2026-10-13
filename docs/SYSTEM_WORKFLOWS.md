@@ -439,3 +439,8 @@ Rebuild/recreate both backend and AI engine from the matching `dev` revision, th
 ## 2026-10-13 — field limits and registration review
 
 Signup and profile edits validate complete Philippine mobile numbers and text bounds before confirmation/save. New numbers persist in local 11-digit form; SMS uses the provider +63 form. Numeric entry has bounded ordinary decimals and existing business ranges. CSV phones use a text marker instead of numeric conversion/formulas. Registration proof checks still require school, exact ID and college in one OCR pass; only whitespace differences in the college heading are tolerated. Inconclusive proofs remain pending for Admin review, and login returns 403 until verification. The false proof-unavailable flag renders no numeric zero. See USER_MANUAL.md → Field formats and entry limits for the user-facing limits.
+
+
+## 2026-10-13 — unclaimed pickup SMS reminders
+
+Secretary physical handoff to READY_FOR_RELEASE requests the immediate SMS/email notice. The new worker uses that readiness episode for a first unclaimed SMS reminder after 72 hours, followed by weekly reminders, never sooner than seven days after an attempt. It excludes claimed/returned documents and invalid/unverified/inactive recipients, and consolidates due documents per recipient. A persistent attempt ledger prevents replay after restarts; uncertain outcomes are kept for review instead of automatic resend. In-app/pipeline state changes still succeed independently of the SMS provider.

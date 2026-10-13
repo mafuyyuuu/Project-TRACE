@@ -310,3 +310,8 @@ New signup collects first/middle/last fields, builds Full Name automatically and
 ## 2026-10-13 — field limits and registration review
 
 Demonstrate the phone field stopping excess digits, rejecting an incomplete/foreign number, and saving 09/+639 equivalents consistently. Show bounded whole copies/pages, centavo fee precision, and server rejection when UI validation is bypassed. Import Phone Number as Text for spreadsheets that display the CSV marker. Explain that an inconclusive college read leaves signup pending and prevents login until Admin reviews it; spacing tolerance does not skip college or ID checks. The review no longer shows a stray zero. Do not claim real-photo accuracy or live SMS delivery from local synthetic tests.
+
+
+## 2026-10-13 — unclaimed pickup SMS reminders
+
+Explain that normal Ready for Pickup handoff already requests SMS/email. Demonstrate the three-day and weekly schedule using synthetic dates, showing claimed exclusion, recipient batching and the persistent attempt ledger. Distinguish key configured, provider accepted, provider rejected and unknown delivery. No real message was sent in the coding environment; live provider delivery remains a deployment acceptance check.

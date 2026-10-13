@@ -1163,3 +1163,8 @@ Rebuild/recreate both backend and AI engine from the matching `dev` revision, th
 ## 2026-10-13 — field limits and registration review
 
 Deploy the matching dev frontend on Vercel. Pull dev, run `docker compose build backend ai-engine`, then `docker compose up -d --no-deps --force-recreate backend ai-engine`. This update adds no migration, environment variable or dependency. Verify phone rejection/canonical saving, zero-preserving CSV imports and valid local-number SMS recipient formatting. Existing pending accounts are not automatically rechecked or approved; review them through Admin. The supplied inline ID photo was visually inspected but its original bytes were unavailable to the local OCR process, so actual recognition on that photo remains unverified.
+
+
+## 2026-10-13 — unclaimed pickup SMS reminders
+
+This subsequent reminder feature requires `database/migrate_pickup_sms_reminders.js` before restarting the new backend. The idempotent script creates only its attempt ledger; it does not alter document, student, payment or readiness history. Build backend/AI from current dev, run the preserving migration with a one-off backend container, run check_schema.js, then recreate backend/AI and deploy the matching Vercel frontend. The reminder worker will include already-eligible unclaimed documents with valid readiness audit history when started. It uses the existing UNISMS_SECRET_KEY/UNISMS_SENDER_ID; no new variable is added. Observe `[SMS] outcome=...` and `[PICKUP_SMS] outcome=...` logs after an actual eligible action. Existing startup key presence is not evidence of delivery.

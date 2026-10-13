@@ -408,3 +408,8 @@ Phone fields accept Philippine mobile numbers only: `09XXXXXXXXX` or `+639XXXXXX
 The form bounds entry and the server independently rejects invalid submitted values. Current/login passwords are not silently shortened. Invalid drafts remain available for correction. Dates and printer calibration retain their existing ranges.
 
 A clear uploaded ID can still stay pending if OCR cannot read the selected college accurately. Matching accepts spacing differences but retains every college letter, exact ID and school checks. Admin reviews inconclusive proofs. Pending does not mean fake or rejected; login remains denied until verification. The registration-review flag no longer displays a stray numeric zero.
+
+
+## 2026-10-13 — unclaimed pickup SMS reminders
+
+Ready for pickup already requests both SMS and email. An unclaimed document gets an SMS reminder after three calendar days (72 hours) from its recorded handoff to Window 1, then weekly. Checks run about every 15 minutes; reminders stop when the document is claimed or no longer ready. Due documents for the same recipient are combined. A late check sends the current reminder only, and attempts are never less than seven days apart. Keep a valid saved Philippine mobile number. Provider acceptance is not confirmation that the handset received the message; key configuration alone does not prove delivery.

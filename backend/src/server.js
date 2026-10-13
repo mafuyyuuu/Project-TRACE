@@ -30,6 +30,8 @@ async function start() {
   realtime.init(server);
   const stopSupportTimers = require('./services/supportTimer.service').startTimers();
   server.once('close', stopSupportTimers);
+  const stopPickupReminders = require('./services/pickupReminder.service').startTimers();
+  server.once('close', stopPickupReminders);
 
   server.listen(env.PORT, () => {
     console.log(`🚀 TRACE Backend API listening on http://localhost:${env.PORT}`);

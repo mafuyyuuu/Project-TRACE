@@ -793,3 +793,8 @@ New signup collects first/middle/last fields, builds Full Name automatically and
 ## 2026-10-13 — field limits and registration review
 
 Field limits are enforced in the UI and relevant account/profile/catalog/application services, while pricing retains server-calculated totals. Mobile numbers accept two Philippine spellings and save as 11-digit local text. CSV applies a text marker and formula escaping; spreadsheet import behavior still depends on the reader. Password creation remains 8–64 without shortening existing login credentials. The ID check validates visible field consistency, not physical authenticity. Whitespace tolerance retains all college letters; incomplete reads require Admin approval, and pending login is denied. Actual supplied-photo OCR accuracy has not been measured.
+
+
+## 2026-10-13 — unclaimed pickup SMS reminders
+
+The pickup reminder is an elapsed-calendar schedule from an actual readiness transition: three days, then weekly while unclaimed. It uses a preserving SQL attempt ledger, replica serialization, unique period keys and fresh eligibility checks. Synthetic MySQL tests establish scheduling/deduplication behavior, not live SMS acceptance or handset receipt. A configured key is reported as configured/unverified; provider acceptance and unknown/failure are distinct. Missed periods and uncertain sends are not replayed.
