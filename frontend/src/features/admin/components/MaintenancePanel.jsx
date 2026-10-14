@@ -278,7 +278,7 @@ export default function MaintenancePanel({ user, currentTab }) {
             </form></ModalShell>
 
             <div className="trace-section trace-admin-document-types overflow-hidden">
-              <div className="trace-section-header border-gray-100 dark:border-gray-700">
+              <div className="trace-section-header trace-admin-filter-toolbar">
                 <div><h3 className="trace-section-title">Document Types</h3><p className="trace-admin-caption">Fees apply to new requests only. A type already used by documents cannot be renamed.</p></div><div className="trace-actions"><Button type="button" className="trace-button trace-button-primary" onClick={() => { resetForm(); setCatalogForm('documentTypes'); }}><AdminIcon name="plus" />New document type</Button></div>
               </div>
               <div className="flex flex-wrap gap-2 px-6 pb-4" aria-label="Document type filters">{[['all', 'All'], ['active', 'Active'], ['inactive', 'Inactive'], ['drafts', 'Drafts']].map(([key, label]) => <Button type="button" key={key} aria-pressed={typeFilter === key} onClick={() => { setTypeFilter(key); setTypePage(0); }} className={'trace-action rounded-full border px-3.5 py-1.5 text-xs ' + (typeFilter === key ? 'border-green-200 bg-[#e8f5ee] text-trace-emerald dark:border-green-800 dark:bg-green-950 dark:text-green-300' : 'border-gray-200 bg-white text-slate-500 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300')}>{label}{key === 'all' ? ' ' + m.documentTypes.length : ''}</Button>)}</div>

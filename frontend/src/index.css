@@ -998,3 +998,27 @@ body:has(.trace-admin-shell) .trace-admin-catalog-dialog .trace-modal-title { fo
 }
 
 body:has(.trace-admin-shell) .trace-admin-forecast .trace-modal-header .trace-control { width: 134px; max-width: 100%; flex: none; }
+
+/* Main Tabs toolbars: keep the tracker label beside its control and filter chips
+   directly beneath their heading, as in the Figma frames. */
+.trace-admin-shell .trace-admin-tracker-filter {
+  display: grid;
+  grid-template-columns: minmax(min-content, 55px) minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+  width: min(100%, 17.5rem);
+  min-width: 0;
+}
+.trace-admin-shell .trace-admin-tracker-filter label {
+  font-size: .6875rem;
+  font-weight: 600;
+  letter-spacing: normal;
+}
+.trace-admin-shell .trace-admin-tracker-filter .trace-control {
+  min-height: 42px;
+  border: 0;
+  background: #f0f1f3;
+  font-size: .8125rem;
+}
+.dark .trace-admin-shell .trace-admin-tracker-filter .trace-control { background: #1f2937; }
+.trace-admin-shell .trace-admin-filter-toolbar { border-bottom-width: 0; }

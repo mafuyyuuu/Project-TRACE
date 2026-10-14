@@ -30,6 +30,11 @@ Payment method editing locks the code and stages confirmation through the existi
 Audit timestamp lines use Asia/Manila, with raw unknown event codes preserved.
 [Synthetic fidelity screenshots](admin-main-tabs-fidelity.png) cover the latest correction.
 
+The tracker Filter label and dropdown share two grid columns at every supported
+width. Document Types and Security Logs chip rows attach directly to their toolbar
+without the shared header's bottom divider. Verify the label/control positions and
+computed border width, as page overflow checks alone do not catch these differences.
+
 ### Main Tabs frame inventory
 
 All listed frames were inspected. Implementation is prepared for user review; this is not a record of visual acceptance. [Synthetic browser screenshots](admin-main-tabs-review.png) show the rebuilt registration, security, support settings and document drawer layouts.

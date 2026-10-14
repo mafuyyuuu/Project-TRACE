@@ -1,3 +1,20 @@
+## Admin Main Tabs toolbar corrections — 2026-10-14
+
+The user's latest screenshots exposed a full-width dropdown wrapping below its
+Filter label and inherited header dividers above Document Types/Security Logs
+filter chips. Rechecked source frames `2002:1306`, `2134:1455`, and `2168:1236`.
+The tracker control group now uses two grid columns so the label stays left and
+vertically centered; its typography and gray dropdown surface follow the source.
+Only the Document Types and Security Logs filter toolbars suppress the inherited
+bottom border. Existing filters and loaded-record scope remain functional.
+
+Validation: **83 focused frontend tests / four suites**, lint, production/PWA
+build and changed-line whitespace checks pass. **48 Chromium combinations** at
+320/375/768/1440 px, 100/200% text and light/dark pass position assertions for the
+Filter label, zero-width toolbar dividers, word wrapping, containment, original
+assets and browser errors. `docs/admin-main-toolbar-fixes.png` uses synthetic data.
+More tabs remain paused; Main Tabs still awaits the user's visual acceptance.
+
 ## Admin Main Tabs fidelity corrections — 2026-10-14
 
 Revisited all 35 source frames and rendered all 33 current states in the real Admin

@@ -317,7 +317,7 @@ export default function AdminDashboard({ user, currentTab, setViewImageUrl, revi
                 <div className="trace-section overflow-hidden">
                   <div className="trace-section-header border-gray-100 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800/50">
                     <h3 className="trace-section-title">System-Wide Document Tracker</h3>
-                    <div className="flex min-w-0 max-w-full flex-wrap items-center gap-2">
+                    <div className="trace-admin-tracker-filter">
                       <label htmlFor="admin-document-filter" className="shrink-0 whitespace-nowrap text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest">Filter:</label>
                       <select
                         id="admin-document-filter"
