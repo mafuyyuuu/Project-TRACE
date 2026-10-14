@@ -20,6 +20,16 @@ Audit controls filter the loaded response, with eight rows per page; display thi
 
 Desktop geometry follows the source frames; narrow layouts stack sections and use existing table scrollers. Text preference enlargement may increase card height rather than clip values. Retain dark equivalents, keyboard access, visible focus, reduced motion and 44 px mobile controls. Live values, honest empty/error states and required workflow explanations take precedence over copying example records or unsupported performance claims from the mockups.
 
+Main Tabs fidelity follow-up: boxed action labels reserve min-content width; registration
+email addresses may break at `@` before splitting a domain. Original icon exports must
+contain every contour (the staff password eye uses a complete Figma PNG export).
+Profile Security keeps its summary/tabs fixed and scrolls its cards; card actions align
+right on desktop and reflow at small widths. Document schedules show currency prefixes
+and side-by-side base/rental/special fields, with Registrar rule guards preserved.
+Payment method editing locks the code and stages confirmation through the existing service.
+Audit timestamp lines use Asia/Manila, with raw unknown event codes preserved.
+[Synthetic fidelity screenshots](admin-main-tabs-fidelity.png) cover the latest correction.
+
 ### Main Tabs frame inventory
 
 All listed frames were inspected. Implementation is prepared for user review; this is not a record of visual acceptance. [Synthetic browser screenshots](admin-main-tabs-review.png) show the rebuilt registration, security, support settings and document drawer layouts.

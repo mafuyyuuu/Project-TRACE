@@ -1,3 +1,4 @@
+import AdminIcon from '@/features/admin/components/AdminIcon';
 import PhoneInput from '@/components/PhoneInput';
 import { normalizePhoneNumber, phoneNumberError } from '@/utils/phoneNumber';
 import Button from '@/components/Button';
@@ -75,6 +76,7 @@ export default function UserEditModal({ open, onClose, user, onSave, saving, col
 
   return (
     <ModalShell
+      closeButtonIcon={<AdminIcon name="close" />}
       open={open}
       onClose={onClose}
       title="Edit User"

@@ -613,8 +613,8 @@ body:has(.trace-admin-shell) .trace-admin-main-dialog .trace-button { @apply min
 .trace-admin-proof-tools { @apply absolute bottom-[13px] left-1/2 flex -translate-x-1/2 items-center gap-0.5 rounded-xl border border-[#e2e8ec] bg-white px-1.5 py-1 text-xs text-slate-600 shadow-md dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200; }
 .trace-admin-proof-tools .trace-icon-button { @apply h-[30px] w-[30px] rounded-lg; }
 .trace-admin-initials { @apply flex h-12 w-12 shrink-0 items-center justify-center rounded-full border border-[#cde8d8] bg-[#e8f5ee] text-sm font-semibold text-trace-emerald dark:border-green-800 dark:bg-green-950 dark:text-green-300; }
-.trace-admin-review-field { @apply grid grid-cols-[minmax(0,1fr)_minmax(0,1.5fr)] items-center gap-3 border-t border-[#e2e8ec] px-[18px] py-3 text-[13px] dark:border-gray-700; }
-.trace-admin-review-field dt { @apply text-[#647084] dark:text-gray-400; }
+.trace-admin-review-field { @apply grid grid-cols-[auto_minmax(0,1fr)] items-center gap-2.5 border-t border-[#e2e8ec] px-[18px] py-3 text-[13px] dark:border-gray-700; }
+.trace-admin-review-field dt { @apply shrink-0 text-[#647084] dark:text-gray-400; }
 .trace-admin-review-notice { @apply rounded-[14px] border border-amber-200 bg-[#fffae9] p-[18px] dark:border-amber-800 dark:bg-amber-950/50; }
 body:has(.trace-admin-shell) .trace-admin-registration .trace-modal-header { @apply border-b border-[#e2e8ec] pb-5 pt-[22px] dark:border-gray-700; }
 body:has(.trace-admin-shell) .trace-admin-registration .trace-modal-footer { @apply bg-[#fafbfc] dark:bg-gray-900; }
@@ -842,3 +842,159 @@ body:has(.trace-admin-shell) .trace-admin-drawer { border-radius: 28px 0 0 28px;
 
 body:has(.trace-admin-shell) .trace-admin-main-dialog:not(.trace-admin-drawer) .trace-control:not(:disabled):not([readonly]) { background-color: white; }
 .dark body:has(.trace-admin-shell) .trace-admin-main-dialog:not(.trace-admin-drawer) .trace-control:not(:disabled):not([readonly]) { background-color: #1f2937; }
+
+/* Main Tabs fidelity corrections: preserve words and source security card composition. */
+.trace-admin-shell .trace-button-visual,
+body:has(.trace-admin-shell) .trace-admin-main-dialog .trace-button-visual { overflow-wrap: normal; word-break: normal; min-width: min-content; }
+body:has(.trace-admin-shell) .trace-admin-main-dialog .trace-button { min-width: min-content; }
+body:has(.trace-admin-shell) .trace-admin-main-dialog .trace-admin-password-input .trace-icon-button { height: 32px; width: 32px; right: 7px; border-radius: 6px; border: 0; background: transparent; }
+.trace-admin-review-field dt { white-space: nowrap; }
+.trace-admin-review-field dd { overflow-wrap: normal; word-break: normal; }
+.trace-admin-review-field dd span { overflow-wrap: anywhere; }
+body:has(.trace-admin-shell) .trace-admin-edit-profile .trace-section-body { padding: 16px 24px; }
+body:has(.trace-admin-shell) .trace-admin-profile-security-content .trace-section { padding: 16px; }
+.trace-admin-security-card-heading { display: flex; align-items: flex-start; flex-wrap: wrap; gap: 12px; }
+body:has(.trace-admin-shell) .trace-admin-edit-profile .trace-admin-security-icon { height: 36px; width: 36px; }
+body:has(.trace-admin-shell) .trace-admin-security-card-heading h3 { margin: 0; font-size: 14px; line-height: 20px; font-weight: 600; border: 0; padding: 0; }
+.trace-admin-security-card-heading p { margin-top: 4px; font-size: 13px; line-height: 16px; color: #647084; }
+.dark .trace-admin-security-card-heading p { color: #9ca3af; }
+body:has(.trace-admin-shell) .trace-admin-security-card-heading > .trace-button { min-height: 40px; padding: 8px 14px; }
+.trace-admin-password-checks { display: flex; flex-wrap: wrap; gap: 8px; font-size: 12px; line-height: 16px; color: #647084; }
+.trace-admin-password-checks li { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 999px; background: #f0f3f2; }
+.trace-admin-password-checks .trace-admin-password-check-valid { color: #168f55; background: #e8f5ee; }
+.dark .trace-admin-password-checks li { background: #374151; color: #d1d5db; }
+.trace-admin-password-visibility { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; color: #168f55; }
+body:has(.trace-admin-shell) .trace-admin-edit-profile .trace-admin-guidance { font-size: 13px; line-height: 16px; align-items: flex-start; }
+@media (max-width: 479px) {
+  .trace-admin-review-field { grid-template-columns: minmax(0,1fr); gap: 6px; }
+  .trace-admin-review-field dd { text-align: left; }
+  .trace-admin-security-card-heading > .trace-button { margin-left: 48px; }
+}
+
+.trace-admin-money-input { display: flex; min-width: 0; align-items: center; gap: 8px; border: 1px solid #e5e8e6; border-radius: 8px; padding: 0 14px; background: #f7f9f8; }
+.trace-admin-money-input > span { color: #647084; font-size: 14px; }
+body:has(.trace-admin-shell) .trace-admin-money-input .trace-control { border: 0; background: transparent; box-shadow: none; padding-left: 0; padding-right: 0; min-width: 0; }
+.dark .trace-admin-money-input { background: #1f2937; border-color: #4b5563; }
+body:has(.trace-admin-shell) .trace-admin-drawer .trace-form-grid { grid-template-columns: repeat(2,minmax(0,1fr)); }
+body:has(.trace-admin-shell) .trace-admin-drawer .trace-label { font-size: 13px; font-weight: 500; }
+body:has(.trace-admin-shell) .trace-admin-drawer .trace-control { min-height: 40px; padding-top: 9px; padding-bottom: 9px; }
+.trace-admin-request-rules label { min-width: 0; }
+.trace-admin-form-section label:has(.trace-admin-switch) strong { display: block; font-size: 14px; font-weight: 500; }
+.trace-admin-form-section label:has(.trace-admin-switch) small { display: block; margin-top: 3px; font-size: 12px; line-height: 16px; font-weight: 400; color: #647084; }
+.trace-admin-form-section label:has(.trace-admin-switch):has(input:disabled) { opacity: .6; }
+.trace-admin-shell .trace-admin-document-types .trace-section-header { align-items: flex-start; padding-bottom: 14px; }
+.trace-admin-shell .trace-admin-document-types .trace-section-header > div:first-child { min-width: 0; flex: 1; }
+.trace-admin-shell .trace-admin-document-types table td { font-size: 12px; padding: 12px 24px; }
+.trace-admin-shell .trace-admin-document-types table td:last-child { padding-left: 8px; }
+.trace-admin-shell .trace-admin-document-types table .trace-actions { flex-wrap: nowrap; gap: 8px; }
+.trace-admin-shell .trace-admin-document-types table .trace-button { min-width: max-content; white-space: nowrap; border-radius: 10px; min-height: 36px; padding: 8px 14px; }
+.trace-admin-type-pills { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 5px; font-size: 10px; line-height: 14px; font-weight: 400; color: #647084; }
+.trace-admin-type-pills > span { background: #f0f3f2; padding: 1px 7px; border-radius: 4px; }
+.trace-admin-type-pills .trace-admin-type-pill-blue { background: #eaf1ff; color: #2563eb; }
+.trace-admin-draft-pill { display: inline-flex; align-items: center; gap: 4px; margin-top: 4px; background: #fff4e8; color: #b45309; padding: 1px 6px; border-radius: 4px; font-size: 10px; font-weight: 400; }
+.trace-admin-status-badge { border: 0; border-radius: 999px; font-size: 11px; font-weight: 400; padding: 3px 10px; white-space: nowrap; }
+.trace-admin-shell .trace-admin-catalog-panel > form { grid-template-columns: minmax(0,1fr) minmax(0,1.5fr) auto; align-items: end; }
+.trace-admin-catalog-submit { align-self: end; }
+@media (max-width: 767px) {
+ body:has(.trace-admin-shell) .trace-admin-drawer .trace-form-grid,
+ .trace-admin-shell .trace-admin-catalog-panel > form { grid-template-columns: minmax(0,1fr); }
+ body:has(.trace-admin-shell) .trace-admin-drawer .trace-control { min-height: 44px; }
+}
+
+body:has(.trace-admin-shell) .trace-admin-main-dialog .trace-modal-title { font-weight: 700; }
+body:has(.trace-admin-shell) .trace-admin-registration .trace-modal-title { font-size: 1.375rem; font-weight: 600; }
+body:has(.trace-admin-shell) .trace-admin-support-settings-dialog .trace-modal-title { font-size: 1.5rem; }
+body:has(.trace-admin-shell) .trace-admin-add-staff .trace-modal-title,
+body:has(.trace-admin-shell) .trace-admin-edit-user .trace-modal-title { font-size: 1.375rem; }
+body:has(.trace-admin-shell) .trace-admin-forecast .trace-modal-header { padding-right: 24px; padding-bottom: 24px; }
+body:has(.trace-admin-shell) .trace-admin-forecast .trace-modal-header .trace-control { min-height: 32px; background: #f0f1f3; padding: 6px 12px; font-size: .8125rem; }
+body:has(.trace-admin-shell) .trace-admin-forecast .trace-modal-body { padding-top: 0; }
+.trace-admin-forecast-days { grid-template-columns: repeat(auto-fit,minmax(min(100%,4rem),1fr)); }
+.trace-admin-forecast-days > div:first-child > div:nth-child(2) { background: #168f55; color: white; }
+.trace-admin-forecast-days > div:first-child > div:first-child,
+.trace-admin-forecast-days > div:first-child > div:last-child,
+.trace-admin-forecast-days > div:last-child > div:nth-child(2) { color: #168f55; }
+.trace-admin-forecast-days > div:last-child > div:nth-child(2) { border: 1px solid #168f55; background: #e8f5ee; }
+body:has(.trace-admin-shell) .trace-admin-preferences { min-height: min(663px,90dvh); }
+body:has(.trace-admin-shell) .trace-admin-preferences .trace-control { width: 100%; }
+body:has(.trace-admin-shell) .trace-admin-edit-profile .trace-modal-footer { background: white; }
+.dark body:has(.trace-admin-shell) .trace-admin-edit-profile .trace-modal-footer { background: #111827; }
+body:has(.trace-admin-shell) .trace-admin-security-card-heading h3 { font-size: .875rem; }
+.trace-admin-security-card-heading p { font-size: .8125rem; line-height: 1.25; }
+.trace-admin-password-checks { font-size: .75rem; line-height: 1.33; }
+@media (min-width: 1024px) {
+ .trace-admin-shell .trace-support-workspace > div.grid,
+ .trace-admin-shell section[aria-label="Staff coordination workspace"] > div.grid,
+ .trace-admin-shell section[aria-label="Internal assistance workspace"] > div.grid { height: 632px; grid-template-columns: minmax(0,36fr) minmax(0,64fr); }
+ .trace-admin-shell section[aria-label="Internal assistance workspace"] > div.grid { grid-template-columns: minmax(0,32fr) minmax(0,68fr); }
+}
+
+@media (min-width: 1024px) {
+ .trace-admin-messaging { display: flex; flex-direction: column; gap: 16px; }
+ .trace-admin-messaging > .trace-tab-group { order: 2; margin: 0; }
+ .trace-admin-messaging #message-category-panel,
+ .trace-admin-messaging #message-category-panel > div:not([hidden]),
+ .trace-admin-messaging #message-category-panel > div:not([hidden]) > section { display: contents; }
+ .trace-admin-messaging #message-category-panel > div:not([hidden]) > section > header { order: 1; margin: 0; }
+ .trace-admin-messaging #message-category-panel > div:not([hidden]) > section > p { order: 3; margin: 0; }
+ .trace-admin-messaging #message-category-panel > div:not([hidden]) > section > .grid { order: 4; margin: 0; }
+ .trace-admin-messaging-internal > .trace-tab-group { order: 1; }
+ .trace-admin-messaging-internal #message-category-panel > div:not([hidden]) > section > header { order: 2; }
+}
+
+.trace-admin-preferences-heading { display: flex; align-items: flex-start; gap: 12px; }
+.trace-admin-preferences-heading > div { flex: 1; min-width: 0; }
+body:has(.trace-admin-shell) .trace-admin-preferences-heading .trace-label { font-size: .9375rem; }
+.trace-admin-preferences-heading p { margin-top: 3px; font-size: .8125rem; line-height: 1.3; }
+body:has(.trace-admin-shell) .trace-admin-preferences .trace-modal-body { padding: 8px 24px 24px; }
+body:has(.trace-admin-shell) .trace-admin-edit-user { min-height: min(574px,90dvh); }
+body:has(.trace-admin-shell) .trace-admin-profile-security .trace-admin-input-with-icon .trace-control { margin-top: 0; }
+.trace-admin-college-options { align-content: start; }
+.trace-admin-college-options > h4 { margin-bottom: -5px; }
+.trace-admin-college-options > label { margin-top: 0; font-size: 13px; }
+.trace-admin-college-options > label:focus-within { outline: 2px solid #168f55; outline-offset: 2px; }
+.trace-admin-shell .trace-admin-payment-methods .trace-section-header { flex-wrap: wrap; }
+.trace-admin-payment-policy { flex-basis: 100%; }
+.trace-admin-shell .trace-admin-payment-methods td { padding: 12px 24px; font-size: 13px; }
+.trace-admin-shell .trace-admin-payment-methods td:first-child > div:first-child { font-size: 15px; font-weight: 600; }
+.trace-admin-proof-badge { border-radius: 6px; background: #e8f5ec; color: #168f55; font-size: 11px; padding: 3px 8px; }
+.trace-admin-shell .trace-admin-payment-methods table .trace-button { min-width: max-content; white-space: nowrap; border-radius: 10px; }
+.trace-admin-event-badge { border-radius: 8px; }
+.trace-admin-role-badge { border-radius: 4px; text-transform: uppercase; }
+.dark .trace-admin-proof-badge { background: #052e16; color: #86efac; }
+
+.trace-admin-theme-radio-selected { display: flex; align-items: center; justify-content: center; width: 18px; height: 18px; border-radius: 999px; background: #168f55; }
+.trace-admin-theme-radio-selected .trace-admin-icon { width: 11px; height: 11px; }
+.trace-admin-password-checks .trace-admin-icon { width: 12px; height: 12px; }
+
+body:has(.trace-admin-shell) .trace-admin-security-card-heading h3 { font-size: .9375rem; line-height: 1.2; }
+.trace-admin-security-card-heading { gap: 14px; }
+.trace-admin-security-card-heading p { margin-top: 3px; }
+body:has(.trace-admin-shell) .trace-admin-profile-security .trace-modal-body > .trace-section-body { background: #fafbfc; }
+body:has(.trace-admin-shell) .trace-admin-profile-security .trace-label { line-height: 1.2; color: #1a202c; }
+body:has(.trace-admin-shell) .trace-admin-profile-security .trace-admin-guidance { color: #1a202c; }
+.dark body:has(.trace-admin-shell) .trace-admin-profile-security .trace-modal-body > .trace-section-body { background: #111827; }
+.dark body:has(.trace-admin-shell) .trace-admin-profile-security .trace-label,
+.dark body:has(.trace-admin-shell) .trace-admin-profile-security .trace-admin-guidance { color: #f3f4f6; }
+body:has(.trace-admin-shell) .trace-admin-preferences .trace-modal-header { padding: 22px 80px 10px 24px; }
+body:has(.trace-admin-shell) .trace-admin-preferences .trace-modal-footer { min-height: 130px; padding: 14px 24px; }
+body:has(.trace-admin-shell) .trace-admin-preferences > .trace-icon-button,
+body:has(.trace-admin-shell) .trace-admin-edit-profile > .trace-icon-button,
+body:has(.trace-admin-shell) .trace-admin-add-staff > .trace-icon-button,
+body:has(.trace-admin-shell) .trace-admin-edit-user > .trace-icon-button { border-color: transparent; background: transparent; }
+body:has(.trace-admin-shell) .trace-admin-drawer .trace-button { min-height: 38px; padding: 8px 16px; }
+
+.trace-admin-shell .trace-admin-document-types td:first-child,
+.trace-admin-shell .trace-admin-colleges td:first-child { font-size: .9375rem; font-weight: 600; }
+.trace-admin-shell .trace-admin-document-types td:nth-child(2) > strong { font-size: .9375rem; font-weight: 600; }
+.trace-admin-shell .trace-admin-document-types td:nth-child(3) { font-size: .8125rem; }
+.trace-admin-shell .trace-admin-document-types th,
+.trace-admin-shell .trace-admin-colleges th,
+.trace-admin-shell .trace-admin-payment-methods th { font-size: .6875rem; }
+body:has(.trace-admin-shell) .trace-admin-catalog-dialog .trace-modal-title { font-size: 1.375rem; }
+@media (min-width: 1024px) {
+ .trace-admin-shell .trace-admin-document-types { min-height: 677px; }
+ .trace-admin-shell .trace-admin-document-types .trace-section-header { min-height: 72px; }
+}
+
+body:has(.trace-admin-shell) .trace-admin-forecast .trace-modal-header .trace-control { width: 134px; max-width: 100%; flex: none; }

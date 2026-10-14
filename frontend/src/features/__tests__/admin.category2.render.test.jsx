@@ -300,7 +300,7 @@ describe('MaintenancePanel', () => {
     const user = userEvent.setup();
     await renderPanel();
     await user.click(screen.getByRole('tab', { name: /Colleges/ }));
-    await user.click(screen.getByRole('button', { name: '+ Add College' }));
+    await user.click(screen.getByRole('button', { name: 'Add College' }));
     const name = screen.getByLabelText(/College name/);
     await user.type(name, 'College of Engineering');
     await user.type(screen.getByLabelText(/Short code/), 'COE');
@@ -317,7 +317,7 @@ describe('MaintenancePanel', () => {
     const user = userEvent.setup();
     await renderPanel();
     await user.click(screen.getByRole('tab', { name: /Document Types/ }));
-    await user.click(screen.getByRole('button', { name: '+ Add Document Type' }));
+    await user.click(screen.getByRole('button', { name: 'New document type' }));
     await user.type(screen.getByPlaceholderText('Name *'), 'Certification');
     await user.type(screen.getByPlaceholderText('Base fee (₱)'), '50');
     await user.click(screen.getByRole('button', { name: 'Create Type' }));
@@ -350,7 +350,7 @@ describe('MaintenancePanel', () => {
     const user = userEvent.setup();
     await renderPanel();
     await user.click(await screen.findByRole('tab', { name: /Payment Methods/ }));
-    await user.click(screen.getByRole('button', { name: '+ Add Payment Method' }));
+    await user.click(screen.getByRole('button', { name: 'Add Payment Method' }));
 
     await user.type(screen.getByPlaceholderText(/Code \*/), 'paymaya');
     await user.type(screen.getByPlaceholderText(/Display name/), 'PayMaya');
@@ -363,6 +363,25 @@ describe('MaintenancePanel', () => {
     expect(maintenanceService.createPaymentMethod).toHaveBeenCalledWith(
       expect.objectContaining({ code: 'paymaya', name: 'PayMaya' })
     );
+  });
+
+  it('edits a payment method through confirmation and keeps its code immutable', async () => {
+    const user = userEvent.setup();
+    maintenanceService.updatePaymentMethod.mockResolvedValue({ message: 'Payment method updated.' });
+    await renderPanel();
+    await user.click(await screen.findByRole('tab', { name: /Payment Methods/ }));
+    const row = (await screen.findByText('GCash')).closest('tr');
+    await user.click(within(row).getByRole('button', { name: 'Edit' }));
+    expect(screen.getByPlaceholderText(/Code \*/)).toBeDisabled();
+    const name = screen.getByPlaceholderText(/Display name/);
+    await user.clear(name);
+    await user.type(name, 'GCash updated');
+    await user.click(screen.getByRole('button', { name: 'Save Changes' }));
+    expect(maintenanceService.updatePaymentMethod).not.toHaveBeenCalled();
+    const confirmation = await screen.findByRole('dialog', { name: /confirm payment method/i });
+    await user.click(within(confirmation).getByRole('button', { name: 'Save' }));
+    await waitFor(() => expect(maintenanceService.updatePaymentMethod).toHaveBeenCalledWith(1,
+      expect.objectContaining({ code: 'gcash', name: 'GCash updated' })));
   });
 
   it('deactivates a payment method rather than deleting it', async () => {

@@ -24,9 +24,9 @@ function NamedItems({ items, onChange, admin = false }) {
   </div>;
 }
 function ExtraFees({ schedule, onChange, admin = false }) {
-  return <><div className="grid grid-cols-2 gap-2">{[['rental_fee', 'Rental Fee (₱)'], ['special_fee', 'Special Fee (₱)']].map(([key, label]) =>
-    <label key={key} className="trace-label">{label}<NumberInput max={NUMBER_LIMITS.money} className={inputClass} required type="number" min="0" step="0.01" value={schedule[key] ?? 0}
-      onChange={event => onChange({ ...schedule, [key]: event.target.value })} /></label>)}</div>
+  return <><div className="trace-form-grid gap-4">{[['rental_fee', 'Rental Fee (₱)'], ['special_fee', 'Special Fee (₱)']].map(([key, label]) =>
+    <label key={key} className="trace-label">{admin ? key === 'rental_fee' ? 'Rental fee' : 'Special fee' : label}<span className={admin ? 'trace-admin-money-input mt-1.5' : undefined}>{admin && <span aria-hidden="true">₱</span>}<NumberInput aria-label={label} max={NUMBER_LIMITS.money} className={inputClass} required type="number" min="0" step="0.01" value={typeof schedule[key] === 'number' && admin ? schedule[key].toFixed(2) : schedule[key] ?? 0}
+      onChange={event => onChange({ ...schedule, [key]: event.target.value })} /></span></label>)}</div>
     <NamedItems admin={admin} items={schedule.fee_items || []} onChange={fee_items => onChange({ ...schedule, fee_items })} /></>;
 }
 export default function FeeScheduleEditor({ value, colleges, onChange, admin = false }) {
@@ -36,7 +36,7 @@ export default function FeeScheduleEditor({ value, colleges, onChange, admin = f
     <fieldset className="space-y-3"><legend className="text-sm font-bold">{admin ? 'Extra fees' : 'Default extra fees'}</legend>
       {admin && <p className="trace-admin-caption">Charged once per request, regardless of the number of copies.</p>}
       <ExtraFees admin={admin} schedule={value} onChange={onChange} />
-      <p className="text-xs text-gray-500">Rental, Special and fixed named fees apply once. Page-based components use their own pages per copy.</p>
+      {!admin && <p className="text-xs text-gray-500">Rental, Special and fixed named fees apply once. Page-based components use their own pages per copy.</p>}
     </fieldset>
     <fieldset className="space-y-3"><legend className="text-sm font-bold">College fee overrides</legend>
       <p className="text-xs text-gray-500">A college override replaces the complete default schedule. Other colleges use the default.</p>

@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import Button from '@/components/Button';
 import AdminIcon from './AdminIcon';
-import { formatDateTime } from '@/utils/formatters';
 import { getStatusLabel, getStatusTone } from '@/utils/documentStatus';
 
 const PAGE_SIZE = 8;
@@ -9,6 +8,17 @@ const cellClass = 'px-4 py-4 align-top whitespace-normal [overflow-wrap:anywhere
 function eventGroup(value) {
   const event = String(value || '').toUpperCase();
   return event.includes('LOGIN') && event.includes('FAILED') ? 'failed' : event.includes('LOGOUT') ? 'logout' : event.includes('LOGIN') ? 'login' : 'other';
+}
+
+function Timestamp({ value }) {
+  const date = new Date(value);
+  if (!value || !Number.isFinite(date.getTime())) return '—';
+  const options = { timeZone: 'Asia/Manila' };
+  return <><span className="block font-medium text-gray-900 dark:text-gray-100">{date.toLocaleDateString('en-PH', { ...options, month: 'short', day: 'numeric', year: 'numeric' })}</span>
+    <span className="mt-0.5 block text-xs">{date.toLocaleTimeString('en-PH', { ...options, hour: 'numeric', minute: '2-digit', second: '2-digit' })}</span></>;
+}
+function eventLabel(value) {
+  return ({ LOGIN_SUCCESS: 'Login', LOGIN_FAILED: 'Failed login', LOGOUT: 'Logout' })[value] || value || 'Unknown';
 }
 
 /** Figma audit toolbar and table; filters operate on the records already loaded. */
@@ -49,10 +59,10 @@ export default function AdminAuditLog({ logs, security = false, loading = false,
         <tbody>{loading ? <tr><td colSpan={5} className="py-8 text-center">Loading...</td></tr> : !visible.length ? <tr><td colSpan={5} className="py-8 text-center text-gray-500 dark:text-gray-400">{error ? 'Security activity is unavailable.' : security ? 'No security logs found' : 'No activity logs found'}</td></tr> : visible.map((log, index) => {
           const group = eventGroup(log.event_type);
           return <tr key={log.id ?? `${currentPage}-${index}`}>
-            <td className={`${cellClass} text-gray-500 dark:text-gray-400`}>{security ? new Date(log.created_at).toLocaleString() : formatDateTime(log.timestamp_started)}</td>
-            <td className={cellClass}>{security ? <span className={`trace-admin-badge ${group === 'login' ? 'trace-admin-badge-green' : group === 'failed' ? 'trace-admin-badge-red' : 'trace-admin-badge-neutral'}`}>{group !== 'other' && <AdminIcon name={group === 'login' ? 'login-event' : group === 'failed' ? 'alert-event' : 'logout-event'} />}{log.event_type}</span> : <><span className="block font-semibold">{log.document_type || 'Unknown'}</span><span className="mt-1 block font-mono text-xs text-gray-500 dark:text-gray-400">#{log.tracking_number || 'N/A'}</span></>}</td>
+            <td className={`${cellClass} text-gray-500 dark:text-gray-400`}><Timestamp value={security ? log.created_at : log.timestamp_started} /></td>
+            <td className={cellClass}>{security ? <span title={log.event_type} className={`trace-admin-badge trace-admin-event-badge ${group === 'login' ? 'trace-admin-badge-green' : group === 'failed' ? 'trace-admin-badge-red' : 'trace-admin-badge-neutral'}`}>{group !== 'other' && <AdminIcon name={group === 'login' ? 'login-event' : group === 'failed' ? 'alert-event' : 'logout-event'} />}{eventLabel(log.event_type)}</span> : <><span className="block font-semibold">{log.document_type || 'Unknown'}</span><span className="mt-1 block font-mono text-xs text-gray-500 dark:text-gray-400">#{log.tracking_number || 'N/A'}</span></>}</td>
             <td className={cellClass}>{security ? <><span className="block font-semibold">{log.full_name}</span><span className="block select-text text-xs text-gray-500 dark:text-gray-400">{log.student_id}</span></> : log.step_name ? log.step_name.replace(/_/g, ' ') : 'System Action'}</td>
-            <td className={cellClass}>{security ? <span className="trace-admin-badge trace-admin-badge-green">{log.role}</span> : log.user_name || 'System'}</td>
+            <td className={cellClass}>{security ? <span className="trace-admin-badge trace-admin-badge-green trace-admin-role-badge">{log.role}</span> : log.user_name || 'System'}</td>
             <td className={cellClass}>{security ? <span className="font-mono text-xs text-gray-500 dark:text-gray-400">{log.ip_address || 'Unknown'}</span> : <span className={`inline-flex max-w-full rounded-full px-3 py-1 text-xs font-bold whitespace-normal break-words ${getStatusTone(log.status)}`}>{getStatusLabel(log.status)}</span>}</td>
           </tr>;
         })}</tbody>

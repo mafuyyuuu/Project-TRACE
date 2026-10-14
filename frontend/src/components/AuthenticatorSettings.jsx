@@ -36,9 +36,8 @@ export default function AuthenticatorSettings({ user, admin = false }) {
   function stage(action) {
     if (password && code) setConfirmation({ action, payload: payload() });
   }
-  return <section data-motion-private aria-labelledby="authenticator-heading" onKeyDown={event => { if (event.key === 'Enter' && event.target.tagName === 'INPUT') event.preventDefault(); }} className="trace-section trace-section-body space-y-4">
-    <div className={admin ? 'trace-admin-security-heading' : undefined}>{admin && <span className="trace-admin-security-icon"><AdminIcon name="security-phone" /></span>}<h3 id="authenticator-heading" className="text-sm font-black">Two-factor authentication</h3>{admin && auth.status && <span className="trace-admin-badge trace-admin-badge-neutral"><AdminIcon name="security-ellipse" />{auth.status.enabled ? 'Enabled' : 'Not enabled'}</span>}</div>
-    <p className="text-sm">Use an authenticator app on your phone to generate login codes. Available to every TRACE account.</p>
+  return <section data-motion-private aria-labelledby="authenticator-heading" onKeyDown={event => { if (event.key === 'Enter' && event.target.tagName === 'INPUT') event.preventDefault(); }} className={'trace-section trace-section-body ' + (admin ? 'space-y-3.5' : 'space-y-4')}>
+    {admin ? <div className="trace-admin-security-card-heading"><span className="trace-admin-security-icon"><AdminIcon name="security-phone" /></span><div className="min-w-0 flex-1"><div className="flex flex-wrap items-center gap-2"><h3 id="authenticator-heading">Two-factor authentication</h3>{auth.status && <span className="trace-admin-badge trace-admin-badge-neutral"><AdminIcon name="security-ellipse" />{auth.status.enabled ? 'Enabled' : 'Not enabled'}</span>}</div><p>Use an authenticator app on your phone to generate login codes. Available to every TRACE account.</p></div></div> : <><h3 id="authenticator-heading" className="text-sm font-black">Two-factor authentication</h3><p className="text-sm">Use an authenticator app on your phone to generate login codes. Available to every TRACE account.</p></>}
     {auth.error && <div className="space-y-2"><p role="alert" className="text-sm text-red-700 dark:text-red-300">{auth.error}</p>
       {!auth.status && <Button type="button" className={buttonClass} onClick={auth.retry}>Retry authenticator settings</Button>}</div>}
     {auth.notice && <p role="status" className="text-sm text-green-700 dark:text-green-300">{auth.notice}</p>}
@@ -60,7 +59,7 @@ export default function AuthenticatorSettings({ user, admin = false }) {
         {codeActions.error && <p role="alert" className="text-sm text-red-700 dark:text-red-300">{codeActions.error}</p>}
       </div> : auth.status.available && <>
         <label className="trace-label block">Current password
-          <input type="password" autoComplete="current-password" value={password} disabled={auth.busy} onChange={event => setPassword(event.target.value)} className={inputClass} />
+          <span className={admin ? 'trace-admin-input-with-icon mt-2' : undefined}>{admin && <AdminIcon name="security-lock-input" />}<input type="password" autoComplete="current-password" placeholder={admin ? 'Enter your current password' : undefined} value={password} disabled={auth.busy} onChange={event => setPassword(event.target.value)} className={admin ? 'trace-control w-full' : inputClass} /></span>
         </label>
         {!auth.status.enabled && !auth.setup ? <Button type="button" className={buttonClass} disabled={auth.busy || !password} onClick={() => auth.run('setup', { current_password: password })}>Set up authenticator app</Button> : <>
           {auth.setup && <div className="space-y-3">

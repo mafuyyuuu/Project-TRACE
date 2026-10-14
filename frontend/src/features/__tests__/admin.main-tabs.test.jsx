@@ -105,6 +105,13 @@ describe('Main Tabs dialog interactions', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Security', exact: true }));
     expect(screen.getByRole('button', { name: 'Security', exact: true })).toHaveAttribute('aria-pressed', 'true');
     expect(await screen.findByText('Not enabled')).toBeInTheDocument();
+    const newPassword = screen.getByLabelText('New Password');
+    expect(newPassword).toHaveAttribute('type', 'password');
+    await userEvent.click(screen.getByRole('button', { name: 'Show new password' }));
+    expect(newPassword).toHaveAttribute('type', 'text');
+    expect(screen.getByLabelText('Current Password')).toHaveAttribute('type', 'text');
+    await userEvent.click(screen.getByRole('button', { name: 'Hide passwords' }));
+    expect(newPassword).toHaveAttribute('type', 'password');
     expect(screen.getByRole('button', { name: 'View activity' })).toHaveAttribute('aria-expanded', 'false');
     await userEvent.click(screen.getByRole('button', { name: 'View activity' }));
     expect(screen.getByRole('button', { name: 'Hide activity' })).toHaveAttribute('aria-expanded', 'true');

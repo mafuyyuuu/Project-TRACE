@@ -26,7 +26,7 @@ export default function ProgramsPanel({ colleges }) {
         <label className="trace-label">Approved Program Name
           <input className="trace-control w-full mt-1" placeholder="Enter approved program name" maxLength={150} required value={name} disabled={catalog.saving} onChange={event => setName(event.target.value)} />
         </label>
-        <div className="col-span-full"><Button className="trace-button trace-button-primary" type="submit" disabled={catalog.saving || !activeColleges.length}><AdminIcon name="program-plus" />Add Program</Button></div>
+        <div className="trace-admin-catalog-submit"><Button className="trace-button trace-button-primary" type="submit" disabled={catalog.saving || !activeColleges.length}><AdminIcon name="program-plus" />Add Program</Button></div>
       </form>
       {!activeColleges.length && <p className="mt-3 text-sm">Add or restore a College before adding programs.</p>}
       <div className="mt-5 max-h-[60vh] overflow-auto rounded-xl border border-gray-200 dark:border-gray-700">
@@ -38,7 +38,7 @@ export default function ProgramsPanel({ colleges }) {
               <td className="p-3">{Number(item.is_active) ? Number(item.college_active) ? 'Active' : 'College Inactive' : 'Inactive'}</td>
               <td className="p-3"><Button className={`trace-button ${Number(item.is_active) ? 'trace-button-danger' : 'trace-button-secondary'}`} disabled={catalog.saving || (!Number(item.is_active) && !Number(item.college_active))} onClick={() => setConfirmation({ item })}>{Number(item.is_active) ? 'Deactivate' : 'Restore'}</Button></td>
             </tr>)}
-            {!catalog.programs.length && <tr><td className="p-4" colSpan={4}>{catalog.loading ? 'Loading programs…' : catalog.loadError ? 'Program list unavailable.' : <div className="trace-admin-catalog-empty"><span className="trace-admin-catalog-empty-icon"><AdminIcon name="program-cap" /></span><h4>No programs loaded yet</h4><p>No programs loaded. Admin must add the Registrar-approved catalog. Use the form above to add the first program.</p></div>}</td></tr>}
+            {!catalog.programs.length && <tr><td className="p-4" colSpan={4}>{catalog.loading ? 'Loading programs…' : catalog.loadError ? 'Program list unavailable.' : <div className="trace-admin-catalog-empty"><span className="trace-admin-catalog-empty-icon"><AdminIcon name="program-cap" /></span><h4>No programs loaded yet</h4><p>Admin must add the Registrar-approved catalog. Use the form above to add the first program.</p></div>}</td></tr>}
           </tbody>
         </table>
       </div>

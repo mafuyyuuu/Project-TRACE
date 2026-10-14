@@ -1,3 +1,32 @@
+## Admin Main Tabs fidelity corrections — 2026-10-14
+
+Revisited all 35 source frames and rendered all 33 current states in the real Admin
+shell. Corrected the Review action's min-content width, registration email breaks,
+and password-eye geometry. The staff eye's SVG export omitted its pupil; the exact
+Figma node now uses a four-times-resolution PNG at its original 18 px size.
+
+Rebuilt Profile Security's aligned icon/title/description cards, password eyes,
+requirements, guidance, and right-aligned session/activity actions. Restored missing
+check/info assets. Reworked the document table's type/fee metadata, icons, actions,
+source font sizes and card height; the drawer now has side-by-side fee inputs,
+currency prefixes, an aligned status badge, original corners, college chips and
+request-rule tiles. Existing Registrar policy guards remain enforced.
+
+Preferences headings, forecast header/day legend, catalog controls, and messaging
+heading/tab order now follow their source frames. Payment-method Edit uses the existing
+update service, locks the immutable code and retains staged confirmation. Audit date/time
+lines use Philippine time, recognized security events have readable labels with raw
+codes available as tooltips, and unknown event codes remain unchanged.
+
+Validation: **1,075 frontend tests across 110 files**; ESLint, production/PWA build,
+asset integrity and changed-line whitespace checks. Browser fixtures use synthetic
+records; **528 size/theme checks** cover 33 states at 320/375/768/1440 px,
+100/200% text, light/dark, with checks for split action words, page/dialog containment,
+missing original images and browser errors. See `docs/admin-main-tabs-fidelity.png`.
+
+The draft PR remains for the user's visual review. Main Tabs has not been accepted;
+More tabs remain paused. No merge, deployment or Figma mutation was performed.
+
 ## Admin tracker control wrapping — 2026-10-14
 
 The user's mobile screenshots exposed `Filter:` split across two lines and `View`

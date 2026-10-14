@@ -10,25 +10,27 @@ export default function PreferencesModal({ onClose, darkMode, onToggleTheme, tex
   const textSizeHelpId = useId();
 
   return (
-    <ModalShell open onClose={onClose} maxWidth={admin ? 'max-w-[560px]' : 'max-w-xl'}
+    <ModalShell closeButtonIcon={<AdminIcon name="close" />} open onClose={onClose} maxWidth={admin ? 'max-w-[560px]' : 'max-w-xl'}
       panelClassName={admin ? 'trace-modal-panel trace-admin-main-dialog trace-admin-preferences max-w-[560px]' : undefined}
       title={admin ? 'Preferences' : <span className="inline-block max-w-full text-base leading-tight sm:text-lg">Preferences</span>}
       footer={admin ? <div className="trace-actions justify-end"><Button type="button" onClick={onClose} className="trace-button trace-button-primary">Done</Button></div> : undefined}>
       <div className="min-w-0 space-y-6 text-gray-900 dark:text-gray-100">
         <section aria-labelledby={appearanceId} className="min-w-0 space-y-3">
-          <div className="space-y-2">
-            <h4 id={appearanceId} className="trace-admin-security-heading trace-label">{admin && <span className="trace-admin-security-icon"><AdminIcon name="preferences-sun" /></span>}Appearance</h4>
-            <p className="text-sm leading-relaxed text-gray-600 dark:text-gray-300">Choose how TRACE looks on this device.</p>
+          <div className={admin ? 'trace-admin-preferences-heading' : 'space-y-2'}>
+            {admin && <span className="trace-admin-security-icon"><AdminIcon name="preferences-sun" /></span>}
+            <div><h4 id={appearanceId} className="trace-label">Appearance</h4>
+              <p className="text-sm leading-relaxed text-gray-600 dark:text-gray-300">Choose how TRACE looks on this device.</p></div>
           </div>
-          {admin ? <div className="grid grid-cols-2 gap-3">{[['Light', false], ['Dark', true]].map(([label, selectedDark]) => <Button key={label} type="button" aria-pressed={darkMode === selectedDark} disabled={!onToggleTheme} onClick={() => { if (darkMode !== selectedDark) onToggleTheme(); }} className={'trace-action trace-admin-theme-choice ' + (darkMode === selectedDark ? 'trace-admin-theme-selected' : '')}><span aria-hidden="true" className={'trace-admin-theme-sample ' + (selectedDark ? 'bg-gray-800' : 'bg-[#f4f6f8]')}><span /><span /><span /></span><span className="flex w-full items-center justify-between gap-2"><span className="flex items-center gap-2"><AdminIcon name={selectedDark ? 'preferences-moon' : 'preferences-sun1'} />{label}</span>{darkMode === selectedDark ? <AdminIcon name="preferences-check" /> : <span aria-hidden="true" className="h-[18px] w-[18px] rounded-full border border-slate-300" />}</span></Button>)}</div> : <Button type="button" aria-pressed={darkMode} onClick={onToggleTheme} disabled={!onToggleTheme}
+          {admin ? <div className="grid grid-cols-2 gap-3">{[['Light', false], ['Dark', true]].map(([label, selectedDark]) => <Button key={label} type="button" aria-pressed={darkMode === selectedDark} disabled={!onToggleTheme} onClick={() => { if (darkMode !== selectedDark) onToggleTheme(); }} className={'trace-action trace-admin-theme-choice ' + (darkMode === selectedDark ? 'trace-admin-theme-selected' : '')}><span aria-hidden="true" className={'trace-admin-theme-sample ' + (selectedDark ? 'bg-gray-800' : 'bg-[#f4f6f8]')}><span /><span /><span /></span><span className="flex w-full items-center justify-between gap-2"><span className="flex items-center gap-2"><AdminIcon name={selectedDark ? 'preferences-moon' : 'preferences-sun1'} />{label}</span>{darkMode === selectedDark ? <span className="trace-admin-theme-radio-selected"><AdminIcon name="preferences-check" /></span> : <span aria-hidden="true" className="h-[18px] w-[18px] rounded-full border border-slate-300" />}</span></Button>)}</div> : <Button type="button" aria-pressed={darkMode} onClick={onToggleTheme} disabled={!onToggleTheme}
             className="trace-button trace-button-secondary w-full min-w-0 enabled:active:bg-gray-200 dark:enabled:active:bg-gray-700 aria-pressed:enabled:active:bg-green-900 dark:aria-pressed:enabled:active:bg-green-900">
             {darkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
           </Button>}
         </section>
         <section aria-labelledby={textSizeId} className="min-w-0 space-y-3 border-t border-gray-200 pt-6 dark:border-gray-700">
-          <div className="space-y-2">
-            <label id={textSizeId} htmlFor={`${textSizeId}-control`} className="trace-admin-security-heading trace-label">{admin && <span className="trace-admin-security-icon"><AdminIcon name="preferences-type" /></span>}Text size</label>
-            <p id={textSizeHelpId} className="text-sm leading-relaxed text-gray-600 dark:text-gray-300">Default: 100%. Larger text applies to menus, forms, tables and chat.</p>
+          <div className={admin ? 'trace-admin-preferences-heading' : 'space-y-2'}>
+            {admin && <span className="trace-admin-security-icon"><AdminIcon name="preferences-type" /></span>}
+            <div><label id={textSizeId} htmlFor={`${textSizeId}-control`} className="trace-label">Text size</label>
+              <p id={textSizeHelpId} className="text-sm leading-relaxed text-gray-600 dark:text-gray-300">Default: 100%. Larger text applies to menus, forms, tables and chat.</p></div>
           </div>
           <select id={`${textSizeId}-control`} value={textSize} aria-describedby={textSizeHelpId}
             disabled={!onTextSizeChange} onChange={event => onTextSizeChange?.(event.target.value)} className="trace-control">

@@ -20,10 +20,7 @@ export default function ForecastModal({ open, onClose, forecastData, forecastFil
   });
 
   return (
-    <ModalShell open={open} onClose={onClose} title="7-Day Volume Forecast" maxWidth="max-w-[800px]" panelClassName="trace-modal-panel trace-admin-main-dialog trace-admin-forecast max-w-[800px]">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-        <p className="text-xs text-gray-400 dark:text-gray-400 font-medium">Predicted incoming document volume via Prophet ML — full week.</p>
-        <select
+    <ModalShell open={open} onClose={onClose} title="7-Day Volume Forecast" showCloseButton={false} subtitle="Predicted incoming document volume via Prophet ML – full week." headerActions={<select
           value={forecastFilter}
           onChange={(e) => setForecastFilter(e.target.value)}
           className="trace-control cursor-pointer"
@@ -32,9 +29,7 @@ export default function ForecastModal({ open, onClose, forecastData, forecastFil
           <option value="Transcript of Records">Transcript of Records</option>
           <option value="Clearance">Clearance</option>
           <option value="Diploma">Diploma</option>
-        </select>
-      </div>
-
+        </select>} maxWidth="max-w-[800px]" panelClassName="trace-modal-panel trace-admin-main-dialog trace-admin-forecast max-w-[800px]">
       {chartData.length > 0 ? (
         <div className="overflow-x-auto"><div className="h-80 min-w-[20rem]">
           <ResponsiveContainer width="100%" height="100%">
@@ -69,11 +64,11 @@ export default function ForecastModal({ open, onClose, forecastData, forecastFil
         <div className="h-80 flex items-center justify-center text-gray-400 dark:text-gray-400 font-medium text-xs">Loading forecast data...</div>
       )}
 
-      <div className="mt-6 grid grid-cols-3 sm:grid-cols-7 gap-2">
+      <div className="trace-admin-forecast-days mt-6 grid gap-2">
         {chartData.map((d) => (
           <div key={d.day} className="bg-gray-50 dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-xl p-3 text-center">
             <div className="text-[10px] font-bold text-gray-400 dark:text-gray-400 uppercase tracking-widest">{d.day}</div>
-            <div className="text-sm font-black text-gray-900 dark:text-gray-100 mt-1">{d.volume}</div>
+            <div className="text-sm font-black text-gray-900 dark:text-gray-100 mt-1">{d.volume}</div><div className="mt-1 text-[10px] text-gray-400 dark:text-gray-400">docs</div>
           </div>
         ))}
       </div>

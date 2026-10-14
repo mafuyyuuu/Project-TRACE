@@ -40,6 +40,7 @@ export default function AddUserModal({ open, onClose, onCreate, saving }) {
 
   return (
     <ModalShell
+      closeButtonIcon={<AdminIcon name="close" />}
       open={open}
       onClose={onClose}
       title="Add Staff Account"
@@ -85,7 +86,7 @@ export default function AddUserModal({ open, onClose, onCreate, saving }) {
           <label className="trace-label">Desk<select className={`${inputClass} mt-2`} value={form.desk_assignment || 'Finance'} onChange={event => set('desk_assignment', event.target.value)}>{DESKS.map(desk => <option key={desk} value={desk}>{desk}</option>)}</select></label>
         </div></section>
         <section className="space-y-4 border-t border-gray-200 pt-5 dark:border-gray-700"><h4 className="trace-section-title">Account security</h4>
-          <label className="trace-label">Temporary password <span className="text-red-600">*</span><span className="trace-admin-password-input"><input maxLength={INPUT_LIMITS.password} className={`${inputClass} mt-2`} type={showPassword ? "text" : "password"} placeholder="Temporary password *" required minLength={8} value={form.password || ''} onChange={event => set('password', event.target.value)} /><Button type="button" aria-label={showPassword ? 'Hide temporary password' : 'Show temporary password'} aria-pressed={showPassword} className="trace-icon-button" onClick={() => setShowPassword(value => !value)}><AdminIcon name="staff-eye" /></Button></span></label>
+          <label className="trace-label">Temporary password <span className="text-red-600">*</span><span className="trace-admin-password-input mt-2"><input maxLength={INPUT_LIMITS.password} className={inputClass} type={showPassword ? "text" : "password"} placeholder="Temporary password *" required minLength={8} value={form.password || ''} onChange={event => set('password', event.target.value)} /><Button type="button" aria-label={showPassword ? 'Hide temporary password' : 'Show temporary password'} aria-pressed={showPassword} className="trace-icon-button" onClick={() => setShowPassword(value => !value)}><AdminIcon name="staff-eye" /></Button></span></label>
           <p className="trace-admin-caption leading-relaxed">{PASSWORD_REQUIREMENTS}</p><p className="trace-admin-guidance"><AdminIcon name="staff-shield-check" />Staff must replace this password at first login.</p>
         </section>
       </form>

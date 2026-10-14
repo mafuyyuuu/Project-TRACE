@@ -1,3 +1,4 @@
+import AdminProfileSecurity from '@/features/admin/components/AdminProfileSecurity';
 import AdminIcon from '@/features/admin/components/AdminIcon';
 import PhoneInput from '@/components/PhoneInput';
 import { phoneNumberError } from '@/utils/phoneNumber';
@@ -380,7 +381,7 @@ export default function ProfileSettingsModal({
           )}
 
           
-          {activeTab === 'security' && (
+          {activeTab === 'security' && (isAdmin ? <AdminProfileSecurity user={user} profileData={profileData} setField={setField} showPasswords={showPasswords} onTogglePasswords={() => setShowPasswords(value => !value)} personalBrowser={personalBrowser} onBrowserVerification={() => setConfirmation('browser')} loggingOut={loggingOut} onLogout={() => setConfirmation('sessions')} securityLogs={securityLogs} showActivity={showSecurityActivity} onToggleActivity={() => setShowSecurityActivity(value => !value)} saving={saving} /> : (
             <div className="space-y-6">
               <AuthenticatorSettings user={user} admin={isAdmin} />
               {['clerk', 'admin'].includes(user?.role) && <section aria-label="Browser verification" className="trace-section trace-section-body space-y-3">
@@ -453,7 +454,7 @@ export default function ProfileSettingsModal({
                 </div>
               </div>
             </div>
-          )}
+          ))}
 
           {activeTab === 'educational' && isStudent && (
             <div className="space-y-6">

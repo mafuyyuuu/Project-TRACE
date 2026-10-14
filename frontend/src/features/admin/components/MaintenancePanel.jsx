@@ -42,17 +42,7 @@ const inputClass =
 
 /** Active/Inactive pill — "deleted" entries are deactivated, never removed. */
 function StatusBadge({ active, retired = false }) {
-  return (
-    <span
-      className={`text-[10px] font-bold px-2.5 py-1 rounded-full border ${
-        active
-          ? 'bg-emerald-50 dark:bg-emerald-950/40 text-[#15803d] dark:text-green-300 border-emerald-100 dark:border-emerald-800'
-          : 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 border-gray-200 dark:border-gray-700'
-      }`}
-    >
-      {retired ? 'Retired' : active ? 'Active' : 'Inactive'}
-    </span>
-  );
+  return <span className={'trace-admin-badge trace-admin-status-badge ' + (Number(active) && !retired ? 'trace-admin-badge-green' : 'trace-admin-badge-neutral')}><span aria-hidden="true">●</span>{retired ? 'Retired' : Number(active) ? 'Active' : 'Inactive'}</span>;
 }
 
 /**
@@ -68,6 +58,7 @@ export default function MaintenancePanel({ user, currentTab }) {
   const [catalogSearch, setCatalogSearch] = useState('');
   const [form, setForm] = useState({});
   const [editingTypeId, setEditingTypeId] = useState(null);
+  const [editingPaymentId, setEditingPaymentId] = useState(null);
   const [saveToConfirm, setSaveToConfirm] = useState(null);
   const [staffRoleFilter, setStaffRoleFilter] = useState('All');
   const [staffDeskFilter, setStaffDeskFilter] = useState('All');
@@ -77,7 +68,7 @@ export default function MaintenancePanel({ user, currentTab }) {
   if (m.loading) return <DashboardLoading />;
 
   const set = (key, value) => setForm((f) => ({ ...f, [key]: value }));
-  const resetForm = () => { setForm({}); setEditingTypeId(null); };
+  const resetForm = () => { setForm({}); setEditingTypeId(null); setEditingPaymentId(null); };
   const matchingTypes = m.documentTypes.filter(item => (typeFilter === 'all' || typeFilter === 'active' && Number(item.is_active) === 1 || typeFilter === 'inactive' && !Number(item.is_active) || typeFilter === 'drafts' && Boolean(item.fee_pending)) && item.name.toLowerCase().includes(catalogSearch.toLowerCase()));
   const lastTypePage = Math.max(0, Math.ceil(matchingTypes.length / 8) - 1);
   const shownTypePage = Math.min(typePage, lastTypePage);
@@ -116,7 +107,7 @@ export default function MaintenancePanel({ user, currentTab }) {
 
   const submitPaymentMethod = async (e) => {
     e.preventDefault();
-    setSaveToConfirm({ method: 'createPaymentMethod', label: 'Payment Method', payload: {
+    setSaveToConfirm({ method: editingPaymentId ? 'updatePaymentMethod' : 'createPaymentMethod', id: editingPaymentId, label: 'Payment Method', payload: {
       code: form.pm_code,
       name: form.pm_name,
       instructions: form.pm_instructions || null,
@@ -209,19 +200,19 @@ export default function MaintenancePanel({ user, currentTab }) {
         {/* -------------------------------------------------------- Document types */}
         {section === 'documentTypes' && (
           <div className="space-y-4">
-            <ModalShell open={catalogForm === 'documentTypes'} onClose={() => { if (!m.saving) setCatalogForm(null); }} title={editingTypeId ? (form.dt_name || 'Edit Document Type') : 'Add Document Type'} headerBadge={editingTypeId ? <StatusBadge active={m.documentTypes.find(item => item.id === editingTypeId)?.is_active} /> : undefined} headerEyebrow={editingTypeId ? 'EDIT DOCUMENT TYPE' : 'NEW DOCUMENT TYPE'} panelClassName="trace-modal-panel trace-admin-drawer" busy={m.saving} footer={<div className="flex flex-wrap items-center justify-between gap-3"><p className="trace-admin-caption flex items-center gap-2"><AdminIcon name="drawer-info" />Fee changes apply to new requests only.</p><div className="trace-actions justify-end"><Button type="button" disabled={m.saving} onClick={() => setCatalogForm(null)} className="trace-button trace-button-secondary">Cancel</Button><Button type="submit" form="admin-document-type-form" disabled={m.saving} className="trace-button trace-button-primary"><AdminIcon name="drawer-check" />{m.saving ? 'Saving…' : editingTypeId ? 'Save Changes' : 'Create Type'}</Button></div></div>}><form id="admin-document-type-form" onSubmit={submitDocType} className="space-y-5">
+            <ModalShell closeButtonIcon={<AdminIcon name="close" />} open={catalogForm === 'documentTypes'} onClose={() => { if (!m.saving) setCatalogForm(null); }} title={editingTypeId ? (form.dt_name || 'Edit Document Type') : 'Add Document Type'} headerActions={editingTypeId ? <StatusBadge active={m.documentTypes.find(item => item.id === editingTypeId)?.is_active} /> : undefined} headerEyebrow={editingTypeId ? 'EDIT DOCUMENT TYPE' : 'NEW DOCUMENT TYPE'} panelClassName="trace-modal-panel trace-admin-drawer" busy={m.saving} footer={<div className="flex flex-wrap items-center justify-between gap-3"><p className="trace-admin-caption flex items-center gap-2"><AdminIcon name="drawer-info" />Fee changes apply to new requests only.</p><div className="trace-actions justify-end"><Button type="button" disabled={m.saving} onClick={() => setCatalogForm(null)} className="trace-button trace-button-secondary">Cancel</Button><Button type="submit" form="admin-document-type-form" disabled={m.saving} className="trace-button trace-button-primary"><AdminIcon name="drawer-check" />{m.saving ? 'Saving…' : editingTypeId ? 'Save Changes' : 'Create Type'}</Button></div></div>}><form id="admin-document-type-form" onSubmit={submitDocType} className="space-y-5">
 
               <section className="trace-admin-form-section"><h4 className="trace-section-title mb-4">Basic details</h4><label className="trace-label">Document name<input maxLength={INPUT_LIMITS.referenceName} className={`${inputClass} mt-2`} placeholder="Name *" required
                 value={form.dt_name || ''} onChange={(e) => set('dt_name', e.target.value)} /></label>
-              <label className="trace-label">Base fee (₱)<NumberInput max={NUMBER_LIMITS.money} className={`${inputClass} mt-2`} min="0" step="0.01" placeholder="Base fee (₱)"
-                value={form.dt_fee ?? ''} onChange={(e) => set('dt_fee', e.target.value)} /></label>
+              <div className="trace-form-grid"><label className="trace-label">Default fee<span className="trace-admin-money-input mt-1.5"><span aria-hidden="true">₱</span><NumberInput aria-label="Base fee (₱)" max={NUMBER_LIMITS.money} className={inputClass} min="0" step="0.01" placeholder="Base fee (₱)"
+                value={form.dt_fee ?? ''} onChange={(e) => set('dt_fee', e.target.value)} /></span></label>
 
-              <label className="trace-label">Fee rule<select className={`${inputClass} cursor-pointer`} value={form.dt_rule || 'flat'}
+              <label className="trace-label">Fee type<select aria-label="Fee rule" className={`${inputClass} mt-1.5 cursor-pointer`} value={form.dt_rule || 'flat'}
                 onChange={(e) => set('dt_rule', e.target.value)}>
                 <option value="flat">Flat fee per copy</option>
                 <option value="per_semester_block">Legacy page estimate (semester blocks)</option>
                 <option value="per_page">Per printed page per copy</option>
-              </select></label></section>
+              </select></label></div></section>
 
               <section className="trace-admin-form-section"><h4 className="sr-only">Fee schedule</h4><FeeScheduleEditor admin colleges={m.colleges} value={{ rental_fee: form.dt_rental_fee ?? 0, special_fee: form.dt_special_fee ?? 0,
                 fee_items: form.dt_fee_items || [], college_fee_schedules: form.dt_fee_schedules || [] }}
@@ -231,7 +222,7 @@ export default function MaintenancePanel({ user, currentTab }) {
               <label className="flex items-center gap-2 text-xs font-semibold text-gray-700 dark:text-gray-300 cursor-pointer">
                 <input type="checkbox" className="trace-choice trace-admin-switch"
                   checked={Boolean(form.dt_attach)} onChange={(e) => set('dt_attach', e.target.checked)} />
-                Requires an attachment
+                <span><strong>Requires an attachment</strong><small>Requesters must upload a supporting file with this request.</small></span>
               </label>
 
               {form.dt_attach && (
@@ -255,70 +246,64 @@ export default function MaintenancePanel({ user, currentTab }) {
               </select></label></div>
 
               </section><fieldset className="trace-admin-form-section trace-admin-college-options space-y-2">
-                <legend className="text-xs font-bold px-1">Allowed colleges</legend>
+                <legend className="sr-only">Allowed colleges</legend><h4 className="trace-section-title w-full">Allowed colleges</h4>
                 <p className="text-xs text-gray-500 dark:text-gray-400">No selection allows every college.</p>
                 {m.colleges.map(college => <label key={college.id} className="flex items-center gap-2 text-xs">
-                  <input type="checkbox" checked={(form.dt_college_ids || []).includes(college.id)} className="trace-choice" onChange={e => set('dt_college_ids', e.target.checked ? [...(form.dt_college_ids || []), college.id] : (form.dt_college_ids || []).filter(id => id !== college.id))} />
+                  <input type="checkbox" checked={(form.dt_college_ids || []).includes(college.id)} className="sr-only" onChange={e => set('dt_college_ids', e.target.checked ? [...(form.dt_college_ids || []), college.id] : (form.dt_college_ids || []).filter(id => id !== college.id))} />
                   {college.name}
                 </label>)}
               </fieldset>
-              <div className="trace-admin-form-section space-y-3"><h4 className="trace-section-title mb-4">Request rules</h4>
+              <div className="trace-admin-form-section"><h4 className="trace-section-title mb-4">Request rules</h4><div className="trace-form-grid trace-admin-request-rules">
                 <label className="flex items-center gap-2 text-[11px] font-semibold text-gray-700 dark:text-gray-300 cursor-pointer">
                   <input type="checkbox" className="trace-choice trace-admin-switch"
                     disabled checked={!isHonorableDismissal(form.dt_name)} />
-                  Repeat requests and quantities (Registrar policy)
+                  <span><strong>Repeat requests &amp; quantities</strong><small>Registrar policy</small></span>
                 </label>
                 <label className="flex items-center gap-2 text-[11px] font-semibold text-gray-700 dark:text-gray-300 cursor-pointer">
                   <input type="checkbox" className="trace-choice trace-admin-switch"
                     disabled={isSameDayWalkInType(form.dt_name)} checked={isSameDayWalkInType(form.dt_name) || Boolean(form.dt_is_walk_in)} onChange={(e) => set('dt_is_walk_in', e.target.checked)} />
-                  Counter-only request type
+                  <span><strong>Counter-only request type</strong><small>Hidden from online requests</small></span>
                 </label>
                 <label className="flex items-center gap-2 text-[11px] font-semibold text-gray-700 dark:text-gray-300 cursor-pointer">
                   <input type="checkbox" className="trace-choice trace-admin-switch"
                     disabled={isSameDayWalkInType(form.dt_name)} checked={isSameDayWalkInType(form.dt_name) || Boolean(form.dt_requires_original)} onChange={(e) => set('dt_requires_original', e.target.checked)} />
-                  Requires original document presentation
+                  <span><strong>Requires original document</strong><small>Must be presented at the counter</small></span>
                 </label>
                 <label className="flex items-center gap-2 text-[11px] font-semibold text-gray-700 dark:text-gray-300 cursor-pointer">
                   <input type="checkbox" className="trace-choice trace-admin-switch"
                     disabled checked={isSameDayWalkInType(form.dt_name)} />
-                  Same-day eligible when original and photocopy are presented
+                  <span><strong>Same-day eligible</strong><small>Original and photocopy presented</small></span>
                 </label>
-              </div>
+              </div></div>
             </form></ModalShell>
 
-            <div className="trace-section overflow-hidden">
+            <div className="trace-section trace-admin-document-types overflow-hidden">
               <div className="trace-section-header border-gray-100 dark:border-gray-700">
-                <div><h3 className="trace-section-title">Document Types</h3><p className="trace-admin-caption">{m.documentTypes.length} document types</p></div><div className="trace-actions"><Button type="button" className="trace-button trace-button-primary" onClick={() => { resetForm(); setCatalogForm('documentTypes'); }}>+ Add Document Type</Button></div>
-                <p className="text-[10px] text-gray-400 dark:text-gray-400 mt-1">
-                  Fees apply to new requests only. A type already used by documents cannot be renamed.
-                </p>
+                <div><h3 className="trace-section-title">Document Types</h3><p className="trace-admin-caption">Fees apply to new requests only. A type already used by documents cannot be renamed.</p></div><div className="trace-actions"><Button type="button" className="trace-button trace-button-primary" onClick={() => { resetForm(); setCatalogForm('documentTypes'); }}><AdminIcon name="plus" />New document type</Button></div>
               </div>
               <div className="flex flex-wrap gap-2 px-6 pb-4" aria-label="Document type filters">{[['all', 'All'], ['active', 'Active'], ['inactive', 'Inactive'], ['drafts', 'Drafts']].map(([key, label]) => <Button type="button" key={key} aria-pressed={typeFilter === key} onClick={() => { setTypeFilter(key); setTypePage(0); }} className={'trace-action rounded-full border px-3.5 py-1.5 text-xs ' + (typeFilter === key ? 'border-green-200 bg-[#e8f5ee] text-trace-emerald dark:border-green-800 dark:bg-green-950 dark:text-green-300' : 'border-gray-200 bg-white text-slate-500 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300')}>{label}{key === 'all' ? ' ' + m.documentTypes.length : ''}</Button>)}</div>
-              <div className="trace-table-scroll max-h-[32rem]">
+              <div className="trace-table-scroll max-h-[70dvh]">
                 <table className="w-full table-fixed text-left min-w-[60rem]"><colgroup>{['w-[32%]','w-[25%]','w-[12%]','w-[10%]','w-[21%]'].map((width,index)=><col key={index} className={width}/>)}</colgroup>
                   <thead className="bg-gray-50 dark:bg-gray-800 sticky top-0">
                     <tr className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest">
-                      <th className="py-3 px-5">Type</th>
+                      <th className="py-3 px-5">Document type</th>
                       <th className="py-3">Fee</th>
                       <th className="py-3">Attachment</th>
                       <th className="py-3">Status</th>
-                      <th className="py-3 pr-5 text-right">Action</th>
+                      <th className="py-3 pr-5 text-right">Actions</th>
                     </tr>
                   </thead>
                   <tbody>
                     {visibleTypes.map((d) => (
                       <tr key={d.id} className="border-b border-gray-50 dark:border-gray-700 hover:bg-gray-50/50 dark:hover:bg-gray-800/50">
-                        <td className="py-3 px-5 text-xs font-bold text-gray-900 dark:text-gray-100">{d.name}<span className="block text-[10px] text-blue-700 dark:text-blue-300">{d.available_to || 'both'} · {d.is_repeatable ? 'Repeatable' : 'One active/completed request'}{d.is_walk_in ? ' · Counter only' : ''}</span>
-                          {!d.is_active && Number(d.base_fee) === 0 && <span className="block text-[10px] text-amber-700 dark:text-amber-300">Draft: configure fee before activation</span>}</td>
+                        <td className="py-3 px-5 text-xs font-bold text-gray-900 dark:text-gray-100">{d.name}<span className="trace-admin-type-pills"><span>{({both:'Students & Alumni',student:'Students only',alumni:'Alumni only'})[d.available_to] || 'Students & Alumni'}</span>{Number(d.is_repeatable) === 1 && <span className="trace-admin-type-pill-blue">Repeatable</span>}{Number(d.is_walk_in) === 1 && <span className="trace-admin-type-pill-blue">Counter only</span>}</span>
+                          {!Number(d.is_active) && Number(d.base_fee) === 0 && <span className="trace-admin-draft-pill"><AdminIcon name="maintenance-alert" />Draft · set a fee to activate</span>}</td>
                         <td className="py-3 text-xs text-gray-600 dark:text-gray-300">
-                          {d.fee_pending ? 'Fee not set' : `₱${Number(d.base_fee).toFixed(2)}`}
-                          <span className="block text-[10px]">{(d.college_fee_schedules || []).length} college overrides · {(d.fee_items || []).length} named fees · Rental ₱{Number(d.rental_fee || 0).toFixed(2)} · Special ₱{Number(d.special_fee || 0).toFixed(2)}</span>
+                          <strong className="text-trace-ink dark:text-gray-100">{d.fee_pending ? 'Fee not set' : `₱${Number(d.base_fee).toFixed(2)}`}</strong>{['per_semester_block','per_page'].includes(d.fee_rule) && <span className="trace-admin-caption"> per page, per copy</span>}
+                          <span className="block text-[10px]">{(d.college_fee_schedules || []).length} college overrides · {(d.fee_items || []).length} named fees</span><span className="block text-[10px]">Rental ₱{Number(d.rental_fee || 0).toFixed(2)} · Special ₱{Number(d.special_fee || 0).toFixed(2)}</span>
                           {d.name === 'Diploma' && <span className="text-[10px] text-gray-500 dark:text-gray-400 block">Reissue Fee · Secretary sets final amount</span>}
-                          {['per_semester_block', 'per_page'].includes(d.fee_rule) && (
-                            <span className="text-[9px] text-gray-400 dark:text-gray-400 block">per page per copy</span>
-                          )}
                         </td>
-                        <td className="py-3 text-xs text-gray-600 dark:text-gray-300">{d.requires_attachment ? 'Required' : '—'}</td>
+                        <td className="py-3 text-xs text-gray-600 dark:text-gray-300">{Number(d.requires_attachment) ? <span className="inline-flex items-center gap-1.5"><AdminIcon name="maintenance-clip" />Required</span> : <span className="text-slate-400">—</span>}</td>
                         <td className="py-3"><StatusBadge active={d.is_active} retired={d.is_retired} /></td>
                         <td className="py-3 pr-5 text-right">
                           {d.is_retired && <span className="block text-xs text-gray-500 dark:text-gray-400 mb-2">Unavailable for new requests; history retained.</span>}
@@ -333,13 +318,13 @@ export default function MaintenancePanel({ user, currentTab }) {
                                 dt_is_walk_in: Boolean(d.is_walk_in), dt_requires_original: Boolean(d.requires_original),
                                 dt_is_same_day: Boolean(d.is_same_day), dt_reg_attach: d.registrar_attachment_rule,
                                 dt_college_ids: d.allowed_college_ids || [] });
-                            }} className="trace-button trace-button-secondary">Edit</Button>
+                            }} className="trace-button trace-button-secondary"><AdminIcon name="maintenance-edit" />Edit</Button>
                             <Button
                               onClick={() => m.handleToggleDocumentTypeActive(d)}
                               disabled={m.saving || d.is_retired}
-                              className={`trace-button ${d.is_active ? 'trace-button-danger' : 'trace-button-primary'}`}
+                              className={`trace-button ${Number(d.is_active) ? 'trace-button-danger' : 'trace-admin-button-soft'}`}
                             >
-                              {d.is_retired ? 'Retired' : d.is_active ? 'Deactivate' : 'Restore'}
+                              <AdminIcon name={Number(d.is_active) ? 'maintenance-ban' : 'maintenance-restore'} />{d.is_retired ? 'Retired' : Number(d.is_active) ? 'Deactivate' : 'Restore'}
                             </Button>
                           </div>
                         </td>
@@ -355,7 +340,7 @@ export default function MaintenancePanel({ user, currentTab }) {
         {/* ------------------------------------------------------------- Colleges */}
         {section === 'colleges' && (
           <div className="space-y-4">
-            <ModalShell open={catalogForm === 'colleges'} onClose={() => { if (!m.saving) setCatalogForm(null); }} title={'Add College'} panelClassName="trace-modal-panel trace-admin-main-dialog max-w-[640px]" subtitle="Create a college that can be used for programs and document rules." maxWidth="max-w-[640px]" busy={m.saving} footer={<div className="trace-actions justify-end"><Button type="button" disabled={m.saving} onClick={() => setCatalogForm(null)} className="trace-button trace-button-secondary">Cancel</Button><Button type="submit" form="admin-college-form" disabled={m.saving} className="trace-button trace-button-primary">{m.saving ? 'Saving…' : 'Create College'}</Button></div>}><form id="admin-college-form" onSubmit={submitCollege} className="space-y-5">
+            <ModalShell closeButtonIcon={<AdminIcon name="close" />} open={catalogForm === 'colleges'} onClose={() => { if (!m.saving) setCatalogForm(null); }} title={'Add College'} panelClassName="trace-modal-panel trace-admin-main-dialog trace-admin-catalog-dialog max-w-[640px]" subtitle="Create a college that can be used for programs and document rules." maxWidth="max-w-[640px]" busy={m.saving} footer={<div className="trace-actions justify-end"><Button type="button" disabled={m.saving} onClick={() => setCatalogForm(null)} className="trace-button trace-button-secondary">Cancel</Button><Button type="submit" form="admin-college-form" disabled={m.saving} className="trace-button trace-button-primary">{m.saving ? 'Saving…' : 'Create College'}</Button></div>}><form id="admin-college-form" onSubmit={submitCollege} className="space-y-5">
               <div className="flex justify-between"><h4 className="font-semibold">College details</h4><span className="text-xs text-gray-500">* Required</span></div>
               <label className="trace-label">College name <span className="text-red-600">*</span><input maxLength={INPUT_LIMITS.referenceName} className={`${inputClass} mt-2`} placeholder="e.g. College of Computer Studies" required
                 value={form.c_name || ''} onChange={(e) => set('c_name', e.target.value)} /></label>
@@ -364,11 +349,11 @@ export default function MaintenancePanel({ user, currentTab }) {
               <p className="trace-admin-guidance"><AdminIcon name="college-info" />You can deactivate a college later without affecting existing records.</p>
             </form></ModalShell>
 
-            <div className="trace-section overflow-hidden">
+            <div className="trace-section trace-admin-colleges overflow-hidden">
               <div className="trace-section-header border-gray-100 dark:border-gray-700">
-                <div><h3 className="trace-section-title">Colleges</h3><p className="trace-admin-caption">{m.colleges.length} colleges</p></div><div className="trace-actions"><input aria-label="Search colleges" className="trace-control w-56" placeholder="Search colleges" value={catalogSearch} onChange={event => setCatalogSearch(event.target.value)} /><Button type="button" className="trace-button trace-button-primary" onClick={() => { resetForm(); setCatalogForm('colleges'); }}>+ Add College</Button></div>
+                <div><h3 className="trace-section-title">Colleges</h3><p className="trace-admin-caption">{m.colleges.length} colleges · {m.colleges.filter(college => Number(college.is_active)).length} active</p></div><div className="trace-actions"><label className="trace-admin-search"><AdminIcon name="search" /><input type="search" aria-label="Search colleges" placeholder="Search colleges" value={catalogSearch} onChange={event => setCatalogSearch(event.target.value)} /></label><Button type="button" className="trace-button trace-button-primary" onClick={() => { resetForm(); setCatalogForm('colleges'); }}><AdminIcon name="plus" />Add College</Button></div>
               </div>
-              <div className="trace-table-scroll max-h-[32rem]">
+              <div className="trace-table-scroll max-h-[70dvh]">
                 <table className="w-full text-left min-w-[48rem]">
                   <thead className="bg-gray-50 dark:bg-gray-800 sticky top-0">
                     <tr className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest">
@@ -381,16 +366,16 @@ export default function MaintenancePanel({ user, currentTab }) {
                   <tbody>
                     {m.colleges.filter(c => (c.name+' '+(c.short_code || '')).toLowerCase().includes(catalogSearch.toLowerCase())).map((c) => (
                       <tr key={c.id} className="border-b border-gray-50 dark:border-gray-700 hover:bg-gray-50/50 dark:hover:bg-gray-800/50">
-                        <td className="py-3 px-5 text-xs font-bold text-gray-900 dark:text-gray-100">{c.name}</td>
-                        <td className="py-3 text-xs text-gray-600 dark:text-gray-300 font-mono">{c.short_code || '—'}</td>
+                        <td className="py-3 px-5 text-xs font-bold text-gray-900 dark:text-gray-100"><span className="flex items-center gap-3"><span className="trace-admin-catalog-icon"><AdminIcon name="college-cap" /></span>{c.name}</span></td>
+                        <td className="py-3 text-xs text-gray-600 dark:text-gray-300 font-mono"><span className="trace-admin-badge trace-admin-badge-neutral">{c.short_code || '—'}</span></td>
                         <td className="py-3"><StatusBadge active={c.is_active} /></td>
                         <td className="py-3 pr-5 text-right">
                           <Button
                             onClick={() => m.handleToggleCollegeActive(c)}
                             disabled={m.saving}
-                            className="trace-button trace-button-secondary"
+                            className={"trace-button " + (Number(c.is_active) ? "trace-button-danger" : "trace-admin-button-soft")}
                           >
-                            {c.is_active ? 'Deactivate' : 'Restore'}
+                            <AdminIcon name={Number(c.is_active) ? "maintenance-ban" : "maintenance-restore"} />{c.is_active ? 'Deactivate' : 'Restore'}
                           </Button>
                         </td>
                       </tr>
@@ -405,9 +390,9 @@ export default function MaintenancePanel({ user, currentTab }) {
         {/* ---------------------------------------------------------- Payment methods */}
         {section === 'paymentMethods' && (
           <div className="space-y-4">
-            <ModalShell open={catalogForm === 'paymentMethods'} onClose={() => { if (!m.saving) setCatalogForm(null); }} title={'Add Payment Method'} subtitle="Set up how students pay and what they must provide." panelClassName="trace-modal-panel trace-admin-main-dialog max-w-[640px]" maxWidth="max-w-[640px]" busy={m.saving} footer={<div className="trace-actions justify-end"><Button type="button" disabled={m.saving} onClick={() => setCatalogForm(null)} className="trace-button trace-button-secondary">Cancel</Button><Button type="submit" form="admin-payment-method-form" disabled={m.saving} className="trace-button trace-button-primary">{m.saving ? 'Saving…' : 'Create Method'}</Button></div>}><form id="admin-payment-method-form" onSubmit={submitPaymentMethod} className="space-y-5">
+            <ModalShell closeButtonIcon={<AdminIcon name="close" />} open={catalogForm === 'paymentMethods'} onClose={() => { if (!m.saving) setCatalogForm(null); }} title={editingPaymentId ? 'Edit Payment Method' : 'Add Payment Method'} subtitle="Set up how students pay and what they must provide." panelClassName="trace-modal-panel trace-admin-main-dialog trace-admin-catalog-dialog max-w-[640px]" maxWidth="max-w-[640px]" busy={m.saving} footer={<div className="trace-actions justify-end"><Button type="button" disabled={m.saving} onClick={() => setCatalogForm(null)} className="trace-button trace-button-secondary">Cancel</Button><Button type="submit" form="admin-payment-method-form" disabled={m.saving} className="trace-button trace-button-primary">{m.saving ? 'Saving…' : editingPaymentId ? 'Save Changes' : 'Create Method'}</Button></div>}><form id="admin-payment-method-form" onSubmit={submitPaymentMethod} className="space-y-5">
               <section className="space-y-5"><div className="flex flex-wrap items-center justify-between gap-3"><h4 className="text-base font-semibold">Method details</h4><span className="trace-admin-caption">* Required</span></div>
-                <label className="trace-label">Code <span className="text-red-600">*</span><input maxLength={INPUT_LIMITS.shortCode} className={`${inputClass} mt-2 font-mono`} placeholder="Code * (e.g. paymaya)" required value={form.pm_code || ''} onChange={e => set('pm_code', e.target.value)} /><span className="trace-admin-caption block">Lowercase letters, numbers and underscores only. Cannot be changed later.</span></label>
+                <label className="trace-label">Code <span className="text-red-600">*</span><input maxLength={INPUT_LIMITS.shortCode} className={`${inputClass} mt-2 font-mono`} placeholder="Code * (e.g. paymaya)" disabled={Boolean(editingPaymentId)} required value={form.pm_code || ''} onChange={e => set('pm_code', e.target.value)} /><span className="trace-admin-caption block">Lowercase letters, numbers and underscores only. Cannot be changed later.</span></label>
                 <label className="trace-label">Display name <span className="text-red-600">*</span><input maxLength={INPUT_LIMITS.referenceName} className={`${inputClass} mt-2`} placeholder="Display name *" required value={form.pm_name || ''} onChange={e => set('pm_name', e.target.value)} /></label>
                 <label className="trace-label">Instructions<textarea maxLength={INPUT_LIMITS.notes} rows={4} className={`${inputClass} mt-2`} placeholder="Instructions shown to the student" value={form.pm_instructions || ''} onChange={e => set('pm_instructions', e.target.value)} /></label>
               </section>
@@ -418,15 +403,15 @@ export default function MaintenancePanel({ user, currentTab }) {
               </section>
             </form></ModalShell>
 
-            <div className="trace-section overflow-hidden">
+            <div className="trace-section trace-admin-payment-methods overflow-hidden">
               <div className="trace-section-header border-gray-100 dark:border-gray-700">
-                <div><h3 className="trace-section-title">Payment Methods</h3><p className="trace-admin-caption">{m.paymentMethods.length} payment methods</p></div><div className="trace-actions"><input aria-label="Search payment methods" className="trace-control w-56" placeholder="Search payment methods" value={catalogSearch} onChange={event => setCatalogSearch(event.target.value)} /><Button type="button" className="trace-button trace-button-primary" onClick={() => { resetForm(); setCatalogForm('paymentMethods'); }}>+ Add Payment Method</Button></div>
-                <p className="text-[10px] text-gray-400 dark:text-gray-400 mt-1">
+                <div><h3 className="trace-section-title">Payment Methods</h3><p className="trace-admin-caption">{m.paymentMethods.length} methods · {m.paymentMethods.every(method => Number(method.is_active)) ? 'all active' : m.paymentMethods.filter(method => Number(method.is_active)).length + ' active'}</p></div><div className="trace-actions"><Button type="button" className="trace-button trace-button-primary" onClick={() => { resetForm(); setCatalogForm('paymentMethods'); }}><AdminIcon name="plus" />Add Payment Method</Button></div>
+                <p className="trace-admin-payment-policy text-[10px] text-gray-400 dark:text-gray-400 mt-1">
                   Every method settles manually against Finance's own records — a hosted gateway can be
                   added later without changing how these are listed.
                 </p>
               </div>
-              <div className="trace-table-scroll max-h-[32rem]">
+              <div className="trace-table-scroll max-h-[70dvh]">
                 <table className="w-full text-left min-w-[48rem]">
                   <thead className="bg-gray-50 dark:bg-gray-800 sticky top-0">
                     <tr className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest">
@@ -447,16 +432,18 @@ export default function MaintenancePanel({ user, currentTab }) {
                         <td className="py-3 text-xs text-gray-600 dark:text-gray-300">
                           {p.requires_reference ? (p.reference_label || 'Required') : '—'}
                         </td>
-                        <td className="py-3 text-xs text-gray-600 dark:text-gray-300">{p.requires_proof ? 'Required' : '—'}</td>
+                        <td className="py-3 text-xs text-gray-600 dark:text-gray-300">{Number(p.requires_proof) ? <span className="trace-admin-badge trace-admin-proof-badge"><AdminIcon name="maintenance-clip" />Required</span> : '—'}</td>
                         <td className="py-3"><StatusBadge active={p.is_active} /></td>
-                        <td className="py-3 pr-5 text-right">
-                          <Button
-                            onClick={() => m.handleTogglePaymentMethodActive(p)}
-                            disabled={m.saving}
-                            className="trace-button trace-button-secondary"
-                          >
-                            {p.is_active ? 'Deactivate' : 'Restore'}
-                          </Button>
+                        <td className="py-3 pr-5 text-right"><div className="trace-actions justify-end flex-nowrap">
+                          <Button type="button" className="trace-button trace-button-secondary" disabled={m.saving} onClick={() => {
+                            resetForm(); setEditingPaymentId(p.id); setForm({ pm_code: p.code, pm_name: p.name,
+                              pm_instructions: p.instructions || '', pm_requires_reference: Boolean(Number(p.requires_reference)),
+                              pm_reference_label: p.reference_label || '', pm_requires_proof: Boolean(Number(p.requires_proof)) }); setCatalogForm('paymentMethods');
+                          }}><AdminIcon name="maintenance-edit" />Edit</Button>
+                          <Button onClick={() => m.handleTogglePaymentMethodActive(p)} disabled={m.saving}
+                            className={'trace-button ' + (Number(p.is_active) ? 'trace-button-danger' : 'trace-admin-button-soft')}>
+                            <AdminIcon name={Number(p.is_active) ? 'maintenance-ban' : 'maintenance-restore'} />{Number(p.is_active) ? 'Deactivate' : 'Restore'}
+                          </Button></div>
                         </td>
                       </tr>
                     ))}

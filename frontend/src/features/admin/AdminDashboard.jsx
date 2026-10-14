@@ -258,7 +258,7 @@ export default function AdminDashboard({ user, currentTab, setViewImageUrl, revi
                         <div className="text-center py-12 text-gray-400 dark:text-gray-400 font-medium">No pending student accounts requiring manual validation.</div>
                       ) : (
                         <table aria-label="Account verification requests" className="trace-data-table min-w-[62rem]">
-                          <colgroup>{['w-[12%]','w-[13%]','w-[16%]','w-[25%]','w-[24%]','w-[10%]'].map((width,index)=><col key={index} className={width}/>)}</colgroup>
+                          <colgroup>{['w-[12%]','w-[13%]','w-[16%]','w-[25%]','w-[24%]','w-[8rem]'].map((width,index)=><col key={index} className={width}/>)}</colgroup>
                           <thead className="sticky top-0 bg-white dark:bg-gray-900 z-10">
                             <tr className="text-gray-400 dark:text-gray-400 text-[10px] uppercase tracking-widest border-b border-gray-100 dark:border-gray-700">
                               <th className="pb-4 font-bold pl-4 font-mono">Student ID</th>
@@ -289,7 +289,7 @@ export default function AdminDashboard({ user, currentTab, setViewImageUrl, revi
                                   )}
                                 </td>
                                 <td className="py-4">
-                                  <Button onClick={() => handleAdminVerifyStudent(student, 'review')} disabled={actionLoading} className="trace-button trace-button-primary"><img src="/admin-figma/review-eye.png" alt="" aria-hidden="true" width="15" height="13" className="shrink-0" />Review</Button>
+                                  <Button onClick={() => handleAdminVerifyStudent(student, 'review')} disabled={actionLoading} className="trace-button trace-button-primary min-w-max max-w-none whitespace-nowrap"><img src="/admin-figma/review-eye.png" alt="" aria-hidden="true" width="15" height="13" className="shrink-0" />Review</Button>
                                 </td>
                               </tr>
                             ))}

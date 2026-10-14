@@ -276,7 +276,8 @@ describe('role isolation', () => {
     expect(within(table).getAllByRole('columnheader').map(header => header.textContent))
       .toEqual(['Timestamp', 'Event', 'User', 'Role', 'IP Address']);
     const cells = within(within(table).getAllByRole('row')[1]).getAllByRole('cell');
-    expect(cells[0]).toHaveTextContent(new Date(log.created_at).toLocaleString());
+    expect(cells[0]).toHaveTextContent('Oct 5, 2026');
+    expect(cells[0]).toHaveTextContent('8:00:00 AM');
     expect(cells[1].textContent).toBe(log.event_type);
     expect(cells[2]).toHaveTextContent(log.full_name);
     expect(cells[2]).toHaveTextContent(log.student_id);

@@ -46,6 +46,7 @@ export default function ModalShell({
   subtitle,
   headerIcon,
   headerBadge,
+  headerActions,
   headerEyebrow,
   headerContent,
   showCloseButton = true,
@@ -195,11 +196,12 @@ export default function ModalShell({
           <>
             {title && (
               <div className={headerClassName ?? 'trace-modal-header'}>
-                <div className={headerIcon ? 'flex min-w-0 items-center gap-4' : undefined}>
+                <div className={headerIcon || headerActions ? 'flex min-w-0 flex-wrap items-center gap-4' : undefined}>
                   {headerIcon}
-                  <div className="min-w-0">{headerEyebrow && <p className="mb-1 text-[11px] font-semibold uppercase tracking-wider text-trace-emerald dark:text-green-300">{headerEyebrow}</p>}<div className="flex flex-wrap items-center gap-3"><h3 id={titleId} className="trace-modal-title">{title}</h3>{headerBadge}</div>
+                  <div className={'min-w-0 ' + (headerActions ? 'flex-1' : '')}>{headerEyebrow && <p className="mb-1 text-[11px] font-semibold uppercase tracking-wider text-trace-emerald dark:text-green-300">{headerEyebrow}</p>}<div className="flex flex-wrap items-center gap-3"><h3 id={titleId} className="trace-modal-title">{title}</h3>{headerBadge}</div>
                     {subtitle && <p className="mt-1.5 text-[0.8125rem] font-normal leading-relaxed text-gray-500 dark:text-gray-400">{subtitle}</p>}
                   </div>
+                  {headerActions}
                 </div>
               </div>
             )}
