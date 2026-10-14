@@ -11,7 +11,7 @@ export default function RequestAssignmentModal({ document, onClose, onSaved }) {
   const [collegeId, setCollegeId] = useState(''), [collegeReason, setCollegeReason] = useState('');
   const stage = () => state.stage({ kind: 'staff', payload: { staff_id: Number(staffId), reason: reason.trim(), expected_staff_id: state.context.document.assigned_clerk_id || null, expected_status: state.context.document.current_status } });
   return <>
-    <ModalShell open title="Assign Processing Staff" maxWidth="max-w-[535px]" onClose={() => { if (!state.saving) onClose(); }} showCloseButton={!state.saving} busy={state.saving} closeOnEsc={!state.saving} closeOnBackdrop={!state.saving}
+    <ModalShell open title="Assign Processing Staff" maxWidth="max-w-[667px]" onClose={() => { if (!state.saving) onClose(); }} showCloseButton={!state.saving} busy={state.saving} closeOnEsc={!state.saving} closeOnBackdrop={!state.saving}
       footer={<div className="mx-auto flex w-full max-w-[285px] flex-col gap-2 sm:flex-row">
         <Button type="button" disabled={state.saving} onClick={onClose} className="trace-button trace-button-secondary flex-1">Cancel</Button>
         <Button type="button" disabled={state.saving || !state.context || !staffId || !reason.trim()} onClick={stage} className="trace-button trace-button-primary flex-1">Review assignment</Button>

@@ -136,7 +136,7 @@ describe('shared document badge colors', () => {
     documentsService.getDocuments.mockResolvedValue({ documents: sample, total: sample.length, totalPages: 1 });
     await renderDashboard(<Component user={user} currentTab={tab} setViewImageUrl={vi.fn()} />);
     for (const [status, color] of examples) {
-      const badge = await screen.findByText(getStatusLabel(status), { selector: 'tbody span' });
+      const badge = await screen.findByText(getStatusLabel(status), { selector: 'tbody span[class*="bg-"]' });
       expect(badge).toHaveClass(`bg-${color}-50`);
       expect(badge.className).toContain(`dark:bg-${color}-950`);
       expect(badge).not.toHaveClass('bg-yellow-50');
@@ -285,7 +285,7 @@ describe('role isolation', () => {
     expect(within(table).getByText('Unknown')).toBeInTheDocument();
     const region = screen.getByRole('region', { name: 'Security log table' });
     expect(region).toContainElement(table);
-    await userEvent.setup().tab();
+    region.focus();
     expect(region).toHaveFocus();
     expect(get).toHaveBeenCalledExactlyOnceWith('/auth/global-security-logs');
   });

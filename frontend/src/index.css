@@ -7,6 +7,14 @@
   --default-transition-timing-function: var(--trace-motion-easing);
 }
 
+@font-face {
+  font-family: 'TRACE Admin Inter';
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url('/admin-figma/inter-latin.woff2') format('woff2');
+}
+
 /* Explicit opt-in conventions: native choices, file pickers, tabs and icon
    controls keep their own geometry. Utilities may add layout (e.g. pl-10 for
    an input icon) without duplicating the base appearance. */
@@ -475,4 +483,197 @@ input, textarea, select {
 @container trace-dialog (max-width: 36rem) {
   :root[data-trace-text-size]:not([data-trace-text-size="100"]) [data-modal-layer] .grid:is([class*="sm:grid-cols-"], [class*="md:grid-cols-"], [class*="lg:grid-cols-"]) { grid-template-columns: minmax(0, 1fr); }
   :root[data-trace-text-size]:not([data-trace-text-size="100"]) [data-modal-layer] .grid > [class*="col-span-"] { grid-column: auto; }
+}
+
+
+/* Admin measurements follow TRACE UI / UX (eQNaLBPXQSojI6lOK60Api).
+   Scope the reference treatment so other role portals retain their UI. */
+.trace-admin-shell { @apply gap-0; font-family: 'TRACE Admin Inter', Inter, sans-serif; }
+.trace-admin-shell .font-display, body:has(.trace-admin-shell) .trace-modal-panel { font-family: 'TRACE Admin Inter', Inter, sans-serif; }
+.trace-admin-shell .trace-shell-header { @apply min-h-20 border-0; box-shadow: 0 1px 13.3px -3px rgb(0 0 0 / 0.25); }
+.trace-admin-shell .trace-shell-body { @apply gap-4 pt-4; }
+.trace-admin-shell .trace-content { @apply px-0 pb-6; }
+.trace-admin-shell .trace-page { @apply space-y-4; }
+.trace-admin-shell .trace-page-title { @apply text-[1.875rem] font-semibold tracking-normal leading-normal; }
+.trace-admin-shell .trace-page-description { @apply mt-1 text-[0.8125rem] font-normal text-trace-muted dark:text-gray-400; }
+.trace-admin-shell .trace-section { @apply rounded-2xl border-gray-200/60 dark:border-gray-700; box-shadow: 0 1px 3px rgb(0 0 0 / 0.04); }
+.trace-admin-shell .trace-section-title { @apply text-base font-semibold; }
+.trace-admin-shell .trace-section-header { @apply gap-3 px-6 py-4 border-gray-100 dark:border-gray-700; }
+.trace-admin-search { @apply flex min-h-10 w-[280px] max-w-full min-w-0 items-center gap-2.5 rounded-lg border border-gray-200 bg-white px-3 dark:border-gray-700 dark:bg-gray-800; }
+.trace-admin-search input { @apply min-h-10 min-w-0 flex-1 bg-transparent text-xs outline-none focus-visible:ring-2 focus-visible:ring-green-600; }
+.trace-admin-date-filter { @apply flex min-w-0 items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 dark:border-gray-700 dark:bg-gray-800; }
+.trace-admin-date-filter .trace-control { @apply min-w-0 border-0 bg-transparent px-0; }
+.trace-admin-audit .trace-section-header { @apply bg-white dark:bg-gray-900; }
+.trace-admin-audit .trace-section-header > div:first-child,
+.trace-admin-graduates .trace-section-header > div:first-child { @apply min-w-0 flex-1; }
+.trace-admin-audit .trace-section-header .trace-actions,
+.trace-admin-graduates .trace-section-header .trace-actions { @apply max-w-full gap-2; }
+.trace-admin-graduates td:last-child .trace-icon-button { @apply h-[34px] w-[34px] rounded-[10px]; }
+.trace-admin-graduates td:last-child .trace-button { @apply min-h-[34px] rounded-[10px] px-3.5 py-1.5; }
+.trace-admin-shell .trace-control { @apply min-h-10 rounded-lg bg-white px-3 py-2 text-xs dark:bg-gray-800; }
+.trace-admin-shell .trace-actions .trace-control { @apply w-auto min-w-32; }
+.trace-admin-shell .trace-button { @apply min-h-10 px-4 py-2 text-xs font-semibold; }
+.trace-admin-shell .trace-button-primary { @apply bg-trace-emerald enabled:hover:bg-pine-700; }
+.trace-admin-shell .trace-date { @apply min-h-[42px] rounded-full border-0 px-4 py-2; }
+.dark .trace-admin-shell .trace-date img { filter: brightness(0) invert(1); }
+.trace-admin-shell .trace-tab-group { @apply w-full rounded-none border-b border-gray-200 bg-transparent p-0 dark:border-gray-700 dark:bg-transparent; }
+.trace-admin-shell .trace-tab { @apply min-h-[38px] rounded-b-none rounded-t-2xl px-5 py-2 text-xs font-medium; }
+.trace-admin-shell .trace-pill-active { @apply bg-trace-emerald shadow-none; }
+.trace-admin-shell .trace-pill-inactive { @apply text-[#52627c] dark:text-gray-300; }
+.trace-admin-shell table thead { @apply bg-gray-50 dark:bg-gray-800; }
+.trace-admin-shell table th { @apply bg-gray-50 px-6 py-3 text-left text-[0.625rem] font-medium uppercase tracking-wider text-[#52627c] dark:bg-gray-800 dark:text-gray-400; }
+.trace-admin-shell table td { @apply px-6 py-4 text-xs align-middle; }
+.trace-admin-shell table tbody tr { @apply border-b border-gray-100 last:border-0 dark:border-gray-700; }
+.trace-admin-shell .trace-data-table { @apply leading-normal; }
+.trace-admin-caption { @apply mt-1 text-[0.6875rem] font-normal leading-normal text-[#6b7890] dark:text-gray-400; }
+.trace-admin-notice { @apply flex items-start gap-2 rounded-lg border border-gray-200 bg-white px-4 py-3 text-xs text-[#6b7890] dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300; }
+.trace-admin-directory { @apply shadow-none; }
+.trace-admin-directory .trace-section-header { @apply bg-white dark:bg-gray-900; }
+.trace-admin-directory td:first-child, .trace-admin-directory th:first-child { @apply pl-5; }
+.trace-admin-directory td { @apply py-3; }
+.trace-admin-directory .trace-control { @apply min-w-36; }
+.trace-admin-directory-more { @apply border-b border-gray-100 bg-gray-50/70 px-5 py-4 dark:border-gray-700 dark:bg-gray-800/50; }
+.trace-admin-directory-footer { @apply flex flex-wrap items-center justify-between gap-3 px-5 py-4; }
+.trace-admin-badge { @apply inline-flex max-w-full items-center gap-1 rounded-md px-2 py-1 text-[0.6875rem] font-medium leading-normal; }
+.trace-admin-badge-green { @apply bg-emerald-50 text-emerald-800 dark:bg-emerald-950 dark:text-green-300; }
+.trace-admin-badge-blue { @apply bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-300; }
+.trace-admin-badge-red { @apply bg-red-50 text-red-700 dark:bg-red-950 dark:text-red-300; }
+.trace-admin-badge-amber { @apply bg-amber-50 text-amber-800 dark:bg-amber-950 dark:text-amber-300; }
+.trace-admin-badge-neutral { @apply bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300; }
+.trace-admin-kpis { @apply grid grid-cols-1 gap-4 lg:grid-cols-3; }
+.trace-admin-kpi { @apply relative flex min-w-0 flex-col gap-[7px] rounded-3xl border border-white/10 bg-white p-6 pb-5 dark:border-gray-700 dark:bg-gray-900; box-shadow: 1px 1px 7.6px -3px rgb(0 0 0 / 0.25); }
+.trace-admin-kpi-label { @apply pr-16 text-[0.6875rem] font-black uppercase leading-[1.2] text-trace-ink/80 dark:text-gray-300; }
+.trace-admin-kpi-value { @apply block min-w-0 break-words pr-16 text-[2rem] font-bold leading-[1.45] text-trace-ink dark:text-gray-100; }
+.trace-admin-kpi-icon { @apply absolute right-6 top-6 flex h-[55px] w-[58px] items-center justify-center rounded-full border border-trace-sage/20 bg-gradient-to-b from-trace-emerald to-trace-sage; }
+.trace-admin-kpi-helper { @apply mt-auto flex items-center gap-2 rounded-full bg-trace-sage/35 px-3 py-1 text-[0.625rem] font-semibold leading-normal text-trace-emerald dark:bg-green-950 dark:text-green-300; }
+.trace-admin-kpi-helper::before { content: ''; @apply h-1.5 w-1.5 shrink-0 rounded-full bg-trace-emerald; }
+.trace-admin-chart-row { @apply grid grid-cols-1 items-stretch gap-4 lg:grid-cols-[minmax(0,1.56fr)_minmax(0,1fr)]; }
+.trace-admin-dashboard .trace-page-header { @apply items-center min-h-[100px]; }
+.trace-admin-dashboard .trace-page-title { @apply text-3xl font-medium sm:text-[2.5rem]; }
+.trace-admin-dashboard .trace-section { @apply rounded-3xl; }
+.trace-admin-tracker .trace-page-header { @apply min-h-[78px] items-center; }
+.trace-admin-tracker .trace-page-title { @apply font-medium; }
+.trace-admin-tracker .trace-section { @apply rounded-3xl; }
+.trace-admin-tracker table th { @apply bg-white normal-case tracking-normal dark:bg-gray-900; }
+.trace-admin-tracker table td { @apply py-6; }
+.trace-admin-tracker .trace-section-header { @apply bg-gray-50/70 dark:bg-gray-800/50; }
+body:has(.trace-admin-shell) .trace-modal-panel { @apply rounded-3xl; }
+body:has(.trace-admin-shell) .trace-modal-header { @apply border-b border-gray-200 px-8 py-6 pr-20 dark:border-gray-700; }
+body:has(.trace-admin-shell) .trace-modal-title { @apply text-2xl font-bold; }
+body:has(.trace-admin-shell) .trace-modal-body { @apply px-8 py-6; }
+body:has(.trace-admin-shell) .trace-modal-footer { @apply px-8 py-5; }
+body:has(.trace-admin-shell) .trace-modal-footer > div { @apply justify-end; }
+body:has(.trace-admin-shell) .trace-modal-footer .trace-button { @apply flex-initial; }
+@media (min-width: 768px) {
+  .trace-admin-shell { @apply p-8; }
+  .trace-admin-shell .trace-shell-header { @apply h-[100px] px-6 py-2.5 rounded-[59px]; }
+  .trace-admin-shell .trace-shell-body { @apply p-4; }
+  .trace-admin-shell .trace-content { @apply px-4 pt-3; }
+  .trace-admin-shell .trace-desktop-rail { @apply w-[95px] rounded-none border-0 bg-transparent px-[5px] pb-[3px] pt-[119px] shadow-none dark:bg-transparent; }
+  .trace-admin-shell .trace-desktop-rail > div { @apply min-h-full w-[70px] rounded-[32px] bg-white px-2.5 py-4 dark:bg-gray-900; box-shadow: 0 0 13.4px -5px rgb(0 0 0 / 0.25); }
+  .trace-admin-shell .trace-desktop-rail nav { @apply gap-2.5; }
+  .trace-admin-shell .trace-desktop-rail .trace-nav-item { @apply h-[50px] w-[50px] rounded-full; }
+  .trace-admin-shell .trace-desktop-rail .trace-nav-icon { @apply h-[30px] w-[30px]; }
+  .trace-admin-shell .trace-desktop-rail [aria-current='page'] { @apply bg-trace-emerald shadow-none; }
+  .trace-admin-shell .trace-desktop-rail > div > div { @apply border-0; }
+  .trace-admin-shell .trace-shell-body:has(.trace-admin-dashboard, .trace-admin-tracker) { @apply pr-0; }
+  .trace-admin-shell .trace-content:has(.trace-admin-dashboard, .trace-admin-tracker) { @apply px-[10px] pt-[10px]; }
+  .trace-admin-shell .trace-admin-dashboard { @apply space-y-[10px]; }
+  .trace-admin-shell .trace-admin-dashboard .trace-page-header { @apply px-[10px]; }
+  .trace-admin-shell .trace-admin-dashboard .trace-admin-chart-row,
+  .trace-admin-shell .trace-admin-dashboard .trace-admin-verifications { @apply mt-5; }
+  .trace-admin-shell .trace-admin-tracker .trace-page-header { @apply min-h-[100px] px-[10px]; }
+  .trace-admin-shell .trace-admin-tracker .trace-page-title { @apply text-[2.5rem]; }
+}
+
+.trace-admin-icon { flex-shrink: 0; }
+.trace-admin-shell .trace-shell-header > div:last-child { @apply gap-2; }
+.trace-admin-shell .trace-shell-header .trace-icon-button { @apply h-9 w-9; }
+.trace-admin-shell #tutorial-profile { @apply h-[38px] w-[38px]; }
+.trace-admin-shell .trace-shell-header [aria-label='TRACE logo'] { @apply h-[46px] w-[56px]; }
+.trace-admin-shell .trace-shell-header > div:first-child > span { @apply gap-5; }
+.trace-admin-shell .trace-shell-header .font-display { @apply text-2xl tracking-normal; }
+.trace-admin-filter-body { @apply space-y-4; }
+.trace-admin-filter-grid { @apply grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4; }
+.trace-admin-filter-grid .trace-label { @apply mb-2 text-xs font-medium; }
+.trace-admin-shell .trace-admin-reports .trace-page-title { @apply text-3xl; }
+.trace-admin-shell .trace-admin-report-stat { @apply rounded-xl px-5 py-4; }
+.trace-admin-shell .trace-admin-reports .trace-section:has(.trace-admin-filter-body) { @apply rounded-xl; }
+.trace-admin-shell .trace-admin-reports table th,
+.trace-admin-shell .trace-admin-reports table td { @apply px-2.5; }
+.trace-admin-shell .trace-admin-reports table th:first-child,
+.trace-admin-shell .trace-admin-reports table td:first-child { @apply pl-6; }
+.trace-admin-shell .trace-admin-reports table th:last-child,
+.trace-admin-shell .trace-admin-reports table td:last-child { @apply pr-6 text-right; }
+.trace-admin-shell .trace-admin-reports .trace-admin-directory-footer .trace-button { @apply rounded-[10px]; }
+.trace-admin-shell .trace-admin-directory-more .trace-admin-caption { @apply mt-0; }
+.trace-admin-shell .trace-admin-dashboard .trace-admin-kpi-helper { @apply text-[0.5625rem] font-medium; }
+.trace-admin-shell .trace-admin-dashboard .trace-admin-kpi { @apply min-h-[179px]; }
+.trace-admin-shell .trace-admin-dashboard .trace-section-title { @apply text-lg; }
+.trace-admin-shell .trace-admin-tracker table td { @apply px-3 py-6; }
+.trace-admin-shell .trace-admin-tracker table th { @apply px-3 text-[0.625rem] uppercase; }
+.trace-admin-shell .trace-admin-tracker table th:last-child { @apply whitespace-nowrap; }
+.trace-admin-shell .trace-admin-tracker table .trace-button-primary { @apply min-h-7 px-3 py-1 text-[0.6875rem]; }
+.trace-admin-shell .trace-admin-directory table td { @apply px-3 py-3; }
+.trace-admin-shell .trace-admin-directory table th { @apply px-3; }
+.trace-admin-shell .trace-admin-directory table td:first-child, .trace-admin-shell .trace-admin-directory table th:first-child { @apply pl-5; }
+.trace-admin-shell .trace-desktop-rail:has(nav[aria-label='More navigation']) .trace-nav-icon { @apply h-6 w-6; }
+.trace-admin-form-section { @apply space-y-4 rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-700 dark:bg-gray-900; }
+.trace-modal-overlay:has(.trace-admin-drawer) { @apply justify-end p-0; }
+.trace-admin-drawer { @apply h-dvh max-h-dvh w-full max-w-[720px] rounded-none; }
+body:has(.trace-admin-shell) .trace-admin-drawer { @apply rounded-none; }
+body:has(.trace-admin-shell) .trace-admin-drawer .trace-modal-body { @apply bg-trace-canvas dark:bg-gray-950; }
+.trace-admin-switch { @apply relative h-6 w-10 shrink-0 appearance-none rounded-full bg-gray-300 checked:bg-trace-emerald disabled:opacity-50; }
+.trace-admin-switch::before { content: ''; @apply absolute top-[3px] left-[3px] h-[18px] w-[18px] rounded-full bg-white; }
+.trace-admin-switch:checked::before { @apply left-[19px]; }
+.trace-admin-form-section label:has(.trace-admin-switch) { @apply flex-row-reverse justify-between gap-4 rounded-xl border border-gray-200 p-3 dark:border-gray-700; }
+.trace-admin-icon-active { filter: brightness(0) invert(1); }
+.trace-admin-shell .trace-desktop-rail .trace-admin-icon:not(.trace-admin-icon-active) { filter: brightness(0); opacity: 0.55; }
+.trace-admin-shell .trace-desktop-rail button[aria-label="Logout"] .trace-admin-icon { filter: none; opacity: 1; }
+.dark .trace-admin-shell .trace-admin-icon:not(.trace-admin-icon-active) { filter: brightness(0) invert(1); opacity: 0.8; }
+.dark .trace-admin-shell button[aria-label="Logout"] .trace-admin-icon { filter: none; opacity: 1; }
+
+.trace-admin-insights article[data-insight-tone="info"] { @apply shrink-0 border-trace-sage/30 bg-[#f5fbf7] text-trace-ink dark:border-green-800 dark:bg-green-950 dark:text-gray-100; }
+.trace-admin-insights article h4 { @apply text-[0.8125rem] font-semibold; }
+.trace-admin-insights article > div { @apply text-[0.6875rem] font-normal; }
+.trace-admin-shell .trace-admin-verifications .trace-section-header { @apply bg-white dark:bg-gray-900; }
+.trace-admin-shell .trace-admin-verifications > div:nth-child(2) { @apply p-0; }
+.trace-admin-shell .trace-admin-verifications table th { @apply py-3; }
+.trace-admin-shell .trace-admin-verifications table td { @apply py-4; }
+.trace-admin-shell .trace-admin-verifications table .trace-button { @apply min-h-8; }
+
+body:has(.trace-admin-shell) .trace-modal-panel { @apply rounded-2xl; }
+body:has(.trace-admin-shell) .trace-admin-drawer { @apply rounded-none; }
+body:has(.trace-admin-shell) .trace-modal-header { @apply px-7 py-6 pr-20; }
+body:has(.trace-admin-shell) .trace-modal-body { @apply px-7 py-6; }
+body:has(.trace-admin-shell) .trace-modal-title { @apply text-[1.375rem]; }
+body:has(.trace-admin-shell) .trace-modal-panel > .trace-icon-button { @apply top-7 right-7 h-8 w-8 rounded-lg border border-gray-200 dark:border-gray-700; }
+body:has(.trace-admin-shell) .trace-modal-footer { @apply bg-[#fafbfc] px-7 py-[18px] dark:bg-gray-900; }
+.trace-admin-dialog-description { @apply mb-5 text-[0.8125rem] leading-normal text-[#647084] dark:text-gray-400; }
+
+.trace-admin-profile-summary { @apply grid grid-cols-1 items-center gap-5 rounded-xl bg-trace-canvas p-6 dark:bg-gray-800 lg:grid-cols-[minmax(0,1fr)_180px]; }
+.trace-admin-profile-card { @apply min-w-0 rounded-xl border border-gray-200 p-5 dark:border-gray-700; }
+.trace-admin-shell .trace-page-title > span { @apply text-trace-ink dark:text-gray-100; }
+.trace-admin-shell .trace-admin-dashboard .trace-page-title > span { @apply font-normal text-trace-muted; }
+.trace-admin-shell .trace-admin-manual .trace-section-body { @apply rounded-xl border-gray-200 p-5; }
+.trace-admin-shell .trace-admin-manual summary { @apply text-sm font-medium; }
+.trace-admin-shell .trace-admin-manual details > p { @apply mt-4; }
+@media (max-width: 767px) {
+  .trace-admin-shell .trace-button, .trace-admin-shell .trace-control, .trace-admin-shell .trace-tab { @apply min-h-11; }
+}
+
+.trace-admin-shell :is([aria-label="Support workspace"], [aria-label="Staff coordination workspace"], [aria-label="Internal assistance workspace"]) > p:not([role="alert"]) { @apply rounded-lg border border-gray-200 bg-white px-4 py-3 text-xs dark:border-gray-700 dark:bg-gray-900; }
+.trace-admin-shell :is([aria-label="Support workspace"], [aria-label="Staff coordination workspace"], [aria-label="Internal assistance workspace"]) > .grid { @apply h-[632px] rounded-xl; }
+.trace-admin-shell :is([aria-label="Support workspace"], [aria-label="Staff coordination workspace"], [aria-label="Internal assistance workspace"]) aside .trace-label { @apply text-xs font-medium; }
+.trace-admin-shell :is([aria-label="Support workspace"], [aria-label="Staff coordination workspace"], [aria-label="Internal assistance workspace"]) aside .trace-label > span { @apply rounded-lg bg-[#fafbfc] dark:bg-gray-800; }
+.trace-admin-shell :is([aria-label="Support workspace"], [aria-label="Staff coordination workspace"], [aria-label="Internal assistance workspace"]) aside input { @apply min-h-10 rounded-lg text-xs; }
+.trace-admin-shell .trace-support-ticket { @apply px-5 py-3 text-xs; }
+.trace-admin-shell .trace-support-ticket [aria-hidden="true"] { @apply h-9 w-9 rounded-xl text-xs; }
+.trace-admin-shell .trace-support-ticket .grid { @apply grid-cols-[36px_minmax(0,1fr)]; }
+.trace-admin-shell [aria-label="Selected support ticket"] > header, .trace-admin-shell [aria-label="Selected staff conversation"] > header, .trace-admin-shell [aria-label="Selected internal ticket"] > header { @apply bg-white px-6 py-5 dark:bg-gray-900; }
+.trace-admin-shell :is([aria-label="Conversation history"], [aria-label="Staff conversation history"], [aria-label="Internal conversation history"]) { @apply bg-[#fafbfc] px-6 py-5 dark:bg-gray-950; }
+.trace-admin-shell .trace-support-bubble { @apply w-fit max-w-[90%] rounded-xl text-xs; }
+@media (min-width: 1024px) {
+  .trace-admin-shell [aria-label="Support workspace"] > .grid, .trace-admin-shell [aria-label="Staff coordination workspace"] > .grid { @apply grid-cols-[432px_minmax(0,1fr)]; }
+  .trace-admin-shell [aria-label="Internal assistance workspace"] > .grid { @apply grid-cols-[380px_minmax(0,1fr)]; }
 }

@@ -54,7 +54,7 @@ export default function SupportConversation({ ticketId,user,topics,onTicketChang
         {ticket?.document_id && ticket.tracking_number && <Button type="button" aria-haspopup="dialog" onClick={()=>setShowCase(true)} className="trace-button trace-button-secondary" title="View this ticket’s authorized request and supporting documents">Open linked case</Button>}
       </div>
       {(user.role === 'admin' || ticket?.read_only) && <p className="text-sm font-semibold">Read-only history{user.role === 'admin' ? ' — Admin monitoring.' : ticket.state === 'RESOLVED' ? ' — ticket resolved.' : ' — document case closed.'}</p>}
-      {ticket && <details open className="text-sm"><summary className="cursor-pointer py-1 font-semibold focus-visible:outline">Ticket actions</summary>
+      {ticket && user.role !== 'admin' && <details open className="text-sm"><summary className="cursor-pointer py-1 font-semibold focus-visible:outline">Ticket actions</summary>
       <div className="flex flex-wrap gap-2">
         {!compact && user.role === 'student' && ticket.state === 'FAQ_ASSISTANCE' && <Button type="button" disabled={chat.busy} onClick={() => stage({action:'escalate'})} className="trace-button trace-button-primary">Talk to staff</Button>}
         {registrar && !ticket.read_only && <Button type="button" disabled={chat.busy} onClick={() => stage({action:'resolve'})} className="trace-button trace-button-secondary">Resolve ticket</Button>}

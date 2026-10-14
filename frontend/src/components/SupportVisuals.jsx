@@ -31,7 +31,7 @@ export function SupportTicketRow({ ticket, selected, onSelect }) {
 }
 export function SupportEmptyState({ student = false, monitor = false }) {
   return <div className="flex h-full min-h-48 min-w-0 flex-col items-center justify-center gap-4 rounded-xl bg-gray-50 p-5 text-center dark:bg-gray-900">
-    <img src={empty} alt="" aria-hidden="true" width="122" height="116" className="shrink-0" />
+    <img src={monitor ? '/admin-figma/empty-conversation.svg' : empty} alt="" aria-hidden="true" width={monitor ? 104 : 122} height={monitor ? 104 : 116} className="shrink-0" />
     <h3 className="text-lg font-bold text-trace-ink dark:text-gray-100">Select a ticket to read its conversation.</h3>
     <p className="max-w-sm text-sm leading-relaxed text-gray-600 dark:text-gray-300">{monitor ? 'Choose an operational ticket to monitor its authorized history. Staff concerns are handled in Internal assistance.' : student ? 'You can ask for help without a document request. Only one unresolved general ticket is allowed; opening another returns to that ticket.' : 'Choose a ticket from the list, or open a new linked ticket for an authorized request.'}</p>
   </div>;

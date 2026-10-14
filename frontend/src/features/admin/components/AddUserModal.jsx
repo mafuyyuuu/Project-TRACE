@@ -41,7 +41,8 @@ export default function AddUserModal({ open, onClose, onCreate, saving }) {
       open={open}
       onClose={onClose}
       title="Add Staff Account"
-      maxWidth="max-w-md"
+      subtitle="Enter staff details, assign access, and set a temporary password."
+      maxWidth="max-w-[640px]"
       footer={
         <div className="flex flex-col sm:flex-row gap-3">
           <Button
@@ -70,32 +71,20 @@ export default function AddUserModal({ open, onClose, onCreate, saving }) {
           if (await onCreate(accountToConfirm)) { setAccountToConfirm(null); onClose(); }
         }} />
       {validationError && <p role="alert" className="text-sm text-red-600 dark:text-red-300 mb-3">{validationError}</p>}
-      <form id="add-user-form" onSubmit={handleSubmit} className="space-y-3">
-        <input maxLength={INPUT_LIMITS.id} className={inputClass} placeholder="Employee ID *" required
-          value={form.employee_id || ''} onChange={(e) => set('employee_id', e.target.value)} />
-        <input maxLength={INPUT_LIMITS.name} className={inputClass} placeholder="Full Name *" required
-          value={form.full_name || ''} onChange={(e) => set('full_name', e.target.value)} />
-        <input maxLength={INPUT_LIMITS.email} className={inputClass} type="email" placeholder="Email"
-          value={form.email || ''} onChange={(e) => set('email', e.target.value)} />
-
-        <select className={`${inputClass} cursor-pointer`} value={form.role || 'clerk'}
-          onChange={(e) => set('role', e.target.value)}>
-          <option value="clerk">Clerk</option>
-          <option value="admin">Administrator</option>
-        </select>
-
-        <select className={`${inputClass} cursor-pointer`} value={form.desk_assignment || 'Finance'}
-          onChange={(e) => set('desk_assignment', e.target.value)}>
-          {DESKS.map((d) => <option key={d} value={d}>{d}</option>)}
-        </select>
-
-        <div>
-          <input maxLength={INPUT_LIMITS.password} className={inputClass} type="password" placeholder="Temporary password *" required minLength={8}
-            value={form.password || ''} onChange={(e) => set('password', e.target.value)} />
-          <p className="text-[10px] text-gray-400 dark:text-gray-400 mt-1.5 leading-relaxed">
-            {PASSWORD_REQUIREMENTS} The user must replace it at first login.
-          </p>
-        </div>
+      <form id="add-user-form" onSubmit={handleSubmit} className="space-y-6">
+        <section className="space-y-4"><div className="flex items-center justify-between"><h4 className="trace-section-title">Staff identity</h4><p className="trace-admin-caption">* Required</p></div>
+          <label className="trace-label">Employee ID <span className="text-red-600">*</span><input maxLength={INPUT_LIMITS.id} className={`${inputClass} mt-2`} placeholder="Employee ID *" required value={form.employee_id || ''} onChange={event => set('employee_id', event.target.value)} /></label>
+          <label className="trace-label">Full Name <span className="text-red-600">*</span><input maxLength={INPUT_LIMITS.name} className={`${inputClass} mt-2`} placeholder="Full Name *" required value={form.full_name || ''} onChange={event => set('full_name', event.target.value)} /></label>
+          <label className="trace-label">Email<input maxLength={INPUT_LIMITS.email} type="email" className={`${inputClass} mt-2`} placeholder="Email" value={form.email || ''} onChange={event => set('email', event.target.value)} /></label>
+        </section>
+        <section className="space-y-4 border-t border-gray-200 pt-5 dark:border-gray-700"><h4 className="trace-section-title">Account access</h4><div className="trace-form-grid">
+          <label className="trace-label">Role<select className={`${inputClass} mt-2`} value={form.role || 'clerk'} onChange={event => set('role', event.target.value)}><option value="clerk">Clerk</option><option value="admin">Administrator</option></select></label>
+          <label className="trace-label">Desk<select className={`${inputClass} mt-2`} value={form.desk_assignment || 'Finance'} onChange={event => set('desk_assignment', event.target.value)}>{DESKS.map(desk => <option key={desk} value={desk}>{desk}</option>)}</select></label>
+        </div></section>
+        <section className="space-y-4 border-t border-gray-200 pt-5 dark:border-gray-700"><h4 className="trace-section-title">Account security</h4>
+          <label className="trace-label">Temporary password <span className="text-red-600">*</span><input maxLength={INPUT_LIMITS.password} className={`${inputClass} mt-2`} type="password" placeholder="Temporary password *" required minLength={8} value={form.password || ''} onChange={event => set('password', event.target.value)} /></label>
+          <p className="trace-admin-caption leading-relaxed">{PASSWORD_REQUIREMENTS}</p><p className="trace-admin-notice">Staff must replace this password at first login.</p>
+        </section>
       </form>
     </ModalShell>
   );

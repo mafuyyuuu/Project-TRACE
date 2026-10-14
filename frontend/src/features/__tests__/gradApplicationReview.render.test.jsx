@@ -69,11 +69,23 @@ describe('queue tabs', () => {
 });
 
 describe('review detail', () => {
+  it('filters the Admin queue and opens approval review without sending a decision', async () => {
+    const user = userEvent.setup();
+    await renderPanel();
+    await user.type(screen.getByRole('searchbox', { name: 'Search alumni or program' }), 'no match');
+    expect(screen.getByText('No applications match your filters.')).toBeInTheDocument();
+    await user.clear(screen.getByRole('searchbox'));
+    await user.click(screen.getByRole('button', { name: 'Review approval for Ana Reyes' }));
+    expect(await screen.findByRole('dialog', { name: 'Graduate Application' })).toBeInTheDocument();
+    expect(gradService.getApplication).toHaveBeenCalledWith(1);
+    expect(gradService.reviewApplication).not.toHaveBeenCalled();
+  });
+
   it('opens the detail modal and shows the six labeled answers', async () => {
     const user = userEvent.setup();
     await renderPanel();
 
-    await user.click(await screen.findByRole('button', { name: /review/i }));
+    await user.click(await screen.findByRole('button', { name: /^review$/i }));
 
     expect(gradService.getApplication).toHaveBeenCalledWith(1);
     expect(await screen.findByText('Year Graduated')).toBeInTheDocument();
@@ -90,7 +102,7 @@ describe('review detail', () => {
     await renderPanel();
 
     await user.click(screen.getByRole('tab', { name: /approved/i }));
-    await user.click(await screen.findByRole('button', { name: /review/i }));
+    await user.click(await screen.findByRole('button', { name: /^review$/i }));
 
     const dialog = await screen.findByRole('dialog');
     expect(within(dialog).getByText('Mia Cruz')).toBeInTheDocument();
@@ -114,7 +126,7 @@ describe('approve / reject', () => {
     const user = userEvent.setup();
     await renderPanel();
 
-    await user.click(await screen.findByRole('button', { name: /review/i }));
+    await user.click(await screen.findByRole('button', { name: /^review$/i }));
     await user.click(await screen.findByRole('button', { name: /^approve$/i }));
 
     const confirmDialog = await findConfirmDialog('Approve Application');
@@ -127,7 +139,7 @@ describe('approve / reject', () => {
     const user = userEvent.setup();
     await renderPanel();
 
-    await user.click(await screen.findByRole('button', { name: /review/i }));
+    await user.click(await screen.findByRole('button', { name: /^review$/i }));
     expect(await screen.findByRole('button', { name: /^reject$/i })).toBeDisabled();
 
     await user.type(screen.getByPlaceholderText(/add notes/i), 'Incomplete records.');
@@ -147,7 +159,7 @@ describe('approve / reject', () => {
     const user = userEvent.setup();
     await renderPanel();
 
-    await user.click(await screen.findByRole('button', { name: /review/i }));
+    await user.click(await screen.findByRole('button', { name: /^review$/i }));
     await user.click(await screen.findByRole('button', { name: /^approve$/i }));
 
     const confirmDialog = await findConfirmDialog('Approve Application');

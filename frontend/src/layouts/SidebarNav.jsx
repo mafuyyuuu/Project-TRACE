@@ -4,6 +4,7 @@ import { canonicalTabForUser, navGroupsForUser } from '@/utils/navigation';
 import useMotion from '@/hooks/useMotion';
 import useSidebarTooltip from '@/hooks/useSidebarTooltip';
 import SidebarTooltip from '@/components/SidebarTooltip';
+import AdminIcon from '@/features/admin/components/AdminIcon';
 
 /**
  * The role-aware navigation list, rendered twice: as the icon-only desktop
@@ -43,7 +44,8 @@ const ICONS = {
   logout: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>,
 };
 
-function Icon({ name, className }) {
+function Icon({ name, className, admin = false, active = false }) {
+  if (admin) return <AdminIcon name={name} active={active} className={className} />;
   return (
     <svg aria-hidden="true" className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
       {ICONS[name]}
@@ -131,7 +133,7 @@ export default function SidebarNav({
             aria-current={tab === item.tab ? 'page' : undefined}
             className={linkClass(tab === item.tab)}
           >
-            <Icon name={item.icon} className="trace-nav-icon w-6 h-6 shrink-0" />
+            <Icon name={item.icon} admin={user?.role === 'admin'} active={tab === item.tab} className="trace-nav-icon w-6 h-6 shrink-0" />
             {showLabels && <span>{item.label}</span>}
           </Link>
         ))}
@@ -144,7 +146,7 @@ export default function SidebarNav({
           data-nav-selected={moreIsActive || undefined}
           className={linkClass(moreIsActive)}
         >
-          <Icon name={group === 'main' ? 'more' : 'back'} className="trace-nav-icon w-6 h-6 shrink-0" />
+          <Icon name={group === 'main' ? 'more' : 'back'} admin={user?.role === 'admin'} active={moreIsActive} className="trace-nav-icon w-6 h-6 shrink-0" />
           {showLabels && <span>{group === 'main' ? 'More' : 'Back to main'}</span>}
           {group === 'main' && activeGroup === 'more' && <span className="sr-only">Current page is in More</span>}
         </button>}
@@ -162,11 +164,11 @@ export default function SidebarNav({
           aria-label="Preferences"
           className={actionClass(false)}
         >
-          <Icon name="cog" className="trace-nav-icon w-6 h-6 shrink-0" />
+          <Icon name="cog" admin={user?.role === 'admin'} className="trace-nav-icon w-6 h-6 shrink-0" />
           {showLabels && <span>Preferences</span>}
         </button>
         <button type="button" onClick={onLogout} data-nav-label="Logout" aria-describedby={tooltip.description('Logout')} aria-label="Logout" className={actionClass(true)}>
-          <Icon name="logout" className="trace-nav-icon w-6 h-6 shrink-0" />
+          <Icon name="logout" admin={user?.role === 'admin'} className="trace-nav-icon w-6 h-6 shrink-0" />
           {showLabels && <span>Logout</span>}
         </button>
       </div>

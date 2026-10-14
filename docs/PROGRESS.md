@@ -1,3 +1,41 @@
+## Admin Figma UI implementation — 2026-10-14
+
+Replaced the Admin portal presentation using the TRACE UI / UX Figma file
+`eQNaLBPXQSojI6lOK60Api`, including its Main and More destinations. The Admin shell,
+navigation, dashboard metrics/forecast/verification queue, tracker, accounts directory,
+maintenance dialogs/document drawer, reports, support workspaces, templates, manual and
+profile/preferences dialogs now use the reference typography, spacing, rounded surfaces
+and exported icons. Graduate queues include the matching toolbar, program/search filters
+and review shortcuts; decisions still require the existing review and confirmation steps.
+Audit tables use the Figma toolbar, event/role/date/search filters and eight-row paging
+over already loaded records. Their scope is labelled; older server history is not fabricated.
+
+Preserved services, live data, protected-file access, Admin authorization, staged saves,
+confirmation dialogs, desk actions, pricing and workflow transitions. Unsupported Figma
+performance claims remain qualified by the existing measured-data/advisory rules. Admin
+styles are scoped; shared components retain other roles' presentation by default. Local
+Inter and original SVG assets add no package dependency or environment requirement.
+Integrated the latest dev field-bound, pickup-reminder and Secretary catalog fixes before
+verification; this change adds no backend or migration work.
+
+Validation: **1,067 frontend tests pass**, ESLint and the production build pass, and the
+changed-line whitespace check passes. Browser review covers 13 Admin destinations and
+five dialogs with synthetic API fixtures. **128 responsive checks** cover dashboard,
+accounts, reports, support, manual, both audit tables and graduate applications at
+320/375/768/1440 px, light/dark themes and 100/200% text size, without page overflow.
+Table overflow stays inside its scroller. UI screenshots use synthetic accounts and
+are for review only; physical devices and the live backend/deployment were not tested.
+Prepared for review against dev; no main merge or cloud deployment.
+
+Continuation verification: recovered the saved branch and its uncommitted audit/graduate
+refinements. Rechecked all 1,067 frontend tests, lint and production build. Replaced remaining
+dashboard and directory icon substitutes with original read-only Figma layer exports, and
+matched the report column proportions and footer. The earlier browser review above was
+recorded before the workspace interruption. A fresh browser review in the resumed workspace
+is blocked: Chromium is absent, its download is unavailable, and the cloud browser cannot
+reach the local Vite server. Final asset integrity, frontend tests, lint and build pass after the refinements;
+pixel-for-pixel and live deployment acceptance still need a browser review.
+
 ## Staff internal-assistance navigation — completion — 2026-10-12
 
 Removed the separate Internal Assistance destination for Window 1/Receiving Desk, Finance and

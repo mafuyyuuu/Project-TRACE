@@ -4,11 +4,24 @@ import ImageViewerModal from '@/components/ImageViewerModal';
 import useAuthedFile, { toFilename } from '@/hooks/useAuthedFile';
 
 /** Saved identity evidence is read-only and always fetched with authentication. */
-export default function RegistrationProof({ path, label = 'Registration Identity Proof', onPreview }) {
+export default function RegistrationProof({ path, label = 'Registration Identity Proof', onPreview, compact = false }) {
   const filename = toFilename(path);
   const { url, loading, error } = useAuthedFile(filename);
   const [previewPath, setPreviewPath] = useState(null);
   const isPdf = /\.pdf$/i.test(filename);
+  if (compact) return <section aria-label={label} className="trace-admin-profile-card bg-gray-50/60 dark:bg-gray-800/50">
+    <h4 className="trace-section-title">{label}</h4>
+    {loading && <p role="status" className="mt-4 text-sm">Loading uploaded file…</p>}
+    {error && <p role="alert" className="trace-inline-error mt-4">{error}</p>}
+    {!filename && <p className="trace-admin-caption mt-4">No registration proof uploaded.</p>}
+    {filename && <div className="mt-5 flex min-w-0 flex-wrap items-start gap-5">
+      {url && <Button type="button" motion="feedback" aria-label={`Preview ${label}`} className="trace-action block w-[136px] shrink-0 overflow-hidden rounded-md border border-gray-200" onClick={() => onPreview ? onPreview(filename) : setPreviewPath(filename)}>
+        {isPdf ? <span className="flex h-48 items-center justify-center bg-gray-100 text-sm">PDF document</span> : <img src={url} alt={`${label} preview`} className="max-h-52 w-full object-contain" />}
+      </Button>}
+      <div className="min-w-0 flex-1 space-y-3"><p className="trace-admin-caption">Uploaded</p><p className="select-text break-all text-xs">{filename}</p>{url && <><Button type="button" className="trace-button trace-button-secondary" onClick={() => onPreview ? onPreview(filename) : setPreviewPath(filename)}>Preview</Button><a href={url} download={filename} className="trace-button trace-button-secondary">Download proof</a></>}</div>
+    </div>}
+    <ImageViewerModal viewImageUrl={previewPath === filename ? previewPath : null} setViewImageUrl={setPreviewPath} />
+  </section>;
   return <section aria-label={label} className="trace-section min-w-0 self-start space-y-3 p-3 sm:p-4">
     <h4 className="trace-label">{label}</h4>
     {filename && <p role="status" className="text-xs break-all select-text text-gray-600 dark:text-gray-300">Uploaded: {filename}</p>}

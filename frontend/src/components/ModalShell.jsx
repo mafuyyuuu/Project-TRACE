@@ -43,6 +43,7 @@ export default function ModalShell({
   open,
   onClose,
   title,
+  subtitle,
   showCloseButton = true,
   children,
   footer,
@@ -193,6 +194,7 @@ export default function ModalShell({
                 <h3 id={titleId} className="trace-modal-title">
                   {title}
                 </h3>
+                {subtitle && <p className="mt-1.5 text-[0.8125rem] font-normal leading-relaxed text-gray-500 dark:text-gray-400">{subtitle}</p>}
               </div>
             )}
 

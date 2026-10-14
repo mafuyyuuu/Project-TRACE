@@ -78,7 +78,8 @@ export default function UserEditModal({ open, onClose, user, onSave, saving, col
       open={open}
       onClose={onClose}
       title="Edit User"
-      maxWidth="max-w-xl"
+      subtitle="Update personal information and account details."
+      maxWidth="max-w-[640px]"
       footer={
         <div className="flex flex-col sm:flex-row gap-3">
           <Button

@@ -28,8 +28,9 @@ export default function AccountVerificationModal({
     <ModalShell
       open={!!studentVerifyToConfirm}
       onClose={cancelAdminVerifyStudent}
-      title={<span className="text-base sm:text-xl">Review Registration</span>}
-      maxWidth="max-w-5xl"
+      title="Review Registration"
+      subtitle="Check the available identity evidence and account details, then choose a decision."
+      maxWidth="max-w-[960px]"
       footer={<div className="trace-actions">
         <Button type="button" onClick={cancelAdminVerifyStudent} className="trace-button trace-button-secondary flex-1">Cancel</Button>
         <Button type="button" onClick={() => choose('reject')} disabled={actionLoading} className="trace-button trace-button-danger flex-1">Reject</Button>

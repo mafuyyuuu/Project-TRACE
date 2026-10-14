@@ -1,5 +1,6 @@
 import useSupportFaq from '@/hooks/useSupportFaq';
 import MotionDetails from '@/components/MotionDetails';
+import AdminManual from '@/features/admin/components/AdminManual';
 
 /** Role-aware excerpts from docs/USER_MANUAL.md; no separate workflow rules. */
 export default function HelpPage({ user }) {
@@ -72,6 +73,7 @@ export default function HelpPage({ user }) {
     ['How do I review pending registrations?', 'Use Account Verification → Review, inspect the proof, choose Verify or Reject, then confirm the decision. Pending registrations also appear in the notification bell.'],
     ['How do I export records?', 'Open Reports & Export, edit the visible draft filters and choose Apply Filters. Student ID / Name matches an exact ID or part of a name. Choose Export at the upper right, select the dataset and Export CSV. Closing Export preserves drafts; Reset clears only the draft. Document exports follow all applied filters; student datasets use ID/name/college filters.'],
   );
+  if (user?.role === 'admin') return <AdminManual error={supportFaq.error} entries={[...entries.filter(([question]) => !supportFaq.topics.some(topic => topic.question === question)), ...supportFaq.topics.map(topic => [topic.question, topic.answer])]} />;
   return <section className="trace-page w-full pb-6" aria-label="User Manual / FAQ">
     <h1 className="trace-page-title">User Manual / FAQ</h1>
     <p className="trace-page-description">Guidance for your TRACE account. Contact the PLP Registrar for unresolved record or account concerns.</p>

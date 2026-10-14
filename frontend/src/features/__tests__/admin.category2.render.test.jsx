@@ -118,7 +118,7 @@ beforeEach(() => {
 it('edits audience, fees and college restrictions only after a confirmed save', async () => {
   const user = userEvent.setup();
   render(<MaintenancePanel user={ADMIN} currentTab="admin-maintenance" />);
-  await screen.findByText('System');
+  await screen.findByRole('heading', { name: 'System Maintenance' });
   await user.click(screen.getByRole('tab', { name: /Document Types/ }));
   const row = screen.getByText('Transcript of Records').closest('tr');
   await user.click(within(row).getByRole('button', { name: 'Edit' }));
@@ -274,7 +274,7 @@ describe('MaintenancePanel', () => {
     const user = userEvent.setup();
     await renderPanel();
 
-    await user.click(await screen.findByRole('button', { name: /\+ add user/i }));
+    await user.click(await screen.findByRole('button', { name: /add user/i }));
     await user.type(await screen.findByPlaceholderText(/Employee ID/), 'CLERK99');
     await user.type(screen.getByPlaceholderText(/Full Name/), 'New Clerk');
     await user.type(screen.getByPlaceholderText(/Temporary password/), 'Temporary_1234');
@@ -292,17 +292,18 @@ describe('MaintenancePanel', () => {
   it('explains that the temporary password must be replaced', async () => {
     const user = userEvent.setup();
     await renderPanel();
-    await user.click(await screen.findByRole('button', { name: /\+ add user/i }));
-    expect(await screen.findByText(/replace it at first login/i)).toBeInTheDocument();
+    await user.click(await screen.findByRole('button', { name: /add user/i }));
+    expect(await screen.findByText(/replace.* at first login/i)).toBeInTheDocument();
   });
 
   it('preserves a college draft after cancelling and creates it only after confirmation', async () => {
     const user = userEvent.setup();
     await renderPanel();
     await user.click(screen.getByRole('tab', { name: /Colleges/ }));
-    const name = screen.getByPlaceholderText('College name *');
+    await user.click(screen.getByRole('button', { name: '+ Add College' }));
+    const name = screen.getByLabelText(/College name/);
     await user.type(name, 'College of Engineering');
-    await user.type(screen.getByPlaceholderText('Short code (e.g. CCS)'), 'COE');
+    await user.type(screen.getByLabelText(/Short code/), 'COE');
     await user.click(screen.getByRole('button', { name: 'Create College' }));
     expect(maintenanceService.createCollege).not.toHaveBeenCalled();
     await user.keyboard('{Escape}');
@@ -316,6 +317,7 @@ describe('MaintenancePanel', () => {
     const user = userEvent.setup();
     await renderPanel();
     await user.click(screen.getByRole('tab', { name: /Document Types/ }));
+    await user.click(screen.getByRole('button', { name: '+ Add Document Type' }));
     await user.type(screen.getByPlaceholderText('Name *'), 'Certification');
     await user.type(screen.getByPlaceholderText('Base fee (₱)'), '50');
     await user.click(screen.getByRole('button', { name: 'Create Type' }));
@@ -348,6 +350,7 @@ describe('MaintenancePanel', () => {
     const user = userEvent.setup();
     await renderPanel();
     await user.click(await screen.findByRole('tab', { name: /Payment Methods/ }));
+    await user.click(screen.getByRole('button', { name: '+ Add Payment Method' }));
 
     await user.type(screen.getByPlaceholderText(/Code \*/), 'paymaya');
     await user.type(screen.getByPlaceholderText(/Display name/), 'PayMaya');

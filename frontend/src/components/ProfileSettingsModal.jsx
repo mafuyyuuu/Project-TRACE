@@ -119,7 +119,7 @@ export default function ProfileSettingsModal({
   );
 
   if (activeTab === 'appearance') return (
-    <PreferencesModal onClose={onClose} darkMode={darkMode} onToggleTheme={onToggleTheme}
+    <PreferencesModal admin={user?.role === 'admin'} onClose={onClose} darkMode={darkMode} onToggleTheme={onToggleTheme}
       textSize={textSize} onTextSizeChange={onTextSizeChange} />
   );
 
@@ -160,7 +160,7 @@ export default function ProfileSettingsModal({
       open
       onClose={onClose}
       title="Edit Profile"
-      maxWidth="max-w-xl"
+      maxWidth={user?.role === 'admin' ? 'max-w-[640px]' : 'max-w-xl'}
       bodyClassName="min-h-0 flex-1 overflow-y-auto overscroll-contain pb-4"
       closeButtonIcon={
         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"/></svg>

@@ -5,6 +5,7 @@ import RegistrationProof from '@/components/RegistrationProof';
 import { getUserLabel } from '@/utils/userLabels';
 import StaffAuthenticatorSetup from '@/features/admin/components/StaffAuthenticatorSetup';
 import RegistrationReviewNotice from '@/components/RegistrationReviewNotice';
+import AdminStudentInfo from './AdminStudentInfo';
 
 function Field({ label, value }) {
   return (
@@ -22,7 +23,7 @@ function Field({ label, value }) {
  * Renders identically from both AdminDashboard (view-only — no onEdit/
  * onToggleActive passed) and MaintenancePanel (full staff mutation).
  */
-export default function UserDetailModal({ open, onClose, user, onEdit, onToggleActive, saving, viewerId, onCorrectStudyYears }) {
+export default function UserDetailModal({ open, onClose, user, onEdit, onToggleActive, saving, viewerId, onCorrectStudyYears, adminLayout = false }) {
   if (!user) return null;
 
   const isStudent = user.role === 'student';
@@ -36,8 +37,9 @@ export default function UserDetailModal({ open, onClose, user, onEdit, onToggleA
     <ModalShell
       open={open}
       onClose={onClose}
-      title={user.full_name}
-      maxWidth="max-w-lg"
+      title={adminLayout && isStudent ? 'Student information' : user.full_name}
+      subtitle={adminLayout && isStudent ? 'Account management · Student profile and registration details' : undefined}
+      maxWidth={adminLayout && isStudent ? 'max-w-[1080px]' : 'max-w-lg'}
       footer={
         <div className="space-y-3">
           <div className="flex flex-col sm:flex-row gap-3">
@@ -70,7 +72,7 @@ export default function UserDetailModal({ open, onClose, user, onEdit, onToggleA
         </div>
       }
     >
-      <div className="flex flex-col items-center text-center pb-6 border-b border-gray-100 dark:border-gray-700">
+      {adminLayout && isStudent ? <AdminStudentInfo user={user} /> : <><div className="flex flex-col items-center text-center pb-6 border-b border-gray-100 dark:border-gray-700">
         <UserAvatar user={user} className="w-20 h-20 rounded-full object-cover" alt={user.full_name} />
         <h4 className="mt-3 text-lg font-display font-black text-gray-900 dark:text-gray-100 select-text break-words">{user.full_name}</h4>
         <p className="text-xs text-gray-500 dark:text-gray-400 select-text">{user.email || '—'}</p>
@@ -124,7 +126,7 @@ export default function UserDetailModal({ open, onClose, user, onEdit, onToggleA
           <Field label="Senior High Year Graduated" value={user.shs_grad_year} />
           <RegistrationProof path={user.id_proof_path} />
         </>}
-      </div>
+      </div></>}
     </ModalShell>
   );
 }
