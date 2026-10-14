@@ -1132,3 +1132,18 @@ body:has(.trace-admin-shell) .trace-admin-forecast .trace-modal-header .trace-co
 .trace-admin-support-tables .trace-analytics-scroller { max-height: none; }
 .trace-admin-duration-note { display: flex; align-items: center; gap: 8px; margin: 0; padding: 12px 24px; border-top: 1px solid #e2e7ec; background: #f8faf9; color: #647084; font-size: .75rem; }
 .dark .trace-admin-duration-note { background: #1f2937; border-color: #374151; color: #cbd5e1; }
+
+/* Keep every mobile header action reachable without a second toolbar row. */
+@media (max-width: 767px) {
+  .trace-admin-shell .trace-shell-header { position: relative; min-height: 64px; flex-wrap: nowrap; gap: 4px; padding: 8px; border-radius: 20px; }
+  .trace-admin-shell .trace-shell-header > div:first-child { gap: 4px; }
+  .trace-admin-shell .trace-shell-header > div:first-child > span { gap: 0; }
+  .trace-admin-shell .trace-shell-header > div:first-child > span > .font-display { display: none; }
+  .trace-admin-shell .trace-shell-header [aria-label='TRACE logo'] { width: 36px; height: 32px; }
+  .trace-admin-shell .trace-shell-header > div:last-child { gap: 0; }
+  .trace-admin-shell .trace-shell-header .trace-icon-button,
+  .trace-admin-shell .trace-shell-header #tutorial-profile { width: 44px; height: 44px; }
+  .trace-admin-shell .trace-shell-header .trace-navigation-trigger { margin-left: 0; }
+  .trace-admin-shell .trace-shell-header .trace-notifications-anchor { position: static; }
+  .trace-admin-shell .trace-shell-header .trace-notifications-panel { top: 100%; right: 0; }
+}

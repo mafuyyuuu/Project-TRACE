@@ -1,3 +1,21 @@
+## Admin mobile header — 2026-10-15
+
+The user flagged the tall mobile header in the More review screenshots. The full
+wordmark and desktop-sized brand spacing forced the action group onto another row.
+Below 768 px, Admin now shows the accessible logo mark and all existing controls
+on one 64 px header row. Menu, quick guide, theme, notifications and profile keep
+44 px tap targets. The notification panel anchors to the header edge on mobile so
+it cannot extend off the left side. Desktop and other role headers retain their
+existing treatment. No actions or notification behavior were removed.
+
+Validation: 27 Layout tests, ESLint, production/PWA build and whitespace checks
+pass. Chromium checks 320/375/414/640/767/768/1440 px at 100/200% text in both
+themes (28 combinations), including one-row geometry, minimum tap targets, page
+containment and loaded assets. Mobile menu open/close, theme toggle, notification
+read/clearing and Edit Profile remain functional. Notification-panel containment
+also passes at five mobile widths and both text sizes. Synthetic comparison:
+`docs/admin-mobile-header-review.png`. No live backend or physical phone was used.
+
 ## Admin More Tabs fidelity and notification state — 2026-10-15
 
 The user accepted Main Tabs, requested the More destinations, reported the persistent

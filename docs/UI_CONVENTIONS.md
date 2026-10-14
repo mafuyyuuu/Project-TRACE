@@ -18,6 +18,8 @@ The accounts directory initially shows six rows and three additional account pre
 
 Audit controls filter the loaded response, with eight rows per page; display this scope rather than implying complete server-history search. Default All loaded history retains the existing records, while date selections use the page's snapshot time. Preserve full raw event codes, identifiers and IP addresses. Graduate filters search loaded applicants and program/college values; row check/reject icons open the review dialog and never submit a decision directly.
 
+Below 768 px the Admin header uses a single 64 px row with the accessible logo mark, menu and existing utility actions. Keep 44 px tap targets, hide only the duplicate text wordmark and anchor the notification panel to the header edge. Desktop retains the full wordmark and source spacing. [Synthetic before/after](admin-mobile-header-review.png).
+
 Desktop geometry follows the source frames; narrow layouts stack sections and use existing table scrollers. Text preference enlargement may increase card height rather than clip values. Retain dark equivalents, keyboard access, visible focus, reduced motion and 44 px mobile controls. Live values, honest empty/error states and required workflow explanations take precedence over copying example records or unsupported performance claims from the mockups.
 
 Main Tabs fidelity follow-up: boxed action labels reserve min-content width; registration
