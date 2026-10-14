@@ -1,3 +1,21 @@
+## Admin tracker control wrapping — 2026-10-14
+
+The user's mobile screenshots exposed `Filter:` split across two lines and `View`
+across three lines. A real Chromium reproduction confirmed both failures without
+page overflow, which explains why the earlier overflow-only checks missed them.
+The tracker filter now uses a nonshrinking, single-line accessible label and a
+wrapping control group. The attachment column reserves seven rems, and its View
+button keeps the icon and complete word together. Filtering and authenticated
+preview behavior are unchanged.
+
+Browser checks assert single-line text, containment within the label/button/table
+cell, and no page overflow across 320/375/768/1440 px, 100/125/150/200% text,
+light/dark themes, and short/long document filters: **64 combinations pass**.
+The protected viewer opens, no browser errors occur, and **59 focused Admin tests**
+pass. Lint, production build and changed-line whitespace checks pass.
+`docs/admin-tracker-controls-mobile.png` contains only synthetic fixture records.
+This follow-up remains in Main Tabs; More work stays paused.
+
 ## Admin Main Tabs — review stage — 2026-10-14
 
 Inspected all 35 frames in Figma Admin – Main Tabs (`2217:20270`) individually before

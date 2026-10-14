@@ -317,12 +317,13 @@ export default function AdminDashboard({ user, currentTab, setViewImageUrl, revi
                 <div className="trace-section overflow-hidden">
                   <div className="trace-section-header border-gray-100 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800/50">
                     <h3 className="trace-section-title">System-Wide Document Tracker</h3>
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest">Filter:</span>
+                    <div className="flex min-w-0 max-w-full flex-wrap items-center gap-2">
+                      <label htmlFor="admin-document-filter" className="shrink-0 whitespace-nowrap text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest">Filter:</label>
                       <select
+                        id="admin-document-filter"
                         value={adminDocFilter}
                         onChange={(e) => setAdminDocFilter(e.target.value)}
-                        className="trace-control"
+                        className="trace-control min-w-0 max-w-full"
                       >
                         <option value="All">All Documents</option>
                         <option value="Transcript of Records">Transcript of Records</option>
@@ -340,7 +341,7 @@ export default function AdminDashboard({ user, currentTab, setViewImageUrl, revi
                         <div className="text-center py-12 text-gray-400 dark:text-gray-400 font-medium">No documents match the current filter.</div>
                       ) : (
                         <table aria-label="System-wide document tracker" className="trace-data-table min-w-[64rem]">
-                          <colgroup>{['w-[13%]','w-[14%]','w-[14%]','w-[15%]','w-[18%]','w-[18%]','w-[8%]'].map((width,index)=><col key={index} className={width}/>)}</colgroup>
+                          <colgroup>{['w-[13%]','w-[14%]','w-[14%]','w-[15%]','w-[18%]','w-[18%]','w-[7rem]'].map((width,index)=><col key={index} className={width}/>)}</colgroup>
                           <thead className="sticky top-0 bg-white dark:bg-gray-900 z-10">
                             <tr className="text-gray-400 dark:text-gray-400 text-[10px] uppercase tracking-widest border-b border-gray-100 dark:border-gray-700">
                               <th className="pb-4 font-bold pl-4">Tracking ID</th>
@@ -377,8 +378,9 @@ export default function AdminDashboard({ user, currentTab, setViewImageUrl, revi
                                   <td className="py-4 text-right pr-4">
                                     {doc.file_path ? (
                                       <Button
+                                        type="button"
                                         onClick={() => setViewImageUrl(doc.file_path)}
-                                        className="trace-button trace-button-primary inline-flex items-center gap-1"
+                                        className="trace-button trace-button-primary inline-flex min-w-max max-w-none items-center gap-1 whitespace-nowrap"
                                         title="View Attached File"
                                       >
                                         <img src="/admin-figma/review-eye.png" alt="" aria-hidden="true" width="15" height="13" />
