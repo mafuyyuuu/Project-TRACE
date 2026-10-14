@@ -30,6 +30,7 @@ function EvaluationForm({
   setEstimatedReadyDate,
   clerkNotes,
   documentTypes = [],
+  documentTypesError,
   setClerkNotes,
 }) {
   const fieldId = useId();
@@ -102,6 +103,7 @@ function EvaluationForm({
               {!documentTypes.some(type => type.name === evalDocType) && <option value={evalDocType}>{evalDocType}</option>}
               {documentTypes.map(type => <option key={type.id || type.name} value={type.name}>{type.name}</option>)}
             </select>
+            {documentTypesError && <p role="alert" className="trace-inline-error">{documentTypesError}</p>}
           </div>
         </div>
 
@@ -208,13 +210,14 @@ export default function SecretaryEvaluationModal({
   setViewImageUrl,
   estimatedReadyDate,
   setEstimatedReadyDate,
-  documentTypes = []
+  documentTypes = [],
+  documentTypesError,
 }) {
   if (!selectedDoc) return null;
 
   const formProps = {
     selectedDoc, evalStudentId, setEvalStudentId, evalStudentName, setEvalStudentName,
-    evalDocType, setEvalDocType, estimatedReadyDate, setEstimatedReadyDate, clerkNotes, setClerkNotes, documentTypes,
+    evalDocType, setEvalDocType, estimatedReadyDate, setEstimatedReadyDate, clerkNotes, setClerkNotes, documentTypes, documentTypesError,
   };
 
   // UI-only split: parent-owned evaluation drafts survive discussion changes.
