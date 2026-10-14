@@ -71,11 +71,17 @@ export default function MaintenancePanel({ user, currentTab }) {
   const [saveToConfirm, setSaveToConfirm] = useState(null);
   const [staffRoleFilter, setStaffRoleFilter] = useState('All');
   const [staffDeskFilter, setStaffDeskFilter] = useState('All');
+  const [typeFilter, setTypeFilter] = useState('all');
+  const [typePage, setTypePage] = useState(0);
 
   if (m.loading) return <DashboardLoading />;
 
   const set = (key, value) => setForm((f) => ({ ...f, [key]: value }));
   const resetForm = () => { setForm({}); setEditingTypeId(null); };
+  const matchingTypes = m.documentTypes.filter(item => (typeFilter === 'all' || typeFilter === 'active' && Number(item.is_active) === 1 || typeFilter === 'inactive' && !Number(item.is_active) || typeFilter === 'drafts' && Boolean(item.fee_pending)) && item.name.toLowerCase().includes(catalogSearch.toLowerCase()));
+  const lastTypePage = Math.max(0, Math.ceil(matchingTypes.length / 8) - 1);
+  const shownTypePage = Math.min(typePage, lastTypePage);
+  const visibleTypes = matchingTypes.slice(shownTypePage * 8, (shownTypePage + 1) * 8);
 
   const filteredStaff = (m.accounts || m.staff).filter((s) => {
     const matchesRole = staffRoleFilter === 'All' || s.role === staffRoleFilter;
@@ -203,9 +209,9 @@ export default function MaintenancePanel({ user, currentTab }) {
         {/* -------------------------------------------------------- Document types */}
         {section === 'documentTypes' && (
           <div className="space-y-4">
-            <ModalShell open={catalogForm === 'documentTypes'} onClose={() => { if (!m.saving) setCatalogForm(null); }} title={editingTypeId ? 'Edit Document Type' : 'Add Document Type'} panelClassName="trace-modal-panel trace-admin-drawer" busy={m.saving} footer={<div className="trace-actions justify-end"><Button type="button" disabled={m.saving} onClick={() => setCatalogForm(null)} className="trace-button trace-button-secondary">Cancel</Button><Button type="submit" form="admin-document-type-form" disabled={m.saving} className="trace-button trace-button-primary">{m.saving ? 'Saving…' : editingTypeId ? 'Save Changes' : 'Create Type'}</Button></div>}><form id="admin-document-type-form" onSubmit={submitDocType} className="space-y-5">
+            <ModalShell open={catalogForm === 'documentTypes'} onClose={() => { if (!m.saving) setCatalogForm(null); }} title={editingTypeId ? (form.dt_name || 'Edit Document Type') : 'Add Document Type'} headerBadge={editingTypeId ? <StatusBadge active={m.documentTypes.find(item => item.id === editingTypeId)?.is_active} /> : undefined} headerEyebrow={editingTypeId ? 'EDIT DOCUMENT TYPE' : 'NEW DOCUMENT TYPE'} panelClassName="trace-modal-panel trace-admin-drawer" busy={m.saving} footer={<div className="flex flex-wrap items-center justify-between gap-3"><p className="trace-admin-caption flex items-center gap-2"><AdminIcon name="drawer-info" />Fee changes apply to new requests only.</p><div className="trace-actions justify-end"><Button type="button" disabled={m.saving} onClick={() => setCatalogForm(null)} className="trace-button trace-button-secondary">Cancel</Button><Button type="submit" form="admin-document-type-form" disabled={m.saving} className="trace-button trace-button-primary"><AdminIcon name="drawer-check" />{m.saving ? 'Saving…' : editingTypeId ? 'Save Changes' : 'Create Type'}</Button></div></div>}><form id="admin-document-type-form" onSubmit={submitDocType} className="space-y-5">
 
-              <section className="trace-admin-form-section"><h4 className="trace-section-title mb-4">Document details</h4><label className="trace-label">Document name<input maxLength={INPUT_LIMITS.referenceName} className={`${inputClass} mt-2`} placeholder="Name *" required
+              <section className="trace-admin-form-section"><h4 className="trace-section-title mb-4">Basic details</h4><label className="trace-label">Document name<input maxLength={INPUT_LIMITS.referenceName} className={`${inputClass} mt-2`} placeholder="Name *" required
                 value={form.dt_name || ''} onChange={(e) => set('dt_name', e.target.value)} /></label>
               <label className="trace-label">Base fee (₱)<NumberInput max={NUMBER_LIMITS.money} className={`${inputClass} mt-2`} min="0" step="0.01" placeholder="Base fee (₱)"
                 value={form.dt_fee ?? ''} onChange={(e) => set('dt_fee', e.target.value)} /></label>
@@ -217,7 +223,7 @@ export default function MaintenancePanel({ user, currentTab }) {
                 <option value="per_page">Per printed page per copy</option>
               </select></label></section>
 
-              <section className="trace-admin-form-section"><h4 className="trace-section-title mb-4">Fee schedule</h4><FeeScheduleEditor colleges={m.colleges} value={{ rental_fee: form.dt_rental_fee ?? 0, special_fee: form.dt_special_fee ?? 0,
+              <section className="trace-admin-form-section"><h4 className="sr-only">Fee schedule</h4><FeeScheduleEditor admin colleges={m.colleges} value={{ rental_fee: form.dt_rental_fee ?? 0, special_fee: form.dt_special_fee ?? 0,
                 fee_items: form.dt_fee_items || [], college_fee_schedules: form.dt_fee_schedules || [] }}
                 onChange={value => setForm(previous => ({ ...previous, dt_rental_fee: value.rental_fee, dt_special_fee: value.special_fee,
                   dt_fee_items: value.fee_items, dt_fee_schedules: value.college_fee_schedules }))} /></section>
@@ -229,26 +235,26 @@ export default function MaintenancePanel({ user, currentTab }) {
               </label>
 
               {form.dt_attach && (
-                <input maxLength={INPUT_LIMITS.shortText} className={`${inputClass} mt-2`} placeholder="Attachment label"
-                  value={form.dt_label || ''} onChange={(e) => set('dt_label', e.target.value)} />
+                <label className="trace-label mt-3">Attachment label<input maxLength={INPUT_LIMITS.shortText} className={`${inputClass} mt-2`} placeholder="Attachment label"
+                  value={form.dt_label || ''} onChange={(e) => set('dt_label', e.target.value)} /></label>
               )}
 
               
-              <select className={`${inputClass} cursor-pointer`} value={form.dt_available_to || 'both'}
+              <div className="trace-form-grid mt-4"><label className="trace-label">Available to<select className={`${inputClass} mt-2 cursor-pointer`} value={form.dt_available_to || 'both'}
                 onChange={(e) => set('dt_available_to', e.target.value)}>
                 <option value="both">Both Student & Alumni</option>
                 <option value="student">Student Only</option>
                 <option value="alumni">Alumni Only</option>
-              </select>
+              </select></label>
 
-              <select className={`${inputClass} cursor-pointer`} value={form.dt_reg_attach || 'none'}
+              <label className="trace-label">Registrar attachment<select className={`${inputClass} mt-2 cursor-pointer`} value={form.dt_reg_attach || 'none'}
                 onChange={(e) => set('dt_reg_attach', e.target.value)}>
                 <option value="none">No Registrar Attachment</option>
                 <option value="optional">Optional Registrar Attachment</option>
                 <option value="required">Required Registrar Attachment</option>
-              </select>
+              </select></label></div>
 
-              </section><fieldset className="trace-admin-form-section space-y-2">
+              </section><fieldset className="trace-admin-form-section trace-admin-college-options space-y-2">
                 <legend className="text-xs font-bold px-1">Allowed colleges</legend>
                 <p className="text-xs text-gray-500 dark:text-gray-400">No selection allows every college.</p>
                 {m.colleges.map(college => <label key={college.id} className="flex items-center gap-2 text-xs">
@@ -282,13 +288,14 @@ export default function MaintenancePanel({ user, currentTab }) {
 
             <div className="trace-section overflow-hidden">
               <div className="trace-section-header border-gray-100 dark:border-gray-700">
-                <div><h3 className="trace-section-title">Document Types</h3><p className="trace-admin-caption">{m.documentTypes.length} document types</p></div><div className="trace-actions"><input aria-label="Search document types" className="trace-control w-56" placeholder="Search document types" value={catalogSearch} onChange={event => setCatalogSearch(event.target.value)} /><Button type="button" className="trace-button trace-button-primary" onClick={() => { resetForm(); setCatalogForm('documentTypes'); }}>+ Add Document Type</Button></div>
+                <div><h3 className="trace-section-title">Document Types</h3><p className="trace-admin-caption">{m.documentTypes.length} document types</p></div><div className="trace-actions"><Button type="button" className="trace-button trace-button-primary" onClick={() => { resetForm(); setCatalogForm('documentTypes'); }}>+ Add Document Type</Button></div>
                 <p className="text-[10px] text-gray-400 dark:text-gray-400 mt-1">
                   Fees apply to new requests only. A type already used by documents cannot be renamed.
                 </p>
               </div>
-              <div className="max-h-[32rem] overflow-y-auto">
-                <table className="w-full text-left">
+              <div className="flex flex-wrap gap-2 px-6 pb-4" aria-label="Document type filters">{[['all', 'All'], ['active', 'Active'], ['inactive', 'Inactive'], ['drafts', 'Drafts']].map(([key, label]) => <Button type="button" key={key} aria-pressed={typeFilter === key} onClick={() => { setTypeFilter(key); setTypePage(0); }} className={'trace-action rounded-full border px-3.5 py-1.5 text-xs ' + (typeFilter === key ? 'border-green-200 bg-[#e8f5ee] text-trace-emerald dark:border-green-800 dark:bg-green-950 dark:text-green-300' : 'border-gray-200 bg-white text-slate-500 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300')}>{label}{key === 'all' ? ' ' + m.documentTypes.length : ''}</Button>)}</div>
+              <div className="trace-table-scroll max-h-[32rem]">
+                <table className="w-full table-fixed text-left min-w-[60rem]"><colgroup>{['w-[32%]','w-[25%]','w-[12%]','w-[10%]','w-[21%]'].map((width,index)=><col key={index} className={width}/>)}</colgroup>
                   <thead className="bg-gray-50 dark:bg-gray-800 sticky top-0">
                     <tr className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest">
                       <th className="py-3 px-5">Type</th>
@@ -299,7 +306,7 @@ export default function MaintenancePanel({ user, currentTab }) {
                     </tr>
                   </thead>
                   <tbody>
-                    {m.documentTypes.filter(d => d.name.toLowerCase().includes(catalogSearch.toLowerCase())).map((d) => (
+                    {visibleTypes.map((d) => (
                       <tr key={d.id} className="border-b border-gray-50 dark:border-gray-700 hover:bg-gray-50/50 dark:hover:bg-gray-800/50">
                         <td className="py-3 px-5 text-xs font-bold text-gray-900 dark:text-gray-100">{d.name}<span className="block text-[10px] text-blue-700 dark:text-blue-300">{d.available_to || 'both'} · {d.is_repeatable ? 'Repeatable' : 'One active/completed request'}{d.is_walk_in ? ' · Counter only' : ''}</span>
                           {!d.is_active && Number(d.base_fee) === 0 && <span className="block text-[10px] text-amber-700 dark:text-amber-300">Draft: configure fee before activation</span>}</td>
@@ -340,7 +347,7 @@ export default function MaintenancePanel({ user, currentTab }) {
                     ))}
                   </tbody>
                 </table>
-              </div>
+              </div><footer className="trace-admin-directory-footer border-t border-gray-100 dark:border-gray-700"><p className="trace-admin-caption">Showing {visibleTypes.length} of {matchingTypes.length} document types</p><div className="trace-actions"><Button type="button" className="trace-button trace-button-secondary" disabled={shownTypePage === 0} onClick={() => setTypePage(shownTypePage - 1)}>Previous</Button><Button type="button" className="trace-button trace-button-secondary" disabled={shownTypePage >= lastTypePage} onClick={() => setTypePage(shownTypePage + 1)}>Next</Button></div></footer>
             </div>
           </div>
         )}
@@ -348,21 +355,21 @@ export default function MaintenancePanel({ user, currentTab }) {
         {/* ------------------------------------------------------------- Colleges */}
         {section === 'colleges' && (
           <div className="space-y-4">
-            <ModalShell open={catalogForm === 'colleges'} onClose={() => { if (!m.saving) setCatalogForm(null); }} title={'Add College'} subtitle="Create a college that can be used for programs and document rules." maxWidth="max-w-[640px]" busy={m.saving} footer={<div className="trace-actions justify-end"><Button type="button" disabled={m.saving} onClick={() => setCatalogForm(null)} className="trace-button trace-button-secondary">Cancel</Button><Button type="submit" form="admin-college-form" disabled={m.saving} className="trace-button trace-button-primary">{m.saving ? 'Saving…' : 'Create College'}</Button></div>}><form id="admin-college-form" onSubmit={submitCollege} className="space-y-5">
+            <ModalShell open={catalogForm === 'colleges'} onClose={() => { if (!m.saving) setCatalogForm(null); }} title={'Add College'} panelClassName="trace-modal-panel trace-admin-main-dialog max-w-[640px]" subtitle="Create a college that can be used for programs and document rules." maxWidth="max-w-[640px]" busy={m.saving} footer={<div className="trace-actions justify-end"><Button type="button" disabled={m.saving} onClick={() => setCatalogForm(null)} className="trace-button trace-button-secondary">Cancel</Button><Button type="submit" form="admin-college-form" disabled={m.saving} className="trace-button trace-button-primary">{m.saving ? 'Saving…' : 'Create College'}</Button></div>}><form id="admin-college-form" onSubmit={submitCollege} className="space-y-5">
               <div className="flex justify-between"><h4 className="font-semibold">College details</h4><span className="text-xs text-gray-500">* Required</span></div>
               <label className="trace-label">College name <span className="text-red-600">*</span><input maxLength={INPUT_LIMITS.referenceName} className={`${inputClass} mt-2`} placeholder="e.g. College of Computer Studies" required
                 value={form.c_name || ''} onChange={(e) => set('c_name', e.target.value)} /></label>
               <label className="trace-label">Short code <span className="text-red-600">*</span><input maxLength={INPUT_LIMITS.shortCode} className={`${inputClass} mt-2`} placeholder="e.g. CCS" required
                 value={form.c_code || ''} onChange={(e) => set('c_code', e.target.value)} /><span className="trace-admin-caption block">A short label shown across the system.</span></label>
-              <p className="trace-admin-notice bg-emerald-50">ⓘ You can deactivate a college later without affecting existing records.</p>
+              <p className="trace-admin-guidance"><AdminIcon name="college-info" />You can deactivate a college later without affecting existing records.</p>
             </form></ModalShell>
 
             <div className="trace-section overflow-hidden">
               <div className="trace-section-header border-gray-100 dark:border-gray-700">
                 <div><h3 className="trace-section-title">Colleges</h3><p className="trace-admin-caption">{m.colleges.length} colleges</p></div><div className="trace-actions"><input aria-label="Search colleges" className="trace-control w-56" placeholder="Search colleges" value={catalogSearch} onChange={event => setCatalogSearch(event.target.value)} /><Button type="button" className="trace-button trace-button-primary" onClick={() => { resetForm(); setCatalogForm('colleges'); }}>+ Add College</Button></div>
               </div>
-              <div className="max-h-[32rem] overflow-y-auto">
-                <table className="w-full text-left">
+              <div className="trace-table-scroll max-h-[32rem]">
+                <table className="w-full text-left min-w-[48rem]">
                   <thead className="bg-gray-50 dark:bg-gray-800 sticky top-0">
                     <tr className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest">
                       <th className="py-3 px-5">College</th>
@@ -398,37 +405,17 @@ export default function MaintenancePanel({ user, currentTab }) {
         {/* ---------------------------------------------------------- Payment methods */}
         {section === 'paymentMethods' && (
           <div className="space-y-4">
-            <ModalShell open={catalogForm === 'paymentMethods'} onClose={() => { if (!m.saving) setCatalogForm(null); }} title={'Add Payment Method'} maxWidth="max-w-[640px]" busy={m.saving} footer={<div className="trace-actions justify-end"><Button type="button" disabled={m.saving} onClick={() => setCatalogForm(null)} className="trace-button trace-button-secondary">Cancel</Button><Button type="submit" form="admin-payment-method-form" disabled={m.saving} className="trace-button trace-button-primary">{m.saving ? 'Saving…' : 'Create Method'}</Button></div>}><form id="admin-payment-method-form" onSubmit={submitPaymentMethod} className="space-y-5">
-
-              <div>
-                <input maxLength={INPUT_LIMITS.shortCode} className={`${inputClass} font-mono`} placeholder="Code * (e.g. paymaya)" required
-                  value={form.pm_code || ''} onChange={(e) => set('pm_code', e.target.value)} />
-                <p className="text-[10px] text-gray-400 dark:text-gray-400 mt-1.5">
-                  Lowercase, letters/numbers/underscores only. Cannot be changed later.
-                </p>
-              </div>
-              <input maxLength={INPUT_LIMITS.referenceName} className={`${inputClass} mt-2`} placeholder="Display name *" required
-                value={form.pm_name || ''} onChange={(e) => set('pm_name', e.target.value)} />
-              <textarea maxLength={INPUT_LIMITS.notes} className={`${inputClass} min-h-20`} placeholder="Instructions shown to the student"
-                value={form.pm_instructions || ''} onChange={(e) => set('pm_instructions', e.target.value)} />
-
-              <label className="flex items-center gap-2 text-xs font-semibold text-gray-700 dark:text-gray-300 cursor-pointer">
-                <input type="checkbox" className="trace-choice accent-[#15803d]"
-                  checked={form.pm_requires_reference !== false}
-                  onChange={(e) => set('pm_requires_reference', e.target.checked)} />
-                Requires a reference number
-              </label>
-              {form.pm_requires_reference !== false && (
-                <input maxLength={INPUT_LIMITS.referenceName} className={`${inputClass} mt-2`} placeholder="Reference field label (e.g. Approval Code)"
-                  value={form.pm_reference_label || ''} onChange={(e) => set('pm_reference_label', e.target.value)} />
-              )}
-
-              <label className="flex items-center gap-2 text-xs font-semibold text-gray-700 dark:text-gray-300 cursor-pointer">
-                <input type="checkbox" className="trace-choice accent-[#15803d]"
-                  checked={form.pm_requires_proof !== false}
-                  onChange={(e) => set('pm_requires_proof', e.target.checked)} />
-                Requires a proof-of-payment upload
-              </label>
+            <ModalShell open={catalogForm === 'paymentMethods'} onClose={() => { if (!m.saving) setCatalogForm(null); }} title={'Add Payment Method'} subtitle="Set up how students pay and what they must provide." panelClassName="trace-modal-panel trace-admin-main-dialog max-w-[640px]" maxWidth="max-w-[640px]" busy={m.saving} footer={<div className="trace-actions justify-end"><Button type="button" disabled={m.saving} onClick={() => setCatalogForm(null)} className="trace-button trace-button-secondary">Cancel</Button><Button type="submit" form="admin-payment-method-form" disabled={m.saving} className="trace-button trace-button-primary">{m.saving ? 'Saving…' : 'Create Method'}</Button></div>}><form id="admin-payment-method-form" onSubmit={submitPaymentMethod} className="space-y-5">
+              <section className="space-y-5"><div className="flex flex-wrap items-center justify-between gap-3"><h4 className="text-base font-semibold">Method details</h4><span className="trace-admin-caption">* Required</span></div>
+                <label className="trace-label">Code <span className="text-red-600">*</span><input maxLength={INPUT_LIMITS.shortCode} className={`${inputClass} mt-2 font-mono`} placeholder="Code * (e.g. paymaya)" required value={form.pm_code || ''} onChange={e => set('pm_code', e.target.value)} /><span className="trace-admin-caption block">Lowercase letters, numbers and underscores only. Cannot be changed later.</span></label>
+                <label className="trace-label">Display name <span className="text-red-600">*</span><input maxLength={INPUT_LIMITS.referenceName} className={`${inputClass} mt-2`} placeholder="Display name *" required value={form.pm_name || ''} onChange={e => set('pm_name', e.target.value)} /></label>
+                <label className="trace-label">Instructions<textarea maxLength={INPUT_LIMITS.notes} rows={4} className={`${inputClass} mt-2`} placeholder="Instructions shown to the student" value={form.pm_instructions || ''} onChange={e => set('pm_instructions', e.target.value)} /></label>
+              </section>
+              <section className="space-y-5 border-t border-gray-200 pt-5 dark:border-gray-700"><h4 className="text-base font-semibold">Reference and proof</h4>
+                <label className="trace-admin-toggle-row"><span><strong>Requires a reference number</strong><span className="trace-admin-caption block">Students enter a reference number when paying.</span></span><input type="checkbox" className="trace-admin-switch" checked={form.pm_requires_reference !== false} onChange={e => set('pm_requires_reference', e.target.checked)} /></label>
+                {form.pm_requires_reference !== false && <label className="trace-label">Reference field label<input maxLength={INPUT_LIMITS.referenceName} className={`${inputClass} mt-2`} placeholder="Reference field label (e.g. Approval Code)" value={form.pm_reference_label || ''} onChange={e => set('pm_reference_label', e.target.value)} /></label>}
+                <label className="trace-admin-toggle-row"><span><strong>Requires a proof-of-payment upload</strong><span className="trace-admin-caption block">Students attach proof of payment to their request.</span></span><input type="checkbox" className="trace-admin-switch" checked={form.pm_requires_proof !== false} onChange={e => set('pm_requires_proof', e.target.checked)} /></label>
+              </section>
             </form></ModalShell>
 
             <div className="trace-section overflow-hidden">
@@ -439,8 +426,8 @@ export default function MaintenancePanel({ user, currentTab }) {
                   added later without changing how these are listed.
                 </p>
               </div>
-              <div className="max-h-[32rem] overflow-y-auto">
-                <table className="w-full text-left">
+              <div className="trace-table-scroll max-h-[32rem]">
+                <table className="w-full text-left min-w-[48rem]">
                   <thead className="bg-gray-50 dark:bg-gray-800 sticky top-0">
                     <tr className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest">
                       <th className="py-3 px-5">Method</th>

@@ -6,6 +6,7 @@ import { getUserLabel } from '@/utils/userLabels';
 import StaffAuthenticatorSetup from '@/features/admin/components/StaffAuthenticatorSetup';
 import RegistrationReviewNotice from '@/components/RegistrationReviewNotice';
 import AdminStudentInfo from './AdminStudentInfo';
+import AdminIcon from './AdminIcon';
 
 function Field({ label, value }) {
   return (
@@ -40,7 +41,8 @@ export default function UserDetailModal({ open, onClose, user, onEdit, onToggleA
       title={adminLayout && isStudent ? 'Student information' : user.full_name}
       subtitle={adminLayout && isStudent ? 'Account management · Student profile and registration details' : undefined}
       maxWidth={adminLayout && isStudent ? 'max-w-[1080px]' : 'max-w-lg'}
-      footer={
+      panelClassName={adminLayout && isStudent ? 'trace-modal-panel trace-admin-main-dialog trace-admin-student-information max-w-[1080px]' : undefined}
+      footer={adminLayout && isStudent ? <div className="flex flex-wrap items-center justify-between gap-3"><div className="trace-actions">{onToggleActive && <Button type="button" disabled={isSelf || saving} onClick={onToggleActive} className={'trace-button ' + (Number(user.is_active) ? 'trace-admin-button-danger' : 'trace-button-secondary')}><AdminIcon name="student-user-round-x" />{Number(user.is_active) ? 'Deactivate User' : 'Restore User'}</Button>}{onCorrectStudyYears && <Button type="button" onClick={onCorrectStudyYears} className="trace-button trace-button-secondary">Correct Study Years</Button>}</div><div className="trace-actions"><Button type="button" onClick={onClose} className="trace-button trace-button-secondary">Close</Button>{onEdit && <Button type="button" disabled={saving} onClick={onEdit} className="trace-button trace-button-primary"><AdminIcon name="student-pencil" />Edit User</Button>}</div></div> : (
         <div className="space-y-3">
           <div className="flex flex-col sm:flex-row gap-3">
             {isStudent && onCorrectStudyYears && <Button type="button" onClick={onCorrectStudyYears} className="trace-button trace-button-info flex-1">Correct Study Years</Button>}
@@ -70,7 +72,7 @@ export default function UserDetailModal({ open, onClose, user, onEdit, onToggleA
             </Button>
           </div>
         </div>
-      }
+      )}
     >
       {adminLayout && isStudent ? <AdminStudentInfo user={user} /> : <><div className="flex flex-col items-center text-center pb-6 border-b border-gray-100 dark:border-gray-700">
         <UserAvatar user={user} className="w-20 h-20 rounded-full object-cover" alt={user.full_name} />

@@ -20,7 +20,7 @@ export default function ForecastModal({ open, onClose, forecastData, forecastFil
   });
 
   return (
-    <ModalShell open={open} onClose={onClose} title="7-Day Volume Forecast" maxWidth="max-w-[800px]">
+    <ModalShell open={open} onClose={onClose} title="7-Day Volume Forecast" maxWidth="max-w-[800px]" panelClassName="trace-modal-panel trace-admin-main-dialog trace-admin-forecast max-w-[800px]">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <p className="text-xs text-gray-400 dark:text-gray-400 font-medium">Predicted incoming document volume via Prophet ML — full week.</p>
         <select

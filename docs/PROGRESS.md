@@ -1,3 +1,32 @@
+## Admin Main Tabs — review stage — 2026-10-14
+
+Inspected all 35 frames in Figma Admin – Main Tabs (`2217:20270`) individually before
+this follow-up, including Registration v2, both profile tabs, viewer, both assignment
+states, support settings, catalog dialogs, document drawer and scroll variants.
+The full frame-to-component inventory is in `docs/UI_CONVENTIONS.md`.
+
+Rebuilt the registration proof/detail split, protected zoom/rotate/full preview,
+profile summary and security cards, assignment/reconciliation layout, support schedule
+and closed-date controls, catalog forms/guidelines, linked request cards, student
+information and document drawer sections with original read-only Figma icon exports.
+Unknown OCR checks remain unknown; no approval, protected-file or mutation permissions
+were broadened. Existing backend contracts and staged confirmations remain authoritative.
+Fixed toolbar shrinking and table containment found in the fresh responsive browser sweep.
+
+Frontend validation: **1,074 tests pass**, ESLint and production build pass.
+Fresh Chromium review uses synthetic records and actual React components, with checks at
+320/375/768/1440 px, light/dark themes and 100/200% text sizes. All 33 current views/states
+pass **528 size/theme checks**, without page overflow or browser errors, including
+catalog dialogs, drawer/profile scroll states, selected support, linked request,
+staff monitoring the unclaimed internal ticket and the forecast modal. Two historical Figma
+frames are superseded by their newer designs.
+Physical devices, the live backend and deployment were not tested. The Figma originals
+were only read/exported, never modified. Screenshots contain synthetic records.
+
+Main Tabs is prepared for user review, not declared visually accepted or completely done.
+**More tabs are paused** pending the user's Main Tabs review. Earlier More changes in this
+branch remain provisional; this follow-up adds no More screen work, merge or deployment.
+
 ## Admin Figma UI implementation — 2026-10-14
 
 Replaced the Admin portal presentation using the TRACE UI / UX Figma file

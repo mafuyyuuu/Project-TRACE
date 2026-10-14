@@ -1,4 +1,5 @@
 import Button from '@/components/Button';
+import AdminIcon from '@/features/admin/components/AdminIcon';
 import { useEffect, useState } from 'react';
 import QRCode from 'qrcode';
 import ConfirmDialog from '@/components/ConfirmDialog';
@@ -8,7 +9,7 @@ import useRecoveryCodeActions from '@/hooks/useRecoveryCodeActions';
 const inputClass = "trace-control mt-2 w-full";
 const buttonClass = "trace-button trace-button-primary";
 
-export default function AuthenticatorSettings({ user }) {
+export default function AuthenticatorSettings({ user, admin = false }) {
   const auth = useAuthenticator(user.id);
   const codeActions = useRecoveryCodeActions(auth.codes);
   const [password, setPassword] = useState('');
@@ -36,14 +37,14 @@ export default function AuthenticatorSettings({ user }) {
     if (password && code) setConfirmation({ action, payload: payload() });
   }
   return <section data-motion-private aria-labelledby="authenticator-heading" onKeyDown={event => { if (event.key === 'Enter' && event.target.tagName === 'INPUT') event.preventDefault(); }} className="trace-section trace-section-body space-y-4">
-    <h3 id="authenticator-heading" className="text-sm font-black">Two-factor authentication</h3>
+    <div className={admin ? 'trace-admin-security-heading' : undefined}>{admin && <span className="trace-admin-security-icon"><AdminIcon name="security-phone" /></span>}<h3 id="authenticator-heading" className="text-sm font-black">Two-factor authentication</h3>{admin && auth.status && <span className="trace-admin-badge trace-admin-badge-neutral"><AdminIcon name="security-ellipse" />{auth.status.enabled ? 'Enabled' : 'Not enabled'}</span>}</div>
     <p className="text-sm">Use an authenticator app on your phone to generate login codes. Available to every TRACE account.</p>
     {auth.error && <div className="space-y-2"><p role="alert" className="text-sm text-red-700 dark:text-red-300">{auth.error}</p>
       {!auth.status && <Button type="button" className={buttonClass} onClick={auth.retry}>Retry authenticator settings</Button>}</div>}
     {auth.notice && <p role="status" className="text-sm text-green-700 dark:text-green-300">{auth.notice}</p>}
     {!auth.status && !auth.error && <p role="status">Loading authenticator settings…</p>}
     {auth.status && <>
-      <p className="text-sm font-bold">Authenticator app: {auth.status.enabled ? 'Enabled' : 'Not enabled'}</p>
+      <p className={admin ? 'sr-only' : 'text-sm font-bold'}>Authenticator app: {auth.status.enabled ? 'Enabled' : 'Not enabled'}</p>
       {!auth.status.available && <p className="text-sm text-amber-700 dark:text-amber-300">Authenticator setup is temporarily unavailable. Contact the administrator to finish server configuration.</p>}
       {auth.codes.length > 0 ? <div className="space-y-3">
         <p className="text-sm font-bold">Save your recovery codes now. Each works once; these codes will not be shown again.</p>

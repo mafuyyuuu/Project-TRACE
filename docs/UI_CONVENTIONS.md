@@ -10,7 +10,7 @@ Shared foundations do not replace role-specific workflows with mockup content or
 
 ## Admin reference — 2026-10-14
 
-The Admin portal now follows the [TRACE UI / UX Admin designs](https://www.figma.com/design/eQNaLBPXQSojI6lOK60Api/TRACE-UI---UX?node-id=2217-20270), with More destinations in `2193:1056`. Use dashboard `93:663`, tracker `2002:1306`, accounts `2094:935`, reports `2179:10722`, support `2002:2676`, templates `2185:1369` and manual `2185:1470` as the current Admin references. Other roles keep the shared reference above.
+The current review stage covers every frame in [Admin – Main Tabs](https://www.figma.com/design/eQNaLBPXQSojI6lOK60Api/TRACE-UI---UX?node-id=2217-20270). All 35 frames were individually inspected, including modal, tab, expanded and scrolled variants. Registration v2 supersedes the original review frame, and the populated audit table supersedes the earlier placeholder. More destinations (`2193:1056`) remain provisional from the earlier pass; their next review starts only after the user accepts Main Tabs. Other roles keep the shared reference above.
 
 `trace-admin-shell` scopes the Admin typography, rounded top bar and navigation rail, compact controls, table spacing and section surfaces. Admin-only components use `trace-admin-*` classes; portaled dialogs are scoped to the active Admin shell. The local Inter variable font and exported Figma SVG icons live in `frontend/public/admin-figma/` with the font license. Keep these as native assets, not rendered screenshots of entire screens.
 
@@ -19,6 +19,53 @@ The accounts directory initially shows six rows and three additional account pre
 Audit controls filter the loaded response, with eight rows per page; display this scope rather than implying complete server-history search. Default All loaded history retains the existing records, while date selections use the page's snapshot time. Preserve full raw event codes, identifiers and IP addresses. Graduate filters search loaded applicants and program/college values; row check/reject icons open the review dialog and never submit a decision directly.
 
 Desktop geometry follows the source frames; narrow layouts stack sections and use existing table scrollers. Text preference enlargement may increase card height rather than clip values. Retain dark equivalents, keyboard access, visible focus, reduced motion and 44 px mobile controls. Live values, honest empty/error states and required workflow explanations take precedence over copying example records or unsupported performance claims from the mockups.
+
+### Main Tabs frame inventory
+
+All listed frames were inspected. Implementation is prepared for user review; this is not a record of visual acceptance. [Synthetic browser screenshots](admin-main-tabs-review.png) show the rebuilt registration, security, support settings and document drawer layouts.
+
+| Figma frame | View / state | Implementation |
+|---|---|---|
+| `93:663` | Dashboard | AdminDashboard |
+| `2002:1306` | Document Tracker | AdminDashboard / RequestStaff |
+| `2002:2945` | 7-Day Forecast modal | ForecastModal |
+| `2224:1245` | Review Registration v2 | AccountVerificationModal / RegistrationProof / AdminRegistrationDetails |
+| `2216:1245` | Original registration review | Superseded by v2; existing unavailable-proof review retained |
+| `2002:2989` | View modal | ImageViewerModal |
+| `2031:430` | Assign Processing Staff | RequestAssignmentModal |
+| `2031:468` | Assignment with reconciliation expanded | RequestAssignmentModal details |
+| `2094:935` | Maintenance Accounts | MaintenancePanel / AccountDirectory |
+| `2105:1361` | Student information | UserDetailModal / AdminStudentInfo |
+| `2118:433` | Add Staff Account | AddUserModal |
+| `2127:491` | Edit User personal information | UserEditModal personal tab |
+| `2127:524` | Edit User account settings | UserEditModal account tab |
+| `2134:1455` | Maintenance document types | MaintenancePanel documentTypes tab |
+| `2157:1575` | Edit document type drawer, top | MaintenancePanel / FeeScheduleEditor |
+| `2157:2016` | Edit document type drawer, scrolled | Same drawer, scrolling body |
+| `2161:588` | Colleges | MaintenancePanel colleges tab |
+| `2161:1065` | Add College modal | MaintenancePanel college form |
+| `2162:640` | Programs | ProgramsPanel / CatalogGuidelines |
+| `2162:979` | Supporting Documents | SupportingDocumentsPanel / CatalogGuidelines |
+| `2163:744` | Payment Methods | MaintenancePanel paymentMethods tab |
+| `2163:1150` | Add Payment Method modal | MaintenancePanel payment form |
+| `2002:2676` | Support, no ticket selected | MessagingWorkspace / SupportWorkspace |
+| `2058:821` | Support, selected ticket | SupportConversation |
+| `2086:381` | Linked request modal | SupportConversation / RequestAttachments / RequirementBubble |
+| `2065:674` | Support Settings modal | SupportWorkspace / AdminSupportSettingsForm |
+| `2062:614` | Staff Coordination, Admin monitoring | StaffCoordinationWorkspace |
+| `2089:724` | Internal Assistance, unclaimed ticket | InternalAssistanceWorkspace |
+| `2168:796` | Activity Logs, populated | AdminAuditLog |
+| `2002:2806` | Earlier Activity Logs placeholder | Superseded by populated 2168:796 |
+| `2168:1236` | Security Logs | AdminSecurityPanel / AdminAuditLog |
+| `2210:1245` | Edit Profile, Personal Info | ProfileSettingsModal / EmailVerificationNotice |
+| `2210:1313` | Edit Profile, Security top | ProfileSettingsModal / AuthenticatorSettings |
+| `2211:20019` | Edit Profile, Security scrolled | Same profile, fixed summary and scrolling body |
+| `2210:1555` | Preferences modal | PreferencesModal |
+
+Main dialogs use the source-specific widths (registration 960 px, profile 640 px, viewer 800 px, assignment 667 px and support settings 720 px), with reachable mobile and enlarged-text layouts. Profile identity and tabs remain outside the scrolling body. Proof controls reuse authenticated files and do not change OCR evidence. A missing or aggregate OCR result stays “Not recorded.” Catalog edits, registration decisions, assignments and support settings retain staged confirmation and pending guards.
+
+
+## Shared controls
 
 | Element | Classes | Notes |
 | --- | --- | --- |

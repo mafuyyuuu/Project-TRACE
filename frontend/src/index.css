@@ -587,6 +587,143 @@ body:has(.trace-admin-shell) .trace-modal-footer .trace-button { @apply flex-ini
 }
 
 .trace-admin-icon { flex-shrink: 0; }
+
+/* Main Tabs dialogs: per-frame geometry, separate from the shared shell. */
+body:has(.trace-admin-shell) .trace-admin-main-dialog { @apply rounded-2xl; }
+body:has(.trace-admin-shell) .trace-admin-main-dialog .trace-modal-header { @apply border-b-0 px-7 pb-5 pt-6 pr-20; }
+body:has(.trace-admin-shell) .trace-admin-main-dialog .trace-modal-title { @apply text-xl font-semibold leading-normal; }
+body:has(.trace-admin-shell) .trace-admin-main-dialog .trace-modal-body { @apply px-7 py-6; }
+body:has(.trace-admin-shell) .trace-admin-main-dialog .trace-modal-footer { @apply border-t border-[#e2e7ec] bg-white px-7 py-4 dark:border-gray-700 dark:bg-gray-900; }
+body:has(.trace-admin-shell) .trace-admin-main-dialog .trace-modal-footer > div { @apply justify-between; }
+body:has(.trace-admin-shell) .trace-admin-main-dialog .trace-modal-footer .trace-actions { @apply ml-auto justify-end; }
+body:has(.trace-admin-shell) .trace-admin-main-dialog .trace-label { @apply block text-sm font-semibold; }
+body:has(.trace-admin-shell) .trace-admin-main-dialog .trace-control { @apply min-h-11 rounded-lg px-3.5 py-2.5 text-sm leading-normal; }
+body:has(.trace-admin-shell) .trace-admin-main-dialog .trace-button { @apply min-h-11 rounded-lg px-5 py-2.5 text-sm font-semibold; }
+.trace-admin-guidance { @apply flex items-start gap-2.5 rounded-[10px] border border-[#d7efe3] bg-[#e5f6ed] p-3.5 text-[13px] leading-relaxed text-trace-ink dark:border-green-800 dark:bg-green-950 dark:text-gray-100; }
+.trace-admin-neutral-notice { @apply flex items-start gap-2.5 rounded-xl bg-[#f4f6f8] p-3.5 text-[13px] leading-relaxed text-[#647084] dark:bg-gray-800 dark:text-gray-300; }
+.trace-admin-security-heading { @apply flex flex-wrap items-center gap-2.5 text-base font-semibold; }
+.trace-admin-security-icon { @apply flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] bg-[#e8f5ee] dark:bg-green-950; }
+.trace-admin-neutral-icon { @apply flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#f4f6f8] dark:bg-gray-800; }
+.trace-admin-button-soft { @apply border border-[#cde8d8] bg-[#e8f5ee] text-trace-emerald enabled:hover:bg-green-100 dark:border-green-800 dark:bg-green-950 dark:text-green-300; }
+.trace-admin-button-danger { @apply border border-red-200 bg-red-50 text-red-600 enabled:hover:bg-red-100 dark:border-red-800 dark:bg-red-950 dark:text-red-300; }
+.trace-admin-review-header-icon { @apply flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-[#cde8d8] bg-[#e8f5ee] dark:border-green-800 dark:bg-green-950; }
+.trace-admin-review-grid { @apply grid min-w-0 grid-cols-1 items-start gap-6 lg:grid-cols-[minmax(0,468fr)_minmax(0,410fr)]; }
+.trace-admin-proof, .trace-admin-review-details { @apply min-w-0 overflow-hidden rounded-[14px] border border-[#e2e8ec] bg-white dark:border-gray-700 dark:bg-gray-900; }
+.trace-admin-proof-preview { @apply relative flex min-h-[444px] flex-col items-center justify-center gap-4 border-y border-[#e2e8ec] bg-[#f1f4f7] px-5 pb-16 pt-5 dark:border-gray-700 dark:bg-gray-800; }
+.trace-admin-proof-tools { @apply absolute bottom-[13px] left-1/2 flex -translate-x-1/2 items-center gap-0.5 rounded-xl border border-[#e2e8ec] bg-white px-1.5 py-1 text-xs text-slate-600 shadow-md dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200; }
+.trace-admin-proof-tools .trace-icon-button { @apply h-[30px] w-[30px] rounded-lg; }
+.trace-admin-initials { @apply flex h-12 w-12 shrink-0 items-center justify-center rounded-full border border-[#cde8d8] bg-[#e8f5ee] text-sm font-semibold text-trace-emerald dark:border-green-800 dark:bg-green-950 dark:text-green-300; }
+.trace-admin-review-field { @apply grid grid-cols-[minmax(0,1fr)_minmax(0,1.5fr)] items-center gap-3 border-t border-[#e2e8ec] px-[18px] py-3 text-[13px] dark:border-gray-700; }
+.trace-admin-review-field dt { @apply text-[#647084] dark:text-gray-400; }
+.trace-admin-review-notice { @apply rounded-[14px] border border-amber-200 bg-[#fffae9] p-[18px] dark:border-amber-800 dark:bg-amber-950/50; }
+body:has(.trace-admin-shell) .trace-admin-registration .trace-modal-header { @apply border-b border-[#e2e8ec] pb-5 pt-[22px] dark:border-gray-700; }
+body:has(.trace-admin-shell) .trace-admin-registration .trace-modal-footer { @apply bg-[#fafbfc] dark:bg-gray-900; }
+body:has(.trace-admin-shell) .trace-admin-viewer .trace-modal-header { @apply border-b border-[#e2e8ec] px-6 py-6 dark:border-gray-700; }
+body:has(.trace-admin-shell) .trace-admin-viewer .trace-modal-body { @apply min-h-[min(512px,62dvh)] py-6; }
+body:has(.trace-admin-shell) .trace-admin-viewer .trace-modal-title { @apply text-lg font-bold; }
+body:has(.trace-admin-shell) .trace-admin-edit-profile .trace-modal-header { @apply border-0 px-6 pb-2.5 pt-[22px]; }
+body:has(.trace-admin-shell) .trace-admin-edit-profile .trace-modal-body { @apply p-0; }
+body:has(.trace-admin-shell) .trace-admin-edit-profile .trace-profile-header { @apply max-h-[34dvh] shrink-0 overflow-y-auto border-b border-[#e2e7ec] px-6 pt-2.5 dark:border-gray-700; }
+body:has(.trace-admin-shell) .trace-admin-edit-profile .trace-profile-header > div:first-child { @apply items-center gap-[18px] pb-[18px]; }
+body:has(.trace-admin-shell) .trace-admin-edit-profile .trace-profile-header > div:first-child > div:first-child { @apply h-[84px] w-[84px]; }
+body:has(.trace-admin-shell) .trace-admin-edit-profile .trace-profile-header img:not(.trace-admin-icon) { @apply h-[76px] w-[76px] border-2 border-[#cde8d8] shadow-none; }
+body:has(.trace-admin-shell) .trace-admin-edit-profile .trace-profile-header h3 { @apply text-[22px] font-bold; }
+body:has(.trace-admin-shell) .trace-admin-edit-profile .trace-profile-camera { @apply left-[54px] top-[54px] h-[30px] w-[30px] bg-transparent shadow-none; }
+body:has(.trace-admin-shell) .trace-admin-edit-profile .trace-profile-header > div:last-child { @apply mt-0 gap-1.5 border-0 px-0 pb-3; }
+.trace-admin-profile-tab { @apply min-h-9 rounded-full px-[18px] py-2 text-sm font-semibold; }
+body:has(.trace-admin-shell) .trace-admin-edit-profile .trace-section-body { @apply px-6 py-5; }
+body:has(.trace-admin-shell) .trace-admin-edit-profile .trace-form-grid { @apply grid-cols-1; }
+body:has(.trace-admin-shell) .trace-admin-edit-profile .trace-section { @apply rounded-xl border border-[#e2e7ec] p-4 shadow-none dark:border-gray-700; }
+body:has(.trace-admin-shell) .trace-admin-edit-profile .trace-section h3 { @apply border-0 pb-0 font-semibold; }
+body:has(.trace-admin-shell) .trace-admin-edit-profile .trace-section > p { @apply text-[13px] leading-normal text-[#647084] dark:text-gray-400; }
+body:has(.trace-admin-shell) .trace-admin-edit-profile .trace-modal-footer { @apply px-6 py-3.5; }
+.trace-admin-email-field { @apply flex min-h-11 min-w-0 flex-1 basis-64 items-center gap-2 rounded-lg border border-[#cdd5df] px-3.5 dark:border-gray-600; }
+body:has(.trace-admin-shell) .trace-admin-email-field .trace-control { @apply min-w-0 flex-1 basis-0 border-0 px-0 ring-0; }
+.trace-admin-input-with-icon { @apply flex min-h-11 min-w-0 items-center gap-2 rounded-lg border border-[#cdd5df] px-3.5 dark:border-gray-600; }
+body:has(.trace-admin-shell) .trace-admin-input-with-icon .trace-control { @apply min-w-0 border-0 px-0 ring-0; }
+.trace-admin-assignment-summary { @apply rounded-xl border border-[#e2e7ec] bg-[#f4f6f8] px-4 py-3 dark:border-gray-700 dark:bg-gray-800; }
+.trace-admin-assignment-summary p { @apply flex items-center gap-2 text-sm; }
+.trace-admin-assignment-summary p::before { content: ''; @apply h-2.5 w-2.5 shrink-0 rounded-full bg-trace-emerald; }
+.trace-admin-assignment-summary p:nth-child(2)::before { @apply bg-trace-sage; }
+body:has(.trace-admin-shell) .trace-admin-assignment .trace-modal-body { @apply pt-0; }
+body:has(.trace-admin-shell) .trace-admin-assignment .trace-control { @apply min-h-12 text-base; }
+body:has(.trace-admin-shell) .trace-admin-assignment .trace-modal-footer > div { @apply justify-end; }
+.trace-admin-weekdays { @apply mt-2 grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-7; }
+.trace-admin-weekdays label { @apply flex min-h-[60px] flex-col items-center justify-center gap-1.5 rounded-lg border border-[#e2e7ec] px-2 py-2 text-xs text-[#647084] dark:border-gray-700 dark:text-gray-300; }
+.trace-admin-weekdays .trace-admin-weekday-selected { @apply border-green-200 bg-[#e5f6ed] font-semibold text-trace-emerald dark:border-green-800 dark:bg-green-950 dark:text-green-300; }
+.trace-admin-timezone { @apply flex items-center gap-1.5 rounded-lg bg-[#f4f6f8] px-2.5 py-2 text-xs text-[#647084] dark:bg-gray-800 dark:text-gray-300; }
+.trace-admin-input-with-unit { @apply mt-2 flex min-w-0 items-center rounded-lg border border-[#cdd5df] px-3.5 dark:border-gray-600; }
+body:has(.trace-admin-shell) .trace-admin-input-with-unit .trace-control { @apply min-w-0 flex-1 border-0 px-0 ring-0; }
+.trace-admin-input-with-unit > span { @apply shrink-0 text-xs font-normal text-slate-500 dark:text-gray-400; }
+.trace-admin-theme-choice { @apply flex min-w-0 flex-col gap-2 rounded-xl border border-[#e2e7ec] bg-white p-2.5 text-sm font-semibold dark:border-gray-700 dark:bg-gray-900; }
+.trace-admin-theme-selected { @apply border-2 border-trace-emerald bg-[#e5f6ed] text-trace-emerald dark:bg-green-950 dark:text-green-300; }
+.trace-admin-theme-sample { @apply flex min-h-[65px] w-full flex-col gap-1.5 rounded-lg border border-[#e2e7ec] p-2.5 dark:border-gray-700; }
+.trace-admin-theme-sample > span { @apply block h-2 w-20 rounded-full bg-slate-300/70; }
+.trace-admin-theme-sample > span:first-child { @apply w-11; }
+.trace-admin-theme-sample > span:last-child { @apply w-16; }
+.trace-admin-theme-sample.bg-gray-800 > span { @apply bg-slate-500/60; }
+.trace-admin-toggle-row { @apply flex items-center justify-between gap-4 rounded-xl border border-[#e2e7ec] px-3.5 py-4 text-sm dark:border-gray-700; }
+.trace-admin-password-input { @apply relative block; }
+.trace-admin-password-input .trace-control { @apply pr-14; }
+.trace-admin-password-input .trace-icon-button { @apply absolute right-1 top-1/2 -translate-y-1/2; }
+.trace-admin-segmented-tabs { @apply mb-6 grid grid-cols-2 gap-1 rounded-xl bg-[#f4f6f8] p-1 text-sm text-[#647084] dark:bg-gray-800 dark:text-gray-300; }
+.trace-admin-segmented-tabs .trace-action { @apply min-h-10 rounded-lg px-3 py-2.5 font-semibold; }
+.trace-admin-segmented-tabs .trace-admin-segment-active { @apply border border-[#d7efe3] bg-white text-trace-emerald dark:border-green-800 dark:bg-gray-900 dark:text-green-300; }
+.trace-admin-catalog-grid { @apply grid grid-cols-1 items-start gap-4 xl:grid-cols-[minmax(0,2.6fr)_minmax(0,1fr)]; }
+.trace-admin-catalog-panel { @apply overflow-hidden; }
+.trace-admin-catalog-panel > .trace-section-title { @apply px-6 pt-5; }
+.trace-admin-catalog-panel > p { @apply px-6 text-xs; }
+.trace-admin-catalog-panel > form { @apply mx-6 my-4 rounded-xl border border-[#e2e7ec] bg-[#f8faf9] p-4 dark:border-gray-700 dark:bg-gray-800; }
+.trace-admin-catalog-panel > div:has(table) { @apply mt-0 rounded-none border-0; }
+.trace-admin-catalog-empty { @apply flex min-h-[240px] flex-col items-center justify-center gap-3 p-5 text-center; }
+.trace-admin-catalog-empty h4 { @apply text-sm font-semibold; }
+.trace-admin-catalog-empty p { @apply max-w-xs text-xs leading-normal text-[#647084] dark:text-gray-400; }
+.trace-admin-catalog-empty-icon { @apply flex h-14 w-14 items-center justify-center rounded-full bg-[#e8f5ee] dark:bg-green-950; }
+.trace-admin-catalog-icon { @apply flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#e8f5ee] dark:bg-green-950; }
+.trace-admin-drawer section:has(.trace-admin-fee-schedules) { @apply border-0 bg-transparent p-0; }
+.trace-admin-fee-schedules > fieldset { @apply rounded-2xl border border-[#e2e7ec] bg-white p-5 dark:border-gray-700 dark:bg-gray-900; }
+.trace-admin-fee-schedules > fieldset > legend { @apply float-left mb-2 w-full text-base font-semibold; }
+.trace-admin-fee-schedules > fieldset > legend + * { @apply clear-both; }
+.trace-admin-overrides-empty { @apply flex flex-col items-center gap-2 rounded-xl border border-dashed border-[#cdd5df] bg-[#f8faf9] p-5 dark:border-gray-700 dark:bg-gray-800; }
+.trace-admin-college-options { @apply flex flex-wrap gap-2; }
+.trace-admin-college-options > legend, .trace-admin-college-options > p { @apply w-full; }
+.trace-admin-college-options > label { @apply rounded-full border border-[#e2e7ec] px-3 py-2 text-xs dark:border-gray-700; }
+.trace-admin-college-options > label:has(input:checked) { @apply border-green-300 bg-green-50 text-trace-emerald dark:border-green-800 dark:bg-green-950 dark:text-green-300; }
+.trace-admin-college-options input { @apply h-3 w-3; }
+.trace-admin-linked-summary { @apply grid grid-cols-2 gap-5 rounded-xl border border-[#e2e7ec] bg-[#f4f6f8] p-5 dark:border-gray-700 dark:bg-gray-800; }
+.trace-admin-linked-summary > div:first-child { @apply col-span-full border-b border-[#e2e7ec] pb-4 dark:border-gray-700; }
+.trace-admin-linked-summary dt { @apply text-xs font-normal text-[#647084] dark:text-gray-400; }
+.trace-admin-linked-summary dd { @apply mt-2 text-sm font-semibold; }
+.trace-admin-linked-summary > div:first-child dd { @apply text-lg text-trace-emerald dark:text-green-300; }
+.trace-admin-linked-requirement footer .trace-action { @apply text-sm font-semibold text-trace-emerald no-underline dark:text-green-300; }
+.trace-admin-drawer .trace-control { @apply bg-[#f8faf9] dark:bg-gray-800; }
+body:has(.trace-admin-shell) .trace-admin-drawer { @apply rounded-l-[28px]; }
+body:has(.trace-admin-shell) .trace-admin-forecast .trace-modal-header { @apply pb-0; }
+body:has(.trace-admin-shell) .trace-admin-forecast .trace-modal-body { @apply pt-2.5; }
+.trace-admin-forecast .h-80 { @apply h-[232px]; }
+.trace-admin-forecast .grid > div { @apply rounded-none border-0 bg-transparent; }
+.trace-admin-forecast .grid > div > div:nth-child(2) { @apply mx-auto w-fit rounded-xl bg-[#f4f6f8] px-3.5 py-1.5 text-[22px] dark:bg-gray-800; }
+.trace-admin-forecast .grid { @apply border-t border-[#e2e7ec] pt-4 dark:border-gray-700; }
+body:has(.trace-admin-shell) .trace-admin-student-information .trace-modal-body { @apply px-0 py-0; }
+.trace-admin-student-content > .trace-admin-profile-summary { @apply rounded-none border-x-0 border-t-0 bg-[#f4f6f8] px-7 py-7 dark:bg-gray-800; }
+.trace-admin-student-content > :not(.trace-admin-profile-summary) { @apply mx-7; }
+.trace-admin-student-content > .grid { @apply mb-6; }
+body:has(.trace-admin-shell) .trace-admin-student-information .trace-modal-header { @apply border-b border-[#e2e7ec] dark:border-gray-700; }
+@media (min-width: 1280px) {
+  .trace-admin-catalog-panel form.trace-form-grid { @apply grid-cols-[minmax(0,1fr)_minmax(0,1.5fr)_auto]; }
+  .trace-admin-catalog-panel form.trace-form-grid > div { @apply col-span-1 self-end; }
+}
+body:has(.trace-admin-shell) .trace-admin-preferences .trace-modal-header { @apply pb-2.5; }
+@media (min-width: 768px) {
+  body:has(.trace-admin-shell) .trace-admin-edit-profile .trace-profile-header { @apply max-h-none; }
+}
+@media (max-width: 767px) {
+  .trace-admin-proof-tools .trace-icon-button { @apply h-11 w-11; }
+  body:has(.trace-admin-shell) .trace-admin-main-dialog .trace-modal-body { @apply px-4; }
+  body:has(.trace-admin-shell) .trace-admin-main-dialog .trace-modal-header { @apply pl-4; }
+  body:has(.trace-admin-shell) .trace-admin-main-dialog .trace-modal-footer { @apply px-4; }
+  body:has(.trace-admin-shell) .trace-admin-edit-profile .trace-modal-body { @apply px-0; }
+}
 .trace-admin-shell .trace-shell-header > div:last-child { @apply gap-2; }
 .trace-admin-shell .trace-shell-header .trace-icon-button { @apply h-9 w-9; }
 .trace-admin-shell #tutorial-profile { @apply h-[38px] w-[38px]; }
@@ -677,3 +814,31 @@ body:has(.trace-admin-shell) .trace-modal-footer { @apply bg-[#fafbfc] px-7 py-[
   .trace-admin-shell [aria-label="Support workspace"] > .grid, .trace-admin-shell [aria-label="Staff coordination workspace"] > .grid { @apply grid-cols-[432px_minmax(0,1fr)]; }
   .trace-admin-shell [aria-label="Internal assistance workspace"] > .grid { @apply grid-cols-[380px_minmax(0,1fr)]; }
 }
+
+/* Admin Main Tabs: fixed profile summary and separate student actions. */
+.trace-admin-profile-security { height: min(830px, 90dvh); }
+body:has(.trace-admin-shell) .trace-admin-student-information .trace-modal-footer > div > .trace-actions:first-child { margin-left: 0; }
+
+body:has(.trace-admin-shell) .trace-admin-main-dialog .trace-label.trace-admin-security-heading { display: flex; }
+
+/* Let Main Tabs toolbars shrink at enlarged text sizes. */
+.trace-admin-shell .trace-admin-directory .trace-section-header .trace-actions,
+.trace-admin-shell .trace-admin-audit .trace-section-header .trace-actions { min-width: 0; max-width: 100%; }
+.trace-admin-shell .trace-admin-directory .trace-control,
+.trace-admin-shell .trace-admin-audit .trace-control { min-width: 0; max-width: 100%; }
+.trace-admin-shell .trace-admin-audit .trace-admin-date-filter { max-width: 100%; }
+.trace-admin-shell .trace-admin-dashboard .trace-date > span { overflow-wrap: anywhere; }
+.trace-admin-shell .trace-admin-dashboard .trace-section-header { overflow-wrap: anywhere; }
+
+.trace-admin-shell .trace-table-scroll { position: relative; contain: inline-size; isolation: isolate; }
+.trace-admin-shell .trace-page { overflow-wrap: anywhere; }
+.trace-admin-shell .trace-button-visual { min-width: 0; max-width: 100%; overflow-wrap: anywhere; }
+body:has(.trace-admin-shell) .trace-admin-drawer { border-radius: 28px 0 0 28px; }
+
+.trace-admin-edit-profile:not(.trace-admin-profile-security) { min-height: min(609px, 90dvh); }
+.trace-admin-assignment { min-height: min(727px, 90dvh); }
+
+.trace-admin-shell .trace-page-title { min-width: 0; max-width: 100%; overflow-wrap: anywhere; }
+
+body:has(.trace-admin-shell) .trace-admin-main-dialog:not(.trace-admin-drawer) .trace-control:not(:disabled):not([readonly]) { background-color: white; }
+.dark body:has(.trace-admin-shell) .trace-admin-main-dialog:not(.trace-admin-drawer) .trace-control:not(:disabled):not([readonly]) { background-color: #1f2937; }
