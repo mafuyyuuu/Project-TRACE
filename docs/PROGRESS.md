@@ -1,3 +1,45 @@
+## Admin More Tabs fidelity and notification state — 2026-10-15
+
+The user accepted Main Tabs, requested the More destinations, reported the persistent
+notification dot, and explicitly authorized pushing the finished fixes to the same
+branch and draft PR. All eight frames under Figma More (`2193:1056`) were inspected,
+including both Document Efficiency and Support Analytics scroll states. The source
+inventory and component mapping are in `docs/UI_CONVENTIONS.md`.
+
+Reports now use the source Export CSV action, search icon and split Manila date/time
+cells. Document Efficiency restores original metric icons, release summaries and the
+staff toolbar, notice, desk badges and seven-row pagination. Search and desk filters
+retain the full-staff workload denominator. Support restores the joined period card,
+six metric cards, duration treatment, side-by-side feedback/workload empty states,
+and measurement guidance. Graduate rows split submission dates and relative ages.
+Templates restore source choices, controls, icons and line numbers around the real
+editable draft and sandboxed preview. Manual restores search, counts, chevrons and
+local Yes/No selection without deleting current guidance. That selection is page
+state only; it is not a server FAQ vote or analytics event.
+
+The persistent dot came from a red circle embedded in the bell SVG as well as the
+conditional unread indicator. Admin now uses the original bell-only vector, and
+only unread state renders a dot. Successful mark-read updates use the opening IDs
+and a functional state update, preserving notifications arriving during the request.
+Regression tests cover both clearing and concurrent arrivals.
+
+Validation: **1,079 frontend tests / 110 files** pass. **192 Chromium combinations**
+cover all eight source states plus export, graduate review, filtered workload and
+notifications at 320/375/768/1440 px, 100/200% text, light/dark. No page/dialog
+escape, split button words, missing original assets or browser errors were found.
+A separate notification scenario verifies the unread dot disappears after a
+successful read and checks another 16 responsive/theme/text combinations. A final
+32-combination support check verifies contained table scrolling at narrow widths. ESLint,
+production/PWA build, SVG integrity and changed-line whitespace checks pass.
+`docs/admin-more-tabs-review.png` and `docs/admin-more-tabs-mobile.png` contain
+synthetic browser captures. Physical devices and a live backend were not tested.
+
+No backend, migration, dependency or environment changes. Protected files, live
+records, filtering/export contracts, template isolation and decision confirmations
+remain intact. Figma was only read/exported. More is ready for user review, not yet
+accepted. This work is pushed to `feat/admin-figma-ui` in draft PR #37 targeting
+`dev`; no merge or deployment is requested.
+
 ## Admin Main Tabs toolbar corrections — 2026-10-14
 
 The user's latest screenshots exposed a full-width dropdown wrapping below its

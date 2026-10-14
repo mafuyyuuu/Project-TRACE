@@ -8,9 +8,9 @@ The primary [TRACE Figma file](https://www.figma.com/design/78A3HTREQ86GIN9ZxvDB
 
 Shared foundations do not replace role-specific workflows with mockup content or redesign entire screens in this batch. Support workspace (`260:3301`) and compact message frames (`254:987`, `258:1093`) are the Batch 10 references. Port their layout and interaction details in that batch, preserving live data and permissions.
 
-## Admin reference — 2026-10-14
+## Admin reference — 2026-10-15
 
-The current review stage covers every frame in [Admin – Main Tabs](https://www.figma.com/design/eQNaLBPXQSojI6lOK60Api/TRACE-UI---UX?node-id=2217-20270). All 35 frames were individually inspected, including modal, tab, expanded and scrolled variants. Registration v2 supersedes the original review frame, and the populated audit table supersedes the earlier placeholder. More destinations (`2193:1056`) remain provisional from the earlier pass; their next review starts only after the user accepts Main Tabs. Other roles keep the shared reference above.
+The user accepted Main Tabs on 2026-10-14. That review covered every frame in [Admin – Main Tabs](https://www.figma.com/design/eQNaLBPXQSojI6lOK60Api/TRACE-UI---UX?node-id=2217-20270). All 35 frames were individually inspected, including modal, tab, expanded and scrolled variants. Registration v2 supersedes the original review frame, and the populated audit table supersedes the earlier placeholder. The current review covers all eight frames in [Admin – More Tabs](https://www.figma.com/design/eQNaLBPXQSojI6lOK60Api/TRACE-UI---UX?node-id=2193-1056), including both analytics scroll states. The More implementation is ready for the user’s visual review; it has not yet been accepted. Other roles keep the shared reference above.
 
 `trace-admin-shell` scopes the Admin typography, rounded top bar and navigation rail, compact controls, table spacing and section surfaces. Admin-only components use `trace-admin-*` classes; portaled dialogs are scoped to the active Admin shell. The local Inter variable font and exported Figma SVG icons live in `frontend/public/admin-figma/` with the font license. Keep these as native assets, not rendered screenshots of entire screens.
 
@@ -35,9 +35,30 @@ width. Document Types and Security Logs chip rows attach directly to their toolb
 without the shared header's bottom divider. Verify the label/control positions and
 computed border width, as page overflow checks alone do not catch these differences.
 
+### More Tabs frame inventory
+
+Every frame below was inspected individually, including original screenshots and detailed child contexts. [Synthetic desktop screenshots](admin-more-tabs-review.png) and [mobile/dialog screenshots](admin-more-tabs-mobile.png) show the implementation with fixture data. Existing live values, workflow explanations and dynamic previews remain authoritative.
+
+| Figma frame | View / state | Implementation |
+|---|---|---|
+| `2179:10722` | Reports & Export | ReportsPanel / ReportFiltersModal |
+| `2185:965` | Document Efficiency, top | AnalyticsPanel / DocumentAnalytics |
+| `2206:19344` | Document Efficiency, scrolled | Workload by Staff, filters and pagination |
+| `2185:1066` | Support Analytics, top | SupportAnalytics period, metrics and durations |
+| `2179:16175` | Support Analytics, scrolled | Categories, backlog, FAQ feedback, clerk workload and notes |
+| `2179:10981` | Graduate Applications | GradApplicationReviewPanel |
+| `2185:1369` | System Templates | AdminTemplatesPanel |
+| `2185:1470` | User Manual / FAQ | AdminManual |
+
+The staff table shows seven rows per page and filters the loaded analytics. Compute workload shares against all staff before filtering or paging; filtering must not change the denominator. Sort rows by handled volume. Released-document summaries derive from the loaded series. Keep null duration measurements distinct from recorded zeros and associate both the context and footer guidance with the table’s accessible description.
+
+Template choices, original icons, font controls, variable chips and line-number gutter follow the source. The editor remains a native textarea, while the preview renders the actual draft with synthetic values in its isolated sandbox. Reset stages a draft and Save retains confirmation. Manual counts reflect the available guidance; the Yes/No selection is local page state only and does not submit or contribute to ticket-scoped FAQ analytics.
+
+The Admin bell uses the original exported bell vector without the design’s decorative red circle. Render the dot only for actual unread notifications. After a successful read, update the IDs present when opening; retain unread notifications arriving while the request is pending. Failed reads retain unread state.
+
 ### Main Tabs frame inventory
 
-All listed frames were inspected. Implementation is prepared for user review; this is not a record of visual acceptance. [Synthetic browser screenshots](admin-main-tabs-review.png) show the rebuilt registration, security, support settings and document drawer layouts.
+All listed frames were inspected and Main Tabs was accepted by the user on 2026-10-14. [Synthetic browser screenshots](admin-main-tabs-review.png) show the rebuilt registration, security, support settings and document drawer layouts.
 
 | Figma frame | View / state | Implementation |
 |---|---|---|

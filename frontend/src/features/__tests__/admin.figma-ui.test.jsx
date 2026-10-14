@@ -33,6 +33,16 @@ describe('Admin Figma UI interactions', () => {
     await userEvent.click(screen.getByRole('button', { name: 'All events' }));
     expect(screen.getByText('Account 0')).toBeInTheDocument();
   });
+  it('keeps a manual helpfulness selection separate from the supplied answers', async () => {
+    render(<AdminManual entries={[["What do the dashboard insights mean?", 'Recorded metrics only.']]} />);
+    const yes = screen.getByRole('button', { name: 'Yes' });
+    await userEvent.click(yes);
+    expect(yes).toHaveAttribute('aria-pressed', 'true');
+    await userEvent.click(screen.getByRole('button', { name: 'No' }));
+    expect(yes).toHaveAttribute('aria-pressed', 'false');
+    expect(screen.getByText('Recorded metrics only.')).toBeInTheDocument();
+  });
+
   it('expands the full directory and opens the correct account by keyboard', async () => {
     const accounts = Array.from({ length: 12 }, (_, index) => ({ id: index + 1, full_name: `Account ${index + 1}`, student_id: `TEST-${index + 1}`, role: 'student', is_active: 1 }));
     const select = vi.fn();

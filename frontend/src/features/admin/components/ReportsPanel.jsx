@@ -1,3 +1,4 @@
+import AdminTimestamp from './AdminTimestamp';
 import AdminIcon from './AdminIcon';
 import ReportFiltersModal from '@/components/ReportFiltersModal';
 import useReportFilterOptions from '@/hooks/useReportFilterOptions';
@@ -53,7 +54,7 @@ export default function ReportsPanel({ user, currentTab, initialRecordSet = '' }
       <StudentProfileModal viewerRole={user?.role} open={!!viewProfileId} studentId={viewProfileId} onClose={() => setViewProfileId(null)} />
       <DashboardAlerts success={r.success} error={r.error} onDismiss={r.dismissNotification} />
 
-      <div className={`trace-page ${user?.role === 'admin' ? 'trace-admin-reports' : ''}`}>
+      <div className={`trace-page ${user?.role === 'admin' ? 'trace-admin-reports trace-admin-more-page' : ''}`}>
         <div className="trace-page-header">
           <div className="flex-1">
             <h2 className="trace-page-title">
@@ -64,7 +65,7 @@ export default function ReportsPanel({ user, currentTab, initialRecordSet = '' }
             </p>
           </div>
           <div className="ml-auto">
-            <Button type="button" className="trace-button trace-button-primary" onClick={()=>setFiltersOpen(true)}>{user?.role === 'admin' && <AdminIcon name="download" className="h-4 w-4" />}Export</Button>
+            <Button type="button" className="trace-button trace-button-primary" onClick={()=>setFiltersOpen(true)}>{user?.role === 'admin' && <AdminIcon name="download" className="h-4 w-4" />}{admin ? 'Export CSV' : 'Export'}</Button>
           </div>
         </div>
 
@@ -109,8 +110,8 @@ export default function ReportsPanel({ user, currentTab, initialRecordSet = '' }
               <tbody>
                 {(report?.documents || []).map((d) => (
                   <tr key={d.id} className="border-b border-gray-50 dark:border-gray-700 hover:bg-gray-50/50 dark:hover:bg-gray-800/50">
-                    <td className="py-3 px-5 text-xs text-gray-500 dark:text-gray-400">{formatDateTime(d.created_at)}</td>
-                    <td className="py-3 px-3 text-xs text-gray-500 dark:text-gray-400">{formatDateTime(d.updated_at)}</td>
+                    <td className="py-3 px-5 text-xs text-gray-500 dark:text-gray-400">{admin ? <AdminTimestamp value={d.created_at} /> : formatDateTime(d.created_at)}</td>
+                    <td className="py-3 px-3 text-xs text-gray-500 dark:text-gray-400">{admin ? <AdminTimestamp value={d.updated_at} /> : formatDateTime(d.updated_at)}</td>
                     <td className="py-3 px-5 break-all text-[11px] font-mono text-gray-700 dark:text-gray-300">{d.tracking_number}</td>
                     <td className="py-3">
                       <Button type="button" disabled={!d.student_id} onClick={() => setViewProfileId(d.student_id)} className="trace-action text-xs font-bold text-blue-700 dark:text-blue-300 hover:underline select-text break-words text-left focus-visible:ring-2 focus-visible:ring-blue-500">{d.student_name || '—'}</Button>

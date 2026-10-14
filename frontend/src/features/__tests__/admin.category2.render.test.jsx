@@ -413,30 +413,30 @@ describe('ReportsPanel', () => {
   const renderPanel = async (account=ADMIN,tab='admin-reports') => {
     render(<ReportsPanel user={account} currentTab={tab}/>);await screen.findByText('TRC-AAA');
   };
-  const open = async () => {await userEvent.click(screen.getByRole('button',{name:'Export',exact:true}));return screen.getByRole('dialog',{name:'Export'});};
+  const open = async () => {await userEvent.click(screen.getByRole('button',{name:/^Export(?: CSV)?$/}));return screen.getByRole('dialog',{name:'Export'});};
   it('shows visible report filters with export configuration behind the header action',async()=>{
     await renderPanel();expect(screen.getByLabelText('Student ID / Name')).toBeVisible();expect(screen.queryByLabelText('Dataset')).not.toBeInTheDocument();
     expect(screen.getAllByRole('columnheader')).toHaveLength(8);
   });
   it.each([['Admin',ADMIN,'admin-reports'],['Window 1',{role:'clerk',desk_assignment:'Window 1'},'reports'],['Secretary',{role:'clerk',desk_assignment:'Secretary'},'reports']])('uses inline filters and the same header Export action for %s',async(_,account,tab)=>{
-    await renderPanel(account,tab);expect(screen.getByRole('button',{name:'Export',exact:true}).closest('.trace-page-header')).toBeInTheDocument();
+    await renderPanel(account,tab);expect(screen.getByRole('button',{name:/^Export(?: CSV)?$/}).closest('.trace-page-header')).toBeInTheDocument();
     expect(screen.getByLabelText('College / Department')).toBeVisible();const dialog=await open();expect(within(dialog).getByLabelText('Dataset')).toBeInTheDocument();expect(within(dialog).queryByLabelText('Student ID / Name')).not.toBeInTheDocument();
     expect(within(dialog).getByRole('button',{name:'Export CSV'})).toBeEnabled();
   });
   it('retains unapplied search on export close and exports the applied snapshot only',async()=>{
     await renderPanel();const calls=reportsService.getDocumentReport.mock.calls.length;
     await userEvent.type(screen.getByLabelText('Student ID / Name'),'Ana');expect(reportsService.getDocumentReport).toHaveBeenCalledTimes(calls);
-    await open();expect(screen.getByRole('button',{name:'Export CSV'})).toBeDisabled();await userEvent.click(screen.getByRole('button',{name:'Close export',exact:true}));
+    await open();expect(within(screen.getByRole('dialog',{name:'Export'})).getByRole('button',{name:'Export CSV'})).toBeDisabled();await userEvent.click(screen.getByRole('button',{name:'Close export',exact:true}));
     expect(screen.getByLabelText('Student ID / Name')).toHaveValue('Ana');await userEvent.click(screen.getByRole('button',{name:'Apply Filters'}));
     await waitFor(()=>expect(reportsService.getDocumentReport).toHaveBeenLastCalledWith(expect.objectContaining({studentSearch:'Ana'})));
-    await open();await waitFor(()=>expect(screen.getByRole('button',{name:'Export CSV'})).toBeEnabled());await userEvent.click(screen.getByRole('button',{name:'Export CSV'}));
+    await open();await waitFor(()=>expect(within(screen.getByRole('dialog',{name:'Export'})).getByRole('button',{name:'Export CSV'})).toBeEnabled());await userEvent.click(within(screen.getByRole('dialog',{name:'Export'})).getByRole('button',{name:'Export CSV'}));
     expect(reportsService.exportDocumentsCsv).toHaveBeenCalledWith({studentSearch:'Ana'});
   });
   it('resets only the draft and retains every student export dataset',async()=>{
     await renderPanel();await userEvent.type(screen.getByLabelText('Student ID / Name'),'SYN-1');const calls=reportsService.getDocumentReport.mock.calls.length;
     await userEvent.click(screen.getByRole('button',{name:'Reset draft'}));expect(screen.getByLabelText('Student ID / Name')).toHaveValue('');expect(reportsService.getDocumentReport).toHaveBeenCalledTimes(calls);
     await open();for(const label of ['Active Students','Graduates / Alumni','Others','All Students'])expect(screen.getByRole('option',{name:label})).toBeInTheDocument();
-    await userEvent.selectOptions(screen.getByLabelText('Dataset'),'alumni');await userEvent.click(screen.getByRole('button',{name:'Export CSV'}));expect(reportsService.exportStudentsCsv).toHaveBeenCalledWith('alumni',{});
+    await userEvent.selectOptions(screen.getByLabelText('Dataset'),'alumni');await userEvent.click(within(screen.getByRole('dialog',{name:'Export'})).getByRole('button',{name:'Export CSV'}));expect(reportsService.exportStudentsCsv).toHaveBeenCalledWith('alumni',{});
   });
   it('blocks invalid date ranges before applying',async()=>{
     await renderPanel();fireEvent.change(screen.getByLabelText('From'),{target:{value:'2026-10-10'}});fireEvent.change(screen.getByLabelText('To'),{target:{value:'2026-10-01'}});
@@ -444,10 +444,10 @@ describe('ReportsPanel', () => {
   });
   it('blocks duplicate export and retains export configuration after a failed attempt',async()=>{
     let reject;reportsService.exportDocumentsCsv.mockReturnValueOnce(new Promise((_,fail)=>{reject=fail;}));await renderPanel();await open();
-    await userEvent.click(screen.getByRole('button',{name:'Export CSV'}));expect(screen.getByRole('button',{name:'Exporting…'})).toBeDisabled();
+    await userEvent.click(within(screen.getByRole('dialog',{name:'Export'})).getByRole('button',{name:'Export CSV'}));expect(screen.getByRole('button',{name:'Exporting…'})).toBeDisabled();
     await act(async()=>reject(new Error('unavailable')));expect(await screen.findByRole('dialog',{name:'Attention Needed'})).toHaveTextContent('Export failed.');
     await userEvent.click(screen.getByRole('button',{name:'OK'}));expect(screen.getByRole('dialog',{name:'Export'})).toBeInTheDocument();
-    await userEvent.click(screen.getByRole('button',{name:'Export CSV'}));expect(reportsService.exportDocumentsCsv).toHaveBeenCalledTimes(2);
+    await userEvent.click(within(screen.getByRole('dialog',{name:'Export'})).getByRole('button',{name:'Export CSV'}));expect(reportsService.exportDocumentsCsv).toHaveBeenCalledTimes(2);
   });
 });
 
@@ -493,6 +493,23 @@ describe('AnalyticsPanel', () => {
       expect(meter.firstChild).toHaveStyle({ transform: `scaleX(${share / 100})` });
       expect(within(meter.closest('tr')).getByText(`${share}%`)).toBeInTheDocument();
     });
+  });
+
+  it('keeps shares based on all staff when paging, searching and filtering desks', async () => {
+    const user = userEvent.setup();
+    reportsService.getAnalytics.mockResolvedValue({ ...ANALYTICS, workload_by_clerk: Array.from({ length: 9 }, (_, id) => ({ id, full_name: `Staff ${id}`, documents_handled: [60, 30, 10][id] || 0, desk_assignment: id === 0 ? 'Finance' : 'Secretary' })) });
+    await renderPanel();
+    const table = screen.getByRole('table', { name: 'Workload by Staff' });
+    expect(within(table).getAllByRole('meter')).toHaveLength(7);
+    await user.click(screen.getByRole('button', { name: 'Next' }));
+    expect(within(table).getAllByRole('meter')).toHaveLength(2);
+    expect(within(table).getByRole('meter', { name: 'Staff 8 workload share' })).toHaveAttribute('aria-valuenow', '0');
+    await user.type(screen.getByRole('searchbox', { name: 'Search staff workload' }), 'Staff 8');
+    expect(within(table).getAllByRole('meter')).toHaveLength(1);
+    await user.clear(screen.getByRole('searchbox', { name: 'Search staff workload' }));
+    await user.selectOptions(screen.getByRole('combobox', { name: 'Workload desk' }), 'Finance');
+    expect(within(table).getAllByRole('meter')).toHaveLength(1);
+    expect(within(table).getByRole('meter', { name: 'Staff 0 workload share' })).toHaveAttribute('aria-valuenow', '60');
   });
 
   it('renders zero shares for staff with no handled documents', async () => {

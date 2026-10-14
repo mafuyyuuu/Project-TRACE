@@ -39,6 +39,8 @@ let currentUser = STUDENT;
 vi.mock('@/features/graduate/GraduateApplication', () => ({ default: () => <section aria-label="Graduate application">Graduate application form</section> }));
 
 import Layout from '@/layouts/Layout';
+import { getNotifications, markNotificationsRead } from '@/services/authService';
+import { onNotification } from '@/services/realtimeService';
 import { startFirstLoginGuide } from '@/services/onboardingService';
 import { TEXT_SIZE_KEY, applyTextSize } from '@/utils/textSize';
 
@@ -51,6 +53,8 @@ const renderLayout = () =>
 
 beforeEach(() => {
   currentUser = STUDENT;
+  getNotifications.mockResolvedValue({ notifications: [] });
+  markNotificationsRead.mockResolvedValue({});
   vi.clearAllMocks();
   document.documentElement.classList.remove('dark');
   localStorage.removeItem('trace_theme');
@@ -60,6 +64,33 @@ beforeEach(() => {
 });
 
 describe('Layout', () => {
+  it('clears the Admin notification dot after a successful read and uses badge-free artwork', async () => {
+    currentUser = { ...STUDENT, role: 'admin' };
+    getNotifications.mockResolvedValue({ notifications: [{ id: 1, title: 'Synthetic notice', message: 'Test notification', is_read: 0 }] });
+    renderLayout();
+    expect(await screen.findByLabelText('1 unread notifications')).toBeInTheDocument();
+    const bell = screen.getByRole('button', { name: 'Notifications' });
+    expect(bell.querySelector('img')).toHaveAttribute('src', '/admin-figma/bell-base.svg');
+    await userEvent.click(bell);
+    await waitFor(() => expect(screen.queryByLabelText('1 unread notifications')).not.toBeInTheDocument());
+    expect(markNotificationsRead).toHaveBeenCalledOnce();
+  });
+
+  it('keeps a notification that arrives while the existing notifications are being marked read', async () => {
+    currentUser = { ...STUDENT, role: 'admin' };
+    let resolveRead;
+    markNotificationsRead.mockImplementation(() => new Promise(resolve => { resolveRead = resolve; }));
+    getNotifications.mockResolvedValue({ notifications: [{ id: 1, title: 'Existing notice', message: 'Existing test notification', is_read: 0 }] });
+    renderLayout();
+    await screen.findByLabelText('1 unread notifications');
+    await userEvent.click(screen.getByRole('button', { name: 'Notifications' }));
+    const receive = onNotification.mock.calls.at(-1)[0];
+    act(() => receive({ id: 2, title: 'New notice', message: 'Arrived during read', is_read: 0 }));
+    await act(async () => resolveRead({}));
+    expect(screen.getByText('New notice')).toBeInTheDocument();
+    expect(screen.getByLabelText('1 unread notifications')).toBeInTheDocument();
+  });
+
   it('reveals the Admin tour target in More and returns to Main for its next target', async () => {
     currentUser = { ...STUDENT, role: 'admin' };
     startFirstLoginGuide.mockResolvedValue(true);

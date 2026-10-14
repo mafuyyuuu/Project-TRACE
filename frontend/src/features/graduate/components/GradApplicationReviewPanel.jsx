@@ -1,3 +1,4 @@
+import AdminTimestamp from '@/features/admin/components/AdminTimestamp';
 import Button from '@/components/Button';
 import { INPUT_LIMITS } from '@/utils/inputLimits';
 import ModalShell from '@/components/ModalShell';
@@ -36,7 +37,7 @@ function ApplicationsTable({ applications, onReview, onProfile, emptyMessage, ad
               <div className="text-xs font-mono text-gray-400 dark:text-gray-400 mt-0.5 select-text break-words">{a.student_id}</div>
               </div></div></td>
             <td className="py-4 text-xs font-bold text-gray-600 dark:text-gray-300">{(admin ? a.program || a.course : a.course) || '—'}{admin && a.college_name && <span className="trace-admin-caption block">{a.college_name}</span>}</td>
-            <td className="py-4 text-xs text-gray-400 dark:text-gray-400">{new Date(a.submitted_at).toLocaleDateString()}</td>
+            <td className="py-4 text-xs text-gray-400 dark:text-gray-400">{admin ? <AdminTimestamp value={a.submitted_at} relative /> : new Date(a.submitted_at).toLocaleDateString()}</td>
             <td className="py-4">
               <span
                 className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${
@@ -121,7 +122,7 @@ export default function GradApplicationReviewPanel({ user, currentTab }) {
   const shownApplications = admin ? activeApplications.filter(a => [a.full_name, a.student_id, a.program, a.course, a.college_name].join(' ').toLowerCase().includes(search.trim().toLowerCase()) && (program === 'all' || (a.program || a.course) === program)) : activeApplications;
 
   return (
-    <div className={`trace-page ${admin ? 'trace-admin-graduates' : ''}`}>
+    <div className={`trace-page ${admin ? 'trace-admin-graduates trace-admin-more-page' : ''}`}>
       <StudentProfileModal viewerRole={user?.role} open={!!viewProfileId} studentId={viewProfileId} onClose={() => setViewProfileId(null)} />
       <DashboardAlerts success={success} error={error} onDismiss={dismissNotification} dismissalKey={activeQueueTab} />
       <div>
