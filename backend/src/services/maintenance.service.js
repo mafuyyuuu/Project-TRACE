@@ -24,6 +24,8 @@ const { badRequest, forbidden, notFound } = require('../utils/AppError');
 const VALID_DESKS = ['Finance', 'Window 1', 'Secretary', 'Admin Office', 'Receiving Desk', 'Records Desk'];
 const VALID_ROLES = ['clerk', 'admin'];
 const { validatePassword } = require('../utils/passwordPolicy');
+const { validatePhoneNumber } = require('../utils/phoneNumber');
+const { validateTextFields, ACCOUNT_TEXT_LIMITS } = require('../utils/inputLimits');
 
 function assertAdmin(user) {
   if (!user || user.role !== 'admin') {
@@ -42,6 +44,7 @@ async function listColleges(user) {
 
 async function createCollege(user, { name, short_code, sort_order }) {
   assertAdmin(user);
+  validateTextFields({ name, short_code }, { name: 150, short_code: 20 });
   if (!name || !name.trim()) throw badRequest('College name is required.');
 
   const existing = await referenceModel.findCollegeByName(name.trim());
@@ -55,6 +58,7 @@ async function createCollege(user, { name, short_code, sort_order }) {
 
 async function updateCollege(user, id, data) {
   assertAdmin(user);
+  validateTextFields(data, { name: 150, short_code: 20 });
   const rows = await referenceModel.findCollegeById(id);
   if (!rows.length) throw notFound('College not found.');
 
@@ -167,6 +171,7 @@ async function saveDocumentPolicy(data, id = null) {
 
 async function createDocumentType(user, data) {
   assertAdmin(user);
+  validateTextFields(data, { name: 150, attachment_label: 255, attachment_helper: 255 });
   if (!data.name || !data.name.trim()) throw badRequest('Document type name is required.');
   if (documentPolicy.isRetired(data.name)) throw badRequest(documentPolicy.RETIREMENT_REASON);
 
@@ -186,6 +191,7 @@ async function createDocumentType(user, data) {
 
 async function updateDocumentType(user, id, data) {
   assertAdmin(user);
+  validateTextFields(data, { name: 150, attachment_label: 255, attachment_helper: 255 });
   const rows = await referenceModel.findDocumentTypeById(id);
   if (!rows.length) throw notFound('Document type not found.');
 
@@ -250,6 +256,7 @@ async function listStaff(user) {
  */
 async function createStaff(user, data) {
   assertAdmin(user);
+  validateTextFields(data, ACCOUNT_TEXT_LIMITS);
 
   const { employee_id, full_name, email, password, role, desk_assignment, course, phone_number } = data;
 
@@ -273,7 +280,7 @@ async function createStaff(user, data) {
     role,
     desk_assignment: role === 'admin' ? desk_assignment || 'Admin Office' : desk_assignment,
     course,
-    phone_number,
+    phone_number: phone_number === undefined ? undefined : validatePhoneNumber(phone_number, { required: false }),
   });
 
   return {
@@ -284,16 +291,18 @@ async function createStaff(user, data) {
 
 async function updateAccount(user, id, data) {
   assertAdmin(user);
+  validateTextFields(data, ACCOUNT_TEXT_LIMITS);
   const [account] = await userModel.findById(id);
   if (!account) throw notFound('Account not found.');
   if (data.student_id !== undefined || data.employee_id !== undefined) throw badRequest('Account identifiers are read-only.');
   const fields = {};
-  for (const [key, max] of Object.entries({ full_name: 255, email: 255, phone_number: 20, course: 100 })) {
+  for (const [key, max] of Object.entries({ full_name: 255, email: 255, phone_number: 13, course: 150 })) {
     if (data[key] === undefined) continue;
     if (typeof data[key] !== 'string' || data[key].length > max) throw badRequest(`Invalid ${key}. Maximum ${max} characters.`);
     fields[key] = data[key].trim();
   }
   if (fields.full_name === '') throw badRequest('Full name cannot be empty.');
+  if (fields.phone_number !== undefined) fields.phone_number = validatePhoneNumber(data.phone_number, { required: false });
   if (fields.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(fields.email)) throw badRequest('Enter a valid email address.');
   if (data.college_id !== undefined) {
     if (data.college_id !== null && data.college_id !== '') {
@@ -309,6 +318,7 @@ async function updateAccount(user, id, data) {
 
 async function updateStaff(user, id, data) {
   assertAdmin(user);
+  validateTextFields(data, ACCOUNT_TEXT_LIMITS);
 
   const rows = await userModel.findById(id);
   if (!rows.length || !VALID_ROLES.includes(rows[0].role)) throw notFound('Staff account not found.');
@@ -319,7 +329,7 @@ async function updateStaff(user, id, data) {
     fields.full_name = data.full_name.trim();
   }
   if (data.email !== undefined) fields.email = data.email;
-  if (data.phone_number !== undefined) fields.phone_number = data.phone_number;
+  if (data.phone_number !== undefined) fields.phone_number = validatePhoneNumber(data.phone_number, { required: false });
   if (data.course !== undefined) fields.course = data.course;
 
   if (data.role !== undefined) {
@@ -409,6 +419,7 @@ async function listPaymentMethods(user) {
 
 async function createPaymentMethod(user, data) {
   assertAdmin(user);
+  validateTextFields(data, { name: 150, code: 20, reference_label: 150, instructions: 2000 });
 
   const code = String(data.code || '').trim().toLowerCase();
   if (!/^[a-z][a-z0-9_]*$/.test(code)) {
@@ -428,6 +439,7 @@ async function createPaymentMethod(user, data) {
 
 async function updatePaymentMethod(user, id, data) {
   assertAdmin(user);
+  validateTextFields(data, { name: 150, code: 20, reference_label: 150, instructions: 2000 });
   const rows = await referenceModel.findPaymentMethodById(id);
   if (!rows.length) throw notFound('Payment method not found.');
 

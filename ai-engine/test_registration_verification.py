@@ -3,6 +3,16 @@ from registration_verification import verify_registration_text
 
 
 class RegistrationVerificationTests(unittest.TestCase):
+    def test_college_spacing_can_split_or_join_letters_without_changing_them(self):
+        for heading in ['COLLEGEOF COMPUTER STUDIES', 'COLLEGE OF COM PUTER STU DIES', 'CollegeofComputerStudies']:
+            with self.subTest(heading=heading):
+                self.assertTrue(verify_registration_text('PLP 23-00261 ' + heading, '23-00261', 'College of Computer Studies')['verified'])
+
+    def test_spacing_tolerance_does_not_infer_or_substitute_a_college(self):
+        for heading in ['BSIT 1B', 'CCS', 'COLLEGE OF COMPUTER STUD1ES', 'COLLEGE OF BUSINESS STUDIES', 'COLLEGE OF COMPUTER WRONG STUDIES', 'notCollegeofComputerStudies']:
+            with self.subTest(heading=heading):
+                self.assertFalse(verify_registration_text('PLP 23-00261 ' + heading, '23-00261', 'College of Computer Studies')['verified'])
+
     def test_typography_does_not_fail_an_exact_match(self):
         result = verify_registration_text('PAMANTASAN NG\nLUNGSOD NG PASIG 23 \u2013 00261 College\n of Computer Studies', '23-00261', 'College of Computer Studies')
         self.assertTrue(result['verified'])

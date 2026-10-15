@@ -47,6 +47,12 @@ beforeEach(() => {
 });
 
 describe('validateAnswers — driven entirely by the field definitions', () => {
+  it.each([
+    ['text', 'x'.repeat(256)], ['textarea', 'x'.repeat(2001)], ['tel', '9'.repeat(500)],
+    ['tel', '+12025550123'], ['number', 'Infinity'], ['number', '1e3'], ['number', '0x10'], ['number', '1'.repeat(100)],
+  ])('rejects excessive or malformed %s answers', (field_type, value) => {
+    expect(service.validateAnswers([{ field_key: 'test', label: 'Test', field_type }], { test: value })).not.toEqual([]);
+  });
   it('accepts a complete, well-formed submission', () => {
     expect(
       service.validateAnswers(FIELDS, {

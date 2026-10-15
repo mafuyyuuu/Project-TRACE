@@ -4,6 +4,14 @@ import AddUserModal from '@/features/admin/components/AddUserModal';
 import UserEditModal from '@/features/admin/components/UserEditModal';
 import AccountVerificationModal from '@/features/admin/components/AccountVerificationModal';
 
+it.each([0, '0', false, null])('does not render a false proof flag as a stray number (%j)', flag => {
+  render(<AccountVerificationModal studentVerifyToConfirm={{ student: {
+    full_name: 'Synthetic Student', registration_proof_unavailable: flag,
+  } }} />);
+  expect(screen.queryByText('0')).not.toBeInTheDocument();
+  expect(screen.queryByText('Identity Review Evidence / Decision Basis')).not.toBeInTheDocument();
+});
+
 it('displays the saved program separately from the college in Admin review', () => {
   render(<AccountVerificationModal studentVerifyToConfirm={{ student: {
     full_name: 'Synthetic Student', student_id: 'SYN001', program: 'BS Computer Science', course: 'College A',

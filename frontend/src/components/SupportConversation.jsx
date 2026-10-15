@@ -80,7 +80,7 @@ export default function SupportConversation({ ticketId,user,topics,onTicketChang
       {chat.cursor && <Button type="button" disabled={chat.loadingOlder} onClick={() => { const node = history.current; older.current = {height:node.scrollHeight,top:node.scrollTop}; pinned.current = false; void chat.refresh(chat.cursor); }} className="trace-button trace-button-secondary">{chat.loadingOlder ? 'Loading older messages…' : 'Load older messages'}</Button>}
       {ticket?.state === 'FAQ_ASSISTANCE' && user.role === 'student' && <div className="space-y-2 rounded-xl border border-green-200 bg-green-50 p-3 dark:border-green-800 dark:bg-green-950">
         <h4 className="font-bold">Approved FAQ assistance</h4>
-        <label className="trace-label block">Find a question<input value={faqQuery} onChange={event => setFaqQuery(event.target.value)} className="trace-control mt-1 w-full" /></label>
+        <label className="trace-label block">Find a question<input maxLength={255} value={faqQuery} onChange={event => setFaqQuery(event.target.value)} className="trace-control mt-1 w-full" /></label>
         {suggestions.error && <p role="alert">{suggestions.error}</p>}
         {suggestions.topics.map(topic => <div key={topic.id} className="space-y-2">
           <Button type="button" disabled={chat.busy} onClick={() => void chat.faq({topic_id:topic.id,action:'view',client_key:crypto.randomUUID()})} className="trace-button trace-button-secondary w-full text-left">{topic.question}</Button>

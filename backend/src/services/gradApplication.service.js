@@ -1,4 +1,5 @@
 const { yearError } = require('../utils/profileYears');
+const { PHONE_REQUIREMENTS, normalizePhoneNumber } = require('../utils/phoneNumber');
 const { pool } = require('../config/db');
 const gradModel = require('../models/gradApplication.model');
 const userModel = require('../models/user.model');
@@ -16,7 +17,9 @@ const { badRequest, forbidden, notFound } = require('../utils/AppError');
 
 /** Field types whose values must parse as something specific. */
 const TYPE_VALIDATORS = {
-  number: (v) => (Number.isNaN(Number(v)) ? 'must be a number' : null),
+  number: (v) => (/^-?\d{1,16}(?:\.\d{1,6})?$/.test(String(v)) && Number.isFinite(Number(v))
+    && Math.abs(Number(v)) <= Number.MAX_SAFE_INTEGER ? null : 'must be a finite ordinary decimal with at most six decimal places'),
+  tel: (v) => (normalizePhoneNumber(v) ? null : PHONE_REQUIREMENTS),
   email: (v) => (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v) ? null : 'must be a valid email address'),
   date: (v) => (Number.isNaN(Date.parse(v)) ? 'must be a valid date' : null),
 };
@@ -51,6 +54,12 @@ function validateAnswers(fields, answers) {
       continue;
     }
     if (isEmpty) continue;
+    const limit = field.field_type === 'textarea' ? 2000 : field.field_type === 'tel' ? 13 : 255;
+    if ((typeof raw === 'string' && raw.length > limit)
+      || (typeof raw !== 'string' && !(field.field_type === 'number' && typeof raw === 'number'))) {
+      errors.push(`${field.label} must be at most ${limit} characters and use the requested format.`);
+      continue;
+    }
 
     const check = TYPE_VALIDATORS[field.field_type];
     if (check) {
@@ -111,7 +120,8 @@ async function submitApplication(user, body) {
     const applicationId = result.insertId;
 
     for (const field of fields) {
-      const value = answers[field.field_key];
+      const raw = answers[field.field_key];
+      const value = field.field_type === 'tel' && raw ? normalizePhoneNumber(raw) : raw;
       if (value === undefined || value === null || value === '') continue;
       await gradModel.insertValue(
         { application_id: applicationId, field_key: field.field_key, value: String(value) },

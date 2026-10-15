@@ -10,7 +10,7 @@ export default function ProfileYearField({ field, value = '', required = false, 
       <label htmlFor={id} className="trace-label block mb-2">
         {label || definition.label}{required && <> <span className="text-red-500 dark:text-red-300">*</span></>}
       </label>
-      <input id={id} type="text" inputMode="numeric" pattern="[1-9][0-9]{3}" placeholder={field === 'year_started' ? 'Year Started' : field === 'last_attendance_year' ? 'Last Attendance Year' : 'Year Graduated'}
+      <input id={id} type="text" inputMode="numeric" maxLength={4} pattern="[1-9][0-9]{3}" placeholder={field === 'year_started' ? 'Year Started' : field === 'last_attendance_year' ? 'Last Attendance Year' : 'Year Graduated'}
         value={value} onChange={event => onChange(event.target.value)} required={required} disabled={disabled} readOnly={readOnly}
         aria-invalid={Boolean(problem)} aria-describedby={`${id}-hint${warning ? ` ${id}-needed` : ''}`}
         className="trace-control w-full" />

@@ -34,8 +34,17 @@ export default function useSecretaryDashboard(user) {
   const [evalDocType, setEvalDocType] = useState('Transcript of Records');
   const [estimatedReadyDate, setEstimatedReadyDate] = useState('');
   const [documentTypes, setDocumentTypes] = useState([]);
+  const [documentTypesError, setDocumentTypesError] = useState('');
   useEffect(() => {
-    getDocumentTypes().then(setDocumentTypes).catch(console.error);
+    let current = true;
+    getDocumentTypes()
+      .then(data => {
+        if (current) setDocumentTypes(data.document_types);
+      })
+      .catch(() => {
+        if (current) setDocumentTypesError('Document catalog could not be loaded. Refresh the dashboard to try again.');
+      });
+    return () => { current = false; };
   }, []);
 
 
@@ -257,6 +266,7 @@ export default function useSecretaryDashboard(user) {
     evalStudentName, setEvalStudentName,
     evalDocType, setEvalDocType,
     documentTypes,
+    documentTypesError,
 
     estimatedReadyDate, setEstimatedReadyDate,
     priceAmount, priceBreakdown, pricingError,

@@ -56,6 +56,27 @@ describe('sendEmail', () => {
 });
 
 describe('sendSms', () => {
+  it('reports configured credentials without claiming verified delivery', async () => {
+    const result = await service.verifyChannels();
+    expect(result.sms).toMatchObject({ configured: true, ok: null });
+    expect(result.sms.detail).toContain('unverified');
+  });
+  it('records a provider rejection without logging the recipient or key', async () => {
+    UniSmsClient.prototype.send.mockRejectedValue(Object.assign(new Error('private provider body'), { statusCode: 401 }));
+    expect(await service.sendSms('09123456789', 'Synthetic notification'))
+      .toMatchObject({ ok: false, outcome: 'provider_rejected', code: 'HTTP_401' });
+    expect(console.error).toHaveBeenCalledWith('[SMS] outcome=provider_rejected code=HTTP_401');
+    expect(console.error.mock.calls.flat().join(' ')).not.toMatch(/09123456789|private provider body|test-unisms-key/);
+  });
+  it('calls provider acceptance unverified delivery, not handset receipt', async () => {
+    UniSmsClient.prototype.send.mockResolvedValue({});
+    expect(await service.sendSms('09123456789', 'Synthetic notification')).toMatchObject({ ok: true, outcome: 'provider_accepted' });
+    expect(console.log).toHaveBeenCalledWith('[SMS] outcome=provider_accepted delivery=unverified');
+  });
+  it('converts a saved local mobile number to the provider international format', async () => {
+    await service.sendSms('09123456789', 'Synthetic notification');
+    expect(UniSmsClient.prototype.send).toHaveBeenCalledWith(expect.objectContaining({ recipient: '+639123456789' }));
+  });
   it('skips when the recipient has no number and no fallback is set', async () => {
     const res = await service.sendSms('', 'Hello');
     expect(res).toMatchObject({ ok: false, skipped: true });

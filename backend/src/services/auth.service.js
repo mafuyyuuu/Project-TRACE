@@ -4,6 +4,8 @@ const fs = require('fs');
 const path = require('path');
 
 const { validatePassword } = require('../utils/passwordPolicy');
+const { validatePhoneNumber } = require('../utils/phoneNumber');
+const { validateTextFields, ACCOUNT_TEXT_LIMITS, PROFILE_TEXT_LIMITS } = require('../utils/inputLimits');
 
 async function checkPasswordHistory(userId, newPassword, executor = pool, currentHash) {
   if (currentHash && await bcrypt.compare(newPassword, currentHash)) throw badRequest('Choose a password different from your current password.');
@@ -197,6 +199,7 @@ async function getCurrentUser(userId) {
  * *rejected* student ID reuses its original account and audit history on resubmission.
  */
 async function register(body, file) {
+  validateTextFields(body, ACCOUNT_TEXT_LIMITS);
   const { employee_id, email, phone_number, password, user_type, course, college_id } = body;
   const hasNameParts = ['first_name', 'middle_name', 'last_name'].some(key => Object.hasOwn(body, key));
   const nameParts = Object.fromEntries(['first_name', 'middle_name', 'last_name'].map(key => [key, body[key] ?? '']));
@@ -238,6 +241,7 @@ async function register(body, file) {
   if (!employee_id || !full_name || !password || !phone_number) {
     throw badRequest('Student / Alumni ID, Name, Phone Number, and Password are required.');
   }
+  const normalizedPhone = validatePhoneNumber(phone_number);
   if (!file && !unavailable) {
     throw badRequest('Proof of ID is required for verification.');
   }
@@ -251,7 +255,7 @@ async function register(body, file) {
   const { verification_status, verification_reason } = unavailable
     ? { verification_status: 'pending', verification_reason: 'Proof unavailable. Administrator identity review required.' }
     : registrationVerification(aiResult);
-  const data = { student_id: employee_id, full_name, email: registeredEmail, phone_number, password_hash,
+  const data = { student_id: employee_id, full_name, email: registeredEmail, phone_number: normalizedPhone, password_hash,
     role: 'student', user_type, course: collegeName, program, college_id: collegeId, id_proof_path,
     verification_status, verification_reason, registration_proof_unavailable: unavailable, registration_proof_reason: proofReason || null };
   const connection = await pool.getConnection();
@@ -358,6 +362,7 @@ function readProgram(value) {
   return value.trim() || null;
 }
 async function updateProfile(userId, { phone_number, email, course, college_id, program, password, current_password, ...profileFields }) {
+  validateTextFields({ email, course, program, ...profileFields }, PROFILE_TEXT_LIMITS);
   const fields = {};
   let verifiedPasswordHash;
   let changedSession;
@@ -365,6 +370,7 @@ async function updateProfile(userId, { phone_number, email, course, college_id, 
   const users = await userModel.getProfileById(userId);
   if (!users || users.length === 0) throw notFound('User not found.');
   const currentUser = users[0];
+  const normalizedPhone = phone_number === undefined ? undefined : validatePhoneNumber(phone_number, { required: currentUser.role === 'student' });
   studyYears.validateSelf(profileFields, currentUser);
   const ordinaryYearFields = Object.fromEntries(Object.entries(profileFields).filter(([key]) => !['year_started', 'graduation_year'].includes(key)));
   const yearErrors = profileYearErrors(ordinaryYearFields, currentUser, { onlyProvided: true });
@@ -395,7 +401,7 @@ async function updateProfile(userId, { phone_number, email, course, college_id, 
   }
 
 
-  if (phone_number !== undefined) fields.phone_number = phone_number;
+  if (phone_number !== undefined) fields.phone_number = normalizedPhone;
   
   let emailResult;
   if (emailChanged) emailResult = await emailVerification.issue(userId, { email, current_password });

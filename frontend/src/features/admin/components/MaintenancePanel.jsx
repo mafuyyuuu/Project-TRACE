@@ -1,3 +1,5 @@
+import NumberInput from '@/components/NumberInput';
+import { NUMBER_LIMITS } from '@/utils/inputLimits';
 import QueueTabs from '@/components/QueueTabs';
 import QueuePanel from '@/components/QueuePanel';
 import Button from '@/components/Button';
@@ -199,7 +201,7 @@ export default function MaintenancePanel({ user, currentTab }) {
 
               <input maxLength={INPUT_LIMITS.referenceName} className={inputClass} placeholder="Name *" required
                 value={form.dt_name || ''} onChange={(e) => set('dt_name', e.target.value)} />
-              <input className={inputClass} type="number" min="0" step="0.01" placeholder="Base fee (₱)"
+              <NumberInput max={NUMBER_LIMITS.money} className={inputClass} type="number" min="0" step="0.01" placeholder="Base fee (₱)"
                 value={form.dt_fee ?? ''} onChange={(e) => set('dt_fee', e.target.value)} />
 
               <select className={`${inputClass} cursor-pointer`} value={form.dt_rule || 'flat'}

@@ -1,3 +1,4 @@
+import NumberInput from '@/components/NumberInput';
 import Button from '@/components/Button';
 import FeeBreakdown from '@/components/FeeBreakdown';
 import { INPUT_LIMITS } from '@/utils/inputLimits';
@@ -94,11 +95,11 @@ export default function PricingModal({
 
         {(!selectedDoc.pricing_schedule?.fee_items?.some(item => item.fee_rule === 'per_page') || ['per_page', 'per_semester_block'].includes(selectedDoc.pricing_schedule?.fee_rule)) && <label className="trace-label block">
           {selectedDoc.pricing_schedule?.base_label ? `${selectedDoc.pricing_schedule.base_label}: ` : ''}Pages printed per copy
-          <input type="number" min="1" step="1" value={pricePageCount} onChange={event => setPricePageCount(event.target.value)} className="trace-control w-full mt-1.5" />
+          <NumberInput type="number" min="1" step="1" value={pricePageCount} onChange={event => setPricePageCount(event.target.value)} className="trace-control w-full mt-1.5" />
         </label>}
         {(selectedDoc.pricing_schedule?.fee_items || []).filter(item => item.fee_rule === 'per_page').map(item => <label key={item.label} className="trace-label block">
           {item.label}: Pages printed per copy
-          <input type="number" min="1" step="1" required value={priceFeePageCounts[item.label] || ''}
+          <NumberInput type="number" min="1" step="1" required value={priceFeePageCounts[item.label] || ''}
             onChange={event => { const pages = event.target.value; setPriceFeePageCounts(previous => ({ ...previous, [item.label]: pages })); }} className="trace-control w-full mt-1.5" />
         </label>)}
 

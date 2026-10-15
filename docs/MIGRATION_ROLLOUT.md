@@ -656,3 +656,17 @@ curl -fsS http://localhost:3300/api/health
 ```
 
 Deploy the matching frontend separately. Check that Read ID is absent, Alumni shows the missing-proof choice immediately, an explanation is required before confirmation, and Student still has mandatory proof. Confirm a test proof with matching fields and one with a wrong ID remain distinct; inspect backend/AI logs for registration-proof timing without posting ID text or real uploaded records. Neither a running container nor health alone proves an actual photo auto-verifies. Earlier Read ID rollout instructions are historical and superseded by this section.
+
+
+## 2026-10-13 — preserving pickup reminder ledger
+
+Follow the existing backup procedure. Pull current dev and build matching images before these commands. The migration creates only pickup_sms_reminders with a unique document/readiness-episode/period attempt key; reruns preserve its history. Do not reseed or import the full fresh schema.
+
+```bash
+docker compose build backend ai-engine
+docker compose run --rm --no-deps -T backend node database/migrate_pickup_sms_reminders.js
+docker compose run --rm --no-deps -T backend node database/check_schema.js
+docker compose up -d --no-deps --force-recreate backend ai-engine
+```
+
+Deploy matching dev on Vercel. The new backend checks existing eligible unclaimed records at startup and every 15 minutes. First reminder is after three calendar days, then weekly, with at least seven days between attempts; completed/nonready documents are excluded. A missing ledger disables that worker with a safe log rather than creating tables automatically. An uncertain attempt remains recorded and is not resent in the same period. The normal Ready for Pickup SMS/email notice remains separate. Live delivery still needs an actual provider outcome and handset confirmation; local tests send no real SMS.

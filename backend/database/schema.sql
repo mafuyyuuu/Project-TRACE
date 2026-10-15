@@ -668,3 +668,20 @@ CREATE TABLE IF NOT EXISTS staff_conversation_events (
     CONSTRAINT staff_chat_event_actor FOREIGN KEY (actor_id) REFERENCES users(id),
     UNIQUE KEY staff_chat_retry (actor_id,client_key), KEY staff_chat_events (conversation_id,id)
   ) ENGINE=InnoDB;
+
+
+-- Per-readiness-episode pickup SMS reminder attempt ledger.
+CREATE TABLE IF NOT EXISTS pickup_sms_reminders (
+  id BIGINT AUTO_INCREMENT PRIMARY KEY,
+  document_id INT NOT NULL,
+  ready_step_id INT NOT NULL,
+  period_no INT UNSIGNED NOT NULL,
+  due_at_ms BIGINT NOT NULL,
+  state ENUM('dispatching','accepted','failed','unknown','cancelled') NOT NULL,
+  error_code VARCHAR(50) NULL,
+  attempted_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  finished_at TIMESTAMP NULL,
+  UNIQUE KEY pickup_sms_once (document_id, ready_step_id, period_no),
+  CONSTRAINT pickup_sms_document FOREIGN KEY (document_id) REFERENCES documents(id) ON DELETE CASCADE,
+  CONSTRAINT pickup_sms_ready_step FOREIGN KEY (ready_step_id) REFERENCES step_logs(id) ON DELETE CASCADE
+) ENGINE=InnoDB;

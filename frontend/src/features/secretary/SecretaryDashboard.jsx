@@ -70,6 +70,7 @@ export default function SecretaryDashboard({ user, currentTab, setViewImageUrl }
     evalDocType,
     setEvalDocType,
     documentTypes,
+    documentTypesError,
     activeModal,
     setActiveModal,
     selectedDoc,
@@ -437,6 +438,7 @@ export default function SecretaryDashboard({ user, currentTab, setViewImageUrl }
             evalDocType={evalDocType}
             setEvalDocType={setEvalDocType}
             documentTypes={documentTypes}
+            documentTypesError={documentTypesError}
             clerkNotes={clerkNotes}
             setClerkNotes={setClerkNotes}
             actionLoading={actionLoading}

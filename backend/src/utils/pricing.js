@@ -11,13 +11,14 @@ const DEFAULT_FEE = { base_fee: 50, fee_rule: 'flat' };
 const MAX_CENTS = 9999999999;
 function moneyCents(value) {
   const text = String(value ?? 0);
-  if (!/^\d+(?:\.\d{1,2})?$/.test(text)) throw new Error('Fees must be non-negative amounts with at most two decimal places.');
+  if (!/^\d{1,8}(?:\.\d{1,2})?$/.test(text)) throw new Error('Fees must be non-negative amounts with at most two decimal places.');
   const [whole, fraction = ''] = text.split('.');
   const cents = Number(whole) * 100 + Number(fraction.padEnd(2, '0'));
   if (!Number.isSafeInteger(cents) || cents > MAX_CENTS) throw new Error('Fee exceeds the supported amount.');
   return cents;
 }
 function positiveQuantity(value, label = 'Quantity') {
+  if (typeof value !== 'number' && (typeof value !== 'string' || !/^\d{1,10}$/.test(value))) throw new Error(`${label} must be a positive whole number.`);
   const n = Number(value);
   if (!Number.isSafeInteger(n) || n < 1 || n > 2147483647) throw new Error(`${label} must be a positive whole number.`);
   return n;

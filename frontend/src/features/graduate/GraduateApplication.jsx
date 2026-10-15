@@ -1,4 +1,6 @@
 import { manilaYear, yearError } from '@/utils/profileYears';
+import PhoneInput from '@/components/PhoneInput';
+import NumberInput from '@/components/NumberInput';
 import Button from '@/components/Button';
 import { INPUT_LIMITS } from '@/utils/inputLimits';
 import ConfirmDialog from '@/components/ConfirmDialog';
@@ -61,8 +63,12 @@ function DynamicField({ field, value, onChange }) {
             <option key={opt} value={opt}>{opt}</option>
           ))}
         </select>
+      ) : field.field_type === 'tel' ? (
+        <PhoneInput {...shared} />
+      ) : field.field_type === 'number' && !isGraduationYear ? (
+        <NumberInput {...shared} min={-Number.MAX_SAFE_INTEGER} max={Number.MAX_SAFE_INTEGER} step="0.000001" />
       ) : (
-        <input maxLength={isGraduationYear || ['number', 'date'].includes(field.field_type) ? undefined : field.field_type === 'email' ? INPUT_LIMITS.email : field.field_type === 'tel' ? INPUT_LIMITS.phone : INPUT_LIMITS.shortText}
+        <input maxLength={isGraduationYear ? 4 : field.field_type === 'date' ? undefined : field.field_type === 'email' ? INPUT_LIMITS.email : INPUT_LIMITS.shortText}
           {...shared}
           inputMode={isGraduationYear ? 'numeric' : undefined} pattern={isGraduationYear ? '[1-9][0-9]{3}' : undefined}
           aria-invalid={isGraduationYear ? Boolean(problem) : undefined}
