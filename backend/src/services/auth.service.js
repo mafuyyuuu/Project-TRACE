@@ -60,7 +60,7 @@ function otpExpired(value) {
 
 function publicUser(user) {
   const fields = ['id', 'student_id', 'full_name', 'role', 'user_type', 'desk_assignment',
-    'first_name', 'middle_name', 'last_name', 'extension_name', 'course', 'program', 'college_id', 'email', 'email_verified_at', 'phone_number', 'profile_picture', 'verification_status', 'year_started', 'graduation_year', 'study_years_confirmed_at'];
+    'first_name', 'middle_name', 'last_name', 'extension_name', 'course', 'program', 'college_id', 'email', 'email_verified_at', 'phone_number', 'profile_picture', 'verification_status', 'year_started', 'graduation_year', 'study_years_confirmed_at', 'year_level', 'section'];
   const result = Object.fromEntries(fields.map(key => [key, user[key] ?? null]));
   for (const key of ['profile_completed', 'must_change_password', 'has_grad_application']) {
     result[key] = Boolean(user[key]);
@@ -370,6 +370,12 @@ async function updateProfile(userId, { phone_number, email, course, college_id, 
   const users = await userModel.getProfileById(userId);
   if (!users || users.length === 0) throw notFound('User not found.');
   const currentUser = users[0];
+  if (currentUser.role === 'student' && currentUser.user_type !== 'alumni') {
+    delete profileFields.graduation_year; delete profileFields.last_attendance_year;
+  }
+  if (['year_level', 'section'].some(key => Object.hasOwn(profileFields, key)) && (currentUser.role !== 'student' || currentUser.user_type === 'alumni')) {
+    throw forbidden('Year Level and Section belong to current-student profiles.');
+  }
   const normalizedPhone = phone_number === undefined ? undefined : validatePhoneNumber(phone_number, { required: currentUser.role === 'student' });
   studyYears.validateSelf(profileFields, currentUser);
   const ordinaryYearFields = Object.fromEntries(Object.entries(profileFields).filter(([key]) => !['year_started', 'graduation_year'].includes(key)));
@@ -408,7 +414,7 @@ async function updateProfile(userId, { phone_number, email, course, college_id, 
 
   Object.assign(fields, academic);
   
-  const profileKeys = ['extension_name', 'birth_date', 'place_of_birth', 'sex', 'civil_status', 'maiden_name', 'home_address', 'last_attendance_year', 'is_transfer_student', 'previous_school', 'elem_school', 'elem_grad_year', 'jhs_school', 'jhs_grad_year', 'shs_school', 'shs_grad_year'];
+  const profileKeys = ['extension_name', 'birth_date', 'place_of_birth', 'sex', 'civil_status', 'maiden_name', 'home_address', 'last_attendance_year', 'is_transfer_student', 'previous_school', 'elem_school', 'elem_grad_year', 'jhs_school', 'jhs_grad_year', 'shs_school', 'shs_grad_year', 'year_level', 'section'];
   const hasNameFields = ['first_name', 'middle_name', 'last_name'].some(key => Object.hasOwn(profileFields, key));
   if (hasNameFields && currentUser.role !== 'student') throw forbidden('Only students can confirm student receipt name fields.');
   const hasProfileFields = profileKeys.some(key => profileFields[key] !== undefined);
@@ -416,6 +422,7 @@ async function updateProfile(userId, { phone_number, email, course, college_id, 
   const writeProfile = async connection => {
     const [fresh] = await userModel.getProfileById(userId, connection, true);
     if (!fresh) throw notFound('User not found.');
+    if (['year_level', 'section'].some(key => Object.hasOwn(profileFields, key)) && (fresh.role !== 'student' || fresh.user_type === 'alumni')) throw forbidden('Year Level and Section belong to current-student profiles.');
     if (Object.keys(academic).length) Object.assign(fields, await programService.profileFields(fresh, academicDraft, connection, true));
     if (hasNameFields) {
       if (fresh.role !== 'student') throw forbidden('Only students can confirm student receipt name fields.');

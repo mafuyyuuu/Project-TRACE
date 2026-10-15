@@ -69,3 +69,16 @@ it('includes both year meanings in staff student lookup without exposing credent
   expect(sql).toContain('p.graduation_year, p.last_attendance_year');
   expect(sql).not.toContain('password_hash'); expect(params).toEqual(['SYNTHETIC']);
 });
+it('parameterizes saved year level and section and returns both through authorized profile reads', async () => {
+  const executor = { query: vi.fn().mockResolvedValue([[]]) };
+  await model.upsertProfile(3, { year_level: ' 2nd Year ', section: ' IT-2A ' }, executor);
+  const [sql, params] = executor.query.mock.calls[0];
+  expect(sql).toContain('year_level = VALUES(year_level)');
+  expect(sql).toContain('section = VALUES(section)');
+  expect(params.slice(-2)).toEqual(['2nd Year', 'IT-2A']);
+  expect(sql.match(/\?/g)).toHaveLength(params.length);
+  for (const read of [() => model.getProfileById(3, executor), () => model.findStudentBasicInfo('STU-001', executor)]) {
+    await read(); const [query] = executor.query.mock.calls.at(-1);
+    expect(query).toContain('p.year_level, p.section');
+  }
+});

@@ -798,3 +798,14 @@ Field limits are enforced in the UI and relevant account/profile/catalog/applica
 ## 2026-10-13 — unclaimed pickup SMS reminders
 
 The pickup reminder is an elapsed-calendar schedule from an actual readiness transition: three days, then weekly while unclaimed. It uses a preserving SQL attempt ledger, replica serialization, unique period keys and fresh eligibility checks. Synthetic MySQL tests establish scheduling/deduplication behavior, not live SMS acceptance or handset receipt. A configured key is reported as configured/unverified; provider acceptance and unknown/failure are distinct. Missed periods and uncertain sends are not replayed.
+
+### Current-student enrollment information
+
+Current students save Year Level and Section in Educational Background. Both are
+required by the saved-profile request gate and visible in authorized student lookup.
+College graduation/last-attendance fields are alumni-only in the profile and are
+not required for current-student requests. TOR still snapshots trusted Year Started;
+its years never determine printed pages or prices. Alumni education, document
+availability, graduate-application checks and existing historical values remain.
+The additive `migrate_current_student_details.js` migration must precede the matching
+API upgrade. This change is locally tested code, not a claim of live deployment.

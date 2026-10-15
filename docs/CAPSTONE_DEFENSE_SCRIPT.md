@@ -315,3 +315,14 @@ Demonstrate the phone field stopping excess digits, rejecting an incomplete/fore
 ## 2026-10-13 — unclaimed pickup SMS reminders
 
 Explain that normal Ready for Pickup handoff already requests SMS/email. Demonstrate the three-day and weekly schedule using synthetic dates, showing claimed exclusion, recipient batching and the persistent attempt ledger. Distinguish key configured, provider accepted, provider rejected and unknown delivery. No real message was sent in the coding environment; live provider delivery remains a deployment acceptance check.
+
+### Current-student enrollment information
+
+Current students save Year Level and Section in Educational Background. Both are
+required by the saved-profile request gate and visible in authorized student lookup.
+College graduation/last-attendance fields are alumni-only in the profile and are
+not required for current-student requests. TOR still snapshots trusted Year Started;
+its years never determine printed pages or prices. Alumni education, document
+availability, graduate-application checks and existing historical values remain.
+The additive `migrate_current_student_details.js` migration must precede the matching
+API upgrade. This change is locally tested code, not a claim of live deployment.

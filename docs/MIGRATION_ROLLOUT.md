@@ -22,6 +22,7 @@ The user's October 1 logs confirm completion of the earlier 18 incremental scrip
 | `migrate_internal_assistance.js` | Separate internal staff/Admin tickets, messages and retry/audit events | Additive/rerunnable; imports no student support or files. Requires existing users; matching API/frontend. |
 | `migrate_receipt_packs.js` | Shared 50-number packs, permanent serial reservations, issued snapshots, receipt audit and print calibration | Additive/rerunnable; reserves no serials until Finance confirms a pack. Run after Finance receipt columns and intake/assignment prerequisites. |
 | `migrate_request_intake_scope.js` | Saved routing college and explicit intake-blocking requirements | Additive and rerunnable; no historical backfill. Run after request attachments and Support requirements. |
+| `migrate_current_student_details.js` | Current Year Level and Section | Additive nullable columns; no backfill or historical-year rewrites. Requires student_profiles. |
 | `migrate_alumni_study_years.js` | Saved Year Started, first-confirmed timestamp, proof-review demo markers and audit tables | Additive and rerunnable; keeps existing graduation/attendance/request values. Run after student profiles and graduation-year prerequisites. |
 | `migrate_program_catalog.js` | Empty college-linked `programs`; widen `users.course` to accommodate college names | Creates only when absent, widens only a shorter course column; no program seeds/profile rewrites. |
 
@@ -670,3 +671,23 @@ docker compose up -d --no-deps --force-recreate backend ai-engine
 ```
 
 Deploy matching dev on Vercel. The new backend checks existing eligible unclaimed records at startup and every 15 minutes. First reminder is after three calendar days, then weekly, with at least seven days between attempts; completed/nonready documents are excluded. A missing ledger disables that worker with a safe log rather than creating tables automatically. An uncertain attempt remains recorded and is not resent in the same period. The normal Ready for Pickup SMS/email notice remains separate. Live delivery still needs an actual provider outcome and handset confirmation; local tests send no real SMS.
+
+## Current-student details
+
+Use the matching reviewed backend/frontend version. Back up the database, stop
+writers using the existing rollout procedure, and apply this additive migration
+after the student-profile prerequisites:
+
+```bash
+docker compose run --rm --no-deps -T backend node database/migrate_current_student_details.js
+docker compose run --rm --no-deps -T backend node database/check_schema.js
+```
+
+Start the matching application after the checks pass. Current students save Year
+Level and Section in Edit Profile → Educational Background, then reload to confirm
+persistence. They can file an available Graduation Clearance without graduation or
+last-attendance years; TOR still needs saved Year Started. Check an alumni account
+as well: its graduation requirement remains and its Year Level/Section fields are
+not shown. Verify authorized staff lookup displays current enrollment details.
+The migration reruns safely and changes no existing profile values or requests.
+Do not import the fresh-install schema over an existing database.

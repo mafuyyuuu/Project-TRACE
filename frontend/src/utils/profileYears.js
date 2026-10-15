@@ -40,6 +40,7 @@ function studyYearErrors(draft, { required = false, now = new Date() } = {}) {
 function profileYearErrors(draft, account, { onlyProvided = false, now = new Date() } = {}) {
   const errors = {};
   for (const [field, definition] of Object.entries(PROFILE_YEAR_FIELDS)) {
+    if (account?.role === 'student' && account.user_type !== 'alumni' && ['graduation_year', 'last_attendance_year'].includes(field)) continue;
     if (onlyProvided && !Object.hasOwn(draft, field)) continue;
     const required = ['year_started', 'graduation_year'].includes(field) && account?.role === 'student' && account.user_type === 'alumni';
     const error = yearError(draft[field], { ...definition, required }, now);
@@ -52,12 +53,13 @@ export { PROFILE_YEAR_FIELDS, manilaYear, yearError, studyYearErrors, profileYea
 
 export function profileEditYearErrors(draft, account) {
   const errors = profileYearErrors(draft, account);
-  const fields = ['year_started', 'graduation_year'];
+  const currentStudent = account?.role === 'student' && account.user_type !== 'alumni';
+  const fields = currentStudent ? ['year_started'] : ['year_started', 'graduation_year'];
   const unchanged = fields.every(key => String(draft[key] ?? '') === String(account?.[key] ?? ''));
   if (unchanged) {
     for (const key of fields) if (account?.[key] != null && account[key] !== '') delete errors[key];
   } else {
-    Object.assign(errors, studyYearErrors(draft, { required: account?.role === 'student' && account.user_type === 'alumni' }));
+    Object.assign(errors, studyYearErrors(currentStudent ? { ...draft, graduation_year: '' } : draft, { required: account?.role === 'student' && account.user_type === 'alumni' }));
     for (const key of fields) {
       if (account?.[key] != null && account[key] !== '' && String(draft[key] ?? '') !== String(account[key])) {
         errors[key] = 'Saved study years can only be corrected by an authorized administrator.';

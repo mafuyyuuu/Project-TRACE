@@ -509,3 +509,14 @@ Account/profile/staff services enforce mirrored text limits and Philippine mobil
 ## 2026-10-13 — unclaimed pickup SMS reminders
 
 pickupReminder.service starts at backend startup and checks every 15 minutes. pickupReminder.model selects actual latest readiness transition logs, excludes missing audit history, nonready documents, inactive/unverified users, invalid phones and attempted current periods. A connection-scoped MySQL advisory lock serializes replicas; a unique document/readiness-step/period ledger is committed before dispatch. Recipient batching, a fresh eligibility/phone recheck and a seven-day minimum between attempts prevent repeat sends. Missed periods are skipped. Crashed dispatches become unknown, not automatically resent. Provider HTTP 4xx records failed; network/5xx uncertainty records unknown. SMS client retries are disabled because a timed-out request may already have been accepted. Provider outcomes are logged without numbers, message bodies or credentials. No delivery receipt processing is claimed.
+
+### Current-student education and persistence
+
+Current students save Year Level and Section in Educational Background. Both are
+required by the saved-profile request gate and visible in authorized student lookup.
+College graduation/last-attendance fields are alumni-only in the profile and are
+not required for current-student requests. TOR still snapshots trusted Year Started;
+its years never determine printed pages or prices. Alumni education, document
+availability, graduate-application checks and existing historical values remain.
+The additive `migrate_current_student_details.js` migration must precede the matching
+API upgrade. This change is locally tested code, not a claim of live deployment.

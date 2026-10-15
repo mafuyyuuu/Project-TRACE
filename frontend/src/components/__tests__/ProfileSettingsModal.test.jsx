@@ -43,7 +43,7 @@ const baseProps = {
 const renderModal = (overrides = {}) => render(<ProfileSettingsModal {...baseProps} {...overrides} />);
 
 const completeProfile = {
-  ...baseProps.profileData, birth_date: '2000-01-01', place_of_birth: 'City', sex: 'Male',
+  ...baseProps.profileData, year_level: '2nd Year', section: 'IT-2A', birth_date: '2000-01-01', place_of_birth: 'City', sex: 'Male',
   civil_status: 'Single', home_address: 'Address', maiden_name: '', extension_name: '',
   elem_school: 'Elementary', elem_grad_year: '2012', jhs_school: 'Junior High', jhs_grad_year: '2016',
   shs_school: 'Senior High', shs_grad_year: '2018', is_transfer_student: false, previous_school: '', last_attendance_year: '',
@@ -384,15 +384,17 @@ describe('ProfileSettingsModal', () => {
   });
 });
 
-it('keeps attendance separate, college graduation optional for current students and school years required', () => {
-  render(<DraftProfile user={{ ...STUDENT, user_type: 'student' }} draft={{ ...completeProfile, last_attendance_year: '1980', graduation_year: '' }} initialTab="educational" />);
-  expect(screen.getByLabelText('Last Attendance Year')).toHaveValue('1980');
-  expect(screen.getByLabelText('PLP/College Year Graduated')).not.toBeRequired();
-  expect(screen.getByLabelText('PLP/College Year Graduated')).toHaveValue('');
-  for (const label of ['Elementary', 'Junior High', 'Senior High']) {
-    const input = screen.getByLabelText(`${label} Year Graduated *`);
-    expect(input).toBeRequired(); expect(input).toHaveAttribute('inputmode', 'numeric');
-  }
+it('shows Year Level and Section instead of college graduation or last attendance for current students', () => {
+  render(<DraftProfile user={{ ...STUDENT, user_type: 'student' }} draft={{ ...completeProfile, last_attendance_year: '1980', graduation_year: '9999' }} initialTab="educational" />);
+  expect(screen.queryByLabelText('Last Attendance Year')).not.toBeInTheDocument();
+  expect(screen.queryByLabelText('PLP/College Year Graduated')).not.toBeInTheDocument();
+  expect(screen.getByLabelText('Year Level *')).toBeRequired();
+  expect(screen.getByLabelText('Section *')).toBeRequired();
+  fireEvent.change(screen.getByLabelText('Year Level *'), { target: { value: '3rd Year' } });
+  fireEvent.change(screen.getByLabelText('Section *'), { target: { value: 'IT-3B' } });
+  fireEvent.click(screen.getByRole('button', { name: 'Save Profile' }));
+  expect(screen.getByRole('dialog', { name: 'Confirm Profile Save' })).toBeInTheDocument();
+  for (const label of ['Elementary', 'Junior High', 'Senior High']) expect(screen.getByLabelText(`${label} Year Graduated *`)).toBeRequired();
 });
 it.each(['-2020', '2020.5', '2e3', '2001', '9999', '202', '20265'])('rejects invalid alumni graduation before staging Save and keeps the draft: %s', value => {
   render(<DraftProfile user={{ ...STUDENT, user_type: 'alumni' }} draft={{ ...completeProfile, graduation_year: value }} initialTab="educational" />);

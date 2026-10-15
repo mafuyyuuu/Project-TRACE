@@ -350,3 +350,17 @@ it('allows unrelated profile saves to retain locked historical years', async () 
   expect(updateProfile.mock.calls[0][0]).not.toHaveProperty('year_started');
   expect(updateProfile.mock.calls[0][0]).not.toHaveProperty('graduation_year');
 });
+it('loads, saves and reloads current Year Level/Section without submitting hidden graduation/attendance drafts', async () => {
+  const account = { ...USER, role: 'student', user_type: 'student', year_level: '2nd Year', section: 'IT-2A', graduation_year: 2099, last_attendance_year: 2099 };
+  updateProfile.mockResolvedValue({ message: 'Saved.' });
+  getMe.mockResolvedValue({ user: { ...account, year_level: '3rd Year', section: 'IT-3B' } });
+  const { result } = renderHook(() => useProfileSettings(account));
+  expect(result.current.profileData).toMatchObject({ year_level: '2nd Year', section: 'IT-2A' });
+  act(() => { result.current.setField('year_level', '3rd Year'); result.current.setField('section', 'IT-3B'); });
+  await act(async () => expect(await result.current.saveProfile()).toBe(true));
+  const payload = updateProfile.mock.calls[0][0];
+  expect(payload).toMatchObject({ year_level: '3rd Year', section: 'IT-3B' });
+  expect(payload).not.toHaveProperty('graduation_year'); expect(payload).not.toHaveProperty('last_attendance_year');
+  expect(result.current.profileData).toMatchObject({ year_level: '3rd Year', section: 'IT-3B' });
+  expect(JSON.parse(localStorage.getItem('trace_user'))).toMatchObject({ year_level: '3rd Year', section: 'IT-3B' });
+});

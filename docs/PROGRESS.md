@@ -1,3 +1,33 @@
+## Current-student education fields — 2026-10-15
+
+The user reported Graduation Clearance asking a current student to complete study
+years and requested Year Level/Section instead of college graduation and last
+attendance. The request rule incorrectly fell back to last attendance for current
+accounts. Current students now edit saved Year Level and Section; both participate
+in frontend/backend profile completion and authorized staff lookup. College
+Graduation Year and Last Attendance Year are alumni-only in these views and request
+requirements. Existing historical values remain stored; older clients cannot erase
+them through a current-student profile save. School history and TOR/dismissal-set
+Year Started requirements remain. Alumni validation and catalog permissions remain.
+
+Added nullable `student_profiles.year_level` and `section` (20 characters), the
+explicit rerunnable `migrate_current_student_details.js`, schema preflight, model
+writes/reads, public session fields and refresh/cache persistence. Do not infer or
+backfill enrollment data. Existing current students complete the new fields before
+filing. The migration is prepared and tested, not run against a live database.
+
+Validation: **1,091 frontend tests / 113 files** and **1,695 backend tests /
+224 files** pass. Regressions cover current
+Graduation Clearance without graduation/attendance, forged request values, missing
+saved enrollment fields, profile partial-save/reload, role/type guards, parameterized
+SQL, migration preservation/reruns and unchanged alumni requirements. Current and
+alumni profile/request/review states pass 64 responsive combinations each, plus a
+16-combination current-profile layout check and 16-combination alumni capture
+check. ESLint, production/PWA build and whitespace checks pass. Synthetic review is in
+`docs/current-student-education-review.png`. No live database/backend or physical
+phones tested. Manual, FAQ, workflows, backend/deployment and defense notes updated.
+Work remains on draft PR #37; no deployment or merge performed.
+
 ## Student omitted profile and tracking frames — 2026-10-15
 
 Re-audit found seven omitted frames in Student: Personal Info, Educational

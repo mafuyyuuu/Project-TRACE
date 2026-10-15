@@ -5,6 +5,7 @@ import RegistrationProof from '@/components/RegistrationProof';
 import AdminSupportSettingsForm from '@/components/AdminSupportSettingsForm';
 import AdminRegistrationDetails from '@/features/admin/components/AdminRegistrationDetails';
 import AccountVerificationModal from '@/features/admin/components/AccountVerificationModal';
+import UserDetailModal from '@/features/admin/components/UserDetailModal';
 import ProfileSettingsModal from '@/components/ProfileSettingsModal';
 import useAuthedFile from '@/hooks/useAuthedFile';
 import { getAuthenticator } from '@/services/authenticatorService';
@@ -119,4 +120,17 @@ describe('Main Tabs dialog interactions', () => {
     expect(screen.getByRole('dialog', { name: 'Confirm Profile Save' })).toBeInTheDocument();
     expect(save).not.toHaveBeenCalled();
   });
+});
+
+it.each([false, true])('shows saved Year Level/Section in the authorized student information layout (Admin=%s)', adminLayout => {
+  const { rerender } = render(<UserDetailModal open adminLayout={adminLayout} user={{ ...student, user_type: 'student', year_level: '3rd Year', section: 'IT-3B' }} onClose={vi.fn()} />);
+  expect(screen.getByText('Year Level', { exact: true })).toBeInTheDocument();
+  expect(screen.getByText('3rd Year')).toBeInTheDocument();
+  expect(screen.getByText('Section', { exact: true })).toBeInTheDocument();
+  expect(screen.getByText('IT-3B')).toBeInTheDocument();
+  expect(screen.queryByText('PLP/College Year Graduated')).not.toBeInTheDocument();
+  rerender(<UserDetailModal open adminLayout={adminLayout} user={{ ...student, user_type: 'alumni', graduation_year: 2024 }} onClose={vi.fn()} />);
+  expect(screen.queryByText('Year Level', { exact: true })).not.toBeInTheDocument();
+  expect(screen.queryByText('Section', { exact: true })).not.toBeInTheDocument();
+  expect(screen.getByText('PLP/College Year Graduated')).toBeInTheDocument();
 });

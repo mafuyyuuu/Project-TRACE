@@ -444,3 +444,14 @@ Signup and profile edits validate complete Philippine mobile numbers and text bo
 ## 2026-10-13 — unclaimed pickup SMS reminders
 
 Secretary physical handoff to READY_FOR_RELEASE requests the immediate SMS/email notice. The new worker uses that readiness episode for a first unclaimed SMS reminder after 72 hours, followed by weekly reminders, never sooner than seven days after an attempt. It excludes claimed/returned documents and invalid/unverified/inactive recipients, and consolidates due documents per recipient. A persistent attempt ledger prevents replay after restarts; uncertain outcomes are kept for review instead of automatic resend. In-app/pipeline state changes still succeed independently of the SMS provider.
+
+### Current-student education
+
+Current students save Year Level and Section in Educational Background. Both are
+required by the saved-profile request gate and visible in authorized student lookup.
+College graduation/last-attendance fields are alumni-only in the profile and are
+not required for current-student requests. TOR still snapshots trusted Year Started;
+its years never determine printed pages or prices. Alumni education, document
+availability, graduate-application checks and existing historical values remain.
+The additive `migrate_current_student_details.js` migration must precede the matching
+API upgrade. This change is locally tested code, not a claim of live deployment.

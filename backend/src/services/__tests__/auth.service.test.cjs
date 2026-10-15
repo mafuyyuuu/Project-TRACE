@@ -833,3 +833,28 @@ describe('alumni proof-unavailable production registration', () => {
     expect(result.token).toBeDefined();
   });
 });
+
+describe('current-student year level and section', () => {
+  const account = { id: 3, role: 'student', user_type: 'student', year_level: '2nd Year', section: 'IT-2A', graduation_year: 2024, last_attendance_year: 2023 };
+  beforeEach(() => userModel.getProfileById.mockResolvedValue([account]));
+  it('saves current enrollment details and preserves omitted historical values', async () => {
+    await service.updateProfile(3, { year_level: ' 3rd Year ', section: ' IT-3B ', graduation_year: '', last_attendance_year: '9999' });
+    expect(userModel.upsertProfile).toHaveBeenCalledWith(3, expect.objectContaining({ year_level: ' 3rd Year ', section: ' IT-3B ', last_attendance_year: 2023 }), credentialConnection);
+    expect(credentialConnection.commit).toHaveBeenCalledOnce();
+  });
+  it.each(['year_level', 'section'])('preserves the other enrollment field during a partial %s save', async field => {
+    await service.updateProfile(3, { [field]: 'New value' });
+    expect(userModel.upsertProfile).toHaveBeenCalledWith(3, expect.objectContaining({ ...Object.fromEntries(['year_level', 'section'].map(key => [key, key === field ? 'New value' : account[key]])) }), credentialConnection);
+  });
+  it.each(['year_level', 'section'])('rejects invalid %s before profile writes', async field => {
+    for (const value of ['x'.repeat(21), {}, 3]) {
+      await expect(service.updateProfile(3, { [field]: value })).rejects.toMatchObject({ status: 400 });
+    }
+    expect(userModel.upsertProfile).not.toHaveBeenCalled();
+  });
+  it.each(['alumni', 'staff'])('rejects enrollment fields for %s accounts', async type => {
+    userModel.getProfileById.mockResolvedValue([{ ...account, role: type === 'staff' ? 'clerk' : 'student', user_type: type }]);
+    await expect(service.updateProfile(3, { year_level: '2nd Year', section: 'IT-2A' })).rejects.toMatchObject({ status: 403 });
+    expect(userModel.upsertProfile).not.toHaveBeenCalled();
+  });
+});

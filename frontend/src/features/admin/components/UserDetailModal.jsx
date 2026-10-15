@@ -116,8 +116,7 @@ export default function UserDetailModal({ open, onClose, user, onEdit, onToggleA
           <Field label="Enrollment Status" value={user.enrollment_status} />
           <Field label="Study Load" value={user.study_load} />
           <Field label="Year Started" value={user.year_started} />
-          <Field label="PLP/College Year Graduated" value={user.graduation_year} />
-          <Field label="Last Attendance Year" value={user.last_attendance_year} />
+          {user.user_type === 'alumni' ? <><Field label="PLP/College Year Graduated" value={user.graduation_year} /><Field label="Last Attendance Year" value={user.last_attendance_year} /></> : <><Field label="Year Level" value={user.year_level} /><Field label="Section" value={user.section} /></>}
           <Field label="Transfer Student" value={user.is_transfer_student ? 'Yes' : 'No'} />
           <Field label="Previous School" value={user.previous_school} />
           <Field label="Elementary School" value={user.elem_school} />

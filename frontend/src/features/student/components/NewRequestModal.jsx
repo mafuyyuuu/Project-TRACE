@@ -36,7 +36,7 @@ export default function NewRequestModal({
   const availableTypes = documentTypes.filter(t => !t.is_walk_in && ((t.available_to || 'both') === 'both' || t.available_to === (user.user_type || 'student')));
 
   const missingYears = selectedNames.some(name => (needsStudyYears(name) && yearError(String(user.year_started ?? ''), { label: 'Year Started', minimum: 2002, required: true }))
-    || (needsGraduationYear(name) && yearError(String((user.user_type === 'alumni' ? user.graduation_year : user.graduation_year || user.last_attendance_year) ?? ''), { label: 'Year Graduated', minimum: 2002, required: true })));
+    || (needsGraduationYear(name, user) && yearError(String((user.graduation_year) ?? ''), { label: 'Year Graduated', minimum: 2002, required: true })));
   const completeStudyYears = () => {
     setActiveModal(null);
     window.dispatchEvent(new CustomEvent('open-profile-settings', { detail: { section: 'educational' } }));
@@ -160,9 +160,9 @@ export default function NewRequestModal({
                             </div>
                           )}
 
-                          {needsGraduationYear(type.name) && <label className="trace-label">
-                            {user.user_type === 'alumni' ? 'Year Graduated' : 'Year Graduated / Last Attended'}
-                            <input type="text" readOnly value={(user.user_type === 'alumni' ? user.graduation_year : user.graduation_year || user.last_attendance_year) ?? ''} className="trace-control mt-1.5" />
+                          {needsGraduationYear(type.name, user) && <label className="trace-label">
+                            {'Year Graduated'}
+                            <input type="text" readOnly value={(user.graduation_year) ?? ''} className="trace-control mt-1.5" />
                           </label>}
 
 
@@ -206,7 +206,7 @@ export default function NewRequestModal({
           </div>
 
           {missingYears && <div className="trace-error space-y-2" role="alert">
-            <p>Complete the required study years in Edit Profile before submitting. Saved years require Admin correction.</p>
+            <p>Complete the required saved year in Edit Profile before submitting. Saved years require Admin correction.</p>
             <Button type="button" onClick={completeStudyYears} className="trace-button trace-button-secondary">Complete Study Years</Button>
           </div>}
           <p className="trace-student-information"><StudentIcon name="info-24570" /><span>

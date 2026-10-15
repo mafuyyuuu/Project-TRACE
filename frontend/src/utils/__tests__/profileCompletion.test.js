@@ -1,7 +1,7 @@
 import { it, expect } from 'vitest';
 import { getProfileCompletion, isTransferStudent } from '../profileCompletion';
 
-const COMPLETE = { role: 'student', user_type: 'student', phone_number: '09123456789', email: 'student@example.test',
+const COMPLETE = { year_level: '2nd Year', section: 'IT-2A', role: 'student', user_type: 'student', phone_number: '09123456789', email: 'student@example.test',
   birth_date: '2000-01-01', place_of_birth: 'City', sex: 'Male', civil_status: 'Single', home_address: 'Address',
   elem_school: 'Elementary', elem_grad_year: 2012, jhs_school: 'Junior High', jhs_grad_year: 2016,
   shs_school: 'Senior High', shs_grad_year: 2018 };
@@ -41,4 +41,10 @@ it('never infers graduation from historical attendance and rejects malformed sav
   expect(getProfileCompletion({ ...COMPLETE, elem_grad_year: 1980 }).complete).toBe(true);
   expect(getProfileCompletion({ ...COMPLETE, user_type: 'alumni', graduation_year: 2001 }).complete).toBe(false);
   expect(getProfileCompletion({ ...COMPLETE, shs_grad_year: 9999 }).complete).toBe(false);
+});
+
+it('requires current Year Level and Section but ignores old college graduation/attendance values', () => {
+  expect(getProfileCompletion({ ...COMPLETE, graduation_year: 9999, last_attendance_year: 9999 }).complete).toBe(true);
+  expect(getProfileCompletion({ ...COMPLETE, year_level: '', section: '' }).missing.map(item => item.field)).toEqual(['year_level', 'section']);
+  expect(getProfileCompletion({ ...COMPLETE, user_type: 'alumni', year_started: 2020, graduation_year: 2024, year_level: '', section: '' }).complete).toBe(true);
 });
