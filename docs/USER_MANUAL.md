@@ -48,6 +48,8 @@ The public Login/welcome, registration, password recovery, email verification an
 
 New alumni use their **Alumni ID** to sign in. Existing alumni keep their current login identifier. **Back to Login** returns to the sign-in page.
 
+**Registration errors:** invalid fields have a red border and a short message beside the field. Submitting an incomplete form highlights all detected problems together. Editing a field clears its previous feedback; submit again to recheck. Uploaded proof and entered values remain in the form after a rejected submission. General connection/server errors appear beside **Create Account**, with no error popup. **Back to Login** stays in the header as you scroll, including on mobile. The normal registration review and Privacy Notice dialogs remain available.
+
 On the first alumni login, complete and submit the **Graduate Application** before using other dashboard features. Completing this form and Admin's review are separate steps. After access is unlocked, finish the required profile information too.
 
 ## 3. Use the first-login tutorial

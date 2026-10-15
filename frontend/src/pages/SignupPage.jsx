@@ -1,11 +1,11 @@
 import PhoneInput from '@/components/PhoneInput';
-import { normalizePhoneNumber, phoneNumberError } from '@/utils/phoneNumber';
-import { fullNameFromParts, namePartsError } from '@/utils/receiptStudentName';
+import { normalizePhoneNumber } from '@/utils/phoneNumber';
+import { fullNameFromParts } from '@/utils/receiptStudentName';
 import Button from '@/components/Button';
 import { INPUT_LIMITS } from '@/utils/inputLimits';
 import ReviewSummary from '@/components/ReviewSummary';
 import ProfileYearField from '@/components/ProfileYearField';
-import { studyYearErrors } from '@/utils/profileYears';
+import { signupFieldErrors, signupServerField } from '@/utils/signupValidation';
 import ConfirmDialog from '@/components/ConfirmDialog'
 import { useState, useEffect, useRef } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
@@ -17,7 +17,6 @@ import ModalShell from '@/components/ModalShell'
 import PlpBrand from '@/components/PlpBrand'
 import FileUploadField from '@/components/FileUploadField'
 import useNotificationDismissal from '@/hooks/useNotificationDismissal'
-import { PASSWORD_REQUIREMENTS, validNewPassword } from '@/utils/passwordPolicy'
 
 export default function SignupPage() {
   const { register, loading } = useAuth()
@@ -25,6 +24,7 @@ export default function SignupPage() {
   const submitGuard = useRef(false)
   const [file, setFile] = useState(null)
   const [localError, setLocalError] = useState('')
+  const [fieldErrors, setFieldErrors] = useState({})
   const [success, setSuccess] = useState('')
   const [registrationToConfirm, setRegistrationToConfirm] = useState(null)
   const [showPassword, setShowPassword] = useState(false)
@@ -46,7 +46,12 @@ export default function SignupPage() {
           setCatalog({ loading: false, error: '' });
         }
       })
-      .catch(() => { if (!cancelled) setCatalog({ loading: false, error: 'Could not load colleges and programs. Retry or contact the Registrar.' }) })
+      .catch(() => {
+        if (!cancelled) {
+          const message = 'Could not load colleges and programs. Retry Catalog or contact the Registrar.';
+          setCatalog({ loading: false, error: message });
+        }
+      })
     return () => { cancelled = true }
   }, [catalogAttempt])
   const [showConfirm, setShowConfirm] = useState(false)
@@ -55,35 +60,32 @@ export default function SignupPage() {
   const fullName = fullNameFromParts(formData);
   const selectedCollege = colleges.find(college => college.name === formData.college);
   const availablePrograms = programs.filter(program => String(program.college_id) === String(selectedCollege?.id));
+  const setFields = patch => {
+    setFormData(current => ({ ...current, ...patch }));
+    setFieldErrors(current => {
+      const next = { ...current };
+      for (const field of Object.keys(patch)) delete next[field];
+      if (Object.hasOwn(patch, 'password')) delete next.confirmPassword;
+      if (Object.hasOwn(patch, 'year_started')) delete next.graduation_year;
+      if (['first_name', 'middle_name', 'last_name'].some(field => Object.hasOwn(patch, field))) {
+        for (const field of ['first_name', 'middle_name', 'last_name']) delete next[field];
+      }
+      if (Object.hasOwn(patch, 'userType') || Object.hasOwn(patch, 'proofUnavailable')) {
+        for (const field of ['year_started', 'graduation_year', 'proofReason', 'proof']) delete next[field];
+      }
+      return next;
+   });
+    setLocalError('');
+  };
+  const fieldProps = field => ({ id: `signup-${field}`, 'aria-invalid': Boolean(fieldErrors[field]), 'aria-describedby': fieldErrors[field] ? `signup-${field}-error` : undefined });
+  const fieldFeedback = field => fieldErrors[field] && <p id={`signup-${field}-error`} className="mt-1 text-xs leading-relaxed text-red-700 dark:text-red-300">{fieldErrors[field]}</p>;
   const handleSubmit = async (e) => {
     e.preventDefault()
     setLocalError('')
     setSuccess('')
-    if (catalog.loading || catalog.error) { setLocalError('Load the college and program catalog before registering.'); return; }
-    if (!formData.employeeId.trim() || !formData.first_name.trim() || !formData.last_name.trim() || !formData.email.trim() || !formData.password.trim() || !formData.phoneNumber.trim() || !formData.college) {
-      setLocalError('Please fill out all required fields.')
-      return
-    }
-    const nameError = namePartsError(formData, { full_name:fullName });
-    if (nameError || fullName.length > INPUT_LIMITS.name) { setLocalError(nameError || 'Full Name must be at most 255 characters.'); return; }
-    if (formData.password !== formData.confirmPassword) {
-      setLocalError('Passwords do not match.')
-      return
-    }
-    const phoneError = phoneNumberError(formData.phoneNumber);
-    if (phoneError) { setLocalError(phoneError); return; }
-    if (!validNewPassword(formData.password)) { setLocalError(PASSWORD_REQUIREMENTS); return }
-    if (!availablePrograms.some(program => program.name === formData.program)) { setLocalError('Select a program belonging to your college.'); return; }
-    if (!formData.privacyAcknowledged) { setLocalError('Read and acknowledge the Privacy Notice before registering.'); return; }
-    if (formData.userType === 'alumni') {
-      const errors = studyYearErrors(formData, { required: true });
-      if (Object.keys(errors).length) { setLocalError(Object.values(errors)[0]); return; }
-    }
-    if (formData.proofUnavailable && !formData.proofReason.trim()) { setLocalError('Explain why your records or proof are unavailable.'); return; }
-    if (!file && !formData.proofUnavailable) {
-      setLocalError('Please upload your proof of ID.')
-      return
-    }
+    const errors = signupFieldErrors(formData, { colleges, programs, file, catalog });
+    setFieldErrors(errors);
+    if (Object.keys(errors).length) { setLocalError('Please check the highlighted fields above.'); return; }
     
       const form = new FormData();
       form.append('employee_id', formData.employeeId.trim());
@@ -116,21 +118,25 @@ export default function SignupPage() {
       setRegistrationToConfirm(null)
       setSuccess([result.message || 'Registration successful. Please wait for admin verification.', result.verification_reason].filter(Boolean).join(' '))
     } catch (err) {
-      setLocalError(err.response?.data?.error || err.response?.data?.message ||
+      const message = err.response?.data?.error || err.response?.data?.message ||
         (err.code === 'ECONNABORTED' || err.code === 'ETIMEDOUT'
           ? 'Registration took too long to respond. Your account may already be saved. Check Login or contact the Registrar before trying again.'
-          : 'Registration failed. Check your connection and try again, or contact the Registrar.'))
+          : 'Registration failed. Check your connection and try again, or contact the Registrar.');
+      const field = signupServerField(message);
+      if (field) { setFieldErrors({ [field]: message }); setLocalError('Please check the highlighted field above.'); }
+      else setLocalError(message);
+      setRegistrationToConfirm(null);
     } finally { submitGuard.current = false }
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-800 flex flex-col items-center justify-center gap-6 px-4 py-8 sm:py-12 font-body relative overflow-hidden">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-800 font-body relative">
       <ModalShell open={showPrivacy} title="Registration Privacy Notice" onClose={() => setShowPrivacy(false)}
         maxWidth="max-w-2xl" footer={<Button type="button" className="trace-button trace-button-primary" onClick={() => setShowPrivacy(false)}>Close Notice</Button>}>
         <RegistrationPrivacyNotice />
       </ModalShell>
       <ConfirmDialog open={!!registrationToConfirm} title="Confirm Registration" presentation="review"
-        message={['Submit your registration for identity review?', localError ? <span role="alert">{localError}</span> : null]}
+        message="Submit your registration for identity review?"
         confirmLabel="Submit Registration" loading={loading} onConfirm={confirmRegistration}
         onCancel={() => setRegistrationToConfirm(null)}>
         {registrationToConfirm && <ReviewSummary entries={[
@@ -144,14 +150,21 @@ export default function SignupPage() {
         ]} />}
         {registrationToConfirm?.get('id_proof') instanceof File && <div className="mt-4"><FileUploadField label="Attached Proof" file={registrationToConfirm.get('id_proof')} allowReplace={false} compactPreview /></div>}
       </ConfirmDialog>
-      <div className="absolute top-[-10%] left-[-5%] w-[40vw] h-[40vw] rounded-full bg-pine-500/5 blur-[100px] pointer-events-none"></div>
-      <div className="absolute bottom-[-10%] right-[-5%] w-[30vw] h-[30vw] rounded-full bg-blue-500/5 dark:bg-blue-500/5 blur-[100px] pointer-events-none"></div>
+      <div aria-hidden="true" className="pointer-events-none absolute inset-0 overflow-hidden">
+        <div className="absolute top-[-10%] left-[-5%] w-[40vw] h-[40vw] rounded-full bg-pine-500/5 blur-[100px]"></div>
+        <div className="absolute bottom-[-10%] right-[-5%] w-[30vw] h-[30vw] rounded-full bg-blue-500/5 dark:bg-blue-500/5 blur-[100px]"></div>
+      </div>
 
-      <Link to="/" className="trace-action relative z-20 inline-flex w-full max-w-md items-center gap-2 text-sm font-semibold text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100">
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" /></svg>
+      <header className="sticky top-0 z-30 w-full border-b border-gray-200 bg-gray-50 px-4 pb-3 pt-[max(0.75rem,env(safe-area-inset-top))] dark:border-gray-700 dark:bg-gray-800">
+        <div className="mx-auto w-full max-w-md">
+        <Link to="/" className="trace-action inline-flex items-center gap-2 text-sm font-semibold text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100">
+          <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" /></svg>
           Back to Login
-      </Link>
+        </Link>
+        </div>
+      </header>
 
+      <main className="relative z-10 flex w-full flex-col items-center px-4 py-8 sm:py-12">
       <div className="trace-section trace-section-body max-w-md w-full relative z-10">
         <div className="text-center mb-10">
           <div className="flex justify-center mb-4"><PlpBrand /></div>
@@ -164,17 +177,11 @@ export default function SignupPage() {
             <p className="text-sm leading-relaxed">{success}</p>
           </ModalShell>
         ) : (
-          <form onSubmit={handleSubmit} className="flex flex-col gap-5">
-            {localError && (
-              <div role="alert" className="trace-error flex items-start gap-3">
-                <div className="w-8 h-8 rounded-full bg-red-500/20 dark:bg-red-500/20 text-red-400 dark:text-red-300 flex items-center justify-center shrink-0"><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" /></svg></div>
-                <span className="font-semibold text-sm">{localError}</span>
-              </div>
-            )}
+          <form noValidate onSubmit={handleSubmit} className="flex flex-col gap-5">
 
             <div className="flex flex-col gap-1.5">
               <label htmlFor="signup-account-type" className="trace-label ml-1">Account Type *</label>
-              <select id="signup-account-type" disabled={loading} value={formData.userType} onChange={(e) => setFormData({...formData, userType: e.target.value, employeeId: '', proofUnavailable: false})} className="trace-control w-full appearance-none cursor-pointer">
+              <select id="signup-account-type" disabled={loading} value={formData.userType} onChange={(e) => setFields({ userType: e.target.value, employeeId: '', proofUnavailable: false })} className="trace-control w-full appearance-none cursor-pointer">
                 <option value="student">Current Student</option>
                 <option value="alumni">Alumni</option>
               </select>
@@ -182,7 +189,7 @@ export default function SignupPage() {
 
             <div className="flex flex-col gap-1.5">
               <label htmlFor="signup-college" className="trace-label ml-1">College *</label>
-              <select id="signup-college" required disabled={loading || catalog.loading || !!catalog.error} value={formData.college} onChange={(e) => setFormData({...formData, college: e.target.value, program: ''})} className="trace-control w-full appearance-none cursor-pointer">
+              <select {...fieldProps('college')} required disabled={loading || catalog.loading || !!catalog.error} value={formData.college} onChange={(e) => setFields({ college: e.target.value, program: '' })} className="trace-control w-full appearance-none cursor-pointer">
                   <option value="" disabled>
                     {catalog.loading ? 'Loading colleges...' : 'Select your college...'}
                   </option>
@@ -190,55 +197,60 @@ export default function SignupPage() {
                     <option key={c.id} value={c.name}>{c.name}</option>
                   ))}
               </select>
-              {catalog.error && <div role="alert" className="space-y-2 text-sm"><p>{catalog.error}</p><Button type="button" disabled={loading} className="trace-button trace-button-secondary" onClick={() => { setCatalog({ loading: true, error: '' }); setCatalogAttempt(attempt => attempt + 1); }}>Retry Catalog</Button></div>}
+              {fieldFeedback('college')}
+              {catalog.error && <div className="space-y-2 text-sm"><p>{catalog.error}</p><Button type="button" disabled={loading} className="trace-button trace-button-secondary" onClick={() => { setCatalog({ loading: true, error: '' }); setCatalogAttempt(attempt => attempt + 1); }}>Retry Catalog</Button></div>}
             </div>
 
             <div className="flex flex-col gap-1.5">
-              <label className="trace-label ml-1">{formData.userType === 'alumni' ? 'Alumni ID *' : 'Student ID *'}</label>
-              <input maxLength={INPUT_LIMITS.id} type="text" placeholder={formData.userType === 'alumni' ? 'Enter your Alumni ID' : 'e.g. 23-00123'} value={formData.employeeId} onChange={(e) => setFormData({...formData, employeeId: e.target.value})} className="trace-control w-full" />
+              <label htmlFor="signup-employeeId" className="trace-label ml-1">{formData.userType === 'alumni' ? 'Alumni ID *' : 'Student ID *'}</label>
+              <input {...fieldProps('employeeId')} maxLength={INPUT_LIMITS.id} type="text" placeholder={formData.userType === 'alumni' ? 'Enter your Alumni ID' : 'e.g. 23-00123'} value={formData.employeeId} onChange={(e) => setFields({ employeeId: e.target.value })} className="trace-control w-full" />
+              {fieldFeedback('employeeId')}
             </div>
 
             <div className="flex min-w-0 flex-col gap-1.5">
               <label htmlFor="signup-program" className="trace-label ml-1">Program/Course *</label>
-              <select id="signup-program" required aria-describedby="signup-program-help" value={formData.program}
+              <select {...fieldProps('program')} required aria-describedby={['signup-program-help', fieldErrors.program && 'signup-program-error'].filter(Boolean).join(' ')} value={formData.program}
                 disabled={loading || catalog.loading || !!catalog.error || !selectedCollege || !availablePrograms.length}
-                onChange={event => setFormData({ ...formData, program: event.target.value })} className="trace-control w-full min-w-0 cursor-pointer">
+                onChange={event => setFields({ program: event.target.value })} className="trace-control w-full min-w-0 cursor-pointer">
                 <option value="" disabled>{!selectedCollege ? 'Select your college first' : !availablePrograms.length ? 'No programs available' : 'Select your program...'}</option>
                 {availablePrograms.map(program => <option key={program.id} value={program.name}>{program.name}</option>)}
               </select>
+              {fieldFeedback('program')}
               <p id="signup-program-help" className="ml-1 text-xs text-gray-600 dark:text-gray-300 break-words">{formData.program || (selectedCollege && !catalog.loading && !catalog.error && !availablePrograms.length ? 'No active programs are listed for this college. Contact the Registrar before registering.' : 'Choose the program recorded in your school records. If it is missing, contact the Registrar.')}</p>
             </div>
 
             {formData.userType === 'alumni' && <section className="trace-form-grid rounded-lg bg-gray-50 p-4 dark:bg-gray-800" aria-label="Alumni study years">
-              <ProfileYearField field="year_started" label="Year Started" required value={formData.year_started} disabled={loading} onChange={value => setFormData({ ...formData, year_started: value })} />
-              <ProfileYearField field="graduation_year" label="Year Graduated" required value={formData.graduation_year} disabled={loading} onChange={value => setFormData({ ...formData, graduation_year: value })} />
+              <ProfileYearField field="year_started" label="Year Started" required validate={false} error={fieldErrors.year_started} value={formData.year_started} disabled={loading} onChange={value => setFields({ year_started: value })} />
+              <ProfileYearField field="graduation_year" label="Year Graduated" required validate={false} error={fieldErrors.graduation_year} value={formData.graduation_year} disabled={loading} onChange={value => setFields({ graduation_year: value })} />
               <p className="col-span-full text-xs text-gray-600 dark:text-gray-300">Enter these once. Graduation must be within 10 years of starting. Saved years are reused for requests; corrections need Admin review.</p>
             </section>}
 
             <section className="space-y-3" aria-label="Student name">
               <p className="text-xs">Enter compound given names and surnames together. Your Full Name is assembled automatically; Finance uses the saved parts on receipts.</p>
-              {[['first_name', 'First Name *'], ['middle_name', 'Middle Name (optional)'], ['last_name', 'Last Name *']].map(([field, label]) => <label key={field} className="trace-label block" htmlFor={`signup-${field}`}>{label}
-                <input id={`signup-${field}`} required={field !== 'middle_name'} maxLength={INPUT_LIMITS.name} disabled={loading}
-                  value={formData[field]} onChange={event => setFormData({ ...formData, [field]:event.target.value })} className="trace-control mt-2 w-full" />
-              </label>)}
+              {[['first_name', 'First Name *'], ['middle_name', 'Middle Name (optional)'], ['last_name', 'Last Name *']].map(([field, label]) => <div key={field}><label className="trace-label block" htmlFor={`signup-${field}`}>{label}
+                <input {...fieldProps(field)} required={field !== 'middle_name'} maxLength={INPUT_LIMITS.name} disabled={loading}
+                  value={formData[field]} onChange={event => setFields({ [field]:event.target.value })} className="trace-control mt-2 w-full" />
+              </label>{fieldFeedback(field)}</div>)}
               <label className="trace-label block">Full Name<input type="text" readOnly value={fullName} placeholder="Juan Dela Cruz" className="trace-control mt-2 w-full" /></label>
             </section>
 
             <div className="flex flex-col gap-1.5">
-              <label className="trace-label ml-1">Email Address *</label>
-              <input type="email" maxLength={INPUT_LIMITS.email} placeholder="juan@plp.edu.ph" value={formData.email} onChange={(e) => setFormData({...formData, email: e.target.value})} className="trace-control w-full" />
+              <label htmlFor="signup-email" className="trace-label ml-1">Email Address *</label>
+              <input {...fieldProps('email')} type="email" maxLength={INPUT_LIMITS.email} placeholder="juan@plp.edu.ph" value={formData.email} onChange={(e) => setFields({ email: e.target.value })} className="trace-control w-full" />
+              {fieldFeedback('email')}
               <p className="text-xs text-gray-500 dark:text-gray-400">After your first login, verify this address from Edit Profile before requesting documents.</p>
             </div>
 
             <div className="flex flex-col gap-1.5">
-              <label className="trace-label ml-1">Phone Number *</label>
-              <PhoneInput value={formData.phoneNumber} onChange={(e) => setFormData({...formData, phoneNumber: e.target.value})} className="trace-control w-full" />
+              <label htmlFor="signup-phoneNumber" className="trace-label ml-1">Phone Number *</label>
+              <PhoneInput {...fieldProps('phoneNumber')} value={formData.phoneNumber} onChange={(e) => setFields({ phoneNumber: e.target.value })} className="trace-control w-full" />
+              {fieldFeedback('phoneNumber')}
             </div>
 
             <div className="flex flex-col gap-1.5">
-              <label className="trace-label ml-1">Password *</label>
+              <label htmlFor="signup-password" className="trace-label ml-1">Password *</label>
               <div className="relative">
-                <input maxLength={INPUT_LIMITS.password} type={showPassword ? 'text' : 'password'} placeholder="Create a password" value={formData.password} onChange={(e) => setFormData({...formData, password: e.target.value})} className="trace-control w-full pr-12" />
+                <input {...fieldProps('password')} maxLength={INPUT_LIMITS.password} type={showPassword ? 'text' : 'password'} placeholder="Create a password" value={formData.password} onChange={(e) => setFields({ password: e.target.value })} className="trace-control w-full pr-12" />
                 <Button type="button" aria-label={showPassword ? 'Hide password' : 'Show password'} onClick={() => setShowPassword(!showPassword)} className="trace-action absolute inset-y-0 right-0 pr-4 flex items-center text-gray-400 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 transition-colors">
                   {showPassword ? (
                     <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M13.875 18.825A10.05 10.05 0 0112 19c-5 0-9.27-3.11-11-7.5a11.72 11.72 0 013.168-4.477M6.343 6.343A9.97 9.97 0 0112 5c5 0 9.27 3.11 11 7.5a11.72 11.72 0 01-4.168 4.477M6.343 6.343L3 3m3.343 3.343l2.829 2.829m4.243 4.243l2.829 2.829M6.343 6.343l11.314 11.314M14.121 14.121A3 3 0 009.879 9.879" /></svg>
@@ -247,12 +259,13 @@ export default function SignupPage() {
                   )}
                 </Button>
               </div>
+              {fieldFeedback('password')}
             </div>
 
             <div className="flex flex-col gap-1.5">
-              <label className="trace-label ml-1">Confirm Password *</label>
+              <label htmlFor="signup-confirmPassword" className="trace-label ml-1">Confirm Password *</label>
               <div className="relative">
-                <input maxLength={INPUT_LIMITS.password} type={showConfirm ? 'text' : 'password'} placeholder="Confirm your password" value={formData.confirmPassword} onChange={(e) => setFormData({...formData, confirmPassword: e.target.value})} className="trace-control w-full pr-12" />
+                <input {...fieldProps('confirmPassword')} maxLength={INPUT_LIMITS.password} type={showConfirm ? 'text' : 'password'} placeholder="Confirm your password" value={formData.confirmPassword} onChange={(e) => setFields({ confirmPassword: e.target.value })} className="trace-control w-full pr-12" />
                 <Button type="button" aria-label={showConfirm ? 'Hide confirmation password' : 'Show confirmation password'} onClick={() => setShowConfirm(!showConfirm)} className="trace-action absolute inset-y-0 right-0 pr-4 flex items-center text-gray-400 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 transition-colors">
                   {showConfirm ? (
                     <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M13.875 18.825A10.05 10.05 0 0112 19c-5 0-9.27-3.11-11-7.5a11.72 11.72 0 013.168-4.477M6.343 6.343A9.97 9.97 0 0112 5c5 0 9.27 3.11 11 7.5a11.72 11.72 0 01-4.168 4.477M6.343 6.343L3 3m3.343 3.343l2.829 2.829m4.243 4.243l2.829 2.829M6.343 6.343l11.314 11.314M14.121 14.121A3 3 0 009.879 9.879" /></svg>
@@ -261,38 +274,43 @@ export default function SignupPage() {
                   )}
                 </Button>
               </div>
+              {fieldFeedback('confirmPassword')}
             </div>
 
             {formData.userType === 'alumni' && <section className="space-y-3 rounded-lg border border-amber-200 bg-amber-50 p-4 dark:border-amber-800 dark:bg-amber-950">
               <label className="flex items-start gap-3 text-sm font-semibold">
                 <input type="checkbox" className="trace-choice mt-1" checked={formData.proofUnavailable} disabled={loading}
-                  onChange={event => setFormData({ ...formData, proofUnavailable: event.target.checked })} />
+                  onChange={event => setFields({ proofUnavailable: event.target.checked })} />
                 Records / proof unavailable
               </label>
               <p className="text-xs leading-relaxed">For alumni with lost or unavailable records, including S.Y. 2018 and earlier. Your application stays pending until Admin verifies your identity. Contact the Registrar with your ID for review follow-up.</p>
-              {formData.proofUnavailable && <label className="trace-label">Explain Missing Proof
-                <textarea className="trace-control mt-2" required maxLength={500} value={formData.proofReason} disabled={loading}
-                  onChange={event => setFormData({ ...formData, proofReason: event.target.value })} />
-              </label>}
+              {formData.proofUnavailable && <div><label htmlFor="signup-proofReason" className="trace-label">Explain Missing Proof
+                <textarea {...fieldProps('proofReason')} className="trace-control mt-2" required maxLength={500} value={formData.proofReason} disabled={loading}
+                  onChange={event => setFields({ proofReason: event.target.value })} />
+              </label>{fieldFeedback('proofReason')}</div>}
             </section>}
 
             {!formData.proofUnavailable && <div className="flex flex-col gap-1.5">
               <p className="trace-label ml-1">Upload Proof of ID{formData.userType === 'student' ? ' *' : ''}</p>
               <p className="ml-1 text-xs font-semibold text-gray-700 dark:text-gray-200">Accepted files: JPG, JPEG, PNG or PDF. Maximum size: 10 MB (one file).</p>
-              <FileUploadField showLabel={false} label="Proof of ID" file={file} onChange={setFile} accept=".pdf,.png,.jpg,.jpeg" disabled={loading} />
+              <FileUploadField id="signup-proof" showLabel={false} label="Proof of ID" file={file} validationError={fieldErrors.proof}
+                onChange={picked => { setFile(picked); setFieldErrors(current => ({ ...current, proof: '' })); setLocalError(''); }}
+                onError={message => setFieldErrors(current => ({ ...current, proof: message }))} accept=".pdf,.png,.jpg,.jpeg" disabled={loading} />
               <p className="ml-1 text-xs text-gray-600 dark:text-gray-300">{formData.userType === 'alumni' ? 'Proof examples: your PLP Student/Alumni ID, diploma or school record showing your name and school details. The Registrar may ask for additional evidence.' : 'Use your PLP Student ID with the school name, Student ID number and college readable.'} Use a clear, complete image or scan; avoid cropped, blurred or password-protected files.</p>
             </div>}
 
-            <section aria-label="Privacy acknowledgment" className="space-y-3 rounded-xl border border-gray-200 p-4 dark:border-gray-700">
+            <section aria-label="Privacy acknowledgment" className={`space-y-3 rounded-xl border p-4 ${fieldErrors.privacyAcknowledged ? 'border-red-600 dark:border-red-400' : 'border-gray-200 dark:border-gray-700'}`}>
               <p className="text-sm leading-relaxed">TRACE uses your registration details and proof to verify your identity and provide Registrar services.</p>
               <Button type="button" className="trace-action text-sm font-semibold underline" onClick={() => setShowPrivacy(true)}>Read Privacy Notice</Button>
               <label className="flex items-start gap-3 text-sm leading-relaxed">
-                <input type="checkbox" required className="trace-choice mt-1 shrink-0" checked={formData.privacyAcknowledged} disabled={loading}
-                  onChange={event => setFormData({ ...formData, privacyAcknowledged: event.target.checked })} />
+                <input {...fieldProps('privacyAcknowledged')} type="checkbox" required className="trace-choice mt-1 shrink-0" checked={formData.privacyAcknowledged} disabled={loading}
+                  onChange={event => setFields({ privacyAcknowledged: event.target.checked })} />
                 <span>I have read and acknowledge the Registration Privacy Notice. *</span>
               </label>
+              {fieldFeedback('privacyAcknowledged')}
             </section>
 
+            {localError && <p role="alert" className="text-sm leading-relaxed text-red-700 dark:text-red-300">{localError}</p>}
             <Button type="submit" disabled={loading} className="trace-button-lift trace-action mt-4 w-full py-4 bg-pine-600 enabled:hover:bg-pine-700 disabled:opacity-70 text-white rounded-full font-bold transition-colors shadow-sm flex items-center justify-center gap-2">
               {loading ? 'Creating...' : 'Create Account'}
             </Button>
@@ -302,6 +320,7 @@ export default function SignupPage() {
         <div className="mt-8 text-center">
         </div>
       </div>
+      </main>
     </div>
   )
 }

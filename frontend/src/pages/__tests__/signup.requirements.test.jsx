@@ -52,7 +52,9 @@ it('requires an unchecked acknowledgment, opens the actual notice without losing
   const acknowledgment = screen.getByRole('checkbox', { name: /I have read and acknowledge/ });
   expect(acknowledgment).not.toBeChecked();
   fireEvent.submit(container.querySelector('form'));
-  expect(screen.getByRole('alert')).toHaveTextContent('Read and acknowledge the Privacy Notice');
+  expect(screen.getByText('Read and acknowledge the Privacy Notice before registering.')).toBeInTheDocument();
+  expect(acknowledgment).toHaveAttribute('aria-invalid', 'true');
+  expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   expect(register).not.toHaveBeenCalled();
   await userEvent.click(screen.getByRole('button', { name: 'Read Privacy Notice' }));
   const notice = screen.getByRole('dialog', { name: 'Registration Privacy Notice' });
@@ -111,4 +113,63 @@ it('shows accepted proof documents, formats and size, rejecting incompatible or 
   expect(screen.getByRole('alert')).toHaveTextContent('limit');
   expect(screen.getByText(/Selected: proof.png/)).toBeInTheDocument();
   expect(container.querySelector('form')).toBeInTheDocument();
+});
+it('marks all missing fields together, shows messages beside fields and keeps feedback outside dialogs', async () => {
+  const { container } = start();
+  await screen.findByRole('option', { name: 'College of Computer Studies' });
+  await userEvent.click(screen.getByRole('button', { name: 'Create Account' }));
+  for (const label of ['Student ID *', 'First Name *', 'Last Name *', 'Email Address *', 'Phone Number *', 'Password *', 'Confirm Password *', 'College *', 'Program/Course *']) {
+    const field = screen.getByLabelText(label);
+    expect(field).toHaveAttribute('aria-invalid', 'true');
+    expect(document.getElementById(field.getAttribute('aria-describedby').split(' ').at(-1))).toBeInTheDocument();
+  }
+  expect(screen.getByText('First Name is required.')).toBeInTheDocument();
+  expect(screen.getByLabelText('Proof of ID', { selector: 'input' })).toHaveAttribute('aria-invalid', 'true');
+  expect(screen.getByText('Please check the highlighted fields above.')).toBeInTheDocument();
+  expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  expect(container.querySelector('form')).toHaveAttribute('novalidate');
+  await userEvent.type(screen.getByLabelText('First Name *'), 'Synthetic');
+  expect(screen.getByLabelText('First Name *')).toHaveAttribute('aria-invalid', 'false');
+  expect(screen.getByLabelText('Email Address *')).toHaveAttribute('aria-invalid', 'true');
+});
+it('marks invalid email, weak password and mismatched confirmation without losing proof', async () => {
+  const { container } = start();
+  await fillDraft(container);
+  fireEvent.change(screen.getByLabelText('Email Address *'), { target: { value: 'invalid-email' } });
+  fireEvent.change(screen.getByLabelText('Password *'), { target: { value: 'weak' } });
+  await userEvent.click(screen.getByRole('button', { name: 'Create Account' }));
+  for (const label of ['Email Address *', 'Password *', 'Confirm Password *']) expect(screen.getByLabelText(label)).toHaveAttribute('aria-invalid', 'true');
+  expect(screen.getByText('Passwords do not match.')).toBeInTheDocument();
+  expect(screen.getByText(/Selected: proof.png/)).toBeInTheDocument();
+  expect(register).not.toHaveBeenCalled();
+  expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+});
+it.each([
+  ['This ID is already registered.', 'Student ID *'],
+  ['Enter a valid email address.', 'Email Address *'],
+])('returns a server rejection to its field with the draft preserved (%s)', async (message, label) => {
+  register.mockRejectedValueOnce({ response: { data: { error: message } } });
+  const { container } = start();
+  await fillDraft(container);
+  await userEvent.click(screen.getByRole('checkbox', { name: /I have read and acknowledge/ }));
+  await userEvent.click(screen.getByRole('button', { name: 'Create Account' }));
+  await userEvent.click(screen.getByRole('button', { name: 'Submit Registration' }));
+  await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+  expect(screen.getByLabelText(label)).toHaveAttribute('aria-invalid', 'true');
+  expect(screen.getByText(message)).toBeInTheDocument();
+  expect(screen.getByText(/Selected: proof.png/)).toBeInTheDocument();
+  expect(screen.getByPlaceholderText('e.g. 23-00123')).toHaveValue('SYN-0001');
+});
+it('keeps a general server error beside Create Account without inventing a field error or opening another popup', async () => {
+  register.mockRejectedValueOnce({ code: 'ECONNABORTED' });
+  const { container } = start();
+  await fillDraft(container);
+  await userEvent.click(screen.getByRole('checkbox', { name: /I have read and acknowledge/ }));
+  await userEvent.click(screen.getByRole('button', { name: 'Create Account' }));
+  await userEvent.click(screen.getByRole('button', { name: 'Submit Registration' }));
+  const error = await screen.findByRole('alert');
+  expect(error).toHaveTextContent('Your account may already be saved.');
+  expect(error.nextElementSibling).toBe(screen.getByRole('button', { name: 'Create Account' }));
+  expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  expect(container.querySelector('[aria-invalid="true"]')).toBeNull();
 });
