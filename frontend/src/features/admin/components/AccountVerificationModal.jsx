@@ -3,14 +3,17 @@ import { useState } from 'react';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import ModalShell from '@/components/ModalShell';
 import RegistrationProof from '@/components/RegistrationProof';
-import RegistrationReviewNotice from '@/components/RegistrationReviewNotice';
+import AdminRegistrationDetails from './AdminRegistrationDetails';
+import AdminIcon from './AdminIcon';
 
 export default function AccountVerificationModal({
   studentVerifyToConfirm,
   cancelAdminVerifyStudent,
   confirmAdminVerifyStudent,
   actionLoading,
-  setViewImageUrl
+  setViewImageUrl,
+  reviewPosition = 1,
+  reviewTotal = 1
 }) {
   const [decision, setDecision] = useState(null);
   const [basis, setBasis] = useState('');
@@ -28,33 +31,32 @@ export default function AccountVerificationModal({
     <ModalShell
       open={!!studentVerifyToConfirm}
       onClose={cancelAdminVerifyStudent}
-      title={<span className="text-base sm:text-xl">Review Registration</span>}
-      maxWidth="max-w-5xl"
-      footer={<div className="trace-actions">
-        <Button type="button" onClick={cancelAdminVerifyStudent} className="trace-button trace-button-secondary flex-1">Cancel</Button>
-        <Button type="button" onClick={() => choose('reject')} disabled={actionLoading} className="trace-button trace-button-danger flex-1">Reject</Button>
-        <Button type="button" onClick={() => choose('verify')} disabled={actionLoading} className="trace-button trace-button-primary flex-1">Verify</Button>
-      </div>}
+      title="Review Registration"
+      panelClassName="trace-modal-panel trace-admin-main-dialog trace-admin-registration max-w-[960px]"
+      headerIcon={<span className="trace-admin-review-header-icon"><AdminIcon name="review-shield" /></span>}
+      headerBadge={<span className="trace-admin-badge trace-admin-badge-amber rounded-full border border-amber-200"><AdminIcon name="review-dot" />Awaiting manual review</span>}
+      closeButtonIcon={<AdminIcon name="review-x" />}
+      subtitle="Check the available identity evidence and account details, then choose a decision."
+      maxWidth="max-w-[960px]"
+      bodyClassName="trace-modal-body bg-[#fafbfc] dark:bg-gray-950"
+      busy={actionLoading}
+      closeOnEsc={!actionLoading}
+      closeOnBackdrop={!actionLoading}
+      showCloseButton={!actionLoading}
+      footer={<div className="flex flex-wrap items-center justify-between gap-3"><p className="trace-admin-caption flex items-center gap-2"><AdminIcon name="review-dot" />Reviewing {reviewPosition} of {reviewTotal} pending {reviewTotal === 1 ? 'request' : 'requests'}</p><div className="trace-actions">
+        <Button type="button" disabled={actionLoading} onClick={cancelAdminVerifyStudent} className="trace-button trace-button-secondary flex-1">Cancel</Button>
+        <Button type="button" onClick={() => choose('reject')} disabled={actionLoading} className="trace-button trace-admin-button-danger flex-1"><AdminIcon name="review-x1" />Reject</Button>
+        <Button type="button" onClick={() => choose('verify')} disabled={actionLoading} className="trace-button trace-button-primary flex-1"><AdminIcon name="review-check1" />Verify</Button>
+      </div></div>}
     >
-      <div className="grid min-w-0 gap-4 lg:grid-cols-2 lg:gap-6">
+      <div className="trace-admin-review-grid">
         {proofUnavailable ? <section className="trace-section trace-section-body space-y-3">
           <h4 className="trace-section-title">Proof Unavailable · Identity Review</h4>
           <p className="text-sm select-text">{student.registration_proof_reason}</p>
           <p className="text-sm text-gray-600 dark:text-gray-300">No uploaded proof. Check alternative identity evidence and record what was checked and the decision basis before approval.</p>
-        </section> : <RegistrationProof path={student.id_proof_path} label="ID Proof" onPreview={setViewImageUrl} />}
+        </section> : <RegistrationProof key={student.id_proof_path} path={student.id_proof_path} label="ID Proof" onPreview={setViewImageUrl} review />}
         <div className="min-w-0">
-          <p className="text-xs text-gray-400 dark:text-gray-400 mt-1 font-semibold pb-5 mb-6 border-b border-gray-100 dark:border-gray-700">
-            Check the available identity evidence and account details, then choose a decision.
-          </p>
-
-          <div className="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl p-5 mb-6 font-mono text-[11px] text-gray-600 dark:text-gray-300 space-y-2">
-            <div className="flex flex-wrap justify-between gap-x-3 gap-y-1"><span>Applicant</span><span className="font-bold text-gray-950 dark:text-gray-100 select-text">{student.full_name}</span></div>
-            <div className="flex flex-wrap justify-between gap-x-3 gap-y-1"><span>ID Number</span><span className="font-bold text-gray-950 dark:text-gray-100 select-text break-words">{student.student_id}</span></div>
-            <div className="flex flex-wrap justify-between gap-x-3 gap-y-1"><span>Course/Program</span><span className="font-bold text-gray-950 dark:text-gray-100">{student.program || 'Not entered'}</span></div>
-            <div className="flex flex-wrap justify-between gap-x-3 gap-y-1"><span>College</span><span className="font-bold text-gray-950 dark:text-gray-100 select-text">{student.course || 'Not entered'}</span></div>
-            <div className="flex flex-wrap justify-between gap-x-3 gap-y-1"><span>Email</span><span className="font-bold text-gray-950 dark:text-gray-100 select-text break-words">{student.email || '—'}</span></div>
-          </div>
-          <RegistrationReviewNotice user={student} />
+          <AdminRegistrationDetails student={student} />
           {proofUnavailable && <label className="trace-label mt-4">Identity Review Evidence / Decision Basis
             <textarea className="trace-control mt-2" required maxLength={1000} value={basis} disabled={actionLoading} onChange={event => setBasis(event.target.value)} />
           </label>}

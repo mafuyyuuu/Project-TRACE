@@ -84,8 +84,8 @@ it('keeps resolved history readable and offers creator reopening without a compo
 it('passes filters to the authorized queue and preserves the selected conversation',async () => {
   render(<InternalAssistanceWorkspace user={staff} />);await screen.findByLabelText('Internal message');
   const draft = screen.getByLabelText('Internal message');fireEvent.change(draft,{target:{value:'Preserved detail'}});
-  fireEvent.change(screen.getAllByLabelText('State')[0],{target:{value:'RESOLVED'}});
-  await waitFor(() => expect(api.listTickets).toHaveBeenLastCalledWith(expect.objectContaining({state:'RESOLVED'}),expect.any(AbortSignal)));
+  fireEvent.change(screen.getAllByLabelText('State')[0],{target:{value:'IN_PROGRESS'}});
+  await waitFor(() => expect(api.listTickets).toHaveBeenLastCalledWith(expect.objectContaining({state:'IN_PROGRESS',view:'active'}),expect.any(AbortSignal)));
   expect(screen.getByLabelText('Internal message')).toBe(draft);expect(draft).toHaveValue('Preserved detail');
 });
 it('loads chronological older messages without duplicates',async () => {
@@ -99,4 +99,20 @@ it('opens another notification ticket while the workspace remains mounted',async
   await screen.findByLabelText('Internal message');
   view.rerender(<InternalAssistanceWorkspace user={staff} requestedTicket="29" />);
   await waitFor(() => expect(api.readTicket).toHaveBeenCalledWith('29',null,expect.any(AbortSignal)));
+});
+
+it('opens resolved internal history in Archive without a composer, then returns to Active after reopening',async()=>{
+ api.readTicket.mockResolvedValue({ticket:{...ticket,state:'RESOLVED',can_send:false,can_reopen:true},messages:[{id:1,kind:'system',message:'Retained archived resolution',created_at:ticket.created_at}],next_cursor:null});
+ api.listTickets.mockResolvedValue({tickets:[{...ticket,state:'RESOLVED'}],categories,next_cursor:null});
+ render(<InternalAssistanceWorkspace user={staff}/>);
+ await screen.findByText('Retained archived resolution');
+ await waitFor(()=>expect(screen.getByRole('button',{name:'Archive',exact:true})).toHaveAttribute('aria-pressed','true'));
+ expect(api.listTickets).toHaveBeenLastCalledWith(expect.objectContaining({view:'archive',state:'RESOLVED'}),expect.any(AbortSignal));
+ expect(screen.queryByLabelText('Internal message')).not.toBeInTheDocument();
+ fireEvent.click(screen.getByRole('button',{name:'Reopen concern'}));
+ api.readTicket.mockResolvedValue({ticket,messages:[{id:1,kind:'system',message:'Retained archived resolution',created_at:ticket.created_at}],next_cursor:null});
+ fireEvent.click(screen.getByRole('button',{name:'Confirm',exact:true}));
+ await waitFor(()=>expect(screen.getByRole('button',{name:'Active',exact:true})).toHaveAttribute('aria-pressed','true'));
+ expect(await screen.findByLabelText('Internal message')).toBeInTheDocument();
+ expect(screen.getByText('Retained archived resolution')).toBeInTheDocument();
 });

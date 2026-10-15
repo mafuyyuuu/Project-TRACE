@@ -16,7 +16,7 @@ const pricingModel = require('../../models/pricing.model');
 const requestSequences = require('../../models/requestSequence.model');
 const service = require('../documents.service');
 
-const COMPLETE = { role: 'student', user_type: 'student', year_started: 2020, graduation_year: 2024, last_attendance_year: 2024, phone_number: '09123456789', email: 'student@example.test',
+const COMPLETE = { year_level: '2nd Year', section: 'IT-2A', role: 'student', user_type: 'student', year_started: 2020, graduation_year: 2024, last_attendance_year: 2024, phone_number: '09123456789', email: 'student@example.test',
   birth_date: '2000-01-01', place_of_birth: 'City', sex: 'Male', civil_status: 'Single', home_address: 'Address',
   elem_school: 'Elementary', elem_grad_year: 2012, jhs_school: 'Junior High', jhs_grad_year: 2016,
   shs_school: 'Senior High', shs_grad_year: 2018 };
@@ -1440,4 +1440,23 @@ it('uses the locked saved year and discards forged start/end/graduation values f
   await service.uploadDocument(STUDENT, { document_type: 'Transcript of Records', year_started: '2099', year_ended: '-1', purpose: JSON.stringify({ purpose: 'Employment', year_started: 1990, year_ended: 1900, year_graduated: 1800 }) }, []);
   expect(JSON.parse(documentModel.insert.mock.calls[0][0].purpose)).toEqual({ purpose: 'Employment', year_started: 2020 });
   expect(userModel.getProfileById).toHaveBeenCalledWith(STUDENT.id, connection, true);
+});
+
+it('allows a current student to file Graduation Clearance without college graduation or attendance years and discards forged years', async () => {
+  userModel.getProfileById.mockResolvedValue([{ ...COMPLETE, id: 3, student_id: 'STU-001', year_started: null, graduation_year: null, last_attendance_year: null }]);
+  const insert = vi.spyOn(documentModel, 'insert').mockResolvedValue([{ insertId: 9 }]);
+  await service.uploadDocument(STUDENT, { document_type: 'Graduation Clearance', purpose: JSON.stringify({ purpose: 'Clearance', year_graduated: 2099, year_ended: 2099 }) }, []);
+  const saved = JSON.parse(insert.mock.calls[0][0].purpose);
+  expect(saved).toEqual({ purpose: 'Clearance' });
+  expect(connection.commit).toHaveBeenCalledOnce();
+});
+it.each(['year_level', 'section'])('requires saved current-student %s and rejects forged request values before document writes', async field => {
+  userModel.getProfileById.mockResolvedValue([{ ...COMPLETE, [field]: '' }]);
+  const insert = vi.spyOn(documentModel, 'insert');
+  await expect(service.uploadDocument(STUDENT, { document_type: 'Graduation Clearance', year_level: '2nd Year', section: 'IT-2A', profile_complete: true }, [])).rejects.toMatchObject({ status: 403, message: expect.stringContaining(field === 'section' ? 'Section' : 'Year Level') });
+  expect(insert).not.toHaveBeenCalled();
+});
+it('continues to require alumni graduation even when last attendance and current enrollment fields are present', async () => {
+  userModel.getProfileById.mockResolvedValue([{ ...COMPLETE, user_type: 'alumni', has_grad_application: true, graduation_year: null }]);
+  await expect(service.uploadDocument(STUDENT, { document_type: 'Graduation Clearance' }, [])).rejects.toMatchObject({ status: 403, message: expect.stringContaining('PLP/College Year Graduated') });
 });

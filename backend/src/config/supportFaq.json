@@ -12,7 +12,7 @@
   {
     "id": "requests",
     "question": "How do I request and track documents?",
-    "answer": "Choose New Request. If your saved profile is incomplete, use Complete Profile in the missing-field popup, fill the required fields and confirm Save. Select the available document types and complete their fields. TOR asks Year Started/Year Ended. Filing shows rates only; the final pricing breakdown appears on your dashboard. Confirm submission. Use Live Track to see the current processing stage; History includes request and payment records."
+    "answer": "Choose New Request. If your saved profile is incomplete, use Complete Profile in the missing-field popup, fill the required fields and confirm Save. Select the available document types and complete their fields. TOR reads your saved Year Started and does not ask for Year Ended. Current students complete Year Level and Section, not college graduation or last-attendance years. Filing shows rates only; the final pricing breakdown appears on your dashboard. Confirm submission. Use Live Track to see the current processing stage; History includes request and payment records."
   },
   {
     "id": "payment",

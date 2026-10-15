@@ -1,4 +1,5 @@
 import axios from 'axios'
+import { handleSessionFailure } from '@/utils/apiSession'
 
 /**
  * Shared axios instance. Domain-specific calls live in authService.js and
@@ -68,11 +69,7 @@ api.interceptors.response.use(
   },
   (error) => {
     error.config?.[activityKey]?.()
-    if (error.response?.status === 401 && !['/auth/login', '/auth/verify-2fa', '/auth/verify-email-change'].some(path => error.config?.url?.includes(path))) {
-      localStorage.removeItem('trace_token')
-      localStorage.removeItem('trace_user')
-      window.location.href = '/'
-    }
+    handleSessionFailure(error, { storage: localStorage, location: window.location })
     return Promise.reject(error)
   }
 )

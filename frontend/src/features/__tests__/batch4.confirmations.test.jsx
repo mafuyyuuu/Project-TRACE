@@ -8,7 +8,7 @@ import UserEditModal from '@/features/admin/components/UserEditModal';
 import AdminTemplatesPanel from '@/features/admin/components/AdminTemplatesPanel';
 import * as documents from '@/services/documentsService';
 import api from '@/services/api';
-import { STATUS } from '@/utils/documentStatus';
+import { STATUS, LEGACY_STATUS } from '@/utils/documentStatus';
 
 const { core } = vi.hoisted(() => ({ core: {} }));
 vi.mock('@/hooks/useDashboardCore', () => ({ default: () => core }));
@@ -49,6 +49,25 @@ describe('Desk and student submission gates', () => {
     expect(result.current.pricePageCount).toBe('');
     expect(core.setActiveModal).toHaveBeenCalledWith(billed ? 'payment-stub' : null);
   });
+  it('filters the full Window 1 tracking set and resets its page when changing progress tabs', async () => {
+    core.documents = [{...DOC,id:1,current_status:STATUS.PENDING_W1_INTAKE},{...DOC,id:2,current_status:STATUS.SEC_PROCESSING},{...DOC,id:3,current_status:STATUS.COMPLETED},{...DOC,id:5,current_status:LEGACY_STATUS.REJECTED}];
+    const { result, rerender } = renderHook(() => useWindow1Dashboard(USER, 'tracking-desk'));
+    expect(result.current.progressDocuments).toHaveLength(4);
+    act(() => result.current.setW1ProgressPage(2));
+    act(() => result.current.changeProgressFilter('completed'));
+    expect(result.current.w1ProgressPage).toBe(1);
+    expect(result.current.progressDocuments.map(row => row.id)).toEqual([3]);
+    act(() => result.current.changeProgressFilter('progress'));
+    expect(result.current.progressDocuments.map(row => row.id)).toEqual([1,2]);
+    core.documents = [...core.documents, {...DOC,id:4,current_status:STATUS.PENDING_SEC_EVALUATION}];
+    rerender();
+    expect(result.current.progressDocuments.map(row => row.id)).toEqual([1,2,4]);
+    act(() => result.current.changeProgressFilter('all'));
+    expect(result.current.progressDocuments).toHaveLength(5);
+    expect(documents.releaseDocument).not.toHaveBeenCalled();
+    expect(documents.intakeDocument).not.toHaveBeenCalled();
+  });
+
   it('waits for release confirmation and leaves the ready document untouched on cancel', async () => {
     const { result } = renderHook(() => useWindow1Dashboard(USER));
     act(() => result.current.handleWindow1Release(DOC));

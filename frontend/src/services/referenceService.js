@@ -33,7 +33,7 @@ export async function getPaymentMethods() {
   return data
 }
 
-/** Active programs in active colleges; authenticated profile reference data. */
+/** Public active programs in active colleges, shared by signup and profiles. */
 export async function getPrograms(options = {}) {
   const { data } = await api.get('/reference/programs', options)
   return data

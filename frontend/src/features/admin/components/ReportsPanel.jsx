@@ -1,3 +1,6 @@
+import { isWindowClerk } from '@/utils/windowPresentation';
+import AdminTimestamp from './AdminTimestamp';
+import AdminIcon from './AdminIcon';
 import ReportFiltersModal from '@/components/ReportFiltersModal';
 import useReportFilterOptions from '@/hooks/useReportFilterOptions';
 import { EMPTY_REPORT_FILTERS, appliedFilterSummary } from '@/utils/reportFilters';
@@ -19,7 +22,7 @@ function StatCard({ label, value, tone = 'default' }) {
     bad: 'text-red-600 dark:text-red-300',
   };
   return (
-    <div className="trace-section trace-section-body">
+    <div className="trace-section trace-section-body trace-admin-report-stat">
       <span className="text-[10px] font-bold text-gray-400 dark:text-gray-400 uppercase tracking-widest block">{label}</span>
       <span className={`text-2xl font-display font-black mt-1 block ${tones[tone]}`}>{value}</span>
     </div>
@@ -35,6 +38,7 @@ function StatCard({ label, value, tone = 'default' }) {
  */
 export default function ReportsPanel({ user, currentTab, initialRecordSet = '' }) {
   const { tableRef, ...r } = useReports(user, currentTab, initialRecordSet);
+  const admin = user?.role === 'admin' || isWindowClerk(user);
   const isSecretary = user?.role === 'clerk' && user.desk_assignment === 'Secretary';
   const [viewProfileId, setViewProfileId] = useState(null);
   const [filtersOpen,setFiltersOpen]=useState(false);
@@ -48,26 +52,26 @@ export default function ReportsPanel({ user, currentTab, initialRecordSet = '' }
 
   return (
     <>
-      <StudentProfileModal open={!!viewProfileId} studentId={viewProfileId} onClose={() => setViewProfileId(null)} />
+      <StudentProfileModal viewerRole={user?.role} open={!!viewProfileId} studentId={viewProfileId} onClose={() => setViewProfileId(null)} />
       <DashboardAlerts success={r.success} error={r.error} onDismiss={r.dismissNotification} />
 
-      <div className="trace-page">
+      <div className={`trace-page ${admin ? 'trace-admin-reports trace-admin-more-page' : ''}`}>
         <div className="trace-page-header">
           <div className="flex-1">
             <h2 className="trace-page-title">
-              {isSecretary ? 'Records' : 'Reports'} & <span className="text-[#15803d] dark:text-green-300">Export</span>
+              {admin ? 'Reports & Export' : <>{isSecretary ? 'Records' : 'Reports'} & <span className="text-[#15803d] dark:text-green-300">Export</span></>}
             </h2>
             <p className="trace-page-description">
               {isSecretary ? 'Review records for your assigned college, including cleared requests, and export to CSV.' : 'Filter records, review the totals, and export to CSV.'}
             </p>
           </div>
           <div className="ml-auto">
-            <Button type="button" className="trace-button trace-button-primary" onClick={()=>setFiltersOpen(true)}>Export</Button>
+            <Button type="button" className="trace-button trace-button-primary" onClick={()=>setFiltersOpen(true)}>{admin && <AdminIcon name="download" className="h-4 w-4" />}{admin ? 'Export CSV' : 'Export'}</Button>
           </div>
         </div>
 
-        <p className="trace-page-description select-text" aria-label="Applied filters">{appliedFilterSummary(r.filters,reference.options)}{isSecretary?' · Assigned college only':''}</p>
-        {<ReportFiltersModal inline exportOpen={filtersOpen} filters={r.filters} defaults={EMPTY_REPORT_FILTERS} options={reference.options} optionsLoading={reference.loading} optionsError={reference.error} onRetryOptions={reference.retry} onApply={r.applyFilters} onClose={()=>setFiltersOpen(false)} onExport={dataset=>dataset==='documents'?r.downloadDocuments():r.downloadStudents(dataset)} exporting={r.exporting} exportReady={Boolean(r.report)&&!r.refreshing} secretary={isSecretary} error={r.error}/>}
+        <p className={admin ? 'sr-only' : 'trace-page-description select-text'} aria-label="Applied filters">{appliedFilterSummary(r.filters,reference.options)}{isSecretary?' · Assigned college only':''}</p>
+        {<ReportFiltersModal admin={admin} scopeText={appliedFilterSummary(r.filters,reference.options)} inline exportOpen={filtersOpen} filters={r.filters} defaults={EMPTY_REPORT_FILTERS} options={reference.options} optionsLoading={reference.loading} optionsError={reference.error} onRetryOptions={reference.retry} onApply={r.applyFilters} onClose={()=>setFiltersOpen(false)} onExport={dataset=>dataset==='documents'?r.downloadDocuments():r.downloadStudents(dataset)} exporting={r.exporting} exportReady={Boolean(r.report)&&!r.refreshing} secretary={isSecretary} error={r.error}/>}
 
         {/* Summary for the current filter slice */}
         <section aria-label="Report summary" aria-busy={r.refreshing} className="grid [grid-template-columns:repeat(auto-fit,minmax(min(100%,9rem),1fr))] gap-4">
@@ -91,7 +95,7 @@ export default function ReportsPanel({ user, currentTab, initialRecordSet = '' }
 
           <div ref={tableRef} className="max-h-[60vh] overflow-y-auto overflow-x-auto">
             <table className="w-full text-left table-fixed min-w-[70rem]">
-              <colgroup>{[180,180,160,180,160,120,90,100].map((width, index) => <col key={index} style={{ width: `${width / 16}rem` }} />)}</colgroup>
+              {admin ? <colgroup>{['w-[11%]', 'w-[11%]', 'w-[11%]', 'w-[18%]', 'w-[14%]', 'w-[17%]', 'w-[9%]', 'w-[9%]'].map((width, index) => <col key={index} className={width} />)}</colgroup> : <colgroup>{[180,180,160,180,160,120,90,100].map((width, index) => <col key={index} style={{ width: `${width / 16}rem` }} />)}</colgroup>}
               <thead className="bg-gray-50 dark:bg-gray-800 sticky top-0">
                 <tr className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest">
                   <th className="py-3 px-5">Requested On</th>
@@ -107,8 +111,8 @@ export default function ReportsPanel({ user, currentTab, initialRecordSet = '' }
               <tbody>
                 {(report?.documents || []).map((d) => (
                   <tr key={d.id} className="border-b border-gray-50 dark:border-gray-700 hover:bg-gray-50/50 dark:hover:bg-gray-800/50">
-                    <td className="py-3 px-5 text-xs text-gray-500 dark:text-gray-400">{formatDateTime(d.created_at)}</td>
-                    <td className="py-3 px-3 text-xs text-gray-500 dark:text-gray-400">{formatDateTime(d.updated_at)}</td>
+                    <td className="py-3 px-5 text-xs text-gray-500 dark:text-gray-400">{admin ? <AdminTimestamp value={d.created_at} /> : formatDateTime(d.created_at)}</td>
+                    <td className="py-3 px-3 text-xs text-gray-500 dark:text-gray-400">{admin ? <AdminTimestamp value={d.updated_at} /> : formatDateTime(d.updated_at)}</td>
                     <td className="py-3 px-5 break-all text-[11px] font-mono text-gray-700 dark:text-gray-300">{d.tracking_number}</td>
                     <td className="py-3">
                       <Button type="button" disabled={!d.student_id} onClick={() => setViewProfileId(d.student_id)} className="trace-action text-xs font-bold text-blue-700 dark:text-blue-300 hover:underline select-text break-words text-left focus-visible:ring-2 focus-visible:ring-blue-500">{d.student_name || '—'}</Button>
@@ -141,16 +145,19 @@ export default function ReportsPanel({ user, currentTab, initialRecordSet = '' }
             </table>
           </div>
 
-          {report && report.totalPages > 1 && (
-            <div className="p-4 border-t border-gray-100 dark:border-gray-700 flex justify-center gap-2">
+          {report && (admin || report.totalPages > 1) && (
+            <div className={admin ? 'trace-admin-directory-footer border-t border-gray-100 dark:border-gray-700' : 'p-4 border-t border-gray-100 dark:border-gray-700 flex justify-center gap-2'}>
+              {admin && <p className="trace-admin-caption">Showing {(report.documents || []).length} of {Number(report.total || 0).toLocaleString()} records</p>}
+              <div className="trace-actions">
               <Button onClick={() => r.goToPage(r.page - 1)} disabled={r.page <= 1}
                 className="trace-button trace-button-secondary">
                 Previous
               </Button>
-              <Button onClick={() => r.goToPage(r.page + 1)} disabled={r.page >= report.totalPages}
+              <Button onClick={() => r.goToPage(r.page + 1)} disabled={r.page >= (report.totalPages || 1)}
                 className="trace-button trace-button-secondary">
                 Next
               </Button>
+              </div>
             </div>
           )}
         </section>

@@ -1,26 +1,21 @@
+import WindowOverview, { WindowDate } from './components/WindowOverview';
+import WindowTracking from './components/WindowTracking';
+import ReleaseDocumentModal from './components/ReleaseDocumentModal';
 import Button from '@/components/Button';
-import ProgressFill from '@/components/ProgressFill';
 import RequestMessagesPanel from '@/components/RequestMessagesPanel';
 import FileUploadField from '@/components/FileUploadField';
-import QueueTabs from '@/components/QueueTabs';
-import QueuePanel from '@/components/QueuePanel';
-import RequestStaff from '@/components/RequestStaff';
-import AuthedFilePreview from '@/components/AuthedFilePreview';
 import { useState } from 'react';
 import HardwareScannerModal from '@/features/window1/components/HardwareScannerModal';
 import IntakeReviewModal from '@/features/window1/components/IntakeReviewModal';
 import ManualInputModal from '@/features/window1/components/ManualInputModal';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import ModalShell from '@/components/ModalShell';
-import MiniSparkline from '@/components/MiniSparkline';
-import { getProgressVal, getStatusLabel, getStatusTone, requiresAttachment } from '@/utils/documentStatus';
-import { getWaitTime, todayLongDate } from '@/utils/formatters';
+import { todayLongDate } from '@/utils/formatters';
 import useWindow1Dashboard from '@/features/window1/useWindow1Dashboard';
 import DashboardAlerts from '@/components/DashboardAlerts';
 import DashboardLoading from '@/components/DashboardLoading';
 import StudentProfileModal from '@/components/StudentProfileModal';
 import ReportsPanel from '@/features/admin/components/ReportsPanel';
-import SubmissionQrPanel from '@/features/window1/components/SubmissionQrPanel';
 import useElapsedClock from '@/hooks/useElapsedClock';
 
 /**
@@ -83,7 +78,7 @@ export default function Window1Dashboard({ user, currentTab, setViewImageUrl }) 
     w1ProgressPage,
     setW1ProgressPage,
     itemsPerPage,
-    intakePagination, releasePagination, progressPagination,
+    intakePagination, releasePagination, progressPagination, progressFilter, changeProgressFilter, progressDocuments,
   } = useWindow1Dashboard(user, currentTab, queueTab);
 
   const todayFormatted = todayLongDate();
@@ -95,387 +90,17 @@ export default function Window1Dashboard({ user, currentTab, setViewImageUrl }) 
   return (
     <>
       <DashboardAlerts success={success} error={error} onDismiss={dismissNotification} dismissalKey={`${currentTab}:${queueTab}`} />
-      <div className="trace-page">
-        {/* 3.1. WORKSPACE DASHBOARD VIEW */}
-        {currentTab === 'dashboard' && (
-          <>
-            {/* Welcome Header */}
-            <div className="trace-page-header">
-              <div>
-                <h2 className="trace-page-title">
-                  Welcome back, <span className="text-[#15803d] dark:text-green-300">Window 1 Clerk</span>
-                </h2>
-              </div>
-              <div className="trace-date">
-                <span className="text-xs font-semibold text-gray-500 dark:text-gray-400">Today:</span>
-                <span className="text-xs font-bold text-gray-800 dark:text-gray-100">{todayFormatted}</span>
-                <svg className="w-4 h-4 text-gray-400 dark:text-gray-400 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
-              </div>
-            </div>
-
-            {/* Top KPIs Row */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div className="trace-section trace-card-info trace-section-body flex flex-col justify-between min-h-44">
-                <div className="flex justify-between items-start">
-                  <div>
-                    <span className="text-[10px] font-bold text-gray-400 dark:text-gray-400 uppercase tracking-widest block">PROCESSED MANUAL DOCUMENT TODAY</span>
-                    <span className="text-2xl sm:text-3xl font-display font-black text-gray-900 dark:text-gray-100 mt-2 block">{dashStats.processed_today} <span className="text-sm text-gray-400 dark:text-gray-400 font-medium font-sans">Documents</span></span>
-                  </div>
-                  <MiniSparkline trend="up" />
-                </div>
-                <div className="bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-100 dark:border-emerald-800 rounded-full px-3 py-1 text-[10px] font-bold text-[#15803d] dark:text-green-300 w-fit flex items-center gap-1.5 mt-2">
-                  <span className="w-1.5 h-1.5 bg-[#15803d] rounded-full"></span>
-                  Documents scanned and routed today
-                </div>
-              </div>
-
-              <div className="trace-section trace-card-info trace-section-body flex flex-col justify-between min-h-44">
-                <div className="flex justify-between items-start">
-                  <div>
-                    <span className="text-[10px] font-bold text-gray-400 dark:text-gray-400 uppercase tracking-widest block">AWAITING SECRETARY</span>
-                    <span className="text-2xl sm:text-3xl font-display font-black text-gray-900 dark:text-gray-100 mt-2 block">
-                      {dashStats.pending_secretary_count} <span className="text-sm text-gray-400 dark:text-gray-400 font-medium font-sans">Pending</span>
-                    </span>
-                  </div>
-                  <MiniSparkline trend="down" />
-                </div>
-                <div className="bg-[#15803d] rounded-xl px-4 py-2 text-[10px] font-medium text-white w-full mt-2 leading-snug">
-                  Documents at the Secretary desk awaiting evaluation
-                </div>
-              </div>
-
-              <div className="trace-section trace-card-info trace-section-body flex flex-col justify-between min-h-44">
-                <div className="flex justify-between items-start">
-                  <div>
-                    <span className="text-[10px] font-bold text-gray-400 dark:text-gray-400 uppercase tracking-widest block">COMPLETED TODAY</span>
-                    <span className="text-2xl sm:text-3xl font-display font-black text-gray-900 dark:text-gray-100 mt-2 block">
-                      {dashStats.completed_today_count} <span className="text-sm text-gray-400 dark:text-gray-400 font-medium font-sans">Completed</span>
-                    </span>
-                  </div>
-                  <MiniSparkline trend="up" />
-                </div>
-                <div className="bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-100 dark:border-emerald-800 rounded-full px-3 py-1 text-[10px] font-bold text-[#15803d] dark:text-green-300 w-fit flex items-center gap-1.5 mt-2">
-                  <span className="w-1.5 h-1.5 bg-[#15803d] rounded-full"></span>
-                  Documents released to students today
-                </div>
-              </div>
-            </div>
-
-            {/* Upload Document Dropzone */}
-            <div className="grid grid-cols-1 lg:grid-cols-[320px_minmax(0,1fr)] gap-6 mt-8 items-start">
-              <aside className="min-w-0 space-y-6">            <div className="trace-section trace-section-body flex flex-col justify-between">
-              <div className="flex flex-col items-start gap-3">
-                <div>
-                  <h3 className="trace-section-title">UPLOAD DOCUMENT</h3>
-                  <p className="text-xs text-gray-400 dark:text-gray-400 mt-1">Upload physical papers to extract data via AI Engine.</p>
-                </div>
-                <Button
-                  onClick={() => setActiveModal('manual-input')}
-                  className="trace-button trace-button-secondary shrink-0 flex items-center gap-1.5"
-                >
-                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4"/></svg>
-                  Manual Entry
-                </Button>
-              </div>
-
-              <div className="mt-4">
-                <FileUploadField label="Scan or upload a document" file={scanFile} onChange={simulateHardwareScan} disabled={actionLoading} />
-              </div>
-            </div>
-                <SubmissionQrPanel />
-              </aside>
-              <section className="min-w-0 space-y-4">
-                <QueueTabs idPrefix="window1-queue" tabs={[{ key: 'intake', label: 'Intake', count: intakeQueue.length }, { key: 'release', label: 'Release', count: releaseQueue.length }]} activeKey={queueTab} onChange={setQueueTab} />
-                <QueuePanel idPrefix="window1-queue" activeKey={queueTab}>
-                {queueTab === 'intake' && <>            {/* Intake queue — the first human look at every request, online or walk-in */}
-            <div className="trace-section overflow-hidden">
-              <div className="trace-section-header border-gray-100 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800/50">
-                <div>
-                  <h3 className="trace-section-title uppercase tracking-wider">INTAKE QUEUE</h3>
-                  <div className="flex items-center gap-4 mt-1 text-xs text-gray-500 dark:text-gray-400 font-medium">
-                    <span>Awaiting Intake Check: <strong className="text-gray-900 dark:text-gray-100">{intakeQueue.length}</strong></span>
-                    <span className="hidden sm:inline text-gray-400 dark:text-gray-400">Check the paperwork, then route to the College Secretary.</span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="p-4 sm:p-6">
-                <div ref={intakePagination?.containerRef} className="max-h-[calc(100vh-280px)] overflow-y-auto overflow-x-auto">
-                  {intakeQueue.length === 0 ? (
-                    <div className="text-center py-16 text-gray-400 dark:text-gray-400 font-medium">Nothing waiting for intake.</div>
-                  ) : (
-                    <>
-                      <table className="w-full text-left border-collapse table-fixed min-w-[680px]">
-                        <thead className="sticky top-0 bg-white dark:bg-gray-900 z-10">
-                          <tr className="text-gray-400 dark:text-gray-400 text-[10px] uppercase tracking-widest border-b border-gray-100 dark:border-gray-700">
-                            <th className="pb-4 font-bold pl-4">Tracking Hash</th>
-                            <th className="pb-4 font-bold">Student</th>
-                            <th className="pb-4 font-bold">Document Type</th>
-                            <th className="pb-4 font-bold">Attachment</th>
-                            <th className="pb-4 font-bold">Waiting</th>
-                            <th className="pb-4 font-bold text-right pr-4">Action</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-gray-50 dark:divide-gray-700">
-                          {intakeQueue
-                            .slice((w1IntakePage - 1) * itemsPerPage, w1IntakePage * itemsPerPage)
-                            .map(doc => (
-                            <tr key={doc.id} className="hover:bg-gray-50/50 dark:hover:bg-gray-800/50 group">
-                              <td className="py-4 pl-4 font-mono text-xs text-gray-500 dark:text-gray-400">#{doc.tracking_number ? doc.tracking_number.slice(0, 10).toUpperCase() : doc.id}</td>
-                              <td className="py-4">
-                                <Button type="button" disabled={!doc.student_id} onClick={() => setViewProfileId(doc.student_id)} className="trace-action text-sm font-bold text-blue-700 dark:text-blue-300 hover:underline text-left focus-visible:ring-2 focus-visible:ring-blue-500">{doc.student_name || 'Name Unresolved'}</Button>
-                                <div className="text-xs font-mono text-gray-400 dark:text-gray-400 mt-0.5 select-text break-words">{doc.student_id || 'ID Pending'}</div>
-                              </td>
-                              <td className="py-4 text-xs font-bold text-gray-600 dark:text-gray-300">{doc.document_type}<RequestStaff document={doc} /></td>
-                              <td className="py-4 text-xs font-semibold">
-                                {doc.file_path
-                                  ? <span className="text-[#15803d] dark:text-green-300">Attached</span>
-                                  : requiresAttachment(doc.document_type)
-                                    ? <span className="text-amber-600 dark:text-amber-300">Needs scan</span>
-                                    : <span className="text-gray-400 dark:text-gray-400">None</span>}
-                              </td>
-                              <td className="py-4 text-xs font-bold text-gray-500 dark:text-gray-400 font-mono">{getWaitTime(doc.intake_entered_at || doc.created_at, now)}</td>
-                              <td className="py-4 text-right pr-4">
-                                <Button
-                                  onClick={() => { setSelectedDoc(doc); setActiveModal('intake-review'); }}
-                                  className="trace-button trace-button-primary flex items-center gap-1.5 ml-auto"
-                                >
-                                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                                  Check
-                                </Button>
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-
-                      {intakeQueue.length > itemsPerPage && (
-                        <div className="flex justify-between items-center mt-6 border-t border-gray-100 dark:border-gray-700 pt-4">
-                          <Button
-                            disabled={w1IntakePage === 1}
-                            onClick={() => setW1IntakePage(p => p - 1)}
-                            className="trace-button trace-button-secondary"
-                          >
-                            Previous
-                          </Button>
-                          <span className="text-xs font-bold text-gray-500 dark:text-gray-400">
-                            Page {w1IntakePage} of {Math.ceil(intakeQueue.length / itemsPerPage)}
-                          </span>
-                          <Button
-                            disabled={w1IntakePage >= Math.ceil(intakeQueue.length / itemsPerPage)}
-                            onClick={() => setW1IntakePage(p => p + 1)}
-                            className="trace-button trace-button-secondary"
-                          >
-                            Next
-                          </Button>
-                        </div>
-                      )}
-                    </>
-                  )}
-                </div>
-              </div>
-            </div>
-
-                </>}
-                {queueTab === 'release' && <>            {/* Active release queue card */}
-            <div className="trace-section overflow-hidden">
-              <div className="trace-section-header border-gray-100 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800/50">
-                <div>
-                  <h3 className="trace-section-title uppercase tracking-wider">RELEASE DESK</h3>
-                  <div className="flex items-center gap-4 mt-1 text-xs text-gray-500 dark:text-gray-400 font-medium">
-                    <span>Pending Student Pick-up: <strong className="text-gray-900 dark:text-gray-100">{dashStats.ready_window_1_count}</strong></span>
-                    <span>Cleared by Secretary Today: <strong className="text-gray-900 dark:text-gray-100">{dashStats.cleared_by_secretary_today}</strong></span>
-                  </div>
-                </div>
-                <Button onClick={loadDashboardData} className="trace-action text-xs text-[#15803d] dark:text-green-300 font-bold hover:underline inline-flex items-center gap-1"><svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.992 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182" /></svg> Refresh</Button>
-              </div>
-
-              <div className="p-4 sm:p-6">
-                <div ref={releasePagination?.containerRef} className="max-h-[calc(100vh-280px)] overflow-y-auto overflow-x-auto">
-                  {releaseQueue.length === 0 ? (
-                    <div className="text-center py-16 text-gray-400 dark:text-gray-400 font-medium">No documents waiting for release.</div>
-                  ) : (
-                    <>
-                      <table className="w-full text-left border-collapse table-fixed min-w-[680px]">
-                        <thead className="sticky top-0 bg-white dark:bg-gray-900 z-10">
-                          <tr className="text-gray-400 dark:text-gray-400 text-[10px] uppercase tracking-widest border-b border-gray-100 dark:border-gray-700">
-                            <th className="pb-4 font-bold pl-4">Tracking Hash</th>
-                            <th className="pb-4 font-bold">Student</th>
-                            <th className="pb-4 font-bold">Document Type</th>
-                            <th className="pb-4 font-bold">Official Receipt</th>
-                            <th className="pb-4 font-bold">Wait Time</th>
-                            <th className="pb-4 font-bold text-right pr-4">Action</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-gray-50 dark:divide-gray-700">
-                          {releaseQueue
-                            .slice((w1ReleasePage - 1) * (releasePagination?.pageSize || itemsPerPage), w1ReleasePage * (releasePagination?.pageSize || itemsPerPage))
-                            .map(doc => (
-                            <tr key={doc.id} className="hover:bg-gray-50/50 dark:hover:bg-gray-800/50 group">
-                              <td className="py-4 pl-4 font-mono text-xs text-gray-500 dark:text-gray-400">#{doc.tracking_number ? doc.tracking_number.slice(0, 10).toUpperCase() : doc.id}</td>
-                              <td className="py-4">
-                                <Button type="button" disabled={!doc.student_id} onClick={() => setViewProfileId(doc.student_id)} className="trace-action text-sm font-bold text-blue-700 dark:text-blue-300 hover:underline text-left focus-visible:ring-2 focus-visible:ring-blue-500">{doc.student_name || 'Name Unresolved'}</Button>
-                                <div className="text-xs font-mono text-gray-400 dark:text-gray-400 mt-0.5 select-text break-words">{doc.student_id || 'ID Pending'}</div>
-                              </td>
-                              <td className="py-4 text-xs font-bold text-gray-600 dark:text-gray-300">{doc.document_type}<RequestStaff document={doc} /></td>
-                              <td className="py-4 text-xs font-mono">
-                                {doc.or_number
-                                  ? <span className="font-bold text-gray-700 dark:text-gray-300">{doc.or_number}</span>
-                                  : <span className="text-gray-400 dark:text-gray-400">OR number not recorded</span>}
-                                {!doc.official_receipt_path && <span className="block text-[10px] text-gray-500 dark:text-gray-400 font-sans">Digital copy pending upload</span>}
-                                {doc.official_receipt_path && (
-                                  <Button
-                                    onClick={() => setViewImageUrl(doc.official_receipt_path)}
-                                    className="trace-action ml-2 text-[#15803d] dark:text-green-300 hover:underline font-sans font-bold"
-                                  >
-                                    View
-                                  </Button>
-                                )}
-                              </td>
-                              <td className="py-4 text-xs font-bold text-gray-500 dark:text-gray-400 font-mono">{getWaitTime(doc.updated_at, now)}</td>
-                              <td className="py-4 text-right pr-4">
-                                <Button
-                                  onClick={() => handleWindow1Release(doc)}
-                                  disabled={actionLoading}
-                                  className="trace-button trace-button-primary flex items-center gap-1.5 ml-auto"
-                                >
-                                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M5 13l4 4L19 7"/></svg>
-                                  Release Doc
-                                </Button>
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-
-                      {releaseQueue.length > (releasePagination?.pageSize || itemsPerPage) && (
-                        <div className="flex justify-between items-center mt-6 border-t border-gray-100 dark:border-gray-700 pt-4">
-                          <Button
-                            disabled={w1ReleasePage === 1}
-                            onClick={() => setW1ReleasePage(p => p - 1)}
-                            className="trace-button trace-button-secondary"
-                          >
-                            Previous
-                          </Button>
-                          <span className="text-xs font-bold text-gray-500 dark:text-gray-400">
-                            Page {w1ReleasePage} of {Math.ceil(releaseQueue.length / (releasePagination?.pageSize || itemsPerPage))}
-                          </span>
-                          <Button
-                            disabled={w1ReleasePage >= Math.ceil(releaseQueue.length / (releasePagination?.pageSize || itemsPerPage))}
-                            onClick={() => setW1ReleasePage(p => p + 1)}
-                            className="trace-button trace-button-secondary"
-                          >
-                            Next
-                          </Button>
-                        </div>
-                      )}
-                    </>
-                  )}
-              
-                </div>
-              </div>
-            </div></>}
-              </QueuePanel>
-            </section>
-            </div>
-          </>
-        )}
-
-        {/* 3.2. TRACKING DESK VIEW */}
-        {currentTab === 'tracking-desk' && (
-          <>
-            {/* Header */}
-            <div className="trace-page-header">
-              <div>
-                <h2 className="trace-page-title">
-                  Tracking Desk
-                </h2>
-              </div>
-              <div className="trace-date">
-                <span className="text-xs font-semibold text-gray-500 dark:text-gray-400">Today:</span>
-                <span className="text-xs font-bold text-gray-800 dark:text-gray-100">{todayFormatted}</span>
-                <svg className="w-4 h-4 text-gray-400 dark:text-gray-400 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
-              </div>
-            </div>
-            {/* System Documents Progress Queue */}
-            <div className="trace-section overflow-hidden mt-8">
-              <div className="trace-section-header border-gray-100 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800/50">
-                <div>
-                  <h3 className="trace-section-title uppercase tracking-wider">SYSTEM DOCUMENTS PROGRESS</h3>
-                  <p className="text-xs text-gray-400 dark:text-gray-400 mt-1">Live tracking of all active requested documents in the system.</p>
-                </div>
-              </div>
-              <div className="p-4 sm:p-6">
-                {documents.length === 0 ? (
-                  <div className="text-center py-12 text-gray-400 dark:text-gray-400 font-medium">No active document requests.</div>
-                ) : (
-                  <>
-                    <div ref={progressPagination?.containerRef} className="max-h-[calc(100vh-280px)] overflow-y-auto overflow-x-auto">
-                      <table className="w-full text-left border-collapse table-fixed min-w-[43.75rem]">
-                        <thead className="sticky top-0 bg-white dark:bg-gray-900 z-10">
-                          <tr className="text-gray-400 dark:text-gray-400 text-[10px] uppercase tracking-widest border-b border-gray-100 dark:border-gray-700">
-                            <th className="pb-4 font-bold pl-4">Date Requested</th>
-                            <th className="pb-4 font-bold">Document</th>
-                            <th className="pb-4 font-bold">Progress</th>
-                            <th className="pb-4 font-bold">Status</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-gray-50 dark:divide-gray-700">
-                          {documents.slice((w1ProgressPage - 1) * (progressPagination?.pageSize || itemsPerPage), w1ProgressPage * (progressPagination?.pageSize || itemsPerPage)).map(doc => (
-                            <tr key={doc.id} className="hover:bg-gray-50/50 dark:hover:bg-gray-800/50 transition-colors">
-                              <td className="py-4 pl-4 text-xs font-semibold text-gray-400 dark:text-gray-400">{new Date(doc.created_at).toLocaleDateString()}</td>
-                              <td className="py-4">
-                                <div className="text-sm font-bold text-gray-900 dark:text-gray-100">{doc.document_type}</div>
-                                <div className="text-xs font-mono text-gray-400 dark:text-gray-400 mt-0.5">#{doc.tracking_number ? doc.tracking_number.slice(0, 10).toUpperCase() : doc.id}</div>
-                              </td>
-                              <td className="py-4 w-1/3">
-                                <div className="flex items-center gap-3">
-                                  <div className="w-full bg-gray-100 dark:bg-gray-800 rounded-full h-2 overflow-hidden">
-                                    <ProgressFill value={getProgressVal(doc.current_status)} className="bg-[#15803d]" />
-                                  </div>
-                                  <span className="text-[11px] font-bold text-gray-600 dark:text-gray-300 font-mono">{getProgressVal(doc.current_status)}%</span>
-                                </div>
-                              </td>
-                              <td className="py-4">
-                                <span className={`inline-flex max-w-full px-3 py-1 rounded-full text-[10px] leading-normal font-black uppercase tracking-wider ${getStatusTone(doc.current_status)}`}>
-                                  {getStatusLabel(doc.current_status)}
-                                </span>
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-
-                    {documents.length > (progressPagination?.pageSize || itemsPerPage) && (
-                      <div className="flex justify-between items-center mt-6 border-t border-gray-100 dark:border-gray-700 pt-4">
-                        <Button
-                          disabled={w1ProgressPage === 1}
-                          onClick={() => setW1ProgressPage(p => p - 1)}
-                          className="trace-button trace-button-secondary"
-                        >
-                          Previous
-                        </Button>
-                        <span className="text-xs font-bold text-gray-500 dark:text-gray-400">
-                          Page {w1ProgressPage} of {Math.ceil(documents.length / (progressPagination?.pageSize || itemsPerPage))}
-                        </span>
-                        <Button
-                          disabled={w1ProgressPage >= Math.ceil(documents.length / (progressPagination?.pageSize || itemsPerPage))}
-                          onClick={() => setW1ProgressPage(p => p + 1)}
-                          className="trace-button trace-button-secondary"
-                        >
-                          Next
-                        </Button>
-                      </div>
-                    )}
-                  </>
-                )}
-              </div>
-            </div>
-          </>
-        )}
-
-
+      <div className="trace-page trace-window-page">
+        {(currentTab === 'dashboard' || currentTab === 'tracking-desk') && <header className="trace-page-header"><h2 className="trace-page-title">{currentTab === 'dashboard' ? <>Welcome back, <span>Window 1 Clerk</span></> : 'Tracking Desk'}</h2><WindowDate date={todayFormatted}/></header>}
+        {currentTab === 'dashboard' && <WindowOverview stats={dashStats}
+          intake={{documents:intakeQueue,pagination:intakePagination,page:intakePagination?.page || w1IntakePage,onPage:setW1IntakePage,pageSize:intakePagination?.pageSize || itemsPerPage}}
+          release={{documents:releaseQueue,pagination:releasePagination,page:releasePagination?.page || w1ReleasePage,onPage:setW1ReleasePage,pageSize:releasePagination?.pageSize || itemsPerPage}}
+          queueTab={queueTab} onQueueTab={setQueueTab} upload={{file:scanFile,onChange:simulateHardwareScan}} onManual={() => setActiveModal('manual-input')}
+          onProfile={setViewProfileId} onIntake={doc => {setSelectedDoc(doc);setActiveModal('intake-review');}} onRelease={handleWindow1Release} onPreview={setViewImageUrl} now={now} busy={actionLoading}/>
+        }
+        {currentTab === 'tracking-desk' && <WindowTracking documents={documents} filtered={progressDocuments} filter={progressFilter} onFilter={changeProgressFilter}
+          pagination={progressPagination} page={progressPagination?.page || w1ProgressPage} pageSize={progressPagination?.pageSize || itemsPerPage} onPage={setW1ProgressPage} onRefresh={loadDashboardData}/>
+        }
 
         {/* 3.4. CAMERA SCANNING MODAL */}
         {activeModal === 'scanning' && (
@@ -580,30 +205,7 @@ export default function Window1Dashboard({ user, currentTab, setViewImageUrl }) 
         confirmLabel="Submit Request" loadingLabel="Submitting…" loading={actionLoading}
         onConfirm={confirmWindow1Submission} onCancel={cancelWindow1Submission} />
 
-      <ConfirmDialog
-        open={!!releaseToConfirm}
-        title="Release Document"
-        message="Confirm the request information before releasing the document."
-        maxWidth="max-w-4xl"
-        children={releaseToConfirm && <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mt-5">
-          <div className="min-h-56 rounded-xl border border-gray-200 dark:border-gray-700 p-3">
-            <h4 className="text-sm font-bold mb-3">{releaseToConfirm.official_receipt_path ? 'Official Receipt copy' : 'Supporting attachment'}</h4>
-            {releaseToConfirm.official_receipt_path || releaseToConfirm.file_path ? <AuthedFilePreview path={releaseToConfirm.official_receipt_path || releaseToConfirm.file_path} alt="Release supporting record" iframeTitle="Release supporting record" className="w-full max-h-80 object-contain" /> : <p className="text-sm text-gray-500 dark:text-gray-400">No digital copy on file. The Secretary’s physical receipt check remains valid.</p>}
-          </div>
-          <dl className="text-sm space-y-3 select-text">
-            <div><dt className="font-bold">Document</dt><dd>{releaseToConfirm.document_type}</dd></div>
-            <div><dt className="font-bold">Applicant</dt><dd>{releaseToConfirm.student_name || releaseToConfirm.student_id}</dd></div>
-            <div><dt className="font-bold">Tracking number</dt><dd className="break-all">{releaseToConfirm.tracking_number}</dd></div>
-            <div><dt className="font-bold">Official Receipt number</dt><dd>{releaseToConfirm.or_number || 'Recorded physical receipt'}</dd></div>
-          </dl>
-        </div>}
-        variant="neutral"
-        confirmLabel="Release"
-        loadingLabel="Releasing…"
-        loading={actionLoading}
-        onConfirm={confirmWindow1Release}
-        onCancel={cancelWindow1ReleaseConfirm}
-      />
+      <ReleaseDocumentModal document={releaseToConfirm} busy={actionLoading} onConfirm={confirmWindow1Release} onCancel={cancelWindow1ReleaseConfirm}/>
 
       <ConfirmDialog
         open={!!intakeActionToConfirm}

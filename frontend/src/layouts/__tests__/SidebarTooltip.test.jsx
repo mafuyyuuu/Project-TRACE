@@ -60,7 +60,7 @@ describe('Sidebar hover labels', () => {
     expect(tooltip).toBeInTheDocument();
     fireEvent.keyDown(document, { key: 'Escape' });
     expect(screen.queryByRole('tooltip')).toBeNull();
-    fireEvent.pointerOver(control.querySelector('svg'), { pointerType: 'mouse' });
+    fireEvent.pointerOver(control.querySelector('[aria-hidden="true"]'), { pointerType: 'mouse' });
     expect(screen.queryByRole('tooltip')).toBeNull();
     fireEvent.pointerOut(control, { relatedTarget: document.body });
     fireEvent.pointerOver(control, { pointerType: 'mouse' });

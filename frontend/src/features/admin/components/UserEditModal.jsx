@@ -1,3 +1,4 @@
+import AdminIcon from '@/features/admin/components/AdminIcon';
 import PhoneInput from '@/components/PhoneInput';
 import { normalizePhoneNumber, phoneNumberError } from '@/utils/phoneNumber';
 import Button from '@/components/Button';
@@ -75,10 +76,13 @@ export default function UserEditModal({ open, onClose, user, onSave, saving, col
 
   return (
     <ModalShell
+      closeButtonIcon={<AdminIcon name="close" />}
       open={open}
       onClose={onClose}
       title="Edit User"
-      maxWidth="max-w-xl"
+      panelClassName="trace-modal-panel trace-admin-main-dialog trace-admin-edit-user max-w-[640px]"
+      subtitle="Update personal information and account details."
+      maxWidth="max-w-[640px]"
       footer={
         <div className="flex flex-col sm:flex-row gap-3">
           <Button
@@ -106,17 +110,14 @@ export default function UserEditModal({ open, onClose, user, onSave, saving, col
         onConfirm={async () => {
           if (await onSave(editToConfirm.id, editToConfirm.payload)) setEditToConfirm(null);
         }} />
-      <div className="flex flex-wrap gap-2 border-b border-gray-200 dark:border-gray-700 mb-6">
+      <div className="trace-admin-segmented-tabs">
         {TABS.map((t) => (
           <Button
             key={t.key}
             type="button"
             onClick={() => setActiveTab(t.key)}
-            className={`trace-tab rounded-t-xl  ${
-              activeTab === t.key
-                ? 'bg-white dark:bg-gray-900 border border-b-white border-gray-200 dark:border-gray-700 text-[#15803d] dark:text-green-300 -mb-px'
-                : 'text-gray-400 dark:text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'
-            }`}
+            aria-pressed={activeTab === t.key}
+            className={'trace-action ' + (activeTab === t.key ? 'trace-admin-segment-active' : '')}
           >
             {t.label}
           </Button>

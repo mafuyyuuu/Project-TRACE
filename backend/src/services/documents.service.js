@@ -179,9 +179,9 @@ async function uploadDocument(user, body, files) {
           if (problem) throw badRequest(`${problem} Complete study years in Edit Profile, or ask Admin for a correction.`);
           details.year_started = Number(profile.year_started);
         }
-        if (needsGraduationYear(item.document_type)) {
-          const year = profile.user_type === 'alumni' ? profile.graduation_year : profile.graduation_year || profile.last_attendance_year;
-          const problem = yearError(String(year ?? ''), { label: 'Year Graduated / Last Attended', minimum: 2002, required: true });
+        if (needsGraduationYear(item.document_type, profile)) {
+          const year = profile.graduation_year;
+          const problem = yearError(String(year ?? ''), { label: 'Year Graduated', minimum: 2002, required: true });
           if (problem) throw badRequest(`${problem} Complete your educational profile before requesting this document.`);
           details.year_graduated = Number(year);
         }

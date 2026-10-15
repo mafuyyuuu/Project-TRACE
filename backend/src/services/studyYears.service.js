@@ -9,8 +9,8 @@ const values = account => Object.fromEntries(keys.map(key => [key, account[key] 
 const draftValues = (draft, account = {}) => Object.fromEntries(keys.map(key => [key,
   Object.hasOwn(draft, key) ? draft[key] : account[key] == null ? '' : String(account[key])]));
 
-function validate(draft, account) {
-  const errors = studyYearErrors(draft, { required: account.user_type === 'alumni' });
+function validate(draft, account, { currentSelf = false } = {}) {
+  const errors = studyYearErrors(currentSelf && account.user_type !== 'alumni' ? { ...draft, graduation_year: '' } : draft, { required: account.user_type === 'alumni' });
   if (Object.keys(errors).length) throw badRequest(Object.values(errors)[0]);
   return Object.fromEntries(keys.map(key => [key, draft[key] ? Number(draft[key]) : null]));
 }
@@ -26,14 +26,14 @@ function validateSelf(draft, account) {
   }
   // An unrelated save must preserve historical values, even outside today's range.
   if (keys.every(key => !Object.hasOwn(draft, key) || String(draft[key] ?? '') === String(account[key] ?? ''))) return;
-  validate(draftValues(draft, account), account);
+  validate(draftValues(draft, account), account, { currentSelf: true });
 }
 
 async function completeLocked(account, draft, executor) {
   validateSelf(draft, account);
   const before = values(account);
   if (keys.every(key => !Object.hasOwn(draft, key) || String(draft[key] ?? '') === String(account[key] ?? ''))) return;
-  const after = validate(draftValues(draft, account), account);
+  const after = validate(draftValues(draft, account), account, { currentSelf: true });
   await model.save(account.id, after, executor);
   await model.record({ userId: account.id, actorId: account.id, kind: 'initial', before, after,
     reason: 'Student supplied missing study years.' }, executor);

@@ -46,13 +46,13 @@ function roleNavItems(user) {
       { tab: 'dashboard', to: '/dashboard', label: 'Dashboard', icon: 'dashboard' },
       { tab: 'admin-tracker', to: '/dashboard?tab=admin-tracker', label: 'Document Tracker', icon: 'document' },
       { tab: 'messages', to: '/dashboard?tab=messages', label: 'Support', icon: 'message' },
-      { tab: 'admin-logs', to: '/dashboard?tab=admin-logs', label: 'Activity Logs', icon: 'checklist', group: 'more' },
-      { tab: 'admin-security', to: '/dashboard?tab=admin-security', label: 'Security Logs', icon: 'shield', group: 'more' },
+      { tab: 'admin-maintenance', to: '/dashboard?tab=admin-maintenance', label: 'System Maintenance', icon: 'wrench' },
+      { tab: 'admin-logs', to: '/dashboard?tab=admin-logs', label: 'Activity Logs', icon: 'checklist' },
+      { tab: 'admin-security', to: '/dashboard?tab=admin-security', label: 'Security Logs', icon: 'shield' },
       { tab: 'admin-reports', to: '/dashboard?tab=admin-reports', label: 'Reports & Export', icon: 'report', group: 'more' },
       { tab: 'admin-analytics', to: '/dashboard?tab=admin-analytics', label: 'Efficiency Analytics', icon: 'bolt', group: 'more' },
       { tab: 'admin-grad-applications', to: '/dashboard?tab=admin-grad-applications', label: 'Graduate Applications', icon: 'cap', group: 'more' },
       { tab: 'admin-templates', to: '/dashboard?tab=admin-templates', label: 'Templates', icon: 'template', group: 'more' },
-      { tab: 'admin-maintenance', to: '/dashboard?tab=admin-maintenance', label: 'System Maintenance', icon: 'wrench' },
     ];
   }
 

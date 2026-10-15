@@ -36,6 +36,11 @@ async function register(req, res) {
   try {
     res.status(201).json(await authService.register(req.body, req.file));
   } catch (err) {
+    // Remove known-rejected drafts. Preserve proof on uncertain server/commit
+    // failures, where deleting it could break an account that was committed.
+    if (err.status >= 400 && err.status < 500 && req.file?.path) {
+      await require('fs/promises').unlink(req.file.path).catch(() => {});
+    }
     fail(res, err, 'Registration error', 'Internal server error.');
   }
 }

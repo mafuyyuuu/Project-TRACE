@@ -3,7 +3,7 @@ import useStudentProfile from '@/hooks/useStudentProfile';
 import ModalShell from '@/components/ModalShell';
 import UserDetailModal from '@/features/admin/components/UserDetailModal';
 
-export default function StudentProfileModal({ open, onClose, studentId }) {
+export default function StudentProfileModal({ open, onClose, studentId, viewerRole }) {
   const { user, loading, error, retry } = useStudentProfile(open, studentId);
   if (!open) return null;
   if (loading || error || !user) return (
@@ -14,5 +14,5 @@ export default function StudentProfileModal({ open, onClose, studentId }) {
       </div> : <p role="status">Loading profile…</p>}
     </ModalShell>
   );
-  return <UserDetailModal open={open} onClose={onClose} user={user} />;
+  return <UserDetailModal open={open} onClose={onClose} user={user} adminLayout={viewerRole === 'admin'} />;
 }

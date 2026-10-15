@@ -25,6 +25,6 @@ const DISMISSAL_NAMES = ['Honorable Dismissal', ...SET_NAMES];
 const normalizeName = value => String(value || '').trim().replace(/\s+/g, ' ').toLowerCase();
 const includesDismissal = name => DISMISSAL_NAMES.some(type => normalizeName(type) === normalizeName(name));
 const needsStudyYears = name => /^Transcript of Records(?:\b|\s*\()/i.test(name) || SET_NAMES.includes(name);
-const needsGraduationYear = name => ['Diploma', 'Diploma 2nd Copy', 'Graduation Clearance'].includes(name);
+const needsGraduationYear = (name, account) => (!account || account.user_type === 'alumni') && ['Diploma', 'Diploma 2nd Copy', 'Graduation Clearance'].includes(name);
 const needsRequestingSchool = name => SET_NAMES.includes(name) || ['Transcript of Records', 'Honorable Dismissal'].includes(name);
 module.exports = { REQUEST_CATALOG, SET_NAMES, DISMISSAL_NAMES, includesDismissal, needsStudyYears, needsGraduationYear, needsRequestingSchool };

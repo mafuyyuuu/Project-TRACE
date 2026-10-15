@@ -1,3 +1,5 @@
+import FilterSelect from '@/components/FilterSelect';
+import AdminTimestamp from '@/features/admin/components/AdminTimestamp';
 import Button from '@/components/Button';
 import { INPUT_LIMITS } from '@/utils/inputLimits';
 import ModalShell from '@/components/ModalShell';
@@ -8,17 +10,19 @@ import DashboardLoading from '@/components/DashboardLoading';
 import useGradApplicationReview from '@/features/graduate/useGradApplicationReview';
 import { useState } from 'react';
 import StudentProfileModal from '@/components/StudentProfileModal';
+import AdminIcon from '@/features/admin/components/AdminIcon';
 
-function ApplicationsTable({ applications, onReview, onProfile, emptyMessage }) {
+function ApplicationsTable({ applications, onReview, onProfile, emptyMessage, admin = false }) {
   if (applications.length === 0) {
     return <div className="text-center py-12 text-gray-400 dark:text-gray-400 font-medium">{emptyMessage}</div>;
   }
   return (
-    <table className="w-full text-left border-collapse table-fixed min-w-[680px]">
+    <table className={`w-full text-left border-collapse table-fixed ${admin ? 'min-w-[65rem]' : 'min-w-[680px]'}`}>
+      {admin && <colgroup>{['w-[29%]', 'w-[25%]', 'w-[15%]', 'w-[13%]', 'w-[18%]'].map((width, i) => <col key={i} className={width} />)}</colgroup>}
       <thead className="sticky top-0 bg-white dark:bg-gray-900 z-10">
         <tr className="text-gray-400 dark:text-gray-400 text-[10px] uppercase tracking-widest border-b border-gray-100 dark:border-gray-700">
-          <th className="pb-4 font-bold pl-4">Applicant</th>
-          <th className="pb-4 font-bold">Course</th>
+          <th className="pb-4 font-bold pl-4">{admin ? 'Alumni' : 'Applicant'}</th>
+          <th className="pb-4 font-bold">{admin ? 'Program / College' : 'Course'}</th>
           <th className="pb-4 font-bold">Submitted</th>
           <th className="pb-4 font-bold">Status</th>
           <th className="pb-4 font-bold text-right pr-4">Action</th>
@@ -27,13 +31,14 @@ function ApplicationsTable({ applications, onReview, onProfile, emptyMessage }) 
       <tbody className="divide-y divide-gray-50 dark:divide-gray-700">
         {applications.map((a) => (
           <tr key={a.id} className="hover:bg-gray-50/30 dark:hover:bg-gray-800/30 group">
-            <td className="py-4 pl-4">
+            <td className="py-4 pl-4"><div className="flex min-w-0 items-center gap-3">
+              {admin && <span aria-hidden="true" className="flex h-[38px] w-[38px] shrink-0 items-center justify-center rounded-full bg-emerald-50 text-xs font-semibold text-trace-emerald dark:bg-green-950 dark:text-green-300">{(a.full_name || '?').split(' ').slice(0, 2).map(name => name[0]).join('')}</span>}<div className="min-w-0">
               <Button type="button" disabled={!a.student_id} onClick={() => onProfile(a.student_id)}
-                className="trace-action font-bold text-blue-700 dark:text-blue-300 hover:underline select-text break-words text-left focus-visible:ring-2 focus-visible:ring-blue-500 disabled:text-gray-500">{a.full_name || 'Unknown'}</Button>
+                className={`trace-action font-bold ${admin ? 'text-trace-ink dark:text-gray-100' : 'text-blue-700 dark:text-blue-300'} hover:underline select-text break-words text-left focus-visible:ring-2 focus-visible:ring-blue-500 disabled:text-gray-500`}>{a.full_name || 'Unknown'}</Button>
               <div className="text-xs font-mono text-gray-400 dark:text-gray-400 mt-0.5 select-text break-words">{a.student_id}</div>
-            </td>
-            <td className="py-4 text-xs font-bold text-gray-600 dark:text-gray-300">{a.course || '—'}</td>
-            <td className="py-4 text-xs text-gray-400 dark:text-gray-400">{new Date(a.submitted_at).toLocaleDateString()}</td>
+              </div></div></td>
+            <td className="py-4 text-xs font-bold text-gray-600 dark:text-gray-300">{(admin ? a.program || a.course : a.course) || '—'}{admin && a.college_name && <span className="trace-admin-caption block">{a.college_name}</span>}</td>
+            <td className="py-4 text-xs text-gray-400 dark:text-gray-400">{admin ? <AdminTimestamp value={a.submitted_at} relative /> : new Date(a.submitted_at).toLocaleDateString()}</td>
             <td className="py-4">
               <span
                 className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${
@@ -44,17 +49,21 @@ function ApplicationsTable({ applications, onReview, onProfile, emptyMessage }) 
                       : 'bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300'
                 }`}
               >
-                {a.status.replace('_', ' ')}
+                {admin && a.status === 'submitted' ? 'Pending' : a.status.replace('_', ' ')}
               </span>
             </td>
-            <td className="py-4 text-right pr-4">
+            <td className="py-4 text-right pr-4"><div className="flex flex-wrap items-center justify-end gap-2">
               <Button
                 onClick={() => onReview(a)}
-                className="trace-button trace-button-primary ml-auto block"
+                className={`trace-button ${admin ? 'trace-button-secondary' : 'trace-button-primary ml-auto block'}`}
               >
                 Review
               </Button>
-            </td>
+              {admin && ['submitted', 'under_review'].includes(a.status) && <>
+                <Button type="button" className="trace-icon-button rounded-lg bg-emerald-50 dark:bg-green-950" aria-label={`Review approval for ${a.full_name || a.student_id}`} onClick={() => onReview(a)}><AdminIcon name="check" /></Button>
+                <Button type="button" className="trace-icon-button rounded-lg bg-red-50 dark:bg-red-950" aria-label={`Review rejection for ${a.full_name || a.student_id}`} onClick={() => onReview(a)}><AdminIcon name="reject" /></Button>
+              </>}
+            </div></td>
           </tr>
         ))}
       </tbody>
@@ -70,6 +79,9 @@ function ApplicationsTable({ applications, onReview, onProfile, emptyMessage }) 
  */
 export default function GradApplicationReviewPanel({ user, currentTab }) {
   const [viewProfileId, setViewProfileId] = useState(null);
+  const [search, setSearch] = useState('');
+  const [program, setProgram] = useState('all');
+  const admin = user?.role === 'admin';
   const {
     loading,
     error,
@@ -107,10 +119,12 @@ export default function GradApplicationReviewPanel({ user, currentTab }) {
     rejected: 'No rejected applications.',
   };
   const isDecided = selectedApplication?.status === 'approved' || selectedApplication?.status === 'rejected';
+  const activeApplications = queues[activeQueueTab];
+  const shownApplications = admin ? activeApplications.filter(a => [a.full_name, a.student_id, a.program, a.course, a.college_name].join(' ').toLowerCase().includes(search.trim().toLowerCase()) && (program === 'all' || (a.program || a.course) === program)) : activeApplications;
 
   return (
-    <div className="trace-page">
-      <StudentProfileModal open={!!viewProfileId} studentId={viewProfileId} onClose={() => setViewProfileId(null)} />
+    <div className={`trace-page ${admin ? 'trace-admin-graduates trace-admin-more-page' : ''}`}>
+      <StudentProfileModal viewerRole={user?.role} open={!!viewProfileId} studentId={viewProfileId} onClose={() => setViewProfileId(null)} />
       <DashboardAlerts success={success} error={error} onDismiss={dismissNotification} dismissalKey={activeQueueTab} />
       <div>
         <h2 className="trace-page-title">
@@ -132,16 +146,19 @@ export default function GradApplicationReviewPanel({ user, currentTab }) {
       />
 
       <div key={activeQueueTab} className="trace-section trace-motion-context overflow-hidden mt-6">
-        <div className="p-4 sm:p-6">
+        {admin && <div className="trace-section-header"><div><h3 className="trace-section-title">{activeQueueTab === 'pending' ? 'Pending review' : activeQueueTab === 'approved' ? 'Approved applications' : 'Rejected applications'}</h3><p className="trace-admin-caption">{activeApplications.length} applications {activeQueueTab === 'pending' ? 'waiting' : activeQueueTab}</p></div><div className="trace-actions"><label className="trace-admin-search"><span className="sr-only">Search alumni or program</span><AdminIcon name="search" /><input type="search" maxLength={255} placeholder="Search alumni or program" value={search} onChange={e => setSearch(e.target.value)} /></label><FilterSelect aria-label="Application program" className="trace-control" value={program} onChange={e => setProgram(e.target.value)}><option value="all">All programs</option>{[...new Set([...pendingApplications, ...approvedApplications, ...rejectedApplications].map(a => a.program || a.course).filter(Boolean))].map(value => <option key={value} value={value}>{value}</option>)}</FilterSelect></div></div>}
+        <div className={admin ? '' : 'p-4 sm:p-6'}>
           <div className="max-h-[calc(100vh-280px)] overflow-y-auto overflow-x-auto">
             <ApplicationsTable
-              applications={queues[activeQueueTab]}
+              applications={shownApplications}
+              admin={admin}
               onReview={openReview}
               onProfile={setViewProfileId}
-              emptyMessage={emptyMessages[activeQueueTab]}
+              emptyMessage={activeApplications.length && !shownApplications.length ? 'No applications match your filters.' : emptyMessages[activeQueueTab]}
             />
           </div>
         </div>
+        {admin && <p className="flex items-start gap-2 border-t border-gray-200 bg-gray-50 px-6 py-3 text-xs text-gray-500 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400"><AdminIcon name="info" />Open a review to inspect the submitted details. Approval and rejection require confirmation; rejection also requires notes.</p>}
       </div>
 
       <ModalShell

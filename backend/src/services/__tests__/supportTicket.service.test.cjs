@@ -186,3 +186,11 @@ it('pauses Window 1 live replies outside server-calendar hours without freeing t
  try{await expect(service.send(clerk,11,{message:'Outside hours',client_key:key})).rejects.toMatchObject({status:400});expect(model.send).not.toHaveBeenCalled();expect(model.update).not.toHaveBeenCalled();}
  finally{vi.useRealTimers();}
 });
+it.each([['active','<>'],['archive','=']])('keeps student ownership in the %s list and filters before cursor paging',async (view,operator)=>{
+ await service.list(student,{view,before:'99'});
+ expect(model.list).toHaveBeenCalledWith(`(t.student_user_id=?) AND t.state${operator}?`,[3,'RESOLVED'],99);
+});
+it('rejects unknown archive views and leaves Admin conversation writes forbidden',async()=>{
+ await expect(service.list(student,{view:'delete'})).rejects.toMatchObject({status:400});
+ expect(model.list).not.toHaveBeenCalled();
+});

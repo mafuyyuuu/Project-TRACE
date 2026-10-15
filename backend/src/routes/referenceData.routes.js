@@ -4,10 +4,10 @@ const { authenticate } = require('../middlewares/auth.middleware');
 
 const router = express.Router();
 
-// Colleges are needed on the signup page, before an account exists — so this
-// one read is deliberately public. Everything else requires a session.
+// Signup needs colleges and programs before an account exists. These active
+// catalog reads are public; other reference reads require a session.
 router.get('/colleges', referenceController.getColleges);
-router.get('/programs', authenticate, referenceController.getPrograms);
+router.get('/programs', referenceController.getPrograms);
 router.get('/document-types', authenticate, referenceController.getDocumentTypes);
 router.get('/payment-methods', authenticate, referenceController.getPaymentMethods);
 

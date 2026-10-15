@@ -78,3 +78,34 @@ it('clears cached rows on denied access but retains them on a temporary failure'
   expect(result.current.tickets).toEqual([]);expect(result.current.selected).toBe('');expect(result.current.cursor).toBeNull();
   expect(result.current.error).toBe('Access revoked');
 });
+it('aborts Active paging when switching to Archive and ignores its late response',async()=>{
+ let finishActive;
+ service.getTickets.mockReturnValueOnce(new Promise(resolve=>{finishActive=resolve;})).mockResolvedValue({tickets:[{...ticket(2),state:'RESOLVED'}],next_cursor:2});
+ const {result}=mount({});
+ await waitFor(()=>expect(service.getTickets).toHaveBeenCalledOnce());
+ const signal=service.getTickets.mock.calls[0][1];
+ act(()=>result.current.changeView('archive'));
+ await waitFor(()=>expect(result.current.tickets.map(row=>row.id)).toEqual([2]));
+ expect(signal.aborted).toBe(true);
+ expect(service.getTickets).toHaveBeenLastCalledWith(null,expect.any(AbortSignal),'archive');
+ await act(async()=>finishActive({tickets:[ticket(11)],next_cursor:11}));
+ expect(result.current.tickets.map(row=>row.id)).toEqual([2]);
+ expect(result.current.cursor).toBe(2);
+});
+it('moves a selected resolved ticket to Archive and a reopened ticket to Active without dropping selection',async()=>{
+ const {result}=mount({ticketId:'11'});
+ await waitFor(()=>expect(result.current.loading).toBe(false));
+ act(()=>result.current.observeTicket({...ticket(11),state:'RESOLVED'}));
+ await waitFor(()=>expect(service.getTickets).toHaveBeenLastCalledWith(null,expect.any(AbortSignal),'archive'));
+ expect(result.current.selected).toBe('11');
+ act(()=>result.current.observeTicket(ticket(11)));
+ await waitFor(()=>expect(service.getTickets).toHaveBeenLastCalledWith(null,expect.any(AbortSignal),'active'));
+ expect(result.current.selected).toBe('11');
+});
+it('removes a remotely resolved ticket from the next Active refresh instead of retaining a stale cached row',async()=>{
+ service.getTickets.mockResolvedValueOnce({tickets:[ticket(11)],next_cursor:11}).mockResolvedValueOnce({tickets:[],next_cursor:null});
+ const {result}=mount({});
+ await waitFor(()=>expect(result.current.tickets).toHaveLength(1));
+ await act(async()=>result.current.refresh());
+ expect(result.current.tickets).toEqual([]);expect(result.current.cursor).toBeNull();
+});
