@@ -1,8 +1,38 @@
+## Student omitted profile and tracking frames — 2026-10-15
+
+Re-audit found seven omitted frames in Student: Personal Info, Educational
+Background and Security each have top/scrolled views, plus Live Track. The prior
+ten-frame inventory was incomplete; the current inventory records all 17 frames.
+
+Implemented the 720 px Student profile, fixed identity/tabs/footer, protected proof
+preview/download, grouped contact/receipt-name/academic/personal/address fields,
+education cards, authenticator/password/session cards, visible security activity
+and original password-eye controls. Accessible field hints, conditional validation,
+saved-year restrictions, email verification, confirmations and API behavior remain.
+On mobile the summary can scroll independently while tabs and save/cancel stay
+reachable. Typography scales while geometry uses stable pixel spacing.
+
+Live Track now has the source 960 px summary cards, Copy tracking ID with explicit
+clipboard feedback, progress panel and next-step guidance. Its nine stages, order,
+counts, dates and status messages use the existing pipeline. Mobile retains three
+alternating columns and measured connector geometry. Restored the chat launcher
+shown on the Student Support frame. Added 41 original read-only SVG exports; no
+Figma canvas edits, backend/dependency/migration/environment changes.
+
+Validation: **1,084 frontend tests / 113 files** pass, including two tracking
+clipboard/terminal-state regressions. All 17 Student states passed **272 Chromium
+combinations** at 320/375/768/1440 px, 100/200% text, and both themes. The final
+**112-combination** profile chrome follow-up also passes and checks tab visibility and reachable body and
+footer. Synthetic captures are in `docs/student-profile-tracking-review.png`.
+ESLint, production/PWA build, original SVG/callsite checks and whitespace checks
+pass. Physical phones and the live backend were not tested. Student remains ready for
+user review on draft PR #37 targeting dev; no merge or deployment.
+
 ## Student Figma implementation and system-wide filter consistency — 2026-10-15
 
 The user asked to proceed with Student and use its History filter design throughout
-TRACE. Figma access was confirmed and all ten frames in Student (`2354:4416`) were
-individually inspected. The frame inventory is in `docs/UI_CONVENTIONS.md`.
+TRACE. Figma access was confirmed and ten initially identified frames in Student
+(`2354:4416`) were individually inspected. The re-audit above corrects that inventory. The frame inventory is in `docs/UI_CONVENTIONS.md`.
 
 Student now follows the source header/rail, welcome/KPI/active-request hierarchy,
 request/payment History layouts, request selection/review steps, compact support,

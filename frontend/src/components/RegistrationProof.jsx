@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
+import StudentIcon from '@/features/student/components/StudentIcon';
 import AdminIcon from '@/features/admin/components/AdminIcon';
 import Button from '@/components/Button';
 import ImageViewerModal from '@/components/ImageViewerModal';
 import useAuthedFile, { toFilename } from '@/hooks/useAuthedFile';
 
 /** Saved identity evidence is read-only and always fetched with authentication. */
-export default function RegistrationProof({ path, label = 'Registration Identity Proof', onPreview, compact = false, review = false }) {
+export default function RegistrationProof({ path, label = 'Registration Identity Proof', onPreview, compact = false, review = false, student = false }) {
   const filename = toFilename(path);
   const { url, loading, error } = useAuthedFile(filename);
   const [previewPath, setPreviewPath] = useState(null);
@@ -17,6 +18,16 @@ export default function RegistrationProof({ path, label = 'Registration Identity
   }, [zoom, rotation, url]);
   const isPdf = /\.pdf$/i.test(filename);
   const preview = () => onPreview ? onPreview(filename) : setPreviewPath(filename);
+  if (student) return <section aria-label={label} className="trace-student-profile-card trace-student-proof">
+    {url && <Button type="button" aria-label={`Preview ${label}`} className="trace-action trace-student-proof-thumbnail" onClick={preview}>{isPdf ? <span>PDF document</span> : <img src={url} alt={`${label} preview`} />}</Button>}
+    <div className="min-w-0 flex-1 space-y-3">
+      <div className="flex flex-wrap items-center justify-between gap-2"><h4>{label}</h4>{filename && <span className="trace-student-profile-badge"><StudentIcon name="profile-00044" />Uploaded</span>}</div>
+      <p className="trace-student-profile-hint">Your student ID image is used to verify your identity for document requests.</p>
+      {filename && <p className="trace-student-proof-filename"><StudentIcon name="profile-a978e" /><span className="select-text break-all">{filename}</span></p>}
+      {loading && <p role="status">Loading uploaded file…</p>}{error && <p role="alert" className="trace-inline-error">{error}</p>}{!filename && <p>No registration proof uploaded.</p>}
+      {url && <div className="trace-actions"><Button type="button" className="trace-button trace-student-proof-preview" onClick={preview}><StudentIcon name="profile-d67f7" />Preview</Button><a href={url} download={filename} className="trace-button trace-button-secondary"><StudentIcon name="profile-8a2c6" />Download proof</a></div>}
+    </div><ImageViewerModal viewImageUrl={previewPath === filename ? previewPath : null} setViewImageUrl={setPreviewPath} />
+  </section>;
   if (review) return <section aria-label={label} className="trace-admin-proof">
     <header className="flex flex-wrap items-center justify-between gap-3 px-[18px] py-4"><div><h4 className="font-semibold">ID Proof</h4><p className="trace-admin-caption">Uploaded student ID image</p></div><span className="trace-admin-badge trace-admin-badge-blue"><AdminIcon name="review-id" />Student ID</span></header>
     <div className="trace-admin-proof-preview">

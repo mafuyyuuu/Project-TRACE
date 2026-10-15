@@ -281,7 +281,7 @@ describe('Layout', () => {
     renderLayout();
     fireEvent.click(screen.getByLabelText('Edit Profile'));
     await waitFor(() => expect(screen.getByText('Edit Profile')).toBeInTheDocument());
-    expect(screen.getByText('Ana Reyes')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Ana Reyes' })).toBeInTheDocument();
   });
 });
 

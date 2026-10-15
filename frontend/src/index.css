@@ -1387,3 +1387,139 @@ body:has(.trace-student-shell) .trace-student-tickets-modal .trace-modal-body { 
  body:has(.trace-student-shell) :is(.trace-student-new-request-dialog,.trace-student-request-confirm,.trace-student-support-modal) > .trace-icon-button { top: 16px; right: 16px; width: 44px; height: 44px; }
  body:has(.trace-student-shell) :is(.trace-student-new-request-dialog,.trace-student-request-confirm,.trace-student-support-modal) .trace-modal-header > div { flex-wrap: wrap; }
 }
+
+/* Student profile: all three tabs share fixed chrome and a single body scroller. */
+.trace-student-edit-profile { @apply rounded-[16px] border border-[#e2e8ec] shadow-xl dark:border-gray-700; height: min(983px, calc(100dvh - 32px)); container-type: inline-size; }
+.trace-student-edit-profile > .trace-modal-header { @apply border-0 px-[24px] pb-[10px] pt-[22px]; min-height: 64px; }
+.trace-student-edit-profile .trace-modal-title { @apply text-xl font-bold; }
+.trace-student-edit-profile > .trace-icon-button { @apply right-[24px] top-[22px] h-[32px] w-[32px] rounded-[8px]; }
+.trace-student-edit-profile .trace-profile-header { @apply shrink-0 border-[#e2e8ec] px-[24px] pt-[10px] dark:border-gray-700; }
+.trace-student-edit-profile .trace-profile-header > div:first-child { @apply grid items-center gap-[18px] pb-[18px]; grid-template-columns: 84px minmax(0,1fr) 220px; }
+.trace-student-edit-profile .trace-profile-header > div:first-child > div:first-child { @apply h-[84px] w-[84px]; }
+.trace-student-edit-profile .trace-profile-header img:not(.trace-student-icon) { @apply h-[76px] w-[76px] rounded-full border-2 border-[#cde8d8] shadow-none; }
+.trace-student-edit-profile .trace-profile-header h3 { @apply text-[1.375rem] font-bold; font-family: inherit; }
+.trace-student-edit-profile .trace-profile-camera { @apply left-[54px] top-[54px] h-[30px] w-[30px] bg-transparent shadow-none; }
+.trace-student-profile-completion { @apply min-w-[0px] w-full; }
+.trace-student-profile-completion > div:first-child { @apply text-xs font-normal; }
+.trace-student-profile-completion > div:first-child > span:last-child { @apply text-[.8125rem] font-bold; }
+.trace-student-edit-profile .trace-profile-header > div:last-child { @apply m-[0px] gap-[6px] border-0 p-[0px]; }
+.trace-student-profile-tab { @apply min-h-[49px] rounded-t-[24px] border-0 px-[18px] py-[9px] text-sm font-semibold text-[#6b7589] dark:text-gray-300; }
+.trace-student-profile-tab[aria-pressed='true'] { @apply bg-trace-emerald text-white; }
+.trace-student-edit-profile .trace-modal-body { @apply bg-[#fafbfc] p-[0px] dark:bg-gray-950; }
+.trace-student-edit-profile .trace-modal-body > .trace-section-body { @apply px-[24px] py-[20px]; }
+.trace-student-edit-profile .trace-modal-footer { @apply border-[#e2e8ec] bg-white px-[24px] py-[14px] dark:border-gray-700 dark:bg-gray-900; }
+.trace-student-edit-profile .trace-modal-footer .trace-button { @apply min-h-[44px] rounded-[8px] px-[20px] text-sm; }
+.trace-student-profile-card { @apply flex min-w-[0px] flex-col gap-[16px] rounded-[14px] border border-[#e2e8ec] bg-white px-[20px] pb-[20px] pt-[18px] dark:border-gray-700 dark:bg-gray-900; box-shadow: none; }
+.trace-student-profile-card-heading { @apply flex min-w-[0px] flex-wrap items-center gap-[12px]; }
+.trace-student-profile-card-heading h3,.trace-student-profile-card h4 { @apply text-[.9375rem] font-semibold leading-[1.2]; }
+.trace-student-profile-card-heading p,.trace-student-profile-hint { @apply text-[.75rem] font-normal leading-normal text-[#647084] dark:text-gray-400; }
+.trace-student-profile-card-heading p { @apply mt-[2px] text-[.78125rem]; }
+.trace-student-profile-symbol { @apply flex h-[36px] w-[36px] shrink-0 items-center justify-center rounded-[10px] bg-[#e8f5ee] dark:bg-green-950; }
+.trace-student-edit-profile .trace-form-grid { @apply grid-cols-2 gap-[16px]; }
+.trace-student-contact-grid { @apply grid min-w-[0px] gap-[16px]; grid-template-columns: minmax(0,.8fr) minmax(0,1.4fr); }
+.trace-student-edit-profile .trace-label { @apply text-sm font-semibold leading-normal; }
+.trace-student-edit-profile .trace-control { @apply min-h-[44px] rounded-[8px] border-[#cdd5df] bg-white px-[14px] py-[10px] text-sm font-normal dark:border-gray-600 dark:bg-gray-900; }
+.trace-student-profile-input { @apply flex min-h-[44px] min-w-[0px] items-center gap-[8px] rounded-[8px] border border-[#cdd5df] px-[14px] dark:border-gray-600; }
+.trace-student-edit-profile .trace-student-profile-input .trace-control { @apply m-[0px] min-w-[0px] flex-1 basis-0 border-0 bg-transparent px-[0px] shadow-none ring-0; }
+.trace-student-profile-input:focus-within { @apply outline outline-2 outline-offset-2 outline-trace-emerald; }
+.trace-student-profile-input .trace-icon-button { @apply h-[32px] w-[32px] shrink-0 rounded-[8px]; }
+.trace-student-profile-select { @apply relative flex min-w-[0px] items-center; }
+.trace-student-profile-select select { @apply appearance-none pr-[40px]; }
+.trace-student-profile-select > img:last-child { @apply pointer-events-none absolute right-[14px]; }
+.trace-student-edit-profile .trace-student-profile-select.trace-student-profile-input select { @apply pr-[24px]; }
+.trace-student-profile-badge { @apply inline-flex w-fit shrink-0 items-center gap-[6px] rounded-full border border-[#cde8d8] bg-[#e8f5ee] px-[10px] py-[4px] text-[.6875rem] font-semibold leading-none text-trace-emerald dark:border-green-800 dark:bg-green-950 dark:text-green-300; }
+.trace-student-profile-neutral { @apply border-[#e2e8ec] bg-[#f1f3f2] text-[#647084] dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300; }
+.trace-student-profile-guidance { @apply flex items-start gap-[10px] rounded-[10px] border border-[#d7efe3] bg-[#e5f6ed] px-[14px] py-[12px] text-[.8125rem] leading-normal dark:border-green-900 dark:bg-green-950; }
+.trace-student-profile-warning { @apply flex items-start gap-[10px] rounded-[8px] border border-amber-200 bg-amber-50 p-[12px] text-[.8125rem] text-amber-800 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-200; }
+.trace-student-proof { @apply flex-row flex-wrap items-start gap-[20px]; }
+.trace-student-proof-thumbnail { @apply flex min-h-[156px] w-[118px] shrink-0 items-center justify-center overflow-hidden rounded-[10px] border border-[#e2e8ec] dark:border-gray-700; }
+.trace-student-proof-thumbnail img { @apply h-[156px] w-full object-cover; }
+.trace-student-proof-filename { @apply inline-flex max-w-full items-start gap-[6px] rounded-md bg-[#f1f3f2] px-[8px] py-[4px] font-mono text-[.6875rem] text-[#647084] dark:bg-gray-800 dark:text-gray-400; }
+.trace-student-proof-preview { @apply border border-[#cde8d8] bg-[#e8f5ee] text-trace-emerald dark:border-green-800 dark:bg-green-950 dark:text-green-300; }
+.trace-student-profile-hint { @apply mt-[8px]; }
+.trace-student-password-checks { @apply flex flex-wrap gap-[8px]; }
+.trace-student-password-checks li { @apply inline-flex items-center gap-[6px] rounded-full border border-[#e2e8ec] bg-[#f1f3f2] px-[8px] py-[4px] text-xs font-semibold text-slate-600 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300; }
+.trace-student-password-checks li.trace-student-password-check-valid { @apply border-green-200 bg-green-50 text-green-700 dark:border-green-800 dark:bg-green-950 dark:text-green-300; }
+.trace-student-password-visibility { @apply inline-flex w-fit items-center gap-[6px] text-[.8125rem] font-semibold text-trace-emerald dark:text-green-300; }
+.trace-student-security-event { @apply inline-flex rounded-md border border-[#cde8d8] bg-[#e8f5ee] px-[10px] py-[4px] text-[.6875rem] font-semibold text-trace-emerald dark:border-gray-600 dark:bg-green-950 dark:text-green-300; }
+.trace-student-profile-card .trace-data-table td { @apply py-[12px] text-[.8125rem]; }
+.trace-student-profile-card .trace-data-table th { @apply text-[.6875rem]; }
+
+/* Live Track keeps the authoritative nine-stage pipeline and measured connectors. */
+.trace-student-live-track { @apply rounded-[20px] border border-[#e2e8ec] dark:border-gray-700; }
+.trace-student-live-track .trace-modal-header { @apply border-b border-[#e2e8ec] px-[24px] pb-[18px] pt-[22px] dark:border-gray-700; }
+.trace-student-live-track .trace-modal-title { @apply text-xl font-semibold leading-[1.2]; }
+.trace-student-live-track .trace-modal-header p { @apply mt-[4px] leading-[1.25]; }
+.trace-student-live-track .trace-modal-body { @apply bg-[#fafbfc] px-[24px] pb-[24px] pt-[20px] dark:bg-gray-950; }
+.trace-student-live-track > .trace-icon-button { @apply right-[22px] top-[26px] h-[36px] w-[36px] rounded-[10px] border border-[#e2e8ec] dark:border-gray-700; }
+.trace-student-tracking-status { @apply inline-flex items-center gap-[6px] rounded-full border px-[10px] py-[4px] text-xs font-semibold; }
+.trace-student-tracking-summary { @apply mb-[16px] grid grid-cols-3 gap-[14px]; }
+.trace-student-tracking-summary > div { @apply min-h-[82px] flex min-w-[0px] items-center gap-[14px] rounded-[14px] border border-[#e2e8ec] bg-white p-[16px] dark:border-gray-700 dark:bg-gray-900; }
+.trace-student-tracking-summary dt { @apply mb-[4px] text-[.625rem] font-semibold leading-[1.2] uppercase tracking-[.08em] text-slate-400; }
+.trace-student-tracking-summary dd { @apply text-[.9375rem] font-semibold leading-[1.2]; }
+.trace-student-tracking-symbol { @apply flex h-[40px] w-[40px] shrink-0 items-center justify-center rounded-[12px] bg-[#e8f5ee] dark:bg-green-950; }
+.trace-student-tracking-summary .trace-icon-button { @apply h-[30px] w-[30px] rounded-[8px] bg-slate-100 dark:bg-gray-800; }
+.trace-student-tracking-summary dd.trace-student-tracking-caption,.trace-student-tracking-caption { @apply mt-[2px] text-xs font-normal leading-normal text-[#647084] dark:text-gray-400; }
+.trace-student-tracking-progress { @apply rounded-[16px] border border-[#e2e8ec] bg-white p-[24px] dark:border-gray-700 dark:bg-gray-900; }
+.trace-student-tracking-progress > header { @apply mb-[24px] flex flex-wrap items-center justify-between gap-[12px]; }
+.trace-student-tracking-progress h4 { @apply text-[.9375rem] font-semibold; }
+.trace-student-tracking-dot { @apply h-[32px] w-[32px] shrink-0; }
+.trace-student-tracking-active { box-shadow: 0 0 0 5px #cde8d8; }
+.trace-student-tracking-label { @apply mt-[16px] text-[.8125rem] font-semibold leading-[1.3]; }
+.trace-student-tracking-guidance { @apply mt-[16px] flex items-center gap-[12px] rounded-[12px] border border-[#d7efe3] bg-[#e5f6ed] p-[16px] text-sm text-green-800 dark:border-green-900 dark:bg-green-950 dark:text-green-300; }
+.trace-student-tracking-guidance .trace-student-tracking-symbol { @apply h-[32px] w-[32px] bg-white dark:bg-gray-900; }
+.trace-student-tracking-guidance .trace-student-tracking-caption { @apply text-green-700 dark:text-green-300; }
+@container (max-width: 620px) {
+ .trace-student-edit-profile .trace-profile-header > div:first-child { grid-template-columns: 84px minmax(0,1fr); }
+ .trace-student-profile-completion { @apply col-span-full; }
+ .trace-student-edit-profile .trace-form-grid,.trace-student-contact-grid { @apply grid-cols-1; }
+ .trace-student-edit-profile .trace-student-email-field { @apply flex-wrap; }
+ .trace-student-edit-profile .trace-student-email-field input { @apply basis-32; }
+}
+@media (max-width: 767px) {
+ .trace-student-edit-profile .trace-profile-header { @apply max-h-[38dvh] overflow-y-auto px-[16px]; }
+ .trace-student-edit-profile > .trace-modal-header { @apply px-[16px]; }
+ .trace-student-edit-profile .trace-modal-body > .trace-section-body,.trace-student-edit-profile .trace-modal-footer { @apply px-[16px]; }
+ .trace-student-profile-card { @apply px-[14px]; }
+ .trace-student-profile-tab { @apply px-[12px]; }
+ .trace-student-edit-profile .trace-profile-camera { @apply h-[44px] w-[44px]; }
+ .trace-student-edit-profile .trace-profile-camera > span { @apply flex items-center justify-center; }
+ .trace-student-edit-profile .trace-profile-camera > span:last-child { @apply absolute inset-0; }
+ .trace-student-edit-profile > .trace-icon-button,.trace-student-live-track > .trace-icon-button,.trace-student-profile-input .trace-icon-button { @apply h-[44px] w-[44px]; }
+ .trace-student-tracking-summary { @apply grid-cols-1; }
+ .trace-student-live-track .trace-modal-header,.trace-student-live-track .trace-modal-body { @apply px-[16px]; }
+ .trace-student-tracking-progress { @apply p-[16px]; }
+ .trace-student-tracking-progress li { @apply min-h-[112px]; }
+}
+
+.trace-student-security-event-neutral { @apply border-gray-200 bg-gray-100 text-slate-600 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300; }
+.trace-student-security-event-failed { @apply border-red-200 bg-red-50 text-red-700 dark:border-red-800 dark:bg-red-950 dark:text-red-300; }
+.trace-student-edit-profile > .trace-modal-header { padding-right: 72px; }
+.trace-student-profile-card .trace-button { @apply min-h-[40px] gap-[8px] px-[14px] py-[8px] text-[.8125rem]; }
+@container (max-width: 520px) {
+ .trace-student-proof { @apply flex-col; }
+ .trace-student-proof > div { @apply w-full; }
+}
+@container (max-width: 420px) {
+ .trace-student-edit-profile .trace-profile-header > div:first-child { grid-template-columns: minmax(0,1fr); }
+ .trace-student-profile-card-heading > .trace-student-profile-badge { @apply max-w-full; }
+}
+@media (max-width: 767px) {
+ .trace-student-profile-card .trace-button { @apply min-h-[44px]; }
+}
+@media (max-width: 767px) {
+ .trace-student-edit-profile .trace-profile-header { overflow: hidden; }
+ .trace-student-edit-profile .trace-profile-header > div:first-child { min-height: 0; flex-shrink: 1; overflow-y: auto; }
+ .trace-student-edit-profile .trace-profile-header > div:last-child { flex-shrink: 0; max-height: 28dvh; overflow-y: auto; }
+}
+@media (max-width: 767px) {
+ .trace-student-edit-profile .trace-profile-header > div:first-child { display: flex; flex-wrap: wrap; }
+ .trace-student-edit-profile .trace-profile-header > div:first-child > div:nth-child(2) { flex-basis: 9rem; }
+}
+.trace-student-profile-card .trace-table-scroll { @apply overflow-auto rounded-[10px] border border-[#e2e8ec] dark:border-gray-700; }
+.trace-student-profile-card .trace-data-table { @apply w-full text-left; }
+.trace-student-profile-card .trace-data-table th { @apply sticky top-0 border-b border-[#e2e8ec] bg-[#f5f7f9] px-[16px] py-[9px] text-[.6875rem] font-semibold uppercase tracking-[.06em] text-[#647084] dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400; }
+.trace-student-profile-card .trace-data-table td { @apply border-b border-[#e2e8ec] px-[16px] py-[12px] dark:border-gray-700; }
+.trace-student-profile-card .trace-data-table tr:last-child td { @apply border-b-0; }
+.trace-student-profile-card .trace-data-table th:first-child { width: 44%; }
+.trace-student-profile-card .trace-data-table th:nth-child(2) { width: 26%; }

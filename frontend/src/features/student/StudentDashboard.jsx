@@ -74,7 +74,7 @@ export default function StudentDashboard({ user, currentTab, setViewImageUrl }) 
     ? documents.filter((doc) => doc.request_group_id === selectedDoc.request_group_id)
     : [];
 
-  if (currentTab === 'messages') return <RequestMessagesPanel user={user} initialDocumentId={new URLSearchParams(window.location.search).get('document')} />;
+  if (currentTab === 'messages') return <><RequestMessagesPanel user={user} initialDocumentId={new URLSearchParams(window.location.search).get('document')} /><FloatingSupportChat user={user} /></>;
   if (loading) return <DashboardLoading />;
 
   return (

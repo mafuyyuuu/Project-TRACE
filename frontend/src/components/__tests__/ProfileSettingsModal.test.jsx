@@ -64,13 +64,13 @@ beforeEach(() => {
 describe('ProfileSettingsModal', () => {
   it.each(['student', 'alumni'])('uses Title Case captions while retaining labelled required fields for %s', user_type => {
     render(<DraftProfile user={{ ...STUDENT, user_type }} draft={completeProfile} />);
-    expect(screen.getByText('Profile Completion')).toBeInTheDocument();
+    expect(screen.getByText('Profile completion')).toBeInTheDocument();
     expect(screen.getByRole('region', { name: user_type === 'alumni' ? 'Proof of ID' : 'Proof of ID' })).toBeInTheDocument();
     for (const label of ['Phone Number', 'Email Address', 'Birth Date', 'Place of Birth', 'Sex', 'Civil Status', 'Home Address']) {
       expect(screen.getByLabelText(`${label} *`)).toBeRequired();
     }
     fireEvent.click(screen.getByRole('button', { name: /Educational Background/ }));
-    for (const name of ['Elementary', 'Junior High School', 'Senior High School']) {
+    for (const name of ['Elementary', 'Junior High', 'Senior High']) {
       expect(screen.getByRole('heading', { name, level: 4 })).toBeInTheDocument();
     }
     for (const label of ['Elementary School', 'Elementary Year Graduated', 'Junior High School', 'Junior High Year Graduated', 'Senior High School', 'Senior High Year Graduated']) {
@@ -251,7 +251,8 @@ describe('ProfileSettingsModal', () => {
   it('surfaces the saved registration proof without a replacement control', () => {
     renderModal({ user: { ...STUDENT, user_type: 'alumni', id_proof_path: '/uploads/id.png' } });
     const proof = screen.getByRole('region', { name: 'Proof of ID' });
-    expect(proof).toHaveTextContent('Uploaded: id.png');
+    expect(proof).toHaveTextContent('Uploaded')
+    expect(proof).toHaveTextContent('id.png');
     expect(proof.querySelector('input[type=file]')).toBeNull();
   });
   it('opens the student saved proof with download and returns to Edit Profile on Escape', async () => {
@@ -280,8 +281,8 @@ describe('ProfileSettingsModal', () => {
   });
   it('presents the account as a profile card', () => {
     renderModal();
-    expect(screen.getByText('Ana Reyes')).toBeInTheDocument();
-    expect(screen.getByText(/Student/i)).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Ana Reyes' })).toBeInTheDocument();
+    expect(screen.getByText('Student', { exact: true })).toBeInTheDocument();
     expect(screen.getByText(/STU2024001/i)).toBeInTheDocument();
   });
 
@@ -375,7 +376,7 @@ describe('ProfileSettingsModal', () => {
     expect(screen.getByRole('dialog', { name: 'Edit Profile' })).toBeInTheDocument();
     if (outcome === 'error') {
       expect(screen.getByRole('dialog', { name: 'Log Out Other Devices' })).toBeInTheDocument();
-      fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+      fireEvent.click(within(screen.getByRole('dialog', { name: 'Log Out Other Devices' })).getByRole('button', { name: 'Cancel' }));
     }
     expect(logout).toHaveFocus();
     expect(onClose).not.toHaveBeenCalled();

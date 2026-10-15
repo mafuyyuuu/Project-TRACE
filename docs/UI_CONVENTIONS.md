@@ -10,7 +10,7 @@ Shared foundations do not replace role-specific workflows with mockup content or
 
 ## Student reference and shared filters — 2026-10-15
 
-The [Student section](https://www.figma.com/design/eQNaLBPXQSojI6lOK60Api/TRACE-UI---UX?node-id=2354-4416) is the current Student visual reference. Every one of its ten frames was inspected, including the floating panel and both support dialogs. The sparse manual frame was resolved through its screenshot and six detailed child contexts. Student is implemented for visual review; it has not yet been accepted.
+The [Student section](https://www.figma.com/design/eQNaLBPXQSojI6lOK60Api/TRACE-UI---UX?node-id=2354-4416) is the current Student visual reference. The re-audit inventories 17 frames, including the floating panel, both support dialogs, six profile top/scrolled views, and Live Track. The earlier ten-frame inventory omitted the profile and tracking frames. The sparse manual frame was resolved through its screenshot and six detailed child contexts. Student is implemented for visual review; it has not yet been accepted.
 
 | Figma frame | View / state | Implementation |
 |---|---|---|
@@ -24,6 +24,10 @@ The [Student section](https://www.figma.com/design/eQNaLBPXQSojI6lOK60Api/TRACE-
 | `2326:1293` | History: Payments | StudentHistory payment view |
 | `2328:1309` | Support | StudentSupportEmpty / SupportWorkspace |
 | `2354:3364` | User Manual / FAQ | Role-aware shared manual presentation |
+| `2386:1553` / `2385:2345` | Personal Info: top / scrolled | StudentProfilePersonal |
+| `2386:1819` / `2385:2157` | Educational Background: top / scrolled | StudentProfileEducation |
+| `2386:2002` / `2385:2609` | Security: top / scrolled | StudentProfileSecurity / AuthenticatorSettings |
+| `2394:1583` | Live Track | LiveTrackingModal |
 
 `trace-student-shell` owns the reference header, rail, type scale and page geometry, including the compact mobile header. The Student SVG exports retain their intrinsic dimensions in `frontend/public/student-figma`. API identities, receipts, timestamps, status counts and prices remain dynamic. Keep required year/purpose/copy/attachment fields and the one-dismissal guard; selected document cards stay visible while searching so hidden required fields cannot bypass native validation. Review consumes the existing staged submission, preserves drafts on cancellation and confirms before submitting. Completed KPI copy describes completed records rather than promising pickup for a released request.
 
@@ -31,7 +35,9 @@ The user selected the History **All statuses** dropdown (`2324:1578`) as the sys
 
 History request search combines tracking/document terms and the saved status; payment search also matches references. Keep each view's search/status draft, the existing paid-or-submitted-reference payment cohort, honest unpriced amounts, protected receipt callbacks and totals derived from visible priced rows. Tables scroll internally rather than squeezing amounts, dates or receipt controls. Manual guidance and counts remain role-aware; local Yes/No selection does not create server FAQ votes. Support ticket creation, FAQ-first escalation, attachments, hours, permissions and confirmation stay in existing hooks/services. Older-ticket controls follow the actual cursor, not mock history.
 
-[Synthetic Student desktop review](student-tabs-review.png) · [Student dialogs/mobile](student-dialogs-mobile-review.png) · [Shared filter examples](shared-filter-review.png).
+Student profile uses the source 720 px panel, fixed identity/tabs/footer and one scrollable body. Proof remains authenticated and read-only. Preserve field hints, conditional requirements, saved-year restrictions, email verification, authenticator flows and confirmed profile/session changes. Security activity stays visible below the password/session sections. Live Track uses the source 960 px summary/progress layout with a working Copy tracking ID action; stage order, status messages and log dates stay derived from the saved pipeline. At narrow widths the map keeps three alternating columns and measured connectors. Static geometry stays in pixels while typography follows text-size preferences.
+
+[Profile and tracking review](student-profile-tracking-review.png) · [Synthetic Student desktop review](student-tabs-review.png) · [Student dialogs/mobile](student-dialogs-mobile-review.png) · [Shared filter examples](shared-filter-review.png).
 
 ## Admin reference — 2026-10-15
 

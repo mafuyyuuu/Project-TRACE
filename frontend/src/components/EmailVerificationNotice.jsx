@@ -1,12 +1,13 @@
 import Button from '@/components/Button';
+import StudentIcon from '@/features/student/components/StudentIcon';
 import AdminIcon from '@/features/admin/components/AdminIcon';
-export default function EmailVerificationNotice({ user, email = '', pendingEmail = '', sending, message, error, disabled, onVerify, children, admin = false }) {
+export default function EmailVerificationNotice({ user, email = '', pendingEmail = '', sending, message, error, disabled, onVerify, children, admin = false, student = false }) {
   const matchesSaved = email.trim().toLowerCase() === (user?.email || '').trim().toLowerCase();
   const verified = matchesSaved && Boolean(user?.email_verified_at);
   return <section aria-label="Verify email" className="min-w-0 space-y-2">
     <div id="tutorial-email" className="flex flex-wrap items-center gap-2">
-      {admin ? <div className="trace-admin-email-field"><AdminIcon name="profile-mail" />{children}<span className={'trace-admin-badge rounded-full ' + (verified ? 'trace-admin-badge-green' : 'trace-admin-badge-amber')}>{!verified && <AdminIcon name="profile-ellipse" />}{verified ? 'Verified' : 'Unverified'}</span></div> : children}
-      {verified ? !admin && <span className="text-sm font-bold text-green-700 dark:text-green-300">Verified</span>
+      {student ? <div className="trace-student-profile-input trace-student-email-field"><StudentIcon name="profile-09f5a" />{children}<span className="trace-student-profile-badge">{verified && <StudentIcon name="profile-2cae4" />}{verified ? 'Verified' : 'Unverified'}</span></div> : admin ? <div className="trace-admin-email-field"><AdminIcon name="profile-mail" />{children}<span className={'trace-admin-badge rounded-full ' + (verified ? 'trace-admin-badge-green' : 'trace-admin-badge-amber')}>{!verified && <AdminIcon name="profile-ellipse" />}{verified ? 'Verified' : 'Unverified'}</span></div> : children}
+      {verified ? !admin && !student && <span className="text-sm font-bold text-green-700 dark:text-green-300">Verified</span>
         : <Button type="button" disabled={disabled || sending || !email.trim()} onClick={onVerify}
           className="trace-button trace-button-primary shrink-0">{sending ? 'Sending…' : 'Verify'}</Button>}
     </div>
