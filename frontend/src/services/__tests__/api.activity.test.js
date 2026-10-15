@@ -23,6 +23,19 @@ beforeEach(() => {
 });
 
 describe('Shared API loading activity', () => {
+  it('keeps signup catalog failures local and releases loading activity without deleting the current session', async () => {
+    localStorage.setItem('trace_token', 'fixture-token');
+    localStorage.setItem('trace_user', '{"id":1}');
+    const pending = deferredAdapter();
+    const request = api.get('/reference/programs', { adapter: pending.adapter });
+    const rejected = expect(request).rejects.toThrow('Request failed');
+    await waitFor(() => expect(pending.adapter).toHaveBeenCalledOnce());
+    pending.fail(401);
+    await rejected;
+    expect(localStorage.getItem('trace_token')).toBe('fixture-token');
+    expect(localStorage.getItem('trace_user')).toBe('{"id":1}');
+    expect(getPendingApiRequests()).toBe(0);
+  });
   it('keeps activity until concurrent requests finish, including out-of-order completion', async () => {
     const snapshots = [];
     const unsubscribe = subscribeApiActivity(() => snapshots.push(getPendingApiRequests()));

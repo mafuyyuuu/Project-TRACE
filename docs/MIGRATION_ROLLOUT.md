@@ -4,6 +4,8 @@
 
 This change needs a matching backend/frontend deployment. Registration now requires an active college/program pairing and explicit acknowledgment of Privacy Notice `2026-10-15.v1`. An older cached form cannot bypass either requirement; refresh it after rollout. Existing accounts do not need to register again and are not assigned a retrospective acknowledgment.
 
+If clicking Sign up immediately returns to Login, inspect the response from `/api/reference/programs`. Older backend builds require authentication for that read. The corrected frontend keeps public catalog failures on signup with Retry Catalog, and an expired cached `/auth/me` session no longer redirects a public page. The server must still run the matching backend that exposes the active program catalog publicly; a frontend refresh alone cannot make an older protected API public. Rebuild/recreate the backend only after checking out the intended reviewed application revision. Do not remove authentication from document or payment reference routes.
+
 **Catalog prerequisites:** the existing `colleges` and `programs` tables must exist. If the program catalog has not been created, run the targeted `migrate_program_catalog.js` migration before the new import. Do not rerun the general `migration.js` or import `schema.sql`/`seed.sql` into a populated database.
 
 From a checkout and rebuilt backend image containing this change, while writers are stopped:
