@@ -26,6 +26,7 @@ const { namePartsError, fullNameFromParts } = require('../utils/receiptStudentNa
 const studyYearModel = require('../models/studyYears.model');
 const referenceModel = require('../models/referenceData.model');
 const programService = require('./program.service');
+const { PRIVACY_NOTICE_VERSION, PRIVACY_ACK_EVENT } = require('../utils/registrationPrivacy');
 const { pool } = require('../config/db');
 const notificationModel = require('../models/notification.model');
 const passwordResetModel = require('../models/passwordReset.model');
@@ -199,6 +200,9 @@ async function getCurrentUser(userId) {
  * *rejected* student ID reuses its original account and audit history on resubmission.
  */
 async function register(body, file) {
+  if (body.privacy_acknowledged !== 'true' || body.privacy_notice_version !== PRIVACY_NOTICE_VERSION) {
+    throw badRequest('Read and acknowledge the current Privacy Notice before registering. Refresh the sign-up page if the notice has changed.');
+  }
   validateTextFields(body, ACCOUNT_TEXT_LIMITS);
   const { employee_id, email, phone_number, password, user_type, course, college_id } = body;
   const hasNameParts = ['first_name', 'middle_name', 'last_name'].some(key => Object.hasOwn(body, key));
@@ -237,6 +241,10 @@ async function register(body, file) {
     const colleges = await referenceModel.findCollegeByName(course);
     collegeId = colleges.find(college => college.name === course)?.id || null;
   }
+  if (!collegeId || !program) throw badRequest('Choose a college and one of its active programs.');
+  const academicDraft = { college_id: collegeId, program };
+  const newAcademic = { role: 'student', college_id: null, program: null };
+  const academic = await programService.profileFields(newAcademic, academicDraft);
 
   if (!employee_id || !full_name || !password || !phone_number) {
     throw badRequest('Student / Alumni ID, Name, Phone Number, and Password are required.');
@@ -256,12 +264,14 @@ async function register(body, file) {
     ? { verification_status: 'pending', verification_reason: 'Proof unavailable. Administrator identity review required.' }
     : registrationVerification(aiResult);
   const data = { student_id: employee_id, full_name, email: registeredEmail, phone_number: normalizedPhone, password_hash,
-    role: 'student', user_type, course: collegeName, program, college_id: collegeId, id_proof_path,
+    role: 'student', user_type, ...academic, id_proof_path,
     verification_status, verification_reason, registration_proof_unavailable: unavailable, registration_proof_reason: proofReason || null };
   const connection = await pool.getConnection();
   let created;
   try {
     await connection.beginTransaction();
+    // Do not admit a program deactivated while the OCR request was running.
+    Object.assign(data, await programService.profileFields(newAcademic, academicDraft, connection, true));
     if (existing.length) {
       const [account] = await userModel.getProfileById(existing[0].id, connection, true);
       if (!account || account.role !== 'student' || account.verification_status !== 'rejected') throw badRequest('This registration is no longer available for resubmission.');
@@ -276,6 +286,7 @@ async function register(body, file) {
       await userModel.saveNameParts(created.insertId, Object.fromEntries(Object.entries(nameParts).map(([key, value]) => [key, value.trim()])), connection);
       await userModel.logSecurityEvent(created.insertId, 'RECEIPT_NAME_CONFIRMED', null, null, connection);
     }
+    await userModel.logSecurityEvent(created.insertId, PRIVACY_ACK_EVENT, null, null, connection);
     await onboarding.enroll(created.insertId, connection);
     await connection.commit();
   } catch (error) { await connection.rollback(); throw error; }

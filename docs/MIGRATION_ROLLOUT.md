@@ -1,5 +1,29 @@
 # TRACE production update guide
 
+## Signup programs and privacy acknowledgment — 2026-10-15
+
+This change needs a matching backend/frontend deployment. Registration now requires an active college/program pairing and explicit acknowledgment of Privacy Notice `2026-10-15.v1`. An older cached form cannot bypass either requirement; refresh it after rollout. Existing accounts do not need to register again and are not assigned a retrospective acknowledgment.
+
+**Catalog prerequisites:** the existing `colleges` and `programs` tables must exist. If the program catalog has not been created, run the targeted `migrate_program_catalog.js` migration before the new import. Do not rerun the general `migration.js` or import `schema.sql`/`seed.sql` into a populated database.
+
+From a checkout and rebuilt backend image containing this change, while writers are stopped:
+
+```bash
+docker compose run --rm --no-deps -T backend node database/migrate_program_catalog.js
+docker compose run --rm --no-deps -T backend node database/migrate_signup_programs.js
+docker compose run --rm --no-deps -T backend node database/check_schema.js
+```
+
+The signup import adds missing entries from the project owner’s 13-program list. It keeps existing names, inactive flags, colleges, user profiles and routing assignments. Hospitality accepts either the supplied **College of Hospitality Management** or the existing **College of International Hospitality Management** name; it requires exactly one match. Missing or ambiguous colleges cause rollback before insertion; resolve the reference data explicitly rather than creating or renaming a college blindly. Rerunning the import is safe. The printed mapping lists every program and its actual saved college. If entries are already inactive, the import does not restore them; Admin must review availability.
+
+Verify **Maintenance → Programs/Courses** and the public sign-up college/program dropdowns. Newly created databases also need this import or approved Admin entries; the schema alone creates an empty catalog. Registration/profile forms share the managed catalog, so subsequent Admin edits remain authoritative.
+
+Privacy acknowledgment introduces **no new schema migration**. New registration and rejected-account resubmission save `REGISTRATION_PRIVACY_ACK_2026_10_15_V1` in the existing `security_logs` transaction; `created_at` is the database timestamp. A failure to persist this event rolls back account creation/update. No event is backfilled for historical users. Keep previous notice revisions available in source history, and change both frontend/backend versions when the notice changes.
+
+The implemented notice discloses current account, proof/OCR, role access, service-provider and retention behavior. It records acknowledgment of information, not unrestricted consent. The school/Registrar and its Data Protection Officer should review the wording, lawful basis, retention schedule and official contact details before production adoption. No unverified DPO address or invented deletion period is supplied. Guidance: [NPC right to be informed](https://privacy.gov.ph/the-right-to-be-informed/) and [NPC Advisory 2021-01](https://www.privacy.gov.ph/wp-content/uploads/2021/02/NPC-Advisory-2021-01-FINAL.pdf).
+
+Smoke check current-student and alumni registrations, the missing-proof alumni path, catalog retry/empty states, college changes clearing programs, required unchecked acknowledgment, notice open/close retaining drafts, review cancellation and accepted proof formats (JPG/JPEG/PNG/PDF, 10 MB maximum). Existing saved proof files remain readable. No live catalog import or deployment is claimed by the code change.
+
 Use this guide to update the existing `~/Project-TRACE` server with bundled MySQL (`mysql:3306/trace_db`) and its uploads volume. Run server commands in SSH, from the project folder. Keep the same terminal open, copy each command exactly and stop if any command fails. Long commands may wrap visually; do not insert a newline inside them.
 
 ## Current migration audit — 2026-10-06

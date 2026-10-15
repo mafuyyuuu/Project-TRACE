@@ -10,7 +10,9 @@ import ConfirmDialog from '@/components/ConfirmDialog'
 import { useState, useEffect, useRef } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import useAuth from '@/hooks/useAuth'
-import { getColleges } from '@/services/referenceService'
+import { getColleges, getPrograms } from '@/services/referenceService'
+import RegistrationPrivacyNotice from '@/components/RegistrationPrivacyNotice'
+import { PRIVACY_NOTICE_VERSION } from '@/utils/registrationPrivacy'
 import ModalShell from '@/components/ModalShell'
 import PlpBrand from '@/components/PlpBrand'
 import FileUploadField from '@/components/FileUploadField'
@@ -19,7 +21,7 @@ import { PASSWORD_REQUIREMENTS, validNewPassword } from '@/utils/passwordPolicy'
 
 export default function SignupPage() {
   const { register, loading } = useAuth()
-  const [formData, setFormData] = useState({ employeeId: '', first_name: '', middle_name: '', last_name: '', email: '', phoneNumber: '', password: '', confirmPassword: '', userType: new URLSearchParams(window.location.search).get('applicant') === 'alumni' ? 'alumni' : 'student', college: '', year_started: '', graduation_year: '', proofUnavailable: false, proofReason: '' })
+  const [formData, setFormData] = useState({ employeeId: '', first_name: '', middle_name: '', last_name: '', email: '', phoneNumber: '', password: '', confirmPassword: '', userType: new URLSearchParams(window.location.search).get('applicant') === 'alumni' ? 'alumni' : 'student', college: '', program: '', year_started: '', graduation_year: '', proofUnavailable: false, proofReason: '', privacyAcknowledged: false })
   const submitGuard = useRef(false)
   const [file, setFile] = useState(null)
   const [localError, setLocalError] = useState('')
@@ -28,23 +30,36 @@ export default function SignupPage() {
   const [showPassword, setShowPassword] = useState(false)
   // Colleges are admin-managed reference data rather than a hardcoded list.
   const [colleges, setColleges] = useState([])
+  const [programs, setPrograms] = useState([])
+  const [catalog, setCatalog] = useState({ loading: true, error: '' })
+  const [catalogAttempt, setCatalogAttempt] = useState(0)
+  const [showPrivacy, setShowPrivacy] = useState(false)
   useNotificationDismissal(() => setSuccess(''));
 
   useEffect(() => {
     let cancelled = false
-    getColleges()
-      .then((data) => { if (!cancelled) setColleges(data.colleges || []) })
-      .catch(() => { if (!cancelled) setColleges([]) })
+    Promise.all([getColleges(), getPrograms()])
+      .then(([collegeData, programData]) => {
+        if (!Array.isArray(collegeData?.colleges) || !Array.isArray(programData?.programs)) throw new Error('Invalid academic catalog.');
+        if (!cancelled) {
+          setColleges(collegeData.colleges); setPrograms(programData.programs);
+          setCatalog({ loading: false, error: '' });
+        }
+      })
+      .catch(() => { if (!cancelled) setCatalog({ loading: false, error: 'Could not load colleges and programs. Retry or contact the Registrar.' }) })
     return () => { cancelled = true }
-  }, [])
+  }, [catalogAttempt])
   const [showConfirm, setShowConfirm] = useState(false)
   const navigate = useNavigate()
 
   const fullName = fullNameFromParts(formData);
+  const selectedCollege = colleges.find(college => college.name === formData.college);
+  const availablePrograms = programs.filter(program => String(program.college_id) === String(selectedCollege?.id));
   const handleSubmit = async (e) => {
     e.preventDefault()
     setLocalError('')
     setSuccess('')
+    if (catalog.loading || catalog.error) { setLocalError('Load the college and program catalog before registering.'); return; }
     if (!formData.employeeId.trim() || !formData.first_name.trim() || !formData.last_name.trim() || !formData.email.trim() || !formData.password.trim() || !formData.phoneNumber.trim() || !formData.college) {
       setLocalError('Please fill out all required fields.')
       return
@@ -58,6 +73,8 @@ export default function SignupPage() {
     const phoneError = phoneNumberError(formData.phoneNumber);
     if (phoneError) { setLocalError(phoneError); return; }
     if (!validNewPassword(formData.password)) { setLocalError(PASSWORD_REQUIREMENTS); return }
+    if (!availablePrograms.some(program => program.name === formData.program)) { setLocalError('Select a program belonging to your college.'); return; }
+    if (!formData.privacyAcknowledged) { setLocalError('Read and acknowledge the Privacy Notice before registering.'); return; }
     if (formData.userType === 'alumni') {
       const errors = studyYearErrors(formData, { required: true });
       if (Object.keys(errors).length) { setLocalError(Object.values(errors)[0]); return; }
@@ -78,6 +95,8 @@ export default function SignupPage() {
       form.append('user_type', formData.userType);
       form.append('course', formData.college);
       form.append('program', formData.program || '');
+      form.append('privacy_acknowledged', 'true');
+      form.append('privacy_notice_version', PRIVACY_NOTICE_VERSION);
       const college = colleges.find(college => college.name === formData.college);
       if (college) form.append('college_id', String(college.id));
       if (formData.userType === 'alumni') { form.append('year_started', formData.year_started); form.append('graduation_year', formData.graduation_year); }
@@ -106,6 +125,10 @@ export default function SignupPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-800 flex flex-col items-center justify-center gap-6 px-4 py-8 sm:py-12 font-body relative overflow-hidden">
+      <ModalShell open={showPrivacy} title="Registration Privacy Notice" onClose={() => setShowPrivacy(false)}
+        maxWidth="max-w-2xl" footer={<Button type="button" className="trace-button trace-button-primary" onClick={() => setShowPrivacy(false)}>Close Notice</Button>}>
+        <RegistrationPrivacyNotice />
+      </ModalShell>
       <ConfirmDialog open={!!registrationToConfirm} title="Confirm Registration" presentation="review"
         message={['Submit your registration for identity review?', localError ? <span role="alert">{localError}</span> : null]}
         confirmLabel="Submit Registration" loading={loading} onConfirm={confirmRegistration}
@@ -113,6 +136,8 @@ export default function SignupPage() {
         {registrationToConfirm && <ReviewSummary entries={[
           ['Name', registrationToConfirm.get('full_name')], ['ID Number', registrationToConfirm.get('employee_id')],
           ['College', registrationToConfirm.get('course')], ['Email', registrationToConfirm.get('email')],
+          ['Program/Course', registrationToConfirm.get('program')],
+          ['Privacy Notice', 'Acknowledged · ' + registrationToConfirm.get('privacy_notice_version')],
           ...(registrationToConfirm.get('user_type') === 'alumni' ? [['Year Started', registrationToConfirm.get('year_started')], ['Year Graduated', registrationToConfirm.get('graduation_year')]] : []),
           ['Proof', registrationToConfirm.get('registration_proof_unavailable') ? 'Unavailable — pending Admin identity review' : registrationToConfirm.get('id_proof')?.name],
           ...(registrationToConfirm.get('registration_proof_unavailable') ? [['Missing Proof Reason', registrationToConfirm.get('registration_proof_reason')]] : []),
@@ -148,23 +173,24 @@ export default function SignupPage() {
             )}
 
             <div className="flex flex-col gap-1.5">
-              <label className="trace-label ml-1">Account Type *</label>
-              <select value={formData.userType} onChange={(e) => setFormData({...formData, userType: e.target.value, employeeId: '', proofUnavailable: false})} className="trace-control w-full appearance-none cursor-pointer">
+              <label htmlFor="signup-account-type" className="trace-label ml-1">Account Type *</label>
+              <select id="signup-account-type" disabled={loading} value={formData.userType} onChange={(e) => setFormData({...formData, userType: e.target.value, employeeId: '', proofUnavailable: false})} className="trace-control w-full appearance-none cursor-pointer">
                 <option value="student">Current Student</option>
                 <option value="alumni">Alumni</option>
               </select>
             </div>
 
             <div className="flex flex-col gap-1.5">
-              <label className="trace-label ml-1">College *</label>
-              <select value={formData.college} onChange={(e) => setFormData({...formData, college: e.target.value})} className="trace-control w-full appearance-none cursor-pointer">
+              <label htmlFor="signup-college" className="trace-label ml-1">College *</label>
+              <select id="signup-college" required disabled={loading || catalog.loading || !!catalog.error} value={formData.college} onChange={(e) => setFormData({...formData, college: e.target.value, program: ''})} className="trace-control w-full appearance-none cursor-pointer">
                   <option value="" disabled>
-                    {colleges.length ? 'Select your college...' : 'Loading colleges...'}
+                    {catalog.loading ? 'Loading colleges...' : 'Select your college...'}
                   </option>
                   {colleges.map((c) => (
                     <option key={c.id} value={c.name}>{c.name}</option>
                   ))}
               </select>
+              {catalog.error && <div role="alert" className="space-y-2 text-sm"><p>{catalog.error}</p><Button type="button" disabled={loading} className="trace-button trace-button-secondary" onClick={() => { setCatalog({ loading: true, error: '' }); setCatalogAttempt(attempt => attempt + 1); }}>Retry Catalog</Button></div>}
             </div>
 
             <div className="flex flex-col gap-1.5">
@@ -172,9 +198,16 @@ export default function SignupPage() {
               <input maxLength={INPUT_LIMITS.id} type="text" placeholder={formData.userType === 'alumni' ? 'Enter your Alumni ID' : 'e.g. 23-00123'} value={formData.employeeId} onChange={(e) => setFormData({...formData, employeeId: e.target.value})} className="trace-control w-full" />
             </div>
 
-            <label className="trace-label block">Program/Course
-              <input maxLength={150} value={formData.program || ''} onChange={event => setFormData({ ...formData, program: event.target.value })} placeholder="e.g. BS Information Technology" className="trace-control mt-2 w-full" />
-            </label>
+            <div className="flex min-w-0 flex-col gap-1.5">
+              <label htmlFor="signup-program" className="trace-label ml-1">Program/Course *</label>
+              <select id="signup-program" required aria-describedby="signup-program-help" value={formData.program}
+                disabled={loading || catalog.loading || !!catalog.error || !selectedCollege || !availablePrograms.length}
+                onChange={event => setFormData({ ...formData, program: event.target.value })} className="trace-control w-full min-w-0 cursor-pointer">
+                <option value="" disabled>{!selectedCollege ? 'Select your college first' : !availablePrograms.length ? 'No programs available' : 'Select your program...'}</option>
+                {availablePrograms.map(program => <option key={program.id} value={program.name}>{program.name}</option>)}
+              </select>
+              <p id="signup-program-help" className="ml-1 text-xs text-gray-600 dark:text-gray-300 break-words">{formData.program || (selectedCollege && !catalog.loading && !catalog.error && !availablePrograms.length ? 'No active programs are listed for this college. Contact the Registrar before registering.' : 'Choose the program recorded in your school records. If it is missing, contact the Registrar.')}</p>
+            </div>
 
             {formData.userType === 'alumni' && <section className="trace-form-grid rounded-lg bg-gray-50 p-4 dark:bg-gray-800" aria-label="Alumni study years">
               <ProfileYearField field="year_started" label="Year Started" required value={formData.year_started} disabled={loading} onChange={value => setFormData({ ...formData, year_started: value })} />
@@ -245,9 +278,20 @@ export default function SignupPage() {
 
             {!formData.proofUnavailable && <div className="flex flex-col gap-1.5">
               <p className="trace-label ml-1">Upload Proof of ID{formData.userType === 'student' ? ' *' : ''}</p>
+              <p className="ml-1 text-xs font-semibold text-gray-700 dark:text-gray-200">Accepted files: JPG, JPEG, PNG or PDF. Maximum size: 10 MB (one file).</p>
               <FileUploadField showLabel={false} label="Proof of ID" file={file} onChange={setFile} accept=".pdf,.png,.jpg,.jpeg" disabled={loading} />
-              <p className="text-xs text-gray-400 dark:text-gray-400 ml-1 mt-1">{formData.userType === 'alumni' ? 'Upload proof for verification, or select “Records / proof unavailable” above and explain why. Applications without proof need Admin identity review.' : 'Please attach a clear photo of your Student ID for verification.'}</p>
+              <p className="ml-1 text-xs text-gray-600 dark:text-gray-300">{formData.userType === 'alumni' ? 'Proof examples: your PLP Student/Alumni ID, diploma or school record showing your name and school details. The Registrar may ask for additional evidence.' : 'Use your PLP Student ID with the school name, Student ID number and college readable.'} Use a clear, complete image or scan; avoid cropped, blurred or password-protected files.</p>
             </div>}
+
+            <section aria-label="Privacy acknowledgment" className="space-y-3 rounded-xl border border-gray-200 p-4 dark:border-gray-700">
+              <p className="text-sm leading-relaxed">TRACE uses your registration details and proof to verify your identity and provide Registrar services.</p>
+              <Button type="button" className="trace-action text-sm font-semibold underline" onClick={() => setShowPrivacy(true)}>Read Privacy Notice</Button>
+              <label className="flex items-start gap-3 text-sm leading-relaxed">
+                <input type="checkbox" required className="trace-choice mt-1 shrink-0" checked={formData.privacyAcknowledged} disabled={loading}
+                  onChange={event => setFormData({ ...formData, privacyAcknowledged: event.target.checked })} />
+                <span>I have read and acknowledge the Registration Privacy Notice. *</span>
+              </label>
+            </section>
 
             <Button type="submit" disabled={loading} className="trace-button-lift trace-action mt-4 w-full py-4 bg-pine-600 enabled:hover:bg-pine-700 disabled:opacity-70 text-white rounded-full font-bold transition-colors shadow-sm flex items-center justify-center gap-2">
               {loading ? 'Creating...' : 'Create Account'}

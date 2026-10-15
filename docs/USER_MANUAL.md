@@ -40,9 +40,9 @@ The public Login/welcome, registration, password recovery, email verification an
 ## 2. Create a student or alumni account
 
 1. From Login, open registration and choose **Student** or **Alumni**.
-2. Enter the requested identity, contact, college and Program/Course details. Use an email inbox you can open; any valid email domain is accepted.
-3. Upload proof of ID. Alumni without proof can select **Records / proof unavailable**, explain why, and submit for Admin identity review. Students still upload proof. This alumni choice is always available without a separate options request.
-4. Review the form, select **Submit Registration**, then confirm. File selection does not submit the account.
+2. Enter your identity/contact details, select your **College**, then choose **Program/Course** from that college’s active catalog. Changing college clears the previous program. If loading fails, select **Retry Catalog**; if your program is missing, contact the Registrar. Use an email inbox you can open; any valid email domain is accepted.
+3. Upload one clear **JPG/JPEG, PNG or PDF**, at most **10 MB**. Current students use their PLP Student ID with the school, ID number and college readable. Alumni can upload their PLP Student/Alumni ID, diploma or school record for review. Avoid cropped, blurred or password-protected files. Alumni without proof can select **Records / proof unavailable**, explain why, and submit for Admin identity review. Students still upload proof.
+4. Open **Read Privacy Notice**, review it, then tick **I have read and acknowledge the Registration Privacy Notice**. The checkbox starts unchecked; opening the notice does not tick it. Select **Create Account**, review the registration and program, then select **Submit Registration**. Cancel preserves your draft and file. File selection and acknowledgment alone do not submit the account.
 5. Follow the displayed success or review instructions. If the account is pending review, wait for Admin's decision.
 6. After approval, sign in and open **Edit Profile → Personal Info**. Select **Verify** beside Email Address, then select **Verify Email** in your inbox. Signup saves the address without sending this ownership link automatically. Requests stay blocked until verification succeeds.
 
@@ -308,7 +308,7 @@ Read confirmations before saving or making desk decisions. Cancel keeps the draf
 4. Use **Deactivate** to hide a program from new profile selections; saved student records remain unchanged. **Restore** makes it available again when its College is active.
 5. To replace a name or college association, add the approved replacement and deactivate the old entry. Duplicate names within the same college are rejected; restore an existing inactive entry instead.
 
-The catalog starts empty. Add only approved programs; TRACE does not infer a program list from student-entered text. Students and alumni use these choices in Edit Profile; registration's existing manual entry is unchanged.
+The catalog starts empty until the approved-program import or Admin entries are applied. The October 15 signup import contains the 13 programs supplied by the project owner. Add only approved programs; TRACE does not infer a program list from student-entered text. Students and alumni use the same active catalog in registration and Edit Profile. The signup import preserves saved profiles, existing program names and activation states.
 
 ## Revision 2 report/export update
 

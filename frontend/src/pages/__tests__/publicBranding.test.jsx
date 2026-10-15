@@ -12,7 +12,10 @@ import plpLogo from '@/assets/plp-login-logo.png'
 vi.mock('@/hooks/useAuth', () => ({ default: () => ({ loading: false, error: '', login: vi.fn(), register: vi.fn() }) }))
 vi.mock('@/hooks/usePasswordReset', () => ({ default: () => ({ loading: false, error: '', done: false }) }))
 vi.mock('@/hooks/useStaffEnrollment', () => ({ default: () => ({ busy: false, error: '', codes: [], setup: null }) }))
-vi.mock('@/services/referenceService', () => ({ getColleges: vi.fn().mockResolvedValue({ colleges: [{ id: 1, name: 'Test College' }] }) }))
+vi.mock('@/services/referenceService', () => ({
+  getColleges: vi.fn().mockResolvedValue({ colleges: [{ id: 1, name: 'Test College' }] }),
+  getPrograms: vi.fn().mockResolvedValue({ programs: [] }),
+}))
 
 beforeEach(() => {
   localStorage.clear()
