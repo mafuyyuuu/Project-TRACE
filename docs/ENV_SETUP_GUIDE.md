@@ -1069,7 +1069,7 @@ Follow [MIGRATION_ROLLOUT.md](MIGRATION_ROLLOUT.md) for the explicit `migrate_pr
 
 ### Separate college graduation and attendance years
 
-For existing databases, apply `backend/database/migrate_graduation_year.js` from the rebuilt backend image, then `check_schema.js`, before recreating the API. Follow the backup and stopped-writer sequence in [MIGRATION_ROLLOUT.md](MIGRATION_ROLLOUT.md#graduation-year-follow-up). This adds a nullable `student_profiles.graduation_year`; attendance and school records are preserved with no inferred backfill. Alumni enter their confirmed college graduation year to complete their profile. Current students may leave college graduation blank; school graduation years remain required for completion. No new environment variable is needed. Do not import the fresh-install schema into an existing database.
+For existing databases, apply `backend/database/migrate_graduation_year.js` from the rebuilt backend image, then `check_schema.js`, before recreating the API. Follow the backup and stopped-writer sequence in [MIGRATION_ROLLOUT.md](MIGRATION_ROLLOUT.md#graduation-year-follow-up). This adds a nullable `student_profiles.graduation_year`; attendance and school records are preserved with no inferred backfill. Alumni enter their confirmed college graduation year to complete their profile. Current students use Year Level and Section instead of college graduation/last attendance; earlier-school graduation years remain required for completion. Apply the current-student-details migration below when upgrading to that version. No new environment variable is needed. Do not import the fresh-install schema into an existing database.
 
 ## Unified Support configuration and schema (October 6, 2026)
 
@@ -1168,3 +1168,13 @@ Deploy the matching dev frontend on Vercel. Pull dev, run `docker compose build 
 ## 2026-10-13 — unclaimed pickup SMS reminders
 
 This subsequent reminder feature requires `database/migrate_pickup_sms_reminders.js` before restarting the new backend. The idempotent script creates only its attempt ledger; it does not alter document, student, payment or readiness history. Build backend/AI from current dev, run the preserving migration with a one-off backend container, run check_schema.js, then recreate backend/AI and deploy the matching Vercel frontend. The reminder worker will include already-eligible unclaimed documents with valid readiness audit history when started. It uses the existing UNISMS_SECRET_KEY/UNISMS_SENDER_ID; no new variable is added. Observe `[SMS] outcome=...` and `[PICKUP_SMS] outcome=...` logs after an actual eligible action. Existing startup key presence is not evidence of delivery.
+
+### Current-student Year Level and Section
+
+For existing installations, apply `backend/database/migrate_current_student_details.js`
+from the matching backend image, then `check_schema.js`, before starting the upgraded
+API. See [the rollout steps](MIGRATION_ROLLOUT.md#current-student-details). This adds
+nullable `student_profiles.year_level` and `student_profiles.section` (20 characters
+each). No enrollment values are guessed or backfilled, and historical years/request
+records are preserved. Current students fill both fields in Edit Profile before
+filing; alumni retain their existing education requirements. No environment change.

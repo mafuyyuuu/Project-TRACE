@@ -18,6 +18,8 @@ async function migrate(executor = pool) {
     year_started INT NULL,
     study_years_confirmed_at DATETIME NULL,
     last_attendance_year INT,
+    year_level VARCHAR(20) NULL,
+    section VARCHAR(20) NULL,
     is_transfer_student BOOLEAN DEFAULT FALSE,
     previous_school VARCHAR(255),
     elem_school VARCHAR(255),

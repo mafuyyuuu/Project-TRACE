@@ -19,7 +19,7 @@ const PROFILE_TEXT_LIMITS = Object.freeze({
   place_of_birth: INPUT_LIMITS.name, maiden_name: INPUT_LIMITS.name,
   home_address: INPUT_LIMITS.address, previous_school: INPUT_LIMITS.name,
   elem_school: INPUT_LIMITS.name, jhs_school: INPUT_LIMITS.name,
-  shs_school: INPUT_LIMITS.name,
+  shs_school: INPUT_LIMITS.name, year_level: INPUT_LIMITS.shortCode, section: INPUT_LIMITS.shortCode,
 });
 
 function validateTextFields(body, limits) {

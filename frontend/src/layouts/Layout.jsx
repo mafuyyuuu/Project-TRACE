@@ -1,3 +1,5 @@
+import { isWindowClerk } from '@/utils/windowPresentation';
+import AdminIcon from '@/features/admin/components/AdminIcon';
 import Button from '@/components/Button';
 import { readTextSize, saveTextSize } from '@/utils/textSize';
 import { useState, useEffect, useRef } from 'react'
@@ -142,8 +144,9 @@ export default function Layout() {
     setShowNotifs(!showNotifs)
       if (!showNotifs && (notifications || []).some(n => !n?.is_read)) {
       try {
+        const openedIds = new Set(notifications.map(n => n.id))
         await markNotificationsRead()
-        setNotifications((notifications || []).map(n => ({ ...n, is_read: true })))
+        setNotifications(current => current.map(n => openedIds.has(n.id) ? { ...n, is_read: true } : n))
       } catch (err) {
         console.error(err)
       }
@@ -213,9 +216,9 @@ export default function Layout() {
   );
 
   return (
-    <div className="h-dvh overflow-hidden bg-trace-canvas dark:bg-gray-800 flex flex-col p-3 sm:p-4 md:p-6 gap-4 sm:gap-6 font-body text-trace-ink dark:text-gray-100">
+    <div className={`h-dvh overflow-hidden bg-trace-canvas dark:bg-gray-800 flex flex-col p-3 sm:p-4 md:p-6 gap-4 sm:gap-6 font-body text-trace-ink dark:text-gray-100 ${isWindowClerk(user) ? 'trace-admin-shell trace-window-shell' : user?.role === 'admin' ? 'trace-admin-shell' : user?.role === 'student' ? 'trace-student-shell' : ''}`}>
       {/* Header */}
-      <header className="bg-white dark:bg-gray-900 rounded-3xl sm:rounded-full shadow-sm px-4 sm:px-6 py-3 flex flex-wrap gap-2 items-center justify-between shrink-0 border border-gray-100 dark:border-gray-700">
+      <header className="trace-shell-header bg-white dark:bg-gray-900 rounded-3xl sm:rounded-full shadow-sm px-4 sm:px-6 py-3 flex flex-wrap gap-2 items-center justify-between shrink-0 border border-gray-100 dark:border-gray-700">
         <div className="flex min-w-0 items-center gap-2 sm:gap-3">
           <Button
             onClick={() => setShowMobileNav(true)}
@@ -231,7 +234,7 @@ export default function Layout() {
 
         <div className="flex shrink-0 ml-auto items-center gap-2 sm:gap-4">
           {guideEligible && <Button id="tutorial-guide" type="button" aria-label="Open quick guide" title="Quick guide" onClick={() => { navigate('/dashboard'); guide.show(); }} className="trace-action trace-icon-button">
-            <svg aria-hidden="true" className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><circle cx="12" cy="12" r="9" /><path d="M9.5 9a2.5 2.5 0 0 1 5 .3c0 1.7-2.5 1.8-2.5 3.7M12 16h.01" /></svg>
+            {(['admin', 'student'].includes(user?.role) || isWindowClerk(user)) ? <AdminIcon name="help" className="h-[22px] w-[22px]" /> : <svg aria-hidden="true" className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><circle cx="12" cy="12" r="9" /><path d="M9.5 9a2.5 2.5 0 0 1 5 .3c0 1.7-2.5 1.8-2.5 3.7M12 16h.01" /></svg>}
           </Button>}
           <Button
             type="button"
@@ -241,21 +244,23 @@ export default function Layout() {
             title={darkMode ? 'Switch to light mode' : 'Switch to dark mode'}
             className="trace-icon-button"
           >
+            {(['admin', 'student'].includes(user?.role) || isWindowClerk(user)) && !darkMode ? <AdminIcon name="moon" className="h-5 w-5" /> : (
             <svg aria-hidden="true" className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               {darkMode
                 ? <><circle cx="12" cy="12" r="4" strokeWidth="2" /><path strokeWidth="2" strokeLinecap="round" d="M12 2v2m0 16v2M2 12h2m16 0h2M5 5l1.5 1.5m11 11L19 19M5 19l1.5-1.5m11-11L19 5" /></>
                 : <path strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" d="M20.9 13A9 9 0 0 1 11 3.1 9 9 0 1 0 20.9 13Z" />}
             </svg>
+            )}
           </Button>
-          <div className="relative">
+          <div className="trace-notifications-anchor relative">
             <Button id="tutorial-notifications" onClick={handleNotifClick} aria-label="Notifications" className="trace-icon-button relative">
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
+              {(['admin', 'student'].includes(user?.role) || isWindowClerk(user)) ? <span className="flex h-[22px] w-[22px] items-center justify-center"><AdminIcon name="bell-base" /></span> : <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>}
               {unreadCount > 0 && (
-                <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 dark:bg-red-500 rounded-full"></span>
+                <span aria-label={`${unreadCount} unread notifications`} className="absolute top-2 right-2 w-2 h-2 bg-red-500 dark:bg-red-500 rounded-full"></span>
               )}
             </Button>
             {showNotifs && (
-              <div className="absolute right-0 mt-2 w-72 sm:w-80 max-w-[calc(100vw-2rem)] bg-white dark:bg-gray-900 rounded-xl shadow-xl border border-gray-100 dark:border-gray-700 overflow-hidden z-50">
+              <div className="trace-notifications-panel absolute right-0 mt-2 w-72 sm:w-80 max-w-[calc(100vw-2rem)] bg-white dark:bg-gray-900 rounded-xl shadow-xl border border-gray-100 dark:border-gray-700 overflow-hidden z-50">
                 <div className="p-3 border-b border-gray-50 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800/50">
                   <h4 className="text-sm font-bold text-gray-800 dark:text-gray-100">Notifications</h4>
                 </div>
@@ -296,7 +301,7 @@ export default function Layout() {
       </header>
 
       {/* Main Area */}
-      <div className="flex-1 flex gap-6 min-h-0 overflow-hidden relative">
+      <div className="trace-shell-body flex-1 flex gap-6 min-h-0 overflow-hidden relative">
         {/* Desktop rail */}
         <aside aria-label="Sidebar" tabIndex={0} className="trace-nav-scroll trace-desktop-rail hidden md:block w-20 h-full overflow-y-auto overscroll-contain bg-white dark:bg-gray-900 rounded-[2rem] shadow-sm px-3 py-4 shrink-0 border border-gray-100/50 dark:border-gray-700/50 focus-visible:outline-2 focus-visible:outline-pine-600 dark:focus-visible:outline-green-400">
           <SidebarNav

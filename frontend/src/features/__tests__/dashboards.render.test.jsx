@@ -136,7 +136,7 @@ describe('shared document badge colors', () => {
     documentsService.getDocuments.mockResolvedValue({ documents: sample, total: sample.length, totalPages: 1 });
     await renderDashboard(<Component user={user} currentTab={tab} setViewImageUrl={vi.fn()} />);
     for (const [status, color] of examples) {
-      const badge = await screen.findByText(getStatusLabel(status), { selector: 'tbody span' });
+      const badge = await screen.findByText(getStatusLabel(status), { selector: 'tbody span[class*="bg-"]' });
       expect(badge).toHaveClass(`bg-${color}-50`);
       expect(badge.className).toContain(`dark:bg-${color}-950`);
       expect(badge).not.toHaveClass('bg-yellow-50');
@@ -171,9 +171,9 @@ describe('command centers mount and load their own data', () => {
   it('Window 1', async () => {
     await renderDashboard(<Window1Dashboard user={USERS.window1} currentTab="dashboard" />);
     expect(documentsService.getDocuments).toHaveBeenCalled();
-    const upload = screen.getByRole('heading', { name: 'UPLOAD DOCUMENT' }).closest('aside');
+    const upload = screen.getByRole('heading', { name: /Upload Document/i }).closest('aside');
     expect(upload).toContainElement(screen.getByRole('region', { name: 'Registration QR' }));
-    expect(screen.getByRole('heading', { name: 'UPLOAD DOCUMENT' }).compareDocumentPosition(screen.getByRole('region', { name: 'Registration QR' })) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(screen.getByRole('heading', { name: /Upload Document/i }).compareDocumentPosition(screen.getByRole('region', { name: 'Registration QR' })) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
   it('uses the latest intake-entry timestamp rather than creation for returned requests', async () => {
     const now = Date.now();
@@ -276,7 +276,8 @@ describe('role isolation', () => {
     expect(within(table).getAllByRole('columnheader').map(header => header.textContent))
       .toEqual(['Timestamp', 'Event', 'User', 'Role', 'IP Address']);
     const cells = within(within(table).getAllByRole('row')[1]).getAllByRole('cell');
-    expect(cells[0]).toHaveTextContent(new Date(log.created_at).toLocaleString());
+    expect(cells[0]).toHaveTextContent('Oct 5, 2026');
+    expect(cells[0]).toHaveTextContent('8:00:00 AM');
     expect(cells[1].textContent).toBe(log.event_type);
     expect(cells[2]).toHaveTextContent(log.full_name);
     expect(cells[2]).toHaveTextContent(log.student_id);
@@ -285,7 +286,7 @@ describe('role isolation', () => {
     expect(within(table).getByText('Unknown')).toBeInTheDocument();
     const region = screen.getByRole('region', { name: 'Security log table' });
     expect(region).toContainElement(table);
-    await userEvent.setup().tab();
+    region.focus();
     expect(region).toHaveFocus();
     expect(get).toHaveBeenCalledExactlyOnceWith('/auth/global-security-logs');
   });

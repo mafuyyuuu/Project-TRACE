@@ -56,13 +56,13 @@ describe('navItemsForUser', () => {
       'dashboard',
       'admin-tracker',
       'messages',
+      'admin-maintenance',
       'admin-logs',
       'admin-security',
       'admin-reports',
       'admin-analytics',
       'admin-grad-applications',
       'admin-templates',
-      'admin-maintenance',
       'help',
     ]);
   });

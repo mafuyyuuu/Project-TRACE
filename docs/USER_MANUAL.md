@@ -40,13 +40,15 @@ The public Login/welcome, registration, password recovery, email verification an
 ## 2. Create a student or alumni account
 
 1. From Login, open registration and choose **Student** or **Alumni**.
-2. Enter the requested identity, contact, college and Program/Course details. Use an email inbox you can open; any valid email domain is accepted.
-3. Upload proof of ID. Alumni without proof can select **Records / proof unavailable**, explain why, and submit for Admin identity review. Students still upload proof. This alumni choice is always available without a separate options request.
-4. Review the form, select **Submit Registration**, then confirm. File selection does not submit the account.
+2. Enter your identity/contact details, select your **College**, then choose **Program/Course** from that college’s active catalog. Changing college clears the previous program. If loading fails, select **Retry Catalog**; if your program is missing, contact the Registrar. Use an email inbox you can open; any valid email domain is accepted.
+3. Upload one clear **JPG/JPEG, PNG or PDF**, at most **10 MB**. Current students use their PLP Student ID with the school, ID number and college readable. Alumni can upload their PLP Student/Alumni ID, diploma or school record for review. Avoid cropped, blurred or password-protected files. Alumni without proof can select **Records / proof unavailable**, explain why, and submit for Admin identity review. Students still upload proof.
+4. Open **Read Privacy Notice**, review it, then tick **I have read and acknowledge the Registration Privacy Notice**. The checkbox starts unchecked; opening the notice does not tick it. Select **Create Account**, review the registration and program, then select **Submit Registration**. Cancel preserves your draft and file. File selection and acknowledgment alone do not submit the account.
 5. Follow the displayed success or review instructions. If the account is pending review, wait for Admin's decision.
 6. After approval, sign in and open **Edit Profile → Personal Info**. Select **Verify** beside Email Address, then select **Verify Email** in your inbox. Signup saves the address without sending this ownership link automatically. Requests stay blocked until verification succeeds.
 
 New alumni use their **Alumni ID** to sign in. Existing alumni keep their current login identifier. **Back to Login** returns to the sign-in page.
+
+**Registration errors:** invalid fields have a red border and a short message beside the field. Submitting an incomplete form highlights all detected problems together. Editing a field clears its previous feedback; submit again to recheck. Uploaded proof and entered values remain in the form after a rejected submission. General connection/server errors appear beside **Create Account**, with no error popup. **Back to Login** stays in the header as you scroll, including on mobile. The normal registration review and Privacy Notice dialogs remain available.
 
 On the first alumni login, complete and submit the **Graduate Application** before using other dashboard features. Completing this form and Admin's review are separate steps. After access is unlocked, finish the required profile information too.
 
@@ -74,7 +76,7 @@ TRACE records the automatic offer against your account. Skipping, logging out, r
 3. Select Save, review the confirmation and confirm.
 4. Check that the saved progress updates. Unsaved entries do not count toward completion.
 
-Required information includes phone, email, birth date, birthplace, sex, civil status, home address, and elementary, junior-high and senior-high schools with graduation years. Use Year Graduated for school years: enter four digits, no later than the current Manila year; older school years are allowed. PLP/College Year Graduated accepts 2002 through the current Manila year, is required for alumni and optional for current students. Last Attendance Year is a separate optional field; existing values are kept until you confirm their meaning, and are never automatically treated as graduation. Enter the confirmed college graduation year even if you already submitted a Graduate Application. Alumni supply their college graduation year; transfer students supply Previous School; married female students supply a maiden name. Follow each marked tab's field hints for your account. Extension name and profile photo are optional. Program/Course is separate from College. In Personal Info, choose College first, then its active Registrar-approved Program/Course. Changing College clears the draft program. Save and confirm, then check the saved selections after reload. If no programs are available, ask Admin to add the approved catalog. Your recorded unlisted/inactive entries are preserved when saving other information.
+Required information includes phone, email, birth date, birthplace, sex, civil status, home address, and elementary, junior-high and senior-high schools with graduation years. Use Year Graduated for school years: enter four digits, no later than the current Manila year; older school years are allowed. Current students complete Year Level and Section in Educational Background; both are required for request eligibility and are saved with their profile. College graduation and last-attendance fields are hidden for current students and do not block their requests. Alumni retain PLP/College Year Graduated (2002 through the current Manila year) and a separate optional Last Attendance Year. Existing historical values are preserved; attendance is never inferred as graduation. Enter the confirmed college graduation year even if you already submitted a Graduate Application. Alumni supply their college graduation year; transfer students supply Previous School; married female students supply a maiden name. Follow each marked tab's field hints for your account. Extension name and profile photo are optional. Program/Course is separate from College. In Personal Info, choose College first, then its active Registrar-approved Program/Course. Changing College clears the draft program. Save and confirm, then check the saved selections after reload. If no programs are available, ask Admin to add the approved catalog. Your recorded unlisted/inactive entries are preserved when saving other information.
 
 **Change your photo:** select the camera on your avatar, choose an image, check the preview, then Save and confirm. Selecting an image does not upload it immediately.
 
@@ -106,7 +108,7 @@ Your old address stays active until the new one is verified. Change email and pa
 
 1. Open the dashboard and select **New Request**.
 2. Choose an available document and the number of copies. Add other document types if needed.
-3. Complete the document's fields. TOR displays saved **Year Started** read-only and does not ask for Year Ended. Complete missing profile years first; ask Admin for a confirmed-year correction.
+3. Complete the document's fields. TOR displays saved **Year Started** read-only and does not ask for Year Ended. Complete missing Year Started first; ask Admin for a saved-year correction. Current students do not supply college graduation or last-attendance years for Graduation Clearance or other available documents; alumni graduation requirements still apply.
 4. Check any attachment instructions and select a file only when required.
 5. Review the details, submit and confirm. Keep the request's tracking number.
 
@@ -163,6 +165,12 @@ A clerk can explicitly request a reply. The default warning is at **3 service mi
 - Staff accept or reject with a correction reason. Rejected documents can be uploaded again. An explicit **Request replacement** preserves the original uploads/reviews and links the new requirement. **View upload and review history** shows retained events; older events load incrementally.
 - Completed, legacy Approved/Rejected and unknown document states are read-only. Authorized messages, files and recorded events remain available; cancellation retains linked ticket history. Awaiting student is a support state and does not mean the document case is closed.
 
+
+### Active and archived ticket chats
+
+Use **Active** and **Archive** in the Support ticket list or Internal assistance list. On phones, open **Tickets** or **Internal tickets** to reach these views. Resolving a ticket automatically moves the selected conversation to Archive. Its messages, attachments and resolution remain available as read-only history; archiving does not delete or copy records. **Reopen ticket** or **Reopen concern**, when permitted, asks for confirmation and moves the selected conversation back to Active. Closed document cases and Admin monitoring retain their existing restrictions.
+
+Archive filters apply to the full authorized list before pagination. **Load older tickets** retrieves more history; search covers the rows currently loaded. Refreshing the list retrieves the latest page and removes tickets whose state changed elsewhere. Students see their own support history; desk and college access still apply to staff. Internal concerns remain visible only to their creator and authorized Admin users. Staff coordination conversations have no resolved-ticket lifecycle and remain in Staff coordination.
 
 ## 7. Set up security and larger text
 
@@ -302,7 +310,7 @@ Read confirmations before saving or making desk decisions. Cancel keeps the draf
 4. Use **Deactivate** to hide a program from new profile selections; saved student records remain unchanged. **Restore** makes it available again when its College is active.
 5. To replace a name or college association, add the approved replacement and deactivate the old entry. Duplicate names within the same college are rejected; restore an existing inactive entry instead.
 
-The catalog starts empty. Add only approved programs; TRACE does not infer a program list from student-entered text. Students and alumni use these choices in Edit Profile; registration's existing manual entry is unchanged.
+The catalog starts empty until the approved-program import or Admin entries are applied. The October 15 signup import contains the 13 programs supplied by the project owner. Add only approved programs; TRACE does not infer a program list from student-entered text. Students and alumni use the same active catalog in registration and Edit Profile. The signup import preserves saved profiles, existing program names and activation states.
 
 ## Revision 2 report/export update
 

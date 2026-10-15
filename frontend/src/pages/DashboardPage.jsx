@@ -72,7 +72,7 @@ export default function DashboardPage() {
       {isAdmin && <AdminDashboard {...props} reviewAccountId={searchParams.get('reviewAccount')} reviewNavigationKey={searchParams.has('reviewAccount') ? location.key : null} />}
 
       {/* GLOBAL IMAGE VIEWER MODAL */}
-      <ImageViewerModal viewImageUrl={viewImageUrl} setViewImageUrl={setViewImageUrl} />
+      <ImageViewerModal admin={user?.role === 'admin'} viewImageUrl={viewImageUrl} setViewImageUrl={setViewImageUrl} />
     </div>
   );
 }

@@ -15,6 +15,7 @@ async function ticket(id, executor = pool, lock = false) {
 }
 async function list(ownerId, filters, executor = pool) {
   const where = [], values = [];
+  if (['active','archive'].includes(filters.view)) { where.push(`t.state${filters.view === 'archive' ? '=' : '<>'}?`); values.push('RESOLVED'); }
   for (const [column, value] of [['created_by',ownerId],['state',filters.state],['category',filters.category]]) {
     if (value) { where.push(`t.${column}=?`); values.push(value); }
   }

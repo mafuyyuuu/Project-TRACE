@@ -40,9 +40,9 @@ it.each(['Window 1','Receiving Desk','Secretary','Finance'])('allows %s to creat
 });
 it('scopes staff lists to the creator and Admin lists to the separate queue',async () => {
   await service.list(staff,{state:'RESOLVED',category:'other',before:'25'});
-  expect(model.list).toHaveBeenCalledWith(4,{state:'RESOLVED',category:'other',before:25});
+  expect(model.list).toHaveBeenCalledWith(4,{view:'all',state:'RESOLVED',category:'other',before:25});
   await service.list(admin);
-  expect(model.list).toHaveBeenLastCalledWith(null,{state:undefined,category:undefined,before:null});
+  expect(model.list).toHaveBeenLastCalledWith(null,{view:'all',state:undefined,category:undefined,before:null});
 });
 it.each(['read','send','action'])('rejects another staff creator before %s history or mutation',async operation => {
   ticket.created_by = 99;
@@ -140,4 +140,12 @@ it.each([null,[],42])('rejects malformed payloads before writing',async body => 
 it('rolls back failed writes and retries transient deadlocks only',async () => {
   model.message.mockRejectedValueOnce(Object.assign(new Error('Deadlock'),{code:'ER_LOCK_DEADLOCK'}));
   await service.create(staff,creation);expect(tx.rollback).toHaveBeenCalledOnce();expect(tx.commit).toHaveBeenCalledOnce();expect(tx.release).toHaveBeenCalledTimes(2);
+});
+
+it('retains creator-only archive listing for staff and global authorized monitoring for Admin',async()=>{
+ await service.list(staff,{view:'archive',before:'99'});
+ expect(model.list).toHaveBeenCalledWith(4,{view:'archive',state:undefined,category:undefined,before:99});
+ await service.list(admin,{view:'active'});
+ expect(model.list).toHaveBeenLastCalledWith(null,{view:'active',state:undefined,category:undefined,before:null});
+ await expect(service.list(staff,{view:'purge'})).rejects.toMatchObject({status:400});
 });

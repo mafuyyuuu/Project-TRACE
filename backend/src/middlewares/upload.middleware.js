@@ -51,10 +51,9 @@ const profilePictureStorage = multer.diskStorage({
 const proofOptions = {
   limits: { fileSize: 10 * 1024 * 1024 },
   fileFilter: (req, file, cb) => {
-    const extensions = ['.jpg', '.jpeg', '.png', '.webp', '.gif', '.bmp', '.tiff', '.pdf'];
-    const valid = extensions.includes(path.extname(file.originalname).toLowerCase()) &&
-      (file.mimetype.startsWith('image/') || file.mimetype === 'application/pdf');
-    cb(valid ? null : badRequest('ID proof must be an image or PDF, at most 10 MB.'), valid);
+    const types = { '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.png': 'image/png', '.pdf': 'application/pdf' };
+    const valid = types[path.extname(file.originalname).toLowerCase()] === file.mimetype;
+    cb(valid ? null : badRequest('ID proof must be JPG, JPEG, PNG or PDF, at most 10 MB.'), valid);
   },
 };
 const idProofUpload = multer({ storage: idProofStorage, ...proofOptions });

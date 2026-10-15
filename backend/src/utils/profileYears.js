@@ -40,6 +40,7 @@ function studyYearErrors(draft, { required = false, now = new Date() } = {}) {
 function profileYearErrors(draft, account, { onlyProvided = false, now = new Date() } = {}) {
   const errors = {};
   for (const [field, definition] of Object.entries(PROFILE_YEAR_FIELDS)) {
+    if (account?.role === 'student' && account.user_type !== 'alumni' && ['graduation_year', 'last_attendance_year'].includes(field)) continue;
     if (onlyProvided && !Object.hasOwn(draft, field)) continue;
     const required = ['year_started', 'graduation_year'].includes(field) && account?.role === 'student' && account.user_type === 'alumni';
     const error = yearError(draft[field], { ...definition, required }, now);

@@ -15,7 +15,10 @@ const { auth, reset } = vi.hoisted(() => ({
 }));
 vi.mock('@/hooks/useAuth', () => ({ default: () => auth }));
 vi.mock('@/hooks/usePasswordReset', () => ({ default: () => reset }));
-vi.mock('@/services/referenceService', () => ({ getColleges: vi.fn().mockResolvedValue({ colleges: [{ id: 1, name: 'Engineering' }] }) }));
+vi.mock('@/services/referenceService', () => ({
+  getColleges: vi.fn().mockResolvedValue({ colleges: [{ id: 1, name: 'Engineering' }] }),
+  getPrograms: vi.fn().mockResolvedValue({ programs: [{ id: 1, college_id: 1, name: 'BS Engineering' }] }),
+}));
 vi.mock('@/services/api', () => ({ default: { post: vi.fn(), get: vi.fn() } }));
 
 beforeEach(() => {
@@ -336,7 +339,9 @@ describe('Account submission confirmations', () => {
     await screen.findByRole('option', { name: 'Engineering' });
     fireEvent.change(container.querySelectorAll('select')[1], { target: { value: 'Engineering' } });
     const inputs = container.querySelectorAll('input');
-    for (const [placeholder, value] of [['e.g. 23-00123','STU-001'],['e.g. BS Information Technology','BS Engineering'],['juan@plp.edu.ph','ana@example.test'],['09123456789','09171234567'],['Create a password','Password123_'],['Confirm your password','Password123_']]) fireEvent.change(screen.getByPlaceholderText(placeholder), {target:{value}});
+    fireEvent.change(screen.getByRole('combobox', { name: 'Program/Course *' }), { target: { value: 'BS Engineering' } });
+    await user.click(screen.getByRole('checkbox', { name: /I have read and acknowledge/ }));
+    for (const [placeholder, value] of [['e.g. 23-00123','STU-001'],['juan@plp.edu.ph','ana@example.test'],['09123456789','09171234567'],['Create a password','Password123_'],['Confirm your password','Password123_']]) fireEvent.change(screen.getByPlaceholderText(placeholder), {target:{value}});
     fireEvent.change(screen.getByLabelText('First Name *'), {target:{value:'Ana'}});
     fireEvent.change(screen.getByLabelText('Last Name *'), {target:{value:'Reyes'}});
     const proof = new File(['proof'], 'id.png', { type: 'image/png' });
@@ -356,6 +361,8 @@ describe('Account submission confirmations', () => {
     expect(payload.get('course')).toBe('Engineering');
     expect(payload.get('college_id')).toBe('1');
     expect(payload.get('program')).toBe('BS Engineering');
+    expect(payload.get('privacy_acknowledged')).toBe('true');
+    expect(payload.get('privacy_notice_version')).toBe('2026-10-15.v1');
     expect(payload.get('password')).toBe('Password123_');
     expect(payload.get('id_proof').name).toBe('id.png');
   });
@@ -446,6 +453,8 @@ it('reviews alumni signup without proof, preserves the draft on cancel and sends
   await user.click(await screen.findByRole('checkbox', { name: /Records \/ proof unavailable/ }));
   expect(screen.queryByRole('button', { name: 'Read ID' })).not.toBeInTheDocument();
   fireEvent.change(container.querySelectorAll('select')[1], { target: { value: 'Engineering' } });
+  fireEvent.change(screen.getByRole('combobox', { name: 'Program/Course *' }), { target: { value: 'BS Engineering' } });
+  await user.click(screen.getByRole('checkbox', { name: /I have read and acknowledge/ }));
   for (const [placeholder, value] of [['Enter your Alumni ID', 'ALU-DEMO'], ['juan@plp.edu.ph', 'demo@example.test'], ['09123456789', '09123456789'], ['Create a password', 'Trace_2026'], ['Confirm your password', 'Trace_2026']]) {
     fireEvent.change(screen.getByPlaceholderText(placeholder), { target: { value } });
   }

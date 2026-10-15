@@ -175,9 +175,9 @@ export default function useStudentDashboard(user) {
 
       for (const name of names) {
         const requiredYear = needsStudyYears(name) ? user.year_started
-          : needsGraduationYear(name) ? (user.user_type === 'alumni' ? user.graduation_year : user.graduation_year || user.last_attendance_year) : null;
-        if ((needsStudyYears(name) || needsGraduationYear(name))) {
-          const problem = yearError(String(requiredYear ?? ''), { label: needsStudyYears(name) ? 'Year Started' : 'Year Graduated / Last Attended', minimum: 2002, required: true });
+          : needsGraduationYear(name, user) ? user.graduation_year : null;
+        if ((needsStudyYears(name) || needsGraduationYear(name, user))) {
+          const problem = yearError(String(requiredYear ?? ''), { label: needsStudyYears(name) ? 'Year Started' : 'Year Graduated', minimum: 2002, required: true });
           if (problem) { triggerNotification(`${problem} Complete study years in Edit Profile, or ask Admin for a correction.`, 'error'); return; }
         }
       }
@@ -189,7 +189,7 @@ export default function useStudentDashboard(user) {
         if (selection.purpose) extra.purpose = selection.purpose;
         if (selection.requestingSchool) extra.requesting_school = selection.requestingSchool;
         if (needsStudyYears(name)) extra.year_started = Number(user.year_started);
-        if (needsGraduationYear(name)) extra.year_graduated = Number(user.user_type === 'alumni' ? user.graduation_year : user.graduation_year || user.last_attendance_year);
+        if (needsGraduationYear(name, user)) extra.year_graduated = Number(user.graduation_year);
 
         return {
           document_type: name,
@@ -210,7 +210,7 @@ export default function useStudentDashboard(user) {
         ['Name', user.full_name], ['Student ID', user.student_id],
         ['Documents', names.map(name => `${name} × ${selections[name].copies}`).join('; ')],
         ['Year Started', names.some(name => name.startsWith('Transcript')) ? String(user.year_started) : 'Not required'],
-        ...(names.some(name => needsGraduationYear(name)) ? [['Year Graduated', String(user.user_type === 'alumni' ? user.graduation_year : user.graduation_year || user.last_attendance_year)]] : []),
+        ...(names.some(name => needsGraduationYear(name, user)) ? [['Year Graduated', String(user.graduation_year)]] : []),
         ['Attachments', names.map(name => selections[name].file?.name).filter(Boolean).join(', ') || 'None selected'],
       ] });
     },

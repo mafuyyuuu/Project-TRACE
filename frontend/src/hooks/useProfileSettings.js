@@ -29,6 +29,8 @@ function formFromUser(user) {
     civil_status: user?.civil_status || '',
     maiden_name: user?.maiden_name || '',
     home_address: user?.home_address || '',
+    year_level: user?.year_level || '',
+    section: user?.section || '',
     year_started: user?.year_started == null ? '' : String(user.year_started),
     graduation_year: user?.graduation_year == null ? '' : String(user.graduation_year),
     last_attendance_year: user?.last_attendance_year == null ? '' : String(user.last_attendance_year),
@@ -165,6 +167,9 @@ export default function useProfileSettings(user) {
       const payload = pendingEmail && profileData.email.trim().toLowerCase() === pendingEmail.toLowerCase()
         ? { ...profileData, email: user?.email || '' } : profileData;
       const request = { ...payload, phone_number: normalizePhoneNumber(payload.phone_number) };
+      if (user?.role === 'student' && user.user_type !== 'alumni') {
+        delete request.graduation_year; delete request.last_attendance_year;
+      } else { delete request.year_level; delete request.section; }
       for (const key of ['year_started', 'graduation_year']) {
         if (String(request[key] ?? '') === String(user?.[key] ?? '')) delete request[key];
       }

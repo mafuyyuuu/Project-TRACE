@@ -27,6 +27,7 @@ const requirements = [
   ['security_logs', ['user_id', 'event_type', 'created_at'], 'migrate_batch8.js'],
   ['student_profiles', ['user_id', 'birth_date', 'home_address', 'shs_grad_year'], 'migrate_student_profiles.js'],
   ['student_profiles', ['first_name', 'middle_name', 'last_name'], 'migrate_student_name_parts.js'],
+  ['student_profiles', ['year_level', 'section'], 'migrate_current_student_details.js'],
   ['student_profiles', ['graduation_year'], 'migrate_graduation_year.js'],
   ['student_profiles', ['year_started', 'study_years_confirmed_at'], 'migrate_alumni_study_years.js'],
   ['users', ['registration_proof_unavailable', 'registration_proof_reason'], 'migrate_alumni_study_years.js'],

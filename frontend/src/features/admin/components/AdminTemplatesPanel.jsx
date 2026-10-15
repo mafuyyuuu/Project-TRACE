@@ -1,11 +1,13 @@
+import AdminIcon from './AdminIcon';
 import Button from '@/components/Button';
 import { INPUT_LIMITS } from '@/utils/inputLimits';
 import ConfirmDialog from '@/components/ConfirmDialog';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { getTemplates, getTemplate, saveTemplate } from '@/services/templateService';
 
 export default function AdminTemplatesPanel() {
   const [templates, setTemplates] = useState([]);
+  const editorRef = useRef(null);
   const [loading, setLoading] = useState(true);
   const [selectedKey, setSelectedKey] = useState(null);
   
@@ -14,6 +16,7 @@ export default function AdminTemplatesPanel() {
   const [success, setSuccess] = useState('');
   const [templateToConfirm, setTemplateToConfirm] = useState(null);
   const [saveError, setSaveError] = useState('');
+  const [insertError, setInsertError] = useState('');
   const [loadError, setLoadError] = useState('');
   const [listRetry, setListRetry] = useState(0);
   const [detailRetry, setDetailRetry] = useState(0);
@@ -71,6 +74,7 @@ export default function AdminTemplatesPanel() {
         });
         setTemplateDetails({ key: selectedKey });
         setSuccess('');
+        setInsertError('');
       } catch {
         if (active) setTemplateDetails({ key: selectedKey, error: 'Could not load this template. Please try again.' });
       } finally {
@@ -134,118 +138,76 @@ export default function AdminTemplatesPanel() {
     </div>
   );
 
+  const selectedName = templates.find(template => template.template_key === selectedKey)?.name || 'Template';
+  const variables = selectedKey === 'email_notice' ? ['SUBJECT', 'MESSAGE'] : ['STUDENT_NAME', 'STUDENT_ID', 'DOCUMENT_TYPE', 'TRACKING_NUMBER', 'AMOUNT', 'PROGRAM_COURSE', 'REQUEST_SEQUENCE', 'DATE_ISSUED'];
+  const insertVariable = name => {
+    const editor = editorRef.current;
+    const start = editor?.selectionStart ?? formData.content.length;
+    const end = editor?.selectionEnd ?? start;
+    const token = '{{' + name + '}}';
+    if (formData.content.length - (end - start) + token.length > INPUT_LIMITS.template) {
+      setInsertError('This variable would exceed the 100,000-character template limit. Select text to replace or shorten the draft.');
+      return;
+    }
+    setInsertError('');
+    setFormData(previous => ({ ...previous, content: previous.content.slice(0, start) + token + previous.content.slice(end) }));
+    requestAnimationFrame(() => { editor?.focus(); editor?.setSelectionRange(start + token.length, start + token.length); });
+  };
   return (
-    <div className="trace-section overflow-hidden flex flex-col md:flex-row min-h-[600px]">
+    <section className="trace-page trace-admin-more-page trace-admin-templates">
+      <header><h2 className="trace-page-title">System Templates</h2><p className="trace-page-description">Customize the documents and messages TRACE generates for students.</p></header>
       <ConfirmDialog open={!!templateToConfirm} title="Confirm Template Save"
-        message={['Save this template?', saveError ? <span role="alert">{saveError}</span> : null]}
-        confirmLabel="Save Template" loading={saving} onConfirm={confirmSave}
-        onCancel={() => setTemplateToConfirm(null)} />
-      {/* Sidebar List */}
-      <div className="w-full md:w-64 bg-gray-50 dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 shrink-0">
-        <div className="trace-section-header border-gray-200 dark:border-gray-700">
-          <h3 className="font-bold text-gray-900 dark:text-gray-100">System Templates</h3>
-        </div>
-        <ul className="py-2">
-          {templates.map(t => (
-            <li key={t.template_key}>
-              <Button
-                type="button"
-                disabled={saving}
-                onClick={() => setSelectedKey(t.template_key)}
-                className={`trace-tab w-full text-left focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[#15803d]  ${selectedKey === t.template_key ? 'bg-white dark:bg-gray-900 text-[#15803d] dark:text-green-300 border-l-4 border-[#15803d]' : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 border-l-4 border-transparent'}`}
-              >
-                {t.name}
-              </Button>
-            </li>
-          ))}
-        </ul>
-      </div>
-
-      {/* Editor */}
-      <div className="min-w-0 flex-1 flex flex-col">
-        {detailsLoading ? (
-          <div role="status" className="p-8 text-center text-gray-500 dark:text-gray-400">Loading template...</div>
-        ) : detailError ? (
-          <div className="space-y-4 p-8">
-            <p role="alert" className="text-sm text-red-600 dark:text-red-300">{detailError}</p>
-            <Button type="button" onClick={() => { setTemplateDetails(null); setDetailRetry(value => value + 1); }}
-              className="trace-button trace-button-primary">
-              Retry loading template
+        message={['Save this template?', saveError ? <span role="alert" key="error">{saveError}</span> : null]}
+        confirmLabel="Save Template" loading={saving} onConfirm={confirmSave} onCancel={() => setTemplateToConfirm(null)} />
+      <div className="grid min-w-0 grid-cols-1 items-start gap-4 lg:grid-cols-[300px_minmax(0,1fr)]">
+        <aside className="trace-section overflow-hidden" aria-label="Template catalog">
+          <div className="trace-section-header"><div><h3 className="trace-section-title">Templates</h3><p className="trace-admin-caption">Choose a template to edit.</p></div></div>
+          <ul className="py-2">{templates.map(template => <li key={template.template_key}>
+            <Button type="button" aria-label={template.name} disabled={saving} onClick={() => setSelectedKey(template.template_key)} aria-pressed={selectedKey === template.template_key}
+              className={`trace-action trace-admin-template-choice flex w-full items-center gap-3 px-3 py-3 text-left text-sm font-medium ${selectedKey === template.template_key ? 'border-trace-emerald bg-emerald-50 text-trace-emerald dark:bg-green-950 dark:text-green-300' : 'border-transparent text-gray-600 dark:text-gray-300'}`}>
+              <span className={'trace-admin-template-choice-icon ' + (selectedKey === template.template_key ? 'trace-admin-template-choice-selected' : '')}><AdminIcon name={template.template_key === 'email_notice' ? 'template-mail' : 'template-receipt'} /></span><span>{template.name}<span className="trace-admin-caption block">{template.template_key === 'email_notice' ? 'Email sent to students' : template.template_key === 'payment_slip' ? 'Slip students pay against' : 'Generated document'}</span></span>
             </Button>
-          </div>
-        ) : selectedKey ? (
-          <form onSubmit={handleSave} className="flex-1 flex flex-col h-full">
-            <div className="trace-section-header border-gray-200 dark:border-gray-700 flex-wrap bg-white dark:bg-gray-900">
-              <div className="flex flex-wrap gap-4 items-center min-w-0">
-                <div>
-                  <label className="trace-label block mb-1">Font Family</label>
-                  <select
-                    value={formData.font_family}
-                    onChange={e => setFormData({...formData, font_family: e.target.value})}
-                    className="trace-control"
-                  >
-                    <option value="sans-serif">Sans Serif</option>
-                    <option value="serif">Serif</option>
-                    <option value="monospace">Monospace</option>
-                    <option value="Arial, Helvetica, sans-serif">Arial</option>
-                    <option value="'Times New Roman', Times, serif">Times New Roman</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="trace-label block mb-1">Base Font Size</label>
-                  <select
-                    value={formData.font_size}
-                    onChange={e => setFormData({...formData, font_size: e.target.value})}
-                    className="trace-control"
-                  >
-                    <option value="10px">10px</option>
-                    <option value="11px">11px</option>
-                    <option value="12px">12px (Default)</option>
-                    <option value="14px">14px</option>
-                    <option value="16px">16px</option>
-                  </select>
-                </div>
-              </div>
-              <div className="flex flex-wrap items-center gap-3">
-                {success && <span className="text-xs font-bold text-[#15803d] dark:text-green-300 trace-motion-feedback">{success}</span>}
-                <Button
-                  type="submit"
-                  disabled={saving}
-                  className="trace-button trace-button-primary"
-                >
-                  {saving ? 'Saving...' : 'Save Template'}
-                </Button>
+          </li>)}</ul>
+          <p className="flex items-start gap-2 border-t border-gray-100 bg-gray-50 p-5 text-xs leading-relaxed text-gray-500 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400"><AdminIcon name="template-info" /><span>Use {'{{VARIABLES}}'} to insert request details. Clear the body to restore the default template.</span></p>
+        </aside>
+        <div className="trace-section min-w-0 overflow-hidden">
+          {detailsLoading ? <div role="status" className="p-8 text-center text-gray-500 dark:text-gray-400">Loading template...</div> : detailError ? <div className="space-y-4 p-8">
+            <p role="alert" className="trace-inline-error">{detailError}</p><Button type="button" onClick={() => { setTemplateDetails(null); setDetailRetry(value => value + 1); }} className="trace-button trace-button-primary">Retry loading template</Button>
+          </div> : selectedKey ? <form onSubmit={handleSave} className="min-w-0">
+            <div className="trace-section-header"><div><h3 className="trace-section-title">{selectedName}</h3><p className="trace-admin-caption">Edit the HTML body and check the live preview.</p></div>
+              <div className="trace-actions">{success && <span role="status" className="text-xs text-trace-emerald">{success}</span>}
+                <Button type="button" className="trace-button trace-button-secondary" disabled={saving} onClick={() => { setFormData(previous => ({ ...previous, content: '' })); setInsertError(''); }}><AdminIcon name="template-reset" />Reset to default</Button>
+                <Button type="submit" disabled={saving} className="trace-button trace-button-primary"><AdminIcon name="template-save" />{saving ? 'Saving...' : 'Save Template'}</Button>
               </div>
             </div>
-            
-            <div className="flex-1 min-w-0 p-4 bg-gray-50 dark:bg-gray-800 flex flex-col lg:flex-row gap-4">
-              <div className="flex-1 flex flex-col">
-                <label htmlFor="admin-template-content" className="trace-label block mb-2">HTML Template (Use {'{{VARIABLE_NAME}}'})</label>
-                <p className="text-xs mb-2 break-words">{selectedKey === 'email_notice' ? 'Email variables: {{SUBJECT}}, {{MESSAGE}}. MESSAGE is required for verification links and account notices.' : 'Slip variables: {{STUDENT_NAME}}, {{STUDENT_ID}}, {{DOCUMENT_TYPE}}, {{TRACKING_NUMBER}}, {{AMOUNT}}, {{PROGRAM_COURSE}}, {{REQUEST_SEQUENCE}}, {{DATE_ISSUED}}. OR_NUMBER is a legacy alias for the tracking number.'} Basic text, tables and supported inline styles are saved; scripts, forms, remote images and active content are removed. Clear the body to use the default.</p>
-                <textarea id="admin-template-content" maxLength={INPUT_LIMITS.template}
-                  value={formData.content}
-                  onChange={e => setFormData({...formData, content: e.target.value})}
-                  className="trace-control flex-1 w-full font-mono resize-none"
-                  placeholder="<div><h1>{{STUDENT_NAME}}</h1></div>"
-                />
+            <div className="trace-admin-template-format flex flex-wrap gap-3 px-6 py-4">
+              <label className="trace-label min-w-0">Font Family<select aria-label="Font Family" value={formData.font_family} onChange={event => setFormData({ ...formData, font_family: event.target.value })} className="trace-control mt-2 min-w-44">
+                <option value="sans-serif">Sans Serif</option><option value="serif">Serif</option><option value="monospace">Monospace</option><option value="Arial, Helvetica, sans-serif">Arial</option><option value="'Times New Roman', Times, serif">Times New Roman</option>
+              </select></label>
+              <label className="trace-label">Base Font Size<select aria-label="Base Font Size" value={formData.font_size} onChange={event => setFormData({ ...formData, font_size: event.target.value })} className="trace-control mt-2">
+                <option value="10px">10px</option><option value="11px">11px</option><option value="12px">12px (Default)</option><option value="14px">14px</option><option value="16px">16px</option>
+              </select></label>
+            </div>
+            <div className="space-y-3 border-y border-gray-200 bg-[#f8faf9] px-6 py-4 dark:border-gray-700 dark:bg-gray-800">
+              <p className="flex flex-wrap gap-2 text-xs"><span className="font-semibold">Insert variable</span><span className="text-gray-500 dark:text-gray-400">Click a variable to add it at the cursor</span></p>
+              <div className="flex flex-wrap gap-2">{variables.map(name => <Button type="button" key={name} disabled={saving} onClick={() => insertVariable(name)} className="trace-action rounded-lg border border-gray-300 bg-white px-2.5 py-1.5 font-mono text-xs dark:border-gray-600 dark:bg-gray-900">{'{{' + name + '}}'}</Button>)}</div>
+              <p className="trace-admin-caption">{selectedKey === 'email_notice' ? 'MESSAGE is required for verification links and account notices.' : 'OR_NUMBER is a legacy alias for the tracking number.'}</p>
+              {insertError && <p role="alert" className="trace-inline-error">{insertError}</p>}
+            </div>
+            <div className="trace-admin-template-editors grid min-w-0 grid-cols-1 gap-4 p-6 xl:grid-cols-[minmax(0,1.49fr)_minmax(0,1fr)]">
+              <div className="min-w-0 overflow-hidden rounded-xl border border-gray-200 dark:border-gray-700">
+                <div className="flex flex-wrap items-center justify-between gap-2 border-b border-gray-200 bg-gray-50 px-4 py-3 dark:border-gray-700 dark:bg-gray-800"><label htmlFor="admin-template-content" className="trace-label text-xs flex items-center gap-2"><AdminIcon name="template-code" />HTML Template<span className="ml-auto font-mono font-normal text-gray-400">Use {'{{VARIABLE_NAME}}'}</span></label></div>
+                <div className="trace-admin-code-editor"><pre aria-hidden="true" className="trace-admin-code-lines">{formData.content.split('\n').map((_, index) => index + 1).join('\n')}</pre><textarea wrap="off" aria-label="HTML Template (Use {{VARIABLE_NAME}})" onScroll={event => { const gutter = event.currentTarget.previousElementSibling; gutter.scrollTop = event.currentTarget.scrollTop; }} ref={editorRef} id="admin-template-content" maxLength={INPUT_LIMITS.template} value={formData.content} onChange={event => setFormData({ ...formData, content: event.target.value })} className="trace-control h-[420px] min-h-80 w-full resize-y rounded-none border-0 bg-white p-4 font-mono text-xs leading-relaxed dark:bg-gray-900" placeholder="<div><h1>{{STUDENT_NAME}}</h1></div>" /></div>
               </div>
-              
-              <div className="w-full lg:w-1/3 flex flex-col">
-                <label className="trace-label block mb-2">Live Preview (Mock Data)</label>
-                <iframe
-                  title="Template preview"
-                  sandbox=""
-                  referrerPolicy="no-referrer"
-                  srcDoc={previewDocument}
-                  className="min-h-80 flex-1 w-full bg-white text-gray-900 border border-gray-200 rounded-xl shadow-inner [color-scheme:light]"
-                />
+              <div className="min-w-0 overflow-hidden rounded-xl border border-gray-200 dark:border-gray-700">
+                <div className="flex items-center justify-between gap-2 border-b border-gray-200 bg-gray-50 px-4 py-3 dark:border-gray-700 dark:bg-gray-800"><h4 className="text-xs font-semibold flex items-center gap-2"><AdminIcon name="template-eye" />Live Preview</h4><span className="trace-admin-badge trace-admin-badge-neutral">Mock data</span></div>
+                <iframe title="Template preview" sandbox="" referrerPolicy="no-referrer" srcDoc={previewDocument} className="h-[420px] min-h-80 w-full border-0 bg-white text-gray-900 [color-scheme:light]" />
               </div>
             </div>
-          </form>
-        ) : (
-          <div className="flex-1 flex items-center justify-center p-8 text-gray-400 dark:text-gray-400 font-semibold">No templates are configured.</div>
-        )}
+            <p className="flex items-start gap-2 border-t border-gray-200 bg-gray-50 px-6 py-4 text-xs leading-relaxed text-gray-500 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400"><AdminIcon name="template-info" /><span>Basic text, tables and supported inline styles are saved; scripts, forms, remote images and active content are removed. Clear the body to use the default.</span></p>
+          </form> : <div className="p-8 text-center text-gray-500 dark:text-gray-400">No templates are configured.</div>}
+        </div>
       </div>
-    </div>
+    </section>
   );
 }
