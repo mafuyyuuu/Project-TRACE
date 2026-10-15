@@ -1,3 +1,4 @@
+const { ticketArchiveView } = require('../utils/ticketArchive');
 const crypto = require('crypto');
 const model = require('../models/supportTicket.model');
 const documents = require('../models/document.model');
@@ -68,8 +69,11 @@ async function scope(actor) {
 async function list(user, query = {}) {
   const actor = await currentActor(user);
   const [where,params] = await scope(actor);
-  const result = await model.list(where,params,cursor(query.before));
-  return { ...result,access_scope:digest([actor.id,actor.role,actor.desk_assignment,where,params]),tickets:result.tickets.map(ticket => ({ ...ticket,read_only:actor.role === 'admin' || Boolean(readOnly(ticket)) })) };
+  const view = ticketArchiveView(query.view);
+  const listWhere = view === 'all' ? where : `(${where}) AND t.state${view === 'archive' ? '=' : '<>'}?`;
+  const listParams = view === 'all' ? params : [...params,'RESOLVED'];
+  const result = await model.list(listWhere,listParams,cursor(query.before));
+  return { ...result,view,access_scope:digest([actor.id,actor.role,actor.desk_assignment,listWhere,listParams]),tickets:result.tickets.map(ticket => ({ ...ticket,read_only:actor.role === 'admin' || Boolean(readOnly(ticket)) })) };
 }
 async function resolveContext(user,query = {}) {
   const actor=await currentActor(user);

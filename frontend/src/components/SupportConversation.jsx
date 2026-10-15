@@ -1,4 +1,4 @@
-import { Fragment, useLayoutEffect, useRef, useState } from 'react';
+import { Fragment, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import Button from '@/components/Button';
 import AdminIcon from '@/features/admin/components/AdminIcon';
 import ModalShell from '@/components/ModalShell';
@@ -23,8 +23,10 @@ function SupportFile({ file }) {
     {protectedFile.error && <p role="alert">{protectedFile.error}</p>}
   </div>;
 }
-export default function SupportConversation({ ticketId,user,topics,onTicketChanged,onNotice,active = true,autoFocusConversation = true,compact = false }) {
+export default function SupportConversation({ ticketId,user,topics,onTicketChanged,onTicketState,onNotice,active = true,autoFocusConversation = true,compact = false }) {
   const chat = useSupportConversation(ticketId,onNotice), ticket = chat.data?.ticket;
+  const observedId=ticket?.id,observedState=ticket?.state;
+  useEffect(() => {if (observedId) onTicketState?.({id:observedId,state:observedState});},[observedId,observedState,onTicketState]);
   const history = useRef(null), pinned = useRef(true), older = useRef(null), chooser = useRef(null), composer = useRef(null);
   const [staged,setStaged] = useState(null), [fileError,setFileError] = useState(''), [faqQuery,setFaqQuery] = useState('');
   const [requirement,setRequirement] = useState(null), [showCase,setShowCase] = useState(false);

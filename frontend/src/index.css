@@ -1523,3 +1523,248 @@ body:has(.trace-student-shell) .trace-student-tickets-modal .trace-modal-body { 
 .trace-student-profile-card .trace-data-table tr:last-child td { @apply border-b-0; }
 .trace-student-profile-card .trace-data-table th:first-child { width: 44%; }
 .trace-student-profile-card .trace-data-table th:nth-child(2) { width: 26%; }
+
+/* Window Clerk: all 18 frames in TRACE UI / UX section 2362:1473. */
+.trace-window-icon { @apply inline-block h-4 w-4 shrink-0 object-contain; }
+.trace-window-shell .trace-nav-icon { @apply h-6 w-6; }
+.trace-window-shell .trace-page-title > span { @apply font-normal text-trace-muted dark:text-gray-400; }
+.trace-window-shell .trace-date { @apply gap-2.5 text-xs font-normal; }
+.trace-window-shell .trace-date strong { @apply font-semibold; }
+.trace-window-shell .trace-date .trace-window-icon { @apply h-5 w-5; }
+.trace-window-kpis .trace-admin-kpi { @apply min-h-[154px] gap-2 rounded-2xl p-5; }
+.trace-window-kpis .trace-admin-kpi-label { @apply max-w-[85%] text-[.625rem] font-semibold leading-normal; }
+.trace-window-kpis .trace-admin-kpi-value { @apply text-[2rem] leading-normal; }
+.trace-window-kpis .trace-admin-kpi-value > span { @apply text-[.8125rem] font-normal text-gray-500 dark:text-gray-400; }
+.trace-window-kpis .trace-admin-kpi-icon { @apply top-5 right-5 h-14 w-14; }
+.trace-window-kpis .trace-admin-kpi-icon img { @apply h-6 w-6; }
+.trace-window-kpis .trace-admin-kpi-helper { @apply w-fit text-[.5625rem] font-medium; }
+.trace-window-workspace { @apply grid min-w-0 grid-cols-1 items-start gap-4 lg:grid-cols-[320px_minmax(0,1fr)]; }
+.trace-window-upload { @apply p-5; }
+.trace-window-upload-zone { @apply my-4 flex min-w-0 flex-col items-center gap-2 rounded-xl border border-dashed border-trace-sage bg-emerald-50/40 p-4 text-center text-xs dark:border-green-700 dark:bg-green-950/30; }
+.trace-window-upload-zone > span:not(.trace-window-upload-icon) { @apply text-[.625rem] text-gray-500 dark:text-gray-400; }
+.trace-window-upload-icon { @apply flex h-12 w-12 items-center justify-center rounded-full bg-emerald-100 dark:bg-green-900; }
+.trace-window-upload-icon img { @apply h-6 w-6; }
+.trace-window-upload-zone > section { @apply w-full border-0 p-0; }
+.trace-window-upload-zone .trace-file { @apply text-[.625rem]; }
+.trace-window-upload-zone .trace-file::file-selector-button { @apply mr-2 rounded-lg bg-white px-3 py-2 text-[.625rem] dark:bg-gray-800; }
+.trace-window-qr { @apply p-5; }
+.trace-window-qr > p { @apply text-[.6875rem] text-gray-500 dark:text-gray-400; }
+.trace-window-qr-content { @apply grid min-w-0 grid-cols-[100px_minmax(0,1fr)] items-start gap-3; }
+.trace-window-qr-image { @apply block overflow-hidden rounded-lg border border-gray-200 p-0.5 dark:border-gray-700; }
+.trace-window-qr .trace-label { @apply text-[.625rem] font-medium; }
+.trace-window-qr .trace-actions { @apply flex-nowrap gap-2; }
+.trace-window-qr .trace-button { @apply min-w-0 flex-1 px-2 text-[.625rem]; }
+.trace-window-shell .trace-window-workspace .trace-tab-group,
+.trace-window-shell .trace-window-progress-tabs .trace-tab-group { @apply mb-4 w-fit max-w-full gap-1 rounded-full border-0 bg-white p-1 dark:bg-gray-900; }
+.trace-window-shell .trace-window-workspace .trace-tab,
+.trace-window-shell .trace-window-progress-tabs .trace-tab { @apply rounded-full px-4; }
+.trace-window-queue { @apply flex min-h-[485px] flex-col overflow-hidden; }
+.trace-window-queue .trace-section-header { @apply flex-wrap gap-2 bg-white px-5 py-4 dark:bg-gray-900; }
+.trace-window-queue .trace-section-header > div { @apply min-w-0 flex-1 basis-full; }
+.trace-window-queue .trace-section-title { @apply text-[.8125rem]; }
+.trace-window-queue .trace-admin-caption { @apply text-[.625rem]; }
+.trace-window-table-scroll { @apply max-h-[60vh] min-w-0 flex-1 overflow-x-auto overflow-y-auto; }
+.trace-window-queue-table { @apply w-full min-w-[43rem] table-fixed; }
+.trace-window-shell .trace-window-queue-table :is(th,td) { @apply px-3 text-[.625rem]; }
+.trace-window-shell .trace-window-queue-table :is(th,td):first-child { @apply pl-5; }
+.trace-window-shell .trace-window-queue-table :is(th,td):last-child { @apply pr-5; }
+.trace-window-shell .trace-window-queue-table td { @apply py-4; }
+.trace-window-student { @apply text-left text-[.6875rem] font-semibold text-emerald-700 dark:text-green-300; }
+.trace-window-wait { @apply inline-flex items-center gap-1 rounded-md bg-gray-100 px-2 py-1 font-mono text-[.625rem] text-gray-500 dark:bg-gray-800 dark:text-gray-300; }
+.trace-window-wait img { @apply h-3 w-3; }
+.trace-window-shell .trace-window-check { @apply min-h-8 gap-1 rounded-lg px-2 py-1 text-[.625rem]; }
+.trace-window-pagination { @apply mt-auto flex flex-wrap items-center justify-between gap-3 border-t border-gray-100 px-5 py-4 text-[.6875rem] text-gray-500 dark:border-gray-700 dark:text-gray-400; }
+.trace-window-pagination .trace-button { @apply min-h-8 rounded-lg px-3 py-1 text-[.625rem]; }
+.trace-window-tracking { @apply flex min-h-[720px] flex-col overflow-hidden; }
+.trace-window-progress-tabs { @apply px-5 pt-4; }
+.trace-window-document-icon, .trace-window-detail-icon { @apply flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-50 dark:bg-green-950; }
+.trace-window-document-icon img { @apply h-5 w-5; }
+.trace-window-form-heading { @apply mb-4 flex items-center gap-2 text-[.8125rem] font-semibold text-gray-900 dark:text-gray-100; }
+.trace-window-form-heading img { @apply h-[18px] w-[18px]; }
+.trace-window-form-grid { @apply grid min-w-0 grid-cols-1 gap-4 sm:grid-cols-3; }
+body:has(.trace-window-shell) .trace-window-dialog .trace-label { @apply text-xs font-medium; }
+body:has(.trace-window-shell) .trace-window-dialog .trace-control { @apply min-h-10 min-w-0 rounded-lg px-3 py-2 text-xs; }
+body:has(.trace-window-shell) .trace-window-dialog .trace-modal-header { @apply border-b-0 px-8 pt-[26px] pb-5; }
+body:has(.trace-window-shell) .trace-window-dialog .trace-modal-body { @apply px-8 pt-1 pb-7; }
+body:has(.trace-window-shell) .trace-window-dialog .trace-modal-footer { @apply border-t border-gray-100 bg-[#fafbfc] px-8 py-[18px] dark:border-gray-700 dark:bg-gray-900; }
+body:has(.trace-window-shell) .trace-window-dialog .trace-modal-subtitle { @apply mt-1.5 text-[.8125rem] font-normal; }
+body:has(.trace-window-shell) .trace-window-dialog .trace-button { @apply min-h-10 gap-2 rounded-lg px-4 py-2 text-xs; }
+.trace-window-stepper { @apply flex min-w-0 items-center overflow-hidden rounded-lg border border-gray-200 dark:border-gray-700; }
+.trace-window-stepper > .trace-action { @apply flex h-10 w-10 shrink-0 items-center justify-center bg-gray-50 dark:bg-gray-800; }
+body:has(.trace-window-shell) .trace-window-stepper input { @apply w-full border-0 bg-white text-center dark:bg-gray-800; }
+.trace-window-staff-bar { @apply mb-5 flex items-center gap-2 rounded-lg bg-gray-50 p-3 text-xs dark:bg-gray-800; }
+.trace-window-staff-bar > .trace-window-icon { @apply h-4 w-4; }
+.trace-window-intake-grid, .trace-window-release-grid { @apply grid min-w-0 grid-cols-1 items-start gap-5 md:grid-cols-2; }
+.trace-window-summary, .trace-window-supporting, .trace-window-notes { @apply rounded-xl border border-gray-200 p-4 dark:border-gray-700; }
+.trace-window-summary-rows { @apply space-y-3 text-xs text-gray-500 dark:text-gray-400; }
+.trace-window-summary-rows > div { @apply gap-3; }
+.trace-window-summary-rows > div > span:last-child { @apply max-w-[65%] break-words text-right font-semibold; }
+.trace-window-estimate { @apply flex justify-between rounded-lg bg-emerald-50 p-3 text-emerald-800 dark:bg-green-950 dark:text-green-300; }
+.trace-window-modal-actions { @apply flex flex-wrap items-center justify-between gap-3; }
+.trace-window-modal-actions > p { @apply flex max-w-full items-start gap-2 text-[.6875rem] text-gray-500 dark:text-gray-400; }
+.trace-window-receipt { @apply flex flex-col items-center gap-3; }
+.trace-window-receipt-preview { @apply flex min-h-[378px] w-full items-center justify-center overflow-hidden rounded-xl border border-gray-200 bg-gray-50 p-4 text-xs text-gray-500 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300; }
+.trace-window-release-details { @apply min-w-0 rounded-xl border border-gray-200 px-5 dark:border-gray-700; }
+.trace-window-release-details > div { @apply flex min-w-0 items-start gap-3 border-b border-gray-100 py-5 last:border-0 dark:border-gray-700; }
+.trace-window-release-details > div > div { @apply min-w-0; }
+.trace-window-release-details dt { @apply mb-1 text-[.625rem] font-medium tracking-wider text-gray-500 dark:text-gray-400; }
+.trace-window-release-details dd { @apply break-words text-[.8125rem] font-semibold; }
+.trace-window-privacy { @apply flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs leading-relaxed text-amber-900 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-200; }
+.trace-window-recipient { @apply flex min-w-0 items-center gap-3; }
+.trace-window-recipient > span:nth-child(2) { @apply min-w-0 flex-1; }
+.trace-window-staff [aria-label="Staff recipients"] { @apply max-h-[295px] space-y-0 rounded-lg border border-gray-200 dark:border-gray-700; }
+.trace-window-staff .trace-support-ticket { @apply border-b border-gray-100 px-4 py-3 last:border-0 dark:border-gray-700; }
+.trace-window-staff .trace-support-ticket[aria-pressed="true"] { @apply bg-emerald-50 dark:bg-green-950; }
+body:has(.trace-window-shell) :is(.trace-window-staff,.trace-window-internal) textarea { @apply min-h-28; }
+.trace-window-linked-form { @apply flex flex-col; }
+.trace-window-linked-form > p:first-child { @apply order-last rounded-lg bg-emerald-50 p-3 text-xs text-emerald-800 dark:bg-green-950 dark:text-green-300; }
+.trace-window-shell .trace-support-workspace > header > details { @apply order-first w-auto rounded-lg bg-emerald-50 px-3 py-2 text-emerald-800 dark:bg-green-950 dark:text-green-300; }
+.trace-window-shell .trace-support-workspace > header > details[open] { @apply basis-full; }
+.trace-window-empty-conversation { @apply flex h-full min-h-0 flex-col bg-[#fafbfc] dark:bg-gray-950; }
+.trace-window-empty-conversation > header { @apply flex flex-wrap items-center justify-between gap-2 border-b border-gray-100 bg-white px-6 py-4 text-xs font-medium dark:border-gray-700 dark:bg-gray-900; }
+.trace-window-empty-conversation > div { @apply flex min-h-64 flex-1 flex-col items-center justify-center gap-4 p-6 text-center; }
+.trace-window-empty-conversation h3 { @apply text-base font-semibold; }
+.trace-window-empty-conversation p { @apply max-w-sm text-xs leading-relaxed text-gray-500 dark:text-gray-400; }
+.trace-window-empty-icon { @apply flex h-[72px] w-[72px] items-center justify-center rounded-full bg-emerald-50 dark:bg-green-950; }
+.trace-window-empty-icon img { @apply h-7 w-7; }
+.dark .trace-window-icon { filter: brightness(1.4); }
+@media (min-width: 1280px) {
+ .trace-window-shell .trace-page-title { @apply text-[2.5rem]; }
+ .trace-window-queue .trace-section-header > div { @apply basis-auto; }
+}
+@media (max-width: 767px) {
+ body:has(.trace-window-shell) .trace-window-dialog :is(.trace-modal-header,.trace-modal-body,.trace-modal-footer) { @apply px-4; }
+ body:has(.trace-window-shell) .trace-window-dialog .trace-modal-header { @apply pr-16; }
+ body:has(.trace-window-shell) .trace-window-dialog :is(.trace-button,.trace-control), .trace-window-shell .trace-window-check { @apply min-h-11; }
+ .trace-window-modal-actions > .trace-actions { @apply w-full; }
+ .trace-window-modal-actions > .trace-actions > button { @apply flex-1; }
+ .trace-window-kpis .trace-admin-kpi-label { @apply max-w-full; }
+}
+:root[data-trace-text-size]:not([data-trace-text-size="100"]) :is(.trace-window-intake-grid,.trace-window-release-grid,.trace-window-form-grid,.trace-window-qr-content) { @apply grid-cols-1; }
+:root[data-trace-text-size]:not([data-trace-text-size="100"]) .trace-window-kpis .trace-admin-kpi-icon { @apply static; }
+:root[data-trace-text-size]:not([data-trace-text-size="100"]) .trace-window-kpis :is(.trace-admin-kpi-label,.trace-admin-kpi-value) { @apply pr-0; }
+:root[data-trace-text-size]:not([data-trace-text-size="100"]) .trace-window-qr .trace-actions { @apply flex-wrap; }
+.trace-window-shell .trace-window-queue-table td .space-y-1 { @apply mt-1 text-[.5625rem]; }
+.trace-window-shell .trace-window-queue-table td .space-y-1 p { @apply rounded bg-gray-50 px-1.5 py-0.5 dark:bg-gray-800; }
+.trace-window-shell .trace-window-queue-table td .space-y-1 img { @apply h-2.5 w-2.5; }
+.trace-window-shell .trace-window-queue-table td .space-y-1 > p:last-child { @apply bg-emerald-50 text-emerald-800 dark:bg-green-950 dark:text-green-300; }
+/* Keep the title, category tabs and operational toolbar in the Figma order. */
+.trace-window-messaging { @apply flex flex-col gap-4; }
+.trace-window-messaging #message-category-panel,
+.trace-window-messaging #message-category-panel > div:not([hidden]),
+.trace-window-messaging #message-category-panel > div:not([hidden]) > section { display: contents; }
+.trace-window-messaging > .trace-tab-group { order: 2; margin: 0; }
+.trace-window-messaging #message-category-panel > div:not([hidden]) > section > header { order: 1; margin: 0; }
+.trace-window-messaging #message-category-panel > div:not([hidden]) > section > :is(.trace-window-support-toolbar,p) { order: 3; margin: 0; }
+.trace-window-messaging #message-category-panel > div:not([hidden]) > section > .grid { order: 4; margin: 0; }
+.trace-window-support-heading { @apply flex flex-wrap items-center justify-between gap-3; }
+.trace-window-support-toolbar { @apply flex min-w-0 flex-wrap items-center justify-between gap-3; }
+.trace-window-support-toolbar > details { @apply max-w-full rounded-lg border border-emerald-100 bg-emerald-50 px-3 py-2 text-xs text-emerald-800 dark:border-green-800 dark:bg-green-950 dark:text-green-300; }
+.trace-window-support-toolbar > details[open] { @apply basis-full; }
+.trace-window-tickets-heading { order: -1; }
+.trace-window-shell [aria-label="Support workspace"] aside > div > div:first-child { @apply flex flex-col gap-3 space-y-0; }
+.trace-window-shell .trace-window-ticket-filters .trace-button { @apply min-h-7 rounded-full px-3 py-1 text-[.6875rem]; }
+.trace-window-shell .trace-window-recipient { @apply text-xs; }
+body:has(.trace-window-shell) :is(.trace-window-staff,.trace-window-internal) textarea.trace-control { min-height: 112px; }
+.trace-window-staff [aria-label="Staff recipients"] > button { @apply text-xs; }
+body:has(.trace-window-shell) .trace-window-manual .trace-modal-body { padding-top: 4px; padding-bottom: 28px; }
+.trace-window-kpis .trace-admin-kpi { min-height: 180px; padding: 26px 24px; }
+.trace-window-kpis .trace-admin-kpi:nth-child(2) .trace-admin-kpi-helper { @apply bg-trace-emerald text-white; }
+.trace-window-kpis .trace-admin-kpi:nth-child(2) .trace-admin-kpi-helper::before { @apply bg-white; }
+.trace-window-upload-zone { display: grid; grid-template-columns: 44px minmax(0,1fr); gap: 4px 10px; padding: 16px 14px; text-align: left; }
+.trace-window-upload-zone > .trace-window-upload-icon { grid-row: span 2; width: 44px; height: 44px; }
+.trace-window-upload-zone > strong { font-size: .6875rem; font-weight: 500; }
+.trace-window-upload-zone > span:not(.trace-window-upload-icon) { @apply sr-only; }
+.trace-window-upload-zone > section { grid-column: 2; }
+.trace-window-upload-zone .trace-file { margin-top: 0; }
+.trace-window-upload-zone .trace-file::file-selector-button { @apply bg-trace-emerald text-white; }
+.trace-window-queue-table td .space-y-1 { display: flex; flex-wrap: wrap; gap: 4px; }
+.trace-window-queue-table td .space-y-1 > p { margin: 0; }
+.trace-window-queue-table td .space-y-1 > p:first-child { @apply bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-300; }
+.trace-window-queue .trace-section-header { min-height: 78px; }
+.trace-window-queue { min-height: 472px; }
+.trace-window-pagination { @apply bg-gray-50/60 dark:bg-gray-900; }
+body:has(.trace-window-shell) .trace-window-dialog .trace-modal-title { font-size: 1.375rem; font-weight: 700; }
+body:has(.trace-window-shell) .trace-window-dialog :is(.trace-label,.trace-control,.trace-button) { font-size: .875rem; }
+body:has(.trace-window-shell) .trace-window-dialog :is(.trace-control,.trace-button) { min-height: 44px; }
+.trace-window-manual-section-heading { @apply mb-4 flex items-center gap-3; }
+.trace-window-manual-section-heading > span { @apply flex h-[34px] w-[34px] shrink-0 items-center justify-center rounded-[10px] bg-emerald-50 dark:bg-green-950; }
+.trace-window-manual-section-heading h3 { @apply text-base font-semibold; }
+.trace-window-manual-section-heading p { @apply mt-0.5 text-xs text-gray-500 dark:text-gray-400; }
+.trace-window-document-section { @apply border-t border-gray-200 pt-6 dark:border-gray-700; }
+.trace-window-manual .trace-window-form-grid:first-of-type { grid-template-columns: minmax(0,1.47fr) minmax(0,1fr) minmax(0,1fr); }
+.trace-window-manual .trace-window-document-section .trace-window-form-grid { grid-template-columns: repeat(3,minmax(0,1fr)); }
+.trace-window-manual .trace-window-stepper { min-height: 44px; }
+.trace-window-manual .trace-window-stepper .trace-control { min-height: 40px; padding-block: 4px; }
+.trace-window-manual .trace-window-stepper .trace-action { min-height: 42px; }
+.trace-window-manual textarea.trace-control { min-height: 104px; height: 104px; }
+.trace-window-staff-bar { @apply grid grid-cols-1 gap-0 border border-gray-200 bg-white p-0 dark:border-gray-700 dark:bg-gray-900 sm:grid-cols-2; }
+.trace-window-staff-bar > div { @apply flex items-center gap-3 p-4; }
+.trace-window-staff-bar > div:first-child { @apply border-b border-gray-200 dark:border-gray-700 sm:border-b-0 sm:border-r; }
+.trace-window-staff-bar > div > div { @apply min-w-0; }
+.trace-window-staff-bar > div > div > span { @apply block text-[.625rem] tracking-wider text-gray-500 dark:text-gray-400; }
+.trace-window-staff-bar strong { @apply mt-0.5 block break-words text-sm font-semibold; }
+.trace-window-summary { @apply overflow-hidden p-0; }
+.trace-window-summary > h3 { @apply m-0 border-b border-gray-200 px-[18px] py-4 dark:border-gray-700; }
+.trace-window-summary > h3 img { @apply h-8 w-8 rounded-lg bg-emerald-50 p-2 dark:bg-green-950; }
+.trace-window-summary-rows { @apply space-y-0 text-[.8125rem]; }
+.trace-window-summary-rows > div { @apply border-b border-gray-200 px-[18px] py-3 last:border-0 dark:border-gray-700; }
+.trace-window-summary-rows .trace-window-estimate { @apply items-center rounded-none py-3 font-semibold; }
+.trace-window-summary-rows .trace-window-estimate > span:last-child { @apply text-xl font-bold text-trace-emerald dark:text-green-300; }
+.trace-window-estimate-notice { @apply flex items-start gap-3 rounded-xl border border-gray-200 p-3.5 text-xs leading-normal text-gray-500 dark:border-gray-700 dark:text-gray-400; }
+.trace-window-intake-grid > section > div:has(input[type="checkbox"]) { @apply my-0 rounded-xl p-4; }
+.trace-window-intake-grid > section > div:has(input[type="checkbox"]) label { @apply text-[.8125rem] leading-normal; }
+.trace-window-intake-grid > section > div:has(input[type="checkbox"]) p { @apply ml-8 leading-normal; }
+.trace-window-supporting { @apply p-[18px]; }
+.trace-window-supporting > section { @apply flex flex-col gap-3 space-y-0; }
+.trace-window-supporting h3 { @apply text-base font-semibold; }
+.trace-window-supporting h3 img { @apply h-8 w-8 rounded-lg bg-emerald-50 p-2 dark:bg-green-950; }
+.trace-window-supporting .trace-window-attachment-guidance { @apply text-[.8125rem] leading-normal text-gray-500 dark:text-gray-400; }
+.trace-window-supporting section > p:not(.trace-window-attachment-guidance):not([role]) { @apply rounded-lg border border-dashed border-gray-300 bg-gray-50 px-4 py-3 text-[.8125rem] text-gray-500 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400; }
+.trace-window-supporting section > .trace-button { @apply w-fit; }
+.trace-window-notes-title { @apply mb-2 block text-base font-semibold; }
+.trace-window-notes .trace-admin-badge { @apply text-[.625rem] font-medium; }
+body:has(.trace-window-shell) .trace-window-intake .trace-window-notes textarea { min-height: 116px; }
+body:has(.trace-window-shell) .trace-window-intake .trace-modal-header { @apply border-b border-gray-200 dark:border-gray-700; }
+body:has(.trace-window-shell) .trace-window-intake .trace-modal-body { @apply pt-5 pb-6; }
+@media (min-width:1280px) {
+ .trace-window-shell .trace-shell-body { padding-right: 0; }
+ .trace-window-shell .trace-content { padding: 10px; }
+ .trace-window-shell .trace-page-header { padding-inline: 10px; min-height: 74px; }
+}
+@media (max-width:639px) {
+ .trace-window-manual .trace-window-form-grid:first-of-type, .trace-window-manual .trace-window-document-section .trace-window-form-grid { grid-template-columns: minmax(0,1fr); }
+}
+:root[data-trace-text-size]:not([data-trace-text-size="100"]) .trace-window-manual .trace-window-form-grid { grid-template-columns: minmax(0,1fr); }
+:root[data-trace-text-size]:not([data-trace-text-size="100"]) .trace-window-upload-zone { grid-template-columns: minmax(0,1fr); }
+:root[data-trace-text-size]:not([data-trace-text-size="100"]) .trace-window-upload-zone > section { grid-column: 1; }
+.trace-window-shell .trace-window-queue .trace-section-title { @apply text-lg font-semibold; }
+.trace-window-shell .trace-window-queue .trace-admin-caption { @apply text-xs; }
+.trace-window-shell .trace-window-queue-table td { @apply text-xs; }
+.trace-window-shell .trace-window-student { @apply text-xs; }
+.trace-window-kpis .trace-admin-kpi-label { @apply font-extrabold; }
+.trace-window-support-toolbar > details { width: auto; }
+.trace-window-manual #manual-input-form > div:first-child .trace-window-form-grid { grid-template-columns: minmax(0,1.47fr) minmax(0,1fr) minmax(0,1fr); }
+@media (min-width:1280px) {
+ .trace-window-shell :is(.trace-page,.trace-admin-more-page) .trace-page-title, .trace-window-shell .trace-window-support-heading .trace-page-title { @apply text-[2.5rem] font-medium; }
+ :root:not([data-trace-text-size]), :root[data-trace-text-size="100"] { .trace-window-shell .trace-window-queue { height: 472px; } .trace-window-shell .trace-window-tracking { height: 724px; } }
+}
+@media (max-width:639px) {
+ .trace-window-manual #manual-input-form > div:first-child .trace-window-form-grid { grid-template-columns: minmax(0,1fr); }
+}
+:root[data-trace-text-size]:not([data-trace-text-size="100"]) .trace-window-manual #manual-input-form > div:first-child .trace-window-form-grid { grid-template-columns: minmax(0,1fr); }
+@media (min-width:1280px) {
+ .trace-window-shell .trace-admin-reports .trace-page-title { font-size: 1.875rem; font-weight: 700; }
+}
+@media (max-width:639px) {
+ :root[data-trace-text-size]:not([data-trace-text-size="100"]) body:has(.trace-window-shell) .trace-window-intake .trace-modal-header { max-height: 28dvh; overflow-y: auto; }
+ :root[data-trace-text-size]:not([data-trace-text-size="100"]) .trace-window-intake .trace-window-modal-actions > p { @apply sr-only; }
+}
+.trace-ticket-archive-tabs { @apply flex max-w-full flex-wrap items-center gap-2; }
+.trace-ticket-archive-tabs .trace-button { @apply min-h-9 rounded-full px-4 py-2 text-xs; }
+@media (max-width:767px) {
+ .trace-ticket-archive-tabs .trace-button { @apply min-h-11; }
+}
+.trace-window-shell [aria-label="Internal assistance workspace"] > header { justify-content: flex-end; }
+/* Content-sized ticket rows must not inherit the scroll area's height. */
+.trace-support-ticket > .trace-button-visual { height: auto; align-items: flex-start; }

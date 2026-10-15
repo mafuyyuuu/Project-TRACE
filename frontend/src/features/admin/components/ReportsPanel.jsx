@@ -1,3 +1,4 @@
+import { isWindowClerk } from '@/utils/windowPresentation';
 import AdminTimestamp from './AdminTimestamp';
 import AdminIcon from './AdminIcon';
 import ReportFiltersModal from '@/components/ReportFiltersModal';
@@ -37,7 +38,7 @@ function StatCard({ label, value, tone = 'default' }) {
  */
 export default function ReportsPanel({ user, currentTab, initialRecordSet = '' }) {
   const { tableRef, ...r } = useReports(user, currentTab, initialRecordSet);
-  const admin = user?.role === 'admin';
+  const admin = user?.role === 'admin' || isWindowClerk(user);
   const isSecretary = user?.role === 'clerk' && user.desk_assignment === 'Secretary';
   const [viewProfileId, setViewProfileId] = useState(null);
   const [filtersOpen,setFiltersOpen]=useState(false);
@@ -54,23 +55,23 @@ export default function ReportsPanel({ user, currentTab, initialRecordSet = '' }
       <StudentProfileModal viewerRole={user?.role} open={!!viewProfileId} studentId={viewProfileId} onClose={() => setViewProfileId(null)} />
       <DashboardAlerts success={r.success} error={r.error} onDismiss={r.dismissNotification} />
 
-      <div className={`trace-page ${user?.role === 'admin' ? 'trace-admin-reports trace-admin-more-page' : ''}`}>
+      <div className={`trace-page ${admin ? 'trace-admin-reports trace-admin-more-page' : ''}`}>
         <div className="trace-page-header">
           <div className="flex-1">
             <h2 className="trace-page-title">
-              {user?.role === 'admin' ? 'Reports & Export' : <>{isSecretary ? 'Records' : 'Reports'} & <span className="text-[#15803d] dark:text-green-300">Export</span></>}
+              {admin ? 'Reports & Export' : <>{isSecretary ? 'Records' : 'Reports'} & <span className="text-[#15803d] dark:text-green-300">Export</span></>}
             </h2>
             <p className="trace-page-description">
               {isSecretary ? 'Review records for your assigned college, including cleared requests, and export to CSV.' : 'Filter records, review the totals, and export to CSV.'}
             </p>
           </div>
           <div className="ml-auto">
-            <Button type="button" className="trace-button trace-button-primary" onClick={()=>setFiltersOpen(true)}>{user?.role === 'admin' && <AdminIcon name="download" className="h-4 w-4" />}{admin ? 'Export CSV' : 'Export'}</Button>
+            <Button type="button" className="trace-button trace-button-primary" onClick={()=>setFiltersOpen(true)}>{admin && <AdminIcon name="download" className="h-4 w-4" />}{admin ? 'Export CSV' : 'Export'}</Button>
           </div>
         </div>
 
-        <p className={user?.role === 'admin' ? 'sr-only' : 'trace-page-description select-text'} aria-label="Applied filters">{appliedFilterSummary(r.filters,reference.options)}{isSecretary?' · Assigned college only':''}</p>
-        {<ReportFiltersModal admin={user?.role === 'admin'} scopeText={appliedFilterSummary(r.filters,reference.options)} inline exportOpen={filtersOpen} filters={r.filters} defaults={EMPTY_REPORT_FILTERS} options={reference.options} optionsLoading={reference.loading} optionsError={reference.error} onRetryOptions={reference.retry} onApply={r.applyFilters} onClose={()=>setFiltersOpen(false)} onExport={dataset=>dataset==='documents'?r.downloadDocuments():r.downloadStudents(dataset)} exporting={r.exporting} exportReady={Boolean(r.report)&&!r.refreshing} secretary={isSecretary} error={r.error}/>}
+        <p className={admin ? 'sr-only' : 'trace-page-description select-text'} aria-label="Applied filters">{appliedFilterSummary(r.filters,reference.options)}{isSecretary?' · Assigned college only':''}</p>
+        {<ReportFiltersModal admin={admin} scopeText={appliedFilterSummary(r.filters,reference.options)} inline exportOpen={filtersOpen} filters={r.filters} defaults={EMPTY_REPORT_FILTERS} options={reference.options} optionsLoading={reference.loading} optionsError={reference.error} onRetryOptions={reference.retry} onApply={r.applyFilters} onClose={()=>setFiltersOpen(false)} onExport={dataset=>dataset==='documents'?r.downloadDocuments():r.downloadStudents(dataset)} exporting={r.exporting} exportReady={Boolean(r.report)&&!r.refreshing} secretary={isSecretary} error={r.error}/>}
 
         {/* Summary for the current filter slice */}
         <section aria-label="Report summary" aria-busy={r.refreshing} className="grid [grid-template-columns:repeat(auto-fit,minmax(min(100%,9rem),1fr))] gap-4">

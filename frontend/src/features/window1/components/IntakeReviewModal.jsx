@@ -1,7 +1,8 @@
+import WindowIcon from './WindowIcon';
 import Button from '@/components/Button';
 import { useCallback, useState } from 'react';
 import RequestAttachments from '@/components/RequestAttachments';
-import RequestStaff from '@/components/RequestStaff';
+import { getStageLabel } from '@/utils/documentStatus';
 import { INPUT_LIMITS } from '@/utils/inputLimits';
 import FileUploadField from '@/components/FileUploadField';
 import ModalShell from '@/components/ModalShell';
@@ -46,47 +47,57 @@ export default function IntakeReviewModal({
       open={!!selectedDoc}
       onClose={() => setActiveModal(null)}
       title="Intake Check"
-      maxWidth="max-w-[535px]"
+      subtitle="Confirm the paperwork, then route to the College Secretary."
+      panelClassName="trace-modal-panel trace-admin-main-dialog trace-window-dialog trace-window-intake max-w-[940px]"
+      closeButtonIcon={<WindowIcon name="close"/>} busy={actionLoading}
       footer={
-        <div className="flex flex-col sm:flex-row gap-3">
+        <div className="trace-window-modal-actions"><p><WindowIcon name="info"/>Complete the checks before routing.</p><div className="trace-actions">
           <Button
             onClick={() => handleIntake('return')}
             disabled={actionLoading}
             className="trace-button trace-button-danger flex-1"
           >
-            Return to Student
+            <WindowIcon name="undo"/>Return to Student
           </Button>
           <Button
             onClick={() => handleIntake('approve')}
             disabled={actionLoading || missingRequired || !requirements.ready || requirements.blocked}
             className="trace-button trace-button-primary flex-1"
           >
-            {actionLoading ? 'Routing…' : 'Route to Secretary'}
+            <WindowIcon name="arrow"/>{actionLoading ? 'Routing…' : 'Route to Secretary'}
           </Button>
-        </div>
+        </div></div>
       }
     >
-      <p className="text-xs text-gray-400 dark:text-gray-400 mt-1 font-semibold pb-5 mb-6 border-b border-gray-100 dark:border-gray-700">
-        Confirm the paperwork, then route to the College Secretary.
-      </p>
-      <RequestStaff document={selectedDoc} />
-
-      <div className="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl p-5 my-4 font-mono text-[11px] text-gray-600 dark:text-gray-300 space-y-2">
+      <div className="trace-window-staff-bar"><div><span className="trace-window-detail-icon"><WindowIcon name="desk"/></span><div><span>CURRENT DESK</span><strong>{getStageLabel(selectedDoc.current_status)}</strong></div></div><div><span className="trace-window-detail-icon"><WindowIcon name="staff"/></span><div><span>ASSIGNED STAFF</span><strong className="select-text">{selectedDoc.assigned_staff_name || 'Unassigned — current desk queue'}</strong></div></div></div>
+      <div className="trace-window-intake-grid"><section className="min-w-0 space-y-4"><div className="trace-window-summary"><h3 className="trace-window-form-heading"><WindowIcon name="summary"/>Request summary</h3>
+      <div className="trace-window-summary-rows">
         <div className="flex flex-wrap justify-between gap-x-3 gap-y-1"><span>Name</span><span className="font-bold text-gray-950 dark:text-gray-100 select-text break-words">{selectedDoc.student_name || 'Unknown'}</span></div>
         <div className="flex flex-wrap justify-between gap-x-3 gap-y-1"><span>Student ID</span><span className="font-bold text-gray-950 dark:text-gray-100 select-text break-words">{selectedDoc.student_id || '—'}</span></div>
         <div className="flex flex-wrap justify-between gap-x-3 gap-y-1"><span>Document Type</span><span className="font-bold text-gray-950 dark:text-gray-100">{selectedDoc.document_type}</span></div>
         <div className="flex flex-wrap justify-between gap-x-3 gap-y-1"><span>Tracking ID</span><span className="font-bold text-gray-950 dark:text-gray-100 select-text">#{selectedDoc.tracking_number || selectedDoc.id}</span></div>
-        <div className="flex justify-between border-t border-gray-200/50 dark:border-gray-700/50 pt-2">
+        <div className="trace-window-estimate">
           <span>Estimated fee</span>
           <span className="font-bold text-gray-950 dark:text-gray-100">{formatPeso(selectedDoc.amount)}</span>
         </div>
       </div>
 
+      </div>
       {/* The estimate is not a price, and the clerk should not repeat it as one. */}
-      <p className="text-[11px] text-gray-500 dark:text-gray-400 -mt-2 mb-5 leading-relaxed">
+      <p className="trace-window-estimate-notice"><WindowIcon name="info"/><span>
         The figure above is an estimate only. The College Secretary sets the amount the student
-        actually pays, after the document is printed.
+        actually pays, after the document is printed.</span>
       </p>
+
+      {selectedDoc.student_id && setOriginalIssued && (
+        <div className="my-5 rounded-2xl border border-gray-200 dark:border-gray-700 p-4 space-y-2">
+          <label className="flex items-start gap-3 text-xs font-semibold">
+            <input type="checkbox" checked={originalIssued} disabled={actionLoading} onChange={event => setOriginalIssued(event.target.checked)} className="trace-choice mt-1 shrink-0" />
+            I confirmed an original of this document was previously issued to this student.
+          </label>
+          <p className="text-xs text-gray-500 dark:text-gray-400">Record your evidence in Notes. This records issuance history for request numbering; presenting an original for a walk-in is a separate check.</p>
+        </div>
+      )}
 
       {needsPaper && (
       <div className="space-y-4">
@@ -126,26 +137,14 @@ export default function IntakeReviewModal({
       </div>
       )}
 
-      {selectedDoc.student_id && setOriginalIssued && (
-        <div className="my-5 rounded-2xl border border-gray-200 dark:border-gray-700 p-4 space-y-2">
-          <label className="flex items-start gap-3 text-xs font-semibold">
-            <input type="checkbox" checked={originalIssued} disabled={actionLoading} onChange={event => setOriginalIssued(event.target.checked)} className="trace-choice mt-1 shrink-0" />
-            I confirmed an original of this document was previously issued to this student.
-          </label>
-          <p className="text-xs text-gray-500 dark:text-gray-400">Record your evidence in Notes. This records issuance history for request numbering; presenting an original for a walk-in is a separate check.</p>
-        </div>
-      )}
-
-      {user && <div className="my-5 space-y-3 border-t border-gray-200 pt-5 dark:border-gray-700">
-        <p className="text-sm text-gray-600 dark:text-gray-300">Flag a specific clearance or missing document only when this request needs it. Explain what the student must submit. Every requirement requested here must be accepted before routing.</p>
-        <RequestAttachments documentId={selectedDoc.id} user={user} onIntakeState={updateRequirements} />
+      </section><section className="min-w-0 space-y-4">
+      {user && <div className="trace-window-supporting space-y-3">
+        <RequestAttachments intakePresentation guidance="Flag a specific clearance or missing document only when this request needs it. Explain what the student must submit. Every requirement requested here must be accepted before routing." documentId={selectedDoc.id} user={user} onIntakeState={updateRequirements} />
         {requirements.blocked && <p role="status" className="text-sm font-semibold text-amber-900 dark:text-amber-200">Routing is awaiting clearance review. Review submitted files above; request resubmission if they need correction.</p>}
       </div>}
 
-        <label className="trace-label block">
-          <span className="text-[10px] font-bold text-gray-800 dark:text-gray-100 uppercase tracking-widest block mb-2">
-            Notes <span className="text-gray-400 dark:text-gray-400 normal-case font-semibold">· required when returning or confirming prior original issuance</span>
-          </span>
+        <label className="trace-label trace-window-notes block">
+          <span className="trace-window-notes-title">Notes</span><span className="trace-admin-badge trace-admin-badge-amber mb-3">Required when returning or confirming prior original issuance</span>
           <textarea maxLength={INPUT_LIMITS.notes}
             rows={3}
             value={intakeNotes}
@@ -163,6 +162,7 @@ export default function IntakeReviewModal({
             </p>
           </div>
         )}
+      </section></div>
     </ModalShell>
   );
 }

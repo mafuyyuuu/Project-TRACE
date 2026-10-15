@@ -1,3 +1,4 @@
+import { isWindowClerk } from '@/utils/windowPresentation';
 import AdminProfileSecurity from '@/features/admin/components/AdminProfileSecurity';
 import AdminIcon from '@/features/admin/components/AdminIcon';
 import PhoneInput from '@/components/PhoneInput';
@@ -81,7 +82,8 @@ export default function ProfileSettingsModal({
         : 'Student';
         
   const isStudent = user?.role === 'student';
-  const isAdmin = user?.role === 'admin';
+  // Shared staff presentation; authorization continues to use user.role in services.
+  const isAdmin = user?.role === 'admin' || isWindowClerk(user);
   const [showSecurityActivity, setShowSecurityActivity] = useState(false);
   const emailChanged = (profileData.email || '').trim().toLowerCase() !== (user?.email || '').trim().toLowerCase();
   const requestEmailVerification = () => {

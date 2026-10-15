@@ -1,3 +1,4 @@
+import { isWindowClerk } from '@/utils/windowPresentation';
 import useSupportFaq from '@/hooks/useSupportFaq';
 import MotionDetails from '@/components/MotionDetails';
 import AdminManual from '@/features/admin/components/AdminManual';
@@ -7,6 +8,7 @@ export default function HelpPage({ user }) {
   const supportFaq = useSupportFaq();
   const desk = user?.desk_assignment;
   const entries = [
+    ['Where are resolved ticket chats?', 'Open Support and choose Archive in the ticket list. Resolving a student/case ticket or an internal assistance concern moves its conversation there automatically. Messages and files are retained as read-only history. Reopen an eligible ticket and confirm to return it to Active. Your existing ticket ownership, desk and college permissions still apply. On phones, open Tickets or Internal tickets first. Use Load older tickets for more archived history.'],
     ['When do pickup SMS reminders arrive?', 'Ready for Pickup requests both SMS and email. If a document remains unclaimed, TRACE requests an SMS after three calendar days, then weekly, with at least seven days between attempts. Reminders stop when it is claimed or no longer ready. Keep your saved mobile number correct. Provider acceptance does not guarantee handset delivery; a configured SMS key alone does not prove a message was sent.'],
     ['Why is a clear ID awaiting manual review?', 'After signup, the proof check must read the school, exact entered ID and selected college together. It tolerates spacing differences in the college heading, but missing or misread letters still require Admin review. Pending does not mean fake or rejected. Pending accounts cannot sign in until Admin verifies them.'],
     ['What limits and formats apply to my details?', 'Use a Philippine mobile number in 09XXXXXXXXX or +639XXXXXXXXX format, without spaces; TRACE saves it as 11 local digits. Names and emails allow 255 characters, IDs 50, Program/Course 150, addresses 500 and notes/long answers 2,000. New passwords use 8–64 characters with the stated character requirements. Years use four digits; copies/pages use whole numbers and fees use up to two decimal places. Oversized or invalid submissions are rejected by the server. Phone CSV exports include a text marker to preserve the leading zero; import that column as Text if your spreadsheet displays the marker.'],
@@ -73,7 +75,7 @@ export default function HelpPage({ user }) {
     ['How do I review pending registrations?', 'Use Account Verification → Review, inspect the proof, choose Verify or Reject, then confirm the decision. Pending registrations also appear in the notification bell.'],
     ['How do I export records?', 'Open Reports & Export, edit the visible draft filters and choose Apply Filters. Student ID / Name matches an exact ID or part of a name. Choose Export at the upper right, select the dataset and Export CSV. Closing Export preserves drafts; Reset clears only the draft. Document exports follow all applied filters; student datasets use ID/name/college filters.'],
   );
-  if (['admin', 'student'].includes(user?.role)) return <AdminManual student={user?.role === 'student'} error={supportFaq.error} entries={[...entries.filter(([question]) => !supportFaq.topics.some(topic => topic.question === question)), ...supportFaq.topics.map(topic => [topic.question, topic.answer])]} />;
+  if (['admin', 'student'].includes(user?.role) || isWindowClerk(user)) return <AdminManual windowClerk={isWindowClerk(user)} student={user?.role === 'student'} error={supportFaq.error} entries={[...entries.filter(([question]) => !supportFaq.topics.some(topic => topic.question === question)), ...supportFaq.topics.map(topic => [topic.question, topic.answer])]} />;
   return <section className="trace-page w-full pb-6" aria-label="User Manual / FAQ">
     <h1 className="trace-page-title">User Manual / FAQ</h1>
     <p className="trace-page-description">Guidance for your TRACE account. Contact the PLP Registrar for unresolved record or account concerns.</p>

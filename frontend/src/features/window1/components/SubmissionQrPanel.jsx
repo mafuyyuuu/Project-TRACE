@@ -1,3 +1,4 @@
+import WindowIcon from './WindowIcon';
 import { useState } from 'react';
 import Button from '@/components/Button';
 import ModalShell from '@/components/ModalShell';
@@ -7,23 +8,16 @@ export default function SubmissionQrPanel() {
   const [applicant, setApplicant] = useState('student');
   const [previewApplicant, setPreviewApplicant] = useState(null);
   const qr = useSubmissionQr(applicant);
-  const download = <a href={qr.image} download={`trace-${applicant}-registration-qr.png`} className="trace-button trace-button-secondary">Download QR</a>;
-  return <section aria-label="Registration QR" className="trace-section trace-section-body min-w-0 space-y-3">
-    <h3 className="trace-section-title">TRACE registration QR</h3>
+  const download = <a href={qr.image} download={`trace-${applicant}-registration-qr.png`} className="trace-button trace-button-secondary"><WindowIcon name="download"/>Download QR</a>;
+  return <section aria-label="Registration QR" className="trace-section trace-section-body trace-window-qr min-w-0 space-y-3">
+    <h3 className="trace-section-title">Registration QR</h3>
     <p className="text-sm">Scan to open the registration form.</p>
-    <label className="trace-label block">Applicant type
-      <select value={applicant} onChange={event => { setPreviewApplicant(null); setApplicant(event.target.value); }} className="trace-control mt-2 w-full">
-        <option value="student">Current student</option><option value="alumni">Alumni</option>
-      </select>
-    </label>
-    {qr.loading && <p role="status">Generating QR…</p>}
-    {qr.error && <p role="alert" className="text-sm">{qr.error}</p>}
-    {qr.image && <Button type="button" onClick={() => setPreviewApplicant(applicant)} aria-label={`Preview ${applicant} registration QR`} className="trace-button trace-button-secondary mx-auto flex max-w-full flex-col gap-2 p-2">
-      <img src={qr.image} alt={`TRACE ${applicant} registration QR`} className="w-40 max-w-full aspect-square object-contain bg-white" />
-      <span className="flex items-center gap-1.5"><svg aria-hidden="true" className="h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="10" cy="10" r="6" /><path d="m15 15 5 5M7 10h6m-3-3v6" /></svg>Preview</span>
-    </Button>}
+    <div className="trace-window-qr-content">
+    <div>{qr.loading && <p role="status">Generating QR…</p>}{qr.error && <p role="alert">{qr.error}</p>}{qr.image && <Button type="button" onClick={() => setPreviewApplicant(applicant)} aria-label={`Preview ${applicant} registration QR`} className="trace-action trace-window-qr-image"><img src={qr.image} alt={`TRACE ${applicant} registration QR`} className="w-[100px] h-[100px] object-contain bg-white"/></Button>}</div>
+    <label className="trace-label block">Applicant type<select aria-label="Applicant type" value={applicant} onChange={event => {setPreviewApplicant(null);setApplicant(event.target.value);}} className="trace-control mt-2 w-full"><option value="student">Current student</option><option value="alumni">Alumni</option></select><span className="trace-admin-caption block">Scan to register or open the form below.</span></label>
+    </div>
     <div className="trace-actions">
-      <a href={qr.url} target="_blank" rel="noopener noreferrer" className="trace-button trace-button-secondary">Open registration form</a>
+      <a href={qr.url} target="_blank" rel="noopener noreferrer" className="trace-button trace-button-secondary"><WindowIcon name="external"/><span aria-label="Open registration form">Open form</span></a>
       {qr.image && download}
     </div>
     <details className="text-xs"><summary className="trace-action cursor-pointer">Registration guidance</summary><div className="mt-2 space-y-2">

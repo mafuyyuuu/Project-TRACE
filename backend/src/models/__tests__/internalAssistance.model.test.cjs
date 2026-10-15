@@ -15,3 +15,10 @@ it('returns older history chronologically without retry hashes or student files'
   const result=await model.history(11,101,executor);expect(result.next_cursor).toBe(51);expect(result.messages[0].id).toBe(51);expect(result.messages.at(-1).id).toBe(100);
   expect(executor.query).toHaveBeenCalledOnce();expect(executor.query.mock.calls[0][0].sql).not.toContain('payload_hash');
 });
+it.each([['active','<>'],['archive','=']])('filters %s assistance before paging while retaining creator ownership',async (view,operator)=>{
+ const executor={query:vi.fn().mockResolvedValue([[]])};
+ await model.list(4,{view,category:'system_issue',before:99},executor);
+ const [config,values]=executor.query.mock.calls[0];
+ expect(config.sql).toContain(`t.state${operator}? AND t.created_by=? AND t.category=? AND t.id<?`);
+ expect(values).toEqual(['RESOLVED',4,'system_issue',99]);
+});

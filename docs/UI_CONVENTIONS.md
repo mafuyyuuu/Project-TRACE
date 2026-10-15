@@ -8,6 +8,35 @@ The primary [TRACE Figma file](https://www.figma.com/design/78A3HTREQ86GIN9ZxvDB
 
 Shared foundations do not replace role-specific workflows with mockup content or redesign entire screens in this batch. Support workspace (`260:3301`) and compact message frames (`254:987`, `258:1093`) are the Batch 10 references. Port their layout and interaction details in that batch, preserving live data and permissions.
 
+## Window 1 reference and ticket archives — 2026-10-15
+
+All 18 frames in the [Window Clerk section](https://www.figma.com/design/eQNaLBPXQSojI6lOK60Api/TRACE-UI---UX?node-id=2362-1473) were individually inspected before implementation. Window 1 / Receiving Desk shares the source staff shell, profile and Support Settings presentation without changing its role or API permissions. `WindowOverview`, `WindowTracking`, `ManualInputModal`, `IntakeReviewModal` and `ReleaseDocumentModal` own the counter-specific composition. Original SVG exports live in `public/window-figma`; existing identical source assets are reused. No source applicant photos, QR codes or payment documents are shipped as live data.
+
+| Figma frame | View / state | Implementation |
+|---|---|---|
+| `2362:1474` | Dashboard — Intake | WindowOverview / queue / SubmissionQrPanel |
+| `2413:6138` | Dashboard — Release | WindowOverview / release queue |
+| `2369:4603` | Tracking Desk | WindowTracking, server records and progress filters |
+| `2369:5200` | Student & case support | MessagingWorkspace / SupportWorkspace |
+| `2385:3008` | Staff coordination | StaffCoordinationWorkspace |
+| `2385:3372` | Internal assistance, selected concern | InternalAssistanceWorkspace |
+| `2369:5375` | Reports & Export (source mislabeled Tracking Desk) | ReportsPanel / inline ReportFiltersModal |
+| `2385:3237` | Support Settings | AdminSupportSettingsForm, existing can_manage guard |
+| `2402:1585` | New linked support ticket | SupportWorkspace create form |
+| `2402:1629` | New Staff Conversation | StaffCoordinationWorkspace recipient / message form |
+| `2402:1701` | New Internal Concern | InternalAssistanceWorkspace create form |
+| `2403:4606` | Manual / FAQ | Role-aware AdminManual presentation |
+| `2406:1753` | Manual Input | ManualInputModal |
+| `2408:5740` | Profile — Personal Info | ProfileSettingsModal staff presentation |
+| `2408:5808` | Profile — Security top | AdminProfileSecurity, existing staff security API |
+| `2408:5960` | Profile — Security scrolled | Same security body with pinned summary / footer |
+| `2409:1753` | Intake Check | Two-column IntakeReviewModal, attachment readiness gate |
+| `2417:6657` | Release Document (source mislabeled Window Clerk Modal) | Cancel-first ReleaseDocumentModal |
+
+Live totals, eligibility, estimated/final fees, assignments, document stages, protected receipts and generated registration QR codes remain authoritative. Staff coordination keeps its actual conversations and recipient rules rather than the copied case-ticket rows in its mockup. Window guidance contains the role's actual tasks. Release uses the protected Official Receipt or truthful physical-receipt guidance; a mock payment slip is never substituted for a receipt. Tables scroll within the card; long/large-text forms scroll while actions remain reachable. Narrow 200% Intake Check condenses its repeated footer hint to retain usable body space.
+
+The user's archive request intentionally extends the Figma frames: `TicketArchiveTabs` appears in student/case support and internal-assistance lists, including mobile ticket dialogs. **Active** contains unresolved tickets, **Archive** contains `RESOLVED` tickets. Backend filtering precedes cursor pagination and retains ownership/desk/college rules. Resolution/reopening switches the selected conversation to its new view. History, files and existing reopen restrictions remain; no archive table, deletion or extra archive migration is introduced. Staff coordination has no ticket-resolution state and keeps its existing conversation list. Shared `FilterSelect` remains the approved Student History treatment.
+
 ## Student reference and shared filters — 2026-10-15
 
 The [Student section](https://www.figma.com/design/eQNaLBPXQSojI6lOK60Api/TRACE-UI---UX?node-id=2354-4416) is the current Student visual reference. The re-audit inventories 17 frames, including the floating panel, both support dialogs, six profile top/scrolled views, and Live Track. The earlier ten-frame inventory omitted the profile and tracking frames. The sparse manual frame was resolved through its screenshot and six detailed child contexts. Student is implemented for visual review; it has not yet been accepted.

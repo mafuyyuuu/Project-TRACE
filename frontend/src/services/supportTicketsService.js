@@ -11,8 +11,8 @@ function documentTypes(data) {
   if(!Array.isArray(data?.types) || data.types.some(row=>!row || !Number.isSafeInteger(Number(row.id)) || Number(row.id)<=0 || typeof row.name!=='string')) throw new Error('Invalid supporting-document catalog.');
   return data.types;
 }
-export async function getTickets(before, signal) {
-  const { data } = await api.get(base, { ...options(signal), params: before ? { before } : {} });
+export async function getTickets(before, signal, view = 'active') {
+  const { data } = await api.get(base, { ...options(signal), params: {view,...(before ? {before} : {})} });
   if (!Array.isArray(data?.tickets) || data.tickets.some(ticket => !ticketValid(ticket))) throw new Error('Invalid ticket list.');
   return data;
 }

@@ -164,6 +164,12 @@ A clerk can explicitly request a reply. The default warning is at **3 service mi
 - Completed, legacy Approved/Rejected and unknown document states are read-only. Authorized messages, files and recorded events remain available; cancellation retains linked ticket history. Awaiting student is a support state and does not mean the document case is closed.
 
 
+### Active and archived ticket chats
+
+Use **Active** and **Archive** in the Support ticket list or Internal assistance list. On phones, open **Tickets** or **Internal tickets** to reach these views. Resolving a ticket automatically moves the selected conversation to Archive. Its messages, attachments and resolution remain available as read-only history; archiving does not delete or copy records. **Reopen ticket** or **Reopen concern**, when permitted, asks for confirmation and moves the selected conversation back to Active. Closed document cases and Admin monitoring retain their existing restrictions.
+
+Archive filters apply to the full authorized list before pagination. **Load older tickets** retrieves more history; search covers the rows currently loaded. Refreshing the list retrieves the latest page and removes tickets whose state changed elsewhere. Students see their own support history; desk and college access still apply to staff. Internal concerns remain visible only to their creator and authorized Admin users. Staff coordination conversations have no resolved-ticket lifecycle and remain in Staff coordination.
+
 ## 7. Set up security and larger text
 
 ### Authenticator app

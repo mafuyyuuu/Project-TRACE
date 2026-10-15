@@ -1,3 +1,4 @@
+import { windowTrackingMatches } from '@/utils/windowPresentation';
 import { useState, useRef, useCallback, useMemo, useEffect } from 'react';
 import { getDocumentTypes } from '@/services/referenceService';
 import useViewportPagination from '@/hooks/useViewportPagination';
@@ -53,6 +54,9 @@ export default function useWindow1Dashboard(user, currentTab = 'dashboard', queu
   const [w1IntakePage, setW1IntakePage] = useState(1);
   const [w1ReleasePage, setW1ReleasePage] = useState(1);
   const [w1ProgressPage, setW1ProgressPage] = useState(1);
+  const [progressFilter, setProgressFilter] = useState('all');
+  const progressDocuments = useMemo(() => documents.filter(doc => windowTrackingMatches(doc, progressFilter)), [documents, progressFilter]);
+  const changeProgressFilter = value => { setProgressFilter(value); setW1ProgressPage(1); };
 
   const intakeQueue = useMemo(
     () => documents.filter((d) => d.current_status === STATUS.PENDING_W1_INTAKE),
@@ -65,7 +69,7 @@ export default function useWindow1Dashboard(user, currentTab = 'dashboard', queu
 
   const intakePagination = useViewportPagination({ page: w1IntakePage, setPage: setW1IntakePage, total: intakeQueue.length, enabled: currentTab === 'dashboard' && queueTab === 'intake' });
   const releasePagination = useViewportPagination({ page: w1ReleasePage, setPage: setW1ReleasePage, total: releaseQueue.length, enabled: currentTab === 'dashboard' && queueTab === 'release' });
-  const progressPagination = useViewportPagination({ page: w1ProgressPage, setPage: setW1ProgressPage, total: documents.length, enabled: currentTab === 'tracking-desk' });
+  const progressPagination = useViewportPagination({ page: w1ProgressPage, setPage: setW1ProgressPage, total: progressDocuments.length, enabled: currentTab === 'tracking-desk' });
 
   /**
    * Clear a request through to the Secretary, or send it back to the student.
@@ -255,6 +259,7 @@ export default function useWindow1Dashboard(user, currentTab = 'dashboard', queu
   );
 
   return {
+    progressFilter, changeProgressFilter, progressDocuments,
     documentTypes, documentTypesLoading,
     ...core,
     submissionToConfirm,
