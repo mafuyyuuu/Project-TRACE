@@ -285,3 +285,9 @@ InternalAssistanceWorkspace reuses the main support frame (260:3301) proportions
 ## Staff coordination and messaging categories
 
 The additional staff workspace follows the main Figma messaging frame (260:3301) using existing Support visuals, intrinsic-size local icons, dynamic participant initials, readable aligned ticket-style rows, independently scrolling history and the rounded pinned composer. Shared QueueTabs group support, staff coordination and internal assistance; visited workspaces retain drafts. ModalShell and ConfirmDialog own recipient selection and first-message confirmation; subsequent Send is direct with pending guards. Active-category gating prevents hidden dialogs/toasts taking over another category. Mobile uses the shared conversation drawer; dark/reduced-motion/200% text adaptations preserve controls. No placeholder presence/read/unread marks are shown.
+
+## Signup back navigation — October 15, 2026
+
+Back to Login sits at the viewport’s upper-left edge rather than aligning with the centered form card. Its sticky container is transparent and borderless; only the link has a quiet page-colored surface to keep it readable above scrolling content. Retain the safe-area top inset, a minimum 44 px hit target and light/dark colors. The transparent container passes pointer events through to the form; the link remains clickable. Do not constrain this header to the card’s maximum width.
+
+Validation: 17 existing registration/branding tests, lint, production/PWA build and whitespace checks pass. 65 browser checks cover student/alumni signup at top/bottom, 320/375/768/1440 px, 100/200% text and both themes, plus Back to Login navigation. Screenshots use synthetic catalog data: [desktop](signup-header-desktop-review.png), [scrolled mobile](signup-header-mobile-review.png). No backend, database or validation changes.
