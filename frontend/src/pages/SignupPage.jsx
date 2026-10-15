@@ -155,13 +155,11 @@ export default function SignupPage() {
         <div className="absolute bottom-[-10%] right-[-5%] w-[30vw] h-[30vw] rounded-full bg-blue-500/5 dark:bg-blue-500/5 blur-[100px]"></div>
       </div>
 
-      <header className="sticky top-0 z-30 w-full border-b border-gray-200 bg-gray-50 px-4 pb-3 pt-[max(0.75rem,env(safe-area-inset-top))] dark:border-gray-700 dark:bg-gray-800">
-        <div className="mx-auto w-full max-w-md">
-        <Link to="/" className="trace-action inline-flex items-center gap-2 text-sm font-semibold text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100">
+      <header className="pointer-events-none relative top-0 z-30 w-full bg-transparent px-4 pb-3 pt-[max(0.75rem,env(safe-area-inset-top))] sm:px-6 md:sticky">
+        <Link to="/" className="trace-action pointer-events-auto inline-flex min-h-11 items-center gap-2 rounded-lg bg-transparent px-3 py-2 text-sm font-semibold text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-gray-100">
           <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" /></svg>
           Back to Login
         </Link>
-        </div>
       </header>
 
       <main className="relative z-10 flex w-full flex-col items-center px-4 py-8 sm:py-12">
