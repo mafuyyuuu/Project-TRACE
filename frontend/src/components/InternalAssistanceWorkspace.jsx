@@ -1,3 +1,4 @@
+import FilterSelect from '@/components/FilterSelect';
 import { Fragment,useLayoutEffect,useRef,useState } from 'react';
 import Button from '@/components/Button';
 import ModalShell from '@/components/ModalShell';
@@ -81,8 +82,8 @@ export default function InternalAssistanceWorkspace({user,requestedTicket,active
     <div className="shrink-0 space-y-3 border-b-2 border-pine-600 p-4">
       <label className="trace-label block">Search loaded tickets<span className="mt-2 flex items-center gap-2 rounded-full border border-gray-300 bg-white px-3 dark:border-gray-600 dark:bg-gray-900"><SupportIcon name="search" /><input maxLength={255} type="search" aria-label="Search loaded internal tickets" value={query} onChange={event => setQuery(event.target.value)} className="min-h-11 min-w-0 flex-1 rounded-full bg-transparent text-sm outline-none focus-visible:ring-2 focus-visible:ring-green-600" /></span></label>
       <div className="trace-form-grid">
-        <label className="trace-label">State<select disabled={state.busy} value={stateFilter} onChange={event => setStateFilter(event.target.value)} className="trace-control mt-1 w-full"><option value="">All states</option>{Object.entries(labels).map(([value,label]) => <option key={value} value={value}>{label}</option>)}</select></label>
-        <label className="trace-label">Category<select disabled={state.busy} value={categoryFilter} onChange={event => setCategoryFilter(event.target.value)} className="trace-control mt-1 w-full"><option value="">All categories</option>{Object.entries(state.categories).map(([value,label]) => <option key={value} value={value}>{label}</option>)}</select></label>
+        <label className="trace-label">State<FilterSelect disabled={state.busy} value={stateFilter} onChange={event => setStateFilter(event.target.value)} className="trace-control mt-1 w-full"><option value="">All states</option>{Object.entries(labels).map(([value,label]) => <option key={value} value={value}>{label}</option>)}</FilterSelect></label>
+        <label className="trace-label">Category<FilterSelect disabled={state.busy} value={categoryFilter} onChange={event => setCategoryFilter(event.target.value)} className="trace-control mt-1 w-full"><option value="">All categories</option>{Object.entries(state.categories).map(([value,label]) => <option key={value} value={value}>{label}</option>)}</FilterSelect></label>
       </div>
       <p className="text-xs text-gray-600 dark:text-gray-300">{rows.length} loaded · Newest first. Search covers loaded tickets; filters cover the full authorized queue.</p>
     </div>

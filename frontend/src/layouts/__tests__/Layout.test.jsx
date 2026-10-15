@@ -115,7 +115,7 @@ describe('Layout', () => {
     startFirstLoginGuide.mockResolvedValue(true);
     renderLayout();
     expect(await screen.findByRole('dialog', { name: 'TRACE quick guide' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Open quick guide' }).querySelector('svg')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Open quick guide' }).querySelector('img')).toHaveAttribute('src', '/admin-figma/helpCircle.svg');
     fireEvent.click(screen.getByRole('button', { name: /Open my profile/ }));
     expect(screen.getByLabelText(/Email Address/)).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Verify your email' })).toBeInTheDocument();

@@ -8,6 +8,31 @@ The primary [TRACE Figma file](https://www.figma.com/design/78A3HTREQ86GIN9ZxvDB
 
 Shared foundations do not replace role-specific workflows with mockup content or redesign entire screens in this batch. Support workspace (`260:3301`) and compact message frames (`254:987`, `258:1093`) are the Batch 10 references. Port their layout and interaction details in that batch, preserving live data and permissions.
 
+## Student reference and shared filters — 2026-10-15
+
+The [Student section](https://www.figma.com/design/eQNaLBPXQSojI6lOK60Api/TRACE-UI---UX?node-id=2354-4416) is the current Student visual reference. Every one of its ten frames was inspected, including the floating panel and both support dialogs. The sparse manual frame was resolved through its screenshot and six detailed child contexts. Student is implemented for visual review; it has not yet been accepted.
+
+| Figma frame | View / state | Implementation |
+|---|---|---|
+| `2283:1296` | Student Dashboard | StudentWelcome / StudentOverview |
+| `2313:1577` | Dashboard with chat open | FloatingSupportChat / SupportWorkspace |
+| `2317:1307` | Support tickets modal | SupportWorkspace ticket list |
+| `2317:1359` | New Support Ticket | SupportWorkspace create form |
+| `2321:1277` | New Request | NewRequestModal |
+| `2323:1277` | Confirm Document Request | StudentRequestConfirmation |
+| `2324:1277` | History: All Requests | StudentHistory request view |
+| `2326:1293` | History: Payments | StudentHistory payment view |
+| `2328:1309` | Support | StudentSupportEmpty / SupportWorkspace |
+| `2354:3364` | User Manual / FAQ | Role-aware shared manual presentation |
+
+`trace-student-shell` owns the reference header, rail, type scale and page geometry, including the compact mobile header. The Student SVG exports retain their intrinsic dimensions in `frontend/public/student-figma`. API identities, receipts, timestamps, status counts and prices remain dynamic. Keep required year/purpose/copy/attachment fields and the one-dismissal guard; selected document cards stay visible while searching so hidden required fields cannot bypass native validation. Review consumes the existing staged submission, preserves drafts on cancellation and confirms before submitting. Completed KPI copy describes completed records rather than promising pickup for a released request.
+
+The user selected the History **All statuses** dropdown (`2324:1578`) as the system-wide filter design. `components/FilterSelect.jsx` composes the original 15 px funnel and chevron with a native select, outlined 12 px corners, 40 px desktop and 44 px mobile height, dark colors and visible focus. Reuse it for filtering dropdowns; preserve accessible names, options, controlled values and caller-owned filtering. Apply it in tracker/forecast, accounts/desks, document types, audit events/roles/range, analytics staff desks, graduate programs, internal-assistance state/category, and shared report/payment-history filters used by Admin, Window 1, Finance and Secretary. This is an intentional user-approved override of earlier Admin filter styling. Queue/navigation tabs and data-entry selects retain their own semantics.
+
+History request search combines tracking/document terms and the saved status; payment search also matches references. Keep each view's search/status draft, the existing paid-or-submitted-reference payment cohort, honest unpriced amounts, protected receipt callbacks and totals derived from visible priced rows. Tables scroll internally rather than squeezing amounts, dates or receipt controls. Manual guidance and counts remain role-aware; local Yes/No selection does not create server FAQ votes. Support ticket creation, FAQ-first escalation, attachments, hours, permissions and confirmation stay in existing hooks/services. Older-ticket controls follow the actual cursor, not mock history.
+
+[Synthetic Student desktop review](student-tabs-review.png) · [Student dialogs/mobile](student-dialogs-mobile-review.png) · [Shared filter examples](shared-filter-review.png).
+
 ## Admin reference — 2026-10-15
 
 The user accepted Main Tabs on 2026-10-14. That review covered every frame in [Admin – Main Tabs](https://www.figma.com/design/eQNaLBPXQSojI6lOK60Api/TRACE-UI---UX?node-id=2217-20270). All 35 frames were individually inspected, including modal, tab, expanded and scrolled variants. Registration v2 supersedes the original review frame, and the populated audit table supersedes the earlier placeholder. The current review covers all eight frames in [Admin – More Tabs](https://www.figma.com/design/eQNaLBPXQSojI6lOK60Api/TRACE-UI---UX?node-id=2193-1056), including both analytics scroll states. The More implementation is ready for the user’s visual review; it has not yet been accepted. Other roles keep the shared reference above.

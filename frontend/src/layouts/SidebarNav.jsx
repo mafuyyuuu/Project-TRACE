@@ -1,3 +1,4 @@
+import StudentIcon from '@/features/student/components/StudentIcon';
 import { useLayoutEffect, useRef, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { canonicalTabForUser, navGroupsForUser } from '@/utils/navigation';
@@ -44,7 +45,9 @@ const ICONS = {
   logout: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>,
 };
 
-function Icon({ name, className, admin = false, active = false }) {
+function Icon({ name, className, admin = false, student = false, active = false }) {
+  const studentIcons = { dashboard: 'home-bab9e', document: 'document-44362', message: 'messages-de9d8', book: 'guide-0cc80', cog: 'settings-14716', logout: 'logout-95946' };
+  if (student && studentIcons[name]) return <StudentIcon name={studentIcons[name]} className={active ? 'trace-student-nav-active' : ''} />;
   if (admin) return <AdminIcon name={name} active={active} className={className} />;
   return (
     <svg aria-hidden="true" className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -133,7 +136,7 @@ export default function SidebarNav({
             aria-current={tab === item.tab ? 'page' : undefined}
             className={linkClass(tab === item.tab)}
           >
-            <Icon name={item.icon} admin={user?.role === 'admin'} active={tab === item.tab} className="trace-nav-icon w-6 h-6 shrink-0" />
+            <Icon name={item.icon} admin={user?.role === 'admin'} student={user?.role === 'student'} active={tab === item.tab} className="trace-nav-icon w-6 h-6 shrink-0" />
             {showLabels && <span>{item.label}</span>}
           </Link>
         ))}
@@ -146,7 +149,7 @@ export default function SidebarNav({
           data-nav-selected={moreIsActive || undefined}
           className={linkClass(moreIsActive)}
         >
-          <Icon name={group === 'main' ? 'more' : 'back'} admin={user?.role === 'admin'} active={moreIsActive} className="trace-nav-icon w-6 h-6 shrink-0" />
+          <Icon name={group === 'main' ? 'more' : 'back'} admin={user?.role === 'admin'} student={user?.role === 'student'} active={moreIsActive} className="trace-nav-icon w-6 h-6 shrink-0" />
           {showLabels && <span>{group === 'main' ? 'More' : 'Back to main'}</span>}
           {group === 'main' && activeGroup === 'more' && <span className="sr-only">Current page is in More</span>}
         </button>}
@@ -164,11 +167,11 @@ export default function SidebarNav({
           aria-label="Preferences"
           className={actionClass(false)}
         >
-          <Icon name="cog" admin={user?.role === 'admin'} className="trace-nav-icon w-6 h-6 shrink-0" />
+          <Icon name="cog" admin={user?.role === 'admin'} student={user?.role === 'student'} className="trace-nav-icon w-6 h-6 shrink-0" />
           {showLabels && <span>Preferences</span>}
         </button>
         <button type="button" onClick={onLogout} data-nav-label="Logout" aria-describedby={tooltip.description('Logout')} aria-label="Logout" className={actionClass(true)}>
-          <Icon name="logout" admin={user?.role === 'admin'} className="trace-nav-icon w-6 h-6 shrink-0" />
+          <Icon name="logout" admin={user?.role === 'admin'} student={user?.role === 'student'} className="trace-nav-icon w-6 h-6 shrink-0" />
           {showLabels && <span>Logout</span>}
         </button>
       </div>

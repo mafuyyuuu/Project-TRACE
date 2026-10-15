@@ -1,3 +1,4 @@
+import FilterSelect from '@/components/FilterSelect';
 import AdminAuditLog from './components/AdminAuditLog';
 import AdminIcon from './components/AdminIcon';
 import AdminMetricCard from '@/features/admin/components/AdminMetricCard';
@@ -126,7 +127,7 @@ export default function AdminDashboard({ user, currentTab, setViewImageUrl, revi
                         <p className="text-xs text-gray-400 dark:text-gray-400 font-medium">Predicted incoming document volume via Prophet ML.</p>
                       </div>
                       <div className="flex min-w-0 max-w-full items-center gap-2">
-                        <select
+                        <FilterSelect aria-label="Forecast document type"
                           value={forecastFilter}
                           onChange={(e) => setForecastFilter(e.target.value)}
                           className="trace-control cursor-pointer"
@@ -135,7 +136,7 @@ export default function AdminDashboard({ user, currentTab, setViewImageUrl, revi
                           <option value="Transcript of Records">Transcript of Records</option>
                           <option value="Clearance">Clearance</option>
                           <option value="Diploma">Diploma</option>
-                        </select>
+                        </FilterSelect>
                         <Button
                           onClick={() => setActiveModal('forecast-detail')}
                           aria-label="Expand 7-day volume forecast"
@@ -317,9 +318,9 @@ export default function AdminDashboard({ user, currentTab, setViewImageUrl, revi
                 <div className="trace-section overflow-hidden">
                   <div className="trace-section-header border-gray-100 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800/50">
                     <h3 className="trace-section-title">System-Wide Document Tracker</h3>
-                    <div className="trace-admin-tracker-filter">
-                      <label htmlFor="admin-document-filter" className="shrink-0 whitespace-nowrap text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest">Filter:</label>
-                      <select
+                    <div className="trace-actions">
+                      <label htmlFor="admin-document-filter" className="sr-only">Filter:</label>
+                      <FilterSelect
                         id="admin-document-filter"
                         value={adminDocFilter}
                         onChange={(e) => setAdminDocFilter(e.target.value)}
@@ -332,7 +333,7 @@ export default function AdminDashboard({ user, currentTab, setViewImageUrl, revi
                         <option value="Certificate of Good Moral">Certificate of Good Moral</option>
                         <option value="Diploma">Diploma</option>
                         <option value="Certification">Certification</option>
-                      </select>
+                      </FilterSelect>
                     </div>
                   </div>
                   <div className="p-4 sm:p-6">

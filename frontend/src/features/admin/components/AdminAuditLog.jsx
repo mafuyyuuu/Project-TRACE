@@ -1,3 +1,4 @@
+import FilterSelect from '@/components/FilterSelect';
 import { useState } from 'react';
 import Button from '@/components/Button';
 import AdminIcon from './AdminIcon';
@@ -46,11 +47,12 @@ export default function AdminAuditLog({ logs, security = false, loading = false,
     <div className={'trace-section-header' + (security ? ' trace-admin-filter-toolbar' : '')}><div><h3 className="trace-section-title">{title}</h3><p className="trace-admin-caption">Most recent events first · Filters cover loaded records.</p></div>
       <div className="trace-actions">
         <label className="trace-admin-search"><span className="sr-only">{security ? 'Search security logs' : 'Search activity logs'}</span><AdminIcon name="search" /><input type="search" maxLength={255} value={query} onChange={e => change(setQuery, e.target.value)} placeholder={security ? 'Search user, ID or IP address' : 'Search document, user or ID'} /></label>
-        <label className="trace-admin-date-filter"><span className="sr-only">Log date range</span><AdminIcon name="calendar" /><select value={days} onChange={e => change(setDays, e.target.value)} className="trace-control"><option value="all">All loaded history</option><option value="7">Last 7 days</option><option value="30">Last 30 days</option><option value="1">Last 24 hours</option></select></label>
-        {security && <select aria-label="Log role" value={role} onChange={e => change(setRole, e.target.value)} className="trace-control"><option value="all">All roles</option>{[...new Set(logs.map(log => log.role).filter(Boolean))].map(value => <option key={value} value={value}>{value}</option>)}</select>}
+        <label className="inline-flex min-w-0"><span className="sr-only">Log date range</span><FilterSelect value={days} onChange={e => change(setDays, e.target.value)} className="trace-control"><option value="all">All loaded history</option><option value="7">Last 7 days</option><option value="30">Last 30 days</option><option value="1">Last 24 hours</option></FilterSelect></label>
+        {security && <FilterSelect aria-label="Log role" value={role} onChange={e => change(setRole, e.target.value)} className="trace-control"><option value="all">All roles</option>{[...new Set(logs.map(log => log.role).filter(Boolean))].map(value => <option key={value} value={value}>{value}</option>)}</FilterSelect>}
       </div>
     </div>
-    {security && <div className="flex flex-wrap gap-2 px-6 pb-4" aria-label="Security event filters">{[['all', 'All events'], ['login', 'Logins'], ['failed', 'Failed logins'], ['logout', 'Logouts']].map(([key, label]) => <Button type="button" key={key} aria-pressed={event === key} onClick={() => change(setEvent, key)} className={`trace-action rounded-full border px-3.5 py-1.5 text-xs ${event === key ? 'border-green-200 bg-emerald-50 text-trace-emerald dark:border-green-700 dark:bg-green-950 dark:text-green-300' : 'border-gray-200 bg-white text-gray-500 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300'}`}>{label}</Button>)}</div>}
+    {security && <div className="px-6 pb-4"><FilterSelect aria-label="Security event filters" value={event} onChange={e => change(setEvent, e.target.value)}>{[['all', 'All events'], ['login', 'Logins'], ['failed', 'Failed logins'], ['logout', 'Logouts']].map(([key, label]) => <option key={key} value={key}>{label}</option>)}</FilterSelect></div>}
+
     {error && <p role="alert" className="trace-inline-error px-6 pb-4">{error}</p>}
     <div role="region" aria-label={security ? 'Security log table' : 'Activity log table'} tabIndex={0} className="trace-table-scroll max-h-[60vh]">
       <table aria-label={security ? 'Global security audit log' : 'System-wide audit log'} className={`trace-data-table ${security ? 'min-w-[60rem]' : 'min-w-[65rem]'}`}>

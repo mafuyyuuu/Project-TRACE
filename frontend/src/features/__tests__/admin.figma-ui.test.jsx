@@ -21,7 +21,7 @@ describe('Admin Figma UI interactions', () => {
     expect(screen.queryByText('Account 9')).not.toBeInTheDocument();
     await userEvent.click(screen.getByRole('button', { name: 'Next' }));
     expect(screen.getByText('Account 9')).toBeInTheDocument();
-    await userEvent.click(screen.getByRole('button', { name: 'Failed logins' }));
+    await userEvent.selectOptions(screen.getByRole('combobox', { name: 'Security event filters' }), 'failed');
     expect(screen.getByText('Account 9')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Next' })).toBeDisabled();
     await userEvent.selectOptions(screen.getByRole('combobox', { name: 'Log role' }), 'admin');
@@ -30,7 +30,7 @@ describe('Admin Figma UI interactions', () => {
     await userEvent.type(screen.getByRole('searchbox', { name: 'Search security logs' }), '192.0.2.9');
     expect(screen.getByText('Account 9')).toBeInTheDocument();
     await userEvent.clear(screen.getByRole('searchbox'));
-    await userEvent.click(screen.getByRole('button', { name: 'All events' }));
+    await userEvent.selectOptions(screen.getByRole('combobox', { name: 'Security event filters' }), 'all');
     expect(screen.getByText('Account 0')).toBeInTheDocument();
   });
   it('keeps a manual helpfulness selection separate from the supplied answers', async () => {

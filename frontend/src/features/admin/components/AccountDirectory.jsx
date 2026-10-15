@@ -1,3 +1,4 @@
+import FilterSelect from '@/components/FilterSelect';
 import { useState } from 'react';
 import Button from '@/components/Button';
 import UserAvatar from '@/components/UserAvatar';
@@ -14,12 +15,12 @@ export default function AccountDirectory({ users, totalCount, onSelectUser, role
       <div className="trace-section-header">
         <div><h3 className="trace-section-title">Accounts</h3><p className="trace-admin-caption">{totalCount ?? users.length} accounts in total</p></div>
         <div className="trace-actions">
-          <select aria-label="Account role" className="trace-control" value={roleFilter} onChange={event => onRoleFilterChange(event.target.value)}>
+          <FilterSelect aria-label="Account role" className="trace-control" value={roleFilter} onChange={event => onRoleFilterChange(event.target.value)}>
             {roleOptions.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}
-          </select>
-          {onDeskFilterChange && <select aria-label="Staff desk" className="trace-control" value={deskFilter} onChange={event => onDeskFilterChange(event.target.value)}>
+          </FilterSelect>
+          {onDeskFilterChange && <FilterSelect aria-label="Staff desk" className="trace-control" value={deskFilter} onChange={event => onDeskFilterChange(event.target.value)}>
             {deskOptions.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}
-          </select>}
+          </FilterSelect>}
           {onAddUser && <Button type="button" className="trace-button trace-button-primary" onClick={onAddUser}><AdminIcon name="plus" />Add User</Button>}
         </div>
       </div>

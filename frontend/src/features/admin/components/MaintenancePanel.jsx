@@ -1,3 +1,4 @@
+import FilterSelect from '@/components/FilterSelect';
 import NumberInput from '@/components/NumberInput';
 import { NUMBER_LIMITS } from '@/utils/inputLimits';
 import ModalShell from '@/components/ModalShell';
@@ -281,7 +282,8 @@ export default function MaintenancePanel({ user, currentTab }) {
               <div className="trace-section-header trace-admin-filter-toolbar">
                 <div><h3 className="trace-section-title">Document Types</h3><p className="trace-admin-caption">Fees apply to new requests only. A type already used by documents cannot be renamed.</p></div><div className="trace-actions"><Button type="button" className="trace-button trace-button-primary" onClick={() => { resetForm(); setCatalogForm('documentTypes'); }}><AdminIcon name="plus" />New document type</Button></div>
               </div>
-              <div className="flex flex-wrap gap-2 px-6 pb-4" aria-label="Document type filters">{[['all', 'All'], ['active', 'Active'], ['inactive', 'Inactive'], ['drafts', 'Drafts']].map(([key, label]) => <Button type="button" key={key} aria-pressed={typeFilter === key} onClick={() => { setTypeFilter(key); setTypePage(0); }} className={'trace-action rounded-full border px-3.5 py-1.5 text-xs ' + (typeFilter === key ? 'border-green-200 bg-[#e8f5ee] text-trace-emerald dark:border-green-800 dark:bg-green-950 dark:text-green-300' : 'border-gray-200 bg-white text-slate-500 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300')}>{label}{key === 'all' ? ' ' + m.documentTypes.length : ''}</Button>)}</div>
+              <div className="px-6 pb-4"><FilterSelect aria-label="Document type filters" value={typeFilter} onChange={event => { setTypeFilter(event.target.value); setTypePage(0); }}>{[['all', 'All document types'], ['active', 'Active'], ['inactive', 'Inactive'], ['drafts', 'Drafts']].map(([key, label]) => <option key={key} value={key}>{label}{key === 'all' ? ' · ' + m.documentTypes.length : ''}</option>)}</FilterSelect></div>
+
               <div className="trace-table-scroll max-h-[70dvh]">
                 <table className="w-full table-fixed text-left min-w-[60rem]"><colgroup>{['w-[32%]','w-[25%]','w-[12%]','w-[10%]','w-[21%]'].map((width,index)=><col key={index} className={width}/>)}</colgroup>
                   <thead className="bg-gray-50 dark:bg-gray-800 sticky top-0">

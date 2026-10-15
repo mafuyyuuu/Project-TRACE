@@ -1,3 +1,4 @@
+import FilterSelect from '@/components/FilterSelect';
 import AdminTimestamp from '@/features/admin/components/AdminTimestamp';
 import Button from '@/components/Button';
 import { INPUT_LIMITS } from '@/utils/inputLimits';
@@ -145,7 +146,7 @@ export default function GradApplicationReviewPanel({ user, currentTab }) {
       />
 
       <div key={activeQueueTab} className="trace-section trace-motion-context overflow-hidden mt-6">
-        {admin && <div className="trace-section-header"><div><h3 className="trace-section-title">{activeQueueTab === 'pending' ? 'Pending review' : activeQueueTab === 'approved' ? 'Approved applications' : 'Rejected applications'}</h3><p className="trace-admin-caption">{activeApplications.length} applications {activeQueueTab === 'pending' ? 'waiting' : activeQueueTab}</p></div><div className="trace-actions"><label className="trace-admin-search"><span className="sr-only">Search alumni or program</span><AdminIcon name="search" /><input type="search" maxLength={255} placeholder="Search alumni or program" value={search} onChange={e => setSearch(e.target.value)} /></label><select aria-label="Application program" className="trace-control" value={program} onChange={e => setProgram(e.target.value)}><option value="all">All programs</option>{[...new Set([...pendingApplications, ...approvedApplications, ...rejectedApplications].map(a => a.program || a.course).filter(Boolean))].map(value => <option key={value} value={value}>{value}</option>)}</select></div></div>}
+        {admin && <div className="trace-section-header"><div><h3 className="trace-section-title">{activeQueueTab === 'pending' ? 'Pending review' : activeQueueTab === 'approved' ? 'Approved applications' : 'Rejected applications'}</h3><p className="trace-admin-caption">{activeApplications.length} applications {activeQueueTab === 'pending' ? 'waiting' : activeQueueTab}</p></div><div className="trace-actions"><label className="trace-admin-search"><span className="sr-only">Search alumni or program</span><AdminIcon name="search" /><input type="search" maxLength={255} placeholder="Search alumni or program" value={search} onChange={e => setSearch(e.target.value)} /></label><FilterSelect aria-label="Application program" className="trace-control" value={program} onChange={e => setProgram(e.target.value)}><option value="all">All programs</option>{[...new Set([...pendingApplications, ...approvedApplications, ...rejectedApplications].map(a => a.program || a.course).filter(Boolean))].map(value => <option key={value} value={value}>{value}</option>)}</FilterSelect></div></div>}
         <div className={admin ? '' : 'p-4 sm:p-6'}>
           <div className="max-h-[calc(100vh-280px)] overflow-y-auto overflow-x-auto">
             <ApplicationsTable

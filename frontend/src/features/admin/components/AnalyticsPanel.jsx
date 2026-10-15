@@ -1,3 +1,4 @@
+import FilterSelect from '@/components/FilterSelect';
 import Button from '@/components/Button';
 import AdminIcon from './AdminIcon';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
@@ -161,7 +162,7 @@ function DocumentAnalytics({ user, currentTab }) {
           <div className="trace-section-header trace-admin-workload-toolbar">
             <div><h3 className="trace-section-title">Workload by Staff</h3><p className="trace-admin-caption">Documents handled per staff member in this period.</p></div>
             <div className="trace-actions"><label className="trace-admin-search"><AdminIcon name="search" /><input type="search" aria-label="Search staff workload" placeholder="Search staff" value={staffQuery} onChange={event => { setStaffQuery(event.target.value); setStaffPage(0); }} /></label>
-              <select aria-label="Workload desk" className="trace-control" value={staffDesk} onChange={event => { setStaffDesk(event.target.value); setStaffPage(0); }}><option value="all">All desks</option>{[...new Set(workload.map(row => row.desk_assignment).filter(Boolean))].map(desk => <option key={desk} value={desk}>{desk}</option>)}</select></div>
+              <FilterSelect aria-label="Workload desk" className="trace-control" value={staffDesk} onChange={event => { setStaffDesk(event.target.value); setStaffPage(0); }}><option value="all">All desks</option>{[...new Set(workload.map(row => row.desk_assignment).filter(Boolean))].map(desk => <option key={desk} value={desk}>{desk}</option>)}</FilterSelect></div>
           </div>
           <p className="trace-admin-workload-notice"><AdminIcon name="analytics-info" /><span>Desks differ in difficulty, so these are volume figures, not a performance ranking. Share is each staff member’s documents handled divided by the total handled across all staff in this period.</span></p>
 

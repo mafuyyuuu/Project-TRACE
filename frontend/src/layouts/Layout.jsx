@@ -215,7 +215,7 @@ export default function Layout() {
   );
 
   return (
-    <div className={`h-dvh overflow-hidden bg-trace-canvas dark:bg-gray-800 flex flex-col p-3 sm:p-4 md:p-6 gap-4 sm:gap-6 font-body text-trace-ink dark:text-gray-100 ${user?.role === 'admin' ? 'trace-admin-shell' : ''}`}>
+    <div className={`h-dvh overflow-hidden bg-trace-canvas dark:bg-gray-800 flex flex-col p-3 sm:p-4 md:p-6 gap-4 sm:gap-6 font-body text-trace-ink dark:text-gray-100 ${user?.role === 'admin' ? 'trace-admin-shell' : user?.role === 'student' ? 'trace-student-shell' : ''}`}>
       {/* Header */}
       <header className="trace-shell-header bg-white dark:bg-gray-900 rounded-3xl sm:rounded-full shadow-sm px-4 sm:px-6 py-3 flex flex-wrap gap-2 items-center justify-between shrink-0 border border-gray-100 dark:border-gray-700">
         <div className="flex min-w-0 items-center gap-2 sm:gap-3">
@@ -233,7 +233,7 @@ export default function Layout() {
 
         <div className="flex shrink-0 ml-auto items-center gap-2 sm:gap-4">
           {guideEligible && <Button id="tutorial-guide" type="button" aria-label="Open quick guide" title="Quick guide" onClick={() => { navigate('/dashboard'); guide.show(); }} className="trace-action trace-icon-button">
-            {user?.role === 'admin' ? <AdminIcon name="help" className="h-[22px] w-[22px]" /> : <svg aria-hidden="true" className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><circle cx="12" cy="12" r="9" /><path d="M9.5 9a2.5 2.5 0 0 1 5 .3c0 1.7-2.5 1.8-2.5 3.7M12 16h.01" /></svg>}
+            {['admin', 'student'].includes(user?.role) ? <AdminIcon name="help" className="h-[22px] w-[22px]" /> : <svg aria-hidden="true" className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><circle cx="12" cy="12" r="9" /><path d="M9.5 9a2.5 2.5 0 0 1 5 .3c0 1.7-2.5 1.8-2.5 3.7M12 16h.01" /></svg>}
           </Button>}
           <Button
             type="button"
@@ -243,7 +243,7 @@ export default function Layout() {
             title={darkMode ? 'Switch to light mode' : 'Switch to dark mode'}
             className="trace-icon-button"
           >
-            {user?.role === 'admin' && !darkMode ? <AdminIcon name="moon" className="h-5 w-5" /> : (
+            {['admin', 'student'].includes(user?.role) && !darkMode ? <AdminIcon name="moon" className="h-5 w-5" /> : (
             <svg aria-hidden="true" className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               {darkMode
                 ? <><circle cx="12" cy="12" r="4" strokeWidth="2" /><path strokeWidth="2" strokeLinecap="round" d="M12 2v2m0 16v2M2 12h2m16 0h2M5 5l1.5 1.5m11 11L19 19M5 19l1.5-1.5m11-11L19 5" /></>
@@ -253,7 +253,7 @@ export default function Layout() {
           </Button>
           <div className="trace-notifications-anchor relative">
             <Button id="tutorial-notifications" onClick={handleNotifClick} aria-label="Notifications" className="trace-icon-button relative">
-              {user?.role === 'admin' ? <span className="flex h-[22px] w-[22px] items-center justify-center"><AdminIcon name="bell-base" /></span> : <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>}
+              {['admin', 'student'].includes(user?.role) ? <span className="flex h-[22px] w-[22px] items-center justify-center"><AdminIcon name="bell-base" /></span> : <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>}
               {unreadCount > 0 && (
                 <span aria-label={`${unreadCount} unread notifications`} className="absolute top-2 right-2 w-2 h-2 bg-red-500 dark:bg-red-500 rounded-full"></span>
               )}

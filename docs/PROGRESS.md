@@ -1,3 +1,36 @@
+## Student Figma implementation and system-wide filter consistency — 2026-10-15
+
+The user asked to proceed with Student and use its History filter design throughout
+TRACE. Figma access was confirmed and all ten frames in Student (`2354:4416`) were
+individually inspected. The frame inventory is in `docs/UI_CONVENTIONS.md`.
+
+Student now follows the source header/rail, welcome/KPI/active-request hierarchy,
+request/payment History layouts, request selection/review steps, compact support,
+ticket/create dialogs, support empty state and searchable manual. All 66 new SVGs
+are original read-only exports; no Figma canvas was edited. Live records, pricing,
+identity, protected receipts and existing submission/confirmation rules remain.
+Required selected fields stay mounted during document search. Three regressions
+cover combined History filters, submitted-payment scope/receipts/unpriced amounts,
+and required-field validation while searching.
+
+FilterSelect reuses the History funnel/chevron design across existing filtering
+dropdowns, including shared reports used by staff desks. Filtering stays native,
+labelled and controlled by its existing caller; options, applied/draft/export scope,
+loaded-record limits and permissions are unchanged. Audit event/document-type chips
+now use that same dropdown by explicit user request. Data-entry selects and queue
+navigation remain distinct.
+
+Validation: **1,082 frontend tests / 112 files** pass. Student's ten source states
+pass **160 Chromium combinations** at 320/375/768/1440 px, 100/200% text and both
+themes. The shared filters pass another **192 combinations** across Admin and staff desks;
+a final manual theme/asset check passes 16 combinations.
+ESLint, production/PWA build, SVG/callsite integrity and whitespace checks pass.
+Synthetic screenshots are in `docs/student-tabs-review.png`,
+`docs/student-dialogs-mobile-review.png` and `docs/shared-filter-review.png`.
+No physical phones or live backend were used. No backend, dependency, migration or
+environment changes. Student is ready for visual review, not declared accepted;
+work remains on the existing Admin/Student draft PR #37 targeting dev.
+
 ## Admin mobile header — 2026-10-15
 
 The user flagged the tall mobile header in the More review screenshots. The full
