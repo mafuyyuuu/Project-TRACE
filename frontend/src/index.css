@@ -1464,7 +1464,6 @@ body:has(.trace-student-shell) .trace-student-tickets-modal .trace-modal-body { 
 .trace-student-tracking-progress > header { @apply mb-[24px] flex flex-wrap items-center justify-between gap-[12px]; }
 .trace-student-tracking-progress h4 { @apply text-[.9375rem] font-semibold; }
 .trace-student-tracking-dot { @apply h-[32px] w-[32px] shrink-0; }
-.trace-student-tracking-active { box-shadow: 0 0 0 5px #cde8d8; }
 .trace-student-tracking-label { @apply mt-[16px] text-[.8125rem] font-semibold leading-[1.3]; }
 .trace-student-tracking-guidance { @apply mt-[16px] flex items-center gap-[12px] rounded-[12px] border border-[#d7efe3] bg-[#e5f6ed] p-[16px] text-sm text-green-800 dark:border-green-900 dark:bg-green-950 dark:text-green-300; }
 .trace-student-tracking-guidance .trace-student-tracking-symbol { @apply h-[32px] w-[32px] bg-white dark:bg-gray-900; }
@@ -1873,3 +1872,12 @@ input[type="email"] { text-transform: lowercase; }
 }
 body .trace-modal-panel.trace-admin-preferences { font-family: 'TRACE Admin Inter', Inter, sans-serif; }
 body .trace-admin-preferences .trace-modal-header { border-bottom: 0; }
+
+/* Live tracker: readable rows respond to the panel and typography, not a viewport breakpoint. */
+.trace-student-live-track .trace-modal-header { padding-right: 80px; }
+.trace-tracking-status-dot { @apply size-[6px] shrink-0 rounded-full bg-current; }
+.trace-tracking-stages > li { min-height: 124px; }
+.trace-student-tracking-active::after { content: ''; position: absolute; inset: -6px; border: 2px solid #168f55; border-radius: 999px; opacity: .45; animation: trace-tracking-live 1800ms ease-out infinite; pointer-events: none; }
+.dark .trace-student-tracking-active::after { border-color: #86efac; }
+@keyframes trace-tracking-live { 0% { opacity: .65; transform: scale(.9); } 80%,100% { opacity: 0; transform: scale(1.3); } }
+@media (prefers-reduced-motion: reduce) { .trace-student-tracking-active::after { animation: none; transform: none; opacity: .45; } }

@@ -1,5 +1,14 @@
 import api from '@/services/api'
 
+/** Authorized request snapshot and its recorded stage-entry audit trail. */
+export async function getDocumentDetail(documentId, signal) {
+  const { data } = await api.get(`/documents/${documentId}/detail`, { signal, timeout: 15000 });
+  if (!data?.document || String(data.document.id) !== String(documentId) || !Array.isArray(data.step_logs)) {
+    throw new Error('Tracking history is unavailable.');
+  }
+  return data;
+}
+
 export async function getRequestAssignment(documentId, signal) {
   const { data } = await api.get(`/documents/${documentId}/assignment`, { signal });
   return data;

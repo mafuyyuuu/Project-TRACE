@@ -1,3 +1,4 @@
+import useLiveTracking from '@/hooks/useLiveTracking';
 import StudentPaymentCard from './components/StudentPaymentCard';
 import PaymentStubModal from '@/features/secretary/components/PaymentStubModal';
 import StudentRequestConfirmation from './components/StudentRequestConfirmation';
@@ -57,7 +58,6 @@ export default function StudentDashboard({ user, currentTab, setViewImageUrl }) 
     setActiveModal,
     selectedDoc,
     setSelectedDoc,
-    trackerProgress,
     loadDashboardData,
     handleStudentSubmitRequest,
     handleStudentSubmitPayment,
@@ -69,6 +69,8 @@ export default function StudentDashboard({ user, currentTab, setViewImageUrl }) 
     confirmStudentSubmission,
     cancelStudentSubmission,
   } = useStudentDashboard(user);
+
+  const tracking = useLiveTracking(activeModal === 'tracking' ? selectedDoc : null);
 
   const selectedPaymentMethod = paymentMethods.find((m) => m.code === selectedMethod);
   const selectedPaymentDocuments = selectedDoc
@@ -287,9 +289,11 @@ export default function StudentDashboard({ user, currentTab, setViewImageUrl }) 
         {activeModal === 'tracking' && selectedDoc && (
           <LiveTrackingModal 
             user={user}
-            selectedDoc={selectedDoc}
+            selectedDoc={tracking.document}
+            historyLoading={tracking.loading}
+            historyError={tracking.error}
+            onRefresh={tracking.refresh}
             setActiveModal={setActiveModal}
-            trackerProgress={trackerProgress}
             getStatusLabel={getStatusLabel}
           />
         )}
