@@ -443,7 +443,7 @@ it('keeps the old Secretary Completed Logs tab as a cleared-records alias, with 
   authService.lookupStudent.mockResolvedValue({ student: { ...USERS.student, course: 'Synthetic College' } });
   const { rerender } = render(<SecretaryDashboard user={USERS.secretary} currentTab="completed-logs" />);
   await screen.findByText(record.document_sequence_number);
-  expect(screen.getByRole('heading', { name: 'Records & Export' })).toBeInTheDocument();
+  expect(screen.getByRole('heading', { name: 'Reports & Export' })).toBeInTheDocument();
   expect(reportsService.getDocumentReport).toHaveBeenLastCalledWith({ recordSet: 'secretary-cleared', page: 1, limit: 25 });
   expect(screen.getByRole('button', { name: 'Secretary-cleared' })).toHaveAttribute('aria-pressed', 'true');
   expect(screen.getAllByRole('columnheader')).toHaveLength(8);

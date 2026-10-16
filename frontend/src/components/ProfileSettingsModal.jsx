@@ -1,3 +1,4 @@
+import { isSecretary } from '@/utils/secretaryPresentation';
 import { formatDateTime, formatEventLabel } from '@/utils/formatters';
 import PaginatedTable from '@/components/PaginatedTable';
 import { isWindowClerk } from '@/utils/windowPresentation';
@@ -85,7 +86,7 @@ export default function ProfileSettingsModal({
         
   const isStudent = user?.role === 'student';
   // Shared staff presentation; authorization continues to use user.role in services.
-  const isAdmin = user?.role === 'admin' || isWindowClerk(user);
+  const isAdmin = user?.role === 'admin' || isWindowClerk(user) || isSecretary(user) || user?.role === 'clerk' && user.desk_assignment === 'Finance';
   const [showSecurityActivity, setShowSecurityActivity] = useState(false);
   const emailChanged = (profileData.email || '').trim().toLowerCase() !== (user?.email || '').trim().toLowerCase();
   const requestEmailVerification = () => {

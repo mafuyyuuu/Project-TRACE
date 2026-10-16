@@ -1,3 +1,6 @@
+import { isSecretary } from '@/utils/secretaryPresentation';
+import FinanceIcon from '@/features/finance/components/FinanceIcon';
+import SecretaryIcon from '@/features/secretary/components/SecretaryIcon';
 import WindowIcon from '@/features/window1/components/WindowIcon';
 import { isWindowClerk } from '@/utils/windowPresentation';
 import StudentIcon from '@/features/student/components/StudentIcon';
@@ -47,9 +50,14 @@ const ICONS = {
   logout: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>,
 };
 
-function Icon({ name, className, admin = false, student = false, windowClerk = false, active = false }) {
+function Icon({ name, className, admin = false, student = false, windowClerk = false, secretary = false, finance = false, active = false }) {
   const studentIcons = { dashboard: 'home-bab9e', document: 'document-44362', message: 'messages-de9d8', book: 'guide-0cc80', cog: 'settings-14716', logout: 'logout-95946' };
   const windowIcons = {dashboard:active ? 'a447c' : 'c0c60',users:active ? 'e6935' : '75bc1',message:active ? 'fd0bc' : 'de9d8',report:active ? '757ce' : '02302',book:active ? '715e0' : '8c0bb',cog:'14716',logout:'95946'};
+  const secretaryIcons = {dashboard:active?'71d2a':'c0c60',report:active?'bf32f':'6bcf1',message:active?'fd0bc':'de9d8',cap:'fa806',book:'0cc80',cog:'14716',logout:'95946'};
+  const financeIcons = {dashboard:active?'bab9e':'c0c60',report:active?'bf32f':'88abc',message:active?'fd0bc':'de9d8',book:active?'8bcb3':'0cc80',cog:'14716',logout:'95946'};
+  if (finance && financeIcons[name]) return <FinanceIcon name={financeIcons[name]} className="trace-nav-icon" />;
+  if (secretary && active && name === 'book') return <FinanceIcon name="8bcb3" className="trace-nav-icon" />;
+  if (secretary && secretaryIcons[name]) return <SecretaryIcon name={secretaryIcons[name]} className="trace-nav-icon" />;
   if (windowClerk && windowIcons[name]) return <WindowIcon name={windowIcons[name]} className={className}/>;
   if (student && studentIcons[name]) return <StudentIcon name={studentIcons[name]} className={active ? 'trace-student-nav-active' : ''} />;
   if (admin) return <AdminIcon name={name} active={active} className={className} />;
@@ -140,7 +148,7 @@ export default function SidebarNav({
             aria-current={tab === item.tab ? 'page' : undefined}
             className={linkClass(tab === item.tab)}
           >
-            <Icon name={item.icon} windowClerk={isWindowClerk(user)} admin={user?.role === 'admin'} student={user?.role === 'student'} active={tab === item.tab} className="trace-nav-icon w-6 h-6 shrink-0" />
+            <Icon name={item.icon} windowClerk={isWindowClerk(user)} secretary={isSecretary(user)} finance={user?.role==='clerk' && user.desk_assignment==='Finance'} admin={user?.role === 'admin'} student={user?.role === 'student'} active={tab === item.tab} className="trace-nav-icon w-6 h-6 shrink-0" />
             {showLabels && <span>{item.label}</span>}
           </Link>
         ))}
@@ -153,7 +161,7 @@ export default function SidebarNav({
           data-nav-selected={moreIsActive || undefined}
           className={linkClass(moreIsActive)}
         >
-          <Icon name={group === 'main' ? 'more' : 'back'} windowClerk={isWindowClerk(user)} admin={user?.role === 'admin'} student={user?.role === 'student'} active={moreIsActive} className="trace-nav-icon w-6 h-6 shrink-0" />
+          <Icon name={group === 'main' ? 'more' : 'back'} windowClerk={isWindowClerk(user)} secretary={isSecretary(user)} finance={user?.role==='clerk' && user.desk_assignment==='Finance'} admin={user?.role === 'admin'} student={user?.role === 'student'} active={moreIsActive} className="trace-nav-icon w-6 h-6 shrink-0" />
           {showLabels && <span>{group === 'main' ? 'More' : 'Back to main'}</span>}
           {group === 'main' && activeGroup === 'more' && <span className="sr-only">Current page is in More</span>}
         </button>}
@@ -171,11 +179,11 @@ export default function SidebarNav({
           aria-label="Preferences"
           className={actionClass(false)}
         >
-          <Icon name="cog" windowClerk={isWindowClerk(user)} admin={user?.role === 'admin'} student={user?.role === 'student'} className="trace-nav-icon w-6 h-6 shrink-0" />
+          <Icon name="cog" windowClerk={isWindowClerk(user)} secretary={isSecretary(user)} finance={user?.role==='clerk' && user.desk_assignment==='Finance'} admin={user?.role === 'admin'} student={user?.role === 'student'} className="trace-nav-icon w-6 h-6 shrink-0" />
           {showLabels && <span>Preferences</span>}
         </button>
         <button type="button" onClick={onLogout} data-nav-label="Logout" aria-describedby={tooltip.description('Logout')} aria-label="Logout" className={actionClass(true)}>
-          <Icon name="logout" windowClerk={isWindowClerk(user)} admin={user?.role === 'admin'} student={user?.role === 'student'} className="trace-nav-icon w-6 h-6 shrink-0" />
+          <Icon name="logout" windowClerk={isWindowClerk(user)} secretary={isSecretary(user)} finance={user?.role==='clerk' && user.desk_assignment==='Finance'} admin={user?.role === 'admin'} student={user?.role === 'student'} className="trace-nav-icon w-6 h-6 shrink-0" />
           {showLabels && <span>Logout</span>}
         </button>
       </div>

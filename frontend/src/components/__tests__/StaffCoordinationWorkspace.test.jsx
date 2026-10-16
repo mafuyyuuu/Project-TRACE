@@ -16,7 +16,7 @@ beforeEach(()=>{
 it('confirms the selected staff recipient and first message, preserves cancellation and excludes client context',async()=>{
   render(<StaffCoordinationWorkspace user={staff}/>);fireEvent.click(screen.getByRole('button',{name:'New conversation'}));
   fireEvent.click(await within(screen.getByRole('group',{name:'Staff recipients'})).findByRole('button',{name:/Demo Registrar/}));fireEvent.change(screen.getByLabelText('First message'),{target:{value:'Please coordinate the demo handoff.'}});
-  fireEvent.click(screen.getByRole('button',{name:'Review conversation'}));expect(api.openConversation).not.toHaveBeenCalled();fireEvent.click(screen.getByRole('button',{name:'Cancel'}));
+  fireEvent.click(screen.getByRole('button',{name:'Review conversation'}));expect(api.openConversation).not.toHaveBeenCalled();fireEvent.click(within(screen.getByRole('dialog',{name:'Start Staff Conversation?'})).getByRole('button',{name:'Cancel'}));
   expect(screen.getByLabelText('First message')).toHaveValue('Please coordinate the demo handoff.');
   fireEvent.click(screen.getByRole('button',{name:'Review conversation'}));fireEvent.click(screen.getByRole('button',{name:'Confirm'}));
   await waitFor(()=>expect(screen.queryByRole('dialog',{name:'New Staff Conversation'})).not.toBeInTheDocument());

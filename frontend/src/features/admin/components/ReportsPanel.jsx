@@ -38,7 +38,7 @@ function StatCard({ label, value, tone = 'default' }) {
  */
 export default function ReportsPanel({ user, currentTab, initialRecordSet = '' }) {
   const { tableRef, ...r } = useReports(user, currentTab, initialRecordSet);
-  const admin = user?.role === 'admin' || isWindowClerk(user);
+  const admin = user?.role === 'admin' || isWindowClerk(user) || user?.role === 'clerk' && ['Secretary','Finance'].includes(user.desk_assignment);
   const isSecretary = user?.role === 'clerk' && user.desk_assignment === 'Secretary';
   const [viewProfileId, setViewProfileId] = useState(null);
   const [filtersOpen,setFiltersOpen]=useState(false);

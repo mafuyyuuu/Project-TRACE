@@ -1,0 +1,356 @@
+{
+  "67de8": {
+    "src": "/finance-figma/67de8.svg",
+    "width": 7.0,
+    "height": 7.0,
+    "tone": "warning"
+  },
+  "c5093": {
+    "src": "/finance-figma/c5093.svg",
+    "width": 11.0,
+    "height": 11.0,
+    "tone": "positive"
+  },
+  "3ccb3": {
+    "src": "/finance-figma/3ccb3.svg",
+    "width": 14.0,
+    "height": 14.0,
+    "tone": "inverse"
+  },
+  "5d87a": {
+    "src": "/finance-figma/5d87a.svg",
+    "width": 16.0,
+    "height": 16.0,
+    "tone": "neutral"
+  },
+  "c811f": {
+    "src": "/finance-figma/c811f.svg",
+    "width": 22.0,
+    "height": 22.0,
+    "tone": "positive"
+  },
+  "b62f4": {
+    "src": "/finance-figma/b62f4.svg",
+    "width": 14.0,
+    "height": 14.0,
+    "tone": "inverse"
+  },
+  "cd110": {
+    "src": "/finance-figma/cd110.svg",
+    "width": 22.0,
+    "height": 22.0,
+    "tone": "positive"
+  },
+  "4b224": {
+    "src": "/finance-figma/4b224.svg",
+    "width": 16.0,
+    "height": 16.0,
+    "tone": "inverse"
+  },
+  "a68d0": {
+    "src": "/finance-figma/a68d0.svg",
+    "width": 26.0,
+    "height": 26.0,
+    "tone": "inverse"
+  },
+  "4d36c": {
+    "src": "/finance-figma/4d36c.svg",
+    "width": 15.0,
+    "height": 15.0,
+    "tone": "neutral"
+  },
+  "0d87e": {
+    "src": "/finance-figma/0d87e.svg",
+    "width": 13.0,
+    "height": 13.0,
+    "tone": "neutral"
+  },
+  "2d3fe": {
+    "src": "/finance-figma/2d3fe.svg",
+    "width": 15.0,
+    "height": 15.0,
+    "tone": "warning"
+  },
+  "ba71f": {
+    "src": "/finance-figma/ba71f.svg",
+    "width": 16.0,
+    "height": 16.0,
+    "tone": "inverse"
+  },
+  "e5ed5": {
+    "src": "/finance-figma/e5ed5.svg",
+    "width": 24.0,
+    "height": 24.0,
+    "tone": "positive"
+  },
+  "91f27": {
+    "src": "/finance-figma/91f27.svg",
+    "width": 22.0,
+    "height": 22.0,
+    "tone": "positive"
+  },
+  "d3fdf": {
+    "src": "/finance-figma/d3fdf.svg",
+    "width": 16.0,
+    "height": 16.0,
+    "tone": "neutral"
+  },
+  "dfedc": {
+    "src": "/finance-figma/dfedc.svg",
+    "width": 14.0,
+    "height": 14.0,
+    "tone": "inverse"
+  },
+  "7d0f5": {
+    "src": "/finance-figma/7d0f5.svg",
+    "width": 16.0,
+    "height": 16.0,
+    "tone": "inverse"
+  },
+  "7e094": {
+    "src": "/finance-figma/7e094.svg",
+    "width": 16.0,
+    "height": 16.0,
+    "tone": "neutral"
+  },
+  "5381f": {
+    "src": "/finance-figma/5381f.svg",
+    "width": 18.0,
+    "height": 18.0,
+    "tone": "inverse"
+  },
+  "5e248": {
+    "src": "/finance-figma/5e248.svg",
+    "width": 16.0,
+    "height": 16.0,
+    "tone": "info"
+  },
+  "4929b": {
+    "src": "/finance-figma/4929b.svg",
+    "width": 18.0,
+    "height": 18.0,
+    "tone": "danger"
+  },
+  "39af8": {
+    "src": "/finance-figma/39af8.svg",
+    "width": 16.0,
+    "height": 16.0,
+    "tone": "neutral"
+  },
+  "23bd8": {
+    "src": "/finance-figma/23bd8.svg",
+    "width": 18.0,
+    "height": 18.0,
+    "tone": "warning"
+  },
+  "fe5ea": {
+    "src": "/finance-figma/fe5ea.svg",
+    "width": 22.0,
+    "height": 22.0,
+    "tone": "positive"
+  },
+  "b1b5c": {
+    "src": "/finance-figma/b1b5c.svg",
+    "width": 12.0,
+    "height": 12.0,
+    "tone": "info"
+  },
+  "4030d": {
+    "src": "/finance-figma/4030d.svg",
+    "width": 18.0,
+    "height": 18.0,
+    "tone": "positive"
+  },
+  "04f2e": {
+    "src": "/finance-figma/04f2e.svg",
+    "width": 16.0,
+    "height": 16.0,
+    "tone": "info"
+  },
+  "44c1e": {
+    "src": "/finance-figma/44c1e.svg",
+    "width": 18.0,
+    "height": 18.0,
+    "tone": "positive"
+  },
+  "cb887": {
+    "src": "/finance-figma/cb887.svg",
+    "width": 15.0,
+    "height": 15.0,
+    "tone": "danger"
+  },
+  "a2311": {
+    "src": "/finance-figma/a2311.svg",
+    "width": 14.0,
+    "height": 14.0,
+    "tone": "neutral"
+  },
+  "eed16": {
+    "src": "/finance-figma/eed16.svg",
+    "width": 14.0,
+    "height": 14.0,
+    "tone": "neutral"
+  },
+  "f2885": {
+    "src": "/finance-figma/f2885.svg",
+    "width": 16.0,
+    "height": 16.0,
+    "tone": "neutral"
+  },
+  "f15ad": {
+    "src": "/finance-figma/f15ad.svg",
+    "width": 18.0,
+    "height": 18.0,
+    "tone": "inverse"
+  },
+  "36a6a": {
+    "src": "/finance-figma/36a6a.svg",
+    "width": 15.0,
+    "height": 15.0,
+    "tone": "neutral"
+  },
+  "a66b0": {
+    "src": "/finance-figma/a66b0.svg",
+    "width": 16.0,
+    "height": 16.0,
+    "tone": "neutral"
+  },
+  "e5229": {
+    "src": "/finance-figma/e5229.svg",
+    "width": 16.0,
+    "height": 16.0,
+    "tone": "inverse"
+  },
+  "78fb9": {
+    "src": "/finance-figma/78fb9.svg",
+    "width": 16.0,
+    "height": 16.0,
+    "tone": "inverse"
+  },
+  "4e20a": {
+    "src": "/finance-figma/4e20a.svg",
+    "width": 11.0,
+    "height": 11.0,
+    "tone": "warning"
+  },
+  "55a47": {
+    "src": "/secretary-figma/bb9b0.svg",
+    "width": 7.0,
+    "height": 7.0,
+    "tone": "inverse"
+  },
+  "92c4a": {
+    "src": "/finance-figma/92c4a.svg",
+    "width": 22.0,
+    "height": 22.0,
+    "tone": "positive"
+  },
+  "0ac9d": {
+    "src": "/finance-figma/0ac9d.svg",
+    "width": 22.0,
+    "height": 22.0,
+    "tone": "positive"
+  },
+  "864f5": {
+    "src": "/finance-figma/864f5.svg",
+    "width": 15.0,
+    "height": 15.0,
+    "tone": "neutral"
+  },
+  "bab9e": {
+    "src": "/student-figma/home-bab9e.svg",
+    "width": 30.0,
+    "height": 30.0,
+    "tone": "inverse"
+  },
+  "8dc65": {
+    "src": "/finance-figma/8dc65.svg",
+    "width": 22.0,
+    "height": 22.0,
+    "tone": "danger"
+  },
+  "27353": {
+    "src": "/finance-figma/27353.svg",
+    "width": 18.0,
+    "height": 18.0,
+    "tone": "positive"
+  },
+  "9bdeb": {
+    "src": "/finance-figma/9bdeb.svg",
+    "width": 15.0,
+    "height": 15.0,
+    "tone": "neutral"
+  },
+  "a2929": {
+    "src": "/finance-figma/a2929.svg",
+    "width": 16.0,
+    "height": 16.0,
+    "tone": "neutral"
+  },
+  "c4f34": {
+    "src": "/finance-figma/c4f34.svg",
+    "width": 14.0,
+    "height": 14.0,
+    "tone": "neutral"
+  },
+  "28bed": {
+    "src": "/finance-figma/28bed.svg",
+    "width": 14.0,
+    "height": 14.0,
+    "tone": "inverse"
+  },
+  "fba07": {
+    "src": "/finance-figma/fba07.svg",
+    "width": 14.0,
+    "height": 14.0,
+    "tone": "neutral"
+  },
+  "b2501": {
+    "src": "/finance-figma/b2501.svg",
+    "width": 18.0,
+    "height": 18.0,
+    "tone": "danger"
+  },
+  "8bcb3": {
+    "src": "/finance-figma/8bcb3.svg",
+    "width": 30.0,
+    "height": 30.0,
+    "tone": "inverse"
+  },
+  "6bbf4": {
+    "src": "/finance-figma/6bbf4.svg",
+    "width": 26.0,
+    "height": 26.0,
+    "tone": "inverse"
+  },
+  "4324d": {
+    "src": "/finance-figma/4324d.svg",
+    "width": 26.0,
+    "height": 26.0,
+    "tone": "inverse"
+  },
+  "478ec": {
+    "src": "/finance-figma/478ec.svg",
+    "width": 12.0,
+    "height": 12.0,
+    "tone": "inverse"
+  },
+  "41802": {
+    "src": "/finance-figma/41802.svg",
+    "width": 15.0,
+    "height": 15.0,
+    "tone": "neutral"
+  },
+  "20959": {
+    "src": "/finance-figma/20959.svg",
+    "width": 22.0,
+    "height": 22.0,
+    "tone": "positive"
+  },
+  "b6740": {
+    "src": "/finance-figma/b6740.svg",
+    "width": 16.0,
+    "height": 16.0,
+    "tone": "neutral"
+  }
+}
