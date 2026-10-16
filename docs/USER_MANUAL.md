@@ -135,6 +135,8 @@ One payment covers the documents in that request group. Separate groups have sep
 3. Wait for the release notice and collection instructions before visiting Window 1.
 4. Use **History** to view requests and payment records. Wide tables scroll within their cards on phones.
 
+Live Track highlights the current unfinished stage with a subtle pulse. Completed requests stay static, and reduced-motion preferences disable the pulse. **Refresh tracking** checks the latest saved status and stage history. Dates use Philippine time; **Date not recorded** means a stage has no saved timestamp. If a refresh fails, the tracker labels the last saved status and offers retry. Stages wrap into readable rows on smaller screens and with larger text.
+
 For walk-ins, **CTC, 2nd Copy of COR, 2nd Copy of OGR and CAV** qualify for same-day handling when the original and a photocopy of the required document are presented. Evaluation, pricing, payment and release checks still apply.
 
 ## 6. Get Support and submit case documents

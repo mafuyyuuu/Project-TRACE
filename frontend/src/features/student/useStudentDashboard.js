@@ -4,11 +4,10 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import useDashboardCore from '@/hooks/useDashboardCore';
 import { uploadDocument, submitPayment, cancelDocument } from '@/services/documentsService';
 import { getDocumentTypes, getPaymentMethods } from '@/services/referenceService';
-import { STATUS, PIPELINE, isCancellable } from '@/utils/documentStatus';
+import { STATUS, isCancellable } from '@/utils/documentStatus';
 
 /**
- * Student portal: request submission, checkout, cancellation, and the live
- * tracking animation.
+ * Student portal: request submission, checkout, cancellation and dashboard data.
  *
  * Nothing is paid at submission any more. The registrar cannot quote a price
  * until the document has been printed, so the student files first and is asked
@@ -16,7 +15,7 @@ import { STATUS, PIPELINE, isCancellable } from '@/utils/documentStatus';
  */
 export default function useStudentDashboard(user) {
   const core = useDashboardCore(user);
-  const { documents, runAction, triggerNotification, setActiveModal, selectedDoc, activeModal } = core;
+  const { documents, runAction, triggerNotification, setActiveModal, selectedDoc } = core;
 
   // Document types come from the database so the Registrar can add or reprice
   // one without a code change.
@@ -33,8 +32,6 @@ export default function useStudentDashboard(user) {
   const [selectedMethod, setSelectedMethod] = useState('gcash');
   const [paymentRef, setPaymentRef] = useState('');
   const [paymentFile, setPaymentFile] = useState(null);
-
-  const [trackerProgress, setTrackerProgress] = useState(0);
 
   // The request id staged for a cancel confirmation, or null when the dialog is closed.
   const [cancelRequestIdToConfirm, setCancelRequestIdToConfirm] = useState(null);
@@ -135,25 +132,6 @@ export default function useStudentDashboard(user) {
       current[name] ? { ...current, [name]: { ...current[name], ...patch } } : current
     );
   }, []);
-
-  // Animate the tracker from 0 so the bar visibly fills when the modal opens.
-  useEffect(() => {
-    if (activeModal !== 'tracking' || !selectedDoc) return undefined;
-    const timer = setTimeout(() => {
-      const index = PIPELINE.indexOf(selectedDoc.current_status);
-      setTrackerProgress(index < 0 ? 0 : index / Math.max(1, PIPELINE.length - 1) * 100);
-    }, 50);
-    return () => clearTimeout(timer);
-  }, [activeModal, selectedDoc]);
-
-  // Reset to 0 whenever a different document is opened, without setting state
-  // inside the effect above.
-  const trackerKey = activeModal === 'tracking' ? selectedDoc?.id : null;
-  const [lastTrackerKey, setLastTrackerKey] = useState(null);
-  if (trackerKey !== lastTrackerKey) {
-    setLastTrackerKey(trackerKey);
-    if (trackerProgress !== 0) setTrackerProgress(0);
-  }
 
   /**
    * Submit every selected document as one request.
@@ -324,7 +302,6 @@ export default function useStudentDashboard(user) {
     selectedMethod, setSelectedMethod,
     paymentRef, setPaymentRef,
     paymentFile, setPaymentFile,
-    trackerProgress,
     handleStudentSubmitRequest,
     handleStudentSubmitPayment,
     handleStudentCancelRequest,
