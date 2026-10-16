@@ -19,3 +19,8 @@ it('provides fixed explanations for each supported failure', () => {
 it('leaves a positive match verified without a pending reason', () => {
   expect(registrationVerification({ verified: true })).toEqual({ verification_status: 'verified', verification_reason: null });
 });
+it('stores a safe timeout explanation and leaves the proof pending for Admin review', () => {
+  expect(registrationVerification({ verified: false, reason: 'Automatic verification timed out.' })).toEqual({
+    verification_status: 'pending', verification_reason: 'The automatic proof check took too long. Manual review is required.',
+  });
+});

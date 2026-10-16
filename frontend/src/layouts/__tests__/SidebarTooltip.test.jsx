@@ -60,7 +60,7 @@ describe('Sidebar hover labels', () => {
     expect(tooltip).toBeInTheDocument();
     fireEvent.keyDown(document, { key: 'Escape' });
     expect(screen.queryByRole('tooltip')).toBeNull();
-    fireEvent.pointerOver(control.querySelector('svg'), { pointerType: 'mouse' });
+    fireEvent.pointerOver(control.querySelector('[aria-hidden="true"]'), { pointerType: 'mouse' });
     expect(screen.queryByRole('tooltip')).toBeNull();
     fireEvent.pointerOut(control, { relatedTarget: document.body });
     fireEvent.pointerOver(control, { pointerType: 'mouse' });
@@ -124,8 +124,8 @@ describe('Sidebar hover labels', () => {
     fireEvent.scroll(window);
     expect(screen.getByRole('tooltip')).toHaveTextContent('Preferences');
     fireEvent.click(screen.getByRole('button', { name: 'More' }));
-    expect(screen.getByRole('link', { name: 'Security Logs' })).toHaveFocus();
-    expect(screen.getByRole('tooltip')).toHaveTextContent('Security Logs');
+    expect(screen.getByRole('link', { name: 'Reports & Export' })).toHaveFocus();
+    expect(screen.getByRole('tooltip')).toHaveTextContent('Reports & Export');
     fireEvent.click(screen.getByRole('button', { name: 'Back to main' }));
     expect(screen.getByRole('tooltip')).toHaveTextContent('Dashboard');
   });

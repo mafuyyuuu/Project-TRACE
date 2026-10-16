@@ -1,3 +1,509 @@
+## Signup navigation after unauthorized catalog reads — October 15, 2026 (ready for review)
+
+Reproduced Login → Sign up → Login using an anonymous program-catalog request returning 401, as an older protected backend can do. The shared API interceptor previously redirected on nearly every 401, including public-page reads. Public college/program failures now remain with their caller, retaining signup and its Retry Catalog state. An expired `/auth/me` check can clear matching cached credentials without navigating away from public signup/recovery/verification pages. Genuine expired protected dashboard requests still clear the session and return to Login. Delayed failures from a prior token cannot erase a newer login; credential/OTP exception handling and pending-request accounting remain.
+
+The API/backend authorization boundary is unchanged. A backend that still protects `/reference/programs` needs the matching public active-catalog update before anonymous programs can load; the frontend correction prevents the redirect without pretending the catalog request succeeded. No new database migration is required.
+
+Validation: **1,134 frontend tests / 116 files**, lint, production/PWA build and whitespace checks pass. Five real-App browser scenarios verify anonymous student/alumni signup against a catalog 401, expired cached credentials on signup with draft entry, normal college/program selection, and expired dashboard redirection. The pre-fix browser run reproduced the bounce; post-fix runs retain signup for public failures and return the protected dashboard to Login, with no browser page errors. Requests use synthetic intercepted responses; no live endpoint/deployment outcome is claimed.
+
+## Signup field errors and persistent navigation — October 15, 2026 (ready for review)
+
+Signup validates the complete draft before review and marks invalid identity, contact, password/confirmation, college/program, alumni years/missing-proof reason, proof and privacy fields in red with associated explanatory text. Editing fields clears their previous feedback; server rejections such as duplicate ID or invalid email return to the corresponding field while preserving all entered values and proof. Unknown server/connection errors appear beside Create Account. There is no error popup or top-of-form banner. The form uses explicit validation with `noValidate`, preventing native required-field prompts from scrolling the applicant to the beginning. The existing registration review, privacy notice and success dialogs remain.
+
+Back to Login now sits in an opaque sticky header above the scrolling form, including mobile and enlarged text. Decorative clipping is confined to the background so it cannot disable sticky positioning. Shared upload controls accept an optional externally managed field error and associate it with the picker; year fields can defer validation until signup submits while preserving default behavior in other forms.
+
+Validation: **1,109 frontend tests / 115 files**, lint, production/PWA build and whitespace checks pass. **168 actual-browser checks** cover signup/required errors, privacy and upload errors, server duplicate-ID recovery, registration review/cancellation, alumni missing proof, catalog failure/retry/empty lists, all 13 supplied programs, and Back to Login navigation. Widths 320/375/768/1440 px, 100/200% text and both themes retain the sticky header, contain page/dialog layout and preserve drafts/files. No live signup/deployment or physical-device acceptance is claimed. [Scrolled mobile field errors and sticky header](signup-inline-errors-mobile-review.png).
+
+## Signup programs, privacy notice and proof requirements — October 15, 2026 (ready for review)
+
+Registration now selects an active Program/Course from the existing college-scoped catalog, shared with profiles and Admin maintenance. College changes clear the prior program; loading failures provide Retry Catalog, empty catalogs explain the Registrar follow-up, and the full selected program remains readable below the native dropdown at small widths. Public program reads expose active catalog data only; unrelated reference endpoints retain authentication. Registration rejects missing/foreign/inactive programs and rechecks availability under catalog locks after OCR before writing the account.
+
+Prepared `migrate_signup_programs.js`, an explicit additive import of the owner’s 13 supplied programs. It resolves existing colleges by name (including the historical International Hospitality Management name), refuses missing/ambiguous matches, preserves profiles/college routing/program names/inactive flags, and rolls back failed imports. It requires the existing program-catalog schema and has not been run on the live database.
+
+Added the readable Registration Privacy Notice, an initially unchecked required acknowledgment, and the notice/program in the existing review confirmation. Notice open/close and confirmation cancellation preserve drafts; opening the notice does not grant acknowledgment. The server requires the current revision and records `REGISTRATION_PRIVACY_ACK_2026_10_15_V1` with its database timestamp in the account transaction, including rejected-account resubmission. Historical users receive no backfilled acknowledgment; no new privacy schema migration is introduced. The notice discloses actual OCR/automatic and manual review, account data, providers, role access, retained proofs and rights/referral without inventing DPO details or deletion schedules. School/DPO policy review remains necessary before production adoption; notice acknowledgment is distinct from unrestricted consent.
+
+Proof upload guidance lists student/alumni examples, **JPG/JPEG/PNG/PDF, one file, 10 MB maximum**, and image/scan clarity. The server’s extension/MIME checks now match these displayed formats. Known-rejected upload drafts are removed; uncertain server/commit failures preserve evidence rather than risk deleting an accepted proof. Existing stored files remain readable.
+
+Validation: **1,735 backend tests / 130 files**, **1,104 frontend tests / 115 files**, plus **25 focused frontend checks after final copy changes**, lint, clean production/PWA build and whitespace checks pass. **103 actual-browser checks** cover all seven college groups/13 programs; signup, notice, review, alumni missing-proof, catalog failure/retry and empty states at 320/375/768/1440 px, 100/200% text and both themes. They also verify preserved drafts, unchecked notice behavior and a single confirmed synthetic request. Screenshots use synthetic data: [signup](signup-programs-review.png), [mobile privacy notice](signup-privacy-mobile-review.png). No live registration, import, deployment or physical-device acceptance is claimed. Rollout instructions and the user manual describe the matching API/frontend requirement and explicit catalog import.
+
+## Ticket chat archives — October 15, 2026 (ready for review)
+
+Added Active / Archive views to student/case support and internal assistance, including mobile ticket dialogs. Resolving a ticket moves the selected chat to Archive; reopening an eligible ticket returns it to Active. Archive derives from the saved `RESOLVED` state, retains messages/files as read-only history, and introduces no new archive columns, table, migration or deletion. Server filters apply before cursor pagination and retain student ownership, desk/college scope, private internal assistance and Admin monitoring restrictions. View switches abort old reads and reset the cursor; notification links still open archived history. A fresh list refresh replaces the current page so remotely resolved tickets cannot remain cached as Active. Staff coordination retains its conversation lifecycle.
+
+Regression coverage includes SQL ownership plus archive/cursor predicates, invalid view rejection, late responses after view switches, automatic resolve/reopen navigation, read-only history, legacy-record tracking filters, and release Cancel-first/busy guards. Updated the manual, in-app FAQ and UI inventory. **1,099 frontend tests / 114 files** and **1,703 backend tests / 128 files** pass. Archive browser review passes **144 combinations** across Window 1, Student, Admin, internal history, resolve/reopen, older pages and empty archives, plus mobile ticket-list access. Synthetic data only; no live DB, physical device, merge or deployment.
+
+## Window 1 Figma review — October 15, 2026 (ready for visual review)
+
+Individually inspected all **18 frames** in Window Clerk section `2362:1473` before implementation; complete IDs and implementation mapping are in UI_CONVENTIONS.md. Covers Intake and Release dashboards, Tracking Desk, Reports & Export, all three Support categories, Support Settings, linked ticket/staff conversation/internal concern dialogs, Manual/FAQ, Manual Input, Personal Info, both Security scroll states, Intake Check and Release Document.
+
+Replaced legacy KPI sparklines and counter layouts with the source hierarchy and **55 original read-only SVG exports**, reusing identical existing source assets. Added real tracking filters before pagination, compact upload and generated QR cards, queue chips and pinned count/paging footers, inline Reports filters, staff profile/security chrome, eligible recipient forms, two-column Intake Check and protected-receipt release confirmation. Keeps original-issued notes, attachment readiness, walk-in/one-dismissal/graduation guards, actual routing, estimate labels, physical receipt procedure and staged submissions. Cancel preserves the manual draft; release focuses Cancel first. Source mock applicant data, fixed counts, QR and payment-slip images are never used as live records. The user's archive request explicitly extends the source ticket lists.
+
+All 18 states pass **292 final browser checks** (288 width/theme/text combinations plus manual draft cancellation, release focus/cancel, tracking filters and mobile ticket navigation). The 320px/200% Intake Check footer was corrected and rechecked. Selected ticket rows are content-sized rather than filling their list; **68 follow-up checks** pass for Support, staff coordination, internal assistance and the recipient dialog after that correction. A final **20-check** Manual Input pass verifies the labeled copies stepper and cancellation flow. Dark/light and 100/200% text are checked at 320/375/768/1440px, with reachable dialog bodies/actions. Source fidelity still requires the user's visual acceptance.
+
+## Current-student education fields — 2026-10-15
+
+The user reported Graduation Clearance asking a current student to complete study
+years and requested Year Level/Section instead of college graduation and last
+attendance. The request rule incorrectly fell back to last attendance for current
+accounts. Current students now edit saved Year Level and Section; both participate
+in frontend/backend profile completion and authorized staff lookup. College
+Graduation Year and Last Attendance Year are alumni-only in these views and request
+requirements. Existing historical values remain stored; older clients cannot erase
+them through a current-student profile save. School history and TOR/dismissal-set
+Year Started requirements remain. Alumni validation and catalog permissions remain.
+
+Added nullable `student_profiles.year_level` and `section` (20 characters), the
+explicit rerunnable `migrate_current_student_details.js`, schema preflight, model
+writes/reads, public session fields and refresh/cache persistence. Do not infer or
+backfill enrollment data. Existing current students complete the new fields before
+filing. The migration is prepared and tested, not run against a live database.
+
+Validation: **1,091 frontend tests / 113 files** and **1,695 backend tests /
+224 files** pass. Regressions cover current
+Graduation Clearance without graduation/attendance, forged request values, missing
+saved enrollment fields, profile partial-save/reload, role/type guards, parameterized
+SQL, migration preservation/reruns and unchanged alumni requirements. Current and
+alumni profile/request/review states pass 64 responsive combinations each, plus a
+16-combination current-profile layout check and 16-combination alumni capture
+check. ESLint, production/PWA build and whitespace checks pass. Synthetic review is in
+`docs/current-student-education-review.png`. No live database/backend or physical
+phones tested. Manual, FAQ, workflows, backend/deployment and defense notes updated.
+Work remains on draft PR #37; no deployment or merge performed.
+
+## Student omitted profile and tracking frames — 2026-10-15
+
+Re-audit found seven omitted frames in Student: Personal Info, Educational
+Background and Security each have top/scrolled views, plus Live Track. The prior
+ten-frame inventory was incomplete; the current inventory records all 17 frames.
+
+Implemented the 720 px Student profile, fixed identity/tabs/footer, protected proof
+preview/download, grouped contact/receipt-name/academic/personal/address fields,
+education cards, authenticator/password/session cards, visible security activity
+and original password-eye controls. Accessible field hints, conditional validation,
+saved-year restrictions, email verification, confirmations and API behavior remain.
+On mobile the summary can scroll independently while tabs and save/cancel stay
+reachable. Typography scales while geometry uses stable pixel spacing.
+
+Live Track now has the source 960 px summary cards, Copy tracking ID with explicit
+clipboard feedback, progress panel and next-step guidance. Its nine stages, order,
+counts, dates and status messages use the existing pipeline. Mobile retains three
+alternating columns and measured connector geometry. Restored the chat launcher
+shown on the Student Support frame. Added 41 original read-only SVG exports; no
+Figma canvas edits, backend/dependency/migration/environment changes.
+
+Validation: **1,084 frontend tests / 113 files** pass, including two tracking
+clipboard/terminal-state regressions. All 17 Student states passed **272 Chromium
+combinations** at 320/375/768/1440 px, 100/200% text, and both themes. The final
+**112-combination** profile chrome follow-up also passes and checks tab visibility and reachable body and
+footer. Synthetic captures are in `docs/student-profile-tracking-review.png`.
+ESLint, production/PWA build, original SVG/callsite checks and whitespace checks
+pass. Physical phones and the live backend were not tested. Student remains ready for
+user review on draft PR #37 targeting dev; no merge or deployment.
+
+## Student Figma implementation and system-wide filter consistency — 2026-10-15
+
+The user asked to proceed with Student and use its History filter design throughout
+TRACE. Figma access was confirmed and ten initially identified frames in Student
+(`2354:4416`) were individually inspected. The re-audit above corrects that inventory. The frame inventory is in `docs/UI_CONVENTIONS.md`.
+
+Student now follows the source header/rail, welcome/KPI/active-request hierarchy,
+request/payment History layouts, request selection/review steps, compact support,
+ticket/create dialogs, support empty state and searchable manual. All 66 new SVGs
+are original read-only exports; no Figma canvas was edited. Live records, pricing,
+identity, protected receipts and existing submission/confirmation rules remain.
+Required selected fields stay mounted during document search. Three regressions
+cover combined History filters, submitted-payment scope/receipts/unpriced amounts,
+and required-field validation while searching.
+
+FilterSelect reuses the History funnel/chevron design across existing filtering
+dropdowns, including shared reports used by staff desks. Filtering stays native,
+labelled and controlled by its existing caller; options, applied/draft/export scope,
+loaded-record limits and permissions are unchanged. Audit event/document-type chips
+now use that same dropdown by explicit user request. Data-entry selects and queue
+navigation remain distinct.
+
+Validation: **1,082 frontend tests / 112 files** pass. Student's ten source states
+pass **160 Chromium combinations** at 320/375/768/1440 px, 100/200% text and both
+themes. The shared filters pass another **192 combinations** across Admin and staff desks;
+a final manual theme/asset check passes 16 combinations.
+ESLint, production/PWA build, SVG/callsite integrity and whitespace checks pass.
+Synthetic screenshots are in `docs/student-tabs-review.png`,
+`docs/student-dialogs-mobile-review.png` and `docs/shared-filter-review.png`.
+No physical phones or live backend were used. No backend, dependency, migration or
+environment changes. Student is ready for visual review, not declared accepted;
+work remains on the existing Admin/Student draft PR #37 targeting dev.
+
+## Admin mobile header — 2026-10-15
+
+The user flagged the tall mobile header in the More review screenshots. The full
+wordmark and desktop-sized brand spacing forced the action group onto another row.
+Below 768 px, Admin now shows the accessible logo mark and all existing controls
+on one 64 px header row. Menu, quick guide, theme, notifications and profile keep
+44 px tap targets. The notification panel anchors to the header edge on mobile so
+it cannot extend off the left side. Desktop and other role headers retain their
+existing treatment. No actions or notification behavior were removed.
+
+Validation: 27 Layout tests, ESLint, production/PWA build and whitespace checks
+pass. Chromium checks 320/375/414/640/767/768/1440 px at 100/200% text in both
+themes (28 combinations), including one-row geometry, minimum tap targets, page
+containment and loaded assets. Mobile menu open/close, theme toggle, notification
+read/clearing and Edit Profile remain functional. Notification-panel containment
+also passes at five mobile widths and both text sizes. Synthetic comparison:
+`docs/admin-mobile-header-review.png`. No live backend or physical phone was used.
+
+## Admin More Tabs fidelity and notification state — 2026-10-15
+
+The user accepted Main Tabs, requested the More destinations, reported the persistent
+notification dot, and explicitly authorized pushing the finished fixes to the same
+branch and draft PR. All eight frames under Figma More (`2193:1056`) were inspected,
+including both Document Efficiency and Support Analytics scroll states. The source
+inventory and component mapping are in `docs/UI_CONVENTIONS.md`.
+
+Reports now use the source Export CSV action, search icon and split Manila date/time
+cells. Document Efficiency restores original metric icons, release summaries and the
+staff toolbar, notice, desk badges and seven-row pagination. Search and desk filters
+retain the full-staff workload denominator. Support restores the joined period card,
+six metric cards, duration treatment, side-by-side feedback/workload empty states,
+and measurement guidance. Graduate rows split submission dates and relative ages.
+Templates restore source choices, controls, icons and line numbers around the real
+editable draft and sandboxed preview. Manual restores search, counts, chevrons and
+local Yes/No selection without deleting current guidance. That selection is page
+state only; it is not a server FAQ vote or analytics event.
+
+The persistent dot came from a red circle embedded in the bell SVG as well as the
+conditional unread indicator. Admin now uses the original bell-only vector, and
+only unread state renders a dot. Successful mark-read updates use the opening IDs
+and a functional state update, preserving notifications arriving during the request.
+Regression tests cover both clearing and concurrent arrivals.
+
+Validation: **1,079 frontend tests / 110 files** pass. **192 Chromium combinations**
+cover all eight source states plus export, graduate review, filtered workload and
+notifications at 320/375/768/1440 px, 100/200% text, light/dark. No page/dialog
+escape, split button words, missing original assets or browser errors were found.
+A separate notification scenario verifies the unread dot disappears after a
+successful read and checks another 16 responsive/theme/text combinations. A final
+32-combination support check verifies contained table scrolling at narrow widths. ESLint,
+production/PWA build, SVG integrity and changed-line whitespace checks pass.
+`docs/admin-more-tabs-review.png` and `docs/admin-more-tabs-mobile.png` contain
+synthetic browser captures. Physical devices and a live backend were not tested.
+
+No backend, migration, dependency or environment changes. Protected files, live
+records, filtering/export contracts, template isolation and decision confirmations
+remain intact. Figma was only read/exported. More is ready for user review, not yet
+accepted. This work is pushed to `feat/admin-figma-ui` in draft PR #37 targeting
+`dev`; no merge or deployment is requested.
+
+## Admin Main Tabs toolbar corrections — 2026-10-14
+
+The user's latest screenshots exposed a full-width dropdown wrapping below its
+Filter label and inherited header dividers above Document Types/Security Logs
+filter chips. Rechecked source frames `2002:1306`, `2134:1455`, and `2168:1236`.
+The tracker control group now uses two grid columns so the label stays left and
+vertically centered; its typography and gray dropdown surface follow the source.
+Only the Document Types and Security Logs filter toolbars suppress the inherited
+bottom border. Existing filters and loaded-record scope remain functional.
+
+Validation: **83 focused frontend tests / four suites**, lint, production/PWA
+build and changed-line whitespace checks pass. **48 Chromium combinations** at
+320/375/768/1440 px, 100/200% text and light/dark pass position assertions for the
+Filter label, zero-width toolbar dividers, word wrapping, containment, original
+assets and browser errors. `docs/admin-main-toolbar-fixes.png` uses synthetic data.
+More tabs remain paused; Main Tabs still awaits the user's visual acceptance.
+
+## Admin Main Tabs fidelity corrections — 2026-10-14
+
+Revisited all 35 source frames and rendered all 33 current states in the real Admin
+shell. Corrected the Review action's min-content width, registration email breaks,
+and password-eye geometry. The staff eye's SVG export omitted its pupil; the exact
+Figma node now uses a four-times-resolution PNG at its original 18 px size.
+
+Rebuilt Profile Security's aligned icon/title/description cards, password eyes,
+requirements, guidance, and right-aligned session/activity actions. Restored missing
+check/info assets. Reworked the document table's type/fee metadata, icons, actions,
+source font sizes and card height; the drawer now has side-by-side fee inputs,
+currency prefixes, an aligned status badge, original corners, college chips and
+request-rule tiles. Existing Registrar policy guards remain enforced.
+
+Preferences headings, forecast header/day legend, catalog controls, and messaging
+heading/tab order now follow their source frames. Payment-method Edit uses the existing
+update service, locks the immutable code and retains staged confirmation. Audit date/time
+lines use Philippine time, recognized security events have readable labels with raw
+codes available as tooltips, and unknown event codes remain unchanged.
+
+Validation: **1,075 frontend tests across 110 files**; ESLint, production/PWA build,
+asset integrity and changed-line whitespace checks. Browser fixtures use synthetic
+records; **528 size/theme checks** cover 33 states at 320/375/768/1440 px,
+100/200% text, light/dark, with checks for split action words, page/dialog containment,
+missing original images and browser errors. See `docs/admin-main-tabs-fidelity.png`.
+
+The draft PR remains for the user's visual review. Main Tabs has not been accepted;
+More tabs remain paused. No merge, deployment or Figma mutation was performed.
+
+## Admin tracker control wrapping — 2026-10-14
+
+The user's mobile screenshots exposed `Filter:` split across two lines and `View`
+across three lines. A real Chromium reproduction confirmed both failures without
+page overflow, which explains why the earlier overflow-only checks missed them.
+The tracker filter now uses a nonshrinking, single-line accessible label and a
+wrapping control group. The attachment column reserves seven rems, and its View
+button keeps the icon and complete word together. Filtering and authenticated
+preview behavior are unchanged.
+
+Browser checks assert single-line text, containment within the label/button/table
+cell, and no page overflow across 320/375/768/1440 px, 100/125/150/200% text,
+light/dark themes, and short/long document filters: **64 combinations pass**.
+The protected viewer opens, no browser errors occur, and **59 focused Admin tests**
+pass. Lint, production build and changed-line whitespace checks pass.
+`docs/admin-tracker-controls-mobile.png` contains only synthetic fixture records.
+This follow-up remains in Main Tabs; More work stays paused.
+
+## Admin Main Tabs — review stage — 2026-10-14
+
+Inspected all 35 frames in Figma Admin – Main Tabs (`2217:20270`) individually before
+this follow-up, including Registration v2, both profile tabs, viewer, both assignment
+states, support settings, catalog dialogs, document drawer and scroll variants.
+The full frame-to-component inventory is in `docs/UI_CONVENTIONS.md`.
+
+Rebuilt the registration proof/detail split, protected zoom/rotate/full preview,
+profile summary and security cards, assignment/reconciliation layout, support schedule
+and closed-date controls, catalog forms/guidelines, linked request cards, student
+information and document drawer sections with original read-only Figma icon exports.
+Unknown OCR checks remain unknown; no approval, protected-file or mutation permissions
+were broadened. Existing backend contracts and staged confirmations remain authoritative.
+Fixed toolbar shrinking and table containment found in the fresh responsive browser sweep.
+
+Frontend validation: **1,074 tests pass**, ESLint and production build pass.
+Fresh Chromium review uses synthetic records and actual React components, with checks at
+320/375/768/1440 px, light/dark themes and 100/200% text sizes. All 33 current views/states
+pass **528 size/theme checks**, without page overflow or browser errors, including
+catalog dialogs, drawer/profile scroll states, selected support, linked request,
+staff monitoring the unclaimed internal ticket and the forecast modal. Two historical Figma
+frames are superseded by their newer designs.
+Physical devices, the live backend and deployment were not tested. The Figma originals
+were only read/exported, never modified. Screenshots contain synthetic records.
+
+Main Tabs is prepared for user review, not declared visually accepted or completely done.
+**More tabs are paused** pending the user's Main Tabs review. Earlier More changes in this
+branch remain provisional; this follow-up adds no More screen work, merge or deployment.
+
+## Admin Figma UI implementation — 2026-10-14
+
+Replaced the Admin portal presentation using the TRACE UI / UX Figma file
+`eQNaLBPXQSojI6lOK60Api`, including its Main and More destinations. The Admin shell,
+navigation, dashboard metrics/forecast/verification queue, tracker, accounts directory,
+maintenance dialogs/document drawer, reports, support workspaces, templates, manual and
+profile/preferences dialogs now use the reference typography, spacing, rounded surfaces
+and exported icons. Graduate queues include the matching toolbar, program/search filters
+and review shortcuts; decisions still require the existing review and confirmation steps.
+Audit tables use the Figma toolbar, event/role/date/search filters and eight-row paging
+over already loaded records. Their scope is labelled; older server history is not fabricated.
+
+Preserved services, live data, protected-file access, Admin authorization, staged saves,
+confirmation dialogs, desk actions, pricing and workflow transitions. Unsupported Figma
+performance claims remain qualified by the existing measured-data/advisory rules. Admin
+styles are scoped; shared components retain other roles' presentation by default. Local
+Inter and original SVG assets add no package dependency or environment requirement.
+Integrated the latest dev field-bound, pickup-reminder and Secretary catalog fixes before
+verification; this change adds no backend or migration work.
+
+Validation: **1,067 frontend tests pass**, ESLint and the production build pass, and the
+changed-line whitespace check passes. Browser review covers 13 Admin destinations and
+five dialogs with synthetic API fixtures. **128 responsive checks** cover dashboard,
+accounts, reports, support, manual, both audit tables and graduate applications at
+320/375/768/1440 px, light/dark themes and 100/200% text size, without page overflow.
+Table overflow stays inside its scroller. UI screenshots use synthetic accounts and
+are for review only; physical devices and the live backend/deployment were not tested.
+Prepared for review against dev; no main merge or cloud deployment.
+
+Continuation verification: recovered the saved branch and its uncommitted audit/graduate
+refinements. Rechecked all 1,067 frontend tests, lint and production build. Replaced remaining
+dashboard and directory icon substitutes with original read-only Figma layer exports, and
+matched the report column proportions and footer. The earlier browser review above was
+recorded before the workspace interruption. A fresh browser review in the resumed workspace
+is blocked: Chromium is absent, its download is unavailable, and the cloud browser cannot
+reach the local Vite server. Final asset integrity, frontend tests, lint and build pass after the refinements;
+pixel-for-pixel and live deployment acceptance still need a browser review.
+
+## Staff internal-assistance navigation — completion — 2026-10-12
+
+Removed the separate Internal Assistance destination for Window 1/Receiving Desk, Finance and
+College Secretary. Each role now opens the existing Support → Internal assistance category,
+matching Admin. Legacy tab=internal-assistance links render the same MessagingWorkspace with
+initialCategory=internal; the existing internalTicket query reaches the requested concern and
+Support is the selected sidebar/drawer destination. Removed DashboardPage's unused standalone
+import/route. Category keys/draft preservation, onboarding targets, account gates, staff creator
+privacy and assigned-Admin authority remain intact; no backend or visual styling change.
+
+Executed **88 assertions against the actual navigation utility** in the available JavaScript
+runtime: supported-role destination removal, Support uniqueness, legacy mapping, stable menu
+partitions and preservation of other destinations/role mappings. Reviewed the real route and
+MessagingWorkspace ticket-query wiring and confirmed onboarding already targets Support.
+Added/updated React regressions for all four desk labels, Admin, labelled/icon navigation,
+requested internal ticket selection, forced unauthorized URLs and temporary-password gates.
+Changed-line whitespace review passes. **These React tests were not run**: the selected coding
+environment is disconnected and no terminal/runtime is available. Lint/build, browser screenshots,
+physical-device and live-deployment checks remain pending; prior suite counts are not claimed
+for this patch.
+
+Updated existing README navigation, Help, User Manual, System Workflows, defense walkthroughs and
+the consolidated deployment ledger. **No migration, dependency or environment change**; only the
+matching frontend must be published for this follow-up. Publication is to dev, without main merge,
+cloud deployment or per-batch acceptance Markdown. The prior AI update's separate rebuild
+requirement remains recorded and is not executed here.
+
+## Staff internal-assistance navigation — findings before edits — 2026-10-12
+
+The user reports Window 1's duplicate Internal Assistance destination and extends the review to
+Finance and College Secretary. The shared navigation inserts a separate entry for all supported
+clerks, although MessagingWorkspace already contains the same Internal assistance category.
+Admin already maps old internal-ticket links into that categorized workspace; staff still open
+the standalone component. Remove duplicate entries for Window 1/Receiving Desk, Finance and
+Secretary and extend the existing legacy-link route/active Support mapping to all of them.
+Retain ticket queries, category drafts, account gates and creator/assigned-Admin permissions.
+This is a frontend navigation change, without new schema, design or migration.
+
+The selected coding environment is offline and exposes no terminal/runtime tools. Proceed with
+a pinned dev source read and small GitHub patch, execute the real navigation utility in the
+available JavaScript runtime, and add React regression tests. React/Vitest, lint/build and browser
+execution remain unverified until a coding environment reconnects. No new acceptance Markdown.
+
+## Admin document insights and narrow tables — completion — 2026-10-12
+
+Replaced unsupported Optimal Performance/System Normal claims with an authoritative Node queue
+snapshot across every active PIPELINE stage. Known terminal history is excluded; unknown statuses
+are counted separately for review. Today’s workflow actions use explicit full Manila-day bounds
+and are distinguished from distinct requests. Count size alone makes no efficiency, delay or
+capacity conclusion. Existing evaluation >5 and pickup >3 checks are labelled advisory thresholds.
+Optional Random Forest remains a ten-tree/four-coded-example prototype: only its explicit
+unvalidated integer class enables experimental review text, never a success/performance claim.
+Node builds its own messages and ignores old unsupported AI response contracts. Flask accepts
+validated aggregate-only POST input; compatibility GET also counts every stage. Support insight
+formulas, Prophet/OCR, document state changes and existing permissions are untouched.
+
+Added snapshot times, guarded read-only Refresh insights and honest stale/loading/failure states.
+Failed refresh replaces prior advice instead of leaving it apparently current. Admin verification,
+tracker and audit tables have stable Tailwind column widths, full-value wrapping, separate log
+tracking lines and contained keyboard-accessible horizontal scrolling. Tracker shows the complete
+tracking identifier. A real browser stress case exposed an additional unconstrained student-name
+button; constrained it to its cell and retained click/profile behavior. Existing row pagination,
+buttons and main design remain; no whole-system Figma restyling was introduced.
+
+Final **1,538 backend tests / 117 files** and **961 frontend tests / 104 files** pass, plus lint,
+production/PWA build, Python compilation and **11 document/support Python unit tests**. Isolated
+execution of the actual Flask route with real Flask/RandomForest and a synthetic DB stand-in passes
+**five HTTP checks**, including POST-without-DB, legacy GET, strict payloads and size limit.
+**Twenty Node/Python advisory parity cases** pass. **Four real MySQL/HTTP checks** in the retained
+isolated synthetic test database verify all-stage reads, legacy response rejection, aggregate-only
+prototype requests and equality with the existing backlog count. No cloud database, actual users,
+mail, proof or OCR/model download was used. Full Docker image build/startup was not performed;
+verified its explicit COPY now packages the helper and all listed sources exist.
+
+**48 browser configurations** pass for all three Admin tables at 320/375/768/1440 px, both themes
+and 100/200% text. Full values stay within cells and horizontal scrolling is contained; keyboard
+scrolling works where needed. Insight refresh failure removes prior workload advice. No page
+errors. Three representative actual-component screenshots with synthetic responses were visually
+inspected and added to the existing README. Living Help/manual/workflow/backend/setup/deployment
+and defense docs, including aggregate-flow diagrams, reflect the new contract and limits.
+
+**No additional migration, dependency or environment setting.** Matching backend/frontend and an
+AI image rebuild are needed when deploying because app.py imports document_insights.py and Node
+posts the aggregate snapshot. An old/unreachable AI service uses complete local advice safely.
+Existing five cloud migrations remain complete. Publication targets dev only, without main merge,
+cloud deployment, n8n import, external messages or per-batch acceptance Markdown.
+
+## Admin document insights and narrow tables — findings before edits — 2026-10-12
+
+The user reports Optimal Performance despite many outstanding documents and attaches an Activity
+Logs screenshot where document type/tracking text overlaps the Action column. They request fixes
+within the current design while their new Figma redesign is being prepared; dev only, no main
+merge or deployment. Inspection finds ai-engine/app.py checks only Secretary evaluation/release
+and today's step-action count, fits Random Forest on four hard-coded samples, and treats absence
+of warnings as confirmed efficiency. The Node fallback repeats the two-stage blind spot, calls
+step-action volume higher than average without a baseline, and recommends seeding mock history.
+Replace these unsupported production claims with read-only complete pipeline queue aggregates,
+transparent advisory rules and explicit limits: outstanding volume does not prove delay/capacity.
+Use the same live aggregate for optional AI formatting and local fallback; reject old unsupported
+AI contracts during staggered rollout. Keep Prophet, OCR and support insight definitions intact.
+
+Admin activity logs use table-fixed/whitespace-nowrap with equal narrow columns and put tracking
+beside the document type. Account review and tracker tables have similar unbounded text cells.
+Use explicit stable widths, full-value wrapping and contained keyboard-accessible table scrollers
+for Admin tables; preserve original actions, roles, row pagination and current shared styling.
+Record screenshots in the existing README and migration/setup notes in the consolidated guides,
+without per-batch acceptance Markdown or a database migration.
+
+## Comprehensive Admin functional review — completion — 2026-10-12
+
+Admin now reaches Internal assistance through Support, with legacy internal-ticket URLs mapped
+into that workspace and category drafts retained. The duplicate Admin Support analytics action
+is removed. Efficiency Analytics has independent Document Efficiency/Support Analytics views;
+direct Support links do not wait for document data and switching preserves the reporting draft.
+Scan Field Detection explains expected-field coverage instead of presenting the parser ratio as
+verified accuracy. Student/alumni accounts now have confirmed Admin-only deactivate/reactivate
+through the existing account lock, atomic status/version/audit transaction and socket revocation.
+Identity, enrollment and request history are preserved; restoration retains other login gates.
+Student/Admin role filters hide irrelevant desks and clear a stale desk selection.
+
+All reporting roles use visible draft filters with combined Student ID / Name and a header Export
+action. Export uses applied filters and is blocked for dirty/loading/failed scopes. Search is a
+parenthesized exact ID or literal name match within the existing college restriction. Finance
+continues selecting complete paid groups before expanding document CSV rows. Fees and structured
+purpose details become readable text; date/time includes seconds in Manila, without ISO syntax.
+Numeric amounts, the 36-column contract, private exclusions and spreadsheet escaping remain.
+Also repaired the Receiving Desk alias's inactive report hook. Real SQL verification found the
+fresh schema omitted payment_channel even though the historical Phase 19 migration and reporting
+SQL already require it; added that existing nullable column to the fresh-install template. This
+is not a new cloud migration. Existing installation data and migration scripts are unchanged.
+
+Final full suites: **1,522 backend tests / 116 files**, **959 frontend tests / 104 files**;
+frontend lint, production/PWA build and whitespace checks pass. **Nine real MySQL checks** pass
+on isolated synthetic local data: scoped document/student search, literal wildcard handling,
+status/version/history preservation, audited restoration, complete Finance groups/readable CSV,
+exact student-registration timestamps, and fresh-schema import/preflight/document/Finance reads.
+No cloud database, actual users, uploaded proof or external mail was used. **32 report browser
+configurations** pass across four role portals, four widths and two themes, with applied export
+scope, dirty blocking, retained drafts, acknowledgments and keyboard containment; four additional
+320px/200% text and reduced-motion checks pass. **16 analytics browser configurations** pass at
+100/200% text, with independent direct Support loading and retained dates. No browser page errors.
+Three synthetic actual-component screenshots were visually inspected; the existing README and
+CSV sample are updated. No separate batch acceptance Markdown was created.
+
+The existing five cloud migrations and internal health remain confirmed from the user's SSH
+output. This follow-up needs **no additional migration**, dependency/environment change, AI
+rebuild or n8n import. Publication is to **dev only**; main is not merged and cloud/frontend
+release is not performed here. Cosmetic icons, tracker/compact filter styling and the whole-system
+redesign are deferred until the user's new Figma reference. Living Help/manual/workflow/backend/
+environment/defense/deployment guides are synchronized with these functional changes.
+
+## Comprehensive Admin review — findings before edits — 2026-10-12
+
+The user requested four new Admin-focused batches while retaining the main Figma/shared modal
+styles. They confirmed Reports & Export should restore visible filters consistently across all
+report roles, merge Student ID/Name search, and keep Export at the upper right. Both Fee Breakdown
+and Purpose currently show structured JSON; timestamps need readable exact Manila date/time.
+No main merge is authorized by this review; publish verified changes to dev only.
+
+Scope steering: the user is preparing a new Figma redesign for the entire system and requested
+functionality first. Defer icon/button styling, tracker layout and compact filter restyling until
+that reference arrives. Removed the provisional icon/compact-row presentation changes. Continue
+duplicate navigation removal, independent analytics views, truthful metric wording, account
+deactivation/reactivation and relevant filters, combined report search and readable CSV. Existing
+shared controls/modals remain. Visible report filters are treated as the expressly requested
+workflow placement change, with no new design language.
+
+Inspection finds Admin navigation adds Internal Assistance although Support already hosts it;
+SupportWorkspace exposes another Admin analytics modal, and AnalyticsPanel stacks support below
+document metrics and blocks both behind document loading/errors. Consolidate Admin entry points,
+retain old notification links and drafts, and provide independent Document Efficiency/Support
+Analytics subtabs. Tracker/attachment actions are underlined text, and the OCR KPI falsely calls a
+field-detection ratio accuracy. The parser counts detected ID/name/form type, not validated model
+accuracy. Maintenance passes no student status callback and its backend status handler accepts
+staff only; add audited student/alumni deactivate/reactivate with existing session revocation,
+confirmation and record preservation. Compact context-appropriate filters and narrow-screen rows.
+Report CSV explicitly JSON-serializes fee lines and emits ISO Manila timestamps; inspect Purpose
+structure before formatting it, preserving stored details and CSV escaping/formula protection.
+Use shared controls; keep desk/college/report access and all existing legal workflow gates.
+
 ## Production alumni missing-proof registration — completion — 2026-10-12
 
 Removed the demo-only runtime and Admin-review gates and replaced the registration-options
@@ -2139,3 +2645,157 @@ Implemented all six: the compact registration card now shares Upload Document's 
 Motion follow-up from the user's live observation: the original 0.84 opacity/0.99 scale/4–8 px entry made changes hard to see. The local browser also reproduced no visual exit for an open=false portal: layout cleanup measured after removal. Callback-ref detachment now captures the sanitized visual before removal, shared by ModalShell, drawer and floating Support. Normal motion now uses 220 ms context/continuity, 250 ms drill, 200 ms exit, 0.6 entry opacity/0.96 drill scale and 8/12 px context/drill movement. Immediate focus/state, inert visual exits, bounded cleanup, rapid reopening and reduced-motion cancellation remain. A full-suite check also exposed a first-visible-code timing race in recovery-code Copy; its code-scope lifetime now commits before paint, retaining duplicate/unmount/privacy guards. A first-publication regression covers it without logging codes. Explicitly private authenticator regions, including QR/manual secrets and recovery-code text, are excluded from exit copies.
 
 Validation: **1,283 backend tests / 97 suites** and **851 frontend tests / 89 suites pass**; final focused recovery/Finance checks, frontend lint (no warnings), build and whitespace checks pass. The existing bundle-size advisory remains. **204 synthetic browser checks pass** at 320/375/768/1280 px, both themes, 100%/200% text and normal/reduced motion, covering QR placement/preview/focus, Finance aliases/view-specific fetching/private OR preview, context/continuity/drill entry/exit and exit cleanup. Real OpenCV decodes the generated registration destination at 160/256/512/768 px. An isolated fresh MySQL test verifies Secretary-return entry, same-status note exclusion, legacy creation fallback and null projection outside intake, using the driver's local-time interpretation. Screenshots of desktop Window 1 and mobile dark enlarged Finance were inspected; fixtures use synthetic records and standalone navigation, not production. Two legacy transaction-tab assertions were updated for the dedicated page; the recovery timing regression now passes the full suite. No new migration/dependency/AI change, production write, commit, push or deployment. All 27 named incremental rollout scripts were checked to exist; the five earlier pending Support/year/base-table follow-ups remain separate from this batch. Manual, Help, workflow/backend/environment guides, detailed defense guide/script, motion policy, acceptance matrix and rollout instructions were updated without replacing their existing format.
+
+
+## 2026-10-12 — Finance receipt workflow review (implementation in progress)
+
+Findings before edits: Review treats Later as deferred issuance and conditionally removes both number controls and the copy picker. Managed verification rejects all uploaded copies; pack setup requires the clerk to choose a numeric segment. History mixes pack administration and exports; Finance reports URLs alias to History. Student names are stored as one unstructured full_name, so compound given/surnames cannot be reliably inferred.
+
+Scope: Later defers the copy while preserving issuance during eligible hours; retain the existing 4 PM Manila issuance cutoff as an explicitly separate state. First/last pack bounds must describe exactly 50 contiguous serials, with unchanged literals and zero padding. Remove replacement-reason entry but retain structured audit and permanently reserved unused numbers. Save before print and preserve immutable historical snapshots. Separate payment History from the shared Reports & Export workspace. Use saved student identity; preserve ambiguous legacy names rather than guess name parts.
+
+Verification limitation: the coding environment is disconnected. Source and pure-JavaScript checks can run through GitHub/in-memory execution; React, Vitest, MySQL, browser, lint and production build require the environment to reconnect. No cloud deployment or main merge is authorized in this change.
+
+
+Implementation prepared: Later keeps number/upload presentation while deferring only publication of the copy during eligible hours. The user explicitly reaffirmed the existing 4 PM cutoff and automatic receipt generation on verified payment; Print beside the saved number reads its immutable snapshot. Managed verification now accepts a validated immediate copy and saves/audits it in the same transaction as clearance and issuance. Pack setup/replacement infer the changing digit block from first/last bounds of exactly 50; replacement retains an audit without free-text reason. Stale actions refresh number state and require a new confirmation. Review no longer has a Discussion or editable payor field. History is grouped cleared payments with copy actions/waits and shared visible filters, retaining a recovery issuance action for cutoff/historical OR-pending payments; exports/settings moved into their separate report/verification locations.
+
+The user's name-storage follow-up led to an additive nullable first/middle/last migration and confirmed profile entry, without guessed historical backfill. API writes validate against the saved identity under the profile lock and are audited; Finance trusts saved identity instead of supplied payor overrides. Old full/request names and immutable issued snapshots remain unchanged. Name formatting and timing utilities are mirrored. Migration ledger/rollout/environment/manual/Help/defense/workflow documentation and tour destinations were updated; no per-batch acceptance Markdown was added.
+
+Available verification: actual backend receipt/payment/profile services executed in V8 against in-memory model/file fixtures (47 assertions), covering Later issuance, immediate copies, file/payload rejection, retry identity, stale serials, 4 PM cutoff/later issuance, print retry, 50th/51st boundary, early replacement/reservation, student identity and additive/rerunnable migration. This is not MySQL or Vitest execution. JavaScript/JSX/CJS sources are parsed with Acorn plus its JSX plugin, without adding a project dependency. Focused backend/frontend regression tests were prepared for the new contracts. Full npm tests, lint/build, live contention, browser/screenshots and cloud migration/deployment remain pending due to the disconnected coding environment. Changes are for dev only; no main merge or live deployment.
+
+New signup collects first/middle/last fields, builds Full Name automatically and saves parts with the account in the registration transaction. Existing accounts confirm their unsplit names in Edit Profile; legacy API clients that send only Full Name remain supported. Read ID retains a detected full-name hint, fills other eligible empty fields and never guesses compound name boundaries. The new form requires first/last before confirmation; middle remains optional.
+
+Final available checks: 47 actual service/migration assertions and 54 helper/parity/navigation assertions passed in V8; Acorn/JSX parsed 48 source/test files and resolved 165 changed-frontend imports. These are explicitly not full Vitest/build/MySQL/browser runs. The existing receipt HTML/layout module was left unchanged. Legacy single-name records that exceed the formatted name cap retain the full saved name rather than being truncated.
+
+
+## 2026-10-12 — Read ID failures and speed investigation (findings before edits)
+
+The user reports clear JPEG/PNG IDs ending with Cannot read this ID. Source findings: identity extraction invokes the shared two-pass extractor unconditionally; it joins OCR fragments with spaces while identity_parser requires labelled line boundaries. The extractor chooses the longer text rather than fields, so preprocessing noise can discard a clearer original. The Node AI client aborts all calls after 15 seconds and extractIdentity swallows causes into null; Signup maps all failures to the same message. Repeat reads can duplicate CPU work. No failing image, cloud log, benchmark or connected Python/browser runtime has been inspected, so these are code defects and plausible causes, not a confirmed diagnosis of the user's particular photo.
+
+Plan: identity-only original-first OCR with a conditional preprocessing fallback, line-aware conservative labels and field-based merge, explicit safe failure categories, a bounded 30-second identity call and 40-second browser allowance, duplicate guard and memory-only reuse of successful reads. Keep saved proof, registration verification, ownership, manual entry and temporary scan cleanup intact. Other receipt/document extraction remains unchanged. No new dependency or migration is planned; matching AI/backend/frontend rebuild will be needed.
+
+
+## ID-reader reliability follow-up — 2026-10-12
+
+Read ID now uses an identity-specific original-image pass, preserving OCR fragments as lines. When an identifier is found, it skips preprocessing; otherwise a second pass may fill missing fields. Conflicting fallback values remain blank. Label/value pairs, separate name-part labels, same-line explicit fields and spaced Unicode numeric dashes are supported. Unlabelled names are never split or guessed. Only explicitly labelled first/middle/last fields may fill empty signup controls; manual edits are retained.
+
+The backend exposes safe timeout, unavailable, no-text/no-fields and processing categories instead of one generic failure. Identity calls have a 30-second cap; the browser allows 40 seconds including upload/transport. Other AI request deadlines and automatic registration verification are unchanged. Successful reads are reused only in the current form for the same File object/account type; failures stay retryable and selecting another file/type discards stale work. Temporary scans are always deleted and raw OCR text is not returned by the signup API.
+
+Deploy matching frontend/backend/**AI engine** code. Restarting the existing AI container does not replace its image with updated OCR code; build the new AI image from the reviewed release checkout. This follow-up adds no migration, dependency or environment variable. The separately pending Finance `migrate_student_name_parts.js` still must precede the matching backend release.
+
+Available verification: JavaScript services/hook handlers executed with in-memory file/network/React-hook fixtures, plus syntax checks. Native Python/Vitest/build/browser, real JPEG/PNG accuracy, latency and cloud-container verification remain pending because the coding environment is disconnected and no failing ID image was supplied. Focused Python parser/pipeline tests use fake readers and require no EasyOCR model download:
+
+```bash
+python3 -m unittest discover -s ai-engine -p 'test_identity*.py'
+```
+
+These unit tests verify parsing/conditional passes; they do not establish real image accuracy or a measured speedup. Validate an actual failing photo separately on the rebuilt engine. For cloud diagnostics, health alone does not prove the identity route is installed: a read-only GET to `http://ai-engine:5005/ocr/identity` from backend should return 405 when the POST route exists; 404 means that route is absent in the running image. The agent has not accessed the cloud container.
+
+Available verification completed for this follow-up: 34 assertions executed against the actual JavaScript AI client, signup sanitization/cleanup and hook handlers using in-memory file/network/React-hook fixtures. Checks cover the scoped 30-second AI deadline, unchanged other deadlines, safe failure categories, temporary cleanup, active exact college matching, duplicate guards, cache reuse, retry and stale-result discard. JavaScript/JSX/CJS syntax checks passed. Python parser/conditional-reader and Vitest transport/hook regressions were prepared but could not run here. Native Python/Vitest/build/browser, actual failing JPEG/PNG, CPU timings and the running cloud image remain unverified. Ambiguity from the original is preserved even if fallback sees only one candidate; parsing does not guess names or correct ID characters. Finance is already pushed to dev as 8cbe9ba; this reader follow-up is a separate dev-only commit with no migration or dependency change.
+
+
+## 2026-10-13 — Submitted ID layout follow-up (findings before edits)
+
+The user supplied a school ID photo in chat. Visual inspection shows an unlabelled year-prefixed hyphenated student number, an adjacent uppercase comma-format name, and a two-line college heading. The current student-number fallback already accepts this format, so the layout does not explain a complete extraction failure if EasyOCR actually detects the number. Source-confirmed gaps: natural COLLEGE OF headings are treated as labelled College values (yielding OF or OF plus a suffix), and unlabelled names are ignored. The attachment has not been processed with EasyOCR: the coding environment remains disconnected. No recognition output, deployed-image version or measured latency is available.
+
+Scope: recognize natural one-/two-/three-fragment COLLEGE OF headings; allow a full-name review hint only for a readable PLP header, a unique standalone supported student number, and an adjacent comma-format name. Never infer first/middle/last parts or expand a middle initial. Ambiguities remain blank. Use synthetic fixtures only; do not commit the supplied photo, its name or its ID. No schema, API, automatic registration verification, model or preprocessing change is needed.
+
+
+Implemented in source: natural college headings preserve their complete wording; the restricted PLP adjacent comma-name layout supplies only a full-name review hint. The existing standalone student-number fallback and original-first fast path are unchanged. Added nine synthetic parser regressions and one fake-reader pipeline regression for this layout, absent context, explicit-name precedence and ambiguous identifiers/names/colleges. No actual record/image appears in fixtures or guides.
+
+Verification limitation: no Python, EasyOCR, browser, full npm check or real-photo benchmark was executed. Source review and committed-file parity checks are available through GitHub while the runtime is offline. No measured speed or recognition-success claim is made. Publishing source to dev does not update the running cloud image; no main merge, migration or deployment performed.
+
+## 2026-10-13 — Connected-runtime ID / Finance follow-up (findings before edits)
+
+The clean local checkout resumed at 795e201 and was fast-forwarded to the already pushed dev head 88e3d63. The user confirms Print is being tried before Verify Payment and has not confirmed rebuilding the latest deployed images. Current ReceiptPackControl already has only first/last numbers and no replacement-reason control; an old frontend remains a plausible explanation for that reported field. Print before payment verification is intentionally blocked because pack configuration reserves numbers without creating a payment receipt. Make this prerequisite visible and exercise the saved-receipt enablement path; do not allocate a receipt or print an unsaved number by bypassing Finance approval.
+
+Native identity regressions now execute: one failure exposes duplicate interpretation of a separate College label followed by College A. The value is reread as another College label, causing false ambiguity. Track consumed label/value lines within each field scan. A Finance regression also needs its file input query scoped to input rather than the identically labelled upload section. The previous ID attachment is not present in the local uploads and two filename searches did not retrieve it; real-photo recognition remains unverified. No new migration is required for this follow-up, and the separately recorded student-name migration remains pending unless user-applied.
+
+
+Validation completed in the connected environment: 1,578 backend tests / 122 suites and 993 frontend tests / 105 suites pass. Frontend lint and production build pass (existing large-chunk advisory retained). Twenty-five native identity parser/fake-reader pipeline tests and five registration-text tests pass. The full frontend run exposed one stale onboarding fixture still targeting the removed Finance transactions navigation item; it now checks the actual Reports & Export mobile link without changing tour behavior.
+
+Eight isolated Chromium cases at 320/375/768/1280 px in both themes verify the real Finance dashboard: Print disabled before approval with visible guidance; first/last pack fields without a reason; confirmed Later payment saves once even when its queue row disappears; Print opens the immutable receipt; Print / Reprint submits one audit before invoking a stubbed browser print function. No page exceptions or page-width overflow. The mobile dark preview screenshot was inspected internally. These use synthetic records and intercepted local APIs, not live credentials, MySQL or a physical printer. The actual submitted ID bytes are unavailable in this resumed environment, so no real EasyOCR/image latency result is claimed. No live migrations/deployment/main merge performed; publish this follow-up only to dev.
+
+## 2026-10-13 — Resumed ID timeout follow-up
+
+GitHub `dev` was still at `da2bba9`; the later timeout/wording changes from the previous conversation were not published. This follow-up bounds the identity detector canvas to 1280 pixels, keeps original-first parsing and ambiguity handling, and skips the second scan when the first has consumed 20 seconds. Each Gunicorn worker allows one identity scan at a time; competing ID reads return a safe retry/manual-entry message. This guard applies to ID reads within a worker, not a global cross-worker queue. Native OCR calls are not forcibly interrupted.
+
+The identity-only backend deadline is 60 seconds and the browser deadline is 75 seconds. Other AI endpoints retain their existing deadlines. Backend request timing, Flask upload timing, and original/fallback OCR stage logs distinguish where a read is waiting without logging recognized ID text. Signup, saved profile proof and Admin attachment labels now use Proof of ID; other Diploma document catalog labels remain intact.
+
+Validation: all 1,579 backend tests pass. The frontend run passes 993 tests and exposes one old 40-second transport assertion; that assertion is updated for the new deadline and the affected transport/service tests pass on rerun (994 frontend tests in total). Forty-six Python unit tests pass, including slow-pass fallback prevention, partial field preservation, worker busy handling/release and log privacy. Frontend lint and production build pass with the existing chunk-size advisory. A real EasyOCR/Flask request using a generated synthetic image extracts its expected student ID in 6.19 seconds on this machine. Broad unittest discovery also imports the separate manual `test_ocr.py` tool and initially fails on the read-only default model cache; the real-route check uses a writable external model cache and verified EasyOCR model downloads. No actual user photo, live VM, provider delivery or physical printer was tested.
+
+Deploy from the updated `dev` checkout: pull with `git pull --ff-only origin dev`, build with `docker compose build backend ai-engine`, then recreate with `docker compose up -d --no-deps --force-recreate backend ai-engine`. Deploy the matching frontend separately. Recreating containers alone reuses old images. This follow-up adds no migration, dependency or environment variable; the previously recorded student-name migration remains necessary if still pending. Retry Read ID and inspect both backend and AI-engine logs for the timing markers. The original failing JPG is still unavailable here, so its accuracy and latency remain unverified.
+
+## 2026-10-13 — revised student/alumni request catalog
+
+Implemented the user's supplied request list as 38 selectable options: five Honorable Dismissal/Transcript sets, purpose-specific TOR options, per-page and fixed-price certificates/copies, CHED-CAV with independently counted CTC pages, and a requestable Underload Units option with a blank fee pending Admin confirmation. Combined duplicate COR entries and deactivated the six BSN/Nursing options per user clarification. Kept Masters dismissal at the explicitly supplied ₱100/page. Transfer Copy of Grade is ₱50/page; standalone Copy of Grades is ₱100/page. No unspecified rate was invented.
+
+The new preserving `migrate_request_catalog.js` registers metadata/rules, deactivates superseded catalog rows, and installs the new live prices/component schedules once. Existing requests and issued fee/receipt snapshots retain their records; reruns preserve later Admin edits. Secretary pricing accepts independent page counts for each included component. The existing Honorable Dismissal quantity/nonrepeatable policy now covers all five sets and historical dismissal requests. A blank-fee request cannot be billed until Admin configures a rate and the Secretary explicitly reviews current rates. See [REQUEST_CATALOG.md](REQUEST_CATALOG.md) for the complete catalog and required rollout.
+
+Validation: isolated MySQL 8 accepted the current fresh schema and seed, applied the 38-option catalog in order, deactivated an existing Nursing option, preserved historical document amounts and an issued receipt snapshot, loaded component rates through the real reference/pricing models, and verified blank-fee confirmation plus idempotent reruns preserving Admin edits. Full JavaScript runs and affected-suite reruns cover 1,608 backend and 1,034 frontend tests. New regressions cover individual set totals, independent pages, page-count validation, frontend/backend parity, pending-fee billing, one COR option, Nursing exclusion, dismissal restrictions, migration rollback, and historical preservation. Frontend lint/build pass. No live production database or deployment was modified.
+
+## 2026-10-13 — remove signup autofill, preserve proof checks and expose alumni review
+
+Per user request, removed Read ID from signup and deleted its hook, API helper, anonymous scan route/controller/service, temporary Multer storage/limiter, Python identity parser/pipeline and dedicated tests. The proof upload, manual identity/name inputs, confirmation flow, registration verification, and document/receipt OCR remain. Alumni always receive Records / proof unavailable, with an explanation and manual Admin review; this no longer depends on a capability request that could silently hide it. Only Student shows an asterisk on the upload label. The server continues rejecting missing proof for students, incomplete missing-proof reasons, and uploaded-proof/missing-proof combinations.
+
+Investigated automatic proof verification separately: the old path always scanned twice, chose the longest output even when it lacked the correct fields, and used a 15-second transport deadline. Verification now scans the original with a bounded detector canvas first, preserves a successful match, and uses an independent preprocessed fallback within its budget. The selected college must be present; there is no fuzzy ID substitution, combining incomplete scans, or automatic approval when a check is inconclusive. The backend proof deadline is 45 seconds and timeout reasons are stored as safe fixed explanations. Timing logs contain no ID text. This checks visible field consistency, not physical authenticity, and does not bulk-approve existing pending accounts.
+
+Validation: 1,598 backend and 1,026 frontend tests in full runs, followed by affected frontend checks after the always-visible alumni change; 24 Python unit tests cover original-first success, fallback matching, mismatch/pending, independent passes, budget and log privacy. Frontend lint/build pass. Functional HTTP checks confirm the removed Node route returns 404 without creating a temporary upload. Real EasyOCR/Flask checks on a generated synthetic proof verify matching fields in 7.57 seconds and keep a wrong entered ID pending; the removed Python autofill route returns 404. The actual user photos remain unavailable as files here and were not processed. No live account or deployment was changed. Deploy the matching frontend/backend/AI engine; no new migration is introduced.
+
+
+## 2026-10-13 — preserve multipart upload files
+
+Diagnosis: the supporting-document upload returned Choose the pertinent document to upload, meaning Multer received no file. The shared Axios client forced application/json, while supporting-document, Support-message and deferred-receipt services supplied FormData without overriding that header. A local Axios/XHR-to-Multer reproduction returned 400 for all three file paths while ordinary JSON succeeded.
+
+Removed the shared forced content type. Axios still serializes ordinary objects as JSON, and browser FormData now carries the generated multipart boundary and file bytes. No file-validation, authorization, confirmation, duplicate-submission or request-activity rule changes. Added standalone local HTTP regressions inspecting actual XHR multipart bodies, filenames, content type, file bytes and companion metadata, plus ordinary JSON and bearer-token preservation. Fixtures are synthetic transport bytes, not real records or file-validity checks; the tests require no backend dependency installation.
+
+Validation: all 1,030 frontend tests / 105 suites pass, including the four transport regressions. Frontend lint and production build pass with the existing bundle-size advisory. The 38 focused backend attachment/file-validation tests and four attachment-hook tests also pass. No production upload or record was changed. Deploy the frontend from the matching dev commit on Vercel and retry the chosen attachment; this fix requires no backend/AI rebuild, migration or environment-variable change.
+
+
+## 2026-10-13 — field limits and phone formatting (findings before edits)
+
+User requests limits and formats after oversized phone entry and inconsistent spreadsheet export. Existing frontend INPUT_LIMITS covers most fields and new passwords already enforce 8–64 characters, but signup/self-profile/staff writes lack consistent server length/phone checks. User confirms Philippine mobile numbers only. Accept 09XXXXXXXXX and +639XXXXXXXXX, normalize new writes to local 11-digit text, preserve existing records until corrected, and retain login/current-password compatibility. CSV phone fields need explicit text handling to avoid spreadsheet numeric conversion without emitting formulas. Numeric controls need bounded ordinary decimal entry consistent with existing integer, money and calibration ranges; do not invent lower business limits or truncate records.
+
+
+Implemented: Philippine-only PhoneInput and mirrored normalization/validation for signup, profile, Admin staff/account and configured graduate phone fields; new saved values use 11 local digits. Server account/profile/catalog text guards match their schema bounds. Editable numeric controls now reject oversized drafts and exponent entry, retain centavo precision and enforce supported quantities/calibration limits. Years are capped at four input characters; existing values are not truncated. New-password requirements remain 8–64, and current/login credentials remain compatible. Student CSV phone fields normalize recognized formats and include an explicit text marker; invalid historical values are preserved. SMS converts valid local phones to +63 at provider delivery.
+
+Registration follow-up: a numeric false proof-unavailable flag rendered a stray zero in React; explicit boolean normalization fixes it, including string zero. College matching tolerates only whitespace splitting/joining while retaining every letter, school and exact-ID checks. No abbreviation inference or letter substitutions were added. The supplied ID is readable visually, but inline bytes were unavailable for local EasyOCR, so actual-photo recognition remains unverified. Existing pending accounts need Admin review; pending login correctly returns 403.
+
+Validation: 1,649 backend tests / 125 suites pass, followed by 113 focused pricing, SMS-recipient and export tests after the final additions. All 1,042 frontend tests / 106 suites pass; lint/build and whitespace checks pass. Twenty-six Python checks pass. Seventy-two isolated Chromium checks across 320/375/768/1280 pixels and both color schemes verify real signup phone/password caps and numeric controls, centavos, exact upper bounds, exponent rejection and no page overflow. Browser fixtures are synthetic and no live provider or account was changed. Temporary browser scaffolding was removed. Deploy matching frontend/backend/AI; this field/review batch itself requires no migration. The user's subsequent requested pickup reminder is tracked separately and will require its own preserving ledger migration.
+
+
+## 2026-10-13 — pickup SMS reminders (findings before edits)
+
+User confirms the running backend has a UniSMS key and TRACE sender configured, but no document has reached Ready for Pickup since its last restart. Logs show only key presence, so there is no pickup-send result and live delivery remains unverified. Existing Secretary handoff to READY_FOR_RELEASE already requests SMS and email; earlier in-app-only transitions and signup/login do not imply an SMS send.
+
+Authorized reminder policy: after three calendar days ready and unclaimed, then every seven days until claimed. Use actual readiness transition logs rather than mutable updated_at. Persist each document/readiness-episode/weekly-period attempt before sending, serialize workers across replicas, recheck current eligibility, batch due documents per recipient, and never replay missed periods or automatically retry ambiguous provider outcomes. No status change, fee change or real SMS test is authorized by this coding work. A preserving reminder-ledger migration will be required.
+
+
+Implemented: a background pickup reminder checks every 15 minutes using actual transition audit timestamps. First SMS is after 72 hours ready/unclaimed, then weekly, with at least seven days between attempts even after downtime. It excludes claimed/nonready records, missing/unknown readiness transitions, inactive/unverified accounts and invalid phones; fresh checks catch claims/phone changes before dispatch. Due documents are batched per recipient. A MySQL replica lock and unique document/readiness-episode/period attempt ledger prevent repeat submissions after restarts. Missed periods are skipped. Interrupted/uncertain attempts remain recorded without automatic replay; SDK network retries are disabled for the same reason. Startup reports key configuration separately from provider acceptance/handset delivery, and send logs report safe outcomes without numbers/messages/keys.
+
+Validation: all 1,676 backend tests / 127 suites pass, including 35 focused reminder/migration/SMS tests. Isolated MySQL 8 applies the migration twice, exercises real model/worker SQL, verifies eligibility exclusions, unique attempt keys, replica advisory-lock contention, recipient batching, restart deduplication, three-day/weekly scheduling, claimed exclusion, minimum weekly spacing and missed-period skipping. Its provider is stubbed; no SMS is sent. Frontend lint/build pass after the Help update; the preceding field batch passed 1,042 frontend and 26 Python checks plus 72 Chromium cases. Live SMS delivery remains unverified because the user confirms no pickup transition since restart. Deploy using the preserving migrate_pickup_sms_reminders.js before the new worker starts; the complete current rollout also includes the earlier matching frontend/AI changes. Existing eligible unclaimed documents may receive reminders after deployment. See MIGRATION_ROLLOUT.md for exact commands.
+
+
+## 2026-10-14 — Secretary evaluation catalog crash (findings before edits)
+
+User reports u.some is not a function while opening College Secretary intake evaluation Review. The local production bundle maps function XZ to SecretaryEvaluationModal's EvaluationForm and u to documentTypes. The reference endpoint and client return an object containing document_types, but useSecretaryDashboard stores that whole response directly in array state. Other callers already read document_types. Correct the Secretary loader, validate the reference response shape, retain historical selected-type fallback and show a recoverable catalog error rather than crashing. No backend, fee, workflow, authorization or schema change is needed.
+
+Implemented: the Secretary loader now stores the response's document_types array, ignores late completions after unmount, and supplies a catalog-load error to both digital and scanned evaluation forms. The shared reference service rejects malformed catalogs while preserving its response wrapper and fee fields for existing callers. Historical request types remain selectable even when absent from the active catalog. Pending, empty and failed catalogs do not erase the request or evaluation drafts.
+
+Validation: all 1,061 frontend tests / 108 suites, frontend lint and the production build pass. Nineteen new regressions exercise the actual reference service through the Secretary hook, dashboard Review action and evaluation form, covering digital/scanned requests, catalog options and editing, historical types, empty/pending responses, network failure and invalid payloads. Deployment requires the matching Vercel frontend from dev, then a browser refresh; no Docker rebuild or database migration is needed. The deployed site has not been retested from this workspace.
+
+## 2026-10-16 — reported UI bugs (findings before edits)
+
+Reviewed all five pages of the user's Trace notes PDF and the current dev head d82e237. Shared FileUploadField clears its native input after selection, leaving misleading browser text beside a separate selected filename. ModalShell top-aligns phone dialogs. Preferences branches by role. DashboardPage adds a 64 px trailing spacer; queue animation may retain additional height. Some tables expose all rows or truncate security history without pagination. Manual layouts scroll their entire main container. Login uses a low-contrast text password toggle instead of the shared eye control. Compound input wrappers do not own focus outlines. Figma Student payment frame 2495:2103 now contains the finalized two-column summary/pay-panel design. Preserve saved fees and existing payment/slip handlers. Remove the student floating support launcher, update its tour guidance, and remove analytics actions/dialogs from Support for all roles. Support reports must authorize active Admin actors only; Admin retains Analytics access. No migration or live deployment is part of this batch.
+
+
+Implemented: removed the Student dashboard/history chat launcher and its duplicate Support instance, updated the tour, and removed analytics controls/dialogs from every Support view. The report service rechecks the current Admin actor before reading aggregates; Window 1/Receiving Desk now receive 403. Student payment frame 2495:2103 uses all nine original intrinsic-size SVG exports, saved charges, grouped checkout, copy feedback and the previously missing slip preview wiring. Shared controls now own truthful file names, phone-modal centering, full compound-field focus, pointer affordances, normalized email/event/date/currency presentation and semantic dark icon treatment. Every role uses the same Preferences font, dimensions, controls and footer. FAQ answers scroll independently. Tables without paging now share PaginatedTable/Pagination; existing queue/server paging and exports retain their behavior. Removed the dashboard trailing spacer and fixed queue/minimum heights.
+
+Validation: all 1,144 frontend tests / 117 suites and 1,737 backend tests / 130 suites pass; the final 125 maintenance/email/metrics checks pass. All 496 browser checks pass with synthetic data: 320/375/768/1440 px, both themes, 100/200% text, five role views, FAQ scroll containment, dialog centering, equal Preferences geometry/font, original payment asset dimensions, full-field outlines, Window 1 trailing space, pagination, Student chat absence, Admin Analytics availability, Support analytics absence, password toggling, selected-file feedback and slip preview. Lint, clean production/PWA build and git diff checks pass. Screenshot: docs/trace-notes-review.png. The existing large-chunk build advisory remains. Deploy matching frontend/backend; no migration is required for this batch. Live deployment and physical-phone/keyboard acceptance are not claimed.
+
+## 2026-10-16 — live tracker spacing and active status (findings before edits)
+
+The two supplied screenshots show a nine-column tracker forced by the viewport breakpoint into a 960 px modal, an amber SVG dot in every status badge, and only the first stage date. Connectors use a hardcoded 22 px inset despite 16 px node radii and read transformed bounding boxes during modal entry. StudentDashboard passes list records without loading the existing authenticated /documents/:id/detail audit history. The old trackerProgress timer is no longer used by this tracker. Adapt columns to actual available width and text size, measure unscaled node geometry, route row turns outside labels, use status-colored dots, and fetch saved audit dates through a hook/service. User explicitly requests continuous animation for unfinished trackers: only the current node gets a subtle status pulse, disabled for completed/closed records and reduced motion. No inferred dates, status transitions, schema or backend changes.
+
+Implemented: the panel allows 1200 px and chooses 9/3/2/1 columns from its actual width and text size, with measured radius-based connectors routed around labels. Badge dots inherit the saved status color. A lightweight halo pulses only around the current unfinished stage; completion removes it and reduced motion keeps a static halo. Authorized history loads on open and manual Refresh tracking, cancelling obsolete reads and rejecting wrong-document responses. Stage-entry dates use Manila time, latest recorded re-entry and explicit missing-date labels. Failed refreshes preserve the last saved snapshot with a warning; 403/404 remove protected details. Removed the unused fake progress timer.
+
+Validation: all 1,159 frontend tests / 119 suites pass, including 17 focused tracker/history checks. All 141 synthetic-browser checks pass across 320/375/768/1440 px, light/dark, 100/200% text, normal/reduced motion and short 568 px viewports. Verified processing, payment-wait, completed, legacy and unavailable states; animation movement and dynamic reduced-motion cancellation; completed refresh stops the pulse; authorization loss removes cached details; no label/card overflow. Lint, production build, generated HTML/JS/CSS/service-worker asset consistency and git diff checks pass. Screenshot: docs/live-tracker-review.png. This patch needs only frontend deployment; no backend rebuild or migration. Live deployment and physical-phone acceptance are not claimed.

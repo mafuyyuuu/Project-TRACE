@@ -63,9 +63,9 @@ it('uses the same document header for Finance and other staff and exports all me
   expect(financeCsv.csv.split('\r\n')[0]).toBe(staffCsv.csv.split('\r\n')[0]);
   expect(financeCsv.csv.split('\r\n')[0]).toBe(DOCUMENT_COLUMNS.map(c=>c.label).join(','));
 });
-it('does not export private fields and gives timestamps an explicit Manila offset',()=>{
+it('does not export private fields and gives timestamps exact readable Manila time',()=>{
   const csv=documentCsv([{student_name:'  =HYPERLINK("bad")',amount:100,created_at_epoch:Date.parse('2026-10-01T00:00:00Z')/1000,password:'private-password',ocr_raw_text:'private-image',chat_body:'private-chat'}]);
-  expect(csv).toContain("'  =HYPERLINK");expect(csv).toContain('2026-10-01T08:00:00+08:00');expect(csv).not.toMatch(/private-password|private-image|private-chat/);
+  expect(csv).toContain("'  =HYPERLINK");expect(csv).toContain('2026-10-01 08:00:00');expect(csv).not.toMatch(/private-password|private-image|private-chat/);
 });
 it('matches complete Finance groups and never filters away their other document rows',async()=>{
   const executor={query:vi.fn().mockResolvedValue([[]])};

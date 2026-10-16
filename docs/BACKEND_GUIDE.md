@@ -12,7 +12,7 @@ Project TRACE uses a decoupled architecture for maximum flexibility and performa
      - `POST /ocr/extract`: Used for reading uploaded document requests (e.g., Clearance forms).
      - `POST /ocr/verify`: Used during registration to read the uploaded Student ID/Diploma. Returns `{ verified: boolean, reason: string }` if it finds the school name and matching student ID.
      - `GET /forecast`: Uses Facebook Prophet ML to return a 7-day volume forecast based on historical logs.
-     - `GET /ai/recommend`: Uses a Random Forest heuristic to generate prescriptive system insights based on current queue metrics.
+     - `POST /ai/recommend`: Accepts only aggregate full-stage queue counts, unclassified count, Manila-day action count and snapshot time. Returns an explicitly unvalidated Random Forest prototype classification; GET remains a legacy compatibility read.
    - **Data Flow:** The Node.js server acts as an API gateway, proxying AI requests to Flask and returning combined JSON to the frontend.
 3. **n8n (Routing Engine):** Handles the conditional logic and workflow automation (e.g., routing documents from Window 1 to the Secretary and back) using webhooks.
 4. **MySQL (Database):** The relational, single-source-of-truth database.
@@ -100,7 +100,7 @@ the Admin and Secretary dashboards.
 | `GET /api/reports/export/students.csv?category=` | active \| alumni \| others \| all |
 | `GET /api/reports/export/documents.csv` | The filtered report as CSV |
 
-**Reporting.** `report.model.js` builds every WHERE clause from fixed column names with parameterised values — no user input reaches SQL text, and `groupDocumentsBy` whitelists its column because that one is interpolated. Rows, summary and export share one filter object so they can never disagree. Page size is capped at 1000. Document exports read a 10,001st sentinel and reject selections above 10,000 documents rather than truncate. Revision 2 Batch 9 validates exact student ID, literal case-insensitive name substring, catalog college/document type and Manila calendar-day bounds in `reportFilters.service.js`; the Secretary’s assigned college remains authoritative. Finance retains complete paid request groups for its screen and expands every paid document in matching groups into the same 36-column CSV. Separate student-category exports apply identity/college filters only. See [README workflow walkthrough](../README.md#main-workflows) for the exact field contract and [DEPLOYMENT_CHECKLIST.md](DEPLOYMENT_CHECKLIST.md) for rollout dependencies; Batch 9 adds no DDL.
+**Reporting.** `report.model.js` builds every WHERE clause from fixed column names with parameterised values — no user input reaches SQL text, and `groupDocumentsBy` whitelists its column because that one is interpolated. Rows, summary and export share one filter object so they can never disagree. Page size is capped at 1000. Document exports read a 10,001st sentinel and reject selections above 10,000 documents rather than truncate. Revision 2 Batch 9 validates exact student ID, literal case-insensitive name substring, catalog college/document type and Manila calendar-day bounds in `reportFilters.service.js`; the Secretary’s assigned college remains authoritative. Finance Payment History retains complete paid request groups. Its Reports & Export page now uses the shared report API and 36-column CSV, while the existing Finance-specific grouped CSV endpoint remains compatible for older callers. Separate student-category exports apply identity/college filters only. See [README workflow walkthrough](../README.md#main-workflows) for the exact field contract and [DEPLOYMENT_CHECKLIST.md](DEPLOYMENT_CHECKLIST.md) for rollout dependencies; Batch 9 adds no DDL.
 
 **CSV.** `utils/csv.js` is hand-written: it quotes fields containing commas/quotes/newlines, doubles embedded quotes, and guards leading control characters and whitespace-prefixed `=`, `+`, `-` or `@` to stop spreadsheets executing user-supplied text as a formula. Document CSV fields use a fixed whitelist, numeric PHP amounts, saved fee lines and explicit Manila timestamps; credentials, private messages and uploaded file paths are excluded. The controller prepends a UTF-8 BOM so Excel renders accented names correctly.
 
@@ -299,7 +299,7 @@ caller never had to prove they control.
 ### Dashboard & Analytics Endpoints (New)
 - `GET /api/documents/stats`: Returns KPI metrics (backlogs, processed today, avg time).
 - `GET /api/documents/stats/forecast`: Proxies to Flask AI engine to retrieve the 7-day volume forecast using Prophet.
-- `GET /api/documents/stats/insights`: Proxies to Flask AI engine to retrieve Random Forest heuristics and alert recommendations.
+- `GET /api/documents/stats/insights`: Builds an authoritative all-stage queue snapshot in Node, optionally posts counts to Flask for prototype classification, and combines locally controlled document advice with authorized support aggregates.
 
 
 ## Batch 8 Backend/API Repairs
@@ -335,8 +335,7 @@ no new migration or environment variable is added.
 - Run `node backend/database/migrate_8b.js` explicitly before this version reads document reference data. The policy columns belong to `document_types`, not `colleges`. The junction table contains unique `(document_type_id, college_id)` pairs. The main manual migration command also invokes this migration; API startup does not.
 - Document-type create/update accepts `available_to` (`student`, `alumni`, `both`), `is_repeatable`, `is_walk_in`, `requires_original`, `registrar_attachment_rule`, `is_same_day`, and `allowed_college_ids` (positive integer array). Omission preserves existing restrictions; an empty array clears restrictions. Settings and junction changes commit/rollback together. Honorable Dismissal cannot be made repeatable through the API.
 - `GET /api/reference/document-types` adds normalized policy flags, allowed-college IDs, and a student-specific `unavailable_reason`. Eligibility checks also run during filing and desk approval, so forging a dropdown value cannot bypass them. Requested copies are validated and retained for trusted server final pricing; filing shows rates without an estimated total. The target user is locked during the prior-request check. Secretary pricing remains final.
-- `POST /api/ai/extract-id` remains public for signup, accepts multipart `id_proof`, and uses a 20/hour/IP limiter plus the existing API limit. Uploads permit supported image extensions and PDF up to 10 MB. The service calls Python `POST /ocr/identity` with the existing 15-second abort, including response parsing, and deletes the temporary file on success/failure. Registration proofs also gain the 10 MB/type guard and remain stored through the existing registration flow.
-- Identity OCR returns `{ success, student_id, alumni_id, full_name, college_id, message }`, with bounded nullable values and an exact active-college match. It no longer exposes raw OCR text. Timeout/unreadable proof returns a manual-entry result. The lightweight parser recognizes labeled IDs/names/colleges and existing conservative ID patterns; it does not verify identity. Current PDF decoding may fail and fall back to manual input. No database access is added to the AI engine.
+- Signup autofill endpoints are removed. Registration still uploads `id_proof` through the registration endpoint and checks school, exact ID and selected college text through `/ocr/verify`; inconclusive results remain pending for Admin review.
 - Registration accepts validated `college_id` and preserves the college-name `course` fallback used by routing. New alumni use their supplied Alumni ID in the existing `student_id` login key; no legacy identifier migration occurs. Exact matching is used for college backfill; unknown program-to-college mappings are left for Admin.
 - `GET /api/auth/student/:studentId` is restricted to Admin or clerk desks Window 1, Secretary, and Finance. Its explicit projection includes saved contact, college, personal/educational fields and registration proof path, excluding passwords, OTPs and lockout/session secrets. Protected file retrieval retains existing authorization.
 - **Missing profile-table recovery:** live lookup logs confirmed `ER_NO_SUCH_TABLE` for `student_profiles`. Run the explicit standalone `database/migrate_student_profiles.js` from the rebuilt backend image using the commands in `ENV_SETUP_GUIDE.md`. It creates the canonical base-schema table conditionally, preserving users and existing profile records. No profile data is invented, no permission/projection changes are made, and no migration runs at API startup. A user without a saved profile row has null joined profile fields. Regression tests compare the DDL against the base schema, restrict reruns to conditional creation, propagate failures and prohibit database queries on import. Live MySQL/lookup acceptance remains a deployment check.
@@ -399,22 +398,22 @@ Ticket list/history use bounded ID cursors (20/50 rows). Requirement history has
 
 Multipart chat writes authorize before upload and validate at most 3 × 5 MB JPEG/PNG/PDF files by actual parser/decode, bounded workers and queue, before transactional acceptance. Failed/duplicate files are removed; accepted files are random-named, private/no-store/nosniff and scoped to the ticket. Case requirements retain their separate 10 MB allowance. Content parsing is not antivirus scanning.
 
-Metrics are available to Admin/Window 1 at `/metrics`, with strict dates, bounded datasets, median/p90, denominators and missing values. Aggregated support insight payloads go to the existing Flask `/ai/support-insights`; no raw chats, identities or credentials are sent. This is descriptive rule-based advice, distinct from the document forecast/Random Forest prototype. See [SUPPORT_DESIGN.md](SUPPORT_DESIGN.md), [SUPPORT_VALIDATION.md](SUPPORT_VALIDATION.md) and the rollout guide for explicit migrations and measured scope.
+Metrics are available only to active Admin actors at `/metrics`, with strict dates, bounded datasets, median/p90, denominators and missing values. Aggregated support insight payloads go to the existing Flask `/ai/support-insights`; no raw chats, identities or credentials are sent. This is descriptive rule-based advice, distinct from the document forecast/Random Forest prototype. See [SUPPORT_DESIGN.md](SUPPORT_DESIGN.md), [SUPPORT_VALIDATION.md](SUPPORT_VALIDATION.md) and the rollout guide for explicit migrations and measured scope.
 
 
 ## Revision 2 Batch 10 — Support / Messaging UI
 
-Support now follows the main TRACE Figma two-column layout, with aligned readable ticket rows, local search of loaded authorized metadata, contextual linked-case viewing, a labeled confirmed availability switch and a primary Window 1 claim action. Success feedback uses dismissible toasts; failures and confirmations remain in context. The compact widget preserves drafts across close/reopen. Digital evaluation separates discussion into a side panel or a mobile view without discarding either draft. Existing ticket/desk/college authorization, FAQ/reply/requirement actions, service hours and queue assignment remain; no new staff chat connection or unsupported presence/read/unread data is added.
+Support now follows the main TRACE Figma two-column layout, with aligned readable ticket rows, local search of loaded authorized metadata, contextual linked-case viewing, a labeled confirmed availability switch and a primary Window 1 claim action. Success feedback uses dismissible toasts; failures and confirmations remain in context. Students use the Support tab to access ticket conversations; the former dashboard widget is removed. Digital evaluation separates discussion into a side panel or a mobile view without discarding either draft. Existing ticket/desk/college authorization, FAQ/reply/requirement actions, service hours and queue assignment remain; no new staff chat connection or unsupported presence/read/unread data is added.
 
 See [README workflow walkthrough](../README.md#main-workflows) for the screenshots, walkthrough and local evidence. Batch 10 adds **no migration or environment variable**; [DEPLOYMENT_CHECKLIST.md](DEPLOYMENT_CHECKLIST.md) tracks required earlier migrations. These are repository changes for dev, not a claim that the live site is updated.
 
 ## Revision 2 Batch 11 — unchanged support metrics contract
 
-This batch changes SupportAnalytics presentation only. `supportReport.service.js` still validates Manila date boundaries and authorizes managed Admin/Window 1 actors. `supportMetrics.js` remains the source for cohorts, durations, missing samples, FAQ feedback and workload episodes; its returned field names and formulas are unchanged. Frontend totals only sum the returned backlog states/assignment episodes and remain labeled with their context. No schema, API, Socket.IO, Flask/AI or permission change. Existing metric/report regressions and [Batch 11 acceptance](../README.md#main-workflows) provide local evidence, not a production data check.
+This batch changes SupportAnalytics presentation only. `supportReport.service.js` still validates Manila date boundaries and authorizes active Admin actors only (updated October 16). `supportMetrics.js` remains the source for cohorts, durations, missing samples, FAQ feedback and workload episodes; its returned field names and formulas are unchanged. Frontend totals only sum the returned backlog states/assignment episodes and remain labeled with their context. No schema, API, Socket.IO, Flask/AI or permission change. Existing metric/report regressions and [Batch 11 acceptance](../README.md#main-workflows) provide local evidence, not a production data check.
 
 ## Managed Finance receipts
 
-See the [README navigation walkthrough and screenshots](../README.md#finance-receipt-walkthrough) for Finance's Official Receipts / History workspace. Confirmed 50-number packs reserve the supplied format; finalized verification or deferred issuance saves one immutable payment/cashier snapshot and consumes one number. Preview, upload and reprint consume none. Copy uploads are protected JPEG/PNG/PDF files up to 5 MB. Stale serials require refresh/review; retry keys and unique serial/group constraints protect repeated requests. Pack changes, issue, copy, print-request, reprint, void and calibration actions are audited. Historical manual OR records remain intact. New issuance/voiding stops before Secretary verification/handoff; later copy uploads preserve the existing payment and document stage. Unknown paper geometry requires saved calibration and a blank-paper printer test. Apply the preserving `migrate_receipt_packs.js` before the matching API/frontend; see the [deployment ledger](DEPLOYMENT_CHECKLIST.md).
+See the [README navigation walkthrough and screenshots](../README.md#finance-receipt-walkthrough) for Finance's Payment History workspace. Confirmed 50-number packs reserve the supplied format; finalized verification or deferred issuance saves one immutable payment/cashier snapshot and consumes one number. Preview, upload and reprint consume none. Copy uploads are protected JPEG/PNG/PDF files up to 5 MB. Stale serials require refresh/review; retry keys and unique serial/group constraints protect repeated requests. Pack changes, issue, copy, print-request, reprint, void and calibration actions are audited. Historical manual OR records remain intact. New issuance/voiding stops before Secretary verification/handoff; later copy uploads preserve the existing payment and document stage. Unknown paper geometry requires saved calibration and a blank-paper printer test. Apply the preserving `migrate_receipt_packs.js` before the matching API/frontend; see the [deployment ledger](DEPLOYMENT_CHECKLIST.md).
 
 ## Revision 2 Batch 13 — private internal assistance
 
@@ -437,3 +436,92 @@ Run `database/migrate_staff_conversations.js` only through the consolidated roll
 Receiving Desk and Window 1 share intake/release authority and processor-ownership checks. Admin backup lists include active accounts under either label, and Window 1 workflow notifications use both. Stored labels and college restrictions remain intact.
 
 Linked ticket list/history/file authorization uses the existing document routing_college_id. Unsnapshotted rows use the verified student college; cancelled ticket history with no document uses its authorized profile fallback. The shared SQL scope keeps its own correlated student alias. Support lists return an opaque access_scope digest of authoritative role/desk/filter scope. The frontend clears cached rows/selection when it changes and clears protected conversation context/history on 403/404 reads, while retaining local drafts and ordinary temporary-error data. Changing ticket/general notification links are reactive, explicit ticket links take priority, and aborted lookups cannot overwrite the latest selection. No additional DDL or environment variable is required.
+
+
+## Admin functional review — 2026-10-12
+
+`PATCH /api/maintenance/users/:id/active` accepts a boolean status for Admin-managed student,
+alumni, clerk and Admin accounts. The locked transaction updates is_active and increments the
+existing token_version, clears pending email OTP and records a security audit. Self-deactivation,
+invalid IDs/statuses and non-Admin callers are rejected. Audit failure rolls back the mutation;
+realtime sessions disconnect after commit. The legacy staff endpoint remains staff-only. No
+academic, verification, request, payment or history row is deleted/reclassified.
+
+Report identity filters accept studentSearch (maximum 255 characters): exact student ID OR literal
+case-insensitive name substring, parenthesized within the authoritative college scope. Legacy
+studentId/studentName remain valid. Documents, counts, summaries and exports share the predicate;
+student exports apply identity/college scope and Finance selects complete paid groups before
+expanding their document rows. CSV formats fee lines and structured purpose as readable labelled
+text and timestamps as YYYY-MM-DD HH:mm:ss in Asia/Manila. Stored JSON, numeric amounts, formula
+protection/escaping, private-field exclusions and the 10,000-row export cap remain. No migration,
+new dependency or environment variable is required.
+
+The fresh-install schema includes `documents.payment_channel`, already present in the historical
+Phase 19 migration and required by document/Finance report SQL. This template correction adds no
+new migration or automatic alteration of existing databases.
+
+
+## Document insights accuracy and contract — 2026-10-12
+
+`document.model.insightQueueCounts` groups every status in one read. `documentInsights.snapshot`
+derives active stages from PIPELINE, excludes known terminal history and reports unknown rows
+separately. Today’s action query uses explicit Manila-day epoch bounds. The optional AI request
+contains no identities, documents, messages or files. Node always builds its own observed-count
+summary; only an integer class 0–3 with source `random_forest_prototype`, four training samples
+and `validated: false` enables a clearly experimental note. Unsupported old AI payloads and
+AI outages use the same local snapshot. Database failure does not fabricate zero queues.
+
+Flask validates the exact aggregate keys, all eight stage keys, nonnegative integer counts, an
+explicit timestamp zone and the 16 KB limit before classification. The four coded training rows
+and ten-tree model remain a prototype; prediction 0 never means validated optimal performance.
+Class notes are suppressed when the corresponding queue is empty. Queue thresholds 5/3 are
+descriptive review signals, not measured capacity or institutional SLAs. Support/Prophet/OCR
+contracts and processing permissions remain intact. Rebuild AI to package document_insights.py
+and release matching Node/frontend; no migration, dependency or environment addition is needed.
+
+
+### Finance workflow follow-up — 2026-10-12
+
+Finance pack setup/replacement uses first and last serial bounds that imply exactly 50 consecutive numbers. The server infers the changing numeric block and preserves zero padding/literals; replacement is audited without a clerk reason input. All previous reserved serials remain unavailable. Pack activation creates no receipt. Confirmed eligible payment verification automatically issues one OR and snapshots saved student identity/cashier/payment; Later defers the copy only. An immediate copy is validated and published atomically with clearance and issuance. The 4 PM Manila cutoff remains; explicit after-cutoff issuance can be completed from Payment History on an eligible later date. Printing/reprinting never allocates. Duplicate uploads on verification retry are discarded while the original published file is retained.
+
+Verification owns receipt settings, printer calibration and receipt/pack audits. Payment History contains shared history filters, grouped cleared payments, View OR / Upload OR and missing-copy elapsed time; the exceptional Issue pending OR action prevents after-cutoff or historical payments from being stranded. History has no export/configuration block. Finance Reports & Export uses the same shared report component/API as the other roles, including applied-scope safeguards and readable CSV. Review contains no Discussion module; Support remains available.
+
+Additive `migrate_student_name_parts.js` adds nullable first/middle/last profile fields and does not split old names or rewrite `users.full_name`, request names or issued snapshots. Students confirm matching identity parts in Edit Profile with the existing Save confirmation; the API validates against the saved full name under the profile lock and logs confirmation. Finance takes saved parts from the identified student, ignores client payor overrides and preserves unsplit historical names. New snapshots print Last name, First name M.I. Historical receipts keep their original name. Existing print fields/order remain; exact physical alignment still requires the original receipt reference and printer calibration.
+
+Verification in this disconnected session covers source parsing and actual service/helper execution with in-memory model fixtures. Full Vitest, build/lint, browser and MySQL checks are pending; prepared source is not evidence of cloud deployment. See the consolidated [migration ledger](DEPLOYMENT_CHECKLIST.md) and [README walkthrough](../README.md#finance-receipt-walkthrough).
+
+New signup collects first/middle/last fields, builds Full Name automatically and saves parts with the account in the registration transaction. Existing accounts confirm their unsplit names in Edit Profile; legacy API clients that send only Full Name remain supported. Signup identity fields are entered manually; Full Name is built from the supplied name parts. The new form requires first/last before confirmation; middle remains optional.
+
+## Signup and proof verification — October 13, 2026
+
+Signup uses manually entered identity fields. The pre-submit Read ID autofill and its supporting endpoints, parser and temporary uploads are removed. Current students upload proof. Alumni always see Records / proof unavailable; choosing it requires an explanation and submits for Admin identity review without an uploaded file. Removing signup autofill does not disable the post-submission proof check.
+
+The retained `/ocr/verify` route checks readable school, exact identifier and selected college text on the original image first. A successful pass cannot be replaced by a longer unsuccessful scan. A bounded fallback checks the processed image independently; it does not combine incomplete scans. Registration proof calls allow 45 seconds; unrelated AI calls retain their deadlines. A timeout/mismatch remains pending with a safe explanation. This matches text and cannot establish the physical ID's authenticity. Already-pending accounts still need Admin review; deployment does not bulk-approve them.
+
+Rebuild/recreate both backend and AI engine from the matching `dev` revision, then deploy the matching frontend. No new migration is required for this signup change. The request-catalog migration from the preceding release remains a separate prerequisite if not applied. Use `python -m unittest test_registration_verification test_proof_ocr` from `ai-engine` for the proof-check regressions. `/api/ai/extract-id` and `/ocr/identity` should now return 404.
+
+
+## 2026-10-13 — field limits and registration review
+
+Account/profile/staff services enforce mirrored text limits and Philippine mobile formats before writes. New phones normalize to 09XXXXXXXXX; SMS converts those to +639XXXXXXXXX at delivery. Graduate answers enforce configured field type plus 255 short/2,000 long text bounds, complete phone format and finite ordinary decimal numbers. Pricing rejects exponent/hex quantity strings and oversized monetary strings. Student CSV phone columns normalize recognized formats and use explicit text markers; invalid legacy data is retained, never truncated. CSV formula escaping remains active. Registration college matching tolerates whitespace only, retaining every expected letter and the existing independent-pass check. No account is approved based on absent college text.
+
+
+## 2026-10-13 — unclaimed pickup SMS reminders
+
+pickupReminder.service starts at backend startup and checks every 15 minutes. pickupReminder.model selects actual latest readiness transition logs, excludes missing audit history, nonready documents, inactive/unverified users, invalid phones and attempted current periods. A connection-scoped MySQL advisory lock serializes replicas; a unique document/readiness-step/period ledger is committed before dispatch. Recipient batching, a fresh eligibility/phone recheck and a seven-day minimum between attempts prevent repeat sends. Missed periods are skipped. Crashed dispatches become unknown, not automatically resent. Provider HTTP 4xx records failed; network/5xx uncertainty records unknown. SMS client retries are disabled because a timed-out request may already have been accepted. Provider outcomes are logged without numbers, message bodies or credentials. No delivery receipt processing is claimed.
+
+### Current-student education and persistence
+
+Current students save Year Level and Section in Educational Background. Both are
+required by the saved-profile request gate and visible in authorized student lookup.
+College graduation/last-attendance fields are alumni-only in the profile and are
+not required for current-student requests. TOR still snapshots trusted Year Started;
+its years never determine printed pages or prices. Alumni education, document
+availability, graduate-application checks and existing historical values remain.
+The additive `migrate_current_student_details.js` migration must precede the matching
+API upgrade. This change is locally tested code, not a claim of live deployment.
+
+
+## October 16 access and email correction
+
+`supportReport.service.report` revalidates the current actor and permits only Admin before reading aggregate datasets. Window 1 and Receiving Desk retain operational Support/settings permissions but metrics return 403. Frontend analytics entry remains in Admin Efficiency Analytics. Staff creation/editing and account editing now trim and lowercase nonempty email addresses through the existing email validator; no stored addresses are rewritten in bulk. This patch requires a backend restart/rebuild alongside the frontend deployment and no database migration.

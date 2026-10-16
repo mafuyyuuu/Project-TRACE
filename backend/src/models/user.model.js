@@ -8,7 +8,7 @@ const { pool } = require('../config/db');
 
 function findActiveByStudentId(studentId, executor = pool) {
   return executor
-    .query('SELECT u.*, p.year_started, p.graduation_year, p.study_years_confirmed_at, (SELECT COUNT(*) FROM grad_applications WHERE student_id = u.student_id) > 0 AS has_grad_application FROM users u LEFT JOIN student_profiles p ON p.user_id = u.id WHERE u.student_id = ? AND u.is_active = TRUE', [studentId])
+    .query('SELECT u.*, p.first_name, p.middle_name, p.last_name, p.extension_name, p.year_started, p.graduation_year, p.study_years_confirmed_at, p.year_level, p.section, (SELECT COUNT(*) FROM grad_applications WHERE student_id = u.student_id) > 0 AS has_grad_application FROM users u LEFT JOIN student_profiles p ON p.user_id = u.id WHERE u.student_id = ? AND u.is_active = TRUE', [studentId])
     .then(([rows]) => rows);
 }
 
@@ -18,8 +18,8 @@ function getProfileById(userId, executor = pool, lock = false) {
       `SELECT u.id, u.student_id, u.email, u.email_verified_at, u.pending_email, u.token_version, u.full_name, u.role, u.user_type,
         u.desk_assignment, u.is_active, u.phone_number, u.course, u.program, u.college_id, u.id_proof_path, u.verification_status, u.registration_proof_unavailable, u.registration_proof_reason,
         u.enrollment_status, u.study_load, u.must_change_password, u.profile_picture, u.created_at,
-        p.extension_name, p.birth_date, p.place_of_birth, p.sex, p.civil_status, p.maiden_name,
-        p.home_address, p.year_started, p.study_years_confirmed_at, p.graduation_year, p.last_attendance_year, p.is_transfer_student, p.previous_school,
+        p.first_name, p.middle_name, p.last_name, p.extension_name, p.birth_date, p.place_of_birth, p.sex, p.civil_status, p.maiden_name,
+        p.home_address, p.year_level, p.section, p.year_started, p.study_years_confirmed_at, p.graduation_year, p.last_attendance_year, p.is_transfer_student, p.previous_school,
         p.elem_school, p.elem_grad_year, p.jhs_school, p.jhs_grad_year, p.shs_school, p.shs_grad_year,
         (SELECT COUNT(*) FROM grad_applications WHERE student_id = u.student_id) > 0 AS has_grad_application
        FROM users u LEFT JOIN student_profiles p ON p.user_id = u.id
@@ -77,8 +77,8 @@ function findStudentBasicInfo(studentId, executor = pool) {
     .query(`SELECT u.id, u.student_id, u.full_name, u.email, u.phone_number, u.course, u.program, u.college_id,
       u.id_proof_path, u.user_type, u.role, u.is_active, u.profile_picture, u.created_at,
       u.enrollment_status, u.study_load, c.name AS college_name,
-      p.extension_name, p.birth_date, p.place_of_birth, p.sex, p.civil_status, p.maiden_name,
-      p.home_address, p.year_started, p.study_years_confirmed_at, p.graduation_year, p.last_attendance_year, p.is_transfer_student, p.previous_school,
+      p.first_name, p.middle_name, p.last_name, p.extension_name, p.birth_date, p.place_of_birth, p.sex, p.civil_status, p.maiden_name,
+      p.home_address, p.year_level, p.section, p.year_started, p.study_years_confirmed_at, p.graduation_year, p.last_attendance_year, p.is_transfer_student, p.previous_school,
       p.elem_school, p.elem_grad_year, p.jhs_school, p.jhs_grad_year, p.shs_school, p.shs_grad_year
       FROM users u LEFT JOIN colleges c ON c.id = u.college_id
       LEFT JOIN student_profiles p ON p.user_id = u.id
@@ -253,13 +253,28 @@ function clearMustChangePassword(userId, executor = pool) {
 }
 
 
+function saveNameParts(userId, fields, executor = pool) {
+  return executor.query(
+    `INSERT INTO student_profiles (user_id, first_name, middle_name, last_name) VALUES (?, ?, ?, ?)
+     ON DUPLICATE KEY UPDATE first_name = VALUES(first_name), middle_name = VALUES(middle_name), last_name = VALUES(last_name)`,
+    [userId, fields.first_name, fields.middle_name || null, fields.last_name]
+  );
+}
+function findReceiptName(studentId, executor = pool) {
+  return executor.query(
+    `SELECT u.full_name, p.first_name, p.middle_name, p.last_name, p.extension_name
+     FROM users u LEFT JOIN student_profiles p ON p.user_id = u.id
+     WHERE u.student_id = ? AND u.role = 'student'`, [studentId]
+  ).then(([rows]) => rows);
+}
+
 function upsertProfile(userId, profile, executor = pool) {
   return executor.query(
     `INSERT INTO student_profiles (
       user_id, extension_name, birth_date, place_of_birth, sex, civil_status, maiden_name,
       home_address, last_attendance_year, is_transfer_student, previous_school,
-      elem_school, elem_grad_year, jhs_school, jhs_grad_year, shs_school, shs_grad_year
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      elem_school, elem_grad_year, jhs_school, jhs_grad_year, shs_school, shs_grad_year, year_level, section
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ON DUPLICATE KEY UPDATE
       extension_name = VALUES(extension_name),
       birth_date = VALUES(birth_date),
@@ -276,7 +291,9 @@ function upsertProfile(userId, profile, executor = pool) {
       jhs_school = VALUES(jhs_school),
       jhs_grad_year = VALUES(jhs_grad_year),
       shs_school = VALUES(shs_school),
-      shs_grad_year = VALUES(shs_grad_year)`,
+      shs_grad_year = VALUES(shs_grad_year),
+      year_level = VALUES(year_level),
+      section = VALUES(section)`,
     [
       userId,
       profile.extension_name || null,
@@ -294,7 +311,9 @@ function upsertProfile(userId, profile, executor = pool) {
       profile.jhs_school || null,
       profile.jhs_grad_year || null,
       profile.shs_school || null,
-      profile.shs_grad_year || null
+      profile.shs_grad_year || null,
+      profile.year_level?.trim() || null,
+      profile.section?.trim() || null
     ]
   );
 }
@@ -394,6 +413,8 @@ function findActiveAdmins(executor = pool) {
 }
 
 module.exports = {
+  saveNameParts,
+  findReceiptName,
   findStudentForPolicy,
   findActiveAdmins,
   updateEmailOTP,

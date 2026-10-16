@@ -1,4 +1,9 @@
 const model = require('../report.model');
+it('groups ID-or-name search within college scope and escapes literal wildcard characters',()=>{
+ const {where,params}=model.buildDocumentFilters({studentSearch:'Ana%_',collegeId:4});
+ expect(where).toContain("(d.student_id = ? OR LOWER(d.student_name) LIKE LOWER(?) ESCAPE '!')");
+ expect(where).toContain('COALESCE(d.routing_college_id');expect(params).toContain('Ana%_');expect(params).toContain('%Ana!%!_%');expect(params).toContain(4);
+});
 
 it('returns every date-filtered staff workload row without paging the denominator', async () => {
   const rows = [60, 30, 10].map((documents_handled, id) => ({ id, documents_handled }));

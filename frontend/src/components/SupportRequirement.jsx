@@ -1,5 +1,7 @@
+import { formatDateTime } from '@/utils/formatters';
 import { useState } from 'react';
 import Button from '@/components/Button';
+import AdminIcon from '@/features/admin/components/AdminIcon';
 import ModalShell from '@/components/ModalShell';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import FileUploadField from '@/components/FileUploadField';
@@ -17,7 +19,7 @@ function RequirementHistory({row,ticketId}) {
       {!history.loading && !history.error && !history.events.length && <p>Detailed events were not recorded for this older requirement. Its retained upload and last review appear above.</p>}
       {history.events.map(event=><article key={event.id} className="space-y-1 border-b border-current/20 pb-2">
         <p className="font-semibold">{event.event_type.replaceAll('_',' ')} · {event.actor_name || 'Recorded account'}</p>
-        <time dateTime={event.created_at}>{new Date(event.created_at).toLocaleString('en-PH',{timeZone:'Asia/Manila'})} (Manila)</time>
+        <time dateTime={event.created_at}>{formatDateTime(event.created_at)} (Manila)</time>
         {event.snapshot.review_notes && <p className="break-words whitespace-pre-wrap">{event.snapshot.review_notes}</p>}
         {event.snapshot.file_path && <AuthedFilePreview path={event.snapshot.file_path} alt={row.label} iframeTitle={row.label} className="max-h-32 max-w-full object-contain" />}
       </article>)}
@@ -25,13 +27,21 @@ function RequirementHistory({row,ticketId}) {
     </div>}
   </div>;
 }
-export function RequirementBubble({ row,user,readOnly,onAction,ticketId }) {
+export function RequirementBubble({ row,user,readOnly,onAction,ticketId,variant }) {
   if(!row) return <p className="text-sm">Requirement details are loading. Retry conversation if they remain unavailable.</p>;
+  if (user.role === 'admin' && variant === 'linked') return <div className="trace-admin-linked-requirement">
+    <div className="space-y-5 p-5"><header className="flex flex-wrap items-center justify-between gap-3"><h4 className="flex items-center gap-3 text-lg font-semibold"><span className="trace-admin-neutral-icon"><AdminIcon name="linked-file-text" /></span>{row.label}</h4><span className="trace-admin-timezone"><AdminIcon name="linked-clock3" />{row.superseded_at ? 'Replaced — retained history' : {requested:'Awaiting upload',uploaded:'Submitted — awaiting review',accepted:'Accepted',rejected:'Rejected — upload a corrected copy'}[row.status] || 'Recorded requirement'}</span></header>
+      {Number(row.blocks_intake) === 1 && !row.superseded_at && <p className="text-sm text-amber-800 dark:text-amber-300">Intake clearance requirement · {row.status === 'accepted' ? 'Cleared' : 'Routing blocked until accepted'}</p>}
+      <div><p className="trace-admin-caption">Request note</p><p className="mt-2 select-text whitespace-pre-wrap break-words text-sm">{row.instructions}</p></div>
+      <div className="space-y-2 border-t border-gray-100 pt-4 text-xs text-[#647084] dark:border-gray-700 dark:text-gray-400"><p>Requested by <strong className="text-trace-ink dark:text-gray-100">{row.requested_by_name || 'Registrar'}</strong></p><time dateTime={row.created_at}>{formatDateTime(row.created_at)} (Manila)</time></div>
+      {row.review_notes && <p className="select-text whitespace-pre-wrap break-words text-sm">Review: {row.review_notes}</p>}{row.reviewed_by_name && <p className="text-sm">Reviewed by {row.reviewed_by_name}</p>}
+    </div><footer className="space-y-4 border-t border-gray-100 bg-[#fafbfc] p-5 dark:border-gray-700 dark:bg-gray-800">{row.file_path ? <AuthedFilePreview path={row.file_path} alt={row.label} iframeTitle={row.label} className="max-h-40 max-w-full object-contain" /> : <p className="text-xs text-[#647084] dark:text-gray-400">No files uploaded yet.</p>}<RequirementHistory key={`${ticketId || row.document_id}:${row.id}`} row={row} ticketId={ticketId} /></footer>
+  </div>;
   return <div className="space-y-2">
     <h4 className="font-bold break-words">{row.label}</h4>
     {Number(row.blocks_intake) === 1 && !row.superseded_at && <p className="text-sm font-semibold text-amber-900 dark:text-amber-200">Intake clearance requirement · {row.status === 'accepted' ? 'Cleared' : 'Routing blocked until accepted'}</p>}
     <p className="whitespace-pre-wrap break-words select-text">{row.instructions}</p>
-    <p className="text-sm">Requested by {row.requested_by_name || 'Registrar'} · {new Date(row.created_at).toLocaleString('en-PH',{timeZone:'Asia/Manila'})} (Manila)</p>
+    <p className="text-sm">Requested by {row.requested_by_name || 'Registrar'} · {formatDateTime(row.created_at)} (Manila)</p>
     <p className="font-semibold">{row.superseded_at ? 'Replaced — retained history' : {requested:'Awaiting upload',uploaded:'Submitted — awaiting review',accepted:'Accepted',rejected:'Rejected — upload a corrected copy'}[row.status]}</p>
     {row.review_notes && <p className="whitespace-pre-wrap break-words">Review: {row.review_notes}</p>}
     {row.reviewed_by_name && <p className="text-sm">Reviewed by {row.reviewed_by_name}</p>}

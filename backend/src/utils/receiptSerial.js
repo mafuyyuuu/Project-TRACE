@@ -20,4 +20,20 @@ function serialAt(pattern, index) {
   if (digits.length > pattern.width) throw badRequest('The receipt numeric width would overflow.');
   return pattern.prefix + digits.padStart(pattern.width, '0') + pattern.suffix;
 }
-module.exports = { packPattern, serialAt };
+/** Infer the changing numeric block from two complete paper numbers. */
+function packRange(first, last) {
+  const end = typeof last === 'string' ? last.trim() : '';
+  if (!end || end.length > 100 || !/^[A-Za-z0-9 ._/-]+$/.test(end)) throw badRequest('Enter the complete last issuance number.');
+  const start = typeof first === 'string' ? first.trim() : '';
+  const matches = [...start.matchAll(/\d+/g)];
+  const candidates = [];
+  for (let segment = 0; segment < matches.length; segment++) {
+    try {
+      const candidate = packPattern(start, segment);
+      if (candidate.last === end) candidates.push(candidate);
+    } catch { /* This numeric block cannot describe a 50-paper range. */ }
+  }
+  if (candidates.length !== 1) throw badRequest('First and last numbers must cover exactly 50 consecutive receipts, with the same prefix, separators and digit width. For example: 2026-00001 to 2026-00050.');
+  return candidates[0];
+}
+module.exports = { packPattern, packRange, serialAt };

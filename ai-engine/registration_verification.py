@@ -10,6 +10,16 @@ def normalize_text(value):
     return re.sub(r'\s+', ' ', text).strip()
 
 
+def matches_college(text, expected_college):
+    if not expected_college:
+        return False
+    # OCR may split or join letters at line/word boundaries. Keep every letter
+    # and its order; do not substitute letters, skip words or infer from BSIT.
+    letters = ''.join(expected_college.split())
+    pattern = r'(?<!\w)' + r'\s*'.join(re.escape(char) for char in letters) + r'(?!\w)'
+    return bool(re.search(pattern, text))
+
+
 def verify_registration_text(raw_text, expected_student_id, expected_course=None):
     text = normalize_text(raw_text)
     if not text:
@@ -17,7 +27,8 @@ def verify_registration_text(raw_text, expected_student_id, expected_course=None
     school = 'pamantasan ng lungsod ng pasig' in text or bool(re.search(r'\bplp\b', text))
     expected_id = normalize_text(expected_student_id)
     student_id = bool(expected_id and re.search(r'(?<![\w-])' + re.escape(expected_id) + r'(?![\w-])', text))
-    college = not expected_course or normalize_text(expected_course) in text
+    expected_college = normalize_text(expected_course)
+    college = matches_college(text, expected_college)
     if school and student_id and college:
         return {'verified': True, 'reason': 'School name, Student ID, and College matched.'}
     if school and student_id and not college:

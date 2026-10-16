@@ -158,6 +158,15 @@ describe('document report filters', () => {
 });
 
 describe('student CSV export', () => {
+  it('exports equivalent phone formats as local text and preserves invalid historical data', async () => {
+    reportModel.listStudentsForExport.mockResolvedValue([
+      { phone_number: '+639123456789' }, { phone_number: '09123456789' }, { phone_number: 'legacy-value' },
+    ]);
+    const { csv } = await service.exportStudentsCsv(ADMIN, 'all');
+    expect(csv.match(/'09123456789/g)).toHaveLength(2);
+    expect(csv).toContain("'legacy-value");
+    expect(csv).not.toContain('+639123456789');
+  });
   const STUDENTS = [
     { student_id: 'STU-001', full_name: 'Ana Reyes', course: 'CCS', enrollment_status: 'active', total_requests: 3 },
     { student_id: 'STU-002', full_name: 'Dela Cruz, Juan', course: 'CON', enrollment_status: 'active', total_requests: 1 },

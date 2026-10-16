@@ -16,9 +16,11 @@ function getProfileCompletion(profile = {}) {
   const personal = [...PERSONAL], education = [...EDUCATION];
   if (profile.sex === 'Female' && profile.civil_status === 'Married') personal.push(['maiden_name', 'Maiden Name']);
   if (profile.user_type === 'alumni') education.push(['year_started', 'Year Started']);
-  if (profile.user_type === 'alumni' || (profile.graduation_year != null && profile.graduation_year !== '')) education.push(['graduation_year', 'PLP/College Year Graduated']);
+  if (profile.user_type === 'alumni') education.push(['graduation_year', 'PLP/College Year Graduated']);
+  else education.push(['year_level', 'Year Level'], ['section', 'Section']);
   if (isTransferStudent(profile.is_transfer_student)) education.push(['previous_school', 'Previous School']);
   const absent = ([field]) => profile[field] == null || String(profile[field]).trim() === ''
+    || (['year_level', 'section'].includes(field) && (typeof profile[field] !== 'string' || profile[field].trim().length > 20))
     || (PROFILE_YEAR_FIELDS[field] && Boolean(yearError(String(profile[field]), PROFILE_YEAR_FIELDS[field])));
   const missingPersonal = personal.filter(absent), missingEdu = education.filter(absent);
   const missing = [...missingPersonal, ...missingEdu].map(([field, label]) => ({ field, label }));

@@ -14,6 +14,8 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const userModel = require('../../models/user.model');
 const referenceModel = require('../../models/referenceData.model');
+const programModel = require('../../models/program.model');
+const { PRIVACY_NOTICE_VERSION, PRIVACY_ACK_EVENT } = require('../../utils/registrationPrivacy');
 const notificationModel = require('../../models/notification.model');
 const aiEngine = require('../aiEngine.service');
 const env = require('../../config/env');
@@ -60,8 +62,10 @@ beforeEach(() => {
   vi.spyOn(trustedBrowserModel, 'lockAccount').mockImplementation(async () => ({ id: 3, is_active: 1, token_version: 0, password_hash: passwordHash }));
   vi.spyOn(trustedBrowser, 'isTrusted').mockResolvedValue(false);
   vi.spyOn(trustedBrowser, 'issue').mockResolvedValue(null);
-  vi.spyOn(referenceModel, 'findCollegeByName').mockResolvedValue([]);
-  vi.spyOn(referenceModel, 'findCollegeById').mockResolvedValue([{ id: 2, name: 'College A', is_active: 1 }]);
+  vi.spyOn(referenceModel, 'findCollegeByName').mockResolvedValue([{ id: 2, name: 'CCS', is_active: 1 }]);
+  vi.spyOn(programModel, 'findByName').mockResolvedValue({ id: 1, name: 'BS Information Technology', college_id: 2, is_active: 1 });
+  vi.spyOn(programModel, 'lockCollege').mockResolvedValue({ id: 2, name: 'CCS', is_active: 1 });
+  vi.spyOn(referenceModel, 'findCollegeById').mockResolvedValue([{ id: 2, name: 'CCS', is_active: 1 }]);
   vi.spyOn(userModel, 'findActiveByStudentId').mockResolvedValue([]);
   vi.spyOn(userModel, 'findExistingByStudentId').mockResolvedValue([]);
   vi.spyOn(userModel, 'findActiveAdmins').mockResolvedValue([]);
@@ -393,9 +397,72 @@ describe('credential changes revoke MFA trust and pending challenges', () => {
 describe('register', () => {
   const body = {
     employee_id: 'STU-NEW', full_name: 'New Student', email: 'new@example.test',
-    phone_number: '+639', password: 'Trace2024!', course: 'CCS',
+    phone_number: '+639123456789', password: 'Trace2024!', course: 'CCS', program: 'BS Information Technology',
+    privacy_acknowledged: 'true', privacy_notice_version: PRIVACY_NOTICE_VERSION,
   };
   const file = { path: '/tmp/id.jpg', originalname: 'id.jpg', mimetype: 'image/jpeg' };
+  it.each([
+    { privacy_acknowledged: undefined }, { privacy_acknowledged: 'false' }, { privacy_acknowledged: true },
+    { privacy_notice_version: undefined }, { privacy_notice_version: 'older-version' },
+  ])('rejects a missing or stale privacy acknowledgment before OCR or database writes (%j)', async patch => {
+    await expect(service.register({ ...body, ...patch }, file)).rejects.toMatchObject({ status: 400 });
+    expect(aiEngine.verifyIdDocument).not.toHaveBeenCalled();
+    expect(pool.getConnection).not.toHaveBeenCalled();
+  });
+  it('records the notice version with the new account in the same transaction', async () => {
+    await service.register(body, file);
+    expect(userModel.logSecurityEvent).toHaveBeenCalledWith(1, PRIVACY_ACK_EVENT, null, null, credentialConnection);
+    expect(credentialConnection.commit).toHaveBeenCalledOnce();
+  });
+  it('rolls back account creation when the privacy acknowledgment cannot be saved', async () => {
+    userModel.logSecurityEvent.mockRejectedValueOnce(new Error('ack unavailable'));
+    await expect(service.register(body, file)).rejects.toThrow('ack unavailable');
+    expect(credentialConnection.rollback).toHaveBeenCalledOnce();
+    expect(credentialConnection.commit).not.toHaveBeenCalled();
+  });
+  it.each([null, { is_active: 0 }])('rejects missing, mismatched or inactive programs before OCR (%j)', async program => {
+    programModel.findByName.mockResolvedValue(program);
+    await expect(service.register(body, file)).rejects.toMatchObject({ status: 400 });
+    expect(programModel.findByName).toHaveBeenCalledWith(2, body.program, pool, false);
+    expect(aiEngine.verifyIdDocument).not.toHaveBeenCalled();
+  });
+  it('requires a program and a real college even for a direct API registration', async () => {
+    await expect(service.register({ ...body, program: '' }, file)).rejects.toMatchObject({ status: 400 });
+    referenceModel.findCollegeByName.mockResolvedValue([]);
+    await expect(service.register(body, file)).rejects.toMatchObject({ status: 400 });
+    expect(aiEngine.verifyIdDocument).not.toHaveBeenCalled();
+  });
+  it('revalidates catalog availability after OCR, before account creation', async () => {
+    programModel.findByName.mockResolvedValueOnce({ name: body.program, is_active: 1 }).mockResolvedValueOnce({ is_active: 0 });
+    await expect(service.register(body, file)).rejects.toMatchObject({ status: 400 });
+    expect(programModel.findByName).toHaveBeenLastCalledWith(2, body.program, credentialConnection, true);
+    expect(userModel.createUser).not.toHaveBeenCalled();
+    expect(credentialConnection.rollback).toHaveBeenCalledOnce();
+  });
+  it.each([{ phone_number: '9'.repeat(500) }, { phone_number: '+12025550123' }, { employee_id: 'x'.repeat(51) },
+    { full_name: 'x'.repeat(256) }, { email: 'x'.repeat(256) }, { course: 'x'.repeat(151) }, { password: 'Trace_2026' + 'x'.repeat(64) }])
+  ('refuses invalid formats/limits before AI or account creation (%o)', async patch => {
+    await expect(service.register({ ...body, ...patch }, file)).rejects.toMatchObject({ status: 400 });
+    expect(aiEngine.verifyIdDocument).not.toHaveBeenCalled();
+    expect(userModel.createUser).not.toHaveBeenCalled();
+  });
+  it('stores complete Philippine phone numbers in one local text format', async () => {
+    await service.register(body, file);
+    expect(userModel.createUser).toHaveBeenCalledWith(expect.objectContaining({ phone_number: '09123456789' }), credentialConnection);
+  });
+  it('stores new name parts with the automatically assembled Full Name in the account transaction', async () => {
+    vi.spyOn(userModel,'saveNameParts').mockResolvedValue();
+    vi.spyOn(userModel,'logSecurityEvent').mockResolvedValue();
+    await service.register({...body,full_name:'Ana Maria Dela Cruz',first_name:'Ana',middle_name:'Maria',last_name:'Dela Cruz'},file);
+    expect(userModel.createUser).toHaveBeenCalledWith(expect.objectContaining({full_name:'Ana Maria Dela Cruz'}),credentialConnection);
+    expect(userModel.saveNameParts).toHaveBeenCalledExactlyOnceWith(1,{first_name:'Ana',middle_name:'Maria',last_name:'Dela Cruz'},credentialConnection);
+    expect(userModel.logSecurityEvent).toHaveBeenCalledWith(1,'RECEIPT_NAME_CONFIRMED',null,null,credentialConnection);
+  });
+  it('requires both new name parts and rejects conflicting Full Name before account creation', async () => {
+    await expect(service.register({...body,first_name:'Ana'},file)).rejects.toMatchObject({status:400});
+    await expect(service.register({...body,first_name:'Ana',last_name:'Reyes'},file)).rejects.toMatchObject({status:400});
+    expect(userModel.createUser).not.toHaveBeenCalled();
+  });
   it('keeps the signup email but postpones its verification link to Profile', async () => {
     const result = await service.register(body, file);
     expect(userModel.createUser).toHaveBeenCalledWith(expect.objectContaining({ email: body.email }), credentialConnection);
@@ -546,8 +613,8 @@ describe('updateProfile', () => {
   });
 
   it('only writes the fields actually supplied', async () => {
-    await service.updateProfile(3, { phone_number: '+63999' });
-    expect(userModel.updateProfile.mock.calls[0][1]).toEqual({ phone_number: '+63999' });
+    await service.updateProfile(3, { phone_number: '09123456789' });
+    expect(userModel.updateProfile.mock.calls[0][1]).toEqual({ phone_number: '09123456789' });
   });
 });
 
@@ -659,7 +726,9 @@ describe('Batch 8b identity and staff profile boundary', () => {
     expect(values).toEqual(['STU1']);
   });
   it('stores the submitted Alumni ID and explicit college without rewriting existing identifiers', async () => {
-    await service.register({ employee_id: 'ALU1234567', email: 'alumni@example.test', user_type: 'alumni', year_started: '2020', graduation_year: '2024', full_name: 'Ana Reyes', phone_number: '09123456789', password: 'Trace2024!', college_id: '2' }, { path: '/proof.png' });
+    referenceModel.findCollegeById.mockResolvedValue([{ id: 2, name: 'College A', is_active: 1 }]);
+    programModel.lockCollege.mockResolvedValue({ id: 2, name: 'College A', is_active: 1 });
+    await service.register({ privacy_acknowledged: 'true', privacy_notice_version: PRIVACY_NOTICE_VERSION, program: 'BS Information Technology', employee_id: 'ALU1234567', email: 'alumni@example.test', user_type: 'alumni', year_started: '2020', graduation_year: '2024', full_name: 'Ana Reyes', phone_number: '09123456789', password: 'Trace2024!', college_id: '2' }, { path: '/proof.png' });
     expect(userModel.createUser).toHaveBeenCalledWith(expect.objectContaining({ student_id: 'ALU1234567', user_type: 'alumni', college_id: 2, course: 'College A' }), credentialConnection);
   });
   it('rejects student and unknown desk access before querying another profile', async () => {
@@ -720,8 +789,8 @@ describe('graduation years before profile mutations', () => {
     expect(userModel.upsertProfile).not.toHaveBeenCalled();
   });
   it('allows partial contact edits without copying attendance into graduation', async () => {
-    await service.updateProfile(3, { phone_number: 'new' });
-    expect(userModel.updateProfile).toHaveBeenCalledWith(3, { phone_number: 'new' }, credentialConnection);
+    await service.updateProfile(3, { phone_number: '09123456789' });
+    expect(userModel.updateProfile).toHaveBeenCalledWith(3, { phone_number: '09123456789' }, credentialConnection);
     expect(userModel.upsertProfile).not.toHaveBeenCalled();
   });
   it.each(['-1980', '1980.5', '1.98e3', '9999'])('rejects invalid school years: %s', async elem_grad_year => {
@@ -737,7 +806,7 @@ describe('graduation years before profile mutations', () => {
 
 describe('alumni proof-unavailable production registration', () => {
   const originalMode = env.NODE_ENV;
-  const body = { employee_id: 'ALU-DEMO', full_name: 'Synthetic Alumni', email: 'synthetic@example.test', phone_number: '+639123456789', password: 'Trace2024!', user_type: 'alumni', course: 'CCS', year_started: '2010', graduation_year: '2014', registration_proof_unavailable: 'true', registration_proof_reason: 'Records unavailable; request Registrar review.' };
+  const body = { privacy_acknowledged: 'true', privacy_notice_version: PRIVACY_NOTICE_VERSION, program: 'BS Information Technology', employee_id: 'ALU-DEMO', full_name: 'Synthetic Alumni', email: 'synthetic@example.test', phone_number: '+639123456789', password: 'Trace2024!', user_type: 'alumni', course: 'CCS', year_started: '2010', graduation_year: '2014', registration_proof_unavailable: 'true', registration_proof_reason: 'Records unavailable; request Registrar review.' };
   beforeEach(() => { env.NODE_ENV = 'production'; });
   afterEach(() => { env.NODE_ENV = originalMode; });
   it.each(['production','development','test'])('offers manual alumni review in %s without a demo flag', mode => {
@@ -807,5 +876,30 @@ describe('alumni proof-unavailable production registration', () => {
     const result = await service.login({ employee_id: 'ALU-DEMO', password: 'Trace2024!' });
     expect(result.user).toMatchObject({ year_started: 2010, graduation_year: 2014 });
     expect(result.token).toBeDefined();
+  });
+});
+
+describe('current-student year level and section', () => {
+  const account = { id: 3, role: 'student', user_type: 'student', year_level: '2nd Year', section: 'IT-2A', graduation_year: 2024, last_attendance_year: 2023 };
+  beforeEach(() => userModel.getProfileById.mockResolvedValue([account]));
+  it('saves current enrollment details and preserves omitted historical values', async () => {
+    await service.updateProfile(3, { year_level: ' 3rd Year ', section: ' IT-3B ', graduation_year: '', last_attendance_year: '9999' });
+    expect(userModel.upsertProfile).toHaveBeenCalledWith(3, expect.objectContaining({ year_level: ' 3rd Year ', section: ' IT-3B ', last_attendance_year: 2023 }), credentialConnection);
+    expect(credentialConnection.commit).toHaveBeenCalledOnce();
+  });
+  it.each(['year_level', 'section'])('preserves the other enrollment field during a partial %s save', async field => {
+    await service.updateProfile(3, { [field]: 'New value' });
+    expect(userModel.upsertProfile).toHaveBeenCalledWith(3, expect.objectContaining({ ...Object.fromEntries(['year_level', 'section'].map(key => [key, key === field ? 'New value' : account[key]])) }), credentialConnection);
+  });
+  it.each(['year_level', 'section'])('rejects invalid %s before profile writes', async field => {
+    for (const value of ['x'.repeat(21), {}, 3]) {
+      await expect(service.updateProfile(3, { [field]: value })).rejects.toMatchObject({ status: 400 });
+    }
+    expect(userModel.upsertProfile).not.toHaveBeenCalled();
+  });
+  it.each(['alumni', 'staff'])('rejects enrollment fields for %s accounts', async type => {
+    userModel.getProfileById.mockResolvedValue([{ ...account, role: type === 'staff' ? 'clerk' : 'student', user_type: type }]);
+    await expect(service.updateProfile(3, { year_level: '2nd Year', section: 'IT-2A' })).rejects.toMatchObject({ status: 403 });
+    expect(userModel.upsertProfile).not.toHaveBeenCalled();
   });
 });

@@ -43,6 +43,12 @@ export default function ModalShell({
   open,
   onClose,
   title,
+  subtitle,
+  headerIcon,
+  headerBadge,
+  headerActions,
+  headerEyebrow,
+  headerContent,
   showCloseButton = true,
   children,
   footer,
@@ -153,7 +159,7 @@ export default function ModalShell({
     bodyClassName ?? `trace-modal-body ${title ? 'pt-2' : 'pt-4 sm:pt-6'}`;
 
   return createPortal(
-    <div className={`trace-modal-overlay fixed inset-0 ${layer === 'feedback' ? 'z-[110]' : 'z-[100]'} flex items-start sm:items-center justify-center p-4 overflow-y-auto animate-fade-in`}>
+    <div className={`trace-modal-overlay fixed inset-0 ${layer === 'feedback' ? 'z-[110]' : 'z-[100]'} flex items-center justify-center p-4 overflow-y-auto animate-fade-in`}>
       <div
         className={backdropClassName ?? DEFAULT_BACKDROP_CLASS_NAME}
         style={backdropStyle}
@@ -190,12 +196,17 @@ export default function ModalShell({
           <>
             {title && (
               <div className={headerClassName ?? 'trace-modal-header'}>
-                <h3 id={titleId} className="trace-modal-title">
-                  {title}
-                </h3>
+                <div className={headerIcon || headerActions ? 'flex min-w-0 flex-wrap items-center gap-4' : undefined}>
+                  {headerIcon}
+                  <div className={'min-w-0 ' + (headerActions ? 'flex-1' : '')}>{headerEyebrow && <p className="mb-1 text-[11px] font-semibold uppercase tracking-wider text-trace-emerald dark:text-green-300">{headerEyebrow}</p>}<div className="flex flex-wrap items-center gap-3"><h3 id={titleId} className="trace-modal-title">{title}</h3>{headerBadge}</div>
+                    {subtitle && <p className="mt-1.5 text-[0.8125rem] font-normal leading-relaxed text-gray-500 dark:text-gray-400">{subtitle}</p>}
+                  </div>
+                  {headerActions}
+                </div>
               </div>
             )}
 
+            {headerContent}
             <div className={resolvedBodyClassName}>{children}</div>
 
             {footer && (

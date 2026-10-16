@@ -2,6 +2,8 @@ const { pool } = require('../src/config/db');
 
 // Read-only deployment preflight. This checks presence, not data or SQL compatibility.
 const requirements = [
+  ['pickup_sms_reminders', ['document_id', 'ready_step_id', 'period_no', 'due_at_ms', 'state', 'error_code', 'attempted_at', 'finished_at'], 'migrate_pickup_sms_reminders.js'],
+  ['document_types', ['catalog_description', 'base_label', 'fee_pending'], 'migrate_request_catalog.js'],
   ['staff_conversations',['participant_low','participant_high','scope_college_id','created_at','updated_at'],'migrate_staff_conversations.js'],
   ['staff_conversation_messages',['conversation_id','sender_id','message','created_at'],'migrate_staff_conversations.js'],
   ['staff_conversation_events',['conversation_id','actor_id','event_type','client_key','payload_hash','message_id'],'migrate_staff_conversations.js'],
@@ -24,6 +26,8 @@ const requirements = [
   ['onboarding_guides', ['user_id', 'shown_at'], 'migrate_onboarding_guides.js'],
   ['security_logs', ['user_id', 'event_type', 'created_at'], 'migrate_batch8.js'],
   ['student_profiles', ['user_id', 'birth_date', 'home_address', 'shs_grad_year'], 'migrate_student_profiles.js'],
+  ['student_profiles', ['first_name', 'middle_name', 'last_name'], 'migrate_student_name_parts.js'],
+  ['student_profiles', ['year_level', 'section'], 'migrate_current_student_details.js'],
   ['student_profiles', ['graduation_year'], 'migrate_graduation_year.js'],
   ['student_profiles', ['year_started', 'study_years_confirmed_at'], 'migrate_alumni_study_years.js'],
   ['users', ['registration_proof_unavailable', 'registration_proof_reason'], 'migrate_alumni_study_years.js'],

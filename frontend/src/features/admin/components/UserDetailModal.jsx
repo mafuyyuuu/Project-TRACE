@@ -1,3 +1,4 @@
+import EmailText from '@/components/EmailText';
 import Button from '@/components/Button';
 import ModalShell from '@/components/ModalShell';
 import UserAvatar from '@/components/UserAvatar';
@@ -5,6 +6,8 @@ import RegistrationProof from '@/components/RegistrationProof';
 import { getUserLabel } from '@/utils/userLabels';
 import StaffAuthenticatorSetup from '@/features/admin/components/StaffAuthenticatorSetup';
 import RegistrationReviewNotice from '@/components/RegistrationReviewNotice';
+import AdminStudentInfo from './AdminStudentInfo';
+import AdminIcon from './AdminIcon';
 
 function Field({ label, value }) {
   return (
@@ -22,23 +25,25 @@ function Field({ label, value }) {
  * Renders identically from both AdminDashboard (view-only — no onEdit/
  * onToggleActive passed) and MaintenancePanel (full staff mutation).
  */
-export default function UserDetailModal({ open, onClose, user, onEdit, onToggleActive, saving, viewerId, onCorrectStudyYears }) {
+export default function UserDetailModal({ open, onClose, user, onEdit, onToggleActive, saving, viewerId, onCorrectStudyYears, adminLayout = false }) {
   if (!user) return null;
 
   const isStudent = user.role === 'student';
   const isSelf = user.id === viewerId;
   const mutationDisabled = !onEdit;
   const dateJoined = user.created_at
-    ? new Date(user.created_at).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
+    ? new Date(user.created_at).toLocaleDateString('en-PH', { timeZone: 'Asia/Manila', month: 'long', day: 'numeric', year: 'numeric' })
     : null;
 
   return (
     <ModalShell
       open={open}
       onClose={onClose}
-      title={user.full_name}
-      maxWidth="max-w-lg"
-      footer={
+      title={adminLayout && isStudent ? 'Student information' : user.full_name}
+      subtitle={adminLayout && isStudent ? 'Account management · Student profile and registration details' : undefined}
+      maxWidth={adminLayout && isStudent ? 'max-w-[1080px]' : 'max-w-lg'}
+      panelClassName={adminLayout && isStudent ? 'trace-modal-panel trace-admin-main-dialog trace-admin-student-information max-w-[1080px]' : undefined}
+      footer={adminLayout && isStudent ? <div className="flex flex-wrap items-center justify-between gap-3"><div className="trace-actions">{onToggleActive && <Button type="button" disabled={isSelf || saving} onClick={onToggleActive} className={'trace-button ' + (Number(user.is_active) ? 'trace-admin-button-danger' : 'trace-button-secondary')}><AdminIcon name="student-user-round-x" />{Number(user.is_active) ? 'Deactivate User' : 'Restore User'}</Button>}{onCorrectStudyYears && <Button type="button" onClick={onCorrectStudyYears} className="trace-button trace-button-secondary">Correct Study Years</Button>}</div><div className="trace-actions"><Button type="button" onClick={onClose} className="trace-button trace-button-secondary">Close</Button>{onEdit && <Button type="button" disabled={saving} onClick={onEdit} className="trace-button trace-button-primary"><AdminIcon name="student-pencil" />Edit User</Button>}</div></div> : (
         <div className="space-y-3">
           <div className="flex flex-col sm:flex-row gap-3">
             {isStudent && onCorrectStudyYears && <Button type="button" onClick={onCorrectStudyYears} className="trace-button trace-button-info flex-1">Correct Study Years</Button>}
@@ -53,7 +58,7 @@ export default function UserDetailModal({ open, onClose, user, onEdit, onToggleA
             {onToggleActive && <Button
               type="button"
               onClick={onToggleActive}
-              disabled={isStudent || !onToggleActive || isSelf || saving}
+              disabled={!onToggleActive || isSelf || saving}
               title={isSelf ? 'You cannot deactivate your own account' : ''}
               className={`trace-button flex-1 ${user.is_active ? 'trace-button-danger' : 'trace-button-primary'}`}
             >
@@ -68,12 +73,12 @@ export default function UserDetailModal({ open, onClose, user, onEdit, onToggleA
             </Button>
           </div>
         </div>
-      }
+      )}
     >
-      <div className="flex flex-col items-center text-center pb-6 border-b border-gray-100 dark:border-gray-700">
+      {adminLayout && isStudent ? <AdminStudentInfo user={user} /> : <><div className="flex flex-col items-center text-center pb-6 border-b border-gray-100 dark:border-gray-700">
         <UserAvatar user={user} className="w-20 h-20 rounded-full object-cover" alt={user.full_name} />
         <h4 className="mt-3 text-lg font-display font-black text-gray-900 dark:text-gray-100 select-text break-words">{user.full_name}</h4>
-        <p className="text-xs text-gray-500 dark:text-gray-400 select-text">{user.email || '—'}</p>
+        <p className="text-xs text-gray-500 dark:text-gray-400 select-text"><EmailText value={user.email} /></p>
         <div className="flex flex-wrap justify-center gap-1.5 mt-3">
           <span className="text-[10px] font-bold px-2.5 py-1 rounded-full border bg-gray-50 dark:bg-gray-800 text-gray-600 dark:text-gray-300 border-gray-200 dark:border-gray-700">
             {getUserLabel(user)}
@@ -98,7 +103,7 @@ export default function UserDetailModal({ open, onClose, user, onEdit, onToggleA
         {isStudent && <Field label="Program/Course" value={user.program} />}
         <Field label={isStudent ? user.user_type === 'alumni' ? 'Alumni ID' : 'Student ID' : 'Staff ID'} value={user.student_id} />
         <Field label="Date Joined" value={dateJoined} />
-        <Field label="Email" value={user.email} />
+        <Field label="Email" value={<EmailText value={user.email} />} />
         <Field label="Contact Number" value={user.phone_number} />
         {user.role === 'clerk' && Boolean(user.is_active) && viewerId && <StaffAuthenticatorSetup key={user.id} user={user} />}
         {isStudent && <>
@@ -112,8 +117,7 @@ export default function UserDetailModal({ open, onClose, user, onEdit, onToggleA
           <Field label="Enrollment Status" value={user.enrollment_status} />
           <Field label="Study Load" value={user.study_load} />
           <Field label="Year Started" value={user.year_started} />
-          <Field label="PLP/College Year Graduated" value={user.graduation_year} />
-          <Field label="Last Attendance Year" value={user.last_attendance_year} />
+          {user.user_type === 'alumni' ? <><Field label="PLP/College Year Graduated" value={user.graduation_year} /><Field label="Last Attendance Year" value={user.last_attendance_year} /></> : <><Field label="Year Level" value={user.year_level} /><Field label="Section" value={user.section} /></>}
           <Field label="Transfer Student" value={user.is_transfer_student ? 'Yes' : 'No'} />
           <Field label="Previous School" value={user.previous_school} />
           <Field label="Elementary School" value={user.elem_school} />
@@ -124,7 +128,7 @@ export default function UserDetailModal({ open, onClose, user, onEdit, onToggleA
           <Field label="Senior High Year Graduated" value={user.shs_grad_year} />
           <RegistrationProof path={user.id_proof_path} />
         </>}
-      </div>
+      </div></>}
     </ModalShell>
   );
 }

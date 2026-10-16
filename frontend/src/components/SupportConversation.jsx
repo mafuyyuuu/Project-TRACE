@@ -1,5 +1,7 @@
-import { Fragment, useLayoutEffect, useRef, useState } from 'react';
+import { formatDateTime } from '@/utils/formatters';
+import { Fragment, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import Button from '@/components/Button';
+import AdminIcon from '@/features/admin/components/AdminIcon';
 import ModalShell from '@/components/ModalShell';
 import RequestAttachments from '@/components/RequestAttachments';
 import { SupportIcon, TicketAvatar, MessageDateSeparator } from '@/components/SupportVisuals';
@@ -22,8 +24,10 @@ function SupportFile({ file }) {
     {protectedFile.error && <p role="alert">{protectedFile.error}</p>}
   </div>;
 }
-export default function SupportConversation({ ticketId,user,topics,onTicketChanged,onNotice,active = true,autoFocusConversation = true,compact = false }) {
+export default function SupportConversation({ ticketId,user,topics,onTicketChanged,onTicketState,onNotice,active = true,autoFocusConversation = true,compact = false }) {
   const chat = useSupportConversation(ticketId,onNotice), ticket = chat.data?.ticket;
+  const observedId=ticket?.id,observedState=ticket?.state;
+  useEffect(() => {if (observedId) onTicketState?.({id:observedId,state:observedState});},[observedId,observedState,onTicketState]);
   const history = useRef(null), pinned = useRef(true), older = useRef(null), chooser = useRef(null), composer = useRef(null);
   const [staged,setStaged] = useState(null), [fileError,setFileError] = useState(''), [faqQuery,setFaqQuery] = useState('');
   const [requirement,setRequirement] = useState(null), [showCase,setShowCase] = useState(false);
@@ -54,7 +58,8 @@ export default function SupportConversation({ ticketId,user,topics,onTicketChang
         {ticket?.document_id && ticket.tracking_number && <Button type="button" aria-haspopup="dialog" onClick={()=>setShowCase(true)} className="trace-button trace-button-secondary" title="View this ticket’s authorized request and supporting documents">Open linked case</Button>}
       </div>
       {(user.role === 'admin' || ticket?.read_only) && <p className="text-sm font-semibold">Read-only history{user.role === 'admin' ? ' — Admin monitoring.' : ticket.state === 'RESOLVED' ? ' — ticket resolved.' : ' — document case closed.'}</p>}
-      {ticket && <details open className="text-sm"><summary className="cursor-pointer py-1 font-semibold focus-visible:outline">Ticket actions</summary>
+      {ticket && user.role === 'admin' && <details className="trace-admin-ticket-actions text-sm"><summary className="cursor-pointer py-1 font-semibold focus-visible:outline">Ticket actions</summary><p className="mt-2 text-xs text-gray-500">Admin monitors this ticket. Operational actions are available to the processing staff.</p></details>}
+      {ticket && user.role !== 'admin' && <details open className="text-sm"><summary className="cursor-pointer py-1 font-semibold focus-visible:outline">Ticket actions</summary>
       <div className="flex flex-wrap gap-2">
         {!compact && user.role === 'student' && ticket.state === 'FAQ_ASSISTANCE' && <Button type="button" disabled={chat.busy} onClick={() => stage({action:'escalate'})} className="trace-button trace-button-primary">Talk to staff</Button>}
         {registrar && !ticket.read_only && <Button type="button" disabled={chat.busy} onClick={() => stage({action:'resolve'})} className="trace-button trace-button-secondary">Resolve ticket</Button>}
@@ -72,7 +77,7 @@ export default function SupportConversation({ ticketId,user,topics,onTicketChang
       {compact && user.role === 'student' && ticket?.state === 'FAQ_ASSISTANCE' && <Button type="button" disabled={chat.busy} onClick={() => stage({action:'escalate'})} className="trace-button trace-button-primary">Talk to staff</Button>}
     </header>
     {ticket && (chat.data?.window?.open === false || ticket.state === 'QUEUED') && <aside aria-label="Support hours and queue" className="flex max-h-[20%] shrink-0 items-start gap-3 overflow-y-auto px-4 py-3 text-xs font-medium text-green-900 dark:text-green-100"><SupportIcon name="clock" /><div className="min-w-0 space-y-2">
-      {chat.data?.window?.open === false && <p>Live support is closed; conversations and queue places are saved. Next opening: {chat.data.window.next_opens_at ? new Date(chat.data.window.next_opens_at).toLocaleString('en-PH',{timeZone:'Asia/Manila'}) : 'Check support hours'} (Manila).</p>}
+      {chat.data?.window?.open === false && <p>Live support is closed; conversations and queue places are saved. Next opening: {chat.data.window.next_opens_at ? formatDateTime(chat.data.window.next_opens_at) : 'Check support hours'} (Manila).</p>}
       {ticket.state === 'QUEUED' && <p>Queue position: {chat.data.queue?.position ?? 'Checking'} · {chat.data.queue?.available_clerks ?? 'Checking'} declared available clerks. {chat.data.queue?.wait_range_minutes ? `Estimated ${chat.data.queue.wait_range_minutes.join('–')} minutes (${chat.data.queue.sample_size} handling samples). Availability can change.` : chat.data.queue?.message}</p>}
     </div></aside>}
     <div ref={history} tabIndex={0} aria-label="Conversation history" onScroll={event => { const node = event.currentTarget; pinned.current = node.scrollHeight-node.clientHeight-node.scrollTop < 32; }} className="min-h-0 flex-1 space-y-4 overflow-y-auto p-3 focus-visible:outline focus-visible:outline-2 focus-visible:outline-green-700">
@@ -80,7 +85,7 @@ export default function SupportConversation({ ticketId,user,topics,onTicketChang
       {chat.cursor && <Button type="button" disabled={chat.loadingOlder} onClick={() => { const node = history.current; older.current = {height:node.scrollHeight,top:node.scrollTop}; pinned.current = false; void chat.refresh(chat.cursor); }} className="trace-button trace-button-secondary">{chat.loadingOlder ? 'Loading older messages…' : 'Load older messages'}</Button>}
       {ticket?.state === 'FAQ_ASSISTANCE' && user.role === 'student' && <div className="space-y-2 rounded-xl border border-green-200 bg-green-50 p-3 dark:border-green-800 dark:bg-green-950">
         <h4 className="font-bold">Approved FAQ assistance</h4>
-        <label className="trace-label block">Find a question<input value={faqQuery} onChange={event => setFaqQuery(event.target.value)} className="trace-control mt-1 w-full" /></label>
+        <label className="trace-label block">Find a question<input maxLength={255} value={faqQuery} onChange={event => setFaqQuery(event.target.value)} className="trace-control mt-1 w-full" /></label>
         {suggestions.error && <p role="alert">{suggestions.error}</p>}
         {suggestions.topics.map(topic => <div key={topic.id} className="space-y-2">
           <Button type="button" disabled={chat.busy} onClick={() => void chat.faq({topic_id:topic.id,action:'view',client_key:crypto.randomUUID()})} className="trace-button trace-button-secondary w-full text-left">{topic.question}</Button>
@@ -118,8 +123,8 @@ export default function SupportConversation({ ticketId,user,topics,onTicketChang
         {fileError && <p role="alert" className="text-sm text-red-700 dark:text-red-300">{fileError}</p>}
       </form> : <p className="text-sm">{ticket?.read_only ? 'Previous messages and authorized files remain available.' : windowClerk && chat.data?.window?.open===false ? 'Live support is paused. Your assigned conversation resumes when support opens.' : windowClerk ? 'Declare availability and claim the oldest ticket to reply.' : 'Select a ticket to begin.'}</p>}
     </div>
-    <ModalShell open={active && showCase && Boolean(ticket?.document_id)} onClose={()=>setShowCase(false)} title="Linked request" footer={<Button type="button" onClick={()=>setShowCase(false)} className="trace-button trace-button-secondary w-full">Back to ticket</Button>}>
-      {ticket?.document_id && <div className="space-y-4"><dl className="space-y-2 text-sm"><div><dt className="font-bold">Tracking number</dt><dd className="break-words select-text">{ticket.tracking_number}</dd></div><div><dt className="font-bold">Document</dt><dd>{ticket.document_type || 'Recorded request'}</dd></div><div><dt className="font-bold">Student</dt><dd className="break-words">{ticket.student_name || 'Recorded student'}</dd></div></dl><RequestAttachments documentId={ticket.document_id} user={user} /></div>}
+    <ModalShell open={active && showCase && Boolean(ticket?.document_id)} onClose={()=>setShowCase(false)} title="Linked request" maxWidth={user.role === 'admin' ? 'max-w-[640px]' : 'max-w-lg'} panelClassName={user.role === 'admin' ? 'trace-modal-panel trace-admin-main-dialog trace-admin-linked-case max-w-[640px]' : undefined} headerIcon={user.role === 'admin' ? <span className="trace-admin-security-icon"><AdminIcon name="linked-link" /></span> : undefined} footer={<div className="trace-actions justify-end"><Button type="button" onClick={()=>setShowCase(false)} className={'trace-button ' + (user.role === 'admin' ? 'trace-button-primary' : 'trace-button-secondary w-full')}>{user.role === 'admin' && <AdminIcon name="linked-arrow-left" />}Back to ticket</Button></div>}>
+      {ticket?.document_id && <div className="space-y-6"><dl className={user.role === 'admin' ? 'trace-admin-linked-summary' : 'space-y-2 text-sm'}><div><dt className="font-bold">Tracking number</dt><dd className="break-words select-text">{ticket.tracking_number}</dd></div><div><dt className="font-bold">Document</dt><dd>{ticket.document_type || 'Recorded request'}</dd></div><div><dt className="font-bold">Student</dt><dd className="break-words">{ticket.student_name || 'Recorded student'}</dd></div></dl><RequestAttachments documentId={ticket.document_id} user={user} /></div>}
     </ModalShell>
     <ConfirmDialog open={active && Boolean(staged)} title="Confirm Support Action" message={chat.error || `Save ${staged?.action?.replaceAll('_',' ')} for this ticket?`} loading={chat.busy} onCancel={() => { if (!chat.busy) setStaged(null); }} onConfirm={async () => { if (await (staged?.kind === 'faq' ? chat.faq(staged) : chat.change(staged))) { setStaged(null); onTicketChanged(); } }} />
     {active && requirement && ticket?.document_id && <SupportRequirementDialog key={`${ticket.id}:${requirement.id || 'new'}:${Boolean(requirement.replacement)}`} documentId={ticket.document_id} user={user} selection={requirement.new ? null : requirement} onClose={() => setRequirement(null)} onSaved={() => { void chat.refresh(); onTicketChanged(); }} />}

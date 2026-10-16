@@ -858,7 +858,7 @@ node backend/database/migrate_8b.js
 
 This adds policy columns to `document_types`, creates `document_type_colleges`, reconciles `users.college_id`/its foreign key, backfills only byte-exact college-name matches, enforces Honorable Dismissal's nonrepeat flag, and inserts four missing counter types as **inactive, zero-fee drafts**. Existing type records/fees/activation are preserved. Unmatched college assignments remain null for Admin review. Legacy policy columns previously placed on `colleges` are not dropped. Fresh schema imports now create colleges before users. DDL may commit independently in MySQL; errors other than a duplicate column propagate, and the migration can be rerun after resolving them. No migration was applied during implementation.
 
-Deploy the backend/schema and frontend together, and rebuild the separate AI-engine container for `/ocr/identity` and its parser. Imports do not execute the 8b migration, and the API does not migrate on startup. Admin must review fees and activate the counter drafts; zero is a placeholder, not an approved charge. The photocopy policy remains pending.
+Deploy the backend/schema and frontend together, and rebuild the separate AI-engine container for the retained post-submission `/ocr/verify` proof check. Signup autofill is removed. Imports do not execute the 8b migration, and the API does not migrate on startup. Admin must review fees and activate the counter drafts; zero is a placeholder, not an approved charge. The photocopy policy remains pending.
 
 Before live acceptance, verify new alumni login identifiers and saved college IDs, exact-only legacy backfill, forged/cross-college/counter-only requests, simultaneous Honorable Dismissal attempts, cancellation retry, protected profile/proof access, and rollback on a failed college-restriction write against MySQL. Test genuine ID/diploma images against the engine, including timeout/manual fallback and temporary-file cleanup. PDF upload acceptance does not guarantee OCR extraction. Synthetic browser/API and mocked tests do not establish live database/OCR acceptance, and desktop emulation does not replace a physical phone.
 
@@ -1069,7 +1069,7 @@ Follow [MIGRATION_ROLLOUT.md](MIGRATION_ROLLOUT.md) for the explicit `migrate_pr
 
 ### Separate college graduation and attendance years
 
-For existing databases, apply `backend/database/migrate_graduation_year.js` from the rebuilt backend image, then `check_schema.js`, before recreating the API. Follow the backup and stopped-writer sequence in [MIGRATION_ROLLOUT.md](MIGRATION_ROLLOUT.md#graduation-year-follow-up). This adds a nullable `student_profiles.graduation_year`; attendance and school records are preserved with no inferred backfill. Alumni enter their confirmed college graduation year to complete their profile. Current students may leave college graduation blank; school graduation years remain required for completion. No new environment variable is needed. Do not import the fresh-install schema into an existing database.
+For existing databases, apply `backend/database/migrate_graduation_year.js` from the rebuilt backend image, then `check_schema.js`, before recreating the API. Follow the backup and stopped-writer sequence in [MIGRATION_ROLLOUT.md](MIGRATION_ROLLOUT.md#graduation-year-follow-up). This adds a nullable `student_profiles.graduation_year`; attendance and school records are preserved with no inferred backfill. Alumni enter their confirmed college graduation year to complete their profile. Current students use Year Level and Section instead of college graduation/last attendance; earlier-school graduation years remain required for completion. Apply the current-student-details migration below when upgrading to that version. No new environment variable is needed. Do not import the fresh-install schema into an existing database.
 
 ## Unified Support configuration and schema (October 6, 2026)
 
@@ -1120,3 +1120,61 @@ Support Analytics KPI/table changes add no environment variable, dependency or m
 ## Additional staff chat connections
 
 No environment variables/dependencies or AI/n8n changes are introduced. Build the matching backend/frontend and apply only missing preserving prerequisites plus `database/migrate_staff_conversations.js`, followed by the read-only schema checker, using [MIGRATION_ROLLOUT.md](MIGRATION_ROLLOUT.md). The [deployment checklist](DEPLOYMENT_CHECKLIST.md) records the new script as unapplied. Existing user/college tables are required; no account or college data is seeded. Confirm actual active staff college assignments and notification delivery on staging. Do not import fresh schema or seed data into an existing server.
+
+
+## Admin functional review — 2026-10-12
+
+This follow-up requires no new migration, environment variable, dependency or AI/n8n change.
+The fresh-install schema now includes payment_channel, already supplied to older installations
+by the historical Phase 19 migration; existing installed databases are not changed here.
+Use matching API/frontend versions for `/maintenance/users/:id/active` and the shared
+`studentSearch` report filter. The five earlier preserving migrations are confirmed applied
+from the user's SSH output; do not rerun them for these changes. Admin's Internal assistance
+now opens inside Support and Efficiency Analytics has independent document/support views.
+Scan Field Detection describes expected-field coverage, not verified accuracy. See the
+[consolidated deployment checklist](DEPLOYMENT_CHECKLIST.md) for rollout state.
+
+
+## Admin all-stage insights and table repair — 2026-10-12
+
+No database migration or new environment/dependency is required. Release matching backend and
+frontend and rebuild **ai-engine** because its recommendation endpoint now accepts aggregate
+POST snapshots and its Dockerfile includes document_insights.py. An old/unreachable AI service
+causes a local complete-queue fallback, without unsupported optimal-performance claims. GET
+compatibility also avoids such claims. No OCR models, Prophet inputs, n8n import or credentials
+change. Verify nonempty Secretary processing/student waits, unknown status review, snapshot
+refresh/failure and Admin tables at phone widths and enlarged text. This work publishes to dev;
+cloud/main promotion remains separate. See the consolidated deployment ledger.
+
+
+## Finance name fields — 2026-10-12
+
+This Finance workflow update needs one additional preserving migration, `migrate_student_name_parts.js`, after existing student profiles. The previous five follow-ups remain cloud-applied. Use the updated backend image, pause writers, run the new migration and `check_schema.js`, then start the matching backend/frontend; see [the consolidated ledger](DEPLOYMENT_CHECKLIST.md#finance-name-field-rollout--additional-migration-2026-10-12). Names remain nullable until students confirm matching first/middle/last parts. Existing Full Name and receipt snapshots are not split or rewritten. No environment variable, dependency, AI change or n8n import is added. Full runtime validation and cloud execution are pending, not completed by this disconnected session.
+
+## Signup and proof verification — October 13, 2026
+
+Signup uses manually entered identity fields. The pre-submit Read ID autofill and its supporting endpoints, parser and temporary uploads are removed. Current students upload proof. Alumni always see Records / proof unavailable; choosing it requires an explanation and submits for Admin identity review without an uploaded file. Removing signup autofill does not disable the post-submission proof check.
+
+The retained `/ocr/verify` route checks readable school, exact identifier and selected college text on the original image first. A successful pass cannot be replaced by a longer unsuccessful scan. A bounded fallback checks the processed image independently; it does not combine incomplete scans. Registration proof calls allow 45 seconds; unrelated AI calls retain their deadlines. A timeout/mismatch remains pending with a safe explanation. This matches text and cannot establish the physical ID's authenticity. Already-pending accounts still need Admin review; deployment does not bulk-approve them.
+
+Rebuild/recreate both backend and AI engine from the matching `dev` revision, then deploy the matching frontend. No new migration is required for this signup change. The request-catalog migration from the preceding release remains a separate prerequisite if not applied. Use `python -m unittest test_registration_verification test_proof_ocr` from `ai-engine` for the proof-check regressions. `/api/ai/extract-id` and `/ocr/identity` should now return 404.
+
+
+## 2026-10-13 — field limits and registration review
+
+Deploy the matching dev frontend on Vercel. Pull dev, run `docker compose build backend ai-engine`, then `docker compose up -d --no-deps --force-recreate backend ai-engine`. This update adds no migration, environment variable or dependency. Verify phone rejection/canonical saving, zero-preserving CSV imports and valid local-number SMS recipient formatting. Existing pending accounts are not automatically rechecked or approved; review them through Admin. The supplied inline ID photo was visually inspected but its original bytes were unavailable to the local OCR process, so actual recognition on that photo remains unverified.
+
+
+## 2026-10-13 — unclaimed pickup SMS reminders
+
+This subsequent reminder feature requires `database/migrate_pickup_sms_reminders.js` before restarting the new backend. The idempotent script creates only its attempt ledger; it does not alter document, student, payment or readiness history. Build backend/AI from current dev, run the preserving migration with a one-off backend container, run check_schema.js, then recreate backend/AI and deploy the matching Vercel frontend. The reminder worker will include already-eligible unclaimed documents with valid readiness audit history when started. It uses the existing UNISMS_SECRET_KEY/UNISMS_SENDER_ID; no new variable is added. Observe `[SMS] outcome=...` and `[PICKUP_SMS] outcome=...` logs after an actual eligible action. Existing startup key presence is not evidence of delivery.
+
+### Current-student Year Level and Section
+
+For existing installations, apply `backend/database/migrate_current_student_details.js`
+from the matching backend image, then `check_schema.js`, before starting the upgraded
+API. See [the rollout steps](MIGRATION_ROLLOUT.md#current-student-details). This adds
+nullable `student_profiles.year_level` and `student_profiles.section` (20 characters
+each). No enrollment values are guessed or backfilled, and historical years/request
+records are preserved. Current students fill both fields in Edit Profile before
+filing; alumni retain their existing education requirements. No environment change.

@@ -3,7 +3,17 @@ const {
   calculateGroupAmount,
   generateTrackingNumber,
   generateRequestGroupId,
+  moneyCents, positiveQuantity,
 } = require('../pricing');
+
+it.each(['1e3', '0x10', true, '1'.repeat(100), '1.5', '2147483648'])('rejects nonordinary or oversized whole quantities (%j)', value => {
+  expect(() => positiveQuantity(value)).toThrow('positive whole number');
+});
+it('retains the exact supported monetary and integer upper boundaries', () => {
+  expect(positiveQuantity('2147483647')).toBe(2147483647);
+  expect(moneyCents('99999999.99')).toBe(9999999999);
+  for (const value of ['100000000.00', '1e3', '0000000000001.00', '1.001']) expect(() => moneyCents(value)).toThrow();
+});
 
 // Rows as they come back from `document_types`, where base_fee is a string.
 const TYPES = [

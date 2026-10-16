@@ -17,9 +17,9 @@ function buildFormData(file, fieldName = 'document') {
   return form;
 }
 
-async function requestJson(url, options) {
+async function requestJson(url, options, timeoutMs = 15000) {
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), 15000);
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
     const response = await fetch(url, { ...options, signal: controller.signal });
     if (!response.ok) throw new Error(`AI engine returned HTTP ${response.status}`);
@@ -32,15 +32,20 @@ async function requestJson(url, options) {
  * Returns { verified, reason } or null when the engine is unreachable.
  */
 async function verifyIdDocument(file, { studentId, course }) {
+  const started = Date.now();
+  console.info('Registration proof request started.');
   try {
     const form = buildFormData(file);
     form.append('student_id', studentId);
     if (course) form.append('course', course);
 
-    return await requestJson(`${env.AI_ENGINE_URL}/ocr/verify`, { method: 'POST', body: form });
+    const result = await requestJson(`${env.AI_ENGINE_URL}/ocr/verify`, { method: 'POST', body: form }, 45000);
+    console.info(`Registration proof request finished in ${Date.now() - started}ms; verified=${result?.verified === true}.`);
+    return result;
   } catch (err) {
     if (err.name === 'AbortError') {
-      console.warn('⚠️ AI verification timed out after 15s');
+      console.warn(`Registration proof request timed out after ${Date.now() - started}ms.`);
+      return { verified: false, reason: 'Automatic verification timed out.' };
     } else {
       console.warn('⚠️ AI verification unavailable:', err.message);
     }
@@ -83,14 +88,6 @@ async function extractReceipt(file) {
 }
 
 /** Prophet 7-day volume forecast. Returns null when unavailable (caller falls back). */
-async function extractIdentity(file) {
-  try {
-    return await requestJson(`${env.AI_ENGINE_URL}/ocr/identity`, { method: 'POST', body: buildFormData(file) });
-  } catch {
-    return null;
-  }
-}
-
 async function getForecast() {
   try {
     return await requestJson(`${env.AI_ENGINE_URL}/forecast`, { method: 'GET' });
@@ -100,10 +97,10 @@ async function getForecast() {
   }
 }
 
-/** Random Forest prescriptive insights. Returns null when unavailable. */
-async function getInsights() {
+/** Optional prototype classification of authoritative aggregate queue counts. */
+async function getInsights(snapshot) {
   try {
-    return await requestJson(`${env.AI_ENGINE_URL}/ai/recommend`, { method: 'GET' });
+    return await requestJson(`${env.AI_ENGINE_URL}/ai/recommend`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(snapshot) });
   } catch (err) {
     console.error(`AI insights fetch failed at ${env.AI_ENGINE_URL}/ai/recommend:`, err.message);
     return null;
@@ -114,4 +111,4 @@ async function getSupportInsights(aggregates) {
   try { return await requestJson(`${env.AI_ENGINE_URL}/ai/support-insights`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(aggregates)}); }
   catch { return null; }
 }
-module.exports = { verifyIdDocument, extractDocument, extractReceipt, extractIdentity, getForecast, getInsights, getSupportInsights };
+module.exports = { verifyIdDocument, extractDocument, extractReceipt, getForecast, getInsights, getSupportInsights };

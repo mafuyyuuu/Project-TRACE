@@ -8,6 +8,165 @@ The primary [TRACE Figma file](https://www.figma.com/design/78A3HTREQ86GIN9ZxvDB
 
 Shared foundations do not replace role-specific workflows with mockup content or redesign entire screens in this batch. Support workspace (`260:3301`) and compact message frames (`254:987`, `258:1093`) are the Batch 10 references. Port their layout and interaction details in that batch, preserving live data and permissions.
 
+## Window 1 reference and ticket archives — 2026-10-15
+
+All 18 frames in the [Window Clerk section](https://www.figma.com/design/eQNaLBPXQSojI6lOK60Api/TRACE-UI---UX?node-id=2362-1473) were individually inspected before implementation. Window 1 / Receiving Desk shares the source staff shell, profile and Support Settings presentation without changing its role or API permissions. `WindowOverview`, `WindowTracking`, `ManualInputModal`, `IntakeReviewModal` and `ReleaseDocumentModal` own the counter-specific composition. Original SVG exports live in `public/window-figma`; existing identical source assets are reused. No source applicant photos, QR codes or payment documents are shipped as live data.
+
+| Figma frame | View / state | Implementation |
+|---|---|---|
+| `2362:1474` | Dashboard — Intake | WindowOverview / queue / SubmissionQrPanel |
+| `2413:6138` | Dashboard — Release | WindowOverview / release queue |
+| `2369:4603` | Tracking Desk | WindowTracking, server records and progress filters |
+| `2369:5200` | Student & case support | MessagingWorkspace / SupportWorkspace |
+| `2385:3008` | Staff coordination | StaffCoordinationWorkspace |
+| `2385:3372` | Internal assistance, selected concern | InternalAssistanceWorkspace |
+| `2369:5375` | Reports & Export (source mislabeled Tracking Desk) | ReportsPanel / inline ReportFiltersModal |
+| `2385:3237` | Support Settings | AdminSupportSettingsForm, existing can_manage guard |
+| `2402:1585` | New linked support ticket | SupportWorkspace create form |
+| `2402:1629` | New Staff Conversation | StaffCoordinationWorkspace recipient / message form |
+| `2402:1701` | New Internal Concern | InternalAssistanceWorkspace create form |
+| `2403:4606` | Manual / FAQ | Role-aware AdminManual presentation |
+| `2406:1753` | Manual Input | ManualInputModal |
+| `2408:5740` | Profile — Personal Info | ProfileSettingsModal staff presentation |
+| `2408:5808` | Profile — Security top | AdminProfileSecurity, existing staff security API |
+| `2408:5960` | Profile — Security scrolled | Same security body with pinned summary / footer |
+| `2409:1753` | Intake Check | Two-column IntakeReviewModal, attachment readiness gate |
+| `2417:6657` | Release Document (source mislabeled Window Clerk Modal) | Cancel-first ReleaseDocumentModal |
+
+Live totals, eligibility, estimated/final fees, assignments, document stages, protected receipts and generated registration QR codes remain authoritative. Staff coordination keeps its actual conversations and recipient rules rather than the copied case-ticket rows in its mockup. Window guidance contains the role's actual tasks. Release uses the protected Official Receipt or truthful physical-receipt guidance; a mock payment slip is never substituted for a receipt. Tables scroll within the card; long/large-text forms scroll while actions remain reachable. Narrow 200% Intake Check condenses its repeated footer hint to retain usable body space.
+
+The user's archive request intentionally extends the Figma frames: `TicketArchiveTabs` appears in student/case support and internal-assistance lists, including mobile ticket dialogs. **Active** contains unresolved tickets, **Archive** contains `RESOLVED` tickets. Backend filtering precedes cursor pagination and retains ownership/desk/college rules. Resolution/reopening switches the selected conversation to its new view. History, files and existing reopen restrictions remain; no archive table, deletion or extra archive migration is introduced. Staff coordination has no ticket-resolution state and keeps its existing conversation list. Shared `FilterSelect` remains the approved Student History treatment.
+
+## Student reference and shared filters — 2026-10-15
+
+The [Student section](https://www.figma.com/design/eQNaLBPXQSojI6lOK60Api/TRACE-UI---UX?node-id=2354-4416) is the current Student visual reference. The re-audit inventories 17 frames, including the floating panel, both support dialogs, six profile top/scrolled views, and Live Track. The earlier ten-frame inventory omitted the profile and tracking frames. The sparse manual frame was resolved through its screenshot and six detailed child contexts. Student is implemented for visual review; it has not yet been accepted.
+
+| Figma frame | View / state | Implementation |
+|---|---|---|
+| `2283:1296` | Student Dashboard | StudentWelcome / StudentOverview |
+| `2313:1577` | Dashboard with chat open | Source reference only: user removed the floating launcher October 16; use Support |
+| `2317:1307` | Support tickets modal | SupportWorkspace ticket list |
+| `2317:1359` | New Support Ticket | SupportWorkspace create form |
+| `2321:1277` | New Request | NewRequestModal |
+| `2323:1277` | Confirm Document Request | StudentRequestConfirmation |
+| `2324:1277` | History: All Requests | StudentHistory request view |
+| `2326:1293` | History: Payments | StudentHistory payment view |
+| `2328:1309` | Support | StudentSupportEmpty / SupportWorkspace |
+| `2354:3364` | User Manual / FAQ | Role-aware shared manual presentation |
+| `2386:1553` / `2385:2345` | Personal Info: top / scrolled | StudentProfilePersonal |
+| `2386:1819` / `2385:2157` | Educational Background: top / scrolled | StudentProfileEducation |
+| `2386:2002` / `2385:2609` | Security: top / scrolled | StudentProfileSecurity / AuthenticatorSettings |
+| `2394:1583` | Live Track | LiveTrackingModal |
+
+`trace-student-shell` owns the reference header, rail, type scale and page geometry, including the compact mobile header. The Student SVG exports retain their intrinsic dimensions in `frontend/public/student-figma`. API identities, receipts, timestamps, status counts and prices remain dynamic. Keep required year/purpose/copy/attachment fields and the one-dismissal guard; selected document cards stay visible while searching so hidden required fields cannot bypass native validation. Review consumes the existing staged submission, preserves drafts on cancellation and confirms before submitting. Completed KPI copy describes completed records rather than promising pickup for a released request.
+
+The user selected the History **All statuses** dropdown (`2324:1578`) as the system-wide filter design. `components/FilterSelect.jsx` composes the original 15 px funnel and chevron with a native select, outlined 12 px corners, 40 px desktop and 44 px mobile height, dark colors and visible focus. Reuse it for filtering dropdowns; preserve accessible names, options, controlled values and caller-owned filtering. Apply it in tracker/forecast, accounts/desks, document types, audit events/roles/range, analytics staff desks, graduate programs, internal-assistance state/category, and shared report/payment-history filters used by Admin, Window 1, Finance and Secretary. This is an intentional user-approved override of earlier Admin filter styling. Queue/navigation tabs and data-entry selects retain their own semantics.
+
+History request search combines tracking/document terms and the saved status; payment search also matches references. Keep each view's search/status draft, the existing paid-or-submitted-reference payment cohort, honest unpriced amounts, protected receipt callbacks and totals derived from visible priced rows. Tables scroll internally rather than squeezing amounts, dates or receipt controls. Manual guidance and counts remain role-aware; local Yes/No selection does not create server FAQ votes. Support ticket creation, FAQ-first escalation, attachments, hours, permissions and confirmation stay in existing hooks/services. Older-ticket controls follow the actual cursor, not mock history.
+
+User-approved current-student education override: show Year Level and Section instead of college graduation/last attendance, require the saved enrollment fields for requests, and show them in authorized staff profile views. Alumni retain their source historical-year fields. TOR still reads saved Year Started; school-history graduation years remain. This intentionally updates the education frame content without changing the Figma file.
+
+Student profile uses the source 720 px panel, fixed identity/tabs/footer and one scrollable body. Proof remains authenticated and read-only. Preserve field hints, conditional requirements, saved-year restrictions, email verification, authenticator flows and confirmed profile/session changes. Security activity stays visible below the password/session sections. Live Track retains the source summary/progress composition and Copy tracking ID action. Following the October 16 readability request, its panel can reach 1200 px, with 9/3/2/1 alternating columns selected from actual map width and text size. Connectors join measured, unscaled node radii and turn around labels. Stage order and messages remain pipeline-derived; authenticated detail history loads on open and Refresh tracking, with real Manila dates or Date not recorded. Failed refreshes retain the last saved status with a visible warning; 403/404 discard the protected snapshot. Status badge dots inherit their status color. Only the current unfinished node pulses; completed, legacy/unknown records and reduced motion stay static. Static geometry stays in pixels while typography follows text-size preferences.
+
+[Profile and tracking review](student-profile-tracking-review.png) · [Synthetic Student desktop review](student-tabs-review.png) · [Student dialogs/mobile](student-dialogs-mobile-review.png) · [Shared filter examples](shared-filter-review.png).
+
+## Admin reference — 2026-10-15
+
+The user accepted Main Tabs on 2026-10-14. That review covered every frame in [Admin – Main Tabs](https://www.figma.com/design/eQNaLBPXQSojI6lOK60Api/TRACE-UI---UX?node-id=2217-20270). All 35 frames were individually inspected, including modal, tab, expanded and scrolled variants. Registration v2 supersedes the original review frame, and the populated audit table supersedes the earlier placeholder. The current review covers all eight frames in [Admin – More Tabs](https://www.figma.com/design/eQNaLBPXQSojI6lOK60Api/TRACE-UI---UX?node-id=2193-1056), including both analytics scroll states. The More implementation is ready for the user’s visual review; it has not yet been accepted. Other roles keep the shared reference above.
+
+`trace-admin-shell` scopes the Admin typography, rounded top bar and navigation rail, compact controls, table spacing and section surfaces. Admin-only components use `trace-admin-*` classes; portaled dialogs are scoped to the active Admin shell. The local Inter variable font and exported Figma SVG icons live in `frontend/public/admin-figma/` with the font license. Keep these as native assets, not rendered screenshots of entire screens.
+
+The accounts directory initially shows six rows and three additional account previews; View all reveals the complete filtered set. Every account action opens its existing detail view. Catalog add/edit controls open the corresponding dialog or document-type drawer; draft staging, confirmations, pending guards, protected uploads and server permissions remain authoritative. Templates retain an isolated, sandboxed preview; variable insertion respects the selected cursor range and input limit, and Reset to default clears only the draft until a confirmed save. Manual search covers questions and answers without removing existing guidance.
+
+Audit controls filter the loaded response, with eight rows per page; display this scope rather than implying complete server-history search. Default All loaded history retains the existing records, while date selections use the page's snapshot time. Preserve full raw event codes, identifiers and IP addresses. Graduate filters search loaded applicants and program/college values; row check/reject icons open the review dialog and never submit a decision directly.
+
+Below 768 px the Admin header uses a single 64 px row with the accessible logo mark, menu and existing utility actions. Keep 44 px tap targets, hide only the duplicate text wordmark and anchor the notification panel to the header edge. Desktop retains the full wordmark and source spacing. [Synthetic before/after](admin-mobile-header-review.png).
+
+Desktop geometry follows the source frames; narrow layouts stack sections and use existing table scrollers. Text preference enlargement may increase card height rather than clip values. Retain dark equivalents, keyboard access, visible focus, reduced motion and 44 px mobile controls. Live values, honest empty/error states and required workflow explanations take precedence over copying example records or unsupported performance claims from the mockups.
+
+Main Tabs fidelity follow-up: boxed action labels reserve min-content width; registration
+email addresses may break at `@` before splitting a domain. Original icon exports must
+contain every contour (the staff password eye uses a complete Figma PNG export).
+Profile Security keeps its summary/tabs fixed and scrolls its cards; card actions align
+right on desktop and reflow at small widths. Document schedules show currency prefixes
+and side-by-side base/rental/special fields, with Registrar rule guards preserved.
+Payment method editing locks the code and stages confirmation through the existing service.
+Audit timestamp lines use Asia/Manila, with raw unknown event codes preserved.
+[Synthetic fidelity screenshots](admin-main-tabs-fidelity.png) cover the latest correction.
+
+The tracker Filter label and dropdown share two grid columns at every supported
+width. Document Types and Security Logs chip rows attach directly to their toolbar
+without the shared header's bottom divider. Verify the label/control positions and
+computed border width, as page overflow checks alone do not catch these differences.
+
+### More Tabs frame inventory
+
+Every frame below was inspected individually, including original screenshots and detailed child contexts. [Synthetic desktop screenshots](admin-more-tabs-review.png) and [mobile/dialog screenshots](admin-more-tabs-mobile.png) show the implementation with fixture data. Existing live values, workflow explanations and dynamic previews remain authoritative.
+
+| Figma frame | View / state | Implementation |
+|---|---|---|
+| `2179:10722` | Reports & Export | ReportsPanel / ReportFiltersModal |
+| `2185:965` | Document Efficiency, top | AnalyticsPanel / DocumentAnalytics |
+| `2206:19344` | Document Efficiency, scrolled | Workload by Staff, filters and pagination |
+| `2185:1066` | Support Analytics, top | SupportAnalytics period, metrics and durations |
+| `2179:16175` | Support Analytics, scrolled | Categories, backlog, FAQ feedback, clerk workload and notes |
+| `2179:10981` | Graduate Applications | GradApplicationReviewPanel |
+| `2185:1369` | System Templates | AdminTemplatesPanel |
+| `2185:1470` | User Manual / FAQ | AdminManual |
+
+The staff table shows seven rows per page and filters the loaded analytics. Compute workload shares against all staff before filtering or paging; filtering must not change the denominator. Sort rows by handled volume. Released-document summaries derive from the loaded series. Keep null duration measurements distinct from recorded zeros and associate both the context and footer guidance with the table’s accessible description.
+
+Template choices, original icons, font controls, variable chips and line-number gutter follow the source. The editor remains a native textarea, while the preview renders the actual draft with synthetic values in its isolated sandbox. Reset stages a draft and Save retains confirmation. Manual counts reflect the available guidance; the Yes/No selection is local page state only and does not submit or contribute to ticket-scoped FAQ analytics.
+
+The Admin bell uses the original exported bell vector without the design’s decorative red circle. Render the dot only for actual unread notifications. After a successful read, update the IDs present when opening; retain unread notifications arriving while the request is pending. Failed reads retain unread state.
+
+### Main Tabs frame inventory
+
+All listed frames were inspected and Main Tabs was accepted by the user on 2026-10-14. [Synthetic browser screenshots](admin-main-tabs-review.png) show the rebuilt registration, security, support settings and document drawer layouts.
+
+| Figma frame | View / state | Implementation |
+|---|---|---|
+| `93:663` | Dashboard | AdminDashboard |
+| `2002:1306` | Document Tracker | AdminDashboard / RequestStaff |
+| `2002:2945` | 7-Day Forecast modal | ForecastModal |
+| `2224:1245` | Review Registration v2 | AccountVerificationModal / RegistrationProof / AdminRegistrationDetails |
+| `2216:1245` | Original registration review | Superseded by v2; existing unavailable-proof review retained |
+| `2002:2989` | View modal | ImageViewerModal |
+| `2031:430` | Assign Processing Staff | RequestAssignmentModal |
+| `2031:468` | Assignment with reconciliation expanded | RequestAssignmentModal details |
+| `2094:935` | Maintenance Accounts | MaintenancePanel / AccountDirectory |
+| `2105:1361` | Student information | UserDetailModal / AdminStudentInfo |
+| `2118:433` | Add Staff Account | AddUserModal |
+| `2127:491` | Edit User personal information | UserEditModal personal tab |
+| `2127:524` | Edit User account settings | UserEditModal account tab |
+| `2134:1455` | Maintenance document types | MaintenancePanel documentTypes tab |
+| `2157:1575` | Edit document type drawer, top | MaintenancePanel / FeeScheduleEditor |
+| `2157:2016` | Edit document type drawer, scrolled | Same drawer, scrolling body |
+| `2161:588` | Colleges | MaintenancePanel colleges tab |
+| `2161:1065` | Add College modal | MaintenancePanel college form |
+| `2162:640` | Programs | ProgramsPanel / CatalogGuidelines |
+| `2162:979` | Supporting Documents | SupportingDocumentsPanel / CatalogGuidelines |
+| `2163:744` | Payment Methods | MaintenancePanel paymentMethods tab |
+| `2163:1150` | Add Payment Method modal | MaintenancePanel payment form |
+| `2002:2676` | Support, no ticket selected | MessagingWorkspace / SupportWorkspace |
+| `2058:821` | Support, selected ticket | SupportConversation |
+| `2086:381` | Linked request modal | SupportConversation / RequestAttachments / RequirementBubble |
+| `2065:674` | Support Settings modal | SupportWorkspace / AdminSupportSettingsForm |
+| `2062:614` | Staff Coordination, Admin monitoring | StaffCoordinationWorkspace |
+| `2089:724` | Internal Assistance, unclaimed ticket | InternalAssistanceWorkspace |
+| `2168:796` | Activity Logs, populated | AdminAuditLog |
+| `2002:2806` | Earlier Activity Logs placeholder | Superseded by populated 2168:796 |
+| `2168:1236` | Security Logs | AdminSecurityPanel / AdminAuditLog |
+| `2210:1245` | Edit Profile, Personal Info | ProfileSettingsModal / EmailVerificationNotice |
+| `2210:1313` | Edit Profile, Security top | ProfileSettingsModal / AuthenticatorSettings |
+| `2211:20019` | Edit Profile, Security scrolled | Same profile, fixed summary and scrolling body |
+| `2210:1555` | Preferences modal | PreferencesModal |
+
+Main dialogs use the source-specific widths (registration 960 px, profile 640 px, viewer 800 px, assignment 667 px and support settings 720 px), with reachable mobile and enlarged-text layouts. Profile identity and tabs remain outside the scrolling body. Proof controls reuse authenticated files and do not change OCR evidence. A missing or aggregate OCR result stays “Not recorded.” Catalog edits, registration decisions, assignments and support settings retain staged confirmation and pending guards.
+
+
+## Shared controls
+
 | Element | Classes | Notes |
 | --- | --- | --- |
 | Text, number, date, password, select, textarea | `trace-control` | Includes dark, hover, focus, disabled and readonly styling. Textareas grow vertically. |
@@ -58,7 +217,7 @@ Security Logs uses five explicit column proportions and a 60 rem minimum table w
 
 Admin AI Insights uses the shared `trace-section trace-section-body` surface. Insight cards pair amber-50/amber-950 with amber-900/amber-200 text for warnings, and green-50/green-950 with green-900/green-200 text for information; borders follow the same semantic palette. Keep distinct icons and accessible type labels so meaning does not rely on color. Use root-class `dark:` variants rather than theme-dependent data state or refetching. The no-insights placeholder remains neutral; undefined palette shades and translucent inverse surfaces should not substitute for explicit theme pairs.
 
-The three Admin KPI cards share label/value/chart/footer grid tracks when side by side. `trace-kpi-sparkline` reserves the full content width and a stable 64 px height; place captions below it so wrapping does not shift graph tops. Keep that blank footprint when throughput has no measured series, with no decorative fallback. Throughput remains the end-to-end duration with a separately labeled daily completion-count chart and date/count tooltip; its neighbors retain their existing illustrative curves, explicitly labeled as such. Other roles' compact MiniSparkline default remains available. Data length and magnitude affect plotted points, never the chart's layout footprint.
+The three Admin KPI cards use the Figma label/value/icon/helper layout, with equal heights when side by side. Throughput remains the end-to-end duration with a separately labeled daily completion-count chart and date/count tooltip when measured series exist; do not draw a decorative fallback. Native values and helper text wrap without clipping. Other roles' compact MiniSparkline default remains available. A measured series or enlarged text can increase card height while keeping all values reachable.
 
 Workload by Staff uses `getWorkloadShares` on the complete date-filtered `workload_by_clerk` array, before any display paging/slicing. The API supplies all staff with recorded activity, with no row limit. The denominator is the sum of per-staff documents handled, not the busiest count or globally unique requests. Shares rounded to one decimal feed the visible percentage, labelled meter value and shared ProgressFill; empty/zero-total data never divides by zero. Keep this a volume distribution, not a performance score. Use the table's internal scroller and rem minimum width so names/counts/percentages remain reachable at enlarged text sizes.
 
@@ -96,7 +255,7 @@ Button actions use components/Button.jsx with the existing semantic variant clas
 
 Secretary records use the shared ReportsPanel rather than a second completed-log table. Keep the Main navigation label **Records & Export**, the old completed-logs tab as a Secretary-cleared alias, and its navigation highlight on the canonical reports destination. Record-view toggles are a named native-button group with aria-pressed, wrapping at enlarged text sizes; choosing a status clears the multi-status preset. Retain all eight report columns, student-profile action and document request labels, and use actual shared status badges rather than a constant Approved badge. Filters, summaries, records and document CSVs share one server-enforced assigned-college scope; student-category exports also stay within that college. No assignment means no records or export access. The API must derive the scope from the stored account, never client-supplied college parameters.
 
-Student's Action Required — Payment card uses an amber-300/amber-800 border and amber-50/amber-950 header with amber-900/amber-200 text/icons. Its Pay action uses the shared trace-button-warning variant. This is a pending action, so it must not inherit the branding/success green. Keep the warning icon decorative beside the explicit heading. Document name/amount lines wrap, and saved fee calculations occupy a full-width row so enlarged text does not clip. Eligibility still comes from the existing pending-payment state; styling must not introduce or alter payment transitions.
+Student's Action Required — Payment card follows the updated source frame `2495:2103`: amber alert band/stepper, saved itemized summary and sage amount-due panel with primary Pay and secondary slip-preview actions. The warning band remains amber; Pay follows the source green. Render one card per existing billable request group, preserve all saved calculations/legacy fallback descriptions, and keep non-pending records ineligible. Wrap live text and groups on small/enlarged screens; no mock prices or new payment transitions.
 
 Each student payment request group reads Request ID → itemized charges/saved calculations → total amount due → Pay. Keep this as real DOM order, never CSS order reversal or positive tabIndex. The grouped amber Pay button sits in a wrapping right-aligned footer and may fill the available width on phones. Preserve the existing representative document and group total when opening checkout.
 
@@ -126,3 +285,20 @@ InternalAssistanceWorkspace reuses the main support frame (260:3301) proportions
 ## Staff coordination and messaging categories
 
 The additional staff workspace follows the main Figma messaging frame (260:3301) using existing Support visuals, intrinsic-size local icons, dynamic participant initials, readable aligned ticket-style rows, independently scrolling history and the rounded pinned composer. Shared QueueTabs group support, staff coordination and internal assistance; visited workspaces retain drafts. ModalShell and ConfirmDialog own recipient selection and first-message confirmation; subsequent Send is direct with pending guards. Active-category gating prevents hidden dialogs/toasts taking over another category. Mobile uses the shared conversation drawer; dark/reduced-motion/200% text adaptations preserve controls. No placeholder presence/read/unread marks are shown.
+
+## Signup back navigation — October 15, 2026
+
+Back to Login sits at the viewport’s upper-left edge rather than aligning with the centered form card. Both the header and link have transparent backgrounds with no bar border. Below 768 px the header stays in normal document flow and scrolls away; at 768 px and above it remains sticky. Retain the safe-area top inset, a minimum 44 px hit target and light/dark colors. The transparent container passes pointer events through to the form; the link remains clickable. Do not constrain this header to the card’s maximum width.
+
+Validation: 17 existing registration/branding tests, lint, production/PWA build and whitespace checks pass. 65 browser checks cover student/alumni signup at top/bottom, 320/375/768/1440 px, 100/200% text and both themes, including transparent header/link backgrounds, mobile scroll-away behavior, desktop sticky positioning and Back to Login navigation. Screenshots use synthetic catalog data: [desktop](signup-header-desktop-review.png), [mobile](signup-header-mobile-review.png). No backend, database or validation changes.
+
+
+## October 16 shared review corrections
+
+Preferences uses the Admin design for all roles and portals, including Light/Dark selection, preview, auto-save guidance and Done. Phone dialogs center within the viewport with internal body scrolling. FileUploadField owns a keyboard-accessible trigger and controlled filename; replacing/cancelling preserves draft validation. Compound input wrappers own focus. Use EmailText and shared Manila date/event/peso formatting for account, audit, message and notification surfaces; user-authored conversation text is unchanged. Exported icons keep intrinsic dimensions and derive theme treatment from source paint metadata, preserving semantic hues and inverse glyphs.
+
+Local record tables use PaginatedTable/Pagination where paging was absent, including Student overview/history, Admin verification/accounts/catalogs, Secretary queues, Graduate review, profile security and support statistical lists. Existing paged tables and full-data exports remain unchanged. Only FAQ answers scroll within the manual; all roles reuse its role-aware layout. Dashboard trailing padding and fixed minimum/queue heights are removed so the final surface ends naturally.
+
+Student dashboard/history no longer mounts FloatingSupportChat. Tour guidance uses the Support navigation item. No Support workspace contains analytics actions or dialogs; only Admin Efficiency Analytics hosts SupportAnalytics and the API checks the current Admin role.
+
+Validation: 1,144 frontend tests / 117 suites and 1,737 backend tests / 130 suites pass, followed by 125 backend checks for maintenance/email and metrics. The 496 passing browser checks cover 320/375/768/1440 px, both themes and 100/200% text; they include shared Preferences font/geometry equality across five role views, centered dialogs, FAQ-only scrolling, missing pagination, grouped pay/slip actions, file feedback, whole-field focus, all nine original payment asset dimensions, and dark navigation visibility. Lint, production/PWA build and whitespace checks pass. [Synthetic visual review](trace-notes-review.png). These are local checks; no live migration, deployment, real payment or real message was performed.

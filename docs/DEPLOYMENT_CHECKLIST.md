@@ -15,13 +15,15 @@ Updated with each completed batch. This tracks the **newer fixes guide**, not th
 | 13 — Internal Assistance | `backend/database/migrate_internal_assistance.js` | Existing users and active desk/Admin accounts; existing support schema remains separate | Local test and cloud applied 2026-10-12 (cloud confirmed by user SSH output). Creates three empty InnoDB internal ticket/message/event tables; imports no student tickets or attachments. Matching API/frontend required; Admin operational support becomes read-only. |
 | Additional chat connections — TRACE-78 follow-up | `backend/database/migrate_staff_conversations.js` | Existing users/colleges, supported active desk accounts; separate support/internal prerequisites for their existing categories | Local test and cloud applied 2026-10-12 (cloud confirmed by user SSH output). Creates three empty InnoDB staff conversation/message/retry-event tables with pair uniqueness; imports no student/internal messages or files. Deploy matching API/frontend. |
 
+| Finance workflow follow-up — 2026-10-12 | `backend/database/migrate_student_name_parts.js` | Existing users/student profiles; the five earlier follow-up migrations remain applied | Prepared; NOT applied to cloud or tested on MySQL. Native mock regression tests now pass in the connected environment; real MySQL acceptance remains pending. Adds nullable first/middle/last profile fields, preserving existing Full Name, requests and issued receipt snapshots. No guessed backfill, reseed or new table. Matching API/frontend required. |
+
 The cross-batch integration follow-up adds **no migration or environment variable**. Deploy the matching API/frontend to include routing-college chat scope, access-cache clearing, reactive notification links and consistent Receiving Desk authority. On staging, change a student’s profile college after routing, confirm old/new Secretary access, revoke staff access, follow two notification links on an open screen, and verify assignment enforcement between Window 1 and Receiving Desk.
 
 The earlier `migrate_batch8.js` is a different historical base migration. It is **not** the Revision 2 Batch 8 migration above. Existing databases need preserving migration scripts, not a fresh schema or seed import.
 
 ## Local test application — 2026-10-12
 
-All five scripts above were applied, in the listed order, through their actual Node CLIs against
+The five original follow-up scripts were applied, in the listed order, through their actual Node CLIs against
 `trace_staging_test_20261012` on isolated local MySQL 8.0.46, using code commit
 `281179fdf1f8ce757023a85065a1449b5a931280`. The target was a new synthetic database prepared with
 all earlier schema prerequisites; it was not a copy of the live database or an existing cloud
@@ -42,7 +44,7 @@ checks in this workspace. No application, Docker stack or cloud service was depl
 
 The user's SSH output from the cloud host confirms database `trace_db`, a preflight listing only
 these five follow-ups, successful completion of all five actual migration CLIs in order, and
-`Schema presence check passed.` No additional migration is currently indicated by that check.
+`Schema presence check passed.` No additional migration was indicated by that earlier version of the check. The later Finance name-field change below adds a new pending migration.
 This is user-provided execution evidence, not a direct database inspection by the agent; full
 schema/data compatibility and workflow acceptance are separate checks.
 
@@ -112,3 +114,75 @@ docker compose run --rm --no-deps -T backend node database/check_schema.js
 A passing presence check does not prove every index/type, restored backup, production delivery or institutional evidence-policy decision. Recorded unit/browser checks are local verification evidence, not a claim that the live site already runs the update.
 
 - [Staff coordination](../README.md#staff-coordination-walkthrough): recipient connections, pair history, Admin monitoring and draft-preserving categories.
+
+
+## Admin functional review — no additional migration
+
+The current Admin review changes duplicate navigation/analytics views, truthful scan metric wording,
+Admin-managed student/alumni account status, relevant account filters, shared visible report
+filters with Student ID / Name search, and readable CSV fee/purpose/date output. It uses existing
+status/version/audit/report fields; all five previously confirmed cloud migrations remain complete.
+The fresh-install template includes the existing Phase 19 payment_channel column; this adds no
+new migration for installed databases.
+Deploy matching backend/frontend after the dev update; no AI rebuild, n8n import or new environment
+setting is needed. Verify deactivation/restoration with actual accounts, old-session denial, retained
+request/history, Secretary scope, complete Finance groups and CSV counts. Cosmetic icon/compact
+layout changes are deferred to the user's forthcoming Figma redesign. Main is not merged by this work.
+
+
+## Admin queue insight / table follow-up — 2026-10-12
+
+**Migration: none.** Deploy matching Node/frontend and rebuild ai-engine for aggregate POST
+classification and the new packaged document_insights.py helper. The existing five migrations
+remain cloud-applied. No new environment or dependency, OCR model download change or n8n import.
+New Node rejects the legacy AI success contract and uses full-stage local counts if the engine
+is older/unreachable. Validate processing/payment-only queues, unknown statuses, prototype
+labelling, snapshot refresh/failure and wrapped Admin tables before promoting the release.
+Dev publication does not perform a main merge, cloud rebuild or deployment.
+
+
+## Staff assistance navigation — 2026-10-12
+
+**Migration: none.** Frontend-only navigation/routing change: Window 1/Receiving Desk, Finance
+and College Secretary open Internal assistance inside Support, matching Admin. Existing ticket
+links remain readable in that category. Account gates and all backend ticket permissions remain.
+Publish the matching frontend when promoting dev; no backend/AI rebuild or new setting is needed
+for this follow-up. React tests/build/browser verification is pending because the coding
+environment is disconnected. Main merge and live deployment remain separate.
+
+
+## Finance name-field rollout — additional migration, 2026-10-12
+
+The five previous follow-up migrations are confirmed cloud-applied. This Finance review adds **one new migration**: `migrate_student_name_parts.js`. Do not rerun the five merely for this update. Existing users/student_profiles remain prerequisites; fields are nullable and no existing name or issued snapshot is rewritten.
+
+After code review and validation, use the intended release checkout/image that includes this script. Pause backend/AI/n8n writers using the existing rollout procedure, build the matching backend image, then run one command at a time and stop on failure:
+
+```bash
+docker compose run --rm --no-deps -T backend node database/migrate_student_name_parts.js
+docker compose run --rm --no-deps -T backend node database/check_schema.js
+```
+
+Start the matching backend/frontend only after schema presence passes. Retain existing database/volume contents and MFA/JWT keys. No new dependency, environment variable, AI image change or n8n re-import is required for this Finance follow-up. The user's waiver of backup for the current early-data rollout remains; this change does not introduce another approval flow.
+
+Verify on staging: students confirm name parts with compound given/surnames and an optional middle name; mismatch is refused and Full Name stays intact. New OR names follow confirmed parts, old receipt reprints preserve their snapshots. Configure/replace an exactly 50-paper range; test stale cashier and exhausted pack, immediate copy vs Later, 3:59/4:00 PM Manila, reprint and later upload. Confirm History has no export/configuration block and Finance's shared reports/CSV are independent.
+
+**Status:** prepared in source, not cloud-applied. Full Vitest/lint/build/browser/MySQL checks cannot run while the coding environment is disconnected. The existing screenshots show older receipt controls; update them through a connected browser before treating them as this review's UI evidence.
+
+
+
+## ID / Finance retest checkpoint — 2026-10-13
+
+The current dev checkout passes 1,578 backend and 993 frontend tests, frontend lint/build, 25 identity unit tests, five registration-text tests and eight synthetic Finance browser cases. This supersedes earlier disconnected-runtime limitations for these checks only. Actual ID recognition, physical-printer alignment, staging MySQL and cloud rollout remain unverified. The user reports trying Print before Verify Payment and has not confirmed rebuilding the latest images.
+
+- Pack configuration reserves 50 numbers; it creates no payment receipt. Confirm Verify Payment first, then use the enabled Print beside the saved OR. Reprinting never allocates another number. The existing 4 PM Manila cutoff remains authoritative.
+- Replace / Change Issuance Number asks only for first and last numbers. An old reason field indicates a frontend version to investigate; voiding an issued receipt still has a separate reason requirement.
+- Rebuild the matching backend and AI-engine images from the intended dev/release checkout and publish the matching frontend. Restarting old containers or pulling repository files alone does not install these fixes. A Vercel production deployment tracking main does not receive dev merely because dev was pushed; choose the matching dev preview for testing. No main merge or production promotion is performed by this work.
+- Apply the separately recorded nullable student-name migration before activating the matching backend if not yet applied. This follow-up adds no new migration and does not require rerunning the five previously applied migrations.
+
+## Signup and proof verification — October 13, 2026
+
+Signup uses manually entered identity fields. The pre-submit Read ID autofill and its supporting endpoints, parser and temporary uploads are removed. Current students upload proof. Alumni always see Records / proof unavailable; choosing it requires an explanation and submits for Admin identity review without an uploaded file. Removing signup autofill does not disable the post-submission proof check.
+
+The retained `/ocr/verify` route checks readable school, exact identifier and selected college text on the original image first. A successful pass cannot be replaced by a longer unsuccessful scan. A bounded fallback checks the processed image independently; it does not combine incomplete scans. Registration proof calls allow 45 seconds; unrelated AI calls retain their deadlines. A timeout/mismatch remains pending with a safe explanation. This matches text and cannot establish the physical ID's authenticity. Already-pending accounts still need Admin review; deployment does not bulk-approve them.
+
+Rebuild/recreate both backend and AI engine from the matching `dev` revision, then deploy the matching frontend. No new migration is required for this signup change. The request-catalog migration from the preceding release remains a separate prerequisite if not applied. Use `python -m unittest test_registration_verification test_proof_ocr` from `ai-engine` for the proof-check regressions. `/api/ai/extract-id` and `/ocr/identity` should now return 404.

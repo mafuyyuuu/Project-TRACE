@@ -20,6 +20,7 @@ export default function AuthShell({ title, subtitle, children, footer }) {
         <div className="my-auto py-12 md:py-0">
           <span className="text-2xl font-black text-gray-900 dark:text-gray-100 block mb-2 tracking-tight">Welcome to</span>
           <h1 className="text-[clamp(3rem,8vw,8rem)] md:text-[clamp(3rem,6vw,8rem)] font-display font-black text-[#15803d] dark:text-green-300 tracking-tighter leading-none mb-4">TRACE</h1>
+          <p className="mb-3 max-w-md text-lg font-semibold leading-snug text-gray-800 dark:text-gray-200">Tracking, Routing, and Automated Credential Engine</p>
           <h2 className="text-xl sm:text-2xl md:text-3xl font-display font-black text-[#15803d] dark:text-green-300 leading-tight max-w-md">
             An AI-Assisted Registrar Document Workflow System
           </h2>

@@ -4,16 +4,24 @@ import AddUserModal from '@/features/admin/components/AddUserModal';
 import UserEditModal from '@/features/admin/components/UserEditModal';
 import AccountVerificationModal from '@/features/admin/components/AccountVerificationModal';
 
+it.each([0, '0', false, null])('does not render a false proof flag as a stray number (%j)', flag => {
+  render(<AccountVerificationModal studentVerifyToConfirm={{ student: {
+    full_name: 'Synthetic Student', registration_proof_unavailable: flag,
+  } }} />);
+  expect(screen.queryByText('0')).not.toBeInTheDocument();
+  expect(screen.queryByText('Identity Review Evidence / Decision Basis')).not.toBeInTheDocument();
+});
+
 it('displays the saved program separately from the college in Admin review', () => {
   render(<AccountVerificationModal studentVerifyToConfirm={{ student: {
     full_name: 'Synthetic Student', student_id: 'SYN001', program: 'BS Computer Science', course: 'College A',
   } }} cancelAdminVerifyStudent={vi.fn()} confirmAdminVerifyStudent={vi.fn()} />);
-  expect(screen.getByText('Course/Program').parentElement).toHaveTextContent('BS Computer Science');
-  expect(screen.getByText('College').parentElement).toHaveTextContent('College A');
+  expect(screen.getByText('Course / Program').parentElement).toHaveTextContent('BS Computer Science');
+  expect(screen.getByText('College', { selector: '.trace-admin-review-field dt' }).parentElement).toHaveTextContent('College A');
 });
 it('does not substitute the college when a historical program is missing', () => {
   render(<AccountVerificationModal studentVerifyToConfirm={{ student: { full_name: 'Synthetic Student', course: 'College A' } }} />);
-  expect(screen.getByText('Course/Program').parentElement).toHaveTextContent('Not entered');
+  expect(screen.getByText('Course / Program').parentElement).toHaveTextContent('Not entered');
 });
 it.each([['Trace_2026', true], ['temporary123_', false]])('checks Admin creation before confirmation: %s', (password, allowed) => {
   const create = vi.fn();

@@ -117,7 +117,7 @@ it('reaches older capped ticket and message pages without Previous/Next controls
  fireEvent.click(await screen.findByRole('button',{name:'Load older messages'}));
  expect(await screen.findByText('Oldest synthetic message')).toBeInTheDocument();
  expect(screen.getAllByText('Recent synthetic message')).toHaveLength(1);
- expect(api.getTickets).toHaveBeenCalledWith(11,expect.any(AbortSignal));
+ expect(api.getTickets).toHaveBeenCalledWith(11,expect.any(AbortSignal),'active');
  expect(api.getTicket).toHaveBeenCalledWith('11',80,expect.any(AbortSignal));
  expect(screen.queryByRole('button',{name:/^(Previous|Next)$/})).not.toBeInTheDocument();
 });
@@ -209,4 +209,50 @@ it('stacks consecutive successful actions and dismisses them on navigation', asy
  expect(screen.getByRole('button',{name:'Dismiss Live support availability: Available.'})).toBeInTheDocument();
  fireEvent(window,new Event('trace:notification-navigation'));
  expect(screen.queryByRole('complementary',{name:'Support action notifications'})).not.toBeInTheDocument();
+});
+
+it('filters Window 1 loaded tickets by queued state without clearing search or loading older pages', async () => {
+  window.history.replaceState(null, '', '/dashboard?tab=messages');
+  api.getTickets.mockResolvedValue({tickets:[{...ticket,state:'QUEUED',subject:'Synthetic queued'},{...ticket,id:12,state:'RESOLVED',subject:'Synthetic resolved'}],next_cursor:11});
+  render(<RequestMessagesPanel user={desk}/>);
+  await screen.findByRole('button',{name:/Synthetic queued/});
+  expect(screen.getByRole('button',{name:/Synthetic resolved/})).toBeInTheDocument();
+  fireEvent.click(screen.getByRole('button',{name:'Queued',exact:true}));
+  expect(screen.queryByRole('button',{name:/Synthetic resolved/})).not.toBeInTheDocument();
+  expect(screen.getByRole('button',{name:/Synthetic queued/})).toBeInTheDocument();
+  fireEvent.change(screen.getByRole('searchbox',{name:'Search loaded tickets'}),{target:{value:'resolved'}});
+  expect(screen.getByText('No loaded tickets match your search.')).toBeInTheDocument();
+  fireEvent.click(screen.getByRole('button',{name:'All',exact:true}));
+  expect(screen.getByRole('button',{name:/Synthetic resolved/})).toBeInTheDocument();
+  expect(screen.getByRole('searchbox',{name:'Search loaded tickets'})).toHaveValue('resolved');
+  expect(screen.getByRole('button',{name:'Load older tickets'})).toBeInTheDocument();
+  expect(api.createTicket).not.toHaveBeenCalled();
+});
+
+it('automatically shows resolved support history in Archive and moves a reopened ticket back to Active', async()=>{
+  api.getTicket.mockResolvedValue(read({state:'IN_PROGRESS',assigned_to:desk.id}));
+  api.ticketAction.mockResolvedValue({id:ticket.id,state:'RESOLVED'});
+  render(<RequestMessagesPanel user={desk}/>);
+  await screen.findByRole('button',{name:'Resolve ticket'});
+  fireEvent.click(screen.getByRole('button',{name:'Resolve ticket'}));
+  api.getTicket.mockResolvedValue(read({state:'RESOLVED',read_only:true}));
+  api.getTickets.mockResolvedValue({tickets:[{...ticket,state:'RESOLVED'}],next_cursor:null});
+  fireEvent.click(screen.getByRole('button',{name:'Confirm',exact:true}));
+  await waitFor(()=>expect(screen.getByRole('button',{name:'Archive',exact:true})).toHaveAttribute('aria-pressed','true'));
+  expect(await screen.findByText('Read-only history — ticket resolved.')).toBeInTheDocument();
+  expect(screen.queryByRole('textbox',{name:'Message'})).not.toBeInTheDocument();
+  expect(api.getTickets).toHaveBeenLastCalledWith(null,expect.any(AbortSignal),'archive');
+  fireEvent.click(screen.getByRole('button',{name:'Reopen ticket'}));
+  api.getTicket.mockResolvedValue(read({state:'QUEUED',read_only:false}));
+  api.getTickets.mockResolvedValue({tickets:[{...ticket,state:'QUEUED'}],next_cursor:null});
+  fireEvent.click(screen.getByRole('button',{name:'Confirm',exact:true}));
+  await waitFor(()=>expect(screen.getByRole('button',{name:'Active',exact:true})).toHaveAttribute('aria-pressed','true'));
+  expect(api.getTickets).toHaveBeenLastCalledWith(null,expect.any(AbortSignal),'active');
+});
+
+it.each([student,{id:1,role:'admin'},desk,{...desk,desk_assignment:'Receiving Desk'},{...desk,desk_assignment:'Finance'},{...desk,desk_assignment:'Secretary'}])('keeps analytics out of Support for $role/$desk_assignment',async user=>{
+  render(<RequestMessagesPanel user={user}/>);
+  await waitFor(()=>expect(api.getSupportSettings).toHaveBeenCalled());
+  expect(screen.queryByRole('button',{name:/Support analytics/i})).not.toBeInTheDocument();
+  expect(screen.queryByText('More support actions')).not.toBeInTheDocument();
 });

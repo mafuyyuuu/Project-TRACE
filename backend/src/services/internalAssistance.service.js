@@ -1,3 +1,4 @@
+const { ticketArchiveView } = require('../utils/ticketArchive');
 const crypto = require('crypto');
 const model = require('../models/internalAssistance.model');
 const { pool } = require('../config/db');
@@ -63,7 +64,7 @@ function replay(prior, ticketId, type, hash) {
 async function list(user,query = {}) {
   const current = await actor(user);
   if (query.state && !states.includes(query.state) || query.category && !Object.hasOwn(categories,query.category)) throw badRequest('Choose a valid internal ticket filter.');
-  const result = await model.list(current.role === 'admin' ? null : current.id,{state:query.state,category:query.category,before:query.before ? id(query.before) : null});
+  const result = await model.list(current.role === 'admin' ? null : current.id,{view:ticketArchiveView(query.view),state:query.state,category:query.category,before:query.before ? id(query.before) : null});
   return { ...result,tickets:result.tickets.map(ticket => present(current,ticket)),categories,states };
 }
 async function read(user,ticketId,query = {}) {

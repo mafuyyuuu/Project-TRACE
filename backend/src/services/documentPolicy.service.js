@@ -1,3 +1,4 @@
+const { includesDismissal } = require('../utils/requestCatalog');
 const userModel = require('../models/user.model');
 const referenceModel = require('../models/referenceData.model');
 const documentModel = require('../models/document.model');
@@ -6,7 +7,7 @@ const { badRequest } = require('../utils/AppError');
 
 const enabled = value => value === true || Number(value) === 1;
 const normalizeName = value => String(value || '').trim().replace(/\s+/g, ' ').toLowerCase();
-const repeatable = type => normalizeName(type.name) !== 'honorable dismissal';
+const repeatable = type => !includesDismissal(type.name);
 const sameDayWalkInTypes = ['CTC', '2nd Copy of COR', '2nd Copy of OGR', 'CAV'];
 const sameDayWalkIn = name => sameDayWalkInTypes.some(type => normalizeName(type) === normalizeName(name));
 const RETIRED_DOCUMENT_NAMES = ['Certificate of Good Moral', 'Certificate of Good Moral Character', 'Good Moral Certificate'];

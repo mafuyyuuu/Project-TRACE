@@ -19,6 +19,8 @@ Web Animations are progressive enhancement. Missing APIs/tokens mean an immediat
 
 New surfaces should use the shared hooks/classes instead of local keyframes, durations or effect timers. Verify rapid switch/close/reopen, nested dialogs, draft and scroll preservation, unmount cleanup, focus restoration, reduced motion, 320 px layouts and 200% text. Browser fixtures do not replace physical-phone or deployed-site acceptance.
 
+User-approved exception (October 16): Live Track's current unfinished node has an 1800 ms opacity/scale halo loop to indicate ongoing processing. It changes only a noninteractive pseudo-element, never the node, text, connectors or status. Completion, unavailable/legacy records and unmount remove it immediately. Reduced motion retains a static halo, including when the preference changes while open. No simulated progress or artificial action delay is used.
+
 ## Local verification
 
 627 frontend tests in 73 suites, ESLint, production build and whitespace checks pass. 512 isolated synthetic-browser checks cover all five roles, normal/reduced motion, dynamic preference changes, both themes, 320/375/768/1280 widths, short viewports and 100%/200% text, including nested previews/confirmations, pending guards, immediate focus restoration, rapid reopening, safe exit cleanup and preserved drafts/chat scroll. The mobile dark 200% nested dialog was visually inspected. Existing build chunk-size advisory remains. Physical phone and deployed-site acceptance are separate; no migration is needed.

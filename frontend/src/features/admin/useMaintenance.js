@@ -114,9 +114,9 @@ export default function useMaintenance(user, currentTab) {
     [run]
   );
 
-  /** Stage a staff deactivate/restore for confirmation. */
+  /** Stage an account deactivate/restore for confirmation. */
   const handleToggleActive = useCallback((u) => {
-    setActiveToggleToConfirm({ kind: 'staff', id: u.id, label: u.full_name, active: u.is_active });
+    setActiveToggleToConfirm({ kind: u.role==='student'?'student':'staff', id: u.id, label: u.full_name, active: u.is_active });
   }, []);
 
   /** Stage a document type deactivate/restore for confirmation. */
@@ -134,13 +134,14 @@ export default function useMaintenance(user, currentTab) {
     setActiveToggleToConfirm({ kind: 'paymentMethod', id: p.id, label: p.name, active: p.is_active });
   }, []);
 
-  /** Runs whichever entity's toggle was staged, then patches the still-open detail modal in place for staff. */
+  /** Runs the staged toggle, then patches the still-open account detail modal. */
   const confirmActiveToggle = useCallback(async () => {
     if (!activeToggleToConfirm) return;
     const { kind, id, active } = activeToggleToConfirm;
 
     const toggleFn = {
       staff: setStaffActive,
+      student: (id,active)=>run(()=>maintenanceService.setAccountActive(id,active),'Failed to update account status.'),
       documentType: setDocumentTypeActive,
       college: setCollegeActive,
       paymentMethod: setPaymentMethodActive,
@@ -148,12 +149,12 @@ export default function useMaintenance(user, currentTab) {
 
     const ok = await toggleFn(id, !active);
     if (ok) {
-      if (kind === 'staff') {
+      if (kind === 'staff' || kind === 'student') {
         setSelectedUser((prev) => (prev && prev.id === id ? { ...prev, is_active: !active } : prev));
       }
       setActiveToggleToConfirm(null);
     }
-  }, [activeToggleToConfirm, setStaffActive, setDocumentTypeActive, setCollegeActive, setPaymentMethodActive]);
+  }, [activeToggleToConfirm, setStaffActive, setDocumentTypeActive, setCollegeActive, setPaymentMethodActive, run]);
 
   const cancelActiveToggle = useCallback(() => {
     setActiveToggleToConfirm(null);

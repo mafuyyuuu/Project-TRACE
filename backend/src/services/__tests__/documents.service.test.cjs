@@ -16,7 +16,7 @@ const pricingModel = require('../../models/pricing.model');
 const requestSequences = require('../../models/requestSequence.model');
 const service = require('../documents.service');
 
-const COMPLETE = { role: 'student', user_type: 'student', year_started: 2020, graduation_year: 2024, last_attendance_year: 2024, phone_number: '09123456789', email: 'student@example.test',
+const COMPLETE = { year_level: '2nd Year', section: 'IT-2A', role: 'student', user_type: 'student', year_started: 2020, graduation_year: 2024, last_attendance_year: 2024, phone_number: '09123456789', email: 'student@example.test',
   birth_date: '2000-01-01', place_of_birth: 'City', sex: 'Male', civil_status: 'Single', home_address: 'Address',
   elem_school: 'Elementary', elem_grad_year: 2012, jhs_school: 'Junior High', jhs_grad_year: 2016,
   shs_school: 'Senior High', shs_grad_year: 2018 };
@@ -45,6 +45,13 @@ let connection;
 afterEach(() => vi.useRealTimers());
 
 describe('document-policy request enforcement', () => {
+  it('rejects two dismissal sets in the same request before opening a transaction', async () => {
+    await expect(service.uploadDocument(STUDENT, { items: [
+      { document_type: 'For Masters' }, { document_type: 'Transfer Credentials' },
+    ] }, [])).rejects.toThrow(/only one Honorable Dismissal/);
+    expect(connection.beginTransaction).not.toHaveBeenCalled();
+  });
+
   it.each([['true', 'true', true], ['true', 'false', false], ['false', 'true', false]])('records same-day eligibility only with both original and photocopy (%s/%s)', async (original_seen, photocopy_seen, eligible) => {
     const insert = vi.spyOn(documentModel, 'insert').mockResolvedValue([{ insertId: 9 }]);
     await service.uploadDocument(WINDOW1, { student_id: 'STU-001', document_type: 'CTC', copies: 3, original_seen, photocopy_seen }, []);
@@ -128,6 +135,7 @@ beforeEach(() => {
   vi.spyOn(documentModel, 'countWithFilters').mockResolvedValue(0);
   vi.spyOn(documentModel, 'listWithFilters').mockResolvedValue([]);
   vi.spyOn(documentModel, 'countByStatus').mockResolvedValue(0);
+  vi.spyOn(documentModel, 'insightQueueCounts').mockResolvedValue([]);
   vi.spyOn(documentModel, 'countStepLogsToday').mockResolvedValue(0);
   vi.spyOn(documentModel, 'forecastFallbackRows').mockResolvedValue([]);
 
@@ -1207,18 +1215,38 @@ describe('AI-engine fallbacks', () => {
     expect((await service.getForecast()).source).toBe('prophet');
   });
 
-  it('reports optimal performance when queues are short', async () => {
+  it('reports an empty queue without claiming measured efficiency', async () => {
     vi.spyOn(aiEngine, 'getInsights').mockResolvedValue(null);
     const res = await service.getInsights();
-    expect(res.source).toBe('fallback');
-    expect(res.insights.some((i) => i.title === 'System Normal')).toBe(true);
+    expect(res.source).toBe('queue_snapshot');
+    expect(res.insights[0].title).toBe('Document workload: no active pipeline documents');
+    expect(JSON.stringify(res.insights)).not.toMatch(/Optimal Performance|operating efficiently|System Normal|throughput is healthy|higher than average/i);
+  });
+
+  it('ignores legacy optimal advice and sends only full-stage aggregates to the model', async () => {
+    vi.spyOn(aiEngine, 'getInsights').mockResolvedValue({ insights: [{ title: 'AI Insight: Optimal Performance', message: 'Random Forest analysis confirms system operating efficiently.' }], source: 'random_forest' });
+    documentModel.insightQueueCounts.mockResolvedValue([{current_status:STATUS.SEC_PROCESSING,count:60},{current_status:STATUS.PENDING_STUDENT_PAYMENT,count:25}]);
+    const result = await service.getInsights();
+    expect(result.insights[0].title).toBe('Document workload: 85 outstanding');
+    expect(result.insights[0].message).toContain('Secretary Processing: 60');
+    expect(result.insights[0].message).toContain('Awaiting Student Payment: 25');
+    expect(result.insights[0].message).toContain('Queue size alone does not establish efficiency');
+    expect(JSON.stringify(result)).not.toContain('Optimal Performance');
+    const [payload]=aiEngine.getInsights.mock.calls[0];
+    expect(Object.keys(payload).sort()).toEqual(['as_of','counts','today_actions','unclassified']);
+    expect(Object.keys(payload.counts)).toHaveLength(8);
+  });
+
+  it('does not fabricate an empty queue when the aggregate read fails', async () => {
+    vi.spyOn(aiEngine, 'getInsights').mockResolvedValue(null);
+    documentModel.insightQueueCounts.mockRejectedValue(new Error('queue unavailable'));
+    await expect(service.getInsights()).rejects.toThrow('queue unavailable');
+    expect(aiEngine.getInsights).not.toHaveBeenCalled();
   });
 
   it('raises a bottleneck warning when the Secretary queue is long', async () => {
     vi.spyOn(aiEngine, 'getInsights').mockResolvedValue(null);
-    documentModel.countByStatus.mockImplementation(async (status) =>
-      status === STATUS.PENDING_SEC_EVALUATION ? 8 : 0
-    );
+    documentModel.insightQueueCounts.mockResolvedValue([{current_status:STATUS.PENDING_SEC_EVALUATION,count:8}]);
     const res = await service.getInsights();
     expect(res.insights.some((i) => /Secretary Queue Alert/i.test(i.title))).toBe(true);
   });
@@ -1248,12 +1276,35 @@ describe('saved fee schedules and final computation', () => {
     documentModel.findByIdForUpdate.mockResolvedValue([doc]); documentModel.findByRequestGroupForUpdate.mockResolvedValue([doc]);
     return doc;
   }
+  it('prices the transfer set from its saved component rates and records each page count', async () => {
+    const { REQUEST_CATALOG } = require('../../utils/requestCatalog');
+    const type = REQUEST_CATALOG.find(row => row.name === 'Transfer Credentials');
+    stage({ document_type: type.name, copies: 1, pricing_snapshot: { ...type, document_type: type.name } });
+    await service.priceDocument(SECRETARY, 5, { fee_page_counts: { 'Copy of Grade': 2, 'Transcript of Records': 3 }, amount: 1 });
+    expect(documentModel.updatePricing).toHaveBeenCalledWith(5, expect.objectContaining({ amount: 500,
+      feeBreakdown: expect.objectContaining({ items: expect.arrayContaining([
+        expect.objectContaining({ label: 'Copy of Grade', pages_per_copy: 2, amount: 100 }),
+        expect.objectContaining({ label: 'Transcript of Records', pages_per_copy: 3, amount: 300 }),
+      ]) }) }), connection);
+  });
   it('ignores forged amounts and rates, uses the snapshot, and never clears payment', async () => {
     stage();
     await service.priceDocument(SECRETARY, 5, { page_count: 3, amount: 1, base_fee: 1, rental_fee: 0 });
     expect(documentModel.updatePricing).toHaveBeenCalledWith(5, expect.objectContaining({ amount: 660, pageCount: 3, pricingSnapshot: expect.objectContaining({ base_fee: 100 }), feeBreakdown: expect.objectContaining({ total: 660 }) }), connection);
     expect(referenceModel.findDocumentTypesByNames).not.toHaveBeenCalled();
     expect(documentModel.updatePaymentVerificationForGroup).not.toHaveBeenCalled();
+  });
+  it('does not bill a blank-fee snapshot without reviewed current rates', async () => {
+    stage({ document_type: 'Certificate of Underload Units', pricing_snapshot: { fee_pending: true, document_type: 'Certificate of Underload Units', base_fee: 0, fee_rule: 'flat' } });
+    await expect(service.priceDocument(SECRETARY, 5, {})).rejects.toThrow(/Review and confirm/);
+    expect(documentModel.markGroupPayable).not.toHaveBeenCalled();
+  });
+  it('adopts an Admin-confirmed fee only after Secretary review and preserves the original pending snapshot until pricing', async () => {
+    const name = 'Certificate of Underload Units';
+    stage({ document_type: name, pricing_snapshot: { fee_pending: true, document_type: name, base_fee: 0, fee_rule: 'flat' } });
+    referenceModel.findDocumentTypesByNames.mockResolvedValue([{ name, base_fee: 50, fee_rule: 'flat', fee_pending: 0 }]);
+    await service.priceDocument(SECRETARY, 5, { confirm_current_rates: true });
+    expect(documentModel.updatePricing).toHaveBeenCalledWith(5, expect.objectContaining({ amount: 100, pricingSnapshot: expect.objectContaining({ base_fee: 50 }) }), connection);
   });
   it('refuses missing pages for page-based pricing without billing', async () => {
     stage(); await expect(service.priceDocument(SECRETARY, 5, {})).rejects.toMatchObject({ status: 400 });
@@ -1389,4 +1440,23 @@ it('uses the locked saved year and discards forged start/end/graduation values f
   await service.uploadDocument(STUDENT, { document_type: 'Transcript of Records', year_started: '2099', year_ended: '-1', purpose: JSON.stringify({ purpose: 'Employment', year_started: 1990, year_ended: 1900, year_graduated: 1800 }) }, []);
   expect(JSON.parse(documentModel.insert.mock.calls[0][0].purpose)).toEqual({ purpose: 'Employment', year_started: 2020 });
   expect(userModel.getProfileById).toHaveBeenCalledWith(STUDENT.id, connection, true);
+});
+
+it('allows a current student to file Graduation Clearance without college graduation or attendance years and discards forged years', async () => {
+  userModel.getProfileById.mockResolvedValue([{ ...COMPLETE, id: 3, student_id: 'STU-001', year_started: null, graduation_year: null, last_attendance_year: null }]);
+  const insert = vi.spyOn(documentModel, 'insert').mockResolvedValue([{ insertId: 9 }]);
+  await service.uploadDocument(STUDENT, { document_type: 'Graduation Clearance', purpose: JSON.stringify({ purpose: 'Clearance', year_graduated: 2099, year_ended: 2099 }) }, []);
+  const saved = JSON.parse(insert.mock.calls[0][0].purpose);
+  expect(saved).toEqual({ purpose: 'Clearance' });
+  expect(connection.commit).toHaveBeenCalledOnce();
+});
+it.each(['year_level', 'section'])('requires saved current-student %s and rejects forged request values before document writes', async field => {
+  userModel.getProfileById.mockResolvedValue([{ ...COMPLETE, [field]: '' }]);
+  const insert = vi.spyOn(documentModel, 'insert');
+  await expect(service.uploadDocument(STUDENT, { document_type: 'Graduation Clearance', year_level: '2nd Year', section: 'IT-2A', profile_complete: true }, [])).rejects.toMatchObject({ status: 403, message: expect.stringContaining(field === 'section' ? 'Section' : 'Year Level') });
+  expect(insert).not.toHaveBeenCalled();
+});
+it('continues to require alumni graduation even when last attendance and current enrollment fields are present', async () => {
+  userModel.getProfileById.mockResolvedValue([{ ...COMPLETE, user_type: 'alumni', has_grad_application: true, graduation_year: null }]);
+  await expect(service.uploadDocument(STUDENT, { document_type: 'Graduation Clearance' }, [])).rejects.toMatchObject({ status: 403, message: expect.stringContaining('PLP/College Year Graduated') });
 });

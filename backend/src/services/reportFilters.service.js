@@ -21,6 +21,8 @@ async function secretaryScope(user) {
 }
 async function identity(user, query = {}) {
   const result = { studentId: text(query.studentId, 'student ID', 50), studentName: text(query.studentName, 'student name', 255), documentType: text(query.documentType, 'document type', 150) };
+  const search=text(query.studentSearch,'student ID / name',255);
+  if(search) result.studentSearch=search;
   if (result.documentType && !(await references.findDocumentTypeByName(result.documentType)).length) throw badRequest('Choose a document type from the institutional catalog.');
   const scope = await secretaryScope(user);
   if (query.collegeId != null && query.collegeId !== '') {

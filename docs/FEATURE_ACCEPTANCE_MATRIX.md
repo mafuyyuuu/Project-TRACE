@@ -59,7 +59,7 @@ Use these statuses precisely:
 | College and Program dropdowns; Admin manages approved catalog | Implemented / recorded checks: linked catalog round. Admin must populate Registrar-approved programs; no invented list |
 | Separate PLP/college graduation and attendance years; exact four digits | Implemented / recorded checks: Graduation year labels and validation. College 2002–current Manila year; older school years allowed; college optional for current students, required for alumni; school years required; old attendance not reclassified |
 | Registration proof framing, protected preview/download and Admin review images | Implemented / recorded checks: Registration proof framing and Maintenance image repair; no public identity URLs or real-ID fixtures |
-| Read ID recognizes the selected local proof; program visible in Admin review | Implemented / recorded checks: multipart and safe Program/College projection repair |
+| Manual signup, uploaded-proof verification and always-visible alumni missing-proof review; Program visible to Admin | Read ID autofill removed; proof matching and pending review retained |
 | OCR false flags show a reason and retain human review | Implemented / recorded checks: OCR follow-up/verification-reason migration. Text matching and extraction do not prove authenticity; real image accuracy remains pending evidence |
 | Finance OTP arrived at unrelated inbox | **Discontinued by user** after saved-recipient boolean check. No live delivery cause or repair is claimed |
 | SEC-01 expansion | **Design/sign-off required before any new implementation**, per the user's acceptance rule |

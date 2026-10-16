@@ -46,20 +46,20 @@ function roleNavItems(user) {
       { tab: 'dashboard', to: '/dashboard', label: 'Dashboard', icon: 'dashboard' },
       { tab: 'admin-tracker', to: '/dashboard?tab=admin-tracker', label: 'Document Tracker', icon: 'document' },
       { tab: 'messages', to: '/dashboard?tab=messages', label: 'Support', icon: 'message' },
-      { tab: 'admin-logs', to: '/dashboard?tab=admin-logs', label: 'Activity Logs', icon: 'checklist', group: 'more' },
-      { tab: 'admin-security', to: '/dashboard?tab=admin-security', label: 'Security Logs', icon: 'shield', group: 'more' },
+      { tab: 'admin-maintenance', to: '/dashboard?tab=admin-maintenance', label: 'System Maintenance', icon: 'wrench' },
+      { tab: 'admin-logs', to: '/dashboard?tab=admin-logs', label: 'Activity Logs', icon: 'checklist' },
+      { tab: 'admin-security', to: '/dashboard?tab=admin-security', label: 'Security Logs', icon: 'shield' },
       { tab: 'admin-reports', to: '/dashboard?tab=admin-reports', label: 'Reports & Export', icon: 'report', group: 'more' },
       { tab: 'admin-analytics', to: '/dashboard?tab=admin-analytics', label: 'Efficiency Analytics', icon: 'bolt', group: 'more' },
       { tab: 'admin-grad-applications', to: '/dashboard?tab=admin-grad-applications', label: 'Graduate Applications', icon: 'cap', group: 'more' },
       { tab: 'admin-templates', to: '/dashboard?tab=admin-templates', label: 'Templates', icon: 'template', group: 'more' },
-      { tab: 'admin-maintenance', to: '/dashboard?tab=admin-maintenance', label: 'System Maintenance', icon: 'wrench' },
     ];
   }
 
   if (user?.role === 'clerk' && user?.desk_assignment === 'Finance') {
     return [
       { tab: 'dashboard', to: '/dashboard', label: 'Dashboard', icon: 'dashboard' },
-      { tab: 'transactions', to: '/dashboard?tab=transactions', label: 'Transactions & OR Copies', icon: 'report' },
+      { tab: 'reports', to: '/dashboard?tab=reports', label: 'Reports & Export', icon: 'report' },
       { tab: 'messages', to: '/dashboard?tab=messages', label: 'Support', icon: 'message' },
     ];
   }
@@ -73,9 +73,6 @@ function roleNavItems(user) {
 
 export function navItemsForUser(user) {
   const items = roleNavItems(user);
-  if (user?.role === 'admin' || user?.role === 'clerk' && ['Window 1','Receiving Desk','Secretary','Finance'].includes(user.desk_assignment)) {
-    items.splice(3,0,{tab:'internal-assistance',to:'/dashboard?tab=internal-assistance',label:'Internal Assistance',icon:'assistance'});
-  }
   return user?.role ? [...items, { tab: 'help', to: '/dashboard?tab=help', label: 'Help / FAQ', icon: 'book', group: 'more' }] : items;
 }
 
@@ -90,8 +87,9 @@ export function navGroupsForUser(user) {
   };
 }
 
-/** Keep the old Secretary deep link active within the combined workspace. */
+/** Keep legacy assistance and Secretary links active within their combined workspaces. */
 export function canonicalTabForUser(user, tab) {
-  if (user?.role === 'clerk' && user.desk_assignment === 'Finance' && ['reports', 'export', 'exports'].includes(tab)) return 'transactions';
+  if (tab === 'internal-assistance' && (user?.role === 'admin' || user?.role === 'clerk' && ['Window 1','Receiving Desk','Secretary','Finance'].includes(user.desk_assignment))) return 'messages';
+  if (user?.role === 'clerk' && user.desk_assignment === 'Finance' && ['export', 'exports'].includes(tab)) return 'reports';
   return user?.role === 'clerk' && user.desk_assignment === 'Secretary' && tab === 'completed-logs' ? 'reports' : tab;
 }

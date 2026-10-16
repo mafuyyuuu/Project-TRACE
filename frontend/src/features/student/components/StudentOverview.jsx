@@ -1,0 +1,29 @@
+import PaginatedTable from '@/components/PaginatedTable';
+import { useState } from 'react';
+import Button from '@/components/Button';
+import ProgressFill from '@/components/ProgressFill';
+import StudentIcon from './StudentIcon';
+import { todayLongDate } from '@/utils/formatters';
+import { PIPELINE, STATUS, getProgressVal, getStatusLabel, getStatusTone, isCancellable } from '@/utils/documentStatus';
+
+export function StudentWelcome({ user, documents, onNewRequest }) {
+  const completed = documents.filter(doc => doc.current_status === STATUS.COMPLETED).length;
+  const progress = documents.filter(doc => PIPELINE.includes(doc.current_status) && doc.current_status !== STATUS.COMPLETED).length;
+  return <>
+    <header className="trace-page-header trace-student-welcome"><h2 className="trace-page-title">Welcome back, <span className="select-text break-words text-gray-500 dark:text-gray-400">{user.full_name || 'Student'}</span></h2><div className="trace-actions"><div className="trace-date"><strong>Today:</strong><span>{todayLongDate()}</span><StudentIcon name="cal-45f7e" /></div><Button id="tutorial-new-request" type="button" onClick={onNewRequest} className="trace-button trace-button-primary trace-student-new-request"><StudentIcon name="plus-5c418" />New Request</Button></div></header>
+    <div className="trace-student-kpis">{[
+      ['TOTAL REQUESTS', documents.length, 'Documents', 'All requests submitted across your account', 'files-21466'],
+      ['IN PROGRESS', progress, 'in progress', 'Your documents are currently being processed', 'clockfile-2ce50'],
+      ['READY / COMPLETED', completed, 'Completed', 'Completed requests across your account', 'filecheck-daeeb'],
+    ].map(([label, value, unit, helper, icon], index) => <div key={label} className="trace-section trace-card-info trace-student-kpi"><span className="trace-student-kpi-label">{label}</span><div className="trace-student-kpi-value">{value} <span>{unit}</span></div><span className="trace-student-kpi-icon"><StudentIcon name={icon} /></span><p className={`trace-student-kpi-helper ${index === 1 ? 'trace-student-kpi-helper-solid' : ''}`}>{helper}</p></div>)}</div>
+  </>;
+}
+
+export default function StudentOverview({ documents, onRefresh, onTrack, onCancel }) {
+  const [view, setView] = useState('all');
+  const rows = documents.filter(doc => view === 'all' || (view === 'completed' ? doc.current_status === STATUS.COMPLETED : PIPELINE.includes(doc.current_status) && doc.current_status !== STATUS.COMPLETED));
+  return <section className="trace-section trace-student-requests overflow-hidden">
+    <header id="tutorial-requests" className="trace-section-header"><div><h3 className="trace-section-title">Active Requests</h3><p className="trace-page-description">Track the status of your document requests</p><div className="trace-student-request-tabs" role="group" aria-label="Active request filters">{[['all', 'All', documents.length], ['progress', 'In progress', documents.filter(doc => PIPELINE.includes(doc.current_status) && doc.current_status !== STATUS.COMPLETED).length], ['completed', 'Completed', documents.filter(doc => doc.current_status === STATUS.COMPLETED).length]].map(([key, label, count]) => <Button type="button" key={key} aria-pressed={view === key} onClick={() => setView(key)} className="trace-action">{label}<span>{count}</span></Button>)}</div></div><Button type="button" onClick={onRefresh} className="trace-button trace-student-refresh"><StudentIcon name="refresh-9e955" />Refresh</Button></header>
+    <div role="region" aria-label="Active request records" tabIndex={0} className="overflow-auto"><PaginatedTable label="requests" aria-label="Active requests" className="trace-student-table w-full min-w-[65rem] text-left"><thead><tr>{['Date', 'Document /Type', 'Progress', 'Status', 'Action'].map(label => <th key={label}>{label}</th>)}</tr></thead><tbody>{rows.map(doc => <tr key={doc.id}><td><span className="block">{new Date(doc.created_at).toLocaleDateString('en-PH', { timeZone: 'Asia/Manila', month: 'short', day: 'numeric', year: 'numeric' })}</span><span className="block text-xs text-gray-500 dark:text-gray-400">{new Date(doc.created_at).toLocaleTimeString('en-PH', { timeZone: 'Asia/Manila', hour: '2-digit', minute: '2-digit' })}</span></td><td><div className="flex items-center gap-3"><span className="trace-student-document-icon"><StudentIcon name="file-c20b8" /></span><div><strong>{doc.document_sequence_number || doc.document_type}</strong><span className="mt-1 block font-mono text-xs text-gray-500 dark:text-gray-400">#{doc.tracking_number || doc.id}</span>{doc.is_same_day && <span className="block text-xs text-green-700 dark:text-green-300">Walk-in same-day eligible</span>}</div></div></td><td><div className="flex items-center gap-3 min-w-40"><div role="progressbar" aria-label={`Progress for ${doc.tracking_number || doc.id}`} aria-valuemin={0} aria-valuemax={100} aria-valuenow={getProgressVal(doc.current_status)} className="h-1.5 flex-1 overflow-hidden rounded-full bg-gray-100 dark:bg-gray-800"><ProgressFill value={getProgressVal(doc.current_status)} className="bg-trace-emerald" /></div><span className="text-xs font-mono">{getProgressVal(doc.current_status)}%</span></div></td><td><span className={`trace-student-status ${getStatusTone(doc.current_status)}`}>{getStatusLabel(doc.current_status)}</span></td><td>{isCancellable(doc.current_status) ? <Button type="button" onClick={() => onCancel(doc.id)} className="trace-button trace-button-danger">Cancel</Button> : <Button type="button" onClick={() => onTrack(doc)} className="trace-button trace-student-receipt" title="Track Document"><StudentIcon name="map-aa35c" />Live Track</Button>}</td></tr>)}</tbody></PaginatedTable>{!rows.length && <p className="p-8 text-center text-sm text-gray-500 dark:text-gray-400">{documents.length ? 'No requests match this filter.' : 'No active request records. Submit one at the top!'}</p>}</div>
+  </section>;
+}

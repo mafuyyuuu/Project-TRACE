@@ -1,3 +1,4 @@
+const { needsStudyYears, needsGraduationYear, includesDismissal } = require('../utils/requestCatalog');
 const assignments = require('./requestAssignment.service');
 const { canonicalDesk } = require('../utils/deskAssignment');
 const attachmentRequirements = require('../models/requestAttachment.model');
@@ -124,6 +125,7 @@ async function uploadDocument(user, body, files) {
   const fileList = Array.isArray(files) ? files : files ? [files] : [];
 
   const requested = parseRequestedItems(body);
+  if (requested.filter(item => includesDismissal(item.document_type)).length > 1) throw badRequest('Choose only one Honorable Dismissal set per request.');
   if (new Set(requested.map(item => item.document_type)).size !== requested.length) throw badRequest('Select each document type once and use its copies field for multiple copies.');
   for (const item of requested) {
     const copies = Number(item.copies ?? 1);
@@ -172,14 +174,14 @@ async function uploadDocument(user, body, files) {
         try { details = JSON.parse(item.purpose || '{}'); } catch { details = { purpose: item.purpose }; }
         if (!details || typeof details !== 'object' || Array.isArray(details)) details = { purpose: item.purpose };
         delete details.year_started; delete details.year_ended; delete details.year_graduated;
-        if (['Transcript of Records', 'Transcript of Records (TOR)'].includes(item.document_type)) {
+        if (needsStudyYears(item.document_type)) {
           const problem = yearError(String(profile.year_started ?? ''), { label: 'Year Started', minimum: 2002, required: true });
           if (problem) throw badRequest(`${problem} Complete study years in Edit Profile, or ask Admin for a correction.`);
           details.year_started = Number(profile.year_started);
         }
-        if (['Diploma', 'Graduation Clearance'].includes(item.document_type)) {
-          const year = profile.user_type === 'alumni' ? profile.graduation_year : profile.graduation_year || profile.last_attendance_year;
-          const problem = yearError(String(year ?? ''), { label: 'Year Graduated / Last Attended', minimum: 2002, required: true });
+        if (needsGraduationYear(item.document_type, profile)) {
+          const year = profile.graduation_year;
+          const problem = yearError(String(year ?? ''), { label: 'Year Graduated', minimum: 2002, required: true });
           if (problem) throw badRequest(`${problem} Complete your educational profile before requesting this document.`);
           details.year_graduated = Number(year);
         }
@@ -523,52 +525,15 @@ async function getForecast() {
   return { forecast, source: 'fallback' };
 }
 
-/**
- * Prescriptive queue insights from the Random Forest engine, falling back to
- * direct threshold checks against the live queue counts.
- */
+/** Read every active stage; optional model output never decides measured efficiency. */
 async function getDocumentInsights() {
-  const aiData = await aiEngine.getInsights();
-  if (aiData) return aiData;
-
-  const [pendingSec, pendingRelease, todayVolume] = await Promise.all([
-    documentModel.countByStatus(STATUS.PENDING_SEC_EVALUATION),
-    documentModel.countByStatus(STATUS.READY_FOR_RELEASE),
-    documentModel.countStepLogsToday(),
+  const { snapshot, buildInsights, prototypePrediction } = require('../utils/documentInsights');
+  const [queues, todayActions] = await Promise.all([
+    documentModel.insightQueueCounts(), documentModel.countStepLogsToday(),
   ]);
-
-  const insights = [];
-
-  if (pendingSec > 5) {
-    insights.push({
-      type: 'warning',
-      title: 'Secretary Queue Alert',
-      message: `There are ${pendingSec} documents pending secretary evaluation. Consider prioritizing the evaluation queue to prevent bottleneck delays.`,
-    });
-  }
-  if (pendingRelease > 3) {
-    insights.push({
-      type: 'action',
-      title: 'Release Desk Advisory',
-      message: `${pendingRelease} documents are ready for student pickup at Window 1. Notify students via SMS to reduce queue wait times.`,
-    });
-  }
-  if (todayVolume > 20) {
-    insights.push({
-      type: 'warning',
-      title: 'High Volume Day',
-      message: `${todayVolume} document actions logged today. This is higher than average. Consider deploying additional clerk resources.`,
-    });
-  }
-
-  if (insights.length === 0) {
-    insights.push(
-      { type: 'info', title: 'System Normal', message: 'All queues are operating within normal parameters. No prescriptive actions needed at this time.' },
-      { type: 'action', title: 'Optimization Tip', message: 'Current throughput is healthy. Run mock_data_gen.py to seed historical data and enable more accurate Prophet forecasting.' }
-    );
-  }
-
-  return { insights, source: 'fallback' };
+  const data = snapshot(queues, todayActions);
+  const model = await aiEngine.getInsights(data);
+  return { insights: buildInsights(data, prototypePrediction(model)), source: 'queue_snapshot', snapshot: data };
 }
 async function getInsights(user) {
   const [documents,support]=await Promise.all([getDocumentInsights(),user?.role==='admin' ? require('./supportInsight.service').get(user) : []]);
@@ -711,7 +676,7 @@ async function submitPayment(user, documentId, { gcash_reference_no, payment_met
  * Later records payment acknowledgment without issuance; historical paper
  * ORs keep their recorded number.
  */
-async function verifyPayment(user, documentId, { action, notes, or_number, or_date, defer_or, use_pack, ...packBody }, file) {
+async function verifyPayment(user, documentId, { action, notes, or_number, or_date, defer_or, defer_copy, use_pack, ...packBody }, file) {
   if (user.role !== 'clerk' || user.desk_assignment !== 'Finance') {
     throw forbidden('Only Finance Clerks can verify payments.');
   }
@@ -721,11 +686,14 @@ async function verifyPayment(user, documentId, { action, notes, or_number, or_da
   const deferred = defer_or === true || defer_or === 'true';
   const managed = use_pack === true || use_pack === 'true';
   const receipts = require('./receiptPack.service');
-  if (managed && (deferred || or_number || or_date || file)) throw badRequest('Managed issuance uses the saved pack and today’s date. Upload its copy afterward.');
+  const copyLater = defer_copy === true || defer_copy === 'true';
+  if (managed && (deferred || or_number || or_date)) throw badRequest('Managed issuance uses the saved pack and today’s date.');
+  if (copyLater && file) throw badRequest('Choose an immediate copy upload or upload later, not both.');
+  if (managed && action === 'approve' && file) await receipts.validateFile(file);
   const { receiptWindow, validReceiptDate } = require('../utils/receiptTiming');
   const clearedAt = new Date();
   const timing = receiptWindow(clearedAt);
-  if (deferred && (file || or_number || or_date)) throw badRequest('Clear the OR details when choosing Later.');
+  if (deferred && (file || or_number || or_date)) throw badRequest('OR issuance is deferred; upload its copy after a number has been issued.');
   const officialReceiptPath = action === 'approve' && file ? `/uploads/${file.filename}` : null;
   const connection = await pool.getConnection();
   let doc;
@@ -769,7 +737,8 @@ async function verifyPayment(user, documentId, { action, notes, or_number, or_da
     for (const groupDoc of groupDocs) await assignments.assertAssignedProcessor(user, groupDoc, connection);
     if (groupDocs.some(row => row.current_status !== STATUS.PENDING_FINANCE_VERIFICATION || row.payment_status === 'PAID')) throw badRequest('All documents in the request must be awaiting payment verification.');
 
-    if (action === 'approve' && managed) issuedReceipt = await receipts.allocate(user, groupDocs, connection, packBody);
+    if (action === 'approve' && managed) issuedReceipt = await receipts.allocate(user, groupDocs, connection, packBody, officialReceiptPath);
+    if (action === 'approve' && managed && copyLater && !issuedReceipt.copy_path) await require('../models/receiptPack.model').audit('copy_deferred', user.id, { request_group_id:groupId, during_verification:true }, connection, issuedReceipt.pack_id, issuedReceipt.id);
     if (action === 'approve' && !managed && !deferred && or_number && !doc.or_number) await receipts.assertLegacyNumber(or_number, groupId, connection);
     const [result] = await documentModel.updatePaymentVerificationForGroup(
       groupId, newStatus, paymentStatus,
@@ -1144,11 +1113,12 @@ async function acceptForProcessing(user, documentId, body) {
  * The Secretary sets the amount; only Finance can later call it PAID. Keeping
  * those two authorities apart is what makes the money trail auditable.
  */
-async function priceDocument(user, documentId, { page_count, pricing_notes, confirm_current_rates }) {
+async function priceDocument(user, documentId, { page_count, fee_page_counts, pricing_notes, confirm_current_rates }) {
   requireDesk(user, 'Secretary', 'Only College Secretaries can price documents.');
 
   if (pricing_notes !== undefined && (typeof pricing_notes !== 'string' || pricing_notes.length > 1000)) throw badRequest('Pricing note must be at most 1000 characters.');
   let priced, snapshot, breakdown, pageCount, basis;
+  let adoptedCurrentRates = false;
 
   const connection = await pool.getConnection();
   let doc;
@@ -1175,7 +1145,8 @@ async function priceDocument(user, documentId, { page_count, pricing_notes, conf
     if (doc.priced_at) throw badRequest('This document already has a confirmed price.');
     try {
       snapshot = typeof doc.pricing_snapshot === 'string' ? JSON.parse(doc.pricing_snapshot) : doc.pricing_snapshot;
-      if (!snapshot) {
+      if (!snapshot || snapshot.fee_pending) {
+        adoptedCurrentRates = snapshot?.fee_pending ? 'previously blank fee' : 'legacy request';
         if (confirm_current_rates !== true) throw badRequest('Review and confirm current rates for this older request.');
         const types = await pricingModel.attachSchedules(await referenceModel.findDocumentTypesByNames([doc.document_type], connection, true), connection);
         if (!types[0]) throw badRequest('Configure a fee schedule for this document before pricing.');
@@ -1185,10 +1156,10 @@ async function priceDocument(user, documentId, { page_count, pricing_notes, conf
       snapshot = normalizedSchedule(snapshot);
       if (snapshot.document_type !== doc.document_type) throw badRequest('The saved fee schedule does not match this document.');
       pageCount = page_count == null || page_count === '' ? null : positiveQuantity(page_count, 'Pages per copy');
-      breakdown = calculateBreakdown(snapshot, { copies: doc.copies ?? 1, page_count: pageCount }, true);
+      breakdown = calculateBreakdown(snapshot, { copies: doc.copies ?? 1, page_count: pageCount, fee_page_counts }, true);
       priced = breakdown.total;
       if (priced <= 0) throw badRequest('Configure a positive charge before billing this document.');
-      basis = `${doc.pricing_snapshot ? 'Saved request rates' : 'Current rates reviewed for legacy request'}: ${breakdown.items.map(item => `${item.label}: ${item.calculation} = ₱${item.amount.toFixed(2)}`).join('; ')}.${pricing_notes ? ` ${pricing_notes.trim()}` : ''}`;
+      basis = `${adoptedCurrentRates ? `Current rates reviewed for ${adoptedCurrentRates}` : 'Saved request rates'}: ${breakdown.items.map(item => `${item.label}: ${item.calculation} = ₱${item.amount.toFixed(2)}`).join('; ')}.${pricing_notes ? ` ${pricing_notes.trim()}` : ''}`;
     } catch (err) { if (err.status) throw err; throw badRequest(err.message); }
 
     groupId = doc.request_group_id || doc.tracking_number;

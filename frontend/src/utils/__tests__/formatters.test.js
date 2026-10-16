@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { formatFileSize, getRelativeTime, getWaitTime } from '@/utils/formatters';
+import { formatFileSize, getRelativeTime, getWaitTime, formatEmail, formatEventLabel } from '@/utils/formatters';
 
 const MINUTE = 60 * 1000;
 const HOUR = 60 * MINUTE;
@@ -93,4 +93,12 @@ describe('getWaitTime', () => {
     expect(getWaitTime('2026-10-06T00:01:00Z', Date.parse('2026-10-06T00:00:00Z'))).toBe('< 1 min');
     expect(getWaitTime('2026-10-05T00:00:00Z', Date.parse('2026-10-06T00:00:00Z'))).toBe('1 day');
   });
+});
+
+
+it('formats identifiers consistently without changing authored messages',()=>{
+  expect(formatEmail('  STUDENT@EXAMPLE.TEST ')).toBe('student@example.test');
+  expect(formatEmail(null)).toBe('—');
+  expect(formatEventLabel('LOGIN_FAILED')).toBe('Failed login');
+  expect(formatEventLabel('PASSWORD_CHANGED')).toBe('Password changed');
 });

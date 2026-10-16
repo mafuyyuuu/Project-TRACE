@@ -93,3 +93,14 @@ it('removes retired aliases from reference options while retaining configured fe
   expect(result.document_types.map(row => row.name)).toEqual(['Diploma']);
   expect(result.document_types[0].base_fee).toBe(325);
 });
+
+it.each(['For Second Course (Bachelor Degree)', 'For Graduate School', 'For Masters', 'For CTP', 'Transfer Credentials'])('applies the dismissal restriction to %s', async name => {
+  documents.countBlockingRequests.mockResolvedValue(1);
+  await expect(policy.assertAllowed({ ...type, name }, student)).rejects.toThrow(/already exists/);
+  documents.countBlockingRequests.mockResolvedValue(0);
+  await expect(policy.assertAllowed({ ...type, name }, student, { copies: 2 })).rejects.toThrow(/one copy/);
+});
+it('allows the blank-fee option to be filed online or at the counter', async () => {
+  expect(await policy.eligibility({ ...type, fee_pending: 1 }, student)).toBeNull();
+  expect(await policy.eligibility({ ...type, fee_pending: 1 }, student, { counter: true })).toBeNull();
+});

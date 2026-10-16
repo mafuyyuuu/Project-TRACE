@@ -63,6 +63,10 @@ export async function setPaymentMethodActive(id, isActive) {
 }
 
 // -- Staff ------------------------------------------------------------------
+export async function setAccountActive(id,isActive) {
+  const {data}=await api.patch(`/maintenance/users/${id}/active`,{is_active:isActive});
+  return data;
+}
 export async function getStaff() {
   const { data } = await api.get('/maintenance/staff')
   return data

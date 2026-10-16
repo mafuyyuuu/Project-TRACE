@@ -18,6 +18,9 @@ export async function getColleges(options = {}) {
  */
 export async function getDocumentTypes() {
   const { data } = await api.get('/reference/document-types')
+  if (!Array.isArray(data?.document_types) || data.document_types.some(type => !type || typeof type.name !== 'string' || !type.name.trim())) {
+    throw new Error('Invalid document catalog response.')
+  }
   return data
 }
 
@@ -30,7 +33,7 @@ export async function getPaymentMethods() {
   return data
 }
 
-/** Active programs in active colleges; authenticated profile reference data. */
+/** Public active programs in active colleges, shared by signup and profiles. */
 export async function getPrograms(options = {}) {
   const { data } = await api.get('/reference/programs', options)
   return data

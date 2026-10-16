@@ -4,6 +4,8 @@ const fs = require('fs');
 const path = require('path');
 
 const { validatePassword } = require('../utils/passwordPolicy');
+const { validatePhoneNumber } = require('../utils/phoneNumber');
+const { validateTextFields, ACCOUNT_TEXT_LIMITS, PROFILE_TEXT_LIMITS } = require('../utils/inputLimits');
 
 async function checkPasswordHistory(userId, newPassword, executor = pool, currentHash) {
   if (currentHash && await bcrypt.compare(newPassword, currentHash)) throw badRequest('Choose a password different from your current password.');
@@ -20,9 +22,11 @@ const jwt = require('jsonwebtoken');
 const env = require('../config/env');
 const userModel = require('../models/user.model');
 const studyYears = require('./studyYears.service');
+const { namePartsError, fullNameFromParts } = require('../utils/receiptStudentName');
 const studyYearModel = require('../models/studyYears.model');
 const referenceModel = require('../models/referenceData.model');
 const programService = require('./program.service');
+const { PRIVACY_NOTICE_VERSION, PRIVACY_ACK_EVENT } = require('../utils/registrationPrivacy');
 const { pool } = require('../config/db');
 const notificationModel = require('../models/notification.model');
 const passwordResetModel = require('../models/passwordReset.model');
@@ -57,7 +61,7 @@ function otpExpired(value) {
 
 function publicUser(user) {
   const fields = ['id', 'student_id', 'full_name', 'role', 'user_type', 'desk_assignment',
-    'course', 'program', 'college_id', 'email', 'email_verified_at', 'phone_number', 'profile_picture', 'verification_status', 'year_started', 'graduation_year', 'study_years_confirmed_at'];
+    'first_name', 'middle_name', 'last_name', 'extension_name', 'course', 'program', 'college_id', 'email', 'email_verified_at', 'phone_number', 'profile_picture', 'verification_status', 'year_started', 'graduation_year', 'study_years_confirmed_at', 'year_level', 'section'];
   const result = Object.fromEntries(fields.map(key => [key, user[key] ?? null]));
   for (const key of ['profile_completed', 'must_change_password', 'has_grad_application']) {
     result[key] = Boolean(user[key]);
@@ -196,7 +200,21 @@ async function getCurrentUser(userId) {
  * *rejected* student ID reuses its original account and audit history on resubmission.
  */
 async function register(body, file) {
-  const { employee_id, full_name, email, phone_number, password, user_type, course, college_id } = body;
+  if (body.privacy_acknowledged !== 'true' || body.privacy_notice_version !== PRIVACY_NOTICE_VERSION) {
+    throw badRequest('Read and acknowledge the current Privacy Notice before registering. Refresh the sign-up page if the notice has changed.');
+  }
+  validateTextFields(body, ACCOUNT_TEXT_LIMITS);
+  const { employee_id, email, phone_number, password, user_type, course, college_id } = body;
+  const hasNameParts = ['first_name', 'middle_name', 'last_name'].some(key => Object.hasOwn(body, key));
+  const nameParts = Object.fromEntries(['first_name', 'middle_name', 'last_name'].map(key => [key, body[key] ?? '']));
+  const full_name = hasNameParts ? fullNameFromParts(nameParts) : body.full_name;
+  if (hasNameParts) {
+    const nameError = namePartsError(nameParts, { full_name });
+    if (nameError) throw badRequest(nameError);
+    if (!nameParts.first_name.trim() || !nameParts.last_name.trim()) throw badRequest('Enter both First Name and Last Name.');
+    if (body.full_name && namePartsError(nameParts, { full_name:body.full_name })) throw badRequest('Full Name must match the supplied name parts.');
+  }
+  if (full_name != null && (typeof full_name !== 'string' || full_name.length > 255)) throw badRequest('Full Name must be text of at most 255 characters.');
   const program = readProgram(body.program);
   const registeredEmail = emailVerification.emailAddress(email);
   if (user_type && !['student', 'alumni'].includes(user_type)) throw badRequest('Invalid applicant type.');
@@ -223,12 +241,17 @@ async function register(body, file) {
     const colleges = await referenceModel.findCollegeByName(course);
     collegeId = colleges.find(college => college.name === course)?.id || null;
   }
+  if (!collegeId || !program) throw badRequest('Choose a college and one of its active programs.');
+  const academicDraft = { college_id: collegeId, program };
+  const newAcademic = { role: 'student', college_id: null, program: null };
+  const academic = await programService.profileFields(newAcademic, academicDraft);
 
   if (!employee_id || !full_name || !password || !phone_number) {
     throw badRequest('Student / Alumni ID, Name, Phone Number, and Password are required.');
   }
+  const normalizedPhone = validatePhoneNumber(phone_number);
   if (!file && !unavailable) {
-    throw badRequest('Proof of ID/Diploma is required for verification.');
+    throw badRequest('Proof of ID is required for verification.');
   }
 
   const existing = await userModel.findExistingByStudentId(employee_id);
@@ -240,13 +263,15 @@ async function register(body, file) {
   const { verification_status, verification_reason } = unavailable
     ? { verification_status: 'pending', verification_reason: 'Proof unavailable. Administrator identity review required.' }
     : registrationVerification(aiResult);
-  const data = { student_id: employee_id, full_name, email: registeredEmail, phone_number, password_hash,
-    role: 'student', user_type, course: collegeName, program, college_id: collegeId, id_proof_path,
+  const data = { student_id: employee_id, full_name, email: registeredEmail, phone_number: normalizedPhone, password_hash,
+    role: 'student', user_type, ...academic, id_proof_path,
     verification_status, verification_reason, registration_proof_unavailable: unavailable, registration_proof_reason: proofReason || null };
   const connection = await pool.getConnection();
   let created;
   try {
     await connection.beginTransaction();
+    // Do not admit a program deactivated while the OCR request was running.
+    Object.assign(data, await programService.profileFields(newAcademic, academicDraft, connection, true));
     if (existing.length) {
       const [account] = await userModel.getProfileById(existing[0].id, connection, true);
       if (!account || account.role !== 'student' || account.verification_status !== 'rejected') throw badRequest('This registration is no longer available for resubmission.');
@@ -257,6 +282,11 @@ async function register(body, file) {
       [created] = await userModel.createUser(data, connection);
       if (user_type === 'alumni') await studyYears.initialize(created.insertId, studyDraft, connection);
     }
+    if (hasNameParts) {
+      await userModel.saveNameParts(created.insertId, Object.fromEntries(Object.entries(nameParts).map(([key, value]) => [key, value.trim()])), connection);
+      await userModel.logSecurityEvent(created.insertId, 'RECEIPT_NAME_CONFIRMED', null, null, connection);
+    }
+    await userModel.logSecurityEvent(created.insertId, PRIVACY_ACK_EVENT, null, null, connection);
     await onboarding.enroll(created.insertId, connection);
     await connection.commit();
   } catch (error) { await connection.rollback(); throw error; }
@@ -343,6 +373,7 @@ function readProgram(value) {
   return value.trim() || null;
 }
 async function updateProfile(userId, { phone_number, email, course, college_id, program, password, current_password, ...profileFields }) {
+  validateTextFields({ email, course, program, ...profileFields }, PROFILE_TEXT_LIMITS);
   const fields = {};
   let verifiedPasswordHash;
   let changedSession;
@@ -350,6 +381,13 @@ async function updateProfile(userId, { phone_number, email, course, college_id, 
   const users = await userModel.getProfileById(userId);
   if (!users || users.length === 0) throw notFound('User not found.');
   const currentUser = users[0];
+  if (currentUser.role === 'student' && currentUser.user_type !== 'alumni') {
+    delete profileFields.graduation_year; delete profileFields.last_attendance_year;
+  }
+  if (['year_level', 'section'].some(key => Object.hasOwn(profileFields, key)) && (currentUser.role !== 'student' || currentUser.user_type === 'alumni')) {
+    throw forbidden('Year Level and Section belong to current-student profiles.');
+  }
+  const normalizedPhone = phone_number === undefined ? undefined : validatePhoneNumber(phone_number, { required: currentUser.role === 'student' });
   studyYears.validateSelf(profileFields, currentUser);
   const ordinaryYearFields = Object.fromEntries(Object.entries(profileFields).filter(([key]) => !['year_started', 'graduation_year'].includes(key)));
   const yearErrors = profileYearErrors(ordinaryYearFields, currentUser, { onlyProvided: true });
@@ -380,20 +418,36 @@ async function updateProfile(userId, { phone_number, email, course, college_id, 
   }
 
 
-  if (phone_number !== undefined) fields.phone_number = phone_number;
+  if (phone_number !== undefined) fields.phone_number = normalizedPhone;
   
   let emailResult;
   if (emailChanged) emailResult = await emailVerification.issue(userId, { email, current_password });
 
   Object.assign(fields, academic);
   
-  const profileKeys = ['extension_name', 'birth_date', 'place_of_birth', 'sex', 'civil_status', 'maiden_name', 'home_address', 'last_attendance_year', 'is_transfer_student', 'previous_school', 'elem_school', 'elem_grad_year', 'jhs_school', 'jhs_grad_year', 'shs_school', 'shs_grad_year'];
+  const profileKeys = ['extension_name', 'birth_date', 'place_of_birth', 'sex', 'civil_status', 'maiden_name', 'home_address', 'last_attendance_year', 'is_transfer_student', 'previous_school', 'elem_school', 'elem_grad_year', 'jhs_school', 'jhs_grad_year', 'shs_school', 'shs_grad_year', 'year_level', 'section'];
+  const hasNameFields = ['first_name', 'middle_name', 'last_name'].some(key => Object.hasOwn(profileFields, key));
+  if (hasNameFields && currentUser.role !== 'student') throw forbidden('Only students can confirm student receipt name fields.');
   const hasProfileFields = profileKeys.some(key => profileFields[key] !== undefined);
   const hasStudyFields = ['year_started', 'graduation_year'].some(key => Object.hasOwn(profileFields, key));
   const writeProfile = async connection => {
     const [fresh] = await userModel.getProfileById(userId, connection, true);
     if (!fresh) throw notFound('User not found.');
+    if (['year_level', 'section'].some(key => Object.hasOwn(profileFields, key)) && (fresh.role !== 'student' || fresh.user_type === 'alumni')) throw forbidden('Year Level and Section belong to current-student profiles.');
     if (Object.keys(academic).length) Object.assign(fields, await programService.profileFields(fresh, academicDraft, connection, true));
+    if (hasNameFields) {
+      if (fresh.role !== 'student') throw forbidden('Only students can confirm student receipt name fields.');
+      const nameFields = Object.fromEntries(['first_name', 'middle_name', 'last_name'].map(key => [key, profileFields[key] ?? fresh[key] ?? '']));
+      const message = namePartsError({ ...nameFields, extension_name: profileFields.extension_name ?? fresh.extension_name }, fresh);
+      if (message) throw badRequest(message);
+      if (nameFields.first_name && nameFields.last_name) {
+        const trimmed = Object.fromEntries(Object.entries(nameFields).map(([key, value]) => [key, value.trim()]));
+        if (Object.entries(trimmed).some(([key, value]) => value !== (fresh[key] || ''))) {
+          await userModel.saveNameParts(userId, trimmed, connection);
+          await userModel.logSecurityEvent(userId, 'RECEIPT_NAME_CONFIRMED', null, null, connection);
+        }
+      }
+    }
     if (hasStudyFields) await studyYears.completeLocked(fresh, profileFields, connection);
     if (Object.keys(fields).length) await userModel.updateProfile(userId, fields, connection);
     if (hasProfileFields) {
@@ -416,7 +470,7 @@ async function updateProfile(userId, { phone_number, email, course, college_id, 
     changedSession = createSession(changedAccount);
     if (currentUser.email) await sendAuthEmail({ email: currentUser.email, title: 'Password Changed',
       message: `Your TRACE password changed and all previous sessions ended. If this was not you, secure your account at ${emailVerification.frontendUrl()}/forgot-password and contact the Registrar immediately.` });
-  } else if (Object.keys(fields).length || hasProfileFields || hasStudyFields) {
+  } else if (Object.keys(fields).length || hasProfileFields || hasStudyFields || hasNameFields) {
     const connection = await pool.getConnection();
     try { await connection.beginTransaction(); await writeProfile(connection); await connection.commit(); }
     catch (error) { await connection.rollback(); throw error; }

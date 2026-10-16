@@ -16,16 +16,42 @@ function manilaTimestamp(value) {
   if (!value) return '';
   const date = new Date(value); if (!Number.isFinite(date.getTime())) return '';
   const p=Object.fromEntries(formatter.formatToParts(date).map(part=>[part.type,part.value]));
-  return `${p.year}-${p.month}-${p.day}T${p.hour}:${p.minute}:${p.second}+08:00`;
+  return `${p.year}-${p.month}-${p.day} ${p.hour}:${p.minute}:${p.second}`;
+}
+function structured(value) {
+  if(typeof value!=='string')return value;
+  if(!/^[\s]*[\[{]/.test(value))return value;
+  try{return JSON.parse(value);}catch{return value;}
+}
+function readableDetails(value) {
+  const parsed=structured(value);
+  if(parsed==null)return '';
+  if(Array.isArray(parsed))return parsed.map(readableDetails).filter(Boolean).join('; ');
+  if(typeof parsed==='object')return Object.entries(parsed).map(([key,item])=>{
+    const text=readableDetails(item);if(!text)return '';
+    const label=key.replace(/([a-z])([A-Z])/g,'$1 $2').replaceAll('_',' ').replace(/\b\w/g,letter=>letter.toUpperCase());
+    return `${label}: ${text}`;
+  }).filter(Boolean).join('; ');
+  return typeof parsed==='boolean'?parsed?'Yes':'No':String(parsed);
+}
+function readableFees(value) {
+  const lines=structured(value);
+  if(!Array.isArray(lines))return readableDetails(lines);
+  return lines.map(line=>{
+    if(!line||typeof line!=='object')return readableDetails(line);
+    const money=value=>value!=null&&value!==''&&Number.isFinite(Number(value))?`PHP ${Number(value).toFixed(2)}`:'';
+    return [line.label||'Fee',money(line.amount),line.calculation||[line.units!=null?`${line.units} units`:'',money(line.rate)].filter(Boolean).join(' × ')].filter(Boolean).join(' · ');
+  }).join('; ');
 }
 function documentCsv(rows) {
   return toCsv(DOCUMENT_COLUMNS, rows.map(row => {
     const result = {...row, amount: row.amount == null || !Number.isFinite(Number(row.amount)) ? '' : Number(row.amount).toFixed(2),
       receipt_status: !row.or_number ? 'Issuance pending' : !row.official_receipt_path ? 'Issued; digital copy pending' : 'Digital OR available'};
     for(const key of ['base_fee','rental_fee','special_fee']) result[key]=row[key]==null||row[key]==='null'||!Number.isFinite(Number(row[key]))?'':Number(row[key]).toFixed(2);
-    if(typeof result.fee_lines==='object'&&result.fee_lines) result.fee_lines=JSON.stringify(result.fee_lines);
+    result.fee_lines=readableFees(row.fee_lines);
+    result.purpose=readableDetails(row.purpose);
     for(const key of timestamps) result[key] = row[`${key}_epoch`] != null ? manilaTimestamp(Number(row[`${key}_epoch`])*1000) : manilaTimestamp(row[key]);
     return result;
   }));
 }
-module.exports = { DOCUMENT_COLUMNS, documentCsv, manilaTimestamp };
+module.exports = { DOCUMENT_COLUMNS, documentCsv, manilaTimestamp, readableDetails, readableFees };

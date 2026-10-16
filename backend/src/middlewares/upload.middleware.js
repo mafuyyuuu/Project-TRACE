@@ -51,19 +51,12 @@ const profilePictureStorage = multer.diskStorage({
 const proofOptions = {
   limits: { fileSize: 10 * 1024 * 1024 },
   fileFilter: (req, file, cb) => {
-    const extensions = ['.jpg', '.jpeg', '.png', '.webp', '.gif', '.bmp', '.tiff', '.pdf'];
-    const valid = extensions.includes(path.extname(file.originalname).toLowerCase()) &&
-      (file.mimetype.startsWith('image/') || file.mimetype === 'application/pdf');
-    cb(valid ? null : badRequest('ID proof must be an image or PDF, at most 10 MB.'), valid);
+    const types = { '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.png': 'image/png', '.pdf': 'application/pdf' };
+    const valid = types[path.extname(file.originalname).toLowerCase()] === file.mimetype;
+    cb(valid ? null : badRequest('ID proof must be JPG, JPEG, PNG or PDF, at most 10 MB.'), valid);
   },
 };
 const idProofUpload = multer({ storage: idProofStorage, ...proofOptions });
-const temporaryIdStorage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, UPLOAD_DIR),
-  filename: (req, file, cb) => cb(null, 'ocr-temp-' + crypto.randomBytes(16).toString('hex') + path.extname(file.originalname).toLowerCase()),
-});
-const signupOcrUpload = multer({ storage: temporaryIdStorage, ...proofOptions });
-
 const documentUpload = multer({
   storage: documentStorage,
   limits: { fileSize: 10 * 1024 * 1024 }, // 10 MB limit
@@ -145,4 +138,4 @@ const receiptUpload = multer({
   cb(valid?null:badRequest('Receipt copies must be JPEG, PNG or PDF, at most 5 MB.'),valid);
  },
 });
-module.exports = { receiptUpload, supportMessageUpload, supportUpload, idProofUpload, signupOcrUpload, documentUpload, pertinentUpload, profilePictureUpload, UPLOAD_DIR };
+module.exports = { receiptUpload, supportMessageUpload, supportUpload, idProofUpload, documentUpload, pertinentUpload, profilePictureUpload, UPLOAD_DIR };

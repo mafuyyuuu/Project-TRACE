@@ -1,8 +1,19 @@
 /** Presentation-only formatting helpers shared across dashboards. */
 
+export function formatEmail(value) {
+  return typeof value === 'string' && value.trim() ? value.trim().toLowerCase() : '—';
+}
+
+export function formatEventLabel(value) {
+  const known = { LOGIN_SUCCESS: 'Login', LOGIN_FAILED: 'Failed login', LOGOUT: 'Logout' };
+  if (known[value]) return known[value];
+  const words = String(value || '').trim().replaceAll('_', ' ').trim().toLowerCase();
+  return words ? words[0].toUpperCase() + words.slice(1) : 'Unknown';
+}
+
 /** Today as "August 24, 2026", for the dashboard headers. */
 export function todayLongDate() {
-  return new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+  return new Date().toLocaleDateString('en-US', { timeZone: 'Asia/Manila', month: 'long', day: 'numeric', year: 'numeric' });
 }
 
 /** Human-readable file size, e.g. 2048 → "2 KB". */

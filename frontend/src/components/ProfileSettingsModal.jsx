@@ -1,6 +1,16 @@
-import ProfileYearField from '@/components/ProfileYearField';
+import { formatDateTime, formatEventLabel } from '@/utils/formatters';
+import PaginatedTable from '@/components/PaginatedTable';
+import { isWindowClerk } from '@/utils/windowPresentation';
+import AdminProfileSecurity from '@/features/admin/components/AdminProfileSecurity';
+import AdminIcon from '@/features/admin/components/AdminIcon';
+import PhoneInput from '@/components/PhoneInput';
+import { phoneNumberError } from '@/utils/phoneNumber';
+import { namePartsError, receiptStudentName } from '@/utils/receiptStudentName';
+import StudentProfilePersonal from '@/features/student/components/StudentProfilePersonal';
+import StudentProfileEducation from '@/features/student/components/StudentProfileEducation';
+import StudentProfileSecurity from '@/features/student/components/StudentProfileSecurity';
+import StudentIcon from '@/features/student/components/StudentIcon';
 import { profileEditYearErrors } from '@/utils/profileYears';
-import AcademicProfileFields from '@/components/AcademicProfileFields';
 import Button from '@/components/Button';
 import { PASSWORD_REQUIREMENTS, validNewPassword } from '@/utils/passwordPolicy';
 import { INPUT_LIMITS } from '@/utils/inputLimits';
@@ -20,7 +30,6 @@ import AuthenticatorSettings from '@/components/AuthenticatorSettings';
 import useSecurityLogs from '@/hooks/useSecurityLogs';
 import { hasBrowserTrustPreference, forgetBrowserTrustPreference } from '@/utils/browserTrustPreference';
 import EmailVerificationNotice from '@/components/EmailVerificationNotice';
-import RegistrationProof from '@/components/RegistrationProof';
 
 export default function ProfileSettingsModal({
   user,
@@ -52,6 +61,7 @@ export default function ProfileSettingsModal({
   const [activeTab, setActiveTab] = useState(initialTab);
   useMotion(tabContentRef, activeTab, 'context', { initial: false });
   const [yearFocus, setYearFocus] = useState(null);
+  const receiptNameError = user?.role === 'student' ? namePartsError(profileData, user) : '';
   const editYearErrors = profileEditYearErrors(profileData, user);
   useEffect(() => {
     if (activeTab === 'educational' && yearFocus) document.getElementById(`profile-${yearFocus.field}`)?.focus();
@@ -74,6 +84,9 @@ export default function ProfileSettingsModal({
         : 'Student';
         
   const isStudent = user?.role === 'student';
+  // Shared staff presentation; authorization continues to use user.role in services.
+  const isAdmin = user?.role === 'admin' || isWindowClerk(user);
+  const [showSecurityActivity, setShowSecurityActivity] = useState(false);
   const emailChanged = (profileData.email || '').trim().toLowerCase() !== (user?.email || '').trim().toLowerCase();
   const requestEmailVerification = () => {
     if (!emailInputRef.current?.reportValidity()) return;
@@ -87,7 +100,10 @@ export default function ProfileSettingsModal({
       setPasswordError(PASSWORD_REQUIREMENTS);
       return;
     }
+    const phoneError = phoneNumberError(profileData.phone_number);
+    if (phoneError) { setPasswordError(phoneError); setActiveTab('personal'); return; }
     setPasswordError('');
+    if (receiptNameError && isStudent) { setActiveTab('personal'); return; }
     const invalidYear = Object.keys(editYearErrors)[0];
     if (invalidYear && isStudent) {
       setActiveTab('educational');
@@ -112,7 +128,7 @@ export default function ProfileSettingsModal({
   );
 
   if (activeTab === 'appearance') return (
-    <PreferencesModal onClose={onClose} darkMode={darkMode} onToggleTheme={onToggleTheme}
+    <PreferencesModal admin={user?.role === 'admin'} onClose={onClose} darkMode={darkMode} onToggleTheme={onToggleTheme}
       textSize={textSize} onTextSizeChange={onTextSizeChange} />
   );
 
@@ -148,43 +164,22 @@ export default function ProfileSettingsModal({
     }
   };
 
-  return (
-    <ModalShell
-      open
-      onClose={onClose}
-      title="Edit Profile"
-      maxWidth="max-w-xl"
-      bodyClassName="min-h-0 flex-1 overflow-y-auto overscroll-contain pb-4"
-      closeButtonIcon={
-        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"/></svg>
-      }
-      closeButtonAriaLabel="Close profile"
-      footer={activeTab !== 'appearance' && (
-        <Button
-          disabled={saving}
-          type="submit"
-          form="profile-settings-form"
-          className="trace-button trace-button-primary w-full"
-        >
-          {saving ? 'Saving...' : 'Save Profile'}
-        </Button>
-      )}
-    >
-      <ConfirmDialog open={!!confirmation}
-        title={confirmation === 'email' ? 'Verify Email Address' : confirmation === 'profile' ? 'Confirm Profile Save' : confirmation === 'browser' ? 'Use Shared-Computer Verification' : 'Log Out Other Devices'}
-        message={confirmation === 'profile'
-          ? ['Save your profile changes and selected picture?', error ? <span role="alert">{error}</span> : null]
-          : confirmation === 'email' ? [`Send a verification link to ${emailDraft?.email}? Your current address stays active until verified. Other profile changes will remain unsaved.`, verificationError ? <span role="alert">{verificationError}</span> : null]
-          : confirmation === 'browser' ? 'Forget the personal-browser preference here? Your next login will require verification. This keeps your current session open.' : 'Log out of all other active sessions?'}
-        confirmLabel={confirmation === 'email' ? 'Send Verification Link' : confirmation === 'profile' ? 'Save Profile' : confirmation === 'browser' ? 'Use Shared Verification' : 'Log Out Other Devices'}
-        variant={confirmation === 'sessions' ? 'destructive' : 'neutral'}
-        loading={saving || verifyingEmail || loggingOut} onConfirm={confirmAction} onCancel={() => setConfirmation(null)} />
-      <DashboardAlerts
-        dismissalKey={activeTab}
-        success={sessionFeedback.success}
-        error={sessionFeedback.error}
-        onDismiss={() => setSessionFeedback({ success: '', error: '' })}
-      />
+  const emailControl = (
+    <div className={isStudent ? "min-w-0" : "min-w-0 col-span-full"}>
+      <label htmlFor="profile-email" className="trace-label block mb-2">Email Address <span className="text-red-500 dark:text-red-300">*</span></label>
+      <EmailVerificationNotice admin={isAdmin} student={isStudent} user={user} email={profileData.email} pendingEmail={pendingEmail} sending={verifyingEmail}
+        message={verificationMessage} error={confirmation === 'email' ? '' : verificationError}
+        disabled={saving || (emailChanged && !profileData.current_password)} onVerify={requestEmailVerification}>
+        <input aria-describedby={missingByField.has('email') ? 'profile-email-needed' : undefined} id="profile-email" ref={emailInputRef} maxLength={INPUT_LIMITS.email} type="email" value={profileData.email} onChange={(e) => setField('email', e.target.value)} required disabled={verifyingEmail} className="trace-control min-w-0 flex-1 basis-48" />
+      </EmailVerificationNotice>
+      {fieldWarning('email')}
+      {emailChanged && <label className="trace-label block mt-3">Current Password to Change Email
+        <input type={showPasswords ? 'text' : 'password'} autoComplete="current-password" value={profileData.current_password || ''} onChange={e => setField('current_password', e.target.value)} className="trace-control mt-2 w-full" />
+      </label>}
+    </div>
+  );
+
+  const profileHeader = (
       <div className="trace-profile-header bg-white dark:bg-gray-900 px-4 sm:px-6 pt-4 pb-0 flex flex-col border-b border-gray-100 dark:border-gray-700">
         <div className="flex flex-wrap items-start gap-4 pb-6">
           <div className="relative shrink-0">
@@ -198,19 +193,20 @@ export default function ProfileSettingsModal({
               onClick={() => fileInputRef.current?.click()}
               disabled={saving}
               aria-label="Change profile picture"
-              className="trace-button-lift trace-action absolute -bottom-1 -right-1 w-8 h-8 rounded-full bg-[#15803d] enabled:hover:bg-[#166534] text-white flex items-center justify-center shadow-md transition-colors"
+              className="trace-profile-camera trace-button-lift trace-action absolute -bottom-1 -right-1 w-8 h-8 rounded-full bg-[#15803d] enabled:hover:bg-[#166534] text-white flex items-center justify-center shadow-md transition-colors"
             >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+              {isStudent ? <><span className="absolute inset-0"><StudentIcon name="profile-f6627" /></span><span className="relative"><StudentIcon name="profile-c9ee8" /></span></> : isAdmin ? <><span className="absolute inset-0"><AdminIcon name="profile-camera-badge" /></span><span className="relative"><AdminIcon name="profile-camera" /></span></> : <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/></svg>}
             </Button>
           </div>
           <div className="flex flex-col flex-1 basis-48 min-w-0 pt-1">
             <h3 className="text-xl font-display font-black text-gray-900 dark:text-gray-100 leading-tight select-text break-words">{user?.full_name || '—'}</h3>
-            <p className="text-xs font-bold text-[#15803d] dark:text-green-300 uppercase tracking-wider mt-0.5">{roleLabel} {user?.student_id && `· ${user.student_id}`}</p>
-            
-            {isStudent && (
-              <div className="mt-3 w-full max-w-xs">
+            {(isAdmin || isStudent) ? <div className="mt-2 flex flex-wrap gap-2"><span className="trace-admin-badge trace-admin-badge-green uppercase">{roleLabel}</span><span className="trace-admin-badge trace-admin-badge-neutral font-mono">{user?.student_id}</span></div> : <p className="text-xs font-bold text-[#15803d] dark:text-green-300 uppercase tracking-wider mt-0.5">{roleLabel} {user?.student_id && `· ${user.student_id}`}</p>}
+
+          </div>
+          {isStudent && (
+              <div className="trace-student-profile-completion">
                 <div className="flex flex-wrap gap-2 justify-between text-[10px] font-bold text-gray-500 dark:text-gray-400 mb-1.5">
-                  <span>Profile Completion</span>
+                  <span>Profile completion</span>
                   <span className={progress === 100 ? "text-[#15803d] dark:text-green-300" : "text-amber-600 dark:text-amber-300"}>{progress}%</span>
                 </div>
                 <div className="h-1.5 w-full bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
@@ -218,11 +214,9 @@ export default function ProfileSettingsModal({
                 </div>
               </div>
             )}
-          </div>
         </div>
         
         <FileUploadField pickerOnly label="Profile picture" inputRef={fileInputRef} file={avatarFile} onChange={onAvatarChange} accept="image/jpeg,image/png,image/webp" maxBytes={2 * 1024 * 1024} disabled={saving} />
-        {user?.role === 'student' && <RegistrationProof label={user.user_type === 'alumni' ? 'Registration Identity / Diploma Proof' : 'Registration ID Proof'} path={user.id_proof_path} />}
         {/* Tabs */}
         {isStudent ? (
           <div className="flex flex-wrap gap-3 sm:gap-6 border-b border-gray-100 dark:border-gray-700 px-2 mt-2">
@@ -230,7 +224,7 @@ export default function ProfileSettingsModal({
               type="button"
               onClick={() => setActiveTab('personal')}
               aria-pressed={activeTab === 'personal'}
-              className={`trace-tab relative  ${activeTab === 'personal' ? 'text-[#15803d] dark:text-green-300 border-b-2 border-[#15803d]' : 'text-gray-400 dark:text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'}`}
+              className={`trace-tab trace-student-profile-tab ${activeTab === 'personal' ? 'text-[#15803d] dark:text-green-300 border-b-2 border-[#15803d]' : 'text-gray-400 dark:text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'}`}
             >
               Personal Info
               {missingPersonal && <>
@@ -242,7 +236,7 @@ export default function ProfileSettingsModal({
               type="button"
               onClick={() => setActiveTab('educational')}
               aria-pressed={activeTab === 'educational'}
-              className={`trace-tab relative  ${activeTab === 'educational' ? 'text-[#15803d] dark:text-green-300 border-b-2 border-[#15803d]' : 'text-gray-400 dark:text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'}`}
+              className={`trace-tab trace-student-profile-tab ${activeTab === 'educational' ? 'text-[#15803d] dark:text-green-300 border-b-2 border-[#15803d]' : 'text-gray-400 dark:text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'}`}
             >
               Educational Background
               {missingEdu && <>
@@ -253,18 +247,52 @@ export default function ProfileSettingsModal({
             <Button
               type="button"
               onClick={() => setActiveTab('security')}
-              className={`trace-tab relative  ${activeTab === 'security' ? 'text-[#15803d] dark:text-green-300 border-b-2 border-[#15803d]' : 'text-gray-400 dark:text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'}`}
+              aria-pressed={activeTab === 'security'}
+              className={`trace-tab trace-student-profile-tab ${activeTab === 'security' ? 'text-[#15803d] dark:text-green-300 border-b-2 border-[#15803d]' : 'text-gray-400 dark:text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'}`}
             >
               Security
             </Button>
           </div>
         ) : (
            <div className="flex flex-wrap gap-3 sm:gap-6 border-b border-gray-100 dark:border-gray-700 px-2 mt-2">
-             <Button type="button" onClick={() => setActiveTab('personal')} className={`trace-tab relative  ${activeTab === 'personal' ? 'text-[#15803d] dark:text-green-300 border-b-2 border-[#15803d]' : 'text-gray-400 dark:text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'}`}>Personal Info</Button>
-             <Button type="button" onClick={() => setActiveTab('security')} className={`trace-tab relative  ${activeTab === 'security' ? 'text-[#15803d] dark:text-green-300 border-b-2 border-[#15803d]' : 'text-gray-400 dark:text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'}`}>Security</Button>
+             {['personal', 'security'].map(tab => <Button key={tab} type="button" aria-pressed={activeTab === tab} onClick={() => setActiveTab(tab)} className={isAdmin ? 'trace-action trace-admin-profile-tab ' + (activeTab === tab ? 'bg-trace-emerald text-white' : 'text-slate-500 dark:text-gray-300') : 'trace-tab relative ' + (activeTab === tab ? 'text-[#15803d] dark:text-green-300 border-b-2 border-[#15803d]' : 'text-gray-400 dark:text-gray-400 hover:text-gray-600 dark:hover:text-gray-300')}>{tab === 'personal' ? 'Personal Info' : 'Security'}</Button>)}
            </div>
         )}
       </div>
+
+  );
+
+  return (
+    <ModalShell
+      open
+      onClose={onClose}
+      title="Edit Profile"
+      panelClassName={isStudent ? "trace-modal-panel trace-student-edit-profile max-w-[720px]" : isAdmin ? "trace-modal-panel trace-admin-main-dialog trace-admin-edit-profile max-w-[640px]" + (activeTab === 'security' ? ' trace-admin-profile-security' : '') : undefined}
+      headerContent={(isAdmin || isStudent) ? profileHeader : undefined}
+      maxWidth={user?.role === 'admin' ? 'max-w-[640px]' : 'max-w-xl'}
+      bodyClassName={(isAdmin || isStudent) ? "trace-modal-body min-h-0 flex-1 overflow-y-auto overscroll-contain p-0" : "min-h-0 flex-1 overflow-y-auto overscroll-contain pb-4"}
+      closeButtonIcon={
+        isStudent ? <StudentIcon name="profile-e5af3" /> : isAdmin ? <AdminIcon name="profile-x" /> : <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"/></svg>
+      }
+      closeButtonAriaLabel="Close profile"
+      footer={activeTab !== 'appearance' && ((isAdmin || isStudent) ? <div className="flex flex-wrap items-center justify-between gap-3"><p className="trace-admin-caption">{activeTab !== 'security' ? '* Required' : 'Changes apply when you save'}</p><div className="trace-actions"><Button type="button" disabled={saving} onClick={onClose} className="trace-button trace-button-secondary">Cancel</Button><Button disabled={saving} type="submit" form="profile-settings-form" className="trace-button trace-button-primary">{saving ? 'Saving...' : 'Save Profile'}</Button></div></div> : <Button disabled={saving} type="submit" form="profile-settings-form" className="trace-button trace-button-primary w-full">{saving ? 'Saving...' : 'Save Profile'}</Button>)}
+    >
+      <ConfirmDialog open={!!confirmation}
+        title={confirmation === 'email' ? 'Verify Email Address' : confirmation === 'profile' ? 'Confirm Profile Save' : confirmation === 'browser' ? 'Use Shared-Computer Verification' : 'Log Out Other Devices'}
+        message={confirmation === 'profile'
+          ? ['Save your profile changes and selected picture?', isStudent && profileData.first_name && profileData.last_name ? `Name on new receipts: ${receiptStudentName({ ...user, ...profileData })}` : null, error ? <span role="alert">{error}</span> : null]
+          : confirmation === 'email' ? [`Send a verification link to ${emailDraft?.email}? Your current address stays active until verified. Other profile changes will remain unsaved.`, verificationError ? <span role="alert">{verificationError}</span> : null]
+          : confirmation === 'browser' ? 'Forget the personal-browser preference here? Your next login will require verification. This keeps your current session open.' : 'Log out of all other active sessions?'}
+        confirmLabel={confirmation === 'email' ? 'Send Verification Link' : confirmation === 'profile' ? 'Save Profile' : confirmation === 'browser' ? 'Use Shared Verification' : 'Log Out Other Devices'}
+        variant={confirmation === 'sessions' ? 'destructive' : 'neutral'}
+        loading={saving || verifyingEmail || loggingOut} onConfirm={confirmAction} onCancel={() => setConfirmation(null)} />
+      <DashboardAlerts
+        dismissalKey={activeTab}
+        success={sessionFeedback.success}
+        error={sessionFeedback.error}
+        onDismiss={() => setSessionFeedback({ success: '', error: '' })}
+      />
+      {!isAdmin && !isStudent && profileHeader}
 
       <div className="trace-section-body">
         {success && <div className="mb-6 rounded-xl bg-green-50 dark:bg-green-950/40 border border-green-100 dark:border-green-800 px-4 py-3 text-sm font-semibold text-green-800 dark:text-green-300">{success}</div>}
@@ -272,103 +300,33 @@ export default function ProfileSettingsModal({
 
         <form ref={tabContentRef} id="profile-settings-form" onSubmit={stageProfileSave} className="space-y-6">
           {passwordError && <p role="alert" className="text-sm text-red-600 dark:text-red-300">{passwordError}</p>}
-          {activeTab === 'personal' && (
+          {activeTab === 'personal' && (isStudent ? <StudentProfilePersonal user={user} profileData={profileData} setField={setField} saving={saving}>{emailControl}</StudentProfilePersonal> : (
             <div className="space-y-6">
               <div className="trace-form-grid">
                 <div>
                   <label htmlFor="profile-phone_number" className="trace-label block mb-2">Phone Number <span className="text-red-500 dark:text-red-300">*</span></label>
-                  <input {...fieldDescription('phone_number')} maxLength={INPUT_LIMITS.phone} type="text" value={profileData.phone_number} onChange={(e) => setField('phone_number', e.target.value)} required className="trace-control w-full" />
+                  <div className={isAdmin ? 'trace-admin-input-with-icon' : undefined}>{isAdmin && <AdminIcon name="profile-phone2" />}<PhoneInput {...fieldDescription('phone_number')} value={profileData.phone_number} onChange={(e) => setField('phone_number', e.target.value)} required className="trace-control w-full" /></div>
                   {fieldWarning('phone_number')}
                 </div>
-                <div className="min-w-0 col-span-full">
-                  <label htmlFor="profile-email" className="trace-label block mb-2">Email Address <span className="text-red-500 dark:text-red-300">*</span></label>
-                  <EmailVerificationNotice user={user} email={profileData.email} pendingEmail={pendingEmail} sending={verifyingEmail}
-                    message={verificationMessage} error={confirmation === 'email' ? '' : verificationError}
-                    disabled={saving || (emailChanged && !profileData.current_password)} onVerify={requestEmailVerification}>
-                    <input aria-describedby={missingByField.has('email') ? 'profile-email-needed' : undefined} id="profile-email" ref={emailInputRef} maxLength={INPUT_LIMITS.email} type="email" value={profileData.email} onChange={(e) => setField('email', e.target.value)} required disabled={verifyingEmail} className="trace-control min-w-0 flex-1 basis-48" />
-                  </EmailVerificationNotice>
-                  {fieldWarning('email')}
-                  {emailChanged && <label className="trace-label block mt-3">Current Password to Change Email
-                    <input type={showPasswords ? 'text' : 'password'} autoComplete="current-password" value={profileData.current_password || ''} onChange={e => setField('current_password', e.target.value)} className="trace-control mt-2 w-full" />
-                  </label>}
-                </div>
+                {emailControl}
               </div>
 
-              {isStudent && (
-                <>
-                  <AcademicProfileFields user={user} profileData={profileData} setField={setField} busy={saving} />
-                  <div className="trace-form-grid">
-                    <div>
-                      <label htmlFor="profile-birth_date" className="trace-label block mb-2">Birth Date <span className="text-red-500 dark:text-red-300">*</span></label>
-                      <input {...fieldDescription('birth_date')} type="date" value={profileData.birth_date} onChange={(e) => setField('birth_date', e.target.value)} required className="trace-control w-full" />
-                      {fieldWarning('birth_date')}
-                    </div>
-                    <div>
-                      <label htmlFor="profile-place_of_birth" className="trace-label block mb-2">Place of Birth <span className="text-red-500 dark:text-red-300">*</span></label>
-                      <input {...fieldDescription('place_of_birth')} maxLength={INPUT_LIMITS.name} type="text" value={profileData.place_of_birth} onChange={(e) => setField('place_of_birth', e.target.value)} required className="trace-control w-full" />
-                      {fieldWarning('place_of_birth')}
-                    </div>
-                  </div>
-
-                  <div className="trace-form-grid">
-                    <div>
-                      <label htmlFor="profile-sex" className="trace-label block mb-2">Sex <span className="text-red-500 dark:text-red-300">*</span></label>
-                      <select {...fieldDescription('sex')} value={profileData.sex} onChange={(e) => setField('sex', e.target.value)} required className="trace-control w-full">
-                        <option value="">Select...</option>
-                        <option value="Male">Male</option>
-                        <option value="Female">Female</option>
-                      </select>
-                      {fieldWarning('sex')}
-                    </div>
-                    <div>
-                      <label htmlFor="profile-civil_status" className="trace-label block mb-2">Civil Status <span className="text-red-500 dark:text-red-300">*</span></label>
-                      <select {...fieldDescription('civil_status')} value={profileData.civil_status} onChange={(e) => setField('civil_status', e.target.value)} required className="trace-control w-full">
-                        <option value="">Select...</option>
-                        <option value="Single">Single</option>
-                        <option value="Married">Married</option>
-                        <option value="Widowed">Widowed</option>
-                        <option value="Divorced">Divorced</option>
-                        <option value="Separated">Separated</option>
-                      </select>
-                      {fieldWarning('civil_status')}
-                    </div>
-                    <div>
-                      <label className="trace-label block mb-2">Extension Name</label>
-                      <input maxLength={INPUT_LIMITS.shortCode} type="text" placeholder="Jr., III, etc." value={profileData.extension_name} onChange={(e) => setField('extension_name', e.target.value)} className="trace-control w-full" />
-                    </div>
-                  </div>
-
-                  {profileData.sex === 'Female' && profileData.civil_status === 'Married' && (
-                    <div>
-                      <label htmlFor="profile-maiden_name" className="trace-label block mb-2">Maiden Name <span className="text-red-500 dark:text-red-300">*</span></label>
-                      <input {...fieldDescription('maiden_name')} maxLength={INPUT_LIMITS.name} type="text" value={profileData.maiden_name} onChange={(e) => setField('maiden_name', e.target.value)} required className="trace-control w-full" />
-                      {fieldWarning('maiden_name')}
-                    </div>
-                  )}
-
-                  <div>
-                    <label htmlFor="profile-home_address" className="trace-label block mb-2">Home Address <span className="text-red-500 dark:text-red-300">*</span></label>
-                    <textarea {...fieldDescription('home_address')} maxLength={INPUT_LIMITS.address} value={profileData.home_address} onChange={(e) => setField('home_address', e.target.value)} required rows="2" className="trace-control w-full resize-none"></textarea>
-                    {fieldWarning('home_address')}
-                  </div>
-                </>
-              )}
 
               
             </div>
-          )}
+          ))}
 
           
-          {activeTab === 'security' && (
+          {activeTab === 'security' && (isStudent ? <StudentProfileSecurity user={user} profileData={profileData} setField={setField} showPasswords={showPasswords} onTogglePasswords={() => setShowPasswords(value => !value)} loggingOut={loggingOut} onLogout={() => setConfirmation('sessions')} securityLogs={securityLogs} saving={saving} /> : isAdmin ? <AdminProfileSecurity user={user} profileData={profileData} setField={setField} showPasswords={showPasswords} onTogglePasswords={() => setShowPasswords(value => !value)} personalBrowser={personalBrowser} onBrowserVerification={() => setConfirmation('browser')} loggingOut={loggingOut} onLogout={() => setConfirmation('sessions')} securityLogs={securityLogs} showActivity={showSecurityActivity} onToggleActivity={() => setShowSecurityActivity(value => !value)} saving={saving} /> : (
             <div className="space-y-6">
-              <AuthenticatorSettings user={user} />
+              <AuthenticatorSettings user={user} admin={isAdmin} />
               {['clerk', 'admin'].includes(user?.role) && <section aria-label="Browser verification" className="trace-section trace-section-body space-y-3">
-                <h3 className="font-bold">Browser verification</h3>
+                <h3 className="trace-admin-security-heading font-bold">{isAdmin && <span className="trace-admin-security-icon"><AdminIcon name="security-monitor" /></span>}Browser verification</h3>
                 <p className="text-sm">{personalBrowser ? 'Personal-browser preference is saved until midnight Manila time.' : 'Shared-computer verification is the default. Verify each login; choose personal-browser trust during verification only on your own device.'}</p>
                 {personalBrowser && <Button type="button" onClick={() => setConfirmation('browser')} className="trace-button trace-button-secondary">Use shared-computer verification</Button>}
               </section>}
               <div className="trace-section trace-section-body">
-                <h3 className="text-sm font-black text-gray-900 dark:text-gray-100 mb-4 border-b border-gray-100 dark:border-gray-700 pb-2">Change Password</h3>
+                <h3 className="trace-admin-security-heading text-sm font-black text-gray-900 dark:text-gray-100 mb-4 border-b border-gray-100 dark:border-gray-700 pb-2">{isAdmin && <span className="trace-admin-security-icon"><AdminIcon name="security-lock1" /></span>}Change Password</h3>{isAdmin && <p className="trace-admin-caption mb-4">Use a strong password you don’t use anywhere else.</p>}
                 <div className="trace-form-grid">
                   <div>
                     <label className="trace-label block mb-2">Current Password</label>
@@ -393,19 +351,19 @@ export default function ProfileSettingsModal({
                 <p className="text-sm mt-3">{PASSWORD_REQUIREMENTS} You cannot reuse your current or last three passwords. Changing your password logs out other devices and keeps this browser signed in.</p>
               </div>
               <div className="trace-section trace-section-body">
-                <h3 className="text-sm font-black text-gray-900 dark:text-gray-100 mb-4 border-b border-gray-100 dark:border-gray-700 pb-2">Session Management</h3>
+                <h3 className="trace-admin-security-heading text-sm font-black text-gray-900 dark:text-gray-100 mb-4 border-b border-gray-100 dark:border-gray-700 pb-2">{isAdmin && <span className="trace-admin-security-icon"><AdminIcon name="security-logout" /></span>}Session Management</h3>
                 <p className="text-sm text-gray-600 dark:text-gray-300 mb-4">Log out of all other active sessions across all devices. You will remain logged in on this device.</p>
                 <Button type="button" disabled={loggingOut} onClick={() => setConfirmation('sessions')} className="trace-button trace-button-danger">
-                  Logout All Devices
+                  {isAdmin && <AdminIcon name="security-logout1" />}Logout All Devices
                 </Button>
               </div>
               <div className="trace-section trace-section-body">
-                <h3 className="text-sm font-black text-gray-900 dark:text-gray-100 mb-4 border-b border-gray-100 dark:border-gray-700 pb-2">Recent Security Activity</h3>
+                <div className="flex flex-wrap items-center justify-between gap-3"><h3 className="trace-admin-security-heading text-sm font-black text-gray-900 dark:text-gray-100 mb-4 border-b border-gray-100 dark:border-gray-700 pb-2">{isAdmin && <span className="trace-admin-security-icon"><AdminIcon name="security-activity" /></span>}Recent Security Activity</h3>{isAdmin && <Button type="button" aria-expanded={showSecurityActivity} onClick={() => setShowSecurityActivity(value => !value)} className="trace-button trace-button-secondary">{showSecurityActivity ? "Hide activity" : "View activity"}</Button>}</div>
                 <div className="text-xs text-gray-500 dark:text-gray-400 mb-2">View your recent logins, password changes, and other security events.</div>
-                <div className="flex justify-center my-4">
+                <div hidden={isAdmin && !showSecurityActivity} className="flex justify-center my-4">
                   
                 <div className="mt-4 border border-gray-100 dark:border-gray-700 rounded-xl overflow-hidden">
-                  <table className="w-full text-left text-xs">
+                  <PaginatedTable label="security events" className="w-full text-left text-xs">
                     <thead className="bg-gray-50 dark:bg-gray-800 text-gray-500 dark:text-gray-400 font-bold uppercase tracking-wider">
                       <tr>
                         <th className="px-4 py-2">Date</th>
@@ -417,89 +375,25 @@ export default function ProfileSettingsModal({
                       {securityLogs.length === 0 ? (
                         <tr><td colSpan="3" className="px-4 py-4 text-center text-gray-500 dark:text-gray-400">No recent activity</td></tr>
                       ) : (
-                        securityLogs.slice(0, 5).map((log, i) => (
+                        securityLogs.map((log, i) => (
                           <tr key={i} className="hover:bg-gray-50 dark:hover:bg-gray-800">
-                            <td className="px-4 py-2 text-gray-500 dark:text-gray-400">{new Date(log.created_at).toLocaleString()}</td>
-                            <td className="px-4 py-2 font-bold text-gray-700 dark:text-gray-300">{log.event_type}</td>
+                            <td className="px-4 py-2 text-gray-500 dark:text-gray-400">{formatDateTime(log.created_at)}</td>
+                            <td className="px-4 py-2 font-bold text-gray-700 dark:text-gray-300">{formatEventLabel(log.event_type)}</td>
                             <td className="px-4 py-2 text-gray-500 dark:text-gray-400">{log.ip_address || 'Unknown'}</td>
                           </tr>
                         ))
                       )}
                     </tbody>
-                  </table>
+                  </PaginatedTable>
                 </div>
 
                 </div>
               </div>
             </div>
-          )}
+          ))}
 
-          {activeTab === 'educational' && isStudent && (
-            <div className="space-y-6">
-              
-              <div className="trace-section trace-section-body trace-form-grid">
-                <ProfileYearField field="year_started" value={profileData.year_started} error={editYearErrors.year_started}
-                  required={user?.user_type === 'alumni'} missing={missingByField.has('year_started')}
-                  readOnly={user?.year_started != null && user.year_started !== ''} disabled={saving} onChange={value => setField('year_started', value)} />
-                <ProfileYearField field="graduation_year" value={profileData.graduation_year} error={editYearErrors.graduation_year}
-                  required={user?.user_type === 'alumni'} missing={missingByField.has('graduation_year')}
-                  readOnly={user?.graduation_year != null && user.graduation_year !== ''} disabled={saving} onChange={value => setField('graduation_year', value)} />
-                <ProfileYearField field="last_attendance_year" value={profileData.last_attendance_year}
-                  disabled={saving} onChange={value => setField('last_attendance_year', value)} />
-                <div>
-                  <label htmlFor="profile-transfer" className="trace-label block mb-2">Transfer Student?</label>
-                  <select id="profile-transfer" value={profileData.is_transfer_student ? 'yes' : 'no'} onChange={(e) => setField('is_transfer_student', e.target.value === 'yes')} className="trace-control">
-                    <option value="no">No</option>
-                    <option value="yes">Yes</option>
-                  </select>
-                </div>
-              </div>
+          {activeTab === 'educational' && isStudent && <StudentProfileEducation user={user} profileData={profileData} setField={setField} saving={saving} />}
 
-              {profileData.is_transfer_student && (
-                <div>
-                  <label htmlFor="profile-previous_school" className="trace-label block mb-2">Previous School <span className="text-red-500 dark:text-red-300">*</span></label>
-                  <input {...fieldDescription('previous_school')} maxLength={INPUT_LIMITS.name} type="text" value={profileData.previous_school} onChange={(e) => setField('previous_school', e.target.value)} required className="trace-control w-full" />
-                  {fieldWarning('previous_school')}
-                </div>
-              )}
-
-              <div className="space-y-4">
-                <h4 className="trace-label border-b border-gray-200 dark:border-gray-700 pb-2">Elementary</h4>
-                <div className="trace-form-grid">
-                  <div className="col-span-full">
-                    <label htmlFor="profile-elem_school" className="trace-label block mb-2">Elementary School <span className="text-red-500 dark:text-red-300">*</span></label>
-                    <input {...fieldDescription('elem_school')} maxLength={INPUT_LIMITS.name} type="text" placeholder="School Name" required value={profileData.elem_school} onChange={(e) => setField('elem_school', e.target.value)} className="trace-control w-full" />
-                    {fieldWarning('elem_school')}
-                  </div>
-                  <ProfileYearField field="elem_grad_year" value={profileData.elem_grad_year} required
-                    missing={missingByField.has('elem_grad_year')} disabled={saving} onChange={value => setField('elem_grad_year', value)} />
-                </div>
-
-                <h4 className="trace-label border-b border-gray-200 dark:border-gray-700 pb-2 pt-2">Junior High School</h4>
-                <div className="trace-form-grid">
-                  <div className="col-span-full">
-                    <label htmlFor="profile-jhs_school" className="trace-label block mb-2">Junior High School <span className="text-red-500 dark:text-red-300">*</span></label>
-                    <input {...fieldDescription('jhs_school')} maxLength={INPUT_LIMITS.name} type="text" placeholder="School Name" required value={profileData.jhs_school} onChange={(e) => setField('jhs_school', e.target.value)} className="trace-control w-full" />
-                    {fieldWarning('jhs_school')}
-                  </div>
-                  <ProfileYearField field="jhs_grad_year" value={profileData.jhs_grad_year} required
-                    missing={missingByField.has('jhs_grad_year')} disabled={saving} onChange={value => setField('jhs_grad_year', value)} />
-                </div>
-
-                <h4 className="trace-label border-b border-gray-200 dark:border-gray-700 pb-2 pt-2">Senior High School</h4>
-                <div className="trace-form-grid">
-                  <div className="col-span-full">
-                    <label htmlFor="profile-shs_school" className="trace-label block mb-2">Senior High School <span className="text-red-500 dark:text-red-300">*</span></label>
-                    <input {...fieldDescription('shs_school')} maxLength={INPUT_LIMITS.name} type="text" placeholder="School Name" required value={profileData.shs_school} onChange={(e) => setField('shs_school', e.target.value)} className="trace-control w-full" />
-                    {fieldWarning('shs_school')}
-                  </div>
-                  <ProfileYearField field="shs_grad_year" value={profileData.shs_grad_year} required
-                    missing={missingByField.has('shs_grad_year')} disabled={saving} onChange={value => setField('shs_grad_year', value)} />
-                </div>
-              </div>
-
-            </div>
-          )}
         </form>
       </div>
     </ModalShell>

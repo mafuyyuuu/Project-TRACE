@@ -1,13 +1,13 @@
+import { needsStudyYears, needsGraduationYear } from '@/utils/documentPolicy';
 import { yearError } from '@/utils/profileYears';
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import useDashboardCore from '@/hooks/useDashboardCore';
 import { uploadDocument, submitPayment, cancelDocument } from '@/services/documentsService';
 import { getDocumentTypes, getPaymentMethods } from '@/services/referenceService';
-import { STATUS, PIPELINE, isCancellable } from '@/utils/documentStatus';
+import { STATUS, isCancellable } from '@/utils/documentStatus';
 
 /**
- * Student portal: request submission, checkout, cancellation, and the live
- * tracking animation.
+ * Student portal: request submission, checkout, cancellation and dashboard data.
  *
  * Nothing is paid at submission any more. The registrar cannot quote a price
  * until the document has been printed, so the student files first and is asked
@@ -15,7 +15,7 @@ import { STATUS, PIPELINE, isCancellable } from '@/utils/documentStatus';
  */
 export default function useStudentDashboard(user) {
   const core = useDashboardCore(user);
-  const { documents, runAction, triggerNotification, setActiveModal, selectedDoc, activeModal } = core;
+  const { documents, runAction, triggerNotification, setActiveModal, selectedDoc } = core;
 
   // Document types come from the database so the Registrar can add or reprice
   // one without a code change.
@@ -32,8 +32,6 @@ export default function useStudentDashboard(user) {
   const [selectedMethod, setSelectedMethod] = useState('gcash');
   const [paymentRef, setPaymentRef] = useState('');
   const [paymentFile, setPaymentFile] = useState(null);
-
-  const [trackerProgress, setTrackerProgress] = useState(0);
 
   // The request id staged for a cancel confirmation, or null when the dialog is closed.
   const [cancelRequestIdToConfirm, setCancelRequestIdToConfirm] = useState(null);
@@ -135,25 +133,6 @@ export default function useStudentDashboard(user) {
     );
   }, []);
 
-  // Animate the tracker from 0 so the bar visibly fills when the modal opens.
-  useEffect(() => {
-    if (activeModal !== 'tracking' || !selectedDoc) return undefined;
-    const timer = setTimeout(() => {
-      const index = PIPELINE.indexOf(selectedDoc.current_status);
-      setTrackerProgress(index < 0 ? 0 : index / Math.max(1, PIPELINE.length - 1) * 100);
-    }, 50);
-    return () => clearTimeout(timer);
-  }, [activeModal, selectedDoc]);
-
-  // Reset to 0 whenever a different document is opened, without setting state
-  // inside the effect above.
-  const trackerKey = activeModal === 'tracking' ? selectedDoc?.id : null;
-  const [lastTrackerKey, setLastTrackerKey] = useState(null);
-  if (trackerKey !== lastTrackerKey) {
-    setLastTrackerKey(trackerKey);
-    if (trackerProgress !== 0) setTrackerProgress(0);
-  }
-
   /**
    * Submit every selected document as one request.
    *
@@ -173,10 +152,10 @@ export default function useStudentDashboard(user) {
       }
 
       for (const name of names) {
-        const requiredYear = ['Transcript of Records', 'Transcript of Records (TOR)'].includes(name) ? user.year_started
-          : ['Diploma', 'Graduation Clearance'].includes(name) ? (user.user_type === 'alumni' ? user.graduation_year : user.graduation_year || user.last_attendance_year) : null;
-        if (['Transcript of Records', 'Transcript of Records (TOR)', 'Diploma', 'Graduation Clearance'].includes(name)) {
-          const problem = yearError(String(requiredYear ?? ''), { label: name.startsWith('Transcript') ? 'Year Started' : 'Year Graduated / Last Attended', minimum: 2002, required: true });
+        const requiredYear = needsStudyYears(name) ? user.year_started
+          : needsGraduationYear(name, user) ? user.graduation_year : null;
+        if ((needsStudyYears(name) || needsGraduationYear(name, user))) {
+          const problem = yearError(String(requiredYear ?? ''), { label: needsStudyYears(name) ? 'Year Started' : 'Year Graduated', minimum: 2002, required: true });
           if (problem) { triggerNotification(`${problem} Complete study years in Edit Profile, or ask Admin for a correction.`, 'error'); return; }
         }
       }
@@ -187,8 +166,8 @@ export default function useStudentDashboard(user) {
         const extra = {};
         if (selection.purpose) extra.purpose = selection.purpose;
         if (selection.requestingSchool) extra.requesting_school = selection.requestingSchool;
-        if (['Transcript of Records', 'Transcript of Records (TOR)'].includes(name)) extra.year_started = Number(user.year_started);
-        if (['Diploma', 'Graduation Clearance'].includes(name)) extra.year_graduated = Number(user.user_type === 'alumni' ? user.graduation_year : user.graduation_year || user.last_attendance_year);
+        if (needsStudyYears(name)) extra.year_started = Number(user.year_started);
+        if (needsGraduationYear(name, user)) extra.year_graduated = Number(user.graduation_year);
 
         return {
           document_type: name,
@@ -209,7 +188,7 @@ export default function useStudentDashboard(user) {
         ['Name', user.full_name], ['Student ID', user.student_id],
         ['Documents', names.map(name => `${name} × ${selections[name].copies}`).join('; ')],
         ['Year Started', names.some(name => name.startsWith('Transcript')) ? String(user.year_started) : 'Not required'],
-        ...(names.some(name => ['Diploma', 'Graduation Clearance'].includes(name)) ? [['Year Graduated', String(user.user_type === 'alumni' ? user.graduation_year : user.graduation_year || user.last_attendance_year)]] : []),
+        ...(names.some(name => needsGraduationYear(name, user)) ? [['Year Graduated', String(user.graduation_year)]] : []),
         ['Attachments', names.map(name => selections[name].file?.name).filter(Boolean).join(', ') || 'None selected'],
       ] });
     },
@@ -323,7 +302,6 @@ export default function useStudentDashboard(user) {
     selectedMethod, setSelectedMethod,
     paymentRef, setPaymentRef,
     paymentFile, setPaymentFile,
-    trackerProgress,
     handleStudentSubmitRequest,
     handleStudentSubmitPayment,
     handleStudentCancelRequest,

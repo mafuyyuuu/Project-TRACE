@@ -121,14 +121,6 @@ export async function verify2FA(payload) {
   return data
 }
 
-export async function extractSignupId(file, options = {}) {
-  const form = new FormData();
-  form.append('id_proof', file);
-  const { data } = await api.post('/ai/extract-id', form, {
-    ...options, headers: { ...options.headers, 'Content-Type': 'multipart/form-data' },
-  });
-  return data;
-}
 export async function verifyEmailChange(otp) {
   const { data } = await api.post('/auth/verify-email-change', { otp })
   return data
@@ -149,10 +141,6 @@ export async function endOtherSessions() {
   return data;
 }
 
-export async function getRegistrationOptions() {
-  const { data } = await api.get('/auth/registration-options');
-  return data;
-}
 export async function correctStudyYears(userId, payload) {
   const { data } = await api.put(`/auth/student/${userId}/study-years`, payload);
   return data;

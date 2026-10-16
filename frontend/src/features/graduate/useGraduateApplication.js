@@ -1,4 +1,5 @@
 import { yearError } from '@/utils/profileYears';
+import { normalizePhoneNumber, phoneNumberError } from '@/utils/phoneNumber';
 import { getMe } from '@/services/authService';
 import { useState, useEffect, useCallback } from 'react';
 import {
@@ -80,7 +81,14 @@ export default function useGraduateApplication(user) {
       const graduation = fields.find(field => field.field_key === 'year_graduated');
       const problem = graduation && yearError(answers.year_graduated, { label: graduation.label, minimum: 2002, required: Boolean(graduation.is_required) });
       if (problem) { setError(problem); return; }
-      setAnswersToConfirm({ ...answers });
+      const draft = { ...answers };
+      for (const field of fields.filter(field => field.field_type === 'tel')) {
+        const value = answers[field.field_key] || '';
+        const phoneError = phoneNumberError(value, { required: Boolean(field.is_required) });
+        if (phoneError) { setError(`${field.label}: ${phoneError}`); return; }
+        draft[field.field_key] = normalizePhoneNumber(value) || '';
+      }
+      setAnswersToConfirm(draft);
     },
     [answers, missingRequired, fields]
   );

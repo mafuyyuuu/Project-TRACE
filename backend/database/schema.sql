@@ -98,6 +98,9 @@ CREATE TABLE IF NOT EXISTS trusted_browsers (
 
 CREATE TABLE IF NOT EXISTS student_profiles (
   user_id INT PRIMARY KEY,
+  first_name VARCHAR(255) NULL,
+  middle_name VARCHAR(255) NULL,
+  last_name VARCHAR(255) NULL,
   extension_name VARCHAR(20),
   birth_date DATE,
   place_of_birth VARCHAR(255),
@@ -109,6 +112,8 @@ CREATE TABLE IF NOT EXISTS student_profiles (
   year_started INT NULL,
   study_years_confirmed_at DATETIME NULL,
   last_attendance_year INT,
+  year_level VARCHAR(20) NULL,
+  section VARCHAR(20) NULL,
   is_transfer_student BOOLEAN DEFAULT FALSE,
   previous_school VARCHAR(255),
   elem_school VARCHAR(255),
@@ -177,6 +182,7 @@ CREATE TABLE IF NOT EXISTS documents (
   ocr_extracted_data JSON,
   payment_reference_id VARCHAR(255),
   gcash_reference_no VARCHAR(255),
+  payment_channel VARCHAR(20) NULL,
   amount DECIMAL(10,2) DEFAULT 150.00,
   -- The basis for the amount. The Secretary prices from the printed output, so
   -- an amount without these is an unexplainable charge.
@@ -245,7 +251,10 @@ CREATE TABLE IF NOT EXISTS document_types (
   base_fee DECIMAL(10,2) NOT NULL DEFAULT 50.00,
   rental_fee DECIMAL(10,2) NOT NULL DEFAULT 0.00,
   special_fee DECIMAL(10,2) NOT NULL DEFAULT 0.00,
-  fee_rule ENUM('flat', 'per_semester_block') NOT NULL DEFAULT 'flat',
+  fee_rule ENUM('flat', 'per_semester_block', 'per_page') NOT NULL DEFAULT 'flat',
+  catalog_description VARCHAR(500) NULL,
+  base_label VARCHAR(100) NULL,
+  fee_pending BOOLEAN NOT NULL DEFAULT FALSE,
   requires_attachment BOOLEAN NOT NULL DEFAULT FALSE,
   attachment_label VARCHAR(255) NULL,
   attachment_helper VARCHAR(255) NULL,
@@ -335,7 +344,7 @@ CREATE TABLE IF NOT EXISTS document_fee_schedules (
   college_id INT NULL,
   college_key INT GENERATED ALWAYS AS (IFNULL(college_id, 0)) STORED,
   base_fee DECIMAL(10,2) NULL,
-  fee_rule ENUM('flat', 'per_semester_block') NULL,
+  fee_rule ENUM('flat', 'per_semester_block', 'per_page') NULL,
   rental_fee DECIMAL(10,2) NOT NULL DEFAULT 0,
   special_fee DECIMAL(10,2) NOT NULL DEFAULT 0,
   fee_items JSON NOT NULL,
@@ -661,3 +670,20 @@ CREATE TABLE IF NOT EXISTS staff_conversation_events (
     CONSTRAINT staff_chat_event_actor FOREIGN KEY (actor_id) REFERENCES users(id),
     UNIQUE KEY staff_chat_retry (actor_id,client_key), KEY staff_chat_events (conversation_id,id)
   ) ENGINE=InnoDB;
+
+
+-- Per-readiness-episode pickup SMS reminder attempt ledger.
+CREATE TABLE IF NOT EXISTS pickup_sms_reminders (
+  id BIGINT AUTO_INCREMENT PRIMARY KEY,
+  document_id INT NOT NULL,
+  ready_step_id INT NOT NULL,
+  period_no INT UNSIGNED NOT NULL,
+  due_at_ms BIGINT NOT NULL,
+  state ENUM('dispatching','accepted','failed','unknown','cancelled') NOT NULL,
+  error_code VARCHAR(50) NULL,
+  attempted_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  finished_at TIMESTAMP NULL,
+  UNIQUE KEY pickup_sms_once (document_id, ready_step_id, period_no),
+  CONSTRAINT pickup_sms_document FOREIGN KEY (document_id) REFERENCES documents(id) ON DELETE CASCADE,
+  CONSTRAINT pickup_sms_ready_step FOREIGN KEY (ready_step_id) REFERENCES step_logs(id) ON DELETE CASCADE
+) ENGINE=InnoDB;

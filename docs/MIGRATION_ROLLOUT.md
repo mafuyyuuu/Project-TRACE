@@ -1,5 +1,35 @@
 # TRACE production update guide
 
+## October 16 UI and access correction
+
+Deploy the matching frontend and rebuild/restart the backend from the reviewed revision. The backend now restricts support metrics to Admin and normalizes new/edited staff email addresses. This batch requires **no migration** and does not alter historical records. Verify Admin → Efficiency Analytics → Support Analytics works and Window 1 `/api/support/tickets/metrics` returns 403. Support/settings and archived tickets remain available under their existing rules.
+
+## Signup programs and privacy acknowledgment — 2026-10-15
+
+This change needs a matching backend/frontend deployment. Registration now requires an active college/program pairing and explicit acknowledgment of Privacy Notice `2026-10-15.v1`. An older cached form cannot bypass either requirement; refresh it after rollout. Existing accounts do not need to register again and are not assigned a retrospective acknowledgment.
+
+If clicking Sign up immediately returns to Login, inspect the response from `/api/reference/programs`. Older backend builds require authentication for that read. The corrected frontend keeps public catalog failures on signup with Retry Catalog, and an expired cached `/auth/me` session no longer redirects a public page. The server must still run the matching backend that exposes the active program catalog publicly; a frontend refresh alone cannot make an older protected API public. Rebuild/recreate the backend only after checking out the intended reviewed application revision. Do not remove authentication from document or payment reference routes.
+
+**Catalog prerequisites:** the existing `colleges` and `programs` tables must exist. If the program catalog has not been created, run the targeted `migrate_program_catalog.js` migration before the new import. Do not rerun the general `migration.js` or import `schema.sql`/`seed.sql` into a populated database.
+
+From a checkout and rebuilt backend image containing this change, while writers are stopped:
+
+```bash
+docker compose run --rm --no-deps -T backend node database/migrate_program_catalog.js
+docker compose run --rm --no-deps -T backend node database/migrate_signup_programs.js
+docker compose run --rm --no-deps -T backend node database/check_schema.js
+```
+
+The signup import adds missing entries from the project owner’s 13-program list. It keeps existing names, inactive flags, colleges, user profiles and routing assignments. Hospitality accepts either the supplied **College of Hospitality Management** or the existing **College of International Hospitality Management** name; it requires exactly one match. Missing or ambiguous colleges cause rollback before insertion; resolve the reference data explicitly rather than creating or renaming a college blindly. Rerunning the import is safe. The printed mapping lists every program and its actual saved college. If entries are already inactive, the import does not restore them; Admin must review availability.
+
+Verify **Maintenance → Programs/Courses** and the public sign-up college/program dropdowns. Newly created databases also need this import or approved Admin entries; the schema alone creates an empty catalog. Registration/profile forms share the managed catalog, so subsequent Admin edits remain authoritative.
+
+Privacy acknowledgment introduces **no new schema migration**. New registration and rejected-account resubmission save `REGISTRATION_PRIVACY_ACK_2026_10_15_V1` in the existing `security_logs` transaction; `created_at` is the database timestamp. A failure to persist this event rolls back account creation/update. No event is backfilled for historical users. Keep previous notice revisions available in source history, and change both frontend/backend versions when the notice changes.
+
+The implemented notice discloses current account, proof/OCR, role access, service-provider and retention behavior. It records acknowledgment of information, not unrestricted consent. The school/Registrar and its Data Protection Officer should review the wording, lawful basis, retention schedule and official contact details before production adoption. No unverified DPO address or invented deletion period is supplied. Guidance: [NPC right to be informed](https://privacy.gov.ph/the-right-to-be-informed/) and [NPC Advisory 2021-01](https://www.privacy.gov.ph/wp-content/uploads/2021/02/NPC-Advisory-2021-01-FINAL.pdf).
+
+Smoke check current-student and alumni registrations, the missing-proof alumni path, catalog retry/empty states, college changes clearing programs, required unchecked acknowledgment, notice open/close retaining drafts, review cancellation and accepted proof formats (JPG/JPEG/PNG/PDF, 10 MB maximum). Existing saved proof files remain readable. No live catalog import or deployment is claimed by the code change.
+
 Use this guide to update the existing `~/Project-TRACE` server with bundled MySQL (`mysql:3306/trace_db`) and its uploads volume. Run server commands in SSH, from the project folder. Keep the same terminal open, copy each command exactly and stop if any command fails. Long commands may wrap visually; do not insert a newline inside them.
 
 ## Current migration audit — 2026-10-06
@@ -22,6 +52,7 @@ The user's October 1 logs confirm completion of the earlier 18 incremental scrip
 | `migrate_internal_assistance.js` | Separate internal staff/Admin tickets, messages and retry/audit events | Additive/rerunnable; imports no student support or files. Requires existing users; matching API/frontend. |
 | `migrate_receipt_packs.js` | Shared 50-number packs, permanent serial reservations, issued snapshots, receipt audit and print calibration | Additive/rerunnable; reserves no serials until Finance confirms a pack. Run after Finance receipt columns and intake/assignment prerequisites. |
 | `migrate_request_intake_scope.js` | Saved routing college and explicit intake-blocking requirements | Additive and rerunnable; no historical backfill. Run after request attachments and Support requirements. |
+| `migrate_current_student_details.js` | Current Year Level and Section | Additive nullable columns; no backfill or historical-year rewrites. Requires student_profiles. |
 | `migrate_alumni_study_years.js` | Saved Year Started, first-confirmed timestamp, proof-review demo markers and audit tables | Additive and rerunnable; keeps existing graduation/attendance/request values. Run after student profiles and graduation-year prerequisites. |
 | `migrate_program_catalog.js` | Empty college-linked `programs`; widen `users.course` to accommodate college names | Creates only when absent, widens only a shorter course column; no program seeds/profile rewrites. |
 
@@ -618,3 +649,75 @@ On staging, use two active Admin accounts and distinct desk accounts to verify c
 After reviewing which prerequisites are already installed, stop writers and use the matching backend image to run `node database/migrate_staff_conversations.js`, then `node database/check_schema.js`. The new script only creates three isolated InnoDB tables, unique pair/scope and retry keys, and history indexes; it never seeds users/threads, imports messages, rewrites student/internal history or runs automatically. `scope_college_id=0` denotes a global-desk pair; a positive recorded scope is required when a Secretary participates. The complete dependency order now contains 32 scripts, not a requirement to rerun old data migrations.
 
 Deploy matching API/frontend. No environment variable, dependency, AI rebuild or n8n re-import is added. Verify directory and thread permissions with actual active accounts; test simultaneous pair opens, retry replay and rollback on staging MySQL, changed/deactivated participant access, Secretary college changes, private notification delivery and actual phone keyboard behavior. Existing student Support, internal assistance and receipt migrations remain separate prerequisites. See [README walkthrough](../README.md#staff-coordination-walkthrough) and [DEPLOYMENT_CHECKLIST.md](DEPLOYMENT_CHECKLIST.md). No live migration or deployment was performed by this work.
+
+
+## Finance name-field rollout — additional migration, 2026-10-12
+
+The five previous follow-up migrations are confirmed cloud-applied. This Finance review adds **one new migration**: `migrate_student_name_parts.js`. Do not rerun the five merely for this update. Existing users/student_profiles remain prerequisites; fields are nullable and no existing name or issued snapshot is rewritten.
+
+After code review and validation, use the intended release checkout/image that includes this script. Pause backend/AI/n8n writers using the existing rollout procedure, build the matching backend image, then run one command at a time and stop on failure:
+
+```bash
+docker compose run --rm --no-deps -T backend node database/migrate_student_name_parts.js
+docker compose run --rm --no-deps -T backend node database/check_schema.js
+```
+
+Start the matching backend/frontend only after schema presence passes. Retain existing database/volume contents and MFA/JWT keys. No new dependency, environment variable, AI image change or n8n re-import is required for this Finance follow-up. The current early-data backup waiver remains; follow the usual preservation procedure when deploying populated installations.
+
+Verify on staging: students confirm name parts with compound given/surnames and an optional middle name; mismatch is refused and Full Name stays intact. New OR names follow confirmed parts, old receipt reprints preserve their snapshots. Configure/replace an exactly 50-paper range; test stale cashier and exhausted pack, immediate copy vs Later, 3:59/4:00 PM Manila, reprint and later upload. Confirm History has no export/configuration block and Finance's shared reports/CSV are independent.
+
+**Status:** prepared in source, not cloud-applied. As of 2026-10-13, native backend/frontend tests, frontend lint/build and synthetic Finance browser checks pass. MySQL migration/live contention and physical-printer acceptance remain pending. The existing screenshots show older receipt controls; update them through a connected browser before treating them as this review's UI evidence.
+
+## October 13 — revised request catalog
+
+The student/alumni request-list revision requires `migrate_request_catalog.js` from the matching backend image. Follow [REQUEST_CATALOG.md](REQUEST_CATALOG.md) for the complete rates, bundled page counts, deactivated Nursing options, blank Underload fee and deployment sequence. The preserving migration adds catalog metadata and the explicit `per_page` rule, replaces the live request catalog once under its ledger, and leaves historical document/receipt snapshots intact. Do not rerun broad legacy migrations to apply it. Run this new script before the latest schema check and API restart; publish the matching frontend after the API is ready.
+
+## October 13 — manual signup, retained proof verification and alumni missing-proof choice
+
+The pre-submit Read ID autofill is removed, including its frontend helper, temporary scan route and Python identity parser. Uploaded registration proofs are still checked after confirmation through `/ocr/verify`. Original-first checking preserves a successful school/exact-ID/selected-college match rather than selecting OCR output by text length; the registration proof deadline is 45 seconds. Unreadable/mismatched/unavailable checks remain pending for Admin review. Alumni always see Records / proof unavailable without a capability fetch; a reason is required, no proof file is sent, and the server keeps those accounts pending. Students still upload proof. Already-pending accounts are not automatically reclassified.
+
+This signup follow-up has no new migration. Keep the request-catalog migration from the preceding release applied, and rebuild both images from the matching `dev` checkout:
+
+```bash
+git pull --ff-only origin dev
+docker compose build backend ai-engine
+docker compose up -d --no-deps --force-recreate backend ai-engine
+docker compose ps
+curl -fsS http://localhost:3300/api/health
+```
+
+Deploy the matching frontend separately. Check that Read ID is absent, Alumni shows the missing-proof choice immediately, an explanation is required before confirmation, and Student still has mandatory proof. Confirm a test proof with matching fields and one with a wrong ID remain distinct; inspect backend/AI logs for registration-proof timing without posting ID text or real uploaded records. Neither a running container nor health alone proves an actual photo auto-verifies. Earlier Read ID rollout instructions are historical and superseded by this section.
+
+
+## 2026-10-13 — preserving pickup reminder ledger
+
+Follow the existing backup procedure. Pull current dev and build matching images before these commands. The migration creates only pickup_sms_reminders with a unique document/readiness-episode/period attempt key; reruns preserve its history. Do not reseed or import the full fresh schema.
+
+```bash
+docker compose build backend ai-engine
+docker compose run --rm --no-deps -T backend node database/migrate_pickup_sms_reminders.js
+docker compose run --rm --no-deps -T backend node database/check_schema.js
+docker compose up -d --no-deps --force-recreate backend ai-engine
+```
+
+Deploy matching dev on Vercel. The new backend checks existing eligible unclaimed records at startup and every 15 minutes. First reminder is after three calendar days, then weekly, with at least seven days between attempts; completed/nonready documents are excluded. A missing ledger disables that worker with a safe log rather than creating tables automatically. An uncertain attempt remains recorded and is not resent in the same period. The normal Ready for Pickup SMS/email notice remains separate. Live delivery still needs an actual provider outcome and handset confirmation; local tests send no real SMS.
+
+## Current-student details
+
+Use the matching reviewed backend/frontend version. Back up the database, stop
+writers using the existing rollout procedure, and apply this additive migration
+after the student-profile prerequisites:
+
+```bash
+docker compose run --rm --no-deps -T backend node database/migrate_current_student_details.js
+docker compose run --rm --no-deps -T backend node database/check_schema.js
+```
+
+Start the matching application after the checks pass. Current students save Year
+Level and Section in Edit Profile → Educational Background, then reload to confirm
+persistence. They can file an available Graduation Clearance without graduation or
+last-attendance years; TOR still needs saved Year Started. Check an alumni account
+as well: its graduation requirement remains and its Year Level/Section fields are
+not shown. Verify authorized staff lookup displays current enrollment details.
+The migration reruns safely and changes no existing profile values or requests.
+Do not import the fresh-install schema over an existing database.

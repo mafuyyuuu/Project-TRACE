@@ -1,3 +1,4 @@
+import FilterSelect from '@/components/FilterSelect';
 import Button from '@/components/Button';
 import UserCard from '@/components/UserCard';
 
@@ -25,17 +26,17 @@ export default function UserGrid({
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row flex-wrap gap-3 sm:items-center">
-        <select className={selectClass} value={roleFilter} onChange={(e) => onRoleFilterChange(e.target.value)}>
+        <FilterSelect aria-label="Account role" className={selectClass} value={roleFilter} onChange={(e) => onRoleFilterChange(e.target.value)}>
           {roleOptions.map((o) => (
             <option key={o.value} value={o.value}>{o.label}</option>
           ))}
-        </select>
+        </FilterSelect>
         {onDeskFilterChange && (
-          <select className={selectClass} value={deskFilter} onChange={(e) => onDeskFilterChange(e.target.value)}>
+          <FilterSelect aria-label="Staff desk" className={selectClass} value={deskFilter} onChange={(e) => onDeskFilterChange(e.target.value)}>
             {deskOptions.map((o) => (
               <option key={o.value} value={o.value}>{o.label}</option>
             ))}
-          </select>
+          </FilterSelect>
         )}
         {onAddUser && (
           <Button

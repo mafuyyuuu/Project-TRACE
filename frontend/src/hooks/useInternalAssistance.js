@@ -5,10 +5,13 @@ import useSupportFeedback from '@/hooks/useSupportFeedback';
 const errorMessage = err => err.response?.data?.error || 'Internal assistance is unavailable. Keep your draft and retry.';
 const merge = (old,incoming) => [...new Map([...old,...incoming].map(row => [String(row.id),row])).values()];
 export default function useInternalAssistance(user,stateFilter,categoryFilter,requestedTicket) {
+  const [view,setView] = useState('active');
   const [tickets,setTickets] = useState([]), [cursor,setCursor] = useState(null), [categories,setCategories] = useState({});
   const [loading,setLoading] = useState(true), [busy,setBusy] = useState(false), [error,setError] = useState(''), [actionError,setActionError] = useState('');
   const [selected,setSelected] = useState(() => new URLSearchParams(window.location.search).get('internalTicket') || '');
   const feedback = useSupportFeedback(), owner = useRef(null), pending = useRef(false), read = useRef(null);
+  const observeTicket = useCallback(ticket => {if (ticket) setView(ticket.state === 'RESOLVED' ? 'archive' : 'active');}, []);
+  const changeView = next => {if (next !== view) {setSelected('');setView(next);}};
   // Notification navigation can change the query while this workspace stays mounted.
   useEffect(() => {
     let active = true;
@@ -20,13 +23,13 @@ export default function useInternalAssistance(user,stateFilter,categoryFilter,re
     if (!identity || read.current) return;
     const controller = new AbortController(); read.current = controller;
     try {
-      const result = await service.listTickets({state:stateFilter || undefined,category:categoryFilter || undefined,before},controller.signal);
+      const result = await service.listTickets({view,state:view === 'archive' ? 'RESOLVED' : stateFilter === 'RESOLVED' ? undefined : stateFilter || undefined,category:categoryFilter || undefined,before},controller.signal);
       if (owner.current !== identity || controller.signal.aborted) return;
       setTickets(previous => (before ? merge(previous,result.tickets) : result.tickets).sort((a,b) => Number(b.id)-Number(a.id)));
       setCursor(result.next_cursor);setCategories(result.categories);setError('');
     } catch (err) { if (owner.current === identity && !controller.signal.aborted) setError(errorMessage(err)); }
     finally { if (read.current === controller) read.current = null; if (owner.current === identity && !controller.signal.aborted) setLoading(false); }
-  },[stateFilter,categoryFilter]);
+  },[stateFilter,categoryFilter,view]);
   useEffect(() => {
     const identity = {}; owner.current = identity;
     queueMicrotask(() => {if (owner.current === identity) {setTickets([]);setCursor(null);setLoading(true);void refresh();}});
@@ -44,9 +47,9 @@ export default function useInternalAssistance(user,stateFilter,categoryFilter,re
       setSelected(String(result.ticket.id));feedback.notify(`Internal ticket #${result.ticket.id} opened.`);
       await refresh();return true;
     } catch (err) {if (identity === owner.current) setActionError(errorMessage(err));return false;}
-    finally {pending.current = false;if (identity === owner.current) setBusy(false);}
+    finally {pending.current = false;if (owner.current) setBusy(false);}
   };
-  return {tickets,cursor,categories,selected,setSelected,loading,busy,error:actionError || error,refresh,create,feedback};
+  return {view,changeView,observeTicket,tickets,cursor,categories,selected,setSelected,loading,busy,error:actionError || error,refresh,create,feedback};
 }
 export function useInternalConversation(ticketId,user,onNotice,onChanged) {
   const [data,setData] = useState(null), [messages,setMessages] = useState([]), [cursor,setCursor] = useState(null);
@@ -89,7 +92,7 @@ export function useInternalConversation(ticketId,user,onNotice,onChanged) {
       // Do not allow an older in-flight poll to overwrite the accepted action.
       read.current?.abort();read.current = null;await refresh();onChanged();return true;
     } catch (err) {if (identity === owner.current) setActionError(errorMessage(err));return false;}
-    finally {pending.current = false;if (identity === owner.current) setBusy(false);}
+    finally {pending.current = false;if (owner.current) setBusy(false);}
   };
   const send = event => {
     event.preventDefault(); const message = draft.trim();

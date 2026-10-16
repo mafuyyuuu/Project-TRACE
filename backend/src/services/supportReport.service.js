@@ -19,7 +19,7 @@ async function aggregate(query = {}) {
 }
 async function report(user,query = {}) {
   const actor=await tickets.currentActor(user);
-  if(!tickets.managed(actor))throw forbidden('Only Admin and Window 1 can view support analytics.');
+  if(actor?.role !== 'admin')throw forbidden('Only Admin can view support analytics.');
   return aggregate(query);
 }
 module.exports={period,aggregate,report};

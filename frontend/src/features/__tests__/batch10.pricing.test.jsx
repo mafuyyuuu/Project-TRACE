@@ -132,7 +132,7 @@ it('shows saved final calculations on the student dashboard and checkout', async
   core.documents = [DOC];
   const { rerender } = render(<StudentDashboard user={USER} currentTab="dashboard" setViewImageUrl={vi.fn()} />);
   const panel = screen.getByRole('region', { name: 'Payment for request REQ-TEST' });
-  expect(panel).toHaveTextContent('How the Amount Was Worked Out'); expect(panel).toHaveTextContent('₱660.00');
+  expect(panel).toHaveTextContent('How the amount was worked out'); expect(panel).toHaveTextContent('₱660.00');
   expect(panel).toHaveTextContent('3 pages per copy × 2 copies × ₱100.00');
   core.selectedDoc = { ...DOC, group_total: 660, group_documents: [DOC] }; core.activeModal = 'pay';
   rerender(<StudentDashboard user={USER} currentTab="dashboard" setViewImageUrl={vi.fn()} />);
@@ -167,7 +167,7 @@ it('preserves legacy totals and escapes saved item labels', () => {
 });
 
 describe('New Request profile gate', () => {
-  const complete = { ...USER, email: 'student@example.test', phone_number: '09123456789',
+  const complete = { ...USER, year_level: '2nd Year', section: 'IT-2A', email: 'student@example.test', phone_number: '09123456789',
     birth_date: '2000-01-01', place_of_birth: 'City', sex: 'Male', civil_status: 'Single', home_address: 'Address',
     elem_school: 'Elementary', elem_grad_year: 2012, jhs_school: 'Junior High', jhs_grad_year: 2016,
     shs_school: 'Senior High', shs_grad_year: 2018 };
@@ -226,4 +226,21 @@ it('routes missing saved request years to profile completion and disables submis
     expect(close).toHaveBeenCalledWith(null);
     expect(openProfile.mock.calls[0][0].detail).toEqual({ section: 'educational' });
   } finally { window.removeEventListener('open-profile-settings', openProfile); }
+});
+it('lets a current student review Graduation Clearance without graduation or attendance years', async () => {
+  const account = { ...USER, year_started: null, graduation_year: null, last_attendance_year: null };
+  const submit = vi.fn();
+  const { unmount } = render(<NewRequestModal user={account} documentTypes={[{ name: 'Graduation Clearance' }]} selections={{ 'Graduation Clearance': { copies: 1, purpose: 'Clearance' } }} setActiveModal={vi.fn()} toggleDocumentType={vi.fn()} updateSelection={vi.fn()} handleStudentSubmitRequest={submit} />);
+  expect(screen.queryByText(/Year Graduated/)).not.toBeInTheDocument();
+  expect(screen.queryByRole('button', { name: 'Complete Study Years' })).not.toBeInTheDocument();
+  expect(screen.getByRole('button', { name: 'Next' })).toBeEnabled();
+  unmount();
+  const { result } = renderHook(() => useStudentDashboard(account));
+  act(() => result.current.toggleDocumentType('Graduation Clearance'));
+  act(() => result.current.updateSelection('Graduation Clearance', { purpose: 'Clearance' }));
+  await act(() => result.current.handleStudentSubmitRequest({ preventDefault: vi.fn() }));
+  expect(result.current.submissionToConfirm).not.toBeNull();
+  await act(() => result.current.confirmStudentSubmission());
+  const item = JSON.parse(documentsService.uploadDocument.mock.calls[0][0].get('items'))[0];
+  expect(JSON.parse(item.purpose)).toEqual({ purpose: 'Clearance' });
 });

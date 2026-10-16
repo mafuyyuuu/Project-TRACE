@@ -11,8 +11,8 @@ const STUDENT_STEPS = [
     text: 'After filing a request, choose Live Tracking in its Action column. Follow the stages and respond to any rejection reason. Wait for the release notice and collection instructions before visiting Window 1.' },
   { title: 'Watch for updates', target: 'tutorial-notifications', area: 'dashboard',
     text: 'The bell shows payment, request and account updates. Open a notice to follow its link or see the related request.' },
-  { title: 'Talk to Window 1', target: 'tutorial-support', area: 'dashboard', action: 'Open support',
-    text: 'This button opens Support. Create a ticket even without a request, read an approved FAQ, or choose Talk to staff. Select a ticket to message; requested case documents appear as actionable bubbles. Your queue place is saved when you leave.' },
+  { title: 'Talk to Window 1', target: 'nav:messages', area: 'navigation:messages', action: 'Open support',
+    text: 'Open the Support tab. Create a ticket even without a request, read an approved FAQ, or choose Talk to staff. Select a ticket to message; requested case documents appear as actionable bubbles. Your queue place is saved when you leave.' },
   { title: 'Protect your account', target: 'authenticator-heading', area: 'security',
     text: 'Edit Profile → Security contains password changes, other-device logout, security activity and Two-factor authentication. Scan the authenticator QR code or enter its manual key, and save your recovery codes. Preferences adjusts text size and theme.' },
   { title: 'Help is always nearby', target: 'tutorial-guide', area: 'dashboard',
@@ -29,7 +29,7 @@ const HELP = { title: 'Replay this guide', target: 'tutorial-guide', area: 'dash
   text: 'This question mark reopens the guide for your role. The automatic tour appears only once per account after required setup. Use Help / FAQ for instructions whenever you need them.' };
 const nav = (tab, title, text) => ({ title, text, target: `nav:${tab}`, area: `navigation:${tab}`, action: `Open ${title}` });
 const queue = text => ({ title: 'Work through your queues', target: 'tutorial-queues', area: 'dashboard', text });
-const MESSAGES = nav('messages', 'Support', 'Select a ticket to read its conversation. Window 1 declares availability and claims the oldest ticket, one live slot per clerk. Send is immediate. Use the composer paperclip for authorized case documents; retained history stays tied to its ticket. Support settings and analytics are available to Admin and Window 1.');
+const MESSAGES = nav('messages', 'Support', 'Select a ticket to read its conversation. Window 1 declares availability and claims the oldest ticket, one live slot per clerk. Send is immediate. Use the composer paperclip for authorized case documents; retained history stays tied to its ticket. Support settings are available to Admin and Window 1. Support Analytics is available only to Admin through Efficiency Analytics.');
 const REPORTS = nav('reports', 'Reports & Export', 'Filter the report to the dates and records you need, review it and export the results. Dates and peso amounts appear in the report; exporting does not change a request.');
 
 const WINDOW1_STEPS = [PROFILE, SECURITY,
@@ -40,8 +40,8 @@ const SECRETARY_STEPS = [PROFILE, SECURITY,
   queue('Open the request you are processing. Enter actual printed pages where required; Admin manages rates and TRACE calculates the final breakdown. Confirm the charge and handoff only after reviewing the documents. Records & Export includes a Secretary-cleared filter for work handed to Window 1 or released.'),
   MESSAGES, nav('grad-applications', 'Graduate Applications', 'Open an application to review the submitted alumni information, then use the available confirmed decision controls.'), nav('reports', 'Records & Export', 'Review your assigned college records. Secretary-cleared includes Ready for Pick-up and Completed; choose Completed only for released records. Review filters before exporting.'), UPDATES, HELP];
 const FINANCE_STEPS = [PROFILE, SECURITY,
-  queue('Review the final bill and submitted payment proof against Finance records before verifying payment. A payment acknowledgment is separate from the Official Receipt. If the OR is deferred, watch its elapsed waiting time and issue it when ready. Payments at or after 4:00 PM Manila time have no same-day OR.'),
-  nav('transactions', 'Transactions & OR Copies', 'Filter cleared payments, view available Official Receipts and export matching records. Receipt uploads and issuance stay separate from payment verification.'),
+  queue('Review the final bill and submitted payment proof against Finance records before verifying payment. A payment acknowledgment is separate from the Official Receipt. Later defers only the uploaded OR copy during issuing hours. Configure a 50-paper pack with its first and last numbers; verifying a payment automatically saves the next OR, with Print beside its number. Payment History shows how long a digital copy has been missing. Payments at or after 4:00 PM Manila time have no same-day OR.'),
+  nav('reports', 'Reports & Export', 'Use the same applied filters and CSV exports as other staff. Payment History on the dashboard is for cleared payments and View OR / Upload OR actions.'),
   nav('messages', 'Support', 'Open authorized linked case conversations. General tickets, live queue claims, lifecycle management and document requirement requests belong to Registrar staff.'),
   UPDATES, HELP];
 const ADMIN_STEPS = [PROFILE, SECURITY,

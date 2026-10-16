@@ -20,11 +20,11 @@ os.environ.setdefault('OMP_NUM_THREADS', '1')
 
 import re
 import logging
+import time
 from datetime import date
 import easyocr
 import cv2
 import numpy as np
-from identity_parser import parse_identity_data
 from registration_verification import verify_registration_text
 
 logger = logging.getLogger(__name__)
@@ -32,7 +32,6 @@ logger = logging.getLogger(__name__)
 # Initialize the EasyOCR reader globally so the PyTorch model loads only once
 # gpu=False ensures it works on all hardware, though it can be enabled if available
 reader = easyocr.Reader(['en'], gpu=False)
-
 
 def preprocess_image(filepath):
     """
@@ -126,15 +125,6 @@ def extract_text(filepath):
     except Exception as e:
         logger.error("EasyOCR extraction failed for %s: %s", filepath, str(e))
         return ""
-
-
-def process_identity(filepath):
-    try:
-        data = parse_identity_data(extract_text(filepath))
-        return {'success': any(data.values()), 'extracted_data': data}
-    except Exception:
-        logger.warning('Identity OCR unavailable; manual entry is required.')
-        return {'success': False, 'extracted_data': {}}
 
 
 def parse_student_data(raw_text):
@@ -427,14 +417,42 @@ def process_document(filepath):
             'error': str(e),
         }
 
-def verify_id_document(filepath, expected_student_id, expected_course=""):
-    """
-    Match readable school/ID/college text for automatic registration checks.
-    An inconclusive result needs manual review; it does not establish authenticity.
-    """
-    try:
-        return verify_registration_text(extract_text(filepath), expected_student_id, expected_course)
+VERIFICATION_READ_OPTIONS = dict(detail=0, canvas_size=1280, mag_ratio=1)
+VERIFICATION_FALLBACK_BUDGET_SECONDS = 15
 
-    except Exception as e:
-        logger.error("Verification failed for %s: %s", filepath, str(e))
-        return {'verified': False, 'reason': f'Error during verification: {str(e)}'}
+
+def verify_id_document(filepath, expected_student_id, expected_course=""):
+    """Match each scan independently; never discard a successful field match.
+
+    School, exact identifier and selected college still have to match. This
+    checks readable text, not whether the physical ID is genuine.
+    """
+    started = time.monotonic()
+    original = None
+    logger.info('Registration proof check started')
+    try:
+        try:
+            text = "\n".join(reader.readtext(filepath, **VERIFICATION_READ_OPTIONS)).strip()
+            original = verify_registration_text(text, expected_student_id, expected_course)
+            logger.info('Registration original pass finished elapsed_ms=%d verified=%s reason=%s',
+                        round((time.monotonic() - started) * 1000), original['verified'], original['reason'])
+            if original['verified']:
+                return original
+        except Exception as error:
+            logger.warning('Registration original scan failed: %s', type(error).__name__)
+        if time.monotonic() - started >= VERIFICATION_FALLBACK_BUDGET_SECONDS:
+            logger.info('Registration fallback skipped: first pass consumed budget')
+            return original or {'verified': False, 'reason': 'Automatic verification timed out.'}
+        logger.info('Registration fallback pass started')
+        try:
+            processed = preprocess_image(filepath)
+            text = "\n".join(reader.readtext(processed, **VERIFICATION_READ_OPTIONS)).strip()
+            fallback = verify_registration_text(text, expected_student_id, expected_course)
+            if fallback['verified'] or not original or original['reason'] == 'No text could be extracted from the image.':
+                return fallback
+            return original
+        except Exception as error:
+            logger.warning('Registration fallback scan failed: %s', type(error).__name__)
+            return original or {'verified': False, 'reason': 'Automatic verification unavailable.'}
+    finally:
+        logger.info('Registration proof check finished elapsed_ms=%d', round((time.monotonic() - started) * 1000))

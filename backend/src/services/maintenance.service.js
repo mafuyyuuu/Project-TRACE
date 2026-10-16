@@ -1,3 +1,4 @@
+const { emailAddress } = require('./emailVerification.service');
 const bcrypt = require('bcryptjs');
 const referenceModel = require('../models/referenceData.model');
 const pricingModel = require('../models/pricing.model');
@@ -24,6 +25,8 @@ const { badRequest, forbidden, notFound } = require('../utils/AppError');
 const VALID_DESKS = ['Finance', 'Window 1', 'Secretary', 'Admin Office', 'Receiving Desk', 'Records Desk'];
 const VALID_ROLES = ['clerk', 'admin'];
 const { validatePassword } = require('../utils/passwordPolicy');
+const { validatePhoneNumber } = require('../utils/phoneNumber');
+const { validateTextFields, ACCOUNT_TEXT_LIMITS } = require('../utils/inputLimits');
 
 function assertAdmin(user) {
   if (!user || user.role !== 'admin') {
@@ -42,6 +45,7 @@ async function listColleges(user) {
 
 async function createCollege(user, { name, short_code, sort_order }) {
   assertAdmin(user);
+  validateTextFields({ name, short_code }, { name: 150, short_code: 20 });
   if (!name || !name.trim()) throw badRequest('College name is required.');
 
   const existing = await referenceModel.findCollegeByName(name.trim());
@@ -55,6 +59,7 @@ async function createCollege(user, { name, short_code, sort_order }) {
 
 async function updateCollege(user, id, data) {
   assertAdmin(user);
+  validateTextFields(data, { name: 150, short_code: 20 });
   const rows = await referenceModel.findCollegeById(id);
   if (!rows.length) throw notFound('College not found.');
 
@@ -167,13 +172,14 @@ async function saveDocumentPolicy(data, id = null) {
 
 async function createDocumentType(user, data) {
   assertAdmin(user);
+  validateTextFields(data, { name: 150, attachment_label: 255, attachment_helper: 255 });
   if (!data.name || !data.name.trim()) throw badRequest('Document type name is required.');
   if (documentPolicy.isRetired(data.name)) throw badRequest(documentPolicy.RETIREMENT_REASON);
 
   const fee = data.base_fee === undefined ? (data.name.trim() === 'Diploma' ? 250 : 50) : Number(data.base_fee);
   if (!Number.isFinite(fee) || fee < 0) throw badRequest('Base fee must be a non-negative number.');
-  if (data.fee_rule && !['flat', 'per_semester_block'].includes(data.fee_rule)) {
-    throw badRequest("Fee rule must be 'flat' or 'per_semester_block'.");
+  if (data.fee_rule && !['flat', 'per_semester_block', 'per_page'].includes(data.fee_rule)) {
+    throw badRequest("Choose a flat or per-page fee rule.");
   }
 
   const existing = await referenceModel.findDocumentTypeByName(data.name.trim());
@@ -186,6 +192,7 @@ async function createDocumentType(user, data) {
 
 async function updateDocumentType(user, id, data) {
   assertAdmin(user);
+  validateTextFields(data, { name: 150, attachment_label: 255, attachment_helper: 255 });
   const rows = await referenceModel.findDocumentTypeById(id);
   if (!rows.length) throw notFound('Document type not found.');
 
@@ -197,8 +204,8 @@ async function updateDocumentType(user, id, data) {
     const fee = Number(data.base_fee);
     if (!Number.isFinite(fee) || fee < 0) throw badRequest('Base fee must be a non-negative number.');
   }
-  if (data.fee_rule && !['flat', 'per_semester_block'].includes(data.fee_rule)) {
-    throw badRequest("Fee rule must be 'flat' or 'per_semester_block'.");
+  if (data.fee_rule && !['flat', 'per_semester_block', 'per_page'].includes(data.fee_rule)) {
+    throw badRequest("Choose a flat or per-page fee rule.");
   }
 
   // Renaming would strand every existing document that stores this name.
@@ -250,6 +257,7 @@ async function listStaff(user) {
  */
 async function createStaff(user, data) {
   assertAdmin(user);
+  validateTextFields(data, ACCOUNT_TEXT_LIMITS);
 
   const { employee_id, full_name, email, password, role, desk_assignment, course, phone_number } = data;
 
@@ -268,12 +276,12 @@ async function createStaff(user, data) {
   const [result] = await userModel.createStaff({
     student_id: employee_id.trim(),
     full_name: full_name.trim(),
-    email,
+    email: email ? emailAddress(email) : email,
     password_hash,
     role,
     desk_assignment: role === 'admin' ? desk_assignment || 'Admin Office' : desk_assignment,
     course,
-    phone_number,
+    phone_number: phone_number === undefined ? undefined : validatePhoneNumber(phone_number, { required: false }),
   });
 
   return {
@@ -284,17 +292,19 @@ async function createStaff(user, data) {
 
 async function updateAccount(user, id, data) {
   assertAdmin(user);
+  validateTextFields(data, ACCOUNT_TEXT_LIMITS);
   const [account] = await userModel.findById(id);
   if (!account) throw notFound('Account not found.');
   if (data.student_id !== undefined || data.employee_id !== undefined) throw badRequest('Account identifiers are read-only.');
   const fields = {};
-  for (const [key, max] of Object.entries({ full_name: 255, email: 255, phone_number: 20, course: 100 })) {
+  for (const [key, max] of Object.entries({ full_name: 255, email: 255, phone_number: 13, course: 150 })) {
     if (data[key] === undefined) continue;
     if (typeof data[key] !== 'string' || data[key].length > max) throw badRequest(`Invalid ${key}. Maximum ${max} characters.`);
     fields[key] = data[key].trim();
   }
   if (fields.full_name === '') throw badRequest('Full name cannot be empty.');
-  if (fields.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(fields.email)) throw badRequest('Enter a valid email address.');
+  if (fields.phone_number !== undefined) fields.phone_number = validatePhoneNumber(data.phone_number, { required: false });
+  if (fields.email) fields.email = emailAddress(fields.email);
   if (data.college_id !== undefined) {
     if (data.college_id !== null && data.college_id !== '') {
       const idValue = Number(data.college_id);
@@ -309,6 +319,7 @@ async function updateAccount(user, id, data) {
 
 async function updateStaff(user, id, data) {
   assertAdmin(user);
+  validateTextFields(data, ACCOUNT_TEXT_LIMITS);
 
   const rows = await userModel.findById(id);
   if (!rows.length || !VALID_ROLES.includes(rows[0].role)) throw notFound('Staff account not found.');
@@ -318,8 +329,8 @@ async function updateStaff(user, id, data) {
     if (!String(data.full_name).trim()) throw badRequest('Full name cannot be empty.');
     fields.full_name = data.full_name.trim();
   }
-  if (data.email !== undefined) fields.email = data.email;
-  if (data.phone_number !== undefined) fields.phone_number = data.phone_number;
+  if (data.email !== undefined) fields.email = data.email ? emailAddress(data.email) : data.email;
+  if (data.phone_number !== undefined) fields.phone_number = validatePhoneNumber(data.phone_number, { required: false });
   if (data.course !== undefined) fields.course = data.course;
 
   if (data.role !== undefined) {
@@ -361,11 +372,12 @@ async function updateStaff(user, id, data) {
 }
 
 /**
- * Deactivate or restore a staff account. Accounts are never deleted — their id
- * appears throughout `step_logs` as the clerk who handled a document.
+ * Deactivate or restore an account without deleting its identity or history.
+ * The legacy staff endpoint additionally restricts the target to staff roles.
  */
-async function setStaffActive(user, id, isActive) {
+async function setAccountActive(user, id, isActive, staffOnly = false) {
   assertAdmin(user);
+  if (!/^[1-9]\d*$/.test(String(id)) || !Number.isSafeInteger(Number(id))) throw badRequest('Choose a valid account.');
   if (typeof isActive !== 'boolean') throw badRequest('Choose activate or deactivate.');
   if (!isActive && Number(id) === Number(user.id)) throw badRequest('You cannot deactivate your own account.');
   const connection = await pool.getConnection();
@@ -373,7 +385,7 @@ async function setStaffActive(user, id, isActive) {
   try {
     await connection.beginTransaction();
     account = await accountLock.lockAccount(id, connection);
-    if (!account || !VALID_ROLES.includes(account.role)) throw notFound('Staff account not found.');
+    if (!account || !(staffOnly ? VALID_ROLES : ['student',...VALID_ROLES]).includes(account.role)) throw notFound('Account not found.');
     await userModel.setUserActive(id, isActive, connection);
     await userModel.clearEmailOTP(id, connection);
     await userModel.logSecurityEvent(user.id, `${isActive ? 'ACCOUNT_REACTIVATED' : 'ACCOUNT_DEACTIVATED'}:${id}`, null, null, connection);
@@ -384,10 +396,11 @@ async function setStaffActive(user, id, isActive) {
   try {
     const [owner] = await userModel.findById(id);
     if (owner?.email) await notifications.sendEmail(owner.email, isActive ? 'Account Reactivated' : 'Account Deactivated',
-      `Your TRACE staff account was ${isActive ? 'reactivated' : 'deactivated'} by an administrator. If you did not expect this, contact the registrar administrator.`);
+      `Your TRACE account was ${isActive ? 'reactivated' : 'deactivated'} by an administrator. If you did not expect this, contact the registrar administrator.`);
   } catch { console.warn('Account status notification unavailable.'); }
-  return { message: isActive ? 'Staff account reactivated.' : 'Staff account deactivated.' };
+  return { message: isActive ? 'Account reactivated.' : 'Account deactivated.' };
 }
+function setStaffActive(user,id,isActive) { return setAccountActive(user,id,isActive,true); }
 
 // ---------------------------------------------------------------------------
 // Payment methods
@@ -407,6 +420,7 @@ async function listPaymentMethods(user) {
 
 async function createPaymentMethod(user, data) {
   assertAdmin(user);
+  validateTextFields(data, { name: 150, code: 20, reference_label: 150, instructions: 2000 });
 
   const code = String(data.code || '').trim().toLowerCase();
   if (!/^[a-z][a-z0-9_]*$/.test(code)) {
@@ -426,6 +440,7 @@ async function createPaymentMethod(user, data) {
 
 async function updatePaymentMethod(user, id, data) {
   assertAdmin(user);
+  validateTextFields(data, { name: 150, code: 20, reference_label: 150, instructions: 2000 });
   const rows = await referenceModel.findPaymentMethodById(id);
   if (!rows.length) throw notFound('Payment method not found.');
 
@@ -456,6 +471,6 @@ module.exports = {
   VALID_ROLES,
   listColleges, createCollege, updateCollege, setCollegeActive,
   listDocumentTypes, createDocumentType, updateDocumentType, setDocumentTypeActive,
-  listStaff, createStaff, updateStaff, setStaffActive,
+  listStaff, createStaff, updateStaff, setStaffActive, setAccountActive,
   listPaymentMethods, createPaymentMethod, updatePaymentMethod, setPaymentMethodActive,
 };

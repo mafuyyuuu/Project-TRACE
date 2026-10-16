@@ -43,7 +43,7 @@ const baseProps = {
 const renderModal = (overrides = {}) => render(<ProfileSettingsModal {...baseProps} {...overrides} />);
 
 const completeProfile = {
-  ...baseProps.profileData, birth_date: '2000-01-01', place_of_birth: 'City', sex: 'Male',
+  ...baseProps.profileData, year_level: '2nd Year', section: 'IT-2A', birth_date: '2000-01-01', place_of_birth: 'City', sex: 'Male',
   civil_status: 'Single', home_address: 'Address', maiden_name: '', extension_name: '',
   elem_school: 'Elementary', elem_grad_year: '2012', jhs_school: 'Junior High', jhs_grad_year: '2016',
   shs_school: 'Senior High', shs_grad_year: '2018', is_transfer_student: false, previous_school: '', last_attendance_year: '',
@@ -64,13 +64,13 @@ beforeEach(() => {
 describe('ProfileSettingsModal', () => {
   it.each(['student', 'alumni'])('uses Title Case captions while retaining labelled required fields for %s', user_type => {
     render(<DraftProfile user={{ ...STUDENT, user_type }} draft={completeProfile} />);
-    expect(screen.getByText('Profile Completion')).toBeInTheDocument();
-    expect(screen.getByRole('region', { name: user_type === 'alumni' ? 'Registration Identity / Diploma Proof' : 'Registration ID Proof' })).toBeInTheDocument();
+    expect(screen.getByText('Profile completion')).toBeInTheDocument();
+    expect(screen.getByRole('region', { name: user_type === 'alumni' ? 'Proof of ID' : 'Proof of ID' })).toBeInTheDocument();
     for (const label of ['Phone Number', 'Email Address', 'Birth Date', 'Place of Birth', 'Sex', 'Civil Status', 'Home Address']) {
       expect(screen.getByLabelText(`${label} *`)).toBeRequired();
     }
     fireEvent.click(screen.getByRole('button', { name: /Educational Background/ }));
-    for (const name of ['Elementary', 'Junior High School', 'Senior High School']) {
+    for (const name of ['Elementary', 'Junior High', 'Senior High']) {
       expect(screen.getByRole('heading', { name, level: 4 })).toBeInTheDocument();
     }
     for (const label of ['Elementary School', 'Elementary Year Graduated', 'Junior High School', 'Junior High Year Graduated', 'Senior High School', 'Senior High Year Graduated']) {
@@ -244,20 +244,21 @@ describe('ProfileSettingsModal', () => {
     expect(screen.getByRole('dialog', { name: 'Preferences' })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Save Profile' })).not.toBeInTheDocument();
     expect(screen.queryByDisplayValue('ana@plp.edu.ph')).not.toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: 'Switch to Dark Mode' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Dark' }));
     expect(toggle).toHaveBeenCalledOnce();
   });
 
   it('surfaces the saved registration proof without a replacement control', () => {
     renderModal({ user: { ...STUDENT, user_type: 'alumni', id_proof_path: '/uploads/id.png' } });
-    const proof = screen.getByRole('region', { name: 'Registration Identity / Diploma Proof' });
-    expect(proof).toHaveTextContent('Uploaded: id.png');
+    const proof = screen.getByRole('region', { name: 'Proof of ID' });
+    expect(proof).toHaveTextContent('Uploaded')
+    expect(proof).toHaveTextContent('id.png');
     expect(proof.querySelector('input[type=file]')).toBeNull();
   });
   it('opens the student saved proof with download and returns to Edit Profile on Escape', async () => {
     api.get.mockResolvedValueOnce({ data: new Blob(['SYNTHETIC TEST FILE'], { type: 'image/png' }) });
     renderModal({ user: { ...STUDENT, id_proof_path: '/uploads/proof-test.png' } });
-    const preview = await screen.findByRole('button', { name: 'Preview Registration ID Proof' });
+    const preview = await screen.findByRole('button', { name: 'Preview Proof of ID' });
     preview.focus(); fireEvent.click(preview);
     expect(screen.getByRole('dialog', { name: 'Document preview' })).toBeInTheDocument();
     fireEvent.keyDown(document, { key: 'Escape' });
@@ -280,8 +281,8 @@ describe('ProfileSettingsModal', () => {
   });
   it('presents the account as a profile card', () => {
     renderModal();
-    expect(screen.getByText('Ana Reyes')).toBeInTheDocument();
-    expect(screen.getByText(/Student/i)).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Ana Reyes' })).toBeInTheDocument();
+    expect(screen.getByText('Student', { exact: true })).toBeInTheDocument();
     expect(screen.getByText(/STU2024001/i)).toBeInTheDocument();
   });
 
@@ -375,7 +376,7 @@ describe('ProfileSettingsModal', () => {
     expect(screen.getByRole('dialog', { name: 'Edit Profile' })).toBeInTheDocument();
     if (outcome === 'error') {
       expect(screen.getByRole('dialog', { name: 'Log Out Other Devices' })).toBeInTheDocument();
-      fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+      fireEvent.click(within(screen.getByRole('dialog', { name: 'Log Out Other Devices' })).getByRole('button', { name: 'Cancel' }));
     }
     expect(logout).toHaveFocus();
     expect(onClose).not.toHaveBeenCalled();
@@ -383,15 +384,17 @@ describe('ProfileSettingsModal', () => {
   });
 });
 
-it('keeps attendance separate, college graduation optional for current students and school years required', () => {
-  render(<DraftProfile user={{ ...STUDENT, user_type: 'student' }} draft={{ ...completeProfile, last_attendance_year: '1980', graduation_year: '' }} initialTab="educational" />);
-  expect(screen.getByLabelText('Last Attendance Year')).toHaveValue('1980');
-  expect(screen.getByLabelText('PLP/College Year Graduated')).not.toBeRequired();
-  expect(screen.getByLabelText('PLP/College Year Graduated')).toHaveValue('');
-  for (const label of ['Elementary', 'Junior High', 'Senior High']) {
-    const input = screen.getByLabelText(`${label} Year Graduated *`);
-    expect(input).toBeRequired(); expect(input).toHaveAttribute('inputmode', 'numeric');
-  }
+it('shows Year Level and Section instead of college graduation or last attendance for current students', () => {
+  render(<DraftProfile user={{ ...STUDENT, user_type: 'student' }} draft={{ ...completeProfile, last_attendance_year: '1980', graduation_year: '9999' }} initialTab="educational" />);
+  expect(screen.queryByLabelText('Last Attendance Year')).not.toBeInTheDocument();
+  expect(screen.queryByLabelText('PLP/College Year Graduated')).not.toBeInTheDocument();
+  expect(screen.getByLabelText('Year Level *')).toBeRequired();
+  expect(screen.getByLabelText('Section *')).toBeRequired();
+  fireEvent.change(screen.getByLabelText('Year Level *'), { target: { value: '3rd Year' } });
+  fireEvent.change(screen.getByLabelText('Section *'), { target: { value: 'IT-3B' } });
+  fireEvent.click(screen.getByRole('button', { name: 'Save Profile' }));
+  expect(screen.getByRole('dialog', { name: 'Confirm Profile Save' })).toBeInTheDocument();
+  for (const label of ['Elementary', 'Junior High', 'Senior High']) expect(screen.getByLabelText(`${label} Year Graduated *`)).toBeRequired();
 });
 it.each(['-2020', '2020.5', '2e3', '2001', '9999', '202', '20265'])('rejects invalid alumni graduation before staging Save and keeps the draft: %s', value => {
   render(<DraftProfile user={{ ...STUDENT, user_type: 'alumni' }} draft={{ ...completeProfile, graduation_year: value }} initialTab="educational" />);
