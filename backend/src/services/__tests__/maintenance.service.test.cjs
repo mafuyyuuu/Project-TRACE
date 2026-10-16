@@ -426,7 +426,7 @@ describe('account editing — approved profile fields only', () => {
   });
   it('updates an alumni profile without accepting privilege or verification changes', async () => {
     userModel.findById.mockResolvedValue([{ id: 5, role: 'student', user_type: 'alumni' }]);
-    await service.updateAccount(ADMIN, 5, { full_name: '  Ana Reyes ', email: 'ana@example.test', phone_number: '09123456789', course: 'BS IT', college_id: '1', role: 'admin', verification_status: 'verified', is_active: true });
+    await service.updateAccount(ADMIN, 5, { full_name: '  Ana Reyes ', email: '  ANA@EXAMPLE.TEST ', phone_number: '09123456789', course: 'BS IT', college_id: '1', role: 'admin', verification_status: 'verified', is_active: true });
     expect(userModel.updateProfile).toHaveBeenCalledExactlyOnceWith(5, { full_name: 'Ana Reyes', email: 'ana@example.test', phone_number: '09123456789', course: 'BS IT', college_id: 1 });
   });
   it.each([{ full_name: '' }, { email: 'bad-email' }, { phone_number: '1'.repeat(21) }, { course: 'a'.repeat(151) }, { college_id: -1 }, { role: 'admin' }])('rejects invalid or unsupported edits (%o)', async fields => {

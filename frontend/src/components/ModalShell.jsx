@@ -159,7 +159,7 @@ export default function ModalShell({
     bodyClassName ?? `trace-modal-body ${title ? 'pt-2' : 'pt-4 sm:pt-6'}`;
 
   return createPortal(
-    <div className={`trace-modal-overlay fixed inset-0 ${layer === 'feedback' ? 'z-[110]' : 'z-[100]'} flex items-start sm:items-center justify-center p-4 overflow-y-auto animate-fade-in`}>
+    <div className={`trace-modal-overlay fixed inset-0 ${layer === 'feedback' ? 'z-[110]' : 'z-[100]'} flex items-center justify-center p-4 overflow-y-auto animate-fade-in`}>
       <div
         className={backdropClassName ?? DEFAULT_BACKDROP_CLASS_NAME}
         style={backdropStyle}

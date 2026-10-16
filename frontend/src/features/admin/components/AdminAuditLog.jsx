@@ -1,3 +1,4 @@
+import { formatEventLabel } from '@/utils/formatters';
 import FilterSelect from '@/components/FilterSelect';
 import { useState } from 'react';
 import Button from '@/components/Button';
@@ -19,7 +20,7 @@ function Timestamp({ value }) {
     <span className="mt-0.5 block text-xs">{date.toLocaleTimeString('en-PH', { ...options, hour: 'numeric', minute: '2-digit', second: '2-digit' })}</span></>;
 }
 function eventLabel(value) {
-  return ({ LOGIN_SUCCESS: 'Login', LOGIN_FAILED: 'Failed login', LOGOUT: 'Logout' })[value] || value || 'Unknown';
+  return formatEventLabel(value);
 }
 
 /** Figma audit toolbar and table; filters operate on the records already loaded. */

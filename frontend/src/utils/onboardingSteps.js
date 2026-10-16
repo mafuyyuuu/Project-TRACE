@@ -11,8 +11,8 @@ const STUDENT_STEPS = [
     text: 'After filing a request, choose Live Tracking in its Action column. Follow the stages and respond to any rejection reason. Wait for the release notice and collection instructions before visiting Window 1.' },
   { title: 'Watch for updates', target: 'tutorial-notifications', area: 'dashboard',
     text: 'The bell shows payment, request and account updates. Open a notice to follow its link or see the related request.' },
-  { title: 'Talk to Window 1', target: 'tutorial-support', area: 'dashboard', action: 'Open support',
-    text: 'This button opens Support. Create a ticket even without a request, read an approved FAQ, or choose Talk to staff. Select a ticket to message; requested case documents appear as actionable bubbles. Your queue place is saved when you leave.' },
+  { title: 'Talk to Window 1', target: 'nav:messages', area: 'navigation:messages', action: 'Open support',
+    text: 'Open the Support tab. Create a ticket even without a request, read an approved FAQ, or choose Talk to staff. Select a ticket to message; requested case documents appear as actionable bubbles. Your queue place is saved when you leave.' },
   { title: 'Protect your account', target: 'authenticator-heading', area: 'security',
     text: 'Edit Profile → Security contains password changes, other-device logout, security activity and Two-factor authentication. Scan the authenticator QR code or enter its manual key, and save your recovery codes. Preferences adjusts text size and theme.' },
   { title: 'Help is always nearby', target: 'tutorial-guide', area: 'dashboard',
@@ -29,7 +29,7 @@ const HELP = { title: 'Replay this guide', target: 'tutorial-guide', area: 'dash
   text: 'This question mark reopens the guide for your role. The automatic tour appears only once per account after required setup. Use Help / FAQ for instructions whenever you need them.' };
 const nav = (tab, title, text) => ({ title, text, target: `nav:${tab}`, area: `navigation:${tab}`, action: `Open ${title}` });
 const queue = text => ({ title: 'Work through your queues', target: 'tutorial-queues', area: 'dashboard', text });
-const MESSAGES = nav('messages', 'Support', 'Select a ticket to read its conversation. Window 1 declares availability and claims the oldest ticket, one live slot per clerk. Send is immediate. Use the composer paperclip for authorized case documents; retained history stays tied to its ticket. Support settings and analytics are available to Admin and Window 1.');
+const MESSAGES = nav('messages', 'Support', 'Select a ticket to read its conversation. Window 1 declares availability and claims the oldest ticket, one live slot per clerk. Send is immediate. Use the composer paperclip for authorized case documents; retained history stays tied to its ticket. Support settings are available to Admin and Window 1. Support Analytics is available only to Admin through Efficiency Analytics.');
 const REPORTS = nav('reports', 'Reports & Export', 'Filter the report to the dates and records you need, review it and export the results. Dates and peso amounts appear in the report; exporting does not change a request.');
 
 const WINDOW1_STEPS = [PROFILE, SECURITY,

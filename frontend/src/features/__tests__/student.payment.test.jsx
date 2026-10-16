@@ -6,6 +6,8 @@ import * as documentsService from '@/services/documentsService';
 import * as referenceService from '@/services/referenceService';
 import { STATUS } from '@/utils/documentStatus';
 
+vi.mock('@/hooks/usePaymentSlip', () => ({default: () => ({template:null,qrSvg:''})}));
+
 vi.mock('@/services/documentsService', () => ({
   getDocuments: vi.fn(), getDashboardStats: vi.fn(),
   uploadDocument: vi.fn(), submitPayment: vi.fn(), cancelDocument: vi.fn(),
@@ -41,19 +43,17 @@ beforeEach(() => {
 describe('Student grouped payment', () => {
   it('offers one combined action with line items and removes document-row payment buttons', async () => {
     renderStudent();
-    expect(await screen.findByRole('button', { name: 'Pay ₱200.00 (2 documents)' })).toHaveClass('trace-button-warning');
+    expect(await screen.findByRole('button', { name: 'Pay ₱200.00 (2 documents)' })).toHaveClass('trace-button-primary');
     const heading = screen.getByRole('heading', { name: 'Action Required — Payment' });
-    expect(heading.parentElement).toHaveClass('bg-amber-50', 'dark:bg-amber-950', 'text-amber-900', 'dark:text-amber-200');
-    expect(heading.parentElement.parentElement).toHaveClass('border-amber-300', 'dark:border-amber-800');
-    expect(heading.parentElement).not.toHaveClass('bg-[#15803d]');
-    expect(heading.parentElement.querySelector('svg')).toHaveAttribute('aria-hidden', 'true');
+    expect(heading.closest('header')).toHaveClass('trace-payment-alert');
+    expect(heading.closest('header').querySelector('img')).toHaveAttribute('src', '/student-figma/payment-2107.svg');
     expect(screen.getAllByRole('button', { name: /^Pay / })).toHaveLength(1);
+    expect(screen.queryByRole('button', {name:'Open registrar support'})).not.toBeInTheDocument();
     const group = screen.getByRole('region', { name: 'Payment for request REQ-G1' });
-    const items = within(group).getAllByRole('listitem');
+    const items = within(within(group).getByRole('list', { name: 'Documents awaiting payment' })).getAllByRole('listitem');
     expect(items).toHaveLength(2);
     expect(items[0]).toHaveTextContent('Transcript of Records');
     expect(items[0]).toHaveTextContent('₱100.00');
-    expect(items[0].querySelector('span.font-mono')).toHaveClass('font-semibold', 'text-gray-900', 'dark:text-gray-100');
     expect(within(items[0]).getByRole('region', { name: 'Fee calculation' })).toHaveTextContent('1 copy × 1 page × ₱100.00');
     expect(items[1]).toHaveTextContent('Diploma');
     expect(items[1]).toHaveTextContent('₱100.00');
@@ -66,14 +66,14 @@ describe('Student grouped payment', () => {
     renderStudent();
     await screen.findByRole('button', { name: 'Pay ₱175.00 (2 documents)' });
     const group = screen.getByRole('region', { name: 'Payment for request REQ-G1' });
-    const [saved, historical] = within(group).getAllByRole('listitem');
+    const [saved, historical] = within(within(group).getByRole('list', { name: 'Documents awaiting payment' })).getAllByRole('listitem');
     expect(saved).toHaveTextContent('Transcript of Records');
     expect(within(saved).getByRole('region', { name: 'Fee calculation' })).toHaveTextContent('1 copy × 1 page × ₱100.00');
     expect(historical).toHaveTextContent(longName);
     expect(historical).toHaveTextContent('Recorded charge: ₱75.00. Detailed calculation was not saved for this older record.');
     expect(historical).not.toHaveTextContent('Printed pages');
-    expect(group).toHaveTextContent('Total amount due: ₱175.00');
-    expect(within(saved).queryByRole('button')).not.toBeInTheDocument();
+    expect(within(group).getByRole('complementary', {name:'Amount due'})).toHaveTextContent('₱175.00');
+    expect(within(saved).getByRole('button', {name:'Copy request REQ-G1'})).toBeInTheDocument();
     expect(within(historical).queryByRole('button')).not.toBeInTheDocument();
     expect(documentsService.submitPayment).not.toHaveBeenCalled();
   });
@@ -87,9 +87,10 @@ describe('Student grouped payment', () => {
     for (const [id, total] of [['REQ-G1', '₱200.00'], ['REQ-G2', '₱50.00']]) {
       const group = screen.getByRole('region', { name: `Payment for request ${id}` });
       const pay = within(group).getByRole('button', { name: /^Pay / });
-      const charges = within(group).getByRole('list');
-      const totalLabel = within(group).getByText(`Total amount due: ${total}`);
+      const charges = within(group).getByRole('list', {name:'Documents awaiting payment'});
+      const totalLabel = within(group).getByRole('complementary', {name:'Amount due'}).querySelector('.trace-payment-amount');
       expect(charges.compareDocumentPosition(totalLabel) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+      expect(totalLabel).toHaveTextContent(total);
       expect(totalLabel.compareDocumentPosition(pay) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
       expect(charges).toHaveTextContent('₱');
     }
@@ -173,4 +174,15 @@ it.each([
   expect(screen.queryByRole('heading', { name: 'Action Required — Payment' })).not.toBeInTheDocument();
   expect(screen.queryByRole('button', { name: /^Pay / })).not.toBeInTheDocument();
   expect(documentsService.submitPayment).not.toHaveBeenCalled();
+});
+
+
+it('opens the existing grouped slip preview without charging the request',async()=>{
+  renderStudent();
+  fireEvent.click(await screen.findByRole('button',{name:'Download payment slip'}));
+  expect(screen.getByRole('button',{name:'Print Slip'})).toBeInTheDocument();
+  expect(screen.getAllByText('Ana Reyes').length).toBeGreaterThan(0);
+  expect(documentsService.submitPayment).not.toHaveBeenCalled();
+  fireEvent.click(screen.getAllByRole('button',{name:'Close',exact:true}).at(-1));
+  expect(screen.queryByRole('button',{name:'Print Slip'})).not.toBeInTheDocument();
 });

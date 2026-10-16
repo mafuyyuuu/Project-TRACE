@@ -1,5 +1,6 @@
+import EmailText from '@/components/EmailText';
+import PaginatedTable from '@/components/PaginatedTable';
 import FilterSelect from '@/components/FilterSelect';
-import { useState } from 'react';
 import Button from '@/components/Button';
 import UserAvatar from '@/components/UserAvatar';
 import AdminIcon from './AdminIcon';
@@ -7,9 +8,7 @@ import { getUserLabel } from '@/utils/userLabels';
 
 /** Figma's account directory, using the caller's existing filters and actions. */
 export default function AccountDirectory({ users, totalCount, onSelectUser, roleFilter, onRoleFilterChange, roleOptions, deskFilter, onDeskFilterChange, deskOptions, onAddUser }) {
-  const [expanded, setExpanded] = useState(false);
-  const visible = expanded ? users : users.slice(0, 6);
-  const more = expanded ? [] : users.slice(6, 9);
+  const visible = users;
   return (
     <section className="trace-section trace-admin-directory overflow-hidden" aria-label="Accounts">
       <div className="trace-section-header">
@@ -25,14 +24,14 @@ export default function AccountDirectory({ users, totalCount, onSelectUser, role
         </div>
       </div>
       <div className="trace-table-scroll" role="region" aria-label="Account directory table" tabIndex={0}>
-        <table className="trace-data-table min-w-[55rem]">
+        <PaginatedTable label="accounts" className="trace-data-table min-w-[55rem]">
           <colgroup>{['w-[38%]', 'w-[15%]', 'w-[18%]', 'w-[11%]', 'w-[14%]', 'w-[4%]'].map((width, index) => <col key={index} className={width} />)}</colgroup>
           <thead><tr>{['Account', 'Account ID', 'Role / Desk', 'Status', 'Verification', ''].map((label, index) => <th key={index} scope="col">{label || <span className="sr-only">Actions</span>}</th>)}</tr></thead>
           <tbody>
             {visible.map(account => <tr key={account.id}>
               <td><Button type="button" data-testid="user-card" data-user-id={account.id} className="trace-action flex w-full min-w-0 items-center gap-3 text-left" onClick={() => onSelectUser(account)}>
                 <UserAvatar user={account} className="h-10 w-10 shrink-0 rounded-full object-cover" alt="" />
-                <span className="min-w-0"><span className="block font-semibold text-trace-ink dark:text-gray-100">{account.full_name}</span><span className="trace-admin-caption block break-words">{account.email || '—'}</span></span>
+                <span className="min-w-0"><span className="block font-semibold text-trace-ink dark:text-gray-100">{account.full_name}</span><span className="trace-admin-caption block break-words"><EmailText value={account.email} /></span></span>
               </Button></td>
               <td className="font-mono text-xs text-gray-500 dark:text-gray-400">{account.student_id || '—'}</td>
               <td><span className="block">{getUserLabel(account)}</span>{account.desk_assignment && <span className="trace-admin-caption block">{account.desk_assignment}</span>}</td>
@@ -42,14 +41,8 @@ export default function AccountDirectory({ users, totalCount, onSelectUser, role
             </tr>)}
             {!visible.length && <tr><td colSpan={6} className="py-10 text-center text-gray-500 dark:text-gray-400">No users match your filters.</td></tr>}
           </tbody>
-        </table>
+        </PaginatedTable>
       </div>
-      {more.length > 0 && <div className="trace-admin-directory-more"><p className="trace-admin-caption mb-2">More accounts</p><div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        {more.map(account => <Button type="button" key={account.id} className="trace-action flex min-w-0 items-center gap-2 text-left" onClick={() => onSelectUser(account)}>
-          <UserAvatar user={account} className="h-8 w-8 shrink-0 rounded-full object-cover" alt="" /><span className="min-w-0"><span className="block text-xs font-medium">{account.full_name}</span><span className="trace-admin-caption block font-mono">{account.student_id || '—'}</span></span>
-        </Button>)}
-      </div></div>}
-      <div className="trace-admin-directory-footer"><p className="trace-admin-caption">Manage account details and availability.</p>{users.length > 6 && <Button type="button" className="trace-action flex items-center gap-1.5 text-xs font-semibold text-trace-emerald dark:text-green-300" onClick={() => setExpanded(value => !value)}>{expanded ? 'Show fewer accounts' : `View all ${users.length} accounts`} <AdminIcon name="arrow-right" /></Button>}</div>
     </section>
   );
 }

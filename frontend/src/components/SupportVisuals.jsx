@@ -1,3 +1,4 @@
+import { assetIconTone } from '@/utils/assetIconTone';
 import Button from '@/components/Button';
 import { SUPPORT_STATES, ticketInitials, supportDay, supportTime } from '@/utils/supportPresentation';
 import empty from '@/assets/support/empty-conversation.png';
@@ -14,7 +15,7 @@ import sendCompact from '@/assets/support/send-compact.svg';
 import paperclip from '@/assets/support/paperclip.svg';
 const icons = { support, close, chevron, plus, warning, search, ticket, send, sendCompact, clock, paperclip };
 // Keep the exported icons' intrinsic width/height; never stretch their viewBox.
-export function SupportIcon({ name }) { return <img aria-hidden="true" alt="" src={icons[name]} className="shrink-0" />; }
+export function SupportIcon({ name }) { return <img aria-hidden="true" alt="" src={icons[name]} data-icon-tone={assetIconTone(icons[name])} className="shrink-0" />; }
 export function TicketAvatar({ ticket }) { return <span aria-hidden="true" className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-green-100 text-sm font-bold text-green-900 dark:bg-green-900 dark:text-green-100">{ticketInitials(ticket)}</span>; }
 export function SupportTicketRow({ ticket, selected, onSelect }) {
   const date = ticket.updated_at || ticket.created_at;

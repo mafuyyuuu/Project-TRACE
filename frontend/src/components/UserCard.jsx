@@ -1,3 +1,4 @@
+import EmailText from '@/components/EmailText';
 import Button from '@/components/Button';
 import UserAvatar from '@/components/UserAvatar';
 import { getUserLabel } from '@/utils/userLabels';
@@ -53,7 +54,7 @@ export default function UserCard({ user, onClick }) {
           <div className="text-xs font-mono text-gray-400 dark:text-gray-400 truncate select-text break-words">{user.student_id || '—'}</div>
         </div>
       </div>
-      <div className="text-xs text-gray-500 dark:text-gray-400 truncate select-text break-words">{user.email || '—'}</div>
+      <div className="text-xs text-gray-500 dark:text-gray-400 truncate select-text break-words"><EmailText value={user.email} /></div>
       <div className="flex flex-wrap gap-1.5">
         <span className="text-[10px] font-bold px-2.5 py-1 rounded-full border bg-gray-50 dark:bg-gray-800 text-gray-600 dark:text-gray-300 border-gray-200 dark:border-gray-700">
           {getUserLabel(user)}

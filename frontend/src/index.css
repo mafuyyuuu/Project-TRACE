@@ -713,7 +713,7 @@ body:has(.trace-admin-shell) .trace-admin-student-information .trace-modal-heade
   .trace-admin-catalog-panel form.trace-form-grid { @apply grid-cols-[minmax(0,1fr)_minmax(0,1.5fr)_auto]; }
   .trace-admin-catalog-panel form.trace-form-grid > div { @apply col-span-1 self-end; }
 }
-body:has(.trace-admin-shell) .trace-admin-preferences .trace-modal-header { @apply pb-2.5; }
+body .trace-admin-preferences .trace-modal-header { @apply pb-2.5; }
 @media (min-width: 768px) {
   body:has(.trace-admin-shell) .trace-admin-edit-profile .trace-profile-header { @apply max-h-none; }
 }
@@ -767,7 +767,7 @@ body:has(.trace-admin-shell) .trace-admin-drawer .trace-modal-body { @apply bg-t
 .trace-admin-icon-active { filter: brightness(0) invert(1); }
 .trace-admin-shell .trace-desktop-rail .trace-admin-icon:not(.trace-admin-icon-active) { filter: brightness(0); opacity: 0.55; }
 .trace-admin-shell .trace-desktop-rail button[aria-label="Logout"] .trace-admin-icon { filter: none; opacity: 1; }
-.dark .trace-admin-shell .trace-admin-icon:not(.trace-admin-icon-active) { filter: brightness(0) invert(1); opacity: 0.8; }
+.dark .trace-admin-shell .trace-admin-icon:not(.trace-admin-icon-active):not([data-icon-tone]) { filter: brightness(0) invert(1); opacity: 0.8; }
 .dark .trace-admin-shell button[aria-label="Logout"] .trace-admin-icon { filter: none; opacity: 1; }
 
 .trace-admin-insights article[data-insight-tone="info"] { @apply shrink-0 border-trace-sage/30 bg-[#f5fbf7] text-trace-ink dark:border-green-800 dark:bg-green-950 dark:text-gray-100; }
@@ -915,8 +915,8 @@ body:has(.trace-admin-shell) .trace-admin-forecast .trace-modal-body { padding-t
 .trace-admin-forecast-days > div:first-child > div:last-child,
 .trace-admin-forecast-days > div:last-child > div:nth-child(2) { color: #168f55; }
 .trace-admin-forecast-days > div:last-child > div:nth-child(2) { border: 1px solid #168f55; background: #e8f5ee; }
-body:has(.trace-admin-shell) .trace-admin-preferences { min-height: min(663px,90dvh); }
-body:has(.trace-admin-shell) .trace-admin-preferences .trace-control { width: 100%; }
+body .trace-admin-preferences { min-height: min(663px,90dvh); }
+body .trace-admin-preferences .trace-control { width: 100%; }
 body:has(.trace-admin-shell) .trace-admin-edit-profile .trace-modal-footer { background: white; }
 .dark body:has(.trace-admin-shell) .trace-admin-edit-profile .trace-modal-footer { background: #111827; }
 body:has(.trace-admin-shell) .trace-admin-security-card-heading h3 { font-size: .875rem; }
@@ -944,9 +944,9 @@ body:has(.trace-admin-shell) .trace-admin-security-card-heading h3 { font-size: 
 
 .trace-admin-preferences-heading { display: flex; align-items: flex-start; gap: 12px; }
 .trace-admin-preferences-heading > div { flex: 1; min-width: 0; }
-body:has(.trace-admin-shell) .trace-admin-preferences-heading .trace-label { font-size: .9375rem; }
+body .trace-admin-preferences-heading .trace-label { font-size: .9375rem; }
 .trace-admin-preferences-heading p { margin-top: 3px; font-size: .8125rem; line-height: 1.3; }
-body:has(.trace-admin-shell) .trace-admin-preferences .trace-modal-body { padding: 8px 24px 24px; }
+body .trace-admin-preferences .trace-modal-body { padding: 8px 24px 24px; }
 body:has(.trace-admin-shell) .trace-admin-edit-user { min-height: min(574px,90dvh); }
 body:has(.trace-admin-shell) .trace-admin-profile-security .trace-admin-input-with-icon .trace-control { margin-top: 0; }
 .trace-admin-college-options { align-content: start; }
@@ -976,9 +976,9 @@ body:has(.trace-admin-shell) .trace-admin-profile-security .trace-admin-guidance
 .dark body:has(.trace-admin-shell) .trace-admin-profile-security .trace-modal-body > .trace-section-body { background: #111827; }
 .dark body:has(.trace-admin-shell) .trace-admin-profile-security .trace-label,
 .dark body:has(.trace-admin-shell) .trace-admin-profile-security .trace-admin-guidance { color: #f3f4f6; }
-body:has(.trace-admin-shell) .trace-admin-preferences .trace-modal-header { padding: 22px 80px 10px 24px; }
-body:has(.trace-admin-shell) .trace-admin-preferences .trace-modal-footer { min-height: 130px; padding: 14px 24px; }
-body:has(.trace-admin-shell) .trace-admin-preferences > .trace-icon-button,
+body .trace-admin-preferences .trace-modal-header { padding: 22px 80px 10px 24px; }
+body .trace-admin-preferences .trace-modal-footer { min-height: 130px; padding: 14px 24px; }
+body .trace-admin-preferences > .trace-icon-button,
 body:has(.trace-admin-shell) .trace-admin-edit-profile > .trace-icon-button,
 body:has(.trace-admin-shell) .trace-admin-add-staff > .trace-icon-button,
 body:has(.trace-admin-shell) .trace-admin-edit-user > .trace-icon-button { border-color: transparent; background: transparent; }
@@ -1627,7 +1627,7 @@ body:has(.trace-window-shell) :is(.trace-window-staff,.trace-window-internal) te
 .trace-window-empty-conversation p { @apply max-w-sm text-xs leading-relaxed text-gray-500 dark:text-gray-400; }
 .trace-window-empty-icon { @apply flex h-[72px] w-[72px] items-center justify-center rounded-full bg-emerald-50 dark:bg-green-950; }
 .trace-window-empty-icon img { @apply h-7 w-7; }
-.dark .trace-window-icon { filter: brightness(1.4); }
+.dark .trace-window-icon:not([data-icon-tone]) { filter: brightness(1.4); }
 @media (min-width: 1280px) {
  .trace-window-shell .trace-page-title { @apply text-[2.5rem]; }
  .trace-window-queue .trace-section-header > div { @apply basis-auto; }
@@ -1747,7 +1747,7 @@ body:has(.trace-window-shell) .trace-window-intake .trace-modal-body { @apply pt
 .trace-window-manual #manual-input-form > div:first-child .trace-window-form-grid { grid-template-columns: minmax(0,1.47fr) minmax(0,1fr) minmax(0,1fr); }
 @media (min-width:1280px) {
  .trace-window-shell :is(.trace-page,.trace-admin-more-page) .trace-page-title, .trace-window-shell .trace-window-support-heading .trace-page-title { @apply text-[2.5rem] font-medium; }
- :root:not([data-trace-text-size]), :root[data-trace-text-size="100"] { .trace-window-shell .trace-window-queue { height: 472px; } .trace-window-shell .trace-window-tracking { height: 724px; } }
+ :root:not([data-trace-text-size]), :root[data-trace-text-size="100"] { .trace-window-shell .trace-window-queue { height: auto; } .trace-window-shell .trace-window-tracking { height: auto; } }
 }
 @media (max-width:639px) {
  .trace-window-manual #manual-input-form > div:first-child .trace-window-form-grid { grid-template-columns: minmax(0,1fr); }
@@ -1768,3 +1768,108 @@ body:has(.trace-window-shell) .trace-window-intake .trace-modal-body { @apply pt
 .trace-window-shell [aria-label="Internal assistance workspace"] > header { justify-content: flex-end; }
 /* Content-sized ticket rows must not inherit the scroll area's height. */
 .trace-support-ticket > .trace-button-visual { height: auto; align-items: flex-start; }
+
+/* October 16: shared controls and the reported review corrections. */
+@layer base {
+  :where(button, a[href], summary, select, input[type='file'], input[type='checkbox'], input[type='radio'], input[type='range'], [role='button'], [role='tab'], [role='switch'], label[for]):not(:disabled):not([aria-disabled='true']) { cursor: pointer; }
+  :where(button, input, select, textarea):disabled, [aria-disabled='true'] { cursor: not-allowed; }
+  .trace-control-inverse:-webkit-autofill { -webkit-text-fill-color: white; box-shadow: 0 0 0 1000px #166534 inset; caret-color: white; }
+}
+.trace-file-picker { @apply flex min-w-0 flex-wrap items-center gap-3; }
+.trace-file-trigger { @apply inline-flex min-h-11 shrink-0 items-center rounded-lg bg-green-50 px-4 py-3 text-sm font-semibold text-green-800 hover:bg-green-100 dark:bg-green-950 dark:text-green-200 dark:hover:bg-green-900; }
+.trace-file-picker:has(input:focus-visible) .trace-file-trigger { @apply outline-2 outline-offset-2 outline-pine-600 dark:outline-green-400; }
+.trace-file-picker:has(input:disabled) { @apply opacity-60; }
+.trace-file-picker:has(input:disabled) .trace-file-trigger { cursor: not-allowed; pointer-events: none; }
+.trace-pagination { @apply flex min-w-0 flex-wrap items-center justify-between gap-3 border-t border-gray-100 px-4 py-3 text-xs text-gray-600 dark:border-gray-700 dark:text-gray-300; }
+.trace-pagination .trace-button { @apply min-h-11 px-3 py-2; }
+/* Give adornments the field's focus boundary; never draw an inner-only ring. */
+:is(.trace-admin-money-input,.trace-admin-input-with-unit,.trace-admin-input-with-icon,.trace-admin-password-input,.trace-admin-email-field,.trace-student-profile-input,.trace-student-request-link,.trace-admin-search,.trace-admin-manual-search):has(input:focus-visible,select:focus-visible,textarea:focus-visible) { @apply outline-2 outline-offset-2 outline-pine-600 dark:outline-green-400; }
+:is(.trace-admin-money-input,.trace-admin-input-with-unit,.trace-admin-input-with-icon,.trace-admin-password-input,.trace-admin-email-field,.trace-student-profile-input,.trace-student-request-link,.trace-admin-search,.trace-admin-manual-search) :is(input,select,textarea):focus-visible { outline: none; box-shadow: none; }
+:is(.trace-admin-money-input,.trace-admin-input-with-unit,.trace-admin-input-with-icon,.trace-admin-email-field,.trace-student-profile-input):has([aria-invalid='true']) { @apply border-red-600 outline-red-600 dark:border-red-400 dark:outline-red-400; }
+
+/* One Preferences presentation for all roles, including portaled dialogs. */
+body .trace-modal-panel.trace-admin-preferences { @apply rounded-2xl; }
+body .trace-admin-preferences .trace-modal-title { @apply text-xl font-semibold leading-normal; }
+body .trace-admin-preferences .trace-label { @apply text-[.9375rem] font-semibold; }
+body .trace-admin-preferences .trace-button { @apply min-h-11 px-5 py-2.5 text-sm; }
+body .trace-admin-preferences .trace-modal-footer { @apply border-t border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-900; }
+body .trace-admin-preferences > .trace-icon-button { @apply rounded-lg border-0 bg-transparent; }
+
+/* Keep manual chrome in view. Only the answers consume the remaining height. */
+.trace-content:has(.trace-admin-manual) { overflow: hidden; }
+.trace-admin-manual.trace-page { @apply flex h-full min-h-0 flex-col gap-4 space-y-0; }
+.trace-admin-manual > :not(.trace-manual-layout) { flex-shrink: 0; }
+.trace-manual-layout { @apply grid min-h-0 min-w-0 flex-1 grid-cols-1 gap-4 lg:grid-cols-[260px_minmax(0,1fr)]; grid-template-rows: auto minmax(0,1fr); }
+.trace-manual-layout > aside { @apply min-h-0 overflow-auto; }
+.trace-manual-questions { @apply min-h-0 min-w-0 space-y-6 overflow-y-auto overscroll-contain pb-1; }
+.trace-admin-manual-search .trace-control { @apply border-0 bg-transparent shadow-none; }
+.dark .trace-admin-manual-search { @apply border-gray-700 bg-gray-900; }
+.dark .trace-admin-manual-chevron { @apply bg-gray-700; }
+.dark .trace-admin-manual details[open] .trace-admin-manual-chevron { @apply bg-green-950; }
+@media (min-width: 1024px) { .trace-manual-layout { grid-template-rows: minmax(0,1fr); } .trace-manual-layout > aside { align-self: start; max-height: 100%; } }
+@media (max-width: 1023px) {
+ .trace-manual-layout > aside { max-height: 110px; }
+ .trace-manual-layout > aside > div { @apply flex flex-wrap gap-2 space-y-0; }
+ .trace-manual-layout > aside .trace-action { @apply w-auto; }
+}
+/* Cards and empty queues fit their content; the shell itself fills the screen. */
+.trace-student-requests, .trace-window-queue, .trace-window-tracking { min-height: 0; }
+.trace-admin-shell .trace-admin-document-types { min-height: 0; }
+.trace-window-table-scroll { flex: none; }
+
+/* Original payment frame 2495:2103; wrap live content instead of fixed mock dimensions. */
+.trace-student-payment-card { @apply min-w-0 overflow-hidden rounded-[24px] border-[1.5px] border-[#f5e3a8] bg-white dark:border-amber-800 dark:bg-gray-900; box-shadow: 0 6px 20px -4px rgb(161 74 0 / .1); }
+.trace-payment-alert { @apply flex min-w-0 flex-wrap items-center justify-between gap-4 border-b border-[#f5e3a8] bg-[#fffae9] px-6 py-4 dark:border-amber-800 dark:bg-amber-950; }
+.trace-payment-alert h3 { @apply text-[.8125rem] font-black uppercase tracking-[.8px] text-[#a04b00] dark:text-amber-200; }
+.trace-payment-alert p { @apply mt-[3px] text-[.8125rem] text-[#7c5a1a] dark:text-amber-100; }
+.trace-payment-alert-icon { @apply flex size-[40px] shrink-0 items-center justify-center rounded-full bg-[#fdeab0] dark:bg-amber-200; }
+.trace-payment-steps { @apply flex min-w-0 flex-wrap items-center gap-2 text-[.6875rem] font-semibold text-gray-800 dark:text-gray-200; }
+.trace-payment-steps li { @apply flex items-center gap-[6px]; }
+.trace-payment-steps li + li::before { content: ''; @apply mr-0.5 h-[2px] w-[24px] rounded-full bg-trace-emerald; }
+.trace-payment-steps li:last-child::before { @apply bg-[#e6d9a8]; }
+.trace-payment-steps li[aria-current] { @apply font-bold text-[#a04b00] dark:text-amber-200; }
+.trace-payment-steps li:last-child { @apply text-[#756632] dark:text-amber-200; }
+.trace-payment-step-done { @apply flex size-[20px] items-center justify-center rounded-full bg-trace-emerald; }
+.trace-payment-step-future { @apply size-[20px] rounded-full border-[1.5px] border-[#d9c88f] dark:border-amber-300; }
+.trace-payment-body { @apply grid min-w-0 grid-cols-1 items-stretch gap-[24px] p-[24px] xl:grid-cols-[minmax(0,1fr)_340px]; }
+.trace-payment-summary { @apply min-w-0 rounded-[18px] border border-[#e5ebed] bg-[#fbfcfb] px-[22px] py-[20px] dark:border-gray-700 dark:bg-gray-800; }
+.trace-payment-document { @apply flex min-w-0 flex-wrap items-center gap-[14px] border-b border-[#e5ebed] pb-4 dark:border-gray-700; }
+.trace-payment-document h4 { @apply mt-1 text-base font-semibold text-trace-ink dark:text-gray-100; }
+.trace-payment-document-icon { @apply flex size-[44px] shrink-0 items-center justify-center rounded-[14px] bg-[#eaf5ee] dark:bg-green-950; }
+.trace-payment-label { @apply text-[.625rem] font-semibold uppercase tracking-[.7px] text-slate-500 dark:text-gray-300; }
+.trace-payment-request { @apply flex min-w-0 flex-wrap items-center gap-[6px] rounded-lg bg-slate-100 px-2.5 text-[.6875rem] text-slate-600 dark:bg-gray-900 dark:text-gray-300; }
+.trace-payment-count { @apply inline-flex max-w-full items-center gap-[5px] rounded-full bg-[#e8f3ec] px-[9px] py-[3px] text-[.625rem] font-semibold text-[#006b3b] dark:bg-green-950 dark:text-green-200; }
+.trace-payment-breakdown { @apply space-y-4 pt-4 text-sm text-trace-ink dark:text-gray-100; }
+.trace-payment-breakdown header { @apply flex flex-wrap items-center gap-2.5 border-b border-[#e5ebed] pb-4 dark:border-gray-700; }
+.trace-payment-breakdown dl { @apply space-y-3; }
+.trace-payment-breakdown dl > div { @apply flex min-w-0 flex-wrap items-center justify-between gap-3; }
+.trace-payment-total { @apply flex min-w-0 flex-col gap-3 rounded-[20px] border border-[#cfe8da] bg-[#f6fcf8] p-[24px] dark:border-green-800 dark:bg-green-950/40; }
+.trace-payment-amount { @apply break-words text-[2.75rem] font-bold leading-tight tracking-tight text-trace-ink dark:text-gray-100; }
+.trace-student-shell .trace-payment-pay, .trace-payment-pay { @apply min-h-[54px] w-full gap-2.5 rounded-[14px] text-base font-bold; }
+.trace-student-shell .trace-payment-slip, .trace-payment-slip { @apply min-h-[44px] w-full gap-2 rounded-[14px] text-[.8125rem] font-semibold; }
+.dark .trace-payment-icon-file, .dark .trace-payment-breakdown img { filter: brightness(1.6); }
+.dark .trace-payment-icon-copy, .dark .trace-payment-icon-download { filter: brightness(0) invert(1); }
+@media (max-width: 639px) { .trace-payment-body { padding: 16px; gap: 16px; } .trace-payment-alert { padding: 16px; } .trace-payment-summary { padding: 16px; } }
+
+/* Preserve semantic icon hues while lifting them off dark surfaces. Inverse artwork
+   stays white on its filled action; pale dark-mode badges get matching dark fills. */
+.dark [data-icon-tone="neutral"] { filter: brightness(0) invert(1); opacity: .85; }
+.dark [data-icon-tone="positive"], .dark [data-icon-tone="warning"], .dark [data-icon-tone="danger"], .dark [data-icon-tone="info"] { filter: brightness(1.6); }
+.dark :is(.trace-admin-icon-active,.trace-student-nav-active), .dark .trace-button-primary [data-icon-tone], .dark .trace-admin-theme-radio-selected [data-icon-tone] { filter: brightness(0) invert(1); opacity: 1; }
+.dark :is(.trace-admin-analytics-metric-icon,.trace-admin-kpi-icon,.trace-student-kpi-icon,.trace-student-document-icon,.trace-window-document-icon) { background-color: #173b2b; }
+.dark :is(.trace-admin-analytics-icon-warn,.trace-admin-kpi-icon-warn) { background-color: #4d2b0b; }
+.dark .trace-admin-analytics-icon-neutral { background-color: #374151; }
+.trace-payment-summary { min-height: 284px; }
+.trace-payment-total { align-self: start; min-height: 284px; }
+
+input[type="email"] { text-transform: lowercase; }
+/* Rail rules deliberately neutralize source colors in light mode. Restore visible
+   dark-mode navigation after those more specific selectors, keeping Logout red. */
+.dark .trace-admin-shell .trace-desktop-rail .trace-admin-icon:not(.trace-admin-icon-active) { filter: brightness(0) invert(1); opacity: .85; }
+.dark .trace-admin-shell .trace-desktop-rail button[aria-label="Logout"] .trace-admin-icon { filter: brightness(1.4); opacity: 1; }
+.dark .trace-student-shell .trace-nav-item:not([aria-current='page']) img[src*='home-bab9e'] { filter: brightness(0) invert(1); opacity: .85; }
+@layer base {
+ label:has(input:not(:disabled),select:not(:disabled),textarea:not(:disabled)) { cursor: pointer; }
+}
+body .trace-modal-panel.trace-admin-preferences { font-family: 'TRACE Admin Inter', Inter, sans-serif; }
+body .trace-admin-preferences .trace-modal-header { border-bottom: 0; }

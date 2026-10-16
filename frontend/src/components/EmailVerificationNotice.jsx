@@ -1,3 +1,4 @@
+import EmailText from '@/components/EmailText';
 import Button from '@/components/Button';
 import StudentIcon from '@/features/student/components/StudentIcon';
 import AdminIcon from '@/features/admin/components/AdminIcon';
@@ -11,7 +12,7 @@ export default function EmailVerificationNotice({ user, email = '', pendingEmail
         : <Button type="button" disabled={disabled || sending || !email.trim()} onClick={onVerify}
           className="trace-button trace-button-primary shrink-0">{sending ? 'Sending…' : 'Verify'}</Button>}
     </div>
-    {pendingEmail && <p className="text-sm break-words">Awaiting verification: <span className="select-text break-all">{pendingEmail}</span>. Your current address stays active until you open the link. Use Verify to resend.</p>}
+    {pendingEmail && <p className="text-sm break-words">Awaiting verification: <EmailText value={pendingEmail} />. Your current address stays active until you open the link. Use Verify to resend.</p>}
     {!verified && <>
       <p className={admin ? 'trace-admin-guidance' : 'text-xs break-words'}>{admin && <AdminIcon name="profile-info" />}{admin ? 'Verify your email. The link expires in 1 hour, so check your spam folder if it doesn’t arrive.' : <>{user?.role === 'student' ? 'Verify your email to make requests or payments.' : 'Verify your email.'} Link expires in 1 hour; check spam.</>}</p>
       <details className="text-xs break-words">

@@ -1,3 +1,5 @@
+import { formatDateTime, formatEventLabel } from '@/utils/formatters';
+import PaginatedTable from '@/components/PaginatedTable';
 import { isWindowClerk } from '@/utils/windowPresentation';
 import AdminProfileSecurity from '@/features/admin/components/AdminProfileSecurity';
 import AdminIcon from '@/features/admin/components/AdminIcon';
@@ -361,7 +363,7 @@ export default function ProfileSettingsModal({
                 <div hidden={isAdmin && !showSecurityActivity} className="flex justify-center my-4">
                   
                 <div className="mt-4 border border-gray-100 dark:border-gray-700 rounded-xl overflow-hidden">
-                  <table className="w-full text-left text-xs">
+                  <PaginatedTable label="security events" className="w-full text-left text-xs">
                     <thead className="bg-gray-50 dark:bg-gray-800 text-gray-500 dark:text-gray-400 font-bold uppercase tracking-wider">
                       <tr>
                         <th className="px-4 py-2">Date</th>
@@ -373,16 +375,16 @@ export default function ProfileSettingsModal({
                       {securityLogs.length === 0 ? (
                         <tr><td colSpan="3" className="px-4 py-4 text-center text-gray-500 dark:text-gray-400">No recent activity</td></tr>
                       ) : (
-                        securityLogs.slice(0, 5).map((log, i) => (
+                        securityLogs.map((log, i) => (
                           <tr key={i} className="hover:bg-gray-50 dark:hover:bg-gray-800">
-                            <td className="px-4 py-2 text-gray-500 dark:text-gray-400">{new Date(log.created_at).toLocaleString()}</td>
-                            <td className="px-4 py-2 font-bold text-gray-700 dark:text-gray-300">{log.event_type}</td>
+                            <td className="px-4 py-2 text-gray-500 dark:text-gray-400">{formatDateTime(log.created_at)}</td>
+                            <td className="px-4 py-2 font-bold text-gray-700 dark:text-gray-300">{formatEventLabel(log.event_type)}</td>
                             <td className="px-4 py-2 text-gray-500 dark:text-gray-400">{log.ip_address || 'Unknown'}</td>
                           </tr>
                         ))
                       )}
                     </tbody>
-                  </table>
+                  </PaginatedTable>
                 </div>
 
                 </div>

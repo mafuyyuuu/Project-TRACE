@@ -44,7 +44,7 @@ The [Student section](https://www.figma.com/design/eQNaLBPXQSojI6lOK60Api/TRACE-
 | Figma frame | View / state | Implementation |
 |---|---|---|
 | `2283:1296` | Student Dashboard | StudentWelcome / StudentOverview |
-| `2313:1577` | Dashboard with chat open | FloatingSupportChat / SupportWorkspace |
+| `2313:1577` | Dashboard with chat open | Source reference only: user removed the floating launcher October 16; use Support |
 | `2317:1307` | Support tickets modal | SupportWorkspace ticket list |
 | `2317:1359` | New Support Ticket | SupportWorkspace create form |
 | `2321:1277` | New Request | NewRequestModal |
@@ -255,7 +255,7 @@ Button actions use components/Button.jsx with the existing semantic variant clas
 
 Secretary records use the shared ReportsPanel rather than a second completed-log table. Keep the Main navigation label **Records & Export**, the old completed-logs tab as a Secretary-cleared alias, and its navigation highlight on the canonical reports destination. Record-view toggles are a named native-button group with aria-pressed, wrapping at enlarged text sizes; choosing a status clears the multi-status preset. Retain all eight report columns, student-profile action and document request labels, and use actual shared status badges rather than a constant Approved badge. Filters, summaries, records and document CSVs share one server-enforced assigned-college scope; student-category exports also stay within that college. No assignment means no records or export access. The API must derive the scope from the stored account, never client-supplied college parameters.
 
-Student's Action Required — Payment card uses an amber-300/amber-800 border and amber-50/amber-950 header with amber-900/amber-200 text/icons. Its Pay action uses the shared trace-button-warning variant. This is a pending action, so it must not inherit the branding/success green. Keep the warning icon decorative beside the explicit heading. Document name/amount lines wrap, and saved fee calculations occupy a full-width row so enlarged text does not clip. Eligibility still comes from the existing pending-payment state; styling must not introduce or alter payment transitions.
+Student's Action Required — Payment card follows the updated source frame `2495:2103`: amber alert band/stepper, saved itemized summary and sage amount-due panel with primary Pay and secondary slip-preview actions. The warning band remains amber; Pay follows the source green. Render one card per existing billable request group, preserve all saved calculations/legacy fallback descriptions, and keep non-pending records ineligible. Wrap live text and groups on small/enlarged screens; no mock prices or new payment transitions.
 
 Each student payment request group reads Request ID → itemized charges/saved calculations → total amount due → Pay. Keep this as real DOM order, never CSS order reversal or positive tabIndex. The grouped amber Pay button sits in a wrapping right-aligned footer and may fill the available width on phones. Preserve the existing representative document and group total when opening checkout.
 
@@ -291,3 +291,14 @@ The additional staff workspace follows the main Figma messaging frame (260:3301)
 Back to Login sits at the viewport’s upper-left edge rather than aligning with the centered form card. Both the header and link have transparent backgrounds with no bar border. Below 768 px the header stays in normal document flow and scrolls away; at 768 px and above it remains sticky. Retain the safe-area top inset, a minimum 44 px hit target and light/dark colors. The transparent container passes pointer events through to the form; the link remains clickable. Do not constrain this header to the card’s maximum width.
 
 Validation: 17 existing registration/branding tests, lint, production/PWA build and whitespace checks pass. 65 browser checks cover student/alumni signup at top/bottom, 320/375/768/1440 px, 100/200% text and both themes, including transparent header/link backgrounds, mobile scroll-away behavior, desktop sticky positioning and Back to Login navigation. Screenshots use synthetic catalog data: [desktop](signup-header-desktop-review.png), [mobile](signup-header-mobile-review.png). No backend, database or validation changes.
+
+
+## October 16 shared review corrections
+
+Preferences uses the Admin design for all roles and portals, including Light/Dark selection, preview, auto-save guidance and Done. Phone dialogs center within the viewport with internal body scrolling. FileUploadField owns a keyboard-accessible trigger and controlled filename; replacing/cancelling preserves draft validation. Compound input wrappers own focus. Use EmailText and shared Manila date/event/peso formatting for account, audit, message and notification surfaces; user-authored conversation text is unchanged. Exported icons keep intrinsic dimensions and derive theme treatment from source paint metadata, preserving semantic hues and inverse glyphs.
+
+Local record tables use PaginatedTable/Pagination where paging was absent, including Student overview/history, Admin verification/accounts/catalogs, Secretary queues, Graduate review, profile security and support statistical lists. Existing paged tables and full-data exports remain unchanged. Only FAQ answers scroll within the manual; all roles reuse its role-aware layout. Dashboard trailing padding and fixed minimum/queue heights are removed so the final surface ends naturally.
+
+Student dashboard/history no longer mounts FloatingSupportChat. Tour guidance uses the Support navigation item. No Support workspace contains analytics actions or dialogs; only Admin Efficiency Analytics hosts SupportAnalytics and the API checks the current Admin role.
+
+Validation: 1,144 frontend tests / 117 suites and 1,737 backend tests / 130 suites pass, followed by 125 backend checks for maintenance/email and metrics. The 496 passing browser checks cover 320/375/768/1440 px, both themes and 100/200% text; they include shared Preferences font/geometry equality across five role views, centered dialogs, FAQ-only scrolling, missing pagination, grouped pay/slip actions, file feedback, whole-field focus, all nine original payment asset dimensions, and dark navigation visibility. Lint, production/PWA build and whitespace checks pass. [Synthetic visual review](trace-notes-review.png). These are local checks; no live migration, deployment, real payment or real message was performed.

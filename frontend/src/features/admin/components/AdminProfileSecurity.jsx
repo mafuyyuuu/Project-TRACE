@@ -1,3 +1,5 @@
+import { formatDateTime, formatEventLabel } from '@/utils/formatters';
+import PaginatedTable from '@/components/PaginatedTable';
 import Button from '@/components/Button';
 import AuthenticatorSettings from '@/components/AuthenticatorSettings';
 import AdminIcon from './AdminIcon';
@@ -52,11 +54,11 @@ export default function AdminProfileSecurity({ user, profileData, setField, show
     <section className="trace-section">
       <Heading icon="security-activity" title="Recent security activity" description="View your recent logins, password changes, and other security events."
         action={<Button type="button" aria-expanded={showActivity} onClick={onToggleActivity} className="trace-button trace-button-secondary">{showActivity ? 'Hide activity' : 'View activity'}</Button>} />
-      {showActivity && <div className="trace-table-scroll mt-4" role="region" aria-label="Recent security activity table" tabIndex={0}><table className="trace-data-table min-w-[24rem] text-xs">
+      {showActivity && <div className="trace-table-scroll mt-4" role="region" aria-label="Recent security activity table" tabIndex={0}><PaginatedTable label="security events" className="trace-data-table min-w-[24rem] text-xs">
         <thead><tr><th>Date</th><th>Event</th><th>IP</th></tr></thead><tbody>
           {!securityLogs.length && <tr><td colSpan={3} className="py-4 text-center">No recent activity</td></tr>}
-          {securityLogs.slice(0, 5).map((log, i) => <tr key={log.id || i}><td>{new Date(log.created_at).toLocaleString()}</td><td>{log.event_type}</td><td>{log.ip_address || 'Unknown'}</td></tr>)}
-        </tbody></table></div>}
+          {securityLogs.map((log, i) => <tr key={log.id || i}><td>{formatDateTime(log.created_at)}</td><td>{formatEventLabel(log.event_type)}</td><td>{log.ip_address || 'Unknown'}</td></tr>)}
+        </tbody></PaginatedTable></div>}
     </section>
   </div>;
 }

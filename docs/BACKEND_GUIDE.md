@@ -398,18 +398,18 @@ Ticket list/history use bounded ID cursors (20/50 rows). Requirement history has
 
 Multipart chat writes authorize before upload and validate at most 3 × 5 MB JPEG/PNG/PDF files by actual parser/decode, bounded workers and queue, before transactional acceptance. Failed/duplicate files are removed; accepted files are random-named, private/no-store/nosniff and scoped to the ticket. Case requirements retain their separate 10 MB allowance. Content parsing is not antivirus scanning.
 
-Metrics are available to Admin/Window 1 at `/metrics`, with strict dates, bounded datasets, median/p90, denominators and missing values. Aggregated support insight payloads go to the existing Flask `/ai/support-insights`; no raw chats, identities or credentials are sent. This is descriptive rule-based advice, distinct from the document forecast/Random Forest prototype. See [SUPPORT_DESIGN.md](SUPPORT_DESIGN.md), [SUPPORT_VALIDATION.md](SUPPORT_VALIDATION.md) and the rollout guide for explicit migrations and measured scope.
+Metrics are available only to active Admin actors at `/metrics`, with strict dates, bounded datasets, median/p90, denominators and missing values. Aggregated support insight payloads go to the existing Flask `/ai/support-insights`; no raw chats, identities or credentials are sent. This is descriptive rule-based advice, distinct from the document forecast/Random Forest prototype. See [SUPPORT_DESIGN.md](SUPPORT_DESIGN.md), [SUPPORT_VALIDATION.md](SUPPORT_VALIDATION.md) and the rollout guide for explicit migrations and measured scope.
 
 
 ## Revision 2 Batch 10 — Support / Messaging UI
 
-Support now follows the main TRACE Figma two-column layout, with aligned readable ticket rows, local search of loaded authorized metadata, contextual linked-case viewing, a labeled confirmed availability switch and a primary Window 1 claim action. Success feedback uses dismissible toasts; failures and confirmations remain in context. The compact widget preserves drafts across close/reopen. Digital evaluation separates discussion into a side panel or a mobile view without discarding either draft. Existing ticket/desk/college authorization, FAQ/reply/requirement actions, service hours and queue assignment remain; no new staff chat connection or unsupported presence/read/unread data is added.
+Support now follows the main TRACE Figma two-column layout, with aligned readable ticket rows, local search of loaded authorized metadata, contextual linked-case viewing, a labeled confirmed availability switch and a primary Window 1 claim action. Success feedback uses dismissible toasts; failures and confirmations remain in context. Students use the Support tab to access ticket conversations; the former dashboard widget is removed. Digital evaluation separates discussion into a side panel or a mobile view without discarding either draft. Existing ticket/desk/college authorization, FAQ/reply/requirement actions, service hours and queue assignment remain; no new staff chat connection or unsupported presence/read/unread data is added.
 
 See [README workflow walkthrough](../README.md#main-workflows) for the screenshots, walkthrough and local evidence. Batch 10 adds **no migration or environment variable**; [DEPLOYMENT_CHECKLIST.md](DEPLOYMENT_CHECKLIST.md) tracks required earlier migrations. These are repository changes for dev, not a claim that the live site is updated.
 
 ## Revision 2 Batch 11 — unchanged support metrics contract
 
-This batch changes SupportAnalytics presentation only. `supportReport.service.js` still validates Manila date boundaries and authorizes managed Admin/Window 1 actors. `supportMetrics.js` remains the source for cohorts, durations, missing samples, FAQ feedback and workload episodes; its returned field names and formulas are unchanged. Frontend totals only sum the returned backlog states/assignment episodes and remain labeled with their context. No schema, API, Socket.IO, Flask/AI or permission change. Existing metric/report regressions and [Batch 11 acceptance](../README.md#main-workflows) provide local evidence, not a production data check.
+This batch changes SupportAnalytics presentation only. `supportReport.service.js` still validates Manila date boundaries and authorizes active Admin actors only (updated October 16). `supportMetrics.js` remains the source for cohorts, durations, missing samples, FAQ feedback and workload episodes; its returned field names and formulas are unchanged. Frontend totals only sum the returned backlog states/assignment episodes and remain labeled with their context. No schema, API, Socket.IO, Flask/AI or permission change. Existing metric/report regressions and [Batch 11 acceptance](../README.md#main-workflows) provide local evidence, not a production data check.
 
 ## Managed Finance receipts
 
@@ -520,3 +520,8 @@ its years never determine printed pages or prices. Alumni education, document
 availability, graduate-application checks and existing historical values remain.
 The additive `migrate_current_student_details.js` migration must precede the matching
 API upgrade. This change is locally tested code, not a claim of live deployment.
+
+
+## October 16 access and email correction
+
+`supportReport.service.report` revalidates the current actor and permits only Admin before reading aggregate datasets. Window 1 and Receiving Desk retain operational Support/settings permissions but metrics return 403. Frontend analytics entry remains in Admin Efficiency Analytics. Staff creation/editing and account editing now trim and lowercase nonempty email addresses through the existing email validator; no stored addresses are rewritten in bulk. This patch requires a backend restart/rebuild alongside the frontend deployment and no database migration.

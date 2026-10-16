@@ -1,3 +1,4 @@
+import { formatDateTime } from '@/utils/formatters';
 import { isWindowClerk } from '@/utils/windowPresentation';
 import AdminIcon from '@/features/admin/components/AdminIcon';
 import Button from '@/components/Button';
@@ -277,7 +278,7 @@ export default function Layout() {
                         }} className={`w-full text-left p-3 text-sm border-b border-gray-50 dark:border-gray-700 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors ${n.is_read ? 'bg-white dark:bg-gray-900 text-gray-500 dark:text-gray-400' : 'bg-green-50/30 dark:bg-green-950/30 text-gray-800 dark:text-gray-100 font-medium'}`}>
                         <div className="font-bold mb-1">{n.title}</div>
                         <div className="text-xs">{n.message}</div>
-                        <div className="text-[10px] text-gray-400 dark:text-gray-400 mt-1">{new Date(n.created_at).toLocaleString()}</div>
+                        <div className="text-[10px] text-gray-400 dark:text-gray-400 mt-1">{formatDateTime(n.created_at)}</div>
                       </Button>
                     ))
                   )}

@@ -1,3 +1,5 @@
+import EmailText from '@/components/EmailText';
+import PaginatedTable from '@/components/PaginatedTable';
 import FilterSelect from '@/components/FilterSelect';
 import AdminTimestamp from '@/features/admin/components/AdminTimestamp';
 import Button from '@/components/Button';
@@ -17,7 +19,7 @@ function ApplicationsTable({ applications, onReview, onProfile, emptyMessage, ad
     return <div className="text-center py-12 text-gray-400 dark:text-gray-400 font-medium">{emptyMessage}</div>;
   }
   return (
-    <table className={`w-full text-left border-collapse table-fixed ${admin ? 'min-w-[65rem]' : 'min-w-[680px]'}`}>
+    <PaginatedTable label="applications" className={`w-full text-left border-collapse table-fixed ${admin ? 'min-w-[65rem]' : 'min-w-[680px]'}`}>
       {admin && <colgroup>{['w-[29%]', 'w-[25%]', 'w-[15%]', 'w-[13%]', 'w-[18%]'].map((width, i) => <col key={i} className={width} />)}</colgroup>}
       <thead className="sticky top-0 bg-white dark:bg-gray-900 z-10">
         <tr className="text-gray-400 dark:text-gray-400 text-[10px] uppercase tracking-widest border-b border-gray-100 dark:border-gray-700">
@@ -67,7 +69,7 @@ function ApplicationsTable({ applications, onReview, onProfile, emptyMessage, ad
           </tr>
         ))}
       </tbody>
-    </table>
+    </PaginatedTable>
   );
 }
 
@@ -200,7 +202,7 @@ export default function GradApplicationReviewPanel({ user, currentTab }) {
               </div>
               <div className="flex justify-between">
                 <span>Email</span>
-                <span className="font-bold text-gray-950 dark:text-gray-100 select-text break-words">{selectedApplication.email || '—'}</span>
+                <span className="font-bold text-gray-950 dark:text-gray-100 select-text break-words"><EmailText value={selectedApplication.email} /></span>
               </div>
               <div className="flex justify-between">
                 <span>Submitted</span>

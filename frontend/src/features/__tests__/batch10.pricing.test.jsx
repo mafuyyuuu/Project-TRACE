@@ -132,7 +132,7 @@ it('shows saved final calculations on the student dashboard and checkout', async
   core.documents = [DOC];
   const { rerender } = render(<StudentDashboard user={USER} currentTab="dashboard" setViewImageUrl={vi.fn()} />);
   const panel = screen.getByRole('region', { name: 'Payment for request REQ-TEST' });
-  expect(panel).toHaveTextContent('How the Amount Was Worked Out'); expect(panel).toHaveTextContent('₱660.00');
+  expect(panel).toHaveTextContent('How the amount was worked out'); expect(panel).toHaveTextContent('₱660.00');
   expect(panel).toHaveTextContent('3 pages per copy × 2 copies × ₱100.00');
   core.selectedDoc = { ...DOC, group_total: 660, group_documents: [DOC] }; core.activeModal = 'pay';
   rerender(<StudentDashboard user={USER} currentTab="dashboard" setViewImageUrl={vi.fn()} />);

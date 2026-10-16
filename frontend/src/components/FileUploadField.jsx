@@ -43,9 +43,14 @@ export default function FileUploadField({ label = 'Attachment', file, path, onCh
     {problem && <p id={`${inputId}-error`} role="alert" className="mb-3 text-sm text-red-700 dark:text-red-300">{problem}</p>}
   </>;
   return <section className={`min-w-0 space-y-2 rounded-xl border p-3 ${problem ? 'border-red-600 dark:border-red-400' : 'border-gray-200 dark:border-gray-700'}`} aria-label={label}>
-    {allowReplace && onChange ? <label htmlFor={inputId} className="trace-label block">{showLabel && <span>{label}</span>}
-      <input {...errorProps} id={inputId} ref={inputRef} type="file" aria-label={showLabel ? undefined : label} accept={accept} disabled={disabled} onChange={select} className={`trace-file block w-full ${showLabel ? 'mt-2' : ''}`}  />
-    </label> : <h4 className="text-xs font-bold">{label}</h4>}
+    {allowReplace && onChange ? <div className="min-w-0">
+      {showLabel && <label htmlFor={inputId} className="trace-label mb-2">{label}</label>}
+      <div className="trace-file-picker">
+        <input {...errorProps} id={inputId} ref={inputRef} type="file" aria-label={label} accept={accept} disabled={disabled} onChange={select} className="peer sr-only" />
+        <label htmlFor={inputId} className="trace-file-trigger">{filename ? 'Replace file' : 'Choose file'}</label>
+        <span aria-hidden="true" className="min-w-0 break-all text-sm text-gray-700 dark:text-gray-200">{filename || 'No file chosen'}</span>
+      </div>
+    </div> : <h4 className="text-xs font-bold">{label}</h4>}
     {filename && <p className="text-xs break-all select-text" role="status">{file ? 'Selected: ' : 'Uploaded: '}{filename}{file && ` (${formatFileSize(file.size)})`}</p>}
     {file && <p className="text-xs text-gray-500 dark:text-gray-400">{allowReplace ? 'Selected locally. Save or submit the form to upload; select another file to replace this draft.' : 'Selected locally. Uploaded only after you confirm.'}</p>}
     {url && (pdf ? <iframe src={url} title={`${label} preview`} className="w-full h-48 rounded-lg" /> : <img src={url} alt={`${label} preview`} className={compactPreview ? "h-20 w-20 object-contain rounded-lg" : "w-full max-h-48 object-contain rounded-lg"} />)}

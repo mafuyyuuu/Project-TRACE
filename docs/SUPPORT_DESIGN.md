@@ -34,7 +34,7 @@ Case requirements use Admin-managed Registrar-approved supporting-document IDs. 
 
 ## Layout and retrieval
 
-Use a bounded history scroller and a stationary composer inside the chat container. The floating widget and full page use the same presentation. Keep selected context visible, distinguish student/staff/system bubbles, preserve scroll position when loading earlier messages and follow new messages only when already at the bottom. Incremental ticket and message cursors replace visible Previous/Next controls; server limits remain. No history is silently truncated at 100 messages.
+Use a bounded history scroller and a stationary composer inside the chat container. Students use the Support tab; the floating launcher was removed on October 16. Keep selected context visible, distinguish student/staff/system bubbles, preserve scroll position when loading earlier messages and follow new messages only when already at the bottom. Incremental ticket and message cursors replace visible Previous/Next controls; server limits remain. No history is silently truncated at 100 messages.
 
 ## Metrics and capacity acceptance
 

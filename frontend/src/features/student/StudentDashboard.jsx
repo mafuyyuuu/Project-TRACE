@@ -1,3 +1,5 @@
+import StudentPaymentCard from './components/StudentPaymentCard';
+import PaymentStubModal from '@/features/secretary/components/PaymentStubModal';
 import StudentRequestConfirmation from './components/StudentRequestConfirmation';
 import StudentOverview, { StudentWelcome } from './components/StudentOverview';
 import StudentHistory from './components/StudentHistory';
@@ -10,7 +12,6 @@ import { INPUT_LIMITS } from '@/utils/inputLimits';
 import { useState } from 'react';
 import NewRequestModal from '@/features/student/components/NewRequestModal';
 import LiveTrackingModal from '@/features/student/components/LiveTrackingModal';
-import FloatingSupportChat from '@/features/student/components/FloatingSupportChat';
 import FileUploadField from '@/components/FileUploadField';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import ModalShell from '@/components/ModalShell';
@@ -74,12 +75,11 @@ export default function StudentDashboard({ user, currentTab, setViewImageUrl }) 
     ? documents.filter((doc) => doc.request_group_id === selectedDoc.request_group_id)
     : [];
 
-  if (currentTab === 'messages') return <><RequestMessagesPanel user={user} initialDocumentId={new URLSearchParams(window.location.search).get('document')} /><FloatingSupportChat user={user} /></>;
+  if (currentTab === 'messages') return <RequestMessagesPanel user={user} initialDocumentId={new URLSearchParams(window.location.search).get('document')} />;
   if (loading) return <DashboardLoading />;
 
   return (
     <>
-      <FloatingSupportChat user={user} />
       <DashboardAlerts success={success} error={error} onDismiss={dismissNotification} />
       <div className="trace-page trace-student-dashboard">
         {/* 1.1. STUDENT PORTAL - WORKSPACE DASHBOARD */}
@@ -98,47 +98,9 @@ export default function StudentDashboard({ user, currentTab, setViewImageUrl }) 
                 One card per request group, not per document — billing happens
                 once for the whole request, so several of its documents can be
                 awaiting payment together, and one receipt settles all of them. */}
-            {billableGroups.length > 0 && (
-              <div className="trace-section border-2 border-amber-300 dark:border-amber-800 overflow-hidden mt-8">
-                <div className="bg-amber-50 dark:bg-amber-950 text-amber-900 dark:text-amber-200 px-4 sm:px-6 py-3 flex items-center gap-2">
-                  <svg aria-hidden="true" className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 9v2m0 4h.01M5 19h14a2 2 0 001.84-2.75L13.74 4a2 2 0 00-3.48 0l-7.1 12.25A2 2 0 005 19z"/></svg>
-                  <h3 className="font-black text-sm uppercase tracking-wider">Action Required — Payment</h3>
-                </div>
-                <div className="p-4 sm:p-6">
-                  <p className="text-xs text-gray-600 dark:text-gray-300 leading-relaxed mb-5">
-                    Your documents are ready. Pay online here, or bring your payment slip to the Finance Office.
-                  </p>
-                  <div className="space-y-4">
-                    {billableGroups.map((group) => (
-                      <section key={group.groupId} aria-label={`Payment for request ${group.groupId}`} className="space-y-4 pb-5 border-b border-gray-100 dark:border-gray-700 last:border-0 last:pb-0">
-                        <p className="text-xs font-mono text-gray-500 dark:text-gray-400 break-words select-text">Request {group.groupId}</p>
-                        <ul className="space-y-3">
-                          {group.docs.map((doc) => (
-                            <li key={doc.id} className="trace-section trace-section-body max-w-2xl space-y-3 text-sm">
-                              <div className="grid min-w-0 grid-cols-1 gap-1 sm:flex sm:flex-wrap sm:items-baseline sm:gap-x-3 sm:gap-y-1">
-                                <span className="min-w-0 font-bold text-gray-900 dark:text-gray-100 break-words select-text">{doc.document_sequence_number || doc.document_type}</span>
-                                <span className="shrink-0 font-mono text-xs font-semibold text-gray-900 dark:text-gray-100 select-text">{formatPeso(doc.amount)}</span>
-                              </div>
-                              <FeeBreakdown breakdown={doc.fee_breakdown} amount={doc.amount} />
-                            </li>
-                          ))}
-                        </ul>
-                        <div className="flex flex-wrap items-center justify-end gap-3">
-                          <p className="text-sm font-bold text-gray-900 dark:text-gray-100 select-text">Total amount due: {formatPeso(group.total)}</p>
-                          <Button
-                            type="button"
-                            onClick={() => { setSelectedDoc({ ...group.docs[0], group_total: group.total }); setActiveModal('pay'); }}
-                            className="trace-button trace-button-warning w-full sm:w-auto sm:px-6"
-                          >
-                            Pay {formatPeso(group.total)} ({group.docs.length} {group.docs.length === 1 ? 'document' : 'documents'})
-                          </Button>
-                        </div>
-                      </section>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            )}
+            {billableGroups.map(group => <StudentPaymentCard key={group.groupId} group={group}
+              onPay={() => { setSelectedDoc({ ...group.docs[0], group_total: group.total }); setActiveModal('pay'); }}
+              onSlip={() => { setSelectedDoc({ ...group.docs[0], student_name: user.full_name, student_id: user.student_id, program: user.program, group_total: group.total }); setActiveModal('payment-stub'); }} />)}
 
             <StudentOverview documents={documents} onRefresh={loadDashboardData} onCancel={handleStudentCancelRequest} onTrack={doc => { setSelectedDoc(doc); setActiveModal('tracking'); }} />
 
@@ -181,6 +143,8 @@ export default function StudentDashboard({ user, currentTab, setViewImageUrl }) 
             getAttachmentHelper={getAttachmentHelper}
           />
         )}
+
+        {activeModal === 'payment-stub' && selectedDoc && <PaymentStubModal selectedDoc={selectedDoc} groupDocs={selectedPaymentDocuments} setActiveModal={setActiveModal} />}
 
         {/* 1.5. COMPLETE YOUR GCASH PAYMENT MODAL */}
         {activeModal === 'pay' && selectedDoc && (
