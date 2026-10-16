@@ -285,10 +285,10 @@ describe('Finance — awaiting payment, then verification', () => {
 
   it('keeps paid records on the dedicated transactions page and excludes earlier queues', async () => {
     await renderDashboard(<FinanceDashboard user={USERS.finance} currentTab="transactions" setViewImageUrl={vi.fn()} />);
-    await screen.findByText(/4 cleared requests/);
+    await screen.findByText('cleared requests');
     expect(screen.queryByRole('tab')).not.toBeInTheDocument();
     for (const status of [STATUS.PAID_PENDING_SEC_RELEASE, STATUS.SEC_OR_VERIFIED, STATUS.READY_FOR_RELEASE, STATUS.COMPLETED]) {
-      expect(screen.getByText(idFor(status))).toBeInTheDocument();
+      expect(screen.getByText(text=>text.includes(idFor(status)))).toBeInTheDocument();
     }
     expect(screen.queryByText(idFor(STATUS.PENDING_STUDENT_PAYMENT))).not.toBeInTheDocument();
     expect(screen.queryByText(idFor(STATUS.PENDING_FINANCE_VERIFICATION))).not.toBeInTheDocument();

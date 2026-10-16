@@ -1,132 +1,32 @@
 import NumberInput from '@/components/NumberInput';
 import Button from '@/components/Button';
 import FeeBreakdown from '@/components/FeeBreakdown';
-import { INPUT_LIMITS } from '@/utils/inputLimits';
+import { INPUT_LIMITS, NUMBER_LIMITS } from '@/utils/inputLimits';
 import ModalShell from '@/components/ModalShell';
 import { formatPeso } from '@/utils/pricing';
+import SecretaryIcon, { SecretaryHeaderIcon } from './SecretaryIcon';
 
-/**
- * The Secretary prices a printed document.
- *
- * The amount is calculated *after* printing, because that is when the page count
- * is known — which is the whole reason this pipeline collects money at the end
- * rather than the start.
- *
- * Every field here ends up on the audit trail with the clerk's name against it,
- * so the page count and note are not decoration: they are how an amount is
- * defended if a student disputes it.
- */
-export default function PricingModal({
-  selectedDoc,
-  setActiveModal,
-  handlePriceDocument,
-  actionLoading,
-  priceAmount,
-  priceBreakdown, pricingError, priceNotes, setPriceNotes, confirmCurrentRates, setConfirmCurrentRates,
-  pricePageCount,
-  setPricePageCount,
-  priceFeePageCounts = {}, setPriceFeePageCounts,
-  siblingsUnpriced,
-}) {
+function PageStepper({ label, value, onChange, busy, required = true }) {
+  return <label className="trace-label block">{label} {required && <span className="text-red-600 dark:text-red-300">*</span>}<div className="trace-secretary-stepper"><Button type="button" aria-label={'Decrease '+label} disabled={busy || Number(value) <= 1} onClick={()=>onChange(String(Number(value)-1))}><SecretaryIcon name="9ddb1" /></Button><NumberInput min="1" max={NUMBER_LIMITS.quantity} step="1" value={value} disabled={busy} onChange={event=>onChange(event.target.value)} aria-label={label} placeholder="0" className="trace-control" /><Button type="button" aria-label={'Increase '+label} disabled={busy || Number(value) >= NUMBER_LIMITS.quantity} onClick={()=>onChange(String((Number(value)||0)+1))}><SecretaryIcon name="defc1" /></Button></div></label>;
+}
+
+export default function PricingModal({ selectedDoc, setActiveModal, handlePriceDocument, actionLoading, priceAmount, priceBreakdown, pricingError, priceNotes, setPriceNotes, confirmCurrentRates, setConfirmCurrentRates, pricePageCount, setPricePageCount, priceFeePageCounts = {}, setPriceFeePageCounts, siblingsUnpriced }) {
   if (!selectedDoc) return null;
-
-  return (
-    <ModalShell
-      open={!!selectedDoc}
-      onClose={() => setActiveModal(null)}
-      title="Set the Amount"
-      maxWidth="max-w-lg"
-      footer={
-        <div className="flex flex-col sm:flex-row gap-3">
-          <Button
-            onClick={() => setActiveModal(null)}
-            className="trace-button trace-button-secondary flex-1"
-          >
-            Cancel
-          </Button>
-          <Button
-            onClick={handlePriceDocument}
-            disabled={actionLoading || !priceBreakdown || Number(priceAmount) <= 0 || (selectedDoc.pricing_requires_review && !confirmCurrentRates)}
-            className="trace-button trace-button-primary flex-1"
-          >
-            {actionLoading ? 'Saving…' : siblingsUnpriced > 0 ? 'Save Price' : 'Save & Bill Student'}
-          </Button>
-        </div>
-      }
-    >
-      <p className="text-xs text-gray-400 dark:text-gray-400 mt-1 font-semibold pb-5 mb-6 border-b border-gray-100 dark:border-gray-700">
-        Price it from the printed output, then the student is told what to pay.
-      </p>
-
-      <div className="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl p-5 mb-6 font-mono text-[11px] text-gray-600 dark:text-gray-300 space-y-2">
-        <div className="flex flex-wrap justify-between gap-x-3 gap-y-1"><span>Student</span><span className="font-bold text-gray-950 dark:text-gray-100 select-text break-words">{selectedDoc.student_name || selectedDoc.student_id}</span></div>
-        <div className="flex flex-wrap justify-between gap-x-3 gap-y-1"><span>Document</span><span className="font-bold text-gray-950 dark:text-gray-100">{selectedDoc.document_type}</span></div>
-        <div className="flex flex-wrap justify-between gap-x-3 gap-y-1"><span>Tracking ID</span><span className="font-bold text-gray-950 dark:text-gray-100 select-text">#{selectedDoc.tracking_number}</span></div>
-        
-        <div className="flex justify-between border-t border-gray-200/50 dark:border-gray-700/50 pt-2">
-          <span>Base rate</span>
-          <span className="font-bold text-gray-500 dark:text-gray-400">{selectedDoc.pricing_schedule?.fee_pending ? 'Fee not set' : <>{formatPeso(selectedDoc.pricing_schedule?.base_fee)}{['per_semester_block', 'per_page'].includes(selectedDoc.pricing_schedule?.fee_rule) ? ' per printed page per copy' : ' per copy'}</>}</span>
-        </div>
-      </div>
-
-      {/* Only actual printed pages determine the page-based charge. */}
-      <p className="text-[11px] text-gray-500 dark:text-gray-400 -mt-3 mb-6 leading-relaxed">
-        Admin configures the rates. Enter the actual pages per copy; the server calculates the charge. Fixed extra fees apply once per request; page-based components use their own printed page counts.
-      </p>
-
-      <div className="space-y-5">
-        <label className="trace-label block">
-          <span className="text-[10px] font-bold text-gray-800 dark:text-gray-100 uppercase tracking-widest block mb-2">
-            Amount to charge <span className="text-red-600 dark:text-red-300">*</span>
-          </span>
-          <div className="relative">
-            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm font-bold text-gray-400 dark:text-gray-400">₱</span>
-            <input
-              type="number"
-              min="1"
-              step="0.01"
-              value={priceAmount}
-              readOnly aria-label="Calculated amount to charge"
-              placeholder="0.00"
-              className="trace-control w-full pl-9 pr-4"
-            />
-          </div>
-        </label>
-
-        {(!selectedDoc.pricing_schedule?.fee_items?.some(item => item.fee_rule === 'per_page') || ['per_page', 'per_semester_block'].includes(selectedDoc.pricing_schedule?.fee_rule)) && <label className="trace-label block">
-          {selectedDoc.pricing_schedule?.base_label ? `${selectedDoc.pricing_schedule.base_label}: ` : ''}Pages printed per copy
-          <NumberInput type="number" min="1" step="1" value={pricePageCount} onChange={event => setPricePageCount(event.target.value)} className="trace-control w-full mt-1.5" />
-        </label>}
-        {(selectedDoc.pricing_schedule?.fee_items || []).filter(item => item.fee_rule === 'per_page').map(item => <label key={item.label} className="trace-label block">
-          {item.label}: Pages printed per copy
-          <NumberInput type="number" min="1" step="1" required value={priceFeePageCounts[item.label] || ''}
-            onChange={event => { const pages = event.target.value; setPriceFeePageCounts(previous => ({ ...previous, [item.label]: pages })); }} className="trace-control w-full mt-1.5" />
-        </label>)}
-
-        {pricingError && <p role="status" className="text-xs text-amber-800 dark:text-amber-300">{pricingError}</p>}
-        {priceBreakdown && <FeeBreakdown breakdown={priceBreakdown} />}
-        <label className="trace-label block">Pricing note (optional)<textarea className="trace-control w-full" maxLength={Math.min(INPUT_LIMITS.notes, 1000)} value={priceNotes || ''} onChange={event => setPriceNotes(event.target.value)} /></label>
-        {selectedDoc.pricing_requires_review && <label className="flex gap-2 text-xs text-amber-800 dark:text-amber-300">
-          <input type="checkbox" checked={confirmCurrentRates} onChange={event => setConfirmCurrentRates(event.target.checked)} />
-          This request has no confirmed fee schedule. I reviewed the current rates shown above.
-        </label>}
-        {siblingsUnpriced > 0 ? (
-          <div className="bg-blue-50 dark:bg-blue-950/40 border border-blue-100 dark:border-blue-800 rounded-2xl p-4">
-            <p className="text-[11px] text-blue-900 dark:text-blue-300 leading-relaxed">
-              <strong>{siblingsUnpriced} more document{siblingsUnpriced > 1 ? 's' : ''}</strong> in this
-              request still {siblingsUnpriced > 1 ? 'need' : 'needs'} a price. The student is billed
-              once, for everything together, so nothing is sent to them until the last one is done.
-            </p>
-          </div>
-        ) : (
-          <div className="bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-100 dark:border-emerald-800 rounded-2xl p-4">
-            <p className="text-[11px] text-emerald-900 dark:text-emerald-300 leading-relaxed">
-              This is the last document in the request. Saving it bills the student, notifies
-              Finance, and produces the payment slip.
-            </p>
-          </div>
-        )}
-      </div>
-    </ModalShell>
-  );
+  const schedule = selectedDoc.pricing_schedule;
+  const pageBased = ['per_page','per_semester_block'].includes(schedule?.fee_rule) || schedule?.fee_items?.some(item=>item.fee_rule==='per_page');
+  const last = !(siblingsUnpriced > 0);
+  const canSave = !actionLoading && priceBreakdown && Number(priceAmount) > 0 && (!selectedDoc.pricing_requires_review || confirmCurrentRates);
+  return <ModalShell open onClose={()=>{if(!actionLoading)setActiveModal(null);}} busy={actionLoading} title="Set the Amount" subtitle="Price it from the printed output, then the student is told what to pay." headerIcon={<SecretaryHeaderIcon name="607af" />} closeButtonIcon={<SecretaryIcon name="e5af3" />} panelClassName="trace-modal-panel trace-secretary-dialog trace-secretary-pricing max-w-[575px]"
+    footer={<div className="trace-secretary-modal-actions"><p className="trace-secretary-footer-note"><SecretaryIcon name="1163a" />{!priceBreakdown ? 'Complete the printed page counts' : 'Review the calculated charge'}</p><div className="trace-actions"><Button type="button" disabled={actionLoading} onClick={()=>setActiveModal(null)} className="trace-button trace-button-secondary">Cancel</Button><Button type="button" onClick={handlePriceDocument} disabled={!canSave} className="trace-button trace-button-primary"><SecretaryIcon name="99653" />{actionLoading ? 'Saving…' : last ? 'Save & Bill Student' : 'Save Price'}</Button></div></div>}>
+    <div className="trace-secretary-pricing-body"><dl className="trace-secretary-price-summary">{[['Student',selectedDoc.student_name || selectedDoc.student_id || 'Unresolved student'],['Document',selectedDoc.document_type],['Tracking ID','#'+(selectedDoc.tracking_number || selectedDoc.id)]].map(([label,value])=><div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}<div className="trace-secretary-base-rate"><dt>Base rate</dt><dd>{schedule?.fee_pending ? 'Fee not set' : <><strong>{formatPeso(schedule?.base_fee)}</strong><span>{['per_semester_block','per_page'].includes(schedule?.fee_rule) ? 'per printed page per copy' : 'per copy'}</span></>}</dd></div></dl>
+    <p className="trace-secretary-pricing-help"><SecretaryIcon name="4b3f8" /><span>Admin configures the rates. Enter the actual pages per copy; the server calculates the charge. Fixed extra fees apply once per request; page-based components use their own printed page counts.</span></p>
+    {(!schedule?.fee_items?.some(item=>item.fee_rule==='per_page') || ['per_page','per_semester_block'].includes(schedule?.fee_rule)) && <PageStepper label={(schedule?.base_label ? schedule.base_label+': ' : '')+'Pages printed per copy'} value={pricePageCount} onChange={setPricePageCount} required={['per_page','per_semester_block'].includes(schedule?.fee_rule)} busy={actionLoading} />}
+    {(schedule?.fee_items || []).filter(item=>item.fee_rule==='per_page').map(item=><PageStepper key={item.label} label={item.label+': Pages printed per copy'} value={priceFeePageCounts[item.label] || ''} onChange={value=>setPriceFeePageCounts(previous=>({...previous,[item.label]:value}))} busy={actionLoading} />)}
+    <label className="trace-label block"><span className="trace-actions mb-2">Amount to charge <span className="text-red-600 dark:text-red-300">*</span><span className="trace-secretary-calculated"><SecretaryIcon name="a942e" />{pageBased ? 'Calculated from pages × rate' : 'Calculated from saved rates'}</span></span><div className="trace-secretary-amount"><span aria-hidden="true">₱</span><input type="number" min="1" step="0.01" value={priceAmount} readOnly aria-label="Calculated amount to charge" placeholder="0.00" className="trace-control" /></div></label>
+    {pricingError && !(pricePageCount === '' && pricingError === 'Pages per copy must be a positive whole number.') && <p role="status" className="trace-secretary-warning">{pricingError}</p>}{priceBreakdown && <FeeBreakdown breakdown={priceBreakdown} />}
+    <label className="trace-label block">Pricing note <span className="trace-secretary-optional">Optional</span><textarea className="trace-control w-full min-h-24" placeholder="Add a note about how this amount was set…" maxLength={Math.min(INPUT_LIMITS.notes,1000)} value={priceNotes || ''} disabled={actionLoading} onChange={event=>setPriceNotes(event.target.value)} /></label>
+    {selectedDoc.pricing_requires_review && <label className="trace-secretary-warning flex items-start gap-2"><input type="checkbox" checked={confirmCurrentRates} disabled={actionLoading} onChange={event=>setConfirmCurrentRates(event.target.checked)} className="trace-choice" />This request has no confirmed fee schedule. I reviewed the current rates shown above.</label>}
+    <div className="trace-secretary-price-outcome"><h4><SecretaryIcon name="4a7cf" />{last ? 'This is the last document in the request' : `${siblingsUnpriced} more document${siblingsUnpriced>1?'s':''} still need a price`}</h4>{last ? <ul>{['Bills the student','Notifies Finance','Produces the payment slip'].map(text=><li key={text}><SecretaryIcon name="0e73a" />{text}</li>)}</ul> : <p>The student is billed once for the whole request, after every document has a saved price.</p>}</div>
+    </div>
+  </ModalShell>;
 }

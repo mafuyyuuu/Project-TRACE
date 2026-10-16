@@ -1,3 +1,4 @@
+import FinanceHistoryFilters from '@/features/finance/components/FinanceHistoryFilters';
 import FilterSelect from '@/components/FilterSelect';
 import { useId, useState } from 'react';
 import ModalShell from '@/components/ModalShell';
@@ -50,7 +51,7 @@ export default function ReportFiltersModal({ filters, defaults, options, options
         <Button type="button" className="trace-button trace-button-primary w-full" disabled={dirty||!exportReady||Boolean(exporting)||optionsLoading||Boolean(optionsError)} onClick={()=>onExport(dataset)}>{exporting?'Exporting…':'Export CSV'}</Button>
       </section>;
   return <>
-    {inline&&<section aria-label={history ? 'History filters' : 'Report filters'} className="trace-section trace-section-body">{filterBody}</section>}
+    {inline && (history ? <FinanceHistoryFilters draft={draft} update={update} options={options} loading={optionsLoading} optionsError={optionsError} onRetry={onRetryOptions} onApply={apply} onReset={()=>{setDraft({...defaults});setValidation('');}} error={validation || error} /> : <section aria-label="Report filters" className="trace-section trace-section-body">{filterBody}</section>)}
     {!history && <ModalShell open={inline?exportOpen:true} title={inline?'Export':'Filters & Export'} maxWidth="max-w-[535px]" onClose={onClose} busy={Boolean(exporting)} showCloseButton={!exporting} closeOnEsc={!exporting} closeOnBackdrop={!exporting}
       footer={<div className="flex flex-wrap justify-end gap-2"><Button type="button" className="trace-button trace-button-secondary" onClick={onClose} disabled={Boolean(exporting)}>{inline?'Close export':'Cancel'}</Button>{!inline&&applyControl}</div>}>
       {!inline&&filterBody}{exportBody}

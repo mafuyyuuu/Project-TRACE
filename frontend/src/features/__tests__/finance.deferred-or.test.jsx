@@ -63,7 +63,9 @@ describe('Physical OR now, digital copy later', () => {
     ], total: 3, amount: 300 });
     render(<FinanceDashboard user={FINANCE} currentTab="transactions" setViewImageUrl={view} />);
     await user.click(await screen.findByRole('button', { name: 'View OR' }));
-    expect(view).toHaveBeenCalledExactlyOnceWith('/app/uploads/synthetic-or.pdf');
+    expect(screen.getByRole('dialog', { name: 'Document preview' })).toBeInTheDocument();
+    expect(view).not.toHaveBeenCalled();
+    await user.click(within(screen.getByRole('dialog', { name: 'Document preview' })).getByRole('button', { name: 'Close', exact: true }));
     expect(screen.getByText('Issued; digital copy pending')).toBeInTheDocument();
     expect(screen.getByRole('cell', { name: /Issuance pending/ })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Upload OR' })).toBeEnabled();
@@ -152,7 +154,7 @@ describe('Physical OR now, digital copy later', () => {
     documents.getDocuments.mockResolvedValue({ documents: [completed] });
     render(<FinanceDashboard user={FINANCE} currentTab="transactions" setViewImageUrl={vi.fn()} />);
     await screen.findByRole('heading', { name: 'Payment History' });
-    expect(await screen.findByText(/1 cleared requests/)).toBeInTheDocument();
+    expect((await screen.findByText('cleared requests')).previousElementSibling).toHaveTextContent('1');
     expect(screen.queryByRole('tab')).not.toBeInTheDocument();
     expect(screen.getByText('Issued; digital copy pending')).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: 'Upload OR' }));
@@ -163,7 +165,7 @@ describe('Physical OR now, digital copy later', () => {
     fireEvent.submit(submit.form);
     await user.click(within(screen.getByRole('dialog', { name: 'Upload Official Receipt Copy' })).getByRole('button', { name: 'Cancel' }));
     expect(documents.uploadDeferredOR).not.toHaveBeenCalled();
-    expect(screen.getByText(/Selected: or-copy.png/)).toBeInTheDocument();
+    expect(screen.getByText('or-copy.png', {exact:true})).toBeInTheDocument();
     fireEvent.submit(submit.form);
     await user.click(screen.getByRole('button', { name: 'Confirm Upload' }));
     await waitFor(() => expect(documents.uploadDeferredOR).toHaveBeenCalledExactlyOnceWith(DOC.id, file, expect.objectContaining({ orNumber: 'OR-101', orDate: '' })));
@@ -184,7 +186,7 @@ describe('Physical OR now, digital copy later', () => {
     expect(await screen.findByRole('dialog', { name: 'Attention Needed' })).toHaveTextContent('Upload unavailable.');
     await user.click(screen.getByRole('button', { name: 'OK' }));
     expect(screen.getByRole('dialog', { name: 'Upload Official Receipt Copy' })).toBeInTheDocument();
-    expect(screen.getByText(/Selected: or.png/)).toBeInTheDocument();
+    expect(screen.getByText('or.png', {exact:true})).toBeInTheDocument();
   });
 
   it('requires explicit physical inspection when Secretary has no digital copy', async () => {

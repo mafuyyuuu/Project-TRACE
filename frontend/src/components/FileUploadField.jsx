@@ -3,7 +3,7 @@ import useAuthedFile from '@/hooks/useAuthedFile';
 import { formatFileSize } from '@/utils/formatters';
 
 /** Local drafts upload only through the parent form's confirmed Save/Submit. */
-export default function FileUploadField({ label = 'Attachment', file, path, onChange, onError, validationError = '', accept = 'image/*,application/pdf', maxBytes = 10 * 1024 * 1024, disabled = false, inputRef, id, allowReplace = true, pickerOnly = false, showLabel = true, compactPreview = false }) {
+export default function FileUploadField({ label = 'Attachment', file, path, onChange, onError, validationError = '', accept = 'image/*,application/pdf', maxBytes = 10 * 1024 * 1024, disabled = false, inputRef, id, allowReplace = true, pickerOnly = false, showLabel = true, compactPreview = false, showDraftStatus = true, pickerIcon }) {
   const generatedId = useId();
   const inputId = id || generatedId;
   const [local, setLocal] = useState({ file: null, url: null });
@@ -39,13 +39,14 @@ export default function FileUploadField({ label = 'Attachment', file, path, onCh
   // The avatar camera supplies the visible trigger and preview for this mode.
   if (pickerOnly) return <>
     {allowReplace && onChange && <input {...errorProps} id={inputId} ref={inputRef} type="file" aria-label={label} hidden accept={accept} disabled={disabled} onChange={select} />}
-    {file && <p role="status" className="mb-3 text-sm break-words">New picture selected. Save Profile to upload it.</p>}
+    {file && showDraftStatus && <p role="status" className="mb-3 text-sm break-words">New picture selected. Save Profile to upload it.</p>}
     {problem && <p id={`${inputId}-error`} role="alert" className="mb-3 text-sm text-red-700 dark:text-red-300">{problem}</p>}
   </>;
   return <section className={`min-w-0 space-y-2 rounded-xl border p-3 ${problem ? 'border-red-600 dark:border-red-400' : 'border-gray-200 dark:border-gray-700'}`} aria-label={label}>
     {allowReplace && onChange ? <div className="min-w-0">
       {showLabel && <label htmlFor={inputId} className="trace-label mb-2">{label}</label>}
       <div className="trace-file-picker">
+        {pickerIcon}
         <input {...errorProps} id={inputId} ref={inputRef} type="file" aria-label={label} accept={accept} disabled={disabled} onChange={select} className="peer sr-only" />
         <label htmlFor={inputId} className="trace-file-trigger">{filename ? 'Replace file' : 'Choose file'}</label>
         <span aria-hidden="true" className="min-w-0 break-all text-sm text-gray-700 dark:text-gray-200">{filename || 'No file chosen'}</span>

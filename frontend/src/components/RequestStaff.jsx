@@ -1,6 +1,7 @@
 import { getStageLabel } from '@/utils/documentStatus';
 
-export default function RequestStaff({ document, compact = false }) {
+export default function RequestStaff({ document, compact = false, assignmentOnly = false }) {
+  if (assignmentOnly) return <p className="text-[.75rem] text-[#647084] dark:text-gray-400">Assigned staff: <span className="select-text break-words">{document.assigned_staff_name || 'Unassigned — current desk queue'}{document.assigned_staff_desk ? ` (${document.assigned_staff_desk})` : ''}</span></p>;
   if (compact) return <div className="space-y-1 text-[0.625rem] font-medium text-trace-ink dark:text-gray-300">
     <p className="flex items-start gap-1"><img alt="" aria-hidden="true" src="/admin-figma/desk.svg" width="12" height="12" className="mt-0.5 shrink-0" /><span><span className="sr-only">Current desk: </span>{getStageLabel(document.current_status)}</span></p>
     <p className="flex items-start gap-1"><img alt="" aria-hidden="true" src="/admin-figma/person.svg" width="12" height="12" className="mt-0.5 shrink-0" /><span className="select-text break-words"><span className="sr-only">Assigned staff: </span>{document.assigned_staff_name || 'Unassigned (current desk queue)'}{document.assigned_staff_desk ? ` (${document.assigned_staff_desk})` : ''}</span></p>

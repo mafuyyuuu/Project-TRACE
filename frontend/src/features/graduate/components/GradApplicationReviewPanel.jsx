@@ -83,7 +83,7 @@ export default function GradApplicationReviewPanel({ user, currentTab }) {
   const [viewProfileId, setViewProfileId] = useState(null);
   const [search, setSearch] = useState('');
   const [program, setProgram] = useState('all');
-  const admin = user?.role === 'admin';
+  const admin = user?.role === 'admin' || user?.role === 'clerk' && user.desk_assignment === 'Secretary';
   const {
     loading,
     error,

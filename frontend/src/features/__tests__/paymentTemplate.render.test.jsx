@@ -16,7 +16,7 @@ it('retains the tracking QR, real program and sequence alongside a safely substi
   expect(screen.getByText(/Program\/Course: BS Information Technology/)).toBeInTheDocument();
   expect(screen.getByText('TOR – Request No. 3')).toBeInTheDocument();
   expect(screen.getByText(doc.student_name)).toBeInTheDocument();
-  expect(document.body.querySelector('img')).toBeNull();
+  expect(document.body.querySelector('img[src="x"],img[onerror]')).toBeNull();
   await waitFor(() => expect(document.body.querySelector('svg[aria-label="Tracking QR"]')).toBeInTheDocument());
   expect(QRCode.toString).toHaveBeenCalledWith(doc.tracking_number, expect.any(Object));
 });

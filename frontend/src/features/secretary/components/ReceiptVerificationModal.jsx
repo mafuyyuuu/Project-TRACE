@@ -1,122 +1,26 @@
+import { useState } from 'react';
 import Button from '@/components/Button';
 import ModalShell from '@/components/ModalShell';
 import AuthedFilePreview from '@/components/AuthedFilePreview';
 import { formatPeso } from '@/utils/pricing';
-import { useState } from 'react';
+import SecretaryIcon, { SecretaryHeaderIcon } from './SecretaryIcon';
+import { SecretaryAvatar } from './SecretaryCaseSummary';
 
-export default function ReceiptVerificationModal({
-  selectedDoc,
-  setActiveModal,
-  setViewImageUrl,
-  handleSecretaryVerifyReceipt,
-  actionLoading,
-}) {
-  const [physicalReceiptChecked, setPhysicalReceiptChecked] = useState(false);
+export default function ReceiptVerificationModal({ selectedDoc, setActiveModal, setViewImageUrl, handleSecretaryVerifyReceipt, actionLoading }) {
+  const [receiptChecked, setReceiptChecked] = useState(false);
   const [receiptId, setReceiptId] = useState(null);
-  if (receiptId !== (selectedDoc?.id ?? null)) {
-    setReceiptId(selectedDoc?.id ?? null);
-    setPhysicalReceiptChecked(false);
-  }
+  const receiptKey = selectedDoc ? `${selectedDoc.id}:${selectedDoc.or_number || ''}:${selectedDoc.official_receipt_path || ''}` : null;
+  if (receiptId !== receiptKey) { setReceiptId(receiptKey); setReceiptChecked(false); }
   if (!selectedDoc) return null;
-  const canConfirm = Boolean(selectedDoc.or_number?.trim()) &&
-    (Boolean(selectedDoc.official_receipt_path) || physicalReceiptChecked);
-  const close = () => {
-    setPhysicalReceiptChecked(false);
-    setActiveModal(null);
-  };
-
-  return (
-    <ModalShell
-      open={!!selectedDoc}
-      onClose={close}
-      busy={actionLoading}
-      closeOnEsc={!actionLoading}
-      closeOnBackdrop={!actionLoading}
-      showCloseButton={!actionLoading}
-      bare
-      title="Verify Official Receipt"
-      panelClassName="bg-white dark:bg-gray-900 rounded-3xl shadow-2xl w-full max-w-5xl h-[85vh] z-10 border border-gray-100 dark:border-gray-700 relative flex flex-col lg:flex-row overflow-hidden"
-      closeButtonClassName="trace-button-lift absolute top-4 right-4 w-8 h-8 rounded-full flex items-center justify-center text-gray-400 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 z-20"
-    >
-      <div className="shrink-0 lg:shrink lg:w-1/2 p-6 flex flex-col border-r border-gray-200 dark:border-gray-700 min-h-0 bg-gray-50/30 dark:bg-gray-800/30">
-        <div className="flex justify-between items-center mb-3">
-          <span className="text-xs font-black text-gray-800 dark:text-gray-100">Finance Attachment</span>
-        </div>
-        <div className="flex-1 min-h-20 lg:min-h-0 bg-gray-200 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-2xl overflow-hidden relative flex items-center justify-center shadow-inner">
-          {selectedDoc.official_receipt_path ? (
-            <AuthedFilePreview
-              path={selectedDoc.official_receipt_path}
-              alt="Official Receipt"
-              iframeTitle="Official Receipt"
-              className="w-full h-full object-contain"
-              onClick={() => setViewImageUrl(selectedDoc.official_receipt_path)}
-              wrapperClassName="cursor-zoom-in w-full h-full flex items-center justify-center group relative"
-            />
-          ) : (
-            <span className="text-xs text-gray-400 dark:text-gray-400 px-6 text-center">
-              Digital copy pending upload. Check the physical OR handed over by Finance.
-            </span>
-          )}
-        </div>
-      </div>
-
-      <div className="lg:w-1/2 min-h-0 flex-1 flex flex-col overflow-hidden">
-        <div className="flex-1 overflow-y-auto p-6 sm:p-8">
-          <h3 className="text-xl font-black text-gray-900 dark:text-gray-100">Verify Official Receipt</h3>
-          <p className="text-xs text-gray-400 dark:text-gray-400 mt-1 font-semibold pb-5 mb-6 border-b border-gray-100 dark:border-gray-700">
-            Check the receipt before handing {selectedDoc.document_type} off to Window 1.
-          </p>
-
-          <div className="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl p-5 mb-6 font-mono text-[11px] text-gray-600 dark:text-gray-300 space-y-2">
-            <div className="flex flex-wrap justify-between gap-x-3 gap-y-1"><span>Tracking ID</span><span className="font-bold text-gray-950 dark:text-gray-100 select-text">#{selectedDoc.tracking_number || selectedDoc.id}</span></div>
-            <div className="flex flex-wrap justify-between gap-x-3 gap-y-1"><span>Student</span><span className="font-bold text-gray-950 dark:text-gray-100 select-text break-words">{selectedDoc.student_name || '—'}</span></div>
-            <div className="flex flex-wrap justify-between gap-x-3 gap-y-1"><span>Document Type</span><span className="font-bold text-gray-950 dark:text-gray-100">{selectedDoc.document_type}</span></div>
-            <div className="flex justify-between border-t border-gray-200/50 dark:border-gray-700/50 pt-2"><span>Amount</span><span className="font-bold text-gray-950 dark:text-gray-100">{formatPeso(selectedDoc.amount)}</span></div>
-          </div>
-
-          <div className="space-y-4">
-            <div>
-              <span className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest block mb-1">Official Receipt Number</span>
-              <span className="text-xl font-mono font-black text-[#15803d] dark:text-green-300">
-                {selectedDoc.or_number || 'None'}
-              </span>
-            </div>
-            
-            {!selectedDoc.or_number && (
-              <div className="bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 rounded-2xl p-4 mt-4">
-                <p className="text-[11px] text-amber-900 dark:text-amber-300 font-semibold leading-relaxed">
-                  Ask Finance to record the OR number before verifying this receipt.
-                </p>
-              </div>
-            )}
-            {!selectedDoc.official_receipt_path && (
-              <label className="flex items-start gap-3 rounded-xl border border-gray-200 dark:border-gray-700 p-4 text-xs font-semibold text-gray-700 dark:text-gray-300">
-                <input type="checkbox" checked={physicalReceiptChecked}
-                  onChange={(e) => setPhysicalReceiptChecked(e.target.checked)}
-                  disabled={actionLoading} className="trace-choice mt-0.5 shrink-0 accent-[#15803d]" />
-                I inspected the physical Official Receipt from Finance and its number matches this request.
-              </label>
-            )}
-          </div>
-        </div>
-
-        <div className="shrink-0 px-6 sm:px-8 py-6 border-t border-gray-100 dark:border-gray-700 flex items-center gap-3">
-          <Button
-            onClick={close}
-            disabled={actionLoading}
-            className="trace-button trace-button-secondary w-1/3 text-center"
-          >
-            Cancel
-          </Button>
-          <Button
-            onClick={() => handleSecretaryVerifyReceipt('confirm', { physicalReceiptChecked })}
-            disabled={actionLoading || !canConfirm}
-            className="trace-button trace-button-primary w-2/3 text-center"
-          >
-            Confirm Receipt
-          </Button>
-        </div>
-      </div>
-    </ModalShell>
-  );
+  const copy = Boolean(selectedDoc.official_receipt_path), recorded = Boolean(selectedDoc.or_number?.trim());
+  const close = () => { if (!actionLoading) { setReceiptChecked(false); setActiveModal(null); } };
+  return <ModalShell open onClose={close} busy={actionLoading} title="Verify Official Receipt" subtitle={`Check the receipt before handing ${selectedDoc.document_type} off to Window 1.`} headerIcon={<SecretaryHeaderIcon name="c4f0d" />} headerBadge={<span className="trace-secretary-stage-badge">Step 3 · OR Verification</span>} closeButtonIcon={<SecretaryIcon name="b80f9" />} panelClassName="trace-modal-panel trace-secretary-dialog trace-secretary-receipt max-w-[1040px]"
+    footer={<div className="trace-secretary-modal-actions"><p className="trace-secretary-footer-note"><SecretaryIcon name="f4fe6" />{recorded && receiptChecked ? 'Confirming records the OR check; Final Handoff is still required.' : 'Confirm unlocks once the OR number is recorded and the box above is checked.'}</p><div className="trace-actions"><Button type="button" disabled={actionLoading} onClick={close} className="trace-button trace-button-secondary">Cancel</Button><Button type="button" disabled={actionLoading || !recorded || !receiptChecked} onClick={()=>handleSecretaryVerifyReceipt('confirm', { physicalReceiptChecked: !copy && receiptChecked })} className="trace-button trace-button-primary"><SecretaryIcon name="11669" />Confirm Receipt</Button></div></div>}>
+    <div className="trace-secretary-receipt-columns"><section className="trace-secretary-receipt-preview"><header><h4>Finance Attachment</h4><span className={'trace-secretary-payment '+(copy?'trace-secretary-payment-paid':'trace-secretary-payment-unpaid')}>{copy ? 'Digital copy attached' : 'Pending upload'}</span></header><div className={'trace-secretary-receipt-stage '+(!copy?'trace-secretary-receipt-empty':'')}>
+      {copy ? <AuthedFilePreview path={selectedDoc.official_receipt_path} alt="Official Receipt" iframeTitle="Official Receipt" className="w-full h-full object-contain" onClick={()=>setViewImageUrl?.(selectedDoc.official_receipt_path)} wrapperClassName="w-full h-full flex items-center justify-center" /> : <><span className="trace-secretary-receipt-empty-icon"><SecretaryIcon name="4c596" /></span><strong>No digital copy yet</strong><p>Digital copy pending upload. Check the physical OR handed over by Finance.</p></>}
+    </div></section><div className="trace-secretary-receipt-details"><section className="trace-secretary-case-summary"><div className="trace-secretary-case-identity"><SecretaryAvatar name={selectedDoc.student_name} /><div className="min-w-0 flex-1"><span className="trace-secretary-caption">Student</span><strong className="block break-words">{selectedDoc.student_name || 'Unresolved student'}</strong></div><span className="trace-secretary-tracking-chip">Tracking ID #{selectedDoc.tracking_number || selectedDoc.id}</span></div><dl className="trace-secretary-receipt-tiles"><div><dt>Document Type</dt><dd>{selectedDoc.document_type}</dd></div><div><dt>Amount</dt><dd>{formatPeso(selectedDoc.amount)}</dd></div></dl></section>
+    <section className={'trace-secretary-or-card '+(recorded?'trace-secretary-or-recorded':'')}><header><h4><SecretaryIcon name={recorded?'c2a0b':'34ea8'} />Official Receipt Number</h4><span className={'trace-secretary-payment '+(recorded?'trace-secretary-payment-paid':'trace-secretary-payment-unpaid')}><SecretaryIcon name={recorded?'18446':'cbd1f'} />{recorded?'Recorded':'Not recorded'}</span></header><p className="trace-secretary-or-value">{selectedDoc.or_number || 'None'}</p><p className={recorded?'trace-secretary-notice':'trace-secretary-warning'}><SecretaryIcon name={recorded?'460da':'05aaf'} />{recorded ? 'The OR number is on file. Match it against the receipt before confirming.' : 'Ask Finance to record the OR number before verifying this receipt.'}</p></section>
+    <label className={'trace-secretary-receipt-ack '+(receiptChecked?'trace-secretary-receipt-ack-checked':'')}><input type="checkbox" checked={receiptChecked} onChange={event=>setReceiptChecked(event.target.checked)} disabled={actionLoading} className="trace-choice" /><span>{copy ? 'I checked the Official Receipt and its number matches this request.' : 'I inspected the physical Official Receipt from Finance and its number matches this request.'}</span></label>
+    </div></div>
+  </ModalShell>;
 }

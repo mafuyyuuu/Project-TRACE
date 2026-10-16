@@ -148,7 +148,7 @@ it('preserves Secretary record fields and profile actions in the combined worksp
   record.documents[0] = { ...record.documents[0], student_id: 'SYNTHETIC-STUDENT', document_sequence_number: 'Diploma – Request No. 2', document_type: 'Diploma', current_status: STATUS.READY_FOR_RELEASE, payment_status: 'PAID', created_at: '2026-10-01T00:00:00Z', updated_at: '2026-10-02T00:00:00Z' };
   service.getDocumentReport.mockResolvedValue(record);
   render(<ReportsPanel user={{ role: 'clerk', desk_assignment: 'Secretary' }} currentTab="reports" initialRecordSet="secretary-cleared" />);
-  await screen.findByRole('heading', { name: 'Records & Export' });
+  await screen.findByRole('heading', { name: 'Reports & Export' });
   expect(screen.getByRole('button', { name: 'Secretary-cleared' })).toHaveAttribute('aria-pressed', 'true');
   expect(screen.getByText('Diploma – Request No. 2')).toBeInTheDocument();
   expect(screen.getByText('Ready for Pick-up', { selector: 'tbody span' })).toBeInTheDocument();
@@ -158,6 +158,6 @@ it('preserves Secretary record fields and profile actions in the combined worksp
   await user.click(screen.getByRole('button',{name:'Apply Filters'}));
   await waitFor(() => expect(service.getDocumentReport).toHaveBeenLastCalledWith(expect.objectContaining({ status: STATUS.COMPLETED })));
   expect(screen.getByRole('button', { name: 'Completed only' })).toHaveAttribute('aria-pressed', 'true');
-  await user.click(screen.getByRole('button', { name: 'Export', exact: true }));
+  await user.click(screen.getByRole('button', { name: 'Export CSV', exact: true }));
   expect(screen.getByLabelText('Dataset').querySelectorAll('option')).toHaveLength(5);
 });

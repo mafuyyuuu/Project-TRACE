@@ -20,7 +20,7 @@ it.each(['reports','export','exports'])('opens Finance %s in the same reports wo
  await screen.findByRole('heading',{name:'Reports & Export'});
  expect(screen.getByLabelText('Student ID / Name')).toBeInTheDocument();expect(screen.getByLabelText('College / Department')).toBeInTheDocument();
  expect(screen.queryByRole('heading',{name:'Payment History'})).not.toBeInTheDocument();
- await userEvent.click(screen.getByRole('button',{name:'Export',exact:true}));
+ await userEvent.click(screen.getByRole('button',{name:'Export CSV',exact:true}));
  expect(within(screen.getByRole('dialog',{name:'Export'})).getByLabelText('Dataset').options).toHaveLength(5);
  expect(reports.getAnalytics).not.toHaveBeenCalled();
 });
@@ -31,9 +31,9 @@ it('exports only the applied Finance report filters',async()=>{
  await userEvent.selectOptions(screen.getByLabelText('Payment'),'PAID');
  await userEvent.click(screen.getByRole('button',{name:'Apply Filters'}));
  await waitFor(()=>expect(reports.getDocumentReport).toHaveBeenLastCalledWith(expect.objectContaining({studentSearch:'SYN-001',paymentStatus:'PAID'})));
- await userEvent.click(screen.getByRole('button',{name:'Export',exact:true}));
- await waitFor(()=>expect(screen.getByRole('button',{name:'Export CSV'})).toBeEnabled());
- await userEvent.click(screen.getByRole('button',{name:'Export CSV'}));
+ await userEvent.click(screen.getByRole('button',{name:'Export CSV',exact:true}));
+ await waitFor(()=>expect(within(screen.getByRole('dialog',{name:'Export'})).getByRole('button',{name:'Export CSV'})).toBeEnabled());
+ await userEvent.click(within(screen.getByRole('dialog',{name:'Export'})).getByRole('button',{name:'Export CSV'}));
  await waitFor(()=>expect(reports.exportDocumentsCsv).toHaveBeenCalledExactlyOnceWith({studentSearch:'SYN-001',paymentStatus:'PAID'}));
 });
 it('History has only payment filters, copy actions and a live waiting indicator',async()=>{
