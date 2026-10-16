@@ -16,6 +16,8 @@ The reference supplies desktop mockups. Mobile, dark theme, enlarged text, empty
 
 The approved shared History filter treatment, ticket archives, removal of the Student floating chat launcher, Admin-only Support Analytics, and current-student Year Level/Section changes remain in force. Staff coordination describes actual staff permissions rather than the copied Admin monitoring copy in some mockups. Required supporting-document instructions, correction notes, receipt numbers and existing confirmation gates remain enforced. Receipt inspection and Final Handoff stay separate. Uploaded and physical OR inspections both require acknowledgment; changes to the recorded receipt reset it.
 
+Subsequent user-approved refinements place Support page headings above the category tabs in DOM and visual order, show readable Activity Log actions with expanded abbreviations, and use equal-size New Request choices with selected-document fields below the grid. These requests take precedence over the earlier mockup composition; see `UI_CONVENTIONS.md` and the current progress entry for validation.
+
 ## College Secretary frame coverage
 
 | Source frames | Implemented view |

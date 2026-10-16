@@ -79,7 +79,7 @@ function InternalConversation({ticketId,user,onNotice,onChanged,onTicketState,ac
     </ConfirmDialog>
   </section>;
 }
-export default function InternalAssistanceWorkspace({user,requestedTicket,active=true}) {
+export default function InternalAssistanceWorkspace({user,requestedTicket,embedded=false,active=true}) {
   const [stateFilter,setStateFilter] = useState(''), [categoryFilter,setCategoryFilter] = useState(''), [query,setQuery] = useState('');
   const state = useInternalAssistance(user,stateFilter,categoryFilter,requestedTicket);
   const [showTickets,setShowTickets] = useState(false), [creating,setCreating] = useState(false), [staged,setStaged] = useState(null);
@@ -104,7 +104,7 @@ export default function InternalAssistanceWorkspace({user,requestedTicket,active
     </div>
   </div>;
   return <section aria-label="Internal assistance workspace" className="min-w-0 space-y-4">
-    <header className="flex flex-wrap items-center justify-between gap-3"><h2 className={isWindowClerk(user) ? "sr-only" : "trace-page-title"}>{isCollegeOrFinance(user) ? "Support" : "Internal Assistance"}</h2><div className="flex flex-wrap gap-2"><Button type="button" onClick={() => setShowTickets(true)} className="trace-button trace-button-secondary lg:hidden" aria-haspopup="dialog">Internal tickets</Button>{user.role !== 'admin' && <Button type="button" disabled={state.busy || !Object.keys(state.categories).length} onClick={() => setCreating(true)} className="trace-button trace-button-primary"><SupportIcon name="plus" />New concern</Button>}</div></header>
+    <header className={"flex flex-wrap items-center justify-between gap-3" + (embedded && user.role === 'admin' ? ' lg:hidden' : '')}>{!embedded && <h2 className={isWindowClerk(user) ? "sr-only" : "trace-page-title"}>{isCollegeOrFinance(user) ? "Support" : "Internal Assistance"}</h2>}<div className="flex flex-wrap gap-2"><Button type="button" onClick={() => setShowTickets(true)} className="trace-button trace-button-secondary lg:hidden" aria-haspopup="dialog">Internal tickets</Button>{user.role !== 'admin' && <Button type="button" disabled={state.busy || !Object.keys(state.categories).length} onClick={() => setCreating(true)} className="trace-button trace-button-primary"><SupportIcon name="plus" />New concern</Button>}</div></header>
     <p className="text-sm text-gray-600 dark:text-gray-300">{user.role === 'admin' ? 'Claim a staff concern to assist. Other operational conversations remain read-only.' : 'Ask Admin about account access, system issues or workflow concerns. Only you and Admin can read your tickets.'}</p>
     {state.error && <p role="alert" className="trace-inline-error text-sm">{state.error} <Button type="button" onClick={() => void state.refresh()} className="trace-action underline">Retry internal assistance</Button></p>}
     <div className="grid h-[75dvh] min-h-96 min-w-0 grid-cols-[minmax(0,1fr)] overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-900 lg:grid-cols-[minmax(16rem,1fr)_minmax(0,2.4fr)]">

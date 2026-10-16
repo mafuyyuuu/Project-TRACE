@@ -20,3 +20,14 @@ it.each([{id:9,role:'admin'},...['Window 1','Receiving Desk','Finance','Secretar
  expect(screen.getByRole('tab',{name:'Internal assistance'})).toHaveAttribute('aria-selected','true');
  expect(screen.getByText('Internal ticket workspace 29')).toBeVisible();
 });
+
+it('places the active page heading before the category tabs and retains keyboard tab focus',()=>{
+  mount({id:9,role:'admin'});
+  const tabs=screen.getByRole('tablist',{name:'Conversation categories'});
+  const heading=screen.getByRole('heading',{name:'Support'});
+  expect(heading.compareDocumentPosition(tabs)&Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  const support=screen.getByRole('tab',{name:'Student & case support'});support.focus();
+  fireEvent.keyDown(support,{key:'End'});
+  expect(screen.getByRole('tab',{name:'Internal assistance'})).toHaveFocus();
+  expect(screen.getByRole('heading',{name:'Internal Assistance'}).compareDocumentPosition(tabs)&Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+});

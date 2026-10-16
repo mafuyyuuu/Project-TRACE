@@ -313,3 +313,12 @@ Secretary evaluation keeps editable fields and a separate discussion panel, with
 Finance verification uses independent summary/proof and issuance/copy/notes columns, stacked in narrow containers. The paper-pack serial is read-only; pack configuration, verification, issuance, upload, printing and voiding retain their original confirmations, cutoff rules and audit semantics. History keeps caller-owned draft/apply/reset filters, with From/To under Cleared date range. Published copies use authenticated blob previews/downloads and bounded image zoom. Shared supporting-document presentation applies to Secretary and Finance without granting Finance registrar attachment actions. The reports presentation flag never changes report scope or export authorization.
 
 The Figma review is not complete: Student Payment modal `2506:1867` still needs its newer layout and original checkout assets; the Secretary Graduate Applications active white navigation export also remains unavailable. No substitute icons, screenshot-as-UI assets or temporary Figma URLs are used to hide that gap.
+
+
+## Support and request-card refinements — 2026-10-16
+
+The user-approved Support heading comes before the category tabs in DOM and visual order on every staff account. MessagingWorkspace owns the active page title; embedded workspaces retain their actions but suppress their duplicate title. Keep visited workspaces mounted so category changes preserve drafts. Do not reintroduce CSS order/display-contents tricks that place tabs before the heading. Standalone and compact Support keep their existing headings.
+
+New Request choices use equal-width grid columns and equal-height rows, growing for complete titles and descriptions rather than clipping text. Selected documents’ keyed detail forms sit below the choice grid, so different requirements do not resize individual cards. Search preserves selected choices and the mounted details/file drafts. Rate calculations, availability, dismissal limits, saved years, validation and confirmations stay authoritative.
+
+Activity action labels use utils/activityPresentation.js. Expand known domain abbreviations, preserve the saved code as metadata, and search the displayed label as well as the original record. This presentation does not rename database events or change security-event formatting.
