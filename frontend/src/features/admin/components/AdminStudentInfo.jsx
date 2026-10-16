@@ -1,3 +1,4 @@
+import EmailText from '@/components/EmailText';
 import UserAvatar from '@/components/UserAvatar';
 import RegistrationProof from '@/components/RegistrationProof';
 import RegistrationReviewNotice from '@/components/RegistrationReviewNotice';
@@ -13,8 +14,8 @@ function Field({ label, value, wide = false, half = false, third = false }) {
 export default function AdminStudentInfo({ user }) {
   return <div className="trace-admin-student-content space-y-6">
     <div className="trace-admin-profile-summary">
-      <div className="flex min-w-0 flex-wrap items-center gap-5"><UserAvatar user={user} className="h-20 w-20 shrink-0 rounded-full object-cover" alt={user.full_name} /><div className="min-w-0 flex-1"><div className="flex flex-wrap items-center gap-3"><h4 className="select-text break-words text-2xl font-bold">{user.full_name}</h4><span className={`trace-admin-badge ${Number(user.is_active) ? 'trace-admin-badge-green' : 'trace-admin-badge-neutral'}`}>● {Number(user.is_active) ? 'Active' : 'Inactive'}</span></div><p className="mt-2 select-text break-words text-sm text-gray-500 dark:text-gray-400">{user.email || '—'}</p><p className="mt-2 text-xs font-medium text-gray-500 dark:text-gray-400">{getUserLabel(user)}</p></div></div>
-      <dl className="space-y-4"><Field label={user.user_type === 'alumni' ? 'Alumni ID' : 'Student ID'} value={user.student_id} /><Field label="Date Joined" value={user.created_at ? new Date(user.created_at).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) : null} /></dl>
+      <div className="flex min-w-0 flex-wrap items-center gap-5"><UserAvatar user={user} className="h-20 w-20 shrink-0 rounded-full object-cover" alt={user.full_name} /><div className="min-w-0 flex-1"><div className="flex flex-wrap items-center gap-3"><h4 className="select-text break-words text-2xl font-bold">{user.full_name}</h4><span className={`trace-admin-badge ${Number(user.is_active) ? 'trace-admin-badge-green' : 'trace-admin-badge-neutral'}`}>● {Number(user.is_active) ? 'Active' : 'Inactive'}</span></div><p className="mt-2 select-text break-words text-sm text-gray-500 dark:text-gray-400"><EmailText value={user.email} /></p><p className="mt-2 text-xs font-medium text-gray-500 dark:text-gray-400">{getUserLabel(user)}</p></div></div>
+      <dl className="space-y-4"><Field label={user.user_type === 'alumni' ? 'Alumni ID' : 'Student ID'} value={user.student_id} /><Field label="Date Joined" value={user.created_at ? new Date(user.created_at).toLocaleDateString('en-PH', { timeZone: 'Asia/Manila', month: 'long', day: 'numeric', year: 'numeric' }) : null} /></dl>
     </div>
     <RegistrationReviewNotice user={user} />
     {!user.college_id && <p className="trace-admin-notice">College assignment needs Admin review before requesting college-restricted documents.</p>}

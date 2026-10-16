@@ -1,3 +1,4 @@
+import PaginatedTable from '@/components/PaginatedTable';
 import Button from '@/components/Button';
 import { useState } from 'react';
 import SecretaryEvaluationModal from '@/features/secretary/components/SecretaryEvaluationModal';
@@ -181,7 +182,7 @@ export default function SecretaryDashboard({ user, currentTab, setViewImageUrl }
                   {evaluationQueue.length === 0 ? (
                     <div className="text-center py-12 text-gray-400 dark:text-gray-400 font-medium">Evaluation queue is empty! Beautiful.</div>
                   ) : (
-                    <table className="w-full text-left border-collapse table-fixed min-w-[680px]">
+                    <PaginatedTable label="documents" className="w-full text-left border-collapse table-fixed min-w-[680px]">
                       <thead className="sticky top-0 bg-white dark:bg-gray-900 z-10">
                         <tr className="text-gray-400 dark:text-gray-400 text-[10px] uppercase tracking-widest border-b border-gray-100 dark:border-gray-700">
                           <th className="pb-4 font-bold pl-4">Document Details</th>
@@ -223,7 +224,7 @@ export default function SecretaryDashboard({ user, currentTab, setViewImageUrl }
                           </tr>
                         ))}
                       </tbody>
-                    </table>
+                    </PaginatedTable>
                   )}
 
                 </div>
@@ -244,7 +245,7 @@ export default function SecretaryDashboard({ user, currentTab, setViewImageUrl }
                   {processingQueue.length === 0 ? (
                     <div className="text-center py-12 text-gray-400 dark:text-gray-400 font-medium">Nothing being processed right now.</div>
                   ) : (
-                    <table className="w-full text-left border-collapse table-fixed min-w-[680px]">
+                    <PaginatedTable label="documents" className="w-full text-left border-collapse table-fixed min-w-[680px]">
                       <thead className="sticky top-0 bg-white dark:bg-gray-900 z-10">
                         <tr className="text-gray-400 dark:text-gray-400 text-[10px] uppercase tracking-widest border-b border-gray-100 dark:border-gray-700">
                           <th className="pb-4 font-bold pl-4">Document Details</th>
@@ -298,7 +299,7 @@ export default function SecretaryDashboard({ user, currentTab, setViewImageUrl }
                           );
                         })}
                       </tbody>
-                    </table>
+                    </PaginatedTable>
                   )}
                 </div>
               </div>
@@ -317,7 +318,7 @@ export default function SecretaryDashboard({ user, currentTab, setViewImageUrl }
                   {orVerificationQueue.length === 0 ? (
                     <div className="text-center py-12 text-gray-400 dark:text-gray-400 font-medium">Nothing waiting on an OR check.</div>
                   ) : (
-                    <table className="w-full text-left border-collapse table-fixed min-w-[680px]">
+                    <PaginatedTable label="documents" className="w-full text-left border-collapse table-fixed min-w-[680px]">
                       <thead className="sticky top-0 bg-white dark:bg-gray-900 z-10">
                         <tr className="text-gray-400 dark:text-gray-400 text-[10px] uppercase tracking-widest border-b border-gray-100 dark:border-gray-700">
                           <th className="pb-4 font-bold pl-4">Document Details</th>
@@ -357,7 +358,7 @@ export default function SecretaryDashboard({ user, currentTab, setViewImageUrl }
                           </tr>
                         ))}
                       </tbody>
-                    </table>
+                    </PaginatedTable>
                   )}
                 </div>
               </div>
@@ -376,7 +377,7 @@ export default function SecretaryDashboard({ user, currentTab, setViewImageUrl }
                   {handoffQueue.length === 0 ? (
                     <div className="text-center py-12 text-gray-400 dark:text-gray-400 font-medium">Nothing waiting to be handed over.</div>
                   ) : (
-                    <table className="w-full text-left border-collapse table-fixed min-w-[680px]">
+                    <PaginatedTable label="documents" className="w-full text-left border-collapse table-fixed min-w-[680px]">
                       <thead className="sticky top-0 bg-white dark:bg-gray-900 z-10">
                         <tr className="text-gray-400 dark:text-gray-400 text-[10px] uppercase tracking-widest border-b border-gray-100 dark:border-gray-700">
                           <th className="pb-4 font-bold pl-4">Document Details</th>
@@ -409,7 +410,7 @@ export default function SecretaryDashboard({ user, currentTab, setViewImageUrl }
                           </tr>
                         ))}
                       </tbody>
-                    </table>
+                    </PaginatedTable>
                   )}
                 </div>
               </div>

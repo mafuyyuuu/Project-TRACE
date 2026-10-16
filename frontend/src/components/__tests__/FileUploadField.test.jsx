@@ -28,6 +28,10 @@ describe('FileUploadField', () => {
     expect(change).toHaveBeenCalledExactlyOnceWith(file);
     rerender(<FileUploadField label="Proof" file={file} onChange={change} />);
     expect(screen.getByRole('status')).toHaveTextContent('Selected: proof.png');
+    expect(screen.queryByText('No file chosen')).not.toBeInTheDocument();
+    expect(screen.getByText('Replace file')).toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText('Proof', {selector:'input'}), {target:{files:[]}});
+    expect(screen.getByRole('status')).toHaveTextContent('Selected: proof.png');
     expect(screen.getByText(/Selected locally/)).toBeInTheDocument();
     await waitFor(() => expect(screen.getByAltText('Proof preview')).toHaveAttribute('src'));
     const url = screen.getByAltText('Proof preview').getAttribute('src');

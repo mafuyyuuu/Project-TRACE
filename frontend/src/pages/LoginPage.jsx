@@ -1,3 +1,4 @@
+import PasswordVisibilityButton from '@/components/PasswordVisibilityButton';
 import Button from '@/components/Button';
 import { INPUT_LIMITS } from '@/utils/inputLimits';
 import { useState, useEffect, useRef } from 'react'
@@ -158,20 +159,13 @@ export default function LoginPage() {
                   <label className="text-xs font-bold text-white uppercase tracking-wider">PASSWORD</label>
                   <div className="relative">
                     <input 
-                      type={showPassword ? 'text' : 'password'} 
+                      id="login-password" type={showPassword ? 'text' : 'password'}
                       value={password} 
                       disabled={busy}
                       onChange={(e) => setPassword(e.target.value)} 
                       className="trace-control trace-control-inverse w-full pr-12 "
                     />
-                    <Button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="trace-action absolute inset-y-0 right-0 pr-4 flex items-center text-white/60 hover:text-white transition-colors"
-                      tabIndex={-1}
-                    >
-                      {showPassword ? 'Hide' : 'Show'}
-                    </Button>
+                    <PasswordVisibilityButton inverse visible={showPassword} onToggle={() => setShowPassword(value => !value)} disabled={busy} controls="login-password" />
                   </div>
                   <div className="text-right mt-2">
                     <Link to="/forgot-password" className="text-sm font-medium text-white/90 hover:text-white hover:underline">Forgot Password?</Link>

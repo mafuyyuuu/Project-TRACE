@@ -326,3 +326,8 @@ its years never determine printed pages or prices. Alumni education, document
 availability, graduate-application checks and existing historical values remain.
 The additive `migrate_current_student_details.js` migration must precede the matching
 API upgrade. This change is locally tested code, not a claim of live deployment.
+
+
+### October 16 review correction
+
+Student chat is reached through Support; the dashboard launcher is removed. Support Analytics is Admin-only in Efficiency Analytics and its API denies non-Admin actors, including Window 1. Operational tickets, support settings, archive rules, and actual billing transitions retain their existing permissions. The updated payment card uses saved fee snapshots and one amount/action per request group. Payment-slip preview supports printing or browser Save as PDF. Shared Preferences, selected-file feedback, centered phone dialogs, FAQ-only scrolling and paged record tables are local UI corrections; deployment and physical-device acceptance remain separate.

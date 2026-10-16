@@ -1,3 +1,5 @@
+import PaginatedTable from '@/components/PaginatedTable';
+import EmailText from '@/components/EmailText';
 import FilterSelect from '@/components/FilterSelect';
 import AdminAuditLog from './components/AdminAuditLog';
 import AdminIcon from './components/AdminIcon';
@@ -258,7 +260,7 @@ export default function AdminDashboard({ user, currentTab, setViewImageUrl, revi
                       {pendingStudents.length === 0 ? (
                         <div className="text-center py-12 text-gray-400 dark:text-gray-400 font-medium">No pending student accounts requiring manual validation.</div>
                       ) : (
-                        <table aria-label="Account verification requests" className="trace-data-table min-w-[62rem]">
+                        <PaginatedTable label="verification requests" aria-label="Account verification requests" className="trace-data-table min-w-[62rem]">
                           <colgroup>{['w-[12%]','w-[13%]','w-[16%]','w-[25%]','w-[24%]','w-[8rem]'].map((width,index)=><col key={index} className={width}/>)}</colgroup>
                           <thead className="sticky top-0 bg-white dark:bg-gray-900 z-10">
                             <tr className="text-gray-400 dark:text-gray-400 text-[10px] uppercase tracking-widest border-b border-gray-100 dark:border-gray-700">
@@ -276,7 +278,7 @@ export default function AdminDashboard({ user, currentTab, setViewImageUrl, revi
                                 <td className="py-4 pl-4 font-mono text-sm font-semibold text-gray-800 dark:text-gray-100">{student.student_id}</td>
                                 <td className="py-4"><span className="trace-admin-badge trace-admin-badge-blue"><AdminIcon name="applicant" />{USER_TYPE_LABELS[student.user_type] || 'Student'}</span></td>
                                 <td className="py-4 text-sm font-bold text-gray-900 dark:text-gray-100">{student.full_name}</td>
-                                <td className="py-4 text-sm text-gray-600 dark:text-gray-300">{student.email || '—'}</td>
+                                <td className="py-4 text-sm text-gray-600 dark:text-gray-300"><EmailText value={student.email} /></td>
                                 <td className="py-4">
                                   {student.id_proof_path ? (
                                     <Button
@@ -295,7 +297,7 @@ export default function AdminDashboard({ user, currentTab, setViewImageUrl, revi
                               </tr>
                             ))}
                           </tbody>
-                        </table>
+                        </PaginatedTable>
                       )}
 
                     </div>

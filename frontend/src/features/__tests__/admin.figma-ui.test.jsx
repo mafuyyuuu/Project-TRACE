@@ -43,12 +43,12 @@ describe('Admin Figma UI interactions', () => {
     expect(screen.getByText('Recorded metrics only.')).toBeInTheDocument();
   });
 
-  it('expands the full directory and opens the correct account by keyboard', async () => {
+  it('paginates the full directory and opens the correct account by keyboard', async () => {
     const accounts = Array.from({ length: 12 }, (_, index) => ({ id: index + 1, full_name: `Account ${index + 1}`, student_id: `TEST-${index + 1}`, role: 'student', is_active: 1 }));
     const select = vi.fn();
     render(<AccountDirectory users={accounts} onSelectUser={select} roleFilter="All" onRoleFilterChange={vi.fn()} roleOptions={[{ value: 'All', label: 'All Roles' }]} />);
     expect(within(screen.getByRole('table')).queryByText('Account 12')).not.toBeInTheDocument();
-    await userEvent.click(screen.getByRole('button', { name: /View all 12 accounts/ }));
+    await userEvent.click(screen.getByRole('button', { name: 'Next' }));
     const account = screen.getByRole('button', { name: /Account 12/ });
     account.focus();
     await userEvent.keyboard('{Enter}');

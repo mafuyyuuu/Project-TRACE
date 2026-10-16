@@ -1,3 +1,4 @@
+import { formatDateTime } from '@/utils/formatters';
 import { Fragment, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import Button from '@/components/Button';
 import AdminIcon from '@/features/admin/components/AdminIcon';
@@ -76,7 +77,7 @@ export default function SupportConversation({ ticketId,user,topics,onTicketChang
       {compact && user.role === 'student' && ticket?.state === 'FAQ_ASSISTANCE' && <Button type="button" disabled={chat.busy} onClick={() => stage({action:'escalate'})} className="trace-button trace-button-primary">Talk to staff</Button>}
     </header>
     {ticket && (chat.data?.window?.open === false || ticket.state === 'QUEUED') && <aside aria-label="Support hours and queue" className="flex max-h-[20%] shrink-0 items-start gap-3 overflow-y-auto px-4 py-3 text-xs font-medium text-green-900 dark:text-green-100"><SupportIcon name="clock" /><div className="min-w-0 space-y-2">
-      {chat.data?.window?.open === false && <p>Live support is closed; conversations and queue places are saved. Next opening: {chat.data.window.next_opens_at ? new Date(chat.data.window.next_opens_at).toLocaleString('en-PH',{timeZone:'Asia/Manila'}) : 'Check support hours'} (Manila).</p>}
+      {chat.data?.window?.open === false && <p>Live support is closed; conversations and queue places are saved. Next opening: {chat.data.window.next_opens_at ? formatDateTime(chat.data.window.next_opens_at) : 'Check support hours'} (Manila).</p>}
       {ticket.state === 'QUEUED' && <p>Queue position: {chat.data.queue?.position ?? 'Checking'} · {chat.data.queue?.available_clerks ?? 'Checking'} declared available clerks. {chat.data.queue?.wait_range_minutes ? `Estimated ${chat.data.queue.wait_range_minutes.join('–')} minutes (${chat.data.queue.sample_size} handling samples). Availability can change.` : chat.data.queue?.message}</p>}
     </div></aside>}
     <div ref={history} tabIndex={0} aria-label="Conversation history" onScroll={event => { const node = event.currentTarget; pinned.current = node.scrollHeight-node.clientHeight-node.scrollTop < 32; }} className="min-h-0 flex-1 space-y-4 overflow-y-auto p-3 focus-visible:outline focus-visible:outline-2 focus-visible:outline-green-700">

@@ -244,7 +244,7 @@ describe('ProfileSettingsModal', () => {
     expect(screen.getByRole('dialog', { name: 'Preferences' })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Save Profile' })).not.toBeInTheDocument();
     expect(screen.queryByDisplayValue('ana@plp.edu.ph')).not.toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: user.role === 'admin' ? 'Dark' : 'Switch to Dark Mode' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Dark' }));
     expect(toggle).toHaveBeenCalledOnce();
   });
 

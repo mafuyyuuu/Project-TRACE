@@ -21,7 +21,7 @@ it('anchors the tour to actual controls and opens profile and support without su
     expect(screen.getByRole('heading', { name: title })).toBeInTheDocument();
   }
   fireEvent.click(screen.getByRole('button', { name: /Open support/ }));
-  expect(action).toHaveBeenLastCalledWith('dashboard');
+  expect(action).toHaveBeenLastCalledWith('navigation:messages');
   fireEvent.click(screen.getByRole('button', { name: 'Next' }));
   expect(prepare).toHaveBeenLastCalledWith('security');
   expect(screen.getByText(/authenticator QR code/)).toBeInTheDocument();

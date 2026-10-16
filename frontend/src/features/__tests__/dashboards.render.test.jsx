@@ -1,3 +1,4 @@
+import { formatEventLabel } from '@/utils/formatters';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { STATUS, LEGACY_STATUS, getStatusLabel } from '@/utils/documentStatus';
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
@@ -278,7 +279,7 @@ describe('role isolation', () => {
     const cells = within(within(table).getAllByRole('row')[1]).getAllByRole('cell');
     expect(cells[0]).toHaveTextContent('Oct 5, 2026');
     expect(cells[0]).toHaveTextContent('8:00:00 AM');
-    expect(cells[1].textContent).toBe(log.event_type);
+    expect(cells[1].textContent).toBe(formatEventLabel(log.event_type));
     expect(cells[2]).toHaveTextContent(log.full_name);
     expect(cells[2]).toHaveTextContent(log.student_id);
     expect(cells[3].textContent).toBe(log.role);

@@ -1,3 +1,5 @@
+import { formatPeso } from '@/utils/pricing';
+import PaginatedTable from '@/components/PaginatedTable';
 import FilterSelect from '@/components/FilterSelect';
 import NumberInput from '@/components/NumberInput';
 import { NUMBER_LIMITS } from '@/utils/inputLimits';
@@ -301,8 +303,8 @@ export default function MaintenancePanel({ user, currentTab }) {
                         <td className="py-3 px-5 text-xs font-bold text-gray-900 dark:text-gray-100">{d.name}<span className="trace-admin-type-pills"><span>{({both:'Students & Alumni',student:'Students only',alumni:'Alumni only'})[d.available_to] || 'Students & Alumni'}</span>{Number(d.is_repeatable) === 1 && <span className="trace-admin-type-pill-blue">Repeatable</span>}{Number(d.is_walk_in) === 1 && <span className="trace-admin-type-pill-blue">Counter only</span>}</span>
                           {!Number(d.is_active) && Number(d.base_fee) === 0 && <span className="trace-admin-draft-pill"><AdminIcon name="maintenance-alert" />Draft · set a fee to activate</span>}</td>
                         <td className="py-3 text-xs text-gray-600 dark:text-gray-300">
-                          <strong className="text-trace-ink dark:text-gray-100">{d.fee_pending ? 'Fee not set' : `₱${Number(d.base_fee).toFixed(2)}`}</strong>{['per_semester_block','per_page'].includes(d.fee_rule) && <span className="trace-admin-caption"> per page, per copy</span>}
-                          <span className="block text-[10px]">{(d.college_fee_schedules || []).length} college overrides · {(d.fee_items || []).length} named fees</span><span className="block text-[10px]">Rental ₱{Number(d.rental_fee || 0).toFixed(2)} · Special ₱{Number(d.special_fee || 0).toFixed(2)}</span>
+                          <strong className="text-trace-ink dark:text-gray-100">{d.fee_pending ? 'Fee not set' : formatPeso(d.base_fee)}</strong>{['per_semester_block','per_page'].includes(d.fee_rule) && <span className="trace-admin-caption"> per page, per copy</span>}
+                          <span className="block text-[10px]">{(d.college_fee_schedules || []).length} college overrides · {(d.fee_items || []).length} named fees</span><span className="block text-[10px]">Rental {formatPeso(d.rental_fee)} · Special {formatPeso(d.special_fee)}</span>
                           {d.name === 'Diploma' && <span className="text-[10px] text-gray-500 dark:text-gray-400 block">Reissue Fee · Secretary sets final amount</span>}
                         </td>
                         <td className="py-3 text-xs text-gray-600 dark:text-gray-300">{Number(d.requires_attachment) ? <span className="inline-flex items-center gap-1.5"><AdminIcon name="maintenance-clip" />Required</span> : <span className="text-slate-400">—</span>}</td>
@@ -356,7 +358,7 @@ export default function MaintenancePanel({ user, currentTab }) {
                 <div><h3 className="trace-section-title">Colleges</h3><p className="trace-admin-caption">{m.colleges.length} colleges · {m.colleges.filter(college => Number(college.is_active)).length} active</p></div><div className="trace-actions"><label className="trace-admin-search"><AdminIcon name="search" /><input type="search" aria-label="Search colleges" placeholder="Search colleges" value={catalogSearch} onChange={event => setCatalogSearch(event.target.value)} /></label><Button type="button" className="trace-button trace-button-primary" onClick={() => { resetForm(); setCatalogForm('colleges'); }}><AdminIcon name="plus" />Add College</Button></div>
               </div>
               <div className="trace-table-scroll max-h-[70dvh]">
-                <table className="w-full text-left min-w-[48rem]">
+                <PaginatedTable label="catalog entries" className="w-full text-left min-w-[48rem]">
                   <thead className="bg-gray-50 dark:bg-gray-800 sticky top-0">
                     <tr className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest">
                       <th className="py-3 px-5">College</th>
@@ -383,7 +385,7 @@ export default function MaintenancePanel({ user, currentTab }) {
                       </tr>
                     ))}
                   </tbody>
-                </table>
+                </PaginatedTable>
               </div>
             </div>
           </div>
@@ -414,7 +416,7 @@ export default function MaintenancePanel({ user, currentTab }) {
                 </p>
               </div>
               <div className="trace-table-scroll max-h-[70dvh]">
-                <table className="w-full text-left min-w-[48rem]">
+                <PaginatedTable label="catalog entries" className="w-full text-left min-w-[48rem]">
                   <thead className="bg-gray-50 dark:bg-gray-800 sticky top-0">
                     <tr className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest">
                       <th className="py-3 px-5">Method</th>
@@ -450,7 +452,7 @@ export default function MaintenancePanel({ user, currentTab }) {
                       </tr>
                     ))}
                   </tbody>
-                </table>
+                </PaginatedTable>
               </div>
             </div>
           </div>

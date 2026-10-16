@@ -1,3 +1,4 @@
+const { emailAddress } = require('./emailVerification.service');
 const bcrypt = require('bcryptjs');
 const referenceModel = require('../models/referenceData.model');
 const pricingModel = require('../models/pricing.model');
@@ -275,7 +276,7 @@ async function createStaff(user, data) {
   const [result] = await userModel.createStaff({
     student_id: employee_id.trim(),
     full_name: full_name.trim(),
-    email,
+    email: email ? emailAddress(email) : email,
     password_hash,
     role,
     desk_assignment: role === 'admin' ? desk_assignment || 'Admin Office' : desk_assignment,
@@ -303,7 +304,7 @@ async function updateAccount(user, id, data) {
   }
   if (fields.full_name === '') throw badRequest('Full name cannot be empty.');
   if (fields.phone_number !== undefined) fields.phone_number = validatePhoneNumber(data.phone_number, { required: false });
-  if (fields.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(fields.email)) throw badRequest('Enter a valid email address.');
+  if (fields.email) fields.email = emailAddress(fields.email);
   if (data.college_id !== undefined) {
     if (data.college_id !== null && data.college_id !== '') {
       const idValue = Number(data.college_id);
@@ -328,7 +329,7 @@ async function updateStaff(user, id, data) {
     if (!String(data.full_name).trim()) throw badRequest('Full name cannot be empty.');
     fields.full_name = data.full_name.trim();
   }
-  if (data.email !== undefined) fields.email = data.email;
+  if (data.email !== undefined) fields.email = data.email ? emailAddress(data.email) : data.email;
   if (data.phone_number !== undefined) fields.phone_number = validatePhoneNumber(data.phone_number, { required: false });
   if (data.course !== undefined) fields.course = data.course;
 

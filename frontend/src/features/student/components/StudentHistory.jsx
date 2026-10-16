@@ -1,3 +1,4 @@
+import PaginatedTable from '@/components/PaginatedTable';
 import { useState } from 'react';
 import Button from '@/components/Button';
 import FilterSelect from '@/components/FilterSelect';
@@ -29,14 +30,14 @@ export default function StudentHistory({ documents, view, onView, onReceipt }) {
           <FilterSelect aria-label={payments ? 'Payment status' : 'Request status'} value={status} onChange={event => update({ status: event.target.value })}><option value="all">{payments ? 'All payments' : 'All statuses'}</option>{(payments ? ['PAID', 'UNPAID', 'PENDING'] : [...new Set(cohort.map(doc => doc.current_status))]).map(value => <option key={value} value={value}>{payments ? value[0] + value.slice(1).toLowerCase() : getStatusLabel(value)}</option>)}</FilterSelect></div>
       </header>
       <div role="region" aria-label={payments ? 'Payment records' : 'Request records'} tabIndex={0} className="trace-student-history-scroller overflow-auto">
-        <table className={`trace-student-table w-full table-fixed text-left ${payments ? 'trace-student-payments-table min-w-[60rem]' : 'trace-student-requests-table min-w-[75rem]'}`}>
+        <PaginatedTable label="records" className={`trace-student-table w-full table-fixed text-left ${payments ? 'trace-student-payments-table min-w-[60rem]' : 'trace-student-requests-table min-w-[75rem]'}`}>
           <colgroup>{(payments ? ['w-[20%]', 'w-[26%]', 'w-[14%]', 'w-[11%]', 'w-[13%]', 'w-[16%]'] : ['w-[10%]', 'w-[11.7%]', 'w-[16.6%]', 'w-[13.2%]', 'w-[9.3%]', 'w-[10.3%]', 'w-[15.3%]', 'w-[13.6%]']).map((width, index) => <col key={index} className={width} />)}</colgroup>
           <thead><tr>{(payments ? ['Payment Reference', 'Document', 'Requested', 'Amount', 'Payment Status', 'Receipt'] : ['Requested', 'Tracking', 'Document', 'Request Status', 'Amount', 'Payment Status', 'Payment Reference', 'Receipt']).map(label => <th key={label}>{label}</th>)}</tr></thead>
           <tbody>{rows.map(doc => <tr key={doc.id}>{payments ? <><td className="font-mono">{doc.gcash_reference_no || doc.or_number || '—'}</td><td><strong>{doc.document_type}</strong><span className="block mt-1 text-xs font-mono text-gray-500 dark:text-gray-400">{doc.tracking_number || doc.id}</span></td><td>{date(doc.created_at)}</td><td>{amount(doc)}</td><td>{payment(doc)}</td><td>{receipt(doc)}</td></> : <><td>{date(doc.created_at)}</td><td className="font-mono">{doc.tracking_number || doc.id}</td><td className="font-semibold">{doc.document_type}</td><td><span className={`trace-student-status ${getStatusTone(doc.current_status)}`}>{getStatusLabel(doc.current_status)}</span></td><td>{amount(doc)}</td><td>{payment(doc)}</td><td className="font-mono">{doc.gcash_reference_no || doc.or_number || '—'}</td><td>{receipt(doc)}</td></>}</tr>)}</tbody>
-        </table>
+        </PaginatedTable>
         {!rows.length && <p className="p-6 text-sm text-gray-500 dark:text-gray-400">No records match this filter.</p>}
       </div>
-      <footer className="trace-student-table-footer"><span>Showing {rows.length} of {cohort.length} {payments ? 'payments' : 'records'}</span>{payments && <div className="trace-actions"><span className="trace-student-total-paid">Total paid <strong>{formatPeso(rows.filter(doc => doc.payment_status === 'PAID').reduce((sum, doc) => sum + Number(doc.amount || 0), 0))}</strong></span><span className="trace-student-total-awaiting">Awaiting payment <strong>{formatPeso(rows.filter(doc => doc.payment_status !== 'PAID' && hasPrice(doc)).reduce((sum, doc) => sum + Number(doc.amount || 0), 0))}</strong></span></div>}</footer>
+      <footer className="trace-student-table-footer">{payments && <div className="trace-actions"><span className="trace-student-total-paid">Total paid <strong>{formatPeso(rows.filter(doc => doc.payment_status === 'PAID').reduce((sum, doc) => sum + Number(doc.amount || 0), 0))}</strong></span><span className="trace-student-total-awaiting">Awaiting payment <strong>{formatPeso(rows.filter(doc => doc.payment_status !== 'PAID' && hasPrice(doc)).reduce((sum, doc) => sum + Number(doc.amount || 0), 0))}</strong></span></div>}</footer>
     </section>
   </section>;
 }

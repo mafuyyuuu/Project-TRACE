@@ -23,10 +23,11 @@ describe('PreferencesModal', () => {
     const dialog = screen.getByRole('dialog', { name: 'Preferences' });
     const close = within(dialog).getByRole('button', { name: 'Close' });
     expect(close).toHaveFocus();
-    const theme = within(dialog).getByRole('button', { name: 'Switch to Dark Mode' });
+    const theme = within(dialog).getByRole('button', { name: 'Dark' });
     expect(theme).toHaveAttribute('aria-pressed', 'false');
     await user.click(theme);
-    expect(theme).toHaveAccessibleName('Switch to Light Mode');
+    expect(theme).toHaveAccessibleName('Dark');
+    expect(within(dialog).getByRole('button', {name:'Light'})).toHaveAttribute('aria-pressed', 'false');
     expect(theme).toHaveAttribute('aria-pressed', 'true');
     const size = within(dialog).getByRole('combobox', { name: 'Text size' });
     expect(size).toHaveAccessibleDescription(/Default: 100%/);
@@ -35,9 +36,11 @@ describe('PreferencesModal', () => {
       expect(size).toHaveValue(value);
     }
     await user.tab();
+    expect(within(dialog).getByRole('button', {name:'Done'})).toHaveFocus();
+    await user.tab();
     expect(close).toHaveFocus();
     await user.tab({ shift: true });
-    expect(size).toHaveFocus();
+    expect(within(dialog).getByRole('button', {name:'Done'})).toHaveFocus();
     trigger.focus();
     expect(dialog).toContainElement(document.activeElement);
     await user.keyboard('{Escape}');
@@ -49,7 +52,7 @@ describe('PreferencesModal', () => {
     const user = userEvent.setup();
     const onClose = vi.fn();
     render(<PreferencesModal onClose={onClose} darkMode textSize={200} />);
-    const theme = screen.getByRole('button', { name: 'Switch to Light Mode' });
+    const theme = screen.getByRole('button', { name: 'Dark' });
     const size = screen.getByRole('combobox', { name: 'Text size' });
     expect(theme).toBeDisabled();
     expect(theme).toHaveAttribute('aria-pressed', 'true');

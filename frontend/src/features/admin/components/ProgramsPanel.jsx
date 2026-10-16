@@ -1,3 +1,4 @@
+import PaginatedTable from '@/components/PaginatedTable';
 import { useState } from 'react';
 import Button from '@/components/Button';
 import ConfirmDialog from '@/components/ConfirmDialog';
@@ -30,7 +31,7 @@ export default function ProgramsPanel({ colleges }) {
       </form>
       {!activeColleges.length && <p className="mt-3 text-sm">Add or restore a College before adding programs.</p>}
       <div className="mt-5 max-h-[60vh] overflow-auto rounded-xl border border-gray-200 dark:border-gray-700">
-        <table className="w-full text-sm text-left min-w-[32rem]">
+        <PaginatedTable label="programs" className="w-full text-sm text-left min-w-[32rem]">
           <thead className="sticky top-0 z-10 bg-white dark:bg-gray-900"><tr>{['College', 'Program/Course', 'Status', 'Action'].map(label => <th className="p-3" key={label} scope="col">{label}</th>)}</tr></thead>
           <tbody>
             {catalog.programs.map(item => <tr className="border-t border-gray-200 dark:border-gray-700" key={item.id}>
@@ -40,7 +41,7 @@ export default function ProgramsPanel({ colleges }) {
             </tr>)}
             {!catalog.programs.length && <tr><td className="p-4" colSpan={4}>{catalog.loading ? 'Loading programs…' : catalog.loadError ? 'Program list unavailable.' : <div className="trace-admin-catalog-empty"><span className="trace-admin-catalog-empty-icon"><AdminIcon name="program-cap" /></span><h4>No programs loaded yet</h4><p>Admin must add the Registrar-approved catalog. Use the form above to add the first program.</p></div>}</td></tr>}
           </tbody>
-        </table>
+        </PaginatedTable>
       </div>
       {catalog.loading && <p role="status" className="mt-3 text-sm">Loading current programs…</p>}
       {catalog.loadError && <div className="mt-3"><p role="alert" className="trace-error">{catalog.loadError}</p><Button className="trace-button trace-button-secondary mt-3" onClick={catalog.retry} disabled={catalog.saving || catalog.loading}>Retry Programs</Button></div>}

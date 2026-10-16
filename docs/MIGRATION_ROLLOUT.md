@@ -1,5 +1,9 @@
 # TRACE production update guide
 
+## October 16 UI and access correction
+
+Deploy the matching frontend and rebuild/restart the backend from the reviewed revision. The backend now restricts support metrics to Admin and normalizes new/edited staff email addresses. This batch requires **no migration** and does not alter historical records. Verify Admin → Efficiency Analytics → Support Analytics works and Window 1 `/api/support/tickets/metrics` returns 403. Support/settings and archived tickets remain available under their existing rules.
+
 ## Signup programs and privacy acknowledgment — 2026-10-15
 
 This change needs a matching backend/frontend deployment. Registration now requires an active college/program pairing and explicit acknowledgment of Privacy Notice `2026-10-15.v1`. An older cached form cannot bypass either requirement; refresh it after rollout. Existing accounts do not need to register again and are not assigned a retrospective acknowledgment.

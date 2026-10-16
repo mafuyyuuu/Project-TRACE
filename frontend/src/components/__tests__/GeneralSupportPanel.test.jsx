@@ -249,3 +249,10 @@ it('automatically shows resolved support history in Archive and moves a reopened
   await waitFor(()=>expect(screen.getByRole('button',{name:'Active',exact:true})).toHaveAttribute('aria-pressed','true'));
   expect(api.getTickets).toHaveBeenLastCalledWith(null,expect.any(AbortSignal),'active');
 });
+
+it.each([student,{id:1,role:'admin'},desk,{...desk,desk_assignment:'Receiving Desk'},{...desk,desk_assignment:'Finance'},{...desk,desk_assignment:'Secretary'}])('keeps analytics out of Support for $role/$desk_assignment',async user=>{
+  render(<RequestMessagesPanel user={user}/>);
+  await waitFor(()=>expect(api.getSupportSettings).toHaveBeenCalled());
+  expect(screen.queryByRole('button',{name:/Support analytics/i})).not.toBeInTheDocument();
+  expect(screen.queryByText('More support actions')).not.toBeInTheDocument();
+});

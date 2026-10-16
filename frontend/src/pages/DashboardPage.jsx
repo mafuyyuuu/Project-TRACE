@@ -60,7 +60,7 @@ export default function DashboardPage() {
   if (currentTab === 'internal-assistance' && (isAdmin || isWindow1 || isFinance || isSecretary)) return <MessagingWorkspace key={`${user.id}:${user.role}:${user.desk_assignment}`} user={user} initialCategory="internal" />;
 
   return (
-    <div className="space-y-8 relative pb-16">
+    <div className="space-y-8 relative">
       {/* Graduates/alumni fill in the Registrar's application from its own tab.
           A regular student forcing this tab via the URL falls through to their
           normal dashboard instead, same as any other unrecognized tab value. */}

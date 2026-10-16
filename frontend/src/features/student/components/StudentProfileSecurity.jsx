@@ -1,3 +1,5 @@
+import { formatDateTime, formatEventLabel } from '@/utils/formatters';
+import PaginatedTable from '@/components/PaginatedTable';
 import Button from '@/components/Button';
 import AuthenticatorSettings from '@/components/AuthenticatorSettings';
 import { INPUT_LIMITS } from '@/utils/inputLimits';
@@ -36,11 +38,11 @@ export default function StudentProfileSecurity({ user, profileData, setField, sh
     <StudentProfileSection icon="profile-08fdc" title="Session management" description="Log out of all other active sessions across all devices. You will remain logged in on this device."
       action={<Button type="button" disabled={loggingOut} onClick={onLogout} className="trace-button trace-button-danger" aria-label="Logout All Devices"><StudentIcon name="profile-88ddc" />Logout all devices</Button>} />
     <StudentProfileSection icon="profile-128bd" title="Recent security activity" description="View your recent logins, password changes, and other security events.">
-      <div className="trace-table-scroll" role="region" aria-label="Recent security activity table" tabIndex={0}><table className="trace-data-table min-w-[34rem] text-xs">
+      <div className="trace-table-scroll" role="region" aria-label="Recent security activity table" tabIndex={0}><PaginatedTable label="security events" className="trace-data-table min-w-[34rem] text-xs">
         <thead><tr><th>Date</th><th>Event</th><th>IP</th></tr></thead><tbody>
           {!securityLogs.length && <tr><td colSpan={3} className="py-4 text-center">No recent activity</td></tr>}
-          {securityLogs.slice(0, 5).map((log, i) => <tr key={log.id || i}><td>{new Date(log.created_at).toLocaleString()}</td><td><span className={'trace-student-security-event ' + (/FAIL|DENIED/.test(log.event_type) ? 'trace-student-security-event-failed' : /LOGOUT/.test(log.event_type) ? 'trace-student-security-event-neutral' : '')}>{log.event_type}</span></td><td className="font-mono">{log.ip_address || 'Unknown'}</td></tr>)}
-        </tbody></table></div>
+          {securityLogs.map((log, i) => <tr key={log.id || i}><td>{formatDateTime(log.created_at)}</td><td><span className={'trace-student-security-event ' + (/FAIL|DENIED/.test(log.event_type) ? 'trace-student-security-event-failed' : /LOGOUT/.test(log.event_type) ? 'trace-student-security-event-neutral' : '')}>{formatEventLabel(log.event_type)}</span></td><td className="font-mono">{log.ip_address || 'Unknown'}</td></tr>)}
+        </tbody></PaginatedTable></div>
     </StudentProfileSection>
   </div>;
 }

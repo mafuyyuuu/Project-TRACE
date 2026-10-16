@@ -1,3 +1,4 @@
+import EmailText from '@/components/EmailText';
 import Button from '@/components/Button';
 import ModalShell from '@/components/ModalShell';
 import UserAvatar from '@/components/UserAvatar';
@@ -31,7 +32,7 @@ export default function UserDetailModal({ open, onClose, user, onEdit, onToggleA
   const isSelf = user.id === viewerId;
   const mutationDisabled = !onEdit;
   const dateJoined = user.created_at
-    ? new Date(user.created_at).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
+    ? new Date(user.created_at).toLocaleDateString('en-PH', { timeZone: 'Asia/Manila', month: 'long', day: 'numeric', year: 'numeric' })
     : null;
 
   return (
@@ -77,7 +78,7 @@ export default function UserDetailModal({ open, onClose, user, onEdit, onToggleA
       {adminLayout && isStudent ? <AdminStudentInfo user={user} /> : <><div className="flex flex-col items-center text-center pb-6 border-b border-gray-100 dark:border-gray-700">
         <UserAvatar user={user} className="w-20 h-20 rounded-full object-cover" alt={user.full_name} />
         <h4 className="mt-3 text-lg font-display font-black text-gray-900 dark:text-gray-100 select-text break-words">{user.full_name}</h4>
-        <p className="text-xs text-gray-500 dark:text-gray-400 select-text">{user.email || '—'}</p>
+        <p className="text-xs text-gray-500 dark:text-gray-400 select-text"><EmailText value={user.email} /></p>
         <div className="flex flex-wrap justify-center gap-1.5 mt-3">
           <span className="text-[10px] font-bold px-2.5 py-1 rounded-full border bg-gray-50 dark:bg-gray-800 text-gray-600 dark:text-gray-300 border-gray-200 dark:border-gray-700">
             {getUserLabel(user)}
@@ -102,7 +103,7 @@ export default function UserDetailModal({ open, onClose, user, onEdit, onToggleA
         {isStudent && <Field label="Program/Course" value={user.program} />}
         <Field label={isStudent ? user.user_type === 'alumni' ? 'Alumni ID' : 'Student ID' : 'Staff ID'} value={user.student_id} />
         <Field label="Date Joined" value={dateJoined} />
-        <Field label="Email" value={user.email} />
+        <Field label="Email" value={<EmailText value={user.email} />} />
         <Field label="Contact Number" value={user.phone_number} />
         {user.role === 'clerk' && Boolean(user.is_active) && viewerId && <StaffAuthenticatorSetup key={user.id} user={user} />}
         {isStudent && <>
