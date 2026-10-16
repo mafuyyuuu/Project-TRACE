@@ -1,4 +1,5 @@
 import { formatEventLabel } from '@/utils/formatters';
+import { formatActivityAction } from '@/utils/activityPresentation';
 import FilterSelect from '@/components/FilterSelect';
 import { useState } from 'react';
 import Button from '@/components/Button';
@@ -35,7 +36,7 @@ export default function AdminAuditLog({ logs, security = false, loading = false,
   const cutoff = days === 'all' ? null : snapshotTime - Number(days) * 86400000;
   const matching = logs.filter(log => {
     const date = new Date(security ? log.created_at : log.timestamp_started).getTime();
-    const searchable = security ? [log.full_name, log.student_id, log.ip_address, log.event_type] : [log.document_type, log.tracking_number, log.step_name, log.user_name, log.status];
+    const searchable = security ? [log.full_name, log.student_id, log.ip_address, log.event_type] : [log.document_type, log.tracking_number, log.step_name, formatActivityAction(log.step_name), log.user_name, log.status];
     return searchable.join(' ').toLowerCase().includes(query.trim().toLowerCase()) && (cutoff === null || date >= cutoff)
       && (!security || role === 'all' || log.role === role) && (!security || event === 'all' || eventGroup(log.event_type) === event);
   });
@@ -64,7 +65,7 @@ export default function AdminAuditLog({ logs, security = false, loading = false,
           return <tr key={log.id ?? `${currentPage}-${index}`}>
             <td className={`${cellClass} text-gray-500 dark:text-gray-400`}><Timestamp value={security ? log.created_at : log.timestamp_started} /></td>
             <td className={cellClass}>{security ? <span title={log.event_type} className={`trace-admin-badge trace-admin-event-badge ${group === 'login' ? 'trace-admin-badge-green' : group === 'failed' ? 'trace-admin-badge-red' : 'trace-admin-badge-neutral'}`}>{group !== 'other' && <AdminIcon name={group === 'login' ? 'login-event' : group === 'failed' ? 'alert-event' : 'logout-event'} />}{eventLabel(log.event_type)}</span> : <><span className="block font-semibold">{log.document_type || 'Unknown'}</span><span className="mt-1 block font-mono text-xs text-gray-500 dark:text-gray-400">#{log.tracking_number || 'N/A'}</span></>}</td>
-            <td className={cellClass}>{security ? <><span className="block font-semibold">{log.full_name}</span><span className="block select-text text-xs text-gray-500 dark:text-gray-400">{log.student_id}</span></> : log.step_name ? log.step_name.replace(/_/g, ' ') : 'System Action'}</td>
+            <td className={cellClass}>{security ? <><span className="block font-semibold">{log.full_name}</span><span className="block select-text text-xs text-gray-500 dark:text-gray-400">{log.student_id}</span></> : <span title={log.step_name || undefined}>{formatActivityAction(log.step_name)}</span>}</td>
             <td className={cellClass}>{security ? <span className="trace-admin-badge trace-admin-badge-green trace-admin-role-badge">{log.role}</span> : log.user_name || 'System'}</td>
             <td className={cellClass}>{security ? <span className="font-mono text-xs text-gray-500 dark:text-gray-400">{log.ip_address || 'Unknown'}</span> : <span className={`inline-flex max-w-full rounded-full px-3 py-1 text-xs font-bold whitespace-normal break-words ${getStatusTone(log.status)}`}>{getStatusLabel(log.status)}</span>}</td>
           </tr>;

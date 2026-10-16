@@ -98,13 +98,12 @@ export default function NewRequestModal({
                   const anotherDismissal = isHonorableDismissal(type.name) && selectedNames.some(name => name !== type.name && isHonorableDismissal(name));
                   const unavailable = type.unavailable_reason || (anotherDismissal ? 'Choose only one Honorable Dismissal set.' : null);
                   const isSelected = Boolean(selection);
-                  const yearId = `request-start-${type.id ?? type.name.replace(/[^a-z0-9]+/gi, '-')}`;
 
                   return (
                     <div
                       key={type.name}
                       data-card-disabled={Boolean(unavailable) || undefined}
-                      className={`trace-card-controls trace-card-inset rounded-lg border transition-colors ${
+                      className={`trace-student-document-choice trace-card-controls trace-card-inset rounded-lg border transition-colors ${
                         isSelected ? 'border-[#15803d] bg-emerald-50/40 dark:bg-emerald-950/40' : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900'
                       }`}
                     >
@@ -129,81 +128,92 @@ export default function NewRequestModal({
                       {(type.fee_items || []).map(item => <p key={item.label} className="px-4 pb-2 text-xs text-gray-600 dark:text-gray-300">{item.label}: {formatPeso(item.amount)}{item.fee_rule === 'per_page' ? ' per printed page per copy' : ' per request'}</p>)}
                       {unavailable && <p className="px-4 pb-3 text-xs text-amber-800 dark:text-amber-300">{unavailable}</p>}
 
-                      {isSelected && (
-                        <div className="px-4 pb-4 pt-1 space-y-3 border-t border-emerald-100/70 dark:border-emerald-800/70">
-                          <label className="trace-label flex flex-col gap-1.5">
-                            Copies
-                            <NumberInput type="number" min="1" max={isHonorableDismissal(type.name) ? 1 : 2147483647} step="1" required
-                              value={selection.copies} onChange={e => updateSelection(type.name, { copies: e.target.value })}
-                              className="trace-control w-full" />
-                          </label>
-                          {needsStudyYears(type.name) && <div>
-                            <label htmlFor={yearId} className="trace-label">Year Started</label>
-                            <input id={yearId} type="text" readOnly value={user.year_started ?? ''}
-                              aria-describedby={`${yearId}-hint`} className="trace-control mt-1.5" />
-                            <p id={`${yearId}-hint`} className="mt-1 text-xs text-gray-600 dark:text-gray-300">Saved in your profile. Ask Admin if a correction is needed.</p>
-                          </div>}
 
-
-                          {needsRequestingSchool(type.name) && (
-                            <div className="flex flex-col gap-1.5">
-                              <label htmlFor={`${yearId}-school`} className="trace-label">
-                                Requesting School / Company
-                              </label>
-                              <input id={`${yearId}-school`} maxLength={INPUT_LIMITS.name}
-                                type="text" required
-                                value={selection.requestingSchool}
-                                onChange={(e) => updateSelection(type.name, { requestingSchool: e.target.value })}
-                                placeholder="e.g. Mapua University"
-                                className="trace-control w-full"
-                              />
-                            </div>
-                          )}
-
-                          {needsGraduationYear(type.name, user) && <label className="trace-label">
-                            {'Year Graduated'}
-                            <input type="text" readOnly value={(user.graduation_year) ?? ''} className="trace-control mt-1.5" />
-                          </label>}
-
-
-                            <div className="grid grid-cols-1 gap-3">
-                              <div className="flex flex-col gap-1.5">
-                                <label htmlFor={`${yearId}-purpose`} className="trace-label">Purpose</label>
-                              <input id={`${yearId}-purpose`} maxLength={INPUT_LIMITS.shortText}
-                                type="text" required
-                                value={selection.purpose}
-                                onChange={(e) => updateSelection(type.name, { purpose: e.target.value })}
-                                placeholder="e.g. Employment"
-                                className="trace-control w-full"
-                              />
-                            </div>
-                          </div>
-
-                          {type.requires_attachment ? (
-                            <div className="flex flex-col gap-1.5">
-                              <p className="trace-label">
-                                {type.attachment_label || 'Supporting Attachment'}
-                                <span className="font-normal normal-case text-gray-400 dark:text-gray-400 ml-1">
-                                  · upload now, or bring it to Window 1
-                                </span>
-                              </p>
-                              <FileUploadField showLabel={false} label={type.attachment_label || 'Supporting Attachment'} file={selection.file} onChange={file => updateSelection(type.name, { file })} />
-                            </div>
-                          ) : (
-                            <div className="flex flex-col gap-1.5">
-                              <label className="trace-label">
-                                Required Attachment: <span className="text-gray-500 dark:text-gray-400 font-normal">None</span>
-                              </label>
-                            </div>
-                          )}
-                        </div>
-                      )}
                     </div>
                   );
                 })}
               </div>
             )}
           </div>
+
+          {availableTypes.some(type => selections[type.name]) && <section aria-label="Selected document details" className="space-y-4">
+            <h3 className="trace-section-title">Selected document details</h3>
+            {availableTypes.filter(type => selections[type.name]).map(type => {
+              const selection = selections[type.name];
+              const yearId = `request-start-${type.id ?? type.name.replace(/[^a-z0-9]+/gi, '-')}`;
+              return <section key={type.name} aria-labelledby={yearId+'-heading'} className="trace-student-document-details">
+                <h4 id={yearId+'-heading'} className="trace-section-title">{type.name}</h4>
+                <div className="space-y-3">
+                  <label className="trace-label flex flex-col gap-1.5">
+                    Copies
+                    <NumberInput type="number" min="1" max={isHonorableDismissal(type.name) ? 1 : 2147483647} step="1" required
+                      value={selection.copies} onChange={e => updateSelection(type.name, { copies: e.target.value })}
+                      className="trace-control w-full" />
+                  </label>
+                  {needsStudyYears(type.name) && <div>
+                    <label htmlFor={yearId} className="trace-label">Year Started</label>
+                    <input id={yearId} type="text" readOnly value={user.year_started ?? ''}
+                      aria-describedby={`${yearId}-hint`} className="trace-control mt-1.5" />
+                    <p id={`${yearId}-hint`} className="mt-1 text-xs text-gray-600 dark:text-gray-300">Saved in your profile. Ask Admin if a correction is needed.</p>
+                  </div>}
+
+
+                  {needsRequestingSchool(type.name) && (
+                    <div className="flex flex-col gap-1.5">
+                      <label htmlFor={`${yearId}-school`} className="trace-label">
+                        Requesting School / Company
+                      </label>
+                      <input id={`${yearId}-school`} maxLength={INPUT_LIMITS.name}
+                        type="text" required
+                        value={selection.requestingSchool}
+                        onChange={(e) => updateSelection(type.name, { requestingSchool: e.target.value })}
+                        placeholder="e.g. Mapua University"
+                        className="trace-control w-full"
+                      />
+                    </div>
+                  )}
+
+                  {needsGraduationYear(type.name, user) && <label className="trace-label">
+                    {'Year Graduated'}
+                    <input type="text" readOnly value={(user.graduation_year) ?? ''} className="trace-control mt-1.5" />
+                  </label>}
+
+
+                    <div className="grid grid-cols-1 gap-3">
+                      <div className="flex flex-col gap-1.5">
+                        <label htmlFor={`${yearId}-purpose`} className="trace-label">Purpose</label>
+                      <input id={`${yearId}-purpose`} maxLength={INPUT_LIMITS.shortText}
+                        type="text" required
+                        value={selection.purpose}
+                        onChange={(e) => updateSelection(type.name, { purpose: e.target.value })}
+                        placeholder="e.g. Employment"
+                        className="trace-control w-full"
+                      />
+                    </div>
+                  </div>
+
+                  {type.requires_attachment ? (
+                    <div className="flex flex-col gap-1.5">
+                      <p className="trace-label">
+                        {type.attachment_label || 'Supporting Attachment'}
+                        <span className="font-normal normal-case text-gray-400 dark:text-gray-400 ml-1">
+                          · upload now, or bring it to Window 1
+                        </span>
+                      </p>
+                      <FileUploadField showLabel={false} label={type.attachment_label || 'Supporting Attachment'} file={selection.file} onChange={file => updateSelection(type.name, { file })} />
+                    </div>
+                  ) : (
+                    <div className="flex flex-col gap-1.5">
+                      <label className="trace-label">
+                        Required Attachment: <span className="text-gray-500 dark:text-gray-400 font-normal">None</span>
+                      </label>
+                    </div>
+                  )}
+
+                </div>
+              </section>;
+            })}
+          </section>}
 
           {missingYears && <div className="trace-error space-y-2" role="alert">
             <p>Complete the required saved year in Edit Profile before submitting. Saved years require Admin correction.</p>

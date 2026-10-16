@@ -111,7 +111,7 @@ it('keeps the full document, tracking and action values in separate audit-log ce
   const table = await screen.findByRole('table', { name: 'System-wide audit log' });
   const document = await within(table).findByText('Graduation Clearance');
   expect(document.closest('td')).toContainElement(within(table).getByText('#TRC-8D74321-LONG-SYNTHETIC-TRACKING'));
-  expect(within(table).getByText('payment submitted').closest('td')).not.toBe(document.closest('td'));
+  expect(within(table).getByText('Payment Submitted').closest('td')).not.toBe(document.closest('td'));
   const scroller = screen.getByRole('region', { name: 'Activity log table' });
   scroller.focus(); expect(scroller).toHaveFocus();
 });

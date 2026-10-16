@@ -107,8 +107,8 @@ Your old address stays active until the new one is verified. Change email and pa
 ### Submit a request
 
 1. Open the dashboard and select **New Request**.
-2. Choose an available document and the number of copies. Add other document types if needed.
-3. Complete the document's fields. TOR displays saved **Year Started** read-only and does not ask for Year Ended. Complete missing Year Started first; ask Admin for a saved-year correction. Current students do not supply college graduation or last-attendance years for Graduation Clearance or other available documents; alumni graduation requirements still apply.
+2. Choose one or more available documents from the equal-size cards. The selected documents’ fields appear in **Selected document details** below the card grid.
+3. Enter copies and complete each selected document's fields. TOR displays saved **Year Started** read-only and does not ask for Year Ended. Complete missing Year Started first; ask Admin for a saved-year correction. Current students do not supply college graduation or last-attendance years for Graduation Clearance or other available documents; alumni graduation requirements still apply.
 4. Check any attachment instructions and select a file only when required.
 5. Review the details, submit and confirm. Keep the request's tracking number.
 
@@ -338,7 +338,7 @@ See the [README navigation walkthrough and screenshots](../README.md#finance-rec
 
 ## Staff-to-Admin internal assistance
 
-Window 1 (including Receiving Desk), Finance and College Secretaries open **Support → Internal assistance** from the sidebar or mobile navigation. There is no separate Internal Assistance destination. Older internal-ticket links still open the requested concern inside Support. Select **New concern**, enter a subject, category and explanation, then review and confirm. Only the creator and Admin can read this private concern; do not copy student identity files or private conversations into it. State/category filters search the authorized queue; the search field covers loaded ticket metadata.
+Window 1 (including Receiving Desk), Finance and College Secretaries open **Support → Internal assistance** from the sidebar or mobile navigation. There is no separate Internal Assistance destination. Older internal-ticket links still open the requested concern inside Support. The page heading appears above the category tabs at every screen size. Select **New concern**, enter a subject, category and explanation, then review and confirm. Only the creator and Admin can read this private concern; do not copy student identity files or private conversations into it. State/category filters search the authorized queue; the search field covers loaded ticket metadata.
 
 Admin selects a queued concern and confirms **Claim ticket** before replying. The assigned Admin may await a staff reply, resume handling or resolve with a mandatory note. Staff replies resume an awaiting concern without removing its Admin assignment. Resolved tickets preserve conversation/resolution history; creator or assigned Admin may confirm reopening into the queue. An open ticket assigned to an inactive/no-longer-Admin account offers an explicit takeover action to another Admin. A stale confirmation requires refreshing and reviewing again.
 
@@ -382,7 +382,7 @@ performance conclusion. Compare measured document waits in Efficiency Analytics.
 reassigns staff, sends messages or changes requests automatically.
 
 Account Verification, System-Wide Tracker and Activity Logs keep stable column widths. Full
-values wrap inside each cell; document type and tracking number occupy separate lines in logs.
+values wrap inside each cell; document type and tracking number occupy separate lines in logs. Activity actions use readable labels, such as **Official Receipt (OR) Verified**. Search accepts either the displayed label or its saved audit code.
 On a phone, swipe horizontally within the table, or focus its scrolling region and use arrow
 keys. Enlarged text retains the full data. This repair uses the current design; the upcoming
 whole-system Figma redesign remains separate. See the README screenshots for synthetic examples.

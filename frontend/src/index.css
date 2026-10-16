@@ -929,18 +929,7 @@ body:has(.trace-admin-shell) .trace-admin-security-card-heading h3 { font-size: 
  .trace-admin-shell section[aria-label="Internal assistance workspace"] > div.grid { grid-template-columns: minmax(0,32fr) minmax(0,68fr); }
 }
 
-@media (min-width: 1024px) {
- .trace-admin-messaging { display: flex; flex-direction: column; gap: 16px; }
- .trace-admin-messaging > .trace-tab-group { order: 2; margin: 0; }
- .trace-admin-messaging #message-category-panel,
- .trace-admin-messaging #message-category-panel > div:not([hidden]),
- .trace-admin-messaging #message-category-panel > div:not([hidden]) > section { display: contents; }
- .trace-admin-messaging #message-category-panel > div:not([hidden]) > section > header { order: 1; margin: 0; }
- .trace-admin-messaging #message-category-panel > div:not([hidden]) > section > p { order: 3; margin: 0; }
- .trace-admin-messaging #message-category-panel > div:not([hidden]) > section > .grid { order: 4; margin: 0; }
- .trace-admin-messaging-internal > .trace-tab-group { order: 1; }
- .trace-admin-messaging-internal #message-category-panel > div:not([hidden]) > section > header { order: 2; }
-}
+.trace-messaging { @apply flex min-w-0 flex-col gap-4; }
 
 .trace-admin-preferences-heading { display: flex; align-items: flex-start; gap: 12px; }
 .trace-admin-preferences-heading > div { flex: 1; min-width: 0; }
@@ -1248,8 +1237,11 @@ body:has(.trace-student-shell) :is(.trace-student-new-request-dialog,.trace-stud
 .trace-student-request-identity strong { display: block; font-size: .875rem; }
 .trace-student-initials { display: flex; align-items: center; justify-content: center; width: 44px; height: 44px; border: 1px solid #cde8d8; border-radius: 999px; background: #e8f5ee; color: #168f55; }
 .trace-student-request-identity small { border-radius: 999px; background: #f1f5f4; padding: 5px 10px; font-size: .6875rem; color: #52627c; }
-.trace-student-document-choices { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); align-items: start; gap: 14px; }
-.trace-student-document-choices > div { border-radius: 14px; }
+.trace-student-document-choices { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); grid-auto-rows: 1fr; align-items: stretch; gap: 14px; }
+.trace-student-document-choices > div { @apply flex min-w-0 flex-col; border-radius: 14px; }
+.trace-student-document-choice > label { @apply flex-1; min-height: 9rem; }
+.trace-student-document-choice > label > span { @apply break-words; }
+.trace-student-document-details { @apply min-w-0 space-y-4 rounded-[14px] border border-green-200 bg-emerald-50/40 p-4 dark:border-green-900 dark:bg-emerald-950/40; }
 .trace-student-document-choices > div > label { flex-direction: row-reverse; }
 .trace-student-document-choices > div > label > input { width: 20px; height: 20px; }
 .trace-student-document-choices > div > label > span:last-child { width: 100%; font-size: 1.5rem; }
@@ -1649,13 +1641,6 @@ body:has(.trace-window-shell) :is(.trace-window-staff,.trace-window-internal) te
 .trace-window-shell .trace-window-queue-table td .space-y-1 > p:last-child { @apply bg-emerald-50 text-emerald-800 dark:bg-green-950 dark:text-green-300; }
 /* Keep the title, category tabs and operational toolbar in the Figma order. */
 .trace-window-messaging { @apply flex flex-col gap-4; }
-.trace-window-messaging #message-category-panel,
-.trace-window-messaging #message-category-panel > div:not([hidden]),
-.trace-window-messaging #message-category-panel > div:not([hidden]) > section { display: contents; }
-.trace-window-messaging > .trace-tab-group { order: 2; margin: 0; }
-.trace-window-messaging #message-category-panel > div:not([hidden]) > section > header { order: 1; margin: 0; }
-.trace-window-messaging #message-category-panel > div:not([hidden]) > section > :is(.trace-window-support-toolbar,p) { order: 3; margin: 0; }
-.trace-window-messaging #message-category-panel > div:not([hidden]) > section > .grid { order: 4; margin: 0; }
 .trace-window-support-heading { @apply flex flex-wrap items-center justify-between gap-3; }
 .trace-window-support-toolbar { @apply flex min-w-0 flex-wrap items-center justify-between gap-3; }
 .trace-window-support-toolbar > details { @apply max-w-full rounded-lg border border-emerald-100 bg-emerald-50 px-3 py-2 text-xs text-emerald-800 dark:border-green-800 dark:bg-green-950 dark:text-green-300; }
