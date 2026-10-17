@@ -1,3 +1,4 @@
+import IntakeReviewModal from '@/features/window1/components/IntakeReviewModal';
 import SecretaryHandoffModal from './components/SecretaryHandoffModal';
 import SecretaryOverview from './components/SecretaryOverview';
 import { useState } from 'react';
@@ -34,6 +35,8 @@ export default function SecretaryDashboard({ user, currentTab, setViewImageUrl }
     documents,
     dashStats,
     actionLoading,
+    delegatedIntakeQueue,
+    intakeNotes,setIntakeNotes,originalIssued,setOriginalIssued,intakeFile,setIntakeFile,intakeActionToConfirm,handleIntake,confirmIntake,cancelIntake,
     evaluationQueue,
     processingQueue,
     orVerificationQueue,
@@ -87,15 +90,19 @@ export default function SecretaryDashboard({ user, currentTab, setViewImageUrl }
     <>
       <DashboardAlerts success={success} error={error} onDismiss={dismissNotification} dismissalKey={`${currentTab}:${activeQueueTab}`} />
       <div className="trace-page">
-        {currentTab === 'dashboard' && <SecretaryOverview stats={dashStats} queues={{evaluation: evaluationQueue, processing: processingQueue, 'or-verification': orVerificationQueue, handoff: handoffQueue}} activeQueue={activeQueueTab} onQueue={setActiveQueueTab} onProfile={setViewProfileId} onPreview={setViewImageUrl} busy={actionLoading}
+        {currentTab === 'dashboard' && <SecretaryOverview stats={dashStats} queues={{intake:delegatedIntakeQueue,evaluation: evaluationQueue, processing: processingQueue, 'or-verification': orVerificationQueue, handoff: handoffQueue}} activeQueue={activeQueueTab === 'intake' && !delegatedIntakeQueue.length ? 'evaluation' : activeQueueTab} onQueue={setActiveQueueTab} onProfile={setViewProfileId} onPreview={setViewImageUrl} busy={actionLoading}
           onEvaluate={doc => { setSelectedDoc(doc); setEvalStudentId(doc.student_id || ''); setEvalStudentName(doc.student_name || ''); setEvalDocType(doc.document_type || 'Transcript of Records'); setActiveModal('evaluate'); }}
-          onPrice={doc => { setSelectedDoc(doc); setPriceNotes(''); setConfirmCurrentRates(false); setPricePageCount(doc.page_count ? String(doc.page_count) : ''); setPriceFeePageCounts({}); setActiveModal('price'); }}
+          onPrice={doc => { setSelectedDoc(doc); setPriceNotes(''); setConfirmCurrentRates(false); setPricePageCount(String(Math.max(1, Number(doc.page_count || doc.requested_pages) || 1))); setPriceFeePageCounts(Object.fromEntries((doc.pricing_schedule?.fee_items || []).filter(item => item.fee_rule === 'per_page').map(item => [item.label,String(doc.fee_breakdown?.items?.find(saved => saved.label === item.label)?.pages_per_copy || 1)]))); setActiveModal('price'); }}
+          onIntake={doc => { setSelectedDoc(doc); setIntakeNotes(''); setIntakeFile(null); setActiveModal('delegated-intake'); }}
           onVerify={handleVerifyOfficialReceipt} onHandoff={handleConfirmHandoff} />}
 
         {/* 4.3. COLLEGE SECRETARY - GRADUATE APPLICATIONS */}
         {currentTab === 'grad-applications' && (
           <GradApplicationReviewPanel user={user} currentTab={currentTab} />
         )}
+
+        {activeModal === 'delegated-intake' && selectedDoc && <IntakeReviewModal user={user} selectedDoc={selectedDoc} setActiveModal={setActiveModal} setViewImageUrl={setViewImageUrl} handleIntake={handleIntake} actionLoading={actionLoading} intakeNotes={intakeNotes} setIntakeNotes={setIntakeNotes} originalIssued={originalIssued} setOriginalIssued={setOriginalIssued} intakeFile={intakeFile} setIntakeFile={setIntakeFile} documentTypes={documentTypes} documentTypesLoading={Boolean(documentTypesError)} />}
+        <ConfirmDialog open={Boolean(intakeActionToConfirm)} title="Confirm Intake Decision" message={intakeActionToConfirm === 'approve' ? 'Route this assigned request to College Secretary evaluation?' : 'Return this request with your correction note?'} confirmLabel={intakeActionToConfirm === 'approve' ? 'Route to Secretary' : 'Return to Student'} loading={actionLoading} onConfirm={confirmIntake} onCancel={cancelIntake} />
 
         {/* College Secretary Split-Screen Modal */}
         {activeModal === 'evaluate' && selectedDoc && (

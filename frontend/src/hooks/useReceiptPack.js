@@ -1,3 +1,4 @@
+import useDataRefresh from '@/hooks/useDataRefresh';
 import { useCallback, useEffect, useState } from 'react';
 import { receiptState, receiptError } from '@/services/receiptService';
 /** Refresh pack state after changes and when the clerk returns to the page. */
@@ -25,5 +26,7 @@ export default function useReceiptPack() {
       document.removeEventListener('visibilitychange', onVisible);
     };
   }, [refresh]);
+  useDataRefresh(["receipts"], refresh, true);
+
   return { state, error, loading, refresh };
 }

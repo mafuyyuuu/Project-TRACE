@@ -1,3 +1,4 @@
+import useIntakeReview from '@/hooks/useIntakeReview';
 import { calculateBreakdown } from '@/utils/pricing';
 import { useState, useCallback, useMemo, useEffect } from 'react';
 import { getDocumentTypes } from '@/services/referenceService';
@@ -25,6 +26,9 @@ import { STATUS } from '@/utils/documentStatus';
 export default function useSecretaryDashboard(user) {
   const core = useDashboardCore(user);
   const { documents, runAction, selectedDoc, setActiveModal, triggerNotification } = core;
+
+  const intake = useIntakeReview(core);
+  const delegatedIntakeQueue = documents.filter(doc => doc.current_status === STATUS.PENDING_W1_INTAKE && Number(doc.assigned_clerk_id) === Number(user.id));
 
   const [clerkNotes, setClerkNotes] = useState('');
 
@@ -256,6 +260,8 @@ export default function useSecretaryDashboard(user) {
 
   return {
     ...core,
+    ...intake,
+    delegatedIntakeQueue,
     evaluationQueue,
     processingQueue,
     orVerificationQueue,

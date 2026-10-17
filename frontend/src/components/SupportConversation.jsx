@@ -54,6 +54,13 @@ export default function SupportConversation({ ticketId,user,topics,onTicketChang
     }
     setFileError(''); chat.setFiles(previous => [...previous,...selected]);
   };
+  const conversationNote = ticket && <aside aria-label="Support conversation note" className="trace-support-conversation-note">
+        <p>{user.role === 'admin' ? 'Admin monitors this ticket. Operational actions are available to the processing staff.'
+          : ticket.read_only ? 'This conversation is saved for reference. Previous messages and authorized files remain available.'
+          : user.role === 'student' ? ticket.state === 'FAQ_ASSISTANCE' ? 'Browse the approved answers below. Choose Talk to staff if you need further help.' : 'Use this conversation for your concern and any documents requested by the Registrar. Resolved tickets move to the archive.'
+          : user.desk_assignment === 'Finance' ? 'Use this conversation for payment concerns. Registrar staff manage ticket resolution.'
+          : 'Resolve the ticket when the concern is complete; it will move to the archive. Request a student reply or mark Awaiting student when information is needed.'}</p>
+      </aside>;
   const context = <>
       <div className="flex min-w-0 flex-wrap items-center justify-between gap-3">
         <div className="flex min-w-0 flex-1 basis-64 items-center gap-3">{ticket && <TicketAvatar ticket={ticket} />}<div className="min-w-0"><h3 className="break-words font-bold">{ticket ? `#${ticket.id} ${ticket.subject}` : 'Support conversation'}</h3>
@@ -61,9 +68,8 @@ export default function SupportConversation({ ticketId,user,topics,onTicketChang
         {ticket?.document_id && ticket.tracking_number && <Button type="button" aria-haspopup="dialog" onClick={()=>setShowCase(true)} className="trace-button trace-button-secondary" title="View this ticket’s authorized request and supporting documents">Open linked case{secretary && <SecretaryIcon name={compact ? '490fa' : 'd438b'} />}</Button>}
       </div>
       {(user.role === 'admin' || ticket?.read_only) && <p className="text-sm font-semibold">Read-only history{user.role === 'admin' ? ' — Admin monitoring.' : ticket.state === 'RESOLVED' ? ' — ticket resolved.' : ' — document case closed.'}</p>}
-      {ticket && user.role === 'admin' && <details className="trace-admin-ticket-actions text-sm"><summary className="cursor-pointer py-1 font-semibold focus-visible:outline">Ticket actions</summary><p className="mt-2 text-xs text-gray-500">Admin monitors this ticket. Operational actions are available to the processing staff.</p></details>}
-      {ticket && user.role !== 'admin' && <details open className="text-sm"><summary className="cursor-pointer py-1 font-semibold focus-visible:outline">Ticket actions</summary>
-      <div className="flex flex-wrap gap-2">
+
+      {ticket && user.role !== 'admin' && <div role="group" aria-label="Available support controls" className="flex flex-wrap gap-2">
         {!compact && user.role === 'student' && ticket.state === 'FAQ_ASSISTANCE' && <Button type="button" disabled={chat.busy} onClick={() => stage({action:'escalate'})} className="trace-button trace-button-primary">Talk to staff</Button>}
         {registrar && !ticket.read_only && <Button type="button" disabled={chat.busy} onClick={() => stage({action:'resolve'})} className="trace-button trace-button-secondary">Resolve ticket</Button>}
         {registrar && ticket.state === 'IN_PROGRESS' && (!windowClerk || Number(ticket.assigned_to) === Number(user.id)) && <>
@@ -71,11 +77,11 @@ export default function SupportConversation({ ticketId,user,topics,onTicketChang
           <Button type="button" disabled={chat.busy} onClick={() => stage({action:'await_student'})} className="trace-button trace-button-secondary">Awaiting student</Button>
         </>}
         {user.role !== 'admin' && ticket.state === 'RESOLVED' && user.desk_assignment!=='Finance' && (!ticket.document_id ? ticket.category !== 'linked' : PIPELINE.includes(ticket.current_status) && ticket.current_status!=='COMPLETED') && <Button type="button" disabled={chat.busy} onClick={() => stage({action:'reopen'})} className="trace-button trace-button-secondary">Reopen ticket</Button>}
-      </div>
-      </details>}
+      </div>}
   </>;
   return <section aria-label="Selected support ticket" className={'flex h-full min-h-0 min-w-0 flex-col overflow-hidden rounded-xl bg-gray-50 dark:bg-gray-950'+(secretary ? ' trace-secretary-support-conversation' : '')}>
     <header tabIndex={0} aria-label="Ticket context and actions" className="max-h-[30%] shrink-0 space-y-3 overflow-y-auto border-b border-gray-200 bg-gray-100 p-4 focus-visible:outline focus-visible:outline-2 focus-visible:outline-green-700 dark:border-gray-700 dark:bg-gray-800">
+      {conversationNote}
       {compact && !secretary ? <details className="min-w-0"><summary className="cursor-pointer focus-visible:outline"><span className="block truncate font-bold" title={ticket?.subject}>{ticket ? `#${ticket.id} ${ticket.subject}` : 'Support conversation'}</span><span className="block text-xs text-gray-600 dark:text-gray-300">{ticket ? `${labels[ticket.state]} · Show ticket context` : 'Loading ticket context…'}</span></summary><div className="mt-3 space-y-3">{context}</div></details> : context}
       {compact && user.role === 'student' && ticket?.state === 'FAQ_ASSISTANCE' && <Button type="button" disabled={chat.busy} onClick={() => stage({action:'escalate'})} className="trace-button trace-button-primary">Talk to staff</Button>}
     </header>

@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event';
 import StudentDashboard from '@/features/student/StudentDashboard';
 import * as documentsService from '@/services/documentsService';
 import * as referenceService from '@/services/referenceService';
+import { publishDataChange } from '@/services/dataChanges';
 import { STATUS } from '@/utils/documentStatus';
 
 vi.mock('@/hooks/usePaymentSlip', () => ({default: () => ({template:null,qrSvg:''})}));
@@ -107,8 +108,8 @@ describe('Student grouped payment', () => {
     expect(screen.getAllByRole('button', { name: /^Pay / })).toHaveLength(2);
     secondPay.focus();
     await user.keyboard('{Enter}');
-    expect(screen.getByLabelText('Request')).toHaveValue('REQ-G2');
-    expect(screen.getByLabelText('Documents')).toHaveValue('Certification');
+    expect(screen.getByRole('dialog',{name:'Complete your Payment'})).toHaveTextContent('REQ-G2');
+    expect(screen.getByRole('list',{name:'Payment breakdown'})).toHaveTextContent('Certification');
     const breakdown = screen.getByRole('list', { name: 'Payment breakdown' });
     expect(within(breakdown).getAllByRole('listitem')).toHaveLength(1);
     expect(breakdown).toHaveTextContent('Certification');
@@ -122,9 +123,9 @@ describe('Student grouped payment', () => {
     renderStudent();
     await user.click(await screen.findByRole('button', { name: 'Pay ₱200.00 (2 documents)' }));
     expect(screen.getByText('One payment for 2 documents')).toBeInTheDocument();
-    expect(screen.getByLabelText('Documents')).toHaveValue('2 documents');
-    expect(screen.getByLabelText('Request')).toHaveValue('REQ-G1');
-    expect(screen.getByText('Total Amount Due').parentElement).toHaveTextContent('₱200.00');
+    expect(screen.getByRole('list',{name:'Payment breakdown'})).toHaveTextContent('Transcript of Records');
+    expect(screen.getByRole('dialog',{name:'Complete your Payment'})).toHaveTextContent('REQ-G1');
+    expect(screen.getByText('TOTAL AMOUNT DUE').closest('.trace-checkout-summary')).toHaveTextContent('₱200.00');
     expect(within(screen.getByRole('list', { name: 'Payment breakdown' })).getAllByRole('listitem')).toHaveLength(2);
     expect(screen.queryByRole('checkbox')).not.toBeInTheDocument();
   });
@@ -133,7 +134,7 @@ describe('Student grouped payment', () => {
     const user = userEvent.setup();
     renderStudent();
     await user.click(await screen.findByRole('button', { name: 'Pay ₱200.00 (2 documents)' }));
-    await user.type(screen.getByPlaceholderText(/5001 0293 8472/), 'REF-GROUP-1');
+    await user.type(screen.getByPlaceholderText(/Enter the reference number/), 'REF-GROUP-1');
     const receipt = new File(['receipt'], 'receipt.png', { type: 'image/png' });
     await user.upload(document.querySelector('input[type="file"]'), receipt);
     // jsdom file inputs do not satisfy native required validation.
@@ -185,4 +186,18 @@ it('opens the existing grouped slip preview without charging the request',async(
   expect(documentsService.submitPayment).not.toHaveBeenCalled();
   fireEvent.click(screen.getAllByRole('button',{name:'Close',exact:true}).at(-1));
   expect(screen.queryByRole('button',{name:'Print Slip'})).not.toBeInTheDocument();
+});
+
+
+it('refreshes configured payment instructions without losing an open checkout draft', async () => {
+  renderStudent();
+  await screen.findByRole('button',{name:'Pay ₱200.00 (2 documents)'});
+  fireEvent.click(screen.getByRole('button',{name:'Pay ₱200.00 (2 documents)'}));
+  const reference=screen.getByLabelText('GCash Reference Number');
+  fireEvent.change(reference,{target:{value:'SYNTHETIC-DRAFT'}});
+  referenceService.getPaymentMethods.mockResolvedValue({payment_methods:[{code:'gcash',name:'GCash',requires_reference:true,requires_proof:true,reference_label:'GCash Reference Number',instructions:'Updated synthetic Registrar instructions.'}]});
+  publishDataChange(['reference']);
+  expect(await screen.findByText('Updated synthetic Registrar instructions.')).toBeInTheDocument();
+  expect(reference).toHaveValue('SYNTHETIC-DRAFT');
+  expect(documentsService.submitPayment).not.toHaveBeenCalled();
 });

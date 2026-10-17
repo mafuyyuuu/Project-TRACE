@@ -1,3 +1,4 @@
+import useDataRefresh from '@/hooks/useDataRefresh';
 import { useCallback,useEffect,useRef,useState } from 'react';
 import * as service from '@/services/internalAssistanceService';
 import { onNotification } from '@/services/realtimeService';
@@ -38,6 +39,7 @@ export default function useInternalAssistance(user,stateFilter,categoryFilter,re
     window.addEventListener('focus',update);
     return () => {owner.current = null;read.current?.abort();read.current = null;clearInterval(timer);unsubscribe();window.removeEventListener('focus',update);};
   },[user.id,refresh]);
+  useDataRefresh(['support'], () => { read.current?.abort(); read.current = null; return refresh(); });
   const create = async payload => {
     if (pending.current) return false;
     const identity = owner.current; pending.current = true;setBusy(true);setActionError('');
@@ -81,6 +83,7 @@ export function useInternalConversation(ticketId,user,onNotice,onChanged) {
     window.addEventListener('focus',update);
     return () => {owner.current = null;read.current?.abort();read.current = null;clearInterval(timer);unsubscribe();window.removeEventListener('focus',update);};
   },[ticketId]);
+  useDataRefresh(['support'], () => { read.current?.abort(); read.current = null; return refresh(); });
   const execute = async (kind,payload) => {
     if (pending.current) return false;
     const identity = owner.current;pending.current = true;setBusy(true);setActionError('');

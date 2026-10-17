@@ -22,154 +22,87 @@ beforeEach(() => {
   register.mockResolvedValue({ message: 'Received.' });
 });
 const start = () => render(<MemoryRouter><SignupPage /></MemoryRouter>);
-async function fillDraft(container) {
+async function academic() {
   await screen.findByRole('option', { name: 'College of Computer Studies' });
-  fireEvent.change(screen.getByLabelText('College *'), { target: { value: 'College of Computer Studies' } });
-  fireEvent.change(screen.getByLabelText('Program/Course *'), { target: { value: programs[0].name } });
-  for (const [placeholder, value] of [['e.g. 23-00123', 'SYN-0001'], ['juan@plp.edu.ph', 'synthetic@example.test'], ['09123456789', '09123456789'], ['Create a password', 'Trace_2026'], ['Confirm your password', 'Trace_2026']]) {
-    fireEvent.change(screen.getByPlaceholderText(placeholder), { target: { value } });
-  }
-  fireEvent.change(screen.getByLabelText('First Name *'), { target: { value: 'Synthetic' } });
-  fireEvent.change(screen.getByLabelText('Last Name *'), { target: { value: 'Student' } });
-  await userEvent.upload(container.querySelector('input[type=file]'), new File(['synthetic'], 'proof.png', { type: 'image/png' }));
+  fireEvent.change(screen.getByLabelText('College *'), { target:{value:'College of Computer Studies'} });
+  fireEvent.change(screen.getByLabelText('Program/Course *'), { target:{value:programs[0].name} });
+  fireEvent.change(screen.getByLabelText(/^(Student|Alumni) ID/), { target:{value:'SYN-0001'} });
+  const type=screen.queryByLabelText('Type of Student *');
+  if(type)fireEvent.change(type,{target:{value:'irregular'}});
 }
-it('loads the managed catalog, limits programs by college, and clears the old choice on a college change', async () => {
-  start();
-  expect(screen.getByLabelText('Program/Course *')).toBeDisabled();
-  await screen.findByRole('option', { name: 'College of Computer Studies' });
-  await userEvent.selectOptions(screen.getByLabelText('College *'), 'College of Computer Studies');
-  expect(screen.getByRole('option', { name: programs[0].name })).toBeInTheDocument();
-  expect(screen.queryByRole('option', { name: programs[2].name })).not.toBeInTheDocument();
-  await userEvent.selectOptions(screen.getByLabelText('Program/Course *'), programs[0].name);
-  await userEvent.selectOptions(screen.getByLabelText('College *'), 'College of Education');
-  expect(screen.getByLabelText('Program/Course *')).toHaveValue('');
-  expect(screen.queryByRole('option', { name: programs[0].name })).not.toBeInTheDocument();
-  expect(screen.getByRole('option', { name: programs[2].name })).toBeInTheDocument();
+const next=async()=>{ await userEvent.click(screen.getByRole('button',{name:'Continue'})); };
+async function personal() {
+  for(const [label,value] of [['First Name *','Synthetic'],['Last Name *','Student'],['Email Address *','synthetic@example.test'],['Phone Number *','09123456789']])fireEvent.change(screen.getByLabelText(label),{target:{value}});
+}
+async function account() {
+  for(const placeholder of ['Create a password','Confirm your password'])fireEvent.change(screen.getByPlaceholderText(placeholder),{target:{value:'Trace_2026'}});
+  await userEvent.upload(screen.getByLabelText('Proof of ID',{selector:'input'}),new File(['synthetic'],'proof.png',{type:'image/png'}));
+}
+async function fillDraft() { await academic();await next();await personal();await next();await account(); }
+
+it('limits the managed program catalog by college and clears a mismatched choice',async()=>{
+ start();expect(screen.getByLabelText('Program/Course *')).toBeDisabled();await academic();
+ expect(screen.queryByRole('option',{name:programs[2].name})).not.toBeInTheDocument();
+ await userEvent.selectOptions(screen.getByLabelText('College *'),'College of Education');
+ expect(screen.getByLabelText('Program/Course *')).toHaveValue('');
+ expect(screen.queryByRole('option',{name:programs[0].name})).not.toBeInTheDocument();
+ expect(screen.getByRole('option',{name:programs[2].name})).toBeInTheDocument();
 });
-it('requires an unchecked acknowledgment, opens the actual notice without losing the draft, and sends its version only on confirmation', async () => {
-  const { container } = start();
-  await fillDraft(container);
-  const acknowledgment = screen.getByRole('checkbox', { name: /I have read and acknowledge/ });
-  expect(acknowledgment).not.toBeChecked();
-  fireEvent.submit(container.querySelector('form'));
-  expect(screen.getByText('Read and acknowledge the Privacy Notice before registering.')).toBeInTheDocument();
-  expect(acknowledgment).toHaveAttribute('aria-invalid', 'true');
-  expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
-  expect(register).not.toHaveBeenCalled();
-  await userEvent.click(screen.getByRole('button', { name: 'Read Privacy Notice' }));
-  const notice = screen.getByRole('dialog', { name: 'Registration Privacy Notice' });
-  expect(notice).toHaveTextContent(PRIVACY_NOTICE_VERSION);
-  expect(notice).toHaveTextContent('does not automatically delete registration proof');
-  expect(notice).toHaveTextContent('OCR');
-  await userEvent.click(within(notice).getByRole('button', { name: 'Close Notice' }));
-  expect(screen.getByPlaceholderText('e.g. 23-00123')).toHaveValue('SYN-0001');
-  expect(acknowledgment).not.toBeChecked();
-  await userEvent.click(acknowledgment);
-  fireEvent.submit(container.querySelector('form'));
-  const review = screen.getByRole('dialog', { name: 'Confirm Registration' });
-  expect(review).toHaveTextContent('BS Information Technology');
-  expect(review).toHaveTextContent('Acknowledged · ' + PRIVACY_NOTICE_VERSION);
-  expect(register).not.toHaveBeenCalled();
-  await userEvent.click(within(review).getByRole('button', { name: 'Submit Registration' }));
-  await waitFor(() => expect(register).toHaveBeenCalledOnce());
-  const body = register.mock.calls[0][0];
-  expect(body.get('privacy_acknowledged')).toBe('true');
-  expect(body.get('privacy_notice_version')).toBe(PRIVACY_NOTICE_VERSION);
-  expect(body.get('program')).toBe(programs[0].name);
+it('requires a declared student type and validates only the current step beside its fields',async()=>{
+ const {container}=start();await screen.findByRole('option',{name:'College of Computer Studies'});await next();
+ for(const label of ['Type of Student *','College *','Student ID *','Program/Course *'])expect(screen.getByLabelText(label)).toHaveAttribute('aria-invalid','true');
+ expect(screen.queryByLabelText('Email Address *')).not.toBeInTheDocument();
+ expect(screen.queryByRole('dialog')).not.toBeInTheDocument();expect(container.querySelector('form')).toHaveAttribute('novalidate');
+ await academic();await next();expect(screen.getByRole('heading',{name:'Personal information'})).toBeInTheDocument();
+ await next();expect(screen.getByLabelText('First Name *')).toHaveAttribute('aria-invalid','true');expect(register).not.toHaveBeenCalled();
 });
-it('allows retry after a catalog failure while preserving entered identity details', async () => {
-  getPrograms.mockRejectedValueOnce(new Error('offline'));
-  start();
-  fireEvent.change(screen.getByLabelText('First Name *'), { target: { value: 'Synthetic' } });
-  await screen.findByRole('button', { name: 'Retry Catalog' });
-  expect(screen.getByLabelText('College *')).toBeDisabled();
-  await userEvent.click(screen.getByRole('button', { name: 'Retry Catalog' }));
-  await screen.findByRole('option', { name: 'College of Computer Studies' });
-  expect(screen.getByLabelText('College *')).toBeEnabled();
-  expect(screen.getByLabelText('First Name *')).toHaveValue('Synthetic');
-  expect(getPrograms).toHaveBeenCalledTimes(2);
+it('retains identity, password and files when moving back and forward through all three steps',async()=>{
+ start();await fillDraft();await userEvent.click(screen.getByRole('button',{name:'Back'}));
+ expect(screen.getByLabelText('Full Name')).toHaveValue('Synthetic Student');await userEvent.click(screen.getByRole('button',{name:'Back'}));
+ expect(screen.getByLabelText('Student ID *')).toHaveValue('SYN-0001');expect(screen.getByLabelText('Type of Student *')).toHaveValue('irregular');
+ await next();await next();expect(screen.getByPlaceholderText('Create a password')).toHaveValue('Trace_2026');expect(screen.getByText(/Selected: proof.png/)).toBeInTheDocument();
 });
-it('shows an actionable empty catalog instead of permitting a free-text program', async () => {
-  getPrograms.mockResolvedValue({ programs: [] });
-  start();
-  await screen.findByRole('option', { name: 'College of Computer Studies' });
-  await userEvent.selectOptions(screen.getByLabelText('College *'), 'College of Computer Studies');
-  expect(screen.getByLabelText('Program/Course *')).toBeDisabled();
-  expect(screen.getByText(/No active programs are listed for this college/)).toBeInTheDocument();
-  expect(register).not.toHaveBeenCalled();
+it('requires unchecked privacy acknowledgment, preserves the draft through its notice and submits only on confirmation',async()=>{
+ start();await fillDraft();const ack=screen.getByRole('checkbox',{name:/I have read and acknowledge/});expect(ack).not.toBeChecked();
+ await userEvent.click(screen.getByRole('button',{name:'Create Account'}));expect(ack).toHaveAttribute('aria-invalid','true');expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+ await userEvent.click(screen.getByRole('button',{name:'Read Privacy Notice'}));const notice=screen.getByRole('dialog',{name:'Registration Privacy Notice'});expect(notice).toHaveTextContent(PRIVACY_NOTICE_VERSION);expect(notice).toHaveTextContent('OCR');
+ await userEvent.click(within(notice).getByRole('button',{name:'Close Notice'}));expect(screen.getByText(/Selected: proof.png/)).toBeInTheDocument();expect(ack).not.toBeChecked();
+ await userEvent.click(ack);await userEvent.click(screen.getByRole('button',{name:'Create Account'}));const review=screen.getByRole('dialog',{name:'Confirm Registration'});
+ expect(review).toHaveTextContent('Irregular');expect(review).toHaveTextContent('Acknowledged · '+PRIVACY_NOTICE_VERSION);expect(register).not.toHaveBeenCalled();
+ await userEvent.click(within(review).getByRole('button',{name:'Submit Registration'}));await waitFor(()=>expect(register).toHaveBeenCalledOnce());
+ const body=register.mock.calls[0][0];expect(body.get('study_load')).toBe('irregular');expect(body.get('program')).toBe(programs[0].name);expect(body.get('privacy_acknowledged')).toBe('true');expect(body.get('privacy_notice_version')).toBe(PRIVACY_NOTICE_VERSION);
+ expect(await screen.findByRole('heading',{name:'Registration complete'})).toBeInTheDocument();
 });
-it('shows accepted proof documents, formats and size, rejecting incompatible or oversized replacements without losing the valid draft', async () => {
-  const { container } = start();
-  await screen.findByRole('option', { name: 'College of Computer Studies' });
-  expect(screen.getByText(/Accepted files: JPG, JPEG, PNG or PDF. Maximum size: 10 MB/)).toBeInTheDocument();
-  const picker = screen.getByLabelText('Proof of ID', { selector: 'input' });
-  expect(picker).toHaveAttribute('accept', '.pdf,.png,.jpg,.jpeg');
-  const user = userEvent.setup({ applyAccept: false });
-  await user.upload(picker, new File(['synthetic'], 'proof.png', { type: 'image/png' }));
-  await user.upload(picker, new File(['synthetic'], 'proof.docx', { type: 'application/octet-stream' }));
-  expect(screen.getByRole('alert')).toHaveTextContent('supported image or PDF');
-  expect(screen.getByText(/Selected: proof.png/)).toBeInTheDocument();
-  await user.upload(picker, new File([new Uint8Array(10 * 1024 * 1024 + 1)], 'large.pdf', { type: 'application/pdf' }));
-  expect(screen.getByRole('alert')).toHaveTextContent('limit');
-  expect(screen.getByText(/Selected: proof.png/)).toBeInTheDocument();
-  expect(container.querySelector('form')).toBeInTheDocument();
+it('retries a failed catalog without losing the academic draft',async()=>{
+ getPrograms.mockRejectedValueOnce(new Error('offline'));start();fireEvent.change(screen.getByLabelText('Student ID *'),{target:{value:'SYN-0001'}});
+ await userEvent.click(await screen.findByRole('button',{name:'Retry Catalog'}));await screen.findByRole('option',{name:'College of Computer Studies'});
+ expect(screen.getByLabelText('College *')).toBeEnabled();expect(screen.getByLabelText('Student ID *')).toHaveValue('SYN-0001');expect(getPrograms).toHaveBeenCalledTimes(2);
 });
-it('marks all missing fields together, shows messages beside fields and keeps feedback outside dialogs', async () => {
-  const { container } = start();
-  await screen.findByRole('option', { name: 'College of Computer Studies' });
-  await userEvent.click(screen.getByRole('button', { name: 'Create Account' }));
-  for (const label of ['Student ID *', 'First Name *', 'Last Name *', 'Email Address *', 'Phone Number *', 'Password *', 'Confirm Password *', 'College *', 'Program/Course *']) {
-    const field = screen.getByLabelText(label);
-    expect(field).toHaveAttribute('aria-invalid', 'true');
-    expect(document.getElementById(field.getAttribute('aria-describedby').split(' ').at(-1))).toBeInTheDocument();
-  }
-  expect(screen.getByText('First Name is required.')).toBeInTheDocument();
-  expect(screen.getByLabelText('Proof of ID', { selector: 'input' })).toHaveAttribute('aria-invalid', 'true');
-  expect(screen.getByText('Please check the highlighted fields above.')).toBeInTheDocument();
-  expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
-  expect(container.querySelector('form')).toHaveAttribute('novalidate');
-  await userEvent.type(screen.getByLabelText('First Name *'), 'Synthetic');
-  expect(screen.getByLabelText('First Name *')).toHaveAttribute('aria-invalid', 'false');
-  expect(screen.getByLabelText('Email Address *')).toHaveAttribute('aria-invalid', 'true');
+it('shows an actionable empty catalog rather than allowing an unmanaged program',async()=>{
+ getPrograms.mockResolvedValue({programs:[]});start();await screen.findByRole('option',{name:'College of Computer Studies'});await userEvent.selectOptions(screen.getByLabelText('College *'),'College of Computer Studies');expect(screen.getByLabelText('Program/Course *')).toBeDisabled();expect(screen.getByText(/No active programs/)).toBeInTheDocument();
 });
-it('marks invalid email, weak password and mismatched confirmation without losing proof', async () => {
-  const { container } = start();
-  await fillDraft(container);
-  fireEvent.change(screen.getByLabelText('Email Address *'), { target: { value: 'invalid-email' } });
-  fireEvent.change(screen.getByLabelText('Password *'), { target: { value: 'weak' } });
-  await userEvent.click(screen.getByRole('button', { name: 'Create Account' }));
-  for (const label of ['Email Address *', 'Password *', 'Confirm Password *']) expect(screen.getByLabelText(label)).toHaveAttribute('aria-invalid', 'true');
-  expect(screen.getByText('Passwords do not match.')).toBeInTheDocument();
-  expect(screen.getByText(/Selected: proof.png/)).toBeInTheDocument();
-  expect(register).not.toHaveBeenCalled();
-  expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+it('rejects incompatible and oversized replacements without discarding valid proof or blanking the form',async()=>{
+ const {container}=start();await fillDraft();expect(screen.getByText(/Accepted files: JPG, JPEG, PNG or PDF. Maximum size: 10 MB/)).toBeInTheDocument();
+ const picker=screen.getByLabelText('Proof of ID',{selector:'input'});expect(picker).toHaveAttribute('accept','.pdf,.png,.jpg,.jpeg');const user=userEvent.setup({applyAccept:false});
+ await user.upload(picker,new File(['synthetic'],'proof.docx',{type:'application/octet-stream'}));expect(screen.getByRole('alert')).toHaveTextContent('supported image or PDF');
+ await user.upload(picker,new File([new Uint8Array(10*1024*1024+1)],'large.pdf',{type:'application/pdf'}));expect(screen.getByRole('alert')).toHaveTextContent('limit');expect(screen.getByText(/Selected: proof.png/)).toBeInTheDocument();expect(container.querySelector('form')).toBeInTheDocument();
 });
-it.each([
-  ['This ID is already registered.', 'Student ID *'],
-  ['Enter a valid email address.', 'Email Address *'],
-])('returns a server rejection to its field with the draft preserved (%s)', async (message, label) => {
-  register.mockRejectedValueOnce({ response: { data: { error: message } } });
-  const { container } = start();
-  await fillDraft(container);
-  await userEvent.click(screen.getByRole('checkbox', { name: /I have read and acknowledge/ }));
-  await userEvent.click(screen.getByRole('button', { name: 'Create Account' }));
-  await userEvent.click(screen.getByRole('button', { name: 'Submit Registration' }));
-  await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
-  expect(screen.getByLabelText(label)).toHaveAttribute('aria-invalid', 'true');
-  expect(screen.getByText(message)).toBeInTheDocument();
-  expect(screen.getByText(/Selected: proof.png/)).toBeInTheDocument();
-  expect(screen.getByPlaceholderText('e.g. 23-00123')).toHaveValue('SYN-0001');
+it('marks invalid email, weak password and mismatched confirmation on their owning step',async()=>{
+ start();await academic();await next();await personal();fireEvent.change(screen.getByLabelText('Email Address *'),{target:{value:'invalid-email'}});await next();expect(screen.getByLabelText('Email Address *')).toHaveAttribute('aria-invalid','true');
+ fireEvent.change(screen.getByLabelText('Email Address *'),{target:{value:'synthetic@example.test'}});await next();await account();fireEvent.change(screen.getByLabelText('Password *'),{target:{value:'weak'}});
+ await userEvent.click(screen.getByRole('button',{name:'Create Account'}));expect(screen.getByLabelText('Password *')).toHaveAttribute('aria-invalid','true');expect(screen.getByLabelText('Confirm Password *')).toHaveAttribute('aria-invalid','true');expect(screen.getByText('Passwords do not match.')).toBeInTheDocument();expect(screen.getByText(/Selected: proof.png/)).toBeInTheDocument();expect(register).not.toHaveBeenCalled();
 });
-it('keeps a general server error beside Create Account without inventing a field error or opening another popup', async () => {
-  register.mockRejectedValueOnce({ code: 'ECONNABORTED' });
-  const { container } = start();
-  await fillDraft(container);
-  await userEvent.click(screen.getByRole('checkbox', { name: /I have read and acknowledge/ }));
-  await userEvent.click(screen.getByRole('button', { name: 'Create Account' }));
-  await userEvent.click(screen.getByRole('button', { name: 'Submit Registration' }));
-  const error = await screen.findByRole('alert');
-  expect(error).toHaveTextContent('Your account may already be saved.');
-  expect(error.nextElementSibling).toBe(screen.getByRole('button', { name: 'Create Account' }));
-  expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
-  expect(container.querySelector('[aria-invalid="true"]')).toBeNull();
+it.each([['This ID is already registered.','Student ID *',2],['Enter a valid email address.','Email Address *',1]])('returns server rejection to its step without losing proof (%s)',async(message,label,advances)=>{
+ register.mockRejectedValueOnce({response:{data:{error:message}}});start();await fillDraft();await userEvent.click(screen.getByRole('checkbox',{name:/I have read and acknowledge/}));await userEvent.click(screen.getByRole('button',{name:'Create Account'}));await userEvent.click(screen.getByRole('button',{name:'Submit Registration'}));
+ await waitFor(()=>expect(screen.queryByRole('dialog')).not.toBeInTheDocument());expect(screen.getByLabelText(label)).toHaveAttribute('aria-invalid','true');expect(screen.getByText(message)).toBeInTheDocument();
+ fireEvent.change(screen.getByLabelText(label),{target:{value:label==='Student ID *'?'SYN-0002':'other@example.test'}});for(let i=0;i<advances;i++)await next();expect(screen.getByText(/Selected: proof.png/)).toBeInTheDocument();
+});
+it('keeps an uncertain server result beside Create Account without inviting a silent duplicate submission',async()=>{
+ register.mockRejectedValueOnce({code:'ECONNABORTED'});start();await fillDraft();await userEvent.click(screen.getByRole('checkbox',{name:/I have read and acknowledge/}));await userEvent.click(screen.getByRole('button',{name:'Create Account'}));await userEvent.click(screen.getByRole('button',{name:'Submit Registration'}));
+ expect(await screen.findByRole('alert')).toHaveTextContent('Your account may already be saved.');expect(screen.queryByRole('dialog')).not.toBeInTheDocument();expect(screen.getByRole('button',{name:'Create Account'})).toBeEnabled();
+});
+it('accepts alumni years beginning in 1999 without requiring current-student status',async()=>{
+ start();await userEvent.click(screen.getByRole('button',{name:'Alumni'}));await academic();expect(screen.queryByLabelText('Type of Student *')).not.toBeInTheDocument();
+ fireEvent.change(screen.getByLabelText(/Year Started/,{selector:'input'}),{target:{value:'1999'}});fireEvent.change(screen.getByLabelText(/Year Graduated/,{selector:'input'}),{target:{value:'2003'}});await next();await personal();await next();await account();await userEvent.click(screen.getByRole('checkbox',{name:/I have read and acknowledge/}));await userEvent.click(screen.getByRole('button',{name:'Create Account'}));await userEvent.click(screen.getByRole('button',{name:'Submit Registration'}));
+ await waitFor(()=>expect(register).toHaveBeenCalledOnce());expect(register.mock.calls[0][0].get('year_started')).toBe('1999');expect(register.mock.calls[0][0].get('study_load')).toBeNull();
 });

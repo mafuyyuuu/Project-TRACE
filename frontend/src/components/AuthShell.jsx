@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom'
-import PlpBrand from '@/components/PlpBrand'
+import traceLogo from '@/assets/trace-auth-logo.png'
+import plpLogo from '@/assets/plp-login-logo.png'
 
 /**
  * The grey-and-green split screen shared by the public auth pages, so the
@@ -8,38 +9,36 @@ import PlpBrand from '@/components/PlpBrand'
  */
 export default function AuthShell({ title, subtitle, children, footer }) {
   return (
-    <div className="min-h-screen flex flex-col md:flex-row font-body relative overflow-hidden bg-white dark:bg-gray-900">
+    <div className="trace-auth-shell">
       {/* Left Column (Light Spec) */}
-      <div className="md:w-1/2 bg-[#f8f9fa] dark:bg-gray-900 p-4 sm:p-8 lg:p-12 xl:p-24 flex flex-col justify-between shrink-0">
-        <div>
-          <Link to="/" className="inline-flex items-center gap-3" aria-label="TRACE — PLP Registrar">
-            <PlpBrand />
+      <div className="trace-auth-brand">
+        <div className="trace-auth-brand-content">
+          <Link to="/" className="trace-auth-logo" aria-label="TRACE — PLP Registrar">
+            <img src={traceLogo} alt="" width="2000" height="2000" />
           </Link>
-        </div>
-
-        <div className="my-auto py-12 md:py-0">
-          <span className="text-2xl font-black text-gray-900 dark:text-gray-100 block mb-2 tracking-tight">Welcome to</span>
-          <h1 className="text-[clamp(3rem,8vw,8rem)] md:text-[clamp(3rem,6vw,8rem)] font-display font-black text-[#15803d] dark:text-green-300 tracking-tighter leading-none mb-4">TRACE</h1>
-          <p className="mb-3 max-w-md text-lg font-semibold leading-snug text-gray-800 dark:text-gray-200">Tracking, Routing, and Automated Credential Engine</p>
-          <h2 className="text-xl sm:text-2xl md:text-3xl font-display font-black text-[#15803d] dark:text-green-300 leading-tight max-w-md">
+          <div className="trace-auth-introduction">
+          <span className="trace-auth-welcome">Welcome to</span>
+          <h1>TRACE</h1>
+          <p className="trace-auth-expansion">Tracking, Routing, and Automated Credential Engine</p>
+          <h2>
             An AI-Assisted Registrar Document Workflow System
           </h2>
-        </div>
-
-        <div>
-          <p className="text-sm font-bold text-gray-900 dark:text-gray-100 max-w-sm leading-relaxed">
+          </div>
+          <p className="trace-auth-mission">
             Empowering the PLP community with transparent document requests and intelligent, data-driven administrative processing.
           </p>
         </div>
       </div>
 
       {/* Right Column (Pine Spec) */}
-      <div className="trace-action-inverse-surface md:w-1/2 bg-[#15803d] p-4 sm:p-8 lg:p-12 xl:p-24 flex flex-col justify-center text-white relative">
-        <div className="max-w-md w-full mx-auto">
-          <h2 className="text-2xl sm:text-3xl font-display font-bold leading-tight mb-3 tracking-tight">{title}</h2>
+      <div className="trace-auth-form-side trace-action-inverse-surface">
+        <img className="trace-auth-seal" src={plpLogo} alt="Pamantasan ng Lungsod ng Pasig logo" width="500" height="500" />
+        <div className="trace-auth-form-content">
+          <header className="trace-auth-form-heading"><h2>{title}</h2>
           {subtitle && (
-            <p className="text-sm font-medium text-white/80 leading-relaxed mb-8">{subtitle}</p>
+            <p>{subtitle}</p>
           )}
+          </header>
           {children}
           {footer && <div className="mt-8 text-center">{footer}</div>}
         </div>

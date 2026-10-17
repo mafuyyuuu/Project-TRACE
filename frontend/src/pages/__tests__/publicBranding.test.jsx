@@ -33,16 +33,18 @@ it.each([
 ])('shows only the supplied PLP branding on %s', async (_name, Page, path) => {
   window.history.replaceState(null, '', path)
   render(<MemoryRouter initialEntries={[path]}><Page /></MemoryRouter>)
+  if (Page === SignupPage) {
+    expect(screen.getByRole('img',{name:'TRACE'})).toHaveAttribute('src',expect.stringContaining('trace-auth-logo-white.png'));
+    await screen.findByRole('option',{name:'Test College'});
+    expect(screen.getByRole('link',{name:/^← Back to Login/})).toHaveAttribute('href','/');
+    return;
+  }
   const logos = screen.getAllByRole('img', { name: 'Pamantasan ng Lungsod ng Pasig logo' })
   expect(logos).toHaveLength(1)
   expect(logos[0]).toHaveAttribute('src', plpLogo)
   expect(logos[0]).toHaveAttribute('width', '500')
   expect(logos[0]).toHaveAttribute('height', '500')
-  expect(logos[0]).toHaveClass('object-contain')
+  expect(logos[0]).toHaveClass('trace-auth-seal')
   expect(screen.queryByRole('img', { name: 'TRACE logo' })).not.toBeInTheDocument()
-  if (Page === SignupPage) {
-    await screen.findByRole('option', { name: 'Test College' })
-    expect(screen.getByRole('link', { name: 'Back to Login' })).toHaveAttribute('href', '/')
-  }
   if (Page === VerifyEmailPage) await screen.findByRole('alert')
 })

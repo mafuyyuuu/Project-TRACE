@@ -48,6 +48,7 @@ describe('Student request fields', () => {
         attachment_label: 'Student ID', base_fee: 50 }]}
       documentTypesLoading={false} selections={{ Certification: { copies: 1, semesters: 8, purpose: 'Employment' } }}
       toggleDocumentType={vi.fn()} updateSelection={vi.fn()} handleStudentSubmitRequest={vi.fn()} actionLoading={false} />);
+    fireEvent.click(screen.getByRole('button',{name:'Next'}));
     expect(screen.getByDisplayValue('Employment')).toBeInTheDocument();
     expect(screen.getByText('Purpose')).toBeInTheDocument();
     expect(document.querySelectorAll('input[type=file]')).toHaveLength(requiresAttachment ? 1 : 0);

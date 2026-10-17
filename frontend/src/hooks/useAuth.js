@@ -1,4 +1,6 @@
-import { useState, useEffect } from 'react';
+import { readCachedUser, authStorage } from '@/utils/authStorage';
+import { useState, useEffect, useRef, useCallback } from 'react';
+import useDataRefresh from '@/hooks/useDataRefresh';
 import { disconnectRealtime } from '@/services/realtimeService';
 import { useNavigate } from 'react-router-dom';
 import { getMe, login as apiLogin, register as apiRegister, endSession } from '@/services/authService';
@@ -6,40 +8,46 @@ import { getMe, login as apiLogin, register as apiRegister, endSession } from '@
 /**
  * Global authentication state: the current user, plus login/logout/register.
  *
- * The user is cached in localStorage so a refresh doesn't blank the UI while
+ * The user is cached in tab-specific storage so a refresh doesn't blank the UI while
  * the /auth/me revalidation is in flight. The api.js response interceptor
  * handles 401s by clearing storage and redirecting.
  */
 export function useAuth() {
   const navigate = useNavigate();
   const [user, setUser] = useState(() => {
-    const stored = localStorage.getItem('trace_user');
-    return stored ? JSON.parse(stored) : null;
+    return readCachedUser();
   });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const revision = useRef(0);
+  const mounted = useRef(false);
+
+  const refreshUser = useCallback(async () => {
+    const token = authStorage.getItem('trace_token');
+    if (!token) return null;
+    const version = ++revision.current;
+    const data = await getMe();
+    if (!mounted.current || revision.current !== version || authStorage.getItem('trace_token') !== token) return null;
+    const fresh = data.user || data;
+    authStorage.setItem('trace_user', JSON.stringify(fresh));
+    setUser(fresh);
+    window.dispatchEvent(new CustomEvent('trace-user-updated', { detail: fresh }));
+    return fresh;
+  }, []);
+  useDataRefresh(['accounts', 'profile'], refreshUser, Boolean(user));
 
   useEffect(() => {
-    const fetchUser = async () => {
-      try {
-        const data = await getMe();
-        const userData = data.user || data;
-        setUser(userData);
-        localStorage.setItem('trace_user', JSON.stringify(userData));
-      } catch {
-        // Interceptor handles 401 and clears storage
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    if (localStorage.getItem('trace_token')) {
-      fetchUser();
+    mounted.current = true;
+    let active = true;
+    if (authStorage.getItem('trace_token')) {
+      refreshUser().catch(() => { /* Interceptor handles expired sessions. */ })
+        .finally(() => { if (active) setLoading(false); });
     } else {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setLoading(false);
     }
-  }, []);
+    return () => { active = false; mounted.current = false; revision.current += 1; };
+  }, [refreshUser]);
 
   useEffect(() => {
     const sync = (event) => setUser(current => ({ ...current, ...event.detail }));
@@ -53,9 +61,10 @@ export function useAuth() {
     try {
       const data = await apiLogin(credentials);
       if (data.requires_2fa || data.requires_authenticator_setup) return data;
-      localStorage.setItem('trace_token', data.token);
+      disconnectRealtime();
+      authStorage.setItem('trace_token', data.token);
       if (data.user) {
-        localStorage.setItem('trace_user', JSON.stringify(data.user));
+        authStorage.setItem('trace_user', JSON.stringify(data.user));
         setUser(data.user);
       }
       navigate('/dashboard');
@@ -71,10 +80,12 @@ export function useAuth() {
   const logout = async () => {
     setLoading(true);
     try {
+      const token = authStorage.getItem('trace_token');
       await endSession();
+      if (authStorage.getItem('trace_token') !== token) return true;
       disconnectRealtime();
-      localStorage.removeItem('trace_token');
-      localStorage.removeItem('trace_user');
+      authStorage.removeItem('trace_token');
+      authStorage.removeItem('trace_user');
       setUser(null);
       navigate('/');
       return true;
@@ -106,16 +117,9 @@ export function useAuth() {
   const updateCachedUser = (patch) => {
     setUser((current) => {
       const next = { ...current, ...patch };
-      localStorage.setItem('trace_user', JSON.stringify(next));
+      authStorage.setItem('trace_user', JSON.stringify(next));
       return next;
     });
-  };
-
-  const refreshUser = async () => {
-    const { user: fresh } = await getMe();
-    localStorage.setItem('trace_user', JSON.stringify(fresh));
-    window.dispatchEvent(new CustomEvent('trace-user-updated', { detail: fresh }));
-    return fresh;
   };
 
   return { user, loading, error, login, logout, register, updateCachedUser, refreshUser };

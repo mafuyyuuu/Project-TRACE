@@ -15,7 +15,7 @@ export default function ProfileYearField({ field, value = '', required = false, 
         aria-invalid={Boolean(problem)} aria-describedby={`${id}-hint${warning ? ` ${id}-needed` : ''}`}
         className="trace-control w-full" />
       <p id={`${id}-hint`} className="mt-1 text-xs text-gray-600 dark:text-gray-300">
-        {definition.minimum === 2002 ? `2002–${manilaYear()}.` : `Four digits, no later than ${manilaYear()}.`}
+        {definition.minimum === 1999 ? `1999–${manilaYear()}.` : `Four digits, no later than ${manilaYear()}.`}
         {!required && ' Optional.'}{readOnly && ' Saved; contact Admin for corrections.'}
       </p>
       {warning && <p id={`${id}-needed`} className={`mt-1 text-xs ${error ? 'text-red-700 dark:text-red-300' : 'text-amber-800 dark:text-amber-200'}`}>{warning}</p>}

@@ -18,12 +18,12 @@ export default function RequestAssignmentModal({ document, onClose, onSaved }) {
       </div>}>
       <div className="space-y-4">
         <div className="trace-admin-assignment-summary"><RequestStaff document={state.context?.document || document} /></div>
-        <p className="trace-admin-guidance">Choose backup processing staff within the current desk and college. Reassignment preserves existing permissions and records your reason.</p>
+        <p className="trace-admin-guidance">Choose backup processing staff within the current desk and college. At Window 1 intake, Admin may delegate to a Secretary from the student’s verified college. Other workflow stages keep their existing desk permissions.</p>
         {!state.context && !state.error && <p role="status">Loading eligible staff…</p>}
         {state.error && <p role="alert" className="trace-inline-error">{state.error}</p>}
         {state.context && <>
           <label className="trace-label">Processing staff · {state.context.desk || 'Case closed'}<select className="trace-control mt-2 w-full" value={staffId} disabled={state.saving} onChange={e => setStaffId(e.target.value)}>
-            <option value="">Choose staff</option>{state.context.staff.map(person => <option key={person.id} value={person.id}>{person.full_name}</option>)}
+            <option value="">Choose staff</option>{state.context.staff.map(person => <option key={person.id} value={person.id}>{person.full_name}{person.desk_assignment ? ` · ${person.desk_assignment}` : ''}</option>)}
           </select></label>
           {!state.context.staff.length && <p className="text-sm">No eligible staff for this stage. Admin must reconcile missing college information or staff assignments before proceeding.</p>}
           <label className="trace-label">Reason<textarea rows={5} maxLength={1000} className="trace-control mt-2 w-full" value={reason} disabled={state.saving} onChange={e => setReason(e.target.value)} /></label>

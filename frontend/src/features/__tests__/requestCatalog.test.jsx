@@ -30,6 +30,7 @@ it('allows only one dismissal set and collects the saved study year and requesti
   render(<RequestForm />);
   fireEvent.click(screen.getByRole('checkbox', { name: /For Masters/ }));
   expect(screen.getByRole('checkbox', { name: /For Graduate School/ })).toBeDisabled();
+  fireEvent.click(screen.getByRole('button',{name:'Next'}));
   expect(screen.getByRole('spinbutton', { name: 'Copies' })).toHaveAttribute('max', '1');
   expect(screen.getByRole('textbox', { name: 'Year Started' })).toHaveValue('2020');
   expect(screen.getByRole('textbox', { name: 'Requesting School / Company' })).toBeRequired();

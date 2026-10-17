@@ -14,7 +14,7 @@ export default function MessagingWorkspace({user,initialCategory='support'}) {
   const title = deskTitle || active === 'support' ? 'Support' : active === 'staff' ? 'Staff Coordination' : 'Internal Assistance';
   const change=next=>{const query=new URLSearchParams(params);query.set('tab','messages');query.set('category',next);for(const key of ['ticket','document','support','conversation','internalTicket'])query.delete(key);setParams(query);};
   return <section className={"trace-messaging " + (isCollegeOrFinance(user) ? 'trace-window-messaging trace-secretary-messaging' : windowClerk && user.role === 'clerk' ? 'trace-window-messaging' : user.role === 'admin' ? 'trace-admin-messaging' : '')} aria-label="Messaging categories">
-    <header className="trace-page-header"><h2 className="trace-page-title">{title}</h2></header>
+    <header className="trace-page-header trace-standard-heading"><div><h2 className="trace-page-title">{title}</h2><p className="trace-page-description">{active === 'support' ? 'Student and request support within your existing desk permissions.' : active === 'staff' ? 'Coordinate handoffs and case concerns with authorized staff.' : 'Report account and system concerns to Admin.'}</p></div></header>
     <QueueTabs idPrefix="message-category" label="Conversation categories" activeKey={active} onChange={change} tabs={[{key:'support',label:canGeneral?'Student & case support':'Case-linked conversations'},{key:'staff',label:'Staff coordination'},{key:'internal',label:'Internal assistance'}]}/>
     <div id="message-category-panel" role="tabpanel" aria-labelledby={`message-category-${active}`}>
       {/* Retain drafts while switching categories; mount only visited workspaces. */}

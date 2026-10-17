@@ -1,3 +1,4 @@
+import useDataRefresh from '@/hooks/useDataRefresh';
 import useViewportPagination from '@/hooks/useViewportPagination';
 import { EMPTY_REPORT_FILTERS } from '@/utils/reportFilters';
 import { useState, useEffect, useCallback, useRef } from 'react';
@@ -78,6 +79,8 @@ export default function useReports(user, currentTab, initialRecordSet = '') {
     if (isActive) load();
     return () => { loadSequence.current += 1; };
   }, [isActive, load]);
+
+  useDataRefresh(['documents', 'graduate', 'accounts'], () => load(), isActive);
 
   const applyFilters = useCallback(next => {
     setSettledScope(null); setError(''); setPage(1); setFilters({...EMPTY_FILTERS,...next});

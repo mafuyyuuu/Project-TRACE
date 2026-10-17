@@ -1,3 +1,4 @@
+import useDataRefresh from '@/hooks/useDataRefresh';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import * as service from '@/services/supportTicketsService';
 import useSupportFeedback from '@/hooks/useSupportFeedback';
@@ -61,6 +62,7 @@ export default function useSupportTickets(user,initialDocumentId,requestedTicket
     }).catch(err=>{if(!controller.signal.aborted)setError(message(err,'Could not open the linked support history. Retry support.'));});
     return ()=>controller.abort();
   },[user.id,initialDocumentId,requestedTicket,requestedSupport]);
+  useDataRefresh(['support', 'documents', 'accounts'], () => { read.current?.abort(); read.current = null; void refresh(); void loadContext(); });
   const execute = async action => {
     if (pending.current) return false;
     const identity = owner.current; pending.current = true; setBusy(true); setError('');
@@ -76,5 +78,5 @@ export default function useSupportTickets(user,initialDocumentId,requestedTicket
     } catch (err) { if (identity === owner.current) setError(message(err,'Could not confirm saving. Keep your draft and retry.')); return false; }
     finally { pending.current = false; if (owner.current) setBusy(false); }
   };
-  return { view,changeView,observeTicket,tickets,cursor,loading,error,settings,topics,selected,setSelected,busy,feedback,execute,refresh, retry: () => { void refresh(); void loadContext(); } };
+  return { view,changeView,observeTicket,tickets,cursor,loading,error,settings,topics,selected,setSelected,busy,feedback,execute,refresh, retry: () => { read.current?.abort(); read.current = null; void refresh(); void loadContext(); } };
 }

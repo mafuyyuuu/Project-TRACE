@@ -42,19 +42,19 @@ function deleteById(userId, executor = pool) {
 function createUser(data, executor = pool) {
   const {
     student_id, full_name, email, phone_number, password_hash,
-    role = 'student', user_type, course, program, college_id, id_proof_path, verification_status, verification_reason, registration_proof_unavailable, registration_proof_reason,
+    role = 'student', user_type, study_load = 'regular', course, program, college_id, id_proof_path, verification_status, verification_reason, registration_proof_unavailable, registration_proof_reason,
   } = data;
   return executor.query(
-    `INSERT INTO users (student_id, full_name, email, phone_number, password_hash, role, user_type, course, program, college_id, id_proof_path, verification_status, verification_reason, registration_proof_unavailable, registration_proof_reason)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    [student_id, full_name, email || null, phone_number, password_hash, role, user_type || 'student', course || null, program || null, college_id || null, id_proof_path, verification_status, verification_reason || null, registration_proof_unavailable ? 1 : 0, registration_proof_reason || null]
+    `INSERT INTO users (student_id, full_name, email, phone_number, password_hash, role, user_type, study_load, course, program, college_id, id_proof_path, verification_status, verification_reason, registration_proof_unavailable, registration_proof_reason)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [student_id, full_name, email || null, phone_number, password_hash, role, user_type || 'student', study_load, course || null, program || null, college_id || null, id_proof_path, verification_status, verification_reason || null, registration_proof_unavailable ? 1 : 0, registration_proof_reason || null]
   );
 }
 
 function listPendingStudents(executor = pool) {
   return executor
     .query(
-      'SELECT id, student_id, email, full_name, role, user_type, course, program, college_id, id_proof_path, verification_status, verification_reason, registration_proof_unavailable, registration_proof_reason, created_at FROM users WHERE role = "student" AND verification_status = "pending"'
+      'SELECT id, student_id, email, full_name, role, user_type, study_load, course, program, college_id, id_proof_path, verification_status, verification_reason, registration_proof_unavailable, registration_proof_reason, created_at FROM users WHERE role = "student" AND verification_status = "pending" ORDER BY created_at DESC, id DESC'
     )
     .then(([rows]) => rows);
 }
@@ -68,7 +68,7 @@ function setVerificationStatus(userId, newStatus, executor = pool) {
 
 function listAllUsers(executor = pool) {
   return executor
-    .query('SELECT id, student_id, full_name, email, phone_number, user_type, desk_assignment, course, program, college_id, role, verification_status, verification_reason, enrollment_status, study_load, is_active, profile_picture, id_proof_path, created_at FROM users ORDER BY created_at DESC')
+    .query(`SELECT u.id, u.student_id, u.full_name, u.email, u.phone_number, u.user_type, u.desk_assignment, u.course, u.program, u.college_id, u.role, u.verification_status, u.verification_reason, u.enrollment_status, u.study_load, u.is_active, u.profile_picture, u.id_proof_path, u.created_at, p.first_name, p.middle_name, p.last_name, p.extension_name FROM users u LEFT JOIN student_profiles p ON p.user_id = u.id ORDER BY u.created_at DESC, u.id DESC`)
     .then(([rows]) => rows);
 }
 

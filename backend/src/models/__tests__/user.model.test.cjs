@@ -29,7 +29,7 @@ it('returns protected photo/proof paths in the safe Admin account list', async (
   const executor = { query: vi.fn().mockResolvedValue([rows]) };
   await expect(model.listAllUsers(executor)).resolves.toEqual(rows);
   const [sql] = executor.query.mock.calls[0];
-  expect(sql).toContain('profile_picture, id_proof_path');
+  expect(sql).toContain('u.profile_picture, u.id_proof_path');
   expect(sql).not.toMatch(/SELECT \*|password|otp|token|secret/);
 });
 it.each([false, true])('reads saved personal/education fields and optionally locks the account: %s', async lock => {

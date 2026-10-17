@@ -131,7 +131,7 @@ export default function MaintenancePanel({ user, currentTab }) {
       <DashboardAlerts success={m.success} error={m.error} onDismiss={m.dismissNotification} dismissalKey={section} />
 
       <div className="trace-page">
-        <div>
+        <div className="trace-standard-heading">
           <h2 className="trace-page-title break-words">
             System Maintenance
           </h2>
@@ -141,7 +141,7 @@ export default function MaintenancePanel({ user, currentTab }) {
         </div>
 
         {/* Section switcher */}
-      <QueueTabs idPrefix="admin-maintenance" label="Maintenance sections" showZeroCounts tabs={SECTIONS.map(item => ({...item,count:['programs','supportingDocuments'].includes(item.key) ? undefined : (item.key === 'staff' ? m.accounts : m[item.key]).length}))} activeKey={section} onChange={key => { setSection(key); setCatalogSearch(''); setCatalogForm(null); resetForm(); }} />
+      <QueueTabs idPrefix="admin-maintenance" label="Maintenance sections" showZeroCounts tabs={SECTIONS.map(item => ({...item,count:['programs','supportingDocuments'].includes(item.key) ? m.catalogCounts?.[item.key] : (item.key === 'staff' ? m.accounts : m[item.key]).length}))} activeKey={section} onChange={key => { setSection(key); setCatalogSearch(''); setCatalogForm(null); resetForm(); }} />
         <QueuePanel idPrefix="admin-maintenance" activeKey={section} className="space-y-6">
 
         {section === 'staff' && <p className="trace-admin-notice"><AdminIcon name="info" className="h-4 w-4" /> Deactivating hides an entry from new requests without affecting existing records.</p>}

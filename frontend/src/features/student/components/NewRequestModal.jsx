@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import StudentIcon from './StudentIcon';
-import { RequestSteps } from './StudentRequestConfirmation';
+import { RequestSteps, StudentRequestReview } from './StudentRequestConfirmation';
 import NumberInput from '@/components/NumberInput';
 import Button from '@/components/Button';
 import { yearError } from '@/utils/profileYears';
@@ -30,13 +30,21 @@ export default function NewRequestModal({
   updateSelection,
   handleStudentSubmitRequest,
   actionLoading,
+  requestToConfirm,
+  confirmStudentSubmission,
+  cancelStudentSubmission,
 }) {
   const [query, setQuery] = useState('');
+  const [editingStep, setEditingStep] = useState(1);
+  const [samePurpose,setSamePurpose] = useState(false);
+  const step = requestToConfirm ? 3 : editingStep;
+  const close = () => { if (!actionLoading) { cancelStudentSubmission?.(); setActiveModal(null); } };
+  const edit = () => { cancelStudentSubmission?.(); setEditingStep(2); };
   const selectedNames = Object.keys(selections);
   const availableTypes = documentTypes.filter(t => !t.is_walk_in && ((t.available_to || 'both') === 'both' || t.available_to === (user.user_type || 'student')));
 
-  const missingYears = selectedNames.some(name => (needsStudyYears(name) && yearError(String(user.year_started ?? ''), { label: 'Year Started', minimum: 2002, required: true }))
-    || (needsGraduationYear(name, user) && yearError(String((user.graduation_year) ?? ''), { label: 'Year Graduated', minimum: 2002, required: true })));
+  const missingYears = selectedNames.some(name => (needsStudyYears(name) && yearError(String(user.year_started ?? ''), { label: 'Year Started', minimum: 1999, required: true }))
+    || (needsGraduationYear(name, user) && yearError(String((user.graduation_year) ?? ''), { label: 'Year Graduated', minimum: 1999, required: true })));
   const completeStudyYears = () => {
     setActiveModal(null);
     window.dispatchEvent(new CustomEvent('open-profile-settings', { detail: { section: 'educational' } }));
@@ -45,39 +53,42 @@ export default function NewRequestModal({
   return (
     <ModalShell
       open
-      onClose={() => setActiveModal(null)}
+      onClose={close}
+      busy={actionLoading} closeOnEsc={!actionLoading} closeOnBackdrop={!actionLoading}
       title="New Request"
-      maxWidth="max-w-[780px]"
-      panelClassName="trace-modal-panel trace-student-new-request-dialog max-w-[780px]"
+      maxWidth={step === 1 ? 'max-w-[611px]' : 'max-w-[860px]'}
+      panelClassName={`trace-modal-panel trace-student-new-request-dialog trace-request-wizard ${step === 1 ? 'max-w-[611px]' : 'max-w-[860px]'}`}
+      bodyClassName="trace-modal-body trace-request-wizard-body"
       headerIcon={<span className="trace-student-modal-heading-icon"><StudentIcon name="fplus-ef562" /></span>}
       subtitle="Select one or more documents. Nothing is paid now — the College Secretary sets the amount once your documents are printed."
       closeButtonIcon={<StudentIcon name="x-e5af3" />}
       footer={
         <div className="flex w-full flex-wrap items-center justify-between gap-3">
           <div className="mr-auto text-sm"><strong>{selectedNames.length} document{selectedNames.length === 1 ? '' : 's'} selected</strong><p className="trace-page-description">Final amount is set after printing.</p></div>
+          {step > 1 && <Button type="button" disabled={actionLoading} onClick={step === 3 ? edit : () => setEditingStep(1)} className="trace-action flex items-center gap-2 text-sm font-semibold"><StudentIcon name="back-5e52e" />{step === 3 ? 'Edit details' : 'Back'}</Button>}
           <Button
-            type="button"
-            onClick={() => setActiveModal(null)}
+            type="button" disabled={actionLoading}
+            onClick={close}
             className="trace-button trace-button-secondary"
           >
             Cancel
           </Button>
           <Button
-            type="submit"
+            type={step === 3 ? "button" : "submit"}
             form="new-request-form"
+            onClick={step === 3 ? confirmStudentSubmission : undefined}
             disabled={actionLoading || documentTypesLoading || missingYears || selectedNames.length === 0 || selectedNames.some(name => !availableTypes.some(type => type.name === name && !type.unavailable_reason))}
             className="trace-button trace-button-primary"
           >
-            {actionLoading ? 'Submitting...' : 'Next'}<StudentIcon name="next-dd3ed" />
+            {actionLoading ? 'Submitting...' : step === 3 ? 'Confirm Request' : 'Next'}<StudentIcon name="next-dd3ed" />
           </Button>
         </div>
       }
     >
-      <RequestSteps />
+      <RequestSteps step={step} />
 
-      <form id="new-request-form" onSubmit={handleStudentSubmitRequest} className="space-y-6 trace-student-request-form">
-          <div className="trace-student-request-identity"><span className="trace-student-initials" aria-hidden="true">{(user.full_name || 'S').split(/\s+/).map(name => name[0]).slice(0, 2).join('')}</span><div><span>Student</span><strong>{user.full_name}</strong></div><div className="ml-auto"><span>Student ID</span><strong className="font-mono">{user.student_id}</strong></div><small className="flex items-center gap-1.5"><StudentIcon name="lock-5a599" />From your account</small></div>
-
+      <form id="new-request-form" onSubmit={event => { if (step === 1) { event.preventDefault(); if(samePurpose) for(const name of selectedNames) updateSelection(name,{purpose:selections[selectedNames[0]]?.purpose || ''}); setEditingStep(2); } else handleStudentSubmitRequest(event); }} className="space-y-6 trace-student-request-form">
+          {step === 1 && <>
           <div className="flex flex-col gap-2">
             <label className="trace-label">
               Select your request/s <span className="text-red-600">*</span> <span className="trace-student-selected-count">{selectedNames.length} selected</span>
@@ -136,6 +147,11 @@ export default function NewRequestModal({
             )}
           </div>
 
+          </>}
+          {step === 2 && <>
+          <div className="trace-student-request-identity"><span className="trace-student-initials" aria-hidden="true">{(user.full_name || 'S').split(/\s+/).map(name => name[0]).slice(0, 2).join('')}</span><div><span>Student</span><strong>{user.full_name}</strong></div><div className="ml-auto"><span>Student ID</span><strong className="font-mono">{user.student_id}</strong></div><small className="flex items-center gap-1.5"><StudentIcon name="lock-5a599" />From your account</small></div>
+
+          <label className="trace-request-shared-purpose"><input type="checkbox" className="trace-choice" checked={samePurpose} disabled={actionLoading} onChange={event => { setSamePurpose(event.target.checked); if(event.target.checked) for(const name of selectedNames) updateSelection(name,{purpose:selections[selectedNames[0]]?.purpose || ''}); }} /><span><strong>Use the same purpose for all documents</strong><small>When enabled, editing a purpose updates every selected document.</small></span></label>
           {availableTypes.some(type => selections[type.name]) && <section aria-label="Selected document details" className="space-y-4">
             <h3 className="trace-section-title">Selected document details</h3>
             {availableTypes.filter(type => selections[type.name]).map(type => {
@@ -185,7 +201,7 @@ export default function NewRequestModal({
                       <input id={`${yearId}-purpose`} maxLength={INPUT_LIMITS.shortText}
                         type="text" required
                         value={selection.purpose}
-                        onChange={(e) => updateSelection(type.name, { purpose: e.target.value })}
+                        onChange={(e) => { for (const name of samePurpose ? selectedNames : [type.name]) updateSelection(name, {purpose:e.target.value}); }}
                         placeholder="e.g. Employment"
                         className="trace-control w-full"
                       />
@@ -215,14 +231,16 @@ export default function NewRequestModal({
             })}
           </section>}
 
+          </>}
+          {step === 3 && <><h3 className="trace-section-title mb-3">Confirm Document Request</h3><StudentRequestReview request={requestToConfirm} /></>}
           {missingYears && <div className="trace-error space-y-2" role="alert">
             <p>Complete the required saved year in Edit Profile before submitting. Saved years require Admin correction.</p>
             <Button type="button" onClick={completeStudyYears} className="trace-button trace-button-secondary">Complete Study Years</Button>
           </div>}
-          <p className="trace-student-information"><StudentIcon name="info-24570" /><span>
+          {step === 1 && <p className="trace-student-information"><StudentIcon name="info-24570" /><span>
             Rates are for your information. After printing, the Secretary confirms the final charge.
             The full pricing breakdown and request total will appear on your dashboard before payment.</span>
-          </p>
+          </p>}
       </form>
     </ModalShell>
   );

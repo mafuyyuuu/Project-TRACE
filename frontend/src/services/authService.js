@@ -135,6 +135,12 @@ export async function getSecurityLogs(signal) {
   if (!Array.isArray(data)) throw new Error('Could not load security activity.');
   return data;
 }
+
+export async function getGlobalSecurityLogs(signal) {
+  const { data } = await api.get('/auth/global-security-logs', { signal });
+  if (!Array.isArray(data)) throw new Error('Invalid security activity');
+  return data;
+}
 export async function endOtherSessions() {
   const { data } = await api.post('/auth/logout-all', { preserve_current: true }, { timeout: 15000 });
   if (!data?.token || !data.user) throw new Error('Could not confirm session change. Log in again.');

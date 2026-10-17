@@ -47,7 +47,7 @@ it('rolls back the year write when its audit write fails', async () => {
   await expect(service.correct({ id: 9, role: 'admin' }, 3, { year_started: '2019', graduation_year: '2024', reason: 'Checked record' })).rejects.toThrow('audit unavailable');
   expect(connection.rollback).toHaveBeenCalledOnce(); expect(connection.commit).not.toHaveBeenCalled(); expect(connection.release).toHaveBeenCalledOnce();
 });
-it.each([{ year_started: '2001', graduation_year: '2005' }, { year_started: '2010', graduation_year: '2021' }, { year_started: '2024', graduation_year: '2020' }, { year_started: '2e3', graduation_year: '2024' }])('rejects invalid corrections without writing %j', async draft => {
+it.each([{ year_started: '1998', graduation_year: '2005' }, { year_started: '2010', graduation_year: '2021' }, { year_started: '2024', graduation_year: '2020' }, { year_started: '2e3', graduation_year: '2024' }])('rejects invalid corrections without writing %j', async draft => {
   await expect(service.correct({ id: 9, role: 'admin' }, 3, { ...draft, reason: 'Checked record' })).rejects.toMatchObject({ status: 400 });
   expect(model.save).not.toHaveBeenCalled(); expect(connection.rollback).toHaveBeenCalledOnce();
 });

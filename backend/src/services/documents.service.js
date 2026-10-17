@@ -175,13 +175,13 @@ async function uploadDocument(user, body, files) {
         if (!details || typeof details !== 'object' || Array.isArray(details)) details = { purpose: item.purpose };
         delete details.year_started; delete details.year_ended; delete details.year_graduated;
         if (needsStudyYears(item.document_type)) {
-          const problem = yearError(String(profile.year_started ?? ''), { label: 'Year Started', minimum: 2002, required: true });
+          const problem = yearError(String(profile.year_started ?? ''), { label: 'Year Started', minimum: 1999, required: true });
           if (problem) throw badRequest(`${problem} Complete study years in Edit Profile, or ask Admin for a correction.`);
           details.year_started = Number(profile.year_started);
         }
         if (needsGraduationYear(item.document_type, profile)) {
           const year = profile.graduation_year;
-          const problem = yearError(String(year ?? ''), { label: 'Year Graduated', minimum: 2002, required: true });
+          const problem = yearError(String(year ?? ''), { label: 'Year Graduated', minimum: 1999, required: true });
           if (problem) throw badRequest(`${problem} Complete your educational profile before requesting this document.`);
           details.year_graduated = Number(year);
         }
@@ -397,6 +397,8 @@ async function listDocuments(user, query) {
     // Apply college scope independently of a caller's status filter. An explicit
     // assignment never overrides college ownership, including historical rows.
     if (desk === 'Secretary') {
+      conditions.push('(d.current_status <> ? OR d.assigned_clerk_id = ?)');
+      params.push(STATUS.PENDING_W1_INTAKE,user.id);
       const [account] = await userModel.findCourseById(user.id);
       if (!account?.college_id && !account?.course) conditions.push('1 = 0');
       else {
@@ -873,7 +875,8 @@ function requireDesk(user, desk, message) {
  * to route.
  */
 async function intakeDocument(user, documentId, { action, notes, original_issued }, file) {
-  requireDesk(user, 'Window 1', 'Only Window 1 Clerks can process intake.');
+  const delegated = user.role === 'clerk' && canonicalDesk(user.desk_assignment) === 'Secretary';
+  if (!delegated) requireDesk(user, 'Window 1', 'Only Window 1 Clerks or an assigned College Secretary can process intake.');
   if (!['approve', 'return'].includes(action)) {
     throw badRequest('Invalid action. Must be approve or return.');
   }
@@ -889,6 +892,7 @@ async function intakeDocument(user, documentId, { action, notes, original_issued
       throw notFound('Document not found.');
     }
     doc = docs[0];
+    if (delegated) await assignments.assertDelegatedIntake(user,doc,connection);
     await assignments.assertAssignedProcessor(user, doc, connection);
 
     if (doc.current_status !== STATUS.PENDING_W1_INTAKE) {

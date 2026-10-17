@@ -6,7 +6,7 @@ import userEvent from '@testing-library/user-event';
 import VerifyEmailPage from '@/pages/VerifyEmailPage';
 import { confirmVerification } from '@/services/emailVerificationService';
 vi.mock('@/services/emailVerificationService', () => ({ confirmVerification: vi.fn() }));
-beforeEach(() => { vi.clearAllMocks(); localStorage.clear(); window.history.replaceState(null, '', '/verify-email#token=synthetic-token'); });
+beforeEach(() => { vi.clearAllMocks(); localStorage.clear(); sessionStorage.clear(); window.history.replaceState(null, '', '/verify-email#token=synthetic-token'); });
 it('consumes one link once under StrictMode and removes its token from history', async () => {
   confirmVerification.mockResolvedValue({ message: 'Email verified.' });
   render(<StrictMode><MemoryRouter><VerifyEmailPage /></MemoryRouter></StrictMode>);
@@ -32,7 +32,7 @@ it('does not call the API for a missing token', async () => {
 });
 
 it.each([false, true])('navigates through one primary return action (session=%s)', async hasSession => {
-  if (hasSession) localStorage.setItem('trace_token', 'synthetic-session');
+  if (hasSession) sessionStorage.setItem('trace_token', 'synthetic-session');
   confirmVerification.mockResolvedValue({ message: 'Email verified.' });
   render(<MemoryRouter initialEntries={['/verify-email']}><Routes>
     <Route path="/verify-email" element={<VerifyEmailPage />} />
@@ -49,7 +49,7 @@ it.each([false, true])('navigates through one primary return action (session=%s)
 });
 
 it('keeps the session-aware return action during loading and an expired-link error', async () => {
-  localStorage.setItem('trace_token', 'synthetic-session');
+  sessionStorage.setItem('trace_token', 'synthetic-session');
   let reject;
   confirmVerification.mockReturnValue(new Promise((_resolve, rejectResult) => { reject = rejectResult; }));
   render(<MemoryRouter><VerifyEmailPage /></MemoryRouter>);

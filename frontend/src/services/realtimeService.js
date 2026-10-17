@@ -1,4 +1,6 @@
+import { authStorage } from '@/utils/authStorage';
 import { io } from 'socket.io-client'
+import { receiveDataChange } from '@/services/dataChanges'
 
 /**
  * Socket.IO client for real-time in-app notifications.
@@ -13,9 +15,10 @@ let socket = null
 
 /** Connect (or reuse the existing connection). Returns null without a token. */
 export function connectRealtime() {
-  const token = localStorage.getItem('trace_token')
+  const token = authStorage.getItem('trace_token')
   if (!token) return null
 
+  if (socket && socket.auth?.token !== token) disconnectRealtime()
   if (socket?.connected || socket?.connecting) return socket
 
   // Same origin rule as api.js: an explicit URL when the API lives on another
@@ -29,6 +32,10 @@ export function connectRealtime() {
     reconnectionDelay: 500,
     reconnectionDelayMax: 5000,
   })
+
+  socket.on('data:changed', payload => receiveDataChange(payload?.resources))
+  socket.on('notification', () => receiveDataChange(['documents', 'profile', 'graduate', 'support', 'accounts']))
+  socket.on('connect', () => receiveDataChange(['documents', 'profile', 'graduate', 'support', 'accounts', 'reference', 'receipts', 'templates']))
 
   socket.on('connect_error', (err) => {
     // An auth failure is terminal — retrying with the same bad token is futile.

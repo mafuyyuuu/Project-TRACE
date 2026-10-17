@@ -35,14 +35,14 @@ export default function ConfirmDialog({
       closeOnBackdrop={!loading}
       closeOnEsc={!loading}
       showCloseButton={false}
-      headerClassName={`shrink-0 px-5 pt-6 pb-2 ${presentation === 'compact' ? 'text-center' : ''}`}
+      headerClassName={`shrink-0 px-5 pt-6 pb-2 ${presentation === 'compact' ? 'trace-confirm-centered text-center' : ''}`}
       bodyClassName={`min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 pb-4 ${presentation === 'compact' ? 'text-center' : ''}`}
       footerClassName="shrink-0 px-5 pb-6 pt-2"
       initialFocusRef={cancelButtonRef}
       descriptionId={descriptionId}
       busy={loading}
       footer={
-        <div className="mx-auto flex w-full max-w-[285px] flex-col sm:flex-row gap-2">
+        <div className="trace-confirm-actions mx-auto w-full max-w-[400px]">
           <Button
             type="button"
             ref={cancelButtonRef}

@@ -6,7 +6,7 @@ import { disconnectRealtime } from '@/services/realtimeService';
 vi.mock('@/services/authenticatorService', () => ({ getAuthenticator: vi.fn(), beginAuthenticator: vi.fn(), updateAuthenticator: vi.fn() }));
 vi.mock('@/services/realtimeService', () => ({ disconnectRealtime: vi.fn() }));
 beforeEach(() => {
-  vi.clearAllMocks(); localStorage.clear();
+  vi.clearAllMocks(); localStorage.clear(); sessionStorage.clear();
   api.getAuthenticator.mockResolvedValue({ enabled: false, available: true });
 });
 it('displays unavailable status and retries a failed load', async () => {
@@ -29,7 +29,7 @@ it('blocks pending duplicates and never stores setup secrets or recovery codes i
   expect(store).not.toHaveBeenCalled();
   api.updateAuthenticator.mockResolvedValue({ token: 'new-session', user: { id: 3 }, enabled: true, recovery_codes: ['PRIVATE-CODE'] });
   await act(async () => result.current.run('enable', {}));
-  expect(localStorage.getItem('trace_token')).toBe('new-session');
+  expect(sessionStorage.getItem('trace_token')).toBe('new-session');
   expect(JSON.stringify(store.mock.calls)).not.toMatch(/PRIVATE/);
   expect(disconnectRealtime).toHaveBeenCalledOnce();
 });
@@ -42,5 +42,5 @@ it('retains setup on failed verification and does not replace the current sessio
   await act(async () => result.current.run('enable', {}));
   expect(result.current.setup.secret).toBe('PRIVATE-SETUP');
   expect(result.current.error).toContain('Invalid');
-  expect(localStorage.getItem('trace_token')).toBeNull();
+  expect(sessionStorage.getItem('trace_token')).toBeNull();
 });

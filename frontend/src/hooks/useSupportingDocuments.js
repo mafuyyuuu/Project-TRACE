@@ -1,3 +1,4 @@
+import useDataRefresh from '@/hooks/useDataRefresh';
 import { useEffect, useRef, useState } from 'react';
 import { getSupportingDocuments, saveSupportingDocument } from '@/services/supportTicketsService';
 export default function useSupportingDocuments() {
@@ -15,5 +16,6 @@ export default function useSupportingDocuments() {
     catch(err) { if(alive.current) setError(err.response?.data?.error || 'Could not confirm saving. Keep your draft and retry.');return false; }
     finally {pending.current=false;if(alive.current) setBusy(false);}
   };
+  useDataRefresh(['support', 'reference'], () => load());
   return {types,error,loading,busy,save,retry:()=>load()};
 }

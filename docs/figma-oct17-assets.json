@@ -1,0 +1,281 @@
+[
+  {
+    "node": "2705:2722",
+    "frame": "2705:2667",
+    "asset": "ca10c.svg",
+    "variable": "imgChevron",
+    "width": 12.0,
+    "height": 7.0,
+    "sha256": "1180e9db53f233e7d87fabc42fae442d56a88410b14b5904a312396e7e331420"
+  },
+  {
+    "node": "2705:2731",
+    "frame": "2705:2667",
+    "asset": "ffdb4.svg",
+    "variable": "imgChevron1",
+    "width": 12.0,
+    "height": 7.0,
+    "sha256": "058cbd834ea968cec85ad4e831af86693ff6c0f14df3b38ede555070fa5c6cba"
+  },
+  {
+    "node": "2707:2793",
+    "frame": "2707:2744",
+    "asset": "a52b6.svg",
+    "variable": "imgShowPassword",
+    "width": 18.0,
+    "height": 11.0,
+    "sha256": "ffe1cda043400f8957ef394edf74a227ceeb7f735c84711fe62ef43227d593b4"
+  },
+  {
+    "node": "2771:2739",
+    "frame": "2771:2665",
+    "asset": "154c2.svg",
+    "variable": "imgStatusIcon",
+    "width": 84.0,
+    "height": 84.0,
+    "sha256": "cd30f309aa52d28f6501e078e233c85221ddb726aa96d658823e8bd467fb7483"
+  },
+  {
+    "node": "2771:2750",
+    "frame": "2771:2665",
+    "asset": "3e1a9.svg",
+    "variable": "imgEllipse",
+    "width": 7.0,
+    "height": 7.0,
+    "sha256": "2412aa48c5b666b4689ce3f46ac8a7ffb5292d92f149b30c8612580d6666ae59"
+  },
+  {
+    "node": "2771:2758",
+    "frame": "2771:2665",
+    "asset": "659bd.svg",
+    "variable": "imgIconCheck",
+    "width": 16.0,
+    "height": 16.0,
+    "sha256": "cbfaea0b202e1d3f61331811fdabe072bca16fc5e597e12bcae941fd8081bec8"
+  },
+  {
+    "node": "2771:2765",
+    "frame": "2771:2665",
+    "asset": "4b210.svg",
+    "variable": "imgIconClock",
+    "width": 16.0,
+    "height": 16.0,
+    "sha256": "c3867d764f3f1a1c3dbc8fc148c5b32e613f4693e35471274f7f3f77d51b74e4"
+  },
+  {
+    "node": "2771:2773",
+    "frame": "2771:2665",
+    "asset": "6461b.svg",
+    "variable": "imgIconLogin",
+    "width": 16.0,
+    "height": 16.0,
+    "sha256": "0214cc618b2e930393f9d257d2ae2d2a2c7ff8f893eac1ba9b0dcdd8b8294ca0"
+  },
+  {
+    "node": "2771:2781",
+    "frame": "2771:2665",
+    "asset": "d1c88.svg",
+    "variable": "imgIconLife",
+    "width": 18.0,
+    "height": 18.0,
+    "sha256": "955a373600234e5d868b695e00481fdd2ff6a74f038b71a01479a7c69631968e"
+  },
+  {
+    "node": "2506:1870",
+    "frame": "2506:1867",
+    "asset": "c2452.svg",
+    "variable": "imgIconCard",
+    "width": 22.0,
+    "height": 22.0,
+    "sha256": "896cfb4dd5fb2c30218a401c56944864483044a136a459eabbe214c93404a2a0"
+  },
+  {
+    "node": "2506:1877",
+    "frame": "2506:1867",
+    "asset": "04f2e.svg",
+    "variable": "imgIconX",
+    "width": 16.0,
+    "height": 16.0,
+    "sha256": "f7d056a69824b74f4feff22e145add4df734e75bc9d33629265b35feb69bdee5"
+  },
+  {
+    "node": "2506:1883",
+    "frame": "2506:1867",
+    "asset": "7ece8.svg",
+    "variable": "imgIconCheck",
+    "width": 13.0,
+    "height": 13.0,
+    "sha256": "d52e941536d603b59c18024e165b7db485ed13f09915d5f004a153024450f073"
+  },
+  {
+    "node": "2506:1902",
+    "frame": "2506:1867",
+    "asset": "5f3dc.svg",
+    "variable": "imgIconPhone",
+    "width": 20.0,
+    "height": 20.0,
+    "sha256": "fc5493b72433827c0e5239605575fc349e2ec055c9978ddd7f3fcb714c30fbdd"
+  },
+  {
+    "node": "2506:1909",
+    "frame": "2506:1867",
+    "asset": "a6431.svg",
+    "variable": "imgIconCheck1",
+    "width": 11.0,
+    "height": 11.0,
+    "sha256": "ea74ebf50e7573dbd048415332deb9f9288a6e7d788747cf7ec5c3e7be7b38f1"
+  },
+  {
+    "node": "2506:1912",
+    "frame": "2506:1867",
+    "asset": "ccf70.svg",
+    "variable": "imgIconCard1",
+    "width": 20.0,
+    "height": 20.0,
+    "sha256": "f511f2e07835003841d3eafb0dfb39d8f22995003aae9bfa23cedd1f8a77dbd9"
+  },
+  {
+    "node": "2506:1919",
+    "frame": "2506:1867",
+    "asset": "55f54.svg",
+    "variable": "imgIconBank",
+    "width": 20.0,
+    "height": 20.0,
+    "sha256": "1e1977897a6f6506a01bc4ea3e07e804363e405fbf7727f24ccf72741bf1d9e1"
+  },
+  {
+    "node": "2506:1930",
+    "frame": "2506:1867",
+    "asset": "51fa3.svg",
+    "variable": "imgIconCash",
+    "width": 20.0,
+    "height": 20.0,
+    "sha256": "a3e8e41c1c6912669cd4aa8a868fd87a61dbe4d73917369b455340fad723ded9"
+  },
+  {
+    "node": "2506:1944",
+    "frame": "2506:1867",
+    "asset": "6582c.svg",
+    "variable": "imgIconPhone1",
+    "width": 11.0,
+    "height": 11.0,
+    "sha256": "a6f5b979e8bb518f0067913d41b7c12ad9852f330e30503de76b498aa5c25feb"
+  },
+  {
+    "node": "2506:1978",
+    "frame": "2506:1867",
+    "asset": "c7124.svg",
+    "variable": "imgIconFile",
+    "width": 17.0,
+    "height": 17.0,
+    "sha256": "2b95f1a89b1c1ef2d4afb26cd99f7131785bc4b6eae99dab3f0960f8027fc468"
+  },
+  {
+    "node": "2506:1991",
+    "frame": "2506:1867",
+    "asset": "a31c5.svg",
+    "variable": "imgIconCheck2",
+    "width": 12.0,
+    "height": 12.0,
+    "sha256": "c782c1b7979ea63b494a5025be753b5eae3c697837de263eb87b9310d234aa8b"
+  },
+  {
+    "node": "2506:2001",
+    "frame": "2506:1867",
+    "asset": "f2409.svg",
+    "variable": "imgIconHash",
+    "width": 16.0,
+    "height": 16.0,
+    "sha256": "277dd203a0c1acab44d1c8ad7985caa0612ac6b2b7bc124ed0631e3c992be3ed"
+  },
+  {
+    "node": "2506:2011",
+    "frame": "2506:1867",
+    "asset": "27353.svg",
+    "variable": "imgIconUpload",
+    "width": 18.0,
+    "height": 18.0,
+    "sha256": "3b4fe8665e4ec12161bf9ee260f8a348f29afd848a266b43ed2c99a8aad4fa9c"
+  },
+  {
+    "node": "2506:2019",
+    "frame": "2506:1867",
+    "asset": "44c1e.svg",
+    "variable": "imgIconInfo",
+    "width": 18.0,
+    "height": 18.0,
+    "sha256": "e1c9415902d5946f2d2f2529552397fa900d10c7724950ee98fc49ad1921f68d"
+  },
+  {
+    "node": "2506:2026",
+    "frame": "2506:1867",
+    "asset": "2d52d.svg",
+    "variable": "imgIconBack",
+    "width": 16.0,
+    "height": 16.0,
+    "sha256": "165cf4f396d60b7d25250eb9c44ad3ed8433b5cb51bd98b0dc35c0ccb9c5953a"
+  },
+  {
+    "node": "2506:2032",
+    "frame": "2506:1867",
+    "asset": "5d87a.svg",
+    "variable": "imgIconPrinter",
+    "width": 16.0,
+    "height": 16.0,
+    "sha256": "bad6967c2cf669d9906075cf7c04eefd8a2f7b1db401c7f4463a59e3ac32acce"
+  },
+  {
+    "node": "2506:2038",
+    "frame": "2506:1867",
+    "asset": "ba71f.svg",
+    "variable": "imgIconCheck3",
+    "width": 16.0,
+    "height": 16.0,
+    "sha256": "1757f065511348d19fa20f1ea16ba7f990f724772e0a972ce66ea3f764fe7c90"
+  },
+  {
+    "node": "2686:2893",
+    "frame": "2686:2841",
+    "asset": "c65aa.svg",
+    "variable": "imgIconFile",
+    "width": 17.0,
+    "height": 17.0,
+    "sha256": "b1a47be921bfeb471c948ca98d2c31bd12b3196f34bc21c9596a55900ea62d7f"
+  },
+  {
+    "node": "I2542:8341;2519:5643",
+    "frame": "2514:3171",
+    "asset": "8dfb2.svg",
+    "variable": "graduateActive",
+    "width": 30.0,
+    "height": 30.0,
+    "sha256": "a4ec0884bfa12ae9f0659947cf29a427a4039d86cb183553d2aac125666cd71c"
+  },
+  {
+    "node": "2713:3105",
+    "frame": "115:1057",
+    "asset": "frontend/src/assets/trace-auth-logo.png",
+    "variable": "original image paint",
+    "width": 2000,
+    "height": 2000,
+    "sha256": "49f050f86718748c96a1e6a8f510c5d712fa5d82d00b3cf1abf56a54ff7cbaed"
+  },
+  {
+    "node": "2713:3137",
+    "frame": "2705:2667",
+    "asset": "frontend/src/assets/trace-auth-logo-white.png",
+    "variable": "original image paint",
+    "width": 2000,
+    "height": 2000,
+    "sha256": "e89f6a1f54dc438ca273daab1d48b10d6cd20c86bd6dfecb080832400922d048"
+  },
+  {
+    "node": "2713:3104",
+    "frame": "115:1057",
+    "asset": "frontend/src/assets/plp-login-logo.png",
+    "variable": "original image paint",
+    "width": 500,
+    "height": 500,
+    "sha256": "15397eb1793e6fd83b3c898f6e01d9288c336c091e992c867af1778029fb8ce9"
+  }
+]

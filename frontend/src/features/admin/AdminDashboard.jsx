@@ -1,3 +1,4 @@
+import AdminTimestamp from './components/AdminTimestamp';
 import PaginatedTable from '@/components/PaginatedTable';
 import EmailText from '@/components/EmailText';
 import FilterSelect from '@/components/FilterSelect';
@@ -266,6 +267,7 @@ export default function AdminDashboard({ user, currentTab, setViewImageUrl, revi
                             <tr className="text-gray-400 dark:text-gray-400 text-[10px] uppercase tracking-widest border-b border-gray-100 dark:border-gray-700">
                               <th className="pb-4 font-bold pl-4 font-mono">Student ID</th>
                               <th className="pb-4 font-bold">Applicant Type</th>
+                              <th className="pb-4 font-bold">Registered</th>
                               <th className="pb-4 font-bold">Full Name</th>
                               <th className="pb-4 font-bold">Email</th>
                               <th className="pb-4 font-bold">Proof of Registration</th>
@@ -277,6 +279,7 @@ export default function AdminDashboard({ user, currentTab, setViewImageUrl, revi
                               <tr key={student.id} className="hover:bg-gray-50/30 dark:hover:bg-gray-800/30">
                                 <td className="py-4 pl-4 font-mono text-sm font-semibold text-gray-800 dark:text-gray-100">{student.student_id}</td>
                                 <td className="py-4"><span className="trace-admin-badge trace-admin-badge-blue"><AdminIcon name="applicant" />{USER_TYPE_LABELS[student.user_type] || 'Student'}</span></td>
+                                <td className="py-4 text-xs"><AdminTimestamp value={student.created_at} /></td>
                                 <td className="py-4 text-sm font-bold text-gray-900 dark:text-gray-100">{student.full_name}</td>
                                 <td className="py-4 text-sm text-gray-600 dark:text-gray-300"><EmailText value={student.email} /></td>
                                 <td className="py-4">
@@ -308,11 +311,12 @@ export default function AdminDashboard({ user, currentTab, setViewImageUrl, revi
             {currentTab === 'admin-tracker' && (
               <div className="trace-page trace-admin-tracker">
                 {/* Header */}
-                <div className="trace-page-header">
+                <div className="trace-page-header trace-standard-heading">
                   <div>
                     <h2 className="trace-page-title">
                       System-Wide Tracker
                     </h2>
+                    <p className="trace-page-description">Monitor document requests, assignments and processing stages across the system.</p>
                   </div>
                 </div>
 
@@ -458,7 +462,7 @@ export default function AdminDashboard({ user, currentTab, setViewImageUrl, revi
             )}
             {currentTab === 'admin-logs' && (
               <section className="trace-page">
-                <header><h2 className="trace-page-title">Activity Logs</h2><p className="trace-page-description">Review document actions and workflow updates across all desks.</p></header>
+                <header className="trace-standard-heading"><h2 className="trace-page-title">Activity Logs</h2><p className="trace-page-description">Review document actions and workflow updates across all desks.</p></header>
                 <AdminAuditLog logs={adminLogs} />
               </section>
             )}

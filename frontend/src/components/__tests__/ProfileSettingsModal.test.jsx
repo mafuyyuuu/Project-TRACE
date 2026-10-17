@@ -396,7 +396,7 @@ it('shows Year Level and Section instead of college graduation or last attendanc
   expect(screen.getByRole('dialog', { name: 'Confirm Profile Save' })).toBeInTheDocument();
   for (const label of ['Elementary', 'Junior High', 'Senior High']) expect(screen.getByLabelText(`${label} Year Graduated *`)).toBeRequired();
 });
-it.each(['-2020', '2020.5', '2e3', '2001', '9999', '202', '20265'])('rejects invalid alumni graduation before staging Save and keeps the draft: %s', value => {
+it.each(['-2020', '2020.5', '2e3', '1998', '9999', '202', '20265'])('rejects invalid alumni graduation before staging Save and keeps the draft: %s', value => {
   render(<DraftProfile user={{ ...STUDENT, user_type: 'alumni' }} draft={{ ...completeProfile, graduation_year: value }} initialTab="educational" />);
   const input = screen.getByLabelText('PLP/College Year Graduated *');
   fireEvent.click(screen.getByRole('button', { name: 'Save Profile' }));

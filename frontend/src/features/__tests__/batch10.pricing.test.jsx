@@ -72,6 +72,7 @@ it('shows TOR rate information and study years, without a pre-submission total o
     setActiveModal={vi.fn()} toggleDocumentType={vi.fn()} updateSelection={vi.fn()} handleStudentSubmitRequest={vi.fn()} />);
   expect(screen.getByText('₱100.00')).toBeInTheDocument();
   expect(screen.getByText('per printed page')).toBeInTheDocument();
+  fireEvent.click(screen.getByRole('button',{name:'Next'}));
   expect(screen.getByLabelText('Year Started')).toHaveValue('2020');
   expect(screen.getByLabelText('Year Started')).toHaveAttribute('readonly');
   expect(screen.queryByLabelText('Year Ended')).not.toBeInTheDocument();
@@ -94,7 +95,7 @@ it('saves study years and attachment only after request confirmation', async () 
   expect(item.semesters).toBeUndefined();
   expect(JSON.parse(item.purpose)).toEqual({ year_started: 2020 });
 });
-it.each(['', '2001', '9999', '2020.5'])('rejects invalid saved Year Started %s', async year_started => {
+it.each(['', '1998', '9999', '2020.5'])('rejects invalid saved Year Started %s', async year_started => {
   const { result } = renderHook(() => useStudentDashboard({ ...USER, year_started }));
   act(() => result.current.toggleDocumentType('Transcript of Records'));
   act(() => result.current.updateSelection('Transcript of Records', { year_started: '2020', year_ended: '2024' }));
@@ -210,6 +211,7 @@ it('shows the attachment label once while retaining a named picker and selected 
   const user = userEvent.setup();
   render(<NewRequestModal user={USER} documentTypes={[{ name: 'Transcript of Records', requires_attachment: true, attachment_label: label }]}
     selections={{ 'Transcript of Records': { copies: 1 } }} setActiveModal={vi.fn()} toggleDocumentType={vi.fn()} updateSelection={update} handleStudentSubmitRequest={vi.fn()} />);
+  fireEvent.click(screen.getByRole('button',{name:'Next'}));
   expect(screen.getAllByText(label)).toHaveLength(1);
   const file = new File(['synthetic'], 'routing.png', { type: 'image/png' });
   await user.upload(screen.getByLabelText(label, { selector: 'input' }), file);

@@ -1,3 +1,4 @@
+import useDataRefresh from '@/hooks/useDataRefresh';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { getAttachmentContext, saveAttachmentAction } from '@/services/requestAttachmentsService';
 export default function useRequestAttachments(documentId) {
@@ -26,5 +27,6 @@ export default function useRequestAttachments(documentId) {
     } catch (err) { if (owner.current === identity && identity) setError(err.response?.data?.error || 'Could not confirm saving. Check the request before retrying if your connection was interrupted.'); return false; }
     finally { if (owner.current === identity && identity) { pending.current = false; setSaving(false); } }
   };
+  useDataRefresh(['documents', 'support'], load, Boolean(documentId));
   return { types,readOnly,rows: loadedId === documentId ? rows : [], loading: loadedId !== documentId, error, success, saving, staged, stage: action => { if (!pending.current) setStaged(action); }, cancel: () => { if (!pending.current) setStaged(null); }, confirm, refresh: load };
 }

@@ -1,3 +1,4 @@
+import useDataRefresh from '@/hooks/useDataRefresh';
 import {useCallback,useEffect,useRef,useState} from 'react';
 import * as service from '@/services/staffConversationService';
 import {onNotification} from '@/services/realtimeService';
@@ -25,6 +26,7 @@ export default function useStaffConversations(user,requestedConversation) {
     const update=()=>{if(document.visibilityState!=='hidden')void refresh();},unsubscribe=onNotification(update),timer=setInterval(update,15000);
     window.addEventListener('focus',update);return()=>{owner.current=null;read.current?.abort();read.current=null;unsubscribe();clearInterval(timer);window.removeEventListener('focus',update);};
   },[user.id,refresh]);
+  useDataRefresh(['support'], () => { read.current?.abort(); read.current = null; return refresh(); });
   const open=async payload=>{
     if(pending.current)return false;const identity=owner.current;pending.current=true;setBusy(true);setActionError('');
     try{const result=await service.openConversation(payload);if(identity!==owner.current)return true;
@@ -76,6 +78,7 @@ export function useStaffConversation(id,user,onNotice,onChanged) {
     const update=()=>{if(document.visibilityState!=='hidden')void refresh();},unsubscribe=onNotification(update),timer=setInterval(update,15000);
     window.addEventListener('focus',update);return()=>{owner.current=null;read.current?.abort();read.current=null;unsubscribe();clearInterval(timer);window.removeEventListener('focus',update);};
   },[id,refresh]);
+  useDataRefresh(['support'], () => { read.current?.abort(); read.current = null; return refresh(); });
   const send=async event=>{
     event.preventDefault();const text=draft.trim();if(!text||pending.current)return;
     if(retry.current?.message!==text)retry.current={message:text,client_key:crypto.randomUUID()};

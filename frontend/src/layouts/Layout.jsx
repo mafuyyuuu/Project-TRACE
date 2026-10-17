@@ -214,7 +214,7 @@ export default function Layout() {
         <Button type="button" onClick={() => setConfirmingLogout(true)} className="trace-button trace-button-secondary">Log Out</Button></header>
       <p className="text-sm">Submit your graduate application to unlock TRACE. You can complete email verification afterward.</p>
       <GraduateApplication user={user} />
-      <ConfirmDialog open={confirmingLogout} title="Log Out" message={logoutError || 'End this session?'} confirmLabel="Log Out" loading={loggingOut} onConfirm={handleConfirmLogout} onCancel={() => setConfirmingLogout(false)} />
+      <ConfirmDialog open={confirmingLogout} title="Log Out" message={['Are you sure you want to log out?', logoutError]} cancelLabel="Stay Signed In" confirmLabel="Log Out" loading={loggingOut} onConfirm={handleConfirmLogout} onCancel={() => setConfirmingLogout(false)} />
     </main>
   );
 
@@ -390,7 +390,7 @@ export default function Layout() {
       <ConfirmDialog
         open={confirmingLogout}
         title="Log Out"
-        message={logoutError || "You'll need to sign in again to continue."}
+        message={['Are you sure you want to log out?', logoutError]}
         variant="neutral"
         confirmLabel="Log Out"
         cancelLabel="Stay Signed In"

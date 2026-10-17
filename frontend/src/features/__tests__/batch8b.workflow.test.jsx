@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { act, render, renderHook, screen, waitFor, within } from '@testing-library/react';
+import { fireEvent } from '@testing-library/react';
 import NewRequestModal from '@/features/student/components/NewRequestModal';
 import ManualInputModal from '@/features/window1/components/ManualInputModal';
 import StudentProfileModal from '@/components/StudentProfileModal';
@@ -82,13 +83,15 @@ describe('Batch 8b request policies and staff access', () => {
       selections: { 'Honorable Dismissal': { copies: 1 } } }));
     expect(screen.getByRole('checkbox', { name: /Enrollment/ })).toBeDisabled();
     expect(screen.getByText('Unavailable for this college.')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button',{name:'Next'}));
     expect(screen.getByRole('spinbutton', { name: 'Copies' })).toHaveAttribute('max', '1');
   });
 
   it('allows repeatable copies and shows the rate without an estimated total', () => {
     render(request({ selections: { Enrollment: { copies: 3 } } }));
-    expect(screen.getByRole('spinbutton', { name: 'Copies' })).toHaveValue(3);
     expect(screen.getAllByText('₱50.00').length).toBeGreaterThan(0);
+    fireEvent.click(screen.getByRole('button',{name:'Next'}));
+    expect(screen.getByRole('spinbutton', { name: 'Copies' })).toHaveValue(3);
     expect(screen.queryByText('₱150.00')).not.toBeInTheDocument();
   });
 

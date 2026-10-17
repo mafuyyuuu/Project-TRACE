@@ -173,3 +173,25 @@ it('does not assign closed requests to clerks with no desk',async()=>{
   expect(documents.updateAssignedClerk).not.toHaveBeenCalled();
   expect(tx.rollback).toHaveBeenCalledOnce();
 });
+
+it('offers same-college Secretary backup only at intake, while retaining Window 1 fallback for unidentified records',async()=>{
+ const intake={...doc,current_status:'PENDING_W1_INTAKE'};
+ expect(await service.eligibleStaff(intake)).toEqual([expect.objectContaining({id:2,desk_assignment:'Secretary'})]);
+ expect(await service.eligibleStaff({...intake,current_status:'READY_FOR_RELEASE'})).toEqual([]);
+ users.findCourseById.mockResolvedValue([{college_id:7}]);expect(await service.eligibleStaff(intake)).toEqual([]);
+ const window={id:6,role:'clerk',desk_assignment:'Window 1',is_active:1};users.listStaff.mockResolvedValue([window,secretary]);users.findStudentCourseByStudentId.mockResolvedValue([]);
+ expect(await service.eligibleStaff({...intake,routing_college_id:null})).toEqual([expect.objectContaining({id:6})]);
+});
+it.each([null,8])('denies Secretary intake without an explicit assignment to that actor (%s)',async assigned_clerk_id=>{
+ await expect(service.assertDelegatedIntake(secretary,{...doc,current_status:'PENDING_W1_INTAKE',assigned_clerk_id})).rejects.toMatchObject({status:403});
+});
+it('permits a delegated intake in the verified college and rejects cross-college changes',async()=>{
+ const intake={...doc,current_status:'PENDING_W1_INTAKE',assigned_clerk_id:secretary.id};
+ await expect(service.assertDelegatedIntake(secretary,intake)).resolves.toBeUndefined();
+ users.findStudentCourseByStudentId.mockResolvedValue([{college_id:7}]);references.findCollegeById.mockResolvedValue([{id:7,is_active:1}]);
+ await expect(service.assertDelegatedIntake(secretary,intake)).rejects.toMatchObject({status:403});
+});
+it('prevents Window 1 from bypassing a currently assigned Secretary intake',async()=>{
+ users.findById.mockResolvedValue([secretary]);
+ await expect(service.assertAssignedProcessor({id:6,role:'clerk',desk_assignment:'Window 1'},{...doc,current_status:'PENDING_W1_INTAKE',assigned_clerk_id:2})).rejects.toMatchObject({status:403});
+});

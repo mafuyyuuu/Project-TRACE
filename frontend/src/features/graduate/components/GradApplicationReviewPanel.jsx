@@ -128,7 +128,7 @@ export default function GradApplicationReviewPanel({ user, currentTab }) {
     <div className={`trace-page ${admin ? 'trace-admin-graduates trace-admin-more-page' : ''}`}>
       <StudentProfileModal viewerRole={user?.role} open={!!viewProfileId} studentId={viewProfileId} onClose={() => setViewProfileId(null)} />
       <DashboardAlerts success={success} error={error} onDismiss={dismissNotification} dismissalKey={activeQueueTab} />
-      <div>
+      <div className="trace-standard-heading">
         <h2 className="trace-page-title">
           Graduate <span className="text-[#15803d] dark:text-green-300">Applications</span>
         </h2>

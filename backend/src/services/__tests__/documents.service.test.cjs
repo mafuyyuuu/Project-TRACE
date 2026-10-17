@@ -938,10 +938,18 @@ describe('intakeDocument — Window 1 checks the paperwork', () => {
   it.each([['a student', STUDENT], ['Finance', FINANCE], ['the Secretary', SECRETARY]])(
     'rejects %s',
     async (_label, user) => {
+      documentModel.findByIdForUpdate.mockResolvedValue([filed]);
       expect(await statusOf(service.intakeDocument(user, 5, { action: 'approve' }, null))).toBe(403);
     }
   );
 
+  it('lets the explicitly assigned same-college Secretary clear intake through the same locked transition',async()=>{
+    documentModel.findByIdForUpdate.mockResolvedValue([{...filed,assigned_clerk_id:SECRETARY.id}]);
+    await service.intakeDocument(SECRETARY,5,{action:'approve'},null);
+    expect(documentModel.updateStatus).toHaveBeenCalledWith(5,STATUS.PENDING_SEC_EVALUATION,connection);
+    expect(documentModel.updateAssignedClerk).toHaveBeenCalledWith(5,null,connection);
+    expect(connection.commit).toHaveBeenCalledOnce();
+  });
   it('routes an approved intake to the College Secretary', async () => {
     documentModel.findByIdForUpdate.mockResolvedValue([filed]);
     await service.intakeDocument(WINDOW1, 5, { action: 'approve' }, null);
@@ -1164,7 +1172,7 @@ describe('listDocuments — role scoping', () => {
     expect(conditionsFrom()).toContain('COALESCE(d.routing_college_id');
     expect(conditionsFrom()).toContain('WHERE is_active = TRUE AND id = ?');
     expect(documentModel.listWithFilters.mock.calls[0][1]).toContain(1);
-    expect(conditionsFrom()).not.toContain('assigned_clerk_id = ?');
+    expect(conditionsFrom()).toContain('(d.current_status <> ? OR d.assigned_clerk_id = ?)');
   });
 
   it('allows a legacy named college only through an active reference mapping', async () => {
@@ -1355,7 +1363,7 @@ describe('TOR study years', () => {
     expect(data.pricing_snapshot.fee_rule).toBe('per_semester_block');
     expect(data.page_count).toBeUndefined();
   });
-  it.each(['', '2001', '2020.5', '9999'])('rejects invalid saved Year Started %s at the server', async year_started => {
+  it.each(['', '1998', '2020.5', '9999'])('rejects invalid saved Year Started %s at the server', async year_started => {
     userModel.getProfileById.mockResolvedValue([{ ...COMPLETE, year_started }]);
     await expect(service.uploadDocument(STUDENT, { document_type: 'Transcript of Records', year_started: '2020', year_ended: '2024' }, [])).rejects.toMatchObject({ status: 400 });
     expect(documentModel.insert).not.toHaveBeenCalled();
@@ -1365,7 +1373,7 @@ describe('TOR study years', () => {
 describe('saved student profile gate', () => {
   it.each([{}, { birth_date: '  ' }, { is_transfer_student: 1, previous_school: '' },
     { user_type: 'alumni', has_grad_application: true, graduation_year: null, last_attendance_year: 2024 },
-    { user_type: 'alumni', has_grad_application: true, graduation_year: 2001 }, { elem_grad_year: -2012 }, { shs_grad_year: 9999 }, { sex: 'Female', civil_status: 'Married', maiden_name: '' }])
+    { user_type: 'alumni', has_grad_application: true, graduation_year: 1998 }, { elem_grad_year: -2012 }, { shs_grad_year: 9999 }, { sex: 'Female', civil_status: 'Married', maiden_name: '' }])
     ('refuses incomplete saved profile %j before request/log writes', async patch => {
       const saved = Object.keys(patch).length ? { ...COMPLETE, ...patch } : { role: 'student', email: COMPLETE.email, phone_number: COMPLETE.phone_number };
       userModel.getProfileById.mockResolvedValue([saved]);

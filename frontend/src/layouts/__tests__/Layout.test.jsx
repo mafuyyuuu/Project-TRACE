@@ -163,14 +163,14 @@ describe('Layout', () => {
     expect(screen.getByRole('dialog', { name: 'Log Out' })).toBeInTheDocument();
   });
   it('applies text size through Preferences, preserves the account and restores it on reopening', () => {
-    localStorage.setItem('trace_token', 'existing-token');
+    sessionStorage.setItem('trace_token', 'existing-token');
     renderLayout();
     fireEvent.click(screen.getByRole('button', { name: 'Preferences' }));
     const size = screen.getByRole('combobox', { name: 'Text size' });
     fireEvent.change(size, { target: { value: '200' } });
     expect(document.documentElement.style.fontSize).toBe('200%');
     expect(localStorage.getItem(TEXT_SIZE_KEY)).toBe('200');
-    expect(localStorage.getItem('trace_token')).toBe('existing-token');
+    expect(sessionStorage.getItem('trace_token')).toBe('existing-token');
     fireEvent.keyDown(document, { key: 'Escape' });
     fireEvent.click(screen.getByRole('button', { name: 'Preferences' }));
     expect(screen.getByRole('combobox', { name: 'Text size' })).toHaveValue('200');
@@ -179,7 +179,7 @@ describe('Layout', () => {
     const favicon = document.createElement('link');
     favicon.rel = 'icon';
     document.head.appendChild(favicon);
-    localStorage.setItem('trace_token', 'existing-token');
+    sessionStorage.setItem('trace_token', 'existing-token');
     renderLayout();
     const toggle = screen.getByRole('button', { name: 'Dark mode' });
     fireEvent.click(toggle);
@@ -187,7 +187,7 @@ describe('Layout', () => {
     expect(document.documentElement).toHaveClass('dark');
     expect(localStorage.getItem('trace_theme')).toBe('dark');
     expect(favicon.getAttribute('href')).toBe('/trace-favicon-dark.svg');
-    expect(localStorage.getItem('trace_token')).toBe('existing-token');
+    expect(sessionStorage.getItem('trace_token')).toBe('existing-token');
     fireEvent.click(toggle);
     expect(document.documentElement).not.toHaveClass('dark');
     expect(localStorage.getItem('trace_theme')).toBe('light');
@@ -228,6 +228,7 @@ describe('Layout', () => {
     const logout = within(drawer).getByRole('button', { name: 'Logout' });
     await user.click(logout);
     const confirm = screen.getByRole('dialog', { name: 'Log Out' });
+    expect(confirm).toHaveTextContent('Are you sure you want to log out?');
     expect(within(confirm).getByRole('button', { name: 'Stay Signed In' })).toHaveFocus();
     await user.tab();
     expect(within(confirm).getByRole('button', { name: 'Log Out' })).toHaveFocus();

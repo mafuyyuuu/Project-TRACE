@@ -312,7 +312,7 @@ Secretary evaluation keeps editable fields and a separate discussion panel, with
 
 Finance verification uses independent summary/proof and issuance/copy/notes columns, stacked in narrow containers. The paper-pack serial is read-only; pack configuration, verification, issuance, upload, printing and voiding retain their original confirmations, cutoff rules and audit semantics. History keeps caller-owned draft/apply/reset filters, with From/To under Cleared date range. Published copies use authenticated blob previews/downloads and bounded image zoom. Shared supporting-document presentation applies to Secretary and Finance without granting Finance registrar attachment actions. The reports presentation flag never changes report scope or export authorization.
 
-The Figma review is not complete: Student Payment modal `2506:1867` still needs its newer layout and original checkout assets; the Secretary Graduate Applications active white navigation export also remains unavailable. No substitute icons, screenshot-as-UI assets or temporary Figma URLs are used to hide that gap.
+The October 17 review implements the newer Student Payment modal `2506:1867` and retrieves its original assets plus the Secretary Graduate Applications active white navigation icon. The earlier two asset gaps are resolved; see FIGMA_UI_REVIEW.md for the current 149-frame inventory, local verification and approved adaptations.
 
 
 ## Support and request-card refinements — 2026-10-16
@@ -322,3 +322,13 @@ The user-approved Support heading comes before the category tabs in DOM and visu
 New Request choices use equal-width grid columns and equal-height rows, growing for complete titles and descriptions rather than clipping text. Selected documents’ keyed detail forms sit below the choice grid, so different requirements do not resize individual cards. Search preserves selected choices and the mounted details/file drafts. Rate calculations, availability, dismissal limits, saved years, validation and confirmations stay authoritative.
 
 Activity action labels use utils/activityPresentation.js. Expand known domain abbreviations, preserve the saved code as metadata, and search the displayed label as well as the original record. This presentation does not rename database events or change security-event formatting.
+
+## October 17 source and shared conventions
+
+The current source inventory is 149 frames; see FIGMA_UI_REVIEW.md for every frame and approved adaptations. Login, three-step signup, three-step New Request and checkout use the current source. Preserve original export bytes and intrinsic icon dimensions; reuse exact existing assets instead of duplicates. Real QR/instructions/amounts replace reference payment examples.
+
+Headers use a 75 px minimum and natural height. Non-dashboard pages have one heading and short purpose. Queue tabs have 10 px top corners, square bottoms and no active hover lift. Confirmation actions share one horizontal row at phone widths; allow their labels to wrap. New Request choices retain equal size and selected-document fields live in step two. Keep one modal instance across its three steps and preserve file objects/drafts on Back/Edit. The signup Back to Login link is transparent at top left, fixed on desktop and normal flow on mobile. Password visibility retains the approved small subtle hover circle and a usable target.
+
+All roles use the shared Support conversation note above history, outside a collapsed context. Do not restore a Ticket Actions disclosure. Keep authorized action controls and Admin/read-only/Finance guidance. Completed operations close their owning dialog; required subsequent receipt printing, authenticator enrollment/recovery and actionable error states remain until complete.
+
+Compact confirmation titles span the full header width and are centered. Logout asks “Are you sure you want to log out?” consistently, including graduate-gated and forced-password entry points. Keep the neutral Stay Signed In action initially focused and retain confirmed server logout.
