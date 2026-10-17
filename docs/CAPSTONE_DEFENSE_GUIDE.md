@@ -814,3 +814,9 @@ API upgrade. This change is locally tested code, not a claim of live deployment.
 ### October 16 review correction
 
 Student chat is reached through Support; the dashboard launcher is removed. Support Analytics is Admin-only in Efficiency Analytics and its API denies non-Admin actors, including Window 1. Operational tickets, support settings, archive rules, and actual billing transitions retain their existing permissions. The updated payment card uses saved fee snapshots and one amount/action per request group. Payment-slip preview supports printing or browser Save as PDF. Shared Preferences, selected-file feedback, centered phone dialogs, FAQ-only scrolling and paged record tables are local UI corrections; deployment and physical-device acceptance remain separate.
+
+## October 17 demonstration notes
+
+Show separate browser tabs with distinct actors, reload them, and explain tab-local credentials plus unchanged server authorization. Demonstrate the three-step signup/request drafts, required current-student declaration and saved study years. Explain that Regular/Irregular reuses an existing column and does not change role. Show a confirmed mutation updating a list/count without reloading the page; refresh events contain resource names only.
+
+Demonstrate Admin assigning a pending intake to a same-college Secretary and the Secretary completing the existing intake checks. Unassigned/cross-college work remains denied. Show split-name editing with the saved suffix retained and the audit transaction. All Support accounts expose visible guidance and role-authorized controls; resolved conversations remain archived. Use synthetic data. Local test and Figma coverage is evidence of implementation review, not measured production effectiveness or a claim of perfect pixel parity.

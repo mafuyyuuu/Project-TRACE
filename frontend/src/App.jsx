@@ -1,3 +1,4 @@
+import { authStorage } from '@/utils/authStorage';
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { useEffect } from 'react'
 import LoginPage from '@/pages/LoginPage'
@@ -22,7 +23,7 @@ function ApiLoadingIndicator() {
 }
 
 function ProtectedRoute({ children }) {
-  const token = localStorage.getItem('trace_token')
+  const token = authStorage.getItem('trace_token')
   if (!token) return <Navigate to="/" replace />
   return children
 }

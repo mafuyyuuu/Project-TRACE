@@ -111,7 +111,7 @@ export default function GraduateApplication({ user }) {
       <DashboardAlerts success={success} error={error} onDismiss={dismissNotification} />
 
       <div className="trace-page">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="trace-standard-heading flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
             <h2 className="trace-page-title">
               Graduate <span className="text-[#15803d] dark:text-green-300">Application</span>

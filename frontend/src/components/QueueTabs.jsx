@@ -23,7 +23,7 @@ export default function QueueTabs({ tabs, activeKey, onChange, label = 'Queue fi
             aria-pressed={tablist ? undefined : isActive}
             aria-controls={idPrefix && tablist ? `${idPrefix}-panel` : undefined}
             tabIndex={tablist && !isActive ? -1 : 0}
-            motion="lift"
+            motion={isActive ? 'feedback' : 'lift'}
             onKeyDown={(event) => {
               const keys = ['ArrowRight', 'ArrowLeft', 'Home', 'End'];
               if (!keys.includes(event.key)) return;

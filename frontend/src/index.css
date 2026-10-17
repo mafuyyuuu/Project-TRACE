@@ -2017,7 +2017,7 @@ body .trace-secretary-amount .trace-control { @apply w-full min-h-[52px] bg-[#f8
  .trace-secretary-receipt-tiles { grid-template-columns: minmax(0,1.8fr) minmax(0,1fr); }
 }
 @container (min-width: 940px) {
- .trace-secretary-evaluation-columns { grid-template-columns: minmax(0,1.08fr) minmax(0,1fr); }
+ .trace-secretary-evaluation-columns { grid-template-columns: minmax(0,1fr) 480px; }
  .trace-secretary-mobile-hidden { display: flex; }
  .trace-secretary-evaluation-fields.trace-secretary-mobile-hidden { display: block; }
  .trace-secretary-discussion-toggle { display: none; }
@@ -2284,3 +2284,245 @@ body .trace-secretary-document-preview .trace-button { @apply min-h-[36px] px-[1
  .trace-finance-queue-heading { @apply px-[16px]; }
  .trace-finance-search { flex: 1 1 100%; }
 }
+
+/* Keep confirmation choices side by side even when their labels wrap. */
+.trace-confirm-actions { display:grid; grid-auto-flow:column; grid-auto-columns:minmax(0,1fr); gap:8px; }
+.trace-confirm-actions > button { min-width:0; width:100%; padding-inline:8px; white-space:normal; overflow-wrap:anywhere; }
+.trace-confirm-actions .trace-button-content { min-width:0; white-space:normal; }
+/* The click target stays 44px; only its smaller decorative circle changes. */
+button.trace-password-visibility { background:transparent; color:#647084; isolation:isolate; }
+button.trace-password-visibility::before { content:""; position:absolute; inset:6px; border-radius:50%; z-index:-1; }
+button.trace-password-visibility:enabled:hover { background:transparent; }
+button.trace-password-visibility:enabled:hover::before { background:rgb(15 23 42 / 7%); }
+button.trace-password-visibility[data-inverse] { color:white; }
+button.trace-password-visibility[data-inverse]:enabled:hover::before { background:rgb(255 255 255 / 12%); }
+.dark button.trace-password-visibility:not([data-inverse]) { color:#d1d5db; }
+
+/* Native logo bytes and composition from Figma 115:1057. */
+.trace-auth-shell { @apply grid min-h-dvh min-w-0 bg-[#f4f6f8] text-black dark:bg-gray-950 dark:text-gray-100; font-family:'TRACE Admin Inter',Inter,sans-serif; }
+.trace-auth-brand { @apply flex min-w-0 items-center justify-center px-[24px] py-[32px]; }
+.trace-auth-brand-content { @apply flex w-full max-w-[404px] flex-col gap-[10px]; }
+.trace-auth-logo { @apply relative my-[10px] block h-[78px] w-[79px] shrink-0 overflow-hidden; }
+.trace-auth-logo img { position:absolute; height:166.67%; width:164.47%; max-width:none; left:-32.89%; top:-30.67%; }
+.trace-auth-introduction { @apply flex min-w-0 flex-col; }
+.trace-auth-welcome { @apply text-[1.5rem] font-bold leading-normal; }
+.trace-auth-introduction h1 { @apply text-[clamp(3rem,15vw,6rem)] font-black leading-[.94] text-[#168f55] dark:text-green-400; }
+.trace-auth-expansion { @apply my-[10px] text-[.75rem] font-semibold leading-normal; }
+.trace-auth-introduction h2 { @apply max-w-[372px] text-[1.5rem] font-black leading-tight text-[#168f55] dark:text-green-400; }
+.trace-auth-mission { @apply mt-[24px] max-w-[391px] text-[1rem] font-semibold leading-normal; }
+.trace-auth-form-side { @apply flex min-w-0 flex-col items-center justify-center gap-[10px] bg-[#168f55] px-[24px] py-[40px] text-white; }
+.trace-auth-seal { @apply size-[96px] shrink-0 object-contain; }
+.trace-auth-form-content { @apply flex w-full max-w-[627px] flex-col justify-center gap-[30px]; }
+.trace-auth-form-heading { @apply w-full; }
+.trace-auth-form-heading h2 { @apply text-[2rem] font-extrabold leading-normal; }
+.trace-auth-form-heading p { @apply mt-[6px] text-[.875rem] leading-[1.43] text-[#f4f6f8]; }
+.trace-login-form { @apply flex w-full max-w-[596px] flex-col gap-[30px]; }
+.trace-login-label { @apply text-[1rem] font-bold leading-normal; }
+.trace-login-form .trace-control { @apply min-h-[73px] rounded-[12px] border-white/25 bg-white/[.12] px-[32px] text-[.9375rem] text-white placeholder:text-white/90 dark:border-white/25 dark:bg-white/[.12] dark:text-white; }
+.trace-login-form .trace-control:enabled:hover { @apply border-white/70; }
+.trace-login-form .trace-control:focus { @apply border-white bg-white/20 ring-2 ring-white/30; }
+.trace-login-form .trace-control[type='password'],.trace-login-form #login-password { padding-right:52px; }
+.trace-login-forgot { @apply text-[1rem] font-black text-white underline; }
+.trace-login-submit { @apply mt-[10px] min-h-[77px] w-full rounded-[12px] bg-[#f4f6f8] text-[2rem] font-black text-[#323232] dark:bg-[#f4f6f8] dark:text-[#323232]; }
+.trace-login-signup { @apply flex flex-wrap items-center justify-center gap-[6px] text-center text-[.875rem] text-white; }
+@media (min-width:768px) {
+ .trace-auth-shell { grid-template-columns:minmax(0,42.5fr) minmax(0,57.5fr); }
+ .trace-auth-brand { padding-inline:clamp(32px,7.222vw,104px); padding-block:40px; }
+ .trace-auth-brand-content { min-height:692px; justify-content:center; }
+ .trace-auth-introduction { min-height:285px; }
+ .trace-auth-introduction h1 { font-size:clamp(3rem,6.667vw,6rem); }
+ .trace-auth-mission { @apply mt-0 flex min-h-[115px] items-center; }
+ .trace-auth-form-side { box-shadow:-7px -2px 2px rgb(0 0 0 / .3); }
+ .trace-auth-form-content { min-height:616px; }
+}
+@media (max-width:767px) {
+ .trace-auth-brand-content { max-width:596px; }
+ .trace-auth-logo { height:48px; width:49px; }
+ .trace-auth-mission { @apply mt-[12px] text-[.875rem]; }
+ .trace-auth-form-content { max-width:596px; }
+ .trace-login-form .trace-control { padding-left:20px; }
+}
+/* Equal shell chrome across roles; larger text may increase its height. */
+body :is(.trace-admin-shell,.trace-student-shell,.trace-window-shell,.trace-secretary-shell,.trace-finance-shell) .trace-shell-header { height:auto; min-height:75px; }
+.trace-confirm-actions .trace-button-visual { min-width:0; white-space:normal; overflow-wrap:anywhere; }
+
+/* Registration frames 2705:2667 through 2771:2791. */
+.trace-signup-shell { @apply grid min-h-dvh min-w-0 bg-[#f4f6f8] text-[#1b1f24] dark:bg-gray-950 dark:text-gray-100; font-family:'TRACE Admin Inter',Inter,sans-serif; }
+.trace-signup-brand { @apply relative flex min-w-0 flex-col justify-between gap-[32px] bg-[#168f55] px-[24px] pb-[32px] pt-[16px] text-white; }
+.trace-signup-login { @apply inline-flex min-h-[44px] items-center self-start bg-transparent text-[.875rem] font-semibold text-white; }
+.trace-signup-brand-logo > div { @apply relative h-[82px] w-[89px] overflow-hidden; }
+.trace-signup-brand-logo img { position:absolute; height:179.31%; width:165.08%; max-width:none; left:-31.75%; top:-39.66%; }
+.trace-signup-brand-logo > p { @apply mt-[16px] text-[.75rem] font-bold tracking-[1.44px] text-white/80; }
+.trace-signup-intro h2 { @apply text-[2.25rem] font-black leading-[1.0833]; }
+.trace-signup-intro > p { @apply mt-[14px] text-[1.0625rem] font-semibold leading-[1.47] text-white/85; }
+.trace-signup-steps { @apply mt-[28px] flex flex-col gap-[20px]; }
+.trace-signup-steps li { @apply flex items-start gap-[14px] text-white/70; }
+.trace-signup-steps li > span { @apply flex size-[32px] shrink-0 items-center justify-center rounded-full bg-white/20 text-[.875rem] font-bold text-white; }
+.trace-signup-steps li[data-active='true'] > span { @apply bg-white text-[#168f55]; }
+.trace-signup-steps strong { @apply text-[1rem] font-bold text-white/85; }
+.trace-signup-steps li[data-active='true'] strong { @apply text-white; }
+.trace-signup-steps li p { @apply mt-[2px] text-[.875rem] leading-normal; }
+.trace-signup-brand-footer { @apply text-[.875rem] text-white/80; }
+.trace-signup-main { @apply flex min-w-0 items-center justify-center px-[16px] py-[32px]; }
+.trace-signup-card { @apply flex w-full max-w-[560px] flex-col gap-[24px] rounded-[20px] border border-[#e6e9ee] bg-white p-[24px] shadow-[0_8px_24px_rgb(0_0_0/.06)] dark:border-gray-700 dark:bg-gray-900; container-type:inline-size; }
+.trace-signup-heading { @apply flex flex-col gap-[6px]; }
+.trace-signup-progress { @apply mb-[12px] grid grid-cols-3 gap-[8px]; }
+.trace-signup-progress li { @apply h-[6px] rounded-[3px] bg-[#e3e7ec] dark:bg-gray-700; }
+.trace-signup-progress li[data-complete='true'] { @apply bg-[#168f55]; }
+.trace-signup-step-label { @apply text-[.75rem] font-bold tracking-[1.2px] text-[#168f55] dark:text-green-400; }
+.trace-signup-heading h1,.trace-signup-complete h1 { @apply text-[1.875rem] font-extrabold leading-normal; }
+.trace-signup-heading > p:last-child { @apply text-[.875rem] leading-[1.43] text-[#6b7280] dark:text-gray-400; }
+.trace-signup-form { @apply flex min-w-0 flex-col gap-[18px]; }
+.trace-signup-form .trace-label { @apply ml-0 text-[.875rem] font-semibold leading-normal; }
+.trace-signup-form .trace-control { @apply min-h-[48px] rounded-[12px] border-[#d9dde3] bg-white text-[.9375rem] placeholder:text-[#8a919c] dark:border-gray-600 dark:bg-gray-900; }
+.trace-signup-form .trace-control[aria-invalid='true'] { @apply border-red-600 dark:border-red-400; }
+.trace-signup-form .trace-control[readonly],.trace-signup-form .trace-control:disabled { @apply bg-[#f4f6f8] dark:bg-gray-800; }
+.trace-signup-two-fields,.trace-signup-name-fields { @apply grid min-w-0 grid-cols-1 gap-[16px]; }
+.trace-signup-account-types { @apply grid grid-cols-2 gap-[4px] rounded-[12px] bg-[#eceff3] p-[4px] dark:bg-gray-800; }
+.trace-signup-account-types button { @apply min-h-[40px] min-w-0 rounded-[9px] px-[8px] py-[8px] text-[.875rem] font-semibold text-[#6b7280] dark:text-gray-400; }
+.trace-signup-account-types button[aria-pressed='true'] { @apply bg-[#168f55] text-white; }
+.trace-signup-actions { @apply grid grid-flow-col auto-cols-fr gap-[12px]; }
+.trace-signup-actions .trace-button { @apply min-h-[52px] min-w-0 rounded-[12px] text-[1rem] font-extrabold; }
+.trace-signup-primary { @apply min-h-[52px] w-full rounded-[12px] bg-[#168f55] text-[1rem] font-extrabold text-white enabled:hover:bg-[#117744]; }
+.trace-signup-complete { @apply flex flex-col items-center gap-[20px] text-center text-[.875rem] leading-relaxed; }
+.trace-signup-complete-mark { @apply flex size-[72px] items-center justify-center rounded-full bg-green-50 text-[2rem] text-[#168f55] dark:bg-green-950; }
+@container (min-width:400px) { .trace-signup-two-fields { grid-template-columns:repeat(2,minmax(0,1fr)); } .trace-signup-name-fields { grid-template-columns:repeat(3,minmax(0,1fr)); } }
+@media (min-width:900px) {
+ .trace-signup-shell { grid-template-columns:minmax(0,520fr) minmax(0,920fr); }
+ .trace-signup-brand { @apply px-[clamp(24px,4.444vw,64px)] pb-[64px] pt-[64px]; min-height:100dvh; }
+ .trace-signup-intro h2 { @apply text-[3rem]; }
+ .trace-signup-main { @apply px-[40px] py-[48px]; }
+ .trace-signup-card { @apply p-[40px]; }
+ .trace-signup-login { @apply sticky top-[12px] z-10; margin-top:-52px; margin-bottom:-24px; }
+}
+@media (max-width:899px) {
+ .trace-signup-brand { gap:20px; }
+ .trace-signup-brand-logo { @apply flex items-center gap-[16px]; }
+ .trace-signup-brand-logo > div { @apply h-[48px] w-[52px] shrink-0; }
+ .trace-signup-brand-logo > p { margin:0; }
+ .trace-signup-intro h2 { @apply text-[1.75rem]; }
+ .trace-signup-intro > p,.trace-signup-steps,.trace-signup-brand-footer { display:none; }
+}
+.trace-support-conversation-note { @apply rounded-[10px] border border-green-200 bg-green-50 px-[12px] py-[10px] text-[.75rem] leading-relaxed text-green-900 dark:border-green-800 dark:bg-green-950 dark:text-green-100; }
+
+/* The request wizard keeps the same dialog and draft across all three steps. */
+.trace-request-wizard-body { @apply bg-[#fafbfc] dark:bg-gray-950; }
+.trace-request-wizard .trace-student-request-steps { @apply mb-[20px] flex flex-wrap items-center gap-[12px]; }
+.trace-request-wizard .trace-student-request-steps > li { @apply flex items-center gap-[12px] text-[.8125rem]; }
+.trace-request-wizard .trace-student-request-steps > li > span { @apply flex items-center gap-[8px]; }
+.trace-request-wizard .trace-student-request-steps i { @apply h-[2px] w-[28px] bg-[#e2e8ec]; }
+.trace-request-wizard .trace-student-document-choices { @apply grid grid-cols-1 items-stretch gap-[10px]; grid-auto-rows:1fr; }
+.trace-request-wizard .trace-student-document-choice { @apply flex min-h-[92px] min-w-0 flex-col justify-center rounded-[12px]; }
+.trace-request-wizard .trace-student-document-choice > label { @apply grid min-w-0 gap-x-[12px] gap-y-[6px] p-[14px]; grid-template-columns:minmax(0,1fr) auto; }
+.trace-request-wizard .trace-student-document-choice > label > input { grid-column:2; grid-row:1; }
+.trace-request-wizard .trace-student-document-choice > label > span { @apply w-auto min-w-0; grid-column:1; }
+.trace-request-wizard .trace-student-document-choice > label > span:last-child { @apply text-[1rem]; }
+.trace-request-wizard .trace-student-request-form > div:nth-child(2) { display:flex; flex-direction:column; align-items:stretch; gap:12px; }
+.trace-request-wizard .trace-student-document-details > div { @apply grid grid-cols-1 gap-[16px] space-y-0; }
+@container (min-width:600px) { .trace-request-wizard .trace-student-document-details > div { grid-template-columns:repeat(3,minmax(0,1fr)); } .trace-request-wizard .trace-student-document-details > div > :last-child { grid-column:1/-1; } }
+
+/* Checkout frame 2506:1867; saved rates, methods and proof stay live. */
+.trace-student-checkout { font-family:'TRACE Admin Inter',Inter,sans-serif; container-type:inline-size; }
+.trace-student-checkout .trace-modal-header { @apply px-[24px] pb-[18px] pt-[22px]; }
+.trace-student-checkout .trace-modal-header h2 { @apply text-[1.25rem] font-semibold; }
+.trace-checkout-body { @apply p-0; }
+.trace-checkout-steps { @apply flex flex-wrap items-center gap-[12px] border-b border-[#e2e8ec] px-[24px] py-[12px] dark:border-gray-700; }
+.trace-checkout-steps li { @apply flex items-center gap-[10px] text-[.8125rem] text-[#8a94a6]; }
+.trace-checkout-steps li > span { @apply flex size-[24px] shrink-0 items-center justify-center rounded-full border border-[#cbd5df] text-[.75rem] font-bold; }
+.trace-checkout-steps li[data-complete] { @apply text-[#168f55] dark:text-green-400; }
+.trace-checkout-steps li[data-complete] > span { @apply border-[#168f55] bg-[#e8f5ee]; }
+.trace-checkout-steps li[aria-current] { @apply font-semibold text-[#1a202c] dark:text-gray-100; }
+.trace-checkout-steps li[aria-current] > span { @apply border-[#168f55] bg-[#168f55] text-white; }
+.trace-checkout-steps li:not(:last-child)::after { content:''; width:28px; height:2px; background:#e2e8ec; }
+.trace-checkout-columns { @apply grid min-w-0 grid-cols-1 gap-[20px] bg-[#fafbfc] px-[24px] py-[22px] dark:bg-gray-950; }
+.trace-checkout-methods,.trace-checkout-details { @apply flex min-w-0 flex-col gap-[16px]; }
+.trace-checkout-caption { @apply text-[.6875rem] font-semibold tracking-[.6px] text-[#64748b] dark:text-gray-400; }
+.trace-checkout-method-grid { @apply grid grid-cols-2 gap-[10px]; }
+.trace-checkout-method { @apply flex min-h-[56px] min-w-0 items-center gap-[10px] rounded-[12px] border border-[#e2e8ec] bg-white px-[12px] py-[10px] text-left dark:border-gray-700 dark:bg-gray-900; }
+.trace-checkout-method[aria-pressed='true'] { @apply border-[#168f55] bg-[#e8f5ee] text-[#0f5e37] dark:bg-green-950 dark:text-green-300; }
+.trace-checkout-method > span:not(.trace-checkout-method-check) { @apply flex min-w-0 flex-1 flex-col; }
+.trace-checkout-method strong { @apply text-[.8125rem] font-semibold; }
+.trace-checkout-method small { @apply text-[.71875rem] text-[#647084] dark:text-gray-400; }
+.trace-checkout-method-check { @apply flex size-[18px] shrink-0 items-center justify-center rounded-full bg-[#168f55]; }
+.trace-checkout-payment { @apply overflow-hidden rounded-[14px] border border-[#e2e8ec] bg-white dark:border-gray-700 dark:bg-gray-900; }
+.trace-checkout-payment > header { @apply flex flex-wrap items-center justify-between gap-[8px] border-b border-[#e2e8ec] bg-[#f5f7f9] px-[18px] py-[12px] text-[.6875rem] font-semibold text-[#64748b] dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300; }
+.trace-checkout-payment > header > span { @apply inline-flex items-center gap-[5px] rounded-full bg-[#e8f5ee] px-[8px] py-[3px] text-[#0f5e37] dark:bg-green-950 dark:text-green-300; }
+.trace-checkout-payment-content { @apply flex flex-col gap-[14px] p-[16px] text-[.75rem]; }
+.trace-checkout-live-qr { @apply mx-auto h-auto w-[190px] max-w-full rounded-[12px] border border-[#e2e8ec] object-contain; }
+.trace-checkout-payment-content dl { @apply space-y-[8px] rounded-[12px] border border-[#cfe8da] bg-[#f6fcf8] p-[14px] dark:border-green-800 dark:bg-green-950; }
+.trace-checkout-payment-content dl > div { @apply flex flex-wrap items-start justify-between gap-[8px]; }
+.trace-checkout-payment-content dt { @apply text-[#647084] dark:text-gray-400; }
+.trace-checkout-payment-content dd { @apply min-w-0 break-words text-right font-semibold select-text; }
+.trace-checkout-summary { @apply rounded-[14px] border border-[#e2e8ec] bg-white p-[18px] text-[.75rem] dark:border-gray-700 dark:bg-gray-900; }
+.trace-checkout-summary > header { @apply flex flex-wrap items-center justify-between gap-[8px]; }
+.trace-checkout-total { @apply mt-[10px] block text-[2rem] font-bold leading-tight; }
+.trace-checkout-summary > p { @apply mt-[6px] text-[#647084] dark:text-gray-400; }
+.trace-checkout-summary li { @apply mt-[14px] border-t border-[#edf0f3] pt-[14px] dark:border-gray-700; }
+.trace-checkout-summary li > div:first-child { @apply mb-[10px] flex min-w-0 items-start gap-[10px]; }
+.trace-checkout-summary strong { overflow-wrap:anywhere; }
+.trace-checkout-proof { @apply flex flex-col gap-[14px] rounded-[14px] border border-[#e2e8ec] bg-white p-[18px] dark:border-gray-700 dark:bg-gray-900; }
+.trace-checkout-proof .trace-label { @apply text-[.78125rem] font-semibold; }
+.trace-checkout-reference { @apply mt-[6px] flex items-center gap-[10px] rounded-[12px] border border-[#cbd5df] px-[14px] dark:border-gray-600; }
+.trace-checkout-reference .trace-control { @apply border-0 bg-transparent px-0 text-[.8125rem] shadow-none outline-none ring-0 dark:bg-transparent; }
+.trace-checkout-reference:focus-within { @apply outline-2 outline-green-600; }
+.trace-checkout-proof > div > p:last-child { @apply mt-[6px] text-[.71875rem] leading-normal text-[#647084] dark:text-gray-400; }
+.trace-checkout-footer { @apply flex w-full flex-wrap items-center justify-between gap-[10px]; }
+@container (min-width:700px) { .trace-checkout-columns { grid-template-columns:minmax(0,400fr) minmax(0,392fr); } }
+body :is(.trace-tab,.trace-admin-segmented-tabs > button) { border-radius:10px 10px 0 0; }
+body :is(.trace-tab[aria-selected='true'],.trace-tab[aria-pressed='true'],.trace-admin-segment-active):hover { transform:none; }
+body :is(.trace-tab[aria-selected='true'],.trace-tab[aria-pressed='true']) > .trace-button-visual { transform:none; }
+body .trace-tab.trace-tab,body :is(.trace-admin-segmented-tabs,.trace-student-profile-tabs) > button { border-radius:10px 10px 0 0; }
+body .trace-tab:is([aria-selected='true'],[aria-pressed='true']):hover::after { box-shadow:none; transform:none; }
+.trace-request-wizard { container-type:inline-size; }
+.trace-admin-college-options > label { position:relative; }
+.trace-admin-college-options input.sr-only { top:50%; left:12px; }
+.trace-student-checkout .trace-modal-title { font-size:1.25rem; font-weight:600; }
+.trace-signup-form select { appearance:none; background-image:url('/review-figma/ca10c.svg'); background-size:12px 7px; background-repeat:no-repeat; background-position:right 16px center; padding-right:38px; }
+.trace-signup-form select:disabled { background-image:url('/review-figma/ffdb4.svg'); }
+.trace-signup-pending { @apply inline-flex items-center gap-[6px] rounded-full bg-amber-50 px-[10px] py-[5px] text-[.75rem] font-semibold text-amber-800 dark:bg-amber-950 dark:text-amber-200; }
+.trace-signup-next { @apply w-full space-y-[16px] rounded-[12px] bg-[#f4f6f8] p-[18px] text-left text-[.8125rem] dark:bg-gray-800; }
+.trace-signup-next > div { @apply flex items-start gap-[12px]; }
+.trace-signup-next > div p { @apply text-[.75rem] text-[#6b7280] dark:text-gray-400; }
+.trace-signup-next h2 { @apply text-[.875rem] font-bold; }
+.trace-signup-help { @apply flex items-start gap-[10px] rounded-[10px] border border-amber-200 bg-amber-50 p-[12px] text-left text-[.75rem] dark:border-amber-800 dark:bg-amber-950; }
+body :is(.trace-standard-heading,.trace-admin-more-page > header,.trace-admin-maintenance > header) .trace-page-title { @apply text-[1.875rem] font-semibold leading-normal tracking-normal; }
+body :is(.trace-standard-heading,.trace-admin-more-page > header,.trace-admin-maintenance > header) .trace-page-description { @apply mt-[4px] text-[.8125rem] leading-normal; }
+@media (min-width:768px) { .trace-auth-shell { border-radius:55px; overflow:clip; } }
+@media (min-width:900px) { .trace-signup-login { position:fixed; left:clamp(24px,4.444vw,64px); top:12px; margin:0; } }
+@media (max-width:767px) { .trace-auth-introduction h1 { font-size:clamp(2rem,15vw,3.75rem); overflow-wrap:anywhere; } }
+.trace-request-review-documents { @apply flex flex-col divide-y divide-[#edf0f3] dark:divide-gray-700; }
+.trace-request-review-documents > li { @apply flex min-w-0 flex-wrap items-start gap-[12px] px-[16px] py-[14px]; }
+.trace-request-review-documents > li > div { @apply min-w-0 flex-1 basis-[200px]; }
+.trace-request-review-documents p { @apply mt-[5px] text-[.75rem] leading-normal text-[#647084] dark:text-gray-400; }
+.trace-request-review-documents > li > span { @apply rounded-full bg-[#e8f5ee] px-[10px] py-[4px] text-[.6875rem] text-[#168f55] dark:bg-green-950 dark:text-green-300; }
+.trace-request-shared-purpose { @apply flex items-start gap-[10px] rounded-[12px] border border-[#e2e8ec] bg-white p-[14px] text-[.8125rem] dark:border-gray-700 dark:bg-gray-900; }
+.trace-request-shared-purpose small { @apply mt-[4px] block text-[.75rem] text-[#647084] dark:text-gray-400; }
+
+/* Checkout follows the current source while retaining saved bill details. */
+.trace-checkout-close { @apply absolute right-[22px] top-[22px] z-10 rounded-[10px] border border-[#e2e8ec] bg-white dark:border-gray-700 dark:bg-gray-900; }
+.trace-checkout-steps li:not(:last-child)::after { width:48px; }
+.trace-checkout-steps li[data-complete]::after { background:#168f55; }
+.trace-checkout-summary { @apply border-[#cce8d9] bg-[#f6fcf8] dark:border-green-800 dark:bg-green-950; }
+.trace-checkout-summary li { @apply border-[#d8eee1] dark:border-green-800; }
+.trace-checkout-document-count { @apply rounded-full bg-[#e8f5ee] px-[10px] py-[4px] text-[.6875rem] font-medium text-[#168f55] dark:bg-green-900 dark:text-green-300; }
+.trace-checkout-charges { @apply space-y-[12px]; }
+.trace-checkout-charges dl > div { @apply flex min-w-0 items-start justify-between gap-[12px]; }
+.trace-checkout-charges dl > div > div { @apply min-w-0; }
+.trace-checkout-charges dt { @apply font-semibold; }
+.trace-checkout-charges dl > div > div > dd { @apply mt-[3px] break-words text-[#647084] dark:text-gray-400; }
+.trace-checkout-charges dl > div > dd { @apply shrink-0 font-mono; }
+.trace-checkout-charges > p { @apply inline-flex items-start gap-[5px] rounded-[10px] bg-[#e8f5ee] px-[8px] py-[4px] text-[.6875rem] text-[#168f55] dark:bg-green-900 dark:text-green-300; }
+.trace-checkout-proof { @apply overflow-hidden; }
+.trace-checkout-proof > h3 { @apply -mx-[18px] -mt-[18px] border-b border-[#e2e8ec] bg-[#f5f7f9] px-[18px] py-[12px] dark:border-gray-700 dark:bg-gray-800; }
+.trace-checkout-proof section[aria-label='Payment proof'] { @apply rounded-none border-0 p-0; }
+.trace-checkout-proof .trace-file-picker { @apply rounded-[10px] border border-dashed border-[#97d6b4] bg-[#f6fcf8] px-[14px] py-[10px] dark:border-green-700 dark:bg-green-950; }
+.trace-checkout-proof .trace-file-trigger { @apply p-0 text-[#168f55] dark:text-green-300; }
+.trace-checkout-live-qr { height:190px; }
+.trace-student-checkout .trace-student-information { @apply border border-[#cce8d9] bg-[#e8f5ee] text-[#0f5e37] dark:border-green-800 dark:bg-green-950 dark:text-green-200; }
+
+.trace-request-wizard .trace-student-document-choice { min-height:118px; }
+.trace-request-wizard .trace-student-document-choice > label { min-height:0; align-content:start; flex:0 0 auto; }
+.trace-request-wizard .trace-student-document-choice { justify-content:flex-start; }
+.trace-request-wizard .trace-student-document-choices > div > label > span:last-child { grid-row:2; }
+
+.trace-confirm-centered .trace-modal-title { width:100%; text-align:center; }

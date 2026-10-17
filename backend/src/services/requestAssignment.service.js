@@ -42,19 +42,37 @@ async function assertSecretaryScope(user, doc, executor = pool, { assigned = fal
 async function assertAssignedProcessor(user, doc, executor = pool) {
   if (!doc.assigned_clerk_id || Number(doc.assigned_clerk_id) === Number(user.id)) return;
   const [owner] = await users.findById(doc.assigned_clerk_id, executor);
-  if (canonicalDesk(owner?.desk_assignment) === canonicalDesk(user.desk_assignment)) throw forbidden('This request belongs to another processor. Ask Admin to reassign it before acting.');
+  if (canonicalDesk(owner?.desk_assignment) === canonicalDesk(user.desk_assignment)
+    || doc.current_status === STATUS.PENDING_W1_INTAKE && canonicalDesk(owner?.desk_assignment) === 'Secretary') throw forbidden('This request belongs to another processor. Ask Admin to reassign it before acting.');
+}
+
+async function assertDelegatedIntake(user, doc, executor = pool) {
+  if (user.role !== 'clerk' || canonicalDesk(user.desk_assignment) !== 'Secretary'
+    || doc.current_status !== STATUS.PENDING_W1_INTAKE || Number(doc.assigned_clerk_id) !== Number(user.id)) {
+    throw forbidden('Admin must assign this intake request to you before you can process it.');
+  }
+  await assertSecretaryScope(user,doc,executor);
+  const college = await collegeForStudent(doc.student_id,executor);
+  const [account] = await users.findCourseById(user.id,executor);
+  if (!account?.college_id || Number(account.college_id) !== Number(college.id)) throw forbidden('The assigned intake must belong to your verified college. Ask Admin to reconcile its routing.');
 }
 
 async function eligibleStaff(doc, executor = pool) {
   const desk = processingDesk(doc.current_status);
   if (!desk) return [];
   const staff = await users.listStaff({ includeInactive: false }, executor);
-  const college = desk === 'Secretary' ? (doc.routing_college_id ? { id: doc.routing_college_id } : await collegeForStudent(doc.student_id, executor)) : null;
+  const intakeBackup = doc.current_status === STATUS.PENDING_W1_INTAKE;
+  const needsCollege = desk === 'Secretary' || intakeBackup;
+  let college = null;
+  if (needsCollege) {
+    try { college = doc.routing_college_id ? {id:doc.routing_college_id} : await collegeForStudent(doc.student_id,executor); }
+    catch(error) { if (desk === 'Secretary' || error.status !== 400) throw error; }
+  }
   const eligible = [];
-  for (const person of staff.filter(person => person.role === 'clerk' && canonicalDesk(person.desk_assignment) === desk && Number(person.is_active) === 1)) {
-    if (desk === 'Secretary') {
+  for (const person of staff.filter(person => person.role === 'clerk' && (canonicalDesk(person.desk_assignment) === desk || intakeBackup && canonicalDesk(person.desk_assignment) === 'Secretary') && Number(person.is_active) === 1)) {
+    if (canonicalDesk(person.desk_assignment) === 'Secretary') {
       const [account] = await users.findCourseById(person.id, executor);
-      if (!account?.college_id || Number(account.college_id) !== Number(college.id)) continue;
+      if (!college || !account?.college_id || Number(account.college_id) !== Number(college.id)) continue;
     }
     eligible.push({ id: person.id, full_name: person.full_name, desk_assignment: person.desk_assignment });
   }
@@ -131,4 +149,4 @@ async function reassign(user, documentId, body = {}) {
   finally { tx.release(); }
 }
 
-module.exports = { processingDesk, collegeForStudent, assertSecretaryScope, assertAssignedProcessor, eligibleStaff, context, reassign, reconcileCollege };
+module.exports = { processingDesk, collegeForStudent, assertSecretaryScope, assertAssignedProcessor, assertDelegatedIntake, eligibleStaff, context, reassign, reconcileCollege };

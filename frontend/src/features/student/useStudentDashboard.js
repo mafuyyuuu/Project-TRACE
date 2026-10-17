@@ -1,3 +1,4 @@
+import useDataRefresh from '@/hooks/useDataRefresh';
 import { needsStudyYears, needsGraduationYear } from '@/utils/documentPolicy';
 import { yearError } from '@/utils/profileYears';
 import { useState, useEffect, useCallback, useMemo } from 'react';
@@ -29,6 +30,8 @@ export default function useStudentDashboard(user) {
   // Checkout. The available methods are admin-managed reference data, so the
   // Registrar can enable Card or Online Banking without a deploy.
   const [paymentMethods, setPaymentMethods] = useState([]);
+  const [referenceRevision,setReferenceRevision] = useState(0);
+  useDataRefresh(['reference'],()=>setReferenceRevision(value=>value+1));
   const [selectedMethod, setSelectedMethod] = useState('gcash');
   const [paymentRef, setPaymentRef] = useState('');
   const [paymentFile, setPaymentFile] = useState(null);
@@ -86,13 +89,11 @@ export default function useStudentDashboard(user) {
         if (cancelled) return;
         const methods = data.payment_methods || [];
         setPaymentMethods(methods);
-        if (methods.length && !methods.some((m) => m.code === 'gcash')) {
-          setSelectedMethod(methods[0].code);
-        }
+        setSelectedMethod(current=>methods.some(method=>method.code===current) ? current : methods[0]?.code || 'gcash');
       })
       .catch(() => {});
     return () => { cancelled = true; };
-  }, []);
+  }, [referenceRevision]);
 
   useEffect(() => {
     let cancelled = false;
@@ -109,7 +110,7 @@ export default function useStudentDashboard(user) {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [referenceRevision]);
 
   /** Tick or untick a document type. Unticking discards its fields. */
   const toggleDocumentType = useCallback((name) => {
@@ -155,7 +156,7 @@ export default function useStudentDashboard(user) {
         const requiredYear = needsStudyYears(name) ? user.year_started
           : needsGraduationYear(name, user) ? user.graduation_year : null;
         if ((needsStudyYears(name) || needsGraduationYear(name, user))) {
-          const problem = yearError(String(requiredYear ?? ''), { label: needsStudyYears(name) ? 'Year Started' : 'Year Graduated', minimum: 2002, required: true });
+          const problem = yearError(String(requiredYear ?? ''), { label: needsStudyYears(name) ? 'Year Started' : 'Year Graduated', minimum: 1999, required: true });
           if (problem) { triggerNotification(`${problem} Complete study years in Edit Profile, or ask Admin for a correction.`, 'error'); return; }
         }
       }
@@ -184,7 +185,7 @@ export default function useStudentDashboard(user) {
         if (file) formData.append(`document_${index}`, file);
       });
 
-      setSubmissionToConfirm({ kind: 'request', payload: formData, count: names.length, attachments: names.filter(name => selections[name].file).map(name => ({ label: name, file: selections[name].file })), summary: [
+      setSubmissionToConfirm({ kind: 'request', payload: formData, count: names.length, items:names.map(name => ({name,copies:selections[name].copies,purpose:selections[name].purpose,requestingSchool:selections[name].requestingSchool,year_started:needsStudyYears(name) ? user.year_started : null,year_graduated:needsGraduationYear(name,user) ? user.graduation_year : null,file:selections[name].file})), attachments: names.filter(name => selections[name].file).map(name => ({ label: name, file: selections[name].file })), summary: [
         ['Name', user.full_name], ['Student ID', user.student_id],
         ['Documents', names.map(name => `${name} × ${selections[name].copies}`).join('; ')],
         ['Year Started', names.some(name => name.startsWith('Transcript')) ? String(user.year_started) : 'Not required'],

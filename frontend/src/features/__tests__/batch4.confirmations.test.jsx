@@ -201,17 +201,18 @@ describe('Admin save confirmations', () => {
   it('keeps an edited name after Escape and submits only changed fields after confirmation', async () => {
     const user = userEvent.setup();
     const onSave = vi.fn().mockResolvedValue(true);
-    render(<UserEditModal open user={{ id: 8, full_name: 'Ana Reyes' }} onClose={vi.fn()} onSave={onSave} saving={false} />);
-    const name = screen.getByDisplayValue('Ana Reyes');
+    render(<UserEditModal open user={{ id: 8, full_name: 'Ana Reyes',first_name:'Ana',last_name:'Reyes' }} onClose={vi.fn()} onSave={onSave} saving={false} />);
+    const name = screen.getByLabelText('Last Name');
     await user.clear(name);
-    await user.type(name, 'Ana Cruz');
+    await user.type(name, 'Cruz');
     await user.click(screen.getByRole('button', { name: 'Save Changes' }));
     expect(onSave).not.toHaveBeenCalled();
     await user.keyboard('{Escape}');
-    expect(name).toHaveValue('Ana Cruz');
+    expect(name).toHaveValue('Cruz');
+    expect(screen.getByLabelText('Full Name')).toHaveValue('Ana Cruz');
     await user.click(screen.getByRole('button', { name: 'Save Changes' }));
     await user.click(within(screen.getByRole('dialog', { name: 'Confirm User Changes' })).getByRole('button', { name: 'Save Changes' }));
-    await waitFor(() => expect(onSave).toHaveBeenCalledExactlyOnceWith(8, { full_name: 'Ana Cruz' }));
+    await waitFor(() => expect(onSave).toHaveBeenCalledExactlyOnceWith(8, { full_name: 'Ana Cruz',first_name:'Ana',middle_name:'',last_name:'Cruz' }));
   });
 
   it('preserves template edits after cancelling and keeps the existing save payload', async () => {

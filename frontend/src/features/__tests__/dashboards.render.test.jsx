@@ -35,6 +35,7 @@ vi.mock('@/services/authService', () => ({
   verifyStudent: vi.fn(),
   lookupStudent: vi.fn(),
   getUsers: vi.fn(),
+  getGlobalSecurityLogs: vi.fn(),
 }));
 
 vi.mock('@/services/reportsService', () => ({
@@ -253,13 +254,13 @@ describe('role isolation', () => {
   });
 
   it('opening the Security tab renders the existing panel and loads its logs', async () => {
-    const get = vi.spyOn(api, 'get').mockResolvedValue({ data: [] });
+    const get = authService.getGlobalSecurityLogs.mockResolvedValue([]);
     await renderDashboard(
       <AdminDashboard user={USERS.admin} currentTab="admin-security" setViewImageUrl={vi.fn()} />
     );
     expect(await screen.findByRole('heading', { name: 'Global Security Audit Log' })).toBeInTheDocument();
     expect(await screen.findByText('No security logs found')).toBeInTheDocument();
-    expect(get).toHaveBeenCalledWith('/auth/global-security-logs');
+    expect(get).toHaveBeenCalledWith(expect.any(AbortSignal));
   });
 
   it('preserves every long audit value in its column and exposes keyboard access to the scroll region', async () => {
@@ -271,7 +272,7 @@ describe('role isolation', () => {
       role: 'college_secretary',
       ip_address: '2001:0db8:85a3:0000:0000:8a2e:0370:7334',
     };
-    const get = vi.spyOn(api, 'get').mockResolvedValue({ data: [log, { ...log, ip_address: null }] });
+    const get = authService.getGlobalSecurityLogs.mockResolvedValue([log, { ...log, ip_address: null }]);
     render(<AdminSecurityPanel />);
     const table = await screen.findByRole('table', { name: 'Global security audit log' });
     expect(within(table).getAllByRole('columnheader').map(header => header.textContent))
@@ -289,7 +290,7 @@ describe('role isolation', () => {
     expect(region).toContainElement(table);
     region.focus();
     expect(region).toHaveFocus();
-    expect(get).toHaveBeenCalledExactlyOnceWith('/auth/global-security-logs');
+    expect(get).toHaveBeenCalledExactlyOnceWith(expect.any(AbortSignal));
   });
 });
 

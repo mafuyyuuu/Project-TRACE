@@ -9,7 +9,7 @@ vi.mock('qrcode', () => ({ default: { toDataURL: vi.fn().mockResolvedValue('data
 const grant = 'b'.repeat(64);
 const setup = { secret: 'MANUALKEY', provisioning_uri: 'otpauth://totp/TRACE?secret=MANUALKEY', expires_at: new Date(Date.now() + 600000).toISOString() };
 beforeEach(() => {
-  vi.clearAllMocks(); localStorage.clear();
+  vi.clearAllMocks(); localStorage.clear(); sessionStorage.clear();
   service.startStaffSetup.mockResolvedValue(setup);
   service.confirmStaffSetup.mockResolvedValue({ token: 'verified-session', user: { id: 3, role: 'clerk' }, enabled: true, recovery_codes: ['RECOVERY-ONE', 'RECOVERY-TWO'] });
 });
@@ -24,7 +24,7 @@ async function begin() {
 it('requires private credentials and app confirmation before storing a full session, then shows recovery codes', async () => {
   openPage(); await begin();
   expect(service.startStaffSetup).toHaveBeenCalledExactlyOnceWith({ employee_id: 'FINANCE001', password: 'staff-password', setup_code: grant, code: '' });
-  expect(localStorage.getItem('trace_token')).toBeNull();
+  expect(sessionStorage.getItem('trace_token')).toBeNull();
   expect(await screen.findByAltText('Staff authenticator setup QR')).toBeInTheDocument();
   fireEvent.change(screen.getByLabelText('Authenticator code'), { target: { value: '123456' } });
   fireEvent.click(screen.getByRole('button', { name: 'Enable authenticator' }));
@@ -32,7 +32,7 @@ it('requires private credentials and app confirmation before storing a full sess
   const dialog = screen.getByRole('dialog', { name: 'Enable Staff Authenticator' });
   fireEvent.click(within(dialog).getByRole('button', { name: 'Enable authenticator' }));
   await screen.findByRole('list', { name: 'Recovery codes' });
-  expect(localStorage.getItem('trace_token')).toBe('verified-session');
+  expect(sessionStorage.getItem('trace_token')).toBe('verified-session');
   expect(screen.getByText('RECOVERY-ONE')).toBeInTheDocument();
   expect(screen.getByRole('button', { name: 'I saved my recovery codes — Continue' })).toBeInTheDocument();
   expect(screen.queryByLabelText('Staff password')).not.toBeInTheDocument();
@@ -50,7 +50,7 @@ it('preserves credentials on setup failure and does not accept duplicate pending
   reject({ response: { data: { error: 'Setup expired.' } } });
   expect(await screen.findByRole('alert')).toHaveTextContent('Setup expired.');
   expect(screen.getByLabelText('Staff password')).toHaveValue('staff-password');
-  expect(localStorage.getItem('trace_token')).toBeNull();
+  expect(sessionStorage.getItem('trace_token')).toBeNull();
 });
 it('preserves pending app setup on rejected confirmation without saving a session', async () => {
   service.confirmStaffSetup.mockRejectedValue({ response: { data: { error: 'Invalid code.' } } });
@@ -59,7 +59,7 @@ it('preserves pending app setup on rejected confirmation without saving a sessio
   fireEvent.click(screen.getByRole('button', { name: 'Enable authenticator' }));
   fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Enable authenticator' }));
   await waitFor(() => expect(screen.getAllByRole('alert')[0]).toHaveTextContent('Invalid code.'));
-  expect(localStorage.getItem('trace_token')).toBeNull();
+  expect(sessionStorage.getItem('trace_token')).toBeNull();
   expect(screen.getByLabelText('Authenticator code')).toHaveValue('123456');
 });
 it('requires named Admin confirmation, then shows a private code without placing it in a URL', async () => {

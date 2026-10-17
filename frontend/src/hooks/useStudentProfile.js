@@ -1,3 +1,4 @@
+import useDataRefresh from '@/hooks/useDataRefresh';
 import { useEffect, useState } from 'react';
 import { lookupStudent } from '@/services/authService';
 
@@ -26,6 +27,8 @@ export default function useStudentProfile(open, studentId) {
     return () => { current = false; clearTimeout(timer); controller.abort(); };
   }, [open, studentId, requestKey]);
   const retry = () => setAttempt(value => value + 1);
+  useDataRefresh(["accounts", "profile", "reference"], retry, open && Boolean(studentId));
+
   if (!open) return { user: null, loading: false, error: '', retry };
   if (!studentId) return { user: null, loading: false, error: 'This record has no student ID. Close this profile and select an identified student.', retry };
   return { ...(state.requestKey === requestKey ? state : { user: null, loading: true, error: '' }), retry };

@@ -72,7 +72,7 @@ describe('ForcePasswordChange', () => {
 
     await waitFor(() => expect(updateProfile).toHaveBeenCalledWith({ password: 'Goodpassword1_', current_password: 'temporary-password' }));
     expect(onChanged).toHaveBeenCalled();
-    expect(localStorage.getItem('trace_token')).toBe('replacement-token');
+    expect(sessionStorage.getItem('trace_token')).toBe('replacement-token');
   });
 
   it('keeps the user here when the server rejects the change', async () => {

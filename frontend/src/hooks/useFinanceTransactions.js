@@ -1,3 +1,4 @@
+import useDataRefresh from '@/hooks/useDataRefresh';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { exportFinanceTransactions, getFinanceTransactions } from '@/services/financeService';
 import {uploadReceiptCopy} from '@/services/receiptService';
@@ -64,6 +65,8 @@ export default function useFinanceTransactions() {
     } catch (err) { if (alive.current) setError(err.response?.data?.error || 'Could not export. Narrow the date range or try again.'); }
     finally { exportingRef.current = false; if (alive.current) setExporting(false); }
   };
+  useDataRefresh(["documents", "receipts", "accounts"], refresh, true);
+
   return { ...data, loadFailed, filters, applyFilters, page, setPage, loading: loadedKey !== requestKey, error, exporting, exportCsv, refresh, now,
     uploadProgress, uploadingReceipt, receiptFeedback, dismissReceiptFeedback, uploadReceipt };
 }

@@ -1,3 +1,4 @@
+import { authStorage } from '@/utils/authStorage';
 import PasswordVisibilityButton from '@/components/PasswordVisibilityButton';
 import Button from '@/components/Button';
 import { INPUT_LIMITS } from '@/utils/inputLimits';
@@ -88,8 +89,8 @@ export default function LoginPage() {
         const data = await verify2FA({ temp_token: tempToken, ...(useRecoveryCode ? { recovery_code: otp.trim() } : { otp: otp.trim() }),
           ...(canTrustBrowser && trustBrowser ? { trust_browser: true } : {}) })
         rememberBrowserTrustPreference(data, canTrustBrowser && trustBrowser)
-        localStorage.setItem('trace_token', data.token)
-        localStorage.setItem('trace_user', JSON.stringify(data.user))
+        authStorage.setItem('trace_token', data.token)
+        authStorage.setItem('trace_user', JSON.stringify(data.user))
         window.location.href = '/dashboard'
       }
     } catch (err) {
@@ -135,16 +136,18 @@ export default function LoginPage() {
   return (
     <AuthShell
       title={requires2FA ? 'Verification Required' : 'Login'}
+      subtitle={requires2FA ? 'Confirm your identity to continue securely.' : 'Sign in to request and track your documents.'}
     >
-          <form onSubmit={handleSubmit} aria-busy={busy} className="flex flex-col gap-6">
+          <form onSubmit={handleSubmit} aria-busy={busy} className="trace-login-form">
             {error && <p role="alert" className="trace-error">{error}</p>}
             {needsStaffSetup && <p role="status" className="text-sm">This staff account needs an authenticator. Ask Admin for a private setup code, then <Link to="/staff-setup" className="font-bold underline">open staff authenticator setup</Link>.</p>}
             {resendNotice && <p role="status" className="text-sm font-medium text-white/90">{resendNotice}</p>}
             {!requires2FA ? (
               <>
                 <div className="flex flex-col gap-2">
-                  <label className="text-xs font-bold text-white uppercase tracking-wider">STUDENT / ALUMNI / STAFF ID</label>
+                  <label htmlFor="login-id" className="trace-login-label">Student / Alumni / Staff ID</label>
                   <input maxLength={INPUT_LIMITS.id}
+                    id="login-id" autoComplete="username"
                     type="text" 
                     placeholder="e.g. 23-00123 or ADMIN001"
                     value={employeeId} 
@@ -156,10 +159,10 @@ export default function LoginPage() {
                 </div>
 
                 <div className="flex flex-col gap-2">
-                  <label className="text-xs font-bold text-white uppercase tracking-wider">PASSWORD</label>
+                  <label htmlFor="login-password" className="trace-login-label">Password</label>
                   <div className="relative">
                     <input 
-                      id="login-password" type={showPassword ? 'text' : 'password'}
+                      id="login-password" autoComplete="current-password" placeholder="Enter your password" type={showPassword ? 'text' : 'password'}
                       value={password} 
                       disabled={busy}
                       onChange={(e) => setPassword(e.target.value)} 
@@ -168,7 +171,7 @@ export default function LoginPage() {
                     <PasswordVisibilityButton inverse visible={showPassword} onToggle={() => setShowPassword(value => !value)} disabled={busy} controls="login-password" />
                   </div>
                   <div className="text-right mt-2">
-                    <Link to="/forgot-password" className="text-sm font-medium text-white/90 hover:text-white hover:underline">Forgot Password?</Link>
+                    <Link to="/forgot-password" className="trace-login-forgot">Forgot Password?</Link>
                   </div>
                 </div>
               </>
@@ -207,7 +210,7 @@ export default function LoginPage() {
             <Button
               type="submit" 
               disabled={busy}
-              className="trace-button trace-button-inverse-primary mt-6 w-full flex items-center justify-center gap-3"
+              className="trace-button trace-button-inverse-primary trace-login-submit"
             >
               {busy ? (
                 <>
@@ -241,8 +244,8 @@ export default function LoginPage() {
           </form>
 
           {!requires2FA && (
-            <div className="mt-10 text-center text-sm text-white/80 font-medium">
-              Don't have an account? <Link to={new URLSearchParams(window.location.search).get('applicant') === 'alumni' ? '/signup?applicant=alumni' : '/signup'} className="text-white font-black hover:underline">Sign up</Link>
+            <div className="trace-login-signup">
+              Don't have an account? <Link to={new URLSearchParams(window.location.search).get('applicant') === 'alumni' ? '/signup?applicant=alumni' : '/signup'} className="text-white font-bold underline">Sign up</Link>
             </div>
           )}
     </AuthShell>

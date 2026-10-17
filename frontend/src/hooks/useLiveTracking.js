@@ -1,3 +1,4 @@
+import useDataRefresh from '@/hooks/useDataRefresh';
 import { useEffect, useState } from 'react';
 import { getDocumentDetail } from '@/services/documentsService';
 
@@ -22,6 +23,7 @@ export default function useLiveTracking(selectedDoc) {
     });
     return () => { active = false; controller.abort(); };
   }, [id, requestKey]);
+  useDataRefresh(['documents'], () => setAttempt(value => value + 1), Boolean(id));
   const data = result.id === id ? result.data : null;
   return {
     document: selectedDoc && !(result.id === id && result.denied) ? { ...selectedDoc, ...data?.document, step_logs: data?.step_logs || selectedDoc.step_logs } : null,

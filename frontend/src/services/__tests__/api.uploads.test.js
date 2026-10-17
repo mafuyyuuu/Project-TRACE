@@ -49,7 +49,7 @@ beforeAll(async () => {
 });
 
 afterEach(() => {
-  localStorage.clear();
+  localStorage.clear(); sessionStorage.clear();
   expect(getPendingApiRequests()).toBe(0);
 });
 
@@ -59,7 +59,7 @@ afterAll(async () => {
 });
 
 it('delivers the chosen attachment as multipart bytes through real Axios/XHR', async () => {
-  localStorage.setItem('trace_token', 'synthetic-token');
+  sessionStorage.setItem('trace_token', 'synthetic-token');
   const file = new File(['synthetic document bytes'], 'case.pdf', { type: 'application/pdf' });
   await expect(saveAttachmentAction(11, { kind: 'upload', id: 9, file }))
     .resolves.toMatchObject({ message: 'Attachment received.' });

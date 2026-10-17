@@ -1,3 +1,4 @@
+import useDataRefresh from '@/hooks/useDataRefresh';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import * as service from '@/services/supportTicketsService';
 import { onNotification } from '@/services/realtimeService';
@@ -32,6 +33,7 @@ export default function useSupportConversation(ticketId, onNotice) {
     window.addEventListener('focus',update);
     return () => { lifetime.current = null; read.current?.abort(); read.current = null; unsubscribe(); clearInterval(timer); window.removeEventListener('focus',update); };
   }, [load]);
+  useDataRefresh(['support'], () => { read.current?.abort(); read.current = null; return load(); }, Boolean(ticketId));
   const run = async operation => {
     if (pending.current) return false;
     pending.current = true; const owner = lifetime.current; setBusy(true); setError('');

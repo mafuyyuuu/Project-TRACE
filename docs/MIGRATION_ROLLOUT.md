@@ -721,3 +721,9 @@ as well: its graduation requirement remains and its Year Level/Section fields ar
 not shown. Verify authorized staff lookup displays current enrollment details.
 The migration reruns safely and changes no existing profile values or requests.
 Do not import the fresh-install schema over an existing database.
+
+## October 17 UI, tab sessions and Secretary backup intake
+
+Deploy matching frontend/backend commits and rebuild/restart the backend; publish the new frontend build. There is **no new migration** in this batch. Regular/Irregular reuses `users.study_load`; backup intake reuses the existing processor assignment and routing-college fields. Do not rerun the general migration or seeds for these UI changes. The previously documented current-student, assignment and routing migrations remain prerequisites.
+
+After rollout, refresh both browser tabs. Check two different accounts stay distinct across reload/logout, current-student signup requires its declaration, alumni 1999 respects the study interval, Admin review removes approved rows immediately, and each role refreshes only permitted records. Verify an assigned same-college Secretary can intake and an unassigned/cross-college Secretary cannot. Verify New Request Back/Edit and payment-slip return retain drafts, and every Support account shows visible guidance without Ticket Actions. This is a rollout checklist; the code review does not claim the server has been deployed.

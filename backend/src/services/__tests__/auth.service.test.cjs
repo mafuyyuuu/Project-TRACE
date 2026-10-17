@@ -396,11 +396,20 @@ describe('credential changes revoke MFA trust and pending challenges', () => {
 
 describe('register', () => {
   const body = {
-    employee_id: 'STU-NEW', full_name: 'New Student', email: 'new@example.test',
+    study_load: 'regular', employee_id: 'STU-NEW', full_name: 'New Student', email: 'new@example.test',
     phone_number: '+639123456789', password: 'Trace2024!', course: 'CCS', program: 'BS Information Technology',
     privacy_acknowledged: 'true', privacy_notice_version: PRIVACY_NOTICE_VERSION,
   };
   const file = { path: '/tmp/id.jpg', originalname: 'id.jpg', mimetype: 'image/jpeg' };
+  it.each([undefined, '', 'full-time', 'REGULAR', null])('requires an explicit supported student status before OCR: %s',async study_load => {
+    await expect(service.register({...body,study_load},file)).rejects.toMatchObject({status:400});
+    expect(aiEngine.verifyIdDocument).not.toHaveBeenCalled();
+    expect(userModel.createUser).not.toHaveBeenCalled();
+  });
+  it('stores declared irregular status without changing the student role or account type',async()=>{
+    await service.register({...body,study_load:'irregular'},file);
+    expect(userModel.createUser).toHaveBeenCalledWith(expect.objectContaining({role:'student',study_load:'irregular'}),credentialConnection);
+  });
   it.each([
     { privacy_acknowledged: undefined }, { privacy_acknowledged: 'false' }, { privacy_acknowledged: true },
     { privacy_notice_version: undefined }, { privacy_notice_version: 'older-version' },
@@ -814,7 +823,7 @@ describe('alumni proof-unavailable production registration', () => {
     expect(service.registrationOptions()).toEqual({ proof_unavailable_enabled: true });
   });
   it('never offers a proof bypass to current students', async () => {
-    await expect(service.register({ ...body, user_type: 'student' }, null)).rejects.toMatchObject({ status: 403 });
+    await expect(service.register({ ...body, user_type: 'student', study_load: 'regular' }, null)).rejects.toMatchObject({ status: 403 });
     expect(userModel.createUser).not.toHaveBeenCalled();
     expect(aiEngine.verifyIdDocument).not.toHaveBeenCalled();
   });

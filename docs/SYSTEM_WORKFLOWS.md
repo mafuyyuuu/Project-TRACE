@@ -460,3 +460,13 @@ API upgrade. This change is locally tested code, not a claim of live deployment.
 ### October 16 review correction
 
 Student chat is reached through Support; the dashboard launcher is removed. Support Analytics is Admin-only in Efficiency Analytics and its API denies non-Admin actors, including Window 1. Operational tickets, support settings, archive rules, and actual billing transitions retain their existing permissions. The updated payment card uses saved fee snapshots and one amount/action per request group. Payment-slip preview supports printing or browser Save as PDF. Shared Preferences, selected-file feedback, centered phone dialogs, FAQ-only scrolling and paged record tables are local UI corrections; deployment and physical-device acceptance remain separate.
+
+## October 17 workflow refinements
+
+Registration retains one draft across Academic → Personal → Verification, then the existing confirmed registration/proof/privacy transaction. Required current-student Regular/Irregular uses `users.study_load`; account role and routing are unchanged. Self-service cannot alter this declaration; Admin corrections are validated and audited. The saved study-year interval accepts 1999 with the existing maximum interval rule.
+
+Request selection → details → review shares one modal lifetime. Confirmation submits the validated snapshot and closes the completed filing dialog. Checkout uses one saved request group; Slip → Back to Payment preserves its draft and performs no payment write. Successful mutations invalidate resource names so clients independently refetch permitted data. Late responses from a replaced session are discarded.
+
+For an Admin-delegated pending intake, the locked request must still be assigned to that Secretary and match the Secretary's verified college. Both assignment and intake enforce this independently. Existing intake validation, supporting documents, audit and pipeline transitions remain. Unassigned or cross-college Secretary intake is rejected; Window 1 cannot bypass another processor's assignment.
+
+Support guidance is always visible above history in all accounts. Resolve/Reopen/reply requests keep server permissions and confirmation. Resolved tickets retain archive history. No chat content or identity is broadcast by the new resource invalidation event.

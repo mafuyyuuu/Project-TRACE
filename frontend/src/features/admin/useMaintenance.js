@@ -1,6 +1,8 @@
-import { useState, useEffect, useCallback } from 'react';
+import useDataRefresh from '@/hooks/useDataRefresh';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { getUsers } from '@/services/authService';
 import * as maintenanceService from '@/services/maintenanceService';
+import { getSupportingDocuments } from '@/services/supportTicketsService';
 
 /**
  * Admin Maintenance module: staff, document types and colleges.
@@ -10,11 +12,14 @@ import * as maintenanceService from '@/services/maintenanceService';
  * tables without three sets of handlers.
  */
 export default function useMaintenance(user, currentTab) {
+  const requestVersion = useRef(0);
+  useEffect(() => () => { requestVersion.current += 1; }, []);
   const [accounts, setAccounts] = useState([]);
   const [staff, setStaff] = useState([]);
   const [documentTypes, setDocumentTypes] = useState([]);
   const [colleges, setColleges] = useState([]);
   const [paymentMethods, setPaymentMethods] = useState([]);
+  const [catalogCounts,setCatalogCounts] = useState({programs:null,supportingDocuments:null});
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -34,30 +39,44 @@ export default function useMaintenance(user, currentTab) {
   const isActive = user?.role === 'admin' && ['admin-maintenance', 'admin-users'].includes(currentTab);
 
   const load = useCallback(async () => {
+    const version = ++requestVersion.current;
     try {
-      const [s, d, c, p, a] = await Promise.allSettled([
+      const [s, d, c, p, a, programs, supporting] = await Promise.allSettled([
         maintenanceService.getStaff(),
         maintenanceService.getDocumentTypes(),
         maintenanceService.getColleges(),
         maintenanceService.getPaymentMethods(),
         getUsers(),
+        maintenanceService.getPrograms(),
+        getSupportingDocuments(),
       ]);
-      if (a.status === 'fulfilled') setAccounts(a.value.users || []);
+      if (version !== requestVersion.current) return;
+      if (a.status === 'fulfilled') {
+        const fresh = a.value.users || [];
+        setAccounts(fresh);
+        setSelectedUser(current => current ? fresh.find(row => Number(row.id) === Number(current.id)) || current : null);
+      }
       if (s.status === 'fulfilled') setStaff(s.value.staff || []);
       if (d.status === 'fulfilled') setDocumentTypes(d.value.document_types || []);
       if (c.status === 'fulfilled') setColleges(c.value.colleges || []);
       if (p.status === 'fulfilled') setPaymentMethods(p.value.payment_methods || []);
+      setCatalogCounts(current => ({
+        programs:programs.status === 'fulfilled' && Array.isArray(programs.value?.programs) ? programs.value.programs.length : current.programs,
+        supportingDocuments:supporting.status === 'fulfilled' && Array.isArray(supporting.value) ? supporting.value.length : current.supportingDocuments,
+      }));
       if ([s, d, c, p, a].some((r) => r.status === 'rejected')) {
         setError('Some maintenance data could not be loaded.');
       }
     } finally {
-      setLoading(false);
+      if (version === requestVersion.current) setLoading(false);
     }
   }, []);
 
   useEffect(() => {
     if (isActive) load();
   }, [isActive, load]);
+
+  useDataRefresh(["accounts", "reference"], load, isActive);
 
   const notify = useCallback((message, isError = false) => {
     if (isError) {
@@ -172,7 +191,7 @@ export default function useMaintenance(user, currentTab) {
   );
 
   return {
-    accounts, staff, documentTypes, colleges, paymentMethods,
+    accounts, staff, documentTypes, colleges, paymentMethods, catalogCounts,
     loading, saving, error, success,
     dismissNotification,
     reload: load,

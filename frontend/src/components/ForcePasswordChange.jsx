@@ -139,7 +139,7 @@ export default function ForcePasswordChange({ user, onChanged, onLogout }) {
       <ConfirmDialog
         open={confirmingLogout}
         title="Log Out"
-        message={["You'll need to sign in again to continue.", logoutError]}
+        message={['Are you sure you want to log out?', logoutError]}
         confirmLabel="Log Out"
         cancelLabel="Stay Signed In"
         loading={loggingOut}

@@ -56,7 +56,7 @@ export default function ReportsPanel({ user, currentTab, initialRecordSet = '' }
       <DashboardAlerts success={r.success} error={r.error} onDismiss={r.dismissNotification} />
 
       <div className={`trace-page ${admin ? 'trace-admin-reports trace-admin-more-page' : ''}`}>
-        <div className="trace-page-header">
+        <div className="trace-page-header trace-standard-heading">
           <div className="flex-1">
             <h2 className="trace-page-title">
               {admin ? 'Reports & Export' : <>{isSecretary ? 'Records' : 'Reports'} & <span className="text-[#15803d] dark:text-green-300">Export</span></>}

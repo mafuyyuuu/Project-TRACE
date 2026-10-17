@@ -1,3 +1,4 @@
+import useDataRefresh from '@/hooks/useDataRefresh';
 import useViewportPagination from '@/hooks/useViewportPagination';
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import useDashboardCore from '@/hooks/useDashboardCore';
@@ -67,35 +68,28 @@ export default function useAdminDashboard(user, currentTab, reviewAccountId, rev
    * Analytics and the verification queue. Each source is independent: an
    * offline AI engine must not stop the pending-registrations list rendering.
    */
+  const adminVersion = useRef(0);
+  useEffect(() => () => { adminVersion.current += 1; }, []);
   const loadAdminData = useCallback(async () => {
+    const version = ++adminVersion.current;
     // Fetched in parallel; each settles independently so one outage cannot
     // blank the other panels.
-    const [forecast, pending, analytics] = await Promise.allSettled([
-      getForecast(),
-      getPendingStudents(),
-      getAnalytics(),
-      refreshInsights(),
-    ]);
-
-    if (forecast.status === 'fulfilled') setForecastData(forecast.value.forecast || []);
-    else console.warn('Forecast unavailable');
-
-    if (pending.status === 'fulfilled') {
-      const applicants = pending.value.pending_students || [];
-      setPendingStudents(applicants);
+    await Promise.allSettled([
+      getForecast().then(data => { if (version === adminVersion.current) setForecastData(data.forecast || []); }),
+      getPendingStudents().then(data => {
+      if (version !== adminVersion.current) return;
+      const applicants = data.pending_students || [];
+      setPendingStudents([...applicants].sort((a,b) => new Date(b.created_at || 0) - new Date(a.created_at || 0) || Number(b.id)-Number(a.id)));
       const id = reviewAccountId;
       const reviewKey = `${reviewNavigationKey}:${id}`;
       const applicant = applicants.find(item => String(item.id) === id);
       if (applicant && reviewedNotification.current !== reviewKey) {
         reviewedNotification.current = reviewKey; setStudentVerifyToConfirm({ student: applicant, action: 'review' });
       }
-    }
-    else console.warn('Pending students unavailable');
-
-    // Powers the System Throughput KPI card's real value, empty state and
-    // sparkline trend — same endpoint the Efficiency Analytics tab already uses.
-    if (analytics.status === 'fulfilled') setAnalyticsSummary(analytics.value);
-    else console.warn('Analytics summary unavailable');
+      }),
+      getAnalytics().then(data => { if (version === adminVersion.current) setAnalyticsSummary(data); }),
+      refreshInsights(),
+    ]);
   }, [reviewAccountId, reviewNavigationKey, refreshInsights]);
 
   useEffect(() => {
@@ -106,20 +100,34 @@ export default function useAdminDashboard(user, currentTab, reviewAccountId, rev
     if (user?.role === 'admin') loadAdminData();
   }, [user, loadAdminData]);
 
+  useDataRefresh(['accounts', 'documents', 'graduate'], loadAdminData, user?.role === 'admin');
+
   // Tab-scoped datasets, fetched only when their tab is opened.
   useEffect(() => {
     if (user?.role !== 'admin' || currentTab !== 'admin-users') return;
+    let active = true;
     getUsers()
-      .then((data) => setAdminUsers(data.users || []))
+      .then((data) => { if (active) setAdminUsers(data.users || []); })
       .catch((err) => console.error('Failed to load users', err));
+    return () => { active = false; };
   }, [user, currentTab]);
 
   useEffect(() => {
     if (user?.role !== 'admin' || currentTab !== 'admin-logs') return;
+    let active = true;
     getActivityLogs()
-      .then((data) => setAdminLogs(data.logs || []))
+      .then((data) => { if (active) setAdminLogs(data.logs || []); })
       .catch((err) => console.error('Failed to load activity logs', err));
+    return () => { active = false; };
   }, [user, currentTab]);
+  useDataRefresh(['accounts'], async () => {
+    const data = await getUsers();
+    setAdminUsers(data.users || []);
+    setSelectedUser(current => current ? (data.users || []).find(item => item.id === current.id) || null : null);
+  }, user?.role === 'admin' && currentTab === 'admin-users');
+  useDataRefresh(['accounts', 'documents', 'support', 'graduate', 'reference'], async () => {
+    const data = await getActivityLogs(); setAdminLogs(data.logs || []);
+  }, user?.role === 'admin' && currentTab === 'admin-logs');
 
   /** @param {'verify'|'reject'} action */
   const handleAdminVerifyStudent = useCallback((student, action) => {
@@ -132,7 +140,11 @@ export default function useAdminDashboard(user, currentTab, reviewAccountId, rev
     const action = decision || studentVerifyToConfirm.action;
     if (!['verify', 'reject'].includes(action)) return;
 
-    const ok = await runAction(() => verifyStudent(student.id, action, evidenceBasis), {
+    const ok = await runAction(async () => {
+      const result = await verifyStudent(student.id, action, evidenceBasis);
+      setPendingStudents(current => current.filter(row => Number(row.id) !== Number(student.id)));
+      return result;
+    }, {
       successMessage: `Student account registration successfully ${
         action === 'verify' ? 'verified' : 'rejected'
       }.`,

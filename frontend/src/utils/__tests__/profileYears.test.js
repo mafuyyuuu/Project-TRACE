@@ -5,10 +5,10 @@ const COLLEGE = PROFILE_YEAR_FIELDS.graduation_year;
 it.each(['-2020', '2020.5', '2e3', '2.026e3', '202', '20265', 'abcd', '+2020', ' 2020', '2020 ', '２０２０', '0000', 2020])('rejects malformed draft %s without normalizing it', value => {
   expect(yearError(value, COLLEGE, NOW)).toMatch(/exactly four digits/);
 });
-it.each(['2001', '2027'])('rejects college year outside the approved range: %s', value => {
-  expect(yearError(value, COLLEGE, NOW)).toBe('PLP/College Year Graduated must be between 2002 and 2026.');
+it.each(['1998', '2027'])('rejects college year outside the approved range: %s', value => {
+  expect(yearError(value, COLLEGE, NOW)).toBe('PLP/College Year Graduated must be between 1999 and 2026.');
 });
-it.each(['2002', '2026'])('accepts college boundary %s', value => expect(yearError(value, COLLEGE, NOW)).toBe(''));
+it.each(['1999', '2026'])('accepts college boundary %s', value => expect(yearError(value, COLLEGE, NOW)).toBe(''));
 it('allows historical school and attendance years independently of college graduation', () => {
   for (const field of ['elem_grad_year', 'jhs_grad_year', 'shs_grad_year', 'last_attendance_year']) {
     expect(yearError('1980', PROFILE_YEAR_FIELDS[field], NOW)).toBe('');

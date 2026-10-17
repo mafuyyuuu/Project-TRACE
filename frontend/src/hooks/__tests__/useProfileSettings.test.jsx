@@ -36,13 +36,13 @@ beforeEach(() => {
   resendVerification.mockReset();
   getMe.mockReset().mockImplementation(async () => {
     const saved = updateProfile.mock.calls.at(-1)?.[0] || {};
-    const cached = JSON.parse(localStorage.getItem('trace_user'));
+    const cached = JSON.parse(sessionStorage.getItem('trace_user'));
     return { user: { ...cached, ...saved, email: saved.email === 'new@example.test' ? USER.email : (saved.email || USER.email), password: undefined, current_password: undefined } };
   });
   verifyEmailChange.mockReset();
   updateProfile.mockReset();
   uploadProfilePicture.mockReset();
-  localStorage.setItem('trace_user', JSON.stringify(USER));
+  sessionStorage.setItem('trace_user', JSON.stringify(USER));
 });
 
 describe('useProfileSettings', () => {
@@ -83,7 +83,7 @@ describe('useProfileSettings', () => {
     expect(resendVerification).toHaveBeenCalledWith({ email: 'new@example.test', current_password: 'synthetic' });
     expect(result.current.verificationError).toBe('Delivery failed.');
     expect(result.current.pendingEmail).toBe('new@example.test');
-    expect(JSON.parse(localStorage.getItem('trace_user'))).toMatchObject({ email: USER.email, pending_email: 'new@example.test' });
+    expect(JSON.parse(sessionStorage.getItem('trace_user'))).toMatchObject({ email: USER.email, pending_email: 'new@example.test' });
     expect(result.current.profileData.current_password).toBe('');
     expect(updateProfile).not.toHaveBeenCalled();
   });
@@ -101,7 +101,7 @@ describe('useProfileSettings', () => {
     const { result } = renderHook(() => useProfileSettings(user));
     await act(() => result.current.saveProfile());
     expect(updateProfile).toHaveBeenCalledWith(expect.objectContaining({ email: USER.email }));
-    expect(JSON.parse(localStorage.getItem('trace_user')).email).toBe(USER.email);
+    expect(JSON.parse(sessionStorage.getItem('trace_user')).email).toBe(USER.email);
     expect(resendVerification).not.toHaveBeenCalled();
   });
   it('seeds the form from the signed-in account', () => {
@@ -170,7 +170,7 @@ describe('useProfileSettings', () => {
 
     expect(uploadProfilePicture).toHaveBeenCalledWith(expect.any(File));
     await waitFor(() => expect(result.current.avatarPath).toBe('avatar-new.png'));
-    expect(JSON.parse(localStorage.getItem('trace_user')).profile_picture).toBe('avatar-new.png');
+    expect(JSON.parse(sessionStorage.getItem('trace_user')).profile_picture).toBe('avatar-new.png');
     expect(result.current.avatarPreviewUrl).toBeNull();
   });
 
@@ -233,7 +233,7 @@ describe('email verification and persisted contact data', () => {
     const { result } = renderHook(() => useProfileSettings(USER));
     act(() => { result.current.setField('email', 'new@example.test'); result.current.setField('phone_number', '09123456789'); });
     await act(async () => result.current.saveProfile());
-    expect(JSON.parse(localStorage.getItem('trace_user'))).toMatchObject({ email: USER.email, phone_number: '09123456789' });
+    expect(JSON.parse(sessionStorage.getItem('trace_user'))).toMatchObject({ email: USER.email, phone_number: '09123456789' });
     expect(result.current.pendingEmail).toBe('new@example.test');
     expect(result.current.success).toContain('verification link');
   });
@@ -246,7 +246,7 @@ describe('email verification and persisted contact data', () => {
     expect(result.current.confirmEmail).toBeUndefined();
     expect(verifyEmailChange).not.toHaveBeenCalled();
     expect(result.current.pendingEmail).toBe('new@example.test');
-    expect(JSON.parse(localStorage.getItem('trace_user')).email).toBe(USER.email);
+    expect(JSON.parse(sessionStorage.getItem('trace_user')).email).toBe(USER.email);
   });
 });
 
@@ -270,7 +270,7 @@ describe('saved profile refresh', () => {
       await act(() => result.current.saveProfile());
       expect(result.current.profileData.elem_school).toBe('Server Normalized');
       expect(result.current.profileData.is_transfer_student).toBe(true);
-      expect(JSON.parse(localStorage.getItem('trace_user')).elem_school).toBe('Server Normalized');
+      expect(JSON.parse(sessionStorage.getItem('trace_user')).elem_school).toBe('Server Normalized');
       expect(event.mock.calls.at(-1)[0].detail.elem_school).toBe('Server Normalized');
     } finally { window.removeEventListener('trace-user-updated', event); }
   });
@@ -281,7 +281,7 @@ describe('saved profile refresh', () => {
     act(() => result.current.setField('elem_school', 'Unsynchronized'));
     await act(async () => expect(await result.current.saveProfile()).toBe(false));
     expect(result.current.error).toContain('Profile saved, but saved details could not be refreshed');
-    expect(JSON.parse(localStorage.getItem('trace_user')).elem_school).toBeUndefined();
+    expect(JSON.parse(sessionStorage.getItem('trace_user')).elem_school).toBeUndefined();
   });
 });
 
@@ -328,7 +328,7 @@ it('fills missing alumni study years once without changing historical attendance
   act(() => { result.current.setField('year_started', '2020'); result.current.setField('graduation_year', '2024'); });
   await act(async () => expect(await result.current.saveProfile()).toBe(true));
   expect(updateProfile).toHaveBeenCalledWith(expect.objectContaining({ graduation_year: '2024', last_attendance_year: '1980', elem_grad_year: '1970' }));
-  const saved = JSON.parse(localStorage.getItem('trace_user')); unmount();
+  const saved = JSON.parse(sessionStorage.getItem('trace_user')); unmount();
   const reopened = renderHook(() => useProfileSettings(saved));
   expect(reopened.result.current.profileData).toMatchObject({ graduation_year: '2024', last_attendance_year: '1980', elem_grad_year: '1970' });
 });
@@ -362,5 +362,5 @@ it('loads, saves and reloads current Year Level/Section without submitting hidde
   expect(payload).toMatchObject({ year_level: '3rd Year', section: 'IT-3B' });
   expect(payload).not.toHaveProperty('graduation_year'); expect(payload).not.toHaveProperty('last_attendance_year');
   expect(result.current.profileData).toMatchObject({ year_level: '3rd Year', section: 'IT-3B' });
-  expect(JSON.parse(localStorage.getItem('trace_user'))).toMatchObject({ year_level: '3rd Year', section: 'IT-3B' });
+  expect(JSON.parse(sessionStorage.getItem('trace_user'))).toMatchObject({ year_level: '3rd Year', section: 'IT-3B' });
 });

@@ -1,3 +1,4 @@
+import useDataRefresh from '@/hooks/useDataRefresh';
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { getApplications, getApplication, reviewApplication } from '@/services/gradService';
 
@@ -42,6 +43,8 @@ export default function useGradApplicationReview(user, currentTab) {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     if (isActive) load();
   }, [isActive, load]);
+
+  useDataRefresh(['graduate'], load, isActive);
 
   const pendingApplications = useMemo(
     () => applications.filter((a) => a.status === 'submitted' || a.status === 'under_review'),

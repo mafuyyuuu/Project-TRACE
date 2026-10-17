@@ -1,3 +1,4 @@
+import { authStorage } from '@/utils/authStorage';
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import AuthShell from '@/components/AuthShell';
@@ -6,7 +7,7 @@ export default function VerifyEmailPage() {
   const token = useRef(new URLSearchParams(window.location.hash.slice(1)).get('token') || '');
   const operation = useRef(null);
   const [result, setResult] = useState(null);
-  const hasSession = Boolean(localStorage.getItem('trace_token'));
+  const hasSession = Boolean(authStorage.getItem('trace_token'));
   useEffect(() => {
     // Strip the capability from history; StrictMode subscribes to one operation.
     window.history.replaceState(null, '', window.location.pathname);

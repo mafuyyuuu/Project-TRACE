@@ -55,6 +55,7 @@ app.get('/api/health', async (req, res) => {
 });
 
 app.use('/api', apiLimiter);
+app.use('/api', require('./middlewares/dataChanges.middleware').dataChanges);
 
 // ---------------------------------------------------------------------------
 // Routes

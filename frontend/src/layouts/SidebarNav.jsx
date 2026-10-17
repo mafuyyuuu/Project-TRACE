@@ -1,5 +1,6 @@
 import { isSecretary } from '@/utils/secretaryPresentation';
 import FinanceIcon from '@/features/finance/components/FinanceIcon';
+import ReviewIcon from '@/components/ReviewIcon';
 import SecretaryIcon from '@/features/secretary/components/SecretaryIcon';
 import WindowIcon from '@/features/window1/components/WindowIcon';
 import { isWindowClerk } from '@/utils/windowPresentation';
@@ -56,6 +57,7 @@ function Icon({ name, className, admin = false, student = false, windowClerk = f
   const secretaryIcons = {dashboard:active?'71d2a':'c0c60',report:active?'bf32f':'6bcf1',message:active?'fd0bc':'de9d8',cap:'fa806',book:'0cc80',cog:'14716',logout:'95946'};
   const financeIcons = {dashboard:active?'bab9e':'c0c60',report:active?'bf32f':'88abc',message:active?'fd0bc':'de9d8',book:active?'8bcb3':'0cc80',cog:'14716',logout:'95946'};
   if (finance && financeIcons[name]) return <FinanceIcon name={financeIcons[name]} className="trace-nav-icon" />;
+  if (secretary && active && name === 'cap') return <span className="trace-nav-icon"><ReviewIcon name="8dfb2" /></span>;
   if (secretary && active && name === 'book') return <FinanceIcon name="8bcb3" className="trace-nav-icon" />;
   if (secretary && secretaryIcons[name]) return <SecretaryIcon name={secretaryIcons[name]} className="trace-nav-icon" />;
   if (windowClerk && windowIcons[name]) return <WindowIcon name={windowIcons[name]} className={className}/>;

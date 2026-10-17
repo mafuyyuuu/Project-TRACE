@@ -54,7 +54,7 @@ describe('Main Tabs dialog interactions', () => {
     expect(screen.getByText('Not confirmed')).toBeInTheDocument();
     rerender(<AdminRegistrationDetails student={{ ...student, verification_reason: 'OCR could not confirm the school, student ID and college together. Manual review is required.' }} />);
     expect(screen.queryByText('Read')).not.toBeInTheDocument();
-    expect(screen.getAllByText('Not recorded')).toHaveLength(3);
+    expect(screen.getAllByText('Not recorded')).toHaveLength(4);
   });
 
   it('stages a review decision and keeps the evidence draft when confirmation is canceled', async () => {

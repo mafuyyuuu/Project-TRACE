@@ -414,7 +414,7 @@ describe('staff accounts', () => {
 });
 
 describe('account editing — approved profile fields only', () => {
-  beforeEach(() => { vi.spyOn(userModel, 'updateProfile').mockResolvedValue([{ affectedRows: 1 }]); });
+  beforeEach(() => { vi.spyOn(userModel, 'updateProfile').mockResolvedValue([{ affectedRows: 1 }]); vi.spyOn(userModel,'getProfileById').mockResolvedValue([{id:5,role:'student',user_type:'alumni'}]); vi.spyOn(userModel,'saveNameParts').mockResolvedValue([]); });
   it.each([CLERK, STUDENT])('rejects a non-admin before querying the account', async user => {
     expect(await statusOf(service.updateAccount(user, 5, { full_name: 'Changed' }))).toBe(403);
     expect(userModel.findById).not.toHaveBeenCalled();
@@ -427,7 +427,31 @@ describe('account editing — approved profile fields only', () => {
   it('updates an alumni profile without accepting privilege or verification changes', async () => {
     userModel.findById.mockResolvedValue([{ id: 5, role: 'student', user_type: 'alumni' }]);
     await service.updateAccount(ADMIN, 5, { full_name: '  Ana Reyes ', email: '  ANA@EXAMPLE.TEST ', phone_number: '09123456789', course: 'BS IT', college_id: '1', role: 'admin', verification_status: 'verified', is_active: true });
-    expect(userModel.updateProfile).toHaveBeenCalledExactlyOnceWith(5, { full_name: 'Ana Reyes', email: 'ana@example.test', phone_number: '09123456789', course: 'BS IT', college_id: 1 });
+    expect(userModel.updateProfile).toHaveBeenCalledExactlyOnceWith(5, { full_name: 'Ana Reyes', email: 'ana@example.test', phone_number: '09123456789', course: 'BS IT', college_id: 1 }, expect.any(Object));
+  });
+  it('saves explicit compound name parts, assembled display name and its audit atomically',async()=>{
+    await service.updateAccount(ADMIN,5,{first_name:'Ana Maria',middle_name:'Santos',last_name:'Dela Cruz',full_name:'Ana Maria Santos Dela Cruz'});
+    const connection=await pool.getConnection.mock.results[0].value;
+    expect(userModel.updateProfile).toHaveBeenCalledWith(5,{full_name:'Ana Maria Santos Dela Cruz'},connection);
+    expect(userModel.saveNameParts).toHaveBeenCalledWith(5,{first_name:'Ana Maria',middle_name:'Santos',last_name:'Dela Cruz'},connection);
+    expect(connection.commit).toHaveBeenCalledOnce();
+  });
+  it('preserves the recorded name extension while correcting the three name fields',async()=>{
+    userModel.getProfileById.mockResolvedValue([{id:5,role:'student',user_type:'student',extension_name:'Jr.'}]);
+    await service.updateAccount(ADMIN,5,{first_name:'Juan',middle_name:'Santos',last_name:'Dela Cruz'});
+    expect(userModel.updateProfile).toHaveBeenCalledWith(5,{full_name:'Juan Santos Dela Cruz Jr.'},expect.any(Object));
+  });
+  it('rolls back display-name edits when persisting the corresponding name parts fails',async()=>{
+    userModel.saveNameParts.mockRejectedValue(new Error('Name storage unavailable'));
+    await expect(service.updateAccount(ADMIN,5,{first_name:'Ana',last_name:'Reyes'})).rejects.toThrow('Name storage unavailable');
+    const connection=await pool.getConnection.mock.results[0].value;
+    expect(connection.rollback).toHaveBeenCalledOnce();expect(connection.commit).not.toHaveBeenCalled();
+  });
+  it('allows only Admin to correct current-student status and never converts the account role',async()=>{
+    userModel.findById.mockResolvedValue([{id:5,role:'student',user_type:'student'}]);userModel.getProfileById.mockResolvedValue([{id:5,role:'student',user_type:'student'}]);
+    await service.updateAccount(ADMIN,5,{study_load:'irregular',role:'admin'});
+    expect(userModel.updateProfile).toHaveBeenCalledWith(5,{study_load:'irregular'},expect.any(Object));
+    await expect(service.updateAccount(STUDENT,5,{study_load:'regular'})).rejects.toMatchObject({status:403});
   });
   it.each([{ full_name: '' }, { email: 'bad-email' }, { phone_number: '1'.repeat(21) }, { course: 'a'.repeat(151) }, { college_id: -1 }, { role: 'admin' }])('rejects invalid or unsupported edits (%o)', async fields => {
     expect(await statusOf(service.updateAccount(ADMIN, 5, fields))).toBe(400);

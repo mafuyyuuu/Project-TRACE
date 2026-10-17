@@ -18,7 +18,7 @@ import { renderTemplateValues } from '@/utils/templateValues';
  * Printed from the browser — `.print-slip` in index.css hides the dashboard
  * behind it so the printer gets the slip and nothing else.
  */
-export default function PaymentStubModal({ selectedDoc, groupDocs, setActiveModal }) {
+export default function PaymentStubModal({ selectedDoc, groupDocs, setActiveModal, onBack }) {
   const tracking = selectedDoc?.tracking_number;
   const { qrSvg, template } = usePaymentSlip(tracking);
 
@@ -54,6 +54,7 @@ export default function PaymentStubModal({ selectedDoc, groupDocs, setActiveModa
       footerClassName="trace-modal-footer print-hide"
       footer={
         <div className="trace-actions justify-end">
+          {onBack && <Button type="button" onClick={onBack} className="trace-button trace-button-secondary">Back to Payment</Button>}
           <Button
             onClick={() => setActiveModal(null)}
             className="trace-button trace-button-secondary"

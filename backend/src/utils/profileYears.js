@@ -1,6 +1,6 @@
 const PROFILE_YEAR_FIELDS = {
-  year_started: { label: 'Year Started', minimum: 2002 },
-  graduation_year: { label: 'PLP/College Year Graduated', minimum: 2002 },
+  year_started: { label: 'Year Started', minimum: 1999 },
+  graduation_year: { label: 'PLP/College Year Graduated', minimum: 1999 },
   last_attendance_year: { label: 'Last Attendance Year', minimum: 1000 },
   elem_grad_year: { label: 'Elementary Year Graduated', minimum: 1000 },
   jhs_grad_year: { label: 'Junior High Year Graduated', minimum: 1000 },
@@ -17,8 +17,8 @@ function yearError(value, { label, minimum = 1000, required = false }, now = new
   if (value === '' || value === null || value === undefined) return required ? `${label} is required.` : '';
   if (typeof value !== 'string' || !/^[1-9][0-9]{3}$/.test(value)) return `${label} must contain exactly four digits.`;
   const maximum = manilaYear(now);
-  if (Number(value) < minimum || Number(value) > maximum) return minimum === 2002
-    ? `${label} must be between 2002 and ${maximum}.`
+  if (Number(value) < minimum || Number(value) > maximum) return minimum === 1999
+    ? `${label} must be between 1999 and ${maximum}.`
     : `${label} must be a four-digit year no later than ${maximum}.`;
   return '';
 }

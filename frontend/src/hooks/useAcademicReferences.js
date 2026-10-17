@@ -1,3 +1,4 @@
+import useDataRefresh from '@/hooks/useDataRefresh';
 import { useEffect, useState } from 'react';
 import { getColleges, getPrograms } from '@/services/referenceService';
 
@@ -17,5 +18,6 @@ export default function useAcademicReferences(enabled) {
       });
     return () => { live = false; controller.abort(); };
   }, [enabled, revision]);
+  useDataRefresh(["reference"], () => setRevision(value => value + 1), enabled);
   return { ...state, retry: () => { setState(previous => ({ ...previous, loading: true, error: '' })); setRevision(value => value + 1); } };
 }

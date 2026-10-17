@@ -261,3 +261,11 @@ Use PhoneInput and the mirrored phoneNumber helpers for mobile entry and validat
 ## October 16 review conventions
 
 Use the same Preferences dialog for every role. Keep student chat in Support and support metrics exclusively in Admin Efficiency Analytics, with server authorization. Shared file pickers show controlled filenames rather than the reset native input's empty status. Center phone modals, let FAQ answers own their scroll region, and paginate record tables without changing existing server cursors or exports. Compound controls own the entire focus outline, including adornments. Display email identifiers lowercase, use shared Manila timestamp/peso helpers, and retain authored messages verbatim. Preserve semantic icon colors in both themes.
+
+## October 17 implementation conventions
+
+Keep credentials/cache tab-local through authStorage; never read/write auth keys directly in localStorage. Capture the current token before asynchronous identity/profile operations and discard results after replacement/logout. Preferences remain browser-wide. Resource invalidations carry only allowlisted names; refetch with the tab's credentials and retain dirty drafts. Successful writes close completed dialogs without waiting on background list reads.
+
+Current-student Regular/Irregular reuses study_load; it is required at signup, read-only in self profile and editable only by authorized Admin. Split-name edits compose the saved extension under the same locked transaction. Secretary intake is per-request Admin delegation within verified college scope, with independent locked server checks. Do not introduce a global desk privilege for backup work.
+
+Use one New Request modal lifetime for selection/details/review. Back/Edit retains typed values and file objects. Support conversation guidance is visible for every account, outside collapsed context; keep authorized operational controls. Follow the 149-frame current source inventory and explicit user overrides documented in FIGMA_UI_REVIEW.md.

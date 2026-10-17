@@ -1,5 +1,7 @@
+import { authStorage } from '@/utils/authStorage';
 import axios from 'axios'
 import { handleSessionFailure } from '@/utils/apiSession'
+import { changedResources, publishDataChange } from '@/services/dataChanges'
 
 /**
  * Shared axios instance. Domain-specific calls live in authService.js and
@@ -51,7 +53,7 @@ function trackActivity(config) {
 // ── Request Interceptor: attach Bearer token ──────────────
 api.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('trace_token')
+    const token = authStorage.getItem('trace_token')
     if (token) {
       config.headers.Authorization = `Bearer ${token}`
     }
@@ -65,11 +67,15 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response) => {
     response.config?.[activityKey]?.()
+    const sent = response.config?.headers?.get?.('Authorization') || response.config?.headers?.Authorization
+    if (sent && sent !== `Bearer ${authStorage.getItem('trace_token')}`) throw new axios.CanceledError('Session changed before this response arrived.', response.config)
+    const resources = changedResources(response.config?.url, response.config?.method)
+    if (response.status >= 200 && response.status < 300 && resources.length) publishDataChange(resources)
     return response
   },
   (error) => {
     error.config?.[activityKey]?.()
-    handleSessionFailure(error, { storage: localStorage, location: window.location })
+    handleSessionFailure(error, { storage: authStorage, location: window.location })
     return Promise.reject(error)
   }
 )

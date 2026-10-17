@@ -1,3 +1,4 @@
+import { authStorage } from '@/utils/authStorage';
 import { useEffect, useRef, useState } from 'react';
 import QRCode from 'qrcode';
 import { startStaffSetup, confirmStaffSetup } from '@/services/staffAuthenticatorSetupService';
@@ -16,11 +17,13 @@ export default function useStaffEnrollment() {
   async function run(payload, confirm = false) {
     if (pending.current) return false;
     pending.current = true; setBusy(true); setError('');
+    const token = authStorage.getItem('trace_token');
     try {
       const result = await (confirm ? confirmStaffSetup(payload) : startStaffSetup(payload));
+      if (authStorage.getItem('trace_token') !== token) return false;
       if (confirm) {
         forgetBrowserTrustPreference(); disconnectRealtime();
-        localStorage.setItem('trace_token', result.token); localStorage.setItem('trace_user', JSON.stringify(result.user));
+        authStorage.setItem('trace_token', result.token); authStorage.setItem('trace_user', JSON.stringify(result.user));
         if (mounted.current) { setCodes(result.recovery_codes); setSetup(null); setQr(''); }
       } else if (mounted.current) { setSetup(result); setQr(''); }
       return true;

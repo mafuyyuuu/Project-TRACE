@@ -142,17 +142,17 @@ describe('Student merged history', () => {
   it('uses the legacy URL filter during navigation and keeps one table', async () => {
     const props = { user: USERS.student, setViewImageUrl: vi.fn() };
     const view = await renderDashboard(<StudentDashboard {...props} currentTab="history" />);
-    expect(screen.getByRole('button', { name: 'All Requests' })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByRole('button', { name: /^All Requests/ })).toHaveAttribute('aria-pressed', 'true');
     expect(screen.getAllByRole('table')).toHaveLength(1);
     expect(screen.getByText('TRC-INTK')).toBeInTheDocument();
     view.rerender(<StudentDashboard {...props} currentTab="payment-history" />);
-    expect(screen.getByRole('button', { name: 'Payments', exact: true })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByRole('button', { name: /^Payments/ })).toHaveAttribute('aria-pressed', 'true');
     expect(screen.queryByText('TRC-INTK')).not.toBeInTheDocument();
     expect(screen.getByText('TRC-DONE')).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: 'All Requests' }));
+    fireEvent.click(screen.getByRole('button', { name: /^All Requests/ }));
     expect(screen.getByText('TRC-INTK')).toBeInTheDocument();
     view.rerender(<StudentDashboard {...props} currentTab="request-history" />);
-    expect(screen.getByRole('button', { name: 'All Requests' })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByRole('button', { name: /^All Requests/ })).toHaveAttribute('aria-pressed', 'true');
     expect(screen.getAllByRole('table')).toHaveLength(1);
   });
 });
@@ -409,7 +409,7 @@ describe('Student — asked for money only once there is an amount', () => {
     await user.click(payButton);
     await user.click(await screen.findByRole('button', { name: 'Credit / Debit Card' }));
 
-    await user.type(screen.getByPlaceholderText(/5001 0293 8472/), 'APPROVE123');
+    await user.type(screen.getByPlaceholderText(/Enter the reference number/), 'APPROVE123');
     // The payment modal renders through a portal onto document.body, outside
     // the render container, so the file input has to be found there instead.
     const fileInput = document.body.querySelector('input[type="file"]');

@@ -91,7 +91,7 @@ export default function Window1Dashboard({ user, currentTab, setViewImageUrl }) 
     <>
       <DashboardAlerts success={success} error={error} onDismiss={dismissNotification} dismissalKey={`${currentTab}:${queueTab}`} />
       <div className="trace-page trace-window-page">
-        {(currentTab === 'dashboard' || currentTab === 'tracking-desk') && <header className="trace-page-header"><h2 className="trace-page-title">{currentTab === 'dashboard' ? <>Welcome back, <span>Window 1 Clerk</span></> : 'Tracking Desk'}</h2><WindowDate date={todayFormatted}/></header>}
+        {(currentTab === 'dashboard' || currentTab === 'tracking-desk') && <header className={`trace-page-header ${currentTab === 'tracking-desk' ? 'trace-standard-heading' : ''}`}><div><h2 className="trace-page-title">{currentTab === 'dashboard' ? <>Welcome back, <span>Window 1 Clerk</span></> : 'Tracking Desk'}</h2>{currentTab === 'tracking-desk' && <p className="trace-page-description">Monitor request progress, current processing stages and completed documents.</p>}</div><WindowDate date={todayFormatted}/></header>}
         {currentTab === 'dashboard' && <WindowOverview stats={dashStats}
           intake={{documents:intakeQueue,pagination:intakePagination,page:intakePagination?.page || w1IntakePage,onPage:setW1IntakePage,pageSize:intakePagination?.pageSize || itemsPerPage}}
           release={{documents:releaseQueue,pagination:releasePagination,page:releasePagination?.page || w1ReleasePage,onPage:setW1ReleasePage,pageSize:releasePagination?.pageSize || itemsPerPage}}

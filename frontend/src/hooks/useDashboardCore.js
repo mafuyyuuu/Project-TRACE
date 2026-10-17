@@ -1,4 +1,5 @@
-import { useState, useEffect, useCallback } from 'react';
+import useDataRefresh from '@/hooks/useDataRefresh';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { getDocuments, getDashboardStats } from '@/services/documentsService';
 
 /**
@@ -11,6 +12,9 @@ import { getDocuments, getDashboardStats } from '@/services/documentsService';
  * @param {Object} user authenticated user from useAuth()
  */
 export default function useDashboardCore(user) {
+  const actionPending = useRef(false);
+  const requestVersion = useRef(0);
+  useEffect(() => () => { requestVersion.current += 1; }, []);
   const [documents, setDocuments] = useState([]);
   const [dashStats, setDashStats] = useState({
     processed_today: 0,
@@ -54,26 +58,32 @@ export default function useDashboardCore(user) {
    * their own hook rather than making every role pay for it.
    */
   const fetchCoreData = useCallback(async () => {
+    const version = ++requestVersion.current;
     try {
       // The first statement is the await on purpose: nothing may set state
       // before it, or the initial-load effect below would trigger a
       // synchronous cascading render.
       const docsData = await getDocuments(1, 100);
+      if (version !== requestVersion.current) return;
       setError('');
       setDocuments(docsData.documents || []);
+      setSelectedDoc(current => current ? { ...current, ...(docsData.documents || []).find(item => item.id === current.id) } : current);
 
       try {
-        setDashStats(await getDashboardStats());
+        const stats = await getDashboardStats();
+        if (version === requestVersion.current) setDashStats(stats);
       } catch {
         console.warn('Stats unavailable');
       }
     } catch (err) {
       console.error(err);
-      setError('Failed to fetch dashboard data. Please try again.');
+      if (version === requestVersion.current) setError('Failed to fetch dashboard data. Please try again.');
     } finally {
-      setLoading(false);
+      if (version === requestVersion.current) setLoading(false);
     }
   }, []);
+
+  useDataRefresh(['documents', 'accounts', 'reference'], fetchCoreData, Boolean(user));
 
   /**
    * Refetch triggered by a user action, where showing the spinner again is
@@ -101,18 +111,21 @@ export default function useDashboardCore(user) {
    */
   const runAction = useCallback(
     async (fn, { successMessage, errorMessage = 'Action failed.', reload = true } = {}) => {
+      if (actionPending.current) return false;
+      actionPending.current = true;
       try {
         setActionLoading(true);
         const result = await fn();
         if (successMessage) {
           triggerNotification(typeof successMessage === 'function' ? successMessage(result) : successMessage);
         }
-        if (reload) await fetchCoreData();
+        if (reload) void fetchCoreData();
         return true;
       } catch (err) {
         triggerNotification(err.response?.data?.error || errorMessage, 'error');
         return false;
       } finally {
+        actionPending.current = false;
         setActionLoading(false);
       }
     },

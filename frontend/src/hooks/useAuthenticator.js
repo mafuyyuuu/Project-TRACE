@@ -1,3 +1,4 @@
+import { authStorage } from '@/utils/authStorage';
 import { useEffect, useRef, useState } from 'react';
 import { getAuthenticator, beginAuthenticator, updateAuthenticator } from '@/services/authenticatorService';
 import { disconnectRealtime } from '@/services/realtimeService';
@@ -26,16 +27,19 @@ export default function useAuthenticator(userId) {
     if (pending.current) return false;
     pending.current = true; setBusy(true); setError(''); setNotice('');
     const instance = lifetime.current;
+    const token = authStorage.getItem('trace_token');
     try {
       if (action === 'setup') {
         const result = await beginAuthenticator(payload.current_password);
+        if (authStorage.getItem('trace_token') !== token) return false;
         if (lifetime.current === instance) setSetup(result);
       } else {
         const result = await updateAuthenticator(action, payload);
+        if (authStorage.getItem('trace_token') !== token) return false;
         // The committed server mutation revoked the old session. Adopt the new
         // authenticated session even if the settings panel closed while waiting.
-        localStorage.setItem('trace_token', result.token);
-        localStorage.setItem('trace_user', JSON.stringify(result.user));
+        authStorage.setItem('trace_token', result.token);
+        authStorage.setItem('trace_user', JSON.stringify(result.user));
         disconnectRealtime();
         window.dispatchEvent(new CustomEvent('trace-user-updated', { detail: result.user }));
         if (lifetime.current === instance) {

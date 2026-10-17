@@ -1,7 +1,9 @@
+import useDataRefresh from '@/hooks/useDataRefresh';
+import { authStorage } from '@/utils/authStorage';
 import { yearError } from '@/utils/profileYears';
 import { normalizePhoneNumber, phoneNumberError } from '@/utils/phoneNumber';
 import { getMe } from '@/services/authService';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import {
   getFormFields,
   submitApplication,
@@ -45,6 +47,8 @@ export default function useGraduateApplication(user) {
   useEffect(() => {
     if (user) load();
   }, [user, load]);
+
+  useDataRefresh(["graduate", "profile"], load, Boolean(user));
 
   const updateAnswer = useCallback((fieldKey, value) => {
     setAnswers((current) => ({ ...current, [fieldKey]: value }));
@@ -93,19 +97,25 @@ export default function useGraduateApplication(user) {
     [answers, missingRequired, fields]
   );
 
+  const submissionPending = useRef(false);
   const confirmSubmission = useCallback(async () => {
-    if (!answersToConfirm) return;
+    if (!answersToConfirm || submissionPending.current) return;
+    submissionPending.current = true;
+    const token = authStorage.getItem('trace_token');
       setSubmitting(true);
       try {
         const res = await submitApplication(answersToConfirm);
+        if (authStorage.getItem('trace_token') !== token) return;
         setSuccess(res.message || 'Application submitted.');
         setAnswers({});
         setAnswersToConfirm(null);
         const mine = await getMyApplications();
+        if (authStorage.getItem('trace_token') !== token) return;
         setApplications(mine.applications || []);
         try {
           const { user: fresh } = await getMe();
-          localStorage.setItem('trace_user', JSON.stringify(fresh));
+          if (authStorage.getItem('trace_token') !== token) return;
+          authStorage.setItem('trace_user', JSON.stringify(fresh));
           window.dispatchEvent(new CustomEvent('trace-user-updated', { detail: fresh }));
         } catch {
           // The application is already saved; a failed refresh is not a failed submission.
@@ -114,6 +124,7 @@ export default function useGraduateApplication(user) {
       } catch (err) {
         setError(err.response?.data?.error || 'Failed to submit application.');
       } finally {
+        submissionPending.current = false;
         setSubmitting(false);
       }
   }, [answersToConfirm]);

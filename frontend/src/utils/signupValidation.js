@@ -7,6 +7,7 @@ import { studyYearErrors } from '@/utils/profileYears';
 /** Collect all actionable errors so applicants can correct fields together. */
 export function signupFieldErrors(draft, { colleges, programs, file, catalog }) {
   const errors = {};
+  if (draft.userType !== 'alumni' && !['regular', 'irregular'].includes(draft.study_load)) errors.study_load = 'Choose your Type of Student: Regular or Irregular.';
   for (const [field, label] of [['employeeId', 'ID number'], ['first_name', 'First Name'], ['last_name', 'Last Name'], ['email', 'Email Address'], ['phoneNumber', 'Phone Number'], ['password', 'Password'], ['confirmPassword', 'Confirm Password']]) {
     if (!draft[field].trim()) errors[field] = `${label} is required.`;
   }
@@ -35,6 +36,7 @@ export function signupFieldErrors(draft, { colleges, programs, file, catalog }) 
 
 /** Known API errors identify a field; unknown failures remain beside Submit. */
 export function signupServerField(message) {
+  if (/type of student|student status|study load/i.test(message)) return 'study_load';
   if (/\bID (?:is|number is) already registered\b/i.test(message)) return 'employeeId';
   if (/email (?:address )?(?:is |already |must |cannot |invalid)|valid email/i.test(message)) return 'email';
   if (/phone number|Philippine mobile/i.test(message)) return 'phoneNumber';

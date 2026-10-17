@@ -60,7 +60,7 @@ function otpExpired(value) {
 }
 
 function publicUser(user) {
-  const fields = ['id', 'student_id', 'full_name', 'role', 'user_type', 'desk_assignment',
+  const fields = ['id', 'student_id', 'full_name', 'role', 'user_type', 'study_load', 'enrollment_status', 'desk_assignment',
     'first_name', 'middle_name', 'last_name', 'extension_name', 'course', 'program', 'college_id', 'email', 'email_verified_at', 'phone_number', 'profile_picture', 'verification_status', 'year_started', 'graduation_year', 'study_years_confirmed_at', 'year_level', 'section'];
   const result = Object.fromEntries(fields.map(key => [key, user[key] ?? null]));
   for (const key of ['profile_completed', 'must_change_password', 'has_grad_application']) {
@@ -218,6 +218,9 @@ async function register(body, file) {
   const program = readProgram(body.program);
   const registeredEmail = emailVerification.emailAddress(email);
   if (user_type && !['student', 'alumni'].includes(user_type)) throw badRequest('Invalid applicant type.');
+  if (user_type !== 'alumni' && !['regular', 'irregular'].includes(body.study_load)) {
+    throw badRequest('Choose your Type of Student: Regular or Irregular.');
+  }
   const unavailable = body.registration_proof_unavailable === 'true';
   if (unavailable && user_type !== 'alumni') {
     throw forbidden('Only alumni can apply with unavailable proof.');
@@ -264,7 +267,7 @@ async function register(body, file) {
     ? { verification_status: 'pending', verification_reason: 'Proof unavailable. Administrator identity review required.' }
     : registrationVerification(aiResult);
   const data = { student_id: employee_id, full_name, email: registeredEmail, phone_number: normalizedPhone, password_hash,
-    role: 'student', user_type, ...academic, id_proof_path,
+    role: 'student', user_type, study_load: user_type === 'alumni' ? 'regular' : body.study_load, ...academic, id_proof_path,
     verification_status, verification_reason, registration_proof_unavailable: unavailable, registration_proof_reason: proofReason || null };
   const connection = await pool.getConnection();
   let created;
@@ -381,6 +384,7 @@ async function updateProfile(userId, { phone_number, email, course, college_id, 
   const users = await userModel.getProfileById(userId);
   if (!users || users.length === 0) throw notFound('User not found.');
   const currentUser = users[0];
+  if (Object.hasOwn(profileFields, 'study_load')) throw forbidden('Type of Student is a verified account detail. Contact Admin for corrections.');
   if (currentUser.role === 'student' && currentUser.user_type !== 'alumni') {
     delete profileFields.graduation_year; delete profileFields.last_attendance_year;
   }

@@ -1,3 +1,4 @@
+import useDataRefresh from '@/hooks/useDataRefresh';
 import { useEffect, useRef, useState } from 'react';
 import { getPrograms, createProgram, setProgramActive } from '@/services/maintenanceService';
 
@@ -38,6 +39,7 @@ export default function usePrograms() {
       return false;
     } finally { pending.current = false; if (live.current) setSaving(false); }
   };
+  useDataRefresh(['reference'], () => setRevision(value => value + 1));
   return { programs, loading, saving, error, loadError, success, retry: () => { setLoadError(''); setLoading(true); setRevision(value => value + 1); },
     dismiss: () => { setError(''); setSuccess(''); }, create: payload => run(() => createProgram(payload)), toggle: item => run(() => setProgramActive(item.id, !Number(item.is_active))) };
 }

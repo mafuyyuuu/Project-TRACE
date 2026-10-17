@@ -1,3 +1,4 @@
+import { authStorage } from '@/utils/authStorage';
 import { isSecretary } from '@/utils/secretaryPresentation';
 import { formatDateTime, formatEventLabel } from '@/utils/formatters';
 import PaginatedTable from '@/components/PaginatedTable';
@@ -146,14 +147,16 @@ export default function ProfileSettingsModal({
       return;
     }
     if (confirmation === 'profile') {
-      if (await onSave()) setConfirmation(null);
+      if (await onSave()) { setConfirmation(null); onClose(); }
       return;
     }
     setLoggingOut(true);
     try {
+      const token = authStorage.getItem('trace_token');
       const result = await endOtherSessions();
-      localStorage.setItem('trace_token', result.token);
-      localStorage.setItem('trace_user', JSON.stringify(result.user));
+      if (authStorage.getItem('trace_token') !== token) return;
+      authStorage.setItem('trace_token', result.token);
+      authStorage.setItem('trace_user', JSON.stringify(result.user));
       disconnectRealtime();
       window.dispatchEvent(new CustomEvent('trace-user-updated', { detail: result.user }));
       setSessionFeedback({ success: 'Logged out of all other devices.', error: '' });

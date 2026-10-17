@@ -1,3 +1,4 @@
+import { authStorage } from '@/utils/authStorage';
 import { normalizePhoneNumber, phoneNumberError } from '@/utils/phoneNumber';
 import { namePartsError } from '@/utils/receiptStudentName';
 import { profileEditYearErrors } from '@/utils/profileYears';
@@ -51,7 +52,7 @@ function formFromUser(user) {
  *
  * `useAuth` is a plain hook rather than a context, so each caller holds its own
  * copy of `user` and there is no shared store to notify after a save. The
- * uploaded avatar is therefore written back into localStorage — which is what
+ * uploaded avatar is therefore written back into this tab’s cache — which is what
  * `useAuth` seeds from — so the new picture survives a refresh, and the
  * freshly-stored filename is returned to the caller for the current render.
  *
@@ -88,10 +89,10 @@ export default function useProfileSettings(user) {
   /** Keep the cached user in sync so a refresh doesn't revert the avatar. */
   const patchStoredUser = (patch) => {
     try {
-      const stored = localStorage.getItem(STORED_USER_KEY);
-      localStorage.setItem(STORED_USER_KEY, JSON.stringify({ ...(stored ? JSON.parse(stored) : user), ...patch }));
+      const stored = authStorage.getItem(STORED_USER_KEY);
+      authStorage.setItem(STORED_USER_KEY, JSON.stringify({ ...(stored ? JSON.parse(stored) : user), ...patch }));
     } catch {
-      // A corrupt or unavailable localStorage must not break the save.
+      // A corrupt or unavailable tab cache must not break the save.
     }
     window.dispatchEvent(new CustomEvent('trace-user-updated', { detail: patch }));
   };
@@ -109,11 +110,12 @@ export default function useProfileSettings(user) {
   const verifyEmail = async (draft = profileData) => {
     if (savingRef.current) return false;
     savingRef.current = true;
+    const token = authStorage.getItem('trace_token');
     try {
       const email = (draft.email || '').trim().toLowerCase();
       const changed = email !== (user?.email || '').trim().toLowerCase();
       const result = await verification.send(changed ? { email, current_password: draft.current_password } : {});
-      if (!result) return false;
+      if (!result || authStorage.getItem('trace_token') !== token) return false;
       if (changed && result.pending_email) {
         setPendingEmail(result.pending_email);
         patchStoredUser({ pending_email: result.pending_email });
@@ -143,12 +145,17 @@ export default function useProfileSettings(user) {
     setSuccess('');
     setError('');
 
+    let sessionToken = authStorage.getItem('trace_token');
+    const sessionChanged = () => authStorage.getItem('trace_token') !== sessionToken;
+    const abandon = () => { setSaving(false); savingRef.current = false; return false; };
+
     const messages = [];
     const errors = [];
 
     if (avatarFile) {
       try {
         const data = await uploadProfilePicture(avatarFile);
+        if (sessionChanged()) return abandon();
         setAvatarPath(data.profile_picture);
         patchStoredUser({ profile_picture: data.profile_picture });
         URL.revokeObjectURL(avatarPreviewUrl);
@@ -161,6 +168,7 @@ export default function useProfileSettings(user) {
       }
     }
 
+    if (sessionChanged()) return abandon();
     try {
       // An already-pending address was submitted by Verify; don't issue another
       // link (or claim the address changed) when saving unrelated profile fields.
@@ -178,8 +186,10 @@ export default function useProfileSettings(user) {
       }
       if (!academicChanged) { delete request.college_id; delete request.program; }
       const result = await updateProfile(request);
+      if (sessionChanged()) return abandon();
       if (result?.token && result?.user) {
-        localStorage.setItem('trace_token', result.token);
+        authStorage.setItem('trace_token', result.token);
+        sessionToken = result.token;
         disconnectRealtime();
         patchStoredUser(result.user);
       }
@@ -189,6 +199,7 @@ export default function useProfileSettings(user) {
       if (!profileData.password || result?.token) {
         try {
           const { user: fresh } = await getMe();
+          if (sessionChanged()) return abandon();
           if (!fresh) throw new Error('Profile refresh returned no account.');
           setDirty(false);
           setProfileData(formFromUser(fresh));

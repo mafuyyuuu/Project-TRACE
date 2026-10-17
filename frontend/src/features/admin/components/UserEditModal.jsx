@@ -1,3 +1,4 @@
+import { fullNameFromParts, namePartsError } from '@/utils/receiptStudentName';
 import AdminIcon from '@/features/admin/components/AdminIcon';
 import PhoneInput from '@/components/PhoneInput';
 import { normalizePhoneNumber, phoneNumberError } from '@/utils/phoneNumber';
@@ -39,7 +40,11 @@ export default function UserEditModal({ open, onClose, user, onSave, saving, col
   const [activeTab, setActiveTab] = useState('personal');
   const [validationError, setValidationError] = useState('');
   const [editToConfirm, setEditToConfirm] = useState(null);
-  const [fullName, setFullName] = useState(user?.full_name || '');
+  const [nameParts,setNameParts] = useState({first_name:user?.first_name || '',middle_name:user?.middle_name || '',last_name:user?.last_name || ''});
+  const assembledName = fullNameFromParts(nameParts);
+  const fullName = assembledName ? [assembledName,user?.extension_name?.trim()].filter(Boolean).join(' ') : user?.full_name || '';
+  const namesChanged = ['first_name','middle_name','last_name'].some(key => nameParts[key] !== (user?.[key] || ''));
+  const [studyLoad,setStudyLoad] = useState(user?.study_load || '');
   const [phoneNumber, setPhoneNumber] = useState(user?.phone_number || '');
   const [email, setEmail] = useState(user?.email || '');
   const [collegeId, setCollegeId] = useState(user?.college_id || '');
@@ -57,9 +62,12 @@ export default function UserEditModal({ open, onClose, user, onSave, saving, col
     if (newPassword && !validNewPassword(newPassword)) { setValidationError(PASSWORD_REQUIREMENTS); return; }
     const phoneError = phoneNumberError(phoneNumber, { required: false });
     if (phoneNumber !== (user.phone_number || '') && phoneError) { setValidationError(phoneError); return; }
+    if (namesChanged) { const problem = namePartsError(nameParts,{full_name:fullName}); if (problem || !nameParts.first_name.trim() || !nameParts.last_name.trim()) { setValidationError(problem || 'Enter both First Name and Last Name.'); return; } }
     setValidationError('');
 
     const payload = {};
+    if (namesChanged) for(const key of ['first_name','middle_name','last_name']) payload[key] = nameParts[key].trim();
+    if (studyLoad !== (user.study_load || '')) payload.study_load = studyLoad;
     if (fullName !== user.full_name) payload.full_name = fullName;
     if (email !== (user.email || '')) payload.email = email;
     if (phoneNumber !== (user.phone_number || '')) payload.phone_number = normalizePhoneNumber(phoneNumber) || '';
@@ -128,10 +136,9 @@ export default function UserEditModal({ open, onClose, user, onSave, saving, col
       <form id="edit-user-form" onSubmit={handleSubmit} className="space-y-4">
         {activeTab === 'personal' && (
           <>
-            <div>
-              <Label>Full Name</Label>
-              <input maxLength={INPUT_LIMITS.name} className={inputClass} value={fullName} onChange={(e) => setFullName(e.target.value)} required />
-            </div>
+            <div className="trace-form-grid">{[['first_name','First Name'],['middle_name','Middle Name (optional)'],['last_name','Last Name']].map(([key,label]) => <div key={key}><label htmlFor={'admin-edit-'+key} className="trace-label block mb-1.5">{label}</label><input id={'admin-edit-'+key} maxLength={INPUT_LIMITS.name} className={inputClass} disabled={saving} value={nameParts[key]} onChange={event => setNameParts(current => ({...current,[key]:event.target.value}))} /></div>)}</div>
+            <div><label htmlFor="admin-edit-full-name" className="trace-label block mb-1.5">Full Name</label><input id="admin-edit-full-name" className={inputClass} value={fullName} readOnly /><Note>Assembled from the saved name parts. Enter compound given names and surnames together.</Note></div>
+            {user.role === 'student' && user.user_type !== 'alumni' && <div><label htmlFor="admin-edit-study-load" className="trace-label block mb-1.5">Type of Student</label><select id="admin-edit-study-load" className={inputClass} value={studyLoad} disabled={saving} onChange={event => setStudyLoad(event.target.value)}><option value="" disabled>Not recorded</option><option value="regular">Regular</option><option value="irregular">Irregular</option></select></div>}
             <div>
               <label className="trace-label block mb-2" htmlFor="edit-college">College / Department</label>
               <select id="edit-college" className={inputClass} value={collegeId} onChange={e => setCollegeId(e.target.value)}>

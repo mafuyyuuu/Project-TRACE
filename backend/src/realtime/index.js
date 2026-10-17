@@ -135,4 +135,19 @@ function connectionCount() {
   return io ? io.engine.clientsCount : 0;
 }
 
-module.exports = { authenticateToken, disconnectUser, disconnectSession, init, emitToUser, emitToDesk, connectionCount, get io() { return io; } };
+/** Generic invalidation contains no account IDs, records or private messages. */
+function invalidateData(resources, { actorId, targetUserId } = {}) {
+  const allowed = new Set(['documents','accounts','profile','reference','support','graduate','receipts','templates']);
+  const safe = Array.isArray(resources) ? [...new Set(resources)].filter(value=>allowed.has(value)) : [];
+  if (!io || !safe.length) return;
+  const payload = { resources: safe };
+  if (safe.includes('reference') || safe.includes('templates')) { io.emit('data:changed', payload); return; }
+  const rooms = new Set(['desk:Admin Office']);
+  if (safe.some(value => ['documents','receipts','support','graduate'].includes(value))) {
+    for (const desk of ['Window 1','Receiving Desk','Secretary','Finance']) rooms.add(`desk:${desk}`);
+  }
+  for (const id of [actorId,targetUserId]) if (Number.isSafeInteger(Number(id)) && Number(id)>0) rooms.add(`user:${Number(id)}`);
+  io.to([...rooms]).emit('data:changed', payload);
+}
+
+module.exports = { invalidateData, authenticateToken, disconnectUser, disconnectSession, init, emitToUser, emitToDesk, connectionCount, get io() { return io; } };

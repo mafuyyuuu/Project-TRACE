@@ -23,7 +23,7 @@ vi.mock('@/services/documentsService', () => ({
 }));
 
 vi.mock('@/services/maintenanceService', () => ({
-  getStaff: vi.fn(), createStaff: vi.fn(), updateStaff: vi.fn(), setStaffActive: vi.fn(), setAccountActive:vi.fn(),
+  getPrograms: vi.fn().mockResolvedValue({programs:[]}), getStaff: vi.fn(), createStaff: vi.fn(), updateStaff: vi.fn(), setStaffActive: vi.fn(), setAccountActive:vi.fn(),
   getDocumentTypes: vi.fn(), createDocumentType: vi.fn(), updateDocumentType: vi.fn(), setDocumentTypeActive: vi.fn(),
   getColleges: vi.fn(), createCollege: vi.fn(), updateCollege: vi.fn(), setCollegeActive: vi.fn(),
   getPaymentMethods: vi.fn(), createPaymentMethod: vi.fn(), updatePaymentMethod: vi.fn(), setPaymentMethodActive: vi.fn(),

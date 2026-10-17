@@ -4,6 +4,7 @@ const referenceModel = require('../models/referenceData.model');
 const pricingModel = require('../models/pricing.model');
 const { normalizedSchedule, moneyCents } = require('../utils/pricing');
 const userModel = require('../models/user.model');
+const { fullNameFromParts, namePartsError } = require('../utils/receiptStudentName');
 const notifications = require('./notification.service');
 const accountLock = require('../models/trustedBrowser.model');
 const documentPolicy = require('./documentPolicy.service');
@@ -303,6 +304,18 @@ async function updateAccount(user, id, data) {
     fields[key] = data[key].trim();
   }
   if (fields.full_name === '') throw badRequest('Full name cannot be empty.');
+  const hasNameParts = ['first_name','middle_name','last_name'].some(key => Object.hasOwn(data,key));
+  const nameParts = Object.fromEntries(['first_name','middle_name','last_name'].map(key => [key,data[key] ?? '']));
+  if (hasNameParts) {
+    const fullName = fullNameFromParts(nameParts);
+    const problem = namePartsError(nameParts,{full_name:fullName});
+    if (problem || !nameParts.first_name.trim() || !nameParts.last_name.trim()) throw badRequest(problem || 'Enter both First Name and Last Name.');
+    fields.full_name = fullName;
+  }
+  if (data.study_load !== undefined) {
+    if (account.role !== 'student' || account.user_type === 'alumni' || !['regular','irregular'].includes(data.study_load)) throw badRequest('Choose a valid current-student Type of Student.');
+    fields.study_load = data.study_load;
+  }
   if (fields.phone_number !== undefined) fields.phone_number = validatePhoneNumber(data.phone_number, { required: false });
   if (fields.email) fields.email = emailAddress(fields.email);
   if (data.college_id !== undefined) {
@@ -313,7 +326,24 @@ async function updateAccount(user, id, data) {
     } else fields.college_id = null;
   }
   if (!Object.keys(fields).length) throw badRequest('No fields to update.');
-  await userModel.updateProfile(id, fields);
+  const connection = await pool.getConnection();
+  try {
+    await connection.beginTransaction();
+    const [fresh] = await userModel.getProfileById(id,connection,true);
+    if (!fresh) throw notFound('Account not found.');
+    if (hasNameParts) {
+      const base = fullNameFromParts(nameParts);
+      fields.full_name = [base,fresh.extension_name?.trim()].filter(Boolean).join(' ');
+      if (fields.full_name.length > 255) throw badRequest('Full Name must be at most 255 characters.');
+      if (data.full_name !== undefined && ![base,fields.full_name].includes(data.full_name.trim())) throw badRequest('Full Name must match the supplied name parts.');
+    }
+    if (fields.study_load && (fresh.role !== 'student' || fresh.user_type === 'alumni')) throw badRequest('Type of Student belongs to current-student accounts.');
+    await userModel.updateProfile(id, fields,connection);
+    if (hasNameParts) await userModel.saveNameParts(id,Object.fromEntries(Object.entries(nameParts).map(([key,value])=>[key,value.trim()])),connection);
+    await userModel.logSecurityEvent(user.id,`ACCOUNT_PROFILE_UPDATED:${id}`,null,null,connection);
+    await connection.commit();
+  } catch(error) { await connection.rollback();throw error; }
+  finally {connection.release();}
   return { message: 'Account updated.' };
 }
 

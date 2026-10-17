@@ -4,6 +4,7 @@ import { INPUT_LIMITS } from '@/utils/inputLimits';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import { useState, useEffect, useRef } from 'react';
 import { getTemplates, getTemplate, saveTemplate } from '@/services/templateService';
+import useDataRefresh from '@/hooks/useDataRefresh';
 
 export default function AdminTemplatesPanel() {
   const [templates, setTemplates] = useState([]);
@@ -21,6 +22,11 @@ export default function AdminTemplatesPanel() {
   const [listRetry, setListRetry] = useState(0);
   const [detailRetry, setDetailRetry] = useState(0);
   const [templateDetails, setTemplateDetails] = useState(null);
+  const savedDraft = useRef(null);
+  useDataRefresh(['templates'],()=>{
+    setListRetry(value=>value+1);
+    if (JSON.stringify(formData) === savedDraft.current) setDetailRetry(value=>value+1);
+  });
   const detailsLoading = selectedKey && templateDetails?.key !== selectedKey;
   const detailError = templateDetails?.key === selectedKey ? templateDetails.error : '';
 
@@ -67,6 +73,7 @@ export default function AdminTemplatesPanel() {
         const res = await getTemplate(selectedKey, { signal: controller.signal, timeout: 15000 });
         if (typeof res.data?.content !== 'string') throw new Error('Invalid template content');
         if (!active) return;
+        savedDraft.current = JSON.stringify({content:res.data.content || '',font_family:res.data.font_family || 'sans-serif',font_size:res.data.font_size || '12px'});
         setFormData({
           content: res.data.content || '',
           font_family: res.data.font_family || 'sans-serif',
@@ -116,6 +123,7 @@ export default function AdminTemplatesPanel() {
     setSuccess('');
     try {
       await saveTemplate(templateToConfirm.key, templateToConfirm.payload);
+      savedDraft.current = JSON.stringify(templateToConfirm.payload);
       setSuccess('Template saved successfully!');
       setTemplateToConfirm(null);
     } catch (err) {
