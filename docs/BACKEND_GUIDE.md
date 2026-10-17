@@ -298,8 +298,8 @@ caller never had to prove they control.
 
 ### Dashboard & Analytics Endpoints (New)
 - `GET /api/documents/stats`: Returns KPI metrics (backlogs, processed today, avg time).
-- `GET /api/documents/stats/forecast`: Proxies to Flask AI engine to retrieve the 7-day volume forecast using Prophet.
-- `GET /api/documents/stats/insights`: Builds an authoritative all-stage queue snapshot in Node, optionally posts counts to Flask for prototype classification, and combines locally controlled document advice with authorized support aggregates.
+- `GET /api/documents/stats/forecast`: Admin-only request forecast from saved document creation dates; posts daily aggregates to Flask Prophet and uses an explicitly labelled historical weekday mean when unavailable.
+- `GET /api/documents/stats/insights`: Builds an authoritative all-stage queue snapshot in Node, posts counts to Flask for descriptive aggregate advice, and combines locally controlled document advice with authorized support aggregates.
 
 
 ## Batch 8 Backend/API Repairs
@@ -535,3 +535,17 @@ After successful API mutations, `dataChanges.middleware.js` emits allowlisted re
 Registration requires current-student `study_load` (regular/irregular) and returns it in public user DTOs. Admin may correct it without changing role; self-profile writes cannot. Admin name edits lock the current profile, compose first/middle/last plus saved extension, update both stores and audit in one transaction. SQL list output includes the name parts without adding credential fields.
 
 Secretary backup intake reuses `assigned_clerk_id` and request routing-college scope. Admin assignment accepts a Secretary only for pending intake in the verified matching college. Intake rechecks assignment, active college and scope under the existing request lock. Secretary queue SQL excludes pending intake assigned to others. No new permission flag or migration is introduced.
+
+## Registration-ID preflight — October 17 follow-up
+
+POST /api/auth/registration-id-check is public and accepts employee_id. It returns only {available:boolean}, never account status, ID, profile or contact information. A dedicated IP limiter allows 30 checks per 15 minutes, independently of registration/OCR attempts. IDs must be trimmed non-empty strings of at most 50 characters without control characters. Verified/pending/staff IDs are reserved; a rejected student may continue the existing-account resubmission workflow. No new account or authentication token is created by this check.
+
+The frontend requires a valid available response to leave step one and ignores obsolete results after draft edits. Final registration independently checks the ID and the unique index handles concurrent submissions. A duplicate-entry error naming student_id rolls back and returns the ordinary duplicate-ID validation message; other database failures retain their original handling. New registration uses the same trimmed ID for lookup, OCR and persistence. Existing IDs are not bulk rewritten.
+
+## October 17 analytics correction
+
+Forecasts now read one count per document request from documents.created_at, grouped into complete Manila days, with an exact parameterized documentType filter. The historical window begins at its earliest recorded request within 90 days and fills subsequent idle days with zero. At least 14 complete days are required. Node posts only {history:[{date,volume}],today,timezone} to Flask POST /forecast; Prophet fits that same series and predicts tomorrow through day seven. Validate seven dates, weekday labels and nonnegative integer estimates before use. An unavailable/old/malformed engine falls back to deterministic observed weekday averages, never random jitter, invented baseline volume or fixed type fractions. Responses include method, history days, request sample, time zone, snapshot and actual saved type choices. Global forecast access is Admin-only.
+
+Admin report analytics additionally posts completion durations, stage transition aggregates, release count and reporting range to POST /ai/document-analytics. No staff names/IDs or student records are included. Flask applies descriptive rules to measured samples; the UI shows its advice separately from authoritative charts, preserving measured data on AI failure. Support analytics sends its exact loaded period and approved aggregate fields plus the preceding comparison period to the existing /ai/support-insights route. The already-loaded current dataset is reused for the advice. All advice is bounded and validated; unavailable analysis is not a zero.
+
+The four-coded-example Random Forest classifier is removed from production /ai/recommend. This supersedes the earlier prototype notes above. Queue advice uses actual stage counts and explicit advisory thresholds; it does not claim trained staffing, causal bottleneck detection or validated performance prediction. Pure compatibility helper tests retain historical prototype formatting, but production never supplies such a prediction.

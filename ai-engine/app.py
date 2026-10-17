@@ -23,8 +23,6 @@ from ocr_engine import process_document, verify_id_document, process_receipt
 import pandas as pd
 from prophet import Prophet
 import mysql.connector
-from sklearn.ensemble import RandomForestClassifier
-import numpy as np
 from datetime import datetime, timedelta, timezone
 from zoneinfo import ZoneInfo
 from document_insights import validate_snapshot, snapshot_from_rows, build_document_insights
@@ -87,7 +85,7 @@ def health_check():
     """
     return jsonify({
         'status': 'TRACE AI Engine is running',
-        'engine': 'EasyOCR (PyTorch), Prophet, Random Forest',
+        'engine': 'EasyOCR (PyTorch), Prophet, aggregate analysis',
     })
 
 def get_db_connection():
@@ -128,44 +126,38 @@ def db_connection():
     finally:
         conn.close()
 
-@app.route('/forecast', methods=['GET'])
+@app.route('/forecast', methods=['POST'])
 def forecast():
+    from analytics import forecast_history
     try:
-        query = "SELECT DATE(timestamp_started) as ds, COUNT(*) as y FROM step_logs GROUP BY DATE(timestamp_started)"
-        with db_connection() as conn:
-            df = pd.read_sql(query, conn)
-
-        if len(df) < 2:
-            return jsonify({'error': 'Not enough data for forecasting'}), 400
-
+        if request.content_length and request.content_length > 16384:
+            return jsonify({'error': 'Aggregate payload too large.'}), 413
+        history, today = forecast_history(request.get_json(silent=True))
+        df = pd.DataFrame([{'ds': row['date'], 'y': row['volume']} for row in history])
         df['ds'] = pd.to_datetime(df['ds'])
-        
-        # Suppress prophet logs for cleaner console
-        import logging as local_logging
-        local_logging.getLogger('cmdstanpy').setLevel(local_logging.ERROR)
-        
-        m = Prophet(daily_seasonality=True, yearly_seasonality=False)
-        m.fit(df)
-        
-        future = m.make_future_dataframe(periods=7)
-        forecast_df = m.predict(future)
-        
-        next_7_days = forecast_df.tail(7)
-        
-        forecast_result = []
-        day_names = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
-        for _, row in next_7_days.iterrows():
-            d = row['ds'].to_pydatetime()
-            forecast_result.append({
-                'date': d.strftime('%Y-%m-%d'),
-                'day': day_names[d.weekday()],
-                'predicted_volume': max(0, int(row['yhat']))
-            })
-            
-        return jsonify({'forecast': forecast_result, 'source': 'prophet'})
-    except Exception as e:
-        logger.error(f"Forecast error: {str(e)}")
-        return jsonify({'error': str(e)}), 500
+        model = Prophet(daily_seasonality=False, weekly_seasonality=True, yearly_seasonality=False)
+        model.fit(df)
+        # Explicitly predict tomorrow through day seven, even after an idle day.
+        dates = [today + timedelta(days=offset) for offset in range(1, 8)]
+        result = model.predict(pd.DataFrame({'ds': pd.to_datetime(dates)}))
+        return jsonify({'forecast': [dict(date=day.isoformat(), day=day.strftime('%a'), predicted_volume=max(0, round(float(value))))
+                                     for day, value in zip(dates, result['yhat'])], 'source': 'prophet'})
+    except (ValueError, TypeError, KeyError, AttributeError):
+        return jsonify({'error': 'Invalid or insufficient calendar aggregates.'}), 400
+    except Exception as error:
+        logger.error('Forecast unavailable: %s', type(error).__name__)
+        return jsonify({'error': 'Forecast unavailable.'}), 503
+
+
+@app.route('/ai/document-analytics', methods=['POST'])
+def document_analytics():
+    from analytics import document_advice
+    if request.content_length and request.content_length > 16384:
+        return jsonify({'error': 'Aggregate payload too large.'}), 413
+    try:
+        return jsonify({'insights': document_advice(request.get_json(silent=True)), 'source': 'aggregate_rules'})
+    except (ValueError, TypeError, KeyError, AttributeError):
+        return jsonify({'error': 'Invalid document measurements.'}), 400
 
 
 @app.route('/ai/recommend', methods=['GET', 'POST'])
@@ -191,15 +183,7 @@ def ai_recommend():
                 finally:
                     cursor.close()
 
-        # Existing demonstration classifier, explicitly unvalidated. The full
-        # workload summary is derived from observed counts, not this prediction.
-        X_train = np.array([[1, 0, 5], [10, 2, 25], [2, 10, 15], [15, 10, 50]])
-        y_train = np.array([0, 1, 2, 3])
-        clf = RandomForestClassifier(n_estimators=10, random_state=42)
-        clf.fit(X_train, y_train)
-        prediction = int(clf.predict([[data['counts']['PENDING_SEC_EVALUATION'], data['counts']['READY_FOR_RELEASE'], data['today_actions']]])[0])
-        return jsonify({'insights': build_document_insights(data, prediction), 'prediction': prediction,
-                        'source': 'random_forest_prototype', 'training_samples': 4, 'validated': False})
+        return jsonify({'insights': build_document_insights(data), 'source': 'aggregate_rules'})
     except (ValueError, TypeError, KeyError, AttributeError):
         return jsonify({'error': 'Invalid document aggregates.'}), 400
     except Exception as e:

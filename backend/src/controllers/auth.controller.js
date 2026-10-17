@@ -45,6 +45,11 @@ async function register(req, res) {
   }
 }
 
+async function checkRegistrationId(req, res) {
+  try { res.json(await authService.checkRegistrationId(req.body)); }
+  catch (error) { fail(res,error,'Registration ID check error','Could not check this ID. Please try again.'); }
+}
+
 async function getPendingStudents(req, res) {
   try {
     res.json(await authService.listPendingStudents(req.user));
@@ -187,7 +192,7 @@ async function correctStudyYears(req, res) {
 function registrationOptions(req, res) { res.json(authService.registrationOptions()); }
 
 module.exports = {
-  registrationOptions, correctStudyYears,
+  registrationOptions, correctStudyYears, checkRegistrationId,
   logout, verify2FA, verifyEmailChange, getSecurityLogs, getGlobalSecurityLogs, logoutAll,
   login,
   getMe,

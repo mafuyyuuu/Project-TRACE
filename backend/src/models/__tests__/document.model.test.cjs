@@ -69,3 +69,16 @@ it('invalidates obsolete snapshots when evaluation corrects identity or type', a
   expect(values.slice(0, 4)).toEqual(['STU-NEW', 'New Type', 'STU-NEW', 'New Type']);
   expect((sql.match(/\?/g) || []).length).toBe(values.length);
 });
+
+it('counts requested documents by Manila date and binds exact type filters',async()=>{
+  const executor={query:vi.fn().mockResolvedValue([[{date:'2026-10-01',volume:2}]])};
+  await model.forecastFallbackRows("Diploma' OR 1=1",executor);
+  const [sql,params]=executor.query.mock.calls[0];
+  expect(sql).toContain('COUNT(*) AS volume FROM documents');
+  expect(sql).not.toContain('step_logs');
+  expect(sql).toContain('UNIX_TIMESTAMP(created_at) + 28800');
+  expect(sql).toContain('AND document_type = ?');
+  expect(sql).not.toContain("Diploma'");
+  expect(params[1]).toBe("Diploma' OR 1=1");
+  expect(params[0]).toBeGreaterThan(0);
+});

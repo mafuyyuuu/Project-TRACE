@@ -59,3 +59,14 @@ it.each(['connection', 'body'])('keeps proof verification active and bounds a st
   expect(await pending).toEqual({ verified: false, reason: 'Automatic verification timed out.' });
   expect(vi.getTimerCount()).toBe(0);
 });
+it('posts only daily aggregate history to Prophet and report aggregates to analysis',async()=>{
+ const mock=vi.fn().mockResolvedValue({ok:true,json:async()=>({})});vi.stubGlobal('fetch',mock);
+ const history={history:[{date:'2026-10-01',volume:0}],today:'2026-10-18',timezone:'Asia/Manila'};
+ await service.getForecast(history);
+ expect(mock.mock.calls[0][0]).toMatch(/\/forecast$/);
+ expect(mock.mock.calls[0][1].method).toBe('POST');
+ expect(JSON.parse(mock.mock.calls[0][1].body)).toEqual(history);
+ await service.getDocumentAnalytics({stages:[]});
+ expect(mock.mock.calls[1][0]).toMatch(/\/ai\/document-analytics$/);
+ expect(JSON.parse(mock.mock.calls[1][1].body)).toEqual({stages:[]});
+});

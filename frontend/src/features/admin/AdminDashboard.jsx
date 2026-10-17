@@ -47,8 +47,8 @@ export default function AdminDashboard({ user, currentTab, setViewImageUrl, revi
     error,
     documents,
     loadDashboardData,
-    dashStats,
-    forecastData,
+    dashStats, statsAvailable,
+    forecastData, forecast,
     aiInsights, insightsLoading, refreshInsights,
     pendingStudents,
     analyticsSummary,
@@ -109,15 +109,15 @@ export default function AdminDashboard({ user, currentTab, setViewImageUrl, revi
                 </div>
 
                 <div className="trace-admin-kpis">
-                  <AdminMetricCard label="System Throughput" value={analyticsSummary?.end_to_end?.completed_count > 0 ? formatDuration(analyticsSummary.end_to_end.avg_minutes) : 'No completed requests yet'} icon="throughput" helper="Average document processing time across all completed requests">
+                  <AdminMetricCard label="System Throughput" value={!analyticsSummary ? 'Throughput unavailable' : analyticsSummary.end_to_end?.completed_count > 0 ? formatDuration(analyticsSummary.end_to_end.avg_minutes) : 'No completed requests yet'} icon="throughput" helper="Average document processing time across all completed requests">
                     {analyticsSummary?.end_to_end?.completed_count > 0 && analyticsSummary?.throughput?.length > 0 && <MiniSparkline data={analyticsSummary.throughput.map(t => ({ v: t.completed, label: t.date }))} unit="docs" className="w-full h-12" />}
                     {analyticsSummary?.end_to_end?.completed_count > 0 && <p className="mt-1 text-[0.625rem] text-trace-ink dark:text-gray-300">Daily completed documents</p>}
                   </AdminMetricCard>
-                  <AdminMetricCard label="Scan Field Detection" value={dashStats.avg_ocr_confidence > 0 ? dashStats.avg_ocr_confidence.toFixed(1) + '%' : '—'} icon="field-detection" solidHelper helper="Average share of expected fields detected. This does not measure AI accuracy or correctness.">
+                  <AdminMetricCard label="Scan Field Detection" value={!statsAvailable ? 'Unavailable' : dashStats.avg_ocr_confidence > 0 ? dashStats.avg_ocr_confidence.toFixed(1) + '%' : '—'} icon="field-detection" solidHelper helper="Average share of expected fields detected. This does not measure AI accuracy or correctness.">
                     <p className="mt-1 text-[0.625rem] text-trace-ink dark:text-gray-300">Expected fields: Student ID, name and document type.</p>
                   </AdminMetricCard>
-                  <AdminMetricCard label="Real-time Backlog" value={dashStats.backlog_count} icon="backlog" helper="Documents currently pending across all desks">
-                    <p className="mt-1 text-[0.625rem] text-trace-ink dark:text-gray-300">Illustrative trend</p>
+                  <AdminMetricCard label="Real-time Backlog" value={statsAvailable ? dashStats.backlog_count : 'Unavailable'} icon="backlog" helper="Documents currently pending across all desks">
+                    <p className="mt-1 text-[0.625rem] text-trace-ink dark:text-gray-300">Current saved pipeline counts</p>
                   </AdminMetricCard>
                 </div>
 
@@ -127,7 +127,7 @@ export default function AdminDashboard({ user, currentTab, setViewImageUrl, revi
                     <div className="flex flex-col sm:flex-row justify-between sm:items-start gap-3 mb-6">
                       <div>
                         <h3 className="trace-section-title">7-Day Volume Forecast</h3>
-                        <p className="text-xs text-gray-400 dark:text-gray-400 font-medium">Predicted incoming document volume via Prophet ML.</p>
+                        <p className="text-xs text-gray-400 dark:text-gray-400 font-medium">Recorded request history · {forecast.source === 'prophet' ? 'Prophet estimate' : forecast.source === 'historical_weekday_average' ? 'Historical weekday average' : 'Estimate availability'}</p>
                       </div>
                       <div className="flex min-w-0 max-w-full items-center gap-2">
                         <FilterSelect aria-label="Forecast document type"
@@ -136,10 +136,9 @@ export default function AdminDashboard({ user, currentTab, setViewImageUrl, revi
                           className="trace-control cursor-pointer"
                         >
                           <option value="All">All Documents</option>
-                          <option value="Transcript of Records">Transcript of Records</option>
-                          <option value="Clearance">Clearance</option>
-                          <option value="Diploma">Diploma</option>
+                          {(forecast.document_types || []).map(type=><option key={type} value={type}>{type}</option>)}
                         </FilterSelect>
+                        <Button type="button" onClick={forecast.refresh} disabled={forecast.loading} aria-label="Refresh forecast" className="trace-icon-button"><AdminIcon name="refresh" /></Button>
                         <Button
                           onClick={() => setActiveModal('forecast-detail')}
                           aria-label="Expand 7-day volume forecast"
@@ -155,16 +154,7 @@ export default function AdminDashboard({ user, currentTab, setViewImageUrl, revi
                       {forecastData && forecastData.length > 0 ? (
                         <div className="h-52 min-w-[20rem]"><ResponsiveContainer width="100%" height="100%">
                           <AreaChart
-                            data={forecastData.slice(-5).map(f => {
-                              let multiplier = 1;
-                              if (forecastFilter === 'Transcript of Records') multiplier = 0.4;
-                              if (forecastFilter === 'Clearance') multiplier = 0.3;
-                              if (forecastFilter === 'Diploma') multiplier = 0.2;
-                              return {
-                                day: f.day,
-                                volume: Math.max(1, Math.floor(f.predicted_volume * multiplier))
-                              };
-                            })}
+                            data={forecastData.slice(-5).map(f => ({day:f.day,volume:f.predicted_volume}))}
                             margin={{ top: 20, right: 15, left: 15, bottom: 0 }}
                           >
                             <defs>
@@ -206,7 +196,7 @@ export default function AdminDashboard({ user, currentTab, setViewImageUrl, revi
                           </AreaChart>
                         </ResponsiveContainer></div>
                       ) : (
-                        <div className="flex-1 flex items-center justify-center text-gray-400 dark:text-gray-400 font-medium text-xs">Loading forecast data...</div>
+                        <div className="flex-1 flex items-center justify-center text-gray-400 dark:text-gray-400 font-medium text-xs">{forecast.loading ? 'Loading forecast data…' : forecast.error || forecast.message || 'Not enough recorded request history for an estimate.'}</div>
                       )}
                     </div>
                   </div>
@@ -471,6 +461,7 @@ export default function AdminDashboard({ user, currentTab, setViewImageUrl, revi
         open={activeModal === 'forecast-detail'}
         onClose={() => setActiveModal(null)}
         forecastData={forecastData}
+        forecast={forecast}
         forecastFilter={forecastFilter}
         setForecastFilter={setForecastFilter}
       />

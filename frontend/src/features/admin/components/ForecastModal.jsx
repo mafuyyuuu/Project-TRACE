@@ -3,33 +3,18 @@ import { forecastCeiling } from '@/utils/forecastScale';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import ModalShell from '@/components/ModalShell';
 
-/**
- * The full 7-day forecast, rather than the compact card's last-5-day slice.
- * Same per-type multiplier as the card — this is a display-only approximation
- * of the AI engine's total prediction, not a second forecast.
- */
-export default function ForecastModal({ open, onClose, forecastData, forecastFilter, setForecastFilter }) {
-  const chartData = (forecastData || []).map((f) => {
-    let multiplier = 1;
-    if (forecastFilter === 'Transcript of Records') multiplier = 0.4;
-    if (forecastFilter === 'Clearance') multiplier = 0.3;
-    if (forecastFilter === 'Diploma') multiplier = 0.2;
-    return {
-      day: f.day,
-      volume: Math.max(1, Math.floor(f.predicted_volume * multiplier)),
-    };
-  });
+/** Full seven-day estimate uses the same server series as the compact card. */
+export default function ForecastModal({ open, onClose, forecastData, forecast = {}, forecastFilter, setForecastFilter }) {
+  const chartData = (forecastData || []).map(f => ({day:f.day,volume:f.predicted_volume}));
 
   return (
-    <ModalShell open={open} onClose={onClose} title="7-Day Volume Forecast" showCloseButton={false} subtitle="Predicted incoming document volume via Prophet ML – full week." headerActions={<FilterSelect aria-label="Forecast document type"
+    <ModalShell open={open} onClose={onClose} title="7-Day Volume Forecast" showCloseButton={false} subtitle={forecast.source === 'prophet' ? 'Prophet estimate fitted to recorded incoming requests.' : forecast.source === 'historical_weekday_average' ? 'Historical weekday average from recorded incoming requests.' : 'Recorded request history is required for an estimate.'} headerActions={<FilterSelect aria-label="Forecast document type"
           value={forecastFilter}
           onChange={(e) => setForecastFilter(e.target.value)}
           className="trace-control cursor-pointer"
         >
           <option value="All">All Documents</option>
-          <option value="Transcript of Records">Transcript of Records</option>
-          <option value="Clearance">Clearance</option>
-          <option value="Diploma">Diploma</option>
+          {(forecast.document_types || []).map(type=><option key={type} value={type}>{type}</option>)}
         </FilterSelect>} maxWidth="max-w-[800px]" panelClassName="trace-modal-panel trace-admin-main-dialog trace-admin-forecast max-w-[800px]">
       {chartData.length > 0 ? (
         <div className="overflow-x-auto"><div className="h-80 min-w-[20rem]">
@@ -62,7 +47,7 @@ export default function ForecastModal({ open, onClose, forecastData, forecastFil
           </ResponsiveContainer>
         </div></div>
       ) : (
-        <div className="h-80 flex items-center justify-center text-gray-400 dark:text-gray-400 font-medium text-xs">Loading forecast data...</div>
+        <div className="h-80 flex items-center justify-center text-gray-400 dark:text-gray-400 font-medium text-xs">{forecast.loading ? 'Loading forecast data…' : forecast.error || forecast.message || 'Not enough recorded request history for an estimate.'}</div>
       )}
 
       <div className="trace-admin-forecast-days mt-6 grid gap-2">

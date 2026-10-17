@@ -1757,7 +1757,6 @@ body:has(.trace-window-shell) .trace-window-intake .trace-modal-body { @apply pt
 @layer base {
   :where(button, a[href], summary, select, input[type='file'], input[type='checkbox'], input[type='radio'], input[type='range'], [role='button'], [role='tab'], [role='switch'], label[for]):not(:disabled):not([aria-disabled='true']) { cursor: pointer; }
   :where(button, input, select, textarea):disabled, [aria-disabled='true'] { cursor: not-allowed; }
-  .trace-control-inverse:-webkit-autofill { -webkit-text-fill-color: white; box-shadow: 0 0 0 1000px #166534 inset; caret-color: white; }
 }
 .trace-file-picker { @apply flex min-w-0 flex-wrap items-center gap-3; }
 .trace-file-trigger { @apply inline-flex min-h-11 shrink-0 items-center rounded-lg bg-green-50 px-4 py-3 text-sm font-semibold text-green-800 hover:bg-green-100 dark:bg-green-950 dark:text-green-200 dark:hover:bg-green-900; }
@@ -2320,7 +2319,7 @@ button.trace-password-visibility[data-inverse]:enabled:hover::before { backgroun
 .trace-login-label { @apply text-[1rem] font-bold leading-normal; }
 .trace-login-form .trace-control { @apply min-h-[73px] rounded-[12px] border-white/25 bg-white/[.12] px-[32px] text-[.9375rem] text-white placeholder:text-white/90 dark:border-white/25 dark:bg-white/[.12] dark:text-white; }
 .trace-login-form .trace-control:enabled:hover { @apply border-white/70; }
-.trace-login-form .trace-control:focus { @apply border-white bg-white/20 ring-2 ring-white/30; }
+.trace-login-form .trace-control:focus { @apply border-white bg-white/20 outline-none ring-2 ring-white/30 ring-offset-0; }
 .trace-login-form .trace-control[type='password'],.trace-login-form #login-password { padding-right:52px; }
 .trace-login-forgot { @apply text-[1rem] font-black text-white underline; }
 .trace-login-submit { @apply mt-[10px] min-h-[77px] w-full rounded-[12px] bg-[#f4f6f8] text-[2rem] font-black text-[#323232] dark:bg-[#f4f6f8] dark:text-[#323232]; }
@@ -2349,7 +2348,6 @@ body :is(.trace-admin-shell,.trace-student-shell,.trace-window-shell,.trace-secr
 /* Registration frames 2705:2667 through 2771:2791. */
 .trace-signup-shell { @apply grid min-h-dvh min-w-0 bg-[#f4f6f8] text-[#1b1f24] dark:bg-gray-950 dark:text-gray-100; font-family:'TRACE Admin Inter',Inter,sans-serif; }
 .trace-signup-brand { @apply relative flex min-w-0 flex-col justify-between gap-[32px] bg-[#168f55] px-[24px] pb-[32px] pt-[16px] text-white; }
-.trace-signup-login { @apply inline-flex min-h-[44px] items-center self-start bg-transparent text-[.875rem] font-semibold text-white; }
 .trace-signup-brand-logo > div { @apply relative h-[82px] w-[89px] overflow-hidden; }
 .trace-signup-brand-logo img { position:absolute; height:179.31%; width:165.08%; max-width:none; left:-31.75%; top:-39.66%; }
 .trace-signup-brand-logo > p { @apply mt-[16px] text-[.75rem] font-bold tracking-[1.44px] text-white/80; }
@@ -2393,7 +2391,6 @@ body :is(.trace-admin-shell,.trace-student-shell,.trace-window-shell,.trace-secr
  .trace-signup-intro h2 { @apply text-[3rem]; }
  .trace-signup-main { @apply px-[40px] py-[48px]; }
  .trace-signup-card { @apply p-[40px]; }
- .trace-signup-login { @apply sticky top-[12px] z-10; margin-top:-52px; margin-bottom:-24px; }
 }
 @media (max-width:899px) {
  .trace-signup-brand { gap:20px; }
@@ -2487,8 +2484,7 @@ body .trace-tab:is([aria-selected='true'],[aria-pressed='true']):hover::after { 
 .trace-signup-help { @apply flex items-start gap-[10px] rounded-[10px] border border-amber-200 bg-amber-50 p-[12px] text-left text-[.75rem] dark:border-amber-800 dark:bg-amber-950; }
 body :is(.trace-standard-heading,.trace-admin-more-page > header,.trace-admin-maintenance > header) .trace-page-title { @apply text-[1.875rem] font-semibold leading-normal tracking-normal; }
 body :is(.trace-standard-heading,.trace-admin-more-page > header,.trace-admin-maintenance > header) .trace-page-description { @apply mt-[4px] text-[.8125rem] leading-normal; }
-@media (min-width:768px) { .trace-auth-shell { border-radius:55px; overflow:clip; } }
-@media (min-width:900px) { .trace-signup-login { position:fixed; left:clamp(24px,4.444vw,64px); top:12px; margin:0; } }
+@media (min-width:768px) { .trace-auth-shell { overflow:clip; } }
 @media (max-width:767px) { .trace-auth-introduction h1 { font-size:clamp(2rem,15vw,3.75rem); overflow-wrap:anywhere; } }
 .trace-request-review-documents { @apply flex flex-col divide-y divide-[#edf0f3] dark:divide-gray-700; }
 .trace-request-review-documents > li { @apply flex min-w-0 flex-wrap items-start gap-[12px] px-[16px] py-[14px]; }
@@ -2526,3 +2522,30 @@ body :is(.trace-standard-heading,.trace-admin-more-page > header,.trace-admin-ma
 .trace-request-wizard .trace-student-document-choices > div > label > span:last-child { grid-row:2; }
 
 .trace-confirm-centered .trace-modal-title { width:100%; text-align:center; }
+
+/* Browser autofill paint must stay compatible with inverse auth text. */
+.trace-auth-form-side .trace-control-inverse:is(:autofill,:-webkit-autofill) {
+  -webkit-text-fill-color:white;
+  caret-color:white;
+  box-shadow:0 0 0 1000px #329c69 inset;
+}
+.trace-auth-form-side .trace-control-inverse:is(:autofill,:-webkit-autofill):focus {
+  outline:none;
+  box-shadow:0 0 0 1000px #45a577 inset,0 0 0 2px rgb(255 255 255 / .3);
+}
+
+/* Shared conversation identity follows the approved Support header. */
+.trace-support-ticket-heading { @apply flex min-w-0 items-start gap-[12px]; }
+.trace-support-ticket-heading > span { @apply rounded-[12px]; }
+.trace-support-ticket-meta { @apply mt-[4px] flex min-w-0 flex-wrap items-center gap-[6px] text-[.75rem] text-gray-500 dark:text-gray-400; }
+.trace-support-state { @apply rounded-[4px] bg-gray-100 px-[8px] py-[2px] font-medium text-gray-600 dark:bg-gray-800 dark:text-gray-300; }
+.trace-support-hours { @apply flex max-h-[20%] shrink-0 items-start gap-[12px] overflow-y-auto border-b border-gray-200 bg-white px-[16px] py-[16px] text-[.75rem] leading-relaxed text-gray-500 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-400; }
+.trace-support-hours-icon { @apply flex size-[44px] shrink-0 items-center justify-center rounded-[12px] bg-green-100 dark:bg-green-900; }
+.trace-support-queue-position { @apply inline-block rounded-[6px] bg-gray-100 px-[8px] py-[4px] dark:bg-gray-800; }
+
+.trace-support-conversation-header { @apply shrink-0 border-b border-gray-200 bg-white p-[16px] dark:border-gray-700 dark:bg-gray-900; }
+.trace-support-header-actions { @apply flex shrink-0 flex-wrap items-center justify-end gap-[4px]; }
+.trace-support-ticket-heading { @apply flex-wrap; }
+.trace-support-ticket-heading > .min-w-0 { min-width:min(140px,100%); }
+.trace-support-ticket-heading h3 { @apply line-clamp-2; }
+.trace-support-ticket-meta > p { @apply line-clamp-2; }

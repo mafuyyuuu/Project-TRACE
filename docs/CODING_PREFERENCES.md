@@ -269,3 +269,9 @@ Keep credentials/cache tab-local through authStorage; never read/write auth keys
 Current-student Regular/Irregular reuses study_load; it is required at signup, read-only in self profile and editable only by authorized Admin. Split-name edits compose the saved extension under the same locked transaction. Secretary intake is per-request Admin delegation within verified college scope, with independent locked server checks. Do not introduce a global desk privilege for backup work.
 
 Use one New Request modal lifetime for selection/details/review. Back/Edit retains typed values and file objects. Support conversation guidance is visible for every account, outside collapsed context; keep authorized operational controls. Follow the 149-frame current source inventory and explicit user overrides documented in FIGMA_UI_REVIEW.md.
+
+## October 17 signup timing and navigation follow-up
+
+Before leaving signup Academic Details, check the Student/Alumni ID through the dedicated registration service/hook. A duplicate, unavailable network check or malformed response keeps step one with inline field feedback. Cancel obsolete requests on draft changes/unmount. The preflight is advisory: final registration validation and the unique users.student_id index remain authoritative. Preserve the existing rejected-account resubmission workflow.
+
+The latest user direction removes the signup link above the logo; retain the bottom existing-account link. Auth pages have square outer canvas corners. Browser autofill in inverse auth fields must retain green paint, readable text/caret, the eye control and one focus highlight without disabling autofill. New Request uses Cancel only on step one and a single secondary Back button on subsequent steps, preserving draft/files; remove the separate Back/Edit details text action.

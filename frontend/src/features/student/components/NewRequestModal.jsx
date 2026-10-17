@@ -65,13 +65,12 @@ export default function NewRequestModal({
       footer={
         <div className="flex w-full flex-wrap items-center justify-between gap-3">
           <div className="mr-auto text-sm"><strong>{selectedNames.length} document{selectedNames.length === 1 ? '' : 's'} selected</strong><p className="trace-page-description">Final amount is set after printing.</p></div>
-          {step > 1 && <Button type="button" disabled={actionLoading} onClick={step === 3 ? edit : () => setEditingStep(1)} className="trace-action flex items-center gap-2 text-sm font-semibold"><StudentIcon name="back-5e52e" />{step === 3 ? 'Edit details' : 'Back'}</Button>}
           <Button
             type="button" disabled={actionLoading}
-            onClick={close}
+            onClick={step === 1 ? close : step === 3 ? edit : () => setEditingStep(1)}
             className="trace-button trace-button-secondary"
           >
-            Cancel
+            {step === 1 ? 'Cancel' : 'Back'}
           </Button>
           <Button
             type={step === 3 ? "button" : "submit"}

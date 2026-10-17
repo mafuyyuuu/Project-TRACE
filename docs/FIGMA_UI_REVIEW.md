@@ -4,7 +4,7 @@ The current [TRACE Figma file](https://www.figma.com/design/eQNaLBPXQSojI6lOK60A
 
 ## Changes from the October 16 review
 
-- Login uses the current source column ratio, original TRACE/PLP image paints, colors, typography, spacing and control sizes. Signup follows its three-step academic, personal and verification screens, with one retained draft and controlled proof selection. Inline field validation, the approved transparent Back to Login placement and normal mobile scrolling remain.
+- Login uses the current source column ratio, original TRACE/PLP image paints, colors, typography, spacing and control sizes. Signup follows its three-step academic, personal and verification screens, with one retained draft and controlled proof selection. Inline field validation, the bottom existing-account login link remains; the later user instruction removes the link above the logo.
 - New Request uses one modal through selection, details and review. Equal document choices, search, selected files and typed values survive Back/Edit. Current students use saved Year Started and their current Year Level/Section. Alumni may save 1999 when their study interval is valid.
 - Student checkout now implements `2506:1867` with original source SVGs, saved grouped charges, configured methods, real payment instructions and the existing GCash QR. Returning from the slip keeps the checkout draft. Reference example QR/account data is not shipped.
 - The Secretary Graduate Applications active icon now uses the original white `8dfb2.svg`. Both outstanding asset gaps recorded on October 16 are resolved.
@@ -238,3 +238,17 @@ Screenshots use synthetic records: [Login](login-oct17-review.png), [Student che
 ## Delivery requirements
 
 Deploy matching frontend and backend revisions. This batch adds no schema, dependency or environment variable. Existing migrations remain prerequisites; it reuses `users.study_load`, `assigned_clerk_id`, routing-college snapshots and current-student detail fields. New invalidation messages contain resource names only; each authorized client refetches its own view. A Git push does not establish that a hosting service has rebuilt the frontend or restarted the backend.
+
+## Subsequent user screenshot overrides
+
+The user explicitly requests square outer login corners, removing the top signup Back to Login link, and one secondary Back button on later New Request steps (Cancel only on step one). These override the earlier Figma composition. Login autofill keeps green field paint, readable text/caret and one focus highlight. Academic Details now performs a bounded ID preflight before advancing; final duplicate protection remains server/database enforced. Browser checks force the Chromium autofill pseudo-state; they do not claim a physical Safari/password-manager acceptance test.
+
+### Latest screenshot overrides: Support and analytics
+
+The user explicitly requested one fixed, non-scrolling Support identity header in every account: rounded-square avatar, title, status chip, ticket metadata and circle-i linked-case control. Staff action icons sit alongside it with accessible names/hover titles; guidance moves below messages. The Ticket Actions disclosure remains removed. Window/Receiving Settings is in the outer page heading, before categories and the live-support help. These are approved screenshot overrides of prior frame behavior.
+
+Window Tracking gains Other statuses and a loaded-versus-authorized count caption so the badges reconcile truthfully. Admin analytics keeps real audit aggregates and adds separately labelled AI-service aggregate advice. Forecasts now use recorded request arrivals/exact types and show model/history/unavailable sources; the source example’s random/fixed-ratio behavior is not retained. Perfect pixel parity and production/physical-phone validation are not claimed.
+
+[Support header desktop](support-header-review.png) · [Support header mobile](support-header-mobile-review.png). Both use synthetic records.
+
+Follow-up validation: 1,200 frontend and 1,796 backend tests, 18 Python aggregate/controlled-route checks, lint and the clean production/PWA build pass. All 665 synthetic browser checks pass across the follow-up, including final targeted reruns. The 528 detected entry/precache references resolve; 28 review-manifest native asset dimensions/bytes and five reused Support-icon bytes match source. This verifies controlled local behavior, not live database/model execution or forecast accuracy.

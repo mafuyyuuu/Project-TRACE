@@ -76,7 +76,7 @@ describe('System Throughput card', () => {
     expect(within(card).queryByRole('application')).not.toBeInTheDocument();
   });
 
-  it('keeps a single measured day accessible and identifies neighboring curves as illustrative', async () => {
+  it('keeps a single measured day accessible and identifies actual neighboring measurements', async () => {
     getAnalytics.mockResolvedValue({ end_to_end: { completed_count: 12, avg_minutes: 90 }, throughput: [{ date: '2026-09-30', completed: 12 }] });
     const card = await renderCard();
     expect(await within(card).findByText('1.5 hrs')).toBeInTheDocument();
@@ -88,7 +88,8 @@ describe('System Throughput card', () => {
     expect(within(detection).queryByText('Illustrative trend')).not.toBeInTheDocument();
     for (const name of ['Real-time backlog']) {
       const neighbor = screen.getByRole('region', { name });
-      expect(within(neighbor).getByText('Illustrative trend')).toBeInTheDocument();
+      expect(within(neighbor).getByText('Current saved pipeline counts')).toBeInTheDocument();
+      expect(within(neighbor).queryByText('Illustrative trend')).not.toBeInTheDocument();
       expect(within(neighbor).queryByText(/docs$/)).not.toBeInTheDocument();
     }
   });
@@ -114,4 +115,14 @@ it('keeps the full document, tracking and action values in separate audit-log ce
   expect(within(table).getByText('Payment Submitted').closest('td')).not.toBe(document.closest('td'));
   const scroller = screen.getByRole('region', { name: 'Activity log table' });
   scroller.focus(); expect(scroller).toHaveFocus();
+});
+
+it('does not turn failed analytics or stats reads into empty measured queues',async()=>{
+ const documents=await import('@/services/documentsService');
+ getAnalytics.mockRejectedValue(new Error('report offline'));
+ documents.getDashboardStats.mockRejectedValueOnce(new Error('stats offline'));
+ render(<AdminDashboard user={{id:1,role:'admin'}} currentTab="dashboard"/>);
+ await screen.findByText('Throughput unavailable');
+ expect(screen.queryByText('No completed requests yet')).not.toBeInTheDocument();
+ expect(within(screen.getByRole('region',{name:'Real-time backlog'})).getByText('Unavailable')).toBeVisible();
 });

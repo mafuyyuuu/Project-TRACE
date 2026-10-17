@@ -1,8 +1,9 @@
+import useVolumeForecast from '@/hooks/useVolumeForecast';
 import useDataRefresh from '@/hooks/useDataRefresh';
 import useViewportPagination from '@/hooks/useViewportPagination';
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import useDashboardCore from '@/hooks/useDashboardCore';
-import { getForecast, getInsights, getActivityLogs } from '@/services/documentsService';
+import { getInsights, getActivityLogs } from '@/services/documentsService';
 import { getPendingStudents, verifyStudent, getUsers } from '@/services/authService';
 import { getAnalytics } from '@/services/reportsService';
 
@@ -22,7 +23,7 @@ export default function useAdminDashboard(user, currentTab, reviewAccountId, rev
   const { runAction, loadDashboardData } = core;
 
   const reviewedNotification = useRef(null);
-  const [forecastData, setForecastData] = useState([]);
+  const forecast = useVolumeForecast(user?.role==='admin');
   const [aiInsights, setAiInsights] = useState([]);
   const [insightsLoading, setInsightsLoading] = useState(false);
   const insightsPending = useRef(false);
@@ -43,7 +44,6 @@ export default function useAdminDashboard(user, currentTab, reviewAccountId, rev
   // Table state
   const [adminDocPage, setAdminDocPage] = useState(1);
   const [adminDocFilter, setAdminDocFilter] = useState('All');
-  const [forecastFilter, setForecastFilter] = useState('All');
   const [adminUsers, setAdminUsers] = useState([]);
   const [adminUsersRoleFilter, setAdminUsersRoleFilter] = useState('All');
   const [adminLogs, setAdminLogs] = useState([]);
@@ -75,7 +75,6 @@ export default function useAdminDashboard(user, currentTab, reviewAccountId, rev
     // Fetched in parallel; each settles independently so one outage cannot
     // blank the other panels.
     await Promise.allSettled([
-      getForecast().then(data => { if (version === adminVersion.current) setForecastData(data.forecast || []); }),
       getPendingStudents().then(data => {
       if (version !== adminVersion.current) return;
       const applicants = data.pending_students || [];
@@ -87,7 +86,7 @@ export default function useAdminDashboard(user, currentTab, reviewAccountId, rev
         reviewedNotification.current = reviewKey; setStudentVerifyToConfirm({ student: applicant, action: 'review' });
       }
       }),
-      getAnalytics().then(data => { if (version === adminVersion.current) setAnalyticsSummary(data); }),
+      getAnalytics().then(data => { if (version === adminVersion.current) setAnalyticsSummary(data); }).catch(()=>{if(version===adminVersion.current)setAnalyticsSummary(null);}),
       refreshInsights(),
     ]);
   }, [reviewAccountId, reviewNavigationKey, refreshInsights]);
@@ -167,13 +166,13 @@ export default function useAdminDashboard(user, currentTab, reviewAccountId, rev
 
   return {
     ...core,
-    forecastData,
+    forecastData:forecast.forecast, forecast,
     aiInsights, insightsLoading, refreshInsights,
     pendingStudents,
     analyticsSummary,
     adminDocPage: pagination.page, setAdminDocPage,
     adminDocFilter, setAdminDocFilter,
-    forecastFilter, setForecastFilter,
+    forecastFilter:forecast.filter, setForecastFilter:forecast.setFilter,
     adminUsers,
     adminUsersRoleFilter, setAdminUsersRoleFilter,
     filteredAdminUsers,

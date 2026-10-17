@@ -51,3 +51,12 @@ it('keeps the college catalog public without allowing anonymous inactive reads',
 it.each(['/document-types', '/payment-methods'])('still requires a session for %s', async path => {
   expect((await referenceRoute(path)).status).toBe(401);
 });
+
+it('checks registration ID availability publicly with a dedicated limiter and no account payload',async()=>{
+  vi.spyOn(auth,'checkRegistrationId').mockResolvedValue({available:false});
+  const res={json:vi.fn()};await controller.checkRegistrationId({body:{employee_id:'SYN-1'}},res);
+  expect(res.json).toHaveBeenCalledExactlyOnceWith({available:false});
+  const route=require('../../routes/auth.routes').stack.find(layer=>layer.route?.path==='/registration-id-check').route;
+  expect(route.methods.post).toBe(true);
+  expect(route.stack.map(layer=>layer.handle)).toEqual([require('../../middlewares/rateLimit.middleware').registrationIdLimiter,controller.checkRegistrationId]);
+});

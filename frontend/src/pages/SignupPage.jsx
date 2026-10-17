@@ -1,3 +1,4 @@
+import useRegistrationIdCheck from '@/hooks/useRegistrationIdCheck';
 import ReviewIcon from '@/components/ReviewIcon';
 import PhoneInput from '@/components/PhoneInput';
 import { normalizePhoneNumber } from '@/utils/phoneNumber';
@@ -30,6 +31,7 @@ export default function SignupPage() {
   const { register, loading } = useAuth()
   const [formData, setFormData] = useState({ employeeId: '', first_name: '', middle_name: '', last_name: '', email: '', phoneNumber: '', password: '', confirmPassword: '', study_load: '', userType: new URLSearchParams(window.location.search).get('applicant') === 'alumni' ? 'alumni' : 'student', college: '', program: '', year_started: '', graduation_year: '', proofUnavailable: false, proofReason: '', privacyAcknowledged: false })
   const submitGuard = useRef(false)
+  const idCheck = useRegistrationIdCheck();
   const [file, setFile] = useState(null)
   const [localError, setLocalError] = useState('')
   const [fieldErrors, setFieldErrors] = useState({})
@@ -72,6 +74,7 @@ export default function SignupPage() {
   const selectedCollege = colleges.find(college => college.name === formData.college);
   const availablePrograms = programs.filter(program => String(program.college_id) === String(selectedCollege?.id));
   const setFields = patch => {
+    if (step === 1) idCheck.invalidate();
     setFormData(current => ({ ...current, ...patch }));
     setFieldErrors(current => {
       const next = { ...current };
@@ -88,8 +91,9 @@ export default function SignupPage() {
    });
     setLocalError('');
   };
-  const fieldProps = field => ({ id: `signup-${field}`, 'aria-invalid': Boolean(fieldErrors[field]), 'aria-describedby': fieldErrors[field] ? `signup-${field}-error` : undefined });
-  const fieldFeedback = field => fieldErrors[field] && <p id={`signup-${field}-error`} className="mt-1 text-xs leading-relaxed text-red-700 dark:text-red-300">{fieldErrors[field]}</p>;
+  const fieldError = field => fieldErrors[field] || (field === 'employeeId' ? idCheck.error : '');
+  const fieldProps = field => ({ id: `signup-${field}`, 'aria-invalid': Boolean(fieldError(field)), 'aria-describedby': fieldError(field) ? `signup-${field}-error` : undefined });
+  const fieldFeedback = field => fieldError(field) && <p id={`signup-${field}-error`} className="mt-1 text-xs leading-relaxed text-red-700 dark:text-red-300">{fieldError(field)}</p>;
   const handleSubmit = async (e) => {
     e.preventDefault()
     setLocalError('')
@@ -103,7 +107,11 @@ export default function SignupPage() {
       setLocalError('Please check the highlighted fields.');
       return;
     }
-    if (step < 3) { setStep(current => current + 1); return; }
+    if (step === 1) {
+      if (await idCheck.check(formData.employeeId)) setStep(2);
+      return;
+    }
+    if (step === 2) { setStep(3); return; }
     
       const form = new FormData();
       form.append('employee_id', formData.employeeId.trim());
@@ -187,7 +195,7 @@ export default function SignupPage() {
             <h1 ref={headingRef} tabIndex={-1}>{['Academic details', 'Personal information', 'Account & verification'][step - 1]}</h1>
             <p>{['Enter your details exactly as they appear in your school records.', 'We use these details on your document requests and receipts.', 'Secure your account and verify your identity.'][step - 1]}</p>
           </header>
-          <form noValidate onSubmit={handleSubmit} className="trace-signup-form" aria-busy={loading}>
+          <form noValidate onSubmit={handleSubmit} className="trace-signup-form" aria-busy={loading || idCheck.checking}>
             {step === 1 && <>
             <fieldset className="space-y-[6px]"><legend className="trace-label mb-[6px]">Account Type *</legend>
               <div className="trace-signup-account-types">{[['student', 'Current Student'], ['alumni', 'Alumni']].map(([type, label]) => <Button key={type} type="button" disabled={loading} aria-pressed={formData.userType === type} onClick={() => setFields({ userType: type, employeeId: '', proofUnavailable: false })}>{label}</Button>)}</div>
@@ -321,7 +329,7 @@ export default function SignupPage() {
             {localError && <p role="alert" className="text-sm leading-relaxed text-red-700 dark:text-red-300">{localError}</p>}
             <div className="trace-signup-actions">
               {step > 1 && <Button type="button" disabled={loading} onClick={() => { setStep(current => current - 1); setLocalError(''); }} className="trace-button trace-button-secondary">Back</Button>}
-              <Button type="submit" disabled={loading} className="trace-button trace-signup-primary">{loading ? 'Creating...' : step < 3 ? 'Continue' : 'Create Account'}</Button>
+              <Button type="submit" disabled={loading || idCheck.checking} className="trace-button trace-signup-primary">{idCheck.checking ? 'Checking ID…' : loading ? 'Creating...' : step < 3 ? 'Continue' : 'Create Account'}</Button>
             </div>
           </form>
         </>}

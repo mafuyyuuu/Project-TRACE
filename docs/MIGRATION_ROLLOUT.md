@@ -727,3 +727,13 @@ Do not import the fresh-install schema over an existing database.
 Deploy matching frontend/backend commits and rebuild/restart the backend; publish the new frontend build. There is **no new migration** in this batch. Regular/Irregular reuses `users.study_load`; backup intake reuses the existing processor assignment and routing-college fields. Do not rerun the general migration or seeds for these UI changes. The previously documented current-student, assignment and routing migrations remain prerequisites.
 
 After rollout, refresh both browser tabs. Check two different accounts stay distinct across reload/logout, current-student signup requires its declaration, alumni 1999 respects the study interval, Admin review removes approved rows immediately, and each role refreshes only permitted records. Verify an assigned same-college Secretary can intake and an unassigned/cross-college Secretary cannot. Verify New Request Back/Edit and payment-slip return retain drafts, and every Support account shows visible guidance without Ticket Actions. This is a rollout checklist; the code review does not claim the server has been deployed.
+
+## October 17 screenshot follow-up rollout
+
+Deploy matching frontend/backend revisions for the new POST /api/auth/registration-id-check route and dedicated limiter. Rebuild/restart the backend and publish the frontend build. No migration, dependency or environment change is required. An older backend cannot satisfy the new first-step check, so the frontend correctly stays on signup rather than skipping validation.
+
+Check a taken ID, an unused ID, failed-check retry, changed-ID cancellation and final simultaneous registration handling. Verify autofilled login fields stay green/readable with a single focus highlight and square outer edge. Verify signup has no login link above its logo and New Request uses Cancel only on step one, Back on later steps with retained files.
+
+## October 17 Support and analytics follow-up
+
+No new migration, environment variable or dependency. Deploy the matching backend first (registration-ID preflight and real-history forecast fallback), rebuild/restart the existing AI service for POST /forecast and POST /ai/document-analytics, then deploy the matching frontend. Existing /ai/support-insights now also analyzes the selected Support Analytics period. Until the AI service is upgraded/reachable, measured charts remain available, forecast uses its labelled historical weekday average when enough history exists, and AI analysis reports unavailable. An old backend does not provide registration-id-check, so the new signup intentionally cannot leave step one until matching backend deployment. This work does not deploy production services or main.

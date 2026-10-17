@@ -138,6 +138,7 @@ beforeEach(() => {
   vi.spyOn(documentModel, 'insightQueueCounts').mockResolvedValue([]);
   vi.spyOn(documentModel, 'countStepLogsToday').mockResolvedValue(0);
   vi.spyOn(documentModel, 'forecastFallbackRows').mockResolvedValue([]);
+  vi.spyOn(documentModel,'forecastDocumentTypes').mockResolvedValue(['Diploma']);
 
   vi.spyOn(stepLogModel, 'insert').mockResolvedValue([{}]);
   vi.spyOn(stepLogModel, 'deleteByDocumentId').mockResolvedValue([{}]);
@@ -1211,16 +1212,22 @@ describe('listDocuments — role scoping', () => {
 });
 
 describe('AI-engine fallbacks', () => {
-  it('falls back to a locally generated 7-day forecast when the engine is down', async () => {
-    vi.spyOn(aiEngine, 'getForecast').mockResolvedValue(null);
-    const res = await service.getForecast();
-    expect(res.source).toBe('fallback');
-    expect(res.forecast).toHaveLength(7);
+  it('does not invent an estimate without recorded history', async () => {
+    vi.spyOn(aiEngine,'getForecast').mockResolvedValue(null);
+    const res=await service.getForecast({},ADMIN);
+    expect(res).toMatchObject({source:'insufficient_data',forecast:[],sample_size:0,document_types:['Diploma']});
+    expect(aiEngine.getForecast).not.toHaveBeenCalled();
   });
-
-  it('passes the engine forecast straight through when it is up', async () => {
-    vi.spyOn(aiEngine, 'getForecast').mockResolvedValue({ forecast: [], source: 'prophet' });
-    expect((await service.getForecast()).source).toBe('prophet');
+  it('uses exact saved type history and falls back deterministically when the engine fails',async()=>{
+    const today=new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Manila',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
+    documentModel.forecastFallbackRows.mockResolvedValue([{date:new Date(Date.parse(today)-28*86400000).toISOString().slice(0,10),volume:28}]);
+    vi.spyOn(aiEngine,'getForecast').mockResolvedValue(null);
+    const one=await service.getForecast({documentType:'Diploma'},ADMIN),two=await service.getForecast({documentType:'Diploma'},ADMIN);
+    expect(documentModel.forecastFallbackRows).toHaveBeenCalledWith('Diploma');
+    expect(one).toMatchObject({source:'historical_weekday_average',history_days:28,sample_size:28});
+    expect(two.forecast).toEqual(one.forecast);
+    expect(aiEngine.getForecast.mock.calls[0][0].history).toHaveLength(28);
+    expect(Object.keys(aiEngine.getForecast.mock.calls[0][0])).toEqual(['history','today','timezone']);
   });
 
   it('reports an empty queue without claiming measured efficiency', async () => {
@@ -1467,4 +1474,9 @@ it.each(['year_level', 'section'])('requires saved current-student %s and reject
 it('continues to require alumni graduation even when last attendance and current enrollment fields are present', async () => {
   userModel.getProfileById.mockResolvedValue([{ ...COMPLETE, user_type: 'alumni', has_grad_application: true, graduation_year: null }]);
   await expect(service.uploadDocument(STUDENT, { document_type: 'Graduation Clearance' }, [])).rejects.toMatchObject({ status: 403, message: expect.stringContaining('PLP/College Year Graduated') });
+});
+
+it.each([undefined,{role:'student'},{role:'clerk',desk_assignment:'Window 1'},{role:'clerk',desk_assignment:'Finance'},{role:'clerk',desk_assignment:'Secretary'}])('denies non-Admin forecasts before reading global history',async user=>{
+ await expect(service.getForecast({},user)).rejects.toMatchObject({status:403});
+ expect(documentModel.forecastFallbackRows).not.toHaveBeenCalled();
 });

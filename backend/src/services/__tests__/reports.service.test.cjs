@@ -18,6 +18,7 @@ const statusOf = (p) => p.then(() => undefined, (e) => e.status);
 const messageOf = (p) => p.then(() => '', (e) => e.message);
 
 beforeEach(() => {
+  vi.spyOn(require('../aiEngine.service'),'getDocumentAnalytics').mockResolvedValue(null);
   vi.spyOn(referenceModel,'findCollegeById').mockResolvedValue([{id:4,name:'College Four',is_active:1}]);
   vi.spyOn(referenceModel,'findDocumentTypeByName').mockResolvedValue([{name:'Diploma'}]);
   vi.spyOn(userModel, 'findCourseById').mockResolvedValue([{ college_id: 4, course: 'College Four' }]);
@@ -310,4 +311,26 @@ describe('efficiency analytics', () => {
     expect(reportModel.workloadByClerk).toHaveBeenCalledWith(range);
     expect(res.workload_by_clerk.map(row => row.documents_handled)).toEqual([60, 30, 10]);
   });
+});
+
+it('sends only loaded report aggregates to the AI engine and exposes validated advice',async()=>{
+  const ai=require('../aiEngine.service');
+  reportModel.endToEndCompletion.mockResolvedValue({completed_count:5,avg_minutes:20,min_minutes:2,max_minutes:40});
+  reportModel.workloadByClerk.mockResolvedValue([{id:9,full_name:'PRIVATE NAME',desk_assignment:'Finance',documents_handled:2,actions_taken:3}]);
+  ai.getDocumentAnalytics.mockResolvedValue({source:'aggregate_rules',insights:[{type:'info',title:'Measured history',message:'Five recorded completions.',method:'aggregate_rules',sample_size:5}]});
+  const result=await service.getEfficiencyAnalytics(ADMIN,{dateFrom:'2026-10-01',dateTo:'2026-10-17'});
+  expect(result.analysis.source).toBe('ai_engine_aggregate_rules');
+  const [payload]=ai.getDocumentAnalytics.mock.calls[0];
+  expect(payload.end_to_end.completed_count).toBe(5);
+  expect(payload.range).toMatchObject({dateFrom:'2026-10-01',dateTo:'2026-10-17'});
+  expect(JSON.stringify(payload)).not.toMatch(/PRIVATE NAME|full_name|student_id|email|clerk_id/);
+});
+it('keeps measured analytics when AI is unavailable or malformed',async()=>{
+ const ai=require('../aiEngine.service');
+ for(const response of [null,{source:'made_up',insights:[]},{source:'aggregate_rules',insights:[{method:'aggregate_rules',sample_size:-1}]}]){
+  ai.getDocumentAnalytics.mockResolvedValue(response);
+  const result=await service.getEfficiencyAnalytics(ADMIN);
+  expect(result.analysis.source).toBe('unavailable');
+  expect(result).toHaveProperty('end_to_end');
+ }
 });

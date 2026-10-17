@@ -66,6 +66,7 @@ export default function useReports(user, currentTab, initialRecordSet = '') {
         }
 
         if (a.status === 'fulfilled') setAnalytics(a.value);
+        else { setAnalytics(null); setError(a.reason?.response?.data?.error || 'Analytics could not refresh. Retry to load current measurements.'); }
       } finally {
         if (sequence === loadSequence.current) { setLoading(false); setSettledScope(requestedScope); }
       }

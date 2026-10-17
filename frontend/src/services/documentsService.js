@@ -195,8 +195,8 @@ export async function getDashboardStats() {
 /**
  * Get 7-day volume forecast (Admin).
  */
-export async function getForecast() {
-  const { data } = await api.get('/documents/stats/forecast')
+export async function getForecast(documentType, signal) {
+  const { data } = await api.get('/documents/stats/forecast', {params:documentType && documentType!=='All' ? {documentType} : {}, signal, timeout:20000})
   return data
 }
 

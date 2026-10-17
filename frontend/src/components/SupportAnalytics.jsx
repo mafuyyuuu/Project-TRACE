@@ -1,3 +1,4 @@
+import AnalyticsAdvice from '@/components/AnalyticsAdvice';
 import PaginatedTable from '@/components/PaginatedTable';
 import AdminIcon from '@/features/admin/components/AdminIcon';
 import { useId, useState } from 'react';
@@ -72,6 +73,7 @@ export default function SupportAnalytics({ admin = false }) {
       {state.error && <div role="alert" className="trace-error"><p>{state.error}</p>{data && <p className="mt-1">The previous loaded period remains below. Choose Apply period to retry.</p>}</div>}
 
       {data && <>
+        <AnalyticsAdvice analysis={data.analysis}/>
         <div className="trace-analytics-period">
           <span className="font-semibold flex items-center gap-2">{admin && <AdminIcon name="support-metric-calendar" />}Loaded period · Manila</span>
           <span className="select-text break-words">{supportPeriodTime(data.period.from)} → {supportPeriodTime(data.period.to_exclusive)} <span className="font-normal">(end exclusive)</span></span>

@@ -11,14 +11,14 @@ function payload(current,previous) {
     busy_periods:current.busy_periods,
     previous:{period:previous.period,escalation:previous.escalation,queue_samples:previous.durations.initial_queue.samples,queue_median_minutes:previous.durations.initial_queue.median_minutes}};
 }
-async function get(user) {
+async function get(user,query = {},current = null) {
   try {
     const actor=await require('./supportTicket.service').currentActor(user);
     if(actor.role!=='admin')return [];
-    const {from,to}=reports.period();
+    const {from,to}=current?.period ? {from:new Date(current.period.from),to:new Date(current.period.to_exclusive)} : reports.period(query);
     const previousFrom=new Date(from.getTime()-(to-from));
-    const [currentData,previousData]=await Promise.all([model.dataset(from,to),model.dataset(previousFrom,from)]);
-    const result=await ai.getSupportInsights(payload(summarize(currentData,from,to),summarize(previousData,previousFrom,from)));
+    const [currentMetrics,previousData]=await Promise.all([current || model.dataset(from,to).then(data=>summarize(data,from,to)),model.dataset(previousFrom,from)]);
+    const result=await ai.getSupportInsights(payload(currentMetrics,summarize(previousData,previousFrom,from)));
     return Array.isArray(result?.insights) && result.insights.length<=8 && result.insights.every(row=>row && ['info','warning'].includes(row.type) && typeof row.title==='string' && row.title.length<=255 && typeof row.message==='string' && row.message.length<=2000 && row.method==='aggregate_rules' && Number.isFinite(row.sample_size) && row.sample_size>=0 && row.period?.timezone==='Asia/Manila') ? result.insights : [{type:'info',title:'Support advisory unavailable',message:'Support aggregates are available in Support analytics. The AI service did not return advice; no trend is inferred.'}];
   } catch(error) {
     console.warn('Support insight aggregates unavailable:',error.code || 'REPORT_UNAVAILABLE');

@@ -88,9 +88,9 @@ async function extractReceipt(file) {
 }
 
 /** Prophet 7-day volume forecast. Returns null when unavailable (caller falls back). */
-async function getForecast() {
+async function getForecast(aggregates) {
   try {
-    return await requestJson(`${env.AI_ENGINE_URL}/forecast`, { method: 'GET' });
+    return await requestJson(`${env.AI_ENGINE_URL}/forecast`, { method: 'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(aggregates) });
   } catch (err) {
     console.error(`AI forecast fetch failed at ${env.AI_ENGINE_URL}/forecast:`, err.message);
     return null;
@@ -111,4 +111,8 @@ async function getSupportInsights(aggregates) {
   try { return await requestJson(`${env.AI_ENGINE_URL}/ai/support-insights`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(aggregates)}); }
   catch { return null; }
 }
-module.exports = { verifyIdDocument, extractDocument, extractReceipt, getForecast, getInsights, getSupportInsights };
+async function getDocumentAnalytics(aggregates) {
+  try { return await requestJson(`${env.AI_ENGINE_URL}/ai/document-analytics`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(aggregates)}); }
+  catch { return null; }
+}
+module.exports = { getDocumentAnalytics, verifyIdDocument, extractDocument, extractReceipt, getForecast, getInsights, getSupportInsights };
