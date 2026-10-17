@@ -50,4 +50,12 @@ const apiLimiter = rateLimit({
   message: { error: 'Too many requests. Please slow down.' },
 });
 
-module.exports = { loginLimiter, registerLimiter, passwordResetLimiter, apiLimiter };
+const registrationIdLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 30,
+  standardHeaders: 'draft-7',
+  legacyHeaders: false,
+  message: { error: 'Too many ID checks. Please try again in a few minutes.' },
+});
+
+module.exports = { registrationIdLimiter, loginLimiter, registerLimiter, passwordResetLimiter, apiLimiter };

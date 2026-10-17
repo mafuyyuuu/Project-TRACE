@@ -191,6 +191,18 @@ async function getCurrentUser(userId) {
   return { user: rows[0] };
 }
 
+function readRegistrationId(value) {
+  if (typeof value !== 'string' || !value.trim() || value.trim().length > 50 || /[\x00-\x1f\x7f]/.test(value)) throw badRequest('Enter a valid Student / Alumni ID of at most 50 characters.');
+  return value.trim();
+}
+
+/** Same admission rule as registration; never returns identity or account details. */
+async function checkRegistrationId(body = {}) {
+  const id = readRegistrationId(body.employee_id);
+  const existing = await userModel.findExistingByStudentId(id);
+  return { available: !existing.length || existing[0].role === 'student' && existing[0].verification_status === 'rejected' };
+}
+
 /**
  * Register a student/alumni account with proof of ID.
  *
@@ -204,7 +216,8 @@ async function register(body, file) {
     throw badRequest('Read and acknowledge the current Privacy Notice before registering. Refresh the sign-up page if the notice has changed.');
   }
   validateTextFields(body, ACCOUNT_TEXT_LIMITS);
-  const { employee_id, email, phone_number, password, user_type, course, college_id } = body;
+  const { employee_id: submittedId, email, phone_number, password, user_type, course, college_id } = body;
+  const employee_id = readRegistrationId(submittedId);
   const hasNameParts = ['first_name', 'middle_name', 'last_name'].some(key => Object.hasOwn(body, key));
   const nameParts = Object.fromEntries(['first_name', 'middle_name', 'last_name'].map(key => [key, body[key] ?? '']));
   const full_name = hasNameParts ? fullNameFromParts(nameParts) : body.full_name;
@@ -292,7 +305,11 @@ async function register(body, file) {
     await userModel.logSecurityEvent(created.insertId, PRIVACY_ACK_EVENT, null, null, connection);
     await onboarding.enroll(created.insertId, connection);
     await connection.commit();
-  } catch (error) { await connection.rollback(); throw error; }
+  } catch (error) {
+    await connection.rollback();
+    if (error.code === 'ER_DUP_ENTRY' && /student_id/i.test(error.sqlMessage || error.message || '')) throw badRequest('This ID is already registered.');
+    throw error;
+  }
   finally { connection.release(); }
 
 
@@ -827,6 +844,7 @@ module.exports = {
   login,
   getCurrentUser,
   register,
+  checkRegistrationId,
   registrationOptions,
   listPendingStudents,
   verifyStudentAccount,

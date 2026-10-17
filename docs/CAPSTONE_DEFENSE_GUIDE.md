@@ -9,7 +9,7 @@ This guide is designed to help your team prepare for your final Capstone defense
 ## 🎯 1. Core Pitch: What is Project TRACE?
 
 *   **The Problem:** Traditional university registrar offices suffer from manual data entry bottlenecks, lost paperwork, lack of transparency in document queuing, and zero predictive capacity for volume spikes. Students have no idea where their document is in the pipeline, and administrators have no data-driven tools to manage workloads.
-*   **The Solution:** Project TRACE (**Tracking, Routing, and Automated Credential Engine**) is an **AI-Assisted Registrar Document Workflow System** built for the Pamantasan ng Lungsod ng Pasig (PLP) Registrar's Office. It digitizes physical paperwork using Optical Character Recognition (OCR), automates queue management via a strict Role-Based Access Control (RBAC) pipeline, sends real-time multi-channel notifications (SMS & Email), and uses prototype Machine Learning and queue-based insights to assist workload planning. Current forecast inputs are daily workflow-event counts; measured predictive accuracy and operational improvements require a separate evaluation.
+*   **The Solution:** Project TRACE (**Tracking, Routing, and Automated Credential Engine**) is an **AI-Assisted Registrar Document Workflow System** built for the Pamantasan ng Lungsod ng Pasig (PLP) Registrar's Office. It digitizes physical paperwork using Optical Character Recognition (OCR), automates queue management via a strict Role-Based Access Control (RBAC) pipeline, sends real-time multi-channel notifications (SMS & Email), and uses prototype Machine Learning and queue-based insights to assist workload planning. Current forecast inputs are daily recorded request-arrival counts; measured predictive accuracy and operational improvements require a separate evaluation.
 
 ---
 
@@ -73,7 +73,7 @@ graph TB
     UI <-->|"Private Socket.IO notifications"| PROXY
     PROXY --> API
     ROUTES -->|"Authorized file access"| FILES
-    FORECAST -->|"Daily workflow-event reads"| DB
+    FORECAST -->|"Daily request-arrival aggregates"| DB
     API --> AUTH --> ROUTES
     ROUTES -->|"SQL Queries"| DB
     DB --- USERS & DOCS & LOGS & NOTIFS & TICKETS
@@ -148,7 +148,7 @@ flowchart TB
     subgraph "Input Sources"
         SCAN["📄 Scanned Document<br/>(Image File)"]
         IDPHOTO["🪪 Student ID Photo<br/>(Registration Upload)"]
-        STEPLOGS["📊 Daily COUNT of step_logs<br/>(Events, not distinct requests)"]
+        STEPLOGS["📊 Daily COUNT of documents<br/>(Recorded request arrivals)"]
         QUEUES["📋 All-stage queue snapshot from Node<br/>Manila-day workflow actions"]
     end
 
@@ -158,18 +158,18 @@ flowchart TB
             OCR_VERIFY["POST /ocr/verify<br/>Cross-Reference Check"]
         end
         subgraph "Module B: Prophet (Meta)"
-            PROPHET["GET /forecast<br/>Time-Series Model"]
+            PROPHET["POST /forecast<br/>Time-Series Model"]
         end
-        subgraph "Module C: Random Forest (Scikit-Learn)"
-            RF["POST /ai/recommend<br/>4-example prototype classifier<br/>Explicitly unvalidated"]
+        subgraph "Module C: Aggregate Advice"
+            RF["POST /ai/recommend<br/>Observed queue rules<br/>No performance prediction"]
         end
     end
 
     subgraph "Outputs"
         EXTRACTED["Extracted Text +<br/>confidence_score"]
         VERIFIED["Text-match result<br/>+ review reason"]
-        FORECAST_OUT["7-Day Workflow-Event Forecast<br/>Nonnegative integer predictions"]
-        ALERTS["Queue snapshot + experimental advice<br/>(No efficiency confirmation)"]
+        FORECAST_OUT["7-Day Request-Arrival Forecast<br/>Nonnegative integer predictions"]
+        ALERTS["Queue snapshot + descriptive advice<br/>(No efficiency confirmation)"]
     end
 
     SCAN --> OCR_EXTRACT --> EXTRACTED
@@ -507,8 +507,8 @@ remain pending and skip OCR; Admin records checked alternative identity evidence
 in an atomic audit. Current students still upload proof. Identity details are entered manually
 and reviewed before the registration is confirmed.
 | **Why EasyOCR over Tesseract?** | EasyOCR is the OCR dependency currently integrated into Flask. We use its pretrained text recognition with local parsing and manual review. We have not performed a comparative accuracy benchmark and do not claim that another OCR engine is inherently unsuitable. |
-| **Why Prophet over ARIMA or LSTM?** | Prophet is the implemented time-series prototype. It fits daily step-log counts and returns seven predictions. Model choice and seasonality need held-out evaluation; seeded data and a plausible chart do not establish forecast reliability. |
-| **Why Random Forest over a simple threshold/rule-based system?** | Node provides full-stage observed counts and transparent queue-review thresholds. The optional ten-tree classifier still uses evaluation, release and Manila-day action counts fitted to four coded examples. It is labelled experimental and cannot confirm efficiency, optimal staffing or measured delays. |
+| **Why Prophet over ARIMA or LSTM?** | Prophet is the implemented time-series model. It fits complete Manila-day request-arrival counts and returns seven estimates. Exact type history and zero days are preserved. Model/seasonality choice and accuracy still require held-out real-history evaluation. |
+| **Why descriptive rules rather than the earlier Random Forest prototype?** | The former classifier fitted four coded examples, which cannot establish real operational prediction quality. Production advice now analyzes recorded queue/report aggregates using transparent sample-based rules through the AI service. It does not claim validated staffing or causal performance analysis. |
 | **Why Flask over FastAPI?** | Flask hosts the current OCR/model endpoints. The team retains the existing request/response implementation and Gunicorn deployment; no comparative overhead or cold-start benchmark is claimed. |
 
 ### E. Workflow Orchestration — n8n
@@ -550,13 +550,13 @@ Your panel will heavily scrutinize the "AI" part of your title. Here is exactly 
 *   **Fallback:** "An inconclusive registration check stays pending for Admin review with a reason. Intake extraction remains editable for authorized staff. The displayed field-completeness score is not proof of authenticity or measured recognition accuracy."
 
 ### B. The 7-Day Volume Forecast (Prophet)
-*   **What it does:** Forecasts daily workflow-event counts for the next seven days. Multiple events can belong to one document, so this is not a distinct-request forecast.
+*   **What it does:** Estimates daily incoming document requests for the next seven days from complete Manila-day arrival counts; exact document types use their own saved history.
 *   **How to defend it:** "The current **Prophet** endpoint fits DATE(timestamp_started), COUNT(*) from step_logs. It returns seven nonnegative integer predictions, without uncertainty bounds. Synthetic seed data supports demonstrations; meaningful staffing use requires a validated target, sufficient real history and held-out forecast error measurements."
 *   **Data source:** "The model is trained on historical timestamps from the `step_logs` table — every time a document moves through the pipeline, that timestamp becomes training data."
 
-### C. The Administrative Insights (Random Forest)
+### C. The Administrative Insights (Aggregate Analysis)
 *   **What it does:** Shows every active document queue with snapshot time and count-based review signals. Evaluation above 5 and pickup above 3 are advisory thresholds, not institutional capacity targets.
-*   **How to defend it:** "We utilized a **Random Forest** classification algorithm via Scikit-Learn to analyze current queue metrics (evaluation-queue count, release-queue count and today’s step-log count). It currently fits four coded examples. Node separately counts every active stage; low classifier output never confirms optimal performance. Experimental suggestions and count thresholds require human review alongside measured document waits."
+*   **How to defend it:** "Production advice uses measured queues, completion durations, transition samples and support-report aggregates. The existing AI service applies descriptive rules without receiving identities or chat transcripts. The four-example classifier is no longer used. Advice remains separate from saved measurements and cannot establish efficiency, causal bottlenecks or staffing gains."
 
 ---
 
@@ -606,13 +606,13 @@ Your panel will heavily scrutinize the "AI" part of your title. Here is exactly 
 > "The endpoint groups step_logs by date and counts rows, then fits Prophet for that request. mock_data_gen.py supplies synthetic demonstration history. Real events can replace that history, but more data alone does not guarantee improvement; target definition and held-out evaluation are needed."
 
 **Q8: How accurate is your volume forecast? Did you validate it?**
-> "The current API returns seven predictions without upper/lower bounds. This guide does not establish a measured accuracy result. We must evaluate held-out real history against the same step-log-count target, report errors and limitations, and avoid presenting synthetic worked examples as validation."
+> "The current API returns seven predictions without upper/lower bounds. This guide does not establish a measured accuracy result. We must evaluate held-out real history against the same recorded request-arrival target, report errors and limitations, and avoid presenting synthetic worked examples as validation."
 
 **Q9: Your system title says 'AI-Assisted' — is the OCR really AI or just pattern matching?**
 > "EasyOCR supplies pretrained neural text recognition. TRACE then uses parsing and text-matching rules to extract and compare fields. The AI component and the application’s matching rules are different parts; neither proves document authenticity or ownership."
 
 **Q10: What is Random Forest and why is it suitable for your recommendations engine?**
-> "Random Forest combines decision trees. Our current implementation uses ten trees fitted to four coded examples, with three count features and direct thresholds. It does not include time of day, weekday, clerk availability or a validated staffing dataset; recommendations are labelled experimental prototype outputs. The all-stage snapshot is measured queue data, and neither an empty queue nor classifier class 0 confirms efficiency."
+> "Random Forest combines decision trees, but the earlier four-coded-example prototype was not a validated operational model. Production no longer uses its classification. Current advice is descriptive analysis of real aggregates with explicit sample limits; a queue count or empty queue cannot confirm efficiency."
 
 ### 🔐 Security & Data Privacy Questions
 
@@ -665,7 +665,7 @@ Your panel will heavily scrutinize the "AI" part of your title. Here is exactly 
 > "PROGRESS records the executed Vitest regression suites, lint/build and synthetic browser checks with their limitations. The correct desk order is intake → evaluation/preparation/pricing → payment/Finance → OR inspection/handoff → release. Local mocks and emulation do not prove external mail delivery, physical-phone behavior, model accuracy or production load capacity. We report only checks actually performed."
 
 **Q25: Where does your mock data come from?**
-> "ai-engine/mock_data_gen.py generates synthetic step-log history for demonstration. It is not a study of real institutional demand. Forecasting uses the daily event aggregates; the Random Forest training examples remain four separately coded rows, clearly labelled unvalidated in the workload advisory. Never seed synthetic history into production merely to make the chart look convincing."
+> "ai-engine/mock_data_gen.py creates synthetic demonstration records, not evidence of institutional demand. Forecasting now uses recorded document-arrival aggregates, and production advice no longer uses the four-coded-example classifier. Never seed synthetic records into production to populate charts or present worked examples as validation."
 
 ---
 
@@ -820,3 +820,13 @@ Student chat is reached through Support; the dashboard launcher is removed. Supp
 Show separate browser tabs with distinct actors, reload them, and explain tab-local credentials plus unchanged server authorization. Demonstrate the three-step signup/request drafts, required current-student declaration and saved study years. Explain that Regular/Irregular reuses an existing column and does not change role. Show a confirmed mutation updating a list/count without reloading the page; refresh events contain resource names only.
 
 Demonstrate Admin assigning a pending intake to a same-college Secretary and the Secretary completing the existing intake checks. Unassigned/cross-college work remains denied. Show split-name editing with the saved suffix retained and the audit transaction. All Support accounts expose visible guidance and role-authorized controls; resolved conversations remain archived. Use synthetic data. Local test and Figma coverage is evidence of implementation review, not measured production effectiveness or a claim of perfect pixel parity.
+
+## Registration preflight follow-up
+
+Demonstrate a reserved Student ID blocked before leaving signup Academic Details. Explain that the public check returns availability only, has an independent rate limit and creates no reservation. Final validation and the unique database index still prevent concurrent duplicate accounts. Rejected applicants reuse their existing account. New Request Back preserves drafts/files, while only the first-step Cancel dismisses.
+
+### October 17 analytics correction supersedes prototype explanations
+
+For current demonstrations, Prophet consumes complete Manila-day document-arrival counts from Node, including observed idle days and exact type history. Estimates require 14 complete days, preserve zero and use an explicit deterministic historical weekday fallback when the model is unavailable. The earlier daily-step-log target and four-coded-example classifier explanations above describe superseded implementations. Production recommendations now use measured queue/report aggregates through the AI engine’s descriptive rules. Document and Support Analytics show advice for the loaded measurements separately from the authoritative charts. This does not establish validated predictive accuracy, causal bottlenecks or staffing gains. No identity or transcript is sent.
+
+Latest Support demonstration: the i icon opens the authorized linked request; permitted ticket-action icons reveal their names on hover and retain confirmations. Guidance is below messages and the identity header has no internal scrolling. Window badges partition the loaded records into current work, completed and other statuses, with the list limit visible. Admin service failures show unavailable instead of an assumed empty queue.

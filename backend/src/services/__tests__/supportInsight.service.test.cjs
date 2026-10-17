@@ -19,3 +19,13 @@ it('does not fetch aggregate support insights for another role',async()=>{
   vi.spyOn(reports,'dataset').mockResolvedValue({tickets:[],events:[],backlog:[]});
   await expect(service.get({id:1,role:'student'})).resolves.toEqual([]);expect(reports.dataset).not.toHaveBeenCalled();
 });
+
+it('analyzes the exact already-loaded period and reads only its preceding comparison dataset',async()=>{
+ vi.spyOn(tickets,'currentActor').mockResolvedValue({role:'admin'});
+ vi.spyOn(reports,'dataset').mockResolvedValue({tickets:[],events:[],backlog:[]});
+ vi.spyOn(ai,'getSupportInsights').mockResolvedValue(null);
+ await service.get({id:1,role:'admin'},{},data);
+ expect(reports.dataset).toHaveBeenCalledTimes(1);
+ expect(reports.dataset).toHaveBeenCalledWith(new Date('2026-09-30T00:00:00Z'),new Date('2026-10-01T00:00:00Z'));
+ expect(ai.getSupportInsights.mock.calls[0][0].period).toEqual(data.period);
+});

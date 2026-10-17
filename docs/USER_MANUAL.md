@@ -446,3 +446,15 @@ Every account's Support tab shows a visible conversation note above its history.
 Admin may delegate pending Window 1 intake to a Secretary within the request's verified college. The Secretary's Delegated Intake queue appears when assigned work exists; it does not grant general access to Window 1 work. Admin can edit name parts, and the displayed full name retains any saved suffix. Successful changes refresh active lists, details and counts automatically; unsaved drafts remain available.
 
 Logout confirmation centers its title and asks “Are you sure you want to log out?” Choose Stay Signed In to cancel. Log Out waits for server confirmation; connection failures remain visible for retry.
+
+## Signup ID check and request Back buttons — October 17 follow-up
+
+Continue on signup Academic Details checks whether your ID is already registered. An existing verified/pending account keeps you on this step with a red ID field; sign in or reset your password. If the check cannot complete, retry Continue when connected. A rejected student application may resubmit its existing account. The final submission still checks uniqueness, including when another registration completes after the first-step check. No second account is created with the same ID.
+
+The signup logo no longer has a Back to Login link above it; use the existing-account link at the bottom. Login fills the right edge with square corners and keeps autofilled text visible. New Request shows Cancel only in the first step. Later steps have one Back button; Back preserves the draft and selected files. Use the close icon to dismiss the later steps.
+
+### October 17 Support and analytics follow-up
+
+In Support, use the i icon to view the selected linked request. Staff ticket-action icons show their names on hover and keep their confirmation step. Conversation guidance is below the messages; the identity header stays fixed. Window 1/Receiving Desk Support Settings is beside the page heading. In Tracking Desk, Other statuses contains legacy or unrecognized records; all badges cover the same loaded records, and the caption explains any list limit.
+
+Admin Analytics shows saved measurements and separate AI-service advice for its loaded report period. Forecast type choices use actual saved document names and request history. Prophet estimates and historical weekday averages are labelled separately. An empty/short history or unavailable service is stated explicitly; no activity is fabricated.

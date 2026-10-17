@@ -3,7 +3,7 @@ const authController = require('../controllers/auth.controller');
 const authenticatorController = require('../controllers/authenticator.controller');
 const { authenticate, requireRole } = require('../middlewares/auth.middleware');
 const { idProofUpload, profilePictureUpload } = require('../middlewares/upload.middleware');
-const { loginLimiter, registerLimiter, passwordResetLimiter } = require('../middlewares/rateLimit.middleware');
+const { loginLimiter, registerLimiter, passwordResetLimiter, registrationIdLimiter } = require('../middlewares/rateLimit.middleware');
 
 const router = express.Router();
 const staffSetup = require('../controllers/staffAuthenticatorSetup.controller');
@@ -26,6 +26,7 @@ router.get('/security-logs', authenticate, authController.getSecurityLogs);
 router.get('/global-security-logs', authenticate, requireRole('admin'), authController.getGlobalSecurityLogs);
 router.get('/registration-options', authController.registrationOptions);
 router.put('/student/:id/study-years', authenticate, requireRole('admin'), authController.correctStudyYears);
+router.post('/registration-id-check', registrationIdLimiter, authController.checkRegistrationId);
 router.post('/register', registerLimiter, idProofUpload.single('id_proof'), authController.register);
 const emailVerification = require('../controllers/emailVerification.controller');
 router.post('/email-verification/resend', authenticate, passwordResetLimiter, emailVerification.resend);

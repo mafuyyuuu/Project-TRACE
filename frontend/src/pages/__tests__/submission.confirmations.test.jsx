@@ -7,6 +7,7 @@ import SignupPage from '@/pages/SignupPage';
 import ForgotPasswordPage from '@/pages/ForgotPasswordPage';
 import ResetPasswordPage from '@/pages/ResetPasswordPage';
 import api from '@/services/api';
+vi.mock('@/services/registrationService',()=>({checkRegistrationId:vi.fn().mockResolvedValue({available:true})}));
 import plpLoginLogo from '@/assets/plp-login-logo.png';
 
 const { auth, reset } = vi.hoisted(() => ({

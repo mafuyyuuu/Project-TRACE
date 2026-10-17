@@ -4,9 +4,11 @@ import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import SignupPage from '@/pages/SignupPage';
 import { getColleges, getPrograms } from '@/services/referenceService';
+import { checkRegistrationId } from '@/services/registrationService';
 import { PRIVACY_NOTICE_VERSION } from '@/utils/registrationPrivacy';
 
 const { register } = vi.hoisted(() => ({ register: vi.fn() }));
+vi.mock('@/services/registrationService',()=>({checkRegistrationId:vi.fn()}));
 vi.mock('@/hooks/useAuth', () => ({ default: () => ({ register, loading: false }) }));
 vi.mock('@/services/referenceService', () => ({ getColleges: vi.fn(), getPrograms: vi.fn() }));
 const programs = [
@@ -16,6 +18,7 @@ const programs = [
 ];
 beforeEach(() => {
   vi.clearAllMocks();
+  checkRegistrationId.mockResolvedValue({available:true});
   window.history.replaceState(null, '', '/signup');
   getColleges.mockResolvedValue({ colleges: [{ id: 1, name: 'College of Computer Studies' }, { id: 2, name: 'College of Education' }] });
   getPrograms.mockResolvedValue({ programs });
@@ -105,4 +108,29 @@ it('accepts alumni years beginning in 1999 without requiring current-student sta
  start();await userEvent.click(screen.getByRole('button',{name:'Alumni'}));await academic();expect(screen.queryByLabelText('Type of Student *')).not.toBeInTheDocument();
  fireEvent.change(screen.getByLabelText(/Year Started/,{selector:'input'}),{target:{value:'1999'}});fireEvent.change(screen.getByLabelText(/Year Graduated/,{selector:'input'}),{target:{value:'2003'}});await next();await personal();await next();await account();await userEvent.click(screen.getByRole('checkbox',{name:/I have read and acknowledge/}));await userEvent.click(screen.getByRole('button',{name:'Create Account'}));await userEvent.click(screen.getByRole('button',{name:'Submit Registration'}));
  await waitFor(()=>expect(register).toHaveBeenCalledOnce());expect(register.mock.calls[0][0].get('year_started')).toBe('1999');expect(register.mock.calls[0][0].get('study_load')).toBeNull();
+});
+
+it('blocks a registered ID on Academic details and rechecks a corrected ID before continuing',async()=>{
+ checkRegistrationId.mockResolvedValueOnce({available:false});start();await academic();await next();
+ const id=screen.getByLabelText('Student ID *');expect(id).toHaveAttribute('aria-invalid','true');
+ expect(id).toHaveAccessibleDescription('This ID is already registered. Sign in or reset your password.');
+ expect(screen.getByRole('heading',{name:'Academic details'})).toBeInTheDocument();expect(register).not.toHaveBeenCalled();
+ fireEvent.change(id,{target:{value:'SYN-NEW'}});await next();
+ expect(await screen.findByRole('heading',{name:'Personal information'})).toBeInTheDocument();
+ expect(checkRegistrationId).toHaveBeenLastCalledWith('SYN-NEW',expect.any(AbortSignal));
+});
+it('keeps step one retryable when the ID check fails',async()=>{
+ checkRegistrationId.mockRejectedValueOnce(new Error('offline'));start();await academic();await next();
+ expect(screen.getByLabelText('Student ID *')).toHaveAttribute('aria-invalid','true');
+ expect(screen.getByText(/Could not check this ID/)).toBeInTheDocument();
+ await next();expect(await screen.findByRole('heading',{name:'Personal information'})).toBeInTheDocument();
+});
+it('discards a delayed availability result after the academic draft changes',async()=>{
+ let complete;checkRegistrationId.mockImplementationOnce(()=>new Promise(resolve=>{complete=resolve}));
+ start();await academic();await next();expect(screen.getByRole('button',{name:'Checking ID…'})).toBeDisabled();
+ fireEvent.change(screen.getByLabelText('Student ID *'),{target:{value:'SYN-EDITED'}});
+ complete({available:true});await waitFor(()=>expect(screen.getByRole('button',{name:'Continue'})).toBeEnabled());
+ expect(screen.getByRole('heading',{name:'Academic details'})).toBeInTheDocument();
+ expect(screen.getByLabelText('Student ID *')).toHaveValue('SYN-EDITED');
+ await next();expect(await screen.findByRole('heading',{name:'Personal information'})).toBeInTheDocument();
 });

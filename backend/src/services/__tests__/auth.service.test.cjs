@@ -500,6 +500,13 @@ describe('register', () => {
     expect(await statusOf(service.register(body, null))).toBe(400);
   });
 
+  it('maps an insert race on the unique Student ID to the duplicate-ID validation error',async()=>{
+    userModel.createUser.mockRejectedValueOnce(Object.assign(new Error('Duplicate entry for key users.student_id'),{code:'ER_DUP_ENTRY'}));
+    await expect(service.register(body,file)).rejects.toMatchObject({status:400,message:'This ID is already registered.'});
+    expect(credentialConnection.rollback).toHaveBeenCalledOnce();
+    expect(credentialConnection.commit).not.toHaveBeenCalled();
+  });
+
   it('refuses an ID that is already registered', async () => {
     userModel.findExistingByStudentId.mockResolvedValue([{ id: 1, verification_status: 'verified' }]);
     expect(await statusOf(service.register(body, file))).toBe(400);
@@ -911,4 +918,25 @@ describe('current-student year level and section', () => {
     await expect(service.updateProfile(3, { year_level: '2nd Year', section: 'IT-2A' })).rejects.toMatchObject({ status: 403 });
     expect(userModel.upsertProfile).not.toHaveBeenCalled();
   });
+});
+
+describe('public registration ID check',()=>{
+ it.each(['verified','pending'])('blocks %s accounts without exposing their information',async verification_status=>{
+  userModel.findExistingByStudentId.mockResolvedValue([{id:91,role:'student',verification_status,email:'private@example.test'}]);
+  expect(await service.checkRegistrationId({employee_id:' 23-00939 '})).toEqual({available:false});
+  expect(userModel.findExistingByStudentId).toHaveBeenCalledWith('23-00939');
+ });
+ it('allows a new ID and the existing rejected-student resubmission path',async()=>{
+  userModel.findExistingByStudentId.mockResolvedValueOnce([]).mockResolvedValueOnce([{id:1,role:'student',verification_status:'rejected'}]);
+  expect(await service.checkRegistrationId({employee_id:'SYN-NEW'})).toEqual({available:true});
+  expect(await service.checkRegistrationId({employee_id:'SYN-REJECTED'})).toEqual({available:true});
+ });
+ it('does not offer staff accounts as student resubmissions',async()=>{
+  userModel.findExistingByStudentId.mockResolvedValue([{id:1,role:'clerk',verification_status:'rejected'}]);
+  expect(await service.checkRegistrationId({employee_id:'STAFF-1'})).toEqual({available:false});
+ });
+ it.each([undefined,null,'',' ',123,[],'x'.repeat(51),'SYN\n1'])('rejects invalid IDs before reading accounts (%j)',async employee_id=>{
+  await expect(service.checkRegistrationId({employee_id})).rejects.toMatchObject({status:400});
+  expect(userModel.findExistingByStudentId).not.toHaveBeenCalled();
+ });
 });

@@ -16,6 +16,7 @@ export default function useDashboardCore(user) {
   const requestVersion = useRef(0);
   useEffect(() => () => { requestVersion.current += 1; }, []);
   const [documents, setDocuments] = useState([]);
+  const [documentTotal,setDocumentTotal]=useState(null);
   const [dashStats, setDashStats] = useState({
     processed_today: 0,
     cleared_by_secretary_today: 0,
@@ -26,6 +27,7 @@ export default function useDashboardCore(user) {
     ready_window_1_count: 0,
   });
 
+  const [statsAvailable,setStatsAvailable]=useState(false);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
   const [error, setError] = useState('');
@@ -67,12 +69,14 @@ export default function useDashboardCore(user) {
       if (version !== requestVersion.current) return;
       setError('');
       setDocuments(docsData.documents || []);
+      setDocumentTotal(Number.isSafeInteger(Number(docsData.total)) && Number(docsData.total)>=0 ? Number(docsData.total) : (docsData.documents || []).length);
       setSelectedDoc(current => current ? { ...current, ...(docsData.documents || []).find(item => item.id === current.id) } : current);
 
       try {
         const stats = await getDashboardStats();
-        if (version === requestVersion.current) setDashStats(stats);
+        if (version === requestVersion.current) {setDashStats(stats);setStatsAvailable(true);}
       } catch {
+        if (version === requestVersion.current) setStatsAvailable(false);
         console.warn('Stats unavailable');
       }
     } catch (err) {
@@ -133,8 +137,8 @@ export default function useDashboardCore(user) {
   );
 
   return {
-    documents,
-    dashStats,
+    documents, documentTotal,
+    dashStats, statsAvailable,
     loading,
     actionLoading,
     error,

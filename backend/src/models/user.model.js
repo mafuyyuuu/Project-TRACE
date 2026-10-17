@@ -31,7 +31,7 @@ function getProfileById(userId, executor = pool, lock = false) {
 
 function findExistingByStudentId(studentId, executor = pool) {
   return executor
-    .query('SELECT id, verification_status FROM users WHERE student_id = ?', [studentId])
+    .query('SELECT id, role, verification_status FROM users WHERE student_id = ?', [studentId])
     .then(([rows]) => rows);
 }
 

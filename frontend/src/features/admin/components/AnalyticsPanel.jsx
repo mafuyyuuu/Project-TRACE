@@ -1,3 +1,4 @@
+import AnalyticsAdvice from '@/components/AnalyticsAdvice';
 import FilterSelect from '@/components/FilterSelect';
 import Button from '@/components/Button';
 import AdminIcon from './AdminIcon';
@@ -61,22 +62,24 @@ function DocumentAnalytics({ user, currentTab }) {
       <DashboardAlerts success={r.success} error={r.error} onDismiss={r.dismissNotification} />
 
       <div className="trace-page trace-admin-document-analytics">
+        <AnalyticsAdvice analysis={a.analysis}/>
+        <p className="trace-page-description">Completion and desk measurements cover {a.range?.dateFrom || 'all recorded dates'} through {a.range?.dateTo || 'the latest saved action'}. Releases show the last {a.range?.days || 30} days.</p>
 
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <MetricCard
             label="Avg. End-to-End" icon="analytics-clock"
-            value={formatDuration(a.end_to_end.avg_minutes)}
+            value={a.end_to_end.completed_count ? formatDuration(a.end_to_end.avg_minutes) : '—'}
             sub={`Across ${a.end_to_end.completed_count} completed documents`}
             tone="good"
           />
           <MetricCard
             label="Fastest Completion" icon="analytics-zap"
-            value={formatDuration(a.end_to_end.min_minutes)}
+            value={a.end_to_end.completed_count ? formatDuration(a.end_to_end.min_minutes) : '—'}
             sub="Best observed turnaround"
           />
           <MetricCard
             label="Slowest Completion" icon="analytics-trend"
-            value={formatDuration(a.end_to_end.max_minutes)}
+            value={a.end_to_end.completed_count ? formatDuration(a.end_to_end.max_minutes) : '—'}
             sub="Worst observed turnaround"
             tone="warn"
           />

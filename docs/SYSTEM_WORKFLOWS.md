@@ -470,3 +470,15 @@ Request selection → details → review shares one modal lifetime. Confirmation
 For an Admin-delegated pending intake, the locked request must still be assigned to that Secretary and match the Secretary's verified college. Both assignment and intake enforce this independently. Existing intake validation, supporting documents, audit and pipeline transitions remain. Unassigned or cross-college Secretary intake is rejected; Window 1 cannot bypass another processor's assignment.
 
 Support guidance is always visible above history in all accounts. Resolve/Reopen/reply requests keep server permissions and confirmation. Resolved tickets retain archive history. No chat content or identity is broadcast by the new resource invalidation event.
+
+## First-step ID check and request navigation follow-up
+
+Signup Academic Details → successful ID availability check → Personal Information → Account & Verification → existing confirmed registration. A taken ID or failed check stays on Academic Details with inline feedback. No availability check grants a reservation or bypasses the final registration/unique constraint. Rejected students resubmit the original account; verified/pending accounts cannot register again.
+
+New Request keeps one dialog lifetime. Step one Cancel dismisses it; later steps have one Back action returning to the preceding step without clearing files/values. The separate text Back/Edit details action is removed. These navigation refinements do not change the filing or payment workflow.
+
+## October 17 Support/analytics correction
+
+All account variants share a fixed conversation identity/status header with an i button for authorized linked request details. Permitted ticket actions are adjacent icon buttons with accessible/hover labels and unchanged confirmations. Conversation guidance lives below history; messages and bounded supporting/composer panels scroll independently; the identity header never scrolls. Window/Receiving Support Settings appears in the page heading above How live support works. Window Tracking’s loaded-record totals now partition into In progress, Completed and Other statuses, with the current loaded/server-total scope visible. Legacy or unrecognized records are inspectable under Other statuses.
+
+Admin efficiency figures continue to come from saved documents and step_logs. Document and support report aggregates are sent to the existing AI service for descriptive advice, without personal fields. No current advice uses the four-example classifier. Prophet forecasts use recorded document arrivals, exact type history and observed zero days; explicit history-based fallback/insufficient/unavailable states replace random volumes and hardcoded percentages. An estimate remains an estimate, never an observed count.

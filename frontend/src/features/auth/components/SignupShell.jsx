@@ -11,7 +11,6 @@ const steps = [
 export default function SignupShell({ step, complete, children }) {
   return <div className="trace-signup-shell">
     <aside className="trace-signup-brand">
-      <Link to="/" className="trace-signup-login trace-action">← Back to Login</Link>
       <div className="trace-signup-brand-logo"><div><img src={traceLogo} alt="TRACE" width="2000" height="2000" /></div><p>PLP REGISTRAR'S OFFICE</p></div>
       <div className="trace-signup-intro"><h2>Create your TRACE account</h2><p>Request documents and track them from one place, without the queue.</p>
         <ol className="trace-signup-steps" aria-label="Registration steps">{steps.map(([title, description], i) => <li key={title} data-active={complete || i + 1 <= step} aria-current={!complete && i + 1 === step ? 'step' : undefined}>

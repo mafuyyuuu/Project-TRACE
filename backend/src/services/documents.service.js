@@ -498,44 +498,29 @@ async function getStats(user) {
   };
 }
 
-/**
- * 7-day volume forecast from Prophet, falling back to a day-of-week lookup
- * over the last 14 days of step_logs when the AI engine is down.
- */
-async function getForecast() {
-  const aiData = await aiEngine.getForecast();
-  if (aiData) return aiData;
-
-  const rows = await documentModel.forecastFallbackRows();
-  const today = new Date();
-  const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-  const forecast = [];
-
-  for (let i = 0; i < 7; i++) {
-    const d = new Date(today);
-    d.setDate(d.getDate() + i);
-    const historicalMatch = rows.find((r) => new Date(r.date).getDay() === d.getDay());
-    forecast.push({
-      date: d.toISOString().split('T')[0],
-      day: dayNames[d.getDay()],
-      predicted_volume: historicalMatch
-        ? historicalMatch.volume + Math.floor(Math.random() * 5)
-        : Math.floor(Math.random() * 20) + 10,
-    });
-  }
-
-  return { forecast, source: 'fallback' };
+/** Real incoming requests, exact document type and explicitly labelled methods. */
+async function getForecast(query = {},user) {
+  if(user?.role!=='admin')throw forbidden('Only Admin can view volume forecasts.');
+  const type=query.documentType;
+  if (type != null && (typeof type!=='string' || !type.trim() || type.length>255)) throw badRequest('Choose a valid document type.');
+  const {historyWindow,fallback,validModel}=require('../utils/volumeForecast');
+  const [rows,types]=await Promise.all([documentModel.forecastFallbackRows(type?.trim() || null),documentModel.forecastDocumentTypes()]);
+  const data=historyWindow(rows);
+  const metadata={document_types:types,document_type:type?.trim() || null,history_days:data.history.length,sample_size:data.history.reduce((sum,row)=>sum+row.volume,0),as_of:new Date().toISOString(),timezone:data.timezone};
+  if (data.history.length<14) return {...fallback(data),...metadata};
+  const model=await aiEngine.getForecast(data);
+  return {...(validModel(model,data) ? {forecast:model.forecast,source:'prophet',message:'Prophet estimate fitted to recorded incoming requests; estimates are not guaranteed volumes.'} : fallback(data)),...metadata};
 }
 
 /** Read every active stage; optional model output never decides measured efficiency. */
 async function getDocumentInsights() {
-  const { snapshot, buildInsights, prototypePrediction } = require('../utils/documentInsights');
+  const { snapshot, buildInsights } = require('../utils/documentInsights');
   const [queues, todayActions] = await Promise.all([
     documentModel.insightQueueCounts(), documentModel.countStepLogsToday(),
   ]);
   const data = snapshot(queues, todayActions);
   const model = await aiEngine.getInsights(data);
-  return { insights: buildInsights(data, prototypePrediction(model)), source: 'queue_snapshot', snapshot: data };
+  return { insights: buildInsights(data), source: 'queue_snapshot', analysis_source:model?.source==='aggregate_rules' ? 'ai_engine_aggregate_rules' : 'local_queue_snapshot', snapshot: data };
 }
 async function getInsights(user) {
   const [documents,support]=await Promise.all([getDocumentInsights(),user?.role==='admin' ? require('./supportInsight.service').get(user) : []]);

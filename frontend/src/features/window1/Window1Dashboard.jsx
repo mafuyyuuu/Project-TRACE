@@ -35,7 +35,7 @@ export default function Window1Dashboard({ user, currentTab, setViewImageUrl }) 
     success,
     dismissNotification,
     error,
-    documents,
+    documents, documentTotal,
     intakeQueue,
     releaseQueue,
     dashStats,
@@ -98,7 +98,7 @@ export default function Window1Dashboard({ user, currentTab, setViewImageUrl }) 
           queueTab={queueTab} onQueueTab={setQueueTab} upload={{file:scanFile,onChange:simulateHardwareScan}} onManual={() => setActiveModal('manual-input')}
           onProfile={setViewProfileId} onIntake={doc => {setSelectedDoc(doc);setActiveModal('intake-review');}} onRelease={handleWindow1Release} onPreview={setViewImageUrl} now={now} busy={actionLoading}/>
         }
-        {currentTab === 'tracking-desk' && <WindowTracking documents={documents} filtered={progressDocuments} filter={progressFilter} onFilter={changeProgressFilter}
+        {currentTab === 'tracking-desk' && <WindowTracking documents={documents} total={documentTotal} filtered={progressDocuments} filter={progressFilter} onFilter={changeProgressFilter}
           pagination={progressPagination} page={progressPagination?.page || w1ProgressPage} pageSize={progressPagination?.pageSize || itemsPerPage} onPage={setW1ProgressPage} onRefresh={loadDashboardData}/>
         }
 

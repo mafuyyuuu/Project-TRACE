@@ -20,6 +20,8 @@ async function aggregate(query = {}) {
 async function report(user,query = {}) {
   const actor=await tickets.currentActor(user);
   if(actor?.role !== 'admin')throw forbidden('Only Admin can view support analytics.');
-  return aggregate(query);
+  const result=await aggregate(query);
+  const insights=await require('./supportInsight.service').get(user,query,result);
+  return {...result,analysis:{source:insights.length && insights.every(row=>row.method==='aggregate_rules') ? 'ai_engine_aggregate_rules' : 'unavailable',insights}};
 }
 module.exports={period,aggregate,report};

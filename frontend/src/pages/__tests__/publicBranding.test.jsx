@@ -36,7 +36,8 @@ it.each([
   if (Page === SignupPage) {
     expect(screen.getByRole('img',{name:'TRACE'})).toHaveAttribute('src',expect.stringContaining('trace-auth-logo-white.png'));
     await screen.findByRole('option',{name:'Test College'});
-    expect(screen.getByRole('link',{name:/^← Back to Login/})).toHaveAttribute('href','/');
+    expect(screen.queryByRole('link',{name:/^← Back to Login/})).not.toBeInTheDocument();
+    expect(screen.getByRole('link',{name:'Back to Login',exact:true})).toHaveAttribute('href','/');
     return;
   }
   const logos = screen.getAllByRole('img', { name: 'Pamantasan ng Lungsod ng Pasig logo' })

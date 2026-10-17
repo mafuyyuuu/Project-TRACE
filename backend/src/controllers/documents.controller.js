@@ -58,7 +58,7 @@ async function stats(req, res) {
 
 async function forecast(req, res) {
   try {
-    res.json(await documentsService.getForecast());
+    res.json(await documentsService.getForecast(req.query,req.user));
   } catch (err) {
     fail(res, err, 'Forecast error', 'Failed to fetch forecast.');
   }
