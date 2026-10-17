@@ -458,3 +458,10 @@ The signup logo no longer has a Back to Login link above it; use the existing-ac
 In Support, use the i icon to view the selected linked request. Staff ticket-action icons show their names on hover and keep their confirmation step. Conversation guidance is below the messages; the identity header stays fixed. Window 1/Receiving Desk Support Settings is beside the page heading. In Tracking Desk, Other statuses contains legacy or unrecognized records; all badges cover the same loaded records, and the caption explains any list limit.
 
 Admin Analytics shows saved measurements and separate AI-service advice for its loaded report period. Forecast type choices use actual saved document names and request history. Prophet estimates and historical weekday averages are labelled separately. An empty/short history or unavailable service is stated explicitly; no activity is fabricated.
+
+
+## Admin PDF report downloads
+
+Admin can choose **Reports & Export → Export PDF**, then select filtered document records, document efficiency analytics or support analytics. Records use the successfully applied report filters; document PDF exports include every matching row, independently of the current page, up to 1,000 rows. Narrow larger scopes or use CSV. Analytics exports have their own Manila From/Through dates; blank support dates mean the last 30 days, while blank document dates use all completion/desk history with the latest 30 days of releases.
+
+In **Efficiency Analytics**, each document/support view also has **Export PDF**. Apply period first: unsubmitted date edits do not affect export. Document staff search/desk filters apply to the complete staff dataset; shares retain the all-staff denominator. PDFs contain timestamps, scope, summaries, vector charts, complete matching tables and available aggregate AI advice. They re-read current authorized saved data at download time, so later changes can differ from previously loaded screen values. Missing measurements and unavailable AI remain explicit. Raw chats, uploads and proof files are excluded. The PDF is a downloadable file; CSV remains available to the existing reporting roles.

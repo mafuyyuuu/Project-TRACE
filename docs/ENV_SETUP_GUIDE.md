@@ -1178,3 +1178,8 @@ nullable `student_profiles.year_level` and `student_profiles.section` (20 charac
 each). No enrollment values are guessed or backfilled, and historical years/request
 records are preserved. Current students fill both fields in Edit Profile before
 filing; alumni retain their existing education requirements. No environment change.
+
+
+## PDF export dependencies
+
+Admin PDF export uses the backend package lock (@pdf-lib/fontkit with existing pdf-lib), embedded Inter fonts and existing reporting/AI connections. There is no new secret, environment setting, database migration or server browser/PDF binary. Rebuild the backend image (or run backend npm ci for a non-Docker deployment) and deploy the matching frontend. Keep fonts and the bundled OFL license in src/utils. Existing aggregate AI outage handling remains available in the PDF.

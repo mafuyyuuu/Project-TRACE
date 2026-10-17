@@ -61,3 +61,22 @@ export async function getReportFilterOptions(signal) {
   if(!Array.isArray(data?.colleges)||!Array.isArray(data?.document_types)) throw new Error('Invalid report options response.');
   return data;
 }
+
+/** Authenticated, server-generated PDF. The server rechecks Admin authorization. */
+export async function downloadReportPdf(kind, filters = {}, signal) {
+  if (!['records','efficiency','support'].includes(kind)) throw new Error('Choose a valid PDF report.');
+  let response;
+  try {
+    response = await api.get(`/reports/export/${kind}.pdf`, { params: filters, responseType:'blob', signal, timeout:90000 });
+  } catch(error) { throw await decodeCsvError(error); }
+  if(signal?.aborted)throw new DOMException('Export cancelled.','AbortError');
+  const blob=response.data;
+  if(!blob || blob.size<5 || !(response.headers['content-type'] || blob.type || '').startsWith('application/pdf') || await blob.slice(0,5).text()!=='%PDF-') throw new Error('The server did not return a valid PDF. Retry the export.');
+  if(signal?.aborted)throw new DOMException('Export cancelled.','AbortError');
+  const name=(response.headers['content-disposition'] || '').match(/filename="([^"]+)"/)?.[1];
+  const filename=/^trace-(records|efficiency|support)-report-\d{4}-\d{2}-\d{2}\.pdf$/.test(name || '')?name:`trace-${kind}-report.pdf`;
+  const url=URL.createObjectURL(blob),link=document.createElement('a');
+  try {link.href=url;link.download=filename;document.body.appendChild(link);link.click();}
+  finally {link.remove();setTimeout(()=>URL.revokeObjectURL(url),1000).unref?.();}
+  return filename;
+}

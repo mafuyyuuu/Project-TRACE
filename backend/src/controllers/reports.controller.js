@@ -58,4 +58,14 @@ async function filterOptions(req,res) {
   catch(err) { fail(res,err,'Report options error','Could not load report options.'); }
 }
 
-module.exports = { filterOptions, documentReport, exportStudents, exportDocuments, analytics };
+async function exportPdf(req,res) {
+  try {
+    const {filename,bytes}=await require('../services/reportPdf.service').generate(req.user,req.params.kind,req.query);
+    res.setHeader('Content-Type','application/pdf');
+    res.setHeader('Content-Disposition',`attachment; filename="${filename}"`);
+    res.setHeader('Cache-Control','private, no-store');
+    res.setHeader('X-Content-Type-Options','nosniff');
+    res.send(bytes);
+  } catch(err) {fail(res,err,'PDF report error','Could not generate the PDF report. Try again.');}
+}
+module.exports = { exportPdf, filterOptions, documentReport, exportStudents, exportDocuments, analytics };

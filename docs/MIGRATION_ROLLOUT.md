@@ -737,3 +737,8 @@ Check a taken ID, an unused ID, failed-check retry, changed-ID cancellation and 
 ## October 17 Support and analytics follow-up
 
 No new migration, environment variable or dependency. Deploy the matching backend first (registration-ID preflight and real-history forecast fallback), rebuild/restart the existing AI service for POST /forecast and POST /ai/document-analytics, then deploy the matching frontend. Existing /ai/support-insights now also analyzes the selected Support Analytics period. Until the AI service is upgraded/reachable, measured charts remain available, forecast uses its labelled historical weekday average when enough history exists, and AI analysis reports unavailable. An old backend does not provide registration-id-check, so the new signup intentionally cannot leave step one until matching backend deployment. This work does not deploy production services or main.
+
+
+## Admin PDF export rollout
+
+No database migration or new environment variable is required for PDF reports. Deploy the matching frontend and backend together. Rebuild the backend image to install the pinned @pdf-lib/fontkit dependency and package the two embedded Inter TTFs plus their OFL license under src/utils; restarting an older image alone is insufficient. A non-Docker install needs `npm --prefix backend ci` before restart. The AI engine is unchanged by this feature; its availability determines whether existing report advice is included or marked unavailable. Verify a real Admin PDF download and a non-Admin 403 after deployment.

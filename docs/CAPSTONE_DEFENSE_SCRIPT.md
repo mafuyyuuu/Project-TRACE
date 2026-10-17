@@ -341,3 +341,8 @@ Student chat is reached through Support; the dashboard launcher is removed. Supp
 Demonstrate a reserved Student ID blocked before leaving signup Academic Details. Explain that the public check returns availability only, has an independent rate limit and creates no reservation. Final validation and the unique database index still prevent concurrent duplicate accounts. Rejected applicants reuse their existing account. New Request Back preserves drafts/files, while only the first-step Cancel dismisses.
 
 Latest Support demonstration: the i icon opens the authorized linked request; permitted ticket-action icons reveal their names on hover and retain confirmations. Guidance is below messages and the identity header has no internal scrolling. Window badges partition the loaded records into current work, completed and other statuses, with the list limit visible. Admin service failures show unavailable instead of an assumed empty queue.
+
+
+## Admin PDF demonstration addendum
+
+“Admin can now download a generated PDF from Reports & Export, or directly from Document and Support Analytics. We apply a period first, then open the downloaded file: its timestamp, filters, measured summaries, charts and complete matching tables remain readable outside the application. Available AI advice is labeled separately. Missing measurements stay explicit, and raw conversations and proof uploads are excluded. The PDF re-reads current saved data, includes up to 1,000 matching rows, and asks us to narrow larger scopes. Other reporting accounts retain their authorized CSV exports.”

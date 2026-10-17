@@ -51,3 +51,10 @@ it('scopes legacy college names and student category exports without changing th
   expect(sql).toContain('AND u.course = ?');
   expect(params).toEqual(['Legacy College']);
 });
+
+it('uses both applied reporting dates for releases and retains the default rolling window only without dates',async()=>{
+ const executor={query:vi.fn().mockResolvedValue([[]])};
+ await model.throughputByDay({days:30,dateFrom:'2026-09-01',dateTo:'2026-09-30'},executor);
+ let [sql,params]=executor.query.mock.calls[0];expect(sql).toContain('sl.timestamp_started >= ?');expect(sql).toContain('sl.timestamp_started < DATE_ADD(?, INTERVAL 1 DAY)');expect(sql).not.toContain('DATE_SUB');expect(params).toEqual(['2026-09-01','2026-09-30']);
+ await model.throughputByDay({days:15},executor);[sql,params]=executor.query.mock.calls[1];expect(sql).toContain('DATE_SUB');expect(params).toEqual([15]);
+});

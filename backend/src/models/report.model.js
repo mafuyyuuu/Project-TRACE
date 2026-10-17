@@ -265,16 +265,21 @@ function endToEndCompletion({ dateFrom, dateTo } = {}, executor = pool) {
 }
 
 /** Completed documents per day, for the throughput trend. */
-function throughputByDay({ days = 30 } = {}, executor = pool) {
+function throughputByDay({ days = 30, dateFrom, dateTo } = {}, executor = pool) {
+  const params=[];
+  let range='';
+  if(dateFrom){range+=' AND sl.timestamp_started >= ?';params.push(dateFrom);}
+  if(dateTo){range+=' AND sl.timestamp_started < DATE_ADD(?, INTERVAL 1 DAY)';params.push(dateTo);}
+  if(!dateFrom && !dateTo){range=' AND sl.timestamp_started >= DATE_SUB(CURDATE(), INTERVAL ? DAY)';params.push(days);}
   return executor
     .query(
       `SELECT DATE(sl.timestamp_started) AS date, COUNT(DISTINCT sl.document_id) AS completed
        FROM step_logs sl
        WHERE sl.action_taken = 'released'
-         AND sl.timestamp_started >= DATE_SUB(CURDATE(), INTERVAL ? DAY)
+         ${range}
        GROUP BY DATE(sl.timestamp_started)
        ORDER BY date`,
-      [days]
+      params
     )
     .then(([rows]) => rows);
 }

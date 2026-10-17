@@ -1,3 +1,4 @@
+import ReportPdfModal from './ReportPdfModal';
 import { isWindowClerk } from '@/utils/windowPresentation';
 import AdminTimestamp from './AdminTimestamp';
 import AdminIcon from './AdminIcon';
@@ -42,6 +43,7 @@ export default function ReportsPanel({ user, currentTab, initialRecordSet = '' }
   const isSecretary = user?.role === 'clerk' && user.desk_assignment === 'Secretary';
   const [viewProfileId, setViewProfileId] = useState(null);
   const [filtersOpen,setFiltersOpen]=useState(false);
+  const [pdfOpen,setPdfOpen]=useState(false);
   const reference=useReportFilterOptions(true);
   const recordsId = useId();
 
@@ -52,6 +54,7 @@ export default function ReportsPanel({ user, currentTab, initialRecordSet = '' }
 
   return (
     <>
+      {pdfOpen && <ReportPdfModal filters={r.filters} scopeText={appliedFilterSummary(r.filters,reference.options)} recordsReady={Boolean(r.report)&&!r.refreshing} onClose={()=>setPdfOpen(false)}/>}
       <StudentProfileModal viewerRole={user?.role} open={!!viewProfileId} studentId={viewProfileId} onClose={() => setViewProfileId(null)} />
       <DashboardAlerts success={r.success} error={r.error} onDismiss={r.dismissNotification} />
 
@@ -62,10 +65,11 @@ export default function ReportsPanel({ user, currentTab, initialRecordSet = '' }
               {admin ? 'Reports & Export' : <>{isSecretary ? 'Records' : 'Reports'} & <span className="text-[#15803d] dark:text-green-300">Export</span></>}
             </h2>
             <p className="trace-page-description">
-              {isSecretary ? 'Review records for your assigned college, including cleared requests, and export to CSV.' : 'Filter records, review the totals, and export to CSV.'}
+              {isSecretary ? 'Review records for your assigned college, including cleared requests, and export to CSV.' : user?.role==='admin'?'Filter records, review totals, and export CSV or PDF reports.':'Filter records, review the totals, and export to CSV.'}
             </p>
           </div>
-          <div className="ml-auto">
+          <div className="trace-actions ml-auto">
+            {user?.role==='admin' && <Button type="button" className="trace-button trace-button-secondary" onClick={()=>setPdfOpen(true)}><AdminIcon name="download" className="brightness-0 dark:invert"/>Export PDF</Button>}
             <Button type="button" className="trace-button trace-button-primary" onClick={()=>setFiltersOpen(true)}>{admin && <AdminIcon name="download" className="h-4 w-4" />}{admin ? 'Export CSV' : 'Export'}</Button>
           </div>
         </div>

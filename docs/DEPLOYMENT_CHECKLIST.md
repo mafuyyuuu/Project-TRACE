@@ -186,3 +186,11 @@ Signup uses manually entered identity fields. The pre-submit Read ID autofill an
 The retained `/ocr/verify` route checks readable school, exact identifier and selected college text on the original image first. A successful pass cannot be replaced by a longer unsuccessful scan. A bounded fallback checks the processed image independently; it does not combine incomplete scans. Registration proof calls allow 45 seconds; unrelated AI calls retain their deadlines. A timeout/mismatch remains pending with a safe explanation. This matches text and cannot establish the physical ID's authenticity. Already-pending accounts still need Admin review; deployment does not bulk-approve them.
 
 Rebuild/recreate both backend and AI engine from the matching `dev` revision, then deploy the matching frontend. No new migration is required for this signup change. The request-catalog migration from the preceding release remains a separate prerequisite if not applied. Use `python -m unittest test_registration_verification test_proof_ocr` from `ai-engine` for the proof-check regressions. `/api/ai/extract-id` and `/ocr/identity` should now return 404.
+
+
+## Admin PDF report deployment
+
+- [ ] Deploy matching frontend and rebuild backend dependencies/image; no new migration or environment variable.
+- [ ] As Admin, export filtered document records across multiple table pages, and document/support analytics with a custom Manila period. Open the actual PDF and check totals, labels, charts, repeated headers and complete tables.
+- [ ] Verify CSV still downloads; non-Admin PDF requests return 403. Test a narrowed period after an oversized PDF is refused.
+- [ ] With AI unavailable, verify measured reports still download with unavailable analysis explicitly marked.
