@@ -80,3 +80,7 @@ export async function downloadReportPdf(kind, filters = {}, signal) {
   finally {link.remove();setTimeout(()=>URL.revokeObjectURL(url),1000).unref?.();}
   return filename;
 }
+export async function getAiEvaluation(params = {}, signal) {
+  const { data } = await api.get('/reports/ai-evaluation', { params, signal });
+  return data;
+}
