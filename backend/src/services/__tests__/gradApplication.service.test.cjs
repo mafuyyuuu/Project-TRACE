@@ -7,6 +7,8 @@ const gradModel = require('../../models/gradApplication.model');
 const userModel = require('../../models/user.model');
 const { pool } = require('../../config/db');
 const service = require('../gradApplication.service');
+const referenceModel = require('../../models/referenceData.model');
+const programs = require('../../models/program.model');
 
 const STUDENT = { id: 3, role: 'student', full_name: 'Ana Reyes' };
 const ADMIN = { id: 7, role: 'admin' };
@@ -44,6 +46,12 @@ beforeEach(() => {
   vi.spyOn(gradModel, 'updateApplicationStatus').mockResolvedValue([{ affectedRows: 1 }]);
 
   vi.spyOn(userModel, 'findStudentIdById').mockResolvedValue([{ student_id: 'STU-001' }]);
+  vi.spyOn(userModel, 'updateProfile').mockResolvedValue([{}]);
+  const college = { id: 1, name: 'College of Computer Studies', is_active: 1 };
+  vi.spyOn(referenceModel, 'findCollegeByName').mockResolvedValue([college]);
+  vi.spyOn(referenceModel, 'findCollegeById').mockResolvedValue([college]);
+  vi.spyOn(programs, 'lockCollege').mockResolvedValue(college);
+  vi.spyOn(programs, 'findByName').mockResolvedValue({ name: 'BSIT', is_active: 1 });
 });
 
 describe('validateAnswers — driven entirely by the field definitions', () => {
@@ -117,7 +125,7 @@ describe('validateAnswers — driven entirely by the field definitions', () => {
 });
 
 describe('submitApplication', () => {
-  const valid = { answers: { year_graduated: '2024', program: 'BSIT' } };
+  const valid = { answers: { year_graduated: '2024', college: 'College of Computer Studies', program: 'BSIT' } };
 
   it('files the application against the session student, not a client-supplied id', async () => {
     await service.submitApplication(STUDENT, { ...valid, student_id: 'STU-999' });
@@ -130,7 +138,46 @@ describe('submitApplication', () => {
   it('stores one row per supplied answer and skips empty ones', async () => {
     await service.submitApplication(STUDENT, valid);
     const keys = gradModel.insertValue.mock.calls.map((c) => c[0].field_key);
-    expect(keys).toEqual(['year_graduated', 'program']);
+    expect(keys).toEqual(['year_graduated', 'college', 'program']);
+  });
+
+  it('publishes College and catalog-backed Degree Program without a migration', async () => {
+    const { fields } = await service.getFormFields();
+    expect(fields.map(f => f.field_key)).toEqual(['year_graduated', 'college', 'program', 'contact_email', 'grad_date']);
+    expect(fields.find(f => f.field_key === 'college')).toMatchObject({ field_type: 'select', catalog: 'colleges', is_required: 1 });
+    expect(fields.find(f => f.field_key === 'program')).toMatchObject({ field_type: 'select', catalog: 'programs' });
+    gradModel.listFields.mockResolvedValue([FIELDS[0]]);
+    expect((await service.getFormFields()).fields).toEqual([FIELDS[0]]);
+  });
+
+  it.each(['foreign', 'inactive'])('rejects an %s program before writing', async kind => {
+    programs.findByName.mockResolvedValue(kind === 'foreign' ? null : { name: 'BSIT', is_active: 0 });
+    await expect(service.submitApplication(STUDENT, valid)).rejects.toMatchObject({ status: 400 });
+    expect(pool.getConnection).not.toHaveBeenCalled();
+    expect(gradModel.insertApplication).not.toHaveBeenCalled();
+  });
+
+  it('rejects an inactive college and missing college', async () => {
+    referenceModel.findCollegeById.mockResolvedValue([{ id: 1, is_active: 0 }]);
+    await expect(service.submitApplication(STUDENT, valid)).rejects.toMatchObject({ status: 400 });
+    await expect(service.submitApplication(STUDENT, { answers: { year_graduated: '2024', program: 'BSIT' } }))
+      .rejects.toThrow('College is required');
+    expect(gradModel.insertApplication).not.toHaveBeenCalled();
+  });
+
+  it('rechecks catalog membership under transaction locks and rolls back on deactivation', async () => {
+    programs.findByName.mockResolvedValueOnce({ name: 'BSIT', is_active: 1 }).mockResolvedValueOnce(null);
+    await expect(service.submitApplication(STUDENT, valid)).rejects.toMatchObject({ status: 400 });
+    expect(programs.lockCollege).toHaveBeenCalledWith(1, connection);
+    expect(programs.findByName).toHaveBeenLastCalledWith(1, 'BSIT', connection, true);
+    expect(connection.rollback).toHaveBeenCalledOnce();
+    expect(gradModel.insertApplication).not.toHaveBeenCalled();
+  });
+
+  it('stores canonical names without changing the profile academic fields', async () => {
+    await service.submitApplication({ ...STUDENT, user_type: 'alumni' }, valid);
+    expect(gradModel.insertValue).toHaveBeenCalledWith({ application_id: 42, field_key: 'college', value: 'College of Computer Studies' }, connection);
+    expect(userModel.updateProfile).toHaveBeenCalledWith(STUDENT.id, { profile_completed: true }, connection);
   });
 
   it('rejects an invalid submission before writing anything', async () => {
@@ -204,6 +251,19 @@ describe('reading applications', () => {
     gradModel.findValues.mockResolvedValue([{ field_key: 'retired_question', value: 'kept' }]);
     const { answers } = await service.getApplication(ADMIN, 42);
     expect(answers.find((a) => a.field_key === 'retired_question').value).toBe('kept');
+  });
+
+  it('keeps saved college names and legacy program text readable without querying the current catalog', async () => {
+    gradModel.findApplicationById.mockResolvedValue([APP]);
+    gradModel.findValues.mockResolvedValue([
+      { field_key: 'college', value: 'Former College Name' },
+      { field_key: 'program', value: 'Legacy Degree Name' },
+    ]);
+    const { answers } = await service.getApplication(ADMIN, 42);
+    expect(answers.find(a => a.field_key === 'college')).toMatchObject({ label: 'College', value: 'Former College Name' });
+    expect(answers.find(a => a.field_key === 'program')).toMatchObject({ value: 'Legacy Degree Name' });
+    expect(referenceModel.findCollegeByName).not.toHaveBeenCalled();
+    expect(programs.findByName).not.toHaveBeenCalled();
   });
 });
 

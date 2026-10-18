@@ -334,3 +334,7 @@ See also: [`ENV_SETUP_GUIDE.md`](ENV_SETUP_GUIDE.md) for every environment varia
 value comes from, [`README.md`](../README.md) for local setup,
 [`BACKEND_GUIDE.md`](BACKEND_GUIDE.md) for the endpoint and schema reference, and
 [`PROGRESS.md`](PROGRESS.md) for the phase history.
+
+
+### October 18 graduate-application patch
+Deploy the matching frontend and restart/rebuild the updated backend. No database migration, new dependency or environment setting is needed: academic answers use existing `grad_application_values`, and College/Program use the existing catalog. Verify with a pending alumnus: College filters Degree Program, changing College clears it, confirmation submits successfully without `GRAD_APPLICATION_REQUIRED`, saved history appears, and dashboard access refreshes. Confirm an inactive or foreign-college program is rejected and failed attempts retain answers. This local verification does not mean production has been deployed.

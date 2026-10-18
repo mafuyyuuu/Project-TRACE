@@ -3,13 +3,16 @@ const { PHONE_REQUIREMENTS, normalizePhoneNumber } = require('../utils/phoneNumb
 const { pool } = require('../config/db');
 const gradModel = require('../models/gradApplication.model');
 const userModel = require('../models/user.model');
+const referenceModel = require('../models/referenceData.model');
+const programService = require('./program.service');
 const { badRequest, forbidden, notFound } = require('../utils/AppError');
 
 /**
  * Graduate Application module.
  *
  * The Registrar hasn't finalised the field list, so nothing about the form is
- * hardcoded: the fields live in `grad_form_fields` and validation is *derived*
+ * fixed except the catalog-backed college/program pair: the fields live in
+ * `grad_form_fields` and validation is derived
  * from those rows. Adding, removing or reordering a question is a data change,
  * not a code change. The known college year_graduated field additionally uses
  * the shared institutional year policy; other numeric fields stay configurable.
@@ -24,9 +27,29 @@ const TYPE_VALIDATORS = {
   date: (v) => (Number.isNaN(Date.parse(v)) ? 'must be a valid date' : null),
 };
 
+/** Keep configurable questions, with the published degree tied to the catalog. */
+function academicFields(fields) {
+  const program = fields.find(field => field.field_key === 'program');
+  if (!program) return fields;
+  const existing = fields.find(field => field.field_key === 'college');
+  const college = { ...existing, field_key: 'college', label: existing?.label || 'College',
+    field_type: 'select', catalog: 'colleges', options: null, is_required: program.is_required || existing?.is_required || 0 };
+  return fields.filter(field => field.field_key !== 'college').flatMap(field => field.field_key === 'program'
+    ? [college, { ...field, field_type: 'select', catalog: 'programs', options: null }] : [field]);
+}
+
+async function academicAnswers(fields, answers, executor, lock = false) {
+  if (!fields.some(field => field.catalog === 'programs') || (!answers.college && !answers.program)) return {};
+  const colleges = await referenceModel.findCollegeByName(answers.college, executor);
+  if (!colleges[0]) throw badRequest('Choose an active college.');
+  const selected = await programService.profileFields({ role: 'student', college_id: null, program: null },
+    { college_id: colleges[0].id, program: answers.program }, executor, lock);
+  return { college: selected.course, program: selected.program };
+}
+
 /** The form definition the UI renders from. */
 async function getFormFields() {
-  return { fields: await gradModel.listFields() };
+  return { fields: academicFields(await gradModel.listFields()) };
 }
 
 /**
@@ -54,7 +77,7 @@ function validateAnswers(fields, answers) {
       continue;
     }
     if (isEmpty) continue;
-    const limit = field.field_type === 'textarea' ? 2000 : field.field_type === 'tel' ? 13 : 255;
+    const limit = field.catalog ? 150 : field.field_type === 'textarea' ? 2000 : field.field_type === 'tel' ? 13 : 255;
     if ((typeof raw === 'string' && raw.length > limit)
       || (typeof raw !== 'string' && !(field.field_type === 'number' && typeof raw === 'number'))) {
       errors.push(`${field.label} must be at most ${limit} characters and use the requested format.`);
@@ -102,7 +125,7 @@ async function submitApplication(user, body) {
   }
   const studentId = owner[0].student_id;
 
-  const fields = await gradModel.listFields();
+  const fields = academicFields(await gradModel.listFields());
   if (fields.length === 0) {
     throw badRequest('The graduate application form has not been configured yet.');
   }
@@ -112,15 +135,17 @@ async function submitApplication(user, body) {
     throw badRequest(errors.join(' '));
   }
 
+  await academicAnswers(fields, answers);
   const connection = await pool.getConnection();
   try {
     await connection.beginTransaction();
+    const savedAnswers = { ...answers, ...await academicAnswers(fields, answers, connection, true) };
 
     const [result] = await gradModel.insertApplication({ student_id: studentId }, connection);
     const applicationId = result.insertId;
 
     for (const field of fields) {
-      const raw = answers[field.field_key];
+      const raw = savedAnswers[field.field_key];
       const value = field.field_type === 'tel' && raw ? normalizePhoneNumber(raw) : raw;
       if (value === undefined || value === null || value === '') continue;
       await gradModel.insertValue(
@@ -160,11 +185,12 @@ async function getApplication(user, applicationId) {
     }
   }
 
-  const [fields, values] = await Promise.all([
+  const [definitions, values] = await Promise.all([
     gradModel.listFields({ includeInactive: true }),
     gradModel.findValues(applicationId),
   ]);
 
+  const fields = academicFields(definitions);
   const byKey = new Map(values.map((v) => [v.field_key, v.value]));
   return {
     application,

@@ -96,8 +96,7 @@ A student may tick several document types in a single request — for example a 
 
 Only an alumnus (the `user_type` declared at registration, section 0a) sees the Graduate
 Application tab at all — a current student cannot reach it, including by navigating to it directly.
-The questions are **configured, not coded**: an admin adds, reorders or removes fields, and both the
-form and its validation follow automatically. Submissions land in a staff review queue — a
+The Registrar configures the questions; the published Degree Program uses active approved catalog choices. The alumnus chooses College, then one of its Degree Programs. Changing College clears the previous program. The server verifies membership again under transaction locks and saves readable academic names with the application, preserving earlier free-text answers. Other configured questions and required-field rules still follow the form definitions. The mounted submit URL is allowed through the graduate access gate, including its trailing slash; unrelated dashboard features stay blocked until a submission exists. Submissions land in a staff review queue — a
 **Graduate Applications** tab on both the Registrar Admin and the College Secretary dashboards (any
 staff account can act on one; both roles get the tab so either desk can pick it up) — and move
 through `submitted → under_review → approved / rejected`. Approving needs nothing further; rejecting

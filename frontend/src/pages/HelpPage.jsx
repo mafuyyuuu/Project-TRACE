@@ -47,7 +47,7 @@ export default function HelpPage({ user }) {
   );
   if (user?.role === 'student' && user?.user_type === 'alumni') entries.unshift(
     ['Which ID do alumni use?', 'New alumni register and sign in with their Alumni ID. Existing alumni keep their current login identifier. If OCR cannot extract the Alumni ID, enter it manually.'],
-    ['Why must I complete the Graduate Application?', 'Submit the Graduate Application before using the other alumni features. Its fields come from the Registrar’s configured form.']);
+    ['Why must I complete the Graduate Application?', 'Submit the Graduate Application before using the other alumni features. Choose College first, then select Degree Program from that College’s active approved programs. Changing College clears the previous program. Retry choices if loading fails; your other answers stay filled in. Contact the Registrar if no active choice is available. Submit and confirm. Other questions come from the Registrar’s configured form.']);
   if (['Window 1', 'Secretary'].includes(desk)) entries.unshift(
     ['How do I export records?', 'Open Reports & Export, edit the visible draft filters and choose Apply Filters. Student ID / Name matches an exact ID or part of a name. Choose Export at the upper right, select the dataset and Export CSV. Closing Export preserves drafts; Reset clears only the draft. Document exports follow all applied filters; student datasets use ID/name/college filters.'],
   );

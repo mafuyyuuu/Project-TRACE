@@ -8,6 +8,10 @@ import userEvent from '@testing-library/user-event';
  * definitions changes the rendered form, with no code change.
  */
 
+vi.mock('@/services/referenceService', () => ({ getColleges: vi.fn(), getPrograms: vi.fn() }));
+vi.mock('@/services/authService', () => ({ getMe: vi.fn().mockResolvedValue({ user: { id: 3, role: 'student', user_type: 'alumni', has_grad_application: 1 } }) }));
+import * as reference from '@/services/referenceService';
+
 vi.mock('@/services/gradService', () => ({
   getFormFields: vi.fn(),
   submitApplication: vi.fn(),
@@ -21,12 +25,15 @@ const USER = { id: 3, role: 'student', full_name: 'Ana Reyes', student_id: 'STU2
 
 const FIELDS = [
   { field_key: 'year_graduated', label: 'Year Graduated', field_type: 'number', is_required: 1, sort_order: 1 },
-  { field_key: 'program', label: 'Degree Program', field_type: 'text', is_required: 1, sort_order: 2 },
+  { field_key: 'college', label: 'College', field_type: 'select', catalog: 'colleges', is_required: 1 },
+  { field_key: 'program', catalog: 'programs', label: 'Degree Program', field_type: 'select', is_required: 1, sort_order: 2 },
   { field_key: 'purpose', label: 'Purpose', field_type: 'textarea', is_required: 0, sort_order: 3 },
 ];
 
 beforeEach(() => {
   vi.clearAllMocks();
+  reference.getColleges.mockResolvedValue({ colleges: [{ id: 1, name: 'College of Computer Studies' }, { id: 2, name: 'College of Education' }] });
+  reference.getPrograms.mockResolvedValue({ programs: [{ id: 1, college_id: 1, name: 'BSIT' }, { id: 2, college_id: 1, name: 'Computer Science' }, { id: 3, college_id: 2, name: 'Elementary Education' }] });
   gradService.getFormFields.mockResolvedValue({ fields: FIELDS });
   gradService.getMyApplications.mockResolvedValue({ applications: [] });
   gradService.submitApplication.mockResolvedValue({ message: 'Graduate application submitted successfully.' });
@@ -52,7 +59,7 @@ describe('rendering an admin-defined form', () => {
     await renderForm();
     expect(await screen.findByLabelText(/Year Graduated/)).toHaveAttribute('type', 'text');
     expect(screen.getByLabelText(/Year Graduated/)).toHaveAttribute('inputmode', 'numeric');
-    expect(screen.getByLabelText(/Degree Program/)).toHaveAttribute('type', 'text');
+    expect(screen.getByLabelText(/Degree Program/).tagName).toBe('SELECT');
     // a textarea has no `type` attribute
     expect(screen.getByLabelText(/Purpose/).tagName).toBe('TEXTAREA');
   });
@@ -92,7 +99,8 @@ describe('submitting', () => {
     await renderForm();
 
     await user.type(await screen.findByLabelText(/Year Graduated/), '2024');
-    await user.type(screen.getByLabelText(/Degree Program/), 'BSIT');
+    await user.selectOptions(screen.getByLabelText(/College/), 'College of Computer Studies');
+    await user.selectOptions(screen.getByLabelText(/Degree Program/), 'BSIT');
     await user.click(screen.getByRole('button', { name: /submit application/i }));
     expect(gradService.submitApplication).not.toHaveBeenCalled();
     await user.click(screen.getByRole('button', { name: 'Confirm Submission' }));
@@ -115,15 +123,59 @@ describe('submitting', () => {
     expect(gradService.submitApplication).not.toHaveBeenCalled();
   });
 
-  it('still refuses a whitespace-only answer, which the browser accepts', async () => {
+  it('filters programs by College and clears only the old program when College changes', async () => {
+    const user = userEvent.setup();
+    await renderForm();
+    await screen.findByRole('option', { name: 'College of Computer Studies' });
+    expect(screen.getByLabelText(/Degree Program/)).toBeDisabled();
+    await user.type(screen.getByLabelText(/Purpose/), 'Keep this application draft.');
+    await user.selectOptions(screen.getByLabelText(/College/), 'College of Computer Studies');
+    await user.selectOptions(screen.getByLabelText(/Degree Program/), 'BSIT');
+    expect(screen.queryByRole('option', { name: 'Elementary Education' })).not.toBeInTheDocument();
+    await user.selectOptions(screen.getByLabelText(/College/), 'College of Education');
+    expect(screen.getByLabelText(/Degree Program/)).toHaveValue('');
+    expect(screen.queryByRole('option', { name: 'BSIT' })).not.toBeInTheDocument();
+    expect(screen.getByRole('option', { name: 'Elementary Education' })).toBeInTheDocument();
+    expect(screen.getByLabelText(/Purpose/)).toHaveValue('Keep this application draft.');
+  });
+
+  it('blocks submission after a catalog error and can retry without losing draft answers', async () => {
+    reference.getPrograms.mockRejectedValueOnce(new Error('offline'));
+    const user = userEvent.setup();
+    await renderForm();
+    await user.type(await screen.findByLabelText(/Year Graduated/), '2024');
+    expect(await screen.findByRole('button', { name: 'Retry choices' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Submit Application' })).toBeDisabled();
+    await user.click(screen.getByRole('button', { name: 'Retry choices' }));
+    await screen.findByRole('option', { name: 'College of Computer Studies' });
+    expect(screen.getByLabelText(/Year Graduated/)).toHaveValue('2024');
+    expect(screen.getByRole('button', { name: 'Submit Application' })).toBeEnabled();
+  });
+
+  it('treats an accepted submission with failed history refresh as success and refreshes access', async () => {
+    gradService.getMyApplications.mockResolvedValueOnce({ applications: [] }).mockRejectedValueOnce(new Error('offline'));
+    const user = userEvent.setup();
+    await renderForm();
+    await user.type(await screen.findByLabelText(/Year Graduated/), '2024');
+    await user.selectOptions(screen.getByLabelText(/College/), 'College of Computer Studies');
+    await user.selectOptions(screen.getByLabelText(/Degree Program/), 'BSIT');
+    await user.click(screen.getByRole('button', { name: /submit application/i }));
+    await user.click(screen.getByRole('button', { name: 'Confirm Submission' }));
+    expect(await screen.findByRole('dialog', { name: 'Success' })).toHaveTextContent('Refresh to update application history.');
+    expect(screen.queryByRole('dialog', { name: 'Confirm Graduate Application' })).not.toBeInTheDocument();
+    expect(screen.getByLabelText(/College/)).toHaveValue('');
+    expect(gradService.submitApplication).toHaveBeenCalledOnce();
+  });
+
+  it('requires a program selection before confirmation', async () => {
     const user = userEvent.setup();
     await renderForm();
 
     await user.type(await screen.findByLabelText(/Year Graduated/), '2024');
-    await user.type(screen.getByLabelText(/Degree Program/), '   ');
+    await user.selectOptions(screen.getByLabelText(/College/), 'College of Computer Studies');
     await user.click(screen.getByRole('button', { name: /submit application/i }));
 
-    expect(await screen.findByText(/Please complete/i)).toBeInTheDocument();
+    expect(screen.queryByRole('dialog', { name: 'Confirm Graduate Application' })).not.toBeInTheDocument();
     expect(gradService.submitApplication).not.toHaveBeenCalled();
   });
 
@@ -135,7 +187,8 @@ describe('submitting', () => {
     await renderForm();
 
     await user.type(await screen.findByLabelText(/Year Graduated/), '2024');
-    await user.type(screen.getByLabelText(/Degree Program/), 'BSIT');
+    await user.selectOptions(screen.getByLabelText(/College/), 'College of Computer Studies');
+    await user.selectOptions(screen.getByLabelText(/Degree Program/), 'BSIT');
     await user.click(screen.getByRole('button', { name: /submit application/i }));
     expect(gradService.submitApplication).not.toHaveBeenCalled();
     await user.click(screen.getByRole('button', { name: 'Confirm Submission' }));
@@ -170,7 +223,8 @@ it.each(['-202', '20.5', '2e3', '2001', '9999', '202'])('keeps invalid graduatio
   await renderForm();
   const input = screen.getByLabelText(/Year Graduated/);
   await user.type(input, value);
-  await user.type(screen.getByLabelText(/Degree Program/), 'Approved Program');
+  await user.selectOptions(screen.getByLabelText(/College/), 'College of Computer Studies');
+  await user.selectOptions(screen.getByLabelText(/Degree Program/), 'BSIT');
   await user.click(screen.getByRole('button', { name: /submit application/i }));
   expect(input).toHaveValue(value);
   expect(input).toHaveAttribute('aria-invalid', 'true');

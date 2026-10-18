@@ -50,7 +50,7 @@ New alumni use their **Alumni ID** to sign in. Existing alumni keep their curren
 
 **Registration errors:** invalid fields have a red border and a short message beside the field. Submitting an incomplete form highlights all detected problems together. Editing a field clears its previous feedback; submit again to recheck. Uploaded proof and entered values remain in the form after a rejected submission. General connection/server errors appear beside **Create Account**, with no error popup. **Back to Login** stays in the header as you scroll, including on mobile. The normal registration review and Privacy Notice dialogs remain available.
 
-On the first alumni login, complete and submit the **Graduate Application** before using other dashboard features. Completing this form and Admin's review are separate steps. After access is unlocked, finish the required profile information too.
+On the first alumni login, complete and submit the **Graduate Application** before using other dashboard features. Choose **College** first, then select **Degree Program** from that College’s active Registrar-approved programs. Changing College clears the previous program choice. If choices fail to load, use **Retry choices**; your other answers stay filled in. If no active program is available, contact the Registrar. Submit and confirm; a rejected submission preserves the draft. Completing this form and Admin's review are separate steps. After access is unlocked, finish the required profile information too.
 
 ## 3. Use the first-login tutorial
 
