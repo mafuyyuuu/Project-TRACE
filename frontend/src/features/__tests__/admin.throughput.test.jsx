@@ -84,7 +84,8 @@ describe('System Throughput card', () => {
     await waitFor(() => expect(within(card).getByText('12 docs')).toBeVisible());
     expect(within(card).getByText('2026-09-30')).toBeVisible();
     const detection=screen.getByRole('region',{name:'Scan field detection'});
-    expect(within(detection).getByText(/does not measure AI accuracy/)).toBeInTheDocument();
+    expect(within(detection).getByText('Fields detected · not recognition accuracy')).toBeInTheDocument();
+    expect(within(detection).getByRole('button', { name: 'About scan field detection' })).toBeInTheDocument();
     expect(within(detection).queryByText('Illustrative trend')).not.toBeInTheDocument();
     for (const name of ['Real-time backlog']) {
       const neighbor = screen.getByRole('region', { name });

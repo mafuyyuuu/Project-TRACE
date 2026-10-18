@@ -41,6 +41,11 @@ The public Login/welcome, registration, password recovery, email verification an
 
 1. From Login, open registration and choose **Student** or **Alumni**.
 2. Enter your identity/contact details, select your **College**, then choose **Program/Course** from that college’s active catalog. Changing college clears the previous program. If loading fails, select **Retry Catalog**; if your program is missing, contact the Registrar. Use an email inbox you can open; any valid email domain is accepted.
+
+   Current students choose **Regular** or **Irregular**. Irregular applicants must answer
+   **Are you a transfer student?** with Yes or No; Yes also requires **Previous School**.
+   Both appear in the registration review and saved academic profile. Changing applicant
+   type or student type clears the conditional transfer draft.
 3. Upload one clear **JPG/JPEG, PNG or PDF**, at most **10 MB**. Current students use their PLP Student ID with the school, ID number and college readable. Alumni can upload their PLP Student/Alumni ID, diploma or school record for review. Avoid cropped, blurred or password-protected files. Alumni without proof can select **Records / proof unavailable**, explain why, and submit for Admin identity review. Students still upload proof.
 4. Open **Read Privacy Notice**, review it, then tick **I have read and acknowledge the Registration Privacy Notice**. The checkbox starts unchecked; opening the notice does not tick it. Select **Create Account**, review the registration and program, then select **Submit Registration**. Cancel preserves your draft and file. File selection and acknowledgment alone do not submit the account.
 5. Follow the displayed success or review instructions. If the account is pending review, wait for Admin's decision.
@@ -364,6 +369,19 @@ loads independently; switching retains the visited support period draft. Admin h
 Support Analytics button in Support and no separate Internal Assistance sidebar entry; older
 internal-ticket links open the same concern under Support. **Scan Field Detection** describes
 expected fields found by OCR, not measured AI accuracy or verified text correctness.
+
+For the current metric, **Not measured** means no eligible current-method document scans;
+historical/unverified scores and marked synthetic records are excluded. **Include 3 demo
+scans** is an optional dashboard preview: examples begin at 66.7%, and new eligible scans
+affect the combined value on refresh. Demo/recorded sample counts and the recorded-only
+result stay visible. The AI & Model Evaluation tab uses recorded-only measurements.
+See [AI measurement definitions](AI_MODEL_EVALUATION.md#ocr-metric-correction).
+
+Use the **info icon** beside Scan Field Detection for its definition, excluded scores and
+**Include 3 demo scans** control. The card retains demo labels, sample counts and recorded-only
+results. Forecast info explains the chart, inputs and limitations; open **Expand → info**
+for daily source counts and **Evaluate existing history**. Info dialogs support touch,
+keyboard, Escape and returning focus to their icon.
 
 
 ## Admin workload insights and narrow tables — 2026-10-12

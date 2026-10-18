@@ -755,7 +755,12 @@ Open **Support → Internal assistance** for staff concerns; Admin monitors oper
 conversations without replying. In **Efficiency Analytics**, switch between **Document
 Efficiency** and **Support Analytics**; these use separate sources and reporting views.
 **Scan Field Detection** is the average percentage of expected fields detected in scans,
-not verified AI accuracy. In **System Maintenance → Accounts**, choose Students, open a
+not verified AI accuracy. Current-method samples and exclusions are shown; no eligible
+samples means **Not measured**. The optional **Include 3 demo scans** preview labels example
+data and keeps the recorded-only result visible. Explain it as a demonstration, never
+as measured institutional accuracy. New eligible scans affect its weighted average on
+refresh. See [the formula and examples](AI_MODEL_EVALUATION.md#ocr-metric-correction).
+In **System Maintenance → Accounts**, choose Students, open a
 student/alumni and review the deactivate/reactivate confirmation. History and identity
 verification remain; deactivation invalidates existing sessions. In any reporting role,
 edit visible **Student ID / Name** and other filters, choose **Apply Filters**, then
@@ -861,3 +866,11 @@ Document-analytics advice is served from the same packaged analytics module and 
 
 ### Graduate application academic selection
 As a new alumnus, choose College first and Degree Program from its approved catalog, complete the configured questions, and confirm submission. Show the saved application and access refresh. Explain that the API independently checks active College/Program membership inside the save transaction; this application stores readable answer snapshots without changing the profile’s academic routing. Existing application answers remain readable. No new migration is required for this patch.
+
+## October 18 compact demonstration follow-up
+
+Use the scan/forecast **info icons** for methodology. The scan demo control lives in its info dialog; its label, sample counts and recorded-only result remain on the card. For forecast data and backtests, choose **Expand → info**.
+
+During signup, show **Irregular → Are you a transfer student? → Yes → Previous School**, then review the answer before confirmed submission. These are existing saved profile fields; this addition needs no migration.
+
+Personal-browser recognition now has a first-party authentication proxy implementation. Say “after deployment, an opted-in verified browser can reuse its proof until midnight Manila”; distinguish the successful local synthetic login/cookie test from deployed Brave/Safari acceptance. See [deployment and test scope](BROWSER_TRUST_PROXY.md).

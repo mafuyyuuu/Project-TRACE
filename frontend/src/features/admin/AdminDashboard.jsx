@@ -5,6 +5,7 @@ import FilterSelect from '@/components/FilterSelect';
 import AdminAuditLog from './components/AdminAuditLog';
 import AdminIcon from './components/AdminIcon';
 import AdminMetricCard from '@/features/admin/components/AdminMetricCard';
+import ScanFieldDetectionCard from '@/features/admin/components/ScanFieldDetectionCard';
 import RequestAssignmentModal from '@/features/admin/components/RequestAssignmentModal';
 import RequestStaff from '@/components/RequestStaff';
 import Button from '@/components/Button';
@@ -114,9 +115,7 @@ export default function AdminDashboard({ user, currentTab, setViewImageUrl, revi
                     {analyticsSummary?.end_to_end?.completed_count > 0 && analyticsSummary?.throughput?.length > 0 && <MiniSparkline data={analyticsSummary.throughput.map(t => ({ v: t.completed, label: t.date }))} unit="docs" className="w-full h-12" />}
                     {analyticsSummary?.end_to_end?.completed_count > 0 && <p className="mt-1 text-[0.625rem] text-trace-ink dark:text-gray-300">Daily completed documents</p>}
                   </AdminMetricCard>
-                  <AdminMetricCard label="Scan Field Detection" value={!statsAvailable ? 'Unavailable' : dashStats.avg_ocr_confidence > 0 ? dashStats.avg_ocr_confidence.toFixed(1) + '%' : '—'} icon="field-detection" solidHelper helper="Average share of expected fields detected. This does not measure AI accuracy or correctness.">
-                    <p className="mt-1 text-[0.625rem] text-trace-ink dark:text-gray-300">Expected fields: Student ID, name and document type.</p>
-                  </AdminMetricCard>
+                  <ScanFieldDetectionCard available={statsAvailable} measurement={dashStats.ocr_field_detection} />
                   <AdminMetricCard label="Real-time Backlog" value={statsAvailable ? dashStats.backlog_count : 'Unavailable'} icon="backlog" helper="Documents currently pending across all desks">
                     <p className="mt-1 text-[0.625rem] text-trace-ink dark:text-gray-300">Current saved pipeline counts</p>
                   </AdminMetricCard>
@@ -127,7 +126,7 @@ export default function AdminDashboard({ user, currentTab, setViewImageUrl, revi
                   <div className="trace-section trace-section-body flex flex-col min-h-[335px]">
                     <div className="flex flex-col sm:flex-row justify-between sm:items-start gap-3 mb-6">
                       <div>
-                        <h3 className="trace-section-title">7-Day Volume Forecast</h3>
+                        <div className="flex items-center gap-1"><h3 className="trace-section-title">7-Day Volume Forecast</h3><ForecastEvidence forecast={forecast}/></div>
                         <p className="text-xs text-gray-400 dark:text-gray-400 font-medium">Recorded request history · {forecast.source === 'prophet' ? 'Prophet estimate' : forecast.source === 'historical_weekday_average' ? 'Historical weekday average' : 'Estimate availability'}</p>
                       </div>
                       <div className="flex min-w-0 max-w-full items-center gap-2">
@@ -151,8 +150,6 @@ export default function AdminDashboard({ user, currentTab, setViewImageUrl, revi
                       </div>
                     </div>
                     {forecastData?.length>0?<><ForecastChart forecastData={forecastData} forecast={forecast}/><ForecastDays forecastData={forecastData}/></>:<p role="status" className="trace-page-description py-8">{forecast.loading?'Loading forecast data…':forecast.error || forecast.message || 'Not enough recorded request history for an estimate.'}</p>}
-                    <ForecastEvidence forecast={forecast}/>
-                    <p className="trace-page-description mt-3">Choose Expand to inspect the daily source counts and all forecast details.</p>
                   </div>
 
                   {/* Admin Insights Panel */}

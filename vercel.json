@@ -1,11 +1,15 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "buildCommand": "cd frontend && npm install && npm run build",
+  "buildCommand": "cd frontend && npm install && VITE_AUTH_PROXY=true npm run build",
   "outputDirectory": "frontend/dist",
   "framework": "vite",
   "rewrites": [
     {
-      "source": "/((?!assets/|.*\\.[a-zA-Z0-9]+$).*)",
+      "source": "/api/auth/:path*",
+      "destination": "https://trace-plp-api.duckdns.org/api/auth/:path*"
+    },
+    {
+      "source": "/((?!api(?:/|$)|assets/|.*\\.[a-zA-Z0-9]+$).*)",
       "destination": "/index.html"
     }
   ]

@@ -60,7 +60,7 @@ function otpExpired(value) {
 }
 
 function publicUser(user) {
-  const fields = ['id', 'student_id', 'full_name', 'role', 'user_type', 'study_load', 'enrollment_status', 'desk_assignment',
+  const fields = ['id', 'student_id', 'full_name', 'role', 'user_type', 'study_load', 'is_transfer_student', 'previous_school', 'enrollment_status', 'desk_assignment',
     'first_name', 'middle_name', 'last_name', 'extension_name', 'course', 'program', 'college_id', 'email', 'email_verified_at', 'phone_number', 'profile_picture', 'verification_status', 'year_started', 'graduation_year', 'study_years_confirmed_at', 'year_level', 'section'];
   const result = Object.fromEntries(fields.map(key => [key, user[key] ?? null]));
   for (const key of ['profile_completed', 'must_change_password', 'has_grad_application']) {
@@ -234,6 +234,16 @@ async function register(body, file) {
   if (user_type !== 'alumni' && !['regular', 'irregular'].includes(body.study_load)) {
     throw badRequest('Choose your Type of Student: Regular or Irregular.');
   }
+  const irregular = user_type !== 'alumni' && body.study_load === 'irregular';
+  if (irregular && !['true', 'false', true, false].includes(body.is_transfer_student)) throw badRequest('Choose Yes or No for transfer student.');
+  const isTransfer = body.is_transfer_student === 'true' || body.is_transfer_student === true;
+  if (isTransfer && !irregular) throw badRequest('Transfer student selection is available for Irregular current students.');
+  let previousSchool = null;
+  if (isTransfer) {
+    validateTextFields({ previous_school: body.previous_school }, PROFILE_TEXT_LIMITS);
+    if (typeof body.previous_school !== 'string' || !body.previous_school.trim() || /[\x00-\x1f\x7f]/.test(body.previous_school)) throw badRequest('Enter your previous school without control characters.');
+    previousSchool = body.previous_school.trim();
+  }
   const unavailable = body.registration_proof_unavailable === 'true';
   if (unavailable && user_type !== 'alumni') {
     throw forbidden('Only alumni can apply with unavailable proof.');
@@ -298,6 +308,7 @@ async function register(body, file) {
       [created] = await userModel.createUser(data, connection);
       if (user_type === 'alumni') await studyYears.initialize(created.insertId, studyDraft, connection);
     }
+    if (user_type !== 'alumni') await userModel.saveRegistrationTransfer(created.insertId, isTransfer, previousSchool, connection);
     if (hasNameParts) {
       await userModel.saveNameParts(created.insertId, Object.fromEntries(Object.entries(nameParts).map(([key, value]) => [key, value.trim()])), connection);
       await userModel.logSecurityEvent(created.insertId, 'RECEIPT_NAME_CONFIRMED', null, null, connection);

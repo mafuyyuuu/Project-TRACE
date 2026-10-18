@@ -1,5 +1,6 @@
 import useAiEvaluation from '@/features/admin/useAiEvaluation';
 import Button from '@/components/Button';
+import { ocrFieldDetection } from '@/utils/ocrFieldDetection';
 
 const number = value => value == null ? 'Not measured' : Number(value).toLocaleString(undefined, { maximumFractionDigits: 2 });
 const models = [
@@ -37,6 +38,9 @@ function Metrics({ evaluation }) {
 export default function AiEvaluationPanel() {
   const r = useAiEvaluation();
   const d = r.data?.dataset, e = r.data?.evaluation;
+  const ocr = ocrFieldDetection({ method: d?.ocr_measurement_method, score: d?.ocr_field_detection,
+    samples: d?.ocr_samples, total_scored: d?.ocr_total_scored ?? d?.ocr_samples,
+    unverified_samples: d?.ocr_unverified_samples, synthetic_samples: d?.ocr_synthetic_samples });
   return <div className="trace-page min-w-0 text-sm text-gray-700 dark:text-gray-300">
     <section className="trace-section trace-section-body space-y-3">
       <h3 className="trace-section-title">What TRACE uses and why</h3>
@@ -84,7 +88,8 @@ export default function AiEvaluationPanel() {
     </section>
     <section aria-label="OCR measurement status" className="trace-section trace-section-body space-y-3">
       <h3 className="trace-section-title">OCR measurements</h3>
-      <p>Saved intake field detection: <strong>{d?.ocr_field_detection == null ? 'Not measured' : `${number(d.ocr_field_detection)}%`}</strong> from {number(d?.ocr_samples)} document rows with saved scores. This all-record summary may include synthetic records and is not a count of all OCR attempts.</p>
+      <p>Recorded intake field detection: <strong>{ocr.score == null ? 'Not measured' : `${number(ocr.score)}%`}</strong> from {number(ocr.samples)} document scans measured with the current three-field method. Each document contributes its latest saved measurement; this is not a count of all OCR attempts.</p>
+      <p>Excluded from this measurement: {number(ocr.unverified)} historical/unverified scores and {number(ocr.synthetic)} marked synthetic scores. Old saved confidence values are not treated as current field-detection evidence.</p>
       <p>Recognition accuracy: <strong>Not measured.</strong> TRACE has no human-labeled ground truth evaluation for extracted values, registration checks or receipts. A score of 100% can mean all fields were found even if their values are wrong.</p>
     </section>
     {models.map(model => <article key={model.name} className="trace-section trace-section-body space-y-3">

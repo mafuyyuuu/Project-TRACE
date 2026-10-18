@@ -5,7 +5,6 @@ export default function ForecastChart({forecastData=[],forecast={},expanded=fals
   const data=forecastChartData(forecast.history,forecastData,forecast.today);
   const hasHistory=(forecast.history || []).length>0;
   return <div className="space-y-2 min-w-0">
-    <p className="trace-page-description">{hasHistory?'Solid line: recorded requests (latest 14 complete days). Dashed line: next seven days predicted.':'Dashed line: next seven days predicted. Recorded history details are unavailable in this response.'} Dates use Manila time; today is excluded as incomplete.</p>
     <div className="overflow-x-auto" role="region" aria-label="Recorded requests and seven-day demand forecast" tabIndex={0}>
       <div className={expanded?'h-80 w-full min-w-0':'h-60 w-full min-w-0'}>
         <ResponsiveContainer width="100%" height="100%"><LineChart data={data} margin={{top:16,right:24,left:4,bottom:12}}>

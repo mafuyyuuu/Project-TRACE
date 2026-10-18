@@ -12,6 +12,8 @@ import { changedResources, publishDataChange } from '@/services/dataChanges'
  * unset it stays relative, which is what the Vite dev proxy expects — so
  * development is unaffected. Note Vite inlines this at *build* time, so
  * changing it needs a rebuild, not a restart.
+ * Vercel builds enable VITE_AUTH_PROXY: only /auth requests use the site's
+ * /api/auth reverse proxy so HttpOnly browser-trust cookies are first-party.
  */
 const api = axios.create({
   baseURL: `${import.meta.env.VITE_API_URL ?? ''}/api`,
@@ -53,6 +55,7 @@ function trackActivity(config) {
 // ── Request Interceptor: attach Bearer token ──────────────
 api.interceptors.request.use(
   (config) => {
+    if (import.meta.env.VITE_AUTH_PROXY === 'true' && /^\/auth(?:\/|$|\?)/.test(config.url || '')) config.baseURL = '/api'
     const token = authStorage.getItem('trace_token')
     if (token) {
       config.headers.Authorization = `Bearer ${token}`

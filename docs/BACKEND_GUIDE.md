@@ -573,3 +573,24 @@ Authenticated Admin-only GET /api/documents/stats/forecast/evaluation accepts th
 The response includes MAE/RMSE/WAPE, exact row/fold and per-horizon evidence, model version, sample window and explicit data-origin qualifications. Prefix-count metadata recognizes TRC-MOCK data only; zero recognized mock rows is unverified origin. WAPE is null for all-zero actual counts. Insufficient data returns an explicit no-score result; upstream errors/malformed output return503. One evaluation may compute per Node process at a time (other jobs409); identical validated aggregates can reuse a five-minute, ten-entry maximum in-memory cache with the original evaluation timestamp. It is a read-only computation, not a training-data write or persisted institutional accuracy certificate. Responses use private/no-store.
 
 The AI Docker COPY now includes analytics.py, forecaster.py and forecast_evaluation.py; the previous image omitted analytics.py even though the forecast/document-advice routes import it. Rebuild/recreate both services and deploy the matching frontend. No schema/new dependency/env change. The main forecast/history route remains distinct and retains its explicit fallback. Queue suggestions are mirrored workflow rules, not the inactive Random Forest prototype.
+
+## OCR field-detection provenance — October 18
+
+Dashboard stats return `ocr_field_detection` with `method`, nullable `score`, eligible
+`samples`, `unverified_samples`, `synthetic_samples` and `total_scored`. The compatibility
+`avg_ocr_confidence` uses that same eligible average or null. The AI summary includes the
+same method and counts under its OCR fields. Shared model SQL validates saved
+`intake_fields_v1` metadata and the three parsed fields in existing `ocr_extracted_data`
+JSON, excluding historical/unverified scores and marked synthetic rows.
+
+New intake scans compute the score in Node. AI `processing_status: completed` permits a
+genuine zero-field sample; `failed` contributes none. The dashboard's optional three-scan
+demo is a frontend-only weighted preview, with no fixture inserts or API score changes.
+See [measurement rules and deployment requirements](AI_MODEL_EVALUATION.md#ocr-metric-correction).
+Rebuild backend and AI engine and deploy the matching frontend; no migration/new env var.
+
+## October 18 authentication proxy and transfer signup
+
+Authentication responses are private/no-store. Vercel frontend auth uses its first-party `/api/auth` proxy while other REST/socket transport is retained; see [proxy configuration and acceptance](BROWSER_TRUST_PROXY.md).
+
+Irregular current-student registrations require explicit `is_transfer_student` true/false (multipart strings or JSON booleans). Yes requires `previous_school`, a nonempty string of at most 255 characters without control characters. A Regular/alumni registration cannot declare transfer Yes through this conditional signup path. Current students save the normalized answer with a narrow `student_profiles` upsert in the same account transaction; resubmissions preserve unrelated profile/history columns. Alumni registration leaves existing transfer history alone. Login/profile reads expose the existing fields for the account; no new migration.

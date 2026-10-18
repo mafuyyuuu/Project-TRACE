@@ -60,3 +60,20 @@ it('labels baseline-only evaluation without displaying a Prophet measurement', a
   expect(screen.getByRole('table', { name: 'Forecast error comparison' })).toHaveTextContent('Not measured');
   await waitFor(() => expect(screen.queryByRole('status')).not.toBeInTheDocument());
 });
+
+it('does not present an unversioned historical average as measured field detection', async () => {
+  getAiEvaluation.mockResolvedValueOnce({ ...evidence, dataset: { ...evidence.dataset, ocr_field_detection: 45, ocr_samples: 2 } });
+  mount(); await screen.findByText('10,043');
+  expect(screen.getByText(/Recorded intake field detection:/)).toHaveTextContent('Not measured');
+  expect(screen.getByText(/Excluded from this measurement:/)).toHaveTextContent('2 historical/unverified scores');
+});
+
+it('shows verified recorded-only field detection and its excluded sample counts', async () => {
+  getAiEvaluation.mockResolvedValueOnce({ ...evidence, dataset: { ...evidence.dataset,
+    ocr_measurement_method: 'intake_fields_v1', ocr_field_detection: 0, ocr_samples: 1,
+    ocr_unverified_samples: 2, ocr_synthetic_samples: 3, ocr_total_scored: 6 } });
+  mount(); await screen.findByText('10,043');
+  expect(screen.getByText(/Recorded intake field detection:/)).toHaveTextContent('0% from 1 document scans');
+  expect(screen.getByText(/Excluded from this measurement:/)).toHaveTextContent('2 historical/unverified scores and 3 marked synthetic scores');
+  expect(screen.queryByRole('checkbox', { name: 'Include 3 demo scans' })).not.toBeInTheDocument();
+});

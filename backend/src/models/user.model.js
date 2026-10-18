@@ -8,7 +8,7 @@ const { pool } = require('../config/db');
 
 function findActiveByStudentId(studentId, executor = pool) {
   return executor
-    .query('SELECT u.*, p.first_name, p.middle_name, p.last_name, p.extension_name, p.year_started, p.graduation_year, p.study_years_confirmed_at, p.year_level, p.section, (SELECT COUNT(*) FROM grad_applications WHERE student_id = u.student_id) > 0 AS has_grad_application FROM users u LEFT JOIN student_profiles p ON p.user_id = u.id WHERE u.student_id = ? AND u.is_active = TRUE', [studentId])
+    .query('SELECT u.*, p.first_name, p.middle_name, p.last_name, p.extension_name, p.year_started, p.graduation_year, p.study_years_confirmed_at, p.year_level, p.section, p.is_transfer_student, p.previous_school, (SELECT COUNT(*) FROM grad_applications WHERE student_id = u.student_id) > 0 AS has_grad_application FROM users u LEFT JOIN student_profiles p ON p.user_id = u.id WHERE u.student_id = ? AND u.is_active = TRUE', [studentId])
     .then(([rows]) => rows);
 }
 
@@ -268,6 +268,13 @@ function findReceiptName(studentId, executor = pool) {
   ).then(([rows]) => rows);
 }
 
+// Registration must not overwrite an existing profile's names, years or education.
+function saveRegistrationTransfer(userId, isTransfer, previousSchool, executor = pool) {
+  return executor.query(`INSERT INTO student_profiles (user_id, is_transfer_student, previous_school)
+    VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE is_transfer_student = VALUES(is_transfer_student),
+    previous_school = VALUES(previous_school)`, [userId, isTransfer ? 1 : 0, previousSchool || null]);
+}
+
 function upsertProfile(userId, profile, executor = pool) {
   return executor.query(
     `INSERT INTO student_profiles (
@@ -432,6 +439,7 @@ module.exports = {
   getPasswordHistory,
   addPasswordHistory,
   upsertProfile,
+  saveRegistrationTransfer,
   listStaff,
   findById,
   createStaff,

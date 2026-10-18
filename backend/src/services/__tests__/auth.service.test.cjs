@@ -78,6 +78,7 @@ beforeEach(() => {
   vi.spyOn(userModel, 'findStudentBasicInfo').mockResolvedValue([]);
   vi.spyOn(userModel, 'updateProfile').mockResolvedValue(true);
   vi.spyOn(userModel, 'upsertProfile').mockResolvedValue([{}]);
+  vi.spyOn(userModel, 'saveRegistrationTransfer').mockResolvedValue([{}]);
   vi.spyOn(userModel, 'findProfilePictureById').mockResolvedValue([{ profile_picture: null }]);
 
   vi.spyOn(userModel, 'getLoginSecurity').mockResolvedValue([]);
@@ -407,8 +408,35 @@ describe('register', () => {
     expect(userModel.createUser).not.toHaveBeenCalled();
   });
   it('stores declared irregular status without changing the student role or account type',async()=>{
-    await service.register({...body,study_load:'irregular'},file);
+    await service.register({...body,study_load:'irregular',is_transfer_student:'false'},file);
     expect(userModel.createUser).toHaveBeenCalledWith(expect.objectContaining({role:'student',study_load:'irregular'}),credentialConnection);
+  });
+  it('saves the irregular transfer answer and previous school in the registration transaction', async () => {
+    await service.register({ ...body, study_load: 'irregular', is_transfer_student: 'true', previous_school: '  Synthetic Previous College  ' }, file);
+    expect(userModel.saveRegistrationTransfer).toHaveBeenCalledExactlyOnceWith(1, true, 'Synthetic Previous College', credentialConnection);
+    expect(userModel.upsertProfile).not.toHaveBeenCalled();
+    expect(credentialConnection.commit).toHaveBeenCalledOnce();
+  });
+  it.each([undefined, '', 'yes', '1', 1, null])('requires an explicit transfer answer for irregular registration: %s', async is_transfer_student => {
+    await expect(service.register({ ...body, study_load: 'irregular', is_transfer_student }, file)).rejects.toMatchObject({ status: 400 });
+    expect(aiEngine.verifyIdDocument).not.toHaveBeenCalled();
+  });
+  it.each([undefined, '', ' ', 'x'.repeat(256), 'School\nName'])('rejects invalid previous school before OCR: %s', async previous_school => {
+    await expect(service.register({ ...body, study_load: 'irregular', is_transfer_student: 'true', previous_school }, file)).rejects.toMatchObject({ status: 400 });
+    expect(aiEngine.verifyIdDocument).not.toHaveBeenCalled();
+  });
+  it('does not carry hidden previous-school data into a No or Regular registration', async () => {
+    await service.register({ ...body, study_load: 'irregular', is_transfer_student: 'false', previous_school: 'stale draft' }, file);
+    expect(userModel.saveRegistrationTransfer).toHaveBeenLastCalledWith(1, false, null, credentialConnection);
+    await service.register(body, file);
+    expect(userModel.saveRegistrationTransfer).toHaveBeenLastCalledWith(1, false, null, credentialConnection);
+    await expect(service.register({ ...body, is_transfer_student: 'true', previous_school: 'Synthetic School' }, file)).rejects.toMatchObject({ status: 400 });
+  });
+  it('rolls back registration when the transfer answer cannot be saved', async () => {
+    userModel.saveRegistrationTransfer.mockRejectedValueOnce(new Error('profile write failed'));
+    await expect(service.register({ ...body, study_load: 'irregular', is_transfer_student: 'false' }, file)).rejects.toThrow('profile write failed');
+    expect(credentialConnection.rollback).toHaveBeenCalledOnce();
+    expect(credentialConnection.commit).not.toHaveBeenCalled();
   });
   it.each([
     { privacy_acknowledged: undefined }, { privacy_acknowledged: 'false' }, { privacy_acknowledged: true },

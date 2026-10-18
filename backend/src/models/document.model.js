@@ -183,9 +183,7 @@ function avgProcessingMinutes(executor = pool) {
 }
 
 function avgOcrConfidence(executor = pool) {
-  return executor
-    .query('SELECT AVG(ocr_confidence_score) as avg_confidence FROM documents WHERE ocr_confidence_score IS NOT NULL')
-    .then(([rows]) => parseFloat(rows[0].avg_confidence) || 0);
+  return require('./ocrMetrics.model').summary(executor).then(result => result.score);
 }
 
 /**

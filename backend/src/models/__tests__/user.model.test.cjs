@@ -1,4 +1,17 @@
 const model = require('../user.model');
+
+it('saves registration transfer details without replacing other profile columns', async () => {
+  const executor = { query: vi.fn().mockResolvedValue([{}]) };
+  await model.saveRegistrationTransfer(3, true, 'Synthetic School', executor);
+  const [sql, params] = executor.query.mock.calls[0];
+  expect(params).toEqual([3, 1, 'Synthetic School']);
+  const update = sql.split('ON DUPLICATE KEY UPDATE')[1];
+  expect(update).toContain('is_transfer_student = VALUES(is_transfer_student)');
+  expect(update).toContain('previous_school = VALUES(previous_school)');
+  expect(update).not.toMatch(/first_name|year_started|elem_school|graduation_year/);
+  await model.saveRegistrationTransfer(3, false, null, executor);
+  expect(executor.query.mock.calls[1][1]).toEqual([3, 0, null]);
+});
 it('routes Window 1 workflow notifications to active staff under both desk labels', async () => {
   const rows=[{id:6},{id:7}],executor={query:vi.fn().mockResolvedValue([rows])};
   await expect(model.findWindow1Clerks(executor)).resolves.toEqual(rows);

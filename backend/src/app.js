@@ -63,7 +63,10 @@ app.use('/api', require('./middlewares/dataChanges.middleware').dataChanges);
 // NOTE: uploaded files are deliberately NOT served by express.static. They
 // contain student ID photos and payment receipts, so they go through
 // /api/files, which authenticates the caller and checks ownership.
-app.use('/api/auth', authRoutes);
+app.use('/api/auth', (_req, res, next) => {
+  res.set('Cache-Control', 'private, no-store');
+  next();
+}, authRoutes);
 app.use('/api/documents', documentRoutes);
 app.use('/api/files', fileRoutes);
 app.use('/api/reference', referenceRoutes);

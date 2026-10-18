@@ -79,7 +79,7 @@ def preprocess_image(filepath):
     return processed
 
 
-def extract_text(filepath):
+def extract_text(filepath, *, raise_on_error=False):
     """
     Extract text from a document image using EasyOCR.
 
@@ -89,6 +89,8 @@ def extract_text(filepath):
 
     Args:
         filepath (str): Path to the document image file.
+        raise_on_error (bool): Propagate processing errors to callers that
+            distinguish a failed operation from a completed empty read.
 
     Returns:
         str: The extracted text from the image. Returns an empty string
@@ -124,6 +126,8 @@ def extract_text(filepath):
 
     except Exception as e:
         logger.error("EasyOCR extraction failed for %s: %s", filepath, str(e))
+        if raise_on_error:
+            raise
         return ""
 
 
@@ -144,7 +148,7 @@ def parse_student_data(raw_text):
             - student_id (str|None): The matched student number.
             - last_name (str|None): The matched last name.
             - form_type (str|None): The identified form/document type.
-            - confidence (float): Ratio of found fields to total fields (0.0–1.0).
+            - confidence (float): Percentage of expected fields found (0–100).
     """
     student_id = None
     last_name = None
@@ -369,7 +373,7 @@ def process_document(filepath):
     """
     try:
         # Step 1: Extract raw text from the image
-        raw_text = extract_text(filepath)
+        raw_text = extract_text(filepath, raise_on_error=True)
 
         if not raw_text:
             logger.warning("No text extracted from document: %s", filepath)
@@ -382,6 +386,7 @@ def process_document(filepath):
                     'confidence': 0.0,
                 },
                 'success': False,
+                'processing_status': 'completed',
                 'error': 'No text could be extracted from the document.',
             }
 
@@ -400,6 +405,7 @@ def process_document(filepath):
             'raw_text': raw_text,
             'extracted_data': extracted_data,
             'success': success,
+            'processing_status': 'completed',
             'error': None,
         }
 
@@ -414,6 +420,7 @@ def process_document(filepath):
                 'confidence': 0.0,
             },
             'success': False,
+            'processing_status': 'failed',
             'error': str(e),
         }
 
