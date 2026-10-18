@@ -1480,3 +1480,13 @@ it.each([undefined,{role:'student'},{role:'clerk',desk_assignment:'Window 1'},{r
  await expect(service.getForecast({},user)).rejects.toMatchObject({status:403});
  expect(documentModel.forecastFallbackRows).not.toHaveBeenCalled();
 });
+
+it('returns the exact aggregate model input and honest source/validation metadata without identities',async()=>{
+ const today=new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Manila',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
+ const first=new Date(Date.parse(today)-20*86400000).toISOString().slice(0,10);
+ documentModel.forecastFallbackRows.mockResolvedValue([{date:first,volume:12,student_name:'PRIVATE IDENTITY'}]);
+ vi.spyOn(aiEngine,'getForecast').mockResolvedValue(null);
+ const result=await service.getForecast({},ADMIN);
+ expect(result.history).toEqual(aiEngine.getForecast.mock.calls[0][0].history);expect(result.history).toHaveLength(20);expect(result.history[0]).toEqual({date:first,volume:12});expect(result.history.at(-1).volume).toBe(0);
+ expect(result.today).toBe(today);expect(result.data_source).toMatchObject({table:'documents',timestamp_field:'created_at'});expect(result.validation.status).toBe('not_evaluated');expect(JSON.stringify(result)).not.toContain('PRIVATE IDENTITY');expect(result).not.toHaveProperty('accuracy');
+});

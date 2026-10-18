@@ -27,9 +27,17 @@ class DocumentInsightsTest(unittest.TestCase):
 
     def test_thresholds_and_model_are_explicitly_advisory(self):
         result = build_document_insights(self.data({'PENDING_SEC_EVALUATION': 6, 'READY_FOR_RELEASE': 4}), 3)
-        self.assertEqual(len(result), 4)
-        self.assertIn('does not prove a bottleneck', result[1]['message'])
+        self.assertEqual(len(result), 6)
+        self.assertIn('does not prove a bottleneck', next(row for row in result if row['title']=='Secretary Queue Alert')['message'])
         self.assertIn('four coded examples', result[-1]['message'])
+
+    def test_suggests_real_next_actions_for_the_visible_queues(self):
+        result=build_document_insights(self.data({'PENDING_W1_INTAKE':20,'PENDING_FINANCE_VERIFICATION':5,'SEC_PROCESSING':4}))
+        self.assertIn('Open Intake Check',result[0]['message'])
+        actions=[row for row in result if row['method']=='queue_rules']
+        self.assertEqual(len(actions),3)
+        self.assertIn('payment proof',actions[1]['message'])
+        self.assertNotIn('random_forest',str(result))
 
     def test_rejects_extra_identity_and_missing_stages(self):
         for data in [{**self.data(), 'student_id': 'PRIVATE'}, {**self.data(), 'counts': {}}]:

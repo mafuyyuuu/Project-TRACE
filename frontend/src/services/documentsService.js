@@ -225,3 +225,10 @@ export async function uploadDeferredOR(documentId, file, { orNumber, orDate } = 
   const response = await api.post(`/documents/${documentId}/deferred-or`, formData);
   return response.data;
 }
+
+/** Read-only, user-triggered held-out validation; never run on dashboard mount. */
+export async function evaluateForecast(documentType,signal) {
+  const {data}=await api.get('/documents/stats/forecast/evaluation',{params:documentType && documentType!=='All'?{documentType}:{},signal,timeout:150000});
+  if(!['ok','insufficient_data'].includes(data?.status) || data.status==='ok' && (!Array.isArray(data.predictions)||!Array.isArray(data.folds)||!data.metrics?.prophet||!data.metrics?.baseline))throw new Error('Invalid forecast validation response. No score can be displayed.');
+  return data;
+}

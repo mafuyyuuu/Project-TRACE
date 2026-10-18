@@ -1,8 +1,10 @@
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import SupportAnalytics from '@/components/SupportAnalytics';
+import {downloadReportPdf} from '@/services/reportsService';
 import { getSupportMetrics } from '@/services/supportTicketsService';
 
+vi.mock('@/services/reportsService',()=>({downloadReportPdf:vi.fn().mockResolvedValue('trace-support-report-2026-10-17.pdf')}));
 vi.mock('@/services/supportTicketsService', () => ({ getSupportMetrics: vi.fn() }));
 
 const row = (median_minutes, p90_minutes, samples, missing) => ({ median_minutes, p90_minutes, samples, missing });
@@ -151,3 +153,15 @@ describe('Support analytics presentation and report lifecycle', () => {
     expect(signal.aborted).toBe(true);
   });
 });
+
+
+it('exports only the successfully applied support period for Admin and disables exports on failed refresh',async()=>{
+ render(<SupportAnalytics admin/>);await screen.findByText(/Loaded period/);
+ fireEvent.change(screen.getByLabelText('From'),{target:{value:'2026-09-01'}});fireEvent.change(screen.getByLabelText('Through'),{target:{value:'2026-09-30'}});
+ fireEvent.click(screen.getByRole('button',{name:'Export PDF'}));await waitFor(()=>expect(downloadReportPdf).toHaveBeenCalledWith('support',{},expect.any(AbortSignal)));
+ fireEvent.click(await screen.findByRole('button',{name:'OK'}));
+ fireEvent.click(screen.getByRole('button',{name:'Apply period'}));await waitFor(()=>expect(getSupportMetrics).toHaveBeenCalledWith({dateFrom:'2026-09-01',dateTo:'2026-09-30'},expect.any(AbortSignal)));
+ await waitFor(()=>expect(screen.getByRole('button',{name:'Export PDF'})).toBeEnabled());fireEvent.click(screen.getByRole('button',{name:'Export PDF'}));await waitFor(()=>expect(downloadReportPdf).toHaveBeenLastCalledWith('support',{dateFrom:'2026-09-01',dateTo:'2026-09-30'},expect.any(AbortSignal)));
+ fireEvent.click(await screen.findByRole('button',{name:'OK'}));getSupportMetrics.mockRejectedValueOnce(new Error('unavailable'));fireEvent.click(screen.getByRole('button',{name:'Apply period'}));await screen.findByRole('alert');expect(screen.getByRole('button',{name:'Export PDF'})).toBeDisabled();
+});
+it('keeps PDF controls out of non-Admin analytics presentation',async()=>{render(<SupportAnalytics/>);await screen.findByText(/Loaded period/);expect(screen.queryByRole('button',{name:'Export PDF'})).not.toBeInTheDocument();});

@@ -36,7 +36,7 @@ async function authenticate(req, res, next) {
       }
       const account = rows[0];
       if (account.role && account.role !== decoded.role) return res.status(401).json({ error: 'Account permissions changed. Sign in again.' });
-      const route = `${req.baseUrl || ''}${req.path || ''}`;
+      const route = `${req.baseUrl || ''}${req.path || ''}`.replace(/\/+$/, '') || '/';
       const accountRecovery = ['/api/auth/me', '/api/auth/logout', '/api/auth/logout-all', '/api/auth/email-verification/resend'];
       if (account.must_change_password && ![...accountRecovery, '/api/auth/profile'].includes(route)) {
         return res.status(403).json({ error: 'Change your temporary password before continuing.', code: 'PASSWORD_CHANGE_REQUIRED' });

@@ -1,6 +1,6 @@
 const express = require('express');
 const documentsController = require('../controllers/documents.controller');
-const { authenticate } = require('../middlewares/auth.middleware');
+const { authenticate, requireRole } = require('../middlewares/auth.middleware');
 const { documentUpload, pertinentUpload } = require('../middlewares/upload.middleware');
 const { verifyWebhookSecret } = require('../middlewares/webhookAuth.middleware');
 
@@ -15,6 +15,7 @@ router.get('/', authenticate, documentsController.list);
 // Dashboard analytics. These must stay above `/:trackingNumber` so the
 // literal paths aren't swallowed by the wildcard.
 router.get('/stats', authenticate, documentsController.stats);
+router.get('/stats/forecast/evaluation', authenticate, requireRole('admin'), documentsController.evaluateForecast);
 router.get('/stats/forecast', authenticate, documentsController.forecast);
 router.get('/stats/insights', authenticate, documentsController.insights);
 router.get('/activity-logs', authenticate, documentsController.activityLogs);

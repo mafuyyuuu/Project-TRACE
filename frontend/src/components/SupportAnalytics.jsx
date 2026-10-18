@@ -1,3 +1,4 @@
+import PdfExportButton from '@/components/PdfExportButton';
 import AnalyticsAdvice from '@/components/AnalyticsAdvice';
 import PaginatedTable from '@/components/PaginatedTable';
 import AdminIcon from '@/features/admin/components/AdminIcon';
@@ -66,8 +67,10 @@ export default function SupportAnalytics({ admin = false }) {
           <div className="min-w-0 flex-1 basis-36"><label htmlFor={`${id}-from`} className="trace-label">From</label><input id={`${id}-from`} type="date" value={from} onChange={event => setFrom(event.target.value)} className="trace-control mt-1 block w-full" /></div>
           <div className="min-w-0 flex-1 basis-36"><label htmlFor={`${id}-to`} className="trace-label">Through</label><input id={`${id}-to`} type="date" value={to} onChange={event => setTo(event.target.value)} className="trace-control mt-1 block w-full" /></div>
           <Button type="submit" disabled={state.loading} className="trace-button trace-button-primary">{admin && <AdminIcon name="support-metric-apply" />}Apply period</Button>
+          {admin && <PdfExportButton kind="support" filters={state.appliedFilters} disabled={!data || state.loading || Boolean(state.error)}/>}
         </form>
       </div>
+
 
       {state.loading && <p role="status" className="text-sm text-gray-600 dark:text-gray-300">{data ? 'Refreshing support metrics; these are the previous loaded results.' : 'Loading support metrics…'}</p>}
       {state.error && <div role="alert" className="trace-error"><p>{state.error}</p>{data && <p className="mt-1">The previous loaded period remains below. Choose Apply period to retry.</p>}</div>}

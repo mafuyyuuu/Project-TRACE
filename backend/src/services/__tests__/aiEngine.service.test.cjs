@@ -70,3 +70,4 @@ it('posts only daily aggregate history to Prophet and report aggregates to analy
  expect(mock.mock.calls[1][0]).toMatch(/\/ai\/document-analytics$/);
  expect(JSON.parse(mock.mock.calls[1][1].body)).toEqual({stages:[]});
 });
+it('posts bounded aggregate backtest input to the separate evaluation route',async()=>{const payload={history:[],today:'2026-10-18',timezone:'Asia/Manila',cutoffs:[28]};const mock=vi.fn().mockResolvedValue({ok:true,json:async()=>({source:'prophet_backtest',predictions:[]})});vi.stubGlobal('fetch',mock);await service.evaluateForecast(payload);expect(mock.mock.calls[0][0]).toMatch(/\/forecast\/evaluate$/);expect(JSON.parse(mock.mock.calls[0][1].body)).toEqual(payload);});

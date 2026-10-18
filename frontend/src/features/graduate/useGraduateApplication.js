@@ -1,4 +1,5 @@
 import useDataRefresh from '@/hooks/useDataRefresh';
+import useAcademicReferences from '@/hooks/useAcademicReferences';
 import { authStorage } from '@/utils/authStorage';
 import { yearError } from '@/utils/profileYears';
 import { normalizePhoneNumber, phoneNumberError } from '@/utils/phoneNumber';
@@ -13,9 +14,8 @@ import {
 /**
  * Graduate Application module.
  *
- * The Registrar hasn't finalised the questions, so nothing here knows what the
- * fields are: the form definition is fetched and rendered generically. Adding a
- * field is a data change in the Maintenance module, not a code change.
+ * Fetch configurable questions and resolve academic fields from the shared
+ * Registrar catalog. Keep the draft independent of background refreshes.
  */
 export default function useGraduateApplication(user) {
   const [fields, setFields] = useState([]);
@@ -26,6 +26,10 @@ export default function useGraduateApplication(user) {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [answersToConfirm, setAnswersToConfirm] = useState(null);
+  const hasAcademicFields = fields.some(field => field.catalog === 'programs');
+  const academic = useAcademicReferences(Boolean(user) && hasAcademicFields);
+  const selectedCollege = academic.colleges.find(college => college.name === answers.college);
+  const programs = academic.programs.filter(program => String(program.college_id) === String(selectedCollege?.id));
 
   const load = useCallback(async () => {
     try {
@@ -51,7 +55,7 @@ export default function useGraduateApplication(user) {
   useDataRefresh(["graduate", "profile"], load, Boolean(user));
 
   const updateAnswer = useCallback((fieldKey, value) => {
-    setAnswers((current) => ({ ...current, [fieldKey]: value }));
+    setAnswers((current) => ({ ...current, [fieldKey]: value, ...(fieldKey === 'college' && current.college !== value ? { program: '' } : {}) }));
   }, []);
 
   const dismissNotification = useCallback(() => {
@@ -81,6 +85,15 @@ export default function useGraduateApplication(user) {
         setError(`Please complete: ${missingRequired.join(', ')}.`);
         return;
       }
+      if (hasAcademicFields && (academic.loading || academic.error)) {
+        setError('Load the College and Degree Program choices before submitting.');
+        return;
+      }
+      if (hasAcademicFields && (answers.college || answers.program)
+        && (!selectedCollege || !programs.some(program => program.name === answers.program))) {
+        setError('Choose a Degree Program belonging to the selected College.');
+        return;
+      }
 
       const graduation = fields.find(field => field.field_key === 'year_graduated');
       const problem = graduation && yearError(answers.year_graduated, { label: graduation.label, minimum: 2002, required: Boolean(graduation.is_required) });
@@ -94,7 +107,7 @@ export default function useGraduateApplication(user) {
       }
       setAnswersToConfirm(draft);
     },
-    [answers, missingRequired, fields]
+    [answers, missingRequired, fields, hasAcademicFields, academic.loading, academic.error, selectedCollege, programs]
   );
 
   const submissionPending = useRef(false);
@@ -109,19 +122,26 @@ export default function useGraduateApplication(user) {
         setSuccess(res.message || 'Application submitted.');
         setAnswers({});
         setAnswersToConfirm(null);
-        const mine = await getMyApplications();
-        if (authStorage.getItem('trace_token') !== token) return;
-        setApplications(mine.applications || []);
+        try {
+          const mine = await getMyApplications();
+          if (authStorage.getItem('trace_token') !== token) return;
+          setApplications(mine.applications || []);
+        } catch {
+          if (authStorage.getItem('trace_token') !== token) return;
+          setSuccess(`${res.message || 'Application submitted.'} Refresh to update application history.`);
+        }
         try {
           const { user: fresh } = await getMe();
           if (authStorage.getItem('trace_token') !== token) return;
           authStorage.setItem('trace_user', JSON.stringify(fresh));
           window.dispatchEvent(new CustomEvent('trace-user-updated', { detail: fresh }));
         } catch {
+          if (authStorage.getItem('trace_token') !== token) return;
           // The application is already saved; a failed refresh is not a failed submission.
           setSuccess(`${res.message || 'Application submitted.'} Refresh the page to update dashboard access.`);
         }
       } catch (err) {
+        if (authStorage.getItem('trace_token') !== token) return;
         setError(err.response?.data?.error || 'Failed to submit application.');
       } finally {
         submissionPending.current = false;
@@ -134,6 +154,7 @@ export default function useGraduateApplication(user) {
     confirmSubmission,
     cancelSubmission: () => setAnswersToConfirm(null),
     fields,
+    academic: { ...academic, programs, selectedCollege, enabled: hasAcademicFields },
     answers,
     applications,
     loading,

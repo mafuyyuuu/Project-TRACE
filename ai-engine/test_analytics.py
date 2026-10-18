@@ -42,7 +42,7 @@ class AnalyticsRouteTest(unittest.TestCase):
         fits=[]
         class Model:
             def __init__(self,**kwargs): pass
-            def fit(self,frame): fits.append(frame.copy())
+            def fit(self,frame,**kwargs): fits.append(frame.copy())
             def predict(self,frame):
                 fits.append(frame['ds'].dt.strftime('%Y-%m-%d').tolist())
                 return pd.DataFrame({'yhat':[-1,0,1,2,3,4,5]})

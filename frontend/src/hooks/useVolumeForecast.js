@@ -6,7 +6,7 @@ export default function useVolumeForecast(enabled) {
   const read=useRef(null);
   const load=useCallback(async()=>{
     read.current?.abort();const controller=new AbortController();read.current=controller;
-    setState(previous=>({...previous,forecast:[],loading:true,error:''}));
+    setState(previous=>({...previous,forecast:[],history:[],history_days:undefined,sample_size:undefined,source:undefined,as_of:undefined,loading:true,error:''}));
     try {
       const result=await getForecast(filter,controller.signal);
       if(!controller.signal.aborted)setState(previous=>({...result,document_types:result.document_types || previous.document_types,forecast:result.forecast || [],loading:false}));

@@ -737,3 +737,34 @@ Check a taken ID, an unused ID, failed-check retry, changed-ID cancellation and 
 ## October 17 Support and analytics follow-up
 
 No new migration, environment variable or dependency. Deploy the matching backend first (registration-ID preflight and real-history forecast fallback), rebuild/restart the existing AI service for POST /forecast and POST /ai/document-analytics, then deploy the matching frontend. Existing /ai/support-insights now also analyzes the selected Support Analytics period. Until the AI service is upgraded/reachable, measured charts remain available, forecast uses its labelled historical weekday average when enough history exists, and AI analysis reports unavailable. An old backend does not provide registration-id-check, so the new signup intentionally cannot leave step one until matching backend deployment. This work does not deploy production services or main.
+
+
+## Admin PDF export rollout
+
+No database migration or new environment variable is required for PDF reports. Deploy the matching frontend and backend together. Rebuild the backend image to install the pinned @pdf-lib/fontkit dependency and package the two embedded Inter TTFs plus their OFL license under src/utils; restarting an older image alone is insufficient. A non-Docker install needs `npm --prefix backend ci` before restart. The AI engine is unchanged by this feature; its availability determines whether existing report advice is included or marked unavailable. Verify a real Admin PDF download and a non-Admin 403 after deployment.
+
+
+## Forecast visibility and evidence rollout
+
+Deploy the matching frontend/backend to expose the exact aggregate input history, all seven dated estimates, distinct actual/predicted lines and source/validation labels. No new migration, dependency or environment variable is required. The existing AI engine must be available for the label to say Prophet; the historical-weekday fallback remains explicitly labeled. Verify the active method and source counts after deployment; local mock tests do not validate live model accuracy.
+
+
+## Forecast validation and analytics packaging rollout
+
+No migration or new dependency/environment variable. Pull the revision with forecast validation and rebuild/recreate both services; a restart of the old image does not add the omitted Python modules. From ~/Project-TRACE, on the branch you deploy:
+
+```bash
+git pull --ff-only
+docker compose build backend ai-engine
+docker compose up -d --no-deps --force-recreate backend ai-engine
+docker compose ps backend ai-engine
+curl -fsS http://localhost:3300/api/health
+curl -fsS http://localhost:5005/health
+docker compose exec -T ai-engine python -c "import analytics, forecaster, forecast_evaluation; print('Forecast/analysis modules loaded')"
+```
+
+Deploy the matching frontend (merge dev into main first if the frontend host deploys main). As Admin, Refresh forecast and inspect Method; then open Document Efficiency and confirm its advice loads. For validation, Expand forecast → Evaluate existing history. At least22 complete days are needed; otherwise the UI reports no score. Verify shown data origin, actual test dates, baseline, MAE/RMSE/WAPE and unchanged input-cache time. Do not run a mock-data generator to manufacture a validation result.
+
+
+### October 18 graduate-application patch
+Deploy the matching frontend and restart/rebuild the updated backend. No database migration, new dependency or environment setting is needed: academic answers use existing `grad_application_values`, and College/Program use the existing catalog. Verify with a pending alumnus: College filters Degree Program, changing College clears it, confirmation submits successfully without `GRAD_APPLICATION_REQUIRED`, saved history appears, and dashboard access refreshes. Confirm an inactive or foreign-college program is rejected and failed attempts retain answers. This local verification does not mean production has been deployed.

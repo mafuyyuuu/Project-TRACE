@@ -180,7 +180,7 @@ async function getEfficiencyAnalytics(user, query = {}) {
   const [byDesk, endToEnd, throughput, workload] = await Promise.all([
     reportModel.turnaroundByDesk(range),
     reportModel.endToEndCompletion(range),
-    reportModel.throughputByDay({ days }),
+    reportModel.throughputByDay(range.dateFrom || range.dateTo ? { days, ...range } : { days }),
     reportModel.workloadByClerk(range),
   ]);
 

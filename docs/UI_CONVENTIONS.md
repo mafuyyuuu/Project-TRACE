@@ -342,3 +342,18 @@ New Request: Cancel on Select Documents closes the wizard. On Fill up details an
 Support screenshot override: every selected conversation has one fixed, non-scrolling white header, a rounded-square avatar, title, state chip and ticket/tracking metadata. Open linked case is the original circle-i asset with its accessible name and hover title. Authorized Resolve, request-reply, Awaiting student and Reopen controls are icon buttons beside it, retaining confirmations and permissions. Guidance is below messages; never restore the Ticket Actions menu or place the long note above identity. Long title/metadata previews cap at two lines and retain the full title/authorized linked details. Support Settings is hosted beside the outer page heading, above categories and How live support works; the child retains its permission check and modal state.
 
 Window Tracking has All, In progress, Completed and Other statuses. These partition the same loaded records; Other statuses never implies a current pipeline action. State the loaded count and authorized total when the list is capped. Analytics cards/charts display saved aggregates; advice and forecasts identify their source and unavailable/insufficient-data states. Do not manufacture volumes, apply fixed document-type percentages or turn zero into one.
+
+
+## Admin PDF controls
+
+Keep the existing CSV export dialog and add the Admin-only **Export PDF** header action. The PDF chooser uses ModalShell, shared controls, a pinned Cancel/Download footer, pending guards and inline failure feedback that preserves choices. Records use applied filters, never unsaved filter drafts or just the visible page. Analytics period drafts remain distinct from successful applied periods; disable export during refresh/failure. Document staff filters apply to all matching staff rather than the visible seven-row page. Direct analytics exports use shared acknowledgment feedback. The read-only export needs no save confirmation. Use wrapping action groups and contained modal scrolling at 320 px / enlarged text.
+
+
+## Forecast source visibility
+
+The main Admin forecast and expanded modal share ForecastChart, ForecastDays and ForecastEvidence. Preserve all seven dated predictions and explicit zeroes. A solid recorded-history line and dashed green predicted line have distinct legends, markers, an incomplete-current-day gap and no animation. Exact values remain in accessible dated cards; charts scroll inside their region at narrow/enlarged widths. The expanded modal exposes all aggregate input rows in PaginatedTable and keeps a visible close action. Display source/fallback, snapshot, sample window and not-yet-validated status; clear obsolete history/method metadata during refresh. These evidence labels are an intentional response to the user’s defense/forecast-visibility request.
+
+
+## Forecast validation and next-step evidence
+
+ForecastValidation is an explicit read-only action in the expanded forecast, never an automatic request on dashboard mount. Disable duplicate runs, announce pending work, abort the read on unmount/scope refresh, clear prior metrics when rerunning and retain readable failures without inventing scores. Show data origin, tested counts/windows and model version alongside MAE/RMSE/WAPE and a baseline; preserve worse-than-baseline and undefined-zero-target results. Full actual/predicted, fold and per-horizon tables use PaginatedTable with contained scrolling. Validation of an unknown/demo dataset never changes the real-world validation disclaimer. No save-confirmation dialog is needed. Queue insight messages put a specific next step first and use the method label Workflow rules; no classifier accuracy or automatic staff reassignment is implied.

@@ -52,7 +52,7 @@ graph TB
     subgraph "AI Engine - Python / Flask"
         OCR["POST /ocr/extract<br/>EasyOCR (PyTorch)"]
         VERIFY["POST /ocr/verify<br/>Identity Text Checks"]
-        FORECAST["GET /forecast<br/>Prophet (7-Day)"]
+        FORECAST["POST /forecast<br/>Prophet (7-Day)"]
         INSIGHTS["POST /ai/recommend<br/>Aggregate document prototype"]
         SUPPORTAI["POST /ai/support-insights<br/>Aggregate rule-based advice"]
     end
@@ -551,8 +551,8 @@ Your panel will heavily scrutinize the "AI" part of your title. Here is exactly 
 
 ### B. The 7-Day Volume Forecast (Prophet)
 *   **What it does:** Estimates daily incoming document requests for the next seven days from complete Manila-day arrival counts; exact document types use their own saved history.
-*   **How to defend it:** "The current **Prophet** endpoint fits DATE(timestamp_started), COUNT(*) from step_logs. It returns seven nonnegative integer predictions, without uncertainty bounds. Synthetic seed data supports demonstrations; meaningful staffing use requires a validated target, sufficient real history and held-out forecast error measurements."
-*   **Data source:** "The model is trained on historical timestamps from the `step_logs` table — every time a document moves through the pipeline, that timestamp becomes training data."
+*   **How to defend it:** "The current **Prophet** endpoint receives up to 90 complete Manila-day counts of requested documents from Node and fits a weekly-seasonality model. Today is excluded as incomplete; it predicts tomorrow through seven days ahead. Results are nonnegative rounded counts, without exposed uncertainty bounds. Meaningful planning use requires held-out real-history evaluation; successful software tests do not establish forecasting accuracy."
+*   **Data source:** "The input is the count of rows in `documents` grouped by `created_at` in Manila time. Each requested document counts once, including documents in a multi-document request. It does not count repeated workflow actions in step_logs. The exact daily model input is inspectable in the expanded Admin forecast. Demo database rows may be synthetic; no external institutional dataset is bundled or certified."
 
 ### C. The Administrative Insights (Aggregate Analysis)
 *   **What it does:** Shows every active document queue with snapshot time and count-based review signals. Evaluation above 5 and pickup above 3 are advisory thresholds, not institutional capacity targets.
@@ -603,7 +603,7 @@ Your panel will heavily scrutinize the "AI" part of your title. Here is exactly 
 > "OCR may fail to read genuine evidence. Inconclusive registration remains pending for Admin review with a reason; staff inspect and correct intake fields. The score describes extracted-field completeness, not the probability that the document is genuine."
 
 **Q7: How did you train your Prophet forecasting model? Where did the training data come from?**
-> "The endpoint groups step_logs by date and counts rows, then fits Prophet for that request. mock_data_gen.py supplies synthetic demonstration history. Real events can replace that history, but more data alone does not guarantee improvement; target definition and held-out evaluation are needed."
+> "Node groups documents.created_at by Manila day, fills observed zero-request days and passes the complete daily counts to Prophet, which is fitted per request. The system requires at least 14 complete days and uses at most 90. ai-engine/mock_data_gen.py is an optional synthetic generator, not evidence that the active database is real PLP history. Inspect the expanded forecast input counts and record provenance before describing training data. More data alone does not establish accuracy."
 
 **Q8: How accurate is your volume forecast? Did you validate it?**
 > "The current API returns seven predictions without upper/lower bounds. This guide does not establish a measured accuracy result. We must evaluate held-out real history against the same recorded request-arrival target, report errors and limitations, and avoid presenting synthetic worked examples as validation."
@@ -827,6 +827,37 @@ Demonstrate a reserved Student ID blocked before leaving signup Academic Details
 
 ### October 17 analytics correction supersedes prototype explanations
 
-For current demonstrations, Prophet consumes complete Manila-day document-arrival counts from Node, including observed idle days and exact type history. Estimates require 14 complete days, preserve zero and use an explicit deterministic historical weekday fallback when the model is unavailable. The earlier daily-step-log target and four-coded-example classifier explanations above describe superseded implementations. Production recommendations now use measured queue/report aggregates through the AI engine’s descriptive rules. Document and Support Analytics show advice for the loaded measurements separately from the authoritative charts. This does not establish validated predictive accuracy, causal bottlenecks or staffing gains. No identity or transcript is sent.
+For current demonstrations, Prophet consumes complete Manila-day document-arrival counts from Node, including observed idle days and exact type history. Estimates require 14 complete days, preserve zero and use an explicit deterministic historical weekday fallback when the model is unavailable. The daily-step-log forecast target and four-coded-example classifier are superseded implementations. Production recommendations now use measured queue/report aggregates through the AI engine’s descriptive rules. Document and Support Analytics show advice for the loaded measurements separately from the authoritative charts. This does not establish validated predictive accuracy, causal bottlenecks or staffing gains. No identity or transcript is sent.
 
 Latest Support demonstration: the i icon opens the authorized linked request; permitted ticket-action icons reveal their names on hover and retain confirmations. Guidance is below messages and the identity header has no internal scrolling. Window badges partition the loaded records into current work, completed and other statuses, with the list limit visible. Admin service failures show unavailable instead of an assumed empty queue.
+
+
+## Admin PDF report demonstration
+
+Apply a small synthetic reporting period in Reports & Export and download **Export PDF → Filtered document records**. Open the file and reconcile its scope, totals, chart and document table. In Efficiency Analytics, export Document Efficiency and Support Analytics; explain each duration sample/denominator and show available aggregate AI advice separately from measured values. Blank/missing data is not zero. The server re-reads current authorized values and includes every matching row up to the stated 1,000-row PDF limit, independent of screen pagination. Do not claim production deployment or forecasting accuracy from synthetic report fixtures.
+
+
+## Forecast visibility, source evidence and accuracy — October 18
+
+Open **Admin → Dashboard → 7-Day Volume Forecast**. The chart uses a solid line for the latest 14 complete days of recorded requests and a dashed green line for all seven future estimates. Dated numeric cards retain each day, including zero. Expand opens the same chart and **View forecast data source and daily counts**, which lists the complete aggregate model input with pagination. Snapshot time, exact type, day/sample count and method label distinguish Prophet, the historical weekday fallback and insufficient history. Current-day partial requests are excluded; predictions cover tomorrow through day seven in Manila time.
+
+The source is `documents.created_at`, counted once per requested document (not once per student/request group or workflow action). The model sees dates/counts only, up to 90 complete days, with a 14-day minimum. Seeded/synthetic records in that database are also records; the code cannot certify their institutional provenance. `ai-engine/mock_data_gen.py` is an optional synthetic-data writer and must never be presented as a real Registrar dataset or run to manufacture validation evidence.
+
+Defense wording: “Our prototype forecasts incoming document counts from recorded daily requests. We demonstrate the input counts, selected type, dated estimates and model/fallback label. Predictive accuracy on held-out real institutional data has not yet been established, so we do not claim an accuracy percentage.” Do not substitute scan field detection, successful software tests, forecast confidence or descriptive queue advice for measured model accuracy. OCR needs its own labeled-image/text/field evaluation; rule-based report advice has separate definitions and denominators.
+
+For an accuracy study, freeze provenance-checked real history and use multiple chronological cutoffs, fitting only earlier data. Match the actual seven-day target and the production one-day gap: after the last complete training day, the simulated current day is excluded, and evaluate days 2–8 after that training cutoff. Compare dated actual vs predicted counts and the historical-weekday baseline over the same folds. Report MAE (documents/day), RMSE, tested dates/sample size and per-horizon errors, not an invented percent. Zero-demand days need suitable metrics rather than undefined percentage errors. This is an evaluation procedure, not an executed result. Prophet documentation: https://facebook.github.io/prophet/docs/diagnostics.html.
+
+
+## Evaluate forecasting against saved history — October 18
+
+Admin → Dashboard → 7-Day Volume Forecast → Expand → **Evaluate existing history** runs a read-only rolling-origin backtest for the selected exact document type. At least **22 complete Manila days** are required: 14 training days (the production minimum), one skipped simulated current day and seven unseen target days. More history supports up to five nonoverlapping weekly target windows. Only earlier rows enter each fit, using the same Prophet configuration/seed as the production forecast. The selected period, tested dates, training cutoffs, zero/nonzero samples, model version/settings and every actual/predicted/baseline value remain inspectable.
+
+Report **MAE and RMSE in documents/day** and **WAPE as percent error**, alongside the historical-weekday baseline scored on exactly the same dates. WAPE is undefined when all target counts are zero. Do not convert these metrics into a generic accuracy percentage. Results can show Prophet is worse than the baseline; the interface preserves that result. Few folds/two weekly cycles or all-zero targets are limited evidence. Missing history/model failure produces no score. This validates the saved dataset only, not unseen institutional operations.
+
+The data-origin panel identifies TRC-MOCK-prefixed generated records when present. Absence of that prefix does not certify real data: other synthetic records can exist. For defense, disclose provenance, train/test windows, tested samples and method. Forecast evaluation does not measure OCR accuracy or validate a Random Forest. Current queue recommendations are explicit workflow rules with concrete next steps for intake, evaluation, preparation/pricing, payment, OR/handoff and pickup; they require staff review and do not automatically assign staff or change requests. The earlier four-example classifier is not active.
+
+Document-analytics advice is served from the same packaged analytics module and now includes a stage-specific suggested action when measured stage samples support a comparison. Saved measurements remain available during AI outages. Rebuild backend **and ai-engine**, then deploy the matching frontend; no migration/new dependency/environment variable is needed. Older images omitted analytics.py, which can cause both forecast fallback and unavailable document advice. Confirm both routes after deployment rather than inferring availability from an old screenshot.
+
+
+### Graduate application academic selection
+As a new alumnus, choose College first and Degree Program from its approved catalog, complete the configured questions, and confirm submission. Show the saved application and access refresh. Explain that the API independently checks active College/Program membership inside the save transaction; this application stores readable answer snapshots without changing the profile’s academic routing. Existing application answers remain readable. No new migration is required for this patch.

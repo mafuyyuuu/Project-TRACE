@@ -1,3 +1,4 @@
+import PdfExportButton from '@/components/PdfExportButton';
 import AnalyticsAdvice from '@/components/AnalyticsAdvice';
 import FilterSelect from '@/components/FilterSelect';
 import Button from '@/components/Button';
@@ -37,12 +38,13 @@ function DocumentAnalytics({ user, currentTab }) {
   const [staffQuery, setStaffQuery] = useState('');
   const [staffDesk, setStaffDesk] = useState('all');
   const [staffPage, setStaffPage] = useState(0);
+  const [from,setFrom]=useState(''),[to,setTo]=useState('');
 
   if (r.loading) return <DashboardLoading />;
 
   const a = r.analytics;
   if (!a) {
-    return <p className="text-xs text-gray-400 dark:text-gray-400 py-10 text-center">Analytics are unavailable right now.</p>;
+    return <div className="trace-section trace-section-body space-y-4"><p role="alert" className="trace-inline-error">{r.error || 'Analytics are unavailable right now.'}</p><Button type="button" className="trace-button trace-button-secondary" onClick={()=>r.applyFilters(r.filters)}>Retry analytics</Button></div>;
   }
 
   // The slowest desk is the bottleneck worth acting on.
@@ -62,8 +64,16 @@ function DocumentAnalytics({ user, currentTab }) {
       <DashboardAlerts success={r.success} error={r.error} onDismiss={r.dismissNotification} />
 
       <div className="trace-page trace-admin-document-analytics">
+        <div className="trace-page-header">
+          <form aria-label="Document analytics reporting period" className="trace-actions items-end" onSubmit={event=>{event.preventDefault();r.applyFilters({dateFrom:from,dateTo:to});}}>
+            <label className="trace-label min-w-0">From<input type="date" value={from} onChange={event=>setFrom(event.target.value)} className="trace-control mt-1 w-full min-w-0"/></label>
+            <label className="trace-label min-w-0">Through<input type="date" value={to} min={from || undefined} onChange={event=>setTo(event.target.value)} className="trace-control mt-1 w-full min-w-0"/></label>
+            <Button type="submit" disabled={r.refreshing} className="trace-button trace-button-primary">Apply period</Button>
+          </form>
+          {user?.role==='admin' && <PdfExportButton kind="efficiency" filters={{dateFrom:r.filters?.dateFrom || undefined,dateTo:r.filters?.dateTo || undefined,staffSearch:staffQuery,staffDesk}} disabled={r.refreshing}/>}
+        </div>
         <AnalyticsAdvice analysis={a.analysis}/>
-        <p className="trace-page-description">Completion and desk measurements cover {a.range?.dateFrom || 'all recorded dates'} through {a.range?.dateTo || 'the latest saved action'}. Releases show the last {a.range?.days || 30} days.</p>
+        <p className="trace-page-description">Completion and desk measurements cover {a.range?.dateFrom || 'all recorded dates'} through {a.range?.dateTo || 'the latest saved action'}. {a.range?.dateFrom || a.range?.dateTo ? 'Releases use the applied reporting dates.' : `Releases show the last ${a.range?.days || 30} days.`}</p>
 
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <MetricCard

@@ -1,0 +1,17 @@
+import {fireEvent,render,screen,within} from '@testing-library/react';
+import {expect,it,vi} from 'vitest';
+import ForecastModal from '@/features/admin/components/ForecastModal';
+import {forecastChartData} from '@/utils/forecastPresentation';
+vi.mock('recharts',()=>({ResponsiveContainer:({children})=><div>{children}</div>,LineChart:({data,children})=><div data-testid="forecast-chart" data-rows={JSON.stringify(data)}>{children}</div>,Line:({name,dataKey,strokeDasharray})=><span data-testid={dataKey} data-dash={strokeDasharray}>{name}</span>,XAxis:()=>null,YAxis:()=>null,Tooltip:()=>null,Legend:()=>null}));
+const history=Array.from({length:14},(_,i)=>({date:`2026-10-${String(i+1).padStart(2,'0')}`,volume:i}));
+const forecastData=Array.from({length:7},(_,i)=>({date:`2026-10-${i+16}`,day:['Fri','Sat','Sun','Mon','Tue','Wed','Thu'][i],predicted_volume:i}));
+const forecast={source:'prophet',today:'2026-10-15',history,history_days:14,sample_size:91,as_of:'2026-10-15T00:00:00Z'};
+it('shows every dated prediction, recorded zeroes, distinct series and inspectable exact model inputs',()=>{
+ render(<ForecastModal open onClose={()=>{}} forecastData={forecastData} forecast={forecast} forecastFilter="All" setForecastFilter={()=>{}}/>);
+ const days=screen.getByRole('list',{name:'Next seven days predicted demand'});expect(within(days).getAllByRole('listitem')).toHaveLength(7);expect(within(days).getByText(/Oct 16, 2026/)).toBeInTheDocument();expect(within(days).getByText(/Oct 22, 2026/)).toBeInTheDocument();expect(within(days).getByText('0',{exact:true})).toBeInTheDocument();
+ expect(screen.getByTestId('predicted')).toHaveAttribute('data-dash','6 4');expect(screen.getByTestId('actual')).not.toHaveAttribute('data-dash');
+ expect(screen.getByText(/accuracy has not been validated/)).toBeInTheDocument();fireEvent.click(screen.getByText('View forecast data source and daily counts'));
+ const table=screen.getByRole('table',{name:'Forecast input daily counts'});expect(within(table).getByRole('row',{name:'2026-10-01 0'})).toBeInTheDocument();fireEvent.click(screen.getByRole('button',{name:'Next'}));expect(within(table).getByRole('row',{name:'2026-10-14 13'})).toBeInTheDocument();expect(screen.getByText(/documents.created_at/)).toBeInTheDocument();expect(screen.getByText(/may be synthetic/)).toBeInTheDocument();
+});
+it('labels a fallback separately and keeps insufficient history free of invented predictions',()=>{const {rerender}=render(<ForecastModal open onClose={()=>{}} forecastData={forecastData} forecast={{...forecast,source:'historical_weekday_average'}}/>);expect(screen.getByText(/Method: Historical weekday average \(fallback\)/)).toBeInTheDocument();rerender(<ForecastModal open onClose={()=>{}} forecastData={[]} forecast={{source:'insufficient_data',history:[],message:'At least 14 complete calendar days are required.'}}/>);expect(screen.queryByTestId('forecast-chart')).not.toBeInTheDocument();expect(screen.queryByRole('list')).not.toBeInTheDocument();expect(screen.getByRole('status')).toHaveTextContent('14 complete');});
+it('keeps the missing current day explicit, the last 14 actual days, and all seven future dates',()=>{const rows=forecastChartData(history,forecastData,'2026-10-15');expect(rows).toHaveLength(22);expect(rows[0]).toMatchObject({actual:0,predicted:null});expect(rows[14]).toEqual({date:'2026-10-15',actual:null,predicted:null});expect(rows[15]).toMatchObject({date:'2026-10-16',actual:null,predicted:0});expect(rows.at(-1)).toMatchObject({date:'2026-10-22',predicted:6});});

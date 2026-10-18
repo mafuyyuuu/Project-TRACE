@@ -300,6 +300,7 @@ describe('efficiency analytics', () => {
     const range = { dateFrom: '2026-08-01', dateTo: '2026-08-31' };
     await service.getEfficiencyAnalytics(ADMIN, range);
     expect(reportModel.turnaroundByDesk).toHaveBeenCalledWith(range);
+    expect(reportModel.throughputByDay).toHaveBeenCalledWith({days:30,...range});
     expect(reportModel.workloadByClerk).toHaveBeenCalledWith(range);
   });
 

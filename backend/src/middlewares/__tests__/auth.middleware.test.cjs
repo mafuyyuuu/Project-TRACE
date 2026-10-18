@@ -53,6 +53,23 @@ describe('account onboarding gates', () => {
     const result = await check({ ...claims, role: 'clerk' }, { ...account, role: 'clerk', must_change_password: 1 }, request('/documents/1/evaluate'));
     expect(result.res.json).toHaveBeenCalledWith(expect.objectContaining({ code: 'PASSWORD_CHANGE_REQUIRED' }));
   });
+  it.each(['', '/'])('allows the mounted graduate submit collection with path %j', async path => {
+    const result = await check(claims, { ...account, user_type: 'alumni', has_grad_application: 0 },
+      { baseUrl: '/api/grad-applications', path, method: 'POST' });
+    expect(result.next).toHaveBeenCalledOnce();
+  });
+  it.each(['/form-fields/', '/mine/'])('allows mounted graduate form reads at %s', async path => {
+    expect((await check(claims, { ...account, user_type: 'alumni', has_grad_application: 0 },
+      { baseUrl: '/api/grad-applications', path, method: 'GET' })).next).toHaveBeenCalledOnce();
+  });
+  it('retains the graduate and password gates with trailing slashes', async () => {
+    const pending = { ...account, user_type: 'alumni', has_grad_application: 0 };
+    const documents = await check(claims, pending, { baseUrl: '/api/documents', path: '/', method: 'GET' });
+    expect(documents.res.json).toHaveBeenCalledWith(expect.objectContaining({ code: 'GRAD_APPLICATION_REQUIRED' }));
+    const temporary = await check(claims, { ...pending, must_change_password: 1 },
+      { baseUrl: '/api/grad-applications', path: '/', method: 'POST' });
+    expect(temporary.res.json).toHaveBeenCalledWith(expect.objectContaining({ code: 'PASSWORD_CHANGE_REQUIRED' }));
+  });
 });
 it.each([{ token_version: 3, is_active: 1 }, { token_version: 2, is_active: 0 }])('rejects revoked or inactive sessions', async account => {
   const result = await check({ id: 3, role: 'student', token_version: 2 }, account);

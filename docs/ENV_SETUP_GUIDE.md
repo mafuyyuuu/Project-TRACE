@@ -1178,3 +1178,30 @@ nullable `student_profiles.year_level` and `student_profiles.section` (20 charac
 each). No enrollment values are guessed or backfilled, and historical years/request
 records are preserved. Current students fill both fields in Edit Profile before
 filing; alumni retain their existing education requirements. No environment change.
+
+
+## PDF export dependencies
+
+Admin PDF export uses the backend package lock (@pdf-lib/fontkit with existing pdf-lib), embedded Inter fonts and existing reporting/AI connections. There is no new secret, environment setting, database migration or server browser/PDF binary. Rebuild the backend image (or run backend npm ci for a non-Docker deployment) and deploy the matching frontend. Keep fonts and the bundled OFL license in src/utils. Existing aggregate AI outage handling remains available in the PDF.
+
+
+## Forecast visibility and evidence rollout
+
+Deploy the matching frontend/backend to expose the exact aggregate input history, all seven dated estimates, distinct actual/predicted lines and source/validation labels. No new migration, dependency or environment variable is required. The existing AI engine must be available for the label to say Prophet; the historical-weekday fallback remains explicitly labeled. Verify the active method and source counts after deployment; local mock tests do not validate live model accuracy.
+
+
+## Forecast validation and analytics packaging rollout
+
+No migration or new dependency/environment variable. Pull the revision with forecast validation and rebuild/recreate both services; a restart of the old image does not add the omitted Python modules. From ~/Project-TRACE, on the branch you deploy:
+
+```bash
+git pull --ff-only
+docker compose build backend ai-engine
+docker compose up -d --no-deps --force-recreate backend ai-engine
+docker compose ps backend ai-engine
+curl -fsS http://localhost:3300/api/health
+curl -fsS http://localhost:5005/health
+docker compose exec -T ai-engine python -c "import analytics, forecaster, forecast_evaluation; print('Forecast/analysis modules loaded')"
+```
+
+Deploy the matching frontend (merge dev into main first if the frontend host deploys main). As Admin, Refresh forecast and inspect Method; then open Document Efficiency and confirm its advice loads. For validation, Expand forecast → Evaluate existing history. At least22 complete days are needed; otherwise the UI reports no score. Verify shown data origin, actual test dates, baseline, MAE/RMSE/WAPE and unchanged input-cache time. Do not run a mock-data generator to manufacture a validation result.

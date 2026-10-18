@@ -59,9 +59,11 @@ A student can request several document types at once and pay a single combined f
 `document_types.base_fee` is admin-editable; `fee_rule` selects flat or page-based pricing. The stored `per_semester_block` key remains for compatibility, but final TOR pricing uses actual printed pages per copy. Fees are recomputed server-side; client-supplied amounts are ignored. See the Batch 10 contract below.
 
 ### Graduate Application module
-The Registrar hasn't finalised the questions, so nothing about the form is hardcoded:
+The Registrar configures the questions, with a catalog-backed academic pair:
 - `grad_form_fields` holds the field definitions (label, type, required, options, order).
 - `grad_application_values` stores one row per answer, so adding a field never needs a migration.
+- The active `program` question is returned as a catalog select with a College select immediately before it. Existing seeded text definitions need no rewrite. The same active College → Program catalog used by signup/profiles is authoritative. The service rechecks membership under college-then-program locks before inserting answers, stores canonical names in `grad_application_values`, and does not overwrite profile academic values. Previous free-text answers remain readable; unrelated custom questions remain configurable.
+- The authentication gate normalizes trailing slashes, allowing the mounted POST collection while retaining graduate, email, temporary-password and role restrictions.
 - Validation in `gradApplication.service.js` is **generated from the definitions** — making a field required or restricting a select changes what the API accepts, with no code change.
 
 | Endpoint | Purpose |
@@ -549,3 +551,24 @@ Forecasts now read one count per document request from documents.created_at, gro
 Admin report analytics additionally posts completion durations, stage transition aggregates, release count and reporting range to POST /ai/document-analytics. No staff names/IDs or student records are included. Flask applies descriptive rules to measured samples; the UI shows its advice separately from authoritative charts, preserving measured data on AI failure. Support analytics sends its exact loaded period and approved aggregate fields plus the preceding comparison period to the existing /ai/support-insights route. The already-loaded current dataset is reused for the advice. All advice is bounded and validated; unavailable analysis is not a zero.
 
 The four-coded-example Random Forest classifier is removed from production /ai/recommend. This supersedes the earlier prototype notes above. Queue advice uses actual stage counts and explicit advisory thresholds; it does not claim trained staffing, causal bottleneck detection or validated performance prediction. Pure compatibility helper tests retain historical prototype formatting, but production never supplies such a prediction.
+
+
+## Admin PDF reporting API
+
+Authenticated `GET /api/reports/export/:kind.pdf` accepts `records`, `efficiency` or `support`; route and service both enforce Admin, and the service revalidates the active current actor before reading data. It reuses the existing validated reporting services and support cohort/analysis logic. `records` overrides pagination to page 1 / limit 1,000 and refuses larger or inconsistent counts. Collection/page bounds prevent silent partial reports; requests above 250 PDF pages require narrower filters. Existing CSV paths and permissions are unchanged.
+
+`reportPdf.service` maps measured fields to the reusable `utils/reportPdf` layout using pdf-lib and pinned @pdf-lib/fontkit. Embedded static Inter fonts derive from the existing licensed asset (OFL bundled beside them). Unsupported glyphs appear as explicit Unicode code points with a note, never silent text loss. Repeated table headers, wrapped/split cells, page footers and vector charts are viewport independent. Dates/metadata are Manila time; record epochs take precedence over raw dates. PDFs return application/pdf, controlled attachment names and private/no-store headers; failures return JSON before bytes are sent. Missing support durations and absent analysis are not zeros. Custom release date predicates now honor the same applied date range, retaining the default rolling window only when no dates are supplied. No chat/proof contents or credentials enter reports or AI payloads.
+
+
+## Forecast aggregate evidence
+
+Admin-only GET /api/documents/stats/forecast now also returns the exact `history` sent to the AI service, `today`, source table/timestamp/target metadata and explicit `validation.status=not_evaluated`. Only date/count aggregates are returned; no identity fields are added. Existing daily grouping, 14–90 complete-day bounds, exact type filters, seven future dates, honest fallback and no-estimate behavior are retained. The expanded chart exposes every input row for inspection; this does not certify real-data provenance or report measured error. Matching frontend/backend deployment is required, with no migration or new dependency/environment variable.
+
+
+## Held-out forecast evaluation API and deployment fix
+
+Authenticated Admin-only GET /api/documents/stats/forecast/evaluation accepts the same exact documentType filter. It reads daily counts from the existing documents query, preserves complete Manila days/zeroes and constructs at most five chronological cutoffs with at least 14 training days and seven held-out days after the skipped simulated current day. At least 22 complete days are needed. Node sends dates/counts/cutoffs only to POST /forecast/evaluate (120-second bounded call). Python independently validates nonoverlapping cutoffs and uses the shared forecaster.py model configuration (weekly seasonality, no daily/yearly, seed42). Node validates target dates, cutoffs and bounded nonnegative integer predictions before recomputing baseline and all metrics from the source actuals; it does not trust upstream reported metrics.
+
+The response includes MAE/RMSE/WAPE, exact row/fold and per-horizon evidence, model version, sample window and explicit data-origin qualifications. Prefix-count metadata recognizes TRC-MOCK data only; zero recognized mock rows is unverified origin. WAPE is null for all-zero actual counts. Insufficient data returns an explicit no-score result; upstream errors/malformed output return503. One evaluation may compute per Node process at a time (other jobs409); identical validated aggregates can reuse a five-minute, ten-entry maximum in-memory cache with the original evaluation timestamp. It is a read-only computation, not a training-data write or persisted institutional accuracy certificate. Responses use private/no-store.
+
+The AI Docker COPY now includes analytics.py, forecaster.py and forecast_evaluation.py; the previous image omitted analytics.py even though the forecast/document-advice routes import it. Rebuild/recreate both services and deploy the matching frontend. No schema/new dependency/env change. The main forecast/history route remains distinct and retains its explicit fallback. Queue suggestions are mirrored workflow rules, not the inactive Random Forest prototype.

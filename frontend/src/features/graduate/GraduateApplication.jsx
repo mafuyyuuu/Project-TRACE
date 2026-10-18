@@ -25,11 +25,9 @@ const STATUS_LABELS = {
 };
 
 /**
- * Renders one admin-defined field. The form has no hardcoded questions — the
- * Registrar can add, remove or reorder fields from the Maintenance module and
- * this component adapts.
+ * Render configurable questions, resolving academic selectors from the catalog.
  */
-function DynamicField({ field, value, onChange }) {
+function DynamicField({ field, value, onChange, academic }) {
   const isGraduationYear = field.field_key === 'year_graduated';
   const problem = isGraduationYear ? yearError(value, { label: field.label, minimum: 2002, required: Boolean(field.is_required) }) : '';
   const shared = {
@@ -42,14 +40,16 @@ function DynamicField({ field, value, onChange }) {
       'trace-control',
   };
 
-  const options = Array.isArray(field.options)
+  const options = field.catalog === 'colleges' ? academic.colleges.map(college => college.name)
+    : field.catalog === 'programs' ? academic.programs.map(program => program.name)
+    : Array.isArray(field.options)
     ? field.options
     : field.options
       ? JSON.parse(field.options)
       : [];
 
   return (
-    <div className="flex flex-col gap-1.5">
+    <div className="flex min-w-0 flex-col gap-1.5">
       <label htmlFor={field.field_key} className="trace-label">
         {field.label} {field.is_required ? <span className="text-red-500 dark:text-red-300">*</span> : null}
       </label>
@@ -57,8 +57,11 @@ function DynamicField({ field, value, onChange }) {
       {field.field_type === 'textarea' ? (
         <textarea maxLength={INPUT_LIMITS.notes} {...shared} rows={3} />
       ) : field.field_type === 'select' ? (
-        <select {...shared} className={`${shared.className} cursor-pointer`}>
-          <option value="">Select...</option>
+        <select {...shared} className={`${shared.className} cursor-pointer`}
+          disabled={Boolean(field.catalog && (academic.loading || academic.error || (field.catalog === 'programs' && !academic.selectedCollege)))}
+          aria-describedby={field.catalog ? `${field.field_key}-catalog-hint` : undefined}>
+          <option value="">{field.catalog === 'programs' && !academic.selectedCollege ? 'Choose College first' : 'Select...'}</option>
+          {value && field.catalog && !options.includes(value) && <option value={value} disabled>{value} (unavailable)</option>}
           {options.map((opt) => (
             <option key={opt} value={opt}>{opt}</option>
           ))}
@@ -83,6 +86,13 @@ function DynamicField({ field, value, onChange }) {
         />
       )}
 
+      {field.catalog && <p id={`${field.field_key}-catalog-hint`} className="text-xs text-gray-600 dark:text-gray-300 break-words">
+        {academic.loading ? 'Loading approved choices…' : academic.error ? 'Retry loading approved choices below.'
+          : field.catalog === 'programs' && !academic.selectedCollege ? 'Choose your College to see its approved degree programs.'
+          : options.length === 0 ? 'No active choices are available. Contact the Registrar.'
+          : value || (field.catalog === 'colleges' ? 'Select the College you belonged to.' : 'Only programs in your selected College are shown.')}
+      </p>}
+
       {isGraduationYear && <p id={`${field.field_key}-hint`} className="text-xs text-gray-600 dark:text-gray-300">2002–{manilaYear()}, four digits.</p>}
       {problem && <p id={`${field.field_key}-error`} className="text-xs text-amber-800 dark:text-amber-200">{problem}</p>}
       {field.help_text && <p className="text-[10px] text-gray-400 dark:text-gray-400">{field.help_text}</p>}
@@ -96,7 +106,7 @@ function DynamicField({ field, value, onChange }) {
  */
 export default function GraduateApplication({ user }) {
   const {
-    fields, answers, applications, loading, submitting, error, success,
+    fields, academic, answers, applications, loading, submitting, error, success,
     updateAnswer, handleSubmit, dismissNotification,
     answersToConfirm, confirmSubmission, cancelSubmission,
   } = useGraduateApplication(user);
@@ -112,8 +122,8 @@ export default function GraduateApplication({ user }) {
 
       <div className="trace-page">
         <div className="trace-standard-heading flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div>
-            <h2 className="trace-page-title">
+          <div className="min-w-0">
+            <h2 className="trace-page-title break-words">
               Graduate <span className="text-[#15803d] dark:text-green-300">Application</span>
             </h2>
             <p className="trace-page-description">
@@ -128,7 +138,7 @@ export default function GraduateApplication({ user }) {
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {/* The form itself */}
-          <div className="trace-section trace-section-body lg:col-span-2">
+          <div className="trace-section trace-section-body min-w-0 lg:col-span-2">
             <h3 className="trace-section-title mb-1">Application Form</h3>
             <p className="text-xs text-gray-400 dark:text-gray-400 mb-6 pb-5 border-b border-gray-100 dark:border-gray-700">
               Fields marked <span className="text-red-500 dark:text-red-300">*</span> are required.
@@ -149,13 +159,19 @@ export default function GraduateApplication({ user }) {
                     field={field}
                     value={answers[field.field_key]}
                     onChange={updateAnswer}
+                    academic={academic}
                   />
                 ))}
+
+                {academic.enabled && academic.error && <div role="alert" className="text-sm text-red-700 dark:text-red-300">
+                  <p>{academic.error}</p>
+                  <Button type="button" onClick={academic.retry} className="trace-button trace-button-secondary mt-2">Retry choices</Button>
+                </div>}
 
                 <div className="flex justify-end pt-4 border-t border-gray-100 dark:border-gray-700">
                   <Button
                     type="submit"
-                    disabled={submitting}
+                    disabled={submitting || (academic.enabled && (academic.loading || Boolean(academic.error)))}
                     className="trace-button trace-button-primary w-full sm:w-auto sm:px-8"
                   >
                     {submitting ? 'Submitting...' : 'Submit Application'}
@@ -166,7 +182,7 @@ export default function GraduateApplication({ user }) {
           </div>
 
           {/* Previous submissions */}
-          <div className="trace-section trace-section-body h-fit">
+          <div className="trace-section trace-section-body min-w-0 h-fit">
             <h3 className="text-sm font-bold text-gray-900 dark:text-gray-100 mb-4">My Applications</h3>
 
             {applications.length === 0 ? (

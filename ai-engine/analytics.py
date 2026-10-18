@@ -1,6 +1,7 @@
 """Analysis of gateway-supplied aggregates; no identities or fabricated samples."""
 from datetime import date, timedelta
 from math import isfinite
+from document_insights import NEXT_ACTIONS
 
 
 def forecast_history(data):
@@ -56,7 +57,7 @@ def document_advice(data):
     sampled = [row for row in stages if row['transitions'] >= 5]
     if sampled:
         slowest = max(sampled, key=lambda row: row['avg_minutes'])
-        add('Review the longest measured stage', f"{slowest['stage'].replace('_', ' ').title()} has the longest average recorded wait among stages with at least five transitions: {slowest['avg_minutes']} minutes over {slowest['transitions']} transitions. Review these records before changing staffing; this comparison does not establish a cause.", slowest['transitions'])
+        add('Review the longest measured stage', f"{slowest['stage'].replace('_', ' ').title()} has the longest average recorded wait among stages with at least five transitions: {slowest['avg_minutes']} minutes over {slowest['transitions']} transitions. Suggested next step: {NEXT_ACTIONS.get(slowest['stage'], 'Review the recorded cases and their assigned desk.')} Review these records before changing staffing; this comparison does not establish a cause.", slowest['transitions'])
     elif stages:
         add('Stage samples are limited', 'No stage has five measured transitions yet. Collect more workflow history before comparing desk waits.', sum(row['transitions'] for row in stages))
     add('Recorded releases', f"{data['released']} documents were released in the chart period. Staff workload counts describe volume and are not a performance ranking.", data['released'])

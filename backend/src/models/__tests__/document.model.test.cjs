@@ -74,7 +74,9 @@ it('counts requested documents by Manila date and binds exact type filters',asyn
   const executor={query:vi.fn().mockResolvedValue([[{date:'2026-10-01',volume:2}]])};
   await model.forecastFallbackRows("Diploma' OR 1=1",executor);
   const [sql,params]=executor.query.mock.calls[0];
-  expect(sql).toContain('COUNT(*) AS volume FROM documents');
+  expect(sql).toContain('COUNT(*) AS volume');
+  expect(sql).toContain("tracking_number LIKE 'TRC-MOCK-%'");
+  expect(sql).toContain('AS known_synthetic_volume FROM documents');
   expect(sql).not.toContain('step_logs');
   expect(sql).toContain('UNIX_TIMESTAMP(created_at) + 28800');
   expect(sql).toContain('AND document_type = ?');

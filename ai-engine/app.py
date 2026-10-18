@@ -133,20 +133,30 @@ def forecast():
         if request.content_length and request.content_length > 16384:
             return jsonify({'error': 'Aggregate payload too large.'}), 413
         history, today = forecast_history(request.get_json(silent=True))
-        df = pd.DataFrame([{'ds': row['date'], 'y': row['volume']} for row in history])
-        df['ds'] = pd.to_datetime(df['ds'])
-        model = Prophet(daily_seasonality=False, weekly_seasonality=True, yearly_seasonality=False)
-        model.fit(df)
-        # Explicitly predict tomorrow through day seven, even after an idle day.
+        from forecaster import predict_counts
         dates = [today + timedelta(days=offset) for offset in range(1, 8)]
-        result = model.predict(pd.DataFrame({'ds': pd.to_datetime(dates)}))
-        return jsonify({'forecast': [dict(date=day.isoformat(), day=day.strftime('%a'), predicted_volume=max(0, round(float(value))))
-                                     for day, value in zip(dates, result['yhat'])], 'source': 'prophet'})
+        values = predict_counts(history, dates, Prophet)
+        return jsonify({'forecast': [dict(date=day.isoformat(), day=day.strftime('%a'), predicted_volume=value)
+                                     for day, value in zip(dates, values)], 'source': 'prophet'})
     except (ValueError, TypeError, KeyError, AttributeError):
         return jsonify({'error': 'Invalid or insufficient calendar aggregates.'}), 400
     except Exception as error:
         logger.error('Forecast unavailable: %s', type(error).__name__)
         return jsonify({'error': 'Forecast unavailable.'}), 503
+
+
+@app.route('/forecast/evaluate', methods=['POST'])
+def forecast_evaluation():
+    try:
+        if request.content_length and request.content_length > 16384:
+            return jsonify({'error': 'Aggregate payload too large.'}), 413
+        from forecast_evaluation import evaluate_forecast
+        return jsonify(evaluate_forecast(request.get_json(silent=True), Prophet))
+    except (ValueError, TypeError, KeyError, AttributeError):
+        return jsonify({'error': 'Invalid held-out evaluation aggregates.'}), 400
+    except Exception as error:
+        logger.error('Forecast evaluation unavailable: %s', type(error).__name__)
+        return jsonify({'error': 'Forecast evaluation unavailable.'}), 503
 
 
 @app.route('/ai/document-analytics', methods=['POST'])

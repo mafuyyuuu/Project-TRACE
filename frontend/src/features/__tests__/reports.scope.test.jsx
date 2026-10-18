@@ -8,7 +8,7 @@ import { STATUS } from '@/utils/documentStatus';
 
 vi.mock('@/services/reportsService', () => ({
   getReportFilterOptions: vi.fn().mockResolvedValue({colleges:[{id:4,name:'Synthetic College'}],document_types:[{id:1,name:'Diploma',is_active:1}],college_locked:false}),
-  getDocumentReport: vi.fn(), getAnalytics: vi.fn(), exportStudentsCsv: vi.fn(), exportDocumentsCsv: vi.fn(),
+  downloadReportPdf:vi.fn().mockResolvedValue('trace-records-report-2026-10-17.pdf'), getDocumentReport: vi.fn(), getAnalytics: vi.fn(), exportStudentsCsv: vi.fn(), exportDocumentsCsv: vi.fn(),
 }));
 const ADMIN = { role: 'admin' };
 const data = (name, total = 1, page = 1) => ({
@@ -160,4 +160,10 @@ it('preserves Secretary record fields and profile actions in the combined worksp
   expect(screen.getByRole('button', { name: 'Completed only' })).toHaveAttribute('aria-pressed', 'true');
   await user.click(screen.getByRole('button', { name: 'Export CSV', exact: true }));
   expect(screen.getByLabelText('Dataset').querySelectorAll('option')).toHaveLength(5);
+});
+
+
+it.each([{role:'admin'},{role:'clerk',desk_assignment:'Finance'},{role:'clerk',desk_assignment:'Window 1'},{role:'clerk',desk_assignment:'Secretary'}])('shows the PDF chooser only for the Admin report owner: $role $desk_assignment',async actor=>{
+ const user=userEvent.setup();render(<ReportsPanel user={actor} currentTab={actor.role==='admin'?'admin-reports':'reports'}/>);await screen.findByText('Initial',{selector:'button'});
+ if(actor.role==='admin'){await user.click(screen.getByRole('button',{name:'Export PDF'}));expect(screen.getByRole('dialog',{name:'Export PDF Report'})).toBeInTheDocument();expect(screen.getByLabelText('Report type').options).toHaveLength(3);}else expect(screen.queryByRole('button',{name:'Export PDF'})).not.toBeInTheDocument();
 });
