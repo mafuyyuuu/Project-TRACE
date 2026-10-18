@@ -227,7 +227,7 @@ function forecastDocumentTypes(executor = pool) {
 /** Complete Manila calendar days, one count per requested document. */
 function forecastFallbackRows(documentType = null, executor = pool) {
   const local = "DATE_FORMAT(DATE_ADD('1970-01-01', INTERVAL (UNIX_TIMESTAMP(created_at) + 28800) SECOND), '%Y-%m-%d')";
-  return executor.query(`SELECT ${local} AS date, COUNT(*) AS volume FROM documents
+  return executor.query(`SELECT ${local} AS date, COUNT(*) AS volume, SUM(CASE WHEN tracking_number LIKE 'TRC-MOCK-%' THEN 1 ELSE 0 END) AS known_synthetic_volume FROM documents
     WHERE created_at >= FROM_UNIXTIME(?)
       ${documentType ? 'AND document_type = ?' : ''}
     GROUP BY ${local} ORDER BY date`, [Math.floor(Date.now()/1000)-91*86400,...(documentType ? [documentType] : [])]).then(([rows])=>rows);

@@ -13,7 +13,8 @@ it('includes every active stage and separates terminal and unclassified records'
 it('does not turn quiet evaluation/release queues into an efficiency claim', () => {
   const data = snapshot([{ current_status: 'SEC_PROCESSING', count: 60 }], 1000);
   const result = buildInsights(data, 0);
-  expect(result).toHaveLength(1);
+  expect(result).toHaveLength(2);
+  expect(result[0].message).toContain('actual pages and final price');
   expect(result[0].message).toContain('Secretary Processing: 60');
   expect(result[0].message).toContain('actions are not distinct requests');
 });
@@ -37,4 +38,10 @@ it('accepts only an explicitly unvalidated prototype classification', () => {
 
 it.each([-1, NaN, 1.5])('rejects an invalid observed count instead of reporting zero', value => {
   expect(() => snapshot([{ current_status: 'SEC_PROCESSING', count: value }], 0)).toThrow('Invalid document queue count');
+});
+
+it('provides actionable guidance even below old thresholds and does not claim a learned classifier',()=>{
+ const result=buildInsights(snapshot([{current_status:'PENDING_W1_INTAKE',count:20},{current_status:'PENDING_SEC_EVALUATION',count:1},{current_status:'PENDING_FINANCE_VERIFICATION',count:5},{current_status:'SEC_PROCESSING',count:4},{current_status:'READY_FOR_RELEASE',count:1}],0));
+ expect(result[0].message).toMatch(/^Suggested next step for 20/);expect(result[0].message).toContain('Open Intake Check');expect(result.filter(row=>row.method==='queue_rules')).toHaveLength(3);expect(JSON.stringify(result)).not.toContain('random_forest');
+ const small=buildInsights(snapshot([{current_status:'PENDING_SEC_EVALUATION',count:1}],0));expect(small[0].message).toContain('supporting papers');
 });

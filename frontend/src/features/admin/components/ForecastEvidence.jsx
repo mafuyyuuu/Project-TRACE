@@ -1,3 +1,4 @@
+import ForecastValidation from './ForecastValidation';
 import PaginatedTable from '@/components/PaginatedTable';
 import {formatDateTime} from '@/utils/formatters';
 export default function ForecastEvidence({forecast={},details=false}) {
@@ -18,5 +19,6 @@ export default function ForecastEvidence({forecast={},details=false}) {
         <p><strong>Validation status:</strong> No measured forecast-error result is available. Forecasting should be evaluated on unseen later dates against a baseline. Scan field detection and passing software tests are separate from model accuracy.</p>
       </div>
     </details>}
+    {details && <ForecastValidation key={`${forecast.as_of || 'initial'}:${forecast.document_type || 'All'}`} documentType={forecast.document_type}/>}
   </div>;
 }

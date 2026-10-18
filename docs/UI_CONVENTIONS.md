@@ -352,3 +352,8 @@ Keep the existing CSV export dialog and add the Admin-only **Export PDF** header
 ## Forecast source visibility
 
 The main Admin forecast and expanded modal share ForecastChart, ForecastDays and ForecastEvidence. Preserve all seven dated predictions and explicit zeroes. A solid recorded-history line and dashed green predicted line have distinct legends, markers, an incomplete-current-day gap and no animation. Exact values remain in accessible dated cards; charts scroll inside their region at narrow/enlarged widths. The expanded modal exposes all aggregate input rows in PaginatedTable and keeps a visible close action. Display source/fallback, snapshot, sample window and not-yet-validated status; clear obsolete history/method metadata during refresh. These evidence labels are an intentional response to the user’s defense/forecast-visibility request.
+
+
+## Forecast validation and next-step evidence
+
+ForecastValidation is an explicit read-only action in the expanded forecast, never an automatic request on dashboard mount. Disable duplicate runs, announce pending work, abort the read on unmount/scope refresh, clear prior metrics when rerunning and retain readable failures without inventing scores. Show data origin, tested counts/windows and model version alongside MAE/RMSE/WAPE and a baseline; preserve worse-than-baseline and undefined-zero-target results. Full actual/predicted, fold and per-horizon tables use PaginatedTable with contained scrolling. Validation of an unknown/demo dataset never changes the real-world validation disclaimer. No save-confirmation dialog is needed. Queue insight messages put a specific next step first and use the method label Workflow rules; no classifier accuracy or automatic staff reassignment is implied.

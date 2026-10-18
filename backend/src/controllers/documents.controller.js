@@ -223,7 +223,12 @@ async function sendMessage(req, res) {
   }
 }
 
+async function evaluateForecast(req,res) {
+  try {res.setHeader('Cache-Control','private, no-store');res.json(await require('../services/forecastEvaluation.service').evaluate(req.user,req.query));}
+  catch(err){fail(res,err,'Forecast evaluation error','Could not evaluate the forecast.');}
+}
 module.exports = {
+  evaluateForecast,
   detail, assignmentContext, reassign, reconcileCollege,
   messageThreads,
   getMessages,

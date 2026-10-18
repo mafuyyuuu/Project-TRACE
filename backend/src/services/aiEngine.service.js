@@ -115,4 +115,8 @@ async function getDocumentAnalytics(aggregates) {
   try { return await requestJson(`${env.AI_ENGINE_URL}/ai/document-analytics`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(aggregates)}); }
   catch { return null; }
 }
-module.exports = { getDocumentAnalytics, verifyIdDocument, extractDocument, extractReceipt, getForecast, getInsights, getSupportInsights };
+async function evaluateForecast(aggregates) {
+  try {return await requestJson(`${env.AI_ENGINE_URL}/forecast/evaluate`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(aggregates)},120000);}
+  catch {return null;}
+}
+module.exports = { evaluateForecast, getDocumentAnalytics, verifyIdDocument, extractDocument, extractReceipt, getForecast, getInsights, getSupportInsights };

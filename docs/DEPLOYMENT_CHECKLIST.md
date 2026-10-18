@@ -194,3 +194,20 @@ Rebuild/recreate both backend and AI engine from the matching `dev` revision, th
 - [ ] As Admin, export filtered document records across multiple table pages, and document/support analytics with a custom Manila period. Open the actual PDF and check totals, labels, charts, repeated headers and complete tables.
 - [ ] Verify CSV still downloads; non-Admin PDF requests return 403. Test a narrowed period after an oversized PDF is refused.
 - [ ] With AI unavailable, verify measured reports still download with unavailable analysis explicitly marked.
+
+
+## Forecast validation and analytics packaging rollout
+
+No migration or new dependency/environment variable. Pull the revision with forecast validation and rebuild/recreate both services; a restart of the old image does not add the omitted Python modules. From ~/Project-TRACE, on the branch you deploy:
+
+```bash
+git pull --ff-only
+docker compose build backend ai-engine
+docker compose up -d --no-deps --force-recreate backend ai-engine
+docker compose ps backend ai-engine
+curl -fsS http://localhost:3300/api/health
+curl -fsS http://localhost:5005/health
+docker compose exec -T ai-engine python -c "import analytics, forecaster, forecast_evaluation; print('Forecast/analysis modules loaded')"
+```
+
+Deploy the matching frontend (merge dev into main first if the frontend host deploys main). As Admin, Refresh forecast and inspect Method; then open Document Efficiency and confirm its advice loads. For validation, Expand forecast → Evaluate existing history. At least22 complete days are needed; otherwise the UI reports no score. Verify shown data origin, actual test dates, baseline, MAE/RMSE/WAPE and unchanged input-cache time. Do not run a mock-data generator to manufacture a validation result.

@@ -1,4 +1,14 @@
 const { PIPELINE, LEGACY_STATUS, STAGE_LABELS } = require('./documentStatus');
+const NEXT_ACTIONS = {
+  "PENDING_W1_INTAKE": "Open Intake Check, verify identity and required papers, then accept or return with correction notes. Review unassigned cases with authorized Window 1 staff.",
+  "PENDING_SEC_EVALUATION": "Ask the assigned college secretary to review eligibility and supporting papers, and request missing documents before preparation.",
+  "SEC_PROCESSING": "Review preparation progress with the assigned secretary, record the actual pages and final price, then issue the payment instructions.",
+  "PENDING_STUDENT_PAYMENT": "Review priced requests awaiting payment, confirm that payment instructions are available, and help students with unresolved payment questions through Support.",
+  "PENDING_FINANCE_VERIFICATION": "Ask Finance to match payment proof, reference and amount, resolve discrepancies, and complete authorized payment verification and receipt handling.",
+  "PAID_PENDING_SEC_RELEASE": "Coordinate with the college secretary to inspect the physical or uploaded Official Receipt before the final handoff.",
+  "SEC_OR_VERIFIED": "Ask the secretary to complete the final handoff so Window 1 can prepare the document for pickup.",
+  "READY_FOR_RELEASE": "Coordinate pickup notices and release schedules. Window 1 should verify the claimant and complete the authorized release when collected."
+};
 const ACTIVE_STAGES = PIPELINE.slice(0, -1);
 const TERMINAL = new Set([PIPELINE.at(-1), ...Object.values(LEGACY_STATUS)]);
 
@@ -35,6 +45,12 @@ function buildInsights(data, prediction = null) {
   const breakdown = entries.filter(([, value]) => value).map(([stage, value]) => `${STAGE_LABELS[stage]}: ${value}`).join('; ');
   const insights = [add(total ? `Document workload: ${total} outstanding` : 'Document workload: no active pipeline documents',
     `${breakdown || 'All active pipeline queues are empty.'} ${data.today_actions} workflow actions recorded today (Manila); actions are not distinct requests. Queue size alone does not establish efficiency, delays or staffing capacity. Review measured durations in Efficiency Analytics.`)];
+  const occupied=entries.filter(([,value])=>value>0).sort((a,b)=>b[1]-a[1]);
+  if(occupied.length){
+    const [stage,value]=occupied[0];
+    insights[0].message=`Suggested next step for ${value} at ${STAGE_LABELS[stage]}: ${NEXT_ACTIONS[stage]} ${insights[0].message}`;
+    for(const [stage,value] of occupied.slice(0,3))insights.push(add(`Suggested next step: ${STAGE_LABELS[stage]}`,`${value} recorded requests. ${NEXT_ACTIONS[stage]} Review by workload volume does not establish urgency or delay; confirm individual case context.`, 'info','queue_rules'));
+  }
   if (data.unclassified) insights.push(add('Document statuses need review',
     `${data.unclassified} documents have an unrecognized status and are excluded from the active-pipeline total. Review their status mapping before interpreting workload.`, 'warning'));
   if (data.counts.PENDING_SEC_EVALUATION > 5) insights.push(add('Secretary Queue Alert',
