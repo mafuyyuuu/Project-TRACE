@@ -506,7 +506,7 @@ async function getForecast(query = {},user) {
   const {historyWindow,fallback,validModel}=require('../utils/volumeForecast');
   const [rows,types]=await Promise.all([documentModel.forecastFallbackRows(type?.trim() || null),documentModel.forecastDocumentTypes()]);
   const data=historyWindow(rows);
-  const metadata={document_types:types,document_type:type?.trim() || null,history_days:data.history.length,sample_size:data.history.reduce((sum,row)=>sum+row.volume,0),as_of:new Date().toISOString(),timezone:data.timezone};
+  const metadata={document_types:types,document_type:type?.trim() || null,history:data.history,today:data.today,history_days:data.history.length,sample_size:data.history.reduce((sum,row)=>sum+row.volume,0),as_of:new Date().toISOString(),timezone:data.timezone,data_source:{table:'documents',timestamp_field:'created_at',target:'Daily requested document count',max_complete_days:90},validation:{status:'not_evaluated',message:'Forecast error has not been evaluated on held-out real request history.'}};
   if (data.history.length<14) return {...fallback(data),...metadata};
   const model=await aiEngine.getForecast(data);
   return {...(validModel(model,data) ? {forecast:model.forecast,source:'prophet',message:'Prophet estimate fitted to recorded incoming requests; estimates are not guaranteed volumes.'} : fallback(data)),...metadata};

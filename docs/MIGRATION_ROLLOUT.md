@@ -742,3 +742,8 @@ No new migration, environment variable or dependency. Deploy the matching backen
 ## Admin PDF export rollout
 
 No database migration or new environment variable is required for PDF reports. Deploy the matching frontend and backend together. Rebuild the backend image to install the pinned @pdf-lib/fontkit dependency and package the two embedded Inter TTFs plus their OFL license under src/utils; restarting an older image alone is insufficient. A non-Docker install needs `npm --prefix backend ci` before restart. The AI engine is unchanged by this feature; its availability determines whether existing report advice is included or marked unavailable. Verify a real Admin PDF download and a non-Admin 403 after deployment.
+
+
+## Forecast visibility and evidence rollout
+
+Deploy the matching frontend/backend to expose the exact aggregate input history, all seven dated estimates, distinct actual/predicted lines and source/validation labels. No new migration, dependency or environment variable is required. The existing AI engine must be available for the label to say Prophet; the historical-weekday fallback remains explicitly labeled. Verify the active method and source counts after deployment; local mock tests do not validate live model accuracy.

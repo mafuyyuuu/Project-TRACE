@@ -1183,3 +1183,8 @@ filing; alumni retain their existing education requirements. No environment chan
 ## PDF export dependencies
 
 Admin PDF export uses the backend package lock (@pdf-lib/fontkit with existing pdf-lib), embedded Inter fonts and existing reporting/AI connections. There is no new secret, environment setting, database migration or server browser/PDF binary. Rebuild the backend image (or run backend npm ci for a non-Docker deployment) and deploy the matching frontend. Keep fonts and the bundled OFL license in src/utils. Existing aggregate AI outage handling remains available in the PDF.
+
+
+## Forecast visibility and evidence rollout
+
+Deploy the matching frontend/backend to expose the exact aggregate input history, all seven dated estimates, distinct actual/predicted lines and source/validation labels. No new migration, dependency or environment variable is required. The existing AI engine must be available for the label to say Prophet; the historical-weekday fallback remains explicitly labeled. Verify the active method and source counts after deployment; local mock tests do not validate live model accuracy.

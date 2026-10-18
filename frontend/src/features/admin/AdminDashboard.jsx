@@ -9,13 +9,14 @@ import RequestAssignmentModal from '@/features/admin/components/RequestAssignmen
 import RequestStaff from '@/components/RequestStaff';
 import Button from '@/components/Button';
 import StudyYearsCorrectionModal from '@/features/admin/components/StudyYearsCorrectionModal';
-import { forecastCeiling } from '@/utils/forecastScale';
+import ForecastChart from './components/ForecastChart';
+import ForecastDays from './components/ForecastDays';
+import ForecastEvidence from './components/ForecastEvidence';
 import { USER_TYPE_LABELS } from '@/utils/userLabels';
 import AdminTemplatesPanel from './components/AdminTemplatesPanel';
 import AdminSecurityPanel from './components/AdminSecurityPanel';
 import RequestMessagesPanel from '@/components/RequestMessagesPanel';
 import { useState } from 'react';
-import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import MiniSparkline from '@/components/MiniSparkline';
 import useAdminDashboard from '@/features/admin/useAdminDashboard';
 import { todayLongDate, formatDuration, formatDateTime } from '@/utils/formatters';
@@ -149,56 +150,9 @@ export default function AdminDashboard({ user, currentTab, setViewImageUrl, revi
                         </Button>
                       </div>
                     </div>
-                    {/* Dynamic Recharts line graph */}
-                    <div className="flex-1 relative min-h-52 overflow-x-auto">
-                      {forecastData && forecastData.length > 0 ? (
-                        <div className="h-52 min-w-[20rem]"><ResponsiveContainer width="100%" height="100%">
-                          <AreaChart
-                            data={forecastData.slice(-5).map(f => ({day:f.day,volume:f.predicted_volume}))}
-                            margin={{ top: 20, right: 15, left: 15, bottom: 0 }}
-                          >
-                            <defs>
-                              <linearGradient id="colorVolume" x1="0" y1="0" x2="0" y2="1">
-                                <stop offset="5%" stopColor="#15803d" stopOpacity={0.4}/>
-                                <stop offset="95%" stopColor="#15803d" stopOpacity={0}/>
-                              </linearGradient>
-                            </defs>
-                            <XAxis
-                              dataKey="day"
-                              axisLine={false}
-                              tickLine={false}
-                              tick={{ fill: '#9ca3af', fontSize: '0.625rem', fontWeight: 'bold' }}
-                              dy={10}
-                            />
-                            <YAxis domain={[0, forecastCeiling(forecastData)]}
-                              allowDecimals={false}
-                              axisLine={false}
-                              tickLine={false}
-                              tick={{ fill: '#9ca3af', fontSize: '0.625rem', fontWeight: 'bold' }}
-                              width={30}
-
-                            />
-                            <Tooltip
-                              contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
-                              itemStyle={{ color: 'var(--trace-chart-accent)', fontWeight: 'bold' }}
-                              labelStyle={{ color: 'var(--trace-chart-text)', fontWeight: 'bold', marginBottom: '4px' }}
-                            />
-                            <Area
-                              isAnimationActive={false}
-                              type="monotone"
-                              dataKey="volume"
-                              stroke="var(--trace-chart-line)"
-                              strokeWidth={2.5}
-                              fillOpacity={1}
-                              fill="url(#colorVolume)"
-                              activeDot={{ r: 6, fill: '#15803d', stroke: '#fff', strokeWidth: 2 }}
-                            />
-                          </AreaChart>
-                        </ResponsiveContainer></div>
-                      ) : (
-                        <div className="flex-1 flex items-center justify-center text-gray-400 dark:text-gray-400 font-medium text-xs">{forecast.loading ? 'Loading forecast data…' : forecast.error || forecast.message || 'Not enough recorded request history for an estimate.'}</div>
-                      )}
-                    </div>
+                    {forecastData?.length>0?<><ForecastChart forecastData={forecastData} forecast={forecast}/><ForecastDays forecastData={forecastData}/></>:<p role="status" className="trace-page-description py-8">{forecast.loading?'Loading forecast data…':forecast.error || forecast.message || 'Not enough recorded request history for an estimate.'}</p>}
+                    <ForecastEvidence forecast={forecast}/>
+                    <p className="trace-page-description mt-3">Choose Expand to inspect the daily source counts and all forecast details.</p>
                   </div>
 
                   {/* Admin Insights Panel */}

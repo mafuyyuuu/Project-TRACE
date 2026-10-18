@@ -347,3 +347,8 @@ Window Tracking has All, In progress, Completed and Other statuses. These partit
 ## Admin PDF controls
 
 Keep the existing CSV export dialog and add the Admin-only **Export PDF** header action. The PDF chooser uses ModalShell, shared controls, a pinned Cancel/Download footer, pending guards and inline failure feedback that preserves choices. Records use applied filters, never unsaved filter drafts or just the visible page. Analytics period drafts remain distinct from successful applied periods; disable export during refresh/failure. Document staff filters apply to all matching staff rather than the visible seven-row page. Direct analytics exports use shared acknowledgment feedback. The read-only export needs no save confirmation. Use wrapping action groups and contained modal scrolling at 320 px / enlarged text.
+
+
+## Forecast source visibility
+
+The main Admin forecast and expanded modal share ForecastChart, ForecastDays and ForecastEvidence. Preserve all seven dated predictions and explicit zeroes. A solid recorded-history line and dashed green predicted line have distinct legends, markers, an incomplete-current-day gap and no animation. Exact values remain in accessible dated cards; charts scroll inside their region at narrow/enlarged widths. The expanded modal exposes all aggregate input rows in PaginatedTable and keeps a visible close action. Display source/fallback, snapshot, sample window and not-yet-validated status; clear obsolete history/method metadata during refresh. These evidence labels are an intentional response to the user’s defense/forecast-visibility request.

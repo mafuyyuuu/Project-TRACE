@@ -5,7 +5,7 @@
 > 📌 **Content reviewed: October 6, 2026.** The original three-presenter script and visual format are retained. Rehearse the matching deployed version with synthetic records and privately prepared credentials. The ticket redesign has local checks; include its demo only on the matching deployed revision. Use [CAPSTONE_DEFENSE_GUIDE.md](CAPSTONE_DEFENSE_GUIDE.md) for updated diagrams and the question bank.
 
 **Roles:**
-- **Speaker 1:** Formal greeting, Window 1 release demo, Admin AI Insights (Prophet & Random Forest), formal conclusion.
+- **Speaker 1:** Formal greeting, Window 1 release demo, Admin AI Insights (Prophet and aggregate advice), formal conclusion.
 - **Speaker 2:** Problem statement, system architecture, Live Demo (Student, Finance). Highlights form dynamism and OCR AI.
 - **Speaker 3:** Background of the study, comparison, scope and limitation, Secretary workflows.
 
@@ -47,7 +47,7 @@ I will now hand the floor back to [Speaker 3 Name] to establish our system's bou
 **(Slide 4 & 5: Scope and Limitation)**
 
 **Speaker 3:**
-"To establish the exact boundaries of our study, our scope is focused on four key functionalities: developing a cross-platform Web App, integrating OCR for data extraction, implementing automated workflow routing, and applying predictive analytics using Random Forest and Prophet.
+"To establish the exact boundaries of our study, our scope is focused on four key functionalities: developing a cross-platform Web App, integrating OCR for data extraction, implementing automated workflow routing, and forecasting recorded request demand with Prophet and presenting descriptive aggregate advice.
 
 However, the system acknowledges a few key limitations. Operationally, we strictly handle digital intake and analytics, while the generation and physical issuance of credentials remain exclusively with the registrar staff. Furthermore, the system is strictly for PLP students and alumni, excluding any third-party organizations. During this testing phase, we also utilize a simulated environment, meaning our predictive models use dummy datasets and the payment component relies on a demonstration account. Finally, because our OCR relies on AI, poor document quality or bad handwriting can naturally hinder its performance, in which case manual data entry serves as the necessary fallback.
 
@@ -346,3 +346,14 @@ Latest Support demonstration: the i icon opens the authorized linked request; pe
 ## Admin PDF demonstration addendum
 
 “Admin can now download a generated PDF from Reports & Export, or directly from Document and Support Analytics. We apply a period first, then open the downloaded file: its timestamp, filters, measured summaries, charts and complete matching tables remain readable outside the application. Available AI advice is labeled separately. Missing measurements stay explicit, and raw conversations and proof uploads are excluded. The PDF re-reads current saved data, includes up to 1,000 matching rows, and asks us to narrow larger scopes. Other reporting accounts retain their authorized CSV exports.”
+
+
+## Forecast visibility, source evidence and accuracy — October 18
+
+Open **Admin → Dashboard → 7-Day Volume Forecast**. The chart uses a solid line for the latest 14 complete days of recorded requests and a dashed green line for all seven future estimates. Dated numeric cards retain each day, including zero. Expand opens the same chart and **View forecast data source and daily counts**, which lists the complete aggregate model input with pagination. Snapshot time, exact type, day/sample count and method label distinguish Prophet, the historical weekday fallback and insufficient history. Current-day partial requests are excluded; predictions cover tomorrow through day seven in Manila time.
+
+The source is `documents.created_at`, counted once per requested document (not once per student/request group or workflow action). The model sees dates/counts only, up to 90 complete days, with a 14-day minimum. Seeded/synthetic records in that database are also records; the code cannot certify their institutional provenance. `ai-engine/mock_data_gen.py` is an optional synthetic-data writer and must never be presented as a real Registrar dataset or run to manufacture validation evidence.
+
+Defense wording: “Our prototype forecasts incoming document counts from recorded daily requests. We demonstrate the input counts, selected type, dated estimates and model/fallback label. Predictive accuracy on held-out real institutional data has not yet been established, so we do not claim an accuracy percentage.” Do not substitute scan field detection, successful software tests, forecast confidence or descriptive queue advice for measured model accuracy. OCR needs its own labeled-image/text/field evaluation; rule-based report advice has separate definitions and denominators.
+
+For an accuracy study, freeze provenance-checked real history and use multiple chronological cutoffs, fitting only earlier data. Match the actual seven-day target and the production one-day gap: after the last complete training day, the simulated current day is excluded, and evaluate days 2–8 after that training cutoff. Compare dated actual vs predicted counts and the historical-weekday baseline over the same folds. Report MAE (documents/day), RMSE, tested dates/sample size and per-horizon errors, not an invented percent. Zero-demand days need suitable metrics rather than undefined percentage errors. This is an evaluation procedure, not an executed result. Prophet documentation: https://facebook.github.io/prophet/docs/diagnostics.html.
