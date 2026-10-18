@@ -154,11 +154,8 @@ async function submitApplication(user, body) {
       );
     }
 
-    // SU-06: Mark the user's profile as completed so the frontend knows to unblock them
-    if (user.user_type === 'alumni') {
-      await userModel.updateProfile(user.id, { profile_completed: true }, connection);
-    }
-
+    // Graduate access is derived from the committed application. Personal and
+    // educational profile completion remains independent of this submission.
     await connection.commit();
     return { message: 'Graduate application submitted successfully.', application_id: applicationId };
   } catch (err) {

@@ -177,7 +177,31 @@ describe('submitApplication', () => {
   it('stores canonical names without changing the profile academic fields', async () => {
     await service.submitApplication({ ...STUDENT, user_type: 'alumni' }, valid);
     expect(gradModel.insertValue).toHaveBeenCalledWith({ application_id: 42, field_key: 'college', value: 'College of Computer Studies' }, connection);
-    expect(userModel.updateProfile).toHaveBeenCalledWith(STUDENT.id, { profile_completed: true }, connection);
+    expect(userModel.updateProfile).not.toHaveBeenCalled();
+    expect(connection.commit).toHaveBeenCalledOnce();
+  });
+
+  it('commits an alumni application on the base schema without the legacy profile-completed column', async () => {
+    // Exercise actual INSERT builders, rather than mocking every write away.
+    gradModel.insertApplication.mockRestore();
+    gradModel.insertValue.mockRestore();
+    userModel.updateProfile.mockRestore();
+    connection.query.mockImplementation(async sql => {
+      if (/UPDATE users SET profile_completed/.test(sql)) {
+        throw Object.assign(new Error("Unknown column 'profile_completed' in 'field list'"), { code: 'ER_BAD_FIELD_ERROR' });
+      }
+      if (/^INSERT INTO grad_applications /.test(sql)) return [{ insertId: 42 }];
+      if (/^INSERT INTO grad_application_values /.test(sql)) return [{ affectedRows: 1 }];
+      throw new Error('Unexpected application write');
+    });
+    await expect(service.submitApplication({ ...STUDENT, user_type: 'alumni' }, valid))
+      .resolves.toMatchObject({ application_id: 42 });
+    expect(connection.commit).toHaveBeenCalledOnce();
+    expect(connection.rollback).not.toHaveBeenCalled();
+    const answerWrites = connection.query.mock.calls.filter(([sql]) => sql.startsWith('INSERT INTO grad_application_values'));
+    expect(answerWrites.map(([, params]) => params)).toEqual([
+      [42, 'year_graduated', '2024'], [42, 'college', 'College of Computer Studies'], [42, 'program', 'BSIT'],
+    ]);
   });
 
   it('rejects an invalid submission before writing anything', async () => {

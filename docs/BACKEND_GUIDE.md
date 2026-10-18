@@ -63,6 +63,7 @@ The Registrar configures the questions, with a catalog-backed academic pair:
 - `grad_form_fields` holds the field definitions (label, type, required, options, order).
 - `grad_application_values` stores one row per answer, so adding a field never needs a migration.
 - The active `program` question is returned as a catalog select with a College select immediately before it. Existing seeded text definitions need no rewrite. The same active College → Program catalog used by signup/profiles is authoritative. The service rechecks membership under college-then-program locks before inserting answers, stores canonical names in `grad_application_values`, and does not overwrite profile academic values. Previous free-text answers remain readable; unrelated custom questions remain configurable.
+- Submission commits the application and answers without writing the legacy `users.profile_completed` flag. Graduate access is derived from saved applications; personal/education profile completion remains independent. This also supports base-schema databases without that legacy column.
 - The authentication gate normalizes trailing slashes, allowing the mounted POST collection while retaining graduate, email, temporary-password and role restrictions.
 - Validation in `gradApplication.service.js` is **generated from the definitions** — making a field required or restricting a select changes what the API accepts, with no code change.
 
