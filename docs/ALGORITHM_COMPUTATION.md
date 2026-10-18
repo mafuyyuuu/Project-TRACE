@@ -1,6 +1,10 @@
 # HOW THE ALGORITHMS WORK
 
-## Implementation and evidence note — October 5, 2026
+## Current implementation - October 18, 2026
+
+The four-example/10-tree multiclass examples below are historical instructional material, not the active classifier. Current `stage_risk.py` uses 100 trees and two labels: remaining in the same stage for another 24 hours, or leaving within that period. It uses one-hot stage, Manila weekday/hour and hours already waiting, trained on 2,000 reproducible simulated episodes plus eligible earlier completed stage history. Independent simulated episodes and later whole-document groups test it; overlapping groups are excluded. Scores and confusion counts are displayed separately by provenance in AI & Model Evaluation. They do not establish independently verified real-world accuracy. The current forecast counts incoming document rows with weekly seasonality; OCR field detection is not recognition accuracy. See [AI_MODEL_EVALUATION.md](AI_MODEL_EVALUATION.md) for authoritative current math, data and limits.
+
+## Historical implementation and evidence note — October 5, 2026
 
 The mathematical explanations and worked examples below are instructional; they are not measured validation results. The current forecast SQL counts daily step-log events, not distinct requested documents, and the API returns seven nonnegative integer yhat values without uncertainty bounds. Daily seasonality alone should not be described as proof of a learned weekly pattern. The recommendation classifier fits four coded examples and applies queue thresholds; no held-out classification result is established here. OCR field-presence scores measure extraction completeness rather than authenticity, ownership or recognition accuracy. Proposed support-ticket metrics/insights are documented in SUPPORT_DESIGN and must not be described as active until implemented and verified.
 

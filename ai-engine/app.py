@@ -85,7 +85,7 @@ def health_check():
     """
     return jsonify({
         'status': 'TRACE AI Engine is running',
-        'engine': 'EasyOCR (PyTorch), Prophet, aggregate analysis',
+        'engine': 'EasyOCR (PyTorch), Prophet, experimental Random Forest, aggregate analysis',
     })
 
 def get_db_connection():
@@ -173,10 +173,17 @@ def document_analytics():
 @app.route('/ai/recommend', methods=['GET', 'POST'])
 def ai_recommend():
     try:
+        training = cases = None
         if request.method == 'POST':
-            if request.content_length and request.content_length > 16384:
+            if request.content_length and request.content_length > 1048576:
                 return jsonify({'error': 'Aggregate payload too large.'}), 413
-            data = validate_snapshot(request.get_json(silent=True))
+            payload = request.get_json(silent=True)
+            if isinstance(payload, dict) and set(payload) == {'counts', 'unclassified', 'today_actions', 'as_of', 'training_intervals', 'active_cases'}:
+                training, cases = payload['training_intervals'], payload['active_cases']
+                if not isinstance(training, list) or not isinstance(cases, list):
+                    raise ValueError('Supply stage-interval and active-case arrays.')
+                payload = {key: payload[key] for key in ('counts', 'unclassified', 'today_actions', 'as_of')}
+            data = validate_snapshot(payload)
         else:
             # Compatibility for an older gateway: still report every queue and
             # never label a low classifier result as confirmed efficiency.
@@ -193,6 +200,10 @@ def ai_recommend():
                 finally:
                     cursor.close()
 
+        if training is not None:
+            from stage_risk import evaluate_and_predict
+            report = evaluate_and_predict(training, cases, data['as_of'])
+            return jsonify({'source': 'random_forest_experimental', 'random_forest': report})
         return jsonify({'insights': build_document_insights(data), 'source': 'aggregate_rules'})
     except (ValueError, TypeError, KeyError, AttributeError):
         return jsonify({'error': 'Invalid document aggregates.'}), 400

@@ -37,8 +37,9 @@ async function evaluate(user, query = {}) {
   }
   const cohort = query.cohort || 'all';
   if (!['all', 'synthetic', 'unmarked'].includes(cohort)) throw badRequest('Unknown dataset cohort.');
-  const [overall, logs, training] = await Promise.all([
+  const [overall, logs, training, randomForest] = await Promise.all([
     model.summary('all').then(normalise), model.logCounts(), historyThrough(shiftDate(end, -8), cohort),
+    require('./stageRisk.service').analyse(require('../utils/documentInsights').snapshot([], 0)),
   ]);
   const testStart = shiftDate(end, -6);
   const testRows = await model.daily(midnightEpoch(testStart), midnightEpoch(shiftDate(end, 1)), cohort);
@@ -50,7 +51,7 @@ async function evaluate(user, query = {}) {
   const prophet = validModel(result, payload) ? result.forecast : null;
   const baselineMetrics = eligible ? score(actual, baseline) : null;
   const prophetMetrics = prophet ? score(actual, prophet) : null;
-  return { generated_at: new Date().toISOString(), dataset: overall, selected_dataset: training.summary, logs,
+  return { generated_at: new Date().toISOString(), dataset: overall, selected_dataset: training.summary, logs, random_forest: randomForest,
     live_window: { start: shiftDate(today, -90), end: shiftDate(today, -1) },
     evaluation: { cohort, end_date: end, train_start: training.history.length ? training.start : null, train_end: training.end,
       train_days: training.history.length, train_requests: training.history.reduce((sum, row) => sum + row.volume, 0),

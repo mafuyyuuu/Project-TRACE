@@ -156,7 +156,7 @@ export default function AdminDashboard({ user, currentTab, setViewImageUrl, revi
                   <section aria-labelledby="ai-insights-heading" className="trace-section trace-section-body trace-admin-insights flex flex-col h-[335px]">
                     <div>
                       <div className="flex items-center justify-between gap-3"><h3 id="ai-insights-heading" className="trace-section-title">AI INSIGHTS</h3><Button type="button" onClick={refreshInsights} disabled={insightsLoading} aria-label={insightsLoading ? 'Refreshing insights…' : 'Refresh insights'} className="trace-icon-button h-8 w-8"><AdminIcon name="refresh" className="h-4 w-4" /></Button></div>
-                      <p className="text-xs text-gray-600 dark:text-gray-300 mt-1">Queue-based suggested actions and measured support trends. Workflow rules support staff review.</p>
+                      <p className="text-xs text-gray-600 dark:text-gray-300 mt-1">Experimental Random Forest wait-risk advice, workflow guidance and measured support trends. Test sources and scores are in AI &amp; Model Evaluation.</p>
                     </div>
 
                     {insightsLoading && aiInsights.length > 0 && <p role="status" className="mt-2 text-xs text-gray-600 dark:text-gray-300">Refreshing; cards below show the previous snapshot.</p>}
@@ -175,7 +175,7 @@ export default function AdminDashboard({ user, currentTab, setViewImageUrl, revi
                             </h4>
                             <div className="text-xs leading-relaxed font-medium">
                               {insight.message}
-                              {insight.as_of && <p className="mt-2">Snapshot: {formatDateTime(insight.as_of)} Manila · {insight.method === 'random_forest_prototype' ? 'Experimental classification; unvalidated' : insight.method==='queue_rules'?'Workflow rules; suggested next step':'Observed queue counts; not a performance forecast'}</p>}
+                              {insight.as_of && <p className="mt-2">Snapshot: {formatDateTime(insight.as_of)} Manila · {insight.method === 'random_forest_experimental' ? 'Experimental wait risk; real-world accuracy not established' : insight.method === 'random_forest_prototype' ? 'Experimental classification; unvalidated' : insight.method==='queue_rules'?'Workflow rules; suggested next step':'Observed queue counts; not a performance forecast'}</p>}
                               {insight.period && <p className="mt-2">{new Date(insight.period.from).toLocaleDateString('en-PH',{timeZone:'Asia/Manila'})}–{new Date(insight.period.to_exclusive).toLocaleDateString('en-PH',{timeZone:'Asia/Manila'})} · {insight.sample_size} observations · {insight.method==='aggregate_rules' ? 'Aggregate rules; descriptive, not a forecast' : 'Advisory'}</p>}
                             </div>
                           </article>

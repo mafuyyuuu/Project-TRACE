@@ -80,7 +80,7 @@ mysql -u root -p trace_db < backend/database/schema.sql
 mysql -u root -p trace_db < backend/database/seed.sql
 node backend/database/migration.js     # applies GCash/clerk-account schema upgrades
 
-# Seed historical volume data so Prophet/Random Forest have something to train on
+# Optional legacy mock volume seed; not the modern stage-wait training dataset
 python ai-engine/mock_data_gen.py
 ```
 
@@ -233,8 +233,8 @@ Single-file endpoints in `app.py`, OCR logic isolated in `ocr_engine.py`:
 - `POST /ocr/extract` — document intake OCR (EasyOCR run twice — preprocessed + original — longer text wins; regex-parses `student_id`/`last_name`/`form_type`; confidence = fields found / 3).
 - `POST /ocr/verify` — registration ID verification (3-point: school name, student ID, course all substring-matched in lowercased OCR text).
 - `POST /ocr/receipt` — Official Receipt OCR for Finance logging a walk-in payment (field name `receipt`). Regex-parses `or_number`/`amount`/`or_date`; confidence = fields found / 3. It takes the **largest** peso figure rather than the first: a receipt lists line items before its total, and reading a line item as the amount paid would under-record the payment. The clerk re-verifies every field, and `aiEngine.extractReceipt` returns `null` on failure so the counter form still works by hand with the engine down.
-- `GET /forecast` — Prophet, daily seasonality only, trained live each call on `step_logs` grouped by date, returns next 7 days.
-- `GET /ai/recommend` — RandomForestClassifier(n_estimators=10, random_state=42) trained on a small hardcoded heuristic dataset, feature vector `[PENDING_SEC_EVALUATION, READY_FOR_RELEASE, today_volume]` computed live from MySQL (**this service queries `documents.current_status` in raw SQL, so it has to be kept in step with `utils/documentStatus.js` by hand — there is no shared module across the language split**); insight generation is dual-condition (classifier vote OR raw threshold), so a misclassification still gets caught by the threshold check.
+- `POST /forecast` — Prophet learns up to 90 complete Manila days of incoming document counts, then estimates tomorrow through +7. Weekly seasonality is enabled; a separate weekday baseline and archived held-out evaluations expose errors.
+- `POST /ai/recommend` — experimental residual stage-wait Random Forest (`stage_risk.py`, 100 trees). Node supplies deidentified eligible completed stage intervals and oldest current stage-entry times. Reproducible simulation plus earlier saved document groups train it; separate simulated and later saved groups test it. It predicts another 24 hours in stage, not causal bottlenecks. Current data is read only, provenance is disclosed, and real-world validation is not established. Local workflow actions/rules provide suggestions and fallback. Aggregate-only POST and legacy GET remain rules-compatible. See `docs/AI_MODEL_EVALUATION.md`.
 
 The exact math (CRAFT/CRNN/CTC for OCR, Prophet's additive model, Gini-split Random Forest) with worked examples is documented in `docs/ALGORITHM_COMPUTATION.md` — read that before modifying model behavior rather than re-deriving it.
 

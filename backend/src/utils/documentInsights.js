@@ -37,7 +37,7 @@ function prototypePrediction(response) {
     response.prediction >= 0 && response.prediction <= 3 ? response.prediction : null;
 }
 
-function buildInsights(data, prediction = null) {
+function buildInsights(data, prediction = null, risk = null) {
   const entries = ACTIVE_STAGES.map(stage => [stage, count(data.counts[stage])]);
   const total = entries.reduce((sum, [, value]) => sum + value, 0);
   const evidence = { counts: data.counts, outstanding: total, unclassified: data.unclassified, today_actions: data.today_actions };
@@ -49,8 +49,22 @@ function buildInsights(data, prediction = null) {
   if(occupied.length){
     const [stage,value]=occupied[0];
     insights[0].message=`Suggested next step for ${value} at ${STAGE_LABELS[stage]}: ${NEXT_ACTIONS[stage]} ${insights[0].message}`;
-    for(const [stage,value] of occupied.slice(0,3))insights.push(add(`Suggested next step: ${STAGE_LABELS[stage]}`,`${value} recorded requests. ${NEXT_ACTIONS[stage]} Review by workload volume does not establish urgency or delay; confirm individual case context.`, 'info','queue_rules'));
+    const modelStages = new Set(risk?.status === 'ready' ? risk.predictions.map(row => row.stage) : []);
+    for(const [stage,value] of occupied.filter(([stage])=>!modelStages.has(stage)).slice(0,3))insights.push(add(`Suggested next step: ${STAGE_LABELS[stage]}`,`${value} recorded requests. ${NEXT_ACTIONS[stage]} Review by workload volume does not establish urgency or delay; confirm individual case context.`, 'info','queue_rules'));
   }
+  if (risk?.status === 'ready') {
+    const cards = risk.predictions.filter(row => data.counts[row.stage] > 0).slice(0,3).map(row => {
+      const percent = Math.round(row.probability * 100);
+      return add(`Random Forest review: ${STAGE_LABELS[row.stage]}`,
+        `The oldest recorded case has waited ${row.age_hours.toFixed(1)} hours. Estimated probability of another 24 hours in this stage: ${percent}%. ${NEXT_ACTIONS[row.stage]} Experimental: simulated examples plus eligible saved history. This probability is not accuracy or a guarantee. Separate test results are in AI & Model Evaluation.`,
+        row.probability > 0.5 ? 'warning' : 'info', 'random_forest_experimental');
+    });
+    insights.unshift(...cards);
+    if (!cards.length || risk.out_of_range_cases) insights.push(add('Random Forest coverage',
+      `${risk.out_of_range_cases} oldest cases exceed the 168-hour training range. Predictions require a recorded stage-entry time and at most 168 hours already waiting. Use the measured queue and workflow guidance for uncovered stages. The model is experimental and has not been validated on independently verified real data.`, 'info','queue_rules'));
+  }
+  if (risk?.status === 'unavailable') insights.push(add('Random Forest unavailable',
+    'The model or recorded-history read is unavailable. These suggestions use observed queues and workflow rules; no model probability or accuracy is inferred.', 'info', 'queue_rules'));
   if (data.unclassified) insights.push(add('Document statuses need review',
     `${data.unclassified} documents have an unrecognized status and are excluded from the active-pipeline total. Review their status mapping before interpreting workload.`, 'warning'));
   if (data.counts.PENDING_SEC_EVALUATION > 5) insights.push(add('Secretary Queue Alert',

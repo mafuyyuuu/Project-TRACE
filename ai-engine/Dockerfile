@@ -43,7 +43,7 @@ RUN python -m pip check \
     && python -c "import torch, torchvision; assert torch.version.cuda is None, 'Expected CPU-only PyTorch'"
 
 WORKDIR /app
-COPY app.py ocr_engine.py registration_verification.py support_insights.py document_insights.py analytics.py forecaster.py forecast_evaluation.py ./
+COPY app.py ocr_engine.py registration_verification.py support_insights.py document_insights.py analytics.py forecaster.py forecast_evaluation.py stage_risk.py ./
 
 # Bake the EasyOCR detection + recognition models into the image. They are
 # ~100 MB and ocr_engine.py builds the Reader at import time, so without this
@@ -61,6 +61,7 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=60s --retries=3 \
 
 # gunicorn, not app.run(): the Werkzeug dev server is single-threaded and
 # explicitly not for production. Prophet and the Random Forest train per
-# request, so the timeout is generous and the worker count deliberately low.
+# request; the experimental Random Forest is cached by training-data fingerprint.
+# The timeout is generous and the worker count deliberately low.
 CMD ["gunicorn", "--bind", "0.0.0.0:5005", "--workers", "2", "--threads", "2", \
      "--timeout", "180", "--access-logfile", "-", "app:app"]
