@@ -46,7 +46,7 @@ export default function AdminAuditLog({ logs, security = false, loading = false,
   const title = security ? 'Global Security Audit Log' : 'System-Wide Audit Log';
   const columns = security ? ['Timestamp', 'Event', 'User', 'Role', 'IP Address'] : ['Timestamp', 'Document', 'Action', 'User', 'Status'];
   return <section className="trace-section trace-admin-audit overflow-hidden">
-    <div className={'trace-section-header' + (security ? ' trace-admin-filter-toolbar' : '')}><div><h3 className="trace-section-title">{title}</h3><p className="trace-admin-caption">Most recent events first · Filters cover loaded records.</p></div>
+    <div className={'trace-section-header' + (security ? ' trace-admin-filter-toolbar' : '')}><div><h3 className="trace-section-title">{title}</h3><p className="trace-admin-caption">Latest 100 events · Filters cover loaded records. Event counts are separate from document totals.</p></div>
       <div className="trace-actions">
         <label className="trace-admin-search"><span className="sr-only">{security ? 'Search security logs' : 'Search activity logs'}</span><AdminIcon name="search" /><input type="search" maxLength={255} value={query} onChange={e => change(setQuery, e.target.value)} placeholder={security ? 'Search user, ID or IP address' : 'Search document, user or ID'} /></label>
         <label className="inline-flex min-w-0"><span className="sr-only">Log date range</span><FilterSelect value={days} onChange={e => change(setDays, e.target.value)} className="trace-control"><option value="all">All loaded history</option><option value="7">Last 7 days</option><option value="30">Last 30 days</option><option value="1">Last 24 hours</option></FilterSelect></label>

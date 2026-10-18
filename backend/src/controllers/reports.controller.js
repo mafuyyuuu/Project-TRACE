@@ -68,4 +68,8 @@ async function exportPdf(req,res) {
     res.send(bytes);
   } catch(err) {fail(res,err,'PDF report error','Could not generate the PDF report. Try again.');}
 }
-module.exports = { exportPdf, filterOptions, documentReport, exportStudents, exportDocuments, analytics };
+async function aiEvaluation(req, res) {
+  try { res.json(await require('../services/aiEvaluation.service').evaluate(req.user, req.query)); }
+  catch (err) { fail(res, err, 'AI evaluation error', 'Could not load AI evaluation.'); }
+}
+module.exports = { aiEvaluation, exportPdf, filterOptions, documentReport, exportStudents, exportDocuments, analytics };

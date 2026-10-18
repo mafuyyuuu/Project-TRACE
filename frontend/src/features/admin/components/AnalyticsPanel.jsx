@@ -14,6 +14,7 @@ import { getWorkloadShares } from '@/utils/workloadShare';
 import {useEffect,useState} from 'react';
 import {useSearchParams} from 'react-router-dom';
 import QueueTabs from '@/components/QueueTabs';
+import AiEvaluationPanel from '@/features/admin/components/AiEvaluationPanel';
 
 function MetricCard({ label, value, sub, tone = 'default', icon }) {
   const tones = { default: 'text-gray-900 dark:text-gray-100', good: 'text-[#15803d] dark:text-green-300', warn: 'text-amber-600 dark:text-amber-300' };
@@ -229,7 +230,8 @@ function DocumentAnalytics({ user, currentTab }) {
 
 export default function AnalyticsPanel({user,currentTab}) {
   const [params,setParams]=useSearchParams();
-  const active=params.get('analytics')==='support'?'support':'documents';
+  const view=params.get('analytics');
+  const active=['support','ai'].includes(view)?view:'documents';
   const [visited,setVisited]=useState(()=>new Set([active]));
   useEffect(()=>{queueMicrotask(()=>setVisited(previous=>previous.has(active)?previous:new Set([...previous,active])));},[active]);
   const change=next=>{
@@ -238,12 +240,13 @@ export default function AnalyticsPanel({user,currentTab}) {
   };
   return <section className="trace-page trace-admin-more-page trace-admin-efficiency min-w-0">
     <header><h2 className="trace-page-title">Efficiency Analytics</h2>
-      <p className="trace-page-description">{active==='support'?'Ticket service and support workload, measured separately from document processing.':'Processing times and turnaround from the document audit trail.'}</p>
+      <p className="trace-page-description">{active==='ai'?'AI choices, dataset coverage and measured forecast errors.':active==='support'?'Ticket service and support workload, measured separately from document processing.':'Processing times and turnaround from the document audit trail.'}</p>
     </header>
-    <QueueTabs idPrefix="admin-analytics-view" label="Analytics views" activeKey={active} onChange={change} tabs={[{key:'documents',label:'Document Efficiency'},{key:'support',label:'Support Analytics'}]}/>
+    <QueueTabs idPrefix="admin-analytics-view" label="Analytics views" activeKey={active} onChange={change} tabs={[{key:'documents',label:'Document Efficiency'},{key:'support',label:'Support Analytics'},{key:'ai',label:'AI & Model Evaluation'}]}/>
     <div id="admin-analytics-view-panel" role="tabpanel" aria-labelledby={`admin-analytics-view-${active}`} className="min-w-0">
       <div hidden={active!=='documents'}>{(active==='documents'||visited.has('documents'))&&<DocumentAnalytics user={user} currentTab={active==='documents'?currentTab:''}/>}</div>
       <div hidden={active!=='support'}>{(active==='support'||visited.has('support'))&&<SupportAnalytics admin={user?.role === 'admin'}/>}</div>
+      <div hidden={active!=='ai'}>{(active==='ai'||visited.has('ai'))&&<AiEvaluationPanel/>}</div>
     </div>
   </section>;
 }

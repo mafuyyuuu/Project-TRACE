@@ -10,6 +10,7 @@ router.get('/filter-options', reportsController.filterOptions);
 router.get('/documents', reportsController.documentReport);
 router.get('/export/:kind.pdf', requireRole('admin'), reportsController.exportPdf);
 router.get('/analytics', reportsController.analytics);
+router.get('/ai-evaluation', requireRole('admin'), reportsController.aiEvaluation);
 
 // CSV downloads. `category` selects the student bucket: active | alumni | others | all
 router.get('/export/students.csv', reportsController.exportStudents);
