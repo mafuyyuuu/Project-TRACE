@@ -81,7 +81,17 @@ it('shows verified recorded-only field detection and its excluded sample counts'
 it('explains trust and the Random Forest status in plain language without inventing accuracy',async()=>{
  mount();await screen.findByText('10,043');
  expect(screen.getByRole('region',{name:'How to judge whether the AI is useful'})).toHaveTextContent('Staff review helps catch mistakes, but it is not proof that a model is accurate');
- expect(screen.getByText(/Random Forest was intended for AI Insights/)).toHaveTextContent('It is not active now');
+ expect(screen.getByText(/The earlier four hand-authored examples/)).toHaveTextContent('reproducible simulation');
  expect(screen.getByLabelText('Forecast result in plain language')).toHaveTextContent('The simple average made fewer mistakes');
  expect(screen.getByText(/MAE means the average daily miss/)).toHaveTextContent('WAPE 20% does not mean 80% accuracy');
+});
+
+it('shows separate Random Forest sources and distinguishes risk from measured accuracy', async () => {
+ const score={samples:10,documents:5,accuracy:0.8,precision:0.8,recall:0.8,f1:0.8,baseline_accuracy:0.5,positives:5,negatives:5,confusion_matrix:[[4,1],[1,4]]};
+ getAiEvaluation.mockResolvedValueOnce({...evidence,random_forest:{status:'ready',model_id:'0123456789abcdef',training:{simulated_documents:2000,recorded_documents:10,marked_synthetic_documents:8,unmarked_unverified_documents:2,samples:6780,overlapping_intervals_excluded:0},data:{candidate_intervals:20,eligible_intervals:18,excluded_intervals:2,interval_limit:3000,as_of:'2026-10-18T06:00:00Z'},evaluation:{simulation:score,recorded:score,marked_synthetic:score,unmarked_unverified:null}}});
+ mount();await screen.findByText('10,043');
+ expect(screen.getByRole('table',{name:'Random Forest test results'})).toHaveTextContent('80%');
+ expect(screen.getByRole('table',{name:'Random Forest test results'})).toHaveTextContent('Not measured');
+ expect(screen.getByRole('region',{name:'Random Forest evaluation'})).toHaveTextContent('2 unmarked, origin unverified');
+ expect(screen.getByText(/Real-world accuracy: not established/).closest('p')).toHaveTextContent('A predicted probability is not an accuracy score');
 });

@@ -60,3 +60,12 @@ class AnalyticsRouteTest(unittest.TestCase):
         self.assertEqual(result['source'],'aggregate_rules')
         self.assertIn('60 outstanding',result['insights'][0]['title'])
         self.assertNotIn('prototype',str(result))
+    def test_queue_route_runs_experimental_model_on_deidentified_episodes(self):
+        from document_insights import STAGES
+        data=dict(counts={**dict.fromkeys(STAGES,0),'SEC_PROCESSING':2},today_actions=3,unclassified=0,as_of='2026-10-17T00:00:00Z',
+                  training_intervals=[],active_cases=[dict(stage='SEC_PROCESSING',entered=1792108800)])
+        result=self.route('ai_recommend',data)
+        self.assertEqual(result['source'],'random_forest_experimental')
+        self.assertEqual(result['random_forest']['training']['simulated_documents'],2000)
+        self.assertFalse(result['random_forest']['real_world_validated'])
+        self.assertEqual(len(result['random_forest']['predictions']),1)

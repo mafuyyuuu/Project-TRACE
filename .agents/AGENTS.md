@@ -135,3 +135,7 @@ If continuing system development:
 2. **Infrastructure Blockers (Phase 18)**: Await a provisioned host to go live.
 3. **Finance QR Code**: Replace the Mock GCash QR SVG with the actual Finance Department's merchant QR code image, or integrate PayMongo/Xendit.
 4. **Window 1 Scanner Bridge**: Implement WebTWAIN (or a similar web-scanning library) to allow the "Scan" button to trigger physical hardware scanners.
+
+
+### October 18: experimental residual-wait Random Forest
+Current `stage_risk.py` replaces rules-only status notes with an experimental classifier trained on reproducible simulation plus eligible completed modern stage history. It predicts remaining in the same stage another 24h, not cause/capacity. Separate grouped held-out scores are in Admin AI & Model Evaluation. Legacy mock statuses are excluded, unmarked origin is unverified, real-world validation is not claimed. No schema migration/DB writes; rebuild backend and ai-engine plus matching frontend. See docs/AI_MODEL_EVALUATION.md for authoritative contract.

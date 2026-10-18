@@ -517,17 +517,20 @@ async function getForecast(query = {},user) {
 }
 
 /** Read every active stage; optional model output never decides measured efficiency. */
-async function getDocumentInsights() {
+async function getDocumentInsights(user) {
   const { snapshot, buildInsights } = require('../utils/documentInsights');
   const [queues, todayActions] = await Promise.all([
     documentModel.insightQueueCounts(), documentModel.countStepLogsToday(),
   ]);
   const data = snapshot(queues, todayActions);
-  const model = await aiEngine.getInsights(data);
-  return { insights: buildInsights(data), source: 'queue_snapshot', analysis_source:model?.source==='aggregate_rules' ? 'ai_engine_aggregate_rules' : 'local_queue_snapshot', snapshot: data };
+  const risk = user?.role === 'admin' ? await require('./stageRisk.service').analyse(data) : null;
+  const compatibility = user?.role !== 'admin' ? await aiEngine.getInsights(data) : null;
+  return { insights: buildInsights(data, null, risk), source: 'queue_snapshot',
+    analysis_source: risk?.status === 'ready' ? 'random_forest_experimental' : compatibility?.source === 'aggregate_rules' ? 'ai_engine_aggregate_rules' : 'local_queue_snapshot',
+    random_forest: risk, snapshot: data };
 }
 async function getInsights(user) {
-  const [documents,support]=await Promise.all([getDocumentInsights(),user?.role==='admin' ? require('./supportInsight.service').get(user) : []]);
+  const [documents,support]=await Promise.all([getDocumentInsights(user),user?.role==='admin' ? require('./supportInsight.service').get(user) : []]);
   return {...documents,insights:[...documents.insights,...support]};
 }
 

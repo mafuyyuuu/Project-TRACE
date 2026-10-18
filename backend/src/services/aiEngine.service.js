@@ -97,7 +97,7 @@ async function getForecast(aggregates) {
   }
 }
 
-/** Optional prototype classification of authoritative aggregate queue counts. */
+/** Experimental stage-wait model, or aggregate compatibility response. */
 async function getInsights(snapshot) {
   try {
     return await requestJson(`${env.AI_ENGINE_URL}/ai/recommend`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(snapshot) });

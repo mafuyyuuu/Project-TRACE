@@ -1,6 +1,7 @@
 import useAiEvaluation from '@/features/admin/useAiEvaluation';
 import Button from '@/components/Button';
 import { ocrFieldDetection } from '@/utils/ocrFieldDetection';
+import StageRiskEvaluation from '@/features/admin/components/StageRiskEvaluation';
 
 const number = value => value == null ? 'Not measured' : Number(value).toLocaleString(undefined, { maximumFractionDigits: 2 });
 const models = [
@@ -16,11 +17,11 @@ const models = [
     limits: 'Forecasts reflect recorded requests, including recognized generated rows. Gaps are counted as zero recorded requests; missing imports or outages may instead mean missing observations. Holidays and academic calendar effects are not separately modeled.',
     measurement: 'Train on earlier days and hold out the following seven days. Compare MAE, RMSE and WAPE against the same weekday baseline. One historical window is diagnostic evidence, not a validated real-world accuracy percentage. Repeat across periods and independently verified real data.',
     href: 'https://facebook.github.io/prophet/docs/diagnostics.html', source: 'Prophet evaluation documentation' },
-  { name: 'Workflow rules · operational advice', purpose: 'Summarizes recorded queue counts, waiting times and support aggregates into reviewable suggestions. n8n routes requests using workflow rules.',
-    why: 'We can explain each suggestion using a saved count or desk rule. We do not yet have enough checked examples of real bottlenecks to train and test a reliable recommendation model.',
-    alternatives: 'A learned classifier would need representative labeled bottlenecks and an independent test set. An LLM could phrase suggestions, but would add inference cost and a separate grounding/evaluation requirement. Neither is established as more effective for TRACE’s current workflow.',
-    limits: 'Random Forest was intended for AI Insights, but the earlier demonstration used only four hand-authored examples. That is not a properly tested model. It is not active now: the current Insights page uses rules. The rules suggest what staff should review; they do not prove the cause of a delay.',
-    measurement: 'No recommendation accuracy has been measured. Evaluate labeled bottleneck precision/recall, staff acceptance and subsequent turnaround changes. Rules and routing are automation; they do not have an ML accuracy score.',
+  { name: 'Random Forest · operational advice', purpose: 'An experimental classifier predicts another 24 hours in the same stage using simulated episodes plus eligible completed stage history. Workflow rules turn the prediction into a concrete review action; n8n routing and support advice remain rule-based.',
+    why: 'Random Forest can learn nonlinear relationships between stage, calendar and waiting age from structured examples. It is suitable for this small tabular experiment and can run on our existing CPU service. Its usefulness must still be compared with simpler approaches.',
+    alternatives: 'We report an always-majority baseline. Logistic regression, a single decision tree and direct workflow thresholds are reasonable alternatives; we have not established that Random Forest outperforms all of them. An LLM would need separate grounding and evaluation.',
+    limits: 'The earlier four hand-authored examples are replaced by a reproducible simulation and eligible recorded intervals. The target is a further 24-hour stage wait, not the cause of a bottleneck. Mock outcomes and unverified records do not establish real-world accuracy. Model failure or missing stage-entry evidence retains workflow guidance.',
+    measurement: 'Show accuracy, precision, recall, F1, false alerts and missed long waits on separate simulated episodes and held-out saved document groups. Saved unmarked test results remain unverified. A risk probability for one case is different from test accuracy; staff review and outcome monitoring remain necessary.',
     href: 'https://scikit-learn.org/stable/modules/generated/sklearn.ensemble.RandomForestClassifier.html', source: 'Random Forest documentation' },
 ];
 
@@ -44,7 +45,7 @@ export default function AiEvaluationPanel() {
   return <div className="trace-page min-w-0 text-sm text-gray-700 dark:text-gray-300">
     <section className="trace-section trace-section-body space-y-3">
       <h3 className="trace-section-title">AI explained in simple terms</h3>
-      <p>EasyOCR reads text. Prophet estimates future request counts. Insights currently uses rules to suggest what staff should review.</p>
+      <p>EasyOCR reads text. Prophet estimates future request counts. Experimental Random Forest estimates stage-wait risk, with workflow rules supplying suggested actions and fallback guidance.</p>
       <p>We test each task separately. A forecast mistake, a missing field and a wrong recommendation are different problems; one overall AI accuracy percentage would hide those differences.</p>
     </section>
     <section aria-label="How to judge whether the AI is useful" className="trace-section trace-section-body space-y-3">
@@ -53,10 +54,11 @@ export default function AiEvaluationPanel() {
         <li><strong>Test on answers the model has not seen.</strong> Learn from earlier dates, then compare predictions with the next seven recorded days.</li>
         <li><strong>Compare with a simple method.</strong> Show whether Prophet makes fewer mistakes than the weekday average, including when it does worse.</li>
         <li><strong>Check where the data came from.</strong> Made-up demo records test the process; they cannot prove performance on actual PLP demand.</li>
-        <li><strong>Check the task separately.</strong> OCR needs scans with human-checked answers. Current Insights uses rules, so it has no Random Forest accuracy score.</li>
+        <li><strong>Check the task separately.</strong> OCR needs scans with human-checked answers. Random Forest scores describe its stage-wait test, with simulated and saved test sources shown separately.</li>
       </ol>
       <p>Staff review helps catch mistakes, but it is not proof that a model is accurate. Where testing is missing, we say <strong>Not measured</strong> and treat the result as assistance, not a guaranteed answer.</p>
     </section>
+    <StageRiskEvaluation report={r.data?.random_forest} />
     <section aria-label="Dataset reconciliation" className="trace-section trace-section-body space-y-3">
       <h3 className="trace-section-title">Where the record counts come from</h3>
       {d ? <>
