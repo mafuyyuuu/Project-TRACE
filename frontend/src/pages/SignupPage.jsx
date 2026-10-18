@@ -22,14 +22,14 @@ import FileUploadField from '@/components/FileUploadField'
 
 
 const STEP_FIELDS = [
-  ['userType', 'study_load', 'college', 'employeeId', 'program', 'year_started', 'graduation_year'],
+  ['userType', 'study_load', 'is_transfer_student', 'previous_school', 'college', 'employeeId', 'program', 'year_started', 'graduation_year'],
   ['first_name', 'middle_name', 'last_name', 'email', 'phoneNumber'],
   ['password', 'confirmPassword', 'proof', 'proofReason', 'privacyAcknowledged'],
 ];
 
 export default function SignupPage() {
   const { register, loading } = useAuth()
-  const [formData, setFormData] = useState({ employeeId: '', first_name: '', middle_name: '', last_name: '', email: '', phoneNumber: '', password: '', confirmPassword: '', study_load: '', userType: new URLSearchParams(window.location.search).get('applicant') === 'alumni' ? 'alumni' : 'student', college: '', program: '', year_started: '', graduation_year: '', proofUnavailable: false, proofReason: '', privacyAcknowledged: false })
+  const [formData, setFormData] = useState({ employeeId: '', first_name: '', middle_name: '', last_name: '', email: '', phoneNumber: '', password: '', confirmPassword: '', study_load: '', is_transfer_student: '', previous_school: '', userType: new URLSearchParams(window.location.search).get('applicant') === 'alumni' ? 'alumni' : 'student', college: '', program: '', year_started: '', graduation_year: '', proofUnavailable: false, proofReason: '', privacyAcknowledged: false })
   const submitGuard = useRef(false)
   const idCheck = useRegistrationIdCheck();
   const [file, setFile] = useState(null)
@@ -75,10 +75,13 @@ export default function SignupPage() {
   const availablePrograms = programs.filter(program => String(program.college_id) === String(selectedCollege?.id));
   const setFields = patch => {
     if (step === 1) idCheck.invalidate();
-    setFormData(current => ({ ...current, ...patch }));
+    const resetTransfer = Object.hasOwn(patch, 'userType') || Object.hasOwn(patch, 'study_load');
+    setFormData(current => ({ ...current, ...patch, ...(resetTransfer ? { is_transfer_student: '', previous_school: '' } : {}) }));
     setFieldErrors(current => {
       const next = { ...current };
       for (const field of Object.keys(patch)) delete next[field];
+      if (resetTransfer) { delete next.is_transfer_student; delete next.previous_school; }
+      if (Object.hasOwn(patch, 'is_transfer_student')) delete next.previous_school;
       if (Object.hasOwn(patch, 'password')) delete next.confirmPassword;
       if (Object.hasOwn(patch, 'year_started')) delete next.graduation_year;
       if (['first_name', 'middle_name', 'last_name'].some(field => Object.hasOwn(patch, field))) {
@@ -121,7 +124,13 @@ export default function SignupPage() {
       form.append('phone_number', normalizePhoneNumber(formData.phoneNumber));
       form.append('password', formData.password);
       form.append('user_type', formData.userType);
-      if (formData.userType === 'student') form.append('study_load', formData.study_load);
+      if (formData.userType === 'student') {
+        form.append('study_load', formData.study_load);
+        if (formData.study_load === 'irregular') {
+          form.append('is_transfer_student', formData.is_transfer_student);
+          if (formData.is_transfer_student === 'true') form.append('previous_school', formData.previous_school.trim());
+        }
+      }
       form.append('course', formData.college);
       form.append('program', formData.program || '');
       form.append('privacy_acknowledged', 'true');
@@ -171,6 +180,8 @@ export default function SignupPage() {
           ['College', registrationToConfirm.get('course')], ['Email', registrationToConfirm.get('email')],
           ['Program/Course', registrationToConfirm.get('program')],
           ...(formData.userType === 'student' ? [['Type of Student', formData.study_load === 'irregular' ? 'Irregular' : 'Regular']] : []),
+          ...(registrationToConfirm.get('study_load') === 'irregular' ? [['Transfer Student', registrationToConfirm.get('is_transfer_student') === 'true' ? 'Yes' : 'No']] : []),
+          ...(registrationToConfirm.get('is_transfer_student') === 'true' ? [['Previous School', registrationToConfirm.get('previous_school')]] : []),
           ['Privacy Notice', 'Acknowledged · ' + registrationToConfirm.get('privacy_notice_version')],
           ...(registrationToConfirm.get('user_type') === 'alumni' ? [['Year Started', registrationToConfirm.get('year_started')], ['Year Graduated', registrationToConfirm.get('graduation_year')]] : []),
           ['Proof', registrationToConfirm.get('registration_proof_unavailable') ? 'Unavailable — pending Admin identity review' : registrationToConfirm.get('id_proof')?.name],
@@ -204,6 +215,14 @@ export default function SignupPage() {
               <select {...fieldProps('study_load')} className="trace-control" required disabled={loading} value={formData.study_load} onChange={event => setFields({ study_load: event.target.value })}>
                 <option value="" disabled>Select student type...</option><option value="regular">Regular</option><option value="irregular">Irregular</option>
               </select>{fieldFeedback('study_load')}</div>}
+            {formData.userType === 'student' && formData.study_load === 'irregular' && <>
+              <div><label htmlFor="signup-is_transfer_student" className="trace-label mb-[6px] block">Are you a transfer student? *</label>
+                <select {...fieldProps('is_transfer_student')} className="trace-control" required disabled={loading} value={formData.is_transfer_student} onChange={event => setFields({ is_transfer_student: event.target.value, previous_school: '' })}>
+                  <option value="" disabled>Select an answer...</option><option value="false">No</option><option value="true">Yes</option>
+                </select>{fieldFeedback('is_transfer_student')}</div>
+              {formData.is_transfer_student === 'true' && <div><label htmlFor="signup-previous_school" className="trace-label mb-[6px] block">Previous School *</label>
+                <input {...fieldProps('previous_school')} className="trace-control" required disabled={loading} maxLength={INPUT_LIMITS.name} value={formData.previous_school} onChange={event => setFields({ previous_school: event.target.value })} />{fieldFeedback('previous_school')}</div>}
+            </>}
             <div className="flex flex-col gap-1.5">
               <label htmlFor="signup-college" className="trace-label ml-1">College *</label>
               <select {...fieldProps('college')} required disabled={loading || catalog.loading || !!catalog.error} value={formData.college} onChange={(e) => setFields({ college: e.target.value, program: '' })} className="trace-control w-full appearance-none cursor-pointer">

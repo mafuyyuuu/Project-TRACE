@@ -31,7 +31,7 @@ async function academic() {
   fireEvent.change(screen.getByLabelText('Program/Course *'), { target:{value:programs[0].name} });
   fireEvent.change(screen.getByLabelText(/^(Student|Alumni) ID/), { target:{value:'SYN-0001'} });
   const type=screen.queryByLabelText('Type of Student *');
-  if(type)fireEvent.change(type,{target:{value:'irregular'}});
+  if(type) { fireEvent.change(type,{target:{value:'irregular'}}); fireEvent.change(screen.getByLabelText('Are you a transfer student? *'),{target:{value:'false'}}); }
 }
 const next=async()=>{ await userEvent.click(screen.getByRole('button',{name:'Continue'})); };
 async function personal() {
@@ -58,6 +58,40 @@ it('requires a declared student type and validates only the current step beside 
  expect(screen.queryByRole('dialog')).not.toBeInTheDocument();expect(container.querySelector('form')).toHaveAttribute('novalidate');
  await academic();await next();expect(screen.getByRole('heading',{name:'Personal information'})).toBeInTheDocument();
  await next();expect(screen.getByLabelText('First Name *')).toHaveAttribute('aria-invalid','true');expect(register).not.toHaveBeenCalled();
+});
+
+it('asks irregular students explicitly and requires a previous school only for Yes',async()=>{
+ start();await academic();
+ fireEvent.change(screen.getByLabelText('Are you a transfer student? *'),{target:{value:''}});await next();
+ expect(screen.getByLabelText('Are you a transfer student? *')).toHaveAttribute('aria-invalid','true');
+ fireEvent.change(screen.getByLabelText('Are you a transfer student? *'),{target:{value:'true'}});await next();
+ expect(screen.getByLabelText('Previous School *')).toHaveAttribute('aria-invalid','true');
+ fireEvent.change(screen.getByLabelText('Previous School *'),{target:{value:'Synthetic Previous College'}});
+ await next();await personal();await next();await account();
+ await userEvent.click(screen.getByRole('checkbox',{name:/I have read and acknowledge/}));
+ await userEvent.click(screen.getByRole('button',{name:'Create Account'}));
+ const review=screen.getByRole('dialog',{name:'Confirm Registration'});
+ expect(review).toHaveTextContent('Transfer Student');expect(review).toHaveTextContent('Yes');expect(review).toHaveTextContent('Synthetic Previous College');
+ await userEvent.click(within(review).getByRole('button',{name:'Submit Registration'}));
+ await waitFor(()=>expect(register).toHaveBeenCalledOnce());
+ expect(register.mock.calls[0][0].get('is_transfer_student')).toBe('true');
+ expect(register.mock.calls[0][0].get('previous_school')).toBe('Synthetic Previous College');
+});
+
+it('clears hidden transfer answers when student or applicant type changes',async()=>{
+ start();await academic();
+ fireEvent.change(screen.getByLabelText('Are you a transfer student? *'),{target:{value:'true'}});
+ fireEvent.change(screen.getByLabelText('Previous School *'),{target:{value:'Stale draft school'}});
+ fireEvent.change(screen.getByLabelText('Type of Student *'),{target:{value:'regular'}});
+ expect(screen.queryByLabelText('Are you a transfer student? *')).not.toBeInTheDocument();
+ fireEvent.change(screen.getByLabelText('Type of Student *'),{target:{value:'irregular'}});
+ expect(screen.getByLabelText('Are you a transfer student? *')).toHaveValue('');
+ fireEvent.change(screen.getByLabelText('Are you a transfer student? *'),{target:{value:'true'}});
+ expect(screen.getByLabelText('Previous School *')).toHaveValue('');
+ await userEvent.click(screen.getByRole('button',{name:'Alumni'}));
+ expect(screen.queryByLabelText('Are you a transfer student? *')).not.toBeInTheDocument();
+ await userEvent.click(screen.getByRole('button',{name:'Current Student'}));
+ expect(screen.getByLabelText('Are you a transfer student? *')).toHaveValue('');
 });
 it('retains identity, password and files when moving back and forward through all three steps',async()=>{
  start();await fillDraft();await userEvent.click(screen.getByRole('button',{name:'Back'}));
