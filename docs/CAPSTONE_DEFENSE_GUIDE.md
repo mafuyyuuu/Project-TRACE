@@ -866,3 +866,11 @@ Document-analytics advice is served from the same packaged analytics module and 
 
 ### Graduate application academic selection
 As a new alumnus, choose College first and Degree Program from its approved catalog, complete the configured questions, and confirm submission. Show the saved application and access refresh. Explain that the API independently checks active College/Program membership inside the save transaction; this application stores readable answer snapshots without changing the profile’s academic routing. Existing application answers remain readable. No new migration is required for this patch.
+
+## October 18 compact demonstration follow-up
+
+Use the scan/forecast **info icons** for methodology. The scan demo control lives in its info dialog; its label, sample counts and recorded-only result remain on the card. For forecast data and backtests, choose **Expand → info**.
+
+During signup, show **Irregular → Are you a transfer student? → Yes → Previous School**, then review the answer before confirmed submission. These are existing saved profile fields; this addition needs no migration.
+
+Personal-browser recognition now has a first-party authentication proxy implementation. Say “after deployment, an opted-in verified browser can reuse its proof until midnight Manila”; distinguish the successful local synthetic login/cookie test from deployed Brave/Safari acceptance. See [deployment and test scope](BROWSER_TRUST_PROXY.md).

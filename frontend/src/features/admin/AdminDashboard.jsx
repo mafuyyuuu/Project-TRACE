@@ -126,7 +126,7 @@ export default function AdminDashboard({ user, currentTab, setViewImageUrl, revi
                   <div className="trace-section trace-section-body flex flex-col min-h-[335px]">
                     <div className="flex flex-col sm:flex-row justify-between sm:items-start gap-3 mb-6">
                       <div>
-                        <h3 className="trace-section-title">7-Day Volume Forecast</h3>
+                        <div className="flex items-center gap-1"><h3 className="trace-section-title">7-Day Volume Forecast</h3><ForecastEvidence forecast={forecast}/></div>
                         <p className="text-xs text-gray-400 dark:text-gray-400 font-medium">Recorded request history · {forecast.source === 'prophet' ? 'Prophet estimate' : forecast.source === 'historical_weekday_average' ? 'Historical weekday average' : 'Estimate availability'}</p>
                       </div>
                       <div className="flex min-w-0 max-w-full items-center gap-2">
@@ -150,8 +150,6 @@ export default function AdminDashboard({ user, currentTab, setViewImageUrl, revi
                       </div>
                     </div>
                     {forecastData?.length>0?<><ForecastChart forecastData={forecastData} forecast={forecast}/><ForecastDays forecastData={forecastData}/></>:<p role="status" className="trace-page-description py-8">{forecast.loading?'Loading forecast data…':forecast.error || forecast.message || 'Not enough recorded request history for an estimate.'}</p>}
-                    <ForecastEvidence forecast={forecast}/>
-                    <p className="trace-page-description mt-3">Choose Expand to inspect the daily source counts and all forecast details.</p>
                   </div>
 
                   {/* Admin Insights Panel */}

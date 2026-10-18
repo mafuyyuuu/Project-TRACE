@@ -588,3 +588,9 @@ genuine zero-field sample; `failed` contributes none. The dashboard's optional t
 demo is a frontend-only weighted preview, with no fixture inserts or API score changes.
 See [measurement rules and deployment requirements](AI_MODEL_EVALUATION.md#ocr-metric-correction).
 Rebuild backend and AI engine and deploy the matching frontend; no migration/new env var.
+
+## October 18 authentication proxy and transfer signup
+
+Authentication responses are private/no-store. Vercel frontend auth uses its first-party `/api/auth` proxy while other REST/socket transport is retained; see [proxy configuration and acceptance](BROWSER_TRUST_PROXY.md).
+
+Irregular current-student registrations require explicit `is_transfer_student` true/false (multipart strings or JSON booleans). Yes requires `previous_school`, a nonempty string of at most 255 characters without control characters. A Regular/alumni registration cannot declare transfer Yes through this conditional signup path. Current students save the normalized answer with a narrow `student_profiles` upsert in the same account transaction; resubmissions preserve unrelated profile/history columns. Alumni registration leaves existing transfer history alone. Login/profile reads expose the existing fields for the account; no new migration.

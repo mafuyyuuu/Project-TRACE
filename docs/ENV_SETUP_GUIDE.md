@@ -163,7 +163,7 @@ Preview and Development. **No trailing slash.**
 > call silently 404s against Vercel's static host.
 
 Left blank, the frontend uses relative URLs (`/api`, `/socket.io`) — correct for local development,
-where the Vite dev proxy forwards them to `localhost:3300`, and wrong everywhere else.
+where the Vite dev proxy forwards them to `localhost:3300`, or a deployed same-origin proxy must provide those routes.
 `services/api.js` and `services/realtimeService.js` are the only two files that build a URL from it.
 
 ### 4.4 `FRONTEND_URL` — the Vercel domain, given to the backend
@@ -1205,3 +1205,9 @@ docker compose exec -T ai-engine python -c "import analytics, forecaster, foreca
 ```
 
 Deploy the matching frontend (merge dev into main first if the frontend host deploys main). As Admin, Refresh forecast and inspect Method; then open Document Efficiency and confirm its advice loads. For validation, Expand forecast → Evaluate existing history. At least22 complete days are needed; otherwise the UI reports no score. Verify shown data origin, actual test dates, baseline, MAE/RMSE/WAPE and unchanged input-cache time. Do not run a mock-data generator to manufacture a validation result.
+
+## October 18 first-party browser-trust fix
+
+Root Vercel builds now enable `VITE_AUTH_PROXY=true` and proxy `/api/auth` to the existing API, keeping HttpOnly recognition/trust cookies first-party. Keep `VITE_API_URL` for non-auth REST and Socket.IO. Deploy from the repository root, include the flag if overriding the Build Command, and complete a fresh opted-in factor login after deployment. No new migration or backend environment variable. See [deployment and acceptance details](BROWSER_TRUST_PROXY.md), including the conservative proxy-IP handling.
+
+The same frontend/backend release adds the Irregular signup transfer Yes/No question and required Previous School on Yes, using existing student_profiles columns. No migration is required for this addition.

@@ -522,3 +522,11 @@ Admin may enable **Include 3 demo scans** on the dashboard. The labeled preview 
 three fixed examples together with eligible recorded scans as stats refresh, and retains
 the recorded-only result and sample counts. Demo examples never enter the database or AI
 evaluation results. See [the formula and deployment requirements](AI_MODEL_EVALUATION.md#ocr-metric-correction).
+
+## October 18 compact information and conditional transfer signup
+
+Dashboard scan/forecast explanations open through info dialogs with keyboard/touch access, focus return and Escape. The scan card retains demo provenance and recorded-only values; expanded forecast info retains source counts and held-out validation.
+
+Signup Academic details → Irregular → explicit transfer Yes/No → Previous School when Yes → staged review → transactional account/profile save. Regular/alumni controls omit this conditional signup question. Existing profile fields are reused, hidden drafts are cleared on type changes and server validation remains authoritative. Existing profile education/Admin detail views display the saved fields.
+
+Deployed authentication can flow TRACE `/api/auth` → Vercel rewrite → existing backend, keeping browser trust first-party. The first opted-in factor verification still establishes the proof; later correct-password personal-mode login may reuse it until midnight Manila. See [proxy deployment and acceptance](BROWSER_TRUST_PROXY.md).

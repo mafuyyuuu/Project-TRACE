@@ -2371,7 +2371,7 @@ body :is(.trace-admin-shell,.trace-student-shell,.trace-window-shell,.trace-secr
 .trace-signup-progress li { @apply h-[6px] rounded-[3px] bg-[#e3e7ec] dark:bg-gray-700; }
 .trace-signup-progress li[data-complete='true'] { @apply bg-[#168f55]; }
 .trace-signup-step-label { @apply text-[.75rem] font-bold tracking-[1.2px] text-[#168f55] dark:text-green-400; }
-.trace-signup-heading h1,.trace-signup-complete h1 { @apply text-[1.875rem] font-extrabold leading-normal; }
+.trace-signup-heading h1,.trace-signup-complete h1 { @apply break-words text-[1.875rem] font-extrabold leading-normal; }
 .trace-signup-heading > p:last-child { @apply text-[.875rem] leading-[1.43] text-[#6b7280] dark:text-gray-400; }
 .trace-signup-form { @apply flex min-w-0 flex-col gap-[18px]; }
 .trace-signup-form .trace-label { @apply ml-0 text-[.875rem] font-semibold leading-normal; }
