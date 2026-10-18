@@ -874,3 +874,9 @@ Use the scan/forecast **info icons** for methodology. The scan demo control live
 During signup, show **Irregular → Are you a transfer student? → Yes → Previous School**, then review the answer before confirmed submission. These are existing saved profile fields; this addition needs no migration.
 
 Personal-browser recognition now has a first-party authentication proxy implementation. Say “after deployment, an opted-in verified browser can reuse its proof until midnight Manila”; distinguish the successful local synthetic login/cookie test from deployed Brave/Safari acceptance. See [deployment and test scope](BROWSER_TRUST_PROXY.md).
+
+
+### Plain-language AI explanation — latest-main review, October 18
+Main 1c328a8 already includes archived evaluation and verified OCR measurements. Random Forest was intended for Insights, but its earlier model learned from four hand-authored examples; the current `/ai/recommend` route returns aggregate rules without calling that model. Do not describe current Insights as Random Forest predictions. Reactivating a defensible model needs a defined target, representative checked outcomes and unseen evaluation data.
+
+For the panel: “We test the forecast on later days it did not see while learning, compare it with a simple weekday average, and show how many requests it missed per day. We disclose when the simple average does better. Demo data proves the test can run, not accuracy on real PLP requests. OCR reading needs separate human-checked answers; finding a field is not the same as reading it correctly. Staff review helps catch errors but does not prove model accuracy.” The AI page now includes this explanation and a result sentence from the actual loaded MAE values. No algorithm, score, cohort, eligibility, OCR exclusion or permission change is made.

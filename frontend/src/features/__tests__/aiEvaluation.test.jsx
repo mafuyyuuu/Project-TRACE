@@ -77,3 +77,11 @@ it('shows verified recorded-only field detection and its excluded sample counts'
   expect(screen.getByText(/Excluded from this measurement:/)).toHaveTextContent('2 historical/unverified scores and 3 marked synthetic scores');
   expect(screen.queryByRole('checkbox', { name: 'Include 3 demo scans' })).not.toBeInTheDocument();
 });
+
+it('explains trust and the Random Forest status in plain language without inventing accuracy',async()=>{
+ mount();await screen.findByText('10,043');
+ expect(screen.getByRole('region',{name:'How to judge whether the AI is useful'})).toHaveTextContent('Staff review helps catch mistakes, but it is not proof that a model is accurate');
+ expect(screen.getByText(/Random Forest was intended for AI Insights/)).toHaveTextContent('It is not active now');
+ expect(screen.getByLabelText('Forecast result in plain language')).toHaveTextContent('The simple average made fewer mistakes');
+ expect(screen.getByText(/MAE means the average daily miss/)).toHaveTextContent('WAPE 20% does not mean 80% accuracy');
+});

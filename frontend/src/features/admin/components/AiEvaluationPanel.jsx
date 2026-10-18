@@ -4,22 +4,22 @@ import { ocrFieldDetection } from '@/utils/ocrFieldDetection';
 
 const number = value => value == null ? 'Not measured' : Number(value).toLocaleString(undefined, { maximumFractionDigits: 2 });
 const models = [
-  { name: 'EasyOCR · text extraction', purpose: 'Reads document intake forms, school IDs and official receipts. Pattern matching extracts expected fields; ID checks compare recognized text with submitted details.',
-    why: 'TRACE already runs a Python image pipeline. EasyOCR provides pretrained detection and recognition locally on CPU, reducing manual entry without sending school records to a cloud OCR provider.',
-    alternatives: 'Tesseract is a reasonable local alternative for printed documents. Cloud OCR offers managed processing but adds a provider, network dependence and data-handling decisions. A custom neural model would require labeled school documents and ongoing training. TRACE has not benchmarked these alternatives.',
+  { name: 'EasyOCR · text extraction', purpose: 'Reads text from scanned forms, IDs and receipts, then suggests values for the form. Staff still check the result.',
+    why: 'It is ready to read English text and works on our server without a graphics card. We use it to reduce typing. We did not need to build and train a new text reader from scratch.',
+    alternatives: 'Tesseract is another reasonable choice. Cloud OCR would use another provider. A custom reader would need training examples with checked answers. We chose the existing local EasyOCR setup; we have not proved it reads PLP forms better than these alternatives.',
     limits: 'Blur, glare, handwriting and unfamiliar layouts can cause incorrect values. Automatic text matching does not establish document authenticity. Staff review and manual entry remain necessary.',
     measurement: 'Saved OCR confidence is the percentage of three expected fields found, not EasyOCR recognition confidence or accuracy. Registration and receipt OCR do not have a saved labeled evaluation dataset. Measure field exact-match accuracy, character/word error rates, and ID false acceptance/rejection on human-labeled examples.',
     href: 'https://www.jaided.ai/easyocr/documentation/', source: 'EasyOCR documentation' },
   { name: 'Prophet · request demand', purpose: 'Estimates incoming document rows for tomorrow and the following six Manila days using up to 90 complete days of daily request counts. One multi-document request can contribute several rows.',
-    why: 'A daily series maps directly to Prophet’s trend and weekly seasonality. It fits the Python service and provides a manageable starting model for short-term staffing estimates. TRACE enables weekly seasonality; daily and yearly seasonality are disabled for this window.',
-    alternatives: 'The weekday mean is the simple benchmark below. ARIMA/SARIMA are valid statistical alternatives requiring order and seasonality selection. Random Forest regression needs lag/calendar features and a time-aware validation design. LSTM/Transformer models need a separate training and tuning effort. No evidence currently establishes Prophet as the best of these models for PLP.',
+    why: 'Our question is: how many documents may be requested each day? Prophet can learn a changing trend and weekday patterns from dated counts. It works with our Python service and is a practical starting model for this task.',
+    alternatives: 'We test Prophet against a simple average of earlier matching weekdays. ARIMA/SARIMA, Random Forest and neural models are other options, but each needs its own setup and fair test. We selected Prophet for its trend and weekday handling, not because we proved it is the best. If the simple average wins, we show that result.',
     limits: 'Forecasts reflect recorded requests, including recognized generated rows. Gaps are counted as zero recorded requests; missing imports or outages may instead mean missing observations. Holidays and academic calendar effects are not separately modeled.',
     measurement: 'Train on earlier days and hold out the following seven days. Compare MAE, RMSE and WAPE against the same weekday baseline. One historical window is diagnostic evidence, not a validated real-world accuracy percentage. Repeat across periods and independently verified real data.',
     href: 'https://facebook.github.io/prophet/docs/diagnostics.html', source: 'Prophet evaluation documentation' },
   { name: 'Workflow rules · operational advice', purpose: 'Summarizes recorded queue counts, waiting times and support aggregates into reviewable suggestions. n8n routes requests using workflow rules.',
-    why: 'Explicit rules can be traced to actual counts and desk policies. They keep operational advice understandable while labeled outcomes for a learned recommendation model are unavailable.',
+    why: 'We can explain each suggestion using a saved count or desk rule. We do not yet have enough checked examples of real bottlenecks to train and test a reliable recommendation model.',
     alternatives: 'A learned classifier would need representative labeled bottlenecks and an independent test set. An LLM could phrase suggestions, but would add inference cost and a separate grounding/evaluation requirement. Neither is established as more effective for TRACE’s current workflow.',
-    limits: 'An earlier Random Forest demonstration used four hand-authored examples and has been retired from active advice. Current suggestions use aggregate rules and cannot prove a bottleneck cause or a staffing improvement.',
+    limits: 'Random Forest was intended for AI Insights, but the earlier demonstration used only four hand-authored examples. That is not a properly tested model. It is not active now: the current Insights page uses rules. The rules suggest what staff should review; they do not prove the cause of a delay.',
     measurement: 'No recommendation accuracy has been measured. Evaluate labeled bottleneck precision/recall, staff acceptance and subsequent turnaround changes. Rules and routing are automation; they do not have an ML accuracy score.',
     href: 'https://scikit-learn.org/stable/modules/generated/sklearn.ensemble.RandomForestClassifier.html', source: 'Random Forest documentation' },
 ];
@@ -43,9 +43,19 @@ export default function AiEvaluationPanel() {
     unverified_samples: d?.ocr_unverified_samples, synthetic_samples: d?.ocr_synthetic_samples });
   return <div className="trace-page min-w-0 text-sm text-gray-700 dark:text-gray-300">
     <section className="trace-section trace-section-body space-y-3">
-      <h3 className="trace-section-title">What TRACE uses and why</h3>
-      <p>Model choices below describe TRACE’s design rationale. A claim that one model is more accurate than another requires a comparable benchmark.</p>
-      <p>Forecast error is measured against held-out recorded counts. OCR field detection and unvalidated recommendations have different evidence and must be reported separately.</p>
+      <h3 className="trace-section-title">AI explained in simple terms</h3>
+      <p>EasyOCR reads text. Prophet estimates future request counts. Insights currently uses rules to suggest what staff should review.</p>
+      <p>We test each task separately. A forecast mistake, a missing field and a wrong recommendation are different problems; one overall AI accuracy percentage would hide those differences.</p>
+    </section>
+    <section aria-label="How to judge whether the AI is useful" className="trace-section trace-section-body space-y-3">
+      <h3 className="trace-section-title">How can we trust the results?</h3>
+      <ol className="list-decimal pl-5 space-y-2">
+        <li><strong>Test on answers the model has not seen.</strong> Learn from earlier dates, then compare predictions with the next seven recorded days.</li>
+        <li><strong>Compare with a simple method.</strong> Show whether Prophet makes fewer mistakes than the weekday average, including when it does worse.</li>
+        <li><strong>Check where the data came from.</strong> Made-up demo records test the process; they cannot prove performance on actual PLP demand.</li>
+        <li><strong>Check the task separately.</strong> OCR needs scans with human-checked answers. Current Insights uses rules, so it has no Random Forest accuracy score.</li>
+      </ol>
+      <p>Staff review helps catch mistakes, but it is not proof that a model is accurate. Where testing is missing, we say <strong>Not measured</strong> and treat the result as assistance, not a guaranteed answer.</p>
     </section>
     <section aria-label="Dataset reconciliation" className="trace-section trace-section-body space-y-3">
       <h3 className="trace-section-title">Where the record counts come from</h3>
@@ -60,7 +70,7 @@ export default function AiEvaluationPanel() {
     </section>
     <section aria-label="Historical forecast evaluation" className="trace-section trace-section-body space-y-4">
       <h3 className="trace-section-title">Historical forecast evaluation</h3>
-      <p>Select the last day of a seven-day test period. The model trains on up to 90 earlier days, then skips one simulated current day to match the live forecast; no held-out counts are sent to the model.</p>
+      <p>Choose the last day of a seven-day test. Prophet learns from earlier dates, then predicts the seven test days without seeing their answers. We skip one day between learning and testing to match the live forecast.</p>
       <form onSubmit={r.evaluate} className="flex flex-wrap items-end gap-3">
         <label className="grid gap-1 min-w-0">Test period ending · Manila<input type="date" className="trace-control w-full" value={r.endDate} onChange={event => r.setEndDate(event.target.value)} /></label>
         <label className="grid gap-1 min-w-0 max-w-full">Dataset<select className="trace-control w-full" value={r.cohort} onChange={event => r.setCohort(event.target.value)}>
@@ -75,11 +85,13 @@ export default function AiEvaluationPanel() {
         <p className="font-semibold">Loaded dataset: {e.cohort === 'all' ? 'All document rows' : e.cohort === 'synthetic' ? 'Recognized synthetic only' : 'Unmarked · origin unverified'}</p>
         <p>Training: {e.train_start || 'No recorded history'} through {e.train_end} · {number(e.train_days)} calendar days · {number(e.train_requests)} requests. Skipped current day: {e.simulated_today}. Test: {e.test_start} through {e.test_end} · {number(e.test_requests)} requests.</p>
         <p>{number(e.synthetic_requests)} recognized synthetic requests occur across this training/test window. Zero days mean no recorded requests; confirm collection was complete before interpreting them as zero actual demand.</p>
-        {e.status === 'insufficient_data' && <p>Not enough evidence to evaluate: use at least 28 preceding calendar days with recorded training requests and a test period with recorded requests. Try an archived period within the dataset range.</p>}
+        {e.status === 'insufficient_data' && <p>Not enough evidence to evaluate: choose a period with at least 28 earlier calendar days and some requests in both the learning and test periods. An older recorded period may work.</p>}
         {e.status === 'prophet_unavailable' && <p>Prophet is unavailable or returned unusable predictions. Only the baseline was evaluated; Prophet accuracy remains unmeasured.</p>}
         <Metrics evaluation={e} />
+        {e.prophet && e.baseline && <p aria-label="Forecast result in plain language">In these test days, Prophet was off by about <strong>{number(e.prophet.mae)} requests per day</strong>. The simple weekday average was off by about <strong>{number(e.baseline.mae)} requests per day</strong>. {e.prophet.mae < e.baseline.mae ? 'Prophet made fewer mistakes in this test.' : e.prophet.mae > e.baseline.mae ? 'The simple average made fewer mistakes in this test.' : 'Both had the same average daily miss in this test.'} This result applies to the loaded data and dates.</p>}
+
         {e.improvement_percent != null && <p>Prophet MAE change against baseline: {number(e.improvement_percent)}% ({e.improvement_percent > 0 ? 'lower error' : e.improvement_percent < 0 ? 'higher error' : 'equal error'}). Positive means improvement; a negative result means Prophet did worse in this window.</p>}
-        <p className="text-xs">Lower MAE/RMSE/WAPE is better. MAE is average absolute daily error; RMSE gives large misses more weight. WAPE is total absolute error ÷ total recorded requests × 100; it is undefined when the recorded total is zero. These are errors, not an accuracy percentage.</p>
+        <p className="text-xs">Lower errors are better. MAE means the average daily miss: MAE 2 means about 2 requests off per day. RMSE gives extra weight to large mistakes. WAPE compares total mistakes with total recorded requests; it cannot be calculated if that total is zero. WAPE 20% does not mean 80% accuracy.</p>
         <div role="region" aria-label="Scrollable daily predictions" tabIndex={0} className="max-h-[60vh] overflow-y-auto overflow-x-auto"><table aria-label="Held-out daily predictions" className="w-full min-w-[28rem] text-left text-sm">
           <thead className="sticky top-0 z-10 bg-white dark:bg-gray-900"><tr>{['Manila day', 'Recorded', 'Prophet', 'Weekday mean'].map(label => <th key={label} className="p-3">{label}</th>)}</tr></thead>
           <tbody>{e.daily.map(row => <tr key={row.date} className="border-t border-gray-100 dark:border-gray-700"><th scope="row" className="p-3">{row.date}</th><td className="p-3">{number(row.actual)}</td><td className="p-3">{number(row.prophet)}</td><td className="p-3">{number(row.baseline)}</td></tr>)}</tbody>
