@@ -5,6 +5,7 @@ import FilterSelect from '@/components/FilterSelect';
 import AdminAuditLog from './components/AdminAuditLog';
 import AdminIcon from './components/AdminIcon';
 import AdminMetricCard from '@/features/admin/components/AdminMetricCard';
+import ScanFieldDetectionCard from '@/features/admin/components/ScanFieldDetectionCard';
 import RequestAssignmentModal from '@/features/admin/components/RequestAssignmentModal';
 import RequestStaff from '@/components/RequestStaff';
 import Button from '@/components/Button';
@@ -114,9 +115,7 @@ export default function AdminDashboard({ user, currentTab, setViewImageUrl, revi
                     {analyticsSummary?.end_to_end?.completed_count > 0 && analyticsSummary?.throughput?.length > 0 && <MiniSparkline data={analyticsSummary.throughput.map(t => ({ v: t.completed, label: t.date }))} unit="docs" className="w-full h-12" />}
                     {analyticsSummary?.end_to_end?.completed_count > 0 && <p className="mt-1 text-[0.625rem] text-trace-ink dark:text-gray-300">Daily completed documents</p>}
                   </AdminMetricCard>
-                  <AdminMetricCard label="Scan Field Detection" value={!statsAvailable ? 'Unavailable' : dashStats.avg_ocr_confidence > 0 ? dashStats.avg_ocr_confidence.toFixed(1) + '%' : '—'} icon="field-detection" solidHelper helper="Average share of expected fields detected. This does not measure AI accuracy or correctness.">
-                    <p className="mt-1 text-[0.625rem] text-trace-ink dark:text-gray-300">Expected fields: Student ID, name and document type.</p>
-                  </AdminMetricCard>
+                  <ScanFieldDetectionCard available={statsAvailable} measurement={dashStats.ocr_field_detection} />
                   <AdminMetricCard label="Real-time Backlog" value={statsAvailable ? dashStats.backlog_count : 'Unavailable'} icon="backlog" helper="Documents currently pending across all desks">
                     <p className="mt-1 text-[0.625rem] text-trace-ink dark:text-gray-300">Current saved pipeline counts</p>
                   </AdminMetricCard>

@@ -1273,13 +1273,26 @@ describe('getActivityLogs — admin only', () => {
   });
 });
 
-describe('intake OCR confidence adapter', () => {
-  it.each([0, 87.25, undefined])('preserves the engine confidence %s without inventing a score', async confidence => {
+describe('intake field-detection measurement', () => {
+  it.each([0, 45, 87.25, undefined])('derives its score from fields rather than engine confidence %s', async confidence => {
     vi.spyOn(documentModel, 'insert').mockResolvedValue([{ insertId: 77 }]);
     vi.spyOn(documentModel, 'updateOcrData').mockResolvedValue([{}]);
-    vi.spyOn(aiEngine, 'extractDocument').mockResolvedValue({ success: true, raw_text: 'diploma', extracted_data: { student_id: 'STU-001', form_type: 'Diploma', confidence } });
+    vi.spyOn(aiEngine, 'extractDocument').mockResolvedValue({ success: true, raw_text: 'diploma', extracted_data: { student_id: 'STU-001', last_name: null, form_type: 'Diploma', confidence } });
     await service.uploadDocument(STUDENT, { document_type: 'Diploma' }, { fieldname: 'document', filename: 'proof.png', originalname: 'proof.png', path: '/unused/proof.png' });
-    expect(documentModel.updateOcrData).toHaveBeenCalledWith(77, expect.objectContaining({ confidence: confidence ?? null }));
+    const [id, saved] = documentModel.updateOcrData.mock.calls[0];
+    expect(id).toBe(77); expect(saved.confidence).toBeCloseTo(200 / 3);
+    expect(JSON.parse(saved.extracted_data_json).field_detection).toEqual({ method: 'intake_fields_v1', expected_fields: 3, detected_fields: 2 });
+  });
+  it('saves a completed zero-field scan while processing failures do not create measurements', async () => {
+    vi.spyOn(documentModel, 'insert').mockResolvedValue([{ insertId: 77 }]);
+    vi.spyOn(documentModel, 'updateOcrData').mockResolvedValue([{}]);
+    const extract = vi.spyOn(aiEngine, 'extractDocument').mockResolvedValue({ success: false, processing_status: 'completed', raw_text: '', extracted_data: { student_id: null, last_name: null, form_type: null, confidence: 0 } });
+    const upload = () => service.uploadDocument(STUDENT, { document_type: 'Diploma' }, { fieldname: 'document', filename: 'proof.png', originalname: 'proof.png', path: '/unused/proof.png' });
+    await upload();
+    expect(documentModel.updateOcrData).toHaveBeenCalledWith(77, expect.objectContaining({ confidence: 0 }));
+    documentModel.updateOcrData.mockClear();
+    extract.mockResolvedValue({ success: false, processing_status: 'failed', extracted_data: { student_id: null, last_name: null, form_type: null, confidence: 0 } });
+    await upload(); expect(documentModel.updateOcrData).not.toHaveBeenCalled();
   });
 });
 
@@ -1489,4 +1502,15 @@ it('returns the exact aggregate model input and honest source/validation metadat
  const result=await service.getForecast({},ADMIN);
  expect(result.history).toEqual(aiEngine.getForecast.mock.calls[0][0].history);expect(result.history).toHaveLength(20);expect(result.history[0]).toEqual({date:first,volume:12});expect(result.history.at(-1).volume).toBe(0);
  expect(result.today).toBe(today);expect(result.data_source).toMatchObject({table:'documents',timestamp_field:'created_at'});expect(result.validation.status).toBe('not_evaluated');expect(JSON.stringify(result)).not.toContain('PRIVATE IDENTITY');expect(result).not.toHaveProperty('accuracy');
+});
+
+it('returns provenance and sample counts with the same corrected dashboard average', async () => {
+  for (const method of ['countProcessedTodayByClerk','countClearedBySecretaryToday','avgProcessingMinutes','countBacklog','countCompletedToday']) vi.spyOn(documentModel, method).mockResolvedValue(0);
+  const metric = { method: 'intake_fields_v1', score: null, samples: 0, unverified_samples: 2, synthetic_samples: 0, total_scored: 2 };
+  vi.spyOn(require('../../models/ocrMetrics.model'), 'summary').mockResolvedValue(metric);
+  const legacy = vi.spyOn(documentModel, 'avgOcrConfidence').mockRejectedValue(new Error('Old average must not be used'));
+  const result = await service.getStats(ADMIN);
+  expect(result.avg_ocr_confidence).toBeNull();
+  expect(result.ocr_field_detection).toEqual(metric);
+  expect(legacy).not.toHaveBeenCalled();
 });

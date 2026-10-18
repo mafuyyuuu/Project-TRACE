@@ -508,3 +508,17 @@ Report **MAE and RMSE in documents/day** and **WAPE as percent error**, alongsid
 The data-origin panel identifies TRC-MOCK-prefixed generated records when present. Absence of that prefix does not certify real data: other synthetic records can exist. For defense, disclose provenance, train/test windows, tested samples and method. Forecast evaluation does not measure OCR accuracy or validate a Random Forest. Current queue recommendations are explicit workflow rules with concrete next steps for intake, evaluation, preparation/pricing, payment, OR/handoff and pickup; they require staff review and do not automatically assign staff or change requests. The earlier four-example classifier is not active.
 
 Document-analytics advice is served from the same packaged analytics module and now includes a stage-specific suggested action when measured stage samples support a comparison. Saved measurements remain available during AI outages. Rebuild backend **and ai-engine**, then deploy the matching frontend; no migration/new dependency/environment variable is needed. Older images omitted analytics.py, which can cause both forecast fallback and unavailable document advice. Confirm both routes after deployment rather than inferring availability from an old screenshot.
+
+## Scan field detection and demo preview — October 18
+
+Completed intake OCR passes parsed Student ID, last name and document type to Node, which
+computes nonempty fields / 3 × 100 and saves method/count metadata in the existing JSON.
+Dashboard and AI aggregates validate this metadata and exclude historical/unverified and
+marked synthetic scores. Each document contributes its latest saved measurement. A
+completed empty read counts as 0%; a processing failure is unmeasured. No eligible samples
+means **Not measured**, and field presence does not establish value correctness.
+
+Admin may enable **Include 3 demo scans** on the dashboard. The labeled preview weights
+three fixed examples together with eligible recorded scans as stats refresh, and retains
+the recorded-only result and sample counts. Demo examples never enter the database or AI
+evaluation results. See [the formula and deployment requirements](AI_MODEL_EVALUATION.md#ocr-metric-correction).

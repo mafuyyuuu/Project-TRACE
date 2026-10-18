@@ -365,6 +365,13 @@ Support Analytics button in Support and no separate Internal Assistance sidebar 
 internal-ticket links open the same concern under Support. **Scan Field Detection** describes
 expected fields found by OCR, not measured AI accuracy or verified text correctness.
 
+For the current metric, **Not measured** means no eligible current-method document scans;
+historical/unverified scores and marked synthetic records are excluded. **Include 3 demo
+scans** is an optional dashboard preview: examples begin at 66.7%, and new eligible scans
+affect the combined value on refresh. Demo/recorded sample counts and the recorded-only
+result stay visible. The AI & Model Evaluation tab uses recorded-only measurements.
+See [AI measurement definitions](AI_MODEL_EVALUATION.md#ocr-metric-correction).
+
 
 ## Admin workload insights and narrow tables — 2026-10-12
 

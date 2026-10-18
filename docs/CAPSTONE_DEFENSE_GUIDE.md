@@ -755,7 +755,12 @@ Open **Support → Internal assistance** for staff concerns; Admin monitors oper
 conversations without replying. In **Efficiency Analytics**, switch between **Document
 Efficiency** and **Support Analytics**; these use separate sources and reporting views.
 **Scan Field Detection** is the average percentage of expected fields detected in scans,
-not verified AI accuracy. In **System Maintenance → Accounts**, choose Students, open a
+not verified AI accuracy. Current-method samples and exclusions are shown; no eligible
+samples means **Not measured**. The optional **Include 3 demo scans** preview labels example
+data and keeps the recorded-only result visible. Explain it as a demonstration, never
+as measured institutional accuracy. New eligible scans affect its weighted average on
+refresh. See [the formula and examples](AI_MODEL_EVALUATION.md#ocr-metric-correction).
+In **System Maintenance → Accounts**, choose Students, open a
 student/alumni and review the deactivate/reactivate confirmation. History and identity
 verification remain; deactivation invalidates existing sessions. In any reporting role,
 edit visible **Student ID / Name** and other filters, choose **Apply Filters**, then

@@ -12,8 +12,11 @@ function score(actual, forecast) {
 const dateFromEpoch = value => value == null ? null : manilaDate(new Date(Number(value) * 1000));
 function normalise(row) {
   return { total: Number(row.total), synthetic: Number(row.synthetic), unmarked: Number(row.total) - Number(row.synthetic),
+    ocr_measurement_method: require('../utils/ocrFieldDetection').METHOD,
     first_date: dateFromEpoch(row.first_epoch), last_date: dateFromEpoch(row.last_epoch),
-    ocr_samples: Number(row.ocr_samples), ocr_field_detection: row.ocr_field_detection == null ? null : Number(row.ocr_field_detection) };
+    ocr_samples: Number(row.ocr_samples), ocr_field_detection: row.ocr_field_detection == null ? null : Number(row.ocr_field_detection),
+    ocr_unverified_samples: Number(row.ocr_unverified_samples || 0), ocr_synthetic_samples: Number(row.ocr_synthetic_samples || 0),
+    ocr_total_scored: Number(row.ocr_total_scored || 0) };
 }
 
 /** Incoming documents, including rejected/cancelled requests, counted once per document row. */

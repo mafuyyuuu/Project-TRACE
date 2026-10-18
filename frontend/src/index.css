@@ -544,6 +544,9 @@ input, textarea, select {
 .trace-admin-kpi { @apply relative flex min-w-0 flex-col gap-[7px] rounded-3xl border border-white/10 bg-white p-6 pb-5 dark:border-gray-700 dark:bg-gray-900; box-shadow: 1px 1px 7.6px -3px rgb(0 0 0 / 0.25); }
 .trace-admin-kpi-label { @apply pr-16 text-[0.6875rem] font-black uppercase leading-[1.2] text-trace-ink/80 dark:text-gray-300; }
 .trace-admin-kpi-value { @apply block min-w-0 break-words pr-16 text-[2rem] font-bold leading-[1.45] text-trace-ink dark:text-gray-100; }
+.trace-admin-kpi-value.trace-admin-kpi-status { @apply text-xl leading-normal; }
+:root[data-trace-text-size]:not([data-trace-text-size="100"]) .trace-admin-scan-metric .trace-admin-kpi-icon { @apply static self-end; }
+:root[data-trace-text-size]:not([data-trace-text-size="100"]) .trace-admin-scan-metric :is(.trace-admin-kpi-label,.trace-admin-kpi-value) { @apply pr-0; }
 .trace-admin-kpi-icon { @apply absolute right-6 top-6 flex h-[55px] w-[58px] items-center justify-center rounded-full border border-trace-sage/20 bg-gradient-to-b from-trace-emerald to-trace-sage; }
 .trace-admin-kpi-helper { @apply mt-auto flex items-center gap-2 rounded-full bg-trace-sage/35 px-3 py-1 text-[0.625rem] font-semibold leading-normal text-trace-emerald dark:bg-green-950 dark:text-green-300; }
 .trace-admin-kpi-helper::before { content: ''; @apply h-1.5 w-1.5 shrink-0 rounded-full bg-trace-emerald; }

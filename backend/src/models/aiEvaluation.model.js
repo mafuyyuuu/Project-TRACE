@@ -1,4 +1,5 @@
 const { pool } = require('../config/db');
+const ocrMetrics = require('./ocrMetrics.model');
 
 // Only the generator's explicit marker is recognized. Unmarked is not proof of real provenance.
 const MOCK = "tracking_number LIKE 'TRC-MOCK-%'";
@@ -8,7 +9,7 @@ async function summary(cohort = 'all', executor = pool) {
   const [rows] = await executor.query(`SELECT COUNT(*) AS total,
     COALESCE(SUM(${MOCK}),0) AS synthetic,
     MIN(UNIX_TIMESTAMP(created_at)) AS first_epoch, MAX(UNIX_TIMESTAMP(created_at)) AS last_epoch,
-    COUNT(ocr_confidence_score) AS ocr_samples, AVG(ocr_confidence_score) AS ocr_field_detection
+    ${ocrMetrics.SELECT}
     FROM documents WHERE 1=1${scope(cohort)}`);
   return rows[0];
 }

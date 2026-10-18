@@ -306,7 +306,8 @@ async function uploadDocument(user, body, files) {
  */
 async function runOcrPass(user, { documentId, trackingNumber, item, attachment }, atStatus) {
   const ocrData = await aiEngine.extractDocument(attachment, { trackingNumber });
-  if (!ocrData || !ocrData.success || !ocrData.extracted_data) return;
+  const measurement = require('../utils/ocrFieldDetection').measureIntakeFields(ocrData);
+  if (!measurement) return;
 
   console.log(`📄 OCR processing complete for ${trackingNumber}`);
 
@@ -316,7 +317,9 @@ async function runOcrPass(user, { documentId, trackingNumber, item, attachment }
   let aiNotes = 'AI analyzed the document but could not definitively verify it.';
 
   // Requirement verification: does the scan match what was requested?
-  if (documentType === 'Honorable Dismissal' && rawText.includes('clearance')) {
+  if (measurement.score === 0) {
+    aiNotes = 'No expected intake fields were detected. Review the scan manually.';
+  } else if (documentType === 'Honorable Dismissal' && rawText.includes('clearance')) {
     aiVerified = true;
     aiNotes = 'AI Verified: Valid Clearance document detected for Honorable Dismissal.';
   } else if (documentType && rawText.includes(documentType.toLowerCase())) {
@@ -326,10 +329,10 @@ async function runOcrPass(user, { documentId, trackingNumber, item, attachment }
 
   await documentModel.updateOcrData(documentId, {
     raw_text: ocrData.raw_text,
-    extracted_data_json: JSON.stringify(ocrData.extracted_data),
-    confidence: Number.isFinite(ocrData.extracted_data.confidence) ? ocrData.extracted_data.confidence : null,
-    student_id: ocrData.extracted_data.student_id,
-    form_type: ocrData.extracted_data.form_type,
+    extracted_data_json: JSON.stringify(measurement.extracted_data),
+    confidence: measurement.score,
+    student_id: measurement.extracted_data.student_id,
+    form_type: measurement.extracted_data.form_type,
   });
 
   await stepLogModel.insert({
@@ -452,7 +455,7 @@ async function getStats(user) {
     processed_today,
     cleared_by_secretary_today,
     avg_processing_minutes,
-    avg_ocr_confidence,
+    ocr_field_detection,
     backlog_count,
     pending_payment_verification_count,
     completed_today_count,
@@ -466,7 +469,7 @@ async function getStats(user) {
     documentModel.countProcessedTodayByClerk(user.id),
     documentModel.countClearedBySecretaryToday(),
     documentModel.avgProcessingMinutes(),
-    documentModel.avgOcrConfidence(),
+    require('../models/ocrMetrics.model').summary(),
     documentModel.countBacklog(),
     documentModel.countByStatus(STATUS.PENDING_FINANCE_VERIFICATION),
     documentModel.countCompletedToday(),
@@ -485,7 +488,8 @@ async function getStats(user) {
     processed_today,
     cleared_by_secretary_today,
     avg_processing_minutes,
-    avg_ocr_confidence,
+    avg_ocr_confidence: ocr_field_detection.score,
+    ocr_field_detection,
     backlog_count,
     pending_secretary_count,
     ready_window_1_count,
