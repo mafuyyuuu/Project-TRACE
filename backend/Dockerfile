@@ -13,7 +13,9 @@ WORKDIR /app
 
 # Copied first so a source-only change doesn't reinstall dependencies.
 COPY package*.json ./
-RUN npm ci --omit=dev
+RUN npm ci --omit=dev \
+    && rm -rf /usr/local/lib/node_modules/npm /opt/yarn-* \
+    && rm -f /usr/local/bin/npm /usr/local/bin/npx /usr/local/bin/yarn /usr/local/bin/yarnpkg
 
 COPY src ./src
 COPY database ./database

@@ -2994,3 +2994,5 @@ Final review coalesced readiness probes with a short production cache to protect
 Recovery acceptance now compares every restored base-table row count with a manifest captured while source writers are stopped, as well as database integrity and restored upload/n8n bytes; added manifest validation tests.
 
 The isolated restore reached import successfully but the minimal mysql:8.4 image does not ship mysqlcheck. Switched integrity verification to SQL CHECK TABLE using the included mysql client; retained all row/file comparisons and network isolation. AI runtime and image/dependency gates passed on 9000879.
+
+The complete encrypted SQL/row-count/file restore drill and Caddy validation passed on 95d504a. The backend image gate then found vulnerable npm-bundled packages outside the audited application dependency tree. Removed unnecessary npm/Yarn runtime installers and added a container acceptance assertion; development/CI npm tooling remains available outside the production image. No scan findings were excluded.

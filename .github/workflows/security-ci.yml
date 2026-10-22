@@ -90,7 +90,7 @@ jobs:
       - run: sudo apt-get update && sudo apt-get install -y age
       - run: docker build -t trace-backend-check backend
       - name: Verify non-root runtime
-        run: docker run --rm --entrypoint sh trace-backend-check -c 'test "$(id -u)" = 1000 && test -w /app/uploads'
+        run: docker run --rm --entrypoint sh trace-backend-check -c 'test "$(id -u)" = 1000 && test -w /app/uploads && ! command -v npm && ! command -v yarn'
       - name: Real MySQL shared counters and least-privilege accounts
         run: |
           docker network create trace-security-ci
