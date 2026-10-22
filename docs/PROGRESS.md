@@ -1,8 +1,10 @@
+> Documentation cleanup (October 22, 2026): PNG review artifacts and retired defense/checklist documents are available in Git history. Historical screenshot labels below are evidence descriptions, not links to files in the current tree. Current setup is in README; deployment, migration and security instructions are in their dedicated guides.
+
 ## Security and operational readiness first batch - October 22, 2026
 
 Reviewed latest main `b973af7` and implemented ownership/college checks for tracking and Secretary profile lookup, owner/Admin registration-proof access, Admin-only insight routing, private no-store API/file/error responses, request IDs, safe 5xx messages and structured sanitized main-controller errors. Auth storage outages deny access with 503 instead of false invalid-token 401. Production CORS fails closed without an allowlist and rejects the public JWT placeholder. Ordinary uploads require matching exact extension/MIME.
 
-Compose's backend/AI/n8n host ports bind to loopback and six service logs rotate at 10 MB x3; Caddy HTTP/HTTPS remains public. Updated affected Node dependencies, replaced development nodemon with native Node watch mode, and defined pinned-action/read-only CI jobs for backend, frontend and isolated analytics checks. No database migration, real cloud change or automatic production rollout is performed. See SECURITY_READINESS_2026-10-22.md for evidence and the remaining RLS/permissions, rate limiting, CDN, scaling, telemetry, recovery, CI enforcement and hosting work. Application row authorization is not native MySQL RLS.
+Compose's backend/AI/n8n host ports bind to loopback and six service logs rotate at 10 MB x3; Caddy HTTP/HTTPS remains public. Updated affected Node dependencies, replaced development nodemon with native Node watch mode, and defined pinned-action/read-only CI jobs for backend, frontend and isolated analytics checks. No database migration, real cloud change or automatic production rollout is performed. See SECURITY_ROLLOUT.md for evidence and the remaining RLS/permissions, rate limiting, CDN, scaling, telemetry, recovery, CI enforcement and hosting work. Application row authorization is not native MySQL RLS.
 
 Validation: **1,924 backend tests / 146 files on Node 22**, **1,250 frontend tests / 135 files**, lint, production/PWA builds including Node 22, **30 Python tests in a fresh CI-pinned environment**, and **65 responsive synthetic browser checks** pass. Fresh npm installs and explicit full audits report zero known advisories for both lockfiles. SMTP message construction is checked locally; real delivery, Docker builds, live DB/cloud settings, backup restores and new remote CI runs are not claimed.
 
@@ -32,7 +34,7 @@ Signup validates the complete draft before review and marks invalid identity, co
 
 Back to Login now sits in an opaque sticky header above the scrolling form, including mobile and enlarged text. Decorative clipping is confined to the background so it cannot disable sticky positioning. Shared upload controls accept an optional externally managed field error and associate it with the picker; year fields can defer validation until signup submits while preserving default behavior in other forms.
 
-Validation: **1,109 frontend tests / 115 files**, lint, production/PWA build and whitespace checks pass. **168 actual-browser checks** cover signup/required errors, privacy and upload errors, server duplicate-ID recovery, registration review/cancellation, alumni missing proof, catalog failure/retry/empty lists, all 13 supplied programs, and Back to Login navigation. Widths 320/375/768/1440 px, 100/200% text and both themes retain the sticky header, contain page/dialog layout and preserve drafts/files. No live signup/deployment or physical-device acceptance is claimed. [Scrolled mobile field errors and sticky header](signup-inline-errors-mobile-review.png).
+Validation: **1,109 frontend tests / 115 files**, lint, production/PWA build and whitespace checks pass. **168 actual-browser checks** cover signup/required errors, privacy and upload errors, server duplicate-ID recovery, registration review/cancellation, alumni missing proof, catalog failure/retry/empty lists, all 13 supplied programs, and Back to Login navigation. Widths 320/375/768/1440 px, 100/200% text and both themes retain the sticky header, contain page/dialog layout and preserve drafts/files. No live signup/deployment or physical-device acceptance is claimed. Scrolled mobile field errors and sticky header (archived screenshot).
 
 ## Signup programs, privacy notice and proof requirements — October 15, 2026 (ready for review)
 
@@ -44,7 +46,7 @@ Added the readable Registration Privacy Notice, an initially unchecked required 
 
 Proof upload guidance lists student/alumni examples, **JPG/JPEG/PNG/PDF, one file, 10 MB maximum**, and image/scan clarity. The server’s extension/MIME checks now match these displayed formats. Known-rejected upload drafts are removed; uncertain server/commit failures preserve evidence rather than risk deleting an accepted proof. Existing stored files remain readable.
 
-Validation: **1,735 backend tests / 130 files**, **1,104 frontend tests / 115 files**, plus **25 focused frontend checks after final copy changes**, lint, clean production/PWA build and whitespace checks pass. **103 actual-browser checks** cover all seven college groups/13 programs; signup, notice, review, alumni missing-proof, catalog failure/retry and empty states at 320/375/768/1440 px, 100/200% text and both themes. They also verify preserved drafts, unchecked notice behavior and a single confirmed synthetic request. Screenshots use synthetic data: [signup](signup-programs-review.png), [mobile privacy notice](signup-privacy-mobile-review.png). No live registration, import, deployment or physical-device acceptance is claimed. Rollout instructions and the user manual describe the matching API/frontend requirement and explicit catalog import.
+Validation: **1,735 backend tests / 130 files**, **1,104 frontend tests / 115 files**, plus **25 focused frontend checks after final copy changes**, lint, clean production/PWA build and whitespace checks pass. **103 actual-browser checks** cover all seven college groups/13 programs; signup, notice, review, alumni missing-proof, catalog failure/retry and empty states at 320/375/768/1440 px, 100/200% text and both themes. They also verify preserved drafts, unchecked notice behavior and a single confirmed synthetic request. Screenshots use synthetic data: signup (archived screenshot), mobile privacy notice (archived screenshot). No live registration, import, deployment or physical-device acceptance is claimed. Rollout instructions and the user manual describe the matching API/frontend requirement and explicit catalog import.
 
 ## Ticket chat archives — October 15, 2026 (ready for review)
 
@@ -86,7 +88,7 @@ SQL, migration preservation/reruns and unchanged alumni requirements. Current an
 alumni profile/request/review states pass 64 responsive combinations each, plus a
 16-combination current-profile layout check and 16-combination alumni capture
 check. ESLint, production/PWA build and whitespace checks pass. Synthetic review is in
-`docs/current-student-education-review.png`. No live database/backend or physical
+archived review screenshot. No live database/backend or physical
 phones tested. Manual, FAQ, workflows, backend/deployment and defense notes updated.
 Work remains on draft PR #37; no deployment or merge performed.
 
@@ -115,7 +117,7 @@ Validation: **1,084 frontend tests / 113 files** pass, including two tracking
 clipboard/terminal-state regressions. All 17 Student states passed **272 Chromium
 combinations** at 320/375/768/1440 px, 100/200% text, and both themes. The final
 **112-combination** profile chrome follow-up also passes and checks tab visibility and reachable body and
-footer. Synthetic captures are in `docs/student-profile-tracking-review.png`.
+footer. Synthetic captures are in archived review screenshot.
 ESLint, production/PWA build, original SVG/callsite checks and whitespace checks
 pass. Physical phones and the live backend were not tested. Student remains ready for
 user review on draft PR #37 targeting dev; no merge or deployment.
@@ -147,8 +149,8 @@ pass **160 Chromium combinations** at 320/375/768/1440 px, 100/200% text and bot
 themes. The shared filters pass another **192 combinations** across Admin and staff desks;
 a final manual theme/asset check passes 16 combinations.
 ESLint, production/PWA build, SVG/callsite integrity and whitespace checks pass.
-Synthetic screenshots are in `docs/student-tabs-review.png`,
-`docs/student-dialogs-mobile-review.png` and `docs/shared-filter-review.png`.
+Synthetic screenshots are in archived review screenshot,
+archived review screenshot and archived review screenshot.
 No physical phones or live backend were used. No backend, dependency, migration or
 environment changes. Student is ready for visual review, not declared accepted;
 work remains on the existing Admin/Student draft PR #37 targeting dev.
@@ -169,7 +171,7 @@ themes (28 combinations), including one-row geometry, minimum tap targets, page
 containment and loaded assets. Mobile menu open/close, theme toggle, notification
 read/clearing and Edit Profile remain functional. Notification-panel containment
 also passes at five mobile widths and both text sizes. Synthetic comparison:
-`docs/admin-mobile-header-review.png`. No live backend or physical phone was used.
+archived review screenshot. No live backend or physical phone was used.
 
 ## Admin More Tabs fidelity and notification state — 2026-10-15
 
@@ -204,7 +206,7 @@ A separate notification scenario verifies the unread dot disappears after a
 successful read and checks another 16 responsive/theme/text combinations. A final
 32-combination support check verifies contained table scrolling at narrow widths. ESLint,
 production/PWA build, SVG integrity and changed-line whitespace checks pass.
-`docs/admin-more-tabs-review.png` and `docs/admin-more-tabs-mobile.png` contain
+archived review screenshot and archived review screenshot contain
 synthetic browser captures. Physical devices and a live backend were not tested.
 
 No backend, migration, dependency or environment changes. Protected files, live
@@ -227,7 +229,7 @@ Validation: **83 focused frontend tests / four suites**, lint, production/PWA
 build and changed-line whitespace checks pass. **48 Chromium combinations** at
 320/375/768/1440 px, 100/200% text and light/dark pass position assertions for the
 Filter label, zero-width toolbar dividers, word wrapping, containment, original
-assets and browser errors. `docs/admin-main-toolbar-fixes.png` uses synthetic data.
+assets and browser errors. archived review screenshot uses synthetic data.
 More tabs remain paused; Main Tabs still awaits the user's visual acceptance.
 
 ## Admin Main Tabs fidelity corrections — 2026-10-14
@@ -254,7 +256,7 @@ Validation: **1,075 frontend tests across 110 files**; ESLint, production/PWA bu
 asset integrity and changed-line whitespace checks. Browser fixtures use synthetic
 records; **528 size/theme checks** cover 33 states at 320/375/768/1440 px,
 100/200% text, light/dark, with checks for split action words, page/dialog containment,
-missing original images and browser errors. See `docs/admin-main-tabs-fidelity.png`.
+missing original images and browser errors. See archived review screenshot.
 
 The draft PR remains for the user's visual review. Main Tabs has not been accepted;
 More tabs remain paused. No merge, deployment or Figma mutation was performed.
@@ -274,7 +276,7 @@ cell, and no page overflow across 320/375/768/1440 px, 100/125/150/200% text,
 light/dark themes, and short/long document filters: **64 combinations pass**.
 The protected viewer opens, no browser errors occur, and **59 focused Admin tests**
 pass. Lint, production build and changed-line whitespace checks pass.
-`docs/admin-tracker-controls-mobile.png` contains only synthetic fixture records.
+archived review screenshot contains only synthetic fixture records.
 This follow-up remains in Main Tabs; More work stays paused.
 
 ## Admin Main Tabs — review stage — 2026-10-14
@@ -705,7 +707,7 @@ The reviewed payor name preserves the original profile name; saved amounts use i
 
 Local verification: full backend suite passes 1,410 tests in 108 files; frontend suite passes 895 tests in 97 files. Lint and production/PWA build pass. Chromium passes 64 actual component mode/width/theme/100–200% text cases, plus draft-preserving pack preview/cancel and reduced motion, with no page errors. The existing chat-scroll assertion now waits for its asynchronous effect rather than checking immediately after message text renders. Tests cover permissions, rollback, lost-response retry, stale serials, modeled competing cashiers at 49/50, the 51st issue, pack overlap/replacement, content validation, exact copy publication, print audit and void/handoff gates. These mocked/unit checks do not establish live MySQL contention, notification delivery or physical-printer acceptance.
 
-Screenshots, navigation and local seed testing credentials are consolidated in [README.md](../README.md#finance-receipt-walkthrough). Per user instruction, the five old per-batch acceptance Markdown files and the obsolete Batch 8b plan are removed; related links point to the README. The consolidated progress and deployment records remain. New preserving migration: `backend/database/migrate_receipt_packs.js`, with a preserving OR-number index, fresh-schema and read-only preflight entries. [DEPLOYMENT_CHECKLIST.md](DEPLOYMENT_CHECKLIST.md) records it as not applied and the complete rollout order now has 30 scripts. No new dependency/environment variable, live migration, main merge or deployment. Publication is dev only.
+Screenshots, navigation and local seed testing credentials are consolidated in [README.md](SYSTEM_WORKFLOWS.md#managed-finance-receipts). Per user instruction, the five old per-batch acceptance Markdown files and the obsolete Batch 8b plan are removed; related links point to the README. The consolidated progress and deployment records remain. New preserving migration: `backend/database/migrate_receipt_packs.js`, with a preserving OR-number index, fresh-schema and read-only preflight entries. [MIGRATION_ROLLOUT.md](MIGRATION_ROLLOUT.md) records it as not applied and the complete rollout order now has 30 scripts. No new dependency/environment variable, live migration, main merge or deployment. Publication is dev only.
 
 ---
 
@@ -713,9 +715,9 @@ Screenshots, navigation and local seed testing credentials are consolidated in [
 
 TRACE-69/70 now use the Admin Figma dashboard (93:663) card hierarchy for six recorded support KPI summaries, detailed categories/backlog and borderless semantic duration/FAQ/workload tables. Reporting period, imported-cohort exclusions, FAQ denominators, historical cutoff, service/wall minutes, episode counts and missing-versus-zero distinctions remain. Tables have contained scrolling, aligned values and readable No data; the parent no longer nests the whole view inside another card. Date drafts stay explicit Apply, and refresh failures retain labeled previous results for retry. Backend/AI calculations, endpoints and permissions are unchanged.
 
-Local verification: full frontend suite passes 887 tests in 95 files; final focused analytics suite passes 10 tests in 2 files. Existing backend metric/report regressions pass 15 tests in 2 files. Lint, production/PWA build and whitespace checks pass. Chromium passes 80 state/width/theme/text-size cases, plus keyboard scrolling/focus, No data contrast, stationary informational hover, reduced motion and draft/error/retry checks. Screenshots and an account-free walkthrough are in [README workflow walkthrough](../README.md#main-workflows); synthetic checks do not establish live metric outcomes or physical-phone acceptance.
+Local verification: full frontend suite passes 887 tests in 95 files; final focused analytics suite passes 10 tests in 2 files. Existing backend metric/report regressions pass 15 tests in 2 files. Lint, production/PWA build and whitespace checks pass. Chromium passes 80 state/width/theme/text-size cases, plus keyboard scrolling/focus, No data contrast, stationary informational hover, reduced motion and draft/error/retry checks. Screenshots and an account-free walkthrough are in [system workflows](SYSTEM_WORKFLOWS.md); synthetic checks do not establish live metric outcomes or physical-phone acceptance.
 
-No new migration, environment variable, API contract or dependency. [DEPLOYMENT_CHECKLIST.md](DEPLOYMENT_CHECKLIST.md) records Batch 11 as None and retains previous prerequisites. Publication remains dev only; no main merge, live migration or deployment. Next: newer guide Batch 12, Finance Receipts.
+No new migration, environment variable, API contract or dependency. [MIGRATION_ROLLOUT.md](MIGRATION_ROLLOUT.md) records Batch 11 as None and retains previous prerequisites. Publication remains dev only; no main merge, live migration or deployment. Next: newer guide Batch 12, Finance Receipts.
 
 ---
 
@@ -731,9 +733,9 @@ Implementation now groups recorded summaries into six KPI cards, categories/back
 
 TRACE-61/62/63/64/65/66 now use the main TRACE Figma conversation layout and local original illustration/icons. Shared rows fix selection contrast/alignment; header controls distinguish confirmed availability, primary FCFS claiming and creation. Linked-case viewing sits in selected context. Local search covers loaded authorized ticket metadata, with no invented unread/presence/read/snippet data. Success toasts stack outside layout; errors and confirmation behavior remain. Full/compact conversations preserve FAQ, reply clocks, protected files, requirements, cursor history and retry-safe sends. The compact widget retains drafts across close/reopen and restores focus; digital evaluation separates persistent form/discussion panels with a mobile switch and pinned decisions.
 
-Verification: 876 frontend tests in 94 files pass, followed by 26 final focused regressions. Existing backend support/attachment regressions pass 31 tests in 2 files. Lint/build/whitespace checks pass; 64 mocked Chromium role/theme/width cases plus 200% text, drawer keyboard focus/restoration, independent scrolling, composer reachability, reduced motion and local assets pass. Screenshots and walkthrough are in [README workflow walkthrough](../README.md#main-workflows). No live database, physical-phone or delivery claim is made.
+Verification: 876 frontend tests in 94 files pass, followed by 26 final focused regressions. Existing backend support/attachment regressions pass 31 tests in 2 files. Lint/build/whitespace checks pass; 64 mocked Chromium role/theme/width cases plus 200% text, drawer keyboard focus/restoration, independent scrolling, composer reachability, reduced motion and local assets pass. Screenshots and walkthrough are in [system workflows](SYSTEM_WORKFLOWS.md). No live database, physical-phone or delivery claim is made.
 
-No new migration, environment variable, API contract, dependency or staff chat connection. [DEPLOYMENT_CHECKLIST.md](DEPLOYMENT_CHECKLIST.md) records Batch 10 as None and retains previous migration prerequisites. Publication is to dev only; no main merge, live migration or deployment. Next: newer guide Batch 11, Support Analytics (TRACE-69/70).
+No new migration, environment variable, API contract, dependency or staff chat connection. [MIGRATION_ROLLOUT.md](MIGRATION_ROLLOUT.md) records Batch 10 as None and retains previous migration prerequisites. Publication is to dev only; no main merge, live migration or deployment. Next: newer guide Batch 11, Support Analytics (TRACE-69/70).
 
 ---
 
@@ -751,7 +753,7 @@ Findings recorded before source edits; implementation and final evidence are rec
 
 TRACE-58/59/60: all report/export configuration now uses the shared Filters & Export modal across Admin, Window 1, Secretary and Finance. Draft/Apply/Reset/Cancel semantics prevent keystrokes from changing reports; current-scope/pending/error guards protect exports. Student ID/name, authoritative college and document type filters are validated server-side and share row/KPI/export scope. Secretary filters cannot expand its assigned college. The shared 36-column document CSV uses complete filtered sets, explicit Manila timestamps, numeric PHP values, recorded fees and safe formula/RFC quoting; oversized document exports refuse rather than truncate. Finance retains complete payment groups on screen and exports one row per document in those groups. Separate student-category exports retain their own row unit and apply identity/college filters.
 
-Local checks: 1,374 backend / 866 frontend tests pass, followed by 49 focused final regressions; lint/build and whitespace checks pass. Responsive synthetic browser evidence and the sample CSV are in [README workflow walkthrough](../README.md#main-workflows). No new migration in this batch; [DEPLOYMENT_CHECKLIST.md](DEPLOYMENT_CHECKLIST.md) consolidates Batch 7/8 migrations and prerequisites for the final rollout. No live migration, merge to main or deployment is included. Next: newer guide Batch 10 (Support / Messaging UI).
+Local checks: 1,374 backend / 866 frontend tests pass, followed by 49 focused final regressions; lint/build and whitespace checks pass. Responsive synthetic browser evidence and the sample CSV are in [system workflows](SYSTEM_WORKFLOWS.md). No new migration in this batch; [MIGRATION_ROLLOUT.md](MIGRATION_ROLLOUT.md) consolidates Batch 7/8 migrations and prerequisites for the final rollout. No live migration, merge to main or deployment is included. Next: newer guide Batch 10 (Support / Messaging UI).
 
 ---
 
@@ -759,7 +761,7 @@ Local checks: 1,374 backend / 866 frontend tests pass, followed by 49 focused fi
 
 Implements TRACE-55/56/57/67/68 from the newer guide. Explicit catalog-based intake requirements block routing until accepted; saved college routing scope governs own-college Secretary lists, reports/exports, details, actions and files. Alumni route to their recorded former college. Admin alone can confirm and audit eligible backup assignments within the current desk/college, with stale-save protection. Missing legacy scope can be reconciled from institutional records without rewriting saved snapshots or closed history. Existing payment/OR prerequisites and physical handoff remain. Shared QueueTabs/QueuePanel align pills, keyboard semantics, spacing and visible context/hover motion across roles, with reduced motion.
 
-Verification: the full backend suite passes 1,357 tests; the full frontend suite passes 871 tests, plus focused regressions added for the final reconciliation path. Lint/build and whitespace checks pass. Synthetic Chromium covers 56 layout cases, enlarged text, both themes, context motion, fixed hover targets and reduced motion. Screenshots, causes, reproduction and deployment limits are in [README workflow walkthrough](../README.md#main-workflows).
+Verification: the full backend suite passes 1,357 tests; the full frontend suite passes 871 tests, plus focused regressions added for the final reconciliation path. Lint/build and whitespace checks pass. Synthetic Chromium covers 56 layout cases, enlarged text, both themes, context motion, fixed hover targets and reduced motion. Screenshots, causes, reproduction and deployment limits are in [system workflows](SYSTEM_WORKFLOWS.md).
 
 The additive intake-scope migration has not run on a live database. Matching API/frontend rollout and live acceptance remain required. Publication is to `dev` only; no merge to main or deployment is included. The next guide batch is Batch 9 (Reports & Export).
 
@@ -769,7 +771,7 @@ The additive intake-scope migration has not run on a live database. Matching API
 
 Implements the new-fixes guide's TRACE-52/53/54/75/76: persisted one-time alumni study years, saved read-only Year Started in requests with Year Ended removed, Admin corrections with transactional before/after audit, duplicate attachment-label cleanup, pending alumni proof-unavailable defense demo, and independent inline Reset Password eye icons. Figma references are New Request 85:1514, detailed confirmation 177:691 and compact confirmation 183:741; the selected approach uses detailed review for forms and compact confirmation for simple decisions. Approved pricing, multi-document intake, identity/email/request gates and historical request details remain.
 
-Verification: backend **1,323**, frontend **866** tests pass; lint/build pass. Synthetic Chromium checks cover six form/dialog types at four widths in both themes (**48 cases**), plus 200% text/reduced-motion/keyboard checks. Screenshots and reproduction are in [README workflow walkthrough](../README.md#main-workflows). The older guide Batches 1–6 are separate; this is Batch 7 of the user's newer fixes, not another whole-app/shared-control pass.
+Verification: backend **1,323**, frontend **866** tests pass; lint/build pass. Synthetic Chromium checks cover six form/dialog types at four widths in both themes (**48 cases**), plus 200% text/reduced-motion/keyboard checks. Screenshots and reproduction are in [system workflows](SYSTEM_WORKFLOWS.md). The older guide Batches 1–6 are separate; this is Batch 7 of the user's newer fixes, not another whole-app/shared-control pass.
 
 The additive alumni migration has **not** run against a live database; matching API/frontend rollout is required. Proof-unavailable registration defaults off, is blocked in production, and still awaits institution evidence-policy approval for any production version. Rejected applicants now reuse their original account instead of deleting audit/history. Existing historical years are not normalized on unrelated profile saves. No merge to main or deployment is included; the authorized publication target is `dev` only. The next guide batch is Batch 8 (intake/staff request access).
 
@@ -777,7 +779,7 @@ The additive alumni migration has **not** run against a live database; matching 
 
 # Project TRACE Progress Report
 
-Current request-by-request index: [FEATURE_ACCEPTANCE_MATRIX.md](FEATURE_ACCEPTANCE_MATRIX.md). The Support redesign has its own [implementation checklist](SUPPORT_IMPLEMENTATION_CHECKLIST.md); incomplete features are not accepted merely because another feature passed.
+Current request-by-request index: [PROGRESS.md](PROGRESS.md). The Support redesign has its own [implementation checklist](SUPPORT_DESIGN.md); incomplete features are not accepted merely because another feature passed.
 
 
 ### Unified Support round — completed local implementation and validation, 2026-10-06
@@ -2810,7 +2812,7 @@ Reviewed all five pages of the user's Trace notes PDF and the current dev head d
 
 Implemented: removed the Student dashboard/history chat launcher and its duplicate Support instance, updated the tour, and removed analytics controls/dialogs from every Support view. The report service rechecks the current Admin actor before reading aggregates; Window 1/Receiving Desk now receive 403. Student payment frame 2495:2103 uses all nine original intrinsic-size SVG exports, saved charges, grouped checkout, copy feedback and the previously missing slip preview wiring. Shared controls now own truthful file names, phone-modal centering, full compound-field focus, pointer affordances, normalized email/event/date/currency presentation and semantic dark icon treatment. Every role uses the same Preferences font, dimensions, controls and footer. FAQ answers scroll independently. Tables without paging now share PaginatedTable/Pagination; existing queue/server paging and exports retain their behavior. Removed the dashboard trailing spacer and fixed queue/minimum heights.
 
-Validation: all 1,144 frontend tests / 117 suites and 1,737 backend tests / 130 suites pass; the final 125 maintenance/email/metrics checks pass. All 496 browser checks pass with synthetic data: 320/375/768/1440 px, both themes, 100/200% text, five role views, FAQ scroll containment, dialog centering, equal Preferences geometry/font, original payment asset dimensions, full-field outlines, Window 1 trailing space, pagination, Student chat absence, Admin Analytics availability, Support analytics absence, password toggling, selected-file feedback and slip preview. Lint, clean production/PWA build and git diff checks pass. Screenshot: docs/trace-notes-review.png. The existing large-chunk build advisory remains. Deploy matching frontend/backend; no migration is required for this batch. Live deployment and physical-phone/keyboard acceptance are not claimed.
+Validation: all 1,144 frontend tests / 117 suites and 1,737 backend tests / 130 suites pass; the final 125 maintenance/email/metrics checks pass. All 496 browser checks pass with synthetic data: 320/375/768/1440 px, both themes, 100/200% text, five role views, FAQ scroll containment, dialog centering, equal Preferences geometry/font, original payment asset dimensions, full-field outlines, Window 1 trailing space, pagination, Student chat absence, Admin Analytics availability, Support analytics absence, password toggling, selected-file feedback and slip preview. Lint, clean production/PWA build and git diff checks pass. Screenshot: archived review screenshot. The existing large-chunk build advisory remains. Deploy matching frontend/backend; no migration is required for this batch. Live deployment and physical-phone/keyboard acceptance are not claimed.
 
 ## 2026-10-16 — live tracker spacing and active status (findings before edits)
 
@@ -2818,7 +2820,7 @@ The two supplied screenshots show a nine-column tracker forced by the viewport b
 
 Implemented: the panel allows 1200 px and chooses 9/3/2/1 columns from its actual width and text size, with measured radius-based connectors routed around labels. Badge dots inherit the saved status color. A lightweight halo pulses only around the current unfinished stage; completion removes it and reduced motion keeps a static halo. Authorized history loads on open and manual Refresh tracking, cancelling obsolete reads and rejecting wrong-document responses. Stage-entry dates use Manila time, latest recorded re-entry and explicit missing-date labels. Failed refreshes preserve the last saved snapshot with a warning; 403/404 remove protected details. Removed the unused fake progress timer.
 
-Validation: all 1,159 frontend tests / 119 suites pass, including 17 focused tracker/history checks. All 141 synthetic-browser checks pass across 320/375/768/1440 px, light/dark, 100/200% text, normal/reduced motion and short 568 px viewports. Verified processing, payment-wait, completed, legacy and unavailable states; animation movement and dynamic reduced-motion cancellation; completed refresh stops the pulse; authorization loss removes cached details; no label/card overflow. Lint, production build, generated HTML/JS/CSS/service-worker asset consistency and git diff checks pass. Screenshot: docs/live-tracker-review.png. This patch needs only frontend deployment; no backend rebuild or migration. Live deployment and physical-phone acceptance are not claimed.
+Validation: all 1,159 frontend tests / 119 suites pass, including 17 focused tracker/history checks. All 141 synthetic-browser checks pass across 320/375/768/1440 px, light/dark, 100/200% text, normal/reduced motion and short 568 px viewports. Verified processing, payment-wait, completed, legacy and unavailable states; animation movement and dynamic reduced-motion cancellation; completed refresh stops the pulse; authorization loss removes cached details; no label/card overflow. Lint, production build, generated HTML/JS/CSS/service-worker asset consistency and git diff checks pass. Screenshot: archived review screenshot. This patch needs only frontend deployment; no backend rebuild or migration. Live deployment and physical-phone acceptance are not claimed.
 
 
 ## 2026-10-16 — College Secretary main tabs (findings before edits)
@@ -2845,7 +2847,7 @@ The user's screenshot requests Support headings above category tabs and readable
 
 Implemented the shared Support page heading before category tabs in both DOM and visual order. Embedded workspaces suppress duplicate headings; local actions, keyboard tab focus, category drafts and standalone/compact Support stay intact. Activity Logs now displays readable action labels, expands known abbreviations and searches both labels and original saved codes. Audit records and security-event formatting are unchanged. New Request choice cards have equal grid dimensions; selected-document fields appear below the cards with their existing keyed values, attachments, policies and validation.
 
-Validation: all 1,168 frontend tests / 121 suites pass, including four readable-label/search regressions and a heading-order/keyboard-focus regression. All 304 browser checks pass at 320/375/768/1440 px, both themes and 100/200% text: all three categories for Admin, Window 1, Receiving Desk, Secretary and Finance; empty/selected/searched request choices with equal measured card sizes and retained purpose/file drafts; and formatted Activity Logs. Lint, clean production/PWA build, generated entrypoints/service-worker references and git diff checks pass. The existing large-chunk advisory remains. Screenshots: [Support heading](support-heading-review.png), [New Request desktop](new-request-cards-review.png), [New Request mobile](new-request-cards-mobile-review.png). This is a frontend-only change; no backend restart or migration. Production deployment and physical-phone acceptance are not claimed. The previously recorded Student checkout and active Graduate icon Figma-asset gaps remain separate.
+Validation: all 1,168 frontend tests / 121 suites pass, including four readable-label/search regressions and a heading-order/keyboard-focus regression. All 304 browser checks pass at 320/375/768/1440 px, both themes and 100/200% text: all three categories for Admin, Window 1, Receiving Desk, Secretary and Finance; empty/selected/searched request choices with equal measured card sizes and retained purpose/file drafts; and formatted Activity Logs. Lint, clean production/PWA build, generated entrypoints/service-worker references and git diff checks pass. The existing large-chunk advisory remains. Screenshots: Support heading (archived screenshot), New Request desktop (archived screenshot), New Request mobile (archived screenshot). This is a frontend-only change; no backend restart or migration. Production deployment and physical-phone acceptance are not claimed. The previously recorded Student checkout and active Graduate icon Figma-asset gaps remain separate.
 
 
 ## 2026-10-17 — new notes and complete Figma review (findings before edits)
@@ -2896,7 +2898,7 @@ Admin efficiency and support charts use saved report queries. Their loaded aggre
 
 All 1,200 frontend tests / 127 suites and 1,796 backend tests / 132 suites pass. The final 18 Python aggregate/route-body checks pass: actual route bodies are exercised with a controlled model, not a running Flask/Prophet/OCR installation or live institutional history. Lint, clean production/PWA build, generated entrypoints and all 528 detected entry/precache references pass. All 28 review-manifest asset byte/native-dimension checks and five reused Support-icon build-byte checks pass; no original Figma asset was edited.
 
-All 665 synthetic browser checks pass across this follow-up: 25 auth/autofill/preflight checks, 368 request/role checks, 176 seven-role selected-Support/tracking/forecast/analysis checks and a final 96 targeted checks after footer/outage refinements. Widths are 320/375/768/1440, light/dark and 100/200% text. Checked fixed header bounds/no scrollbar, icon names/authorized linked dialogs, confirmed Resolve staging, accessible footer guidance, Settings heading placement, reconciled Other statuses, exact type requests, zero forecast display, report advice and dialog/page bounds. Source screenshots: docs/login-oct17-review.png, support-header-review.png and support-header-mobile-review.png. No live MySQL/AI/OCR execution, deployment, forecast-accuracy result, physical-phone acceptance or perfect pixel parity is claimed. Deploy matching backend, AI service and frontend; no new migration.
+All 665 synthetic browser checks pass across this follow-up: 25 auth/autofill/preflight checks, 368 request/role checks, 176 seven-role selected-Support/tracking/forecast/analysis checks and a final 96 targeted checks after footer/outage refinements. Widths are 320/375/768/1440, light/dark and 100/200% text. Checked fixed header bounds/no scrollbar, icon names/authorized linked dialogs, confirmed Resolve staging, accessible footer guidance, Settings heading placement, reconciled Other statuses, exact type requests, zero forecast display, report advice and dialog/page bounds. Source screenshots: archived review screenshot, archived review screenshot and archived review screenshot. No live MySQL/AI/OCR execution, deployment, forecast-accuracy result, physical-phone acceptance or perfect pixel parity is claimed. Deploy matching backend, AI service and frontend; no new migration.
 
 
 ## October 18 Admin PDF reports — findings before edits
@@ -2907,7 +2909,7 @@ Reports & Export currently downloads CSV only. Document Efficiency and Support A
 
 Admin now downloads generated record, document-efficiency and support-analytics PDFs through an authenticated, current-actor-checked API. Reports & Export offers all three types; both analytics views also export directly using applied dates, with document staff filters over the full dataset. Records override UI paging, cap at 1,000 and reject changing/incomplete counts. PDFs include generated Manila timestamps, scope, summaries, vector charts, complete matching tables, available validated aggregate advice, explicit missing values and repeated headers. Embedded licensed Inter fonts preserve Latin accents; unsupported glyphs use explicit Unicode code points with a note. Custom release queries now honor reporting dates. Existing CSV/other-role authorization remains intact. No new migration/environment variable; backend dependency/image rebuild and matching frontend deployment are required.
 
-Verification: full frontend **1,217 tests / 129 files**, backend **1,816 tests / 135 files**, plus final affected-UI checks pass. Lint and production/PWA build pass. **85 final synthetic browser checks** cover 320/375/768/1440 px, both themes, 100/200% text, chooser/analytics layout, readable PDF icons, actual downloaded PDF bytes and filenames, applied-vs-draft dates and recoverable server errors. All 14 pages of three synthetic PDFs were rendered and visually reviewed; extracted text bounds, accented names, explicit unsupported-glyph notes and missing/zero distinctions were checked. No live MySQL/AI execution, production deployment, physical-phone acceptance or perfect Figma parity is claimed. [Mobile PDF chooser](admin-pdf-export-mobile-review.png).
+Verification: full frontend **1,217 tests / 129 files**, backend **1,816 tests / 135 files**, plus final affected-UI checks pass. Lint and production/PWA build pass. **85 final synthetic browser checks** cover 320/375/768/1440 px, both themes, 100/200% text, chooser/analytics layout, readable PDF icons, actual downloaded PDF bytes and filenames, applied-vs-draft dates and recoverable server errors. All 14 pages of three synthetic PDFs were rendered and visually reviewed; extracted text bounds, accented names, explicit unsupported-glyph notes and missing/zero distinctions were checked. No live MySQL/AI execution, production deployment, physical-phone acceptance or perfect Figma parity is claimed. Mobile PDF chooser (archived screenshot).
 
 ## October 18 forecast visibility and defense evidence — findings before edits
 
@@ -2917,7 +2919,7 @@ The compact Admin dashboard forecast currently slices seven returned predictions
 
 The Admin dashboard and expanded forecast now share a solid recent-history line, dashed green prediction line and all seven exact dated values, including zero. The API returns the exact dates/counts already passed to Prophet, source/target metadata, current Manila day and explicit unvalidated status. Expand exposes every aggregate input row through a paged source table. Filters preserve exact type scope; loading clears obsolete history/method metadata. The modal filter no longer overlaps its visible close control. The chart remains visible at phone widths, with dated numeric alternatives and contained source-table scrolling. Corrected the primary stale step_logs forecast answers and Random Forest claims in the defense sources. No accuracy result, live-data provenance, deployment or institutional benefit is inferred.
 
-Validation: all **1,220 frontend tests / 130 files**, **1,817 backend tests / 135 files**, lint and production build pass; all 528 entry/precache references resolve. **48 full browser matrix checks plus six source-table visual checks** pass across 320/375/768/1440 px, light/dark and 100/200% text. Checked all seven dates/zero, two series, full source-table pagination, exact type request, fallback/no-estimate/outage behavior, current-scope evidence and modal bounds. Fixtures are synthetic; no live Prophet fit or held-out institutional evaluation was run. [Dated dashboard forecast](forecast-dated-predictions-review.png), [mobile source counts](forecast-input-counts-mobile-review.png). Deploy matching frontend/backend; no migration, dependency or AI-engine change in this patch.
+Validation: all **1,220 frontend tests / 130 files**, **1,817 backend tests / 135 files**, lint and production build pass; all 528 entry/precache references resolve. **48 full browser matrix checks plus six source-table visual checks** pass across 320/375/768/1440 px, light/dark and 100/200% text. Checked all seven dates/zero, two series, full source-table pagination, exact type request, fallback/no-estimate/outage behavior, current-scope evidence and modal bounds. Fixtures are synthetic; no live Prophet fit or held-out institutional evaluation was run. Dated dashboard forecast (archived screenshot), mobile source counts (archived screenshot). Deploy matching frontend/backend; no migration, dependency or AI-engine change in this patch.
 
 ## October 18 held-out forecast evaluation — findings before edits
 
@@ -2996,3 +2998,14 @@ Recovery acceptance now compares every restored base-table row count with a mani
 The isolated restore reached import successfully but the minimal mysql:8.4 image does not ship mysqlcheck. Switched integrity verification to SQL CHECK TABLE using the included mysql client; retained all row/file comparisons and network isolation. AI runtime and image/dependency gates passed on 9000879.
 
 The complete encrypted SQL/row-count/file restore drill and Caddy validation passed on 95d504a. The backend image gate then found vulnerable npm-bundled packages outside the audited application dependency tree. Removed unnecessary npm/Yarn runtime installers and added a container acceptance assertion; development/CI npm tooling remains available outside the production image. No scan findings were excluded.
+
+
+## Documentation cleanup — October 22, 2026 (complete)
+
+Requested cleanup: remove the PNG review artifacts and retired/duplicate Markdown guides, reduce the README to the system introduction and clone-to-local-setup instructions, and retain current deployment, migration, security, workflow and model references. Preserve unique migration evidence before removing the duplicate checklist; repair retained links and validate setup paths against the source.
+
+Completed: removed all **71 PNGs** from `docs/` and six retired Markdown documents (the two defense guides, duplicate deployment checklist, old feature/support implementation checklists and superseded security-readiness snapshot). Kept 19 current reference/policy/evidence guides. Unique migration status and live-acceptance requirements are consolidated in MIGRATION_ROLLOUT; historical artifacts remain available through Git history. The README now covers introduction, supported prerequisites, clone/install, private backend settings and independent keys, fresh database/seed/preflight, API/frontend startup, AI setup and routing links. Local n8n editor instructions bind to loopback and include the Linux host-gateway alias.
+
+Validation: **170 local Markdown links across 23 retained Markdown files resolve, including heading anchors**; fresh-schema source cross-check found **zero missing fields** against every exported `check_schema.js` requirement; README script names, configuration names, ports, proxy paths, seed IDs and AI CPU wheel versions were checked against source. `git diff --check` passes. This documentation-only change does not repeat application test suites; the preceding security-code commit 066d64b passed all five push/PR CI jobs, separately recorded above.
+
+Operational continuation: SECURITY_ROLLOUT now records the supplied capacity/firewall findings, unused-build-cache cleanup and a VM-tag-scoped Cloud Shell deny rule that leaves SSH/HTTP/HTTPS outside its ports. Cloud inventory confirms public n8n ingress and the VM's IPv4-only NIC; no VM/firewall/IAM mutation or disk cleanup has been executed by the agent. Existing production remains on the user-reported main b973af7 until the coordinated rollout.

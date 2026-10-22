@@ -142,7 +142,7 @@ Current `stage_risk.py` replaces rules-only status notes with an experimental cl
 
 
 ### October 22 security/operations review
-Application-enforced row authorization remains the model; do not claim native MySQL RLS. New fixes scope tracking, Secretary profile lookup and registration proofs; private API caching, errors/logs/request IDs, production CORS/JWT defaults and internal port bindings are hardened. Dependencies are patched and CI is defined; no database migration is added. Node watch mode replaces nodemon. Read docs/SECURITY_READINESS_2026-10-22.md before rollout; live cloud/IAM/backups and branch protection remain unverified.
+Application-enforced row authorization remains the model; do not claim native MySQL RLS. New fixes scope tracking, Secretary profile lookup and registration proofs; private API caching, errors/logs/request IDs, production CORS/JWT defaults and internal port bindings are hardened. Dependencies are patched and CI is defined; no database migration is added. Node watch mode replaces nodemon. Read docs/SECURITY_ROLLOUT.md before rollout; live cloud/IAM/backups and branch protection remain unverified.
 
 
 ### October 22 security follow-up

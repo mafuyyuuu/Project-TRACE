@@ -29,6 +29,52 @@ Review effective ingress policies for both IP families before changing firewall 
 
 Inspect the VM service account's project/bucket roles in Cloud Console. Use a private backup bucket with uniform access, retention and minimum writer permissions; keep decryption identity off the VM. Review snapshot schedules and perform an actual off-host recovery drill. These cloud controls are **not applied by this repository**.
 
+## Server capacity and firewall follow-up
+
+The supplied October 22 measurements show 7.3 GB free on the 38 GB root filesystem, 8.283 GB of unused Docker build cache and 3.8 GB of journals. Recent `vmstat` samples show little swap traffic and mostly idle CPU; used swap alone does not establish a need to resize the VM. Keep runtime images for rollback and measure actual free space after removing only unused build cache:
+
+```bash
+cd ~/Project-TRACE
+docker builder prune --all --force
+df -h .
+docker system df
+```
+
+This removes unused build cache without pruning containers, images or volumes. Do not infer physical reclaimed space from Docker's logical totals or manually delete Docker storage directories. Keep journal history while deciding retention and verifying remote log collection.
+
+Cloud Shell inventory confirms the VM has one IPv4-only NIC. The supplied effective rules permit n8n TCP 5678 from any IPv4 address, while no public allow rule for backend 3300 or AI 5005 appears. HTTP/HTTPS use the existing `http-server` and `https-server` tags. SSH is separately allowed from any IPv4 source; leave that rule until a restricted source or IAP login has actually been tested.
+
+Run the following in **Cloud Shell**, setting the three variables to the project, zone and instance verified by the inventory. These are operator values, not application secrets:
+
+```bash
+TRACE_GCP_PROJECT="your-project-id"
+TRACE_GCP_ZONE="your-vm-zone"
+TRACE_GCP_INSTANCE="your-vm-name"
+
+gcloud compute firewall-rules create trace-deny-private-ports \
+  --project="$TRACE_GCP_PROJECT" --network=default \
+  --direction=INGRESS --priority=900 --action=DENY \
+  --rules=tcp:3300,tcp:3306,tcp:5005,tcp:5678,tcp:20201,tcp:20202,tcp:3389,udp:3389 \
+  --source-ranges=0.0.0.0/0 --target-tags=trace-internal-only
+```
+
+Confirm rule creation succeeds before adding the tag below. If a rule or tag already exists, inspect its scope and bindings first. The new tag must be dedicated to this VM; do not disable shared network rules that could affect other instances.
+
+```bash
+gcloud compute instances add-tags "$TRACE_GCP_INSTANCE" \
+  --project="$TRACE_GCP_PROJECT" --zone="$TRACE_GCP_ZONE" \
+  --tags=trace-internal-only
+
+gcloud compute instances network-interfaces get-effective-firewalls "$TRACE_GCP_INSTANCE" \
+  --project="$TRACE_GCP_PROJECT" --zone="$TRACE_GCP_ZONE" --format=json
+```
+
+The priority-900 deny precedes the supplied priority-1000 n8n allow, and applies only to tagged VMs. Ports 22, 80 and 443 remain outside this deny; `add-tags` preserves existing tags. Container-to-container calls on the Docker network are separate from remote VM ingress. Verify the website, current SSH session, API/database readiness and internal AI/n8n routing after the change. Access the n8n editor through an SSH tunnel. Host listeners still show wildcard bindings until the application Compose rollout changes them; firewall enforcement does not change `ss` output. Reassess both IP families if IPv6 is later enabled.
+
+These changes have **not** been executed by the agent. The VM service-account scopes shown in inventory are insufficient for Compute administration using that identity; successful Cloud Shell reads do not prove the VM's active CLI identity or the exact cause of its earlier hidden permission error. Perform operator administration from an authorized account rather than granting broad project permissions to the workload.
+
+References: [Docker build-cache pruning](https://docs.docker.com/reference/cli/docker/builder/prune/), [Google Cloud firewall priorities](https://cloud.google.com/firewall/docs/firewalls), [adding network tags](https://cloud.google.com/vpc/docs/add-remove-network-tags).
+
 ## Coordinated application rollout
 
 Wait for all CI jobs to pass. Review/merge dev into main, then use a maintenance window. Do not run a generic rebuild first: a new AI secret, additive migration, upload-volume ownership and runtime users are required.

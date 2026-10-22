@@ -68,7 +68,7 @@ User-approved current-student education override: show Year Level and Section in
 
 Student profile uses the source 720 px panel, fixed identity/tabs/footer and one scrollable body. Proof remains authenticated and read-only. Preserve field hints, conditional requirements, saved-year restrictions, email verification, authenticator flows and confirmed profile/session changes. Security activity stays visible below the password/session sections. Live Track retains the source summary/progress composition and Copy tracking ID action. Following the October 16 readability request, its panel can reach 1200 px, with 9/3/2/1 alternating columns selected from actual map width and text size. Connectors join measured, unscaled node radii and turn around labels. Stage order and messages remain pipeline-derived; authenticated detail history loads on open and Refresh tracking, with real Manila dates or Date not recorded. Failed refreshes retain the last saved status with a visible warning; 403/404 discard the protected snapshot. Status badge dots inherit their status color. Only the current unfinished node pulses; completed, legacy/unknown records and reduced motion stay static. Static geometry stays in pixels while typography follows text-size preferences.
 
-[Profile and tracking review](student-profile-tracking-review.png) · [Synthetic Student desktop review](student-tabs-review.png) · [Student dialogs/mobile](student-dialogs-mobile-review.png) · [Shared filter examples](shared-filter-review.png).
+Profile and tracking review (archived screenshot) · Synthetic Student desktop review (archived screenshot) · Student dialogs/mobile (archived screenshot) · Shared filter examples (archived screenshot).
 
 ## Admin reference — 2026-10-15
 
@@ -80,7 +80,7 @@ The accounts directory initially shows six rows and three additional account pre
 
 Audit controls filter the loaded response, with eight rows per page; display this scope rather than implying complete server-history search. Default All loaded history retains the existing records, while date selections use the page's snapshot time. Preserve full raw event codes, identifiers and IP addresses. Graduate filters search loaded applicants and program/college values; row check/reject icons open the review dialog and never submit a decision directly.
 
-Below 768 px the Admin header uses a single 64 px row with the accessible logo mark, menu and existing utility actions. Keep 44 px tap targets, hide only the duplicate text wordmark and anchor the notification panel to the header edge. Desktop retains the full wordmark and source spacing. [Synthetic before/after](admin-mobile-header-review.png).
+Below 768 px the Admin header uses a single 64 px row with the accessible logo mark, menu and existing utility actions. Keep 44 px tap targets, hide only the duplicate text wordmark and anchor the notification panel to the header edge. Desktop retains the full wordmark and source spacing. Synthetic before/after (archived screenshot).
 
 Desktop geometry follows the source frames; narrow layouts stack sections and use existing table scrollers. Text preference enlargement may increase card height rather than clip values. Retain dark equivalents, keyboard access, visible focus, reduced motion and 44 px mobile controls. Live values, honest empty/error states and required workflow explanations take precedence over copying example records or unsupported performance claims from the mockups.
 
@@ -92,7 +92,7 @@ right on desktop and reflow at small widths. Document schedules show currency pr
 and side-by-side base/rental/special fields, with Registrar rule guards preserved.
 Payment method editing locks the code and stages confirmation through the existing service.
 Audit timestamp lines use Asia/Manila, with raw unknown event codes preserved.
-[Synthetic fidelity screenshots](admin-main-tabs-fidelity.png) cover the latest correction.
+Synthetic fidelity screenshots (archived screenshot) cover the latest correction.
 
 The tracker Filter label and dropdown share two grid columns at every supported
 width. Document Types and Security Logs chip rows attach directly to their toolbar
@@ -101,7 +101,7 @@ computed border width, as page overflow checks alone do not catch these differen
 
 ### More Tabs frame inventory
 
-Every frame below was inspected individually, including original screenshots and detailed child contexts. [Synthetic desktop screenshots](admin-more-tabs-review.png) and [mobile/dialog screenshots](admin-more-tabs-mobile.png) show the implementation with fixture data. Existing live values, workflow explanations and dynamic previews remain authoritative.
+Every frame below was inspected individually, including original screenshots and detailed child contexts. Synthetic desktop screenshots (archived screenshot) and mobile/dialog screenshots (archived screenshot) show the implementation with fixture data. Existing live values, workflow explanations and dynamic previews remain authoritative.
 
 | Figma frame | View / state | Implementation |
 |---|---|---|
@@ -122,7 +122,7 @@ The Admin bell uses the original exported bell vector without the design’s dec
 
 ### Main Tabs frame inventory
 
-All listed frames were inspected and Main Tabs was accepted by the user on 2026-10-14. [Synthetic browser screenshots](admin-main-tabs-review.png) show the rebuilt registration, security, support settings and document drawer layouts.
+All listed frames were inspected and Main Tabs was accepted by the user on 2026-10-14. Synthetic browser screenshots (archived screenshot) show the rebuilt registration, security, support settings and document drawer layouts.
 
 | Figma frame | View / state | Implementation |
 |---|---|---|
@@ -290,7 +290,7 @@ The additional staff workspace follows the main Figma messaging frame (260:3301)
 
 Back to Login sits at the viewport’s upper-left edge rather than aligning with the centered form card. Both the header and link have transparent backgrounds with no bar border. Below 768 px the header stays in normal document flow and scrolls away; at 768 px and above it remains sticky. Retain the safe-area top inset, a minimum 44 px hit target and light/dark colors. The transparent container passes pointer events through to the form; the link remains clickable. Do not constrain this header to the card’s maximum width.
 
-Validation: 17 existing registration/branding tests, lint, production/PWA build and whitespace checks pass. 65 browser checks cover student/alumni signup at top/bottom, 320/375/768/1440 px, 100/200% text and both themes, including transparent header/link backgrounds, mobile scroll-away behavior, desktop sticky positioning and Back to Login navigation. Screenshots use synthetic catalog data: [desktop](signup-header-desktop-review.png), [mobile](signup-header-mobile-review.png). No backend, database or validation changes.
+Validation: 17 existing registration/branding tests, lint, production/PWA build and whitespace checks pass. 65 browser checks cover student/alumni signup at top/bottom, 320/375/768/1440 px, 100/200% text and both themes, including transparent header/link backgrounds, mobile scroll-away behavior, desktop sticky positioning and Back to Login navigation. Screenshots use synthetic catalog data: desktop (archived screenshot), mobile (archived screenshot). No backend, database or validation changes.
 
 
 ## October 16 shared review corrections
@@ -301,7 +301,7 @@ Local record tables use PaginatedTable/Pagination where paging was absent, inclu
 
 Student dashboard/history no longer mounts FloatingSupportChat. Tour guidance uses the Support navigation item. No Support workspace contains analytics actions or dialogs; only Admin Efficiency Analytics hosts SupportAnalytics and the API checks the current Admin role.
 
-Validation: 1,144 frontend tests / 117 suites and 1,737 backend tests / 130 suites pass, followed by 125 backend checks for maintenance/email and metrics. The 496 passing browser checks cover 320/375/768/1440 px, both themes and 100/200% text; they include shared Preferences font/geometry equality across five role views, centered dialogs, FAQ-only scrolling, missing pagination, grouped pay/slip actions, file feedback, whole-field focus, all nine original payment asset dimensions, and dark navigation visibility. Lint, production/PWA build and whitespace checks pass. [Synthetic visual review](trace-notes-review.png). These are local checks; no live migration, deployment, real payment or real message was performed.
+Validation: 1,144 frontend tests / 117 suites and 1,737 backend tests / 130 suites pass, followed by 125 backend checks for maintenance/email and metrics. The 496 passing browser checks cover 320/375/768/1440 px, both themes and 100/200% text; they include shared Preferences font/geometry equality across five role views, centered dialogs, FAQ-only scrolling, missing pagination, grouped pay/slip actions, file feedback, whole-field focus, all nine original payment asset dimensions, and dark navigation visibility. Lint, production/PWA build and whitespace checks pass. Synthetic visual review (archived screenshot). These are local checks; no live migration, deployment, real payment or real message was performed.
 
 
 ## College Secretary and Finance review — 2026-10-16

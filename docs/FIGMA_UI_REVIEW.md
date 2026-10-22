@@ -233,7 +233,7 @@ All 1,192 frontend tests (124 suites) and 1,767 backend tests (131 suites) pass.
 | All-role logout | 112 |
 | Total, including targeted reruns | 2648 |
 
-Screenshots use synthetic records: [Login](login-oct17-review.png), [Student checkout](checkout-oct17-review.png), [Mobile logout](logout-oct17-mobile.png). The logout title is centered and its description is “Are you sure you want to log out?” in every entry point. Phone actions stay side by side, including 200% text.
+Screenshots use synthetic records: Login (archived screenshot), Student checkout (archived screenshot), Mobile logout (archived screenshot). The logout title is centered and its description is “Are you sure you want to log out?” in every entry point. Phone actions stay side by side, including 200% text.
 
 ## Delivery requirements
 
@@ -249,6 +249,6 @@ The user explicitly requested one fixed, non-scrolling Support identity header i
 
 Window Tracking gains Other statuses and a loaded-versus-authorized count caption so the badges reconcile truthfully. Admin analytics keeps real audit aggregates and adds separately labelled AI-service aggregate advice. Forecasts now use recorded request arrivals/exact types and show model/history/unavailable sources; the source example’s random/fixed-ratio behavior is not retained. Perfect pixel parity and production/physical-phone validation are not claimed.
 
-[Support header desktop](support-header-review.png) · [Support header mobile](support-header-mobile-review.png). Both use synthetic records.
+Support header desktop (archived screenshot) · Support header mobile (archived screenshot). Both use synthetic records.
 
 Follow-up validation: 1,200 frontend and 1,796 backend tests, 18 Python aggregate/controlled-route checks, lint and the clean production/PWA build pass. All 665 synthetic browser checks pass across the follow-up, including final targeted reruns. The 528 detected entry/precache references resolve; 28 review-manifest native asset dimensions/bytes and five reused Support-icon bytes match source. This verifies controlled local behavior, not live database/model execution or forecast accuracy.

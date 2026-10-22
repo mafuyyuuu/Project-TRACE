@@ -379,13 +379,15 @@ The workflow reads its target and auth header from environment variables, so the
 container:
 
 ```bash
-docker run -d --name n8n -p 5678:5678 -v ~/.n8n:/home/node/.n8n \
+docker run -d --name n8n -p 127.0.0.1:5678:5678 -v ~/.n8n:/home/node/.n8n \
+  --add-host=host.docker.internal:host-gateway \
   -e TRACE_API_URL="http://host.docker.internal:3300" \
   -e TRACE_WEBHOOK_SECRET="<the same WEBHOOK_SECRET from backend/.env>" \
   -e N8N_BLOCK_ENV_ACCESS_IN_NODE=false \
   docker.n8n.io/n8nio/n8n
 ```
 
+- The editor binds to localhost; use an SSH tunnel for a remote host. `--add-host` supplies the host gateway alias on Linux.
 - `host.docker.internal` is how a container reaches your host's backend. Not `localhost` — that would
   be the container itself.
 - `TRACE_WEBHOOK_SECRET` must match `WEBHOOK_SECRET` **exactly**, or every routing call is rejected
@@ -460,7 +462,7 @@ docker compose exec backend node database/check_schema.js
 `/docker-entrypoint-initdb.d`, which only fires on an empty data directory, so it never re-runs
 against real data). This recipe is for an empty local installation with demo accounts; the
 read-only checker confirms required field presence. Existing installations need only the
-reviewed missing preserving migrations in [the consolidated ledger](DEPLOYMENT_CHECKLIST.md).
+reviewed missing preserving migrations in [the consolidated ledger](MIGRATION_ROLLOUT.md).
 
 > Running the standalone n8n container from §6.4? It holds port 5678 and the compose one won't start.
 > `docker stop n8n` first.
@@ -1100,26 +1102,26 @@ and publish the matching frontend. An older frontend may still hide the option u
 
 ## Revision 2 Batch 8 — intake and college scope
 
-No new environment variables. Existing databases need `node backend/database/migrate_request_intake_scope.js` after the request-attachment and Support-requirement prerequisites, followed by `node backend/database/check_schema.js`, before the matching backend/frontend start. It adds routing snapshots and the explicit intake-block flag without backfilling historical rows. Follow [MIGRATION_ROLLOUT.md](MIGRATION_ROLLOUT.md) for preserving deployment and [README workflow walkthrough](../README.md#main-workflows) for workflows, screenshots and limits. The agent has not run this migration against a live database.
+No new environment variables. Existing databases need `node backend/database/migrate_request_intake_scope.js` after the request-attachment and Support-requirement prerequisites, followed by `node backend/database/check_schema.js`, before the matching backend/frontend start. It adds routing snapshots and the explicit intake-block flag without backfilling historical rows. Follow [MIGRATION_ROLLOUT.md](MIGRATION_ROLLOUT.md) for preserving deployment and [system workflows](SYSTEM_WORKFLOWS.md) for workflows and limits. The agent has not run this migration against a live database.
 
 ## Revision 2 Batch 9 — Reports & Export
 
-No schema or environment changes in Batch 9. Deploy the matching API/frontend after the previously required migrations. [DEPLOYMENT_CHECKLIST.md](DEPLOYMENT_CHECKLIST.md) is the consolidated migration ledger to review before the final deployment; [README workflow walkthrough](../README.md#main-workflows) records the filter semantics and changed shared CSV contract.
+No schema or environment changes in Batch 9. Deploy the matching API/frontend after the previously required migrations. [MIGRATION_ROLLOUT.md](MIGRATION_ROLLOUT.md) is the consolidated migration ledger to review before the final deployment; [system workflows](SYSTEM_WORKFLOWS.md) records the filter semantics and changed shared CSV contract.
 
 
 ## Revision 2 Batch 10 — Support / Messaging UI
 
 Support now follows the main TRACE Figma two-column layout, with aligned readable ticket rows, local search of loaded authorized metadata, contextual linked-case viewing, a labeled confirmed availability switch and a primary Window 1 claim action. Success feedback uses dismissible toasts; failures and confirmations remain in context. The compact widget preserves drafts across close/reopen. Digital evaluation separates discussion into a side panel or a mobile view without discarding either draft. Existing ticket/desk/college authorization, FAQ/reply/requirement actions, service hours and queue assignment remain; no new staff chat connection or unsupported presence/read/unread data is added.
 
-See [README workflow walkthrough](../README.md#main-workflows) for the screenshots, walkthrough and local evidence. Batch 10 adds **no migration or environment variable**; [DEPLOYMENT_CHECKLIST.md](DEPLOYMENT_CHECKLIST.md) tracks required earlier migrations. These are repository changes for dev, not a claim that the live site is updated.
+See [system workflows](SYSTEM_WORKFLOWS.md) for navigation and behavior. Batch 10 adds **no migration or environment variable**; [MIGRATION_ROLLOUT.md](MIGRATION_ROLLOUT.md) tracks required earlier migrations. These are repository changes for dev, not a claim that the live site is updated.
 
 ## Revision 2 Batch 11 — deployment requirements
 
-Support Analytics KPI/table changes add no environment variable, dependency or migration. Build the frontend normally against the existing support-report API; no AI rebuild or n8n re-import is needed for this batch. The earlier alumni/intake migrations and all existing support prerequisites remain tracked in [DEPLOYMENT_CHECKLIST.md](DEPLOYMENT_CHECKLIST.md). No live database or deployment action was performed. [Local acceptance](../README.md#main-workflows).
+Support Analytics KPI/table changes add no environment variable, dependency or migration. Build the frontend normally against the existing support-report API; no AI rebuild or n8n re-import is needed for this batch. The earlier alumni/intake migrations and all existing support prerequisites remain tracked in [MIGRATION_ROLLOUT.md](MIGRATION_ROLLOUT.md). No live database or deployment action was performed. [Local acceptance](SYSTEM_WORKFLOWS.md).
 
 ## Additional staff chat connections
 
-No environment variables/dependencies or AI/n8n changes are introduced. Build the matching backend/frontend and apply only missing preserving prerequisites plus `database/migrate_staff_conversations.js`, followed by the read-only schema checker, using [MIGRATION_ROLLOUT.md](MIGRATION_ROLLOUT.md). The [deployment checklist](DEPLOYMENT_CHECKLIST.md) records the new script as unapplied. Existing user/college tables are required; no account or college data is seeded. Confirm actual active staff college assignments and notification delivery on staging. Do not import fresh schema or seed data into an existing server.
+No environment variables/dependencies or AI/n8n changes are introduced. Build the matching backend/frontend and apply only missing preserving prerequisites plus `database/migrate_staff_conversations.js`, followed by the read-only schema checker, using [MIGRATION_ROLLOUT.md](MIGRATION_ROLLOUT.md). The [deployment checklist](MIGRATION_ROLLOUT.md) records the new script as unapplied. Existing user/college tables are required; no account or college data is seeded. Confirm actual active staff college assignments and notification delivery on staging. Do not import fresh schema or seed data into an existing server.
 
 
 ## Admin functional review — 2026-10-12
@@ -1132,7 +1134,7 @@ Use matching API/frontend versions for `/maintenance/users/:id/active` and the s
 from the user's SSH output; do not rerun them for these changes. Admin's Internal assistance
 now opens inside Support and Efficiency Analytics has independent document/support views.
 Scan Field Detection describes expected-field coverage, not verified accuracy. See the
-[consolidated deployment checklist](DEPLOYMENT_CHECKLIST.md) for rollout state.
+[consolidated deployment checklist](MIGRATION_ROLLOUT.md) for rollout state.
 
 
 ## Admin all-stage insights and table repair — 2026-10-12
@@ -1149,7 +1151,7 @@ cloud/main promotion remains separate. See the consolidated deployment ledger.
 
 ## Finance name fields — 2026-10-12
 
-This Finance workflow update needs one additional preserving migration, `migrate_student_name_parts.js`, after existing student profiles. The previous five follow-ups remain cloud-applied. Use the updated backend image, pause writers, run the new migration and `check_schema.js`, then start the matching backend/frontend; see [the consolidated ledger](DEPLOYMENT_CHECKLIST.md#finance-name-field-rollout--additional-migration-2026-10-12). Names remain nullable until students confirm matching first/middle/last parts. Existing Full Name and receipt snapshots are not split or rewritten. No environment variable, dependency, AI change or n8n import is added. Full runtime validation and cloud execution are pending, not completed by this disconnected session.
+This Finance workflow update needs one additional preserving migration, `migrate_student_name_parts.js`, after existing student profiles. The previous five follow-ups remain cloud-applied. Use the updated backend image, pause writers, run the new migration and `check_schema.js`, then start the matching backend/frontend; see [the consolidated ledger](MIGRATION_ROLLOUT.md#finance-name-field-rollout--additional-migration-2026-10-12). Names remain nullable until students confirm matching first/middle/last parts. Existing Full Name and receipt snapshots are not split or rewritten. No environment variable, dependency, AI change or n8n import is added. Full runtime validation and cloud execution are pending, not completed by this disconnected session.
 
 ## Signup and proof verification — October 13, 2026
 
@@ -1219,7 +1221,7 @@ No migration, new environment variable or database mock seed is required. Deploy
 
 ## October 22 security rollout changes
 
-See [the security/readiness review](SECURITY_READINESS_2026-10-22.md) for scope, evidence, remaining infrastructure work and read-only checks. No migration or new secret setting is added. Production requires an explicit `FRONTEND_URL`; blank/comma-only values no longer enable arbitrary browser origins. The public JWT placeholder now prevents production startup. Preserve existing unique signing/MFA/n8n keys and persistent volumes.
+See [the security/readiness review](SECURITY_ROLLOUT.md) for scope, evidence, remaining infrastructure work and read-only checks. No migration or new secret setting is added. Production requires an explicit `FRONTEND_URL`; blank/comma-only values no longer enable arbitrary browser origins. The public JWT placeholder now prevents production startup. Preserve existing unique signing/MFA/n8n keys and persistent volumes.
 
 Compose now binds backend 3300, AI 5005 and n8n 5678 to `127.0.0.1`; Caddy's public 80/443 and internal service names remain. Recreate affected services for port/log changes, and rebuild the backend for its dependency/code updates. Verify a custom host proxy path before rollout. Access n8n through local SSH forwarding instead of its public VM port. All six services rotate local logs at 10 MB x3; configure protected centralized retention separately.
 
