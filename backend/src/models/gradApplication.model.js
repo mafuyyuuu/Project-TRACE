@@ -49,9 +49,9 @@ function insertValue({ application_id, field_key, value }, executor = pool) {
   );
 }
 
-function findApplicationById(id, executor = pool) {
+function findApplicationById(id, executor = pool, lock = false) {
   return executor
-    .query('SELECT * FROM grad_applications WHERE id = ?', [id])
+    .query(`SELECT * FROM grad_applications WHERE id = ?${lock ? ' FOR UPDATE' : ''}`, [id])
     .then(([rows]) => rows);
 }
 
@@ -69,20 +69,22 @@ function findValues(applicationId, executor = pool) {
 }
 
 /** Staff review queue, newest first. */
-function listApplications({ status } = {}, executor = pool) {
+function listApplications({ status, scope } = {}, executor = pool) {
   const conditions = [];
   const params = [];
   if (status) {
     conditions.push('ga.status = ?');
     params.push(status);
   }
+  if (scope?.college_id) { conditions.push('(u.college_id = ? OR (u.college_id IS NULL AND u.course = ?))'); params.push(scope.college_id, scope.course || ''); }
+  else if (scope?.course) { conditions.push('u.course = ?'); params.push(scope.course); }
   const where = conditions.length ? ` WHERE ${conditions.join(' AND ')}` : '';
   return executor
     .query(
       `SELECT ga.*, u.full_name, u.email, u.course
        FROM grad_applications ga
        LEFT JOIN users u ON u.student_id = ga.student_id${where}
-       ORDER BY ga.submitted_at DESC`,
+       ORDER BY ga.submitted_at DESC LIMIT 1000`,
       params
     )
     .then(([rows]) => rows);

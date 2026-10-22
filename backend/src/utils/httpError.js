@@ -11,10 +11,15 @@ function publicError(error, fallback = 'Internal server error.') {
 }
 
 /** SQL errors may contain student values. Do not serialize errors, request bodies or tokens. */
-function logError(event, error, requestId) {
+function logError(event, error, requestId = require('./requestContext').getStore()?.requestId) {
   const code = typeof error?.code === 'string' && /^[A-Z0-9_]{1,64}$/.test(error.code)
     ? error.code : 'INTERNAL_ERROR';
   console.error(JSON.stringify({ event, status: statusOf(error), code, request_id: requestId }));
 }
 
-module.exports = { publicError, logError };
+function sendError(res, error, fallback) {
+  const result = publicError(error, fallback);
+  if (result.status >= 500) logError('API operation failed', error, res.locals?.requestId);
+  return res.status(result.status).json({ error: result.message });
+}
+module.exports = { publicError, logError, sendError };

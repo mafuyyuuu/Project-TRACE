@@ -98,3 +98,12 @@ it('fails closed with 503 during an account-store outage rather than reporting a
   expect(next).not.toHaveBeenCalled();
   expect(JSON.stringify(res.json.mock.calls)).not.toContain('private database details');
 });
+
+it('rejects an old desk token immediately after reassignment', async () => {
+  const result = await check({id:3,role:'clerk',desk_assignment:'Finance',token_version:2}, {is_active:1,role:'clerk',desk_assignment:'Secretary',token_version:2});
+  expect(result.res.status).toHaveBeenCalledWith(401); expect(result.next).not.toHaveBeenCalled();
+});
+it('rejects a previously verified student after verification is withdrawn', async () => {
+  const result = await check({id:3,role:'student',token_version:2}, {is_active:1,role:'student',verification_status:'pending',token_version:2});
+  expect(result.res.status).toHaveBeenCalledWith(401); expect(result.next).not.toHaveBeenCalled();
+});

@@ -176,13 +176,13 @@ function findStudentCourseByStudentId(studentId, executor = pool) {
 /** Find the user whose uploaded ID proof is this file. */
 function findByIdProofFilename(filename, executor = pool) {
   return executor
-    .query('SELECT id, student_id FROM users WHERE id_proof_path LIKE ? LIMIT 1', [`%${filename}`])
+    .query("SELECT id, student_id FROM users WHERE SUBSTRING_INDEX(id_proof_path, '/', -1) = ? LIMIT 1", [filename])
     .then(([rows]) => rows);
 }
 
 function findByProfilePictureFilename(filename, executor = pool) {
   return executor
-    .query('SELECT id, student_id FROM users WHERE profile_picture LIKE ? LIMIT 1', [`%${filename}`])
+    .query("SELECT id, student_id FROM users WHERE SUBSTRING_INDEX(profile_picture, '/', -1) = ? LIMIT 1", [filename])
     .then(([rows]) => rows);
 }
 

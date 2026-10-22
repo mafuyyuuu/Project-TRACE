@@ -8,6 +8,6 @@ module.exports = Object.fromEntries(Object.entries(actions).map(([name, action])
     if (result.token) res.clearCookie(trust.COOKIE_NAME, trust.COOKIE_OPTIONS);
     res.json(result);
   } catch (error) {
-    res.status(error.status || 500).json({ error: error.status ? error.message : 'Staff authenticator setup is unavailable. Ask Admin to check configuration and migrations.' });
+    require('../utils/httpError').sendError(res, error, 'Staff authenticator setup is unavailable. Ask Admin to check configuration and migrations.');
   }
 }]));

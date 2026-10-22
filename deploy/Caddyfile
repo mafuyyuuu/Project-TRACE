@@ -20,11 +20,20 @@
 		Strict-Transport-Security "max-age=31536000; includeSubDomains"
 		X-Content-Type-Options "nosniff"
 		X-Frame-Options "DENY"
+		Content-Security-Policy "default-src 'none'; frame-ancestors 'none'; base-uri 'none'"
 		Referrer-Policy "strict-origin-when-cross-origin"
 	}
 
 	log {
 		output stdout
-		format console
+		format filter {
+			wrap json
+			fields {
+				request>headers delete
+				request>uri delete
+				request>remote_ip delete
+				request>client_ip delete
+			}
+		}
 	}
 }

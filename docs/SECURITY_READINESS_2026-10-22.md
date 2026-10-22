@@ -1,3 +1,5 @@
+> Follow-up: `SECURITY_ROLLOUT.md` supersedes the original no-migration rollout notes below. The first batch remains historical evidence; do not use its rebuild commands for the follow-up.
+
 # TRACE security and operations review - October 22, 2026
 
 Reviewed baseline: latest `main` commit `b973af7` (October 18), whose tree matches `dev` `56c466a`. This is a repository review with local regression tests and npm advisory checks. It is not a live penetration test or confirmation of cloud settings, production credentials, applied migrations, deployed versions or restore readiness.

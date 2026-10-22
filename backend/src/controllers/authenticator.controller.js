@@ -15,6 +15,6 @@ module.exports = Object.fromEntries(Object.entries(routes).map(([action, run]) =
     res.json(result);
   } catch (error) {
     // Never print secrets, OTPs, request bodies or provisioning URIs.
-    res.status(error.status || 500).json({ error: error.status ? error.message : 'Could not update authenticator settings. Please retry.' });
+    require('../utils/httpError').sendError(res, error, 'Could not update authenticator settings. Please retry.');
   }
 }]));

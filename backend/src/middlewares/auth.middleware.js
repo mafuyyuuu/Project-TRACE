@@ -19,7 +19,7 @@ async function authenticate(req, res, next) {
 
   const token = authHeader.split(' ')[1];
   let decoded;
-  try { decoded = jwt.verify(token, JWT_SECRET); }
+  try { decoded = jwt.verify(token, JWT_SECRET, { algorithms: ['HS256'] }); }
   catch { return res.status(401).json({ error: 'Invalid or expired token.' }); }
   try {
     if (decoded.pending_2fa || !Number.isInteger(decoded.id) || !Number.isInteger(decoded.token_version)
@@ -29,13 +29,16 @@ async function authenticate(req, res, next) {
     
     // SEC-09: Token Version Check for Global Logout
     if (decoded.token_version !== undefined) {
-      const [rows] = await pool.query(`SELECT token_version, is_active, role, user_type, must_change_password, email_verified_at,
+      const [rows] = await pool.query(`SELECT token_version, is_active, role, desk_assignment, verification_status, user_type, must_change_password, email_verified_at,
         EXISTS(SELECT 1 FROM grad_applications g WHERE g.student_id = users.student_id) AS has_grad_application
         FROM users WHERE id = ?`, [decoded.id]);
       if (!rows || rows.length === 0 || !rows[0].is_active || rows[0].token_version !== decoded.token_version) {
         return res.status(401).json({ error: 'Session expired. Please log in again.' });
       }
       const account = rows[0];
+      if (account.desk_assignment !== undefined && (account.desk_assignment || null) !== (decoded.desk_assignment || null)) return res.status(401).json({ error: 'Account permissions changed. Sign in again.' });
+      if (account.role === 'student' && account.verification_status !== undefined && account.verification_status !== 'verified') return res.status(401).json({ error: 'Account verification changed. Sign in again.' });
+
       if (account.role && account.role !== decoded.role) return res.status(401).json({ error: 'Account permissions changed. Sign in again.' });
       const route = `${req.baseUrl || ''}${req.path || ''}`.replace(/\/+$/, '') || '/';
       const accountRecovery = ['/api/auth/me', '/api/auth/logout', '/api/auth/logout-all', '/api/auth/email-verification/resend'];

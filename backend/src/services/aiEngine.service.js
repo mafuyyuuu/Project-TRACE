@@ -21,7 +21,7 @@ async function requestJson(url, options, timeoutMs = 15000) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
-    const response = await fetch(url, { ...options, signal: controller.signal });
+    const response = await fetch(url, { ...options, headers: { ...options.headers, 'X-Trace-AI-Secret': env.AI_ENGINE_SECRET }, signal: controller.signal });
     if (!response.ok) throw new Error(`AI engine returned HTTP ${response.status}`);
     return await response.json();
   } finally { clearTimeout(timer); }
@@ -47,7 +47,7 @@ async function verifyIdDocument(file, { studentId, course }) {
       console.warn(`Registration proof request timed out after ${Date.now() - started}ms.`);
       return { verified: false, reason: 'Automatic verification timed out.' };
     } else {
-      console.warn('⚠️ AI verification unavailable:', err.message);
+      console.warn('⚠️ AI verification unavailable:', err.name);
     }
     return null;
   }
@@ -64,7 +64,7 @@ async function extractDocument(file, { trackingNumber }) {
 
     return await requestJson(`${env.AI_ENGINE_URL}/ocr/extract`, { method: 'POST', body: form });
   } catch (err) {
-    console.warn(`⚠️ OCR engine unavailable or failed for ${trackingNumber}:`, err.message);
+    console.warn(`⚠️ OCR engine unavailable or failed for [request]:`, err.name);
     return null;
   }
 }
@@ -82,7 +82,7 @@ async function extractReceipt(file) {
     const form = buildFormData(file, 'receipt');
     return await requestJson(`${env.AI_ENGINE_URL}/ocr/receipt`, { method: 'POST', body: form });
   } catch (err) {
-    console.warn('⚠️ Receipt OCR unavailable:', err.message);
+    console.warn('⚠️ Receipt OCR unavailable:', err.name);
     return null;
   }
 }
@@ -92,7 +92,7 @@ async function getForecast(aggregates) {
   try {
     return await requestJson(`${env.AI_ENGINE_URL}/forecast`, { method: 'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(aggregates) });
   } catch (err) {
-    console.error(`AI forecast fetch failed at ${env.AI_ENGINE_URL}/forecast:`, err.message);
+    console.error(`AI forecast fetch failed at ${env.AI_ENGINE_URL}/forecast:`, err.name);
     return null;
   }
 }
@@ -102,7 +102,7 @@ async function getInsights(snapshot) {
   try {
     return await requestJson(`${env.AI_ENGINE_URL}/ai/recommend`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(snapshot) });
   } catch (err) {
-    console.error(`AI insights fetch failed at ${env.AI_ENGINE_URL}/ai/recommend:`, err.message);
+    console.error(`AI insights fetch failed at ${env.AI_ENGINE_URL}/ai/recommend:`, err.name);
     return null;
   }
 }

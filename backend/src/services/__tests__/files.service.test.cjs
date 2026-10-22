@@ -73,8 +73,8 @@ describe('file authorization', () => {
     vi.spyOn(userModel, 'findStudentCourseByStudentId').mockResolvedValue([{ college_id: 2 }]);
     expect(await statusOf(getFilePathForUser({ id: 5, role: 'clerk', desk_assignment: 'Secretary' }, 'case.pdf'))).toBe(403);
   });
-  it('lets a clerk read an ordinary desk upload', async () => {
-    expect(await statusOf(getFilePathForUser(STAFF, 'someone-elses.jpg'))).not.toBe(403);
+  it('denies a Finance clerk an unassociated ordinary upload', async () => {
+    expect(await statusOf(getFilePathForUser(STAFF, 'someone-elses.jpg'))).toBe(403);
   });
 
   it.each(['Finance', 'Window 1', 'Secretary'])('denies %s access to another account registration proof', async desk => {
@@ -133,9 +133,9 @@ describe('file authorization', () => {
     expect(await statusOf(getFilePathForUser(STUDENT, 'avatar-theirs.png'))).toBe(403);
   });
 
-  it('lets a clerk read a student avatar, as they do every other upload', async () => {
+  it('denies Finance a student avatar', async () => {
     userModel.findByProfilePictureFilename.mockResolvedValue([{ id: 77, student_id: 'STU-999' }]);
-    expect(await statusOf(getFilePathForUser(STAFF, 'avatar-theirs.png'))).not.toBe(403);
+    expect(await statusOf(getFilePathForUser(STAFF, 'avatar-theirs.png'))).toBe(403);
   });
 });
 it.each([STAFF,ADMIN,STUDENT])('routes chat and archived files through ticket authorization before broad staff access',async actor=>{

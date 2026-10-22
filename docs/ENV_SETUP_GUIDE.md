@@ -1224,3 +1224,7 @@ See [the security/readiness review](SECURITY_READINESS_2026-10-22.md) for scope,
 Compose now binds backend 3300, AI 5005 and n8n 5678 to `127.0.0.1`; Caddy's public 80/443 and internal service names remain. Recreate affected services for port/log changes, and rebuild the backend for its dependency/code updates. Verify a custom host proxy path before rollout. Access n8n through local SSH forwarding instead of its public VM port. All six services rotate local logs at 10 MB x3; configure protected centralized retention separately.
 
 Backend development continues through `npm run dev`, using Node's built-in watch mode on Node 22 rather than nodemon. CI runs tests and audits, not production deployment; configure branch protection and staging acceptance separately.
+
+
+### October 22 security follow-up
+See `docs/SECURITY_ROLLOUT.md` and `docs/PERMISSIONS_MATRIX.md`. This follow-up requires a separate AI gateway secret, additive rate_limit_counters migration, uploads ownership preparation and least-privilege API/AI database identities before recreating containers. Production registration OCR requires Admin official-record review. Preserve deployed JWT/MFA encryption keys. Live GCP/firewall/backup/branch protection and multi-instance readiness are separate acceptance items; none are automatically deployed.

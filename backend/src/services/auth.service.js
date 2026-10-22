@@ -288,7 +288,7 @@ async function register(body, file) {
   const aiResult = unavailable ? null : await aiEngine.verifyIdDocument(file, { studentId: employee_id, course: collegeName });
   const { verification_status, verification_reason } = unavailable
     ? { verification_status: 'pending', verification_reason: 'Proof unavailable. Administrator identity review required.' }
-    : registrationVerification(aiResult);
+    : registrationVerification(aiResult, { manualReview: env.NODE_ENV === 'production' });
   const data = { student_id: employee_id, full_name, email: registeredEmail, phone_number: normalizedPhone, password_hash,
     role: 'student', user_type, study_load: user_type === 'alumni' ? 'regular' : body.study_load, ...academic, id_proof_path,
     verification_status, verification_reason, registration_proof_unavailable: unavailable, registration_proof_reason: proofReason || null };
@@ -385,7 +385,7 @@ async function listAllUsers(requestingUser) {
 }
 
 async function lookupStudent(studentId, requestingUser) {
-  const staff = requestingUser?.role === 'admin' || (requestingUser?.role === 'clerk' && ['Window 1', 'Secretary', 'Finance'].includes(requestingUser.desk_assignment));
+  const staff = requestingUser?.role === 'admin' || (requestingUser?.role === 'clerk' && ['Window 1', 'Receiving Desk', 'Secretary', 'Finance'].includes(requestingUser.desk_assignment));
   if (!staff) throw forbidden('Only authorized staff may view student profiles.');
   const rows = await userModel.findStudentBasicInfo(studentId);
   if (rows.length === 0) {
@@ -395,7 +395,11 @@ async function lookupStudent(studentId, requestingUser) {
     await require('./requestAssignment.service').assertSecretaryScope(requestingUser,
       { student_id: studentId, routing_college_id: rows[0].college_id });
   }
-  return { student: rows[0] };
+  const student = { ...rows[0] };
+  if (requestingUser.role !== 'admin') delete student.id_proof_path;
+  if (requestingUser.desk_assignment === 'Finance') return { student: Object.fromEntries(
+    ['id', 'student_id', 'full_name', 'email', 'phone_number'].map(key => [key, student[key]])) };
+  return { student };
 }
 
 /** Partial profile update — only the fields actually supplied are written. */

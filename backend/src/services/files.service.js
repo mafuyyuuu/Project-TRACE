@@ -41,46 +41,30 @@ async function assertCanRead(user, filename) {
     await require('./supportTicket.service').assertFileRead(user,filename);
     return;
   }
-  const proofOwners = user.role === 'admin' ? [] : await userModel.findByIdProofFilename(filename);
-  if (proofOwners.length) {
-    if (proofOwners.some(row => Number(row.id) === Number(user.id))) return;
-    throw forbidden('Registration proofs are available only to their owner and Admin verification.');
+  const proofOwners = await userModel.findByIdProofFilename(filename);
+  if (proofOwners.length || filename.startsWith('id-proof-')) {
+    if (user.role === 'admin' || proofOwners.some(row => Number(row.id) === Number(user.id))) return;
+    throw forbidden('Registration proofs require owner or Admin access.');
   }
   const attachment = await require('../models/requestAttachment.model').fileOwner(filename);
-  if (attachment) {
-    await require('./documents.service').authorizeMessage(user, attachment);
-    return;
-  }
+  if (attachment) { await require('./documents.service').authorizeMessage(user, attachment); return; }
   if (user.role === 'admin') return;
-  if (user.role === 'clerk' && user.desk_assignment === 'Secretary') {
-    const docs = await documentModel.findByAttachedFilename(filename);
-    if (docs.length) {
-      await require('./documents.service').authorizeMessage(user, docs[0]);
-      return;
+  const avatars = await userModel.findByProfilePictureFilename(filename);
+  if (avatars.length) {
+    if (avatars.some(row => Number(row.id) === Number(user.id))) return;
+    if (user.role === 'clerk' && ['Window 1', 'Receiving Desk', 'Secretary'].includes(user.desk_assignment)) {
+      await require('./auth.service').lookupStudent(avatars[0].student_id, user); return;
     }
-    // Registration proof is reviewed by Admin. Keep a Secretary's own avatar.
-    const avatar = await userModel.findByProfilePictureFilename(filename);
-    if (avatar.some(row => Number(row.id) === Number(user.id))) return;
-    throw forbidden('You do not have access to this file.');
+    throw forbidden('You do not have access to this avatar.');
   }
-  if (user.role === 'clerk' || user.role === 'admin') return;
-
-  // Cheapest check first, and it needs no student_id: an avatar is readable
-  // only by the account it belongs to. Students never see each other's.
-  const avatarOwner = await userModel.findByProfilePictureFilename(filename);
-  if (avatarOwner.length > 0) {
-    if (avatarOwner[0].id === user.id) return;
-    throw forbidden('You do not have access to this file.');
-  }
-
-  const owner = await userModel.findStudentIdById(user.id);
-  const studentId = owner[0] && owner[0].student_id;
-  if (!studentId) throw forbidden('You do not have access to this file.');
-
   const docs = await documentModel.findByAttachedFilename(filename);
-  if (docs.length > 0 && docs[0].student_id === studentId) return;
+  if (!docs.length) throw forbidden('You do not have access to this file.');
+  if (user.role === 'clerk' && user.desk_assignment === 'Finance'
+    && ![docs[0].receipt_image_path, docs[0].official_receipt_path].some(value => value && path.basename(value) === filename)) {
+    throw forbidden('Finance can access payment evidence only.');
+  }
+  await require('./documents.service').authorizeMessage(user, docs[0]);
 
-  throw forbidden('You do not have access to this file.');
 }
 
 /**

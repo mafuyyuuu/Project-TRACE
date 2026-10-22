@@ -162,7 +162,7 @@ def parse_student_data(raw_text):
     student_id_match = re.search(student_id_pattern, raw_text, re.IGNORECASE)
     if student_id_match:
         student_id = student_id_match.group(1)
-        logger.info("Found student ID: %s", student_id)
+        logger.info("OCR field detected.")
 
     # --- Extract Last Name ---
     # Looks for 'Name:' followed by a capitalized word (the last name)
@@ -170,7 +170,7 @@ def parse_student_data(raw_text):
     name_match = re.search(name_pattern, raw_text, re.IGNORECASE)
     if name_match:
         last_name = name_match.group(1).upper()
-        logger.info("Found last name: %s", last_name)
+        logger.info("OCR field detected.")
 
     # --- Identify Form Type ---
     # Map keywords to standardized form type names
@@ -195,10 +195,7 @@ def parse_student_data(raw_text):
     fields_found = sum(1 for field in [student_id, last_name, form_type] if field is not None)
     confidence = (fields_found / 3.0) * 100.0
 
-    logger.info(
-        "Parse results — ID: %s, Name: %s, Type: %s, Confidence: %.2f",
-        student_id, last_name, form_type, confidence,
-    )
+    logger.info("Student OCR fields detected; confidence=%.2f", confidence)
 
     return {
         'student_id': student_id,
@@ -249,7 +246,7 @@ def parse_receipt_data(raw_text):
     or_match = re.search(or_pattern, raw_text, re.IGNORECASE)
     if or_match:
         or_number = or_match.group(1).upper().strip('-')
-        logger.info("Found OR number: %s", or_number)
+        logger.info("OCR field detected.")
 
     # --- Extract amount ---
     # Take the LARGEST figure rather than the first. A receipt lists line items
@@ -268,7 +265,7 @@ def parse_receipt_data(raw_text):
             candidates.append(value)
     if candidates:
         amount = max(candidates)
-        logger.info("Found amount: %.2f (from %d candidate(s))", amount, len(candidates))
+        logger.info("OCR field detected.")
 
     # --- Extract date ---
     date_patterns = [
@@ -285,7 +282,7 @@ def parse_receipt_data(raw_text):
             else:
                 month, day, year = (int(g) for g in match.groups())
             or_date = date(year, month, day).isoformat()
-            logger.info("Found OR date: %s", or_date)
+            logger.info("OCR field detected.")
             break
         except ValueError:
             # A plausible-looking but impossible date (13/45/2026) is no date.
@@ -294,10 +291,7 @@ def parse_receipt_data(raw_text):
     fields_found = sum(1 for field in [or_number, amount, or_date] if field is not None)
     confidence = (fields_found / 3.0) * 100.0
 
-    logger.info(
-        "Receipt parse — OR: %s, Amount: %s, Date: %s, Confidence: %.2f",
-        or_number, amount, or_date, confidence,
-    )
+    logger.info("Receipt OCR fields detected; confidence=%.2f", confidence)
 
     return {
         'or_number': or_number,
@@ -325,7 +319,7 @@ def process_receipt(filepath):
         raw_text = extract_text(filepath)
 
         if not raw_text:
-            logger.warning("No text extracted from receipt: %s", filepath)
+            logger.warning("No text extracted from receipt.")
             return {
                 'raw_text': '',
                 'extracted_data': empty,
@@ -376,7 +370,7 @@ def process_document(filepath):
         raw_text = extract_text(filepath, raise_on_error=True)
 
         if not raw_text:
-            logger.warning("No text extracted from document: %s", filepath)
+            logger.warning("No text extracted from document.")
             return {
                 'raw_text': '',
                 'extracted_data': {

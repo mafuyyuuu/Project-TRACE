@@ -365,8 +365,10 @@ async function runOcrPass(user, { documentId, trackingNumber, item, attachment }
  */
 async function listDocuments(user, query) {
   const status = query.status;
-  const page = parseInt(query.page) || 1;
-  const limit = parseInt(query.limit) || 500;
+  if (!['student', 'clerk', 'admin'].includes(user.role) || user.role === 'clerk' && !['Window 1', 'Receiving Desk', 'Secretary', 'Finance'].includes(user.desk_assignment)) throw forbidden('Access denied.');
+  const bounded = (value, fallback, max) => value === undefined ? fallback : /^\d+$/.test(String(value)) && Number(value) >= 1 && Number(value) <= max ? Number(value) : (() => { throw badRequest('Invalid page or limit.'); })();
+  const page = bounded(query.page, 1, 1000000);
+  const limit = bounded(query.limit, 500, 1000);
   const offset = (page - 1) * limit;
 
   const conditions = [];
@@ -453,6 +455,30 @@ async function trackByTrackingNumber(trackingNumber, user) {
 // ---------------------------------------------------------------------------
 
 async function getStats(user) {
+  if (user.role === 'student' || user.role === 'clerk' && ['Secretary', 'Finance'].includes(user.desk_assignment)) {
+    let conditions = [], params = [];
+    if (user.role === 'student') { conditions = ['student.id = ?']; params = [user.id]; }
+    else if (user.desk_assignment === 'Finance') {
+      conditions = ['d.current_status IN (?, ?)']; params = [STATUS.PENDING_STUDENT_PAYMENT, STATUS.PENDING_FINANCE_VERIFICATION];
+    } else {
+      const [account] = await userModel.findCourseById(user.id);
+      if (!account?.college_id && !account?.course) conditions.push('1 = 0');
+      else { const scope = documentCollegeScope({ collegeId: account.college_id, collegeName: account.course }); conditions.push(scope.condition); params.push(...scope.params); }
+      conditions.push('(d.current_status <> ? OR d.assigned_clerk_id = ?)'); params.push(STATUS.PENDING_W1_INTAKE, user.id);
+    }
+    const rows = await documentModel.scopedStatusCounts(conditions, params);
+    const count = status => Number(rows.find(row => row.current_status === status)?.count || 0);
+    const inflight = require('../utils/documentStatus').PIPELINE.slice(0, -1);
+    return { processed_today: null, cleared_by_secretary_today: null, avg_processing_minutes: null,
+      avg_ocr_confidence: null, ocr_field_detection: { score: null, status: 'restricted' },
+      backlog_count: rows.filter(row => inflight.includes(row.current_status)).reduce((sum, row) => sum + Number(row.count), 0),
+      pending_secretary_count: count(STATUS.PENDING_SEC_EVALUATION), ready_window_1_count: count(STATUS.READY_FOR_RELEASE),
+      pending_payment_verification_count: count(STATUS.PENDING_FINANCE_VERIFICATION),
+      completed_today_count: Number(rows.find(row => row.current_status === STATUS.COMPLETED)?.updated_today || 0),
+      pending_w1_intake_count: count(STATUS.PENDING_W1_INTAKE), sec_processing_count: count(STATUS.SEC_PROCESSING),
+      pending_student_payment_count: count(STATUS.PENDING_STUDENT_PAYMENT), paid_pending_sec_release_count: count(STATUS.PAID_PENDING_SEC_RELEASE) };
+  }
+  if (user.role !== 'admin' && !(user.role === 'clerk' && ['Window 1', 'Receiving Desk'].includes(user.desk_assignment))) throw forbidden('Access denied.');
   const [
     processed_today,
     cleared_by_secretary_today,

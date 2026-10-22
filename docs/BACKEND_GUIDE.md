@@ -598,3 +598,7 @@ Irregular current-student registrations require explicit `is_transfer_student` t
 
 ### Random Forest stage-wait experiment - October 18, 2026
 The new experimental classifier supersedes earlier rules-only status notes in this document. It uses reproducible simulated episodes plus eligible current stage history to estimate a further 24-hour stage wait. Admin > Efficiency Analytics > AI & Model Evaluation separates synthetic and held-out saved scores, data origin, baselines and false/missed alerts. These are not verified real-world accuracy. Suggestions still use workflow actions and fall back to rules on failure or missing entry times. Support and n8n remain rules. See [AI_MODEL_EVALUATION.md](AI_MODEL_EVALUATION.md#experimental-random-forest-using-simulation-and-current-history---october-18-2026) for target, data, split, limits and rollout.
+
+
+### October 22 security follow-up
+See `docs/SECURITY_ROLLOUT.md` and `docs/PERMISSIONS_MATRIX.md`. This follow-up requires a separate AI gateway secret, additive rate_limit_counters migration, uploads ownership preparation and least-privilege API/AI database identities before recreating containers. Production registration OCR requires Admin official-record review. Preserve deployed JWT/MFA encryption keys. Live GCP/firewall/backup/branch protection and multi-instance readiness are separate acceptance items; none are automatically deployed.

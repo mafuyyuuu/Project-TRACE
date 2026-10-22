@@ -250,11 +250,11 @@ function countStepLogsToday(executor = pool) {
  * landed in. Used to decide who is allowed to download that file.
  */
 function findByAttachedFilename(filename, executor = pool) {
-  const like = `%${filename}`;
+  const like = filename;
   return executor
     .query(
-      `SELECT id, student_id, routing_college_id FROM documents
-       WHERE file_path LIKE ? OR receipt_image_path LIKE ? OR official_receipt_path LIKE ?
+      `SELECT id, student_id, routing_college_id, current_status, assigned_clerk_id, file_path, receipt_image_path, official_receipt_path FROM documents
+       WHERE SUBSTRING_INDEX(file_path, '/', -1) = ? OR SUBSTRING_INDEX(receipt_image_path, '/', -1) = ? OR SUBSTRING_INDEX(official_receipt_path, '/', -1) = ?
        LIMIT 1`,
       [like, like, like]
     )
@@ -453,7 +453,15 @@ function updateOrVerification(documentId, clerkId, executor = pool) {
   );
 }
 
+function scopedStatusCounts(conditions, params, executor = pool) {
+  return executor.query(`SELECT d.current_status, COUNT(*) AS count,
+    SUM(DATE(d.updated_at) = CURDATE()) AS updated_today FROM documents d
+    LEFT JOIN users student ON student.student_id = d.student_id
+    WHERE ${conditions.length ? conditions.join(' AND ') : '1 = 0'} GROUP BY d.current_status`, params).then(([rows]) => rows);
+}
+
 module.exports = {
+  scopedStatusCounts,
   publishOfficialReceipt,
   countBlockingRequests,
   insert,

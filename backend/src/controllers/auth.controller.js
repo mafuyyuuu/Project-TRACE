@@ -188,7 +188,7 @@ function clearTrustCookie(res) {
 
 async function correctStudyYears(req, res) {
   try { res.json(await require('../services/studyYears.service').correct(req.user, req.params.id, req.body)); }
-  catch (error) { res.status(error.status || 500).json({ error: error.status ? error.message : 'Could not correct study years.' }); }
+  catch (error) { require('../utils/httpError').sendError(res, error, 'Could not correct study years.'); }
 }
 
 function registrationOptions(req, res) { res.json(authService.registrationOptions()); }

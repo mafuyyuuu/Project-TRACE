@@ -51,6 +51,7 @@ function encrypt(secret, userId) {
 function decrypt(value, userId) {
   const key = encryptionKey();
   try {
+    if (typeof value !== 'string' || !/^[a-f0-9]{24}:[a-f0-9]{32}:(?:[a-f0-9]{2})+$/i.test(value)) throw new Error('Invalid encrypted MFA record');
     const [iv, tag, data] = value.split(':').map(part => Buffer.from(part, 'hex'));
     const decipher = crypto.createDecipheriv('aes-256-gcm', key, iv);
     decipher.setAAD(Buffer.from(`TRACE:MFA:${userId}`)); decipher.setAuthTag(tag);

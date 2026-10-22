@@ -21,7 +21,8 @@ COPY database ./database
 # Declared so the image is usable without a volume, but MOUNT ONE in
 # production: the database stores only filenames, so without a volume the rows
 # survive a redeploy and the bytes do not — every avatar and receipt 404s.
-RUN mkdir -p /app/uploads
+RUN mkdir -p /app/uploads && chown node:node /app/uploads
+USER node
 VOLUME ["/app/uploads"]
 
 ENV NODE_ENV=production \

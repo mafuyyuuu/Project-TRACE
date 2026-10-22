@@ -538,3 +538,7 @@ The new experimental classifier supersedes earlier rules-only status notes in th
 
 ### Security boundary changes - October 22, 2026
 Tracking requires the authenticated owner or an authorized staff/college scope. Secretary student-profile lookup follows the saved college boundary. Registration proofs are for owner/Admin verification; ordinary desk and support files keep their separate scope. Admin Insights has a route-level Admin guard. Private API responses/files/errors are no-store; 5xx details are masked with request-ID correlation. New CI and rollout settings are documented in SECURITY_READINESS_2026-10-22.md; live deployment and full infrastructure verification remain separate.
+
+
+### October 22 security follow-up
+See `docs/SECURITY_ROLLOUT.md` and `docs/PERMISSIONS_MATRIX.md`. This follow-up requires a separate AI gateway secret, additive rate_limit_counters migration, uploads ownership preparation and least-privilege API/AI database identities before recreating containers. Production registration OCR requires Admin official-record review. Preserve deployed JWT/MFA encryption keys. Live GCP/firewall/backup/branch protection and multi-instance readiness are separate acceptance items; none are automatically deployed.

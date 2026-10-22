@@ -33,9 +33,15 @@ async function start() {
   const stopPickupReminders = require('./services/pickupReminder.service').startTimers();
   server.once('close', stopPickupReminders);
 
+  server.headersTimeout = 15000;
+  server.requestTimeout = 210000;
+  require('./services/shutdown.service').installShutdown({ server, io: realtime.io,
+    pool: require('./config/db').pool, stops: [stopSupportTimers, stopPickupReminders],
+    operations: require('./services/operations.service') });
   server.listen(env.PORT, () => {
     console.log(`🚀 TRACE Backend API listening on http://localhost:${env.PORT}`);
   });
 }
 
-start();
+if (require.main === module) start();
+module.exports = { start };

@@ -687,3 +687,5 @@ CREATE TABLE IF NOT EXISTS pickup_sms_reminders (
   CONSTRAINT pickup_sms_document FOREIGN KEY (document_id) REFERENCES documents(id) ON DELETE CASCADE,
   CONSTRAINT pickup_sms_ready_step FOREIGN KEY (ready_step_id) REFERENCES step_logs(id) ON DELETE CASCADE
 ) ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS rate_limit_counters (bucket_key CHAR(64) CHARACTER SET ascii COLLATE ascii_bin PRIMARY KEY, hits INT UNSIGNED NOT NULL, reset_at_ms BIGINT UNSIGNED NOT NULL, INDEX rate_limit_expiry(reset_at_ms)) ENGINE=InnoDB;

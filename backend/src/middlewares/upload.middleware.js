@@ -49,7 +49,7 @@ const profilePictureStorage = multer.diskStorage({
 });
 
 const proofOptions = {
-  limits: { fileSize: 10 * 1024 * 1024 },
+  limits: { fileSize: 10 * 1024 * 1024, files: 20, fields: 40, fieldSize: 100000, parts: 60 },
   fileFilter: (req, file, cb) => {
     const types = { '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.png': 'image/png', '.pdf': 'application/pdf' };
     const valid = types[path.extname(file.originalname).toLowerCase()] === file.mimetype;
@@ -59,7 +59,7 @@ const proofOptions = {
 const idProofUpload = multer({ storage: idProofStorage, ...proofOptions });
 const documentUpload = multer({
   storage: documentStorage,
-  limits: { fileSize: 10 * 1024 * 1024 }, // 10 MB limit
+  limits: { fileSize: 10 * 1024 * 1024, files: 20, fields: 40, fieldSize: 100000, parts: 60 }, // 10 MB limit
   fileFilter: (req, file, cb) => {
     if (!file) return cb(null, true);
     const types = {

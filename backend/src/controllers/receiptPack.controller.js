@@ -5,7 +5,7 @@ function handler(action, upload = false) {
     try {res.setHeader('Cache-Control','no-store');res.json(await action(req));}
     catch(error) {
       if(upload && req.file?.path)await fs.unlink(req.file.path).catch(()=>{});
-      res.status(error.status || 500).json({error:error.status ? error.message : 'Receipt action failed. Retry with the same confirmation or refresh to review.'});
+      require('../utils/httpError').sendError(res, error, 'Receipt action failed. Retry with the same confirmation or refresh to review.');
     }
   };
 }

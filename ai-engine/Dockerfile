@@ -24,7 +24,7 @@ COPY requirements.txt .
 RUN if [ "$(uname -m)" = "x86_64" ]; then \
       pip install --no-cache-dir --prefix=/install/deps -r requirements.txt \
         --extra-index-url https://download.pytorch.org/whl/cpu \
-        'torch==2.8.0+cpu' 'torchvision==0.23.0+cpu'; \
+        'torch==2.14.1+cpu' 'torchvision==0.29.1+cpu'; \
     else \
       pip install --no-cache-dir --prefix=/install/deps -r requirements.txt; \
     fi
@@ -43,7 +43,7 @@ RUN python -m pip check \
     && python -c "import torch, torchvision; assert torch.version.cuda is None, 'Expected CPU-only PyTorch'"
 
 WORKDIR /app
-COPY app.py ocr_engine.py registration_verification.py support_insights.py document_insights.py analytics.py forecaster.py forecast_evaluation.py stage_risk.py ./
+COPY security.py runtime_smoke.py app.py ocr_engine.py registration_verification.py support_insights.py document_insights.py analytics.py forecaster.py forecast_evaluation.py stage_risk.py ./
 
 # Bake the EasyOCR detection + recognition models into the image. They are
 # ~100 MB and ocr_engine.py builds the Reader at import time, so without this
@@ -52,6 +52,11 @@ COPY app.py ocr_engine.py registration_verification.py support_insights.py docum
 ENV EASYOCR_MODULE_PATH=/app/.EasyOCR
 RUN python -c "import easyocr; easyocr.Reader(['en'], gpu=False)"
 
+RUN python -m pip install --no-cache-dir --upgrade pip==26.2 \
+    && groupadd --gid 10001 traceai && useradd --uid 10001 --gid 10001 --create-home traceai \
+    && chown -R traceai:traceai /app
+USER traceai
+ENV PYTHONDONTWRITEBYTECODE=1 MPLCONFIGDIR=/tmp/matplotlib
 ENV PORT=5005 \
     PYTHONUNBUFFERED=1
 EXPOSE 5005

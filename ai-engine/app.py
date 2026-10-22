@@ -33,6 +33,8 @@ from document_insights import validate_snapshot, snapshot_from_rows, build_docum
 load_dotenv()
 
 app = Flask(__name__)
+from security import install_security
+install_security(app)
 
 # Maximum upload size: 16 MB
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024
@@ -278,14 +280,13 @@ def ocr_extract():
         os.close(temp_fd)
 
         file.save(temp_path)
-        logger.info("Saved upload to temp file: %s", temp_path)
+        logger.info("OCR upload received.")
 
         # Run the OCR pipeline
         result = process_document(temp_path)
 
         logger.info(
-            "OCR result for '%s' — success: %s, confidence: %.2f",
-            file.filename,
+            "OCR finished — success: %s, confidence: %.2f",
             result['success'],
             result['extracted_data']['confidence'],
         )
@@ -293,10 +294,10 @@ def ocr_extract():
         return jsonify(result)
 
     except Exception as e:
-        logger.error("Unexpected error processing upload: %s", str(e))
+        logger.error("Unexpected error processing upload: %s", type(e).__name__)
         return jsonify({
             'success': False,
-            'error': f'Server error: {str(e)}',
+            'error': 'AI processing is temporarily unavailable.',
             'raw_text': '',
             'extracted_data': None,
         }), 500
@@ -366,17 +367,17 @@ def ocr_receipt():
         result = process_receipt(temp_path)
 
         logger.info(
-            "Receipt OCR for '%s' - success: %s, confidence: %.2f",
-            file.filename, result['success'], result['extracted_data']['confidence'],
+            "Receipt OCR finished - success: %s, confidence: %.2f",
+             result['success'], result['extracted_data']['confidence'],
         )
 
         return jsonify(result)
 
     except Exception as e:
-        logger.error("Unexpected error processing receipt: %s", str(e))
+        logger.error("Unexpected error processing receipt: %s", type(e).__name__)
         return jsonify({
             'success': False,
-            'error': f'Server error: {str(e)}',
+            'error': 'AI processing is temporarily unavailable.',
             'raw_text': '',
             'extracted_data': empty,
         }), 500
@@ -413,8 +414,8 @@ def ocr_verify():
         result = verify_id_document(temp_path, student_id, expected_course)
         return jsonify(result)
     except Exception as e:
-        logger.error("Error in /ocr/verify: %s", str(e))
-        return jsonify({'verified': False, 'reason': str(e)}), 500
+        logger.error("Error in /ocr/verify: %s", type(e).__name__)
+        return jsonify({'verified': False, 'reason': 'AI processing is temporarily unavailable.'}), 500
     finally:
         if temp_path and os.path.exists(temp_path):
             os.remove(temp_path)

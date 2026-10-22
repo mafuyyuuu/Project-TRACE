@@ -338,3 +338,7 @@ Step-by-step deployment instructions live in `docs/DEPLOYMENT_GUIDE.md`.
 
 ### October 22 security baseline
 See `docs/SECURITY_READINESS_2026-10-22.md` for implemented API/privacy/permission hardening, dependency audit results, CI and remaining live-server verification. Production CORS requires explicit origins; the public JWT placeholder is rejected. Internal Compose ports bind to loopback and local logs rotate. Student tracking and Secretary profile lookup enforce ownership/college scope; registration proofs require owner/Admin. API failures use safe messages and request IDs. `npm run dev` uses Node watch mode. CI runs on Node 22/Python 3.12 with pinned action SHAs; branch protection and production deployment are separate settings/actions.
+
+
+### October 22 security follow-up
+See `docs/SECURITY_ROLLOUT.md` and `docs/PERMISSIONS_MATRIX.md`. This follow-up requires a separate AI gateway secret, additive rate_limit_counters migration, uploads ownership preparation and least-privilege API/AI database identities before recreating containers. Production registration OCR requires Admin official-record review. Preserve deployed JWT/MFA encryption keys. Live GCP/firewall/backup/branch protection and multi-instance readiness are separate acceptance items; none are automatically deployed.
