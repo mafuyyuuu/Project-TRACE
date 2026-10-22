@@ -15,15 +15,15 @@ import {useEffect,useState} from 'react';
 import {useSearchParams} from 'react-router-dom';
 import QueueTabs from '@/components/QueueTabs';
 import AiEvaluationPanel from '@/features/admin/components/AiEvaluationPanel';
+import ExtremeCasesPanel from './ExtremeCasesPanel';
 
 function MetricCard({ label, value, sub, tone = 'default', icon }) {
-  const tones = { default: 'text-gray-900 dark:text-gray-100', good: 'text-[#15803d] dark:text-green-300', warn: 'text-amber-600 dark:text-amber-300' };
+  const tones = { default: 'text-gray-900 dark:text-gray-100', good: 'text-[#168f55] dark:text-green-300', warn: 'text-[#a04b00] dark:text-amber-300' };
   return (
     <div className="trace-section trace-card-info trace-section-body trace-admin-analytics-metric">
-      {icon && <span className={'trace-admin-analytics-metric-icon ' + (tone === 'warn' ? 'trace-admin-analytics-icon-warn' : '')}><AdminIcon name={icon} /></span>}
-      <span className="text-[10px] font-bold text-gray-400 dark:text-gray-400 uppercase tracking-widest block">{label}</span>
-      <span className={`text-2xl font-display font-black mt-1 block ${tones[tone]}`}>{value}</span>
-      {sub && <span className="text-[10px] text-gray-400 dark:text-gray-400 mt-1 block">{sub}</span>}
+      <div className="trace-admin-analytics-metric-heading"><span className="trace-admin-analytics-metric-label">{label}</span>{icon && <span className={'trace-admin-analytics-metric-icon ' + (tone === 'warn' ? 'trace-admin-analytics-icon-warn' : '')}><AdminIcon name={icon}/></span>}</div>
+      <span className={`trace-admin-analytics-metric-value ${tones[tone]}`}>{value}</span>
+      {sub && <span className="trace-admin-analytics-metric-caption">{sub}</span>}
     </div>
   );
 }
@@ -76,7 +76,7 @@ function DocumentAnalytics({ user, currentTab }) {
         <AnalyticsAdvice analysis={a.analysis}/>
         <p className="trace-page-description">Completion and desk measurements cover {a.range?.dateFrom || 'all recorded dates'} through {a.range?.dateTo || 'the latest saved action'}. {a.range?.dateFrom || a.range?.dateTo ? 'Releases use the applied reporting dates.' : `Releases show the last ${a.range?.days || 30} days.`}</p>
 
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
           <MetricCard
             label="Avg. End-to-End" icon="analytics-clock"
             value={a.end_to_end.completed_count ? formatDuration(a.end_to_end.avg_minutes) : '—'}
@@ -102,7 +102,7 @@ function DocumentAnalytics({ user, currentTab }) {
           />
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="trace-admin-analytics-charts grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Where documents actually wait */}
           <div className="trace-section trace-section-body">
             <h3 className="text-sm font-bold text-gray-900 dark:text-gray-100">Turnaround by Desk</h3>
@@ -171,6 +171,7 @@ function DocumentAnalytics({ user, currentTab }) {
           </div>
         </div>
 
+        <ExtremeCasesPanel data={a.extreme_cases}/>
         {/* Workload distribution */}
         <div className="trace-section overflow-hidden">
           <div className="trace-section-header trace-admin-workload-toolbar">

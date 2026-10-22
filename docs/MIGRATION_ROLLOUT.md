@@ -135,7 +135,7 @@ Remaining operator work: enter Registrar-approved Program and supporting-documen
 
 The user reported a successful earlier schema check and API health checks on October 1. Those results cover that earlier deployment. The October 5 logs confirm the reason-column, guided-tour and Program-catalog migrations; the new graduation column still needs applying with this repair. Local tests pass, but real email delivery, phone layouts and live workflows must be checked after updating.
 
-The October 2 signup/account repairs add no migration: rebuild/recreate the backend and deploy the matching frontend. They restore multipart **Read ID**, display the separately saved Program/Course and College during Admin review, and allow `_` in passwords across creation/change/reset flows. New Admin temporary passwords use the same 8–64 character policy; existing login passwords are unchanged. Test Read ID with a synthetic/test proof, review a new registration's program, and test underscore passwords through signup, Profile, reset and Admin creation. The approved follow-up keeps email required at signup but sends its verification link from Profile only; requests remain blocked until verified. Admin with an enrolled app can opt into same-day personal-browser trust after verification. Clerk/Admin tours now enroll existing staff on their first eligible guide check. These additions reuse existing `trusted_browsers`, `authenticator_credentials` and `onboarding_guides`; there is no additional migration. Keep the existing MFA encryption key.
+The October 2 signup/account repairs add no migration: rebuild/recreate the backend and deploy the matching frontend. They restore multipart **Read ID**, display the separately saved Program and College during Admin review, and allow `_` in passwords across creation/change/reset flows. New Admin temporary passwords use the same 8–64 character policy; existing login passwords are unchanged. Test Read ID with a synthetic/test proof, review a new registration's program, and test underscore passwords through signup, Profile, reset and Admin creation. The approved follow-up keeps email required at signup but sends its verification link from Profile only; requests remain blocked until verified. Admin with an enrolled app can opt into same-day personal-browser trust after verification. Clerk/Admin tours now enroll existing staff on their first eligible guide check. These additions reuse existing `trusted_browsers`, `authenticator_credentials` and `onboarding_guides`; there is no additional migration. Keep the existing MFA encryption key.
 
 ## Support ticket rollout
 
@@ -262,7 +262,7 @@ Vercel's Git-connected deployment can be used. For deployment, environment and l
 | Select the header **?** | The tour can be replayed manually, including on older accounts. |
 | Send a verification link from Profile | The received HTML email shows **Verify Email**; its button opens the verification page. Plain-text readers show the link. |
 | Open Maintenance and a request conversation | Stored proof/photo previews load; selecting a request reveals **Message to Window 1** and sending works. |
-| Open System Maintenance → Programs, then a student/alumni profile | Admin can enter the real Registrar-approved catalog; active Program/Course options follow College, changing College clears Program, and confirmed selections survive reload. |
+| Open System Maintenance → Programs, then a student/alumni profile | Admin can enter the real Registrar-approved catalog; active Program options follow College, changing College clears Program, and confirmed selections survive reload. |
 | Review a fresh pending registration | A stored review reason appears when the automatic check is inconclusive. Older reasons may remain unknown. |
 | Use a real phone with enlarged text | Tour instructions scroll and Back/Next stay reachable; profile, chat and tables remain usable. |
 
@@ -565,7 +565,7 @@ docker compose run --rm --no-deps -T backend node database/migrate_program_catal
 docker compose run --rm --no-deps -T backend node database/check_schema.js
 ```
 
-After rollout, Admin opens **System Maintenance → Programs**, selects an active college, enters its Registrar-approved program name, and confirms Add Program. Populate the real approved catalog before asking students to update their academic selections. No program list is inferred from existing free text. Names/college membership stay immutable: add an approved replacement and deactivate the superseded row. Deactivation hides new selections and preserves saved entries; restore requires an active college. Existing signup retains its manual Program/Course entry; this rollout changes Edit Profile selections.
+After rollout, Admin opens **System Maintenance → Programs**, selects an active college, enters its Registrar-approved program name, and confirms Add Program. Populate the real approved catalog before asking students to update their academic selections. No program list is inferred from existing free text. Names/college membership stay immutable: add an approved replacement and deactivate the superseded row. Deactivation hides new selections and preserves saved entries; restore requires an active college. Existing signup retains its manual Program entry; this rollout changes Edit Profile selections.
 
 Acceptance: load a saved profile, change College and see Program clear, select its active program, confirm Save, and reload/sign in again to verify `college_id`, college display name (`course`) and degree/program (`program`). Test a program from another college, an inactive program/college, no programs, reference failure/retry, and a historical unlisted program while saving phone only. Verify Admin alone can manage the catalog and that deactivation does not change existing profiles or request pricing snapshots. Check 320/375/768/desktop, both themes and enlarged text.
 
@@ -802,3 +802,8 @@ Support policy and measured synthetic checks remain in [SUPPORT_DESIGN.md](SUPPO
 ### Registrar preparation-date snapshot
 
 The matching backend requires `node backend/database/migrate_release_policy.js`, followed by `node backend/database/check_schema.js`. The additive migration creates nullable `documents.release_working_days`; reruns preserve all recorded submission dates, estimates, bills and receipts. Existing requests are not guessed/backfilled. Known preparation periods are computed from the original submission when evaluated, and new filings save their period immediately. Deploy the matching frontend and backend together after validation.
+
+
+### Manual FAQ feedback persistence
+
+Run `node backend/database/migrate_manual_faq_feedback.js` using the migration identity before recreating the matching backend. It adds `manual_faq_events` without rewriting tickets or fabricating historical reviews. Run `node backend/database/migrate_release_policy.js` for the preparation-day snapshot, then `node backend/database/check_schema.js`. Deploy the matching frontend and backend together. Neither migration changes already finalized prices, receipts or existing historical estimates.

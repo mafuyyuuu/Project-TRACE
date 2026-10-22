@@ -39,6 +39,7 @@ export default function useSecretaryDashboard(user) {
   const [evalDocType, setEvalDocType] = useState('Transcript of Records');
   const [manualReadyDate, setEstimatedReadyDate] = useState('');
   const releasePreview=selectedDoc?.created_at ? estimate({...selectedDoc,document_type:evalDocType || selectedDoc.document_type,
+    is_same_day:evalDocType && evalDocType!==selectedDoc.document_type ? false : selectedDoc.is_same_day,
     release_working_days:evalDocType && evalDocType!==selectedDoc.document_type ? null : selectedDoc.release_working_days},
     {user_type:selectedDoc.student_user_type,enrollment_status:selectedDoc.student_enrollment_status}) : selectedDoc?.release_estimate;
   const estimatedReadyDate=releasePreview?.date || manualReadyDate;

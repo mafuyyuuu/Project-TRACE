@@ -207,15 +207,10 @@ export default function MaintenancePanel({ user, currentTab }) {
 
               <section className="trace-admin-form-section"><h4 className="trace-section-title mb-4">Basic details</h4><label className="trace-label">Document name<input maxLength={INPUT_LIMITS.referenceName} className={`${inputClass} mt-2`} placeholder="Name *" required
                 value={form.dt_name || ''} onChange={(e) => set('dt_name', e.target.value)} /></label>
-              <div className="trace-form-grid"><label className="trace-label">Default fee<span className="trace-admin-money-input mt-1.5"><span aria-hidden="true">₱</span><NumberInput aria-label="Base fee (₱)" max={NUMBER_LIMITS.money} className={inputClass} min="0" step="0.01" placeholder="Base fee (₱)"
+              <div className="trace-form-grid"><label className="trace-label">Rate per printed page<span className="trace-admin-money-input mt-1.5"><span aria-hidden="true">₱</span><NumberInput aria-label="Base fee (₱)" max={NUMBER_LIMITS.money} className={inputClass} min="0" step="0.01" placeholder="Base fee (₱)"
                 value={form.dt_fee ?? ''} onChange={(e) => set('dt_fee', e.target.value)} /></span></label>
 
-              <label className="trace-label">Fee type<select aria-label="Fee rule" className={`${inputClass} mt-1.5 cursor-pointer`} value="per_page"
-                onChange={(e) => set('dt_rule', e.target.value)}>
-
-
-                <option value="per_page">Per printed page per copy</option>
-              </select></label></div></section>
+              <div><p className="trace-label">Fee basis</p><output aria-label="Fee rule" className="trace-control mt-1.5 block whitespace-normal">Per printed page per copy</output></div></div></section>
 
               <section className="trace-admin-form-section"><h4 className="sr-only">Fee schedule</h4><FeeScheduleEditor admin colleges={m.colleges} value={{ rental_fee: form.dt_rental_fee ?? 0, special_fee: form.dt_special_fee ?? 0,
                 fee_items: form.dt_fee_items || [], college_fee_schedules: form.dt_fee_schedules || [] }}

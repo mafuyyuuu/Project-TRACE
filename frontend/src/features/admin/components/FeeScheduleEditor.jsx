@@ -48,10 +48,7 @@ export default function FeeScheduleEditor({ value, colleges, onChange, admin = f
         </select></label>
         <label className="trace-label block">College base rate per printed page (₱)<NumberInput max={NUMBER_LIMITS.money} className={inputClass} required type="number" min="0" step="0.01" value={row.base_fee}
           onChange={event => updateOverride(index, { ...row, base_fee: event.target.value })} /></label>
-        <label className="trace-label block">College fee basis<select className={inputClass} value="per_page"
-          onChange={event => updateOverride(index, { ...row, fee_rule: event.target.value })}>
-          <option value="per_page">Per printed page per copy</option>
-        </select></label>
+        <div><p className="trace-label">College fee basis</p><output aria-label="College fee basis" className={inputClass+" block whitespace-normal"}>Per printed page per copy</output></div>
         <ExtraFees schedule={row} onChange={next => updateOverride(index, next)} />
         <Button type="button" className="trace-button trace-button-danger" onClick={() => onChange({ ...value, college_fee_schedules: overrides.filter((_, i) => i !== index) })}>Remove college override</Button>
       </fieldset>)}

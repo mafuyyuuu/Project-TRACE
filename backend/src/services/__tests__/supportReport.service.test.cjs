@@ -1,6 +1,7 @@
 const service=require('../supportReport.service');
 const tickets=require('../supportTicket.service');
 const model=require('../../models/supportReport.model');
+beforeEach(()=>{vi.spyOn(require('../../models/manualFaq.model'),'events').mockResolvedValue([]);});
 beforeEach(()=>{vi.spyOn(require('../aiEngine.service'),'getSupportInsights').mockResolvedValue(null);vi.spyOn(tickets,'currentActor').mockImplementation(async user=>user);vi.spyOn(model,'dataset').mockResolvedValue({tickets:[],events:[],backlog:[]});});
 it.each([{id:1,role:'admin'}])('allows an Admin to read aggregate reports',async user=>{
   await expect(service.report(user,{dateFrom:'2026-10-05',dateTo:'2026-10-05'})).resolves.toMatchObject({created:0});

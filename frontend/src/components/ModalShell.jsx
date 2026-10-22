@@ -1,7 +1,8 @@
 import Button from '@/components/Button';
-import { useEffect, useId, useRef } from 'react';
+import { useEffect, useId, useLayoutEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import useDrillMotion from '@/hooks/useDrillMotion';
+import useModalViewport from '@/hooks/useModalViewport';
 
 const FOCUSABLE_SELECTOR =
   'a[href], button, textarea, input:not([type="hidden"]), select, [tabindex], [contenteditable="true"]';
@@ -9,6 +10,7 @@ const FOCUSABLE_SELECTOR =
 // Only the most recently opened shell handles focus and dismissal: a
 // confirmation can sit above a form, and a receipt viewer above either one.
 const modalStack = [];
+let originalBodyOverflow;
 
 function getTopmostPanel() {
   return modalStack.findLast((panel) => panel.dataset.modalLayer === 'feedback') || modalStack.at(-1);
@@ -73,33 +75,49 @@ export default function ModalShell({
 }) {
   const titleId = useId();
   const panelRef = useRef(null);
+  const viewport=useModalViewport(open);
   const attachPanel = useDrillMotion(panelRef, open, layer);
 
   useEffect(() => {
     if (!open) return undefined;
     const previouslyFocused = document.activeElement;
     const panel = panelRef.current;
+    if(!modalStack.length){originalBodyOverflow=document.body.style.overflow;document.body.style.overflow='hidden';}
     modalStack.push(panel);
 
     const focusTarget =
       initialFocusRef?.current ||
       getFocusableElements(panel)[0] ||
       panel;
-    if (getTopmostPanel() === panel) focusTarget?.focus();
+    if (getTopmostPanel() === panel) focusTarget?.focus({preventScroll:true});
 
     return () => {
       const wasTopmost = getTopmostPanel() === panel;
       modalStack.splice(modalStack.indexOf(panel), 1);
+      if(!modalStack.length)document.body.style.overflow=originalBodyOverflow;
       if (!wasTopmost) return;
 
       const remainingPanel = getTopmostPanel();
       if (previouslyFocused?.isConnected && (!remainingPanel || remainingPanel.contains(previouslyFocused))) {
-        previouslyFocused.focus?.();
+        previouslyFocused.focus?.({preventScroll:true});
       } else if (remainingPanel) {
         (getFocusableElements(remainingPanel)[0] || remainingPanel).focus();
       }
     };
   }, [open, initialFocusRef]);
+
+  useLayoutEffect(()=>{
+    if(!open)return;
+    const panel=panelRef.current,field=document.activeElement;
+    if(!panel?.contains(field))return;
+    let body=field?.parentElement;
+    while(body && body!==panel && !(body.scrollHeight>body.clientHeight && /auto|scroll/.test(window.getComputedStyle(body).overflowY)))body=body.parentElement;
+    if(!body || body===panel)body=field?.closest('.trace-modal-body');
+    if(!body)return;
+    const input=field.getBoundingClientRect(),bounds=body.getBoundingClientRect();
+    if(input.bottom>bounds.bottom-12)body.scrollTop+=input.bottom-bounds.bottom+12;
+    else if(input.top<bounds.top+12)body.scrollTop-=bounds.top+12-input.top;
+  },[open,viewport.height,viewport.top]);
 
   useEffect(() => {
     if (!open) return undefined;
@@ -159,7 +177,7 @@ export default function ModalShell({
     bodyClassName ?? `trace-modal-body ${title ? 'pt-2' : 'pt-4 sm:pt-6'}`;
 
   return createPortal(
-    <div className={`trace-modal-overlay fixed inset-0 ${layer === 'feedback' ? 'z-[110]' : 'z-[100]'} flex items-center justify-center p-4 overflow-y-auto animate-fade-in`}>
+    <div style={viewport} className={`trace-modal-overlay fixed inset-0 ${layer === 'feedback' ? 'z-[110]' : 'z-[100]'} flex items-center justify-center p-4 overflow-y-auto animate-fade-in`}>
       <div
         className={backdropClassName ?? DEFAULT_BACKDROP_CLASS_NAME}
         style={backdropStyle}

@@ -46,7 +46,7 @@ const FINANCE_STEPS = [PROFILE, SECURITY,
   UPDATES, HELP];
 const ADMIN_STEPS = [PROFILE, SECURITY,
   { title: 'Review account applications', target: 'tutorial-account-review', area: 'dashboard',
-    text: 'Review each identity proof together with the applicant type, Program/Course and College. An inconclusive OCR result needs manual review; it is not a counterfeit verdict. Open Review and confirm your decision after checking the supplied information.' },
+    text: 'Review each identity proof together with the applicant type, Program and College. An inconclusive OCR result needs manual review; it is not a counterfeit verdict. Open Review and confirm your decision after checking the supplied information.' },
   nav('admin-maintenance', 'System Maintenance', 'Manage accounts and reference data here. Admin controls default and college fee schedules. Confirm account changes and deactivations; for staff without email, use the initial authenticator setup after checking their identity.'),
   nav('admin-templates', 'Templates', 'Choose a template, review its isolated preview, then confirm a save when its wording and layout are correct. Existing saved templates remain in use until changed.'),
   nav('admin-tracker', 'Document Tracker', 'Check the request stage and history when investigating delays or helping another desk. Review the record before taking any available action.'),

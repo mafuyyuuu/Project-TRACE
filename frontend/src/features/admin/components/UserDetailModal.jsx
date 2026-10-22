@@ -100,7 +100,7 @@ export default function UserDetailModal({ open, onClose, user, onEdit, onToggleA
         <Field label="College / Department" value={user.college || user.college_name || user.college_id} />
         {user.role === 'student' && !user.college_id && <p className="text-xs text-amber-800 dark:text-amber-300">College assignment needs Admin review before requesting college-restricted documents.</p>}
         <Field label="College" value={user.college_name || user.course} />
-        {isStudent && <Field label="Program/Course" value={user.program} />}
+        {isStudent && <Field label="Program" value={user.program} />}
         <Field label={isStudent ? user.user_type === 'alumni' ? 'Alumni ID' : 'Student ID' : 'Staff ID'} value={user.student_id} />
         <Field label="Date Joined" value={dateJoined} />
         <Field label="Email" value={<EmailText value={user.email} />} />

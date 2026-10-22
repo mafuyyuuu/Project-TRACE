@@ -18,6 +18,8 @@ const statusOf = (p) => p.then(() => undefined, (e) => e.status);
 const messageOf = (p) => p.then(() => '', (e) => e.message);
 
 beforeEach(() => {
+  vi.spyOn(reportModel,'activeDelayCases').mockResolvedValue([]);
+  vi.spyOn(reportModel,'deskWaitBaselines').mockResolvedValue([]);
   vi.spyOn(require('../aiEngine.service'),'getDocumentAnalytics').mockResolvedValue(null);
   vi.spyOn(referenceModel,'findCollegeById').mockResolvedValue([{id:4,name:'College Four',is_active:1}]);
   vi.spyOn(referenceModel,'findDocumentTypeByName').mockResolvedValue([{name:'Diploma'}]);

@@ -324,7 +324,7 @@ describe('MaintenancePanel', () => {
     expect(maintenanceService.createDocumentType).not.toHaveBeenCalled();
     await user.click(within(screen.getByRole('dialog', { name: 'Confirm Document Type' })).getByRole('button', { name: 'Save' }));
     await waitFor(() => expect(maintenanceService.createDocumentType).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({
-      name: 'Certification', base_fee: '50', fee_rule: 'flat', available_to: 'both', requires_attachment: false,
+      name: 'Certification', base_fee: '50', fee_rule: 'per_page', available_to: 'both', requires_attachment: false,
     })));
   });
 

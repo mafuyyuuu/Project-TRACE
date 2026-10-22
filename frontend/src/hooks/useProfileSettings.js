@@ -137,7 +137,7 @@ export default function useProfileSettings(user) {
     if (Object.keys(yearErrors).length) { setError(Object.values(yearErrors)[0]); return false; }
     const academicChanged = String(profileData.college_id || '') !== String(user?.college_id || '') || profileData.program !== (user?.program || '');
     if (academicChanged && (!/^[1-9]\d*$/.test(profileData.college_id) || !profileData.program)) {
-      setError('Choose College and an active Program/Course belonging to it before saving.');
+      setError('Choose College and an active Program belonging to it before saving.');
       return false;
     }
     savingRef.current = true;

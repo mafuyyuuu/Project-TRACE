@@ -151,3 +151,8 @@ See `docs/SECURITY_ROLLOUT.md` and `docs/PERMISSIONS_MATRIX.md`. This follow-up 
 
 ### October 22 registrar policy revisions (implementation in progress)
 Read the latest PROGRESS entry before continuing. The additive release_working_days column snapshots preparation days at filing; apply migrate_release_policy.js before deploying matching code. releasePolicy.js is mirrored across frontend/backend. Day 1 follows submission; only Monday–Thursday count. Preserve original submission and finalized amounts. printed_pages_v2 applies base rate × actual pages per copy × copies to all new/unpriced document types, including college overrides. Fixed extras and separately printed component rules remain explicit. Do not rewrite paid/confirmed historical bills.
+
+
+### October 22 revision architecture
+
+Manual FAQ feedback uses append-only `manual_faq_events` with actor-scoped idempotency keys, approved questions and optional No suggestions. GET is owner-only; aggregate suggestions are Admin-only. Keep config/manualFaq.json synchronized with role-aware HelpPage questions. Manual ratings never resolve tickets or alter escalation denominators; AI support comparisons remain ticket-only. Apply the explicit manual-feedback and release-policy migrations before backend recreation. Current extreme cases are descriptive, require measured stage history for outlier flags, and never move workflow state.

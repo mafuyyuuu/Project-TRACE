@@ -408,7 +408,7 @@ async function lookupStudent(studentId, requestingUser) {
 
 function readProgram(value) {
   if (value === undefined || value === null || value === '') return null;
-  if (typeof value !== 'string' || value.trim().length > 150) throw badRequest('Program/Course must be text of at most 150 characters.');
+  if (typeof value !== 'string' || value.trim().length > 150) throw badRequest('Program must be text of at most 150 characters.');
   return value.trim() || null;
 }
 async function updateProfile(userId, { phone_number, email, course, college_id, program, password, current_password, ...profileFields }) {

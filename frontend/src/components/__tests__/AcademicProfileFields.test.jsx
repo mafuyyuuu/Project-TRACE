@@ -18,7 +18,7 @@ beforeEach(() => {
 it('loads saved selections and filters programs when College changes, clearing the old program', async () => {
   render(<Lab />);
   await waitFor(() => expect(screen.getByLabelText('College')).toBeEnabled());
-  const college = screen.getByLabelText('College'), program = screen.getByLabelText('Program/Course');
+  const college = screen.getByLabelText('College'), program = screen.getByLabelText('Program');
   expect(college).toHaveValue('1'); expect(program).toHaveValue('Program A');
   expect(within(program).queryByRole('option', { name: 'Program B' })).not.toBeInTheDocument();
   fireEvent.change(college, { target: { value: '2' } });
@@ -31,16 +31,16 @@ it('preserves a historical unmatched program and explains an empty catalog', asy
   getPrograms.mockResolvedValue({ programs: [] });
   render(<Lab />);
   await screen.findByText(/No active programs/);
-  expect(screen.getByLabelText('Program/Course')).toHaveValue('Program A');
+  expect(screen.getByLabelText('Program')).toHaveValue('Program A');
   expect(screen.getByText(/Your recorded academic details stay saved/)).toBeInTheDocument();
-  expect(screen.getByLabelText('Program/Course')).not.toBeRequired();
+  expect(screen.getByLabelText('Program')).not.toBeRequired();
 });
 it('preserves drafts during load failure and provides a usable retry', async () => {
   getPrograms.mockRejectedValueOnce(new Error('offline'));
   const submit = vi.fn(event => event.preventDefault());
   render(<form onSubmit={submit}><Lab /></form>);
   expect(await screen.findByRole('alert')).toHaveTextContent('could not be loaded');
-  expect(screen.getByLabelText('Program/Course')).toHaveValue('Program A');
+  expect(screen.getByLabelText('Program')).toHaveValue('Program A');
   fireEvent.click(screen.getByRole('button', { name: 'Retry Choices' }));
   expect(submit).not.toHaveBeenCalled();
   await waitFor(() => expect(screen.getByLabelText('College')).toBeEnabled());

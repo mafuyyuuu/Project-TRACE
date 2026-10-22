@@ -178,7 +178,7 @@ export default function SignupPage() {
         {registrationToConfirm && <ReviewSummary entries={[
           ['Name', registrationToConfirm.get('full_name')], ['ID Number', registrationToConfirm.get('employee_id')],
           ['College', registrationToConfirm.get('course')], ['Email', registrationToConfirm.get('email')],
-          ['Program/Course', registrationToConfirm.get('program')],
+          ['Program', registrationToConfirm.get('program')],
           ...(formData.userType === 'student' ? [['Type of Student', formData.study_load === 'irregular' ? 'Irregular' : 'Regular']] : []),
           ...(registrationToConfirm.get('study_load') === 'irregular' ? [['Transfer Student', registrationToConfirm.get('is_transfer_student') === 'true' ? 'Yes' : 'No']] : []),
           ...(registrationToConfirm.get('is_transfer_student') === 'true' ? [['Previous School', registrationToConfirm.get('previous_school')]] : []),
@@ -245,7 +245,7 @@ export default function SignupPage() {
             </div>
 
             <div className="flex min-w-0 flex-col gap-1.5">
-              <label htmlFor="signup-program" className="trace-label ml-1">Program/Course *</label>
+              <label htmlFor="signup-program" className="trace-label ml-1">Program *</label>
               <select {...fieldProps('program')} required aria-describedby={['signup-program-help', fieldErrors.program && 'signup-program-error'].filter(Boolean).join(' ')} value={formData.program}
                 disabled={loading || catalog.loading || !!catalog.error || !selectedCollege || !availablePrograms.length}
                 onChange={event => setFields({ program: event.target.value })} className="trace-control w-full min-w-0 cursor-pointer">

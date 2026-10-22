@@ -12,6 +12,7 @@ import {addWorkingDays,calendarDate,estimate} from '@/utils/releasePolicy';
 function EvaluationForm({ selectedDoc, evalStudentId, setEvalStudentId, evalStudentName, setEvalStudentName, evalDocType, setEvalDocType, documentTypes, documentTypesError, estimatedReadyDate, setEstimatedReadyDate, clerkNotes, setClerkNotes, busy }) {
   const id = useId(), purpose = secretaryPurpose(selectedDoc.purpose);
   const policy=estimate({...selectedDoc,document_type:evalDocType || selectedDoc.document_type,
+    is_same_day:evalDocType && evalDocType!==selectedDoc.document_type ? false : selectedDoc.is_same_day,
     release_working_days:evalDocType && evalDocType!==selectedDoc.document_type ? null : selectedDoc.release_working_days},
     {user_type:selectedDoc.student_user_type,enrollment_status:selectedDoc.student_enrollment_status});
   return <>

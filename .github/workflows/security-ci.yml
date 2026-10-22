@@ -105,6 +105,12 @@ jobs:
             -e TRACE_API_DB_USER=trace_api_test -e TRACE_API_DB_PASSWORD=disposable-ci-api-password-long-enough \
             -e AI_DB_USER=trace_ai_test -e AI_DB_PASSWORD=disposable-ci-ai-password-long-enough \
             trace-backend-check node database/security_integration.js
+      - name: Registrar policies and FAQ persistence on a fresh MySQL schema
+        run: |
+          docker run --rm --network trace-security-ci \
+            -e NODE_ENV=test -e JWT_SECRET=disposable-ci-jwt-key -e WEBHOOK_SECRET=disposable-ci-webhook-key \
+            -e DB_HOST=trace-security-mysql -e DB_NAME=trace_registrar_test -e DB_USER=root -e DB_PASSWORD=disposable-ci-root-password \
+            trace-backend-check node database/registrar_integration.js
       - run: python -m unittest discover -s deploy -p 'test_*.py'
         env:
           TRACE_RUN_DOCKER_TESTS: '1'

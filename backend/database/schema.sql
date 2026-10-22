@@ -55,6 +55,7 @@ CREATE TABLE IF NOT EXISTS users (
   profile_picture VARCHAR(500),
   verification_status ENUM('pending', 'verified', 'rejected') DEFAULT 'pending',
   verification_reason VARCHAR(300) NULL,
+  -- Legacy College display name; degree Program is stored in users.program.
   course VARCHAR(150),
   college_id INT NULL,
   FOREIGN KEY (college_id) REFERENCES colleges(id) ON DELETE SET NULL,
@@ -690,3 +691,20 @@ CREATE TABLE IF NOT EXISTS pickup_sms_reminders (
 ) ENGINE=InnoDB;
 
 CREATE TABLE IF NOT EXISTS rate_limit_counters (bucket_key CHAR(64) CHARACTER SET ascii COLLATE ascii_bin PRIMARY KEY, hits INT UNSIGNED NOT NULL, reset_at_ms BIGINT UNSIGNED NOT NULL, INDEX rate_limit_expiry(reset_at_ms)) ENGINE=InnoDB;
+
+-- User Manual actions are independent of support ticket state.
+CREATE TABLE IF NOT EXISTS manual_faq_events (
+ id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+ user_id INT NOT NULL,
+ question_hash CHAR(64) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+ question VARCHAR(255) NOT NULL,
+ action ENUM('view','helpful','not_helpful') NOT NULL,
+ suggestion VARCHAR(2000) NULL,
+ client_key VARCHAR(64) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+ payload_hash CHAR(64) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+ created_at_ms BIGINT UNSIGNED NOT NULL,
+ UNIQUE KEY manual_faq_retry(user_id,client_key),
+ INDEX manual_faq_period(created_at_ms,id),
+ INDEX manual_faq_user_question(user_id,question_hash,id),
+ FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

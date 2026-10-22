@@ -200,7 +200,7 @@ export default function useWindow1Dashboard(user, currentTab = 'dashboard', queu
         const nameInput = document.getElementById('manual-full-name');
         const courseSelect = document.getElementById('manual-course');
         if (nameInput) nameInput.value = result.student?.full_name || '';
-        if (courseSelect) courseSelect.value = result.student?.course || '';
+        if(courseSelect){const program=result.student?.program || '';if(program && ![...courseSelect.options].some(option=>option.value===program))courseSelect.add(new Option(program,program));courseSelect.value=program;}
         triggerNotification('Student details fetched successfully.');
       } catch (err) {
         triggerNotification(err.response?.data?.error || 'Student not found.', 'error');

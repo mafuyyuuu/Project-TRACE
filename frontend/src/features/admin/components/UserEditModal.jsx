@@ -48,7 +48,6 @@ export default function UserEditModal({ open, onClose, user, onSave, saving, col
   const [phoneNumber, setPhoneNumber] = useState(user?.phone_number || '');
   const [email, setEmail] = useState(user?.email || '');
   const [collegeId, setCollegeId] = useState(user?.college_id || '');
-  const [course, setCourse] = useState(user?.course || '');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
 
@@ -73,7 +72,6 @@ export default function UserEditModal({ open, onClose, user, onSave, saving, col
     if (phoneNumber !== (user.phone_number || '')) payload.phone_number = normalizePhoneNumber(phoneNumber) || '';
     if (user.role !== 'student' && newPassword) payload.password = newPassword;
     if (String(collegeId) !== String(user.college_id || '')) payload.college_id = collegeId ? Number(collegeId) : null;
-    if (course !== (user.course || '')) payload.course = course;
 
     if (Object.keys(payload).length === 0) {
       onClose();
@@ -149,7 +147,7 @@ export default function UserEditModal({ open, onClose, user, onSave, saving, col
             </div>
             <div>
               <label className="trace-label block mb-2" htmlFor="edit-program">Program</label>
-              <input maxLength={INPUT_LIMITS.program} id="edit-program" className={inputClass} value={course} onChange={e => setCourse(e.target.value)} />
+              <input maxLength={INPUT_LIMITS.program} id="edit-program" className={inputClass} value={user.program || ''} readOnly />
             </div>
           </>
         )}

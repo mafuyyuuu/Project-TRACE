@@ -40,7 +40,7 @@ The public Login/welcome, registration, password recovery, email verification an
 ## 2. Create a student or alumni account
 
 1. From Login, open registration and choose **Student** or **Alumni**.
-2. Enter your identity/contact details, select your **College**, then choose **Program/Course** from that college’s active catalog. Changing college clears the previous program. If loading fails, select **Retry Catalog**; if your program is missing, contact the Registrar. Use an email inbox you can open; any valid email domain is accepted.
+2. Enter your identity/contact details, select your **College**, then choose **Program** from that college’s active catalog. Changing college clears the previous program. If loading fails, select **Retry Catalog**; if your program is missing, contact the Registrar. Use an email inbox you can open; any valid email domain is accepted.
 
    Current students choose **Regular** or **Irregular**. Irregular applicants must answer
    **Are you a transfer student?** with Yes or No; Yes also requires **Previous School**.
@@ -81,7 +81,7 @@ TRACE records the automatic offer against your account. Skipping, logging out, r
 3. Select Save, review the confirmation and confirm.
 4. Check that the saved progress updates. Unsaved entries do not count toward completion.
 
-Required information includes phone, email, birth date, birthplace, sex, civil status, home address, and elementary, junior-high and senior-high schools with graduation years. Use Year Graduated for school years: enter four digits, no later than the current Manila year; older school years are allowed. Current students complete Year Level and Section in Educational Background; both are required for request eligibility and are saved with their profile. College graduation and last-attendance fields are hidden for current students and do not block their requests. Alumni retain PLP/College Year Graduated (1999 through the current Manila year) and a separate optional Last Attendance Year. Existing historical values are preserved; attendance is never inferred as graduation. Enter the confirmed college graduation year even if you already submitted a Graduate Application. Alumni supply their college graduation year; transfer students supply Previous School; married female students supply a maiden name. Follow each marked tab's field hints for your account. Extension name and profile photo are optional. Program/Course is separate from College. In Personal Info, choose College first, then its active Registrar-approved Program/Course. Changing College clears the draft program. Save and confirm, then check the saved selections after reload. If no programs are available, ask Admin to add the approved catalog. Your recorded unlisted/inactive entries are preserved when saving other information.
+Required information includes phone, email, birth date, birthplace, sex, civil status, home address, and elementary, junior-high and senior-high schools with graduation years. Use Year Graduated for school years: enter four digits, no later than the current Manila year; older school years are allowed. Current students complete Year Level and Section in Educational Background; both are required for request eligibility and are saved with their profile. College graduation and last-attendance fields are hidden for current students and do not block their requests. Alumni retain PLP/College Year Graduated (1999 through the current Manila year) and a separate optional Last Attendance Year. Existing historical values are preserved; attendance is never inferred as graduation. Enter the confirmed college graduation year even if you already submitted a Graduate Application. Alumni supply their college graduation year; transfer students supply Previous School; married female students supply a maiden name. Follow each marked tab's field hints for your account. Extension name and profile photo are optional. Program is separate from College. In Personal Info, choose College first, then its active Registrar-approved Program. Changing College clears the draft program. Save and confirm, then check the saved selections after reload. If no programs are available, ask Admin to add the approved catalog. Your recorded unlisted/inactive entries are preserved when saving other information.
 
 **Change your photo:** select the camera on your avatar, choose an image, check the preview, then Save and confirm. Selecting an image does not upload it immediately.
 
@@ -283,7 +283,7 @@ This is initial setup, not replacement of an enrolled authenticator. Staff use t
 - **Document Types:** manage default rates, named fee items, college overrides, applicant availability and allowed colleges. A college override replaces the complete default schedule. Rental, Special Fee and named items apply once per document type in a request. Updated fees do not rewrite saved historical bills.
 - **Counter types:** review the inactive CTC/COR/OGR/CAV fee drafts before activating them. Record the original/photocopy requirement.
 - **Payment methods:** update the displayed method details through the authorized maintenance controls.
-- **Templates:** edit the payment-slip body or email notice, preview it, then Save and confirm. Keep `{{MESSAGE}}` in email notices so verification/reset instructions remain. Supported variables include student identity, Program/Course, document type, tracking/OR/request numbers, amount and issue date. The payment tracking QR remains outside the customizable body.
+- **Templates:** edit the payment-slip body or email notice, preview it, then Save and confirm. Keep `{{MESSAGE}}` in email notices so verification/reset instructions remain. Supported variables include student identity, Program, document type, tracking/OR/request numbers, amount and issue date. The payment tracking QR remains outside the customizable body.
 - **Reports & Export:** apply filters, select an export category and export. Review efficiency/throughput charts as measured indicators; forecasts are estimates.
 
 ### Read Security Logs
@@ -424,7 +424,7 @@ Phone fields accept Philippine mobile numbers only: `09XXXXXXXXX` or `+639XXXXXX
 |---|---|
 | Names, schools, birthplaces, emails and short answers | 255 characters |
 | Student/Alumni/Staff ID | 50 characters; preserve its identifier format |
-| Program/Course | 150 characters |
+| Program | 150 characters |
 | Name suffix / short code | 20 characters |
 | Home address | 500 characters |
 | Notes, messages and long answers | 2,000 characters; pricing notes keep their existing 1,000 limit |
@@ -511,3 +511,14 @@ Document-analytics advice is served from the same packaged analytics module and 
 Main 1c328a8 already includes archived evaluation and verified OCR measurements. Random Forest was intended for Insights, but its earlier model learned from four hand-authored examples; the current `/ai/recommend` route returns aggregate rules without calling that model. Do not describe current Insights as Random Forest predictions. Reactivating a defensible model needs a defined target, representative checked outcomes and unseen evaluation data.
 
 For the panel: “We test the forecast on later days it did not see while learning, compare it with a simple weekday average, and show how many requests it missed per day. We disclose when the simple average does better. Demo data proves the test can run, not accuracy on real PLP requests. OCR reading needs separate human-checked answers; finding a field is not the same as reading it correctly. Staff review helps catch errors but does not prove model accuracy.” The AI page now includes this explanation and a result sentence from the actual loaded MAE values. No algorithm, score, cohort, eligibility, OCR exclusion or permission change is made.
+
+
+### Registrar preparation, page pricing and FAQ feedback (October 22)
+
+Ready By starts from the original submission date in Manila. Day 1 is the first following working day; only Monday–Thursday count. The six BSN preparation types (RLE, Nursing Hours, Course Description, Course Syllabus, International Form and Accreditation) use 15 working days. Undergraduate TOR and Honorable Dismissal use 10; graduates use 5. Copy of Grades and Permanent Record(s) use 10. Known periods are automatic. Other types require a staff-entered Monday–Thursday estimate within 15 working days. Existing same-day eligibility is separate. Estimates never clear payment, perform handoff or release paper automatically.
+
+Every unpriced document uses its saved base rate × actual printed pages per copy × copies. The Secretary confirms the printed output and the server calculates the total. Separately printed components keep their own page counts. Explicitly fixed extras keep their configured basis. Already finalized bills and receipts remain unchanged.
+
+Every account can save Yes/No feedback in User Manual / FAQ. No opens an optional “What should we improve?” field and Send suggestion saves the text. Errors keep drafts for retry; no confirmation popup is added for ratings. Admin sees the actual responses in Efficiency Analytics → Support Analytics, including improvement suggestions. Manual ratings do not resolve tickets.
+
+Admin Document Efficiency also shows Current Extreme Cases: long desk waits, beyond 15 working days and past Ready By. This current snapshot is separate from the historical chart period. Desk outliers compare with the recorded stage p90 over 365 days and require at least 20 completed intervals; insufficient evidence is labeled. Ready for Pickup fulfills preparation, so unclaimed documents are not newly counted as preparation breaches. Review the audit trail before deciding responsibility or action.

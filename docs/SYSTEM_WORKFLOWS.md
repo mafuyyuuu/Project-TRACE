@@ -315,7 +315,7 @@ Diploma uses an editable **₱250 reissue default**. This is a configured inform
 
 From the repository root, deploy the data changes with `node backend/database/migrate_cn03_cn04.js` using the configured database. The main migration invokes the same guarded change. Do not run the older `migrate_b9.js` for this scope: its name mismatches and attachment changes have not been reconciled. The development verification uses mocked models/connections; no live migration was applied.
 
-That consultation originally deferred Program/Course and online-submission QR. The current repository now implements the approved Program catalog, submission QR, quantities, per-page final pricing, durable numbering, templates and case-specific requirements. Automatic holds and delay-notification policy must not be inferred from those additions. See `PROGRESS.md` for the code findings that supersede the earlier Batch 9 completion claims.
+That consultation originally deferred Program and online-submission QR. The current repository now implements the approved Program catalog, submission QR, quantities, per-page final pricing, durable numbering, templates and case-specific requirements. Automatic holds and delay-notification policy must not be inferred from those additions. See `PROGRESS.md` for the code findings that supersede the earlier Batch 9 completion claims.
 
 
 ## Support ticket redesign — local implementation, matched deployment required
@@ -542,3 +542,10 @@ Tracking requires the authenticated owner or an authorized staff/college scope. 
 
 ### October 22 security follow-up
 See `docs/SECURITY_ROLLOUT.md` and `docs/PERMISSIONS_MATRIX.md`. This follow-up requires a separate AI gateway secret, additive rate_limit_counters migration, uploads ownership preparation and least-privilege API/AI database identities before recreating containers. Production registration OCR requires Admin official-record review. Preserve deployed JWT/MFA encryption keys. Live GCP/firewall/backup/branch protection and multi-instance readiness are separate acceptance items; none are automatically deployed.
+
+
+### October 22 preparation and pricing policy
+
+Preparation dates now use the confirmed Monday–Thursday periods documented in USER_MANUAL. The original filing date is authoritative; evaluation never restarts the clock. A preparation estimate does not change physical handoff, payment or release authority. All not-yet-priced base charges use the actual printed page count, including non-TOR types and college overrides. Fixed extras retain their stated basis; finalized historical bills are preserved.
+
+Manual FAQ votes and optional No suggestions are saved independently of support ticket events. Admin reporting combines recorded FAQ counts while retaining ticket-only resolution/escalation definitions. Current extreme-case analysis identifies evidence of long desk waiting and missed preparation deadlines, with minimum sample counts and unavailable states visible. No automatic hold, escalation, assignment, notification or status change is inferred from a flag.

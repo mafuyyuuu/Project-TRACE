@@ -62,6 +62,12 @@ it('decodes string JSON on locked reads', async () => {
   expect(row.pricing_schedule).toMatchObject({base_fee:50,fee_rule:'per_page',calculation_policy:'printed_pages_v2'});
   expect(row.fee_breakdown).toEqual({ total: 50 });
 });
+it.each([{priced_at:'2026-10-01'},{payment_status:'PAID'},{current_status:'COMPLETED'}])('preserves finalized schedules on reads (%j)',async finalized=>{
+  const snapshot={document_type:'Synthetic document',base_fee:50,fee_rule:'flat'};
+  const executor={query:vi.fn().mockResolvedValue([[{id:1,...finalized,pricing_snapshot:JSON.stringify(snapshot),fee_breakdown:'{"total":50}'}]])};
+  const [row]=await model.findByIdForUpdate(1,executor);
+  expect(row.pricing_schedule).toEqual(snapshot);expect(row.fee_breakdown.total).toBe(50);
+});
 it('invalidates obsolete snapshots when evaluation corrects identity or type', async () => {
   const executor = { query: vi.fn().mockResolvedValue([{}]) };
   await model.updateEvaluation(1, 'SEC_PROCESSING', 'STU-NEW', 'Name', 'New Type', null, executor);

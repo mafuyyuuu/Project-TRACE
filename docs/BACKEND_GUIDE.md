@@ -56,7 +56,7 @@ A student can request several document types at once and pay a single combined f
 
 ### Reference data & pricing
 `document_types` and `colleges` replace what used to be hardcoded `<option>` lists.
-`document_types.base_fee` is admin-editable; `fee_rule` selects flat or page-based pricing. The stored `per_semester_block` key remains for compatibility, but final TOR pricing uses actual printed pages per copy. Fees are recomputed server-side; client-supplied amounts are ignored. See the Batch 10 contract below.
+`document_types.base_fee` is admin-editable; Legacy `fee_rule` values remain readable for historical bills. New and unpriced document base charges use actual printed pages per copy for every document type under printed_pages_v2. Fees are recomputed server-side; client-supplied amounts are ignored. See the Batch 10 contract below.
 
 ### Graduate Application module
 The Registrar configures the questions, with a catalog-backed academic pair:
@@ -602,3 +602,14 @@ The new experimental classifier supersedes earlier rules-only status notes in th
 
 ### October 22 security follow-up
 See `docs/SECURITY_ROLLOUT.md` and `docs/PERMISSIONS_MATRIX.md`. This follow-up requires a separate AI gateway secret, additive rate_limit_counters migration, uploads ownership preparation and least-privilege API/AI database identities before recreating containers. Production registration OCR requires Admin official-record review. Preserve deployed JWT/MFA encryption keys. Live GCP/firewall/backup/branch protection and multi-instance readiness are separate acceptance items; none are automatically deployed.
+
+
+### Registrar policy and saved manual feedback (October 22)
+
+`releasePolicy.js` is mirrored in the frontend. New filings save `documents.release_working_days` and the computed `estimated_ready_date` from the same original submission instant. Known periods are independently recomputed under the evaluation transaction; client dates cannot override them. A corrected student/type is re-evaluated from authoritative identity. Unlisted types accept a strict YYYY-MM-DD, Monday–Thursday date no later than the original submission plus 15 working days. An additive `migrate_release_policy.js` upgrade preserves old dates and bills; old records are not guessed/backfilled.
+
+`printedPageSchedule` creates version-2 `printed_pages_v2` snapshots for new/unpriced document calculations. It retains numeric rates, complete college overrides and the explicit fixed/per-page basis of extras. Every base charge uses actual pages × copies × saved rate. `priceDocument` rejects already priced or paid records; Finance remains the only payment-clearance authority. Historical finalized schedules and amounts are returned unchanged.
+
+Authenticated GET `/api/manual-faq` reads only the actor’s latest feedback. POST records an approved question/action and optional No suggestion (2,000 characters), with a 16–64-character retry key and account rate limit. `manual_faq_events` is append-only; a unique account/key index and payload digest prevent duplicate retries or key reuse with changed content. The server selects actor identity and an approved static/support FAQ catalog. The migration is additive and repeatable. In support reports, manual views count once per account/question/Manila date; ratings use the latest per account/question in the chosen period. Ticket-resolution and escalation denominators are untouched. Suggestions remain Admin-only and are excluded from AI payloads.
+
+Current extreme-case SQL reads only recognized active pipeline states and excludes known TRC-MOCK records. Completed transition intervals supply stage p90 baselines (365 days, at least 20 intervals); same-status notes do not restart waiting. A missing baseline is not zero. This is current-case analysis, explicitly independent from the historical chart dates. The read is bounded to 5,000 active cases; oversized or failed reads return unavailable, never partial totals. It is descriptive guidance, not validated delay-cause or staffing accuracy.

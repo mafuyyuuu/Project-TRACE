@@ -16,12 +16,12 @@ it('displays the saved program separately from the college in Admin review', () 
   render(<AccountVerificationModal studentVerifyToConfirm={{ student: {
     full_name: 'Synthetic Student', student_id: 'SYN001', program: 'BS Computer Science', course: 'College A',
   } }} cancelAdminVerifyStudent={vi.fn()} confirmAdminVerifyStudent={vi.fn()} />);
-  expect(screen.getByText('Course / Program').parentElement).toHaveTextContent('BS Computer Science');
+  expect(screen.getByText('Program').parentElement).toHaveTextContent('BS Computer Science');
   expect(screen.getByText('College', { selector: '.trace-admin-review-field dt' }).parentElement).toHaveTextContent('College A');
 });
 it('does not substitute the college when a historical program is missing', () => {
   render(<AccountVerificationModal studentVerifyToConfirm={{ student: { full_name: 'Synthetic Student', course: 'College A' } }} />);
-  expect(screen.getByText('Course / Program').parentElement).toHaveTextContent('Not entered');
+  expect(screen.getByText('Program').parentElement).toHaveTextContent('Not entered');
 });
 it.each([['Trace_2026', true], ['temporary123_', false]])('checks Admin creation before confirmation: %s', (password, allowed) => {
   const create = vi.fn();

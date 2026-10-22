@@ -81,7 +81,7 @@ function listApplications({ status, scope } = {}, executor = pool) {
   const where = conditions.length ? ` WHERE ${conditions.join(' AND ')}` : '';
   return executor
     .query(
-      `SELECT ga.*, u.full_name, u.email, u.course
+      `SELECT ga.*, u.full_name, u.email, u.course, u.program
        FROM grad_applications ga
        LEFT JOIN users u ON u.student_id = ga.student_id${where}
        ORDER BY ga.submitted_at DESC LIMIT 1000`,

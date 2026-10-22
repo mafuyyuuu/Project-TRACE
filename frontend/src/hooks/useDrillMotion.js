@@ -15,7 +15,8 @@ export default function useDrillMotion(ref, open, layer = 'modal') {
     clearDrillExits();
     const panel = ref.current;
     const origin = document.activeElement;
-    if (origin?.matches('button, a, input, select, textarea')) {
+    if(window.innerWidth<768 || window.matchMedia?.('(max-height:500px) and (pointer:coarse)').matches)panel.style.transformOrigin='center';
+    else if (origin?.matches('button, a, input, select, textarea')) {
       const from = origin.getBoundingClientRect();
       const to = panel.getBoundingClientRect();
       const x = Math.max(0, Math.min(to.width, from.left + from.width / 2 - to.left));

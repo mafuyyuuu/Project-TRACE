@@ -36,4 +36,5 @@ const registrationIdLimiter = limiter('registration-id', 30);
 const uploadLimiter = limiter('upload', 40, 900000, { keyGenerator: accountKey });
 const ocrLimiter = limiter('ocr', 20, 900000, { keyGenerator: accountKey });
 const exportLimiter = limiter('export', 10, 900000, { keyGenerator: accountKey });
-module.exports = { loginLimiter, loginNetworkLimiter, registerLimiter, passwordResetLimiter, apiLimiter, registrationIdLimiter, uploadLimiter, ocrLimiter, exportLimiter, verifiedAccount, loginKey };
+const faqFeedbackLimiter=limiter('faq-feedback',120,900000,{keyGenerator:accountKey});
+module.exports = { faqFeedbackLimiter, loginLimiter, loginNetworkLimiter, registerLimiter, passwordResetLimiter, apiLimiter, registrationIdLimiter, uploadLimiter, ocrLimiter, exportLimiter, verifiedAccount, loginKey };

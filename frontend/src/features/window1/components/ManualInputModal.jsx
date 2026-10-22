@@ -69,14 +69,14 @@ export default function ManualInputModal({
             </div>
 
             <div className="flex flex-col gap-2">
-              <label htmlFor="manual-course" className="trace-label">Course / Program <span className="text-red-600">*</span></label>
+              <label htmlFor="manual-course" className="trace-label">Program <span className="text-red-600">*</span></label>
               <select
                 name="course"
                 id="manual-course"
                 defaultValue="" required
                 className="trace-control cursor-pointer"
               >
-                <option value="" disabled>Select Course...</option>
+                <option value="" disabled>Select Program...</option>
                 <option value="BSCS">BS Computer Science</option>
                 <option value="BSIT">BS Information Technology</option>
                 <option value="BSCPE">BS Computer Engineering</option>

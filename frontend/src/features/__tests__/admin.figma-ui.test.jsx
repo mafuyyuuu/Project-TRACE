@@ -33,13 +33,13 @@ describe('Admin Figma UI interactions', () => {
     await userEvent.selectOptions(screen.getByRole('combobox', { name: 'Security event filters' }), 'all');
     expect(screen.getByText('Account 0')).toBeInTheDocument();
   });
-  it('keeps a manual helpfulness selection separate from the supplied answers', async () => {
-    render(<AdminManual entries={[["What do the dashboard insights mean?", 'Recorded metrics only.']]} />);
-    const yes = screen.getByRole('button', { name: 'Yes' });
-    await userEvent.click(yes);
-    expect(yes).toHaveAttribute('aria-pressed', 'true');
-    await userEvent.click(screen.getByRole('button', { name: 'No' }));
-    expect(yes).toHaveAttribute('aria-pressed', 'false');
+  it('requests saved helpfulness without changing the supplied answers', async () => {
+    const question='What do the dashboard insights mean?',choose=vi.fn();
+    const reviews={selected:{},feedback:{},drafts:{},pending:{},errors:{},notices:{},choose,view:vi.fn(),setDraft:vi.fn(),saveSuggestion:vi.fn()};
+    const {rerender}=render(<AdminManual reviews={reviews} entries={[[question,'Recorded metrics only.']]}/>);
+    await userEvent.click(screen.getByRole('button',{name:'Yes'}));expect(choose).toHaveBeenCalledWith(question,'helpful');
+    rerender(<AdminManual reviews={{...reviews,feedback:{[question]:{action:'helpful'}}}} entries={[[question,'Recorded metrics only.']]}/>);
+    expect(screen.getByRole('button',{name:'Yes'})).toHaveAttribute('aria-pressed','true');
     expect(screen.getByText('Recorded metrics only.')).toBeInTheDocument();
   });
 

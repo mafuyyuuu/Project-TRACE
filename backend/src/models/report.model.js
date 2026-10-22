@@ -1,5 +1,5 @@
 const { pool } = require('../config/db');
-const { STATUS, LEGACY_STATUS } = require('../utils/documentStatus');
+const { STATUS, LEGACY_STATUS, PIPELINE } = require('../utils/documentStatus');
 const { documentCollegeScope } = require('./documentCollegeScope');
 
 /**
@@ -320,7 +320,38 @@ function workloadByClerk({ dateFrom, dateTo } = {}, executor = pool) {
     .then(([rows]) => rows);
 }
 
-module.exports = { DOCUMENT_REPORT_SELECT, REPORT_JOINS, literalNamePattern,
+async function activeDelayCases(asOf,executor=pool){
+  const active=PIPELINE.filter(stage=>stage!==STATUS.COMPLETED),placeholders=active.map(()=>'?').join(',');
+  const [rows]=await executor.query(`SELECT d.id,d.tracking_number,d.document_type,d.current_status,
+    UNIX_TIMESTAMP(d.created_at) AS created_at_epoch,DATE_FORMAT(d.estimated_ready_date,'%Y-%m-%d') AS estimated_ready_date,
+    UNIX_TIMESTAMP(COALESCE((SELECT MAX(sl.timestamp_started) FROM step_logs sl WHERE sl.document_id=d.id
+      AND sl.to_status=d.current_status AND (sl.from_status IS NULL OR sl.from_status<>sl.to_status)
+      AND sl.timestamp_started<=FROM_UNIXTIME(?)),CASE WHEN d.current_status=? THEN d.created_at END)) AS stage_entered_epoch
+    FROM documents d WHERE d.current_status IN (${placeholders}) AND d.created_at<=FROM_UNIXTIME(?)
+      AND d.tracking_number NOT LIKE 'TRC-MOCK-%' ORDER BY d.created_at,d.id LIMIT 5001`,
+  [asOf.getTime()/1000,STATUS.PENDING_W1_INTAKE,...active,asOf.getTime()/1000]);
+  return rows;
+}
+async function deskWaitBaselines(asOf,executor=pool){
+  const active=PIPELINE.filter(stage=>stage!==STATUS.COMPLETED),placeholders=active.map(()=>'?').join(',');
+  const [rows]=await executor.query(`WITH intervals AS (
+    SELECT sl.from_status AS stage,TIMESTAMPDIFF(SECOND,prev.timestamp_started,sl.timestamp_started)/60.0 AS minutes
+    FROM step_logs sl JOIN documents d ON d.id=sl.document_id
+    JOIN step_logs prev ON prev.id=(SELECT prior.id FROM step_logs prior WHERE prior.document_id=sl.document_id
+      AND (prior.from_status IS NULL OR prior.from_status<>prior.to_status)
+      AND (prior.timestamp_started<sl.timestamp_started OR prior.timestamp_started=sl.timestamp_started AND prior.id<sl.id)
+      ORDER BY prior.timestamp_started DESC,prior.id DESC LIMIT 1)
+    WHERE sl.from_status IN (${placeholders}) AND sl.from_status=prev.to_status AND sl.from_status<>sl.to_status
+      AND sl.timestamp_started>=FROM_UNIXTIME(?) AND sl.timestamp_started<=FROM_UNIXTIME(?)
+      AND d.tracking_number NOT LIKE 'TRC-MOCK-%'
+  ),ranked AS (SELECT stage,minutes,ROW_NUMBER() OVER(PARTITION BY stage ORDER BY minutes) AS position,
+    COUNT(*) OVER(PARTITION BY stage) AS samples FROM intervals WHERE minutes>=0)
+  SELECT stage,MAX(samples) AS samples,MAX(CASE WHEN position=CEIL(samples*0.9) THEN minutes END) AS p90_minutes
+  FROM ranked GROUP BY stage`,[...active,(asOf.getTime()-365*86400000)/1000,asOf.getTime()/1000]);
+  return rows;
+}
+
+module.exports = { activeDelayCases,deskWaitBaselines,DOCUMENT_REPORT_SELECT, REPORT_JOINS, literalNamePattern,
   buildDocumentFilters,
   listDocumentsForReport,
   countDocumentsForReport,

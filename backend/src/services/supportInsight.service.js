@@ -4,10 +4,11 @@ const {summarize}=require('../utils/supportMetrics');
 const ai=require('./aiEngine.service');
 const approved=new Set(require('../config/supportFaq.json').map(topic=>topic.id).concat(['general','linked']));
 function payload(current,previous) {
+  const faq=current.ticket_faq || current.faq;
   return {period:current.period,created:current.created,
     categories:Object.fromEntries(Object.entries(current.categories).filter(([key])=>approved.has(key))),
     queue:current.durations.initial_queue,escalation:current.escalation,
-    faq:{views:current.faq.views,topics:Object.fromEntries(Object.entries(current.faq.topics).filter(([key])=>approved.has(key)).map(([key,value])=>[key,value.views]))},
+    faq:{views:faq.views,topics:Object.fromEntries(Object.entries(faq.topics).filter(([key])=>approved.has(key)).map(([key,value])=>[key,value.views]))},
     busy_periods:current.busy_periods,
     previous:{period:previous.period,escalation:previous.escalation,queue_samples:previous.durations.initial_queue.samples,queue_median_minutes:previous.durations.initial_queue.median_minutes}};
 }
