@@ -2988,3 +2988,9 @@ Implemented authenticated tracking, live desk/student-verification checks, owner
 CI acceptance found that the read-only volume helper lacked permission to inspect MySQL-owned 0700 directories after dropping all capabilities. Added only DAC_READ_SEARCH to read helpers while keeping source volumes mounted read-only; restore helpers remain isolated to fresh drill volumes. Real atomic MySQL counter/account checks already passed.
 
 The image scanner found vulnerable vendored installer libraries that the ordinary installed-package audit did not cover. Updated build installer CA bundle and removed pip/ensurepip from the immutable AI runtime instead of excluding findings. CI now inventories actual installed distributions with importlib.metadata and asserts there is no runtime installer. Local production-build CSP checks passed 24 assertions across login/signup at 320/375/768/1440, including blocked inline-script probes; this is not a whole-application browser acceptance claim.
+
+Final review coalesced readiness probes with a short production cache to protect the database from public health-check bursts, and removed remaining raw OCR debug text/exception strings from logs and responses. Added regression checks for coalescing and private OCR failure details.
+
+Recovery acceptance now compares every restored base-table row count with a manifest captured while source writers are stopped, as well as database integrity and restored upload/n8n bytes; added manifest validation tests.
+
+The isolated restore reached import successfully but the minimal mysql:8.4 image does not ship mysqlcheck. Switched integrity verification to SQL CHECK TABLE using the included mysql client; retained all row/file comparisons and network isolation. AI runtime and image/dependency gates passed on 9000879.

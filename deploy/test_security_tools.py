@@ -25,6 +25,11 @@ class EnvironmentTests(unittest.TestCase):
             configure_security.save('DB_USER=fixture\n')
             self.assertEqual((Path(folder)/'.env').stat().st_mode & 0o777, 0o600)
 
+class RecoveryValidation(unittest.TestCase):
+    def test_count_manifest_uses_each_table_and_rejects_unsafe_names(self):
+        self.assertEqual(recovery.row_counts('fixture', lambda db, sql: 'documents\nusers' if 'TABLE_NAME' in sql else '3'), {'documents':3,'users':3})
+        with self.assertRaises(ValueError): recovery.row_counts('fixture', lambda db, sql: 'bad`table')
+
 @unittest.skipUnless(os.environ.get('TRACE_RUN_DOCKER_TESTS') == '1', 'Requires disposable Docker fixtures')
 class RecoveryAcceptance(unittest.TestCase):
     def test_encrypt_restore_and_resume_writers(self):

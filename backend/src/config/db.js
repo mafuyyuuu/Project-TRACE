@@ -41,7 +41,7 @@ async function testConnection() {
     await pool.query('SELECT 1');
     console.log('✅ Database connection established successfully.');
   } catch (err) {
-    console.error('❌ Database connection failed:', err.message);
+    console.error('❌ Database connection failed:', err.name);
     throw err;
   }
 }

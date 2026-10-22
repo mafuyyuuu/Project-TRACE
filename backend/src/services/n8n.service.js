@@ -34,7 +34,7 @@ async function triggerDocumentRouting({
     });
     console.log(`🔀 Triggered n8n routing for ${tracking_number}`);
   } catch (err) {
-    console.warn('⚠️ n8n webhook unavailable:', err.message);
+    console.warn('⚠️ n8n webhook unavailable:', err.name);
   }
 }
 

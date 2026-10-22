@@ -121,11 +121,11 @@ def extract_text(filepath, *, raise_on_error=False):
             result = original_text
             logger.info("Using original OCR result (longer)")
 
-        logger.debug("Extracted text:\n%s", result)
+        logger.debug("OCR text extraction completed.")
         return result
 
     except Exception as e:
-        logger.error("EasyOCR extraction failed for %s: %s", filepath, str(e))
+        logger.error("EasyOCR extraction failed: %s", type(e).__name__)
         if raise_on_error:
             raise
         return ""
@@ -337,12 +337,12 @@ def process_receipt(filepath):
         }
 
     except Exception as e:
-        logger.error("Receipt processing failed for %s: %s", filepath, str(e))
+        logger.error("Receipt processing failed: %s", type(e).__name__)
         return {
             'raw_text': '',
             'extracted_data': empty,
             'success': False,
-            'error': str(e),
+            'error': 'OCR processing is temporarily unavailable.',
         }
 
 
@@ -404,7 +404,7 @@ def process_document(filepath):
         }
 
     except Exception as e:
-        logger.error("Document processing failed for %s: %s", filepath, str(e))
+        logger.error("Document processing failed: %s", type(e).__name__)
         return {
             'raw_text': '',
             'extracted_data': {
@@ -415,7 +415,7 @@ def process_document(filepath):
             },
             'success': False,
             'processing_status': 'failed',
-            'error': str(e),
+            'error': 'OCR processing is temporarily unavailable.',
         }
 
 VERIFICATION_READ_OPTIONS = dict(detail=0, canvas_size=1280, mag_ratio=1)

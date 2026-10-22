@@ -21,7 +21,7 @@ async function start() {
   try {
     await notifications.logChannelStatus();
   } catch (err) {
-    console.warn('⚠️  Could not verify notification channels:', err.message);
+    console.warn('⚠️  Could not verify notification channels:', err.name);
   }
 
   // Socket.IO shares the HTTP server, so realtime needs no extra port and

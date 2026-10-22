@@ -3,6 +3,7 @@ import argparse
 import hashlib
 import json
 import os
+import re
 from pathlib import Path
 import secrets
 import shutil
@@ -50,6 +51,15 @@ def volume_size(volume):
     result = output(['docker', 'run', '--rm', '--network', 'none', '--read-only', '--cap-drop', 'ALL', '--cap-add', 'DAC_READ_SEARCH', '--security-opt', 'no-new-privileges', '--mount', f'type=volume,src={volume},dst=/source,readonly', 'alpine:3.22', 'du', '-sk', '/source'])
     return int(result.split()[0]) * 1024
 
+def row_counts(database, query):
+    names = query(database, "SELECT TABLE_NAME FROM information_schema.TABLES WHERE TABLE_SCHEMA=DATABASE() AND TABLE_TYPE='BASE TABLE'").splitlines()
+    if len(names) > 2000 or not all(re.fullmatch(r'[a-zA-Z0-9_]+', name) for name in names):
+        raise ValueError('Unsupported table names or database size.')
+    return {name: int(query(database, f'SELECT COUNT(*) FROM `{name}`')) for name in names}
+
+def source_query(database, sql):
+    return output(['docker', 'compose', 'exec', '-T', 'mysql', 'sh', '-c', 'MYSQL_PWD="$MYSQL_ROOT_PASSWORD" exec mysql -uroot -N -B "$1" -e "$2"', '_', database, sql])
+
 def backup(args):
     recipients = Path(args.recipients).resolve()
     lines = [line.strip() for line in recipients.read_text().splitlines() if line.strip() and not line.startswith('#')]
@@ -71,6 +81,7 @@ def backup(args):
         stopped = False
         try:
             stopped = True; compose('stop', '-t', '45', *running)
+            counts = row_counts(db, source_query)
             with (work / 'database.sql').open('wb') as stream:
                 compose('exec', '-T', 'mysql', 'sh', '-c', 'MYSQL_PWD="$MYSQL_ROOT_PASSWORD" exec mysqldump -uroot --single-transaction --quick --routines --triggers --events --hex-blob --no-tablespaces --set-gtid-purged=OFF "$1"', '_', db, stdout=stream)
             archive_volume(uploads, work / 'uploads.tar'); archive_volume(n8n, work / 'n8n.tar')
@@ -78,7 +89,7 @@ def backup(args):
             # Capture actual running backend configuration for recovery of encryption/signing keys.
             (work / 'backend-environment.json').write_text(json.dumps(database))
             shutil.copyfile(ROOT / '.env', work / 'root.env')
-            manifest = {'database': db, 'commit': output(['git', 'rev-parse', 'HEAD']), 'created_at': time.time(), 'images': {name: inspect(name)['Image'] for name in ['mysql']}, 'hashes': {path.name: digest(path) for path in work.iterdir()}}
+            manifest = {'database': db, 'row_counts': counts, 'commit': output(['git', 'rev-parse', 'HEAD']), 'created_at': time.time(), 'images': {name: inspect(name)['Image'] for name in ['mysql']}, 'hashes': {path.name: digest(path) for path in work.iterdir()}}
             (work / 'manifest.json').write_text(json.dumps(manifest))
             package = work / 'payload.tar'
             with tarfile.open(package, 'w') as archive:
@@ -121,7 +132,12 @@ def drill(args):
                 time.sleep(1)
             else: raise ValueError('Isolated MySQL did not become ready.')
             with (work / 'database.sql').open('rb') as stream: run(['docker', 'exec', '-i', resource, 'mysql', '-uroot', database], stdin=stream)
-            run(['docker', 'exec', resource, 'mysqlcheck', '-uroot', '--check', database], stdout=subprocess.DEVNULL)
+            restored_counts = row_counts(database, lambda db, sql: output(['docker', 'exec', resource, 'mysql', '-uroot', '-N', '-B', db, '-e', sql]))
+            if restored_counts != manifest['row_counts']: raise ValueError('Restored row counts differ from the stopped source database.')
+            for table in restored_counts:
+                checks = output(['docker', 'exec', resource, 'mysql', '-uroot', '-N', '-B', database, '-e', f'CHECK TABLE `{table}`']).splitlines()
+                if not checks or any(row.split('\t')[-2:] != ['status', 'OK'] for row in checks):
+                    raise ValueError('Restored table integrity check failed.')
             for name in ['uploads', 'n8n']:
                 target = resource + '-' + name; output(['docker', 'volume', 'create', target]); volumes.append(target)
                 # Restores into fresh volumes only; never mounts production volumes or starts n8n.
@@ -133,7 +149,7 @@ def drill(args):
                     with tarfile.open(path) as archive:
                         return {member.name: hashlib.sha256(archive.extractfile(member).read()).hexdigest() for member in archive.getmembers() if member.isfile()}
                 if contents(work / (name + '.tar')) != contents(restored): raise ValueError('Restored file content mismatch.')
-            print('Isolated database integrity and upload/n8n file-content restore passed. No production data was overwritten. Test application behavior separately on an isolated staging restore.')
+            print('Isolated database integrity, exact table row counts and upload/n8n file-content restore passed. No production data was overwritten. Test application behavior separately on an isolated staging restore.')
         finally:
             subprocess.run(['docker', 'rm', '-f', resource], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
             for volume in volumes: subprocess.run(['docker', 'volume', 'rm', volume], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)

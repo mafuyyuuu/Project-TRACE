@@ -331,7 +331,7 @@ async function register(body, file) {
         title: 'Account awaiting verification', message: `${full_name} has submitted an account for review.`,
         type: 'info', actionUrl: `/dashboard?reviewAccount=${created.insertId}`,
       });
-    } catch (err) { console.warn('Registration notification unavailable:', err.message); }
+    } catch (err) { console.warn('Registration notification unavailable:', err.name); }
   }
   return {
     email_verification_required: true, email_sent: false,

@@ -100,7 +100,7 @@ python3 deploy/recovery.py drill
 python3 deploy/recovery.py drill --run --archive /absolute/path/backup.tar.age --identity /absolute/path/private-age-key
 ```
 
-The drill validates checksums, decrypts in private temporary space, restores MySQL into a fresh network-isolated container with events disabled, runs mysqlcheck and checks restored upload/n8n file bytes. It never mounts production volumes or starts application/n8n workflows. Complete application acceptance on an isolated staging restore as a separate gate. Measure achieved recovery time and tolerable data loss; no RTO/RPO or off-host protection is claimed before that evidence exists.
+The drill validates checksums, decrypts in private temporary space, restores MySQL into a fresh network-isolated container with events disabled, runs SQL CHECK TABLE, compares every base table row count with the stopped source and checks restored upload/n8n file bytes. It never mounts production volumes or starts application/n8n workflows. Complete application acceptance on an isolated staging restore as a separate gate. Measure achieved recovery time and tolerable data loss; no RTO/RPO or off-host protection is claimed before that evidence exists.
 
 ## Cloud, logs, delivery and scaling work still requiring live setup
 

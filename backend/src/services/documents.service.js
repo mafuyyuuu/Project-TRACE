@@ -846,7 +846,7 @@ async function resolveCollege(studentId) {
     const exact = collegeRows.find(college => college.name === course);
     return { course: exact?.name || null, collegeCode: exact?.short_code || null };
   } catch (err) {
-    console.warn('⚠️ Could not resolve college for routing:', err.message);
+    console.warn('⚠️ Could not resolve college for routing:', err.name);
     return { course: null, collegeCode: null };
   }
 }
@@ -869,7 +869,7 @@ async function notifyStudent(studentId, { title, message, type, alsoSmsAndEmail 
       user: students[0], title, message, type, alsoSmsAndEmail, greetingName,
     });
   } catch (err) {
-    console.warn('⚠️ Student notification failed:', err.message);
+    console.warn('⚠️ Student notification failed:', err.name);
   }
 }
 

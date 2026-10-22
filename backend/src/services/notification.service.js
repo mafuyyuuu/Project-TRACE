@@ -125,7 +125,7 @@ async function notifyInApp({ userId, title, message, type, actionUrl = null }, e
         id: insert.insertId, title, message, type, action_url: actionUrl, created_at: new Date().toISOString(), is_read: false,
       });
     } catch (err) {
-      console.warn('Realtime push failed (notification still saved):', err.message);
+      console.warn('Realtime push failed (notification still saved):', err.name);
     }
 
     return { ok: true };

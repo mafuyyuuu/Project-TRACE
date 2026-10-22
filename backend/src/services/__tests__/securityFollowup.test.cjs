@@ -67,3 +67,12 @@ it('locks a graduate record and rolls back a changed college before review', asy
   await expect(gradService.reviewApplication({id:5,role:'clerk',desk_assignment:'Secretary'},42,{status:'approved'})).rejects.toMatchObject({status:403});
   expect(grad.findApplicationById).toHaveBeenCalledWith(42,tx,true); expect(tx.rollback).toHaveBeenCalled(); expect(tx.commit).not.toHaveBeenCalled(); expect(grad.updateApplicationStatus).not.toHaveBeenCalled();
 });
+
+it('coalesces simultaneous public readiness probes instead of flooding the database', async () => {
+  let release;
+  vi.spyOn(pool,'query').mockImplementation(() => new Promise(resolve => release = resolve));
+  const operations = require('../operations.service');
+  const first = operations.readiness(), second = operations.readiness();
+  expect(pool.query).toHaveBeenCalledOnce();
+  release([[]]); await Promise.all([first,second]);
+});

@@ -32,6 +32,7 @@ class CompletionTest(unittest.TestCase):
             raise RuntimeError('synthetic failure')
         result = load_process(fail)('synthetic')
         self.assertEqual(result['processing_status'], 'failed')
+        self.assertNotIn('synthetic failure', result['error'])
 
     def test_intake_requests_strict_error_propagation(self):
         options_seen = []
