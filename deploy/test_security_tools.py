@@ -59,6 +59,8 @@ class RecoveryAcceptance(unittest.TestCase):
                     recovery.drill(argparse.Namespace(archive=str(archives[0]),identity=str(root/'private-key')))
                     count=recovery.output(['docker','compose','exec','-T','mysql','sh','-c','MYSQL_PWD="$MYSQL_ROOT_PASSWORD" mysql -uroot -N -e "SELECT COUNT(*) FROM trace_security_test.restore_probe"'])
                     self.assertEqual(count,'1')
+                except subprocess.CalledProcessError as error:
+                    raise AssertionError('Disposable fixture command failed: ' + error.stderr.decode()) from error
                 finally: recovery.compose('down','--volumes','--remove-orphans',stdout=subprocess.DEVNULL)
 
 if __name__ == '__main__': unittest.main()

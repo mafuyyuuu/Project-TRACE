@@ -1,12 +1,27 @@
 {
   "required_status_checks": {
     "strict": true,
-    "contexts": [
-      "Backend tests and dependency audit",
-      "Frontend tests, build and dependency audit",
-      "Isolated AI analytics tests",
-      "Container and SQL acceptance",
-      "AI runtime and dependency audit"
+    "checks": [
+      {
+        "context": "Backend tests and dependency audit",
+        "app_id": 15368
+      },
+      {
+        "context": "Frontend tests, build and dependency audit",
+        "app_id": 15368
+      },
+      {
+        "context": "Isolated AI analytics tests",
+        "app_id": 15368
+      },
+      {
+        "context": "Container and SQL acceptance",
+        "app_id": 15368
+      },
+      {
+        "context": "AI runtime and dependency audit",
+        "app_id": 15368
+      }
     ]
   },
   "enforce_admins": true,

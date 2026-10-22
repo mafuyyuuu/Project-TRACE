@@ -32,7 +32,7 @@ def inspect(service):
 
 def archive_volume(volume, destination):
     with destination.open('wb') as stream:
-        run(['docker', 'run', '--rm', '--network', 'none', '--read-only', '--cap-drop', 'ALL', '--security-opt', 'no-new-privileges', '--mount', f'type=volume,src={volume},dst=/source,readonly', 'alpine:3.22', 'tar', '-C', '/source', '-cf', '-', '.'], stdout=stream)
+        run(['docker', 'run', '--rm', '--network', 'none', '--read-only', '--cap-drop', 'ALL', '--cap-add', 'DAC_READ_SEARCH', '--security-opt', 'no-new-privileges', '--mount', f'type=volume,src={volume},dst=/source,readonly', 'alpine:3.22', 'tar', '-C', '/source', '-cf', '-', '.'], stdout=stream)
 
 def volume_of(container, target):
     matches = [row for row in container['Mounts'] if row.get('Type') == 'volume' and row['Destination'] == target]
@@ -47,7 +47,7 @@ def validate_data_archive(path):
                 raise ValueError('Backup volume contains an unsupported link or unsafe archive path.')
 
 def volume_size(volume):
-    result = output(['docker', 'run', '--rm', '--network', 'none', '--read-only', '--cap-drop', 'ALL', '--security-opt', 'no-new-privileges', '--mount', f'type=volume,src={volume},dst=/source,readonly', 'alpine:3.22', 'du', '-sk', '/source'])
+    result = output(['docker', 'run', '--rm', '--network', 'none', '--read-only', '--cap-drop', 'ALL', '--cap-add', 'DAC_READ_SEARCH', '--security-opt', 'no-new-privileges', '--mount', f'type=volume,src={volume},dst=/source,readonly', 'alpine:3.22', 'du', '-sk', '/source'])
     return int(result.split()[0]) * 1024
 
 def backup(args):

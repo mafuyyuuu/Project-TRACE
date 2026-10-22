@@ -20,6 +20,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /install
+RUN python -m pip install --no-cache-dir --upgrade pip==26.2.2
 COPY requirements.txt .
 RUN if [ "$(uname -m)" = "x86_64" ]; then \
       pip install --no-cache-dir --prefix=/install/deps -r requirements.txt \
@@ -52,7 +53,10 @@ COPY security.py runtime_smoke.py app.py ocr_engine.py registration_verification
 ENV EASYOCR_MODULE_PATH=/app/.EasyOCR
 RUN python -c "import easyocr; easyocr.Reader(['en'], gpu=False)"
 
-RUN python -m pip install --no-cache-dir --upgrade pip==26.2 \
+RUN python -m pip install --no-cache-dir --upgrade pip==26.2.2 \
+    && python -m pip check \
+    && python -m pip uninstall -y pip \
+    && rm -rf /usr/local/lib/python3.12/ensurepip \
     && groupadd --gid 10001 traceai && useradd --uid 10001 --gid 10001 --create-home traceai \
     && chown -R traceai:traceai /app
 USER traceai

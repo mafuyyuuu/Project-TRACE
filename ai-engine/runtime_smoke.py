@@ -1,5 +1,6 @@
 """Offline image acceptance: real CPU OCR, Prophet and gateway enforcement."""
 import os
+import importlib.util
 import tempfile
 from datetime import date, timedelta
 from pathlib import Path
@@ -10,6 +11,7 @@ from app import app
 from ocr_engine import process_document
 from forecaster import predict_counts
 assert os.getuid() != 0, 'AI must run without root'
+assert importlib.util.find_spec('pip') is None, 'Runtime must not contain a package installer'
 assert torch.version.cuda is None, 'CPU-only PyTorch is required'
 with app.test_client() as client:
     assert client.get('/health').status_code == 200
