@@ -3009,3 +3009,14 @@ Completed: removed all **71 PNGs** from `docs/` and six retired Markdown documen
 Validation: **170 local Markdown links across 23 retained Markdown files resolve, including heading anchors**; fresh-schema source cross-check found **zero missing fields** against every exported `check_schema.js` requirement; README script names, configuration names, ports, proxy paths, seed IDs and AI CPU wheel versions were checked against source. `git diff --check` passes. This documentation-only change does not repeat application test suites; the preceding security-code commit 066d64b passed all five push/PR CI jobs, separately recorded above.
 
 Operational continuation: SECURITY_ROLLOUT now records the supplied capacity/firewall findings, unused-build-cache cleanup and a VM-tag-scoped Cloud Shell deny rule that leaves SSH/HTTP/HTTPS outside its ports. Cloud inventory confirms public n8n ingress and the VM's IPv4-only NIC; no VM/firewall/IAM mutation or disk cleanup has been executed by the agent. Existing production remains on the user-reported main b973af7 until the coordinated rollout.
+
+
+### October 22 — Registrar revisions (in progress)
+
+Source: current TRACE Figma file eQNaLBPXQSojI6lOK60Api (149 frames, eight sections), ClickUp Bugs list and the user's confirmed policies. Mobile tab/dialog layout, analytics cards and persisted FAQ feedback were investigated; their unpushed implementation was removed by workspace maintenance and is being reconstructed. These items are not yet verified or deployed.
+
+Confirmed preparation periods count Monday–Thursday, with Day 1 on the first following working day: BSN RLE, Nursing Hours, BSN Course Description, BSN Course Syllabus, BSN International Form and BSN Accreditation use 15 working days. Undergraduate TOR and Honorable Dismissal use 10; graduates use 5. Copy of Grades and Permanent Record(s) use 10. Unknown types keep a staff-entered Monday–Thursday estimate capped at 15 working days. Dates are based on original submission, never Secretary acceptance. Same-day eligibility remains its existing independent policy. No invented holiday calendar or automatic release/status transition.
+
+In progress: additive release_working_days snapshot with an explicit migration; server-authoritative estimates at filing/evaluation; page-based base-fee calculations for every unpriced document and college override, preserving the saved numeric rate. Fixed Rental/Special/named extras retain their stated basis; separately printed components retain independent page counts. New calculation snapshots are version 2 (printed_pages_v2). Existing finalized prices, paid records, receipts and historical amounts are preserved. Payment remains Finance-only.
+
+Pending: complete regressions, mobile/browser comparison, FAQ persistence reconstruction and current extreme-case analysis (long desk wait, 15-working-day breach, missed estimate). Do not describe this batch as complete until the checks and push are recorded.

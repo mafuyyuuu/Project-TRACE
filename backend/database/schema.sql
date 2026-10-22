@@ -187,6 +187,7 @@ CREATE TABLE IF NOT EXISTS documents (
   -- The basis for the amount. The Secretary prices from the printed output, so
   -- an amount without these is an unexplainable charge.
   page_count INT,
+  release_working_days TINYINT UNSIGNED NULL,
   pricing_notes TEXT,
   priced_by_clerk_id INT,
   priced_at DATETIME,

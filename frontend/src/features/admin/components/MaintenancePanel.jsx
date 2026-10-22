@@ -90,7 +90,7 @@ export default function MaintenancePanel({ user, currentTab }) {
       ...(editingTypeId && form.dt_fee === '' ? {} : { base_fee: form.dt_fee }),
       rental_fee: form.dt_rental_fee ?? 0, special_fee: form.dt_special_fee ?? 0,
       fee_items: form.dt_fee_items || [], college_fee_schedules: form.dt_fee_schedules || [],
-      fee_rule: form.dt_rule || 'flat',
+      fee_rule: 'per_page',
       requires_attachment: Boolean(form.dt_attach),
       attachment_label: form.dt_attach ? form.dt_label : null,
       available_to: form.dt_available_to || 'both',
@@ -210,10 +210,10 @@ export default function MaintenancePanel({ user, currentTab }) {
               <div className="trace-form-grid"><label className="trace-label">Default fee<span className="trace-admin-money-input mt-1.5"><span aria-hidden="true">₱</span><NumberInput aria-label="Base fee (₱)" max={NUMBER_LIMITS.money} className={inputClass} min="0" step="0.01" placeholder="Base fee (₱)"
                 value={form.dt_fee ?? ''} onChange={(e) => set('dt_fee', e.target.value)} /></span></label>
 
-              <label className="trace-label">Fee type<select aria-label="Fee rule" className={`${inputClass} mt-1.5 cursor-pointer`} value={form.dt_rule || 'flat'}
+              <label className="trace-label">Fee type<select aria-label="Fee rule" className={`${inputClass} mt-1.5 cursor-pointer`} value="per_page"
                 onChange={(e) => set('dt_rule', e.target.value)}>
-                <option value="flat">Flat fee per copy</option>
-                <option value="per_semester_block">Legacy page estimate (semester blocks)</option>
+
+
                 <option value="per_page">Per printed page per copy</option>
               </select></label></div></section>
 
@@ -233,7 +233,7 @@ export default function MaintenancePanel({ user, currentTab }) {
                   value={form.dt_label || ''} onChange={(e) => set('dt_label', e.target.value)} /></label>
               )}
 
-              
+
               <div className="trace-form-grid mt-4"><label className="trace-label">Available to<select className={`${inputClass} mt-2 cursor-pointer`} value={form.dt_available_to || 'both'}
                 onChange={(e) => set('dt_available_to', e.target.value)}>
                 <option value="both">Both Student & Alumni</option>
@@ -315,7 +315,7 @@ export default function MaintenancePanel({ user, currentTab }) {
                             <Button type="button" disabled={d.is_retired} onClick={() => {
                               setEditingTypeId(d.id);
                               setCatalogForm('documentTypes');
-                              setForm({ dt_name: d.name, dt_fee: d.fee_pending ? '' : d.base_fee, dt_rule: d.fee_rule,
+                              setForm({ dt_name: d.name, dt_fee: d.fee_pending ? '' : d.base_fee, dt_rule: 'per_page',
                                 dt_rental_fee: d.rental_fee ?? 0, dt_special_fee: d.special_fee ?? 0, dt_fee_items: d.fee_items || [], dt_fee_schedules: d.college_fee_schedules || [],
                                 dt_attach: Boolean(d.requires_attachment), dt_label: d.attachment_label,
                                 dt_available_to: d.available_to || 'both', dt_is_repeatable: Boolean(d.is_repeatable),

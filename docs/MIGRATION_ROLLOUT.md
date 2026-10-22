@@ -797,3 +797,8 @@ The October 11 isolated MySQL rehearsal passed 11 preservation, rerun and servic
 Keep the user's original acceptance checklist in PROGRESS active: actual first-login alumni gate; phone/email persistence through live logout/login; institutional visibility saves observed by actual student/alumnus sessions; owner emails; original Back to Login viewport; physical phone input zoom, nine-step tracker/line, large-text layouts and queue badges; real populated exports; measured low/high chart rendering; private off-server backups plus a **test restore**; and production-like capacity. A healthy container, checksum or synthetic browser screenshot does not substitute for those checks.
 
 Support policy and measured synthetic checks remain in [SUPPORT_DESIGN.md](SUPPORT_DESIGN.md) and [SUPPORT_VALIDATION.md](SUPPORT_VALIDATION.md). Institutional catalog/form approval, real file permissions and notification delivery require operator acceptance; source tests do not complete them.
+
+
+### Registrar preparation-date snapshot
+
+The matching backend requires `node backend/database/migrate_release_policy.js`, followed by `node backend/database/check_schema.js`. The additive migration creates nullable `documents.release_working_days`; reruns preserve all recorded submission dates, estimates, bills and receipts. Existing requests are not guessed/backfilled. Known preparation periods are computed from the original submission when evaluated, and new filings save their period immediately. Deploy the matching frontend and backend together after validation.

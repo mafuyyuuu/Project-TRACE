@@ -214,7 +214,7 @@ function findById(userId, executor = pool) {
 
 /** Serialize request-policy checks for the same student, including concurrent submissions. */
 function findStudentForPolicy(studentId, executor = pool, lock = false) {
-  return executor.query(`SELECT id, student_id, user_type, course, college_id FROM users
+  return executor.query(`SELECT id, student_id, user_type, enrollment_status, course, college_id FROM users
     WHERE student_id = ? AND role = 'student'${lock ? ' FOR UPDATE' : ''}`, [studentId]).then(([rows]) => rows);
 }
 

@@ -1,6 +1,8 @@
 const { pool } = require('../config/db');
 const pricingModel = require('./pricing.model');
 const { STATUS, PIPELINE } = require('../utils/documentStatus');
+const {printedPageSchedule}=require('../utils/pricing');
+const releasePolicy=require('../utils/releasePolicy');
 
 /**
  * All raw SQL for the `documents` table. Every function accepts an optional
@@ -11,7 +13,12 @@ function shapePricing(rows) {
   return rows.map(row => {
     const pricing_snapshot = typeof row.pricing_snapshot === 'string' ? JSON.parse(row.pricing_snapshot) : row.pricing_snapshot;
     const fee_breakdown = typeof row.fee_breakdown === 'string' ? JSON.parse(row.fee_breakdown) : row.fee_breakdown;
-    return { ...row, pricing_snapshot, fee_breakdown, pricing_schedule: pricing_snapshot || row.pricing_schedule };
+    const schedule=pricing_snapshot || row.pricing_schedule;
+    const finalized=row.priced_at || row.payment_status==='PAID' || row.current_status===STATUS.COMPLETED;
+    const release_estimate=Number.isInteger(row.release_working_days) || row.student_user_type
+      ? releasePolicy.estimate(row,{user_type:row.student_user_type,enrollment_status:row.student_enrollment_status}) : null;
+    return { ...row, pricing_snapshot, fee_breakdown, release_estimate,
+      pricing_schedule: schedule && !finalized ? printedPageSchedule(schedule) : schedule };
   });
 }
 
@@ -19,18 +26,19 @@ function insert(data, executor = pool) {
   const {
     tracking_number, request_group_id, student_id, student_name, document_type,
     current_status, payment_status, assigned_clerk_id, file_path, original_filename,
-    checkout_url, purpose, copies, amount, document_sequence_number, is_same_day, pricing_snapshot, fee_breakdown,
+    checkout_url, purpose, copies, amount, document_sequence_number, is_same_day, pricing_snapshot, fee_breakdown, created_at, estimated_ready_date, release_working_days,
   } = data;
   return executor.query(
     `INSERT INTO documents (tracking_number, request_group_id, student_id, student_name, document_type,
-      current_status, payment_status, assigned_clerk_id, file_path, original_filename, checkout_url, purpose, copies, amount, document_sequence_number, is_same_day, pricing_snapshot, fee_breakdown)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      current_status, payment_status, assigned_clerk_id, file_path, original_filename, checkout_url, purpose, copies, amount, document_sequence_number, is_same_day, pricing_snapshot, fee_breakdown,created_at,estimated_ready_date,release_working_days)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,COALESCE(?,CURRENT_TIMESTAMP),?,?)`,
     [
       tracking_number, request_group_id || tracking_number,
       student_id || null, student_name || null, document_type || null,
       current_status, payment_status, assigned_clerk_id, file_path, original_filename,
       checkout_url, purpose || null, copies, amount, document_sequence_number || null, Boolean(is_same_day),
       pricing_snapshot ? JSON.stringify(pricing_snapshot) : null, fee_breakdown ? JSON.stringify(fee_breakdown) : null,
+      created_at || null,estimated_ready_date || null,release_working_days ?? null,
     ]
   );
 }
@@ -75,7 +83,7 @@ function findByTrackingNumber(trackingNumber, executor = pool) {
  */
 function listWithFilters(conditions, params, limit, offset, executor = pool) {
   // A same-status intake note must not restart the wait. Secretary returns do.
-  let query = `SELECT d.*, COALESCE(NULLIF(d.student_name, ''), student.full_name) AS student_name, student.program, student_profile.first_name, student_profile.middle_name, student_profile.last_name, student_profile.extension_name, processor.full_name AS assigned_staff_name, processor.desk_assignment AS assigned_staff_desk,
+  let query = `SELECT d.*, COALESCE(NULLIF(d.student_name, ''), student.full_name) AS student_name, student.program, student.user_type AS student_user_type,student.enrollment_status AS student_enrollment_status, student_profile.first_name, student_profile.middle_name, student_profile.last_name, student_profile.extension_name, processor.full_name AS assigned_staff_name, processor.desk_assignment AS assigned_staff_desk,
     CASE WHEN d.current_status = 'PENDING_W1_INTAKE' THEN COALESCE(
       (SELECT MAX(intake.timestamp_started) FROM step_logs intake
        WHERE intake.document_id = d.id AND intake.to_status = 'PENDING_W1_INTAKE'
@@ -114,6 +122,9 @@ function updateRoutingCollege(documentId, college, executor = pool) {
 
 function updateAssignedClerk(documentId, clerkId, executor = pool) {
   return executor.query('UPDATE documents SET assigned_clerk_id = ? WHERE id = ?', [clerkId, documentId]);
+}
+function updateReleasePolicy(documentId, days, executor = pool) {
+  return executor.query('UPDATE documents SET release_working_days=? WHERE id=?',[days,documentId]);
 }
 
 /**
@@ -461,6 +472,7 @@ function scopedStatusCounts(conditions, params, executor = pool) {
 }
 
 module.exports = {
+  updateReleasePolicy,
   scopedStatusCounts,
   publishOfficialReceipt,
   countBlockingRequests,

@@ -27,7 +27,7 @@ function normalizedSchedule(type) {
     if (item.fee_rule !== undefined && !['flat', 'per_page'].includes(item.fee_rule)) throw new Error('Invalid named fee rule.');
     return { label, amount: moneyCents(item.amount) / 100, ...(item.fee_rule === 'per_page' ? { fee_rule: 'per_page' } : {}) };
   });
-  return { version: 1, ...(type.fee_pending ? { fee_pending: true } : {}), ...(type.base_label ? { base_label: type.base_label } : {}), document_type: type.name || type.document_type || null,
+  return { version: type.calculation_policy === 'printed_pages_v2' ? 2 : 1, ...(type.calculation_policy === 'printed_pages_v2' ? { calculation_policy: 'printed_pages_v2' } : {}), ...(type.fee_pending ? { fee_pending: true } : {}), ...(type.base_label ? { base_label: type.base_label } : {}), document_type: type.name || type.document_type || null,
     college_id: type.pricing_college_id ?? type.college_id ?? null,
     source: type.source || 'default', fee_rule: type.fee_rule || 'flat',
     base_fee: moneyCents(type.base_fee) / 100, rental_fee: moneyCents(type.rental_fee) / 100,
@@ -35,8 +35,13 @@ function normalizedSchedule(type) {
 }
 function resolveSchedule(type, collegeId) {
   const override = (type.college_fee_schedules || []).find(row => Number(row.college_id) === Number(collegeId) && collegeId != null);
-  return normalizedSchedule({ ...(override || type), name: type.name, base_label: type.base_label, fee_pending: type.fee_pending,
+  return printedPageSchedule({ ...(override || type), name: type.name, base_label: type.base_label, fee_pending: type.fee_pending,
     pricing_college_id: collegeId ?? null, source: override ? 'college' : 'default' });
+}
+// Apply only to new requests and not-yet-priced documents. Saved final bills
+// retain their original schedule and breakdown.
+function printedPageSchedule(type) {
+  return normalizedSchedule({ ...normalizedSchedule(type), fee_rule: 'per_page', calculation_policy: 'printed_pages_v2' });
 }
 function calculateBreakdown(type, selection = {}, final = false) {
   const schedule = normalizedSchedule(type);
@@ -68,11 +73,11 @@ function calculateBreakdown(type, selection = {}, final = false) {
   }
   const totalCents = items.reduce((sum, item) => sum + Math.round(item.amount * 100), 0);
   if (!Number.isSafeInteger(totalCents) || totalCents > MAX_CENTS) throw new Error('This quantity exceeds the supported request amount.');
-  return { version: 1, ...(schedule.fee_pending ? { fee_pending: true } : {}), stage: final ? 'final' : 'estimate', college_id: schedule.college_id,
+  return { version: schedule.version, ...(schedule.calculation_policy ? { calculation_policy: schedule.calculation_policy } : {}), ...(schedule.fee_pending ? { fee_pending: true } : {}), stage: final ? 'final' : 'estimate', college_id: schedule.college_id,
     source: schedule.source, copies, pages_per_copy: pages, items, total: totalCents / 100 };
 }
 
-export { moneyCents, normalizedSchedule, resolveSchedule, calculateBreakdown };
+export { moneyCents, normalizedSchedule, printedPageSchedule, resolveSchedule, calculateBreakdown };
 export function itemAmount(type, selection = {}) {
   if (!type) return 0;
   try { return calculateBreakdown(type, { ...selection, copies: Number(selection.copies) > 0 && Number.isInteger(Number(selection.copies)) ? selection.copies : 1 }).total; }

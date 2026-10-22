@@ -1,5 +1,6 @@
 import useIntakeReview from '@/hooks/useIntakeReview';
-import { calculateBreakdown } from '@/utils/pricing';
+import { calculateBreakdown, printedPageSchedule } from '@/utils/pricing';
+import {estimate} from '@/utils/releasePolicy';
 import { useState, useCallback, useMemo, useEffect } from 'react';
 import { getDocumentTypes } from '@/services/referenceService';
 import useDashboardCore from '@/hooks/useDashboardCore';
@@ -36,7 +37,11 @@ export default function useSecretaryDashboard(user) {
   const [evalStudentId, setEvalStudentId] = useState('');
   const [evalStudentName, setEvalStudentName] = useState('');
   const [evalDocType, setEvalDocType] = useState('Transcript of Records');
-  const [estimatedReadyDate, setEstimatedReadyDate] = useState('');
+  const [manualReadyDate, setEstimatedReadyDate] = useState('');
+  const releasePreview=selectedDoc?.created_at ? estimate({...selectedDoc,document_type:evalDocType || selectedDoc.document_type,
+    release_working_days:evalDocType && evalDocType!==selectedDoc.document_type ? null : selectedDoc.release_working_days},
+    {user_type:selectedDoc.student_user_type,enrollment_status:selectedDoc.student_enrollment_status}) : selectedDoc?.release_estimate;
+  const estimatedReadyDate=releasePreview?.date || manualReadyDate;
   const [documentTypes, setDocumentTypes] = useState([]);
   const [documentTypesError, setDocumentTypesError] = useState('');
   useEffect(() => {
@@ -64,7 +69,7 @@ export default function useSecretaryDashboard(user) {
   let priceBreakdown = null;
   let pricingError = '';
   if (selectedDoc?.pricing_schedule) {
-    try { priceBreakdown = calculateBreakdown(selectedDoc.pricing_schedule, { copies: selectedDoc.copies ?? 1, page_count: pricePageCount, fee_page_counts: priceFeePageCounts }, true); }
+    try { priceBreakdown = calculateBreakdown(printedPageSchedule(selectedDoc.pricing_schedule), { copies: selectedDoc.copies ?? 1, page_count: pricePageCount, fee_page_counts: priceFeePageCounts }, true); }
     catch (err) { pricingError = err.message; }
   } else pricingError = 'A fee schedule is unavailable. Ask Admin to configure it, then refresh.';
   const priceAmount = priceBreakdown ? priceBreakdown.total.toFixed(2) : '';
@@ -278,7 +283,7 @@ export default function useSecretaryDashboard(user) {
     priceAmount, priceBreakdown, pricingError,
     priceNotes, setPriceNotes, confirmCurrentRates, setConfirmCurrentRates,
     pricePageCount, setPricePageCount, priceFeePageCounts, setPriceFeePageCounts,
-    
+
     handleSecretaryEvaluate,
     evaluateActionToConfirm,
     confirmSecretaryEvaluate,

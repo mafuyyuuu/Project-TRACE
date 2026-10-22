@@ -55,7 +55,7 @@ describe('calculateAmount', () => {
     }
   );
 
-  
+
 
   it('falls back to 1 copy for missing or invalid input', () => {
     expect(calculateAmount('Diploma', 8, undefined)).toEqual({ amount: 50, copies: 1 });
@@ -63,9 +63,9 @@ describe('calculateAmount', () => {
     expect(calculateAmount('Diploma', 8, 'abc')).toEqual({ amount: 50, copies: 1 });
   });
 
-  
 
-  
+
+
 });
 
 describe('generateTrackingNumber', () => {
@@ -97,7 +97,7 @@ describe('calculateAmount with a database-supplied type', () => {
     expect(calculateAmount('Transcript of Records', 8, 1).amount).toBe(200);
   });
 
-  
+
 });
 
 describe('calculateGroupAmount', () => {
@@ -116,9 +116,9 @@ describe('calculateGroupAmount', () => {
     expect(total).toBe(250);
   });
 
-  
 
-  
+
+
 
   it('equals the single-item price for a group of one', () => {
     const single = calculateAmount('Transcript of Records', 8, 2, TYPES[0]).amount;
@@ -151,7 +151,7 @@ describe('calculateGroupAmount', () => {
     expect(total).toBe(100);
   });
 
-  
+
 
   it('produces a clean two-decimal total rather than float drift', () => {
     const cents = [{ name: 'Odd', base_fee: '0.10', fee_rule: 'flat' }];
@@ -190,7 +190,7 @@ describe('authoritative fee calculation', () => {
   });
   it('replaces the entire default with a college override including explicit zero extras', () => {
     const type = { ...schedule, college_fee_schedules: [{ college_id: 2, base_fee: 80, fee_rule: 'flat', rental_fee: 0, special_fee: 0, fee_items: [] }] };
-    expect(calculateBreakdown(resolveSchedule(type, 2), { copies: 2 }, true).total).toBe(160);
+    expect(calculateBreakdown(resolveSchedule(type, 2), { copies: 2,page_count:1 }, true).total).toBe(160);
     expect(resolveSchedule(type, 3)).toMatchObject({ base_fee: 100, rental_fee: 20, source: 'default' });
   });
   it.each(['-1', '1.001', '1x', 'Infinity', '1e3', ''])('rejects invalid money %s', value => {

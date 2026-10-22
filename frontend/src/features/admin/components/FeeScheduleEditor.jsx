@@ -2,7 +2,7 @@ import NumberInput from '@/components/NumberInput';
 import { NUMBER_LIMITS } from '@/utils/inputLimits';
 import Button from '@/components/Button';
 import AdminIcon from './AdminIcon';
-const emptySchedule = () => ({ base_fee: 0, fee_rule: 'flat', rental_fee: 0, special_fee: 0, fee_items: [] });
+const emptySchedule = () => ({ base_fee: 0, fee_rule: 'per_page', rental_fee: 0, special_fee: 0, fee_items: [] });
 const inputClass = "trace-control w-full";
 
 function NamedItems({ items, onChange, admin = false }) {
@@ -46,11 +46,11 @@ export default function FeeScheduleEditor({ value, colleges, onChange, admin = f
           onChange={event => updateOverride(index, { ...row, college_id: Number(event.target.value) })}>
           <option value="">Choose college</option>{colleges.map(college => <option key={college.id} value={college.id}>{college.name}</option>)}
         </select></label>
-        <label className="trace-label block">College base rate (₱)<NumberInput max={NUMBER_LIMITS.money} className={inputClass} required type="number" min="0" step="0.01" value={row.base_fee}
+        <label className="trace-label block">College base rate per printed page (₱)<NumberInput max={NUMBER_LIMITS.money} className={inputClass} required type="number" min="0" step="0.01" value={row.base_fee}
           onChange={event => updateOverride(index, { ...row, base_fee: event.target.value })} /></label>
-        <label className="trace-label block">College fee basis<select className={inputClass} value={row.fee_rule}
+        <label className="trace-label block">College fee basis<select className={inputClass} value="per_page"
           onChange={event => updateOverride(index, { ...row, fee_rule: event.target.value })}>
-          <option value="flat">Flat fee per copy</option><option value="per_semester_block">Legacy semester-block estimate</option><option value="per_page">Per printed page per copy</option>
+          <option value="per_page">Per printed page per copy</option>
         </select></label>
         <ExtraFees schedule={row} onChange={next => updateOverride(index, next)} />
         <Button type="button" className="trace-button trace-button-danger" onClick={() => onChange({ ...value, college_fee_schedules: overrides.filter((_, i) => i !== index) })}>Remove college override</Button>

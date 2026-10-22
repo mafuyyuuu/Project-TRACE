@@ -147,3 +147,7 @@ Application-enforced row authorization remains the model; do not claim native My
 
 ### October 22 security follow-up
 See `docs/SECURITY_ROLLOUT.md` and `docs/PERMISSIONS_MATRIX.md`. This follow-up requires a separate AI gateway secret, additive rate_limit_counters migration, uploads ownership preparation and least-privilege API/AI database identities before recreating containers. Production registration OCR requires Admin official-record review. Preserve deployed JWT/MFA encryption keys. Live GCP/firewall/backup/branch protection and multi-instance readiness are separate acceptance items; none are automatically deployed.
+
+
+### October 22 registrar policy revisions (implementation in progress)
+Read the latest PROGRESS entry before continuing. The additive release_working_days column snapshots preparation days at filing; apply migrate_release_policy.js before deploying matching code. releasePolicy.js is mirrored across frontend/backend. Day 1 follows submission; only Monday–Thursday count. Preserve original submission and finalized amounts. printed_pages_v2 applies base rate × actual pages per copy × copies to all new/unpriced document types, including college overrides. Fixed extras and separately printed component rules remain explicit. Do not rewrite paid/confirmed historical bills.

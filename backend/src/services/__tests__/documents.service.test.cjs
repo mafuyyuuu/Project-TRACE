@@ -129,6 +129,7 @@ beforeEach(() => {
     { id: 1, code: 'gcash', name: 'GCash', provider: 'manual', is_active: 1,
       requires_reference: 1, reference_label: 'GCash Reference Number', requires_proof: 1 },
   ]);
+  vi.spyOn(documentModel, 'updateReleasePolicy').mockResolvedValue([{affectedRows:1}]);
   vi.spyOn(documentModel, 'updateEvaluation').mockResolvedValue([{ affectedRows: 1 }]);
   vi.spyOn(documentModel, 'markCompleted').mockResolvedValue([{ affectedRows: 1 }]);
   vi.spyOn(documentModel, 'deleteById').mockResolvedValue([{ affectedRows: 1 }]);
@@ -312,7 +313,7 @@ describe('uploadDocument — a student can only file for themselves', () => {
       { document_type: 'Transcript of Records', semesters: 8, copies: 2, amount: '1.00' },
       null
     );
-    expect(documentModel.insert.mock.calls[0][0].amount).toBe(400);
+    expect(documentModel.insert.mock.calls[0][0].amount).toBe(200);
   });
 });
 
@@ -357,8 +358,8 @@ describe('multi-document requests', () => {
   it('prices each document separately and reports the combined total', async () => {
     const res = await service.uploadDocument(STUDENT, twoItems, []);
     const amounts = documentModel.insert.mock.calls.map((c) => c[0].amount);
-    expect(amounts).toEqual([200, 50]); // TOR 8 semesters + Diploma
-    expect(res.total_amount).toBe(250);
+    expect(amounts).toEqual([100, 50]); // Informational single-page rates; study years do not price pages.
+    expect(res.total_amount).toBe(150);
   });
 
   it('still files every row against the requesting student, never a spoofed id', async () => {
@@ -457,15 +458,15 @@ describe('group payment settles every document at once', () => {
     // group-wide, because the student pays for the request once.
     documentModel.findByIdForUpdate.mockResolvedValue([
       { id: 5, request_group_id: 'REQ-G1', student_id: 'STU-001', tracking_number: 'TRC-1',
-        current_status: STATUS.PENDING_SEC_EVALUATION },
+        current_status: STATUS.PENDING_SEC_EVALUATION,created_at:'2026-09-01T00:00:00Z' },
     ]);
     await service.acceptForProcessing(SECRETARY, 5, {
       student_id: 'STU-001', student_name: 'Ana', document_type: 'Diploma',
-      action: 'approve', estimated_ready_date: '2026-09-05',
+      action: 'approve', estimated_ready_date: '2026-09-07',
     });
     expect(documentModel.updateEvaluation).toHaveBeenCalledTimes(1);
     expect(documentModel.updateEvaluation).toHaveBeenCalledWith(
-      5, STATUS.SEC_PROCESSING, 'STU-001', 'Ana', 'Diploma', '2026-09-05', connection
+      5, STATUS.SEC_PROCESSING, 'STU-001', 'Ana', 'Diploma', '2026-09-07', connection
     );
   });
 });
@@ -537,12 +538,12 @@ describe('verifyPayment — Finance desk only', () => {
 
 describe('acceptForProcessing — Secretary desk only', () => {
   const doc = {
-    id: 5, student_id: 'STU-001', tracking_number: 'TRC-1',
+    id: 5, student_id: 'STU-001', tracking_number: 'TRC-1',created_at:'2026-09-01T00:00:00Z',
     current_status: STATUS.PENDING_SEC_EVALUATION,
   };
   const body = {
     student_id: 'STU-001', student_name: 'Ana', document_type: 'Diploma',
-    action: 'approve', estimated_ready_date: '2026-09-05',
+    action: 'approve', estimated_ready_date: '2026-09-07',
   };
 
   it.each([['a student', STUDENT], ['Finance', FINANCE], ['Window 1', WINDOW1]])(
@@ -556,7 +557,7 @@ describe('acceptForProcessing — Secretary desk only', () => {
     documentModel.findByIdForUpdate.mockResolvedValue([doc]);
     await service.acceptForProcessing(SECRETARY, 5, body);
     expect(documentModel.updateEvaluation).toHaveBeenCalledWith(
-      5, STATUS.SEC_PROCESSING, 'STU-001', 'Ana', 'Diploma', '2026-09-05', connection
+      5, STATUS.SEC_PROCESSING, 'STU-001', 'Ana', 'Diploma', '2026-09-07', connection
     );
   });
 
@@ -596,7 +597,7 @@ describe('acceptForProcessing — Secretary desk only', () => {
     await service.acceptForProcessing(SECRETARY, 5, { ...body, action, notes: 'Historical request', document_type: name });
     expect(documentModel.updateEvaluation).toHaveBeenCalledWith(5,
       action === 'approve' ? STATUS.SEC_PROCESSING : STATUS.PENDING_W1_INTAKE,
-      'STU-001', 'Ana', name, action === 'approve' ? '2026-09-05' : null, connection);
+      'STU-001', 'Ana', name, action === 'approve' ? '2026-09-07' : null, connection);
     expect(connection.commit).toHaveBeenCalledOnce();
   });
 
@@ -645,7 +646,7 @@ describe('priceDocument — the Secretary sets the price, nobody else', () => {
     await service.priceDocument(SECRETARY, 5, body);
     expect(documentModel.updatePricing).toHaveBeenCalledWith(
       5,
-      expect.objectContaining({ amount: 250, pageCount: 5, pricingNotes: expect.stringContaining('5 pages at standard rate'), clerkId: SECRETARY.id, feeBreakdown: expect.objectContaining({ total: 250, stage: 'final' }) }),
+      expect.objectContaining({ amount: 1250, pageCount: 5, pricingNotes: expect.stringContaining('5 pages at standard rate'), clerkId: SECRETARY.id, feeBreakdown: expect.objectContaining({ total: 1250, stage: 'final' }) }),
       connection
     );
   });
@@ -661,7 +662,7 @@ describe('priceDocument — the Secretary sets the price, nobody else', () => {
 
   it('will not price a document that is not being processed', async () => {
     documentModel.findByIdForUpdate.mockResolvedValue([
-      { ...doc, current_status: STATUS.PENDING_SEC_EVALUATION },
+      { ...doc, current_status: STATUS.PENDING_SEC_EVALUATION,created_at:'2026-09-01T00:00:00Z' },
     ]);
     expect(await statusOf(service.priceDocument(SECRETARY, 5, body))).toBe(400);
     expect(documentModel.updatePricing).not.toHaveBeenCalled();
@@ -1308,7 +1309,7 @@ describe('saved fee schedules and final computation', () => {
     const { REQUEST_CATALOG } = require('../../utils/requestCatalog');
     const type = REQUEST_CATALOG.find(row => row.name === 'Transfer Credentials');
     stage({ document_type: type.name, copies: 1, pricing_snapshot: { ...type, document_type: type.name } });
-    await service.priceDocument(SECRETARY, 5, { fee_page_counts: { 'Copy of Grade': 2, 'Transcript of Records': 3 }, amount: 1 });
+    await service.priceDocument(SECRETARY, 5, { page_count:1, fee_page_counts: { 'Copy of Grade': 2, 'Transcript of Records': 3 }, amount: 1 });
     expect(documentModel.updatePricing).toHaveBeenCalledWith(5, expect.objectContaining({ amount: 500,
       feeBreakdown: expect.objectContaining({ items: expect.arrayContaining([
         expect.objectContaining({ label: 'Copy of Grade', pages_per_copy: 2, amount: 100 }),
@@ -1331,7 +1332,7 @@ describe('saved fee schedules and final computation', () => {
     const name = 'Certificate of Underload Units';
     stage({ document_type: name, pricing_snapshot: { fee_pending: true, document_type: name, base_fee: 0, fee_rule: 'flat' } });
     referenceModel.findDocumentTypesByNames.mockResolvedValue([{ name, base_fee: 50, fee_rule: 'flat', fee_pending: 0 }]);
-    await service.priceDocument(SECRETARY, 5, { confirm_current_rates: true });
+    await service.priceDocument(SECRETARY, 5, { confirm_current_rates: true,page_count:1 });
     expect(documentModel.updatePricing).toHaveBeenCalledWith(5, expect.objectContaining({ amount: 100, pricingSnapshot: expect.objectContaining({ base_fee: 50 }) }), connection);
   });
   it('refuses missing pages for page-based pricing without billing', async () => {
@@ -1366,7 +1367,7 @@ describe('saved fee schedules and final computation', () => {
     referenceModel.findDocumentTypesByNames.mockResolvedValue([{ name: 'Transcript of Records', is_active: 1, is_repeatable: 1, base_fee: 50, fee_rule: 'per_semester_block', college_fee_schedules: [{ college_id: 2, base_fee: 100, fee_rule: 'per_semester_block', rental_fee: 20, special_fee: 0, fee_items: [] }] }]);
     await service.uploadDocument(STUDENT, { document_type: 'Transcript of Records', semesters: 8, copies: 2, amount: 1, college_id: 999 }, []);
     expect(referenceModel.findDocumentTypesByNames).toHaveBeenCalledWith(['Transcript of Records'], connection, true);
-    expect(documentModel.insert).toHaveBeenCalledWith(expect.objectContaining({ amount: 420, pricing_snapshot: expect.objectContaining({ college_id: 2, base_fee: 100 }), fee_breakdown: expect.objectContaining({ stage: 'estimate', total: 420 }) }), connection);
+    expect(documentModel.insert).toHaveBeenCalledWith(expect.objectContaining({ amount: 220, pricing_snapshot: expect.objectContaining({ college_id: 2, base_fee: 100 }), fee_breakdown: expect.objectContaining({ stage: 'estimate', total: 220 }) }), connection);
   });
   it('rejects duplicate type selections so extras cannot be charged twice', async () => {
     await expect(service.uploadDocument(STUDENT, { items: JSON.stringify([{ document_type: 'Diploma' }, { document_type: 'Diploma' }]) }, [])).rejects.toThrow(/each document type once/);
@@ -1380,7 +1381,7 @@ describe('TOR study years', () => {
     await service.uploadDocument(STUDENT, { document_type: 'Transcript of Records', year_started: '2020', year_ended: '2024', copies: 1 }, []);
     const data = documentModel.insert.mock.calls[0][0];
     expect(JSON.parse(data.purpose)).toEqual({ year_started: 2020 });
-    expect(data.pricing_snapshot.fee_rule).toBe('per_semester_block');
+    expect(data.pricing_snapshot.fee_rule).toBe('per_page');
     expect(data.page_count).toBeUndefined();
   });
   it.each(['', '1998', '2020.5', '9999'])('rejects invalid saved Year Started %s at the server', async year_started => {
