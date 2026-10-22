@@ -534,3 +534,7 @@ Deployed authentication can flow TRACE `/api/auth` → Vercel rewrite → existi
 
 ### Random Forest stage-wait experiment - October 18, 2026
 The new experimental classifier supersedes earlier rules-only status notes in this document. It uses reproducible simulated episodes plus eligible current stage history to estimate a further 24-hour stage wait. Admin > Efficiency Analytics > AI & Model Evaluation separates synthetic and held-out saved scores, data origin, baselines and false/missed alerts. These are not verified real-world accuracy. Suggestions still use workflow actions and fall back to rules on failure or missing entry times. Support and n8n remain rules. See [AI_MODEL_EVALUATION.md](AI_MODEL_EVALUATION.md#experimental-random-forest-using-simulation-and-current-history---october-18-2026) for target, data, split, limits and rollout.
+
+
+### Security boundary changes - October 22, 2026
+Tracking requires the authenticated owner or an authorized staff/college scope. Secretary student-profile lookup follows the saved college boundary. Registration proofs are for owner/Admin verification; ordinary desk and support files keep their separate scope. Admin Insights has a route-level Admin guard. Private API responses/files/errors are no-store; 5xx details are masked with request-ID correlation. New CI and rollout settings are documented in SECURITY_READINESS_2026-10-22.md; live deployment and full infrastructure verification remain separate.

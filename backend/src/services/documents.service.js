@@ -431,13 +431,15 @@ async function requestDetail(user, documentId) {
     step_logs: await stepLogModel.findByDocumentId(documentId) };
 }
 
-async function trackByTrackingNumber(trackingNumber) {
+async function trackByTrackingNumber(trackingNumber, user) {
+  if (!user?.id) throw forbidden('Authentication is required to track a request.');
   const docRows = await documentModel.findByTrackingNumber(trackingNumber);
   if (docRows.length === 0) {
     throw notFound('Document not found.');
   }
 
   const document = docRows[0];
+  await authorizeMessage(user, document);
   const step_logs = await stepLogModel.findByDocumentId(document.id);
 
   return { document: { tracking_number: document.tracking_number, document_type: document.document_type,

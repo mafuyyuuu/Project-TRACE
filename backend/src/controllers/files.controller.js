@@ -1,3 +1,4 @@
+const { publicError, logError } = require('../utils/httpError');
 const filesService = require('../services/files.service');
 
 /** Streams an uploaded file to an authorized caller. */
@@ -11,8 +12,9 @@ async function get(req, res) {
     }
     res.sendFile(fullPath);
   } catch (err) {
-    console.error('File access error:', err.message);
-    res.status(err.status || 500).json({ error: err.status ? err.message : 'Failed to retrieve file.' });
+    logError('File access error', err, res.locals?.requestId);
+    const result = publicError(err, 'Failed to retrieve file.');
+    res.status(result.status).json({ error: result.message });
   }
 }
 

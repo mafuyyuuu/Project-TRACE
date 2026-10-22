@@ -73,8 +73,13 @@ describe('file authorization', () => {
     vi.spyOn(userModel, 'findStudentCourseByStudentId').mockResolvedValue([{ college_id: 2 }]);
     expect(await statusOf(getFilePathForUser({ id: 5, role: 'clerk', desk_assignment: 'Secretary' }, 'case.pdf'))).toBe(403);
   });
-  it('lets a clerk read any file', async () => {
+  it('lets a clerk read an ordinary desk upload', async () => {
     expect(await statusOf(getFilePathForUser(STAFF, 'someone-elses.jpg'))).not.toBe(403);
+  });
+
+  it.each(['Finance', 'Window 1', 'Secretary'])('denies %s access to another account registration proof', async desk => {
+    userModel.findByIdProofFilename.mockResolvedValue([{ id: 77, student_id: 'STU-999' }]);
+    expect(await statusOf(getFilePathForUser({ id: 8, role: 'clerk', desk_assignment: desk }, 'proof-other.jpg'))).toBe(403);
   });
 
   it('lets an admin read any file', async () => {

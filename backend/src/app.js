@@ -18,6 +18,7 @@ const { pool } = require('./config/db');
 const { apiLimiter } = require('./middlewares/rateLimit.middleware');
 
 const app = express();
+app.disable('x-powered-by');
 
 // ---------------------------------------------------------------------------
 // Middleware
@@ -30,7 +31,8 @@ if (env.TRUST_PROXY > 0) {
   app.set('trust proxy', env.TRUST_PROXY);
 }
 
-app.use(cors({ origin: corsOrigin(), credentials: true }));
+app.use('/api', require('./middlewares/apiSecurity.middleware'));
+app.use(cors({ origin: corsOrigin(), credentials: true, exposedHeaders: ['X-Request-Id'] }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 // Deliberately above the rate limiter: an orchestrator polling readiness must
@@ -48,7 +50,8 @@ app.get('/api/health', async (req, res) => {
   try {
     await pool.query('SELECT 1');
   } catch (err) {
-    return res.status(503).json({ ...body, status: 'degraded', database: err.message });
+    require('./utils/httpError').logError('Database readiness failed', err, res.locals.requestId);
+    return res.status(503).json({ ...body, status: 'degraded', database: 'unavailable' });
   }
 
   res.json(body);

@@ -1,11 +1,11 @@
 {
   "name": "backend",
   "version": "1.0.0",
-  "description": "TRACE Backend API — Node.js Express server for PLP Registrar",
+  "description": "TRACE Backend API \u2014 Node.js Express server for PLP Registrar",
   "main": "src/server.js",
   "scripts": {
     "start": "node src/server.js",
-    "dev": "nodemon src/server.js",
+    "dev": "node --watch src/server.js",
     "test": "vitest run",
     "test:watch": "vitest"
   },
@@ -23,16 +23,15 @@
     "express-rate-limit": "^8.6.2",
     "form-data": "^4.0.6",
     "jsonwebtoken": "^9.0.3",
-    "multer": "^2.2.0",
+    "multer": "^2.4.0",
     "mysql2": "^3.22.5",
-    "nodemailer": "^9.0.3",
+    "nodemailer": "^10.2.0",
     "pdf-lib": "^1.17.1",
-    "sanitize-html": "^2.18.0",
+    "sanitize-html": "^2.18.1",
     "sharp": "^0.35.5",
     "socket.io": "^4.8.3"
   },
   "devDependencies": {
-    "nodemon": "^3.1.14",
     "vitest": "^4.1.11"
   }
 }

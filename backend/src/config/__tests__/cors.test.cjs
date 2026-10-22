@@ -48,4 +48,14 @@ describe('corsOrigin', () => {
     expect(loadWith('   ').corsOrigin).toBe(true);
     expect(loadWith(' , ').corsOrigin).toBe(true);
   });
+
+  it('does not reflect credentialed browser origins in production without an allowlist', () => {
+    const previous = process.env.NODE_ENV;
+    process.env.NODE_ENV = 'production';
+    try {
+      expect(loadWith(undefined).corsOrigin).toBe(false);
+      expect(loadWith(' , ').corsOrigin).toBe(false);
+      expect(loadWith('https://trace.example.test').corsOrigin).toEqual(['https://trace.example.test']);
+    } finally { process.env.NODE_ENV = previous; }
+  });
 });

@@ -133,10 +133,10 @@ it('cannot reconcile an already routed request or grant the operation to a Secre
   await expect(service.reconcileCollege(admin,9,{college_id:3,reason:'Verified register.',expected_college_id:null})).rejects.toThrow(/without a saved routing/);
   await expect(service.reconcileCollege(secretary,9,{college_id:3,reason:'Verified register.',expected_college_id:null})).rejects.toMatchObject({status:403});
 });
-it('redacts identity, receipt files and private notes from public progress tracking', async () => {
+it('redacts identity, receipt files and private notes from authorized progress tracking', async () => {
   vi.spyOn(documents,'findByTrackingNumber').mockResolvedValue([{...doc,tracking_number:'TRC-SYN',student_name:'Private student',file_path:'/uploads/proof.png',or_number:'PRIVATE-OR'}]);
   vi.spyOn(logs,'findByDocumentId').mockResolvedValue([{action_taken:'intake_returned',notes:'Private clearance note',clerk_name:'Private clerk',to_status:'PENDING_W1_INTAKE'}]);
-  const result=await documentsService.trackByTrackingNumber('TRC-SYN');
+  const result=await documentsService.trackByTrackingNumber('TRC-SYN',admin);
   expect(JSON.stringify(result)).not.toMatch(/Private|uploads|PRIVATE-OR|SYN-1/);
   expect(result.document).toMatchObject({tracking_number:'TRC-SYN',current_status:doc.current_status});
 });

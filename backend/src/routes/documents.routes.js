@@ -17,7 +17,7 @@ router.get('/', authenticate, documentsController.list);
 router.get('/stats', authenticate, documentsController.stats);
 router.get('/stats/forecast/evaluation', authenticate, requireRole('admin'), documentsController.evaluateForecast);
 router.get('/stats/forecast', authenticate, documentsController.forecast);
-router.get('/stats/insights', authenticate, documentsController.insights);
+router.get('/stats/insights', authenticate, requireRole('admin'), documentsController.insights);
 router.get('/activity-logs', authenticate, documentsController.activityLogs);
 router.get('/messages/threads', authenticate, documentsController.messageThreads);
 const financeController = require('../controllers/finance.controller');

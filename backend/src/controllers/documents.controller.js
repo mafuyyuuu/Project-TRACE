@@ -1,3 +1,4 @@
+const { publicError, logError } = require('../utils/httpError');
 const documentsService = require('../services/documents.service');
 const assignments = require('../services/requestAssignment.service');
 const fs = require('fs/promises');
@@ -28,8 +29,9 @@ async function reconcileCollege(req, res) {
  */
 
 function fail(res, err, logLabel, fallbackMessage) {
-  console.error(`${logLabel}:`, err);
-  res.status(err.status || 500).json({ error: err.status ? err.message : fallbackMessage });
+  logError(logLabel, err, res.locals?.requestId);
+  const result = publicError(err, fallbackMessage);
+  res.status(result.status).json({ error: result.message });
 }
 
 async function upload(req, res) {
@@ -82,7 +84,7 @@ async function activityLogs(req, res) {
 
 async function track(req, res) {
   try {
-    res.json(await documentsService.trackByTrackingNumber(req.params.trackingNumber));
+    res.json(await documentsService.trackByTrackingNumber(req.params.trackingNumber, req.user));
   } catch (err) {
     fail(res, err, 'Track document error', 'Failed to retrieve document tracking info.');
   }
@@ -225,7 +227,7 @@ async function sendMessage(req, res) {
 
 async function evaluateForecast(req,res) {
   try {res.setHeader('Cache-Control','private, no-store');res.json(await require('../services/forecastEvaluation.service').evaluate(req.user,req.query));}
-  catch(err){fail(res,err,'Forecast evaluation error','Could not evaluate the forecast.');}
+  catch(err){fail(res,err,'Forecast evaluation error','Forecast evaluation is unavailable. No score was calculated.');}
 }
 module.exports = {
   evaluateForecast,

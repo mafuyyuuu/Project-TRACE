@@ -781,8 +781,14 @@ describe('Batch 8b identity and staff profile boundary', () => {
     expect(userModel.findStudentBasicInfo).not.toHaveBeenCalled();
   });
   it.each(['Window 1', 'Secretary', 'Finance'])('allows the %s desk to read a saved profile', async desk => {
-    userModel.findStudentBasicInfo.mockResolvedValue([{ role: 'student', phone_number: '0912', home_address: 'Saved address' }]);
+    userModel.findStudentBasicInfo.mockResolvedValue([{ role: 'student', college_id: 2, phone_number: '0912', home_address: 'Saved address' }]);
+    vi.spyOn(userModel, 'findCourseById').mockResolvedValue([{ college_id: 2 }]);
     expect(await service.lookupStudent('STU1', { role: 'clerk', desk_assignment: desk })).toMatchObject({ student: { home_address: 'Saved address' } });
+  });
+  it('denies a Secretary a student profile belonging to another college', async () => {
+    userModel.findStudentBasicInfo.mockResolvedValue([{ role: 'student', college_id: 2, home_address: 'Private address' }]);
+    vi.spyOn(userModel, 'findCourseById').mockResolvedValue([{ college_id: 3 }]);
+    await expect(service.lookupStudent('STU1', { id: 7, role: 'clerk', desk_assignment: 'Secretary' })).rejects.toMatchObject({ status: 403 });
   });
 });
 

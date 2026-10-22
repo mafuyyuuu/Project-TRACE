@@ -47,6 +47,9 @@ const JWT_SECRET = requireSecret('JWT_SECRET');
 const WEBHOOK_SECRET = requireSecret('WEBHOOK_SECRET');
 
 if (JWT_SECRET === COMPROMISED_JWT_SECRET) {
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error('JWT_SECRET uses a public placeholder. Set a unique signing key before starting production.');
+  }
   console.warn(
     '\n⚠️  SECURITY: JWT_SECRET is still the placeholder value that is public in git history.\n' +
     '   Anyone with repo access can forge a token for any account, including admins.\n' +

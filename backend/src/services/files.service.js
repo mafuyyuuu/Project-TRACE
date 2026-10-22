@@ -32,20 +32,26 @@ function resolveSafePath(requested) {
 }
 
 /**
- * Staff review other people's documents as part of their job, so clerks and
- * admins may read any upload. A student may only read files attached to their
- * own request, their own registration ID proof, and their own avatar.
+ * Registration proofs belong to their owner and Admin verification. Ordinary
+ * desk documents retain their workflow scope; support attachments use ticket
+ * permissions. Students may read only their own request files and avatar.
  */
 async function assertCanRead(user, filename) {
   if (filename.startsWith('support-') || await require('../models/supportTicket.model').fileOwner(filename)) {
     await require('./supportTicket.service').assertFileRead(user,filename);
     return;
   }
+  const proofOwners = user.role === 'admin' ? [] : await userModel.findByIdProofFilename(filename);
+  if (proofOwners.length) {
+    if (proofOwners.some(row => Number(row.id) === Number(user.id))) return;
+    throw forbidden('Registration proofs are available only to their owner and Admin verification.');
+  }
   const attachment = await require('../models/requestAttachment.model').fileOwner(filename);
   if (attachment) {
     await require('./documents.service').authorizeMessage(user, attachment);
     return;
   }
+  if (user.role === 'admin') return;
   if (user.role === 'clerk' && user.desk_assignment === 'Secretary') {
     const docs = await documentModel.findByAttachedFilename(filename);
     if (docs.length) {
@@ -73,9 +79,6 @@ async function assertCanRead(user, filename) {
 
   const docs = await documentModel.findByAttachedFilename(filename);
   if (docs.length > 0 && docs[0].student_id === studentId) return;
-
-  const idProofOwner = await userModel.findByIdProofFilename(filename);
-  if (idProofOwner.length > 0 && idProofOwner[0].id === user.id) return;
 
   throw forbidden('You do not have access to this file.');
 }

@@ -391,6 +391,10 @@ async function lookupStudent(studentId, requestingUser) {
   if (rows.length === 0) {
     throw notFound('Student not found.');
   }
+  if (requestingUser.role === 'clerk' && requestingUser.desk_assignment === 'Secretary') {
+    await require('./requestAssignment.service').assertSecretaryScope(requestingUser,
+      { student_id: studentId, routing_college_id: rows[0].college_id });
+  }
   return { student: rows[0] };
 }
 

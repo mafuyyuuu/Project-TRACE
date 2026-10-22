@@ -62,14 +62,13 @@ const documentUpload = multer({
   limits: { fileSize: 10 * 1024 * 1024 }, // 10 MB limit
   fileFilter: (req, file, cb) => {
     if (!file) return cb(null, true);
-    const allowedTypes = /jpeg|jpg|png|gif|pdf|doc|docx/;
-    const extMatch = allowedTypes.test(path.extname(file.originalname).toLowerCase());
-    const mimeMatch = allowedTypes.test(file.mimetype);
-    if (extMatch || mimeMatch) {
-      cb(null, true);
-    } else {
-      cb(new Error('Only images, PDFs, and Word documents are allowed.'));
-    }
+    const types = {
+      '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.png': 'image/png',
+      '.gif': 'image/gif', '.pdf': 'application/pdf', '.doc': 'application/msword',
+      '.docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    };
+    const allowed = types[path.extname(file.originalname).toLowerCase()] === file.mimetype;
+    cb(allowed ? null : badRequest('Choose a JPEG, PNG, GIF, PDF or Word document with a matching file type.'), allowed);
   },
 });
 

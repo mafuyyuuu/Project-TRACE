@@ -139,3 +139,7 @@ If continuing system development:
 
 ### October 18: experimental residual-wait Random Forest
 Current `stage_risk.py` replaces rules-only status notes with an experimental classifier trained on reproducible simulation plus eligible completed modern stage history. It predicts remaining in the same stage another 24h, not cause/capacity. Separate grouped held-out scores are in Admin AI & Model Evaluation. Legacy mock statuses are excluded, unmarked origin is unverified, real-world validation is not claimed. No schema migration/DB writes; rebuild backend and ai-engine plus matching frontend. See docs/AI_MODEL_EVALUATION.md for authoritative contract.
+
+
+### October 22 security/operations review
+Application-enforced row authorization remains the model; do not claim native MySQL RLS. New fixes scope tracking, Secretary profile lookup and registration proofs; private API caching, errors/logs/request IDs, production CORS/JWT defaults and internal port bindings are hardened. Dependencies are patched and CI is defined; no database migration is added. Node watch mode replaces nodemon. Read docs/SECURITY_READINESS_2026-10-22.md before rollout; live cloud/IAM/backups and branch protection remain unverified.

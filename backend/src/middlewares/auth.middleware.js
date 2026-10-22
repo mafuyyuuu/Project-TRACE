@@ -18,9 +18,10 @@ async function authenticate(req, res, next) {
   }
 
   const token = authHeader.split(' ')[1];
-
+  let decoded;
+  try { decoded = jwt.verify(token, JWT_SECRET); }
+  catch { return res.status(401).json({ error: 'Invalid or expired token.' }); }
   try {
-    const decoded = jwt.verify(token, JWT_SECRET);
     if (decoded.pending_2fa || !Number.isInteger(decoded.id) || !Number.isInteger(decoded.token_version)
       || !['student', 'admin', 'clerk'].includes(decoded.role) || !Number.isInteger(decoded.exp)) {
       return res.status(401).json({ error: 'Complete login verification before accessing TRACE.' });
@@ -68,7 +69,8 @@ async function authenticate(req, res, next) {
     };
     next();
   } catch (err) {
-    return res.status(401).json({ error: 'Invalid or expired token.' });
+    require('../utils/httpError').logError('Authentication storage unavailable', err, res.locals?.requestId);
+    return res.status(503).json({ error: 'Authentication is temporarily unavailable. Please try again.' });
   }
 }
 

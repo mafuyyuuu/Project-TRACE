@@ -1,3 +1,4 @@
+const { publicError, logError } = require('../utils/httpError');
 const authService = require('../services/auth.service');
 const deviceLogin = require('../services/deviceLogin.service');
 const trustedBrowser = require('../services/trustedBrowser.service');
@@ -9,8 +10,9 @@ const trustedBrowser = require('../services/trustedBrowser.service');
 
 /** Translate a thrown error into a response, defaulting to 500. */
 function fail(res, err, logLabel, fallbackMessage) {
-  console.error(`${logLabel}:`, err);
-  res.status(err.status || 500).json({ error: err.status ? err.message : fallbackMessage });
+  logError(logLabel, err, res.locals?.requestId);
+  const result = publicError(err, fallbackMessage);
+  res.status(result.status).json({ error: result.message });
 }
 
 async function login(req, res) {

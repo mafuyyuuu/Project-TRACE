@@ -1215,3 +1215,12 @@ The same frontend/backend release adds the Irregular signup transfer Yes/No ques
 
 ### Experimental Random Forest stage-wait rollout - October 18
 No migration, new environment variable or database mock seed is required. Deploy matching frontend, backend and AI service. On the existing VM, after pulling the intended branch, run `docker compose up -d --build backend ai-engine`; this rebuilds the two existing services and fits the cached model on the first Admin request. Deploy the frontend through the normal pipeline. Check Admin > Efficiency Analytics > AI & Model Evaluation for model ID, source counts, exclusions and separate test results. If a model/history read fails, Insights explicitly retains workflow guidance. See AI_MODEL_EVALUATION.md for details.
+
+
+## October 22 security rollout changes
+
+See [the security/readiness review](SECURITY_READINESS_2026-10-22.md) for scope, evidence, remaining infrastructure work and read-only checks. No migration or new secret setting is added. Production requires an explicit `FRONTEND_URL`; blank/comma-only values no longer enable arbitrary browser origins. The public JWT placeholder now prevents production startup. Preserve existing unique signing/MFA/n8n keys and persistent volumes.
+
+Compose now binds backend 3300, AI 5005 and n8n 5678 to `127.0.0.1`; Caddy's public 80/443 and internal service names remain. Recreate affected services for port/log changes, and rebuild the backend for its dependency/code updates. Verify a custom host proxy path before rollout. Access n8n through local SSH forwarding instead of its public VM port. All six services rotate local logs at 10 MB x3; configure protected centralized retention separately.
+
+Backend development continues through `npm run dev`, using Node's built-in watch mode on Node 22 rather than nodemon. CI runs tests and audits, not production deployment; configure branch protection and staging acceptance separately.

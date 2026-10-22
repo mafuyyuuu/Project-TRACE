@@ -9,10 +9,19 @@
 #   docker compose --profile local-frontend up -d --build   # include the SPA
 # ---------------------------------------------------------------------------
 
+# Bound local log retention; forward logs to a protected central store before
+# relying on them for longer incident/audit retention.
+x-trace-logging: &trace-logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
 services:
   mysql:
     image: mysql:8
     restart: unless-stopped
+    logging: *trace-logging
     environment:
       MYSQL_ROOT_PASSWORD: ${DB_PASSWORD:-trace}
       MYSQL_DATABASE: ${DB_NAME:-trace_db}
@@ -32,6 +41,7 @@ services:
   backend:
     build: ./backend
     restart: unless-stopped
+    logging: *trace-logging
     depends_on:
       mysql:
         condition: service_healthy
@@ -74,11 +84,12 @@ services:
       # receipts and avatars are lost on every redeploy.
       - uploads:/app/uploads
     ports:
-      - "3300:3300"
+      - "127.0.0.1:3300:3300"
 
   ai-engine:
     build: ./ai-engine
     restart: unless-stopped
+    logging: *trace-logging
     depends_on:
       mysql:
         condition: service_healthy
@@ -93,11 +104,12 @@ services:
       DB_SSL: ${DB_SSL:-false}
       DB_SSL_CA: ${DB_SSL_CA:-}
     ports:
-      - "5005:5005"
+      - "127.0.0.1:5005:5005"
 
   n8n:
     image: docker.n8n.io/n8nio/n8n
     restart: unless-stopped
+    logging: *trace-logging
     environment:
       # The routing workflow reads both of these instead of hardcoding them —
       # baking in a port is exactly how routing silently broke for a month.
@@ -113,7 +125,7 @@ services:
     volumes:
       - n8n-data:/home/node/.n8n
     ports:
-      - "5678:5678"
+      - "127.0.0.1:5678:5678"
 
   # HTTPS termination. Enabled with `--profile tls` on the deployed VM; not
   # used locally, where plain http on :3300 is fine.
@@ -125,6 +137,7 @@ services:
   caddy:
     image: caddy:2-alpine
     restart: unless-stopped
+    logging: *trace-logging
     depends_on:
       - backend
     environment:
@@ -151,6 +164,7 @@ services:
       args:
         VITE_API_URL: ${VITE_API_URL:-}
     restart: unless-stopped
+    logging: *trace-logging
     depends_on:
       - backend
     ports:
