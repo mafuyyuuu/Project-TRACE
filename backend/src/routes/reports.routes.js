@@ -5,15 +5,16 @@ const { authenticate, requireRole } = require('../middlewares/auth.middleware');
 const router = express.Router();
 
 router.use(authenticate);
+router.use('/export', require('../middlewares/rateLimit.middleware').exportLimiter);
 
 router.get('/filter-options', reportsController.filterOptions);
 router.get('/documents', reportsController.documentReport);
 router.get('/export/:kind.pdf', requireRole('admin'), reportsController.exportPdf);
-router.get('/analytics', reportsController.analytics);
+router.get('/analytics', requireRole('admin'), reportsController.analytics);
 router.get('/ai-evaluation', requireRole('admin'), reportsController.aiEvaluation);
 
 // CSV downloads. `category` selects the student bucket: active | alumni | others | all
-router.get('/export/students.csv', reportsController.exportStudents);
+router.get('/export/students.csv', requireRole('admin'), reportsController.exportStudents);
 router.get('/export/documents.csv', reportsController.exportDocuments);
 
 module.exports = router;

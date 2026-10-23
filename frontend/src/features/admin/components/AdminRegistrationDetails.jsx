@@ -4,7 +4,7 @@ import { USER_TYPE_LABELS } from '@/utils/userLabels';
 import { registrationChecks } from '@/utils/registrationChecks';
 
 export default function AdminRegistrationDetails({ student }) {
-  const fields = [['review-id1', 'ID Number', student.student_id], ['review-cap', 'Course / Program', student.program], ['review-school', 'College', student.college_name || student.course], ['review-mail', 'Email', student.email], ...(student.user_type !== 'alumni' ? [['review-user', 'Type of Student', student.study_load === 'irregular' ? 'Irregular' : student.study_load === 'regular' ? 'Regular' : 'Not recorded']] : [])];
+  const fields = [['review-id1', 'ID Number', student.student_id], ['review-cap', 'Program', student.program], ['review-school', 'College', student.college_name || student.course], ['review-mail', 'Email', student.email], ...(student.user_type !== 'alumni' ? [['review-user', 'Type of Student', student.study_load === 'irregular' ? 'Irregular' : student.study_load === 'regular' ? 'Regular' : 'Not recorded']] : [])];
   return <div className="min-w-0 space-y-4">
     <section className="trace-admin-review-details">
       <header className="flex min-w-0 items-center gap-3.5 px-[18px] py-[18px]"><span aria-hidden="true" className="trace-admin-initials">{(student.full_name || '?').split(' ').slice(0, 2).map(name => name[0]).join('')}</span><div className="min-w-0"><h4 className="select-text break-words text-base font-semibold">{student.full_name}</h4><span className="trace-admin-badge trace-admin-badge-blue mt-1"><AdminIcon name="review-user" />{USER_TYPE_LABELS[student.user_type] || 'Student'}</span></div></header>

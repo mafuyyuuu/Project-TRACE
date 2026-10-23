@@ -3,7 +3,7 @@ const { toCsv } = require('./csv');
 // files, identity evidence, credentials and conversation content are excluded.
 const DOCUMENT_COLUMNS = [
   ['id','Document ID'],['tracking_number','Tracking Number'],['request_group_id','Request Group'],['document_sequence_number','Document Request'],
-  ['student_id','Student ID'],['student_name','Student Name'],['college_id','College ID'],['course','College/Department'],['program','Program/Course'],['document_type','Document Type'],
+  ['student_id','Student ID'],['student_name','Student Name'],['college_id','College ID'],['course','College/Department'],['program','Program'],['document_type','Document Type'],
   ['current_status','Status'],['payment_status','Payment'],['copies','Copies'],['page_count','Pages'],['amount','Amount (PHP)'],['base_fee','Base Rate (PHP)'],['rental_fee','Rental Rate (PHP)'],['special_fee','Special Rate (PHP)'],['fee_lines','Fee Breakdown'],['purpose','Purpose'],
   ['created_at','Requested On (Manila)'],['updated_at','Last Updated (Manila)'],['estimated_ready_date','Estimated Ready Date'],
   ['assigned_clerk_id','Assigned Staff ID'],['assigned_staff_name','Assigned Staff'],['assigned_staff_desk','Assigned Desk'],

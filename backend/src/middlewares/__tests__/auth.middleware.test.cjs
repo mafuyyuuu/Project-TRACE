@@ -86,3 +86,24 @@ it('denies a logged-out session while its JWT is otherwise valid', async () => {
   const result = await check({ id: 3, role: 'student', token_version: 2 });
   expect(result.next).not.toHaveBeenCalled(); expect(result.res.status).toHaveBeenCalledWith(401);
 });
+
+it('fails closed with 503 during an account-store outage rather than reporting an invalid token', async () => {
+  vi.spyOn(console, 'error').mockImplementation(() => {});
+  vi.spyOn(pool, 'query').mockRejectedValue(new Error('private database details'));
+  const token = jwt.sign({ id: 3, role: 'student', token_version: 2 }, env.JWT_SECRET, { expiresIn: '1h' });
+  const req = { headers: { authorization: `Bearer ${token}` } };
+  const res = { status: vi.fn().mockReturnThis(), json: vi.fn() }; const next = vi.fn();
+  await authenticate(req, res, next);
+  expect(res.status).toHaveBeenCalledWith(503);
+  expect(next).not.toHaveBeenCalled();
+  expect(JSON.stringify(res.json.mock.calls)).not.toContain('private database details');
+});
+
+it('rejects an old desk token immediately after reassignment', async () => {
+  const result = await check({id:3,role:'clerk',desk_assignment:'Finance',token_version:2}, {is_active:1,role:'clerk',desk_assignment:'Secretary',token_version:2});
+  expect(result.res.status).toHaveBeenCalledWith(401); expect(result.next).not.toHaveBeenCalled();
+});
+it('rejects a previously verified student after verification is withdrawn', async () => {
+  const result = await check({id:3,role:'student',token_version:2}, {is_active:1,role:'student',verification_status:'pending',token_version:2});
+  expect(result.res.status).toHaveBeenCalledWith(401); expect(result.next).not.toHaveBeenCalled();
+});

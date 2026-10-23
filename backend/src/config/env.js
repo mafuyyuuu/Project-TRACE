@@ -47,6 +47,9 @@ const JWT_SECRET = requireSecret('JWT_SECRET');
 const WEBHOOK_SECRET = requireSecret('WEBHOOK_SECRET');
 
 if (JWT_SECRET === COMPROMISED_JWT_SECRET) {
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error('JWT_SECRET uses a public placeholder. Set a unique signing key before starting production.');
+  }
   console.warn(
     '\n⚠️  SECURITY: JWT_SECRET is still the placeholder value that is public in git history.\n' +
     '   Anyone with repo access can forge a token for any account, including admins.\n' +
@@ -56,6 +59,9 @@ if (JWT_SECRET === COMPROMISED_JWT_SECRET) {
 }
 
 module.exports = {
+  RATE_LIMIT_STORE: process.env.RATE_LIMIT_STORE || (process.env.NODE_ENV === 'production' ? 'mysql' : 'memory'),
+  AI_ENGINE_SECRET: process.env.AI_ENGINE_SECRET || '',
+  HTTP_ACCESS_LOG: process.env.HTTP_ACCESS_LOG === 'true' || (process.env.NODE_ENV === 'production' && process.env.HTTP_ACCESS_LOG !== 'false'),
   NODE_ENV: process.env.NODE_ENV || 'development',
   // Separate from JWT signing; authenticator operations fail closed without it.
   MFA_ENCRYPTION_KEY: process.env.MFA_ENCRYPTION_KEY || '',

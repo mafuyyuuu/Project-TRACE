@@ -338,3 +338,7 @@ value comes from, [`README.md`](../README.md) for local setup,
 
 ### October 18 graduate-application patch
 Deploy the matching frontend and restart/rebuild the updated backend. No database migration, new dependency or environment setting is needed: academic answers use existing `grad_application_values`, and College/Program use the existing catalog. Verify with a pending alumnus: College filters Degree Program, changing College clears it, confirmation submits successfully without `GRAD_APPLICATION_REQUIRED`, saved history appears, and dashboard access refreshes. Confirm an inactive or foreign-college program is rejected and failed attempts retain answers. This local verification does not mean production has been deployed.
+
+
+### October 22 security follow-up
+See `docs/SECURITY_ROLLOUT.md` and `docs/PERMISSIONS_MATRIX.md`. This follow-up requires a separate AI gateway secret, additive rate_limit_counters migration, uploads ownership preparation and least-privilege API/AI database identities before recreating containers. Production registration OCR requires Admin official-record review. Preserve deployed JWT/MFA encryption keys. Live GCP/firewall/backup/branch protection and multi-instance readiness are separate acceptance items; none are automatically deployed.

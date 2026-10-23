@@ -14,10 +14,10 @@ const templateRoutes = require('./routes/templates.routes');
 const errorHandler = require('./middlewares/errorHandler.middleware');
 const env = require('./config/env');
 const { corsOrigin } = require('./config/cors');
-const { pool } = require('./config/db');
 const { apiLimiter } = require('./middlewares/rateLimit.middleware');
 
 const app = express();
+app.disable('x-powered-by');
 
 // ---------------------------------------------------------------------------
 // Middleware
@@ -30,29 +30,22 @@ if (env.TRUST_PROXY > 0) {
   app.set('trust proxy', env.TRUST_PROXY);
 }
 
-app.use(cors({ origin: corsOrigin(), credentials: true }));
+app.use('/api', require('./middlewares/apiSecurity.middleware'));
+app.use(cors({ origin: corsOrigin(), credentials: true, exposedHeaders: ['X-Request-Id'] }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 // Deliberately above the rate limiter: an orchestrator polling readiness must
 // never be throttled into reporting a healthy container as unhealthy.
-app.get('/api/health', async (req, res) => {
-  const body = {
-    status: 'ok',
-    service: 'TRACE Backend API',
-    database: 'ok',
-    timestamp: new Date().toISOString(),
-  };
-
-  // The server deliberately boots without a database (see server.js), so
-  // liveness alone would report a completely unusable container as healthy.
-  try {
-    await pool.query('SELECT 1');
-  } catch (err) {
-    return res.status(503).json({ ...body, status: 'degraded', database: err.message });
+const operations = require('./services/operations.service');
+app.get('/api/health/live', (_req, res) => res.json({ status: 'ok' }));
+app.get('/api/health', async (_req, res) => {
+  try { await operations.readiness(); res.json({ status: 'ok', service: 'TRACE Backend API', database: 'ok' }); }
+  catch (error) {
+    require('./utils/httpError').logError('Database readiness failed', error, res.locals.requestId);
+    res.status(503).json({ status: 'degraded', database: 'unavailable' });
   }
-
-  res.json(body);
 });
+app.use('/api', (_req, res, next) => operations.isDraining() ? res.status(503).set('Retry-After', '5').json({ error: 'Service restarting. Please retry.' }) : next());
 
 app.use('/api', apiLimiter);
 app.use('/api', require('./middlewares/dataChanges.middleware').dataChanges);
@@ -78,6 +71,7 @@ app.use('/api/support/tickets', require('./routes/supportTicket.routes'));
 app.use('/api/internal-assistance', require('./routes/internalAssistance.routes'));
 app.use('/api/staff-conversations', require('./routes/staffConversation.routes'));
 app.use('/api/support', require('./routes/support.routes'));
+app.use('/api/manual-faq',require('./routes/manualFaq.routes'));
 
 // Must be registered last.
 app.use(errorHandler);

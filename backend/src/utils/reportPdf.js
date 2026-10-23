@@ -10,6 +10,12 @@ const fontBytes = ['regular','bold'].map(name=>fs.readFileSync(path.join(__dirna
 async function createReport({title,generatedAt,period,landscape=false}) {
   const pdf=await PDFDocument.create();pdf.registerFontkit(fontkit);
   const fonts=await Promise.all(fontBytes.map(bytes=>pdf.embedFont(bytes,{subset:true})));
+  const widths = [new Map(),new Map()];
+  const measure = (text, size, bold = false) => {
+    const cache = widths[bold ? 1 : 0]; let value = cache.get(text);
+    if (value === undefined) { value = fonts[bold ? 1 : 0].widthOfTextAtSize(text, 1); if (cache.size < 4096 && text.length < 1000) cache.set(text, value); }
+    return value * size;
+  };
   const supported=new Set(fonts[0].getCharacterSet());let substituted=false;
   const width=landscape?792:612,height=landscape?612:792,margin=44,usable=width-2*margin,bottom=48;
   let page,y;
@@ -24,14 +30,14 @@ async function createReport({title,generatedAt,period,landscape=false}) {
   };
   const ensure=space=>{if(y-space<bottom)newPage();};
   function wrap(value,maxWidth,size=10,bold=false) {
-    const font=fonts[bold?1:0],lines=[];
+    const lines=[];
     for(const paragraph of clean(value).split('\n')){
       let current='';
       for(const word of paragraph.split(/\s+/)){
         if(!word)continue;
-        if(current && font.widthOfTextAtSize(current+' '+word,size)>maxWidth){lines.push(current);current='';}
+        if(current && measure(current+' '+word,size,bold)>maxWidth){lines.push(current);current='';}
         let part='';
-        for(const char of word){if(part && font.widthOfTextAtSize(part+char,size)>maxWidth){if(current){lines.push(current);current='';}lines.push(part);part='';}part+=char;}
+        for(const char of word){if(part && measure(part+char,size,bold)>maxWidth){if(current){lines.push(current);current='';}lines.push(part);part='';}part+=char;}
         current=current?current+' '+part:part;
       }
       lines.push(current);

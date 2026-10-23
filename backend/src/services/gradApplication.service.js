@@ -174,13 +174,15 @@ async function getApplication(user, applicationId) {
   }
   const application = rows[0];
 
-  // Students may only read their own; staff review anyone's.
+  // Owner, Admin or current-college Secretary only.
   if (user.role === 'student') {
     const owner = await userModel.findStudentIdById(user.id);
     if (!owner[0] || owner[0].student_id !== application.student_id) {
       throw forbidden('You can only view your own application.');
     }
   }
+
+  if (user.role !== 'student') await assertReviewer(user, application);
 
   const [definitions, values] = await Promise.all([
     gradModel.listFields({ includeInactive: true }),
@@ -211,37 +213,38 @@ async function listMyApplications(user) {
   return { applications: await gradModel.findApplicationsByStudent(owner[0].student_id) };
 }
 
-/** Staff review queue. */
+async function assertReviewer(user, application, executor = pool) {
+  if (user.role === 'admin') return;
+  if (user.role !== 'clerk' || user.desk_assignment !== 'Secretary') throw forbidden('Only Admin and the assigned college Secretary can review applications.');
+  if (application) await require('./requestAssignment.service').assertSecretaryScope(user, application, executor);
+}
+
 async function listApplications(user, query = {}) {
-  if (user.role !== 'admin' && user.role !== 'clerk') {
-    throw forbidden('Access denied.');
+  await assertReviewer(user);
+  let scope;
+  if (user.role !== 'admin') {
+    const [account] = await userModel.findCourseById(user.id);
+    if (!account?.college_id && !account?.course) throw forbidden('A college assignment is required.');
+    scope = account;
   }
-  return { applications: await gradModel.listApplications({ status: query.status }) };
+  return { applications: await gradModel.listApplications({ status: query.status, scope }) };
 }
 
-/** Staff decision on an application. */
 async function reviewApplication(user, applicationId, { status, notes }) {
-  if (user.role !== 'admin' && user.role !== 'clerk') {
-    throw forbidden('Access denied.');
-  }
-  if (!['under_review', 'approved', 'rejected'].includes(status)) {
-    throw badRequest('Invalid status.');
-  }
-
-  const [result] = await gradModel.updateApplicationStatus(applicationId, status, user.id, notes ?? null);
-  if (result.affectedRows === 0) {
-    throw notFound('Application not found.');
-  }
-
-  return { message: `Application marked ${status}.` };
+  await assertReviewer(user);
+  if (!['under_review', 'approved', 'rejected'].includes(status)) throw badRequest('Invalid status.');
+  if (notes !== undefined && notes !== null && (typeof notes !== 'string' || notes.length > 2000)) throw badRequest('Notes must be at most 2000 characters.');
+  const tx = await pool.getConnection();
+  try {
+    await tx.beginTransaction();
+    const [application] = await gradModel.findApplicationById(applicationId, tx, true);
+    if (!application) throw notFound('Application not found.');
+    await assertReviewer(user, application, tx);
+    await gradModel.updateApplicationStatus(applicationId, status, user.id, notes ?? null, tx);
+    await tx.commit();
+    return { message: `Application marked ${status}.` };
+  } catch (error) { await tx.rollback(); throw error; }
+  finally { tx.release(); }
 }
 
-module.exports = {
-  getFormFields,
-  validateAnswers,
-  submitApplication,
-  getApplication,
-  listMyApplications,
-  listApplications,
-  reviewApplication,
-};
+module.exports = { getFormFields, validateAnswers, submitApplication, getApplication, listMyApplications, listApplications, reviewApplication };

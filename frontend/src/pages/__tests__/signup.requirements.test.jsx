@@ -28,7 +28,7 @@ const start = () => render(<MemoryRouter><SignupPage /></MemoryRouter>);
 async function academic() {
   await screen.findByRole('option', { name: 'College of Computer Studies' });
   fireEvent.change(screen.getByLabelText('College *'), { target:{value:'College of Computer Studies'} });
-  fireEvent.change(screen.getByLabelText('Program/Course *'), { target:{value:programs[0].name} });
+  fireEvent.change(screen.getByLabelText('Program *'), { target:{value:programs[0].name} });
   fireEvent.change(screen.getByLabelText(/^(Student|Alumni) ID/), { target:{value:'SYN-0001'} });
   const type=screen.queryByLabelText('Type of Student *');
   if(type) { fireEvent.change(type,{target:{value:'irregular'}}); fireEvent.change(screen.getByLabelText('Are you a transfer student? *'),{target:{value:'false'}}); }
@@ -44,16 +44,16 @@ async function account() {
 async function fillDraft() { await academic();await next();await personal();await next();await account(); }
 
 it('limits the managed program catalog by college and clears a mismatched choice',async()=>{
- start();expect(screen.getByLabelText('Program/Course *')).toBeDisabled();await academic();
+ start();expect(screen.getByLabelText('Program *')).toBeDisabled();await academic();
  expect(screen.queryByRole('option',{name:programs[2].name})).not.toBeInTheDocument();
  await userEvent.selectOptions(screen.getByLabelText('College *'),'College of Education');
- expect(screen.getByLabelText('Program/Course *')).toHaveValue('');
+ expect(screen.getByLabelText('Program *')).toHaveValue('');
  expect(screen.queryByRole('option',{name:programs[0].name})).not.toBeInTheDocument();
  expect(screen.getByRole('option',{name:programs[2].name})).toBeInTheDocument();
 });
 it('requires a declared student type and validates only the current step beside its fields',async()=>{
  const {container}=start();await screen.findByRole('option',{name:'College of Computer Studies'});await next();
- for(const label of ['Type of Student *','College *','Student ID *','Program/Course *'])expect(screen.getByLabelText(label)).toHaveAttribute('aria-invalid','true');
+ for(const label of ['Type of Student *','College *','Student ID *','Program *'])expect(screen.getByLabelText(label)).toHaveAttribute('aria-invalid','true');
  expect(screen.queryByLabelText('Email Address *')).not.toBeInTheDocument();
  expect(screen.queryByRole('dialog')).not.toBeInTheDocument();expect(container.querySelector('form')).toHaveAttribute('novalidate');
  await academic();await next();expect(screen.getByRole('heading',{name:'Personal information'})).toBeInTheDocument();
@@ -116,7 +116,7 @@ it('retries a failed catalog without losing the academic draft',async()=>{
  expect(screen.getByLabelText('College *')).toBeEnabled();expect(screen.getByLabelText('Student ID *')).toHaveValue('SYN-0001');expect(getPrograms).toHaveBeenCalledTimes(2);
 });
 it('shows an actionable empty catalog rather than allowing an unmanaged program',async()=>{
- getPrograms.mockResolvedValue({programs:[]});start();await screen.findByRole('option',{name:'College of Computer Studies'});await userEvent.selectOptions(screen.getByLabelText('College *'),'College of Computer Studies');expect(screen.getByLabelText('Program/Course *')).toBeDisabled();expect(screen.getByText(/No active programs/)).toBeInTheDocument();
+ getPrograms.mockResolvedValue({programs:[]});start();await screen.findByRole('option',{name:'College of Computer Studies'});await userEvent.selectOptions(screen.getByLabelText('College *'),'College of Computer Studies');expect(screen.getByLabelText('Program *')).toBeDisabled();expect(screen.getByText(/No active programs/)).toBeInTheDocument();
 });
 it('rejects incompatible and oversized replacements without discarding valid proof or blanking the form',async()=>{
  const {container}=start();await fillDraft();expect(screen.getByText(/Accepted files: JPG, JPEG, PNG or PDF. Maximum size: 10 MB/)).toBeInTheDocument();

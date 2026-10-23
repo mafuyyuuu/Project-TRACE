@@ -15,7 +15,12 @@ function day(value) {
   return date;
 }
 async function aggregate(query = {}) {
-  const {from,to}=period(query);return summarize(await reports.dataset(from,to),from,to);
+  const {from,to}=period(query);
+  const [dataset,manual]=await Promise.all([reports.dataset(from,to),require('./manualFaq.service').aggregate(from,to)]);
+  const result=summarize(dataset,from,to),faq={...result.faq,topics:{...result.faq.topics}};
+  for(const field of ['views','helpful','not_helpful','feedback_denominator'])faq[field]+=manual[field];
+  for(const [question,row] of Object.entries(manual.topics))faq.topics[`Manual: ${question}`]=row;
+  return {...result,faq,ticket_faq:result.faq,manual_faq:manual,notes:[...result.notes,'FAQ totals include ticket assistance and the User Manual. Manual views count once per account/question/Manila day; ratings use the latest response per account/question in the selected period. Manual ratings never resolve tickets or change escalation denominators.']};
 }
 async function report(user,query = {}) {
   const actor=await tickets.currentActor(user);

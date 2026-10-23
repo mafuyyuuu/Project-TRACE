@@ -7,16 +7,21 @@ import ModalShell from '@/components/ModalShell';
 import AuthedFilePreview from '@/components/AuthedFilePreview';
 import SecretaryIcon, { SecretaryHeaderIcon } from './SecretaryIcon';
 import SecretaryCaseSummary from './SecretaryCaseSummary';
+import {addWorkingDays,calendarDate,estimate} from '@/utils/releasePolicy';
 
 function EvaluationForm({ selectedDoc, evalStudentId, setEvalStudentId, evalStudentName, setEvalStudentName, evalDocType, setEvalDocType, documentTypes, documentTypesError, estimatedReadyDate, setEstimatedReadyDate, clerkNotes, setClerkNotes, busy }) {
   const id = useId(), purpose = secretaryPurpose(selectedDoc.purpose);
+  const policy=estimate({...selectedDoc,document_type:evalDocType || selectedDoc.document_type,
+    is_same_day:evalDocType && evalDocType!==selectedDoc.document_type ? false : selectedDoc.is_same_day,
+    release_working_days:evalDocType && evalDocType!==selectedDoc.document_type ? null : selectedDoc.release_working_days},
+    {user_type:selectedDoc.student_user_type,enrollment_status:selectedDoc.student_enrollment_status});
   return <>
     {purpose.length > 0 && <section className="trace-secretary-purpose" aria-label="Student purpose"><h4><SecretaryIcon name="1e0a7" />Student purpose</h4><dl>{purpose.map(item => <div key={item.label}><dt>{item.label}</dt><dd>{item.value}</dd></div>)}</dl></section>}
     <section className="trace-secretary-evaluation-form" aria-label="Evaluation details"><h4><SecretaryIcon name="49830" />Evaluation details</h4><div className="trace-secretary-field-grid">
       <label className="trace-label" htmlFor={id+'-id'}>Student ID<div className="trace-secretary-input"><SecretaryIcon name="a7dfb" /><input id={id+'-id'} maxLength={INPUT_LIMITS.id} value={evalStudentId} onChange={e=>setEvalStudentId(e.target.value)} disabled={busy} className="trace-control" /></div></label>
       <label className="trace-label" htmlFor={id+'-name'}>Student Name<div className="trace-secretary-input"><SecretaryIcon name="150b0" /><input id={id+'-name'} maxLength={INPUT_LIMITS.name} value={evalStudentName} onChange={e=>setEvalStudentName(e.target.value)} disabled={busy} className="trace-control" /></div></label>
       <label className="trace-label" htmlFor={id+'-type'}>Document Type<div className="trace-secretary-input"><SecretaryIcon name="3132d" /><select id={id+'-type'} value={evalDocType} onChange={e=>setEvalDocType(e.target.value)} disabled={busy} className="trace-control">{!documentTypes.some(type=>type.name===evalDocType) && <option value={evalDocType}>{evalDocType}</option>}{documentTypes.map(type=><option key={type.id || type.name} value={type.name}>{type.name}</option>)}</select></div>{documentTypesError && <span role="alert" className="trace-inline-error">{documentTypesError}</span>}</label>
-      <label className="trace-label" htmlFor={id+'-ready'}>Ready By <span className="text-red-600 dark:text-red-300">*</span><input id={id+'-ready'} type="date" value={estimatedReadyDate || ''} onChange={e=>setEstimatedReadyDate(e.target.value)} min={new Date().toISOString().split('T')[0]} disabled={busy} className="trace-control w-full" /><span className="trace-secretary-field-hint">Sent to the student. They are told the amount separately, once it is printed and priced.</span></label>
+      <label className="trace-label" htmlFor={id+'-ready'}>Ready By <span className="text-red-600 dark:text-red-300">*</span><input id={id+'-ready'} type="date" value={policy.date || estimatedReadyDate || ''} readOnly={Boolean(policy.date)} onChange={e=>setEstimatedReadyDate(e.target.value)} min={calendarDate(selectedDoc.created_at) || undefined} max={addWorkingDays(selectedDoc.created_at,15) || undefined} disabled={busy} className="trace-control w-full" /><span className="trace-secretary-field-hint">{policy.date ? `Automatically calculated: ${policy.working_days} working days from submission, Monday–Thursday. ` : 'Choose a Monday–Thursday date within 15 working days of submission. '}Sent to the student; the amount is set after printing.</span></label>
     </div><label className="trace-label block" htmlFor={id+'-notes'}>Secretary Notes<textarea id={id+'-notes'} maxLength={INPUT_LIMITS.notes} value={clerkNotes} onChange={e=>setClerkNotes(e.target.value)} disabled={busy} placeholder="Add any remarks…" className="trace-control w-full min-h-28 resize-y" /></label></section>
   </>;
 }

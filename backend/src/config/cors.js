@@ -4,7 +4,7 @@ const env = require('./env');
  * One CORS policy, shared by the REST API and the Socket.IO handshake so the
  * two can never disagree about who is allowed to call this server.
  *
- * `FRONTEND_URL` unset means development: reflect whatever origin asks. Locally
+ * Outside production, an unset `FRONTEND_URL` reflects the requesting origin. Locally
  * the Vite proxy makes requests same-origin anyway, and a teammate hitting the
  * API from their own machine shouldn't need a config change to do it.
  *
@@ -19,12 +19,11 @@ function allowedOrigins() {
 }
 
 /**
- * @returns {true|string[]} `true` reflects any origin (development). Otherwise
- *   the explicit allowlist, which both `cors` and Socket.IO accept directly.
+ * @returns {boolean|string[]} Production requires an explicit allowlist.
  */
 function corsOrigin() {
   const origins = allowedOrigins();
-  return origins.length > 0 ? origins : true;
+  return origins.length > 0 ? origins : env.NODE_ENV !== 'production';
 }
 
 module.exports = { corsOrigin, allowedOrigins };

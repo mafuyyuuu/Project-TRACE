@@ -1,61 +1,40 @@
-const { rateLimit } = require('express-rate-limit');
-
-/**
- * Throttles credential-guessing. Without this, every account is brute-forceable
- * at network speed — and all seeded accounts share one well-known password.
- *
- * Keyed by IP. Successful logins don't count toward the limit, so a legitimate
- * user working normally never trips it.
- */
-const loginLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  limit: 10,                // 10 failed attempts per IP per window
-  skipSuccessfulRequests: true,
-  standardHeaders: 'draft-7',
-  legacyHeaders: false,
-  message: { error: 'Too many login attempts. Please try again in a few minutes.' },
-});
-
-/**
- * Registration is expensive: it writes a file to disk and runs an OCR pass on
- * the uploaded ID, so it is worth capping independently of login.
- */
-const registerLimiter = rateLimit({
-  windowMs: 60 * 60 * 1000, // 1 hour
-  limit: 20,
-  standardHeaders: 'draft-7',
-  legacyHeaders: false,
-  message: { error: 'Too many registration attempts. Please try again later.' },
-});
-
-/**
- * Password reset requests send an email to an address the requester does not
- * have to prove they control, so an unthrottled endpoint is a free relay for
- * mail-bombing any registered user. Keyed by IP, like the other limiters.
- */
-const passwordResetLimiter = rateLimit({
-  windowMs: 60 * 60 * 1000, // 1 hour
-  limit: 10,
-  standardHeaders: 'draft-7',
-  legacyHeaders: false,
-  message: { error: 'Too many password reset requests. Please try again later.' },
-});
-
-/** Broad backstop for the rest of the API. Generous enough not to affect normal use. */
-const apiLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  limit: 1000,
-  standardHeaders: 'draft-7',
-  legacyHeaders: false,
-  message: { error: 'Too many requests. Please slow down.' },
-});
-
-const registrationIdLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  limit: 30,
-  standardHeaders: 'draft-7',
-  legacyHeaders: false,
-  message: { error: 'Too many ID checks. Please try again in a few minutes.' },
-});
-
-module.exports = { registrationIdLimiter, loginLimiter, registerLimiter, passwordResetLimiter, apiLimiter };
+const { rateLimit, ipKeyGenerator } = require('express-rate-limit');
+const jwt = require('jsonwebtoken');
+const { createHmac } = require('crypto');
+const env = require('../config/env');
+const { MysqlRateLimitStore } = require('../services/rateLimitStore.service');
+if (!['mysql', 'memory'].includes(env.RATE_LIMIT_STORE)) throw new Error('RATE_LIMIT_STORE must be mysql or memory.');
+function verifiedAccount(req, pending = false) {
+  if (req.user?.id) return `account:${req.user.id}`;
+  const token = pending ? req.body?.temp_token : req.headers.authorization?.replace(/^Bearer /, '');
+  try {
+    const data = jwt.verify(token, env.JWT_SECRET, { algorithms: ['HS256'] });
+    if (Number.isSafeInteger(data.id) && data.exp && (pending ? data.pending_2fa === true : !data.pending_2fa)) return `account:${data.id}`;
+  } catch { /* Untrusted claims never select an account bucket. */ }
+  return null;
+}
+function networkKey(req) { return `ip:${ipKeyGenerator(req.ip)}`; }
+function accountKey(req) { return verifiedAccount(req) || networkKey(req); }
+function loginKey(req) {
+  const account = verifiedAccount(req) || verifiedAccount(req, true);
+  if (account) return account;
+  const id = req.body?.student_id;
+  return typeof id === 'string' && id.trim().length <= 150
+    ? `login:${createHmac('sha256', env.JWT_SECRET).update(id.trim().toUpperCase()).digest('hex')}` : networkKey(req);
+}
+function limiter(namespace, limit, windowMs = 900000, extra = {}) {
+  return rateLimit({ windowMs, limit, standardHeaders: 'draft-7', legacyHeaders: false,
+    message: { error: 'Too many requests. Please try again later.' },
+    ...(env.RATE_LIMIT_STORE === 'mysql' ? { store: new MysqlRateLimitStore(namespace) } : {}), ...extra });
+}
+const loginLimiter = limiter('login', 10, 900000, { keyGenerator: loginKey, skipSuccessfulRequests: true });
+const loginNetworkLimiter = limiter('login-network', 200, 900000, { skipSuccessfulRequests: true });
+const registerLimiter = limiter('register', 20, 3600000);
+const passwordResetLimiter = limiter('password-reset', 10, 3600000);
+const apiLimiter = limiter('api', 1000, 900000, { keyGenerator: accountKey });
+const registrationIdLimiter = limiter('registration-id', 30);
+const uploadLimiter = limiter('upload', 40, 900000, { keyGenerator: accountKey });
+const ocrLimiter = limiter('ocr', 20, 900000, { keyGenerator: accountKey });
+const exportLimiter = limiter('export', 10, 900000, { keyGenerator: accountKey });
+const faqFeedbackLimiter=limiter('faq-feedback',120,900000,{keyGenerator:accountKey});
+module.exports = { faqFeedbackLimiter, loginLimiter, loginNetworkLimiter, registerLimiter, passwordResetLimiter, apiLimiter, registrationIdLimiter, uploadLimiter, ocrLimiter, exportLimiter, verifiedAccount, loginKey };

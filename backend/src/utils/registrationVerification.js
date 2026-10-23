@@ -8,8 +8,8 @@ const reasons = new Map([
   ['Student ID and College matched, but School name not found.', 'OCR read the student ID and college, but could not confirm the school name. Manual review is required.'],
   ['Could not verify all required fields (School name, Student ID, College).', 'OCR could not confirm the school, student ID and college together. Manual review is required.'],
 ]);
-function registrationVerification(result) {
-  const verified = result?.verified === true;
+function registrationVerification(result, { manualReview = false } = {}) {
+  const verified = !manualReview && result?.verified === true;
   return {
     verification_status: verified ? 'verified' : 'pending',
     verification_reason: verified ? null : reasons.get(result?.reason)

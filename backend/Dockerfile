@@ -13,7 +13,9 @@ WORKDIR /app
 
 # Copied first so a source-only change doesn't reinstall dependencies.
 COPY package*.json ./
-RUN npm ci --omit=dev
+RUN npm ci --omit=dev \
+    && rm -rf /usr/local/lib/node_modules/npm /opt/yarn-* \
+    && rm -f /usr/local/bin/npm /usr/local/bin/npx /usr/local/bin/yarn /usr/local/bin/yarnpkg
 
 COPY src ./src
 COPY database ./database
@@ -21,7 +23,8 @@ COPY database ./database
 # Declared so the image is usable without a volume, but MOUNT ONE in
 # production: the database stores only filenames, so without a volume the rows
 # survive a redeploy and the bytes do not — every avatar and receipt 404s.
-RUN mkdir -p /app/uploads
+RUN mkdir -p /app/uploads && chown node:node /app/uploads
+USER node
 VOLUME ["/app/uploads"]
 
 ENV NODE_ENV=production \

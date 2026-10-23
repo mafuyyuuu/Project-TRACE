@@ -1,0 +1,157 @@
+name: TRACE checks
+
+on:
+  push:
+    branches: [main, dev]
+  pull_request:
+    branches: [main, dev]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: trace-checks-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend:
+    name: Backend tests and dependency audit
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+      - run: npm ci
+      - run: npm test
+      - run: npm audit --audit-level=high
+
+  frontend:
+    name: Frontend tests, build and dependency audit
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci
+      - run: npm test
+      - run: npm run lint
+      - run: npm run build
+      - run: npm audit --audit-level=high
+
+  analytics:
+    name: Isolated AI analytics tests
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: ai-engine
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: ai-engine/requirements-test.txt
+      - run: python -m pip install -r requirements-test.txt
+      - run: python -m unittest test_stage_risk test_analytics test_document_insights test_forecast_evaluation test_support_insights test_security test_registration_verification test_proof_ocr test_ocr_completion
+
+  containers:
+    name: Container and SQL acceptance
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1
+        with:
+          python-version: '3.12'
+      - run: sudo apt-get update && sudo apt-get install -y age
+      - run: docker build -t trace-backend-check backend
+      - name: Verify non-root runtime
+        run: docker run --rm --entrypoint sh trace-backend-check -c 'test "$(id -u)" = 1000 && test -w /app/uploads && ! command -v npm && ! command -v yarn'
+      - name: Real MySQL shared counters and least-privilege accounts
+        run: |
+          docker network create trace-security-ci
+          docker run -d --name trace-security-mysql --network trace-security-ci -e MYSQL_ROOT_PASSWORD=disposable-ci-root-password -e MYSQL_DATABASE=trace_security_test mysql:8.4
+          for attempt in $(seq 1 60); do
+            if docker exec -e MYSQL_PWD=disposable-ci-root-password trace-security-mysql mysqladmin ping -h 127.0.0.1 --silent; then break; fi
+            sleep 1
+          done
+          docker run --rm --network trace-security-ci \
+            -e NODE_ENV=test -e JWT_SECRET=disposable-ci-jwt-key -e WEBHOOK_SECRET=disposable-ci-webhook-key \
+            -e DB_HOST=trace-security-mysql -e DB_NAME=trace_security_test -e DB_USER=root -e DB_PASSWORD=disposable-ci-root-password \
+            -e TRACE_API_DB_USER=trace_api_test -e TRACE_API_DB_PASSWORD=disposable-ci-api-password-long-enough \
+            -e AI_DB_USER=trace_ai_test -e AI_DB_PASSWORD=disposable-ci-ai-password-long-enough \
+            trace-backend-check node database/security_integration.js
+      - name: Registrar policies and FAQ persistence on a fresh MySQL schema
+        run: |
+          docker run --rm --network trace-security-ci \
+            -e NODE_ENV=test -e JWT_SECRET=disposable-ci-jwt-key -e WEBHOOK_SECRET=disposable-ci-webhook-key \
+            -e DB_HOST=trace-security-mysql -e DB_NAME=trace_registrar_test -e DB_USER=root -e DB_PASSWORD=disposable-ci-root-password \
+            trace-backend-check node database/registrar_integration.js
+      - run: python -m unittest discover -s deploy -p 'test_*.py'
+        env:
+          TRACE_RUN_DOCKER_TESTS: '1'
+      - name: Validate Caddy
+        run: docker run --rm -e API_DOMAIN=localhost -v "$PWD/deploy/Caddyfile:/etc/caddy/Caddyfile:ro" caddy:2-alpine caddy validate --config /etc/caddy/Caddyfile
+      - uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25
+        with:
+          image-ref: trace-backend-check
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          exit-code: '1'
+      - uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25
+        with:
+          scan-type: fs
+          scanners: secret
+          skip-dirs: .git,node_modules
+          exit-code: '1'
+
+  ai-runtime:
+    name: AI runtime and dependency audit
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1
+        with:
+          python-version: '3.12'
+      - run: docker build -t trace-ai-check ai-engine
+      - name: Offline non-root CPU OCR and Prophet acceptance
+        run: docker run --rm --network none --read-only --cap-drop ALL --security-opt no-new-privileges --tmpfs /tmp:rw,nosuid,noexec,size=512m -e APP_ENV=production -e AI_ENGINE_SECRET=disposable-ci-gateway-key-long-enough trace-ai-check python runtime_smoke.py
+      - run: python -m pip install pip==26.2.2 pip-audit==2.10.1
+      - run: pip-audit --disable-pip --no-deps -r ai-engine/requirements.txt
+      - name: Audit resolved image dependencies
+        run: |
+          docker run --rm --entrypoint python trace-ai-check -c 'import importlib.metadata as m; print("\n".join(sorted(d.metadata["Name"]+"=="+d.version for d in m.distributions())))' | sed 's/+cpu$//' > /tmp/trace-ai-resolved.txt
+          pip-audit --disable-pip --no-deps -r /tmp/trace-ai-resolved.txt
+      - uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25
+        with:
+          image-ref: trace-ai-check
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          exit-code: '1'

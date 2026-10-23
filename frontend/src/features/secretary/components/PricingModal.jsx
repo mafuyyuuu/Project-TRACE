@@ -3,7 +3,7 @@ import Button from '@/components/Button';
 import FeeBreakdown from '@/components/FeeBreakdown';
 import { INPUT_LIMITS, NUMBER_LIMITS } from '@/utils/inputLimits';
 import ModalShell from '@/components/ModalShell';
-import { formatPeso } from '@/utils/pricing';
+import { formatPeso, printedPageSchedule } from '@/utils/pricing';
 import SecretaryIcon, { SecretaryHeaderIcon } from './SecretaryIcon';
 
 function PageStepper({ label, value, onChange, busy, required = true }) {
@@ -12,7 +12,7 @@ function PageStepper({ label, value, onChange, busy, required = true }) {
 
 export default function PricingModal({ selectedDoc, setActiveModal, handlePriceDocument, actionLoading, priceAmount, priceBreakdown, pricingError, priceNotes, setPriceNotes, confirmCurrentRates, setConfirmCurrentRates, pricePageCount, setPricePageCount, priceFeePageCounts = {}, setPriceFeePageCounts, siblingsUnpriced }) {
   if (!selectedDoc) return null;
-  const schedule = selectedDoc.pricing_schedule;
+  const schedule = selectedDoc.pricing_schedule ? printedPageSchedule(selectedDoc.pricing_schedule) : null;
   const pageBased = ['per_page','per_semester_block'].includes(schedule?.fee_rule) || schedule?.fee_items?.some(item=>item.fee_rule==='per_page');
   const last = !(siblingsUnpriced > 0);
   const canSave = !actionLoading && priceBreakdown && Number(priceAmount) > 0 && (!selectedDoc.pricing_requires_review || confirmCurrentRates);

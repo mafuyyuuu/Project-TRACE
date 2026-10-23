@@ -1,0 +1,11 @@
+# Use only for reviewed one-off DBA commands; never for 'up'.
+services:
+  backend:
+    user: "0:0"
+    environment:
+      DB_USER: root
+      DB_PASSWORD: ${MYSQL_ROOT_PASSWORD:?Preserve the existing MySQL root password first}
+      TRACE_API_DB_USER: ${TRACE_API_DB_USER:?Set a new API account name}
+      TRACE_API_DB_PASSWORD: ${TRACE_API_DB_PASSWORD:?Set a new API password}
+      AI_DB_USER: ${AI_DB_USER:?Set a new AI account name}
+      AI_DB_PASSWORD: ${AI_DB_PASSWORD:?Set a new AI password}

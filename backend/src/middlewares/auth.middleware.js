@@ -18,9 +18,10 @@ async function authenticate(req, res, next) {
   }
 
   const token = authHeader.split(' ')[1];
-
+  let decoded;
+  try { decoded = jwt.verify(token, JWT_SECRET, { algorithms: ['HS256'] }); }
+  catch { return res.status(401).json({ error: 'Invalid or expired token.' }); }
   try {
-    const decoded = jwt.verify(token, JWT_SECRET);
     if (decoded.pending_2fa || !Number.isInteger(decoded.id) || !Number.isInteger(decoded.token_version)
       || !['student', 'admin', 'clerk'].includes(decoded.role) || !Number.isInteger(decoded.exp)) {
       return res.status(401).json({ error: 'Complete login verification before accessing TRACE.' });
@@ -28,13 +29,16 @@ async function authenticate(req, res, next) {
     
     // SEC-09: Token Version Check for Global Logout
     if (decoded.token_version !== undefined) {
-      const [rows] = await pool.query(`SELECT token_version, is_active, role, user_type, must_change_password, email_verified_at,
+      const [rows] = await pool.query(`SELECT token_version, is_active, role, desk_assignment, verification_status, user_type, must_change_password, email_verified_at,
         EXISTS(SELECT 1 FROM grad_applications g WHERE g.student_id = users.student_id) AS has_grad_application
         FROM users WHERE id = ?`, [decoded.id]);
       if (!rows || rows.length === 0 || !rows[0].is_active || rows[0].token_version !== decoded.token_version) {
         return res.status(401).json({ error: 'Session expired. Please log in again.' });
       }
       const account = rows[0];
+      if (account.desk_assignment !== undefined && (account.desk_assignment || null) !== (decoded.desk_assignment || null)) return res.status(401).json({ error: 'Account permissions changed. Sign in again.' });
+      if (account.role === 'student' && account.verification_status !== undefined && account.verification_status !== 'verified') return res.status(401).json({ error: 'Account verification changed. Sign in again.' });
+
       if (account.role && account.role !== decoded.role) return res.status(401).json({ error: 'Account permissions changed. Sign in again.' });
       const route = `${req.baseUrl || ''}${req.path || ''}`.replace(/\/+$/, '') || '/';
       const accountRecovery = ['/api/auth/me', '/api/auth/logout', '/api/auth/logout-all', '/api/auth/email-verification/resend'];
@@ -50,6 +54,7 @@ async function authenticate(req, res, next) {
         // General FAQ/support remains available; the ticket service separately
         // enforces email ownership before any linked-document write.
         && !/^\/api\/support\/tickets(?:\/[1-9]\d*\/(?:messages|actions|faq))?$/.test(route)
+        && route !== '/api/manual-faq'
         && !accountRecovery.includes(route) && !['/api/auth/profile', '/api/auth/profile/picture', '/api/auth/onboarding/start', '/api/grad-applications'].includes(route)) {
         return res.status(403).json({ error: 'Open Edit Profile and choose Verify beside Email Address, then follow the email link before continuing.', code: 'EMAIL_VERIFICATION_REQUIRED' });
       }
@@ -68,7 +73,8 @@ async function authenticate(req, res, next) {
     };
     next();
   } catch (err) {
-    return res.status(401).json({ error: 'Invalid or expired token.' });
+    require('../utils/httpError').logError('Authentication storage unavailable', err, res.locals?.requestId);
+    return res.status(503).json({ error: 'Authentication is temporarily unavailable. Please try again.' });
   }
 }
 

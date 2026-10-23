@@ -43,6 +43,6 @@ export function changedResources(url, method = 'get') {
   if (/^\/grad-applications/.test(path)) return ['graduate', 'profile', 'accounts'];
   if (/^\/templates/.test(path)) return ['templates'];
   if (/^\/documents/.test(path)) return ['documents', 'receipts'];
-  if (/^\/(?:support|staff-conversations|internal-assistance)/.test(path)) return ['support'];
+  if (/^\/(?:support|manual-faq|staff-conversations|internal-assistance)/.test(path)) return ['support'];
   return [];
 }

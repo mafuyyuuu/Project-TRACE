@@ -3,7 +3,7 @@ const authController = require('../controllers/auth.controller');
 const authenticatorController = require('../controllers/authenticator.controller');
 const { authenticate, requireRole } = require('../middlewares/auth.middleware');
 const { idProofUpload, profilePictureUpload } = require('../middlewares/upload.middleware');
-const { loginLimiter, registerLimiter, passwordResetLimiter, registrationIdLimiter } = require('../middlewares/rateLimit.middleware');
+const { loginNetworkLimiter, loginLimiter, registerLimiter, passwordResetLimiter, registrationIdLimiter } = require('../middlewares/rateLimit.middleware');
 
 const router = express.Router();
 const staffSetup = require('../controllers/staffAuthenticatorSetup.controller');
@@ -11,8 +11,8 @@ router.post('/staff-authenticator/:id/issue', authenticate, requireRole('admin')
 router.post('/staff-authenticator/start', loginLimiter, staffSetup.start);
 router.post('/staff-authenticator/confirm', loginLimiter, staffSetup.confirm);
 
-router.post('/login', loginLimiter, authController.login);
-router.post('/verify-2fa', loginLimiter, authController.verify2FA);
+router.post('/login', loginNetworkLimiter, loginLimiter, authController.login);
+router.post('/verify-2fa', loginNetworkLimiter, loginLimiter, authController.verify2FA);
 router.get('/me', authenticate, authController.getMe);
 router.post('/onboarding/start', authenticate, requireRole('student', 'clerk', 'admin'), require('../controllers/onboarding.controller').start);
 router.get('/authenticator', authenticate, authenticatorController.status);
@@ -38,9 +38,9 @@ router.post('/forgot-password', passwordResetLimiter, authController.forgotPassw
 router.post('/reset-password', passwordResetLimiter, authController.resetPassword);
 
 // Admin account governance
-router.get('/pending-students', authenticate, authController.getPendingStudents);
-router.post('/verify-student/:id', authenticate, authController.verifyStudent);
-router.get('/users', authenticate, authController.getUsers);
+router.get('/pending-students', authenticate, requireRole('admin'), authController.getPendingStudents);
+router.post('/verify-student/:id', authenticate, requireRole('admin'), authController.verifyStudent);
+router.get('/users', authenticate, requireRole('admin'), authController.getUsers);
 router.get('/student/:studentId', authenticate, requireRole('admin', 'clerk'), authController.getStudent);
 
 // Profile & in-app notifications

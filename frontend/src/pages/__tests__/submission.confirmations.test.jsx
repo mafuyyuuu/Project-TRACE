@@ -40,7 +40,7 @@ async function signupAcademic(type = 'student') {
   if(type === 'alumni') await userEvent.click(screen.getByRole('button',{name:'Alumni',exact:true}));
   else fireEvent.change(screen.getByLabelText('Type of Student *'),{target:{value:'regular'}});
   fireEvent.change(screen.getByLabelText('College *'),{target:{value:'Engineering'}});
-  fireEvent.change(screen.getByLabelText('Program/Course *'),{target:{value:'BS Engineering'}});
+  fireEvent.change(screen.getByLabelText('Program *'),{target:{value:'BS Engineering'}});
   fireEvent.change(screen.getByLabelText(type === 'student' ? 'Student ID *' : 'Alumni ID *'),{target:{value:type === 'student' ? 'STU-001' : 'ALU-DEMO'}});
   if(type === 'alumni') {
     fireEvent.change(screen.getByLabelText('Year Started *'),{target:{value:'2010'}});

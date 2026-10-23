@@ -99,7 +99,7 @@ export default function AdminDashboard({ user, currentTab, setViewImageUrl, revi
                 {/* Welcome Header */}
                 <div className="trace-page-header">
                   <div>
-                    <h2 className="trace-page-title">
+                    <h2 className="trace-admin-greeting trace-page-title">
                       Welcome back, <span className="text-slate-400 dark:text-slate-400 font-medium">Registrar Admin</span>
                     </h2>
                   </div>

@@ -24,7 +24,7 @@ function ApplicationsTable({ applications, onReview, onProfile, emptyMessage, ad
       <thead className="sticky top-0 bg-white dark:bg-gray-900 z-10">
         <tr className="text-gray-400 dark:text-gray-400 text-[10px] uppercase tracking-widest border-b border-gray-100 dark:border-gray-700">
           <th className="pb-4 font-bold pl-4">{admin ? 'Alumni' : 'Applicant'}</th>
-          <th className="pb-4 font-bold">{admin ? 'Program / College' : 'Course'}</th>
+          <th className="pb-4 font-bold">Program</th>
           <th className="pb-4 font-bold">Submitted</th>
           <th className="pb-4 font-bold">Status</th>
           <th className="pb-4 font-bold text-right pr-4">Action</th>
@@ -39,7 +39,7 @@ function ApplicationsTable({ applications, onReview, onProfile, emptyMessage, ad
                 className={`trace-action font-bold ${admin ? 'text-trace-ink dark:text-gray-100' : 'text-blue-700 dark:text-blue-300'} hover:underline select-text break-words text-left focus-visible:ring-2 focus-visible:ring-blue-500 disabled:text-gray-500`}>{a.full_name || 'Unknown'}</Button>
               <div className="text-xs font-mono text-gray-400 dark:text-gray-400 mt-0.5 select-text break-words">{a.student_id}</div>
               </div></div></td>
-            <td className="py-4 text-xs font-bold text-gray-600 dark:text-gray-300">{(admin ? a.program || a.course : a.course) || '—'}{admin && a.college_name && <span className="trace-admin-caption block">{a.college_name}</span>}</td>
+            <td className="py-4 text-xs font-bold text-gray-600 dark:text-gray-300">{a.program || 'Not recorded'}{(a.college_name || a.course) && <span className="trace-admin-caption block">{a.college_name || a.course}</span>}</td>
             <td className="py-4 text-xs text-gray-400 dark:text-gray-400">{admin ? <AdminTimestamp value={a.submitted_at} relative /> : new Date(a.submitted_at).toLocaleDateString()}</td>
             <td className="py-4">
               <span
@@ -122,7 +122,7 @@ export default function GradApplicationReviewPanel({ user, currentTab }) {
   };
   const isDecided = selectedApplication?.status === 'approved' || selectedApplication?.status === 'rejected';
   const activeApplications = queues[activeQueueTab];
-  const shownApplications = admin ? activeApplications.filter(a => [a.full_name, a.student_id, a.program, a.course, a.college_name].join(' ').toLowerCase().includes(search.trim().toLowerCase()) && (program === 'all' || (a.program || a.course) === program)) : activeApplications;
+  const shownApplications = admin ? activeApplications.filter(a => [a.full_name, a.student_id, a.program, a.course, a.college_name].join(' ').toLowerCase().includes(search.trim().toLowerCase()) && (program === 'all' || a.program === program)) : activeApplications;
 
   return (
     <div className={`trace-page ${admin ? 'trace-admin-graduates trace-admin-more-page' : ''}`}>
@@ -148,7 +148,7 @@ export default function GradApplicationReviewPanel({ user, currentTab }) {
       />
 
       <div key={activeQueueTab} className="trace-section trace-motion-context overflow-hidden mt-6">
-        {admin && <div className="trace-section-header"><div><h3 className="trace-section-title">{activeQueueTab === 'pending' ? 'Pending review' : activeQueueTab === 'approved' ? 'Approved applications' : 'Rejected applications'}</h3><p className="trace-admin-caption">{activeApplications.length} applications {activeQueueTab === 'pending' ? 'waiting' : activeQueueTab}</p></div><div className="trace-actions"><label className="trace-admin-search"><span className="sr-only">Search alumni or program</span><AdminIcon name="search" /><input type="search" maxLength={255} placeholder="Search alumni or program" value={search} onChange={e => setSearch(e.target.value)} /></label><FilterSelect aria-label="Application program" className="trace-control" value={program} onChange={e => setProgram(e.target.value)}><option value="all">All programs</option>{[...new Set([...pendingApplications, ...approvedApplications, ...rejectedApplications].map(a => a.program || a.course).filter(Boolean))].map(value => <option key={value} value={value}>{value}</option>)}</FilterSelect></div></div>}
+        {admin && <div className="trace-section-header"><div><h3 className="trace-section-title">{activeQueueTab === 'pending' ? 'Pending review' : activeQueueTab === 'approved' ? 'Approved applications' : 'Rejected applications'}</h3><p className="trace-admin-caption">{activeApplications.length} applications {activeQueueTab === 'pending' ? 'waiting' : activeQueueTab}</p></div><div className="trace-actions"><label className="trace-admin-search"><span className="sr-only">Search alumni or program</span><AdminIcon name="search" /><input type="search" maxLength={255} placeholder="Search alumni or program" value={search} onChange={e => setSearch(e.target.value)} /></label><FilterSelect aria-label="Application program" className="trace-control" value={program} onChange={e => setProgram(e.target.value)}><option value="all">All programs</option>{[...new Set([...pendingApplications, ...approvedApplications, ...rejectedApplications].map(a => a.program).filter(Boolean))].map(value => <option key={value} value={value}>{value}</option>)}</FilterSelect></div></div>}
         <div className={admin ? '' : 'p-4 sm:p-6'}>
           <div className="max-h-[calc(100vh-280px)] overflow-y-auto overflow-x-auto">
             <ApplicationsTable

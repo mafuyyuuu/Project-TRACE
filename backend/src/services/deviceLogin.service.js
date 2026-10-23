@@ -28,7 +28,7 @@ async function recordLogin(user, cookieHeader = '', ip = null, userAgent = null)
     }
     return token;
   } catch (err) {
-    console.warn('Device recognition unavailable:', err.message);
+    console.warn('Device recognition unavailable:', err.name);
     return null;
   }
 }

@@ -24,7 +24,8 @@ it('encrypts with random nonces, authenticates the account and rejects tampering
   expect(otp.encrypt(secret, 3)).not.toBe(encrypted);
   expect(otp.decrypt(encrypted, 3)).toBe(secret);
   expect(() => otp.decrypt(encrypted, 4)).toThrow('unavailable');
-  expect(() => otp.decrypt(`${encrypted.slice(0, -2)}ff`, 3)).toThrow('unavailable');
+  const changed = encrypted.slice(0, -2) + (parseInt(encrypted.slice(-2), 16) ^ 1).toString(16).padStart(2, '0');
+  expect(() => otp.decrypt(changed, 3)).toThrow('unavailable');
 });
 it('fails closed without a valid separate encryption key', () => {
   vi.spyOn(env, 'MFA_ENCRYPTION_KEY', 'get').mockReturnValue('');

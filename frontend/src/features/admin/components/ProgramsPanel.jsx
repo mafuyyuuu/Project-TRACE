@@ -32,7 +32,7 @@ export default function ProgramsPanel({ colleges }) {
       {!activeColleges.length && <p className="mt-3 text-sm">Add or restore a College before adding programs.</p>}
       <div className="mt-5 max-h-[60vh] overflow-auto rounded-xl border border-gray-200 dark:border-gray-700">
         <PaginatedTable label="programs" className="w-full text-sm text-left min-w-[32rem]">
-          <thead className="sticky top-0 z-10 bg-white dark:bg-gray-900"><tr>{['College', 'Program/Course', 'Status', 'Action'].map(label => <th className="p-3" key={label} scope="col">{label}</th>)}</tr></thead>
+          <thead className="sticky top-0 z-10 bg-white dark:bg-gray-900"><tr>{['College', 'Program', 'Status', 'Action'].map(label => <th className="p-3" key={label} scope="col">{label}</th>)}</tr></thead>
           <tbody>
             {catalog.programs.map(item => <tr className="border-t border-gray-200 dark:border-gray-700" key={item.id}>
               <td className="p-3 break-words max-w-64">{item.college_name}</td><td className="p-3 break-words max-w-64">{item.name}</td>

@@ -9,12 +9,21 @@
 #   docker compose --profile local-frontend up -d --build   # include the SPA
 # ---------------------------------------------------------------------------
 
+# Bound local log retention; forward logs to a protected central store before
+# relying on them for longer incident/audit retention.
+x-trace-logging: &trace-logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
 services:
   mysql:
     image: mysql:8
     restart: unless-stopped
+    logging: *trace-logging
     environment:
-      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD:-trace}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-${DB_PASSWORD:-trace}}
       MYSQL_DATABASE: ${DB_NAME:-trace_db}
     volumes:
       - mysql-data:/var/lib/mysql
@@ -23,7 +32,7 @@ services:
       - ./backend/database/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
       - ./backend/database/seed.sql:/docker-entrypoint-initdb.d/02-seed.sql:ro
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-p${DB_PASSWORD:-trace}"]
+      test: ['CMD-SHELL', 'MYSQL_PWD="$$MYSQL_ROOT_PASSWORD" mysqladmin ping -h 127.0.0.1 --silent']
       interval: 10s
       timeout: 5s
       retries: 10
@@ -32,6 +41,13 @@ services:
   backend:
     build: ./backend
     restart: unless-stopped
+    logging: *trace-logging
+    init: true
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    tmpfs: ["/tmp:rw,nosuid,noexec,size=256m"]
+    stop_grace_period: 40s
     depends_on:
       mysql:
         condition: service_healthy
@@ -59,6 +75,9 @@ services:
       FRONTEND_URL: ${FRONTEND_URL:-}
       # Caddy is the single proxy hop in front of this.
       TRUST_PROXY: ${TRUST_PROXY:-1}
+      AI_ENGINE_SECRET: ${AI_ENGINE_SECRET:?AI_ENGINE_SECRET is required}
+      RATE_LIMIT_STORE: ${RATE_LIMIT_STORE:-mysql}
+      HTTP_ACCESS_LOG: ${HTTP_ACCESS_LOG:-true}
       AI_ENGINE_URL: http://ai-engine:5005
       N8N_URL: http://n8n:5678
       UNISMS_SECRET_KEY: ${UNISMS_SECRET_KEY:-}
@@ -74,30 +93,40 @@ services:
       # receipts and avatars are lost on every redeploy.
       - uploads:/app/uploads
     ports:
-      - "3300:3300"
+      - "127.0.0.1:3300:3300"
 
   ai-engine:
     build: ./ai-engine
     restart: unless-stopped
+    logging: *trace-logging
+    init: true
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    tmpfs: ["/tmp:rw,nosuid,noexec,size=512m"]
+    stop_grace_period: 40s
     depends_on:
       mysql:
         condition: service_healthy
     environment:
+      APP_ENV: production
+      AI_ENGINE_SECRET: ${AI_ENGINE_SECRET:?AI_ENGINE_SECRET is required}
       PORT: 5005
       # Mirrors the backend: same database, same managed-provider overrides.
       DB_HOST: ${DB_HOST:-mysql}
       DB_PORT: ${DB_PORT:-3306}
-      DB_USER: ${DB_USER:-root}
-      DB_PASSWORD: ${DB_PASSWORD:-trace}
+      DB_USER: ${AI_DB_USER:-${DB_USER:-root}}
+      DB_PASSWORD: ${AI_DB_PASSWORD:-${DB_PASSWORD:-trace}}
       DB_NAME: ${DB_NAME:-trace_db}
       DB_SSL: ${DB_SSL:-false}
       DB_SSL_CA: ${DB_SSL_CA:-}
     ports:
-      - "5005:5005"
+      - "127.0.0.1:5005:5005"
 
   n8n:
     image: docker.n8n.io/n8nio/n8n
     restart: unless-stopped
+    logging: *trace-logging
     environment:
       # The routing workflow reads both of these instead of hardcoding them —
       # baking in a port is exactly how routing silently broke for a month.
@@ -113,7 +142,7 @@ services:
     volumes:
       - n8n-data:/home/node/.n8n
     ports:
-      - "5678:5678"
+      - "127.0.0.1:5678:5678"
 
   # HTTPS termination. Enabled with `--profile tls` on the deployed VM; not
   # used locally, where plain http on :3300 is fine.
@@ -125,6 +154,7 @@ services:
   caddy:
     image: caddy:2-alpine
     restart: unless-stopped
+    logging: *trace-logging
     depends_on:
       - backend
     environment:
@@ -151,6 +181,7 @@ services:
       args:
         VITE_API_URL: ${VITE_API_URL:-}
     restart: unless-stopped
+    logging: *trace-logging
     depends_on:
       - backend
     ports:

@@ -1,11 +1,19 @@
 import { StrictMode, useState } from 'react';
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { act,render, screen, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import ModalShell from '@/components/ModalShell';
 import ConfirmDialog from '@/components/ConfirmDialog';
 
 describe('ModalShell', () => {
+  it('follows a shrinking visual viewport while preserving a draft and pinned actions',()=>{
+    const view=new EventTarget();Object.assign(view,{width:375,height:812,offsetTop:0,offsetLeft:0});vi.stubGlobal('visualViewport',view);
+    const {unmount}=render(<ModalShell open title="Keyboard form" showCloseButton={false} onClose={vi.fn()} footer={<button>Save draft</button>}><input aria-label="Draft" defaultValue="Keep typed value"/></ModalShell>);
+    const field=screen.getByRole('textbox'),body=field.closest('.trace-modal-body');field.getBoundingClientRect=()=>({top:340,bottom:380});body.getBoundingClientRect=()=>({top:100,bottom:320});
+    act(()=>{view.height=400;view.offsetTop=12;view.dispatchEvent(new Event('resize'));});
+    expect(screen.getByRole('dialog').parentElement.style.height).toBe('400px');expect(field).toHaveValue('Keep typed value');expect(body.scrollTop).toBe(72);expect(body).not.toContainElement(screen.getByRole('button',{name:'Save draft'}));
+    unmount();vi.unstubAllGlobals();
+  });
   it('portals into the body and keeps its footer outside the scrolling content', () => {
     const { container } = render(
       <ModalShell open title="Long form" onClose={vi.fn()} footer={<button>Save</button>}>

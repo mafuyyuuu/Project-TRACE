@@ -60,10 +60,10 @@ cd ai-engine && python -m venv .venv && source .venv/bin/activate && pip install
 
 ### Run all services (4 terminals)
 ```bash
-cd backend && npm run dev        # nodemon, http://localhost:3300
+cd backend && npm run dev        # Node watch mode, http://localhost:3300
 cd frontend && npm run dev       # vite,    http://localhost:5273
 cd ai-engine && source .venv/bin/activate && python app.py   # http://localhost:5005
-docker start n8n                 # http://localhost:5678 (must be created once via `docker run`, see README)
+docker start n8n                 # http://localhost:5678 (must be created once; see docs/ENV_SETUP_GUIDE.md §6.4)
 ```
 
 ### Build / Lint
@@ -334,3 +334,11 @@ Step-by-step deployment instructions live in `docs/DEPLOYMENT_GUIDE.md`.
 - `docs/BACKEND_GUIDE.md` — endpoint list and DB flow detail
 - `docs/PROGRESS.md` — **the single** phase-by-phase record; Phase 18 (Go Live) is the only incomplete phase, and it is blocked on infrastructure rather than code. (`project_trace_roadmap.md` was merged into it — it retold the same history under a second, conflicting phase numbering.)
 - `.agents/AGENTS.md` — gitignored, agent-local workspace memory with the same kind of system-state notes; not synced to the repo
+
+
+### October 22 security baseline
+See `docs/SECURITY_ROLLOUT.md` for implemented API/privacy/permission hardening, dependency audit results, CI and remaining live-server verification. Production CORS requires explicit origins; the public JWT placeholder is rejected. Internal Compose ports bind to loopback and local logs rotate. Student tracking and Secretary profile lookup enforce ownership/college scope; registration proofs require owner/Admin. API failures use safe messages and request IDs. `npm run dev` uses Node watch mode. CI runs on Node 22/Python 3.12 with pinned action SHAs; branch protection and production deployment are separate settings/actions.
+
+
+### October 22 security follow-up
+See `docs/SECURITY_ROLLOUT.md` and `docs/PERMISSIONS_MATRIX.md`. This follow-up requires a separate AI gateway secret, additive rate_limit_counters migration, uploads ownership preparation and least-privilege API/AI database identities before recreating containers. Production registration OCR requires Admin official-record review. Preserve deployed JWT/MFA encryption keys. Live GCP/firewall/backup/branch protection and multi-instance readiness are separate acceptance items; none are automatically deployed.

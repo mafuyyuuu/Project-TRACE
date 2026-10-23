@@ -214,6 +214,7 @@ async function getEfficiencyAnalytics(user, query = {}) {
     range: { ...range, days },
   };
   if (user.role === 'admin') {
+    result.extreme_cases=await require('./extremeCases.service').snapshot(user);
     const payload={end_to_end:{completed_count:result.end_to_end.completed_count,avg_minutes:result.end_to_end.avg_minutes,min_minutes:result.end_to_end.min_minutes,max_minutes:result.end_to_end.max_minutes},stages:result.turnaround_by_desk.map(({stage,transitions,avg_minutes})=>({stage,transitions,avg_minutes})),released:result.throughput.reduce((sum,row)=>sum+row.completed,0),range:result.range};
     const advice=await require('./aiEngine.service').getDocumentAnalytics(payload);
     result.analysis={source:'unavailable',insights:[],message:'AI analysis is unavailable. The measured charts and tables remain available.'};

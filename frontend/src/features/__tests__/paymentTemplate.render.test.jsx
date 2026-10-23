@@ -13,7 +13,7 @@ it('retains the tracking QR, real program and sequence alongside a safely substi
   api.get.mockResolvedValue({ data: { content: '<p>{{STUDENT_NAME}}</p>', font_family: 'serif', font_size: '12px' } });
   render(<PaymentStubModal selectedDoc={doc} setActiveModal={vi.fn()} />);
   await screen.findByText('TRACE · Order of Payment');
-  expect(screen.getByText(/Program\/Course: BS Information Technology/)).toBeInTheDocument();
+  expect(screen.getByText(/Program: BS Information Technology/)).toBeInTheDocument();
   expect(screen.getByText('TOR – Request No. 3')).toBeInTheDocument();
   expect(screen.getByText(doc.student_name)).toBeInTheDocument();
   expect(document.body.querySelector('img[src="x"],img[onerror]')).toBeNull();

@@ -1,11 +1,13 @@
+const { publicError, logError } = require('../utils/httpError');
 const maintenanceService = require('../services/maintenance.service');
 const programService = require('../services/program.service');
 
 /** Thin HTTP layer for /api/maintenance (admin CRUD). */
 
 function fail(res, err, logLabel, fallbackMessage) {
-  console.error(`${logLabel}:`, err);
-  res.status(err.status || 500).json({ error: err.status ? err.message : fallbackMessage });
+  logError(logLabel, err, res.locals?.requestId);
+  const result = publicError(err, fallbackMessage);
+  res.status(result.status).json({ error: result.message });
 }
 
 /**
@@ -94,7 +96,7 @@ const setPaymentMethodActive = handler(
 
 async function updateAccount(req, res) {
   try { res.json(await maintenanceService.updateAccount(req.user, req.params.id, req.body)); }
-  catch (err) { res.status(err.status || 500).json({ error: err.status ? err.message : 'Could not update account.' }); }
+  catch (err) { fail(res, err, 'Account update error', 'Could not update account.'); }
 }
 
 module.exports = {

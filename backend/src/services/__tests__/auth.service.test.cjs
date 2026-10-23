@@ -780,9 +780,15 @@ describe('Batch 8b identity and staff profile boundary', () => {
     await expect(service.lookupStudent('STU1', { role: 'clerk', desk_assignment: 'Unknown' })).rejects.toMatchObject({ status: 403 });
     expect(userModel.findStudentBasicInfo).not.toHaveBeenCalled();
   });
-  it.each(['Window 1', 'Secretary', 'Finance'])('allows the %s desk to read a saved profile', async desk => {
-    userModel.findStudentBasicInfo.mockResolvedValue([{ role: 'student', phone_number: '0912', home_address: 'Saved address' }]);
+  it.each(['Window 1', 'Secretary'])('allows the %s desk to read a saved profile', async desk => {
+    userModel.findStudentBasicInfo.mockResolvedValue([{ role: 'student', college_id: 2, phone_number: '0912', home_address: 'Saved address' }]);
+    vi.spyOn(userModel, 'findCourseById').mockResolvedValue([{ college_id: 2 }]);
     expect(await service.lookupStudent('STU1', { role: 'clerk', desk_assignment: desk })).toMatchObject({ student: { home_address: 'Saved address' } });
+  });
+  it('denies a Secretary a student profile belonging to another college', async () => {
+    userModel.findStudentBasicInfo.mockResolvedValue([{ role: 'student', college_id: 2, home_address: 'Private address' }]);
+    vi.spyOn(userModel, 'findCourseById').mockResolvedValue([{ college_id: 3 }]);
+    await expect(service.lookupStudent('STU1', { id: 7, role: 'clerk', desk_assignment: 'Secretary' })).rejects.toMatchObject({ status: 403 });
   });
 });
 
@@ -967,4 +973,10 @@ describe('public registration ID check',()=>{
   await expect(service.checkRegistrationId({employee_id})).rejects.toMatchObject({status:400});
   expect(userModel.findExistingByStudentId).not.toHaveBeenCalled();
  });
+});
+
+it('limits Finance profile lookup to identity/contact fields', async () => {
+  userModel.findStudentBasicInfo.mockResolvedValue([{id:3,student_id:'STU1',full_name:'Test',email:'student@example.test',phone_number:'0912',home_address:'Private',id_proof_path:'proof.jpg'}]);
+  const result = await service.lookupStudent('STU1',{id:8,role:'clerk',desk_assignment:'Finance'});
+  expect(Object.keys(result.student).sort()).toEqual(['id','student_id','full_name','email','phone_number'].sort());
 });

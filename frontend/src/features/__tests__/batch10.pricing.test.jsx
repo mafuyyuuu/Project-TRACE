@@ -57,13 +57,13 @@ describe('Admin fee schedule editor', () => {
     expect(screen.getByLabelText('Item name')).toHaveValue('Certification');
     await user.click(screen.getByRole('button', { name: 'Add college override' }));
     await user.selectOptions(screen.getByLabelText('College'), '2');
-    await user.clear(screen.getByLabelText('College base rate (₱)'));
-    await user.type(screen.getByLabelText('College base rate (₱)'), '80');
+    await user.clear(screen.getByLabelText('College base rate per printed page (₱)'));
+    await user.type(screen.getByLabelText('College base rate per printed page (₱)'), '80');
     await user.click(screen.getByRole('button', { name: 'Save Changes' }));
     expect(maintenance.updateDocumentType).not.toHaveBeenCalled();
     await user.click(screen.getByRole('button', { name: 'Save', exact: true }));
     expect(maintenance.updateDocumentType).toHaveBeenCalledWith(7, expect.objectContaining({ rental_fee: 20, special_fee: 30,
-      fee_items: [{ label: 'Certification', amount: 10 }], college_fee_schedules: [expect.objectContaining({ college_id: 2, base_fee: '80', fee_rule: 'flat', rental_fee: 0 })] }));
+      fee_items: [{ label: 'Certification', amount: 10 }], college_fee_schedules: [expect.objectContaining({ college_id: 2, base_fee: '80', fee_rule: 'per_page', rental_fee: 0 })] }));
   });
 });
 
@@ -102,6 +102,13 @@ it.each(['', '1998', '9999', '2020.5'])('rejects invalid saved Year Started %s',
   await act(() => result.current.handleStudentSubmitRequest({ preventDefault: vi.fn() }));
   expect(result.current.submissionToConfirm).toBeNull();
   expect(core.triggerNotification).toHaveBeenCalledWith(expect.stringContaining('Year Started'), 'error');
+});
+
+it('recalculates preparation days when a same-day document is corrected to a different type', async () => {
+  core.selectedDoc={...DOC,created_at:'2026-10-22',is_same_day:true,release_working_days:0};
+  const {result}=renderHook(()=>useSecretaryDashboard({role:'clerk'}));
+  act(()=>result.current.setEvalDocType('Copy of Grades'));
+  expect(result.current.estimatedReadyDate).toBe('2026-11-10');
 });
 
 it('derives Secretary pricing from actual pages and submits no editable amount', async () => {

@@ -296,7 +296,7 @@ describe('staff review', () => {
     expect(await statusOf(service.listApplications(STUDENT))).toBe(403);
   });
 
-  it.each([['an admin', ADMIN], ['a clerk', CLERK]])('allows %s', async (_label, user) => {
+  it.each([['an admin', ADMIN]])('allows %s', async (_label, user) => {
     await expect(service.listApplications(user)).resolves.toHaveProperty('applications');
   });
 
@@ -305,8 +305,9 @@ describe('staff review', () => {
   });
 
   it.each(['under_review', 'approved', 'rejected'])('accepts the %s decision', async (status) => {
+    gradModel.findApplicationById.mockResolvedValue([{id: 42, student_id: 'STU-001'}]);
     await expect(service.reviewApplication(ADMIN, 42, { status })).resolves.toBeTruthy();
-    expect(gradModel.updateApplicationStatus).toHaveBeenCalledWith(42, status, ADMIN.id, null);
+    expect(gradModel.updateApplicationStatus).toHaveBeenCalledWith(42, status, ADMIN.id, null, connection);
   });
 
   it('rejects an unknown status', async () => {
@@ -326,4 +327,12 @@ it.each(['-2020', '2020.5', '2e3', '2001', '9999', '202', ' 2024', 2024])('rejec
 });
 it('keeps unrelated configurable number fields numeric', () => {
   expect(service.validateAnswers([{ field_key: 'quantity', field_type: 'number', label: 'Quantity' }], { quantity: '1.5' })).toEqual([]);
+});
+
+it('denies Finance graduate reviews and reads', async () => {
+  gradModel.findApplicationById.mockResolvedValue([{id:42,student_id:'STU-001'}]);
+  expect(await statusOf(service.listApplications(CLERK))).toBe(403);
+  expect(await statusOf(service.getApplication(CLERK,42))).toBe(403);
+  expect(await statusOf(service.reviewApplication(CLERK,42,{status:'approved'}))).toBe(403);
+  expect(gradModel.updateApplicationStatus).not.toHaveBeenCalled();
 });

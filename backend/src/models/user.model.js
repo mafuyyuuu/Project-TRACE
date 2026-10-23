@@ -176,13 +176,13 @@ function findStudentCourseByStudentId(studentId, executor = pool) {
 /** Find the user whose uploaded ID proof is this file. */
 function findByIdProofFilename(filename, executor = pool) {
   return executor
-    .query('SELECT id, student_id FROM users WHERE id_proof_path LIKE ? LIMIT 1', [`%${filename}`])
+    .query("SELECT id, student_id FROM users WHERE SUBSTRING_INDEX(id_proof_path, '/', -1) = ? LIMIT 1", [filename])
     .then(([rows]) => rows);
 }
 
 function findByProfilePictureFilename(filename, executor = pool) {
   return executor
-    .query('SELECT id, student_id FROM users WHERE profile_picture LIKE ? LIMIT 1', [`%${filename}`])
+    .query("SELECT id, student_id FROM users WHERE SUBSTRING_INDEX(profile_picture, '/', -1) = ? LIMIT 1", [filename])
     .then(([rows]) => rows);
 }
 
@@ -214,7 +214,7 @@ function findById(userId, executor = pool) {
 
 /** Serialize request-policy checks for the same student, including concurrent submissions. */
 function findStudentForPolicy(studentId, executor = pool, lock = false) {
-  return executor.query(`SELECT id, student_id, user_type, course, college_id FROM users
+  return executor.query(`SELECT id, student_id, user_type, enrollment_status, course, college_id FROM users
     WHERE student_id = ? AND role = 'student'${lock ? ' FOR UPDATE' : ''}`, [studentId]).then(([rows]) => rows);
 }
 

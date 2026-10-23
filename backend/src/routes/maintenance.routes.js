@@ -1,11 +1,12 @@
 const express = require('express');
 const maintenanceController = require('../controllers/maintenance.controller');
-const { authenticate } = require('../middlewares/auth.middleware');
+const { authenticate, requireRole } = require('../middlewares/auth.middleware');
 
 const router = express.Router();
 
 // Every route is admin-only; the service layer enforces it.
-router.use(authenticate);
+router.use(authenticate, requireRole('admin'));
+router.get('/operations', (_req, res) => res.json(require('../services/operations.service').snapshot()));
 
 // Registrar-approved program catalog
 router.get('/programs', maintenanceController.listPrograms);

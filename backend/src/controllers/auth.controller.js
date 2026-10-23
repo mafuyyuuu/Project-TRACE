@@ -1,3 +1,4 @@
+const { publicError, logError } = require('../utils/httpError');
 const authService = require('../services/auth.service');
 const deviceLogin = require('../services/deviceLogin.service');
 const trustedBrowser = require('../services/trustedBrowser.service');
@@ -9,8 +10,9 @@ const trustedBrowser = require('../services/trustedBrowser.service');
 
 /** Translate a thrown error into a response, defaulting to 500. */
 function fail(res, err, logLabel, fallbackMessage) {
-  console.error(`${logLabel}:`, err);
-  res.status(err.status || 500).json({ error: err.status ? err.message : fallbackMessage });
+  logError(logLabel, err, res.locals?.requestId);
+  const result = publicError(err, fallbackMessage);
+  res.status(result.status).json({ error: result.message });
 }
 
 async function login(req, res) {
@@ -186,7 +188,7 @@ function clearTrustCookie(res) {
 
 async function correctStudyYears(req, res) {
   try { res.json(await require('../services/studyYears.service').correct(req.user, req.params.id, req.body)); }
-  catch (error) { res.status(error.status || 500).json({ error: error.status ? error.message : 'Could not correct study years.' }); }
+  catch (error) { require('../utils/httpError').sendError(res, error, 'Could not correct study years.'); }
 }
 
 function registrationOptions(req, res) { res.json(authService.registrationOptions()); }

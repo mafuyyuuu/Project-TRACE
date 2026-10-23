@@ -2,6 +2,9 @@ const { pool } = require('../src/config/db');
 
 // Read-only deployment preflight. This checks presence, not data or SQL compatibility.
 const requirements = [
+  ['manual_faq_events',['user_id','question_hash','question','action','suggestion','client_key','payload_hash','created_at_ms'],'migrate_manual_faq_feedback.js'],
+  ['documents',['release_working_days'],'migrate_release_policy.js'],
+  ['rate_limit_counters', ['bucket_key', 'hits', 'reset_at_ms'], 'migrate_rate_limits.js'],
   ['pickup_sms_reminders', ['document_id', 'ready_step_id', 'period_no', 'due_at_ms', 'state', 'error_code', 'attempted_at', 'finished_at'], 'migrate_pickup_sms_reminders.js'],
   ['document_types', ['catalog_description', 'base_label', 'fee_pending'], 'migrate_request_catalog.js'],
   ['staff_conversations',['participant_low','participant_high','scope_college_id','created_at','updated_at'],'migrate_staff_conversations.js'],

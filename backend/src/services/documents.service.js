@@ -16,7 +16,8 @@ const aiEngine = require('./aiEngine.service');
 const n8n = require('./n8n.service');
 const notifications = require('./notification.service');
 const pricingModel = require('../models/pricing.model');
-const { resolveSchedule, calculateBreakdown, normalizedSchedule, positiveQuantity } = require('../utils/pricing');
+const { resolveSchedule, calculateBreakdown, printedPageSchedule, positiveQuantity } = require('../utils/pricing');
+const releasePolicy=require('../utils/releasePolicy');
 const referenceModel = require('../models/referenceData.model');
 const { getProvider } = require('./payment');
 const { badRequest, forbidden, notFound } = require('../utils/AppError');
@@ -208,6 +209,9 @@ async function uploadDocument(user, body, files) {
         allowUnidentified: isWalkIn && !student_id && Boolean(attachment) });
 
       const sequenceNumberStr = await requestSequences.allocate(student_id, item.document_type, connection);
+      const submittedAt=new Date();
+      const sameDay=isWalkIn && documentPolicy.sameDayWalkIn(item.document_type) && body.original_seen === 'true' && body.photocopy_seen === 'true';
+      const releaseDays=releasePolicy.preparationDays(item.document_type,targetStudent || {},sameDay);
 
       const [docResult] = await documentModel.insert(
         {
@@ -227,6 +231,8 @@ async function uploadDocument(user, body, files) {
           purpose: isWalkIn && documentPolicy.sameDayWalkIn(item.document_type) ? JSON.stringify({ purpose: requested[index].purpose ?? body.purpose ?? null, original_seen: body.original_seen === 'true', photocopy_seen: body.photocopy_seen === 'true' }) : requested[index].purpose ?? body.purpose ?? null,
           copies: item.copies,
           amount: item.amount,
+          created_at:submittedAt,release_working_days:releaseDays,
+          estimated_ready_date:releaseDays == null ? null : releasePolicy.addWorkingDays(submittedAt,releaseDays),
           pricing_snapshot: item.pricing_schedule, fee_breakdown: item.fee_breakdown,
           document_sequence_number: sequenceNumberStr,
           is_same_day: isWalkIn && documentPolicy.sameDayWalkIn(item.document_type) && body.original_seen === 'true' && body.photocopy_seen === 'true',
@@ -365,8 +371,10 @@ async function runOcrPass(user, { documentId, trackingNumber, item, attachment }
  */
 async function listDocuments(user, query) {
   const status = query.status;
-  const page = parseInt(query.page) || 1;
-  const limit = parseInt(query.limit) || 500;
+  if (!['student', 'clerk', 'admin'].includes(user.role) || user.role === 'clerk' && !['Window 1', 'Receiving Desk', 'Secretary', 'Finance'].includes(user.desk_assignment)) throw forbidden('Access denied.');
+  const bounded = (value, fallback, max) => value === undefined ? fallback : /^\d+$/.test(String(value)) && Number(value) >= 1 && Number(value) <= max ? Number(value) : (() => { throw badRequest('Invalid page or limit.'); })();
+  const page = bounded(query.page, 1, 1000000);
+  const limit = bounded(query.limit, 500, 1000);
   const offset = (page - 1) * limit;
 
   const conditions = [];
@@ -431,13 +439,15 @@ async function requestDetail(user, documentId) {
     step_logs: await stepLogModel.findByDocumentId(documentId) };
 }
 
-async function trackByTrackingNumber(trackingNumber) {
+async function trackByTrackingNumber(trackingNumber, user) {
+  if (!user?.id) throw forbidden('Authentication is required to track a request.');
   const docRows = await documentModel.findByTrackingNumber(trackingNumber);
   if (docRows.length === 0) {
     throw notFound('Document not found.');
   }
 
   const document = docRows[0];
+  await authorizeMessage(user, document);
   const step_logs = await stepLogModel.findByDocumentId(document.id);
 
   return { document: { tracking_number: document.tracking_number, document_type: document.document_type,
@@ -451,6 +461,30 @@ async function trackByTrackingNumber(trackingNumber) {
 // ---------------------------------------------------------------------------
 
 async function getStats(user) {
+  if (user.role === 'student' || user.role === 'clerk' && ['Secretary', 'Finance'].includes(user.desk_assignment)) {
+    let conditions = [], params = [];
+    if (user.role === 'student') { conditions = ['student.id = ?']; params = [user.id]; }
+    else if (user.desk_assignment === 'Finance') {
+      conditions = ['d.current_status IN (?, ?)']; params = [STATUS.PENDING_STUDENT_PAYMENT, STATUS.PENDING_FINANCE_VERIFICATION];
+    } else {
+      const [account] = await userModel.findCourseById(user.id);
+      if (!account?.college_id && !account?.course) conditions.push('1 = 0');
+      else { const scope = documentCollegeScope({ collegeId: account.college_id, collegeName: account.course }); conditions.push(scope.condition); params.push(...scope.params); }
+      conditions.push('(d.current_status <> ? OR d.assigned_clerk_id = ?)'); params.push(STATUS.PENDING_W1_INTAKE, user.id);
+    }
+    const rows = await documentModel.scopedStatusCounts(conditions, params);
+    const count = status => Number(rows.find(row => row.current_status === status)?.count || 0);
+    const inflight = require('../utils/documentStatus').PIPELINE.slice(0, -1);
+    return { processed_today: null, cleared_by_secretary_today: null, avg_processing_minutes: null,
+      avg_ocr_confidence: null, ocr_field_detection: { score: null, status: 'restricted' },
+      backlog_count: rows.filter(row => inflight.includes(row.current_status)).reduce((sum, row) => sum + Number(row.count), 0),
+      pending_secretary_count: count(STATUS.PENDING_SEC_EVALUATION), ready_window_1_count: count(STATUS.READY_FOR_RELEASE),
+      pending_payment_verification_count: count(STATUS.PENDING_FINANCE_VERIFICATION),
+      completed_today_count: Number(rows.find(row => row.current_status === STATUS.COMPLETED)?.updated_today || 0),
+      pending_w1_intake_count: count(STATUS.PENDING_W1_INTAKE), sec_processing_count: count(STATUS.SEC_PROCESSING),
+      pending_student_payment_count: count(STATUS.PENDING_STUDENT_PAYMENT), paid_pending_sec_release_count: count(STATUS.PAID_PENDING_SEC_RELEASE) };
+  }
+  if (user.role !== 'admin' && !(user.role === 'clerk' && ['Window 1', 'Receiving Desk'].includes(user.desk_assignment))) throw forbidden('Access denied.');
   const [
     processed_today,
     cleared_by_secretary_today,
@@ -818,7 +852,7 @@ async function resolveCollege(studentId) {
     const exact = collegeRows.find(college => college.name === course);
     return { course: exact?.name || null, collegeCode: exact?.short_code || null };
   } catch (err) {
-    console.warn('⚠️ Could not resolve college for routing:', err.message);
+    console.warn('⚠️ Could not resolve college for routing:', err.name);
     return { course: null, collegeCode: null };
   }
 }
@@ -841,7 +875,7 @@ async function notifyStudent(studentId, { title, message, type, alsoSmsAndEmail 
       user: students[0], title, message, type, alsoSmsAndEmail, greetingName,
     });
   } catch (err) {
-    console.warn('⚠️ Student notification failed:', err.message);
+    console.warn('⚠️ Student notification failed:', err.name);
   }
 }
 
@@ -1010,15 +1044,13 @@ async function acceptForProcessing(user, documentId, body) {
   if (!['approve', 'reject'].includes(action)) {
     throw badRequest('Invalid action. Must be approve or reject.');
   }
-  if (action === 'approve' && !estimated_ready_date) {
-    throw badRequest('Give the student an estimated completion date.');
-  }
   if (action === 'reject' && !notes) {
     throw badRequest('Explain why the request is being returned.');
   }
 
   const connection = await pool.getConnection();
   let doc;
+  let readyDate=estimated_ready_date;
 
   try {
     await connection.beginTransaction();
@@ -1047,10 +1079,26 @@ async function acceptForProcessing(user, documentId, body) {
       studentId: student_id || doc.student_id, documentType: document_type || doc.document_type, executor: connection,
     });
 
+    if(action==='approve') {
+      const sameRequest=(!student_id || student_id===doc.student_id) && (!document_type || document_type===doc.document_type);
+      const estimate=releasePolicy.estimate({...doc,document_type:document_type || doc.document_type,is_same_day:sameRequest ? doc.is_same_day : false,release_working_days:sameRequest ? doc.release_working_days : null},
+        (await documentPolicy.resolveStudent(student_id || doc.student_id,connection)) || {});
+      if(estimate.working_days!=null) {
+        if(!estimate.date)throw badRequest('The original submission date is unavailable. Ask Admin to review this record.');
+        readyDate=estimate.date;
+      } else {
+        const entered=typeof estimated_ready_date==='string' && /^\d{4}-\d{2}-\d{2}$/.test(estimated_ready_date) ? releasePolicy.calendarDate(estimated_ready_date) : null,start=releasePolicy.calendarDate(doc.created_at);
+        const ceiling=releasePolicy.addWorkingDays(doc.created_at,15);
+        if(!entered || !start || entered<start || entered>ceiling || ![1,2,3,4].includes(new Date(entered).getUTCDay()))throw badRequest('Choose a Monday–Thursday completion date within 15 working days of the original submission.');
+        readyDate=entered;
+      }
+      await documentModel.updateReleasePolicy(documentId,estimate.working_days,connection);
+    }
+
     if (action === 'approve' && (!doc.assigned_clerk_id || Number(doc.assigned_clerk_id) !== Number(user.id))) await documentModel.updateAssignedClerk(documentId, user.id, connection);
     await documentModel.updateEvaluation(
       documentId, newStatus, student_id, student_name, document_type,
-      action === 'approve' ? estimated_ready_date : null,
+      action === 'approve' ? readyDate : null,
       connection
     );
     if (action === 'reject') await documentModel.updateAssignedClerk(documentId, null, connection);
@@ -1066,7 +1114,7 @@ async function acceptForProcessing(user, documentId, body) {
         action_taken: action === 'approve' ? 'secretary_accepted' : 'secretary_returned',
         from_status: doc.current_status,
         to_status: newStatus,
-        notes: notes || `Accepted for processing; expected ready ${estimated_ready_date}.`,
+        notes: `${notes ? notes+' ' : ''}${action==='approve' ? `Accepted for processing; expected ready ${readyDate} (Monday–Thursday, from original submission).` : 'Returned to Window 1.'}`,
       },
       connection
     );
@@ -1082,7 +1130,7 @@ async function acceptForProcessing(user, documentId, body) {
   await notifyStudent(student_id || doc.student_id, {
     title: action === 'approve' ? 'Request Being Processed' : 'Request Returned',
     message: action === 'approve'
-      ? `Your ${document_type || doc.document_type} is being prepared. Estimated ready by ${estimated_ready_date}. You will be told the amount once it is printed.`
+      ? `Your ${document_type || doc.document_type} is being prepared. Estimated ready by ${readyDate}. You will be told the amount once it is printed.`
       : `Your ${document_type || doc.document_type} was returned. Reason: ${notes}`,
     type: action === 'approve' ? 'info' : 'error',
     alsoSmsAndEmail: true,
@@ -1138,7 +1186,7 @@ async function priceDocument(user, documentId, { page_count, fee_page_counts, pr
       throw badRequest('Only a document being processed can be priced.');
     }
 
-    if (doc.priced_at) throw badRequest('This document already has a confirmed price.');
+    if (doc.priced_at || doc.payment_status==='PAID') throw badRequest('This document already has a confirmed price.');
     try {
       snapshot = typeof doc.pricing_snapshot === 'string' ? JSON.parse(doc.pricing_snapshot) : doc.pricing_snapshot;
       if (!snapshot || snapshot.fee_pending) {
@@ -1149,7 +1197,7 @@ async function priceDocument(user, documentId, { page_count, fee_page_counts, pr
         const student = await documentPolicy.resolveStudent(doc.student_id, connection);
         snapshot = resolveSchedule(types[0], student?.college_id);
       }
-      snapshot = normalizedSchedule(snapshot);
+      snapshot = printedPageSchedule(snapshot);
       if (snapshot.document_type !== doc.document_type) throw badRequest('The saved fee schedule does not match this document.');
       pageCount = page_count == null || page_count === '' ? null : positiveQuantity(page_count, 'Pages per copy');
       breakdown = calculateBreakdown(snapshot, { copies: doc.copies ?? 1, page_count: pageCount, fee_page_counts }, true);
