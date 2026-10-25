@@ -182,7 +182,7 @@ function DocumentAnalytics({ user, currentTab }) {
           <p className="trace-admin-workload-notice"><AdminIcon name="analytics-info" /><span>Desks differ in difficulty, so these are volume figures, not a performance ranking. Share is each staff member’s documents handled divided by the total handled across all staff in this period.</span></p>
 
           <div className="max-h-80 overflow-auto">
-            <table aria-label="Workload by Staff" className="w-full text-left min-w-[36rem]">
+            <table aria-label="Workload by Staff" className="trace-admin-data-table min-w-[36rem]">
               <thead className="bg-gray-50 dark:bg-gray-800 sticky top-0">
                 <tr className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest">
                   <th className="py-3 px-5">Staff</th>

@@ -102,7 +102,7 @@ export default function SupportAnalytics({ admin = false }) {
             <p id={`${id}-durations-context`} className="trace-page-description">Service time uses recorded Manila calendars. Imported histories are excluded from duration samples.</p>
           </div>
           <div role="region" aria-label="Measured duration table" tabIndex={0} className="trace-analytics-scroller">
-            <PaginatedTable label="duration metrics" aria-describedby={`${id}-durations-context ${id}-durations-help`} className="trace-analytics-table min-w-[38rem]">
+            <PaginatedTable label="duration metrics" aria-describedby={`${id}-durations-context ${id}-durations-help`} className="trace-analytics-table trace-faq-feedback-table min-w-[38rem]">
               <caption className="sr-only">Measured Durations (Minutes)</caption>
               <thead><tr>{['Metric', 'Median', 'p90', 'Samples', 'Missing'].map((label, index) => <th scope="col" key={label} className={index === 0 ? 'text-left' : 'text-right'}>{label}</th>)}</tr></thead>
               <tbody>{Object.entries(data.durations).map(([name, row]) => (
@@ -125,7 +125,7 @@ export default function SupportAnalytics({ admin = false }) {
         <section aria-label="Explicit FAQ feedback" className="trace-section overflow-hidden">
           <div className="trace-section-body pb-0 sm:pb-0"><h4 className="trace-section-title">Explicit FAQ Feedback</h4><p className="trace-page-description">Recorded actions by topic in the selected period. Views, helpful responses and explicit resolutions measure different actions.</p></div>
           <div role="region" aria-label="FAQ feedback table" tabIndex={0} className="trace-analytics-scroller">
-            <PaginatedTable label="FAQ topics" className="trace-analytics-table min-w-[38rem]">
+            <PaginatedTable label="FAQ topics" className="trace-analytics-table trace-faq-feedback-table min-w-[38rem]">
               <caption className="sr-only">Explicit FAQ Feedback by Topic</caption>
               <thead><tr>{['Topic', 'Views', 'Helpful', 'Not Helpful', 'Resolved'].map((label, index) => <th scope="col" key={label} className={index === 0 ? 'text-left' : 'text-right'}>{label}</th>)}</tr></thead>
               <tbody>{Object.entries(data.faq.topics).map(([topic, row]) => <tr key={topic}><th scope="row" className="text-left">{topic}</th><td><MetricValue value={row.views} /></td><td><MetricValue value={row.helpful} /></td><td><MetricValue value={row.not_helpful} /></td><td><MetricValue value={row.resolved} /></td></tr>)}{!Object.keys(data.faq.topics).length && <tr><td colSpan={5} className={admin ? 'trace-analytics-empty trace-analytics-missing' : '!text-left trace-analytics-missing'}>{admin && <span className="trace-admin-analytics-empty-icon"><AdminIcon name="support-metric-inbox" /></span>}<strong className="block">No recorded FAQ actions in this period.</strong>{admin && <span className="block mt-2 text-xs">FAQ views and ratings will be listed here by topic.</span>}</td></tr>}</tbody>

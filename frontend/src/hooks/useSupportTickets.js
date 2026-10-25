@@ -72,9 +72,17 @@ export default function useSupportTickets(user,initialDocumentId,requestedTicket
         : action.kind === 'availability' ? service.setSupportAvailability(action.available)
         : service.saveSupportSettings(action.settings));
       if (owner.current !== identity) return true;
-      if (result?.id) { setTickets(previous => merge(previous,[result])); setSelected(String(result.id)); }
+      if (result?.id) {
+        // A read started before this write must not replace its committed row.
+        read.current?.abort(); read.current = null;
+        observeTicket(result);
+        setTickets(previous => merge(previous,[result])); setSelected(String(result.id));
+      }
       feedback.notify(action.kind === 'claim' ? result?.id ? `Ticket #${result.id} is ready for you.` : 'No eligible ticket is waiting.' : action.kind === 'availability' ? `Live support availability: ${action.available ? 'Available' : 'Unavailable'}.` : action.kind === 'create' ? `Ticket #${result.id} opened.` : 'Support settings saved.');
-      await refresh(); await loadContext(); return true;
+      // Switching view starts a fresh read in the effect. Do not read the old
+      // Archive closure or hold the completed form open for background reads.
+      if (!result?.id || (result.state === 'RESOLVED' ? 'archive' : 'active') === view) void refresh();
+      void loadContext(); return true;
     } catch (err) { if (identity === owner.current) setError(message(err,'Could not confirm saving. Keep your draft and retry.')); return false; }
     finally { pending.current = false; if (owner.current) setBusy(false); }
   };

@@ -111,6 +111,6 @@ export default function SupportWorkspace({user,initialDocumentId,requestedTicket
         {choices.hasMore && <Button type="button" disabled={choices.busy} onClick={choices.more} className="trace-button trace-button-secondary">Load more request choices</Button>}
       </form>}
     </ModalShell>
-    <ConfirmDialog open={active && Boolean(staged)} title="Confirm Support Action" message={state.error || (staged?.kind === 'claim' ? 'Claim the oldest eligible queued ticket? You can have only one live conversation.' : 'Save this support action?')} loading={state.busy} onCancel={() => { if (!state.busy) setStaged(null); }} onConfirm={async () => { if (await state.execute(staged)) { if (['create','settings'].includes(staged.kind)) { setForm(null); setSubject(''); } setStaged(null); } }} />
+    <ConfirmDialog open={active && Boolean(staged)} title="Confirm Support Action" message={state.error || (staged?.kind === 'claim' ? 'Claim the oldest eligible queued ticket? You can have only one live conversation.' : 'Save this support action?')} loading={state.busy} onCancel={() => { if (!state.busy) setStaged(null); }} onConfirm={async () => { if (await state.execute(staged)) { if (staged.kind === 'create') { setQuery(''); setTicketFilter('all'); } if (['create','settings'].includes(staged.kind)) { setForm(null); setSubject(''); } setStaged(null); } }} />
   </section>;
 }

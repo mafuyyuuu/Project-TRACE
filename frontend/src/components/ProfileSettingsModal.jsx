@@ -1,3 +1,4 @@
+import QueueTabs from '@/components/QueueTabs';
 import { authStorage } from '@/utils/authStorage';
 import { isSecretary } from '@/utils/secretaryPresentation';
 import { formatDateTime, formatEventLabel } from '@/utils/formatters';
@@ -197,9 +198,9 @@ export default function ProfileSettingsModal({
               onClick={() => fileInputRef.current?.click()}
               disabled={saving}
               aria-label="Change profile picture"
-              className="trace-profile-camera trace-button-lift trace-action absolute -bottom-1 -right-1 w-8 h-8 rounded-full bg-[#15803d] enabled:hover:bg-[#166534] text-white flex items-center justify-center shadow-md transition-colors"
+              className="trace-profile-camera trace-button-lift trace-action absolute -bottom-2 -right-2 w-11 h-11 rounded-full bg-[#15803d] enabled:hover:bg-[#166534] text-white flex items-center justify-center shadow-md transition-colors"
             >
-              {isStudent ? <><span className="absolute inset-0"><StudentIcon name="profile-f6627" /></span><span className="relative"><StudentIcon name="profile-c9ee8" /></span></> : isAdmin ? <><span className="absolute inset-0"><AdminIcon name="profile-camera-badge" /></span><span className="relative"><AdminIcon name="profile-camera" /></span></> : <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/></svg>}
+              {isStudent ? <><span className="absolute inset-0 flex items-center justify-center"><StudentIcon name="profile-f6627" /></span><span className="absolute inset-0 flex items-center justify-center"><StudentIcon name="profile-c9ee8" /></span></> : isAdmin ? <><span className="absolute inset-0 flex items-center justify-center"><AdminIcon name="profile-camera-badge" /></span><span className="absolute inset-0 flex items-center justify-center"><AdminIcon name="profile-camera" /></span></> : <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/></svg>}
             </Button>
           </div>
           <div className="flex flex-col flex-1 basis-48 min-w-0 pt-1">
@@ -222,46 +223,13 @@ export default function ProfileSettingsModal({
         
         <FileUploadField pickerOnly label="Profile picture" inputRef={fileInputRef} file={avatarFile} onChange={onAvatarChange} accept="image/jpeg,image/png,image/webp" maxBytes={2 * 1024 * 1024} disabled={saving} />
         {/* Tabs */}
-        {isStudent ? (
-          <div className="flex flex-wrap gap-3 sm:gap-6 border-b border-gray-100 dark:border-gray-700 px-2 mt-2">
-            <Button
-              type="button"
-              onClick={() => setActiveTab('personal')}
-              aria-pressed={activeTab === 'personal'}
-              className={`trace-tab trace-student-profile-tab ${activeTab === 'personal' ? 'text-[#15803d] dark:text-green-300 border-b-2 border-[#15803d]' : 'text-gray-400 dark:text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'}`}
-            >
-              Personal Info
-              {missingPersonal && <>
-                <span aria-hidden="true" className="ml-2 inline-flex items-center justify-center rounded-full bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-200 px-1.5 text-xs font-bold">!</span>
-                <span className="sr-only"> — Required information missing</span>
-              </>}
-            </Button>
-            <Button
-              type="button"
-              onClick={() => setActiveTab('educational')}
-              aria-pressed={activeTab === 'educational'}
-              className={`trace-tab trace-student-profile-tab ${activeTab === 'educational' ? 'text-[#15803d] dark:text-green-300 border-b-2 border-[#15803d]' : 'text-gray-400 dark:text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'}`}
-            >
-              Educational Background
-              {missingEdu && <>
-                <span aria-hidden="true" className="ml-2 inline-flex items-center justify-center rounded-full bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-200 px-1.5 text-xs font-bold">!</span>
-                <span className="sr-only"> — Required information missing</span>
-              </>}
-            </Button>
-            <Button
-              type="button"
-              onClick={() => setActiveTab('security')}
-              aria-pressed={activeTab === 'security'}
-              className={`trace-tab trace-student-profile-tab ${activeTab === 'security' ? 'text-[#15803d] dark:text-green-300 border-b-2 border-[#15803d]' : 'text-gray-400 dark:text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'}`}
-            >
-              Security
-            </Button>
-          </div>
-        ) : (
-           <div className="flex flex-wrap gap-3 sm:gap-6 border-b border-gray-100 dark:border-gray-700 px-2 mt-2">
-             {['personal', 'security'].map(tab => <Button key={tab} type="button" aria-pressed={activeTab === tab} onClick={() => setActiveTab(tab)} className={isAdmin ? 'trace-action trace-admin-profile-tab ' + (activeTab === tab ? 'bg-trace-emerald text-white' : 'text-slate-500 dark:text-gray-300') : 'trace-tab relative ' + (activeTab === tab ? 'text-[#15803d] dark:text-green-300 border-b-2 border-[#15803d]' : 'text-gray-400 dark:text-gray-400 hover:text-gray-600 dark:hover:text-gray-300')}>{tab === 'personal' ? 'Personal Info' : 'Security'}</Button>)}
-           </div>
-        )}
+        <div className="trace-profile-tabs mt-2">
+          <QueueTabs idPrefix="profile-sections" semantics="group" label="Profile sections" activeKey={activeTab} onChange={setActiveTab} tabs={[
+            {key:'personal',label:<>Personal Info{missingPersonal && <><span aria-hidden="true" className="ml-2 text-red-700 dark:text-red-300">!</span><span className="sr-only"> — Required information missing</span></>}</>},
+            ...(isStudent ? [{key:'educational',label:<>Educational Background{missingEdu && <><span aria-hidden="true" className="ml-2 text-red-700 dark:text-red-300">!</span><span className="sr-only"> — Required information missing</span></>}</>}] : []),
+            {key:'security',label:'Security'},
+          ]}/>
+        </div>
       </div>
 
   );

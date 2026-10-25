@@ -549,3 +549,10 @@ See `docs/SECURITY_ROLLOUT.md` and `docs/PERMISSIONS_MATRIX.md`. This follow-up 
 Preparation dates now use the confirmed Monday–Thursday periods documented in USER_MANUAL. The original filing date is authoritative; evaluation never restarts the clock. A preparation estimate does not change physical handoff, payment or release authority. All not-yet-priced base charges use the actual printed page count, including non-TOR types and college overrides. Fixed extras retain their stated basis; finalized historical bills are preserved.
 
 Manual FAQ votes and optional No suggestions are saved independently of support ticket events. Admin reporting combines recorded FAQ counts while retaining ticket-only resolution/escalation definitions. Current extreme-case analysis identifies evidence of long desk waiting and missed preparation deadlines, with minimum sample counts and unavailable states visible. No automatic hold, escalation, assignment, notification or status change is inferred from a flag.
+
+
+### October 25 ClickUp follow-up (local verification; rollout pending)
+
+Opening a support ticket cancels older list reads, selects the returned ticket and switches to its Active/Archive view. Creation also clears local list filters. The server still authorizes ownership and reuses an unresolved general ticket; there is no new multi-ticket policy. Uploaded avatars retain authenticated loading, with local initials for missing or failed images.
+
+FAQ Yes saves immediately; No stages an optional suggestion until Send feedback. A successful write resets both choices and clears its draft, with a four-second confirmation. Failed writes preserve the draft and retry key. Historical reviews remain available to Admin metrics and never select a new response on reload. These are client changes; no new migration or production configuration is needed for this batch.
