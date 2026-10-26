@@ -8,7 +8,7 @@ import AdminIcon from '@/features/admin/components/AdminIcon';
 import ModalShell from '@/components/ModalShell';
 import RequestAttachments from '@/components/RequestAttachments';
 import { SupportIcon, TicketAvatar, MessageDateSeparator } from '@/components/SupportVisuals';
-import { SUPPORT_STATES, supportDay, supportTime } from '@/utils/supportPresentation';
+import { SUPPORT_STATES, supportDay, supportTime, supportReplyParagraphs } from '@/utils/supportPresentation';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import useSupportConversation from '@/hooks/useSupportConversation';
 import useAuthedFile from '@/hooks/useAuthedFile';
@@ -106,7 +106,7 @@ export default function SupportConversation({ ticketId,user,topics,onTicketChang
         {(!index || supportDay(row.created_at)!==supportDay(chat.messages[index-1].created_at)) && <MessageDateSeparator value={row.created_at} />}
         <article className={`trace-support-bubble ${row.kind === 'system' || row.kind === 'requirement' ? 'trace-support-bubble-system' : Number(row.sender_id) === Number(user.id) ? 'trace-support-bubble-outgoing' : ''}`}>
         <p className="font-semibold">{row.kind === 'system' ? 'TRACE' : Number(row.sender_id) === Number(user.id) ? 'You' : row.sender_name || 'Registrar'}</p>
-        <p className="select-text whitespace-pre-wrap break-words [overflow-wrap:anywhere]">{row.message}</p>
+        {(row.kind === 'system' ? supportReplyParagraphs(row.message) : [row.message]).map((paragraph,index) => <p key={index} className="select-text whitespace-pre-wrap break-words [overflow-wrap:anywhere]">{paragraph}</p>)}
         {row.kind==='requirement' && <RequirementBubble ticketId={ticketId} row={row.requirement} user={user} readOnly={user.role === 'admin' || ticket?.read_only} onAction={setRequirement} />}
         {row.files?.map(file => <SupportFile key={file.id} file={file} />)}
         {row.metadata?.faq_topic_id && ticket?.state === 'FAQ_ASSISTANCE' && user.role === 'student' && <div className="flex flex-wrap gap-2">

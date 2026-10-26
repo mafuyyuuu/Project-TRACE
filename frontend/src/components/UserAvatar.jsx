@@ -1,31 +1,28 @@
 import useAuthedFile from '@/hooks/useAuthedFile';
+import { useState } from 'react';
 
 /**
- * Generated stand-in for an account that hasn't uploaded a picture yet.
- * Seeded from the user's initials so it stays stable between sessions.
+ * Local stand-in for an account without an available photo.
  */
-function fallbackAvatarUrl(user) {
-  const seed = user?.full_name
-    ? user.full_name.split(' ').map((n) => n[0]).join('')
-    : 'MK';
-  return `https://api.dicebear.com/7.x/notionists/svg?seed=${seed}&backgroundColor=c4e3d3`;
+function initials(user) {
+  return String(user?.full_name || '').trim().split(/\s+/).filter(Boolean)
+    .slice(0, 2).map(name => Array.from(name)[0]).join('').toLocaleUpperCase() || 'T';
 }
 
 /**
  * The signed-in account's picture, wherever it appears.
  *
  * An uploaded avatar is a protected upload and has to be fetched with the
- * caller's token; the generated fallback is an ordinary public URL.
- * `useAuthedFile` already passes fully-qualified http(s) URLs through
- * untouched, so both cases go through the same single call.
+ * caller's token. Initials are rendered locally when no photo is available.
  */
 export default function UserAvatar({ user, overridePath = null, className = '', alt = 'User' }) {
-  const path = overridePath || user?.profile_picture || fallbackAvatarUrl(user);
+  const path = overridePath || user?.profile_picture || null;
   const { url } = useAuthedFile(path);
+  const [failedUrl, setFailedUrl] = useState(null);
 
-  if (!url) {
-    return <div className={`${className} bg-gray-100 dark:bg-gray-800 animate-pulse`} aria-hidden="true" />;
+  if (!url || failedUrl === url) {
+    return <span role="img" aria-label={alt} className={`trace-avatar-fallback ${className}`}>{initials(user)}</span>;
   }
 
-  return <img src={url} alt={alt} className={className} />;
+  return <img src={url} alt={alt} className={className} onError={() => setFailedUrl(url)} />;
 }

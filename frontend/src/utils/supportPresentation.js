@@ -16,3 +16,15 @@ export function ticketInitials(ticket) {
   const words = String(ticket.student_name || ticket.subject || '').trim().split(/\s+/).filter(Boolean);
   return words.slice(0, 2).map(word => Array.from(word)[0]).join('').toLocaleUpperCase() || '#';
 }
+// Add visual paragraph breaks only to automated replies, preserving authored text.
+export function supportReplyParagraphs(message) {
+  return String(message || '').split(/\n\s*\n/).flatMap(block => {
+    const paragraphs = [];
+    for (const sentence of block.split(/(?<=[.!?])\s+(?=[A-Z])/)) {
+      const last = paragraphs.length - 1;
+      if (last >= 0 && paragraphs[last].length + sentence.length < 280) paragraphs[last] += ` ${sentence}`;
+      else paragraphs.push(sentence);
+    }
+    return paragraphs;
+  });
+}

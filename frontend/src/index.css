@@ -110,9 +110,9 @@
   .trace-support-ticket { @apply block min-w-0 border-b border-l-2 border-b-gray-200 border-l-transparent bg-white p-4 text-gray-900 transition-colors dark:border-b-gray-700 dark:bg-gray-900 dark:text-gray-100; }
   .trace-support-ticket:hover { @apply bg-gray-50 dark:bg-gray-800; }
   .trace-support-ticket[aria-pressed="true"] { @apply border-l-pine-600 bg-green-50 text-gray-900 dark:border-l-green-400 dark:bg-green-950 dark:text-gray-100; }
-  .trace-support-bubble { @apply min-w-0 max-w-[90%] space-y-2 rounded-2xl border border-gray-200 bg-white p-3 text-sm text-gray-900 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100; }
+  .trace-support-bubble { @apply w-fit min-w-0 max-w-[85%] space-y-2 rounded-2xl border border-gray-200 bg-white p-3 text-sm text-gray-900 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100; }
   .trace-support-bubble-outgoing { @apply ml-auto border-pine-600 bg-pine-600 text-white dark:border-pine-600 dark:bg-pine-600 dark:text-white; }
-  .trace-support-bubble-system { @apply mx-auto max-w-full border-blue-200 bg-blue-50 text-blue-950 dark:border-blue-800 dark:bg-blue-950 dark:text-blue-100; }
+  .trace-support-bubble-system { @apply mr-auto ml-0 max-w-[85%] sm:max-w-[67%] border-blue-200 bg-blue-50 text-blue-950 dark:border-blue-800 dark:bg-blue-950 dark:text-blue-100; }
 }
 
 .trace-nav-scroll {
@@ -629,9 +629,9 @@ body:has(.trace-admin-shell) .trace-admin-edit-profile .trace-modal-body { @appl
 body:has(.trace-admin-shell) .trace-admin-edit-profile .trace-profile-header { @apply max-h-[34dvh] shrink-0 overflow-y-auto border-b border-[#e2e7ec] px-6 pt-2.5 dark:border-gray-700; }
 body:has(.trace-admin-shell) .trace-admin-edit-profile .trace-profile-header > div:first-child { @apply items-center gap-[18px] pb-[18px]; }
 body:has(.trace-admin-shell) .trace-admin-edit-profile .trace-profile-header > div:first-child > div:first-child { @apply h-[84px] w-[84px]; }
-body:has(.trace-admin-shell) .trace-admin-edit-profile .trace-profile-header img:not(.trace-admin-icon) { @apply h-[76px] w-[76px] border-2 border-[#cde8d8] shadow-none; }
+body:has(.trace-admin-shell) .trace-admin-edit-profile .trace-profile-header :is(img:not(.trace-admin-icon),.trace-avatar-fallback) { @apply h-[76px] w-[76px] border-2 border-[#cde8d8] shadow-none; }
 body:has(.trace-admin-shell) .trace-admin-edit-profile .trace-profile-header h3 { @apply text-[22px] font-bold; }
-body:has(.trace-admin-shell) .trace-admin-edit-profile .trace-profile-camera { @apply left-[54px] top-[54px] h-[30px] w-[30px] bg-transparent shadow-none; }
+body:has(.trace-admin-shell) .trace-admin-edit-profile .trace-profile-camera { @apply left-[47px] top-[47px] h-[44px] w-[44px] bg-transparent shadow-none; }
 body:has(.trace-admin-shell) .trace-admin-edit-profile .trace-profile-header > div:last-child { @apply mt-0 gap-1.5 border-0 px-0 pb-3; }
 .trace-admin-profile-tab { @apply min-h-9 rounded-full px-[18px] py-2 text-sm font-semibold; }
 body:has(.trace-admin-shell) .trace-admin-edit-profile .trace-section-body { @apply px-6 py-5; }
@@ -812,7 +812,7 @@ body:has(.trace-admin-shell) .trace-modal-footer { @apply bg-[#fafbfc] px-7 py-[
 .trace-admin-shell .trace-support-ticket .grid { @apply grid-cols-[36px_minmax(0,1fr)]; }
 .trace-admin-shell [aria-label="Selected support ticket"] > header, .trace-admin-shell [aria-label="Selected staff conversation"] > header, .trace-admin-shell [aria-label="Selected internal ticket"] > header { @apply bg-white px-6 py-5 dark:bg-gray-900; }
 .trace-admin-shell :is([aria-label="Conversation history"], [aria-label="Staff conversation history"], [aria-label="Internal conversation history"]) { @apply bg-[#fafbfc] px-6 py-5 dark:bg-gray-950; }
-.trace-admin-shell .trace-support-bubble { @apply w-fit max-w-[90%] rounded-xl text-xs; }
+.trace-admin-shell .trace-support-bubble { @apply w-fit rounded-xl text-xs; }
 @media (min-width: 1024px) {
   .trace-admin-shell [aria-label="Support workspace"] > .grid, .trace-admin-shell [aria-label="Staff coordination workspace"] > .grid { @apply grid-cols-[432px_minmax(0,1fr)]; }
   .trace-admin-shell [aria-label="Internal assistance workspace"] > .grid { @apply grid-cols-[380px_minmax(0,1fr)]; }
@@ -1394,9 +1394,9 @@ body:has(.trace-student-shell) .trace-student-tickets-modal .trace-modal-body { 
 .trace-student-edit-profile .trace-profile-header { @apply shrink-0 border-[#e2e8ec] px-[24px] pt-[10px] dark:border-gray-700; }
 .trace-student-edit-profile .trace-profile-header > div:first-child { @apply grid items-center gap-[18px] pb-[18px]; grid-template-columns: 84px minmax(0,1fr) 220px; }
 .trace-student-edit-profile .trace-profile-header > div:first-child > div:first-child { @apply h-[84px] w-[84px]; }
-.trace-student-edit-profile .trace-profile-header img:not(.trace-student-icon) { @apply h-[76px] w-[76px] rounded-full border-2 border-[#cde8d8] shadow-none; }
+.trace-student-edit-profile .trace-profile-header :is(img:not(.trace-student-icon),.trace-avatar-fallback) { @apply h-[76px] w-[76px] rounded-full border-2 border-[#cde8d8] shadow-none; }
 .trace-student-edit-profile .trace-profile-header h3 { @apply text-[1.375rem] font-bold; font-family: inherit; }
-.trace-student-edit-profile .trace-profile-camera { @apply left-[54px] top-[54px] h-[30px] w-[30px] bg-transparent shadow-none; }
+.trace-student-edit-profile .trace-profile-camera { @apply left-[47px] top-[47px] h-[44px] w-[44px] bg-transparent shadow-none; }
 .trace-student-profile-completion { @apply min-w-[0px] w-full; }
 .trace-student-profile-completion > div:first-child { @apply text-xs font-normal; }
 .trace-student-profile-completion > div:first-child > span:last-child { @apply text-[.8125rem] font-bold; }
@@ -2595,3 +2595,38 @@ body :is(.trace-standard-heading,.trace-admin-more-page > header,.trace-admin-ma
 
 .trace-admin-support-period-header .trace-page-title > span { color: #168f55; }
 .dark .trace-admin-support-period-header .trace-page-title > span { color: #86efac; }
+
+
+/* October 25 ClickUp refinements: shared role presentation and local fallbacks. */
+.trace-avatar-fallback { @apply inline-flex shrink-0 items-center justify-center overflow-hidden bg-green-100 font-semibold text-green-800 dark:bg-green-900 dark:text-green-100; }
+.trace-profile-camera > span { @apply absolute inset-0 flex items-center justify-center; }
+body .trace-profile-camera > span:last-child { @apply absolute inset-0; }
+
+/* The source Reports artwork is white. Keep it visible on unfilled surfaces. */
+.trace-admin-icon[src='/admin-figma/report.svg']:not(.trace-admin-icon-active) { filter: brightness(0); opacity: .6; }
+.dark .trace-admin-icon[src='/admin-figma/report.svg']:not(.trace-admin-icon-active) { filter: brightness(0) invert(1); opacity: .85; }
+
+body .trace-faq-feedback-table :is(th,td):first-child { text-align: left; }
+body .trace-faq-feedback-table :is(th,td):not(:first-child) { text-align: right; font-variant-numeric: tabular-nums; }
+.trace-admin-data-table { @apply w-full border-collapse text-left; }
+.trace-admin-data-table thead { @apply sticky top-0 z-10 bg-gray-50 dark:bg-gray-800; }
+.trace-admin-shell .trace-admin-document-analytics .trace-admin-data-table thead th { @apply bg-gray-50 px-5 py-3 text-[.625rem] font-bold uppercase tracking-widest text-gray-500 dark:bg-gray-800 dark:text-gray-400; }
+.trace-admin-data-table tbody :is(th,td) { @apply border-b border-gray-50 px-5 py-3 align-middle text-xs text-gray-700 dark:border-gray-700 dark:text-gray-300; }
+.trace-admin-data-table tbody tr:hover { @apply bg-gray-50/50 dark:bg-gray-800/50; }
+.trace-admin-shell .trace-admin-document-analytics .trace-admin-data-table tbody th { @apply bg-transparent text-left font-bold normal-case tracking-normal text-gray-900 dark:text-gray-100; }
+.trace-admin-data-table .trace-table-number { text-align: right; font-variant-numeric: tabular-nums; }
+
+/* User-approved compact login controls supersede the larger source fields. */
+.trace-auth-form-content:has(.trace-login-form) { max-width: 520px; min-height: 0; gap: 24px; padding-block: 24px; }
+.trace-auth-form-content:has(.trace-login-form) .trace-auth-form-heading h2 { font-size: 1.75rem; }
+.trace-login-form { gap: 22px; }
+.trace-login-label,.trace-login-forgot { font-size: .875rem; }
+.trace-login-form .trace-control { min-height: 52px; padding-inline: 20px; font-size: .875rem; }
+.trace-login-submit { min-height: 54px; margin-top: 0; font-size: 1.125rem; }
+
+@media(max-width:767px) {
+  body .trace-tab-strip .trace-tab-group { @apply items-stretch gap-1 rounded-none border-b border-gray-200 bg-transparent p-0 dark:border-gray-700 dark:bg-transparent; }
+  body .trace-tab-strip .trace-tab { @apply min-h-11 rounded-b-none rounded-t-[10px] px-4 py-3; height: auto; }
+  body :is(.trace-admin-shell,.trace-student-shell,.trace-window-shell,.trace-secretary-shell,.trace-finance-shell) .trace-dashboard-greeting.trace-dashboard-greeting { font-size: clamp(1.5rem,6vw,2rem); line-height: 1.25; min-width: 0; overflow-wrap: anywhere; }
+  body .trace-dashboard-greeting > span { display: block; margin-top: .25rem; }
+}

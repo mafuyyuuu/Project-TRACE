@@ -23,3 +23,10 @@ it('does not invent a policy for unlisted types or invalid dates',()=>{
 it('preserves the preparation-day snapshot when a student later graduates',()=>{
   expect(policy.estimate({document_type:'Transcript of Records',created_at:'2026-10-22',release_working_days:10},{user_type:'alumni'}).date).toBe('2026-11-10');
 });
+
+it('counts across the year boundary without inventing holiday exclusions',()=>{
+  expect(policy.addWorkingDays('2026-12-31',15)).toBe('2027-01-27');
+  expect(policy.addWorkingDays('2026-12-28',5)).toBe('2027-01-05');
+  expect(policy.addWorkingDays('2026-12-30',1)).toBe('2026-12-31');
+  expect(policy.workingDaysBetween('2026-12-31','2027-01-27')).toBe(15);
+});

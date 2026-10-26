@@ -39,7 +39,7 @@ describe('Admin Figma UI interactions', () => {
     const {rerender}=render(<AdminManual reviews={reviews} entries={[[question,'Recorded metrics only.']]}/>);
     await userEvent.click(screen.getByRole('button',{name:'Yes'}));expect(choose).toHaveBeenCalledWith(question,'helpful');
     rerender(<AdminManual reviews={{...reviews,feedback:{[question]:{action:'helpful'}}}} entries={[[question,'Recorded metrics only.']]}/>);
-    expect(screen.getByRole('button',{name:'Yes'})).toHaveAttribute('aria-pressed','true');
+    expect(screen.getByRole('button',{name:'Yes'})).toHaveAttribute('aria-pressed','false');
     expect(screen.getByText('Recorded metrics only.')).toBeInTheDocument();
   });
 

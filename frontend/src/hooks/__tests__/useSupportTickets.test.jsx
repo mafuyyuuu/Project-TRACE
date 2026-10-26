@@ -2,7 +2,7 @@ import {act,renderHook,waitFor} from '@testing-library/react';
 import {beforeEach,expect,it,vi} from 'vitest';
 import useSupportTickets from '@/hooks/useSupportTickets';
 import * as service from '@/services/supportTicketsService';
-vi.mock('@/services/supportTicketsService',()=>({getTickets:vi.fn(),getSupportSettings:vi.fn(),getSupportFaq:vi.fn(),resolveSupportContext:vi.fn()}));
+vi.mock('@/services/supportTicketsService',()=>({getTickets:vi.fn(),getSupportSettings:vi.fn(),getSupportFaq:vi.fn(),resolveSupportContext:vi.fn(),createTicket:vi.fn()}));
 vi.mock('@/services/realtimeService',()=>({onNotification:vi.fn(()=>()=>{})}));
 const user={id:3,role:'student'};
 const ticket=id=>({id,subject:'Synthetic support',state:'QUEUED'});
@@ -108,4 +108,40 @@ it('removes a remotely resolved ticket from the next Active refresh instead of r
  await waitFor(()=>expect(result.current.tickets).toHaveLength(1));
  await act(async()=>result.current.refresh());
  expect(result.current.tickets).toEqual([]);expect(result.current.cursor).toBeNull();
+});
+it('cancels a pre-creation list read so its late response cannot hide the new ticket',async()=>{
+ let finishOld;
+ service.getTickets.mockReturnValueOnce(new Promise(resolve=>{finishOld=resolve;}))
+   .mockResolvedValue({tickets:[ticket(19)],next_cursor:null});
+ service.createTicket.mockResolvedValue(ticket(19));
+ const {result}=mount({});
+ await waitFor(()=>expect(service.getTickets).toHaveBeenCalledOnce());
+ const signal=service.getTickets.mock.calls[0][1];
+ await act(async()=>result.current.execute({kind:'create',payload:{subject:'New'}}));
+ expect(signal.aborted).toBe(true);
+ await act(async()=>finishOld({tickets:[ticket(2)],next_cursor:2}));
+ expect(result.current.tickets.map(row=>row.id)).toEqual([19]);
+ expect(result.current.selected).toBe('19');
+});
+it('opens newly created general support in Active when starting from Archive',async()=>{
+ service.getTickets.mockImplementation((_before,_signal,view)=>Promise.resolve({tickets:view==='archive' ? [{...ticket(2),state:'RESOLVED'}] : [ticket(19)],next_cursor:null}));
+ service.createTicket.mockResolvedValue(ticket(19));
+ const {result}=mount({});
+ await waitFor(()=>expect(result.current.loading).toBe(false));
+ act(()=>result.current.changeView('archive'));
+ await waitFor(()=>expect(result.current.tickets[0]?.id).toBe(2));
+ await act(async()=>result.current.execute({kind:'create',payload:{subject:'New'}}));
+ await waitFor(()=>expect(result.current.view).toBe('active'));
+ await waitFor(()=>expect(result.current.tickets.map(row=>row.id)).toEqual([19]));
+ expect(result.current.selected).toBe('19');
+ expect(service.getTickets).toHaveBeenLastCalledWith(null,expect.any(AbortSignal),'active');
+});
+it('keeps the same unresolved ticket when the server reuses it and closes without waiting for background reads',async()=>{
+ const {result}=mount({});
+ await waitFor(()=>expect(result.current.loading).toBe(false));
+ service.createTicket.mockResolvedValue(ticket(7));
+ service.getTickets.mockImplementation(()=>new Promise(()=>{}));
+ await act(async()=>expect(result.current.execute({kind:'create',payload:{subject:'Another concern'}})).resolves.toBe(true));
+ expect(result.current.selected).toBe('7');expect(result.current.tickets.map(row=>row.id)).toEqual([7]);
+ expect(result.current.busy).toBe(false);
 });
