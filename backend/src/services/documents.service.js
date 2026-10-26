@@ -31,7 +31,7 @@ const { STATUS, assertTransition } = require('../utils/documentStatus');
 /**
  * Core document pipeline logic.
  *
- * "Evaluate first, pay later" (see docs/SYSTEM_WORKFLOWS.md):
+ * "Evaluate first, pay later" (see docs/SYSTEM_HANDBOOK.md#application-rules):
  *
  *   PENDING_W1_INTAKE → PENDING_SEC_EVALUATION → SEC_PROCESSING
  *   → PENDING_STUDENT_PAYMENT → PENDING_FINANCE_VERIFICATION
@@ -698,7 +698,7 @@ async function submitPayment(user, documentId, { gcash_reference_no, payment_met
  * This is the only place `payment_status` becomes PAID. The Secretary now sets
  * the *price*, but pricing authority and payment authority are deliberately
  * separate: no document is released as paid without Finance saying so
- * (docs/CODING_PREFERENCES.md).
+ * (AGENTS.md).
  *
  * Managed approval allocates one reserved serial in this same transaction.
  * Later records payment acknowledgment without issuance; historical paper
@@ -1304,7 +1304,7 @@ async function priceDocument(user, documentId, { page_count, fee_page_counts, pr
  * it never touches `payment_status`. Only Finance's verifyPayment ever marks a
  * document PAID — this step exists so nothing reaches Window 1 on the strength
  * of a payment nobody actually looked the paperwork for
- * (docs/CODING_PREFERENCES.md — pricing and payment stay separate authorities).
+ * (AGENTS.md — pricing and payment stay separate authorities).
  *
  * No reject path: unlike verifyPayment or intakeDocument, there is nothing to
  * send back to a previous desk here. A genuinely wrong OR is a Finance data

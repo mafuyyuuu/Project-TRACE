@@ -5,7 +5,7 @@
  * mirrors its backend counterpart — the two must be changed together. The
  * backend owns the transitions; this file owns only how a status is *shown*.
  *
- * Pipeline: evaluate first, pay later. See docs/SYSTEM_WORKFLOWS.md.
+ * Pipeline: evaluate first, pay later. See docs/SYSTEM_HANDBOOK.md#application-rules.
  */
 
 /** Every status a document may hold. Mirrors the backend STATUS object. */

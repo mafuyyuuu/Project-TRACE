@@ -4,7 +4,7 @@ const env = require('../config/env');
  * n8n orchestrator client.
  *
  * Institutional routing rules live in the n8n workflow, not in this codebase
- * (see docs/CODING_PREFERENCES.md) — Node.js only emits the event. Failures
+ * (see AGENTS.md) — Node.js only emits the event. Failures
  * are logged and swallowed so a stopped n8n container never blocks an upload.
  */
 async function triggerDocumentRouting({

@@ -4,7 +4,7 @@ const path = require('path');
  * Centralized access to environment-driven configuration for external
  * services. Keeping the fallbacks here means no module reaches into
  * `process.env` directly, and no real secret ever gets hardcoded as a
- * "default" value in source (see docs/CODING_PREFERENCES.md).
+ * "default" value in source (see AGENTS.md).
  */
 
 // Loaded here (not only in app.js) so standalone scripts such as

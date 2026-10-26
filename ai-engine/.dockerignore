@@ -2,5 +2,5 @@
 __pycache__/
 *.pyc
 test_ocr.py
-mock_data_gen.py
 .env
+*.bak

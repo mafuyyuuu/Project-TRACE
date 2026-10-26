@@ -63,3 +63,11 @@ Thumbs.db
 # AI Agent Logs (Antigravity/Gemini)
 .gemini/
 .agents/
+
+# Generated handover/review output and local backups
+/output/
+/backups/
+*.bak
+/backend/database/trace.db
+.pytest_cache/
+.venv-test/

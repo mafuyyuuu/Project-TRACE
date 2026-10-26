@@ -3,7 +3,7 @@ import useSupportFaq from '@/hooks/useSupportFaq';
 import AdminManual from '@/features/admin/components/AdminManual';
 import useManualFaqFeedback from '@/hooks/useManualFaqFeedback';
 
-/** Role-aware excerpts from docs/USER_MANUAL.md; no separate workflow rules. */
+/** Role-aware in-app help; operational rules: docs/SYSTEM_HANDBOOK.md#application-rules. */
 export default function HelpPage({user}) { return <ManualHelp key={user?.id} user={user}/>; }
 function ManualHelp({ user }) {
   const reviews=useManualFaqFeedback();

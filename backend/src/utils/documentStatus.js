@@ -9,7 +9,7 @@
  *
  * The pipeline is "evaluate first, pay later": the College Secretary processes
  * and prints a document before anyone knows its price, because the price comes
- * from the page count. See docs/SYSTEM_WORKFLOWS.md.
+ * from the page count. See docs/SYSTEM_HANDBOOK.md#application-rules.
  */
 
 /**
@@ -136,11 +136,9 @@ const STAGE_LABELS = {
   [STATUS.COMPLETED]: 'Completed',
   [LEGACY_STATUS.REJECTED]: 'Rejected (legacy)',
   [LEGACY_STATUS.APPROVED]: 'Approved (legacy)',
-  // Not pipeline statuses. `ai-engine/mock_data_gen.py` seeds ~30,000 step_logs
-  // rows carrying these as stage markers so Prophet has volume history to train
-  // on. They are left as-is by the migration for the same reason the legacy
-  // terminals are — they record what the generator did, not a desk a document
-  // passed through — but reports still read them, so they still need a label.
+  // Historical synthetic imports used these stage markers outside the real
+  // pipeline. Keep labels for existing records without treating those markers
+  // as desk transitions or inserting new synthetic history into the database.
   submitted: 'Intake',
   processing: 'Processing',
 };
