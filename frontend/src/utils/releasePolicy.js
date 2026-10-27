@@ -37,8 +37,12 @@ function preparationDays(name, student = {}, sameDay = false) {
     || ['for second course (bachelor degree)','for graduate school','for masters','for ctp','transfer credentials'].includes(type);
   if (!isTor && !isDismissal) return null;
   if (/undergraduates?/.test(type)) return 10;
-  if (/\(graduates?\)/.test(type)) return 5;
-  if(student.user_type === 'alumni' || student.enrollment_status === 'graduated')return 5;
+  if (/(?:\(|\s)graduates?\)?$/.test(type)) return 5;
+  if(student.enrollment_status === 'graduated')return 5;
+  // Former students can have transferred or withdrawn without graduating.
+  // Use their recorded outcome before the legacy alumni-only fallback.
+  if(['active','dropout','transferred'].includes(student.enrollment_status))return 10;
+  if(student.user_type === 'alumni')return 5;
   return student.user_type === 'student' || student.enrollment_status ? 10 : null;
 }
 function estimate(document, student = {}) {

@@ -30,3 +30,16 @@ it('counts across the year boundary without inventing holiday exclusions',()=>{
   expect(policy.addWorkingDays('2026-12-30',1)).toBe('2026-12-31');
   expect(policy.workingDaysBetween('2026-12-31','2027-01-27')).toBe(15);
 });
+it.each(['active','dropout','transferred'])('keeps former-student %s requests on the undergraduate period',enrollment_status=>{
+ for(const name of ['Transcript of Records','Honorable Dismissal']) {
+  expect(policy.preparationDays(name,{user_type:'alumni',enrollment_status})).toBe(10);
+ }
+});
+it.each(['Transcript of Records — Graduates','Honorable Dismissal - Graduates'])('honors the explicit graduate category in %s',name=>{
+ expect(policy.preparationDays(name,{user_type:'student',enrollment_status:'active'})).toBe(5);
+});
+it('uses confirmed graduation over account type while retaining saved request periods',()=>{
+ expect(policy.preparationDays('Transcript of Records',{user_type:'student',enrollment_status:'graduated'})).toBe(5);
+ expect(policy.preparationDays('For Graduate School',{user_type:'alumni',enrollment_status:'transferred'})).toBe(10);
+ expect(policy.estimate({document_type:'Transcript of Records',created_at:'2026-12-31',release_working_days:10},{user_type:'alumni',enrollment_status:'graduated'})).toMatchObject({working_days:10,date:'2027-01-19'});
+});

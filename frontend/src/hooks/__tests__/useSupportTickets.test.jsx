@@ -2,7 +2,7 @@ import {act,renderHook,waitFor} from '@testing-library/react';
 import {beforeEach,expect,it,vi} from 'vitest';
 import useSupportTickets from '@/hooks/useSupportTickets';
 import * as service from '@/services/supportTicketsService';
-vi.mock('@/services/supportTicketsService',()=>({getTickets:vi.fn(),getSupportSettings:vi.fn(),getSupportFaq:vi.fn(),resolveSupportContext:vi.fn(),createTicket:vi.fn()}));
+vi.mock('@/services/supportTicketsService',()=>({getTickets:vi.fn(),getTicket:vi.fn(),getSupportSettings:vi.fn(),getSupportFaq:vi.fn(),resolveSupportContext:vi.fn(),createTicket:vi.fn()}));
 vi.mock('@/services/realtimeService',()=>({onNotification:vi.fn(()=>()=>{})}));
 const user={id:3,role:'student'};
 const ticket=id=>({id,subject:'Synthetic support',state:'QUEUED'});
@@ -10,6 +10,7 @@ const mount=props=>renderHook(({documentId,ticketId,supportId})=>useSupportTicke
 beforeEach(()=>{
   vi.clearAllMocks();window.history.replaceState(null,'','/dashboard?tab=messages');
   service.getTickets.mockResolvedValue({tickets:[],next_cursor:null});
+  service.getTicket.mockImplementation(async id=>({ticket:ticket(Number(id)),messages:[],next_cursor:null}));
   service.getSupportSettings.mockResolvedValue({});service.getSupportFaq.mockResolvedValue([]);
   service.resolveSupportContext.mockResolvedValue(ticket(7));
 });
@@ -144,4 +145,53 @@ it('keeps the same unresolved ticket when the server reuses it and closes withou
  await act(async()=>expect(result.current.execute({kind:'create',payload:{subject:'Another concern'}})).resolves.toBe(true));
  expect(result.current.selected).toBe('7');expect(result.current.tickets.map(row=>row.id)).toEqual([7]);
  expect(result.current.busy).toBe(false);
+});
+it('keeps a committed general ticket visible when the next list response omits it',async()=>{
+ service.createTicket.mockResolvedValue(ticket(19));
+ const {result}=mount({});
+ await waitFor(()=>expect(result.current.loading).toBe(false));
+ await act(async()=>result.current.execute({kind:'create',payload:{subject:'New'}}));
+ await act(async()=>result.current.refresh());
+ await waitFor(()=>expect(result.current.tickets.map(row=>row.id)).toEqual([19]));
+ expect(result.current.selected).toBe('19');
+});
+it('restores an authorized reused ticket outside the first page without losing the page cursor',async()=>{
+ const page=Array.from({length:20},(_,i)=>ticket(50-i));
+ service.getTickets.mockResolvedValue({tickets:page,next_cursor:31});
+ service.createTicket.mockResolvedValue(ticket(7));
+ const {result}=mount({});
+ await waitFor(()=>expect(result.current.loading).toBe(false));
+ await act(async()=>result.current.execute({kind:'create',payload:{subject:'Reused concern'}}));
+ await waitFor(()=>expect(service.getTicket).toHaveBeenCalledWith('7',null,expect.any(AbortSignal)));
+ expect(result.current.tickets.some(row=>row.id===7)).toBe(true);
+ expect(result.current.cursor).toBe(31);
+ await act(async()=>result.current.refresh());
+ expect(result.current.tickets.some(row=>row.id===7)).toBe(true);
+});
+it.each([403,404])('clears a missing selected ticket on an authoritative %s response',async status=>{
+ service.getTicket.mockRejectedValue({response:{status}});
+ const {result}=mount({ticketId:'19'});
+ await waitFor(()=>expect(result.current.loading).toBe(false));
+ expect(result.current.tickets).toEqual([]);
+ expect(result.current.selected).toBe('');
+});
+it('ignores a late missing-ticket lookup after the student selects another conversation',async()=>{
+ let finish;
+ service.getTickets.mockResolvedValueOnce({tickets:[ticket(20),ticket(19)],next_cursor:null}).mockResolvedValue({tickets:[],next_cursor:null});
+ service.getTicket.mockReturnValueOnce(new Promise(resolve=>{finish=resolve;}));
+ const {result}=mount({ticketId:'19'});
+ await waitFor(()=>expect(result.current.tickets).toHaveLength(2));
+ let pending;
+ act(()=>{pending=result.current.refresh();});
+ await waitFor(()=>expect(service.getTicket).toHaveBeenCalledOnce());
+ act(()=>result.current.setSelected('20'));
+ await act(async()=>{finish({ticket:ticket(19),messages:[]});await pending;});
+ expect(result.current.selected).toBe('20');
+ expect(result.current.tickets.some(row=>row.id===20)).toBe(true);
+});
+it('does not copy a resolved ticket into the Active page while restoring a missing selection',async()=>{
+ service.getTicket.mockResolvedValue({ticket:{...ticket(19),state:'RESOLVED'},messages:[]});
+ const {result}=mount({ticketId:'19'});
+ await waitFor(()=>expect(result.current.loading).toBe(false));
+ expect(result.current.tickets).toEqual([]);
 });

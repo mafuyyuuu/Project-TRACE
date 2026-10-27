@@ -39,7 +39,29 @@ async function main(){
     require('../src/services/aiEngine.service').getSupportInsights=async()=>null;
     const report=await require('../src/services/supportReport.service').report({id:2,role:'admin'},{dateFrom:require('../src/utils/releasePolicy').calendarDate(now)});
     assert.equal(report.manual_faq.not_helpful,1);assert.equal(report.faq.not_helpful,1);assert.equal(report.faq.resolved,0);assert.equal(report.escalation.denominator,0);
-    console.log('Fresh schema, additive migrations, private/idempotent FAQ feedback, release snapshots and current-case SQL passed.');
+    // General support must survive creation, refresh, archive and reopen while
+    // remaining private to its student, including when cursor pages are full.
+    await root.query("INSERT INTO users(id,student_id,password_hash,full_name,role,is_active) VALUES (3,'CI-OTHER','not-a-login-hash','Other Synthetic Student','student',TRUE)");
+    const support=require('../src/services/supportTicket.service'),student={id:1,role:'student'},other={id:3,role:'student'};
+    const created=await support.create(student,{subject:'Synthetic general support',client_key:'registrar-ci-create-ticket'});
+    assert.equal(created.state,'FAQ_ASSISTANCE');assert.equal(created.student_user_id,1);
+    assert.ok((await support.list(student,{view:'active'})).tickets.some(row=>row.id===created.id));
+    assert.equal((await support.list(other,{view:'active'})).tickets.length,0);
+    await assert.rejects(support.read(other,created.id),error=>error.status===403);
+    assert.equal((await support.create(student,{subject:'Second attempt',client_key:'registrar-ci-reuse-ticket'})).id,created.id);
+    await support.action(student,created.id,{action:'resolve',client_key:'registrar-ci-resolve-ticket'});
+    assert.ok(!(await support.list(student,{view:'active'})).tickets.some(row=>row.id===created.id));
+    assert.ok((await support.list(student,{view:'archive'})).tickets.some(row=>row.id===created.id));
+    await support.action(student,created.id,{action:'reopen',client_key:'registrar-ci-reopen-ticket'});
+    assert.equal((await support.read(student,created.id)).ticket.state,'QUEUED');
+    for(let i=0;i<23;i++)await root.query("INSERT INTO support_tickets(student_user_id,document_id,subject,category,state) VALUES (1,?,?,'linked','FAQ_ASSISTANCE')",[inserted.insertId,`Synthetic linked ${i}`]);
+    const first=await support.list(student,{view:'active'});
+    assert.equal(first.tickets.length,20);assert.ok(first.next_cursor);
+    assert.ok(!first.tickets.some(row=>row.id===created.id));
+    assert.equal((await support.read(student,created.id)).ticket.id,created.id);
+    assert.ok((await support.list(student,{view:'active',before:first.next_cursor})).tickets.some(row=>row.id===created.id));
+    await assert.rejects(support.read(other,created.id),error=>error.status===403);
+    console.log('Fresh schema, FAQ persistence, release snapshots, current-case SQL and private support create/list/archive/reopen/pagination passed.');
   }finally{await root.end();}
 }
 main().catch(error=>{console.error('Disposable registrar SQL acceptance failed:',error instanceof assert.AssertionError ? error.stack : error.code || error.name);process.exitCode=1;}).finally(()=>pool.end());

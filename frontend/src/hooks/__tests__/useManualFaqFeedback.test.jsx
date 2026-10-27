@@ -49,3 +49,13 @@ it('guards concurrent saves, deduplicates views and aborts private operations on
   expect(service.recordManualFaq).toHaveBeenCalledTimes(2);expect(result.current.selected[question]).toBe('helpful');
   const signals=service.recordManualFaq.mock.calls.map(call=>call[1]);unmount();expect(signals.every(signal=>signal.aborted)).toBe(true);
 });
+it('clears an old failed response when the reader chooses a new answer',async()=>{
+ service.recordManualFaq.mockRejectedValueOnce(new Error('Offline'));
+ const {result}=renderHook(useManualFaqFeedback);
+ await act(async()=>result.current.choose(question,'helpful'));
+ expect(result.current.errors[question]).toContain('not saved');
+ act(()=>result.current.choose(question,'not_helpful'));
+ expect(result.current.errors[question]).toBe('');
+ expect(result.current.selected[question]).toBe('not_helpful');
+ expect(service.recordManualFaq).toHaveBeenCalledOnce();
+});

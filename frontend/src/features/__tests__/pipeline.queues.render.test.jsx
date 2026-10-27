@@ -372,7 +372,7 @@ describe('Student — asked for money only once there is an amount', () => {
     expect((await screen.findAllByRole('button', { name: /cancel/i })).length).toBe(1);
   });
 
-  it('offers every active payment method, defaulting to the GCash QR', async () => {
+  it('offers every active payment method, defaulting to the GCash placeholder', async () => {
     const user = userEvent.setup();
     await renderDashboard(
       <StudentDashboard user={USERS.student} currentTab="dashboard" setViewImageUrl={vi.fn()} />
@@ -380,7 +380,8 @@ describe('Student — asked for money only once there is an amount', () => {
     const payButton = await screen.findByRole('button', { name: 'Pay ₱250.00 (1 document)' });
     await user.click(payButton);
 
-    expect(await screen.findByAltText('GCash QR Code')).toBeInTheDocument();
+    expect(await screen.findByRole('img', { name: 'GCash payment QR placeholder' })).toHaveTextContent('QR code placeholder');
+    expect(screen.queryByAltText('GCash QR Code')).not.toBeInTheDocument();
     expect(screen.getByText('GCash Reference Number')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Credit / Debit Card' })).toBeInTheDocument();
   });
@@ -394,7 +395,7 @@ describe('Student — asked for money only once there is an amount', () => {
     await user.click(payButton);
     await user.click(await screen.findByRole('button', { name: 'Credit / Debit Card' }));
 
-    expect(screen.queryByAltText('GCash QR Code')).not.toBeInTheDocument();
+    expect(screen.queryByRole('img', { name: 'GCash payment QR placeholder' })).not.toBeInTheDocument();
     expect(screen.getByText(/Pay at the Cashier using your card/i)).toBeInTheDocument();
     expect(screen.getByText('Approval / Reference Code')).toBeInTheDocument();
   });

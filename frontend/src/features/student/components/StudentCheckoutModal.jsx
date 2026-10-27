@@ -36,13 +36,13 @@ export default function StudentCheckoutModal({ document, documents, methods, sel
       <section className="trace-checkout-methods" aria-label="Payment method">
         <h3 className="trace-checkout-caption">PAYMENT METHOD</h3>
         <div role="group" aria-label="Choose payment method" className="trace-checkout-method-grid">{methods.map(item => <Button key={item.code} type="button" disabled={busy} aria-label={item.name} aria-pressed={selectedMethod === item.code} onClick={() => onMethod(item.code)} className="trace-checkout-method">
-          <ReviewIcon name={methodIcon(item)} /><span><strong>{item.name}</strong><small>{item.code === 'gcash' ? 'Scan QR' : item.provider === 'manual' ? 'Cashier / transfer' : 'Online payment'}</small></span>{selectedMethod === item.code && <span className="trace-checkout-method-check"><ReviewIcon name="a6431" /></span>}
+          <ReviewIcon name={methodIcon(item)} /><span><strong>{item.name}</strong><small>{item.code === 'gcash' ? 'Manual transfer' : item.provider === 'manual' ? 'Cashier / transfer' : 'Online payment'}</small></span>{selectedMethod === item.code && <span className="trace-checkout-method-check"><ReviewIcon name="a6431" /></span>}
         </Button>)}</div>
         {!methods.length && <p role="alert" className="trace-error">No payment methods are currently available. Contact the Registrar.</p>}
         <section className="trace-checkout-payment">
           <header><h3>PAY WITH {method?.name?.toUpperCase() || 'YOUR SELECTED METHOD'}</h3><span><ReviewIcon name="6582c" />{method?.name || 'Payment'}</span></header>
           <div className="trace-checkout-payment-content">
-            {method && selectedMethod === 'gcash' && <><p>Scan this QR code using your GCash app to pay.</p><img src="/gcash-qr.jpg" alt="GCash QR Code" className="trace-checkout-live-qr" /></>}
+            {method && selectedMethod === 'gcash' && <><div role="img" aria-label="GCash payment QR placeholder" className="trace-checkout-qr-placeholder"><strong>GCash</strong><span>QR code placeholder</span></div><p>Contact the Finance Office for GCash payment instructions.</p></>}
             <p className="select-text whitespace-pre-wrap break-words">{method?.instructions || 'Complete your payment, then submit proof below.'}</p>
             <dl><div><dt>Amount to pay</dt><dd>{formatPeso(total)}</dd></div><div><dt>Request</dt><dd>{document.request_group_id || document.tracking_number}</dd></div></dl>
           </div>

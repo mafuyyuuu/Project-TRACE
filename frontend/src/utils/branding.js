@@ -1,4 +1,4 @@
-// Exact Canva exports supplied in `trace logo/`. Keep all branding references here.
+// Canonical Canva exports live in frontend/public; keep branding references here.
 export const TRACE_BRANDING = {
   light: '/trace-logo-light.png',
   dark: '/trace-logo-dark.png',

@@ -61,7 +61,7 @@ router.post('/:id/log-walkin-payment', authenticate, uploadLimiter, documentUplo
 router.post('/:id/verify-payment', authenticate, uploadLimiter, documentUpload.single('officialReceipt'), documentsController.verifyPayment);
 router.post('/:id/deferred-or', authenticate, uploadLimiter, documentUpload.single('officialReceipt'), documentsController.uploadDeferredOR);
 // College Secretary checks the Official Receipt before the printed document
-// can be handed to Window 1 — see docs/CODING_PREFERENCES.md on why this stays
+// can be handed to Window 1 — see AGENTS.md on why this stays
 // a procedural check and never sets payment_status itself.
 router.post('/:id/verify-or', authenticate, documentsController.verifyOfficialReceipt);
 router.post('/:id/handoff', authenticate, documentsController.handoff);

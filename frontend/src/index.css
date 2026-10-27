@@ -2451,7 +2451,8 @@ body :is(.trace-admin-shell,.trace-student-shell,.trace-window-shell,.trace-secr
 .trace-checkout-payment > header { @apply flex flex-wrap items-center justify-between gap-[8px] border-b border-[#e2e8ec] bg-[#f5f7f9] px-[18px] py-[12px] text-[.6875rem] font-semibold text-[#64748b] dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300; }
 .trace-checkout-payment > header > span { @apply inline-flex items-center gap-[5px] rounded-full bg-[#e8f5ee] px-[8px] py-[3px] text-[#0f5e37] dark:bg-green-950 dark:text-green-300; }
 .trace-checkout-payment-content { @apply flex flex-col gap-[14px] p-[16px] text-[.75rem]; }
-.trace-checkout-live-qr { @apply mx-auto h-auto w-[190px] max-w-full rounded-[12px] border border-[#e2e8ec] object-contain; }
+.trace-checkout-qr-placeholder { @apply mx-auto flex min-h-[190px] w-[190px] max-w-full flex-col items-center justify-center gap-2 rounded-[12px] border-2 border-dashed border-gray-300 bg-gray-50 p-4 text-center text-gray-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-400; }
+.trace-checkout-qr-placeholder strong { @apply text-sm font-semibold; }
 .trace-checkout-payment-content dl { @apply space-y-[8px] rounded-[12px] border border-[#cfe8da] bg-[#f6fcf8] p-[14px] dark:border-green-800 dark:bg-green-950; }
 .trace-checkout-payment-content dl > div { @apply flex flex-wrap items-start justify-between gap-[8px]; }
 .trace-checkout-payment-content dt { @apply text-[#647084] dark:text-gray-400; }
@@ -2519,7 +2520,6 @@ body :is(.trace-standard-heading,.trace-admin-more-page > header,.trace-admin-ma
 .trace-checkout-proof section[aria-label='Payment proof'] { @apply rounded-none border-0 p-0; }
 .trace-checkout-proof .trace-file-picker { @apply rounded-[10px] border border-dashed border-[#97d6b4] bg-[#f6fcf8] px-[14px] py-[10px] dark:border-green-700 dark:bg-green-950; }
 .trace-checkout-proof .trace-file-trigger { @apply p-0 text-[#168f55] dark:text-green-300; }
-.trace-checkout-live-qr { height:190px; }
 .trace-student-checkout .trace-student-information { @apply border border-[#cce8d9] bg-[#e8f5ee] text-[#0f5e37] dark:border-green-800 dark:bg-green-950 dark:text-green-200; }
 
 .trace-request-wizard .trace-student-document-choice { min-height:118px; }
@@ -2625,8 +2625,16 @@ body .trace-faq-feedback-table :is(th,td):not(:first-child) { text-align: right;
 .trace-login-submit { min-height: 54px; margin-top: 0; font-size: 1.125rem; }
 
 @media(max-width:767px) {
-  body .trace-tab-strip .trace-tab-group { @apply items-stretch gap-1 rounded-none border-b border-gray-200 bg-transparent p-0 dark:border-gray-700 dark:bg-transparent; }
-  body .trace-tab-strip .trace-tab { @apply min-h-11 rounded-b-none rounded-t-[10px] px-4 py-3; height: auto; }
-  body :is(.trace-admin-shell,.trace-student-shell,.trace-window-shell,.trace-secretary-shell,.trace-finance-shell) .trace-dashboard-greeting.trace-dashboard-greeting { font-size: clamp(1.5rem,6vw,2rem); line-height: 1.25; min-width: 0; overflow-wrap: anywhere; }
+  /* Match the shared top-corner tabs even inside a desk's pill-style queues. */
+  body .trace-tab-strip { width: 100%; }
+  body :is(.trace-tab-strip > .trace-tab-scroller > .trace-tab-group,.trace-ticket-archive-tabs) { @apply items-stretch gap-2 rounded-none border-b border-gray-200 bg-transparent p-0 dark:border-gray-700 dark:bg-transparent; }
+  body :is(.trace-tab-strip .trace-tab-group > .trace-tab,.trace-ticket-archive-tabs > .trace-button) { @apply min-h-11 rounded-b-none rounded-t-[10px] px-[18px] py-3 text-sm font-medium; height: auto; flex-shrink: 0; white-space: nowrap; }
+  body :is(.trace-tab-strip .trace-tab-group > .trace-tab,.trace-ticket-archive-tabs > .trace-button):is([aria-selected='true'],[aria-pressed='true']) { font-weight: 600; }
+  body .trace-ticket-archive-tabs { flex-wrap: nowrap; overflow-x: auto; }
+  body .trace-ticket-archive-tabs > .trace-button[aria-pressed='true'] { @apply border-transparent bg-trace-emerald text-white; }
+  body .trace-ticket-archive-tabs > .trace-button[aria-pressed='false'] { @apply border-transparent bg-transparent text-[#647084] dark:bg-transparent dark:text-gray-300; }
+  body :is(.trace-admin-shell,.trace-student-shell,.trace-window-shell,.trace-secretary-shell,.trace-finance-shell) .trace-page-header:has(.trace-dashboard-greeting) { align-items: flex-start; text-align: left; }
+  body :is(.trace-admin-shell,.trace-student-shell,.trace-window-shell,.trace-secretary-shell,.trace-finance-shell) .trace-page-header > :has(> .trace-dashboard-greeting) { width: 100%; }
+  body :is(.trace-admin-shell,.trace-student-shell,.trace-window-shell,.trace-secretary-shell,.trace-finance-shell) .trace-dashboard-greeting.trace-dashboard-greeting { font-size: clamp(1.5rem,6vw,2rem); line-height: 1.25; min-width: 0; overflow-wrap: anywhere; text-align: left; }
   body .trace-dashboard-greeting > span { display: block; margin-top: .25rem; }
 }
