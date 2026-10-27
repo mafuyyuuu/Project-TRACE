@@ -104,6 +104,8 @@ Generate credentials privately and store them securely. **Preserve existing inst
 
 SMTP is needed for email verification, recovery, and relevant staff authentication workflows. UniSMS is needed for SMS. A skipped/unconfigured channel is not verified by API health. Provider acceptance is not confirmed handset delivery.
 
+GCash checkout currently shows a non-scannable QR placeholder and directs students to Finance for payment instructions. An approved university payment QR must be supplied and reviewed before restoring scan-to-pay instructions.
+
 In standalone AI, use `DB_USER`/`DB_PASSWORD` for the **AI reader**. Compose maps root `AI_DB_*` into those AI container variables. `APP_ENV=production` enables production AI security checks.
 
 ## Local setup
