@@ -55,3 +55,13 @@ describe('FileUploadField', () => {
     expect(screen.getByRole('status')).toHaveTextContent('Uploaded: proof.pdf');
   });
 });
+
+it('opens a staged receipt without uploading it and returns to the same draft',async()=>{
+ const file=new File(['receipt'],'receipt.png',{type:'image/png'}),change=vi.fn();
+ const {rerender}=render(<FileUploadField label="Receipt" file={file} onChange={change}/>);
+ fireEvent.click(await screen.findByRole('button',{name:'View Receipt preview'}));
+ expect(screen.getByRole('dialog',{name:'Image preview'})).toBeInTheDocument();expect(screen.getByAltText('Enlarged Receipt preview')).toHaveAttribute('src',screen.getByAltText('Receipt preview').getAttribute('src'));
+ fireEvent.click(screen.getByRole('dialog',{name:'Image preview'}).querySelector('button[aria-label="Close"]'));expect(screen.getByRole('status')).toHaveTextContent('receipt.png');expect(change).not.toHaveBeenCalled();
+ rerender(<FileUploadField label="Receipt" file={new File(['new'],'replacement.png',{type:'image/png'})} onChange={change}/>);
+ expect(screen.queryByRole('dialog',{name:'Image preview'})).not.toBeInTheDocument();
+});

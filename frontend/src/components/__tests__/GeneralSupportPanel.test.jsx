@@ -256,3 +256,13 @@ it.each([student,{id:1,role:'admin'},desk,{...desk,desk_assignment:'Receiving De
   expect(screen.queryByRole('button',{name:/Support analytics/i})).not.toBeInTheDocument();
   expect(screen.queryByText('More support actions')).not.toBeInTheDocument();
 });
+
+it('explains reuse of an unresolved general ticket after confirmation',async()=>{
+ api.createTicket.mockResolvedValue({...ticket,reused:true});
+ render(<RequestMessagesPanel user={student}/>);await screen.findByRole('button',{name:'New ticket'});
+ fireEvent.click(screen.getByRole('button',{name:'New ticket'}));fireEvent.change(screen.getByLabelText('Subject'),{target:{value:'Another general concern'}});
+ fireEvent.click(screen.getByRole('button',{name:'Review and save'}));fireEvent.click(screen.getByRole('button',{name:'Confirm',exact:true}));
+ expect(await screen.findByRole('dialog',{name:'Existing general support ticket'})).toHaveTextContent('already have an unresolved general support ticket, #11');
+ expect(api.createTicket).toHaveBeenCalledTimes(1);fireEvent.click(screen.getByRole('button',{name:'Continue to ticket'}));
+ expect(screen.queryByRole('dialog',{name:'Existing general support ticket'})).not.toBeInTheDocument();expect(screen.getByLabelText('Message')).toBeInTheDocument();
+});

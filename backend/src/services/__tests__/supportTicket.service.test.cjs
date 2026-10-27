@@ -1,3 +1,4 @@
+const reads = require('../../models/conversationRead.model');
 const model=require('../../models/supportTicket.model');
 const documents=require('../../models/document.model');
 const users=require('../../models/user.model');
@@ -24,6 +25,8 @@ it('allows Admin to monitor operational history but denies every conversation mu
 });
 let tx;
 beforeEach(()=>{
+ vi.spyOn(reads,'withUnread').mockImplementation(async(_channel,_actor,rows)=>rows.map(row=>({...row,unread_count:2})));
+ vi.spyOn(reads,'mark').mockResolvedValue({read_through:31});
  tx={query:vi.fn(),beginTransaction:vi.fn(),commit:vi.fn(),rollback:vi.fn(),release:vi.fn()};
  vi.spyOn(pool,'getConnection').mockResolvedValue(tx);
  vi.spyOn(model,'actor').mockResolvedValue(student);
@@ -193,4 +196,16 @@ it.each([['active','<>'],['archive','=']])('keeps student ownership in the %s li
 it('rejects unknown archive views and leaves Admin conversation writes forbidden',async()=>{
  await expect(service.list(student,{view:'delete'})).rejects.toMatchObject({status:400});
  expect(model.list).not.toHaveBeenCalled();
+});
+
+it('authorizes per-user read receipts before writing and preserves unread list values',async()=>{
+ await service.markRead(student,11,{through:31});expect(reads.mark).toHaveBeenCalledWith('support',student.id,expect.any(Number),31);
+ reads.mark.mockClear();model.actor.mockResolvedValueOnce({...student,id:99});await expect(service.markRead({...student,id:99},11,{through:31})).rejects.toMatchObject({status:403});expect(reads.mark).not.toHaveBeenCalled();
+});
+
+it('identifies reuse and refreshes legacy chatbot guidance only in the read response',async()=>{
+ model.openGeneral.mockResolvedValue({id:11});
+ const result=await service.create(student,{subject:'Another concern',client_key:key});expect(result).toMatchObject({id:11,reused:true});expect(model.create).not.toHaveBeenCalled();
+ const old={id:8,kind:'system',message:'Choose an approved FAQ topic or select Talk to staff.'};model.history.mockResolvedValue({messages:[old],next_cursor:null});
+ const response=await service.read(student,11);expect(response.ticket.unread_count).toBe(2);expect(response.messages[0].message).toBe('Choose an approved FAQ topic or send “Talk to staff”.');expect(old.message).toContain('select Talk to staff');
 });

@@ -14,6 +14,7 @@ async function main(){
     await root.query(schema);
     await require('./migrate_release_policy').migrate(root);await require('./migrate_release_policy').migrate(root);
     await require('./migrate_manual_faq_feedback').migrate(root);await require('./migrate_manual_faq_feedback').migrate(root);
+    await require('./migrate_conversation_reads').migrate(root);await require('./migrate_conversation_reads').migrate(root);
     await root.query("INSERT INTO users(id,student_id,password_hash,full_name,role,user_type,is_active) VALUES (1,'CI-STUDENT','not-a-login-hash','Synthetic Student','student','student',TRUE),(2,'CI-ADMIN','not-a-login-hash','Synthetic Admin','admin','student',TRUE)");
     const documents=require('../src/models/document.model'),manual=require('../src/models/manualFaq.model'),reports=require('../src/models/report.model');
     const {STATUS}=require('../src/utils/documentStatus'),now=new Date();
@@ -61,7 +62,35 @@ async function main(){
     assert.equal((await support.read(student,created.id)).ticket.id,created.id);
     assert.ok((await support.list(student,{view:'active',before:first.next_cursor})).tickets.some(row=>row.id===created.id));
     await assert.rejects(support.read(other,created.id),error=>error.status===403);
-    console.log('Fresh schema, FAQ persistence, release snapshots, current-case SQL and private support create/list/archive/reopen/pagination passed.');
+    // Viewer-specific unread state, persisted on real MySQL and monotonic under old acknowledgements.
+    await root.query("INSERT INTO users(id,student_id,password_hash,full_name,role,desk_assignment,is_active) VALUES (4,'CI-WINDOW','not-a-login-hash','Synthetic Window','clerk','Window 1',TRUE),(5,'CI-FINANCE','not-a-login-hash','Synthetic Finance','clerk','Finance',TRUE)");
+    const windowUser={id:4,role:'clerk'},financeUser={id:5,role:'clerk'},adminUser={id:2,role:'admin'};
+    const supportModel=require('../src/models/supportTicket.model');
+    const message1=await supportModel.send(created.id,4,'Synthetic incoming reply','ci-read-message-one','a'.repeat(64),root);
+    // The old ticket is outside the first page, so use the shared count model on its authorized row.
+    const reads=require('../src/models/conversationRead.model');
+    const count=async(channel,userId,resourceId)=>Number((await reads.withUnread(channel,userId,[{id:resourceId}],root))[0].unread_count);
+    assert.equal(await count('support',1,created.id),1);assert.equal(await count('support',4,created.id),0);
+    await support.markRead(adminUser,created.id,{through:message1});assert.equal(await count('support',1,created.id),1);
+    await assert.rejects(support.markRead(other,created.id,{through:message1}),e=>e.status===403);
+    await support.markRead(student,created.id,{through:message1});assert.equal(await count('support',1,created.id),0);
+    const message2=await supportModel.send(created.id,4,'Synthetic newer reply','ci-read-message-two','b'.repeat(64),root);
+    await support.markRead(student,created.id,{through:message1});assert.equal(await count('support',1,created.id),1);
+    await support.markRead(student,created.id,{through:message2});await support.markRead(student,created.id,{through:message1});assert.equal(await count('support',1,created.id),0);
+    const foreignMessage=await supportModel.send(first.tickets[0].id,4,'Another conversation','ci-read-other-thread','c'.repeat(64),root);
+    await assert.rejects(support.markRead(student,created.id,{through:foreignMessage}),e=>e.status===400);
+    const staff=require('../src/services/staffConversation.service');
+    const opened=await staff.open(financeUser,{recipient_id:4,message:'Synthetic staff handoff',client_key:'registrar-ci-staff-unread'});
+    assert.equal((await staff.list(windowUser)).conversations[0].unread_count,1);assert.equal((await staff.list(financeUser)).conversations[0].unread_count,0);
+    await assert.rejects(staff.markRead(other,opened.conversation.id,{through:opened.message_id}),e=>e.status===403);
+    await staff.markRead(windowUser,opened.conversation.id,{through:opened.message_id});assert.equal((await staff.list(windowUser)).conversations[0].unread_count,0);
+    const internal=require('../src/services/internalAssistance.service');
+    const concern=await internal.create(financeUser,{subject:'Synthetic concern',category:'system_issue',description:'Synthetic assistance request',client_key:'registrar-ci-internal-unread'});
+    assert.equal((await internal.list(adminUser)).tickets[0].unread_count,1);
+    const history=await internal.read(adminUser,concern.ticket.id),last=history.messages.at(-1).id;
+    await assert.rejects(internal.markRead(windowUser,concern.ticket.id,{through:last}),e=>e.status===403);
+    await internal.markRead(adminUser,concern.ticket.id,{through:last});assert.equal((await internal.list(adminUser)).tickets[0].unread_count,0);
+    console.log('Registrar acceptance and all three channels: durable, isolated, monotonic unread positions passed.');
   }finally{await root.end();}
 }
 main().catch(error=>{console.error('Disposable registrar SQL acceptance failed:',error instanceof assert.AssertionError ? error.stack : error.code || error.name);process.exitCode=1;}).finally(()=>pool.end());

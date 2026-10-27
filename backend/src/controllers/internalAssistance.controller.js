@@ -8,6 +8,7 @@ const action = fn => async (req,res,next) => {
   }
 };
 module.exports = {
+ markRead:action(req=>service.markRead(req.user,req.params.id,req.body)),
   list:action(req => service.list(req.user,req.query)),read:action(req => service.read(req.user,req.params.id,req.query)),
   create:action(req => service.create(req.user,req.body)),send:action(req => service.send(req.user,req.params.id,req.body)),
   change:action(req => service.action(req.user,req.params.id,req.body)),

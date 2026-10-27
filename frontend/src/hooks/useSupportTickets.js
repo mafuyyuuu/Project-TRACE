@@ -13,6 +13,7 @@ export default function useSupportTickets(user,initialDocumentId,requestedTicket
   const [selected,setSelectedValue] = useState(() => requestedTicket || '');
   const selection = useRef(selected);
   const setSelected = useCallback(value => { selection.current=value; setSelectedValue(value); }, []);
+  const [reusedTicket,setReusedTicket] = useState(null);
   const [busy,setBusy] = useState(false);
   const feedback = useSupportFeedback();
   const owner = useRef(null), read = useRef(null), pending = useRef(false), initial = useRef(true), scope = useRef(null);
@@ -97,9 +98,10 @@ export default function useSupportTickets(user,initialDocumentId,requestedTicket
         // A read started before this write must not replace its committed row.
         read.current?.abort(); read.current = null;
         observeTicket(result);
+        if (action.kind === 'create' && user.role === 'student' && !action.payload.document_id && result.reused) setReusedTicket({owner:user.id,id:result.id});
         setTickets(previous => merge(previous,[result])); setSelected(String(result.id));
       }
-      feedback.notify(action.kind === 'claim' ? result?.id ? `Ticket #${result.id} is ready for you.` : 'No eligible ticket is waiting.' : action.kind === 'availability' ? `Live support availability: ${action.available ? 'Available' : 'Unavailable'}.` : action.kind === 'create' ? `Ticket #${result.id} opened.` : 'Support settings saved.');
+      feedback.notify(action.kind === 'claim' ? result?.id ? `Ticket #${result.id} is ready for you.` : 'No eligible ticket is waiting.' : action.kind === 'availability' ? `Live support availability: ${action.available ? 'Available' : 'Unavailable'}.` : action.kind === 'create' ? result.reused ? `Existing ticket #${result.id} opened.` : `Ticket #${result.id} opened.` : 'Support settings saved.');
       // Switching view starts a fresh read in the effect. Do not read the old
       // Archive closure or hold the completed form open for background reads.
       if (!result?.id || (result.state === 'RESOLVED' ? 'archive' : 'active') === view) void refresh();
@@ -107,5 +109,5 @@ export default function useSupportTickets(user,initialDocumentId,requestedTicket
     } catch (err) { if (identity === owner.current) setError(message(err,'Could not confirm saving. Keep your draft and retry.')); return false; }
     finally { pending.current = false; if (owner.current) setBusy(false); }
   };
-  return { view,changeView,observeTicket,tickets,cursor,loading,error,settings,topics,selected,setSelected,busy,feedback,execute,refresh, retry: () => { read.current?.abort(); read.current = null; void refresh(); void loadContext(); } };
+  return { reusedTicket:reusedTicket?.owner===user.id ? reusedTicket.id : null,dismissReusedTicket:() => setReusedTicket(null),view,changeView,observeTicket,tickets,cursor,loading,error,settings,topics,selected,setSelected,busy,feedback,execute,refresh, retry: () => { read.current?.abort(); read.current = null; void refresh(); void loadContext(); } };
 }

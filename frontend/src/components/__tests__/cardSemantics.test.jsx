@@ -40,7 +40,7 @@ describe('card semantics', () => {
     render(<form onSubmit={submit}><AuthedFilePreview path="proof.jpg" alt="Proof" onClick={open} wrapperClassName="w-full" /></form>);
     const card = screen.getByRole('button', { name: 'Open Proof' });
     expect(card.tagName).toBe('BUTTON');
-    expect(card).toHaveClass('w-full', 'trace-card-inset');
+    expect(card).toHaveAttribute('type','button');
     card.focus();
     await userEvent.keyboard('{Enter}');
     await userEvent.keyboard(' ');
@@ -56,10 +56,10 @@ describe('card semantics', () => {
     expect(screen.queryByRole('button')).toBeNull();
   });
 
-  it('keeps unclickable images and embedded PDFs outside card-action semantics', () => {
+  it('offers an image viewer and keeps embedded PDFs outside card-action semantics', () => {
     useAuthedFile.mockReturnValue({ url: 'blob:synthetic', loading: false });
     const { rerender } = render(<AuthedFilePreview path="proof.jpg" />);
-    expect(screen.queryByRole('button')).toBeNull();
+    expect(screen.getByRole('button',{name:'View Document'})).toHaveAttribute('type','button');
     rerender(<AuthedFilePreview path="proof.pdf" onClick={vi.fn()} />);
     expect(screen.queryByRole('button')).toBeNull();
     expect(screen.getByTitle('Document preview').tagName).toBe('IFRAME');

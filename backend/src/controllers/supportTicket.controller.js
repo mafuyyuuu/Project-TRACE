@@ -18,6 +18,7 @@ const send=action(async req=>{
 });
 async function uploadAccess(req,res,next){try{await service.assertSendAccess(req.user,req.params.ticketId);next();}catch(error){next(error);}}
 module.exports={
+ markRead:action(req=>service.markRead(req.user,req.params.ticketId,req.body)),
  list:action(req=>service.list(req.user,req.query)),read:action(req=>service.read(req.user,req.params.ticketId,req.query)),
  create:action(req=>service.create(req.user,req.body)),send,uploadAccess,
  change:action(req=>service.action(req.user,req.params.ticketId,req.body)),claim:action(req=>service.claim(req.user)),

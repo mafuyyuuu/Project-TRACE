@@ -1,3 +1,4 @@
+const reads = require('../models/conversationRead.model');
 const { ticketArchiveView } = require('../utils/ticketArchive');
 const crypto = require('crypto');
 const model = require('../models/internalAssistance.model');
@@ -65,7 +66,11 @@ async function list(user,query = {}) {
   const current = await actor(user);
   if (query.state && !states.includes(query.state) || query.category && !Object.hasOwn(categories,query.category)) throw badRequest('Choose a valid internal ticket filter.');
   const result = await model.list(current.role === 'admin' ? null : current.id,{view:ticketArchiveView(query.view),state:query.state,category:query.category,before:query.before ? id(query.before) : null});
-  return { ...result,tickets:result.tickets.map(ticket => present(current,ticket)),categories,states };
+  return { ...result,tickets:(await reads.withUnread('internal',current.id,result.tickets)).map(ticket => present(current,ticket)),categories,states };
+}
+async function markRead(user,ticketId,body) {
+  const current = await actor(user),resource = authorize(current,await model.ticket(id(ticketId)));
+  return reads.mark('internal',current.id,resource.id,body?.through);
 }
 async function read(user,ticketId,query = {}) {
   const current = await actor(user), ticket = authorize(current,await model.ticket(id(ticketId)));
@@ -141,4 +146,4 @@ async function action(user,ticketId,body = {}) {
   if (!result.duplicate) await notify(result.ticket,result.current);
   return {ticket:result.ticket,duplicate:result.duplicate};
 }
-module.exports = { list,read,create,send,action };
+module.exports = { markRead, list,read,create,send,action };

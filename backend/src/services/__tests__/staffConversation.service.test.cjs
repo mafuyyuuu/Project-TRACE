@@ -1,3 +1,4 @@
+const reads = require('../../models/conversationRead.model');
 const service = require('../staffConversation.service');
 const model = require('../../models/staffConversation.model');
 const notifications = require('../notification.service');
@@ -9,6 +10,8 @@ const secretary={id:12,role:'clerk',desk_assignment:'Secretary',is_active:1,reso
 const input={recipient_id:7,message:'Please coordinate the demo handoff.',client_key:'demo-staff-chat-key-0001'};
 let tx,thread,accounts;
 beforeEach(()=>{
+ vi.spyOn(reads,'withUnread').mockImplementation(async(_channel,_actor,rows)=>rows.map(row=>({...row,unread_count:2})));
+ vi.spyOn(reads,'mark').mockResolvedValue({read_through:31});
   tx={query:vi.fn(),beginTransaction:vi.fn(),commit:vi.fn(),rollback:vi.fn(),release:vi.fn()};
   accounts=[finance,window1,admin,secretary];
   thread={id:21,participant_low:4,participant_high:7,scope_college_id:0,low_name:finance.full_name,high_name:window1.full_name,low_role:'clerk',high_role:'clerk',low_desk:'Finance',high_desk:'Window 1',low_active:1,high_active:1};
@@ -108,3 +111,8 @@ it('filters recipient projections and forwards bounded cursors without exposing 
 });
 it.each([null,[],{}, {message:'',client_key:input.client_key},{message:'x'.repeat(2001),client_key:input.client_key},{message:'Demo',client_key:'bad'}])('rejects malformed message payloads',async body=>{await expect(service.open(finance,body)).rejects.toMatchObject({status:400});expect(model.message).not.toHaveBeenCalled();});
 it.each([true,'1 OR 1=1',-1,'0','1.5'])('rejects invalid conversation identifiers',async value=>{await expect(service.read(finance,value)).rejects.toMatchObject({status:400});});
+
+it('authorizes per-user read receipts before writing and preserves unread list values',async()=>{
+ await service.markRead(finance,21,{through:31});expect(reads.mark).toHaveBeenCalledWith('staff',finance.id,expect.any(Number),31);
+ reads.mark.mockClear();await expect(service.markRead({...window1,id:99},21,{through:31})).rejects.toMatchObject({status:403});expect(reads.mark).not.toHaveBeenCalled();
+});

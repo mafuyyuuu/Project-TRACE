@@ -1,3 +1,4 @@
+import UnreadIndicator from '@/components/UnreadIndicator';
 import { assetIconTone } from '@/utils/assetIconTone';
 import Button from '@/components/Button';
 import { SUPPORT_STATES, ticketInitials, supportDay, supportTime } from '@/utils/supportPresentation';
@@ -23,7 +24,7 @@ export function SupportTicketRow({ ticket, selected, onSelect }) {
     <span className="grid w-full min-w-0 grid-cols-[3rem_minmax(0,1fr)] items-start gap-3">
       <TicketAvatar ticket={ticket} />
       <span className="min-w-0 space-y-1">
-        <span className="flex min-w-0 flex-wrap items-baseline justify-between gap-x-2"><span className="min-w-0 flex-1 break-words font-bold">#{ticket.id} {ticket.subject}</span>{supportTime(date) && <time dateTime={date} title={`${supportDay(date)} · Manila`} className="text-xs text-gray-500 dark:text-gray-400">{supportTime(date)}</time>}</span>
+        <span className="flex min-w-0 flex-wrap items-baseline justify-between gap-x-2"><span className="min-w-0 flex-1 break-words font-bold">#{ticket.id} {ticket.subject}</span><UnreadIndicator count={ticket.unread_count} />{supportTime(date) && <time dateTime={date} title={`${supportDay(date)} · Manila`} className="text-xs text-gray-500 dark:text-gray-400">{supportTime(date)}</time>}</span>
         <span className="block break-words text-xs text-gray-600 dark:text-gray-300">{SUPPORT_STATES[ticket.state]}{ticket.read_only && ' · Read-only'}</span>
         <span className="block truncate text-sm text-gray-600 dark:text-gray-300" title={ticket.tracking_number || ticket.student_name || 'General support'}>{ticket.tracking_number || ticket.student_name || 'General support'}</span>
       </span>

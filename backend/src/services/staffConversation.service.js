@@ -1,3 +1,4 @@
+const reads = require('../models/conversationRead.model');
 const crypto = require('crypto');
 const model = require('../models/staffConversation.model');
 const notifications = require('./notification.service');
@@ -34,7 +35,7 @@ function canSend(current,thread) {
   return current.role !== 'admin' && compatible(first,second) && [first,second].every(row => row.desk_assignment!=='Secretary' || Number(row.resolved_college_id)===Number(thread.scope_college_id));
 }
 function present(current,thread) {
-  return {id:thread.id,scope_college_id:thread.scope_college_id,created_at:thread.created_at,updated_at:thread.updated_at,
+  return {id:thread.id,unread_count:thread.unread_count || 0,scope_college_id:thread.scope_college_id,created_at:thread.created_at,updated_at:thread.updated_at,
     participants:parties(thread).map(row => ({id:row.id,full_name:row.full_name,desk_assignment:row.desk_assignment})),can_send:canSend(current,thread),monitor_only:current.role==='admin'};
 }
 async function transaction(user,ids,work) {
@@ -65,7 +66,11 @@ async function recipients(user,query = {}) {
 }
 async function list(user,query = {}) {
   const current = await actor(user),result = await model.list(current,cursor(query.before));
-  return {...result,access_scope:`${current.role}:${current.desk_assignment || ''}:${current.resolved_college_id || 0}`,conversations:result.conversations.map(thread => present(current,authorize(current,thread)))};
+  return {...result,access_scope:`${current.role}:${current.desk_assignment || ''}:${current.resolved_college_id || 0}`,conversations:(await reads.withUnread('staff',current.id,result.conversations)).map(thread => present(current,authorize(current,thread)))};
+}
+async function markRead(user,threadId,body) {
+  const current = await actor(user),resource = authorize(current,await model.conversation(id(threadId)));
+  return reads.mark('staff',current.id,resource.id,body?.through);
 }
 async function read(user,threadId,query = {}) {
   const current = await actor(user),thread = authorize(current,await model.conversation(id(threadId)));
@@ -100,4 +105,4 @@ async function send(user,threadId,body) {
     return {conversation:present(locked,thread),message_id:messageId,recipient:Number(thread.participant_low)===Number(locked.id) ? thread.participant_high : thread.participant_low,duplicate:false};
   });await notify(result);return {message_id:result.message_id,duplicate:result.duplicate};
 }
-module.exports = {recipients,list,read,open,send};
+module.exports = { markRead,recipients,list,read,open,send};

@@ -1,5 +1,6 @@
 import { useEffect, useId, useState } from 'react';
 import useAuthedFile from '@/hooks/useAuthedFile';
+import ImagePreview from '@/components/ImagePreview';
 import { formatFileSize } from '@/utils/formatters';
 
 /** Local drafts upload only through the parent form's confirmed Save/Submit. */
@@ -54,7 +55,7 @@ export default function FileUploadField({ label = 'Attachment', file, path, onCh
     </div> : <h4 className="text-xs font-bold">{label}</h4>}
     {filename && <p className="text-xs break-all select-text" role="status">{file ? 'Selected: ' : 'Uploaded: '}{filename}{file && ` (${formatFileSize(file.size)})`}</p>}
     {file && <p className="text-xs text-gray-500 dark:text-gray-400">{allowReplace ? 'Selected locally. Save or submit the form to upload; select another file to replace this draft.' : 'Selected locally. Uploaded only after you confirm.'}</p>}
-    {url && (pdf ? <iframe src={url} title={`${label} preview`} className="w-full h-48 rounded-lg" /> : <img src={url} alt={`${label} preview`} className={compactPreview ? "h-20 w-20 object-contain rounded-lg" : "w-full max-h-48 object-contain rounded-lg"} />)}
+    {url && (pdf ? <iframe src={url} title={`${label} preview`} className="w-full h-48 rounded-lg" /> : <ImagePreview url={url} alt={`${label} preview`} wrapperClassName={compactPreview ? "w-20" : "w-full"} className={compactPreview ? "h-20 w-20 object-contain rounded-lg" : "w-full max-h-48 object-contain rounded-lg"} />)}
     {!file && url && <a href={url} download={filename} className="inline-block text-xs font-bold text-green-700 dark:text-green-300 underline">Download uploaded file</a>}
     {problem && <p id={`${inputId}-error`} role="alert" className="text-sm text-red-700 dark:text-red-300">{problem}</p>}
     {!file && stored.loading && <p role="status" className="text-xs">Loading uploaded file…</p>}

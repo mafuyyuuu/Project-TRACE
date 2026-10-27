@@ -1,5 +1,5 @@
 import useAuthedFile, { toFilename } from '@/hooks/useAuthedFile';
-import Button from '@/components/Button';
+import ImagePreview from '@/components/ImagePreview';
 
 /**
  * Renders a protected upload (receipt, scanned form, ID proof), picking an
@@ -39,14 +39,5 @@ export default function AuthedFilePreview({
     return <iframe src={url} className={className} title={iframeTitle} />;
   }
 
-  const image = <img src={url} alt={alt} className={className} />;
-
-  if (!onClick) return image;
-
-  return (
-    <Button type="button" aria-label={`Open ${alt}`} onClick={onClick}
-      className={`trace-card-interactive trace-card-inset ${wrapperClassName}`}>
-      {image}
-    </Button>
-  );
+  return <ImagePreview url={url} alt={alt} className={className} wrapperClassName={wrapperClassName} onOpen={onClick} />;
 }
