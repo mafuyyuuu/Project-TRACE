@@ -20,4 +20,5 @@ router.get('/:ticketId/requirements/:requirementId/history', controller.requirem
 router.post('/:ticketId/messages', controller.uploadAccess, supportMessageUpload, controller.send);
 router.post('/:ticketId/actions', controller.change);
 router.post('/:ticketId/faq', controller.feedback);
+router.post('/:ticketId/read',controller.markRead);
 module.exports = router;

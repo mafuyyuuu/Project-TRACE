@@ -1,3 +1,5 @@
+import ImagePreview from '@/components/ImagePreview';
+import useConversationRead from '@/hooks/useConversationRead';
 import SecretaryLinkedSummary from '@/features/secretary/components/SecretaryLinkedSummary';
 import { isCollegeOrFinance } from '@/utils/secretaryPresentation';
 import SecretaryIcon, { SecretaryHeaderIcon } from '@/features/secretary/components/SecretaryIcon';
@@ -22,6 +24,7 @@ function SupportFile({ file }) {
   const protectedFile = useAuthedFile(String(file.filename).split(/[\\/]/).pop());
   return <div className="min-w-0 space-y-1 text-sm">
     <p className="break-words select-text">{file.original_name} · {formatFileSize(file.size_bytes)}</p>
+    {protectedFile.url && /^image\//.test(file.mime_type || '') && <ImagePreview url={protectedFile.url} alt={file.original_name} className="max-h-48 max-w-full rounded-lg object-contain" />}
     {protectedFile.url && <a href={protectedFile.url} download={file.original_name} className="trace-action underline">Download attachment</a>}
     {protectedFile.loading && <p role="status">Loading protected file…</p>}
     {protectedFile.error && <p role="alert">{protectedFile.error}</p>}
@@ -32,6 +35,7 @@ export default function SupportConversation({ ticketId,user,topics,onTicketChang
   const observedId=ticket?.id,observedState=ticket?.state;
   useEffect(() => {if (observedId) onTicketState?.({id:observedId,state:observedState});},[observedId,observedState,onTicketState]);
   const history = useRef(null), pinned = useRef(true), older = useRef(null), chooser = useRef(null), composer = useRef(null);
+  useConversationRead('support',ticketId,chat.messages,history,active,onTicketChanged);
   const [staged,setStaged] = useState(null), [fileError,setFileError] = useState(''), [faqQuery,setFaqQuery] = useState('');
   const [requirement,setRequirement] = useState(null), [showCase,setShowCase] = useState(false);
   const suggestions=useSupportFaqSuggestions(faqQuery,topics);
@@ -57,7 +61,7 @@ export default function SupportConversation({ ticketId,user,topics,onTicketChang
   const conversationNote = ticket && <aside aria-label="Support conversation note" className="trace-support-conversation-note">
         <p>{user.role === 'admin' ? 'Admin monitors this ticket. Operational actions are available to the processing staff.'
           : ticket.read_only ? 'This conversation is saved for reference. Previous messages and authorized files remain available.'
-          : user.role === 'student' ? ticket.state === 'FAQ_ASSISTANCE' ? 'Browse the approved answers below. Choose Talk to staff if you need further help.' : 'Use this conversation for your concern and any documents requested by the Registrar. Resolved tickets move to the archive.'
+          : user.role === 'student' ? ticket.state === 'FAQ_ASSISTANCE' ? 'Browse the approved answers below. Send “Talk to staff” if you need further help.' : 'Use this conversation for your concern and any documents requested by the Registrar. Resolved tickets move to the archive.'
           : user.desk_assignment === 'Finance' ? 'Use this conversation for payment concerns. Registrar staff manage ticket resolution.'
           : 'Resolve the ticket when the concern is complete; it will move to the archive. Request a student reply or mark Awaiting student when information is needed.'}</p>
       </aside>;
@@ -99,7 +103,7 @@ export default function SupportConversation({ ticketId,user,topics,onTicketChang
         {suggestions.topics.map(topic => <div key={topic.id} className="space-y-2">
           <Button type="button" disabled={chat.busy} onClick={() => void chat.faq({topic_id:topic.id,action:'view',client_key:crypto.randomUUID()})} className="trace-button trace-button-secondary w-full text-left">{topic.question}</Button>
         </div>)}
-        <p className="text-sm">Need a person? Choose Talk to staff, or send “human”, “live support” or “talk to staff”.</p>
+        <p className="text-sm">Need a person? Send “Talk to staff”, “human” or “live support”.</p>
       </div>}
       {!chat.loading && ticket && !chat.messages.length && <p className="py-4 text-center text-sm text-gray-600 dark:text-gray-300">No messages in this ticket yet.</p>}
       {chat.messages.map((row,index) => <Fragment key={row.id}>
@@ -130,7 +134,7 @@ export default function SupportConversation({ ticketId,user,topics,onTicketChang
         <div className="flex flex-wrap items-center gap-2">{registrar && ticket.document_id && <Button type="button" aria-label="Request supporting document" title="Ask the student for a case-specific document" disabled={chat.busy} onClick={() => setRequirement({new:true})} className="trace-button trace-button-secondary">{secretary ? <SecretaryIcon name={compact ? "80de7" : "58820"} /> : <svg aria-hidden="true" className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m8 12 7-7a4 4 0 0 1 6 6L10 22a6 6 0 0 1-8-8L13 3M5 17l10-10" /></svg>}<span>Request document</span></Button>}</div>
         <details className="text-xs"><summary className="cursor-pointer focus-visible:outline">File limits</summary><p>3 files maximum · 5 MB each · JPEG, PNG, PDF</p></details>
         {fileError && <p role="alert" className="text-sm text-red-700 dark:text-red-300">{fileError}</p>}
-      </form> : <p className="text-sm">{user.role === 'admin' ? 'Read-only history — Admin monitoring.' : ticket?.read_only ? 'Previous messages and authorized files remain available.' : windowClerk && chat.data?.window?.open===false ? 'Live support is paused. Your assigned conversation resumes when support opens.' : windowClerk ? 'Declare availability and claim the oldest ticket to reply.' : staff && ticket?.state==='FAQ_ASSISTANCE' ? 'FAQ assistance is active. The student can choose Talk to staff.' : 'Select a ticket to begin.'}</p>}
+      </form> : <p className="text-sm">{user.role === 'admin' ? 'Read-only history — Admin monitoring.' : ticket?.read_only ? 'Previous messages and authorized files remain available.' : windowClerk && chat.data?.window?.open===false ? 'Live support is paused. Your assigned conversation resumes when support opens.' : windowClerk ? 'Declare availability and claim the oldest ticket to reply.' : staff && ticket?.state==='FAQ_ASSISTANCE' ? 'FAQ assistance is active. The student can send “Talk to staff”.' : 'Select a ticket to begin.'}</p>}
       {ticket && <details className="mt-3 text-xs text-gray-600 dark:text-gray-300"><summary className="cursor-pointer focus-visible:outline">Conversation guidance</summary><div className="mt-2">{(user.role==='admin' || ticket.read_only) && <p className="mb-2 font-semibold">Read-only history{user.role==='admin' ? ' — Admin monitoring.' : ticket.state==='RESOLVED' ? ' — ticket resolved.' : ' — document case closed.'}</p>}{conversationNote}</div></details>}
     </div>
     <ModalShell open={active && showCase && Boolean(ticket?.document_id)} onClose={()=>setShowCase(false)} title="Linked request" subtitle={isCollegeOrFinance(user) ? "Case details and supporting documents." : undefined} maxWidth={user.role === 'admin' ? 'max-w-[640px]' : 'max-w-lg'} panelClassName={isCollegeOrFinance(user) ? 'trace-modal-panel trace-secretary-dialog trace-secretary-linked max-w-[600px]' : user.role === 'admin' ? 'trace-modal-panel trace-admin-main-dialog trace-admin-linked-case max-w-[640px]' : undefined} headerIcon={isCollegeOrFinance(user) ? <SecretaryHeaderIcon name="68a9c" /> : user.role === 'admin' ? <span className="trace-admin-security-icon"><AdminIcon name="linked-link" /></span> : undefined} footer={<div className="trace-actions justify-end"><Button type="button" onClick={()=>setShowCase(false)} className={'trace-button ' + (user.role === 'admin' ? 'trace-button-primary' : 'trace-button-secondary w-full')}>{isCollegeOrFinance(user) ? <SecretaryIcon name="d59b3" /> : user.role === 'admin' && <AdminIcon name="linked-arrow-left" />}Back to ticket</Button></div>}>

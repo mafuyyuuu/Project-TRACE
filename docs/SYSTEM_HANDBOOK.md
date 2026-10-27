@@ -288,6 +288,7 @@ The source's `requirements` array is the full field-to-migration index. Passing 
 | Fees/catalog | `migrate_fee_schedules.js` before `migrate_request_catalog.js`; the latter changes live catalog once under its ledger |
 | Receipts | `migrate_finance_receipts.js` before `migrate_receipt_packs.js` |
 | Attachments/support | Existing users/documents/message tables before attachment, ticket, support-requirement, and intake-scope extensions; inspect selected scripts' table references |
+| Conversation unread indicators | `migrate_conversation_reads.js` after existing users; creates only per-user read positions |
 | Staff support | `migrate_staff_conversations.js` and `migrate_internal_assistance.js` against existing users |
 | Authentication | Batch-8 fields, then explicit password reset/history, email verification, trusted browser, authenticator, staff setup, and session changes as reported |
 | Recent additions | `migrate_rate_limits.js`, `migrate_release_policy.js`, `migrate_manual_faq_feedback.js`, `migrate_pickup_sms_reminders.js` when needed |
@@ -563,3 +564,9 @@ Transfer ownership through university-controlled accounts and secure channels, s
 - Protected off-host backups, retention/schedule, separate decryption identity, last drill, measured recovery objectives.
 
 Have a university operator repeat staging setup, reviewed migration, deployment rehearsal, request/payment/release workflow, and recovery. Keep credentials/student records outside Git. Maintain this handbook and environment examples as behavior changes; Git history retains retired documentation and review artifacts.
+
+### Conversation read positions
+
+Run the additive `backend/database/migrate_conversation_reads.js` migration with the reviewed DBA process before rolling out the unread-indicator backend. The runtime account needs its existing SELECT/INSERT/UPDATE permissions on the new table. No messages, tickets, or pricing records are rewritten. Read positions are separate for every viewer and for support, staff coordination, and internal assistance. Incoming authored messages count as unread; own messages and system-only events do not. Existing incoming history remains unread until that user opens it; no historical read state is invented. Read acknowledgements advance only through a message in the authorized conversation and never move backwards.
+
+The frontend acknowledges the selected conversation while visible at its latest messages; hidden categories and inactive tabs do not clear unread status. Support success toasts close after three seconds. Reusing an unresolved general ticket explains the result in a separate popup. Uploaded image previews reuse local/authenticated blobs and do not upload drafts or change payment form values.

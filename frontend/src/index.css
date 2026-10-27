@@ -2636,3 +2636,14 @@ body .trace-faq-feedback-table :is(th,td):not(:first-child) { text-align: right;
   body :is(.trace-admin-shell,.trace-student-shell,.trace-window-shell,.trace-secretary-shell,.trace-finance-shell) .trace-dashboard-greeting.trace-dashboard-greeting { font-size: clamp(1.5rem,6vw,2rem); line-height: 1.25; min-width: 0; overflow-wrap: anywhere; text-align: left; }
   body .trace-dashboard-greeting > span { display: block; margin-top: .25rem; }
 }
+
+/* Focus the complete search control, including its leading icon. */
+.trace-search-field:focus-within { outline: 2px solid #15803d; outline-offset: 2px; }
+.dark .trace-search-field:focus-within { outline-color: #4ade80; }
+body .trace-search-field input:focus { outline: none; box-shadow: none; }
+.trace-image-preview { position: relative; display: inline-flex; max-width: 100%; align-items: center; justify-content: center; }
+.trace-image-preview-button { position: absolute; bottom: 4px; left: 50%; transform: translateX(-50%); min-height: 44px; max-width: 100%; padding: 6px 10px; border-radius: 8px; background: rgb(15 23 42 / .85); color: white; font-size: .75rem; }
+@media (hover: hover) and (pointer: fine) {
+  .trace-image-preview-button { opacity: 0; }
+  .trace-image-preview:hover .trace-image-preview-button, .trace-image-preview:focus-within .trace-image-preview-button { opacity: 1; }
+}

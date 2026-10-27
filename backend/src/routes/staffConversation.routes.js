@@ -7,4 +7,5 @@ router.get('/',controller.list);
 router.post('/',controller.open);
 router.get('/:id',controller.read);
 router.post('/:id/messages',controller.send);
+router.post('/:id/read',controller.markRead);
 module.exports = router;

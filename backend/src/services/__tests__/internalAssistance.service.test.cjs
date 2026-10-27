@@ -1,3 +1,4 @@
+const reads = require('../../models/conversationRead.model');
 const service = require('../internalAssistance.service');
 const model = require('../../models/internalAssistance.model');
 const notification = require('../notification.service');
@@ -8,6 +9,8 @@ const retryKey = 'demo-internal-action-0001';
 const creation = {subject:'Print alignment',category:'system_issue',description:'Please review the demo print configuration.',client_key:retryKey};
 let tx,ticket;
 beforeEach(() => {
+ vi.spyOn(reads,'withUnread').mockImplementation(async(_channel,_actor,rows)=>rows.map(row=>({...row,unread_count:2})));
+ vi.spyOn(reads,'mark').mockResolvedValue({read_through:31});
   tx = {query:vi.fn(),beginTransaction:vi.fn(),commit:vi.fn(),rollback:vi.fn(),release:vi.fn()};
   ticket = {id:11,created_by:4,creator_desk:'Finance',subject:'Print alignment',category:'system_issue',state:'QUEUED',version:0,assigned_to:null};
   vi.spyOn(pool,'getConnection').mockResolvedValue(tx);
@@ -148,4 +151,9 @@ it('retains creator-only archive listing for staff and global authorized monitor
  await service.list(admin,{view:'active'});
  expect(model.list).toHaveBeenLastCalledWith(null,{view:'active',state:undefined,category:undefined,before:null});
  await expect(service.list(staff,{view:'purge'})).rejects.toMatchObject({status:400});
+});
+
+it('authorizes per-user read receipts before writing and preserves unread list values',async()=>{
+ await service.markRead(staff,11,{through:31});expect(reads.mark).toHaveBeenCalledWith('internal',staff.id,expect.any(Number),31);
+ reads.mark.mockClear();model.actor.mockResolvedValueOnce({...staff,id:99});await expect(service.markRead({...staff,id:99},11,{through:31})).rejects.toMatchObject({status:403});expect(reads.mark).not.toHaveBeenCalled();
 });

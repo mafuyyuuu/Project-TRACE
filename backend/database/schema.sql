@@ -708,3 +708,12 @@ CREATE TABLE IF NOT EXISTS manual_faq_events (
  INDEX manual_faq_user_question(user_id,question_hash,id),
  FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS conversation_reads (
+  user_id INT NOT NULL,
+  channel ENUM('support','staff','internal') NOT NULL,
+  conversation_id INT NOT NULL,
+  last_message_id BIGINT NOT NULL DEFAULT 0,
+  PRIMARY KEY (user_id,channel,conversation_id),
+  CONSTRAINT conversation_read_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB;

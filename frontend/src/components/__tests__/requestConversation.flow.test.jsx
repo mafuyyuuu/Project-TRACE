@@ -20,8 +20,8 @@ it('focuses the selected ticket composer and Enter sends directly to that ticket
  await user.click(await screen.findByRole('button',{name:/Request TRC-11/}));
  const input=await screen.findByLabelText('Message'); expect(input).toHaveFocus();
  await user.type(input,'Please check my request.{Enter}');
- await waitFor(()=>expect(api.post).toHaveBeenCalledOnce());
- const [url,payload,options]=api.post.mock.calls[0];
+ await waitFor(()=>expect(api.post.mock.calls.filter(([url])=>url.endsWith('/messages'))).toHaveLength(1));
+ const [url,payload,options]=api.post.mock.calls.find(([url])=>url.endsWith('/messages'));
  expect(url).toBe('/support/tickets/11/messages'); expect(payload.get('message')).toBe('Please check my request.'); expect(payload.get('client_key')).toMatch(/^[a-zA-Z0-9_-]{16,64}$/); expect(options.timeout).toBe(30000);
  await waitFor(()=>expect(input).toHaveValue('')); expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
 });

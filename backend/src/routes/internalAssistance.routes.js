@@ -7,4 +7,5 @@ router.post('/',controller.create);
 router.get('/:id',controller.read);
 router.post('/:id/messages',controller.send);
 router.post('/:id/actions',controller.change);
+router.post('/:id/read',controller.markRead);
 module.exports = router;

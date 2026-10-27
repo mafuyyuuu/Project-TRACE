@@ -1,3 +1,4 @@
+const reads = require('../models/conversationRead.model');
 const { ticketArchiveView } = require('../utils/ticketArchive');
 const crypto = require('crypto');
 const model = require('../models/supportTicket.model');
@@ -73,7 +74,7 @@ async function list(user, query = {}) {
   const listWhere = view === 'all' ? where : `(${where}) AND t.state${view === 'archive' ? '=' : '<>'}?`;
   const listParams = view === 'all' ? params : [...params,'RESOLVED'];
   const result = await model.list(listWhere,listParams,cursor(query.before));
-  return { ...result,view,access_scope:digest([actor.id,actor.role,actor.desk_assignment,listWhere,listParams]),tickets:result.tickets.map(ticket => ({ ...ticket,read_only:actor.role === 'admin' || Boolean(readOnly(ticket)) })) };
+  return { ...result,view,access_scope:digest([actor.id,actor.role,actor.desk_assignment,listWhere,listParams]),tickets:(await reads.withUnread('support',actor.id,result.tickets)).map(ticket => ({ ...ticket,read_only:actor.role === 'admin' || Boolean(readOnly(ticket)) })) };
 }
 async function resolveContext(user,query = {}) {
   const actor=await currentActor(user);
@@ -90,6 +91,11 @@ async function resolveContext(user,query = {}) {
   const found=await model.context(documentId,ownerId);
   return {ticket:found ? await authorize(actor,await model.ticket(found.id)) : null};
 }
+async function markRead(user,ticketId,body) {
+  const actor = await currentActor(user);
+  const resource = await authorize(actor,await model.ticket(id(ticketId)));
+  return reads.mark('support',actor.id,resource.id,body?.through);
+}
 async function read(user, ticketId, query = {}) {
   const actor = await currentActor(user);
   const ticket = await authorize(actor, await model.ticket(id(ticketId)));
@@ -97,8 +103,9 @@ async function read(user, ticketId, query = {}) {
   const queue = await queueStatus(ticket,settings);
   const history = await model.history(ticket.id,cursor(query.before));
   const requirements = ticket.document_id && history.messages.some(message => message.kind==='requirement') ? await require('../models/requestAttachment.model').list(ticket.document_id) : [];
-  history.messages = history.messages.map(message => message.kind==='requirement' ? {...message,requirement:requirements.find(row => row.id===Number(message.metadata?.requirement_id)) || message.metadata?.snapshot} : message);
-  return { queue,ticket:{ ...ticket,read_only:actor.role === 'admin' || Boolean(readOnly(ticket)) },...history, monitor_only:actor.role === 'admin', window:liveWindow(new Date(),settings) };
+  history.messages = history.messages.map(message => message.kind==='system' && message.message==='Choose an approved FAQ topic or select Talk to staff.' ? {...message,message:'Choose an approved FAQ topic or send “Talk to staff”.'} : message.kind==='requirement' ? {...message,requirement:requirements.find(row => row.id===Number(message.metadata?.requirement_id)) || message.metadata?.snapshot} : message);
+  const [unreadTicket] = await reads.withUnread('support',actor.id,[ticket]);
+  return { queue,ticket:{ ...unreadTicket,read_only:actor.role === 'admin' || Boolean(readOnly(ticket)) },...history, monitor_only:actor.role === 'admin', window:liveWindow(new Date(),settings) };
 }
 async function create(user, body = {}) {
   const documentId = body.document_id ? id(body.document_id) : null;
@@ -123,10 +130,10 @@ async function create(user, body = {}) {
       ownerId=owners[0].id;
     }
     const existing = documentId ? await model.linked(documentId,connection) : await model.openGeneral(actor.id,connection);
-    if (existing) return authorize(actor,await model.ticket(existing.id,connection),connection);
+    if (existing) return {...await authorize(actor,await model.ticket(existing.id,connection),connection),reused:true};
     const ticketId = await model.create(ownerId,documentId,subject,documentId ? 'linked' : 'general',connection);
     await model.event(ticketId,actor.id,'created',`${actor.id}:${retryKey}`,{hash,calendar:settings,...(actor.role!=='student' ? {via:'staff_opened_case'} : {})},connection);
-    if(actor.role==='student') await model.system(ticketId,'Choose an approved FAQ topic or select Talk to staff.',{},connection);
+    if(actor.role==='student') await model.system(ticketId,'Choose an approved FAQ topic or send “Talk to staff”.',{},connection);
     else {
       await model.update(ticketId,{state:'QUEUED',queued_at:new Date()},connection);
       await model.event(ticketId,actor.id,'escalated',crypto.randomUUID(),{via:'staff_opened_case'},connection);
@@ -331,7 +338,7 @@ async function assertFileRead(user,filename) {
   if (!file) throw notFound('Support attachment not found.');
   await authorize(await currentActor(user),await model.ticket(file.ticket_id)); return file;
 }
-module.exports = { list,resolveContext,read,create,send,action,claim,setAvailability,getSettings,saveSettings,assertFileRead,assertSendAccess,queueStatus,settleTicket,processTimers,authorize,currentActor,managed,readOnly,transaction,changed };
+module.exports = { markRead, list,resolveContext,read,create,send,action,claim,setAvailability,getSettings,saveSettings,assertFileRead,assertSendAccess,queueStatus,settleTicket,processTimers,authorize,currentActor,managed,readOnly,transaction,changed };
 
 async function requirementHistory(user, ticketId, requirementId, before) {
   const actor = await currentActor(user);
