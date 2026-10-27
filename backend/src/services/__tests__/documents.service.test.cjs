@@ -558,6 +558,13 @@ describe('acceptForProcessing — Secretary desk only', () => {
     expect(documentModel.updateEvaluation).toHaveBeenCalledWith(5,STATUS.SEC_PROCESSING,'STU-001','Ana','Honorable Dismissal','2026-09-09',connection);
     expect(documentModel.updatePaymentVerificationForGroup).not.toHaveBeenCalled();
   });
+  it.each(['dropout','transferred'])('keeps %s former students on the undergraduate period during evaluation',async enrollment_status=>{
+    userModel.findStudentForPolicy.mockResolvedValue([{id:3,student_id:'STU-001',user_type:'alumni',enrollment_status}]);
+    documentModel.findByIdForUpdate.mockResolvedValue([{...doc,document_type:'Transcript of Records',created_at:'2026-09-01T00:00:00Z'}]);
+    await service.acceptForProcessing(SECRETARY,5,{...body,document_type:'Transcript of Records',estimated_ready_date:'2099-01-01'});
+    expect(documentModel.updateEvaluation).toHaveBeenCalledWith(5,STATUS.SEC_PROCESSING,'STU-001','Ana','Transcript of Records','2026-09-17',connection);
+    expect(documentModel.updateReleasePolicy).toHaveBeenCalledWith(5,10,connection);
+  });
 
   it.each([['a student', STUDENT], ['Finance', FINANCE], ['Window 1', WINDOW1]])(
     'rejects %s',

@@ -2625,8 +2625,16 @@ body .trace-faq-feedback-table :is(th,td):not(:first-child) { text-align: right;
 .trace-login-submit { min-height: 54px; margin-top: 0; font-size: 1.125rem; }
 
 @media(max-width:767px) {
-  body .trace-tab-strip .trace-tab-group { @apply items-stretch gap-1 rounded-none border-b border-gray-200 bg-transparent p-0 dark:border-gray-700 dark:bg-transparent; }
-  body .trace-tab-strip .trace-tab { @apply min-h-11 rounded-b-none rounded-t-[10px] px-4 py-3; height: auto; }
-  body :is(.trace-admin-shell,.trace-student-shell,.trace-window-shell,.trace-secretary-shell,.trace-finance-shell) .trace-dashboard-greeting.trace-dashboard-greeting { font-size: clamp(1.5rem,6vw,2rem); line-height: 1.25; min-width: 0; overflow-wrap: anywhere; }
+  /* Match the shared top-corner tabs even inside a desk's pill-style queues. */
+  body .trace-tab-strip { width: 100%; }
+  body :is(.trace-tab-strip > .trace-tab-scroller > .trace-tab-group,.trace-ticket-archive-tabs) { @apply items-stretch gap-2 rounded-none border-b border-gray-200 bg-transparent p-0 dark:border-gray-700 dark:bg-transparent; }
+  body :is(.trace-tab-strip .trace-tab-group > .trace-tab,.trace-ticket-archive-tabs > .trace-button) { @apply min-h-11 rounded-b-none rounded-t-[10px] px-[18px] py-3 text-sm font-medium; height: auto; flex-shrink: 0; white-space: nowrap; }
+  body :is(.trace-tab-strip .trace-tab-group > .trace-tab,.trace-ticket-archive-tabs > .trace-button):is([aria-selected='true'],[aria-pressed='true']) { font-weight: 600; }
+  body .trace-ticket-archive-tabs { flex-wrap: nowrap; overflow-x: auto; }
+  body .trace-ticket-archive-tabs > .trace-button[aria-pressed='true'] { @apply border-transparent bg-trace-emerald text-white; }
+  body .trace-ticket-archive-tabs > .trace-button[aria-pressed='false'] { @apply border-transparent bg-transparent text-[#647084] dark:bg-transparent dark:text-gray-300; }
+  body :is(.trace-admin-shell,.trace-student-shell,.trace-window-shell,.trace-secretary-shell,.trace-finance-shell) .trace-page-header:has(.trace-dashboard-greeting) { align-items: flex-start; text-align: left; }
+  body :is(.trace-admin-shell,.trace-student-shell,.trace-window-shell,.trace-secretary-shell,.trace-finance-shell) .trace-page-header > :has(> .trace-dashboard-greeting) { width: 100%; }
+  body :is(.trace-admin-shell,.trace-student-shell,.trace-window-shell,.trace-secretary-shell,.trace-finance-shell) .trace-dashboard-greeting.trace-dashboard-greeting { font-size: clamp(1.5rem,6vw,2rem); line-height: 1.25; min-width: 0; overflow-wrap: anywhere; text-align: left; }
   body .trace-dashboard-greeting > span { display: block; margin-top: .25rem; }
 }

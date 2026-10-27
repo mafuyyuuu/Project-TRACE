@@ -471,6 +471,8 @@ Normal preparation counts **Monday through Thursday only**, based on original su
 
 Check actual policies for other types/configured same-day exceptions; do not infer a default here. Preserve historical dates during migration. Test per-document dates/totals on multi-document requests, graduate/undergraduate cases, and month/year boundaries.
 
+Graduate periods follow the recorded graduation outcome, not merely a former-student account label. Transferred, withdrawn (`dropout`), and active students use undergraduate periods. Legacy alumni records without an outcome retain the existing fallback; review incomplete records rather than bulk rewriting dates. A saved `release_working_days` snapshot takes precedence over later profile changes.
+
 ### Analytics, feedback, notifications
 
 Review real records for long desk waits, requests exceeding 15 working days, and requests past estimated release. Separate prepared documents awaiting pickup from preparation delay. Dashboard/export filters, timestamps, and source records must agree; never fabricate missing figures.

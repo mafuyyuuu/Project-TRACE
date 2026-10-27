@@ -17,13 +17,13 @@ export default function useManualFaqFeedback(){
     clearTimeout(timers.current.get(question));timers.current.delete(question);
     setPending(current=>({...current,[question]:true}));setErrors(current=>({...current,[question]:''}));setNotices(current=>({...current,[question]:''}));
     try{await recordManualFaq({question,action,suggestion,client_key:key},controller.signal);if(!alive.current || controller.signal.aborted)return;
-      setFeedback(current=>({...current,[question]:{question,action,suggestion}}));setNotices(current=>({...current,[question]:'Thank you. Your feedback was saved.'}));retries.current.delete(question);
+      setFeedback(current=>({...current,[question]:{question,action,suggestion}}));setNotices(current=>({...current,[question]:'Feedback saved. Thank you!'}));retries.current.delete(question);
       setSelected(current=>({...current,[question]:null}));setDrafts(current=>({...current,[question]:''}));
       timers.current.set(question,setTimeout(()=>{timers.current.delete(question);if(alive.current)setNotices(current=>({...current,[question]:''}));},4000));
     }catch(error){if(alive.current && !controller.signal.aborted)setErrors(current=>({...current,[question]:error.response?.data?.error || 'Feedback was not saved. Please retry.'}));}
     finally{if(writes.current.get(question)===controller)writes.current.delete(question);if(alive.current && !controller.signal.aborted)setPending(current=>({...current,[question]:false}));}
   };
-  const choose=(question,action)=>{if(writes.current.has(question))return;clearTimeout(timers.current.get(question));timers.current.delete(question);setNotices(current=>({...current,[question]:''}));setSelected(current=>({...current,[question]:action}));if(action==='helpful')void save(question,action);};
+  const choose=(question,action)=>{if(writes.current.has(question))return;clearTimeout(timers.current.get(question));timers.current.delete(question);setNotices(current=>({...current,[question]:''}));setErrors(current=>({...current,[question]:''}));setSelected(current=>({...current,[question]:action}));if(action==='helpful')void save(question,action);};
   const view=question=>{if(viewed.current.has(question))return;viewed.current.add(question);void recordManualFaq({question,action:'view',client_key:crypto.randomUUID()},read.current?.signal).catch(()=>viewed.current.delete(question));};
   return {feedback,selected,drafts,pending,errors,notices,loadError,reload:load,choose,view,retry:question=>save(question,selected[question],drafts[question] ?? ''),setDraft:(question,value)=>setDrafts(current=>({...current,[question]:value})),saveSuggestion:question=>save(question,'not_helpful',drafts[question] ?? '')};
 }

@@ -101,3 +101,15 @@ it('lets Review open while the catalog is pending and preserves edits when it ar
   expect(within(select).getAllByRole('option')).toHaveLength(2);
   expect(screen.getByLabelText('Secretary Notes')).toHaveValue('Retained evaluation notes');
 });
+it.each([
+  ['graduated',null,'2027-01-11'],
+  ['dropout',null,'2027-01-19'],
+  ['transferred',null,'2027-01-19'],
+  ['graduated',10,'2027-01-19'],
+])('shows the automatic %s date while preserving a saved %s-day policy',async (outcome,savedDays,date)=>{
+ request={...request,document_type:'Transcript of Records for Employment',created_at:'2026-12-31T02:00:00Z',student_user_type:'alumni',student_enrollment_status:outcome,release_working_days:savedDays};
+ openReview();
+ const ready=screen.getByLabelText(/Ready By/);
+ expect(ready).toHaveValue(date);expect(ready).toHaveAttribute('readonly');
+ await act(async()=>{});
+});

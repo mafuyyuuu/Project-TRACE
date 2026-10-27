@@ -10,7 +10,9 @@ export default function useSupportTickets(user,initialDocumentId,requestedTicket
   const [tickets,setTickets] = useState([]), [cursor,setCursor] = useState(null);
   const [loading,setLoading] = useState(true), [error,setError] = useState('');
   const [settings,setSettings] = useState(null), [topics,setTopics] = useState([]);
-  const [selected,setSelected] = useState(() => requestedTicket || '');
+  const [selected,setSelectedValue] = useState(() => requestedTicket || '');
+  const selection = useRef(selected);
+  const setSelected = useCallback(value => { selection.current=value; setSelectedValue(value); }, []);
   const [busy,setBusy] = useState(false);
   const feedback = useSupportFeedback();
   const owner = useRef(null), read = useRef(null), pending = useRef(false), initial = useRef(true), scope = useRef(null);
@@ -25,7 +27,26 @@ export default function useSupportTickets(user,initialDocumentId,requestedTicket
       const scopeChanged=scope.current!==null && typeof data.access_scope==='string' && data.access_scope!==scope.current;
       if(scopeChanged) {setSelected('');initial.current=true;}
       if(typeof data.access_scope==='string')scope.current=data.access_scope;
-      setTickets(previous => before && !scopeChanged ? merge(previous,data.tickets) : data.tickets);
+      let rows=data.tickets;
+      const selectedId=selection.current;
+      // A reused general ticket can be older than the first cursor page. A
+      // post-write list may also lag the accepted response. Revalidate the
+      // selected ticket through the ownership-checked endpoint before keeping
+      // it visible; never pin an unverified cached row indefinitely.
+      if(user.role==='student' && !before && !scopeChanged && selectedId && !rows.some(row=>String(row.id)===String(selectedId))) {
+        try {
+          const result=await service.getTicket(selectedId,null,controller.signal);
+          if(identity!==owner.current || controller.signal.aborted)return;
+          if(String(selection.current)!==String(selectedId))return;
+          if((result.ticket.state==='RESOLVED' ? 'archive' : 'active')===view) rows=merge(rows,[result.ticket]);
+        } catch(err) {
+          if(identity!==owner.current || controller.signal.aborted)return;
+          if(String(selection.current)!==String(selectedId))return;
+          if([403,404].includes(err.response?.status))setSelected('');
+          else throw err;
+        }
+      }
+      setTickets(previous => before && !scopeChanged ? merge(previous,rows) : rows);
       setCursor(data.next_cursor);
       initial.current = false; setError('');
     } catch (err) { if (identity === owner.current && !controller.signal.aborted) {
@@ -33,7 +54,7 @@ export default function useSupportTickets(user,initialDocumentId,requestedTicket
       setError(message(err,'Could not load tickets. Retry support.'));
     } }
     finally { if (read.current === controller) read.current = null; if (identity === owner.current && !controller.signal.aborted) setLoading(false); }
-  }, [view]);
+  }, [view,setSelected,user.role]);
   const loadContext = useCallback(async () => {
     const identity = owner.current;
     try {
@@ -61,7 +82,7 @@ export default function useSupportTickets(user,initialDocumentId,requestedTicket
       if(!controller.signal.aborted && ticket) {setTickets(previous=>merge(previous,[ticket]));setSelected(String(ticket.id));}
     }).catch(err=>{if(!controller.signal.aborted)setError(message(err,'Could not open the linked support history. Retry support.'));});
     return ()=>controller.abort();
-  },[user.id,initialDocumentId,requestedTicket,requestedSupport]);
+  },[user.id,initialDocumentId,requestedTicket,requestedSupport,setSelected]);
   useDataRefresh(['support', 'documents', 'accounts'], () => { read.current?.abort(); read.current = null; void refresh(); void loadContext(); });
   const execute = async action => {
     if (pending.current) return false;
