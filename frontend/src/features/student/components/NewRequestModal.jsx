@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
+import useStepMotion from '@/hooks/useStepMotion';
 import StudentIcon from './StudentIcon';
 import { RequestSteps, StudentRequestReview } from './StudentRequestConfirmation';
 import NumberInput from '@/components/NumberInput';
@@ -38,6 +39,8 @@ export default function NewRequestModal({
   const [editingStep, setEditingStep] = useState(1);
   const [samePurpose,setSamePurpose] = useState(false);
   const step = requestToConfirm ? 3 : editingStep;
+  const formRef = useRef(null);
+  useStepMotion(formRef, step);
   const close = () => { if (!actionLoading) { cancelStudentSubmission?.(); setActiveModal(null); } };
   const edit = () => { cancelStudentSubmission?.(); setEditingStep(2); };
   const selectedNames = Object.keys(selections);
@@ -56,8 +59,8 @@ export default function NewRequestModal({
       onClose={close}
       busy={actionLoading} closeOnEsc={!actionLoading} closeOnBackdrop={!actionLoading}
       title="New Request"
-      maxWidth={step === 1 ? 'max-w-[611px]' : 'max-w-[860px]'}
-      panelClassName={`trace-modal-panel trace-student-new-request-dialog trace-request-wizard ${step === 1 ? 'max-w-[611px]' : 'max-w-[860px]'}`}
+      maxWidth="max-w-[860px]"
+      panelClassName="trace-modal-panel trace-student-new-request-dialog trace-request-wizard max-w-[860px]"
       bodyClassName="trace-modal-body trace-request-wizard-body"
       headerIcon={<span className="trace-student-modal-heading-icon"><StudentIcon name="fplus-ef562" /></span>}
       subtitle="Select one or more documents. Nothing is paid now — the College Secretary sets the amount once your documents are printed."
@@ -86,7 +89,7 @@ export default function NewRequestModal({
     >
       <RequestSteps step={step} />
 
-      <form id="new-request-form" onSubmit={event => { if (step === 1) { event.preventDefault(); if(samePurpose) for(const name of selectedNames) updateSelection(name,{purpose:selections[selectedNames[0]]?.purpose || ''}); setEditingStep(2); } else handleStudentSubmitRequest(event); }} className="space-y-6 trace-student-request-form">
+      <form ref={formRef} id="new-request-form" onSubmit={event => { if (step === 1) { event.preventDefault(); if(samePurpose) for(const name of selectedNames) updateSelection(name,{purpose:selections[selectedNames[0]]?.purpose || ''}); setEditingStep(2); } else handleStudentSubmitRequest(event); }} className="space-y-6 trace-student-request-form">
           {step === 1 && <>
           <div className="flex flex-col gap-2">
             <label className="trace-label">

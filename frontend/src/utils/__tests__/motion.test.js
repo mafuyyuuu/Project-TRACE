@@ -37,6 +37,21 @@ const panel = () => {
 };
 
 describe('Shared motion', () => {
+  it('slides wizard content horizontally in either direction and honors live reduced motion', () => {
+    const element = panel();
+    animateMotion(element, 'step', { direction: 1 });
+    expect(animations[0].frames[0].transform).toBe('translateX(16px)');
+    expect(animations[0].options.duration).toBe(250);
+    animations[0].onfinish();
+    animateMotion(element, 'step', { direction: -1 });
+    expect(animations[1].frames[0].transform).toBe('translateX(-16px)');
+    expect(animations[1].frames[1]).toEqual({ opacity: 1, transform: 'none' });
+    media.matches = true;
+    const event = new Event('change'); event.matches = true; media.dispatchEvent(event);
+    expect(animations[1].cancel).toHaveBeenCalledOnce();
+    animateMotion(element, 'step');
+    expect(animations).toHaveLength(2);
+  });
   it('reads configurable tokens and replaces interrupted motion from its current presentation', () => {
     const element = panel();
     const stop = animateMotion(element, 'context');

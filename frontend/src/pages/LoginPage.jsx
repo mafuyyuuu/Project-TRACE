@@ -5,6 +5,7 @@ import { INPUT_LIMITS } from '@/utils/inputLimits';
 import { useState, useEffect, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import useAuth from '@/hooks/useAuth'
+import useStepMotion from '@/hooks/useStepMotion'
 import AuthShell from '@/components/AuthShell'
 import { verify2FA } from '@/services/authService'
 import { hasBrowserTrustPreference, rememberBrowserTrustPreference } from '@/utils/browserTrustPreference'
@@ -34,6 +35,8 @@ export default function LoginPage() {
   const [submitting, setSubmitting] = useState(false)
   const submissionInFlight = useRef(false)
   const busy = loading || submitting
+  const formRef = useRef(null)
+  useStepMotion(formRef, requires2FA ? (useRecoveryCode ? 3 : 2) : 1)
 
   const startResendCooldown = () => {
     resendDeadline.current = Date.now() + 60000
@@ -138,7 +141,7 @@ export default function LoginPage() {
       title={requires2FA ? 'Verification Required' : 'Login'}
       subtitle={requires2FA ? 'Confirm your identity to continue securely.' : 'Sign in to request and track your documents.'}
     >
-          <form onSubmit={handleSubmit} aria-busy={busy} className="trace-login-form">
+          <form ref={formRef} onSubmit={handleSubmit} aria-busy={busy} className="trace-login-form">
             {error && <p role="alert" className="trace-error">{error}</p>}
             {needsStaffSetup && <p role="status" className="text-sm">This staff account needs an authenticator. Ask Admin for a private setup code, then <Link to="/staff-setup" className="font-bold underline">open staff authenticator setup</Link>.</p>}
             {resendNotice && <p role="status" className="text-sm font-medium text-white/90">{resendNotice}</p>}
