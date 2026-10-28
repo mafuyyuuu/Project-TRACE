@@ -260,15 +260,17 @@
 }
 
 :root {
-  --trace-motion-feedback-duration: 150ms;
+  --trace-motion-feedback-duration: 220ms;
   --trace-motion-context-duration: 220ms;
   --trace-motion-continuity-duration: 220ms;
   --trace-motion-drill-duration: 250ms;
   --trace-motion-exit-duration: 200ms;
-  --trace-motion-return-duration: 150ms;
+  --trace-motion-return-duration: 220ms;
+  --trace-motion-step-duration: 250ms;
   --trace-motion-easing: cubic-bezier(0.2, 0, 0, 1);
   --trace-motion-continuity-distance: 2px;
   --trace-motion-context-distance: 8px;
+  --trace-motion-step-distance: 16px;
   --trace-motion-drill-distance: 12px;
   --trace-motion-exit-distance: 8px;
   --trace-motion-feedback-distance: 0px;
@@ -2316,6 +2318,9 @@ button.trace-password-visibility[data-inverse]:enabled:hover::before { backgroun
 .trace-auth-form-side { @apply flex min-w-0 flex-col items-center justify-center gap-[10px] bg-[#168f55] px-[24px] py-[40px] text-white; }
 .trace-auth-seal { @apply size-[96px] shrink-0 object-contain; }
 .trace-auth-form-content { @apply flex w-full max-w-[627px] flex-col justify-center gap-[30px]; }
+/* Keep the login/verification frame and seal stationary; long challenges scroll. */
+.trace-auth-form-content:has(.trace-login-form,.trace-auth-step-content) { height:616px; min-height:616px; flex-shrink:0; overflow:auto; justify-content:safe center; }
+.trace-auth-form-content:has(.trace-login-form,.trace-auth-step-content) > * { flex-shrink:0; }
 .trace-auth-form-heading { @apply w-full; }
 .trace-auth-form-heading h2 { @apply text-[2rem] font-extrabold leading-normal; }
 .trace-auth-form-heading p { @apply mt-[6px] text-[.875rem] leading-[1.43] text-[#f4f6f8]; }
@@ -2366,7 +2371,8 @@ body :is(.trace-admin-shell,.trace-student-shell,.trace-window-shell,.trace-secr
 .trace-signup-steps li p { @apply mt-[2px] text-[.875rem] leading-normal; }
 .trace-signup-brand-footer { @apply text-[.875rem] text-white/80; }
 .trace-signup-main { @apply flex min-w-0 items-center justify-center px-[16px] py-[32px]; }
-.trace-signup-card { @apply flex w-full max-w-[560px] flex-col gap-[24px] rounded-[20px] border border-[#e6e9ee] bg-white p-[24px] shadow-[0_8px_24px_rgb(0_0_0/.06)] dark:border-gray-700 dark:bg-gray-900; container-type:inline-size; }
+.trace-signup-card { @apply flex w-full max-w-[560px] flex-col gap-[24px] rounded-[20px] border border-[#e6e9ee] bg-white p-[24px] shadow-[0_8px_24px_rgb(0_0_0/.06)] dark:border-gray-700 dark:bg-gray-900; container-type:inline-size; height:min(58rem,calc(100dvh - 64px)); overflow:auto; overscroll-behavior:contain; }
+.trace-signup-card > * { flex-shrink:0; }
 .trace-signup-heading { @apply flex flex-col gap-[6px]; }
 .trace-signup-progress { @apply mb-[12px] grid grid-cols-3 gap-[8px]; }
 .trace-signup-progress li { @apply h-[6px] rounded-[3px] bg-[#e3e7ec] dark:bg-gray-700; }
@@ -2406,8 +2412,9 @@ body :is(.trace-admin-shell,.trace-student-shell,.trace-window-shell,.trace-secr
 }
 .trace-support-conversation-note { @apply rounded-[10px] border border-green-200 bg-green-50 px-[12px] py-[10px] text-[.75rem] leading-relaxed text-green-900 dark:border-green-800 dark:bg-green-950 dark:text-green-100; }
 
-/* The request wizard keeps the same dialog and draft across all three steps. */
-.trace-request-wizard-body { @apply bg-[#fafbfc] dark:bg-gray-950; }
+/* Only step content moves. Fixed chrome and scrolling body avoid frame jumps. */
+.trace-request-wizard { height:min(58rem,calc(var(--trace-viewport-height,100dvh) - 32px)); }
+.trace-request-wizard-body { @apply bg-[#fafbfc] dark:bg-gray-950; overflow-x:hidden; }
 .trace-request-wizard .trace-student-request-steps { @apply mb-[20px] flex flex-wrap items-center gap-[12px]; }
 .trace-request-wizard .trace-student-request-steps > li { @apply flex items-center gap-[12px] text-[.8125rem]; }
 .trace-request-wizard .trace-student-request-steps > li > span { @apply flex items-center gap-[8px]; }
@@ -2646,4 +2653,24 @@ body .trace-search-field input:focus { outline: none; box-shadow: none; }
 @media (hover: hover) and (pointer: fine) {
   .trace-image-preview-button { opacity: 0; }
   .trace-image-preview:hover .trace-image-preview-button, .trace-image-preview:focus-within .trace-image-preview-button { opacity: 1; }
+}
+
+/* Shared feedback preserves selected states and existing hit targets. */
+:is(.trace-control,.trace-search-field,.trace-student-document-search,.trace-button-feedback,.trace-tab,.trace-nav-item,[role='menuitem'],[role='option']) {
+  transition-property:color,background-color,border-color,box-shadow,outline-color,transform,opacity;
+  transition-duration:var(--trace-motion-feedback-duration);
+  transition-timing-function:var(--trace-motion-easing);
+}
+:is(.trace-student-request-steps,.trace-signup-progress,.trace-signup-steps,.trace-checkout-steps,.trace-guide-progress) :is(li,span,b,i,strong),
+.trace-checkout-steps li::after {
+  transition:color var(--trace-motion-feedback-duration) var(--trace-motion-easing),background-color var(--trace-motion-feedback-duration) var(--trace-motion-easing),border-color var(--trace-motion-feedback-duration) var(--trace-motion-easing);
+}
+:is(.trace-data-table,.trace-admin-data-table,.trace-analytics-table) tbody tr {
+  transition:background-color var(--trace-motion-feedback-duration) var(--trace-motion-easing);
+}
+@media (hover:hover) and (pointer:fine) {
+  :is(.trace-data-table,.trace-admin-data-table,.trace-analytics-table) tbody tr:not([aria-selected='true']):hover,
+  :is([role='menuitem'],[role='option']):not([aria-disabled='true']):not([aria-selected='true']):hover {
+    background-color:color-mix(in srgb,var(--trace-chart-accent) 7%,var(--trace-chart-surface));
+  }
 }

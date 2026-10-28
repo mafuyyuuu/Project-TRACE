@@ -1,7 +1,8 @@
 import Button from '@/components/Button';
 import StudentIcon from '@/features/student/components/StudentIcon';
 import AdminIcon from '@/features/admin/components/AdminIcon';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import useStepMotion from '@/hooks/useStepMotion';
 import QRCode from 'qrcode';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import useAuthenticator from '@/hooks/useAuthenticator';
@@ -20,6 +21,8 @@ export default function AuthenticatorSettings({ user, admin = false, student = f
   const [qr, setQr] = useState('');
   const [qrError, setQrError] = useState('');
   const [confirmation, setConfirmation] = useState(null);
+  const stepRef = useRef(null);
+  useStepMotion(stepRef, auth.codes.length ? 4 : recovery ? 3 : auth.setup ? 2 : 1);
   useEffect(() => {
     let current = true;
     if (auth.setup?.provisioning_uri) {
@@ -38,7 +41,7 @@ export default function AuthenticatorSettings({ user, admin = false, student = f
   function stage(action) {
     if (password && code) setConfirmation({ action, payload: payload() });
   }
-  return <section data-motion-private aria-labelledby="authenticator-heading" onKeyDown={event => { if (event.key === 'Enter' && event.target.tagName === 'INPUT') event.preventDefault(); }} className={'trace-section trace-section-body ' + (student ? 'trace-student-profile-card' : admin ? 'space-y-3.5' : 'space-y-4')}>
+  return <section ref={stepRef} data-motion-private aria-labelledby="authenticator-heading" onKeyDown={event => { if (event.key === 'Enter' && event.target.tagName === 'INPUT') event.preventDefault(); }} className={'trace-section trace-section-body ' + (student ? 'trace-student-profile-card' : admin ? 'space-y-3.5' : 'space-y-4')}>
     {student ? <div className="trace-student-profile-card-heading"><span className="trace-student-profile-symbol"><StudentIcon name="profile-badd4" /></span><div className="min-w-0 flex-1"><h3 id="authenticator-heading">Two-factor authentication</h3><p>Use an authenticator app on your phone to generate login codes. Available to every TRACE account.</p></div>{auth.status && <span className="trace-student-profile-badge trace-student-profile-neutral">{auth.status.enabled ? 'Enabled' : 'Not enabled'}</span>}</div> : admin ? <div className="trace-admin-security-card-heading"><span className="trace-admin-security-icon"><AdminIcon name="security-phone" /></span><div className="min-w-0 flex-1"><div className="flex flex-wrap items-center gap-2"><h3 id="authenticator-heading">Two-factor authentication</h3>{auth.status && <span className="trace-admin-badge trace-admin-badge-neutral"><AdminIcon name="security-ellipse" />{auth.status.enabled ? 'Enabled' : 'Not enabled'}</span>}</div><p>Use an authenticator app on your phone to generate login codes. Available to every TRACE account.</p></div></div> : <><h3 id="authenticator-heading" className="text-sm font-black">Two-factor authentication</h3><p className="text-sm">Use an authenticator app on your phone to generate login codes. Available to every TRACE account.</p></>}
     {auth.error && <div className="space-y-2"><p role="alert" className="text-sm text-red-700 dark:text-red-300">{auth.error}</p>
       {!auth.status && <Button type="button" className={buttonClass} onClick={auth.retry}>Retry authenticator settings</Button>}</div>}

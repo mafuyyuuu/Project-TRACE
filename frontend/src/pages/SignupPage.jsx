@@ -12,6 +12,7 @@ import ConfirmDialog from '@/components/ConfirmDialog'
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import useAuth from '@/hooks/useAuth'
+import useStepMotion from '@/hooks/useStepMotion'
 import { getColleges, getPrograms } from '@/services/referenceService'
 import RegistrationPrivacyNotice from '@/components/RegistrationPrivacyNotice'
 import { PRIVACY_NOTICE_VERSION } from '@/utils/registrationPrivacy'
@@ -47,6 +48,8 @@ export default function SignupPage() {
   const [showPrivacy, setShowPrivacy] = useState(false)
   const [step, setStep] = useState(1);
   const headingRef = useRef(null);
+  const formRef = useRef(null);
+  useStepMotion(formRef, success ? 4 : step);
   useEffect(() => { headingRef.current?.focus({ preventScroll: true }); }, [step, success]);
 
   useEffect(() => {
@@ -190,7 +193,7 @@ export default function SignupPage() {
         {registrationToConfirm?.get('id_proof') instanceof File && <div className="mt-4"><FileUploadField label="Attached Proof" file={registrationToConfirm.get('id_proof')} allowReplace={false} compactPreview /></div>}
       </ConfirmDialog>
       <div className="trace-signup-card">
-        {success ? <div className="trace-signup-complete">
+        {success ? <div ref={formRef} className="trace-signup-complete">
           <div className="trace-signup-complete-mark" aria-hidden="true"><ReviewIcon name="154c2" /></div>
           <p className="trace-signup-step-label">REGISTRATION SUBMITTED</p>
           <h1 ref={headingRef} tabIndex={-1}>Registration complete</h1>
@@ -206,7 +209,7 @@ export default function SignupPage() {
             <h1 ref={headingRef} tabIndex={-1}>{['Academic details', 'Personal information', 'Account & verification'][step - 1]}</h1>
             <p>{['Enter your details exactly as they appear in your school records.', 'We use these details on your document requests and receipts.', 'Secure your account and verify your identity.'][step - 1]}</p>
           </header>
-          <form noValidate onSubmit={handleSubmit} className="trace-signup-form" aria-busy={loading || idCheck.checking}>
+          <form ref={formRef} noValidate onSubmit={handleSubmit} className="trace-signup-form" aria-busy={loading || idCheck.checking}>
             {step === 1 && <>
             <fieldset className="space-y-[6px]"><legend className="trace-label mb-[6px]">Account Type *</legend>
               <div className="trace-signup-account-types">{[['student', 'Current Student'], ['alumni', 'Alumni']].map(([type, label]) => <Button key={type} type="button" disabled={loading} aria-pressed={formData.userType === type} onClick={() => setFields({ userType: type, employeeId: '', proofUnavailable: false })}>{label}</Button>)}</div>

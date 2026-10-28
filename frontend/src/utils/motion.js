@@ -30,7 +30,7 @@ export function cancelMotion(element, preserve = false) {
 }
 
 /** Progressive enhancement: state and focus never wait for this animation. */
-export function animateMotion(element, kind = 'context') {
+export function animateMotion(element, kind = 'context', { direction = 1 } = {}) {
   if (!element?.animate || prefersReducedMotion()) {
     if (element) cancelMotion(element);
     return () => {};
@@ -40,7 +40,9 @@ export function animateMotion(element, kind = 'context') {
   cancelMotion(element, true);
   const start = presentation.get(element) || {
     opacity: timing.opacity,
-    transform: kind === 'drill' || kind === 'return'
+    transform: kind === 'step'
+      ? `translateX(${direction < 0 ? '-' : ''}${timing.distance})`
+      : kind === 'drill' || kind === 'return'
       ? `translateY(${timing.distance}) scale(${timing.scale})`
       : `translateY(${timing.distance})`,
   };

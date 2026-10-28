@@ -2,6 +2,7 @@ import Button from '@/components/Button';
 import { useEffect, useRef, useState } from 'react';
 import ModalShell from '@/components/ModalShell';
 import { getOnboardingSteps } from '@/utils/onboardingSteps';
+import useStepMotion from '@/hooks/useStepMotion';
 
 
 function findTarget(target) {
@@ -15,6 +16,8 @@ export default function OnboardingTutorial({ user, onComplete, onPrepare = () =>
   const [step, setStep] = useState(0);
   const [geometry, setGeometry] = useState(null);
   const cardRef = useRef(null);
+  const copyRef = useRef(null);
+  useStepMotion(copyRef, step);
   const prepareRef = useRef(onPrepare);
   useEffect(() => { prepareRef.current = onPrepare; }, [onPrepare]);
   useEffect(() => {
@@ -83,7 +86,7 @@ export default function OnboardingTutorial({ user, onComplete, onPrepare = () =>
         <span className="text-xs font-bold uppercase tracking-widest text-green-700 dark:text-green-300">TRACE · Quick tour</span>
         <Button type="button" onClick={onComplete} aria-label="Skip quick guide" className="shrink-0 rounded-full px-2 py-1 text-sm text-gray-500 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800">Skip</Button>
       </div>
-      <section data-guide-copy aria-live="polite" className="min-h-0 overflow-y-auto overscroll-contain space-y-3 pr-1">
+      <section ref={copyRef} data-guide-copy aria-live="polite" className="min-h-0 overflow-y-auto overscroll-contain space-y-3 pr-1">
         <p className="text-xs text-gray-500 dark:text-gray-400">Step {step + 1} of {steps.length}</p>
         <h2 tabIndex={-1} className="text-xl font-bold leading-snug outline-none">{current.title}</h2>
         <p className="text-sm leading-relaxed">{current.text}</p>
@@ -92,7 +95,7 @@ export default function OnboardingTutorial({ user, onComplete, onPrepare = () =>
           if (current.next) setStep(value => value + 1);
         }} className="trace-button-lift rounded-xl border border-green-600 px-4 py-2 text-sm font-bold text-green-700 dark:text-green-300">{current.action} <span aria-hidden="true">↗</span></Button>}
       </section>
-      <div aria-hidden="true" className="flex shrink-0 gap-1">{steps.map((_, index) => <span key={index} className={`h-1 flex-1 rounded-full ${index <= step ? 'bg-green-600' : 'bg-gray-200 dark:bg-gray-700'}`} />)}</div>
+      <div aria-hidden="true" className="trace-guide-progress flex shrink-0 gap-1">{steps.map((_, index) => <span key={index} className={`h-1 flex-1 rounded-full ${index <= step ? 'bg-green-600' : 'bg-gray-200 dark:bg-gray-700'}`} />)}</div>
       <div className="flex shrink-0 flex-wrap items-center justify-between gap-3">
         <Button type="button" disabled={step === 0} onClick={() => setStep(value => value - 1)} className="trace-button-lift rounded-xl px-3 py-2 text-sm font-bold disabled:opacity-30">Back</Button>
         <Button type="button" onClick={() => step === steps.length - 1 ? onComplete() : setStep(value => value + 1)} className="trace-button-lift rounded-xl bg-green-700 px-5 py-2.5 text-sm font-bold text-white enabled:hover:bg-green-800">{step === steps.length - 1 ? 'Finish tour' : 'Next'}</Button>
