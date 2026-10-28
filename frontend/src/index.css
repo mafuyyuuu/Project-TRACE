@@ -2414,6 +2414,7 @@ body :is(.trace-admin-shell,.trace-student-shell,.trace-window-shell,.trace-secr
 
 /* Only step content moves. Fixed chrome and scrolling body avoid frame jumps. */
 .trace-request-wizard { height:min(58rem,calc(var(--trace-viewport-height,100dvh) - 32px)); }
+.trace-request-wizard > :is(.trace-modal-header,.trace-modal-footer) { max-height:32%; overflow-y:auto; overscroll-behavior:contain; }
 .trace-request-wizard-body { @apply bg-[#fafbfc] dark:bg-gray-950; overflow-x:hidden; }
 .trace-request-wizard .trace-student-request-steps { @apply mb-[20px] flex flex-wrap items-center gap-[12px]; }
 .trace-request-wizard .trace-student-request-steps > li { @apply flex items-center gap-[12px] text-[.8125rem]; }
